@@ -804,41 +804,40 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 .am-cta-group {
   display: flex;
   align-items: center;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+  gap: 10px;
   width: 100%;
   max-width: 520px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .am-email {
   flex: 1;
-  border: none;
+  border: 1px solid var(--border);
+  border-radius: 12px;
   outline: none;
-  padding: 16px 20px;
+  padding: 15px 20px;
   font-size: 15px;
   font-family: var(--font);
   color: var(--text);
-  background: transparent;
+  background: var(--bg);
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
   min-width: 0;
+  transition: border-color 0.15s var(--ease);
 }
+.am-email:focus { border-color: var(--text-subtle); }
 .am-email::placeholder { color: var(--text-subtle); }
 
 .am-submit {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 12px 20px;
-  margin: 4px;
+  padding: 15px 22px;
   background: var(--accent);
   color: #fff;
   font-size: 14px;
   font-weight: 600;
   font-family: var(--font);
   border: none;
-  border-radius: 9px;
+  border-radius: 12px;
   cursor: pointer;
   white-space: nowrap;
   transition: opacity 0.15s var(--ease);
