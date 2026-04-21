@@ -22,15 +22,105 @@
       <span></span><span></span><span></span>
     </button>
     <a href="/" class="logo" aria-label="Home">
-      <img src="boom_full_bw.png" alt="Logo" class="logo-img" /><img src="boom_name.png" alt="Logo" class="logo-img--pill" />
+      <span class="logo-text">Trade Risk Solutions</span>
     </a>
     <nav class="nav-links" aria-label="Primary">
-      <a href="/aboutus" class="nav-active">About us</a>
-      <a href="/solutions">Solutions</a>
-      <a href="/pricing">Pricing</a>
+      <a href="/aboutus" class="nav-active">About</a>
+
+      <div class="nav-dropdown">
+        <button class="nav-dropdown-trigger">
+          Product
+          <svg class="dd-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="nav-dropdown-panel">
+          <div class="nav-dd-left">
+            <button class="nav-dd-item active" data-target="commercial">
+              <span class="nav-dd-dot nav-dd-dot--blue"></span>
+              <div class="nav-dd-texts">
+                <span class="nav-dd-title">Commercial</span>
+                <span class="nav-dd-sub">Insurance for businesses</span>
+              </div>
+              <svg class="nav-dd-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <button class="nav-dd-item" data-target="personal">
+              <span class="nav-dd-dot nav-dd-dot--orange"></span>
+              <div class="nav-dd-texts">
+                <span class="nav-dd-title">Personal</span>
+                <span class="nav-dd-sub">Insurance for individuals</span>
+              </div>
+              <svg class="nav-dd-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+          <div class="nav-dd-right">
+            <div class="nav-dd-group active" data-group="commercial">
+              <a href="#" class="nav-dd-link">
+                <span class="nav-dd-link-title">Construction</span>
+                <span class="nav-dd-link-sub">Lorem ipsum dolor sit amet</span>
+              </a>
+              <a href="#" class="nav-dd-link">
+                <span class="nav-dd-link-title">Foreign Worker</span>
+                <span class="nav-dd-link-sub">Lorem ipsum dolor sit amet</span>
+              </a>
+            </div>
+            <div class="nav-dd-group" data-group="personal">
+              <a href="#" class="nav-dd-link">
+                <span class="nav-dd-link-title">Motor</span>
+                <span class="nav-dd-link-sub">Lorem ipsum dolor sit amet</span>
+              </a>
+              <a href="#" class="nav-dd-link">
+                <span class="nav-dd-link-title">Masterpiece</span>
+                <span class="nav-dd-link-sub">Lorem ipsum dolor sit amet</span>
+              </a>
+              <a href="#" class="nav-dd-link">
+                <span class="nav-dd-link-title">Travel</span>
+                <span class="nav-dd-link-sub">Lorem ipsum dolor sit amet</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-dropdown">
+        <button class="nav-dropdown-trigger">
+          Resources
+          <svg class="dd-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="nav-dropdown-panel nav-dropdown-panel--single">
+          <div class="nav-dd-left nav-dd-left--full">
+            <a href="#" class="nav-dd-item-link">
+              <span class="nav-dd-dot nav-dd-dot--green"></span>
+              <div class="nav-dd-texts">
+                <span class="nav-dd-title">Blog</span>
+                <span class="nav-dd-sub">Lorem ipsum dolor sit amet</span>
+              </div>
+            </a>
+            <a href="#" class="nav-dd-item-link">
+              <span class="nav-dd-dot nav-dd-dot--yellow"></span>
+              <div class="nav-dd-texts">
+                <span class="nav-dd-title">Case Studies</span>
+                <span class="nav-dd-sub">Lorem ipsum dolor sit amet</span>
+              </div>
+            </a>
+            <a href="#" class="nav-dd-item-link">
+              <span class="nav-dd-dot nav-dd-dot--blue"></span>
+              <div class="nav-dd-texts">
+                <span class="nav-dd-title">FAQ</span>
+                <span class="nav-dd-sub">Lorem ipsum dolor sit amet</span>
+              </div>
+            </a>
+            <a href="#" class="nav-dd-item-link">
+              <span class="nav-dd-dot nav-dd-dot--orange"></span>
+              <div class="nav-dd-texts">
+                <span class="nav-dd-title">News</span>
+                <span class="nav-dd-sub">Lorem ipsum dolor sit amet</span>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
     </nav>
     <div class="nav-actions">
-      <a href="#" class="btn btn-primary">Get Started</a>
+      <a href="#" class="btn btn-primary">Contact us</a>
     </div>
   </header>
 
@@ -38,27 +128,39 @@
   <div class="nav-drawer-overlay" aria-hidden="true"></div>
   <aside class="nav-drawer" aria-label="Mobile navigation">
     <div class="nav-drawer-top">
-      <img src="boom_full_bw.png" alt="Logo" style="height:36px;width:auto;display:block;" />
+      <span class="logo-text">Trade Risk Solutions</span>
       <button class="nav-drawer-close" aria-label="Close menu">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
     <nav class="nav-drawer-links">
-      <a href="/aboutus" class="nav-active">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20v-2a8 8 0 0 1 16 0v2"/></svg>
-        About us
-      </a>
-      <a href="/solutions">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-        Solutions
-      </a>
-      <a href="/pricing">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-        Pricing
-      </a>
+      <a href="/aboutus" class="nav-active">About</a>
+
+      <button class="nav-drawer-accordion">
+        Product
+        <svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="nav-drawer-sub">
+        <a href="#">Commercial: Construction</a>
+        <a href="#">Commercial: Foreign Worker</a>
+        <a href="#">Personal: Motor</a>
+        <a href="#">Personal: Masterpiece</a>
+        <a href="#">Personal: Travel</a>
+      </div>
+
+      <button class="nav-drawer-accordion">
+        Resources
+        <svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="nav-drawer-sub">
+        <a href="#">Blog</a>
+        <a href="#">Case Studies</a>
+        <a href="#">FAQ</a>
+        <a href="#">News</a>
+      </div>
     </nav>
     <div class="nav-drawer-cta">
-      <a href="#" class="btn btn-primary btn-lg">Get Started</a>
+      <a href="#" class="btn btn-primary btn-lg">Contact us</a>
     </div>
   </aside>
 
