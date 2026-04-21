@@ -1,0 +1,15 @@
+{
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "x-vercel-skip-toolbar", "value": "1" }
+      ]
+    }
+  ],
+  "rewrites": [
+    { "source": "/aboutus",   "destination": "/aboutus.html" },
+    { "source": "/solutions", "destination": "/solutions.html" },
+    { "source": "/pricing",   "destination": "/pricing.html" }
+  ]
+}

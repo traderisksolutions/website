@@ -1,0 +1,149 @@
+body { height: auto; overflow: auto; }
+
+/* ── Page ── */
+.pricing-page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 96px 24px 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 48px;
+}
+
+/* ── Intro ── */
+.pricing-intro { text-align: center; }
+
+.pricing-title {
+  font-size: 38px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  color: var(--text);
+  line-height: 1.15;
+}
+
+/* ── Grid ── */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  width: 100%;
+  max-width: 700px;
+  align-items: stretch;
+}
+
+/* ── Card ── */
+.pricing-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--bg);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.pricing-card:hover {
+  border-color: var(--text-subtle);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+}
+
+/* ── Main section ── */
+.pricing-main {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 28px 24px;
+  flex: 1;
+}
+
+/* ── Retainer section ── */
+.pricing-retainer {
+  padding: 18px 24px;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.price-badge {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 99px;
+  padding: 4px 12px;
+}
+
+.retainer-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+
+.retainer-desc {
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+
+/* ── CTA ── */
+.pricing-cta {
+  text-align: center;
+  margin-top: 16px;
+}
+
+/* ── Card internals ── */
+
+.pricing-type {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+
+.pricing-card-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.pricing-card-desc {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-muted);
+}
+
+.pricing-card-bottom { width: 100%; }
+
+/* ── Footer ── */
+.pricing-footer {
+  text-align: center;
+  padding: 32px 16px 24px;
+  font-size: 13px;
+  color: var(--text-subtle);
+  border-top: 1px solid var(--border);
+}
+
+/* ── Active nav ── */
+.nav-active {
+  color: var(--text) !important;
+  background: var(--bg-card);
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .pricing-grid { grid-template-columns: 1fr; max-width: 420px; }
+  .pricing-title { font-size: 28px; }
+}
