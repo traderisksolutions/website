@@ -528,35 +528,36 @@
       });
 
       /* ── Typewriter placeholder ── */
-      var phrases = [
-        'Ask TRS about commercial insurance…',
-        'Ask TRS about personal coverage…',
-        'Ask TRS about employee benefits…',
-        'Ask TRS about travel insurance…',
-        'Ask TRS about foreign worker insurance…'
+      var PREFIX = 'Ask TRS about ';
+      var suffixes = [
+        'commercial insurance…',
+        'personal coverage…',
+        'employee benefits…',
+        'travel insurance…',
+        'foreign worker insurance…'
       ];
-      var phraseIdx = 0, charIdx = 0, deleting = false;
-      var PAUSE_FULL = 1800, PAUSE_EMPTY = 400;
-      var TYPE_SPEED = 52, DEL_SPEED = 28;
+      var suffixIdx = 0, charIdx = 0, deleting = false;
+      var PAUSE_FULL = 1800, PAUSE_EMPTY = 320;
+      var TYPE_SPEED = 55, DEL_SPEED = 30;
       var timer;
 
       function tick() {
-        if (input.value !== '') return; /* stop if user started typing */
-        var phrase = phrases[phraseIdx];
+        if (input.value !== '') return;
+        var suffix = suffixes[suffixIdx];
         if (!deleting) {
           charIdx++;
-          input.placeholder = phrase.slice(0, charIdx);
-          if (charIdx === phrase.length) {
+          input.placeholder = PREFIX + suffix.slice(0, charIdx);
+          if (charIdx === suffix.length) {
             deleting = true;
             timer = setTimeout(tick, PAUSE_FULL);
             return;
           }
         } else {
           charIdx--;
-          input.placeholder = phrase.slice(0, charIdx);
+          input.placeholder = PREFIX + suffix.slice(0, charIdx);
           if (charIdx === 0) {
             deleting = false;
-            phraseIdx = (phraseIdx + 1) % phrases.length;
+            suffixIdx = (suffixIdx + 1) % suffixes.length;
             timer = setTimeout(tick, PAUSE_EMPTY);
             return;
           }
