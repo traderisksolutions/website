@@ -1579,17 +1579,14 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 .accordion {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
 }
 
 /* ── Item ── */
 .acc-item {
   border-bottom: 1px solid var(--border);
 }
-.acc-item:last-child {
-  border-bottom: none;
+.acc-item:first-child {
+  border-top: 1px solid var(--border);
 }
 
 /* ── Trigger ── */
@@ -1614,7 +1611,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 }
 
 .acc-trigger:hover {
-  background: var(--bg-card);
+  background: transparent;
 }
 
 .acc-trigger:focus-visible {
@@ -1626,20 +1623,20 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 }
 
 .acc-item--open .acc-trigger {
-  background: var(--bg-card);
+  background: transparent;
   color: var(--text);
   font-weight: 600;
 }
 
-/* ── Chevron ── */
+/* ── Plus / cross icon ── */
 .acc-chevron {
   flex-shrink: 0;
   color: var(--text-subtle);
-  transition: transform var(--duration-normal) var(--ease);
+  transition: transform var(--duration-normal) var(--ease), color var(--duration-normal) var(--ease);
 }
 
 .acc-item--open .acc-chevron {
-  transform: rotate(180deg);
+  transform: rotate(45deg);
   color: var(--text);
 }
 
