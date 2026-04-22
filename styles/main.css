@@ -881,7 +881,8 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 .trust-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 20px;
   margin-bottom: 24px;
 }
 
@@ -890,6 +891,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   font-weight: 500;
   color: var(--text-muted);
   font-family: var(--font);
+  text-align: center;
 }
 
 .trust-stories-btn {
@@ -1036,9 +1038,9 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   display: inline-block;
   font-family: var(--font);
   font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-weight: var(--weight-medium);
+  letter-spacing: 0;
+  text-transform: none;
   color: var(--color-text-secondary);
   margin: 0 0 10px;
 }
