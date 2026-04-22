@@ -460,6 +460,58 @@
     </div>
   </section>
 
+  <!-- CONTACT CTA SECTION -->
+  <section class="cta-section">
+    <div class="cta-wrap">
+      <p class="cta-eyebrow">Get covered today</p>
+      <h2 class="cta-heading">Ready to be covered?</h2>
+      <div class="cta-box">
+        <textarea class="cta-input" id="cta-input" rows="3" placeholder="Tell us what you need — e.g. travel insurance for a family of 4 next month…" aria-label="Message to TRS"></textarea>
+        <div class="cta-box-footer">
+          <button class="cta-send" id="cta-send" aria-label="Send to WhatsApp">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="footer-wrap">
+      <a href="/" class="footer-logo" aria-label="Trade Risk Solutions home">
+        <span class="footer-logo-text">TRS</span>
+      </a>
+      <div class="footer-contact">
+        <a href="tel:+6562380888" class="footer-link">+65 6238 0888</a>
+        <a href="mailto:enquiry@trade-risksol.com" class="footer-link">enquiry@trade-risksol.com</a>
+        <address class="footer-address">
+          Suntec Tower 2, 9 Temasek Boulevard<br>Singapore 038989
+        </address>
+      </div>
+      <p class="footer-copy">&copy; 2025 Trade Risk Solutions. All rights reserved.</p>
+    </div>
+  </footer>
+
   <script src="scripts/nav.js"></script>
+  <script>
+    (function () {
+      var btn   = document.getElementById('cta-send');
+      var input = document.getElementById('cta-input');
+      if (!btn || !input) return;
+      btn.addEventListener('click', function () {
+        var msg = input.value.trim();
+        if (!msg) return;
+        var url = 'https://wa.me/6562380888?text=' + encodeURIComponent(msg);
+        window.open(url, '_blank', 'noopener');
+      });
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          btn.click();
+        }
+      });
+    })();
+  </script>
 </body>
 </html>
