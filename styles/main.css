@@ -1847,6 +1847,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 }
 
 .cta-send {
+  position: relative;
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -1857,12 +1858,35 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   align-items: center;
   justify-content: center;
   color: #fff;
+  overflow: hidden;
   transition: background var(--duration-fast) var(--ease), transform var(--duration-fast) var(--ease);
+}
+
+.cta-send-arrow,
+.cta-send-rocket {
+  position: absolute;
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.cta-send-rocket {
+  font-size: 17px;
+  opacity: 0;
+  transform: scale(0.6) rotate(-30deg);
 }
 
 .cta-send:hover {
   background: #222;
   transform: scale(1.06);
+}
+
+.cta-send:hover .cta-send-arrow {
+  opacity: 0;
+  transform: scale(0.6);
+}
+
+.cta-send:hover .cta-send-rocket {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
 }
 
 .cta-send:active {
