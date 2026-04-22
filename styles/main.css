@@ -1039,18 +1039,22 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   margin-bottom: 44px;
 }
 
+/* Pill bar — contains the tabs */
 .sc-tabs {
-  display: flex;
-  gap: 4px;
+  display: inline-flex;
+  gap: 2px;
+  background: rgba(0, 0, 0, 0.07);
+  border-radius: var(--radius-full);
+  padding: 4px;
 }
 
 .sc-tab {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 8px 16px;
+  padding: 7px 15px;
   border-radius: var(--radius-full);
-  border: 1.5px solid transparent;
+  border: none;
   background: transparent;
   font-family: var(--font);
   font-size: 14px;
@@ -1059,20 +1063,19 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   cursor: pointer;
   transition:
     background var(--duration-fast) var(--ease-default),
-    border-color var(--duration-fast) var(--ease-default),
-    color var(--duration-fast) var(--ease-default);
+    color       var(--duration-fast) var(--ease-default),
+    box-shadow  var(--duration-fast) var(--ease-default);
 }
 
 .sc-tab--active {
-  background: rgba(255, 255, 255, 0.68);
-  backdrop-filter: blur(14px) saturate(1.5);
-  -webkit-backdrop-filter: blur(14px) saturate(1.5);
-  border-color: rgba(255, 255, 255, 0.60);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(16px) saturate(1.6);
+  -webkit-backdrop-filter: blur(16px) saturate(1.6);
   color: var(--color-text-primary);
   box-shadow:
-    0 2px 12px rgba(0, 0, 0, 0.06),
-    0 1px 3px  rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+    0 1px 6px  rgba(0, 0, 0, 0.08),
+    0 2px 16px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
 }
 
 .sc-dot {
@@ -1381,36 +1384,43 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   justify-content: center;
 }
 
-.sc-subpills         { display: none; gap: 8px; flex-wrap: wrap; justify-content: center; }
-.sc-subpills--active { display: flex; }
+/* Pill bar — same treatment as top tabs */
+.sc-subpills {
+  display: none;
+  gap: 2px;
+  background: rgba(0, 0, 0, 0.07);
+  border-radius: var(--radius-full);
+  padding: 4px;
+  flex-wrap: nowrap;
+}
+.sc-subpills--active { display: inline-flex; }
 
 .sc-spill {
-  padding: 9px 20px;
+  padding: 7px 18px;
   border-radius: var(--radius-full);
-  border: 1px solid transparent;
+  border: none;
   background: transparent;
   font-family: var(--font);
   font-size: 14px;
   font-weight: 500;
   color: var(--color-text-muted);
   cursor: pointer;
+  white-space: nowrap;
   transition:
     background var(--duration-fast) var(--ease-default),
-    border-color var(--duration-fast) var(--ease-default),
-    color var(--duration-fast) var(--ease-default),
-    box-shadow var(--duration-fast) var(--ease-default);
+    color       var(--duration-fast) var(--ease-default),
+    box-shadow  var(--duration-fast) var(--ease-default);
 }
 
 .sc-spill--active {
-  background: rgba(255, 255, 255, 0.68);
-  backdrop-filter: blur(14px) saturate(1.5);
-  -webkit-backdrop-filter: blur(14px) saturate(1.5);
-  border-color: rgba(255, 255, 255, 0.60);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(16px) saturate(1.6);
+  -webkit-backdrop-filter: blur(16px) saturate(1.6);
   color: var(--color-text-primary);
   box-shadow:
-    0 2px 12px rgba(0, 0, 0, 0.06),
-    0 1px 3px  rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+    0 1px 6px  rgba(0, 0, 0, 0.08),
+    0 2px 16px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
 }
 
 .sc-spill:hover:not(.sc-spill--active) {

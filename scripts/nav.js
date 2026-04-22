@@ -77,7 +77,7 @@
   if (!tabs.length) return;
 
   function activate(panel) {
-    ['sc-tab', 'sc-orb-panel', 'sc-meta-panel', 'sc-panel', 'sc-subpills'].forEach(function (cls) {
+    ['sc-tab', 'sc-meta-panel', 'sc-panel', 'sc-subpills'].forEach(function (cls) {
       document.querySelectorAll('.' + cls).forEach(function (el) {
         el.classList.toggle(cls + '--active', el.dataset.panel === panel);
         if (el.role === 'tab') el.setAttribute('aria-selected', el.dataset.panel === panel);
