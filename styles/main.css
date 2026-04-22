@@ -816,7 +816,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   border-radius: 100px;
   padding: 6px 6px 6px 22px;
   box-shadow: 0 2px 16px rgba(0,0,0,0.07);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .am-email {
