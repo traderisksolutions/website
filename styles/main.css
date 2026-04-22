@@ -1750,31 +1750,29 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   margin: 0 auto;
 }
 
-.cta-eyebrow {
-  font-family: var(--font);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-subtle);
-  margin: 0 0 14px;
-}
-
 .cta-heading {
   font-family: var(--font-heading);
-  font-size: clamp(2.4rem, 5vw, 3.8rem);
+  font-size: clamp(2.6rem, 6vw, 4.2rem);
   font-weight: 800;
   color: var(--text);
   letter-spacing: -0.03em;
-  line-height: 1.1;
-  margin: 0 0 36px;
+  line-height: 1.05;
+  margin: 0 0 14px;
+}
+
+.cta-sub {
+  font-family: var(--font);
+  font-size: 15px;
+  color: var(--text-subtle);
+  margin: 0 0 32px;
 }
 
 .cta-box {
-  background: #f0eff0;
-  border-radius: 20px;
-  padding: 20px 20px 16px;
+  background: #f2f0ed;
+  border-radius: 24px;
+  padding: 20px 20px 14px;
   text-align: left;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
 }
 
 .cta-input {
@@ -1786,27 +1784,40 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   font-family: var(--font);
   font-size: 15px;
   color: var(--text);
-  line-height: 1.6;
-  min-height: 72px;
+  line-height: 1.65;
+  min-height: 88px;
   box-sizing: border-box;
 }
 
 .cta-input::placeholder {
-  color: var(--text-subtle);
+  color: #aaa9a8;
 }
 
 .cta-box-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
-  margin-top: 10px;
+  margin-top: 8px;
+}
+
+.cta-attach {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.06);
+  border: none;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #888;
 }
 
 .cta-send {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: var(--text);
+  background: #5a5a5a;
   border: none;
   cursor: pointer;
   display: flex;
