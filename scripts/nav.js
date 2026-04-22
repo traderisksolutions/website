@@ -148,3 +148,43 @@
     spill.classList.add('sc-spill--active');
   });
 })();
+
+/* ── Scroll reveal ── */
+(function () {
+  if (!window.IntersectionObserver) return;
+
+  var observer = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add('reveal--visible');
+      observer.unobserve(entry.target);
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -32px 0px' });
+
+  function watch(selector, stagger) {
+    document.querySelectorAll(selector).forEach(function (el, i) {
+      el.classList.add('reveal');
+      if (stagger) el.style.transitionDelay = (i * 72) + 'ms';
+      observer.observe(el);
+    });
+  }
+
+  /* Trust section */
+  watch('.trust-heading-row', false);
+  watch('.trust-logo-row > *', true);
+
+  /* Showcase */
+  watch('.sc-card', false);
+
+  /* Accordion */
+  watch('.acc-col-head', false);
+  watch('.acc-item', true);
+
+  /* CTA */
+  watch('.cta-heading', false);
+  watch('.cta-sub',     false);
+  watch('.cta-box',     false);
+
+  /* Footer */
+  watch('.site-footer', false);
+})();
