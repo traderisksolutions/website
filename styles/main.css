@@ -1527,3 +1527,213 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   }
 }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   ACCORDION SECTION
+   ═══════════════════════════════════════════════════════════════ */
+
+.acc-section {
+  padding: 80px 48px 100px;
+  background: var(--bg);
+}
+
+.acc-wrap {
+  max-width: 780px;
+  margin: 0 auto;
+}
+
+/* Section heading */
+.acc-col-head {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.acc-eyebrow {
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 12px;
+}
+
+.acc-heading {
+  font-family: var(--font);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+  margin: 0 0 12px;
+}
+
+.acc-sub {
+  font-family: var(--font);
+  font-size: 15px;
+  color: var(--text-subtle);
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ── Accordion container ── */
+.accordion {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+/* ── Item ── */
+.acc-item {
+  border-bottom: 1px solid var(--border);
+}
+.acc-item:last-child {
+  border-bottom: none;
+}
+
+/* ── Trigger ── */
+.acc-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  background: var(--bg);
+  border: none;
+  text-align: left;
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease),
+    color      var(--duration-fast) var(--ease);
+}
+
+.acc-trigger:hover {
+  background: var(--bg-card);
+}
+
+.acc-trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: 2px;
+  z-index: 1;
+  position: relative;
+}
+
+.acc-item--open .acc-trigger {
+  background: var(--bg-card);
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ── Chevron ── */
+.acc-chevron {
+  flex-shrink: 0;
+  color: var(--text-subtle);
+  transition: transform var(--duration-normal) var(--ease);
+}
+
+.acc-item--open .acc-chevron {
+  transform: rotate(180deg);
+  color: var(--text);
+}
+
+/* ── Panel — grid animation ── */
+.acc-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--duration-normal) var(--ease);
+}
+
+.acc-item--open .acc-panel {
+  grid-template-rows: 1fr;
+}
+
+.acc-body {
+  overflow: hidden;
+  padding: 0 24px;
+  transition: padding var(--duration-normal) var(--ease);
+}
+
+.acc-item--open .acc-body {
+  padding: 0 24px 20px;
+}
+
+.acc-body p {
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-subtle);
+  margin: 0;
+}
+
+.acc-body strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ── Disabled state ── */
+.acc-item--disabled .acc-trigger {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.acc-item--disabled .acc-trigger:hover {
+  background: var(--bg);
+}
+
+/* Badge inside trigger */
+.acc-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: var(--bg-hover);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-subtle);
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+/* ── Loading skeleton inside panel ── */
+.acc-loader {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0 4px;
+}
+
+.acc-loader .skel {
+  height: 14px;
+  border-radius: 4px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .acc-section {
+    padding: 60px 20px 80px;
+  }
+
+  .acc-heading {
+    font-size: 1.6rem;
+  }
+
+  .acc-trigger {
+    padding: 16px 18px;
+    font-size: 14px;
+  }
+
+  .acc-body {
+    padding: 0 18px;
+  }
+
+  .acc-item--open .acc-body {
+    padding: 0 18px 16px;
+  }
+}

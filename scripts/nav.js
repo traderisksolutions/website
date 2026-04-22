@@ -71,6 +71,56 @@
   });
 })();
 
+/* ── Accordion ── */
+(function () {
+  document.querySelectorAll('.accordion').forEach(function (acc) {
+    var mode = acc.dataset.mode || 'single'; // 'single' | 'multi'
+
+    function getItems()    { return Array.from(acc.querySelectorAll('.acc-item:not(.acc-item--disabled)')); }
+    function getTriggers() { return getItems().map(function (i) { return i.querySelector('.acc-trigger'); }).filter(Boolean); }
+
+    function open(item) {
+      item.classList.add('acc-item--open');
+      var btn = item.querySelector('.acc-trigger');
+      if (btn) btn.setAttribute('aria-expanded', 'true');
+    }
+
+    function close(item) {
+      item.classList.remove('acc-item--open');
+      var btn = item.querySelector('.acc-trigger');
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+    }
+
+    function toggle(item) {
+      var isOpen = item.classList.contains('acc-item--open');
+      if (mode === 'single' && !isOpen) {
+        getItems().forEach(close);
+      }
+      isOpen ? close(item) : open(item);
+    }
+
+    /* Click */
+    acc.querySelectorAll('.acc-trigger').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var item = btn.closest('.acc-item');
+        if (!item || item.classList.contains('acc-item--disabled')) return;
+        toggle(item);
+      });
+    });
+
+    /* Keyboard navigation */
+    acc.addEventListener('keydown', function (e) {
+      var triggers = getTriggers();
+      var idx = triggers.indexOf(document.activeElement);
+      if (idx === -1) return;
+      if (e.key === 'ArrowDown') { e.preventDefault(); triggers[(idx + 1) % triggers.length].focus(); }
+      if (e.key === 'ArrowUp')   { e.preventDefault(); triggers[(idx - 1 + triggers.length) % triggers.length].focus(); }
+      if (e.key === 'Home')      { e.preventDefault(); triggers[0].focus(); }
+      if (e.key === 'End')       { e.preventDefault(); triggers[triggers.length - 1].focus(); }
+    });
+  });
+})();
+
 /* ── Showcase tab switcher ── */
 (function () {
   var tabs = document.querySelectorAll('.sc-tab');
