@@ -70,3 +70,31 @@
     });
   });
 })();
+
+/* ── Showcase tab switcher ── */
+(function () {
+  var tabs = document.querySelectorAll('.sc-tab');
+  if (!tabs.length) return;
+
+  function activate(panel) {
+    ['sc-tab', 'sc-orb-panel', 'sc-meta-panel', 'sc-subpills'].forEach(function (cls) {
+      document.querySelectorAll('.' + cls).forEach(function (el) {
+        el.classList.toggle(cls + '--active', el.dataset.panel === panel);
+        if (el.role === 'tab') el.setAttribute('aria-selected', el.dataset.panel === panel);
+      });
+    });
+  }
+
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () { activate(tab.dataset.panel); });
+  });
+
+  document.addEventListener('click', function (e) {
+    var spill = e.target.closest('.sc-spill');
+    if (!spill) return;
+    var group = spill.closest('.sc-subpills');
+    if (!group) return;
+    group.querySelectorAll('.sc-spill').forEach(function (s) { s.classList.remove('sc-spill--active'); });
+    spill.classList.add('sc-spill--active');
+  });
+})();

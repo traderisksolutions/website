@@ -223,92 +223,68 @@
     </div>
   </section>
 
-  <!-- TAILORED SECTION -->
-  <section class="tailored-section">
-    <div class="tailored-inner">
+  <!-- SHOWCASE SECTION -->
+  <section class="sc-section">
+    <div class="sc-wrap">
+      <div class="sc-card">
 
-      <div class="tailored-head">
-        <p class="tailored-eyebrow">Tailored insurance for&hellip;</p>
-        <div class="tailored-rule"></div>
-      </div>
+        <!-- Top row: tabs + meta -->
+        <div class="sc-top">
+          <div class="sc-tabs" role="tablist">
+            <button class="sc-tab sc-tab--active" role="tab" aria-selected="true" data-panel="consumers">
+              <span class="sc-dot sc-dot--warm"></span>TRSConsumers
+            </button>
+            <button class="sc-tab" role="tab" aria-selected="false" data-panel="commercial">
+              <span class="sc-dot sc-dot--blue"></span>TRSCommercial
+            </button>
+            <button class="sc-tab" role="tab" aria-selected="false" data-panel="employees">
+              <span class="sc-dot sc-dot--teal"></span>TRSEmployees
+            </button>
+          </div>
+          <div class="sc-meta" aria-live="polite">
+            <div class="sc-meta-panel sc-meta-panel--active" data-panel="consumers">
+              <p class="sc-meta-title">Consumers</p>
+              <p class="sc-meta-sub">Personal insurance plans designed around your life.</p>
+            </div>
+            <div class="sc-meta-panel" data-panel="commercial">
+              <p class="sc-meta-title">Commercial</p>
+              <p class="sc-meta-sub">Business-grade coverage from SMEs to enterprise.</p>
+            </div>
+            <div class="sc-meta-panel" data-panel="employees">
+              <p class="sc-meta-title">Employees</p>
+              <p class="sc-meta-sub">Group benefit packages that attract and retain talent.</p>
+            </div>
+          </div>
+        </div>
 
-      <div class="tailored-grid">
+        <!-- Orb stage -->
+        <div class="sc-stage">
+          <div class="sc-orb-panel sc-orb-panel--active" data-panel="consumers">
+            <div class="sc-orb sc-orb--consumers"></div>
+          </div>
+          <div class="sc-orb-panel" data-panel="commercial">
+            <div class="sc-orb sc-orb--commercial"></div>
+          </div>
+          <div class="sc-orb-panel" data-panel="employees">
+            <div class="sc-orb sc-orb--employees"></div>
+          </div>
+        </div>
 
-        <!-- Card 1: Individuals & Families -->
-        <article class="card card--interactive" tabindex="0">
-          <div class="card__header card__header--individuals">
-            <svg class="card__icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <circle cx="18" cy="14" r="6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-              <path d="M6 38c0-7 5.4-12 12-12s12 5 12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-              <circle cx="33" cy="17" r="4.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-              <path d="M32 29c4.2 0 8 3.5 8 9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+        <!-- Bottom sub-pills -->
+        <div class="sc-bottom">
+          <div class="sc-subpills sc-subpills--active" data-panel="consumers">
+            <button class="sc-spill sc-spill--active">Masterpiece</button>
+            <button class="sc-spill">Travel</button>
+            <button class="sc-spill">Motor</button>
           </div>
-          <div class="card__content">
-            <h3 class="card__title">Individuals &amp; Families</h3>
-            <p class="card__description">Personal coverage for every stage of life — motor, travel, home, and health plans designed around you.</p>
+          <div class="sc-subpills" data-panel="commercial">
+            <button class="sc-spill sc-spill--active">Construction</button>
+            <button class="sc-spill">Foreign Workers Insurance</button>
           </div>
-          <div class="card__footer">
-            <a href="#" class="card__cta" aria-label="Explore Individuals &amp; Families">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-            </a>
+          <div class="sc-subpills" data-panel="employees">
+            <button class="sc-spill sc-spill--active">Employee Benefit</button>
           </div>
-          <div class="card__accent card__accent--warm"></div>
-        </article>
-
-        <!-- Card 2: Commercial Businesses -->
-        <article class="card card--interactive" tabindex="0">
-          <div class="card__header card__header--commercial">
-            <svg class="card__icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <rect x="6" y="18" width="36" height="24" rx="2" stroke="currentColor" stroke-width="2.5"/>
-              <path d="M16 18V12a8 8 0 0 1 16 0v6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-              <path d="M24 28v4M20 30h8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <div class="card__content">
-            <h3 class="card__title">Commercial Businesses</h3>
-            <p class="card__description">Protect your operations, workforce, and assets with business-grade cover — from SMEs to enterprise.</p>
-          </div>
-          <div class="card__footer">
-            <a href="#" class="card__cta" aria-label="Explore Commercial Businesses">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-            </a>
-          </div>
-          <div class="card__accent card__accent--blue"></div>
-        </article>
-
-        <!-- Card 3: Employee Benefits -->
-        <article class="card card--interactive" tabindex="0">
-          <div class="card__header card__header--benefits">
-            <svg class="card__icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <path d="M24 10c-3.9-4.2-10.5-4-14 0-3.8 4.4-3 10.8 2 15l12 11 12-11c5-4.2 5.8-10.6 2-15-3.5-4-10.1-4.2-14 0z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div class="card__content">
-            <h3 class="card__title">Employee Benefits</h3>
-            <p class="card__description">Attract and retain top talent with group health, life, and wellness benefit packages your people value.</p>
-          </div>
-          <div class="card__footer">
-            <a href="#" class="card__cta" aria-label="Explore Employee Benefits">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-            </a>
-          </div>
-          <div class="card__accent card__accent--teal"></div>
-        </article>
-
-        <!-- Skeleton card (hidden by default — toggle .card--loading to show) -->
-        <article class="card card--loading" aria-hidden="true">
-          <div class="card__header"></div>
-          <div class="card__content">
-            <div class="skel skel--title"></div>
-            <div class="skel skel--line"></div>
-            <div class="skel skel--line skel--short"></div>
-          </div>
-          <div class="card__footer">
-            <div class="skel skel--cta"></div>
-          </div>
-          <div class="card__accent"></div>
-        </article>
+        </div>
 
       </div>
     </div>
