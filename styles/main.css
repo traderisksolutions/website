@@ -1813,6 +1813,39 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   color: #888;
 }
 
+.cta-right-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cta-build {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  cursor: default;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 500;
+  color: #888;
+  padding: 0 4px;
+}
+
+.cta-mic {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #888;
+}
+
 .cta-send {
   width: 40px;
   height: 40px;

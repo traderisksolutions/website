@@ -471,9 +471,18 @@
           <button class="cta-attach" aria-label="Attach" tabindex="-1">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </button>
-          <button class="cta-send" id="cta-send" aria-label="Send to WhatsApp">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
-          </button>
+          <div class="cta-right-controls">
+            <button class="cta-build" tabindex="-1" aria-hidden="true">
+              Contact
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <button class="cta-mic" tabindex="-1" aria-label="Voice input">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10a7 7 0 0 1-14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+            </button>
+            <button class="cta-send" id="cta-send" aria-label="Send to WhatsApp">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -499,21 +508,68 @@
   <script src="scripts/nav.js"></script>
   <script>
     (function () {
+      /* ── WhatsApp send ── */
       var btn   = document.getElementById('cta-send');
       var input = document.getElementById('cta-input');
       if (!btn || !input) return;
+
       btn.addEventListener('click', function () {
         var msg = input.value.trim();
         if (!msg) return;
         var url = 'https://wa.me/6562380888?text=' + encodeURIComponent(msg);
         window.open(url, '_blank', 'noopener');
       });
+
       input.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
           btn.click();
         }
       });
+
+      /* ── Typewriter placeholder ── */
+      var phrases = [
+        'Ask TRS about commercial insurance…',
+        'Ask TRS about personal coverage…',
+        'Ask TRS about employee benefits…',
+        'Ask TRS about travel insurance…',
+        'Ask TRS about foreign worker insurance…'
+      ];
+      var phraseIdx = 0, charIdx = 0, deleting = false;
+      var PAUSE_FULL = 1800, PAUSE_EMPTY = 400;
+      var TYPE_SPEED = 52, DEL_SPEED = 28;
+      var timer;
+
+      function tick() {
+        if (input.value !== '') return; /* stop if user started typing */
+        var phrase = phrases[phraseIdx];
+        if (!deleting) {
+          charIdx++;
+          input.placeholder = phrase.slice(0, charIdx);
+          if (charIdx === phrase.length) {
+            deleting = true;
+            timer = setTimeout(tick, PAUSE_FULL);
+            return;
+          }
+        } else {
+          charIdx--;
+          input.placeholder = phrase.slice(0, charIdx);
+          if (charIdx === 0) {
+            deleting = false;
+            phraseIdx = (phraseIdx + 1) % phrases.length;
+            timer = setTimeout(tick, PAUSE_EMPTY);
+            return;
+          }
+        }
+        timer = setTimeout(tick, deleting ? DEL_SPEED : TYPE_SPEED);
+      }
+
+      input.addEventListener('focus', function () { clearTimeout(timer); });
+      input.addEventListener('blur',  function () {
+        if (input.value === '') { charIdx = 0; deleting = false; tick(); }
+      });
+
+      setTimeout(tick, 800);
     })();
   </script>
 </body>
