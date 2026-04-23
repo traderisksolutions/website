@@ -8,7 +8,7 @@
     }
   ],
   "rewrites": [
-    { "source": "/aboutus",   "destination": "/aboutus.html" },
+    { "source": "/about",     "destination": "/about.html" },
     { "source": "/solutions", "destination": "/solutions.html" },
     { "source": "/pricing",   "destination": "/pricing.html" }
   ]
