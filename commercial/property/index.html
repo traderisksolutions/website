@@ -10,6 +10,7 @@
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" /></noscript>
   <link rel="stylesheet" href="../../styles/main.css" />
   <link rel="stylesheet" href="../../styles/product.css" />
+  <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
 
@@ -74,7 +75,7 @@
       <button class="nav-drawer-accordion">Resources <svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
       <div class="nav-drawer-sub"><a href="#">Blog</a><a href="#">Case Studies</a><a href="#">FAQ</a></div>
     </nav>
-    <div class="nav-drawer-cta"><a href="/#contact" class="btn btn-primary btn-lg">Contact us</a></div>
+    <div class="nav-drawer-cta"><a href="/#contact" class="btn btn-primary btn-lg" data-track="drawer_contact_us">Contact us</a></div>
   </aside>
 
   <!-- HERO -->
@@ -84,8 +85,8 @@
       <h1 class="pp-heading">Protect your<br>business assets</h1>
       <p class="pp-subtitle">Comprehensive property coverage for businesses — buildings, contents, business interruption, and liability, all in one policy.</p>
       <div class="pp-cta-row">
-        <a href="/#contact" class="btn btn-primary">Get a quote</a>
-        <a href="/about" class="btn btn-outline">Why TRS</a>
+        <a href="/#contact" class="btn btn-primary" data-track="get_quote_hero">Get a quote</a>
+        <a href="/about" class="btn btn-outline" data-track="why_trs">Why TRS</a>
       </div>
       <p class="pp-trust"><span>Backed by</span><span class="pp-trust-logos">AXA &middot; Chubb &middot; Allianz &middot; Zurich &middot; Manulife</span></p>
     </div>
@@ -270,5 +271,6 @@
       items.forEach(function (item) { obs.observe(item); });
     })();
   </script>
+  <script src="/scripts/analytics.js"></script>
 </body>
 </html>

@@ -13,6 +13,7 @@
 
   <link rel="stylesheet" href="styles/main.css" />
   <link rel="stylesheet" href="styles/solutions.css" />
+  <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
 
@@ -120,7 +121,7 @@
       </div>
     </nav>
     <div class="nav-actions">
-      <a href="#" class="btn btn-primary">Contact us</a>
+      <a href="#" class="btn btn-primary" data-track="nav_contact_us">Contact us</a>
     </div>
   </header>
 
@@ -160,7 +161,7 @@
       </div>
     </nav>
     <div class="nav-drawer-cta">
-      <a href="#" class="btn btn-primary btn-lg">Contact us</a>
+      <a href="#" class="btn btn-primary btn-lg" data-track="drawer_contact_us">Contact us</a>
     </div>
   </aside>
 
@@ -244,5 +245,6 @@
   </footer>
 
   <script src="scripts/nav.js"></script>
+  <script src="/scripts/analytics.js"></script>
 </body>
 </html>

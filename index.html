@@ -12,6 +12,7 @@
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" /></noscript>
 
   <link rel="stylesheet" href="styles/main.css" />
+  <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
 
@@ -141,7 +142,7 @@
       </div>
     </nav>
     <div class="nav-actions">
-      <a href="#" class="btn btn-primary">Contact us</a>
+      <a href="#" class="btn btn-primary" data-track="nav_contact_us">Contact us</a>
     </div>
   </header>
 
@@ -193,7 +194,7 @@
       </div>
     </nav>
     <div class="nav-drawer-cta">
-      <a href="#" class="btn btn-primary btn-lg">Contact us</a>
+      <a href="#" class="btn btn-primary btn-lg" data-track="drawer_contact_us">Contact us</a>
     </div>
   </aside>
 
@@ -212,7 +213,7 @@
 
       <div class="am-cta-group">
         <input type="email" class="am-email" placeholder="Enter your company email" />
-        <button class="am-submit">
+        <button class="am-submit" data-track="hero_start_derisking">
           <span class="am-submit-text">Start derisking</span>
           <span class="am-rocket" aria-hidden="true">🚀</span>
         </button>
@@ -225,7 +226,7 @@
   <section class="trust-section">
     <div class="trust-header">
       <p class="trust-label">Trusted by industry leaders</p>
-      <a href="#" class="trust-stories-btn">Read all stories</a>
+      <a href="#" class="trust-stories-btn" data-track="read_stories">Read all stories</a>
     </div>
     <div class="trust-grid-wrap">
       <span class="trust-corner trust-corner--tl"></span>
@@ -265,13 +266,13 @@
         <!-- Top row: tabs + meta -->
         <div class="sc-top">
           <div class="sc-tabs" role="tablist">
-            <button class="sc-tab sc-tab--active" role="tab" aria-selected="true" data-panel="consumers">
+            <button class="sc-tab sc-tab--active" role="tab" aria-selected="true" data-panel="consumers" data-track="tab_consumers">
               <span class="sc-dot sc-dot--warm"></span>TRSConsumers
             </button>
-            <button class="sc-tab" role="tab" aria-selected="false" data-panel="commercial">
+            <button class="sc-tab" role="tab" aria-selected="false" data-panel="commercial" data-track="tab_commercial">
               <span class="sc-dot sc-dot--blue"></span>TRSCommercial
             </button>
-            <button class="sc-tab" role="tab" aria-selected="false" data-panel="employees">
+            <button class="sc-tab" role="tab" aria-selected="false" data-panel="employees" data-track="tab_employees">
               <span class="sc-dot sc-dot--teal"></span>TRSEmployees
             </button>
           </div>
@@ -313,13 +314,13 @@
                   <span class="sc-pname">Motor</span>
                   <span class="sc-pcat">Vehicle Protection</span>
                 </div>
-                <button class="sc-explore">Explore all plans</button>
+                <button class="sc-explore" data-track="explore_plans">Explore all plans</button>
               </div>
               <div class="sc-panel-right">
                 <p class="sc-ph-label">About this coverage</p>
                 <p class="sc-ph-text">Add your description here. Tell your customers what this insurance covers, who it's designed for, and why TRS is the right choice for individuals and families at every stage of life.</p>
                 <div class="sc-panel-footer">
-                  <a href="#" class="sc-panel-btn">Get a quote &rarr;</a>
+                  <a href="#" class="sc-panel-btn" data-track="get_quote_panel">Get a quote &rarr;</a>
                 </div>
               </div>
             </div>
@@ -339,13 +340,13 @@
                   <span class="sc-pname">Foreign Workers Insurance</span>
                   <span class="sc-pcat">Workforce Protection</span>
                 </div>
-                <button class="sc-explore">Explore all plans</button>
+                <button class="sc-explore" data-track="explore_plans">Explore all plans</button>
               </div>
               <div class="sc-panel-right">
                 <p class="sc-ph-label">About this coverage</p>
                 <p class="sc-ph-text">Add your description here. Explain how TRS helps businesses manage risk, stay compliant, and protect operations — from SMEs scaling up to large enterprise clients.</p>
                 <div class="sc-panel-footer">
-                  <a href="#" class="sc-panel-btn">Get a quote &rarr;</a>
+                  <a href="#" class="sc-panel-btn" data-track="get_quote_panel">Get a quote &rarr;</a>
                 </div>
               </div>
             </div>
@@ -360,13 +361,13 @@
                   <span class="sc-pname">Employee Benefit</span>
                   <span class="sc-pcat">Group Coverage</span>
                 </div>
-                <button class="sc-explore">Explore all plans</button>
+                <button class="sc-explore" data-track="explore_plans">Explore all plans</button>
               </div>
               <div class="sc-panel-right">
                 <p class="sc-ph-label">About this coverage</p>
                 <p class="sc-ph-text">Add your description here. Show employers how TRS group packages attract talent, improve retention, and give teams the protection and wellness benefits they deserve.</p>
                 <div class="sc-panel-footer">
-                  <a href="#" class="sc-panel-btn">Get a quote &rarr;</a>
+                  <a href="#" class="sc-panel-btn" data-track="get_quote_panel">Get a quote &rarr;</a>
                 </div>
               </div>
             </div>
@@ -513,7 +514,7 @@
             <button class="cta-mic" tabindex="-1" aria-label="Voice input">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10a7 7 0 0 1-14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
             </button>
-            <button class="cta-send" id="cta-send" aria-label="Send to WhatsApp">
+            <button class="cta-send" id="cta-send" data-track="whatsapp_send" aria-label="Send to WhatsApp">
               <svg class="cta-send-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
               <span class="cta-send-rocket" aria-hidden="true">🚀</span>
             </button>
@@ -608,5 +609,6 @@
       setTimeout(tick, 800);
     })();
   </script>
+  <script src="/scripts/analytics.js"></script>
 </body>
 </html>
