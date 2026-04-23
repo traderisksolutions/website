@@ -192,21 +192,20 @@
 /* ── Nav dark mode — over dark sections ── */
 (function () {
   var nav = document.querySelector('.nav');
-  if (!nav || !window.IntersectionObserver) return;
+  if (!nav) return;
 
-  var darkCount = 0;
+  var NAV_BOTTOM = 80; /* px — height of the pill */
 
-  var obs = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
-      darkCount += entry.isIntersecting ? 1 : -1;
-      nav.classList.toggle('nav--dark', darkCount > 0);
+  function checkDark() {
+    var dark = false;
+    document.querySelectorAll('[data-dark-section]').forEach(function (el) {
+      var r = el.getBoundingClientRect();
+      if (r.top <= NAV_BOTTOM && r.bottom >= 0) { dark = true; }
     });
-  }, {
-    /* rootMargin clips to a thin horizontal band at the nav height */
-    rootMargin: '-60px 0px -85% 0px'
-  });
+    nav.classList.toggle('nav--dark', dark);
+  }
 
-  document.querySelectorAll('[data-dark-section]').forEach(function (el) {
-    obs.observe(el);
-  });
+  window.addEventListener('scroll', checkDark, { passive: true });
+  window.addEventListener('resize', checkDark, { passive: true });
+  checkDark();
 })();
