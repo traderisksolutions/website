@@ -1946,6 +1946,108 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   transform: scale(0.96);
 }
 
+/* ── Contact card popup ── */
+.cta-right-controls { position: relative; }
+
+.ctac {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  right: 0;
+  width: 360px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.13), 0 2px 8px rgba(0,0,0,0.06);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+  z-index: 200;
+  transform-origin: bottom right;
+  animation: ctac-in 0.18s cubic-bezier(0.22,1,0.36,1);
+}
+.ctac[hidden] { display: none; }
+
+@keyframes ctac-in {
+  from { opacity: 0; transform: scale(0.92) translateY(8px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);   }
+}
+
+.ctac-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.ctac-title {
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.ctac-close {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg-subtle, #f4f4f5);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--text-subtle);
+  transition: background 0.15s;
+}
+.ctac-close:hover { background: #e4e4e7; color: var(--text); }
+
+.ctac-input {
+  width: 100%;
+  min-height: 110px;
+  resize: none;
+  border: none;
+  outline: none;
+  padding: 14px 18px;
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--text);
+  background: transparent;
+  line-height: 1.6;
+  box-sizing: border-box;
+}
+.ctac-input::placeholder { color: var(--text-subtle); }
+
+.ctac-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px 14px;
+  border-top: 1px solid var(--border);
+}
+.ctac-hint {
+  font-family: var(--font);
+  font-size: 12px;
+  color: var(--text-subtle);
+}
+.ctac-send {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 100px;
+  border: none;
+  background: var(--text);
+  color: #fff;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.ctac-send:hover  { opacity: 0.85; }
+.ctac-send:active { transform: scale(0.96); }
+
+@media (max-width: 480px) {
+  .ctac { width: calc(100vw - 40px); right: -8px; }
+}
+
 /* ═══════════════════════════════════════════════════════════════
    FOOTER
    ═══════════════════════════════════════════════════════════════ */
