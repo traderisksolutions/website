@@ -188,3 +188,25 @@
   /* Footer */
   watch('.site-footer', false);
 })();
+
+/* ── Nav dark mode — over dark sections ── */
+(function () {
+  var nav = document.querySelector('.nav');
+  if (!nav || !window.IntersectionObserver) return;
+
+  var darkCount = 0;
+
+  var obs = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      darkCount += entry.isIntersecting ? 1 : -1;
+      nav.classList.toggle('nav--dark', darkCount > 0);
+    });
+  }, {
+    /* rootMargin clips to a thin horizontal band at the nav height */
+    rootMargin: '-60px 0px -85% 0px'
+  });
+
+  document.querySelectorAll('[data-dark-section]').forEach(function (el) {
+    obs.observe(el);
+  });
+})();

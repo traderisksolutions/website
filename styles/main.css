@@ -246,6 +246,32 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 99px;
 }
 
+/* ── Dark pill — over dark sections ── */
+.nav--scrolled.nav--dark {
+  background: rgba(18, 18, 18, 0.82);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 28px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.nav--scrolled.nav--dark .logo-text,
+.nav--scrolled.nav--dark .nav-links a,
+.nav--scrolled.nav--dark .nav-dropdown-trigger {
+  color: rgba(255, 255, 255, 0.8);
+}
+.nav--scrolled.nav--dark .nav-links a:hover,
+.nav--scrolled.nav--dark .nav-dropdown-trigger:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+.nav--scrolled.nav--dark .btn-primary {
+  background: #fff;
+  color: #0d0d0d;
+  border-color: transparent;
+}
+.nav--scrolled.nav--dark .btn-primary:hover {
+  background: #e8e8e8;
+}
+
 /* ── LANDING LAYOUT ── */
 .landing {
   min-height: 100dvh;
