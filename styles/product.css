@@ -1,0 +1,290 @@
+/* ═══════════════════════════════════════════════════════════════
+   PRODUCT PAGES — Trade Risk Solutions
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Hero ── */
+.pp-hero {
+  background: #f4f5f7;
+  padding: 120px 48px 96px;
+  text-align: center;
+}
+.pp-hero-inner { max-width: 680px; margin: 0 auto; }
+
+.pp-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+  margin: 0 0 20px;
+}
+.pp-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.pp-dot--orange { background: #f97316; }
+.pp-dot--blue   { background: #3b82f6; }
+.pp-dot--green  { background: #22c55e; }
+
+.pp-heading {
+  font-family: var(--font);
+  font-size: clamp(2.6rem, 6vw, 4.4rem);
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+  margin: 0 0 20px;
+}
+.pp-subtitle {
+  font-family: var(--font);
+  font-size: 17px;
+  color: var(--text-subtle);
+  line-height: 1.65;
+  margin: 0 0 36px;
+}
+.pp-cta-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.pp-trust {
+  font-family: var(--font);
+  font-size: 13px;
+  color: #aaa;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+.pp-trust-logos { color: var(--text-subtle); font-weight: 500; }
+
+/* ── Testimonial ── */
+.pp-testimonial {
+  background: #f4f5f7;
+  padding: 80px 48px;
+}
+.pp-testimonial-inner {
+  max-width: 860px;
+  margin: 0 auto;
+}
+.pp-quote {
+  font-family: var(--font);
+  font-size: clamp(1.4rem, 3vw, 2.1rem);
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  margin: 0 0 32px;
+}
+.pp-quote-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0 0 28px;
+}
+.pp-quote-attr {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.pp-quote-avatar {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #a78bfa);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font); font-size: 13px; font-weight: 700; color: #fff;
+  flex-shrink: 0;
+}
+.pp-quote-name {
+  font-family: var(--font); font-size: 14px; font-weight: 600; color: var(--text);
+}
+.pp-quote-role {
+  font-family: var(--font); font-size: 13px; color: var(--text-subtle); margin-top: 2px;
+}
+
+/* ── Scrollytelling features ── */
+.pp-scrolly {
+  background: #f4f5f7;
+  padding: 80px 48px 120px;
+}
+.pp-scrolly-inner { max-width: 1060px; margin: 0 auto; }
+
+.pp-scrolly-header {
+  text-align: center;
+  margin-bottom: 72px;
+}
+.pp-scrolly-sup {
+  font-family: var(--font);
+  font-size: 13px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-subtle); margin: 0 0 12px;
+}
+.pp-scrolly-heading {
+  font-family: var(--font);
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 800; color: var(--text);
+  letter-spacing: -0.03em; line-height: 1.1; margin: 0;
+}
+
+.pp-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 72px;
+  align-items: start;
+}
+.pp-right {
+  position: sticky;
+  top: 100px;
+}
+
+/* Feature items — left column */
+.pp-feat {
+  padding: 28px 0;
+  border-bottom: 1px solid transparent;
+  opacity: 0.3;
+  transition: opacity 0.35s ease;
+  cursor: default;
+}
+.pp-feat:first-child { border-top: 1px solid var(--border); }
+.pp-feat { border-bottom: 1px solid var(--border); }
+.pp-feat--active { opacity: 1; }
+
+.pp-feat-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.pp-feat-icon {
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-subtle);
+  flex-shrink: 0;
+  transition: background 0.3s, border-color 0.3s, color 0.3s;
+}
+.pp-feat--active .pp-feat-icon {
+  background: var(--text);
+  border-color: var(--text);
+  color: #fff;
+}
+.pp-feat-title {
+  font-family: var(--font);
+  font-size: clamp(1.3rem, 2.5vw, 1.7rem);
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 4px 0 0;
+}
+.pp-feat-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 16px 0;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.pp-feat--active .pp-feat-divider { opacity: 1; }
+.pp-feat-body {
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--text-subtle);
+  line-height: 1.7;
+  margin: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease, opacity 0.3s;
+  opacity: 0;
+}
+.pp-feat--active .pp-feat-body {
+  max-height: 200px;
+  opacity: 1;
+}
+
+/* Right panels */
+.pp-panels { position: relative; }
+.pp-panel {
+  background: #fff;
+  border-radius: 20px;
+  padding: 28px 28px 24px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.08);
+  display: none;
+  animation: pp-panel-in 0.35s cubic-bezier(0.22,1,0.36,1);
+}
+.pp-panel--active { display: block; }
+
+@keyframes pp-panel-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.pp-panel-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 4px 10px; border-radius: 100px;
+  margin-bottom: 16px;
+}
+.pp-panel-badge--green { background: #dcfce7; color: #16a34a; }
+.pp-panel-badge--blue  { background: #dbeafe; color: #2563eb; }
+.pp-panel-badge--orange{ background: #ffedd5; color: #ea580c; }
+
+.pp-panel-title {
+  font-family: var(--font); font-size: 18px; font-weight: 700;
+  color: var(--text); letter-spacing: -0.01em; margin: 0 0 20px;
+}
+.pp-panel-rows { display: flex; flex-direction: column; gap: 12px; }
+.pp-panel-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-family: var(--font); font-size: 13px;
+}
+.pp-panel-row:last-child { border-bottom: none; }
+.pp-panel-row span { color: var(--text-subtle); }
+.pp-panel-row strong { color: var(--text); font-weight: 600; }
+.pp-panel-check { color: #16a34a; font-weight: 700; }
+
+.pp-panel-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 20px; padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+.pp-panel-carrier {
+  font-family: var(--font); font-size: 12px; font-weight: 700;
+  color: var(--text-subtle); letter-spacing: 0.04em; text-transform: uppercase;
+}
+.pp-status {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--font); font-size: 12px; color: #16a34a; font-weight: 600;
+}
+.pp-status-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: #16a34a;
+}
+
+/* ── FAQ ── */
+.pp-faq {
+  background: var(--bg);
+  padding: 100px 48px 120px;
+}
+.pp-faq-inner { max-width: 760px; margin: 0 auto; }
+.pp-faq-heading {
+  font-family: var(--font);
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  font-weight: 800; color: var(--text);
+  letter-spacing: -0.03em; line-height: 1.1;
+  text-align: center; margin: 0 0 56px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .pp-layout { grid-template-columns: 1fr; }
+  .pp-right { position: static; }
+  .pp-hero, .pp-testimonial, .pp-scrolly, .pp-faq { padding-left: 20px; padding-right: 20px; }
+}
