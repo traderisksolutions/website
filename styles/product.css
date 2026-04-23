@@ -151,8 +151,6 @@
   transition: opacity 0.35s ease;
   cursor: default;
 }
-.pp-feat:first-child { border-top: 1px solid var(--border); }
-.pp-feat { border-bottom: 1px solid var(--border); }
 .pp-feat--active { opacity: 1; }
 
 .pp-feat-header {
@@ -183,14 +181,7 @@
   line-height: 1.2;
   margin: 4px 0 0;
 }
-.pp-feat-divider {
-  border: none;
-  border-top: 1px solid var(--border);
-  margin: 16px 0;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-.pp-feat--active .pp-feat-divider { opacity: 1; }
+.pp-feat-divider { display: none; }
 .pp-feat-body {
   font-family: var(--font);
   font-size: 14px;
