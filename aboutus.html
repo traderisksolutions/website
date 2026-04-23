@@ -3,14 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>About — Trade Risk Solutions</title>
-  <meta name="description" content="" />
-
+  <title>About Us — Trade Risk Solutions</title>
+  <meta name="description" content="Learn about Trade Risk Solutions — Singapore's trusted insurance broker for individuals, businesses, and employee benefits." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" /></noscript>
-
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" /></noscript>
   <link rel="stylesheet" href="styles/main.css" />
   <link rel="stylesheet" href="styles/about.css" />
 </head>
@@ -18,110 +16,48 @@
 
   <!-- NAV -->
   <header class="nav">
-    <button class="nav-hamburger" aria-label="Open menu" aria-expanded="false">
-      <span></span><span></span><span></span>
-    </button>
-    <a href="/" class="logo" aria-label="Home">
-      <span class="logo-text">Trade Risk Solutions</span>
-    </a>
+    <button class="nav-hamburger" aria-label="Open menu" aria-expanded="false"><span></span><span></span><span></span></button>
+    <a href="/" class="logo" aria-label="Home"><span class="logo-text">Trade Risk Solutions</span></a>
     <nav class="nav-links" aria-label="Primary">
-      <a href="/aboutus" class="nav-active">About</a>
-
+      <a href="/aboutus" class="nav-active-link">About</a>
       <div class="nav-dropdown">
-        <button class="nav-dropdown-trigger">
-          Product
-          <svg class="dd-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
+        <button class="nav-dropdown-trigger">Products <svg class="dd-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
         <div class="nav-dropdown-panel">
           <div class="nav-dd-left">
-            <button class="nav-dd-item active" data-target="commercial">
-              <span class="nav-dd-dot nav-dd-dot--blue"></span>
-              <div class="nav-dd-texts">
-                <span class="nav-dd-title">Commercial</span>
-                <span class="nav-dd-sub">Insurance for businesses</span>
-              </div>
-              <svg class="nav-dd-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-            <button class="nav-dd-item" data-target="personal">
-              <span class="nav-dd-dot nav-dd-dot--orange"></span>
-              <div class="nav-dd-texts">
-                <span class="nav-dd-title">Personal</span>
-                <span class="nav-dd-sub">Insurance for individuals</span>
-              </div>
-              <svg class="nav-dd-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
+            <button class="nav-dd-item active" data-target="consumers"><span class="nav-dd-dot nav-dd-dot--orange"></span><div class="nav-dd-texts"><span class="nav-dd-title">TRS Consumers</span><span class="nav-dd-sub">Insurance for individuals</span></div><svg class="nav-dd-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+            <button class="nav-dd-item" data-target="commercial"><span class="nav-dd-dot nav-dd-dot--blue"></span><div class="nav-dd-texts"><span class="nav-dd-title">TRS Commercial</span><span class="nav-dd-sub">Insurance for businesses</span></div><svg class="nav-dd-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+            <button class="nav-dd-item" data-target="employees"><span class="nav-dd-dot nav-dd-dot--green"></span><div class="nav-dd-texts"><span class="nav-dd-title">TRS Employees</span><span class="nav-dd-sub">Employee benefits &amp; coverage</span></div><svg class="nav-dd-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
           </div>
           <div class="nav-dd-right">
-            <div class="nav-dd-group active" data-group="commercial">
-              <a href="#" class="nav-dd-link">
-                <span class="nav-dd-link-title">Construction</span>
-                <span class="nav-dd-link-sub">Lorem ipsum dolor sit amet</span>
-              </a>
-              <a href="#" class="nav-dd-link">
-                <span class="nav-dd-link-title">Foreign Worker</span>
-                <span class="nav-dd-link-sub">Lorem ipsum dolor sit amet</span>
-              </a>
+            <div class="nav-dd-group active" data-group="consumers">
+              <a href="/consumers/motor" class="nav-dd-link"><span class="nav-dd-link-title">Motor</span><span class="nav-dd-link-sub">Personal vehicle coverage</span></a>
+              <a href="/consumers/travel" class="nav-dd-link"><span class="nav-dd-link-title">Travel</span><span class="nav-dd-link-sub">Single &amp; annual travel plans</span></a>
             </div>
-            <div class="nav-dd-group" data-group="personal">
-              <a href="#" class="nav-dd-link">
-                <span class="nav-dd-link-title">Motor</span>
-                <span class="nav-dd-link-sub">Lorem ipsum dolor sit amet</span>
-              </a>
-              <a href="#" class="nav-dd-link">
-                <span class="nav-dd-link-title">Masterpiece</span>
-                <span class="nav-dd-link-sub">Lorem ipsum dolor sit amet</span>
-              </a>
-              <a href="#" class="nav-dd-link">
-                <span class="nav-dd-link-title">Travel</span>
-                <span class="nav-dd-link-sub">Lorem ipsum dolor sit amet</span>
-              </a>
+            <div class="nav-dd-group" data-group="commercial">
+              <a href="/commercial/property" class="nav-dd-link"><span class="nav-dd-link-title">Property</span><span class="nav-dd-link-sub">Commercial property protection</span></a>
+              <a href="/commercial/motor" class="nav-dd-link"><span class="nav-dd-link-title">Motor</span><span class="nav-dd-link-sub">Fleet &amp; commercial vehicles</span></a>
+              <a href="/commercial/cyber" class="nav-dd-link"><span class="nav-dd-link-title">Cyber</span><span class="nav-dd-link-sub">Digital risk &amp; data protection</span></a>
+              <a href="/commercial/foreign-worker" class="nav-dd-link"><span class="nav-dd-link-title">Foreign Worker</span><span class="nav-dd-link-sub">WICA &amp; work permit coverage</span></a>
+              <a href="/commercial/workmen" class="nav-dd-link"><span class="nav-dd-link-title">Workmen</span><span class="nav-dd-link-sub">Workplace injury compensation</span></a>
+            </div>
+            <div class="nav-dd-group" data-group="employees">
+              <a href="/employees/medical" class="nav-dd-link"><span class="nav-dd-link-title">Medical Benefits</span><span class="nav-dd-link-sub">Group health &amp; hospitalisation</span></a>
             </div>
           </div>
         </div>
       </div>
-
       <div class="nav-dropdown">
-        <button class="nav-dropdown-trigger">
-          Resources
-          <svg class="dd-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
+        <button class="nav-dropdown-trigger">Resources <svg class="dd-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
         <div class="nav-dropdown-panel nav-dropdown-panel--single">
           <div class="nav-dd-left nav-dd-left--full">
-            <a href="#" class="nav-dd-item-link">
-              <span class="nav-dd-dot nav-dd-dot--green"></span>
-              <div class="nav-dd-texts">
-                <span class="nav-dd-title">Blog</span>
-                <span class="nav-dd-sub">Lorem ipsum dolor sit amet</span>
-              </div>
-            </a>
-            <a href="#" class="nav-dd-item-link">
-              <span class="nav-dd-dot nav-dd-dot--yellow"></span>
-              <div class="nav-dd-texts">
-                <span class="nav-dd-title">Case Studies</span>
-                <span class="nav-dd-sub">Lorem ipsum dolor sit amet</span>
-              </div>
-            </a>
-            <a href="#" class="nav-dd-item-link">
-              <span class="nav-dd-dot nav-dd-dot--blue"></span>
-              <div class="nav-dd-texts">
-                <span class="nav-dd-title">FAQ</span>
-                <span class="nav-dd-sub">Lorem ipsum dolor sit amet</span>
-              </div>
-            </a>
-            <a href="#" class="nav-dd-item-link">
-              <span class="nav-dd-dot nav-dd-dot--orange"></span>
-              <div class="nav-dd-texts">
-                <span class="nav-dd-title">News</span>
-                <span class="nav-dd-sub">Lorem ipsum dolor sit amet</span>
-              </div>
-            </a>
+            <a href="#" class="nav-dd-item-link"><span class="nav-dd-dot nav-dd-dot--green"></span><div class="nav-dd-texts"><span class="nav-dd-title">Blog</span><span class="nav-dd-sub">Insights &amp; updates</span></div></a>
+            <a href="#" class="nav-dd-item-link"><span class="nav-dd-dot nav-dd-dot--yellow"></span><div class="nav-dd-texts"><span class="nav-dd-title">Case Studies</span><span class="nav-dd-sub">Real client stories</span></div></a>
+            <a href="#" class="nav-dd-item-link"><span class="nav-dd-dot nav-dd-dot--blue"></span><div class="nav-dd-texts"><span class="nav-dd-title">FAQ</span><span class="nav-dd-sub">Common questions answered</span></div></a>
           </div>
         </div>
       </div>
     </nav>
-    <div class="nav-actions">
-      <a href="#" class="btn btn-primary">Contact us</a>
-    </div>
+    <div class="nav-actions"><a href="/#contact" class="btn btn-primary">Contact us</a></div>
   </header>
 
   <!-- MOBILE DRAWER -->
@@ -129,72 +65,143 @@
   <aside class="nav-drawer" aria-label="Mobile navigation">
     <div class="nav-drawer-top">
       <span class="logo-text">Trade Risk Solutions</span>
-      <button class="nav-drawer-close" aria-label="Close menu">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
+      <button class="nav-drawer-close" aria-label="Close menu"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <nav class="nav-drawer-links">
-      <a href="/aboutus" class="nav-active">About</a>
-
-      <button class="nav-drawer-accordion">
-        Product
-        <svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
+      <a href="/aboutus">About</a>
+      <button class="nav-drawer-accordion">Products <svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
       <div class="nav-drawer-sub">
-        <a href="#">Commercial: Construction</a>
-        <a href="#">Commercial: Foreign Worker</a>
-        <a href="#">Personal: Motor</a>
-        <a href="#">Personal: Masterpiece</a>
-        <a href="#">Personal: Travel</a>
+        <span class="nav-drawer-group-label"><span class="nav-dd-dot nav-dd-dot--orange"></span>TRS Consumers</span>
+        <a href="/consumers/motor">Motor</a><a href="/consumers/travel">Travel</a>
+        <span class="nav-drawer-group-label"><span class="nav-dd-dot nav-dd-dot--blue"></span>TRS Commercial</span>
+        <a href="/commercial/property">Property</a><a href="/commercial/motor">Motor</a><a href="/commercial/cyber">Cyber</a><a href="/commercial/foreign-worker">Foreign Worker</a><a href="/commercial/workmen">Workmen</a>
+        <span class="nav-drawer-group-label"><span class="nav-dd-dot nav-dd-dot--green"></span>TRS Employees</span>
+        <a href="/employees/medical">Medical Benefits</a>
       </div>
-
-      <button class="nav-drawer-accordion">
-        Resources
-        <svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-      <div class="nav-drawer-sub">
-        <a href="#">Blog</a>
-        <a href="#">Case Studies</a>
-        <a href="#">FAQ</a>
-        <a href="#">News</a>
-      </div>
+      <button class="nav-drawer-accordion">Resources <svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <div class="nav-drawer-sub"><a href="#">Blog</a><a href="#">Case Studies</a><a href="#">FAQ</a></div>
     </nav>
-    <div class="nav-drawer-cta">
-      <a href="#" class="btn btn-primary btn-lg">Contact us</a>
-    </div>
+    <div class="nav-drawer-cta"><a href="/#contact" class="btn btn-primary btn-lg">Contact us</a></div>
   </aside>
 
-  <!-- ABOUT PAGE -->
-  <main class="about-page" id="main-content">
-
-    <div class="about-hero">
-      <h1 class="about-boom-title">LOREM IPSUM DOLOR</h1>
-      <p class="about-boom-caption">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua ut enim.</p>
+  <!-- HERO + FLOATING CARDS -->
+  <section class="au-hero">
+    <div class="au-hero-center">
+      <p class="au-eyebrow">About us</p>
+      <h1 class="au-heading">We protect what<br>matters most</h1>
+      <p class="au-desc">At TRS, we connect individuals and businesses across Singapore with the right insurance — backed by 18+ leading carriers and decades of advisory expertise.</p>
     </div>
-
-    <div class="about-body">
-
-      <section class="about-section">
-        <h2>Lorem ipsum dolor</h2>
-        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
-        <p>Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-        <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident.</p>
-        <p>Sunt in culpa qui officia deserunt mollit anim id est laborum sed perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium.</p>
-      </section>
-
-      <section class="about-section">
-        <h2>Dolor sit amet</h2>
-        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat duis aute irure dolor.</p>
-      </section>
-
+    <div class="au-card au-card--1" aria-hidden="true">
+      <div class="au-card-stat">18+</div>
+      <div class="au-card-label">Insurance carriers</div>
+      <div class="au-card-logo">AXA · Chubb · Allianz</div>
     </div>
+    <div class="au-card au-card--2" aria-hidden="true">
+      <div class="au-card-stat">10,000+</div>
+      <div class="au-card-label">Policies protected</div>
+      <div class="au-card-logo">Across Singapore</div>
+    </div>
+    <div class="au-card au-card--3" aria-hidden="true">
+      <div class="au-card-stat">98%</div>
+      <div class="au-card-label">Client satisfaction</div>
+      <div class="au-card-logo">Trade Risk Solutions</div>
+    </div>
+    <div class="au-card au-card--4" aria-hidden="true">
+      <div class="au-card-stat">S$500M+</div>
+      <div class="au-card-label">Coverage arranged</div>
+      <div class="au-card-logo">SGX Listed Clients</div>
+    </div>
+    <div class="au-card au-card--5" aria-hidden="true">
+      <div class="au-card-stat">15+</div>
+      <div class="au-card-label">Years in Singapore</div>
+      <div class="au-card-logo">Est. 2009</div>
+    </div>
+  </section>
 
-  </main>
+  <!-- SCROLL TEXT REVEAL -->
+  <section class="au-story">
+    <div class="au-story-wrap">
+      <p class="au-story-para" data-reveal-text>Insurance in Singapore is complicated.</p>
+      <p class="au-story-para au-story-para--secondary" data-reveal-text>Policies are full of fine print. Exclusions go unexplained. And when a claim arrives, most people are left to face it alone.</p>
+      <p class="au-story-para" data-reveal-text>TRS is <span class="au-story-underline">built differently</span>.</p>
+      <p class="au-story-para au-story-para--secondary" data-reveal-text>We work as your advisor — not just a policy seller. Our team takes the time to understand your situation, match you with the right product, and stand by you when it counts.</p>
+      <p class="au-story-para au-story-para--secondary" data-reveal-text>Whether you are a family protecting your home, a business managing risk, or an employer providing benefits — we have got you covered.</p>
+    </div>
+  </section>
 
-  <footer class="about-footer">
-    © 2026 Trade Risk Solutions. All rights reserved.
+  <!-- WHAT SETS US APART (DARK) -->
+  <section class="au-dark">
+    <div class="au-dark-wrap">
+      <h2 class="au-dark-heading">What sets us apart</h2>
+      <div class="au-features">
+        <div class="au-feature">
+          <div class="au-feature-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/></svg>
+          </div>
+          <h3 class="au-feature-title">Tailored coverage</h3>
+          <p class="au-feature-body">No one-size-fits-all policies. We map your specific risks to the right products across 18+ carriers so you're never over- or under-insured.</p>
+        </div>
+        <div class="au-feature">
+          <div class="au-feature-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <h3 class="au-feature-title">Expert advisors</h3>
+          <p class="au-feature-body">Real humans, real advice. Our licensed advisors bring years of market knowledge and are accountable to you — not to any single insurer.</p>
+        </div>
+        <div class="au-feature">
+          <div class="au-feature-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <h3 class="au-feature-title">Fast claims support</h3>
+          <p class="au-feature-body">We advocate for you throughout the entire claims process. From first notice of loss to settlement — we handle the paperwork and push for fair outcomes.</p>
+        </div>
+      </div>
+      <div class="au-quote">
+        <blockquote class="au-quote-text">"TRS took the time to understand our business risks and arranged coverage we didn't even know we needed. When our warehouse flooded, they handled the entire claim for us — settlement in 12 days."</blockquote>
+        <div class="au-quote-attr">
+          <div class="au-quote-avatar" aria-hidden="true">LW</div>
+          <div>
+            <div class="au-quote-name">Leonard Wong</div>
+            <div class="au-quote-role">Director, Pacific Logistics Pte Ltd</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DARK CTA -->
+  <section class="au-cta-dark">
+    <div class="au-cta-dark-wrap">
+      <h2 class="au-cta-dark-heading">Get covered<br><span class="au-cta-dark-gradient">the right way.</span></h2>
+      <p class="au-cta-dark-sub">Speak to a TRS advisor today — no obligation, no fine print.</p>
+      <a href="mailto:enquiry@trade-risksol.com" class="au-cta-dark-btn">Get in touch</a>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="footer-wrap">
+      <a href="/" class="footer-logo" aria-label="Trade Risk Solutions home"><span class="footer-logo-text">TRS</span></a>
+      <div class="footer-contact">
+        <a href="tel:+6562380888" class="footer-link">+65 6238 0888</a>
+        <a href="mailto:enquiry@trade-risksol.com" class="footer-link">enquiry@trade-risksol.com</a>
+        <address class="footer-address">Suntec Tower 2, 9 Temasek Boulevard<br>Singapore 038989</address>
+      </div>
+      <p class="footer-copy">&copy; 2025 Trade Risk Solutions. All rights reserved.</p>
+    </div>
   </footer>
 
   <script src="scripts/nav.js"></script>
+  <script>
+    (function () {
+      if (!window.IntersectionObserver) return;
+      var obs = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('au-story-para--visible'); obs.unobserve(e.target); }
+        });
+      }, { threshold: 0.25 });
+      document.querySelectorAll('[data-reveal-text]').forEach(function (el) { obs.observe(el); });
+    })();
+  </script>
 </body>
 </html>
