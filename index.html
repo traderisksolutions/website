@@ -28,51 +28,73 @@
 
       <div class="nav-dropdown">
         <button class="nav-dropdown-trigger">
-          Product
+          Products
           <svg class="dd-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="nav-dropdown-panel">
           <div class="nav-dd-left">
-            <button class="nav-dd-item active" data-target="commercial">
+            <button class="nav-dd-item active" data-target="consumers">
+              <span class="nav-dd-dot nav-dd-dot--orange"></span>
+              <div class="nav-dd-texts">
+                <span class="nav-dd-title">TRS Consumers</span>
+                <span class="nav-dd-sub">Insurance for individuals</span>
+              </div>
+              <svg class="nav-dd-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <button class="nav-dd-item" data-target="commercial">
               <span class="nav-dd-dot nav-dd-dot--blue"></span>
               <div class="nav-dd-texts">
-                <span class="nav-dd-title">Commercial</span>
+                <span class="nav-dd-title">TRS Commercial</span>
                 <span class="nav-dd-sub">Insurance for businesses</span>
               </div>
               <svg class="nav-dd-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
-            <button class="nav-dd-item" data-target="personal">
-              <span class="nav-dd-dot nav-dd-dot--orange"></span>
+            <button class="nav-dd-item" data-target="employees">
+              <span class="nav-dd-dot nav-dd-dot--green"></span>
               <div class="nav-dd-texts">
-                <span class="nav-dd-title">Personal</span>
-                <span class="nav-dd-sub">Insurance for individuals</span>
+                <span class="nav-dd-title">TRS Employees</span>
+                <span class="nav-dd-sub">Employee benefits &amp; coverage</span>
               </div>
               <svg class="nav-dd-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
           </div>
           <div class="nav-dd-right">
-            <div class="nav-dd-group active" data-group="commercial">
-              <a href="#" class="nav-dd-link">
-                <span class="nav-dd-link-title">Construction</span>
-                <span class="nav-dd-link-sub">Lorem ipsum dolor sit amet</span>
+            <div class="nav-dd-group active" data-group="consumers">
+              <a href="/consumers/motor" class="nav-dd-link">
+                <span class="nav-dd-link-title">Motor</span>
+                <span class="nav-dd-link-sub">Personal vehicle coverage</span>
               </a>
-              <a href="#" class="nav-dd-link">
-                <span class="nav-dd-link-title">Foreign Worker</span>
-                <span class="nav-dd-link-sub">Lorem ipsum dolor sit amet</span>
+              <a href="/consumers/travel" class="nav-dd-link">
+                <span class="nav-dd-link-title">Travel</span>
+                <span class="nav-dd-link-sub">Single &amp; annual travel plans</span>
               </a>
             </div>
-            <div class="nav-dd-group" data-group="personal">
-              <a href="#" class="nav-dd-link">
+            <div class="nav-dd-group" data-group="commercial">
+              <a href="/commercial/property" class="nav-dd-link">
+                <span class="nav-dd-link-title">Property</span>
+                <span class="nav-dd-link-sub">Commercial property protection</span>
+              </a>
+              <a href="/commercial/motor" class="nav-dd-link">
                 <span class="nav-dd-link-title">Motor</span>
-                <span class="nav-dd-link-sub">Lorem ipsum dolor sit amet</span>
+                <span class="nav-dd-link-sub">Fleet &amp; commercial vehicles</span>
               </a>
-              <a href="#" class="nav-dd-link">
-                <span class="nav-dd-link-title">Masterpiece</span>
-                <span class="nav-dd-link-sub">Lorem ipsum dolor sit amet</span>
+              <a href="/commercial/cyber" class="nav-dd-link">
+                <span class="nav-dd-link-title">Cyber</span>
+                <span class="nav-dd-link-sub">Digital risk &amp; data protection</span>
               </a>
-              <a href="#" class="nav-dd-link">
-                <span class="nav-dd-link-title">Travel</span>
-                <span class="nav-dd-link-sub">Lorem ipsum dolor sit amet</span>
+              <a href="/commercial/foreign-worker" class="nav-dd-link">
+                <span class="nav-dd-link-title">Foreign Worker</span>
+                <span class="nav-dd-link-sub">WICA &amp; work permit coverage</span>
+              </a>
+              <a href="/commercial/workmen" class="nav-dd-link">
+                <span class="nav-dd-link-title">Workmen</span>
+                <span class="nav-dd-link-sub">Workplace injury compensation</span>
+              </a>
+            </div>
+            <div class="nav-dd-group" data-group="employees">
+              <a href="/employees/medical" class="nav-dd-link">
+                <span class="nav-dd-link-title">Medical Benefits</span>
+                <span class="nav-dd-link-sub">Group health &amp; hospitalisation</span>
               </a>
             </div>
           </div>
@@ -136,15 +158,27 @@
       <a href="/aboutus">About</a>
 
       <button class="nav-drawer-accordion">
-        Product
+        Products
         <svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <div class="nav-drawer-sub">
-        <a href="#">Commercial: Construction</a>
-        <a href="#">Commercial: Foreign Worker</a>
-        <a href="#">Personal: Motor</a>
-        <a href="#">Personal: Masterpiece</a>
-        <a href="#">Personal: Travel</a>
+        <span class="nav-drawer-group-label">
+          <span class="nav-dd-dot nav-dd-dot--orange"></span>TRS Consumers
+        </span>
+        <a href="/consumers/motor">Motor</a>
+        <a href="/consumers/travel">Travel</a>
+        <span class="nav-drawer-group-label">
+          <span class="nav-dd-dot nav-dd-dot--blue"></span>TRS Commercial
+        </span>
+        <a href="/commercial/property">Property</a>
+        <a href="/commercial/motor">Motor</a>
+        <a href="/commercial/cyber">Cyber</a>
+        <a href="/commercial/foreign-worker">Foreign Worker</a>
+        <a href="/commercial/workmen">Workmen</a>
+        <span class="nav-drawer-group-label">
+          <span class="nav-dd-dot nav-dd-dot--green"></span>TRS Employees
+        </span>
+        <a href="/employees/medical">Medical Benefits</a>
       </div>
 
       <button class="nav-drawer-accordion">
