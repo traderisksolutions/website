@@ -4,10 +4,10 @@
  * Run supabase/schema.sql in your Supabase SQL editor first.
  */
 (function () {
-  var SUPABASE_URL      = 'YOUR_SUPABASE_URL';       // e.g. https://xxxx.supabase.co
-  var SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';  // public anon key from project settings
+  var SUPABASE_URL      = 'https://ctjapwjpwkvxubdmzbqg.supabase.co';
+  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0amFwd2pwd2t2eHViZG16YnFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNTg2MDgsImV4cCI6MjA5MTgzNDYwOH0.4584ADBn954hiF3qFm5wmhw2RVYfMHKi4aX_ECdqAqA';
 
-  var CONFIGURED = SUPABASE_URL !== 'YOUR_SUPABASE_URL';
+  var CONFIGURED = true;
 
   /* ── Session ID (persists for the browser tab lifetime) ── */
   var SESSION_KEY      = 'trs_sid';
@@ -108,12 +108,30 @@
       page:          page,
       element_label: label,
       element_id:    el.id || null,
-      metadata:      {
-        text: text,
-        href: el.href || null
-      }
+      metadata:      { text: text, href: el.href || null }
     });
 
     vaEvent('button_click', { label: label, page: page });
+
+    /* ── Inbound lead capture — WhatsApp send buttons ── */
+    if (label === 'whatsapp_send' || label === 'contact_card_send') {
+      var msg = '';
+      if (label === 'whatsapp_send') {
+        var mainInput = document.getElementById('cta-input');
+        if (mainInput) msg = mainInput.value.trim();
+      } else {
+        var cardInput = document.getElementById('ctac-input');
+        if (cardInput) msg = cardInput.value.trim();
+      }
+      if (msg) {
+        sbInsert('inbound_leads', {
+          source:     'whatsapp_click',
+          message:    msg,
+          page_url:   page,
+          session_id: sessionId,
+          status:     'new'
+        });
+      }
+    }
   });
 })();
