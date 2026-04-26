@@ -62,7 +62,7 @@
 
   /* ── Init ── */
   var sessionId   = getOrCreateSessionId();
-  var page        = window.location.pathname;
+  var page        = window.location.pathname === '/' ? 'Landing page' : window.location.pathname;
   var isNewSession = !sessionStorage.getItem(SESSION_INIT_KEY);
 
   if (isNewSession) {
