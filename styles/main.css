@@ -249,8 +249,8 @@ h1, h2, h3, h4, h5, h6 {
 /* ── Contact us nav popover ── */
 .nav-ctac {
   position: fixed;
-  top: 80px;
-  right: 28px;
+  top: 80px;   /* overridden by JS positionCard() */
+  right: 28px; /* overridden by JS positionCard() */
   width: 420px;
   background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(28px) saturate(200%);

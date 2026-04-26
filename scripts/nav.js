@@ -260,7 +260,15 @@
   /* State */
   function isOpen() { return card.classList.contains('open'); }
 
-  function openCard() {
+  function positionCard(trigger) {
+    var rect  = trigger.getBoundingClientRect();
+    card.style.top   = (rect.bottom + 8) + 'px';
+    card.style.right = Math.max(window.innerWidth - rect.right, 12) + 'px';
+    card.style.left  = 'auto';
+  }
+
+  function openCard(trigger) {
+    if (trigger) positionCard(trigger);
     card.classList.add('open');
     setTimeout(function () { nameInput.focus(); }, 50);
   }
@@ -284,7 +292,7 @@
     if (trigger) {
       e.preventDefault();
       e.stopPropagation();
-      if (isOpen()) { closeCard(); } else { openCard(); }
+      if (isOpen()) { closeCard(); } else { openCard(trigger); }
       return;
     }
     if (isOpen() && !card.contains(e.target)) closeCard();
