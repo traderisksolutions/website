@@ -225,17 +225,16 @@
     '<div class="nav-ctac-form">',
 
     '  <div class="nav-ctac-field">',
+    '    <div class="nav-ctac-chips">' + chipsHtml + '</div>',
+    '  </div>',
+
+    '  <div class="nav-ctac-field">',
     '    <label class="nav-ctac-label" for="nav-ctac-name">Your name</label>',
     '    <input class="nav-ctac-field-input" id="nav-ctac-name" type="text" placeholder="e.g. Sarah Lim" autocomplete="name" />',
     '  </div>',
 
     '  <div class="nav-ctac-field">',
-    '    <label class="nav-ctac-label">I\'m interested in</label>',
-    '    <div class="nav-ctac-chips">' + chipsHtml + '</div>',
-    '  </div>',
-
-    '  <div class="nav-ctac-field">',
-    '    <label class="nav-ctac-label" for="nav-ctac-msg">Provide more details</label>',
+    '    <label class="nav-ctac-label" for="nav-ctac-msg">More details</label>',
     '    <input class="nav-ctac-field-input" id="nav-ctac-msg" type="text" placeholder="e.g. renewing in June, fleet of 3 cars…" />',
     '  </div>',
 
