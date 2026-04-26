@@ -258,7 +258,7 @@
     '    <input class="nav-ctac-field-input" id="nav-ctac-e-name" type="text" placeholder="e.g. Sarah Lim" autocomplete="name" />',
     '  </div>',
     '  <div class="nav-ctac-field">',
-    '    <label class="nav-ctac-label" for="nav-ctac-e-company">Company name <span class="nav-ctac-optional">(optional — leave blank if individual)</span></label>',
+    '    <label class="nav-ctac-label" for="nav-ctac-e-company">Company name <span class="nav-ctac-optional">(optional — leave blank for individual)</span></label>',
     '    <input class="nav-ctac-field-input" id="nav-ctac-e-company" type="text" placeholder="e.g. Acme Pte Ltd" autocomplete="organization" />',
     '  </div>',
     '  <div class="nav-ctac-field">',
@@ -274,7 +274,7 @@
     '    <input class="nav-ctac-field-input" id="nav-ctac-e-msg" type="text" placeholder="e.g. fleet renewal, 50 employees…" />',
     '  </div>',
     '  <button class="nav-ctac-send" id="nav-ctac-e-send" data-track="nav_email_send">',
-    '    <span>Submit enquiry</span>',
+    '    <span>Submit</span>',
     '    <span class="nav-ctac-rocket">📧</span>',
     '  </button>',
     '</div>',
@@ -401,7 +401,7 @@
 
     var msg = 'Hi, I\'m ' + name + '. I want to know more about ' + selectedTopicWa + '. ' + extra;
 
-    if (typeof window.trsCaptureLead === 'function') window.trsCaptureLead(msg, 'website_form');
+    if (typeof window.trsCaptureLead === 'function') window.trsCaptureLead(msg, 'whatsapp_click');
     window.open('https://wa.me/6562380888?text=' + encodeURIComponent(msg), '_blank', 'noopener');
     resetForm();
     closeCard();
@@ -443,7 +443,7 @@
     setTimeout(function () {
       resetForm();
       closeCard();
-      btn.innerHTML = '<span>Submit enquiry</span><span class="nav-ctac-rocket">📧</span>';
+      btn.innerHTML = '<span>Submit</span><span class="nav-ctac-rocket">📧</span>';
       btn.disabled  = false;
     }, 1800);
   }
