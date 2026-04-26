@@ -441,7 +441,13 @@
 
     var msg = 'Hi, I\'m ' + name + '. I want to know more about ' + selectedTopicWa + '. ' + extra;
 
-    if (typeof window.trsCaptureLead === 'function') window.trsCaptureLead(msg, 'whatsapp_click');
+    if (typeof window.trsCaptureLead === 'function') window.trsCaptureLead({
+      name:         name,
+      contact_type: 'Individual',
+      topic:        selectedTopicWa,
+      details:      extra,
+      message:      msg
+    }, 'whatsapp_click');
     window.open('https://wa.me/6589386813?text=' + encodeURIComponent(msg), '_blank', 'noopener');
     resetForm();
     showSuccess('Your WhatsApp is opening now. We\'ll reply shortly!');
@@ -466,16 +472,16 @@
     if (!eMsg) { eMsgInput.classList.add('nav-ctac-error'); ok = false; }
     if (!ok) return;
 
-    var msg = '[Email Enquiry]' +
-              ' Name: ' + eName +
-              ' | Type: ' + (eCompany ? 'Business' : 'Individual') +
-              (eCompany ? ' | Company: ' + eCompany : '') +
-              ' | Email: ' + eEmail +
-              (ePhone ? ' | Phone: ' + ePhone : '') +
-              ' | Topic: ' + selectedTopicEmail +
-              ' | Details: ' + eMsg;
-
-    if (typeof window.trsCaptureLead === 'function') window.trsCaptureLead(msg, 'website_form');
+    if (typeof window.trsCaptureLead === 'function') window.trsCaptureLead({
+      name:         eName,
+      email:        eEmail,
+      phone:        ePhone  || null,
+      company:      eCompany || null,
+      contact_type: eCompany ? 'Business' : 'Individual',
+      topic:        selectedTopicEmail,
+      details:      eMsg,
+      message:      null
+    }, 'website_form');
     resetForm();
     showSuccess('We\'ve received your enquiry and will get back to you within 1 business day.');
   }

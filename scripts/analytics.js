@@ -91,15 +91,31 @@
     referrer:   document.referrer || null
   });
 
-  /* ── Global lead capture hook — called by nav.js popover ── */
-  window.trsCaptureLead = function (msg, source) {
-    sbInsert('inbound_leads', {
+  /* ── Global lead capture hook — called by nav.js popover ──
+   * Accepts either:
+   *   trsCaptureLead(stringMsg, source)          — WhatsApp (raw message)
+   *   trsCaptureLead(fieldsObject, source)        — Email form (structured)
+   */
+  window.trsCaptureLead = function (data, source) {
+    var record = {
       source:     source || 'website_form',
-      message:    msg,
       page_url:   page,
       session_id: sessionId,
       status:     'new'
-    });
+    };
+    if (typeof data === 'string') {
+      record.message = data;
+    } else {
+      record.name         = data.name         || null;
+      record.email        = data.email        || null;
+      record.phone        = data.phone        || null;
+      record.company      = data.company      || null;
+      record.contact_type = data.contact_type || null;
+      record.topic        = data.topic        || null;
+      record.details      = data.details      || null;
+      record.message      = data.message      || null;
+    }
+    sbInsert('inbound_leads', record);
   };
 
   /* ── Button / link click tracking ──
