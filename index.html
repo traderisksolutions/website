@@ -548,17 +548,17 @@
       var input = document.getElementById('cta-input');
       if (!btn || !input) return;
 
-      function firePrompt() {
+      function firePrompt(trigger) {
         var msg = input.value.trim();
         if (typeof window.trsOpenContactPopover === 'function') {
-          window.trsOpenContactPopover(msg);
+          window.trsOpenContactPopover(msg, trigger || null);
         }
         input.value = '';
       }
 
       btn.addEventListener('click', function (e) {
-        e.stopPropagation(); /* prevent nav.js doc listener from closing the popover */
-        firePrompt();
+        e.stopPropagation();
+        firePrompt(btn);
       });
       input.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); firePrompt(); }

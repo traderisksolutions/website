@@ -283,7 +283,7 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 100px;
   padding: 3px;
   gap: 2px;
-  margin: 20px 20px 0;
+  margin: 20px 56px 0 20px; /* right leaves room for close button (14px offset + 28px btn + 14px gap) */
 }
 .nav-ctac-tab {
   flex: 1;

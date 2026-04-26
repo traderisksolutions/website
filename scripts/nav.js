@@ -333,9 +333,15 @@
   function isOpen() { return card.classList.contains('open'); }
 
   function positionCard(trigger) {
-    var rect  = trigger.getBoundingClientRect();
+    var rect      = trigger.getBoundingClientRect();
+    var cardW     = 420;
+    var rightEdge = Math.max(window.innerWidth - rect.right, 12);
+    /* If card would overflow left edge, shift it right */
+    if (window.innerWidth - rightEdge - cardW < 12) {
+      rightEdge = Math.max(window.innerWidth - cardW - 12, 12);
+    }
     card.style.top   = (rect.bottom + 8) + 'px';
-    card.style.right = Math.max(window.innerWidth - rect.right, 12) + 'px';
+    card.style.right = rightEdge + 'px';
     card.style.left  = 'auto';
   }
 
