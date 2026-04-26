@@ -346,26 +346,50 @@
   /* State */
   function isOpen() { return card.classList.contains('open'); }
 
+  var _activeTrigger = null;
+
   function positionCard(trigger) {
     var rect      = trigger.getBoundingClientRect();
     var cardW     = 420;
+    var cardH     = Math.min(card.offsetHeight || 540, window.innerHeight - 24);
+
+    /* Horizontal: right-align to button, clamp left edge */
     var rightEdge = Math.max(window.innerWidth - rect.right, 12);
-    /* If card would overflow left edge, shift it right */
     if (window.innerWidth - rightEdge - cardW < 12) {
       rightEdge = Math.max(window.innerWidth - cardW - 12, 12);
     }
-    card.style.top   = (rect.bottom + 8) + 'px';
+
+    /* Vertical: below button by default; flip above if it would overflow viewport */
+    var top = rect.bottom + 8;
+    if (top + cardH > window.innerHeight - 12) {
+      top = Math.max(rect.top - cardH - 8, 12);
+    }
+
+    card.style.top   = top + 'px';
     card.style.right = rightEdge + 'px';
     card.style.left  = 'auto';
   }
 
   function openCard(trigger) {
+    _activeTrigger = trigger || null;
     if (trigger) positionCard(trigger);
     card.classList.add('open');
     setTimeout(function () { firstNameInput.focus(); }, 50);
   }
 
-  function closeCard() { card.classList.remove('open'); }
+  function closeCard() {
+    card.classList.remove('open');
+    _activeTrigger = null;
+  }
+
+  /* Reposition on scroll so popover follows the trigger button */
+  window.addEventListener('scroll', function () {
+    if (!isOpen() || !_activeTrigger) return;
+    var rect = _activeTrigger.getBoundingClientRect();
+    /* Close if trigger has scrolled fully off-screen */
+    if (rect.bottom < 0 || rect.top > window.innerHeight) { closeCard(); return; }
+    positionCard(_activeTrigger);
+  }, { passive: true });
 
   var PANELS = ['nav-ctac-tabs', 'nav-ctac-header', 'nav-ctac-form-wa', 'nav-ctac-form-email', 'nav-ctac-note-wa', 'nav-ctac-note-email'];
 
