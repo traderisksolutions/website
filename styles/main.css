@@ -1173,6 +1173,13 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   font-family: var(--font);
 }
 
+/* Hero-scoped cta-box override */
+.am-cta-box {
+  width: 100%;
+  max-width: 560px;
+  margin-top: 8px;
+}
+
 .am-cta-group {
   display: flex;
   align-items: center;
