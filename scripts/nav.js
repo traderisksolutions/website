@@ -474,6 +474,15 @@
     showSuccess('We\'ve received your enquiry and will get back to you within 1 business day.');
   }
 
+  /* Global hook — pre-fill More details and open popover */
+  window.trsOpenContactPopover = function (msg, trigger) {
+    if (msg) {
+      msgInput.value  = msg;
+      eMsgInput.value = msg;
+    }
+    openCard(trigger || null);
+  };
+
   document.getElementById('nav-ctac-send').addEventListener('click', sendWaMessage);
   document.getElementById('nav-ctac-e-send').addEventListener('click', sendEmailEnquiry);
   document.getElementById('nav-ctac-success-close').addEventListener('click', function () {
