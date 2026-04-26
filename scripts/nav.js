@@ -191,99 +191,156 @@
 
 /* ── Contact us popover (global — all pages) ── */
 (function () {
-  /* Build card DOM and inject into body */
+  var TOPICS = [
+    { emoji: '🚗', label: 'Motor Insurance' },
+    { emoji: '✈️', label: 'Travel Insurance' },
+    { emoji: '🏢', label: 'Commercial Plans' },
+    { emoji: '👥', label: 'Employee Benefits' }
+  ];
+
+  var WA_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.118.554 4.102 1.523 5.824L.057 23.882a.5.5 0 0 0 .614.667l6.288-1.65A11.94 11.94 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.94 9.94 0 0 1-5.073-1.383l-.364-.218-3.768.988.999-3.645-.236-.374A9.96 9.96 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>';
+
+  /* Build card HTML */
   var card = document.createElement('div');
   card.id        = 'nav-ctac';
   card.className = 'nav-ctac';
   card.setAttribute('role', 'dialog');
   card.setAttribute('aria-modal', 'true');
   card.setAttribute('aria-label', 'Contact us');
+
+  var chipsHtml = TOPICS.map(function (t) {
+    return '<button class="nav-ctac-chip" data-topic="' + t.label + '">' + t.emoji + ' ' + t.label + '</button>';
+  }).join('');
+
   card.innerHTML = [
     '<button class="nav-ctac-close" id="nav-ctac-close" aria-label="Close">',
     '  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
     '</button>',
-    '<div class="nav-ctac-body">',
-    '  <p class="nav-ctac-heading">How can we<br><span class="nav-ctac-heading-muted">help you today?</span></p>',
+
+    '<div class="nav-ctac-header">',
+    '  <p class="nav-ctac-heading">Tell me more about</p>',
+    '  <p class="nav-ctac-heading-topic" id="nav-ctac-topic-label">...</p>',
     '</div>',
-    '<div class="nav-ctac-input-row">',
-    '  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
-    '  <input class="nav-ctac-input" id="nav-ctac-input" type="text" placeholder="Type your message…" autocomplete="off" />',
-    '  <button class="nav-ctac-send" id="nav-ctac-send" data-track="nav_contact_send" aria-label="Send">',
-    '    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>',
+
+    '<div class="nav-ctac-form">',
+
+    '  <div class="nav-ctac-field">',
+    '    <label class="nav-ctac-label" for="nav-ctac-name">Your name</label>',
+    '    <input class="nav-ctac-field-input" id="nav-ctac-name" type="text" placeholder="e.g. Sarah Lim" autocomplete="name" />',
+    '  </div>',
+
+    '  <div class="nav-ctac-field">',
+    '    <label class="nav-ctac-label">I\'m interested in</label>',
+    '    <div class="nav-ctac-chips">' + chipsHtml + '</div>',
+    '  </div>',
+
+    '  <div class="nav-ctac-field">',
+    '    <label class="nav-ctac-label" for="nav-ctac-msg">Anything else to add? <span class="nav-ctac-optional">(optional)</span></label>',
+    '    <input class="nav-ctac-field-input" id="nav-ctac-msg" type="text" placeholder="e.g. renewing in June, fleet of 3 cars…" />',
+    '  </div>',
+
+    '  <button class="nav-ctac-send" id="nav-ctac-send" data-track="nav_contact_send">',
+    '    <span>Send on WhatsApp</span>',
+    '    <span class="nav-ctac-rocket">🚀</span>',
     '  </button>',
+
     '</div>',
-    '<div class="nav-ctac-chips">',
-    '  <button class="nav-ctac-chip" data-track="nav_chip_motor">🚗 Motor</button>',
-    '  <button class="nav-ctac-chip" data-track="nav_chip_travel">✈️ Travel</button>',
-    '  <button class="nav-ctac-chip" data-track="nav_chip_commercial">🏢 Commercial</button>',
-    '  <button class="nav-ctac-chip" data-track="nav_chip_employee">👥 Employee Benefits</button>',
-    '</div>',
-    '<p class="nav-ctac-wa-note">',
-    '  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.118.554 4.102 1.523 5.824L.057 23.882a.5.5 0 0 0 .614.667l6.288-1.65A11.94 11.94 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.94 9.94 0 0 1-5.073-1.383l-.364-.218-3.768.988.999-3.645-.236-.374A9.96 9.96 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>',
-    '  We\'ll reply on WhatsApp',
-    '</p>'
+
+    '<p class="nav-ctac-wa-note">' + WA_ICON + ' We\'ll reply on WhatsApp</p>'
   ].join('');
+
   document.body.appendChild(card);
+
+  /* Refs */
+  var topicLabel  = document.getElementById('nav-ctac-topic-label');
+  var nameInput   = document.getElementById('nav-ctac-name');
+  var msgInput    = document.getElementById('nav-ctac-msg');
+  var selectedTopic = '';
 
   /* State */
   function isOpen() { return card.classList.contains('open'); }
+
   function openCard() {
     card.classList.add('open');
-    setTimeout(function () { document.getElementById('nav-ctac-input').focus(); }, 50);
+    setTimeout(function () { nameInput.focus(); }, 50);
   }
-  function closeCard() { card.classList.remove('open'); }
 
-  /* Triggers — nav "Contact us" + mobile drawer "Contact us" */
+  function closeCard() {
+    card.classList.remove('open');
+  }
+
+  function resetForm() {
+    nameInput.value   = '';
+    msgInput.value    = '';
+    selectedTopic     = '';
+    topicLabel.textContent = '...';
+    topicLabel.style.color = '';
+    card.querySelectorAll('.nav-ctac-chip').forEach(function (c) { c.classList.remove('active'); });
+  }
+
+  /* Triggers */
   document.addEventListener('click', function (e) {
     var trigger = e.target.closest('[data-track="nav_contact_us"], [data-track="drawer_contact_us"]');
     if (trigger) {
       e.preventDefault();
       e.stopPropagation();
-      isOpen() ? closeCard() : openCard();
+      if (isOpen()) { closeCard(); } else { openCard(); }
       return;
     }
-    /* Close on outside click */
     if (isOpen() && !card.contains(e.target)) closeCard();
   });
 
-  /* Close button */
   document.getElementById('nav-ctac-close').addEventListener('click', function (e) {
     e.stopPropagation();
     closeCard();
   });
 
-  /* Escape key */
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeCard(); });
 
-  /* Chips — fill input */
+  /* Chip selection — updates heading + marks active */
   card.querySelectorAll('.nav-ctac-chip').forEach(function (chip) {
     chip.addEventListener('click', function () {
-      var input = document.getElementById('nav-ctac-input');
-      input.value = chip.innerText.replace(/^\S+\s/, '');
-      input.focus();
+      card.querySelectorAll('.nav-ctac-chip').forEach(function (c) { c.classList.remove('active'); });
+      chip.classList.add('active');
+      selectedTopic = chip.dataset.topic;
+      topicLabel.textContent = selectedTopic;
+      topicLabel.style.color = 'var(--text)';
+      msgInput.focus();
     });
   });
 
   /* Send */
   function sendMessage() {
-    var input = document.getElementById('nav-ctac-input');
-    var msg   = input.value.trim();
-    if (!msg) { input.focus(); return; }
+    var name  = nameInput.value.trim();
+    var extra = msgInput.value.trim();
 
-    /* Capture lead to Supabase via analytics.js hook */
+    if (!name) { nameInput.focus(); nameInput.classList.add('nav-ctac-error'); return; }
+    if (!selectedTopic) {
+      card.querySelector('.nav-ctac-chips').classList.add('nav-ctac-chips-error');
+      setTimeout(function () { card.querySelector('.nav-ctac-chips').classList.remove('nav-ctac-chips-error'); }, 600);
+      return;
+    }
+
+    nameInput.classList.remove('nav-ctac-error');
+
+    var parts = ['Hi, I\'m ' + name + '.', 'I want to know more about ' + selectedTopic + '.'];
+    if (extra) parts.push(extra);
+    var msg = parts.join(' ');
+
     if (typeof window.trsCaptureLead === 'function') {
       window.trsCaptureLead(msg, 'website_form');
     }
 
     window.open('https://wa.me/6562380888?text=' + encodeURIComponent(msg), '_blank', 'noopener');
-    input.value = '';
+    resetForm();
     closeCard();
   }
 
   document.getElementById('nav-ctac-send').addEventListener('click', sendMessage);
-  document.getElementById('nav-ctac-input').addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') { e.preventDefault(); sendMessage(); }
+  [nameInput, msgInput].forEach(function (el) {
+    el.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); sendMessage(); } });
   });
+  nameInput.addEventListener('input', function () { nameInput.classList.remove('nav-ctac-error'); });
 })();
 
 /* ── Nav dark mode — over dark sections ── */
