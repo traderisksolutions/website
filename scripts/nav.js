@@ -235,7 +235,7 @@
     '  </div>',
 
     '  <div class="nav-ctac-field">',
-    '    <label class="nav-ctac-label" for="nav-ctac-msg">Anything else to add? <span class="nav-ctac-optional">(optional)</span></label>',
+    '    <label class="nav-ctac-label" for="nav-ctac-msg">Provide more details</label>',
     '    <input class="nav-ctac-field-input" id="nav-ctac-msg" type="text" placeholder="e.g. renewing in June, fleet of 3 cars…" />',
     '  </div>',
 
@@ -314,17 +314,18 @@
     var name  = nameInput.value.trim();
     var extra = msgInput.value.trim();
 
-    if (!name) { nameInput.focus(); nameInput.classList.add('nav-ctac-error'); return; }
+    if (!name)  { nameInput.focus();  nameInput.classList.add('nav-ctac-error');  return; }
     if (!selectedTopic) {
       card.querySelector('.nav-ctac-chips').classList.add('nav-ctac-chips-error');
       setTimeout(function () { card.querySelector('.nav-ctac-chips').classList.remove('nav-ctac-chips-error'); }, 600);
       return;
     }
+    if (!extra) { msgInput.focus();   msgInput.classList.add('nav-ctac-error');   return; }
 
     nameInput.classList.remove('nav-ctac-error');
+    msgInput.classList.remove('nav-ctac-error');
 
-    var parts = ['Hi, I\'m ' + name + '.', 'I want to know more about ' + selectedTopic + '.'];
-    if (extra) parts.push(extra);
+    var parts = ['Hi, I\'m ' + name + '.', 'I want to know more about ' + selectedTopic + '.', extra];
     var msg = parts.join(' ');
 
     if (typeof window.trsCaptureLead === 'function') {
@@ -341,6 +342,7 @@
     el.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); sendMessage(); } });
   });
   nameInput.addEventListener('input', function () { nameInput.classList.remove('nav-ctac-error'); });
+  msgInput.addEventListener('input',  function () { msgInput.classList.remove('nav-ctac-error'); });
 })();
 
 /* ── Nav dark mode — over dark sections ── */
