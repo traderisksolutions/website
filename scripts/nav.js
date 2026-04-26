@@ -436,7 +436,7 @@
     var msg = 'Hi, I\'m ' + name + '. I want to know more about ' + selectedTopicWa + '. ' + extra;
 
     if (typeof window.trsCaptureLead === 'function') window.trsCaptureLead(msg, 'whatsapp_click');
-    window.open('https://wa.me/6562380888?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+    window.open('https://wa.me/6589386813?text=' + encodeURIComponent(msg), '_blank', 'noopener');
     resetForm();
     showSuccess('Your WhatsApp is opening now. We\'ll reply shortly!');
   }
