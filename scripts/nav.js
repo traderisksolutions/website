@@ -258,11 +258,15 @@
     '    <input class="nav-ctac-field-input" id="nav-ctac-e-name" type="text" placeholder="e.g. Sarah Lim" autocomplete="name" />',
     '  </div>',
     '  <div class="nav-ctac-field">',
-    '    <label class="nav-ctac-label" for="nav-ctac-e-email">Business email</label>',
+    '    <label class="nav-ctac-label" for="nav-ctac-e-company">Company name <span class="nav-ctac-optional">(optional — leave blank if individual)</span></label>',
+    '    <input class="nav-ctac-field-input" id="nav-ctac-e-company" type="text" placeholder="e.g. Acme Pte Ltd" autocomplete="organization" />',
+    '  </div>',
+    '  <div class="nav-ctac-field">',
+    '    <label class="nav-ctac-label" for="nav-ctac-e-email">Email</label>',
     '    <input class="nav-ctac-field-input" id="nav-ctac-e-email" type="email" placeholder="e.g. sarah@company.com" autocomplete="email" />',
     '  </div>',
     '  <div class="nav-ctac-field">',
-    '    <label class="nav-ctac-label" for="nav-ctac-e-phone">Business phone <span class="nav-ctac-optional">(optional)</span></label>',
+    '    <label class="nav-ctac-label" for="nav-ctac-e-phone">Phone <span class="nav-ctac-optional">(optional)</span></label>',
     '    <input class="nav-ctac-field-input" id="nav-ctac-e-phone" type="tel" placeholder="e.g. +65 9123 4567" autocomplete="tel" />',
     '  </div>',
     '  <div class="nav-ctac-field">',
@@ -286,6 +290,7 @@
   var nameInput      = document.getElementById('nav-ctac-name');
   var msgInput       = document.getElementById('nav-ctac-msg');
   var eNameInput     = document.getElementById('nav-ctac-e-name');
+  var eCompanyInput  = document.getElementById('nav-ctac-e-company');
   var eEmailInput    = document.getElementById('nav-ctac-e-email');
   var ePhoneInput    = document.getElementById('nav-ctac-e-phone');
   var eMsgInput      = document.getElementById('nav-ctac-e-msg');
@@ -333,7 +338,7 @@
   function closeCard() { card.classList.remove('open'); }
 
   function resetForm() {
-    [nameInput, msgInput, eNameInput, eEmailInput, ePhoneInput, eMsgInput].forEach(function (el) { el.value = ''; el.classList.remove('nav-ctac-error'); });
+    [nameInput, msgInput, eNameInput, eCompanyInput, eEmailInput, ePhoneInput, eMsgInput].forEach(function (el) { el.value = ''; el.classList.remove('nav-ctac-error'); });
     selectedTopicWa    = '';
     selectedTopicEmail = '';
     topicLabel.textContent = '...';
@@ -404,13 +409,14 @@
 
   /* Email send */
   function sendEmailEnquiry() {
-    var eName  = eNameInput.value.trim();
-    var eEmail = eEmailInput.value.trim();
-    var ePhone = ePhoneInput.value.trim();
-    var eMsg   = eMsgInput.value.trim();
+    var eName    = eNameInput.value.trim();
+    var eCompany = eCompanyInput.value.trim();
+    var eEmail   = eEmailInput.value.trim();
+    var ePhone   = ePhoneInput.value.trim();
+    var eMsg     = eMsgInput.value.trim();
     var ok = true;
 
-    if (!eName)                          { eNameInput.classList.add('nav-ctac-error');  ok = false; }
+    if (!eName)                           { eNameInput.classList.add('nav-ctac-error');  ok = false; }
     if (!eEmail || !eEmail.includes('@')) { eEmailInput.classList.add('nav-ctac-error'); ok = false; }
     if (!selectedTopicEmail) {
       document.getElementById('nav-ctac-chips-email').classList.add('nav-ctac-chips-error');
@@ -420,7 +426,10 @@
     if (!eMsg) { eMsgInput.classList.add('nav-ctac-error'); ok = false; }
     if (!ok) return;
 
-    var msg = '[Email Enquiry] Name: ' + eName +
+    var msg = '[Email Enquiry]' +
+              ' Name: ' + eName +
+              ' | Type: ' + (eCompany ? 'Business' : 'Individual') +
+              (eCompany ? ' | Company: ' + eCompany : '') +
               ' | Email: ' + eEmail +
               (ePhone ? ' | Phone: ' + ePhone : '') +
               ' | Topic: ' + selectedTopicEmail +
@@ -447,7 +456,7 @@
     el.addEventListener('input',   function ()  { el.classList.remove('nav-ctac-error'); });
   });
 
-  [eNameInput, eEmailInput, eMsgInput].forEach(function (el) {
+  [eNameInput, eCompanyInput, eEmailInput, ePhoneInput, eMsgInput].forEach(function (el) {
     el.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); sendEmailEnquiry(); } });
     el.addEventListener('input',   function ()  { el.classList.remove('nav-ctac-error'); });
   });
