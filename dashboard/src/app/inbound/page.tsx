@@ -7,7 +7,8 @@ type Lead = {
   id:           number
   date:         string
   source:       string
-  name:         string
+  first_name:   string
+  last_name:    string
   contact_type: string
   company:      string | null
   email:        string | null
@@ -18,11 +19,11 @@ type Lead = {
 }
 
 const MOCK_LEADS: Lead[] = [
-  { id: 1, date: '26 Apr 2025, 14:32', source: 'whatsapp_click', name: 'James Tan',    contact_type: 'Individual', company: null,         email: null,              phone: null,           topic: 'Motor Insurance',    details: 'Looking to renew my car in June. Current policy is expiring and I want to compare plans. Is there a good comprehensive option for a 5-year-old Toyota Corolla?', status: 'new' },
-  { id: 2, date: '26 Apr 2025, 11:15', source: 'website_form',   name: 'Sarah Lim',    contact_type: 'Business',   company: 'Acme Pte Ltd', email: 'sarah@acme.com',  phone: '+65 9123 4567', topic: 'Employee Benefits',  details: 'We have about 50 headcount and are looking for a group medical insurance plan. Would like to understand options for outpatient and hospitalisation coverage.', status: 'new' },
-  { id: 3, date: '25 Apr 2025, 17:04', source: 'whatsapp_click', name: 'Kevin Ong',    contact_type: 'Individual', company: null,         email: null,              phone: null,           topic: 'Travel Insurance',   details: 'Planning a family trip to Japan in August — 4 pax including 2 kids. Interested in a plan that covers trip cancellation and medical emergencies.', status: 'contacted' },
-  { id: 4, date: '25 Apr 2025, 09:47', source: 'website_form',   name: 'Michelle Chan', contact_type: 'Business',  company: 'BuildCo',     email: 'michelle@buildco.sg', phone: '+65 8234 5678', topic: 'Commercial Plans', details: 'We operate a fleet of 8 commercial vehicles (lorries and vans). Looking for comprehensive commercial motor insurance with good workshop network.', status: 'qualified' },
-  { id: 5, date: '24 Apr 2025, 16:22', source: 'whatsapp_click', name: 'Alex Wong',    contact_type: 'Individual', company: null,         email: null,              phone: null,           topic: 'Motor Insurance',    details: 'Just got my first car — a Honda Civic 2024. Looking for comprehensive coverage. Not sure what add-ons I need. Budget is around $1,200/year.', status: 'new' },
+  { id: 1, date: '26 Apr 2025, 14:32', source: 'whatsapp_click', first_name: 'James',   last_name: 'Tan',   contact_type: 'Individual', company: null,          email: null,                 phone: null,            topic: 'Motor Insurance',   details: 'Looking to renew my car in June. Current policy is expiring and I want to compare plans. Is there a good comprehensive option for a 5-year-old Toyota Corolla?', status: 'new' },
+  { id: 2, date: '26 Apr 2025, 11:15', source: 'website_form',   first_name: 'Sarah',   last_name: 'Lim',   contact_type: 'Business',   company: 'Acme Pte Ltd', email: 'sarah@acme.com',    phone: '+65 9123 4567', topic: 'Employee Benefits', details: 'We have about 50 headcount and are looking for a group medical insurance plan. Would like to understand options for outpatient and hospitalisation coverage.', status: 'new' },
+  { id: 3, date: '25 Apr 2025, 17:04', source: 'whatsapp_click', first_name: 'Kevin',   last_name: 'Ong',   contact_type: 'Individual', company: null,          email: null,                 phone: null,            topic: 'Travel Insurance',  details: 'Planning a family trip to Japan in August — 4 pax including 2 kids. Interested in a plan that covers trip cancellation and medical emergencies.', status: 'contacted' },
+  { id: 4, date: '25 Apr 2025, 09:47', source: 'website_form',   first_name: 'Michelle', last_name: 'Chan', contact_type: 'Business',   company: 'BuildCo',     email: 'michelle@buildco.sg', phone: '+65 8234 5678', topic: 'Commercial Plans',  details: 'We operate a fleet of 8 commercial vehicles (lorries and vans). Looking for comprehensive commercial motor insurance with good workshop network.', status: 'qualified' },
+  { id: 5, date: '24 Apr 2025, 16:22', source: 'whatsapp_click', first_name: 'Alex',    last_name: 'Wong',  contact_type: 'Individual', company: null,          email: null,                 phone: null,            topic: 'Motor Insurance',   details: 'Just got my first car — a Honda Civic 2024. Looking for comprehensive coverage. Not sure what add-ons I need. Budget is around $1,200/year.', status: 'new' },
 ]
 
 const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
@@ -161,7 +162,7 @@ export default function InboundPage() {
                           <ChevronDown size={13} strokeWidth={2} className="text-gray-300 group-hover:text-gray-500 transition-all duration-200" style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
                         </td>
                         <td className="px-4 py-4 text-gray-500 whitespace-nowrap text-xs">{lead.date}</td>
-                        <td className="px-4 py-4 text-xs font-medium text-gray-800 whitespace-nowrap">{lead.name}</td>
+                        <td className="px-4 py-4 text-xs font-medium text-gray-800 whitespace-nowrap">{lead.first_name} {lead.last_name}</td>
                         <td className="px-4 py-4 text-xs text-gray-500 whitespace-nowrap">{SOURCE_LABEL[lead.source] ?? lead.source}</td>
                         <td className="px-4 py-4">
                           <span className="text-[11px] font-medium text-gray-500">{lead.contact_type}</span>
@@ -196,7 +197,8 @@ export default function InboundPage() {
 
                               {/* Structured fields grid */}
                               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                                <Field label="Name"    value={lead.name} />
+                                <Field label="First Name" value={lead.first_name} />
+                                <Field label="Last Name"  value={lead.last_name} />
                                 <Field label="Topic"   value={lead.topic} />
                                 <Field label="Type"    value={lead.contact_type} />
                                 <Field label="Company" value={lead.company} />

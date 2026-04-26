@@ -106,7 +106,8 @@
     if (typeof data === 'string') {
       record.message = data;
     } else {
-      record.name         = data.name         || null;
+      record.first_name   = data.first_name   || null;
+      record.last_name    = data.last_name    || null;
       record.email        = data.email        || null;
       record.phone        = data.phone        || null;
       record.company      = data.company      || null;

@@ -234,9 +234,15 @@
     '  <div class="nav-ctac-field">',
     '    <div class="nav-ctac-chips" id="nav-ctac-chips-wa">' + buildChips('wa') + '</div>',
     '  </div>',
-    '  <div class="nav-ctac-field">',
-    '    <label class="nav-ctac-label" for="nav-ctac-name">Your name</label>',
-    '    <input class="nav-ctac-field-input" id="nav-ctac-name" type="text" placeholder="e.g. Sarah Lim" autocomplete="name" />',
+    '  <div class="nav-ctac-field-row">',
+    '    <div class="nav-ctac-field">',
+    '      <label class="nav-ctac-label" for="nav-ctac-fname">First name</label>',
+    '      <input class="nav-ctac-field-input" id="nav-ctac-fname" type="text" placeholder="Sarah" autocomplete="given-name" />',
+    '    </div>',
+    '    <div class="nav-ctac-field">',
+    '      <label class="nav-ctac-label" for="nav-ctac-lname">Last name</label>',
+    '      <input class="nav-ctac-field-input" id="nav-ctac-lname" type="text" placeholder="Lim" autocomplete="family-name" />',
+    '    </div>',
     '  </div>',
     '  <div class="nav-ctac-field">',
     '    <label class="nav-ctac-label" for="nav-ctac-msg">More details</label>',
@@ -253,9 +259,15 @@
     '  <div class="nav-ctac-field">',
     '    <div class="nav-ctac-chips" id="nav-ctac-chips-email">' + buildChips('email') + '</div>',
     '  </div>',
-    '  <div class="nav-ctac-field">',
-    '    <label class="nav-ctac-label" for="nav-ctac-e-name">Full name</label>',
-    '    <input class="nav-ctac-field-input" id="nav-ctac-e-name" type="text" placeholder="e.g. Sarah Lim" autocomplete="name" />',
+    '  <div class="nav-ctac-field-row">',
+    '    <div class="nav-ctac-field">',
+    '      <label class="nav-ctac-label" for="nav-ctac-e-fname">First name</label>',
+    '      <input class="nav-ctac-field-input" id="nav-ctac-e-fname" type="text" placeholder="Sarah" autocomplete="given-name" />',
+    '    </div>',
+    '    <div class="nav-ctac-field">',
+    '      <label class="nav-ctac-label" for="nav-ctac-e-lname">Last name</label>',
+    '      <input class="nav-ctac-field-input" id="nav-ctac-e-lname" type="text" placeholder="Lim" autocomplete="family-name" />',
+    '    </div>',
     '  </div>',
     '  <div class="nav-ctac-field">',
     '    <label class="nav-ctac-label" for="nav-ctac-e-company">Company name <span class="nav-ctac-optional">(optional — leave blank for individual)</span></label>',
@@ -297,9 +309,11 @@
 
   /* Refs */
   var topicLabel     = document.getElementById('nav-ctac-topic-label');
-  var nameInput      = document.getElementById('nav-ctac-name');
+  var firstNameInput = document.getElementById('nav-ctac-fname');
+  var lastNameInput  = document.getElementById('nav-ctac-lname');
   var msgInput       = document.getElementById('nav-ctac-msg');
-  var eNameInput     = document.getElementById('nav-ctac-e-name');
+  var eFirstNameInput = document.getElementById('nav-ctac-e-fname');
+  var eLastNameInput  = document.getElementById('nav-ctac-e-lname');
   var eCompanyInput  = document.getElementById('nav-ctac-e-company');
   var eEmailInput    = document.getElementById('nav-ctac-e-email');
   var ePhoneInput    = document.getElementById('nav-ctac-e-phone');
@@ -325,7 +339,7 @@
       topicLabel.textContent = topic || '...';
       topicLabel.style.color = topic ? 'var(--text)' : '';
 
-      setTimeout(function () { (showWa ? nameInput : eNameInput).focus(); }, 50);
+      setTimeout(function () { (showWa ? firstNameInput : eFirstNameInput).focus(); }, 50);
     });
   });
 
@@ -348,7 +362,7 @@
   function openCard(trigger) {
     if (trigger) positionCard(trigger);
     card.classList.add('open');
-    setTimeout(function () { nameInput.focus(); }, 50);
+    setTimeout(function () { firstNameInput.focus(); }, 50);
   }
 
   function closeCard() { card.classList.remove('open'); }
@@ -378,7 +392,7 @@
   }
 
   function resetForm() {
-    [nameInput, msgInput, eNameInput, eCompanyInput, eEmailInput, ePhoneInput, eMsgInput].forEach(function (el) { el.value = ''; el.classList.remove('nav-ctac-error'); });
+    [firstNameInput, lastNameInput, msgInput, eFirstNameInput, eLastNameInput, eCompanyInput, eEmailInput, ePhoneInput, eMsgInput].forEach(function (el) { el.value = ''; el.classList.remove('nav-ctac-error'); });
     selectedTopicWa    = '';
     selectedTopicEmail = '';
     topicLabel.textContent = '...';
@@ -425,10 +439,12 @@
 
   /* WA send */
   function sendWaMessage() {
-    var name  = nameInput.value.trim();
-    var extra = msgInput.value.trim();
+    var firstName = firstNameInput.value.trim();
+    var lastName  = lastNameInput.value.trim();
+    var extra     = msgInput.value.trim();
 
-    if (!name)  { nameInput.focus();  nameInput.classList.add('nav-ctac-error');  return; }
+    if (!firstName) { firstNameInput.focus(); firstNameInput.classList.add('nav-ctac-error'); return; }
+    if (!lastName)  { lastNameInput.focus();  lastNameInput.classList.add('nav-ctac-error');  return; }
     if (!selectedTopicWa) {
       document.getElementById('nav-ctac-chips-wa').classList.add('nav-ctac-chips-error');
       setTimeout(function () { document.getElementById('nav-ctac-chips-wa').classList.remove('nav-ctac-chips-error'); }, 600);
@@ -436,13 +452,16 @@
     }
     if (!extra) { msgInput.focus(); msgInput.classList.add('nav-ctac-error'); return; }
 
-    nameInput.classList.remove('nav-ctac-error');
+    firstNameInput.classList.remove('nav-ctac-error');
+    lastNameInput.classList.remove('nav-ctac-error');
     msgInput.classList.remove('nav-ctac-error');
 
-    var msg = 'Hi, I\'m ' + name + '. I want to know more about ' + selectedTopicWa + '. ' + extra;
+    var fullName = firstName + ' ' + lastName;
+    var msg = 'Hi, I\'m ' + fullName + '. I want to know more about ' + selectedTopicWa + '. ' + extra;
 
     if (typeof window.trsCaptureLead === 'function') window.trsCaptureLead({
-      name:         name,
+      first_name:   firstName,
+      last_name:    lastName,
       contact_type: 'Individual',
       topic:        selectedTopicWa,
       details:      extra,
@@ -455,15 +474,17 @@
 
   /* Email send */
   function sendEmailEnquiry() {
-    var eName    = eNameInput.value.trim();
-    var eCompany = eCompanyInput.value.trim();
-    var eEmail   = eEmailInput.value.trim();
-    var ePhone   = ePhoneInput.value.trim();
-    var eMsg     = eMsgInput.value.trim();
+    var eFirstName = eFirstNameInput.value.trim();
+    var eLastName  = eLastNameInput.value.trim();
+    var eCompany   = eCompanyInput.value.trim();
+    var eEmail     = eEmailInput.value.trim();
+    var ePhone     = ePhoneInput.value.trim();
+    var eMsg       = eMsgInput.value.trim();
     var ok = true;
 
-    if (!eName)                           { eNameInput.classList.add('nav-ctac-error');  ok = false; }
-    if (!eEmail || !eEmail.includes('@')) { eEmailInput.classList.add('nav-ctac-error'); ok = false; }
+    if (!eFirstName)                      { eFirstNameInput.classList.add('nav-ctac-error'); ok = false; }
+    if (!eLastName)                       { eLastNameInput.classList.add('nav-ctac-error');  ok = false; }
+    if (!eEmail || !eEmail.includes('@')) { eEmailInput.classList.add('nav-ctac-error');     ok = false; }
     if (!selectedTopicEmail) {
       document.getElementById('nav-ctac-chips-email').classList.add('nav-ctac-chips-error');
       setTimeout(function () { document.getElementById('nav-ctac-chips-email').classList.remove('nav-ctac-chips-error'); }, 600);
@@ -473,11 +494,12 @@
     if (!ok) return;
 
     if (typeof window.trsCaptureLead === 'function') window.trsCaptureLead({
-      name:         eName,
+      first_name:   eFirstName,
+      last_name:    eLastName,
       email:        eEmail,
-      phone:        ePhone  || null,
-      company:      eCompany || null,
-      contact_type: eCompany ? 'Business' : 'Individual',
+      phone:        ePhone    || null,
+      company:      eCompany  || null,
+      contact_type: eCompany  ? 'Business' : 'Individual',
       topic:        selectedTopicEmail,
       details:      eMsg,
       message:      null
@@ -502,12 +524,12 @@
     closeCard();
   });
 
-  [nameInput, msgInput].forEach(function (el) {
+  [firstNameInput, lastNameInput, msgInput].forEach(function (el) {
     el.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); sendWaMessage(); } });
     el.addEventListener('input',   function ()  { el.classList.remove('nav-ctac-error'); });
   });
 
-  [eNameInput, eCompanyInput, eEmailInput, ePhoneInput, eMsgInput].forEach(function (el) {
+  [eFirstNameInput, eLastNameInput, eCompanyInput, eEmailInput, ePhoneInput, eMsgInput].forEach(function (el) {
     el.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); sendEmailEnquiry(); } });
     el.addEventListener('input',   function ()  { el.classList.remove('nav-ctac-error'); });
   });
