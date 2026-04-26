@@ -21,19 +21,26 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="fixed inset-y-0 left-0 flex flex-col z-40 sidebar-glass"
+      className="fixed inset-y-0 left-0 flex flex-col z-40"
       style={{
-        width:      'var(--sidebar-width)',
-        background: 'var(--sidebar-bg)',
-        borderRight:'1px solid var(--sidebar-border)',
+        width:          'var(--sidebar-width)',
+        background:     'rgba(255,255,255,0.72)',
+        backdropFilter: 'blur(28px) saturate(200%)',
+        WebkitBackdropFilter: 'blur(28px) saturate(200%)',
+        borderRight:    '1px solid rgba(200,200,204,0.45)',
+        boxShadow:      '2px 0 24px rgba(0,0,0,0.06), inset -1px 0 0 rgba(255,255,255,0.8)',
       }}
     >
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-5 h-14 shrink-0"
-           style={{ borderBottom: '1px solid var(--sidebar-border)' }}>
-        <span className="text-white font-bold text-lg tracking-tight leading-none">TRS</span>
-        <span className="text-xs font-medium px-1.5 py-0.5 rounded"
-              style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.55)' }}>
+      <div
+        className="flex items-center gap-2.5 px-5 h-14 shrink-0"
+        style={{ borderBottom: '1px solid rgba(200,200,204,0.35)' }}
+      >
+        <span className="font-bold text-lg tracking-tight leading-none" style={{ color: '#18181b', fontFamily: 'var(--font-heading)' }}>TRS</span>
+        <span
+          className="text-xs font-medium px-1.5 py-0.5 rounded"
+          style={{ background: 'rgba(0,0,0,0.07)', color: '#555' }}
+        >
           Dashboard
         </span>
       </div>
@@ -42,34 +49,33 @@ export default function Sidebar() {
       <nav className="flex-1 overflow-y-auto py-4 px-2">
         {SIDEBAR_NAV.map((section: NavSection, si: number) => (
           <div key={section.id} className={si > 0 ? 'mt-1' : ''}>
-            {/* Section separator */}
-            <div className="flex items-center gap-2 px-3 pt-4 pb-1.5">
-              <span className="text-[10px] font-semibold tracking-widest uppercase"
-                    style={{ color: 'var(--sidebar-label)' }}>
+            {/* Section label */}
+            <div className="flex items-center gap-2 px-3 pt-3 pb-1.5">
+              <span
+                className="text-[10px] font-semibold tracking-widest uppercase"
+                style={{ color: 'rgba(0,0,0,0.35)' }}
+              >
                 {section.label}
               </span>
-              <div className="flex-1 h-px" style={{ background: 'var(--sidebar-border)' }} />
+              <div className="flex-1 h-px" style={{ background: 'rgba(0,0,0,0.08)' }} />
             </div>
 
             {/* Items */}
             {section.items.map((item: NavItem) => {
-              const active   = isActive(item.href)
-              const hasKids  = !!item.children?.length
-              const open     = !!expanded[item.id]
-              const Icon     = item.icon
+              const active  = isActive(item.href)
+              const hasKids = !!item.children?.length
+              const open    = !!expanded[item.id]
+              const Icon    = item.icon
 
               return (
                 <div key={item.id}>
-                  {/* Row */}
                   <div
-                    className="flex items-center justify-between rounded-lg px-3 py-2 cursor-pointer select-none group"
+                    className="flex items-center justify-between rounded-lg px-3 py-2 cursor-pointer select-none"
                     style={{
-                      background: active ? 'var(--sidebar-item-active)' : 'transparent',
-                      color:      active ? 'var(--sidebar-text-active)' : 'var(--sidebar-text)',
+                      background: active ? 'rgba(0,0,0,0.06)' : 'transparent',
+                      color:      active ? '#111' : '#444',
                     }}
-                    onClick={() => {
-                      if (hasKids) toggle(item.id)
-                    }}
+                    onClick={() => { if (hasKids) toggle(item.id) }}
                   >
                     <Link
                       href={item.href}
@@ -88,7 +94,7 @@ export default function Sidebar() {
                         className="shrink-0 transition-transform duration-200"
                         style={{
                           transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-                          color: 'var(--sidebar-label)',
+                          color: 'rgba(0,0,0,0.3)',
                         }}
                       />
                     )}
@@ -106,13 +112,15 @@ export default function Sidebar() {
                               href={child.href}
                               className="flex items-center gap-2 rounded-md px-3 py-1.5 text-[12.5px] font-medium transition-colors"
                               style={{
-                                color:      childActive ? 'var(--sidebar-text-active)' : 'var(--sidebar-text)',
-                                background: childActive ? 'var(--sidebar-item-active)' : 'transparent',
+                                color:          childActive ? '#111' : '#666',
+                                background:     childActive ? 'rgba(0,0,0,0.06)' : 'transparent',
                                 textDecoration: 'none',
                               }}
                             >
-                              <span className="w-1 h-1 rounded-full shrink-0"
-                                    style={{ background: childActive ? '#fff' : 'var(--sidebar-label)' }} />
+                              <span
+                                className="w-1 h-1 rounded-full shrink-0"
+                                style={{ background: childActive ? '#111' : 'rgba(0,0,0,0.25)' }}
+                              />
                               {child.label}
                             </Link>
                           )
@@ -128,9 +136,11 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="px-4 py-3 shrink-0"
-           style={{ borderTop: '1px solid var(--sidebar-border)' }}>
-        <p className="text-[11px]" style={{ color: 'var(--sidebar-label)' }}>
+      <div
+        className="px-4 py-3 shrink-0"
+        style={{ borderTop: '1px solid rgba(200,200,204,0.35)' }}
+      >
+        <p className="text-[11px]" style={{ color: 'rgba(0,0,0,0.35)' }}>
           Trade Risk Solutions
         </p>
       </div>

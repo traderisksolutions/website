@@ -1,7 +1,4 @@
-import {
-  Inbox, Users, BarChart2, MessageSquare, FileText,
-  Settings, UserCircle, Bot, Zap,
-} from 'lucide-react'
+import { Inbox } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 export type SubItem = { label: string; href: string }
@@ -22,46 +19,20 @@ export type NavSection = {
 
 export const SIDEBAR_NAV: NavSection[] = [
   {
-    id:    'sales',
-    label: 'Sales Agent',
+    id:    'inbound-leads',
+    label: 'Inbound Leads',
     items: [
       {
         id:    'inbound',
-        label: 'Inbound Contacts',
+        label: 'All Leads',
         icon:  Inbox,
         href:  '/inbound',
         children: [
-          { label: 'All Leads',  href: '/inbound' },
-          { label: 'WhatsApp',   href: '/inbound?source=whatsapp' },
-          { label: 'Email Form', href: '/inbound?source=email' },
+          { label: 'All Leads',          href: '/inbound' },
+          { label: 'WhatsApp Leads',     href: '/inbound?source=whatsapp' },
+          { label: 'Website Form Leads', href: '/inbound?source=email' },
         ],
       },
-      { id: 'contacts', label: 'Contacts',  icon: Users,     href: '/contacts' },
-      { id: 'pipeline', label: 'Pipeline',  icon: BarChart2, href: '/pipeline' },
-    ],
-  },
-  {
-    id:    'whatsapp',
-    label: 'WhatsApp AI',
-    items: [
-      { id: 'conversations', label: 'Conversations', icon: MessageSquare, href: '/conversations' },
-      { id: 'drafts',        label: 'Drafts',        icon: FileText,      href: '/drafts' },
-    ],
-  },
-  {
-    id:    'ai',
-    label: 'AI Config',
-    items: [
-      { id: 'agents',  label: 'Agents',  icon: Bot,  href: '/agents' },
-      { id: 'prompts', label: 'Prompts', icon: Zap,  href: '/prompts' },
-    ],
-  },
-  {
-    id:    'settings',
-    label: 'Settings',
-    items: [
-      { id: 'team',   label: 'Team',          icon: UserCircle, href: '/team' },
-      { id: 'config', label: 'Configuration', icon: Settings,   href: '/config' },
     ],
   },
 ]
