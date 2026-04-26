@@ -1,72 +1,7 @@
 'use client'
 
-import TopNav from '@/components/TopNav'
 import { useState } from 'react'
-import {
-  Inbox, MessageSquare, Mail, PenLine,
-  Circle, Phone, CheckCircle2, Target, XCircle,
-  CalendarDays, LayoutList, ChevronDown, Sparkles, Copy, Check,
-} from 'lucide-react'
-import type { NavTrigger } from '@/lib/nav-config'
-
-const TOP_NAV: NavTrigger[] = [
-  {
-    label: 'View',
-    groups: [
-      {
-        label: 'Layout',
-        items: [
-          { label: 'Table', href: '/inbound', icon: LayoutList, description: 'Row-by-row data view', badge: 'Active' },
-          { label: 'Cards', href: '/inbound?view=cards', icon: Inbox, description: 'Card grid layout' },
-        ],
-      },
-    ],
-  },
-  {
-    label: 'Source',
-    groups: [
-      {
-        label: 'Channels',
-        items: [
-          { label: 'All Sources', href: '/inbound',                   icon: Inbox,         description: 'Every inbound channel' },
-          { label: 'WhatsApp',    href: '/inbound?source=whatsapp',   icon: MessageSquare, description: 'Click-to-chat enquiries' },
-          { label: 'Email Form',  href: '/inbound?source=email',      icon: Mail,          description: 'Website email submissions' },
-          { label: 'Manual',      href: '/inbound?source=manual',     icon: PenLine,       description: 'Staff-added entries' },
-        ],
-      },
-    ],
-  },
-  {
-    label: 'Status',
-    groups: [
-      {
-        label: 'Pipeline Stage',
-        items: [
-          { label: 'New',       href: '/inbound?status=new',       icon: Circle,       description: 'Fresh, uncontacted enquiries' },
-          { label: 'Contacted', href: '/inbound?status=contacted', icon: Phone,        description: 'Follow-up initiated' },
-          { label: 'Qualified', href: '/inbound?status=qualified', icon: CheckCircle2, description: 'Verified intent to purchase' },
-          { label: 'Converted', href: '/inbound?status=converted', icon: Target,       description: 'Became a customer' },
-          { label: 'Dropped',   href: '/inbound?status=dropped',   icon: XCircle,      description: 'Not proceeding' },
-        ],
-      },
-    ],
-  },
-  {
-    label: 'Period',
-    groups: [
-      {
-        label: 'Date Range',
-        items: [
-          { label: 'Today',      href: '/inbound?period=today',     icon: CalendarDays },
-          { label: 'Yesterday',  href: '/inbound?period=yesterday', icon: CalendarDays },
-          { label: 'This week',  href: '/inbound?period=week',      icon: CalendarDays },
-          { label: 'This month', href: '/inbound?period=month',     icon: CalendarDays },
-          { label: 'All time',   href: '/inbound',                  icon: CalendarDays },
-        ],
-      },
-    ],
-  },
-]
+import { ChevronDown, Sparkles, Copy, Check } from 'lucide-react'
 
 const MOCK_LEADS = [
   { id: 1, date: '26 Apr 2025, 14:32', source: 'whatsapp_click', type: 'Individual', message: "Hi, I'm James Tan. I want to know more about Motor Insurance. Looking to renew my car in June. My current policy is expiring and I want to compare plans. Is there a good comprehensive option for a 5-year-old Toyota Corolla?", status: 'new' },
@@ -76,12 +11,12 @@ const MOCK_LEADS = [
   { id: 5, date: '24 Apr 2025, 16:22', source: 'whatsapp_click', type: 'Individual', message: "Hi, I'm Alex Wong. I want to know more about Motor Insurance. Just got my first car — a Honda Civic 2024. Looking for comprehensive coverage. Not sure what add-ons I need. Budget is around $1,200/year.", status: 'new' },
 ]
 
-const STATUS_STYLES: Record<string, string> = {
-  new:       'bg-blue-50 text-blue-700',
-  contacted: 'bg-yellow-50 text-yellow-700',
-  qualified: 'bg-green-50 text-green-700',
-  converted: 'bg-purple-50 text-purple-700',
-  dropped:   'bg-gray-100 text-gray-500',
+const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
+  new:       { bg: 'rgba(59,130,246,0.10)',  color: '#1d4ed8' },
+  contacted: { bg: 'rgba(245,158,11,0.10)',  color: '#b45309' },
+  qualified: { bg: 'rgba(34,197,94,0.10)',   color: '#15803d' },
+  converted: { bg: 'rgba(168,85,247,0.10)',  color: '#7e22ce' },
+  dropped:   { bg: 'rgba(107,114,128,0.10)', color: '#4b5563' },
 }
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -91,18 +26,18 @@ const SOURCE_LABEL: Record<string, string> = {
 }
 
 const AI_REPLIES: Record<number, string> = {
-  1: "Hi James! Thanks for reaching out to Trade Risk Solutions.\n\nFor a 5-year-old Toyota Corolla, we have several great comprehensive motor insurance options that would suit your needs. Our top recommendation would be a plan with:\n• Zero excess on windscreen claims\n• Authorised and non-authorised workshop options\n• 24/7 roadside assistance\n• NCD (No-Claims Discount) protection\n\nCould I arrange a quick call to walk you through the best options before your June renewal? It usually takes just 10–15 minutes and we can get you a quote on the spot.",
-  2: "Hi Sarah! Thank you for your enquiry on behalf of Acme Pte Ltd.\n\nFor a team of 50, we can offer a comprehensive Group Medical Insurance plan that covers both outpatient GP/specialist visits and hospitalisation. Key highlights:\n• Panel clinics island-wide\n• Inpatient ward cover (B1 or A class)\n• Option to add dental and maternity riders\n• Group premium rates with annual review\n\nI'd love to schedule a brief presentation for your HR team. Would this week or next work for a 30-minute call?",
-  3: "Hi Kevin! Thanks for getting in touch.\n\nFor a family of 4 travelling to Japan in August, I'd recommend a Family Travel Insurance plan with:\n• Unlimited emergency medical evacuation\n• Trip cancellation cover (up to $15,000)\n• Child-friendly coverage with no extra premium for kids under 18\n• Loss of baggage and travel documents\n\nJapan in August is a wonderful time! Shall I prepare a comparison of our top 2–3 family travel plans so you can pick the best fit?",
-  4: "Hi Michelle! Thank you for reaching out regarding BuildCo's fleet.\n\nFor a fleet of 8 commercial vehicles, we can offer a Fleet Motor Insurance policy with advantages over individual policies:\n• Single renewal date for all vehicles\n• Fleet NCD (discount grows as fleet record stays clean)\n• Dedicated claims handler for faster processing\n• Comprehensive coverage including goods in transit\n\nI'll put together a fleet quote for your lorries and vans. Could you share the vehicle registration numbers and current insurer so we can make a direct comparison?",
-  5: "Hi Alex! Congratulations on your first car — a Honda Civic 2024 is a great choice!\n\nFor a new driver, I'd recommend a comprehensive plan with:\n• Authorised Honda workshop coverage\n• Young driver NCD accelerator (build your discount faster)\n• Personal accident cover for driver and passengers\n• Loss of use benefit while your car is in the workshop\n\nFor a 2024 Civic, your budget of $1,200/year is very reasonable. I can get you 2–3 quotes within the day. Want me to proceed?",
+  1: "Hi James! Thanks for reaching out to Trade Risk Solutions.\n\nFor a 5-year-old Toyota Corolla, we have several great comprehensive motor insurance options. Our top recommendation includes:\n• Zero excess on windscreen claims\n• Authorised and non-authorised workshop options\n• 24/7 roadside assistance\n• NCD (No-Claims Discount) protection\n\nCould I arrange a quick call before your June renewal? Usually just 10–15 minutes and we can get you a quote on the spot.",
+  2: "Hi Sarah! Thank you for your enquiry on behalf of Acme Pte Ltd.\n\nFor a team of 50, we can offer a comprehensive Group Medical Insurance plan covering outpatient and hospitalisation. Key highlights:\n• Panel clinics island-wide\n• Inpatient ward cover (B1 or A class)\n• Option to add dental and maternity riders\n• Group premium rates with annual review\n\nI'd love to schedule a 30-minute call with your HR team. Would this week or next work?",
+  3: "Hi Kevin! Thanks for getting in touch.\n\nFor a family of 4 travelling to Japan in August, I'd recommend a Family Travel Insurance plan with:\n• Unlimited emergency medical evacuation\n• Trip cancellation cover (up to $15,000)\n• Child coverage included at no extra premium\n• Loss of baggage and travel documents\n\nShall I prepare a comparison of our top 2–3 family plans so you can pick the best fit?",
+  4: "Hi Michelle! Thank you for reaching out regarding BuildCo's fleet.\n\nFor 8 commercial vehicles, a Fleet Motor Insurance policy offers significant advantages:\n• Single renewal date for all vehicles\n• Fleet NCD — discount grows with a clean record\n• Dedicated claims handler for faster processing\n• Comprehensive coverage including goods in transit\n\nCould you share the vehicle registration numbers and current insurer so I can prepare a direct comparison?",
+  5: "Hi Alex! Congratulations on your first car — a Honda Civic 2024 is a great choice!\n\nFor a new driver, I'd recommend a comprehensive plan with:\n• Authorised Honda workshop coverage\n• Young driver NCD accelerator\n• Personal accident cover for driver and passengers\n• Loss of use benefit during repairs\n\nYour $1,200/year budget is very workable for a 2024 Civic. I can get you 2–3 quotes within the day — shall I proceed?",
 }
 
 export default function InboundPage() {
-  const [expanded, setExpanded]   = useState<number | null>(null)
+  const [expanded,  setExpanded]  = useState<number | null>(null)
   const [generating, setGenerating] = useState<number | null>(null)
-  const [generated, setGenerated]   = useState<Set<number>>(new Set())
-  const [copied, setCopied]         = useState(false)
+  const [generated,  setGenerated]  = useState<Set<number>>(new Set())
+  const [copied,     setCopied]     = useState(false)
 
   const stats = [
     { label: 'New',       count: MOCK_LEADS.filter(l => l.status === 'new').length,       color: '#3b82f6' },
@@ -133,23 +68,40 @@ export default function InboundPage() {
 
   return (
     <div className="flex flex-col flex-1">
-      <TopNav items={TOP_NAV} title="Inbound Contacts" />
+
+      {/* Page header */}
+      <div
+        className="px-6 flex items-center"
+        style={{
+          height: '52px',
+          background: 'rgba(255,255,255,0.72)',
+          backdropFilter: 'blur(28px) saturate(200%)',
+          WebkitBackdropFilter: 'blur(28px) saturate(200%)',
+          borderBottom: '1px solid rgba(200,200,204,0.45)',
+          boxShadow: '0 1px 0 rgba(255,255,255,0.6), 0 2px 12px rgba(0,0,0,0.06)',
+        }}
+      >
+        <h1 className="text-sm font-semibold text-gray-800">Inbound Contacts</h1>
+      </div>
 
       <main className="flex-1 p-6 space-y-5">
 
         {/* Stats row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {stats.map(s => (
-            <div key={s.label} className="glass rounded-xl px-5 py-4">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{s.label}</p>
-              <p className="text-2xl font-bold mt-1" style={{ color: s.color }}>{s.count}</p>
+            <div key={s.label} className="glass rounded-xl px-5 py-5">
+              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-2">{s.label}</p>
+              <p className="text-3xl font-bold" style={{ color: s.color }}>{s.count}</p>
             </div>
           ))}
         </div>
 
         {/* Table */}
         <div className="glass rounded-xl overflow-hidden">
-          <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
+          <div
+            className="px-5 py-3.5 flex items-center justify-between"
+            style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}
+          >
             <h2 className="text-sm font-semibold text-gray-800">All Leads</h2>
             <span className="text-xs text-gray-400">{MOCK_LEADS.length} entries · placeholder data</span>
           </div>
@@ -157,32 +109,35 @@ export default function InboundPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-xs text-gray-400 font-semibold uppercase tracking-wide" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-                  <th className="px-5 py-3 text-left w-6"></th>
-                  <th className="px-5 py-3 text-left">Date</th>
-                  <th className="px-5 py-3 text-left">Source</th>
-                  <th className="px-5 py-3 text-left">Type</th>
-                  <th className="px-5 py-3 text-left">Message preview</th>
-                  <th className="px-5 py-3 text-left">Status</th>
-                  <th className="px-5 py-3 text-left">AI Reply</th>
+                <tr
+                  className="text-[11px] text-gray-400 font-semibold uppercase tracking-widest"
+                  style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
+                >
+                  <th className="px-4 py-3 text-left w-8"></th>
+                  <th className="px-4 py-3 text-left">Date</th>
+                  <th className="px-4 py-3 text-left">Source</th>
+                  <th className="px-4 py-3 text-left">Type</th>
+                  <th className="px-4 py-3 text-left">Message preview</th>
+                  <th className="px-4 py-3 text-left">Status</th>
+                  <th className="px-4 py-3 text-left">AI Reply</th>
                 </tr>
               </thead>
               <tbody>
                 {MOCK_LEADS.map(lead => {
-                  const isOpen = expanded === lead.id
-                  const isGen  = generating === lead.id
+                  const isOpen   = expanded === lead.id
+                  const isGen    = generating === lead.id
                   const hasDraft = generated.has(lead.id)
+                  const st       = STATUS_STYLES[lead.status]
 
                   return (
                     <>
-                      {/* Main row */}
                       <tr
                         key={lead.id}
                         className="hover:bg-black/[0.02] transition-colors cursor-pointer group"
                         style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}
                         onClick={() => toggleRow(lead.id)}
                       >
-                        <td className="px-5 py-3.5">
+                        <td className="px-4 py-4">
                           <ChevronDown
                             size={13}
                             strokeWidth={2}
@@ -190,27 +145,38 @@ export default function InboundPage() {
                             style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
                           />
                         </td>
-                        <td className="px-5 py-3.5 text-gray-500 whitespace-nowrap text-xs">{lead.date}</td>
-                        <td className="px-5 py-3.5">
+                        <td className="px-4 py-4 text-gray-500 whitespace-nowrap text-xs">{lead.date}</td>
+                        <td className="px-4 py-4">
                           <span className="text-xs font-medium text-gray-600">{SOURCE_LABEL[lead.source] ?? lead.source}</span>
                         </td>
-                        <td className="px-5 py-3.5 text-xs text-gray-500">{lead.type}</td>
-                        <td className="px-5 py-3.5 max-w-xs">
+                        <td className="px-4 py-4 text-xs text-gray-500">{lead.type}</td>
+                        <td className="px-4 py-4" style={{ maxWidth: '320px' }}>
                           <p className="truncate text-gray-700 text-xs">{lead.message}</p>
                         </td>
-                        <td className="px-5 py-3.5">
-                          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize ${STATUS_STYLES[lead.status]}`}>
+                        <td className="px-4 py-4">
+                          <span
+                            className="text-[11px] font-semibold capitalize"
+                            style={{
+                              display: 'inline-block',
+                              padding: '3px 10px',
+                              borderRadius: '9999px',
+                              background: st.bg,
+                              color: st.color,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
                             {lead.status}
                           </span>
                         </td>
-                        <td className="px-5 py-3.5">
+                        <td className="px-4 py-4">
                           <button
                             onClick={e => generateReply(e, lead.id)}
-                            className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md border transition-all"
+                            className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-all"
                             style={{
-                              borderColor: hasDraft ? '#22c55e' : 'rgba(0,0,0,0.15)',
-                              color:       hasDraft ? '#16a34a' : '#555',
+                              borderColor: hasDraft ? '#22c55e' : 'rgba(0,0,0,0.14)',
+                              color:       hasDraft ? '#15803d' : '#555',
                               background:  hasDraft ? 'rgba(34,197,94,0.06)' : 'transparent',
+                              whiteSpace: 'nowrap',
                             }}
                           >
                             <Sparkles size={11} strokeWidth={2} />
@@ -221,24 +187,29 @@ export default function InboundPage() {
 
                       {/* Expanded panel */}
                       {isOpen && (
-                        <tr key={`${lead.id}-expanded`}>
-                          <td colSpan={7} className="px-5 pb-5 pt-0" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-                            <div className="rounded-xl p-4 space-y-4" style={{ background: 'rgba(0,0,0,0.025)', border: '1px solid rgba(0,0,0,0.06)' }}>
-
+                        <tr key={`${lead.id}-exp`}>
+                          <td
+                            colSpan={7}
+                            className="px-5 pb-5 pt-2"
+                            style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
+                          >
+                            <div
+                              className="rounded-xl p-5 space-y-5"
+                              style={{ background: 'rgba(0,0,0,0.025)', border: '1px solid rgba(0,0,0,0.06)' }}
+                            >
                               {/* Full message */}
                               <div>
-                                <p className="text-[10.5px] font-semibold uppercase tracking-widest text-gray-400 mb-1.5">Full Message</p>
-                                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{lead.message}</p>
+                                <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2">Full Message</p>
+                                <p className="text-sm text-gray-700 leading-relaxed">{lead.message}</p>
                               </div>
 
-                              {/* AI Reply */}
-                              <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: '1rem' }}>
-                                <div className="flex items-center justify-between mb-2">
-                                  <p className="text-[10.5px] font-semibold uppercase tracking-widest text-gray-400">AI Reply Draft</p>
+                              <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: '1.25rem' }}>
+                                <div className="flex items-center justify-between mb-3">
+                                  <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">AI Reply Draft</p>
                                   {hasDraft && (
                                     <button
                                       onClick={() => copyReply(AI_REPLIES[lead.id])}
-                                      className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md border transition-all"
+                                      className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-all"
                                       style={{ borderColor: 'rgba(0,0,0,0.12)', color: '#555' }}
                                     >
                                       {copied ? <Check size={11} strokeWidth={2.5} /> : <Copy size={11} strokeWidth={2} />}
@@ -248,7 +219,7 @@ export default function InboundPage() {
                                 </div>
 
                                 {isGen ? (
-                                  <div className="flex items-center gap-2 py-3">
+                                  <div className="flex items-center gap-2 py-2">
                                     <div className="flex gap-1">
                                       {[0, 1, 2].map(i => (
                                         <div
@@ -265,7 +236,7 @@ export default function InboundPage() {
                                 ) : (
                                   <button
                                     onClick={e => generateReply(e, lead.id)}
-                                    className="flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg transition-all"
+                                    className="flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-lg transition-all"
                                     style={{ background: '#18181b', color: '#fff' }}
                                   >
                                     <Sparkles size={13} strokeWidth={2} />
