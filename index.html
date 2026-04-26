@@ -556,7 +556,10 @@
         input.value = '';
       }
 
-      btn.addEventListener('click', firePrompt);
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation(); /* prevent nav.js doc listener from closing the popover */
+        firePrompt();
+      });
       input.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); firePrompt(); }
       });
