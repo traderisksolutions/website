@@ -266,8 +266,8 @@
     '    <input class="nav-ctac-field-input" id="nav-ctac-e-email" type="email" placeholder="e.g. sarah@company.com" autocomplete="email" />',
     '  </div>',
     '  <div class="nav-ctac-field">',
-    '    <label class="nav-ctac-label" for="nav-ctac-e-phone">Phone <span class="nav-ctac-optional">(optional)</span></label>',
-    '    <input class="nav-ctac-field-input" id="nav-ctac-e-phone" type="tel" placeholder="e.g. +65 9123 4567" autocomplete="tel" />',
+    '    <label class="nav-ctac-label" for="nav-ctac-e-phone">Phone <span class="nav-ctac-optional">(include area code if not a Singapore number)</span></label>',
+    '    <input class="nav-ctac-field-input" id="nav-ctac-e-phone" type="tel" placeholder="91234567" autocomplete="tel" />',
     '  </div>',
     '  <div class="nav-ctac-field">',
     '    <label class="nav-ctac-label" for="nav-ctac-e-msg">More details</label>',
@@ -280,7 +280,17 @@
     '</div>',
 
     '<p class="nav-ctac-wa-note" id="nav-ctac-note-wa">' + WA_ICON + ' We\'ll reply on WhatsApp</p>',
-    '<p class="nav-ctac-wa-note nav-ctac-panel--hidden" id="nav-ctac-note-email">' + EMAIL_ICON + ' We\'ll reply via email within 1 business day</p>'
+    '<p class="nav-ctac-wa-note nav-ctac-panel--hidden" id="nav-ctac-note-email">' + EMAIL_ICON + ' We\'ll reply via email within 1 business day</p>',
+
+    /* ── Success screen ── */
+    '<div class="nav-ctac-success nav-ctac-panel--hidden" id="nav-ctac-success">',
+    '  <div class="nav-ctac-success-icon">',
+    '    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+    '  </div>',
+    '  <p class="nav-ctac-success-title">Done!</p>',
+    '  <p class="nav-ctac-success-body" id="nav-ctac-success-body">We\'ve received your message.</p>',
+    '  <button class="nav-ctac-send" id="nav-ctac-success-close">Close</button>',
+    '</div>'
   ].join('');
 
   document.body.appendChild(card);
@@ -336,6 +346,30 @@
   }
 
   function closeCard() { card.classList.remove('open'); }
+
+  var PANELS = ['nav-ctac-tabs', 'nav-ctac-header', 'nav-ctac-form-wa', 'nav-ctac-form-email', 'nav-ctac-note-wa', 'nav-ctac-note-email'];
+
+  function showSuccess(bodyText) {
+    PANELS.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.classList.add('nav-ctac-panel--hidden');
+    });
+    document.getElementById('nav-ctac-close').classList.add('nav-ctac-panel--hidden');
+    document.getElementById('nav-ctac-success-body').textContent = bodyText || 'We\'ve received your message.';
+    document.getElementById('nav-ctac-success').classList.remove('nav-ctac-panel--hidden');
+  }
+
+  function hideSuccess() {
+    document.getElementById('nav-ctac-success').classList.add('nav-ctac-panel--hidden');
+    document.getElementById('nav-ctac-close').classList.remove('nav-ctac-panel--hidden');
+    var showWa = activeTab === 'wa';
+    document.getElementById('nav-ctac-tabs').classList.remove('nav-ctac-panel--hidden');
+    document.getElementById('nav-ctac-header').classList.remove('nav-ctac-panel--hidden');
+    document.getElementById('nav-ctac-form-wa').classList.toggle('nav-ctac-panel--hidden', !showWa);
+    document.getElementById('nav-ctac-form-email').classList.toggle('nav-ctac-panel--hidden', showWa);
+    document.getElementById('nav-ctac-note-wa').classList.toggle('nav-ctac-panel--hidden', !showWa);
+    document.getElementById('nav-ctac-note-email').classList.toggle('nav-ctac-panel--hidden', showWa);
+  }
 
   function resetForm() {
     [nameInput, msgInput, eNameInput, eCompanyInput, eEmailInput, ePhoneInput, eMsgInput].forEach(function (el) { el.value = ''; el.classList.remove('nav-ctac-error'); });
@@ -404,7 +438,7 @@
     if (typeof window.trsCaptureLead === 'function') window.trsCaptureLead(msg, 'whatsapp_click');
     window.open('https://wa.me/6562380888?text=' + encodeURIComponent(msg), '_blank', 'noopener');
     resetForm();
-    closeCard();
+    showSuccess('Your WhatsApp is opening now. We\'ll reply shortly!');
   }
 
   /* Email send */
@@ -436,20 +470,16 @@
               ' | Details: ' + eMsg;
 
     if (typeof window.trsCaptureLead === 'function') window.trsCaptureLead(msg, 'website_form');
-
-    var btn = document.getElementById('nav-ctac-e-send');
-    btn.innerHTML = '<span>Enquiry sent!</span><span>✅</span>';
-    btn.disabled  = true;
-    setTimeout(function () {
-      resetForm();
-      closeCard();
-      btn.innerHTML = '<span>Submit</span><span class="nav-ctac-rocket">📧</span>';
-      btn.disabled  = false;
-    }, 1800);
+    resetForm();
+    showSuccess('We\'ve received your enquiry and will get back to you within 1 business day.');
   }
 
   document.getElementById('nav-ctac-send').addEventListener('click', sendWaMessage);
   document.getElementById('nav-ctac-e-send').addEventListener('click', sendEmailEnquiry);
+  document.getElementById('nav-ctac-success-close').addEventListener('click', function () {
+    hideSuccess();
+    closeCard();
+  });
 
   [nameInput, msgInput].forEach(function (el) {
     el.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); sendWaMessage(); } });
