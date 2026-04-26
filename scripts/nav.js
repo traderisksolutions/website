@@ -299,7 +299,7 @@
     '  <div class="nav-ctac-success-icon">',
     '    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
     '  </div>',
-    '  <p class="nav-ctac-success-title">Done!</p>',
+    '  <p class="nav-ctac-success-title">Sent!</p>',
     '  <p class="nav-ctac-success-body" id="nav-ctac-success-body">We\'ve received your message.</p>',
     '  <button class="nav-ctac-send" id="nav-ctac-success-close">Close</button>',
     '</div>'
@@ -493,7 +493,7 @@
     }, 'whatsapp_click');
     window.open('https://wa.me/6589386813?text=' + encodeURIComponent(msg), '_blank', 'noopener');
     resetForm();
-    showSuccess('Your WhatsApp is opening now. We\'ll reply shortly!');
+    showSuccess('Your message is on its way!');
   }
 
   /* Email send */
@@ -529,7 +529,7 @@
       message:      null
     }, 'website_form');
     resetForm();
-    showSuccess('We\'ve received your enquiry and will get back to you within 1 business day.');
+    showSuccess('Your enquiry has been received.');
   }
 
   /* Global hook — pre-fill More details and open popover */
