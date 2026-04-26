@@ -219,12 +219,12 @@
     '  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
     '</button>',
 
-    '<div class="nav-ctac-tabs">',
+    '<div class="nav-ctac-tabs" id="nav-ctac-tabs">',
     '  <button class="nav-ctac-tab nav-ctac-tab--active" data-ctac-tab="wa">WhatsApp</button>',
     '  <button class="nav-ctac-tab" data-ctac-tab="email">Email</button>',
     '</div>',
 
-    '<div class="nav-ctac-header">',
+    '<div class="nav-ctac-header" id="nav-ctac-header">',
     '  <p class="nav-ctac-heading">Tell me more about</p>',
     '  <p class="nav-ctac-heading-topic" id="nav-ctac-topic-label">...</p>',
     '</div>',
