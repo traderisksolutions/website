@@ -1,10 +1,11 @@
 'use client'
 
 import TopNav from '@/components/TopNav'
+import { useState } from 'react'
 import {
   Inbox, MessageSquare, Mail, PenLine,
   Circle, Phone, CheckCircle2, Target, XCircle,
-  CalendarDays, LayoutList,
+  CalendarDays, LayoutList, ChevronDown, Sparkles, Copy, Check,
 } from 'lucide-react'
 import type { NavTrigger } from '@/lib/nav-config'
 
@@ -15,8 +16,8 @@ const TOP_NAV: NavTrigger[] = [
       {
         label: 'Layout',
         items: [
-          { label: 'Table',  href: '/inbound',       icon: LayoutList, description: 'Row-by-row data view',  badge: 'Active' },
-          { label: 'Cards',  href: '/inbound?view=cards', icon: Inbox, description: 'Card grid layout' },
+          { label: 'Table', href: '/inbound', icon: LayoutList, description: 'Row-by-row data view', badge: 'Active' },
+          { label: 'Cards', href: '/inbound?view=cards', icon: Inbox, description: 'Card grid layout' },
         ],
       },
     ],
@@ -27,10 +28,10 @@ const TOP_NAV: NavTrigger[] = [
       {
         label: 'Channels',
         items: [
-          { label: 'All Sources',    href: '/inbound',                    icon: Inbox,          description: 'Every inbound channel' },
-          { label: 'WhatsApp',       href: '/inbound?source=whatsapp',    icon: MessageSquare,  description: 'Click-to-chat enquiries' },
-          { label: 'Email Form',     href: '/inbound?source=email',       icon: Mail,           description: 'Website email submissions' },
-          { label: 'Manual',         href: '/inbound?source=manual',      icon: PenLine,        description: 'Staff-added entries' },
+          { label: 'All Sources', href: '/inbound',                   icon: Inbox,         description: 'Every inbound channel' },
+          { label: 'WhatsApp',    href: '/inbound?source=whatsapp',   icon: MessageSquare, description: 'Click-to-chat enquiries' },
+          { label: 'Email Form',  href: '/inbound?source=email',      icon: Mail,          description: 'Website email submissions' },
+          { label: 'Manual',      href: '/inbound?source=manual',     icon: PenLine,       description: 'Staff-added entries' },
         ],
       },
     ],
@@ -41,11 +42,11 @@ const TOP_NAV: NavTrigger[] = [
       {
         label: 'Pipeline Stage',
         items: [
-          { label: 'New',        href: '/inbound?status=new',       icon: Circle,        description: 'Fresh, uncontacted enquiries' },
-          { label: 'Contacted',  href: '/inbound?status=contacted', icon: Phone,         description: 'Follow-up initiated' },
-          { label: 'Qualified',  href: '/inbound?status=qualified', icon: CheckCircle2,  description: 'Verified intent to purchase' },
-          { label: 'Converted',  href: '/inbound?status=converted', icon: Target,        description: 'Became a customer' },
-          { label: 'Dropped',    href: '/inbound?status=dropped',   icon: XCircle,       description: 'Not proceeding' },
+          { label: 'New',       href: '/inbound?status=new',       icon: Circle,       description: 'Fresh, uncontacted enquiries' },
+          { label: 'Contacted', href: '/inbound?status=contacted', icon: Phone,        description: 'Follow-up initiated' },
+          { label: 'Qualified', href: '/inbound?status=qualified', icon: CheckCircle2, description: 'Verified intent to purchase' },
+          { label: 'Converted', href: '/inbound?status=converted', icon: Target,       description: 'Became a customer' },
+          { label: 'Dropped',   href: '/inbound?status=dropped',   icon: XCircle,      description: 'Not proceeding' },
         ],
       },
     ],
@@ -56,24 +57,23 @@ const TOP_NAV: NavTrigger[] = [
       {
         label: 'Date Range',
         items: [
-          { label: 'Today',       href: '/inbound?period=today',   icon: CalendarDays },
-          { label: 'Yesterday',   href: '/inbound?period=yesterday', icon: CalendarDays },
-          { label: 'This week',   href: '/inbound?period=week',    icon: CalendarDays },
-          { label: 'This month',  href: '/inbound?period=month',   icon: CalendarDays },
-          { label: 'All time',    href: '/inbound',                 icon: CalendarDays },
+          { label: 'Today',      href: '/inbound?period=today',     icon: CalendarDays },
+          { label: 'Yesterday',  href: '/inbound?period=yesterday', icon: CalendarDays },
+          { label: 'This week',  href: '/inbound?period=week',      icon: CalendarDays },
+          { label: 'This month', href: '/inbound?period=month',     icon: CalendarDays },
+          { label: 'All time',   href: '/inbound',                  icon: CalendarDays },
         ],
       },
     ],
   },
 ]
 
-/* ── Placeholder data ── */
 const MOCK_LEADS = [
-  { id: 1, date: '26 Apr 2025, 14:32', source: 'whatsapp_click', type: 'Individual', message: "Hi, I'm James Tan. I want to know more about Motor Insurance. Looking to renew my car in June.", status: 'new' },
-  { id: 2, date: '26 Apr 2025, 11:15', source: 'website_form',   type: 'Business',   message: '[Email Enquiry] Name: Sarah Lim | Type: Business | Company: Acme Pte Ltd | Email: sarah@acme.com | Topic: Employee Benefits | Details: 50 headcount, looking for group medical.', status: 'new' },
-  { id: 3, date: '25 Apr 2025, 17:04', source: 'whatsapp_click', type: 'Individual', message: "Hi, I'm Kevin Ong. I want to know more about Travel Insurance. Family trip to Japan in August.", status: 'contacted' },
-  { id: 4, date: '25 Apr 2025, 09:47', source: 'website_form',   type: 'Business',   message: '[Email Enquiry] Name: Michelle Chan | Type: Business | Company: BuildCo | Email: michelle@buildco.sg | Topic: Commercial Plans | Details: Fleet of 8 commercial vehicles.', status: 'qualified' },
-  { id: 5, date: '24 Apr 2025, 16:22', source: 'whatsapp_click', type: 'Individual', message: "Hi, I'm Alex Wong. I want to know more about Motor Insurance. First car, looking for comprehensive coverage.", status: 'new' },
+  { id: 1, date: '26 Apr 2025, 14:32', source: 'whatsapp_click', type: 'Individual', message: "Hi, I'm James Tan. I want to know more about Motor Insurance. Looking to renew my car in June. My current policy is expiring and I want to compare plans. Is there a good comprehensive option for a 5-year-old Toyota Corolla?", status: 'new' },
+  { id: 2, date: '26 Apr 2025, 11:15', source: 'website_form',   type: 'Business',   message: '[Email Enquiry] Name: Sarah Lim | Type: Business | Company: Acme Pte Ltd | Email: sarah@acme.com | Phone: +65 9123 4567 | Topic: Employee Benefits | Details: We have about 50 headcount and are looking for a group medical insurance plan. Would like to understand options for outpatient and hospitalisation coverage.', status: 'new' },
+  { id: 3, date: '25 Apr 2025, 17:04', source: 'whatsapp_click', type: 'Individual', message: "Hi, I'm Kevin Ong. I want to know more about Travel Insurance. Planning a family trip to Japan in August — 4 pax including 2 kids. Interested in a plan that covers trip cancellation and medical emergencies.", status: 'contacted' },
+  { id: 4, date: '25 Apr 2025, 09:47', source: 'website_form',   type: 'Business',   message: '[Email Enquiry] Name: Michelle Chan | Type: Business | Company: BuildCo | Email: michelle@buildco.sg | Phone: +65 8234 5678 | Topic: Commercial Plans | Details: We operate a fleet of 8 commercial vehicles (lorries and vans). Looking for comprehensive commercial motor insurance with good workshop network.', status: 'qualified' },
+  { id: 5, date: '24 Apr 2025, 16:22', source: 'whatsapp_click', type: 'Individual', message: "Hi, I'm Alex Wong. I want to know more about Motor Insurance. Just got my first car — a Honda Civic 2024. Looking for comprehensive coverage. Not sure what add-ons I need. Budget is around $1,200/year.", status: 'new' },
 ]
 
 const STATUS_STYLES: Record<string, string> = {
@@ -90,13 +90,46 @@ const SOURCE_LABEL: Record<string, string> = {
   manual:         'Manual',
 }
 
+const AI_REPLIES: Record<number, string> = {
+  1: "Hi James! Thanks for reaching out to Trade Risk Solutions.\n\nFor a 5-year-old Toyota Corolla, we have several great comprehensive motor insurance options that would suit your needs. Our top recommendation would be a plan with:\n• Zero excess on windscreen claims\n• Authorised and non-authorised workshop options\n• 24/7 roadside assistance\n• NCD (No-Claims Discount) protection\n\nCould I arrange a quick call to walk you through the best options before your June renewal? It usually takes just 10–15 minutes and we can get you a quote on the spot.",
+  2: "Hi Sarah! Thank you for your enquiry on behalf of Acme Pte Ltd.\n\nFor a team of 50, we can offer a comprehensive Group Medical Insurance plan that covers both outpatient GP/specialist visits and hospitalisation. Key highlights:\n• Panel clinics island-wide\n• Inpatient ward cover (B1 or A class)\n• Option to add dental and maternity riders\n• Group premium rates with annual review\n\nI'd love to schedule a brief presentation for your HR team. Would this week or next work for a 30-minute call?",
+  3: "Hi Kevin! Thanks for getting in touch.\n\nFor a family of 4 travelling to Japan in August, I'd recommend a Family Travel Insurance plan with:\n• Unlimited emergency medical evacuation\n• Trip cancellation cover (up to $15,000)\n• Child-friendly coverage with no extra premium for kids under 18\n• Loss of baggage and travel documents\n\nJapan in August is a wonderful time! Shall I prepare a comparison of our top 2–3 family travel plans so you can pick the best fit?",
+  4: "Hi Michelle! Thank you for reaching out regarding BuildCo's fleet.\n\nFor a fleet of 8 commercial vehicles, we can offer a Fleet Motor Insurance policy with advantages over individual policies:\n• Single renewal date for all vehicles\n• Fleet NCD (discount grows as fleet record stays clean)\n• Dedicated claims handler for faster processing\n• Comprehensive coverage including goods in transit\n\nI'll put together a fleet quote for your lorries and vans. Could you share the vehicle registration numbers and current insurer so we can make a direct comparison?",
+  5: "Hi Alex! Congratulations on your first car — a Honda Civic 2024 is a great choice!\n\nFor a new driver, I'd recommend a comprehensive plan with:\n• Authorised Honda workshop coverage\n• Young driver NCD accelerator (build your discount faster)\n• Personal accident cover for driver and passengers\n• Loss of use benefit while your car is in the workshop\n\nFor a 2024 Civic, your budget of $1,200/year is very reasonable. I can get you 2–3 quotes within the day. Want me to proceed?",
+}
+
 export default function InboundPage() {
+  const [expanded, setExpanded]   = useState<number | null>(null)
+  const [generating, setGenerating] = useState<number | null>(null)
+  const [generated, setGenerated]   = useState<Set<number>>(new Set())
+  const [copied, setCopied]         = useState(false)
+
   const stats = [
     { label: 'New',       count: MOCK_LEADS.filter(l => l.status === 'new').length,       color: '#3b82f6' },
     { label: 'Contacted', count: MOCK_LEADS.filter(l => l.status === 'contacted').length, color: '#f59e0b' },
     { label: 'Qualified', count: MOCK_LEADS.filter(l => l.status === 'qualified').length, color: '#22c55e' },
     { label: 'Total',     count: MOCK_LEADS.length,                                       color: '#6b7280' },
   ]
+
+  function toggleRow(id: number) {
+    setExpanded(prev => prev === id ? null : id)
+  }
+
+  async function generateReply(e: React.MouseEvent, id: number) {
+    e.stopPropagation()
+    setExpanded(id)
+    if (generated.has(id)) return
+    setGenerating(id)
+    await new Promise(r => setTimeout(r, 1400))
+    setGenerating(null)
+    setGenerated(prev => new Set(prev).add(id))
+  }
+
+  function copyReply(text: string) {
+    navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1800)
+  }
 
   return (
     <div className="flex flex-col flex-1">
@@ -108,7 +141,7 @@ export default function InboundPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {stats.map(s => (
             <div key={s.label} className="glass rounded-xl px-5 py-4">
-              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">{s.label}</p>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{s.label}</p>
               <p className="text-2xl font-bold mt-1" style={{ color: s.color }}>{s.count}</p>
             </div>
           ))}
@@ -124,7 +157,8 @@ export default function InboundPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 text-xs text-gray-400 font-medium uppercase tracking-wide">
+                <tr className="text-xs text-gray-400 font-semibold uppercase tracking-wide" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                  <th className="px-5 py-3 text-left w-6"></th>
                   <th className="px-5 py-3 text-left">Date</th>
                   <th className="px-5 py-3 text-left">Source</th>
                   <th className="px-5 py-3 text-left">Type</th>
@@ -133,31 +167,119 @@ export default function InboundPage() {
                   <th className="px-5 py-3 text-left">AI Reply</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-black/[0.04]">
-                {MOCK_LEADS.map(lead => (
-                  <tr key={lead.id} className="hover:bg-gray-50 transition-colors group">
-                    <td className="px-5 py-3.5 text-gray-500 whitespace-nowrap text-xs">{lead.date}</td>
-                    <td className="px-5 py-3.5">
-                      <span className="text-xs font-medium text-gray-600">
-                        {SOURCE_LABEL[lead.source] ?? lead.source}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-xs text-gray-500">{lead.type}</td>
-                    <td className="px-5 py-3.5 max-w-xs">
-                      <p className="truncate text-gray-700">{lead.message}</p>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize ${STATUS_STYLES[lead.status]}`}>
-                        {lead.status}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <button className="text-xs text-gray-400 hover:text-gray-900 font-medium opacity-0 group-hover:opacity-100 transition-opacity border border-gray-200 rounded-md px-2.5 py-1 hover:border-gray-400">
-                        Generate ✦
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+              <tbody>
+                {MOCK_LEADS.map(lead => {
+                  const isOpen = expanded === lead.id
+                  const isGen  = generating === lead.id
+                  const hasDraft = generated.has(lead.id)
+
+                  return (
+                    <>
+                      {/* Main row */}
+                      <tr
+                        key={lead.id}
+                        className="hover:bg-black/[0.02] transition-colors cursor-pointer group"
+                        style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}
+                        onClick={() => toggleRow(lead.id)}
+                      >
+                        <td className="px-5 py-3.5">
+                          <ChevronDown
+                            size={13}
+                            strokeWidth={2}
+                            className="text-gray-300 group-hover:text-gray-500 transition-all duration-200"
+                            style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                          />
+                        </td>
+                        <td className="px-5 py-3.5 text-gray-500 whitespace-nowrap text-xs">{lead.date}</td>
+                        <td className="px-5 py-3.5">
+                          <span className="text-xs font-medium text-gray-600">{SOURCE_LABEL[lead.source] ?? lead.source}</span>
+                        </td>
+                        <td className="px-5 py-3.5 text-xs text-gray-500">{lead.type}</td>
+                        <td className="px-5 py-3.5 max-w-xs">
+                          <p className="truncate text-gray-700 text-xs">{lead.message}</p>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize ${STATUS_STYLES[lead.status]}`}>
+                            {lead.status}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <button
+                            onClick={e => generateReply(e, lead.id)}
+                            className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md border transition-all"
+                            style={{
+                              borderColor: hasDraft ? '#22c55e' : 'rgba(0,0,0,0.15)',
+                              color:       hasDraft ? '#16a34a' : '#555',
+                              background:  hasDraft ? 'rgba(34,197,94,0.06)' : 'transparent',
+                            }}
+                          >
+                            <Sparkles size={11} strokeWidth={2} />
+                            {hasDraft ? 'View reply' : 'Generate'}
+                          </button>
+                        </td>
+                      </tr>
+
+                      {/* Expanded panel */}
+                      {isOpen && (
+                        <tr key={`${lead.id}-expanded`}>
+                          <td colSpan={7} className="px-5 pb-5 pt-0" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                            <div className="rounded-xl p-4 space-y-4" style={{ background: 'rgba(0,0,0,0.025)', border: '1px solid rgba(0,0,0,0.06)' }}>
+
+                              {/* Full message */}
+                              <div>
+                                <p className="text-[10.5px] font-semibold uppercase tracking-widest text-gray-400 mb-1.5">Full Message</p>
+                                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{lead.message}</p>
+                              </div>
+
+                              {/* AI Reply */}
+                              <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: '1rem' }}>
+                                <div className="flex items-center justify-between mb-2">
+                                  <p className="text-[10.5px] font-semibold uppercase tracking-widest text-gray-400">AI Reply Draft</p>
+                                  {hasDraft && (
+                                    <button
+                                      onClick={() => copyReply(AI_REPLIES[lead.id])}
+                                      className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md border transition-all"
+                                      style={{ borderColor: 'rgba(0,0,0,0.12)', color: '#555' }}
+                                    >
+                                      {copied ? <Check size={11} strokeWidth={2.5} /> : <Copy size={11} strokeWidth={2} />}
+                                      {copied ? 'Copied!' : 'Copy'}
+                                    </button>
+                                  )}
+                                </div>
+
+                                {isGen ? (
+                                  <div className="flex items-center gap-2 py-3">
+                                    <div className="flex gap-1">
+                                      {[0, 1, 2].map(i => (
+                                        <div
+                                          key={i}
+                                          className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce"
+                                          style={{ animationDelay: `${i * 0.15}s` }}
+                                        />
+                                      ))}
+                                    </div>
+                                    <span className="text-xs text-gray-400">Generating reply…</span>
+                                  </div>
+                                ) : hasDraft ? (
+                                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{AI_REPLIES[lead.id]}</p>
+                                ) : (
+                                  <button
+                                    onClick={e => generateReply(e, lead.id)}
+                                    className="flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg transition-all"
+                                    style={{ background: '#18181b', color: '#fff' }}
+                                  >
+                                    <Sparkles size={13} strokeWidth={2} />
+                                    Generate AI Reply
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  )
+                })}
               </tbody>
             </table>
           </div>

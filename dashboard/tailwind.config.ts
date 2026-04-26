@@ -4,7 +4,10 @@ const config: Config = {
   content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
   theme: {
     extend: {
-      fontFamily: { sans: ['var(--font-inter)', 'system-ui', 'sans-serif'] },
+      fontFamily: {
+        sans:    ['var(--font-archivo)', 'system-ui', 'sans-serif'],
+        heading: ['var(--font-heading)', 'Georgia', 'serif'],
+      },
       colors: {
         sidebar: {
           bg:        '#0c0c0c',
