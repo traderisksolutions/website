@@ -91,6 +91,17 @@
     referrer:   document.referrer || null
   });
 
+  /* ── Global lead capture hook — called by nav.js popover ── */
+  window.trsCaptureLead = function (msg, source) {
+    sbInsert('inbound_leads', {
+      source:     source || 'website_form',
+      message:    msg,
+      page_url:   page,
+      session_id: sessionId,
+      status:     'new'
+    });
+  };
+
   /* ── Button / link click tracking ──
    * Listens for clicks on any element with data-track="label"
    * Logs to Supabase events table + fires Vercel custom event
