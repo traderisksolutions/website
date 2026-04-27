@@ -1178,11 +1178,100 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   font-family: var(--font);
 }
 
+/* ── "Where should we start?" heading ── */
+.am-where-start {
+  font-family: var(--font-heading);
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  font-weight: 700;
+  color: var(--text);
+  margin: 28px 0 16px;
+  line-height: 1.2;
+}
+
+/* ── Apple Intelligence glow wrap ── */
+.cta-glow-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  border-radius: 26px;
+}
+
+.cta-glow-ring {
+  position: absolute;
+  inset: -2px;
+  border-radius: 26px;
+  overflow: hidden;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+.cta-glow-ring::before {
+  content: '';
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  top: -50%;
+  left: -50%;
+  background: conic-gradient(
+    from 0deg,
+    #c9b1fd,
+    #7ab4f5,
+    #72d5c8,
+    #a8e6a3,
+    #ffd580,
+    #ffb3c6,
+    #c9b1fd
+  );
+  animation: glow-spin 5s linear infinite;
+}
+.cta-glow-wrap:hover .cta-glow-ring,
+.cta-glow-wrap:focus-within .cta-glow-ring {
+  opacity: 0.75;
+}
+@keyframes glow-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Hero-scoped cta-box override */
 .am-cta-box {
   width: 100%;
+  position: relative;
+  z-index: 1;
+  margin-top: 0;
+}
+
+/* ── Prompt pills row ── */
+.cta-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  width: 100%;
   max-width: 560px;
-  margin-top: 8px;
+}
+.cta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(0,0,0,0.10);
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.cta-pill:hover {
+  background: rgba(255,255,255,0.95);
+  border-color: rgba(0,0,0,0.18);
+  color: var(--text);
 }
 
 .am-cta-group {

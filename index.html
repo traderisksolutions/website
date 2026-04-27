@@ -211,39 +211,37 @@
 
       <p class="am-caption">Identify opportunities. Manage risk. Maximize value.</p>
 
-      <div class="cta-box am-cta-box">
-        <textarea class="cta-input" id="cta-input" placeholder="Ask TRS about…" aria-label="Message to TRS"></textarea>
-        <div class="cta-box-footer">
+      <h2 class="am-where-start">Where should we start?</h2>
 
-          <!-- + Prompt packs -->
-          <div class="cta-attach-wrap" id="cta-attach-wrap">
-            <button class="cta-attach" id="cta-attach-btn" aria-label="Prompt packs" aria-expanded="false">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            </button>
-            <div class="cta-prompts" id="cta-prompts" role="menu">
-              <p class="cta-prompts-label">Prompt packs</p>
-              <button class="cta-prompt-item" data-prompt="I'm looking to renew motor insurance for my vehicle fleet." role="menuitem">🚗 Motor fleet renewal</button>
-              <button class="cta-prompt-item" data-prompt="I'd like to explore group medical and employee benefits for my team." role="menuitem">👥 Employee benefits enquiry</button>
-              <button class="cta-prompt-item" data-prompt="I need travel insurance coverage for an upcoming trip." role="menuitem">✈️ Travel coverage</button>
-              <button class="cta-prompt-item" data-prompt="I need commercial liability or property coverage for my business." role="menuitem">🏢 Commercial liability</button>
-              <button class="cta-prompt-item" data-prompt="I need foreign worker insurance for workers in Singapore." role="menuitem">👷 Foreign worker coverage</button>
+      <div class="cta-glow-wrap">
+        <div class="cta-glow-ring"></div>
+        <div class="cta-box am-cta-box">
+          <textarea class="cta-input" id="cta-input" placeholder="Ask TRS about…" aria-label="Message to TRS"></textarea>
+          <div class="cta-box-footer">
+            <div class="cta-right-controls">
+              <button class="cta-build" id="ctac-trigger" aria-label="Sales">
+                Sales
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <button class="cta-mic" tabindex="-1" aria-label="Voice input">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10a7 7 0 0 1-14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+              </button>
+              <button class="cta-send" id="cta-send" data-track="hero_prompt_send" aria-label="Send">
+                <svg class="cta-send-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+                <span class="cta-send-rocket" aria-hidden="true">🚀</span>
+              </button>
             </div>
           </div>
-
-          <div class="cta-right-controls">
-            <button class="cta-build" id="ctac-trigger" aria-label="TRS LLM 2.0">
-              Sales
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-            </button>
-            <button class="cta-mic" tabindex="-1" aria-label="Voice input">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10a7 7 0 0 1-14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
-            </button>
-            <button class="cta-send" id="cta-send" data-track="hero_prompt_send" aria-label="Send">
-              <svg class="cta-send-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
-              <span class="cta-send-rocket" aria-hidden="true">🚀</span>
-            </button>
-          </div>
         </div>
+      </div>
+
+      <!-- Prompt pills -->
+      <div class="cta-pill-row">
+        <button class="cta-pill" data-prompt="I'm looking to renew motor insurance for my vehicle fleet.">🚗 Motor fleet</button>
+        <button class="cta-pill" data-prompt="I'd like to explore group medical and employee benefits for my team.">👥 Employee benefits</button>
+        <button class="cta-pill" data-prompt="I need travel insurance coverage for an upcoming trip.">✈️ Travel coverage</button>
+        <button class="cta-pill" data-prompt="I need commercial liability or property coverage for my business.">🏢 Commercial plans</button>
+        <button class="cta-pill" data-prompt="I need foreign worker insurance for workers in Singapore.">👷 Foreign worker</button>
       </div>
 
     </div>
@@ -610,34 +608,14 @@
       setTimeout(tick, 800);
     })();
 
-    /* ── Prompt packs dropdown ── */
+    /* ── Prompt pills ── */
     (function () {
-      var attachBtn = document.getElementById('cta-attach-btn');
-      var menu      = document.getElementById('cta-prompts');
-      var ctaInput  = document.getElementById('cta-input');
-      if (!attachBtn || !menu) return;
-
-      function openMenu()  { menu.classList.add('open'); attachBtn.setAttribute('aria-expanded', 'true'); }
-      function closeMenu() { menu.classList.remove('open'); attachBtn.setAttribute('aria-expanded', 'false'); }
-      function isOpen()    { return menu.classList.contains('open'); }
-
-      attachBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        isOpen() ? closeMenu() : openMenu();
-      });
-
-      menu.querySelectorAll('.cta-prompt-item').forEach(function (item) {
-        item.addEventListener('click', function () {
-          ctaInput.value = item.dataset.prompt;
-          ctaInput.focus();
-          closeMenu();
+      var ctaInput = document.getElementById('cta-input');
+      document.querySelectorAll('.cta-pill').forEach(function (pill) {
+        pill.addEventListener('click', function () {
+          if (ctaInput) { ctaInput.value = pill.dataset.prompt; ctaInput.focus(); }
         });
       });
-
-      document.addEventListener('click', function (e) {
-        if (isOpen() && !document.getElementById('cta-attach-wrap').contains(e.target)) closeMenu();
-      });
-      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeMenu(); });
     })();
   </script>
   <script src="/scripts/analytics.js"></script>
