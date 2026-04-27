@@ -349,25 +349,30 @@
   var _activeTrigger = null;
 
   function positionCard(trigger) {
-    var rect      = trigger.getBoundingClientRect();
-    var cardW     = 420;
-    var cardH     = Math.min(card.offsetHeight || 540, window.innerHeight - 24);
+    var rect       = trigger.getBoundingClientRect();
+    var cardW      = 420;
+    var spaceBelow = window.innerHeight - rect.bottom - 12;
+    var spaceAbove = rect.top - 12;
 
     /* Horizontal: right-align to button, clamp left edge */
     var rightEdge = Math.max(window.innerWidth - rect.right, 12);
     if (window.innerWidth - rightEdge - cardW < 12) {
       rightEdge = Math.max(window.innerWidth - cardW - 12, 12);
     }
-
-    /* Vertical: below button by default; flip above if it would overflow viewport */
-    var top = rect.bottom + 8;
-    if (top + cardH > window.innerHeight - 12) {
-      top = Math.max(rect.top - cardH - 8, 12);
-    }
-
-    card.style.top   = top + 'px';
     card.style.right = rightEdge + 'px';
     card.style.left  = 'auto';
+
+    /* Vertical: open below if enough room, otherwise anchor bottom of card
+       to just above the button so it grows upward */
+    if (spaceBelow >= 280) {
+      card.style.top      = (rect.bottom + 8) + 'px';
+      card.style.bottom   = 'auto';
+      card.style.maxHeight = spaceBelow + 'px';
+    } else {
+      card.style.bottom   = (window.innerHeight - rect.top + 8) + 'px';
+      card.style.top      = 'auto';
+      card.style.maxHeight = spaceAbove + 'px';
+    }
   }
 
   function openCard(trigger) {
@@ -379,6 +384,7 @@
 
   function closeCard() {
     card.classList.remove('open');
+    card.style.maxHeight = '';
     _activeTrigger = null;
   }
 
