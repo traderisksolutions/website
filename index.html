@@ -616,7 +616,6 @@
           if (ctaInput) { ctaInput.value = pill.dataset.prompt; ctaInput.focus(); }
           document.querySelectorAll('.cta-pill').forEach(function (p) { p.classList.remove('pill--active'); });
           pill.classList.add('pill--active');
-          setTimeout(function () { pill.classList.remove('pill--active'); }, 600);
         });
       });
     })();
