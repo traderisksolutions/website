@@ -414,42 +414,26 @@ h1, h2, h3, h4, h5, h6 {
   padding: 7px 14px;
   border-radius: 100px;
   border: 1.5px solid rgba(0,0,0,0.1);
-  position: relative;
-  overflow: hidden;
   background: rgba(255,255,255,0.55);
   font-family: var(--font);
   font-size: 13px;
   color: var(--text);
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  transition: color 0.25s, background 0.3s, border-color 0.2s, transform 0.1s;
   white-space: nowrap;
 }
-.nav-ctac-chip::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 100px;
-  background: linear-gradient(90deg, #f9a8d4, #fcd34d, #86efac, #67e8f9, #a5b4fc, #f9a8d4);
-  background-size: 0% 100%;
-  background-repeat: no-repeat;
-  opacity: 0;
-  transition: opacity 0.2s;
-  pointer-events: none;
-}
-.nav-ctac-chip:hover { border-color: rgba(0,0,0,0.2); }
-.nav-ctac-chip:hover::before {
-  opacity: 0.18;
-  background-size: 200% 100%;
-  transition: background-size 0.35s ease, opacity 0.2s;
+.nav-ctac-chip:hover {
+  border: 1.5px solid transparent;
+  background:
+    rgba(255,255,255,0.85) padding-box,
+    linear-gradient(90deg, #f9a8d4, #fcd34d, #86efac, #67e8f9, #a5b4fc, #f9a8d4) border-box;
 }
 .nav-ctac-chip.active {
-  border-color: transparent;
   color: #fff;
-  background: #111;
-  animation: pill-to-black 0.5s ease forwards;
-}
-.nav-ctac-chip.active::before {
-  opacity: 0;
+  border: 1.5px solid transparent;
+  background:
+    #111 padding-box,
+    linear-gradient(90deg, #be185d, #b45309, #15803d, #0e7490, #6d28d9) border-box;
 }
 
 /* Send button */
@@ -1274,17 +1258,6 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   justify-content: center;
 }
 
-/* ── Shared gradient pill keyframes ── */
-@keyframes pill-flood {
-  0%   { background-position: 0% 50%; opacity: 1; }
-  60%  { background-position: 100% 50%; opacity: 1; }
-  100% { background-position: 100% 50%; opacity: 1; }
-}
-@keyframes pill-to-black {
-  0%   { background: linear-gradient(90deg, #be185d, #b45309, #15803d, #0e7490, #6d28d9); }
-  100% { background: #111; }
-}
-
 /* ── Hero prompt pills ── */
 .cta-pill {
   display: inline-flex;
@@ -1301,40 +1274,22 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   font-weight: 500;
   color: var(--text-muted);
   cursor: pointer;
-  transition: border-color 0.2s, color 0.3s, background 0.3s;
+  transition: color 0.25s, background 0.3s, border-color 0.2s;
   white-space: nowrap;
-  position: relative;
-  overflow: hidden;
-}
-.cta-pill::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 9999px;
-  background: linear-gradient(90deg, #f9a8d4, #fcd34d, #86efac, #67e8f9, #a5b4fc, #f9a8d4);
-  background-size: 0% 100%;
-  background-repeat: no-repeat;
-  opacity: 0;
-  transition: opacity 0.2s;
-  pointer-events: none;
 }
 .cta-pill:hover {
-  border-color: rgba(0,0,0,0.15);
   color: var(--text);
-}
-.cta-pill:hover::before {
-  opacity: 0.18;
-  background-size: 200% 100%;
-  transition: background-size 0.35s ease, opacity 0.2s;
+  border: 1.5px solid transparent;
+  background:
+    rgba(255,255,255,0.85) padding-box,
+    linear-gradient(90deg, #f9a8d4, #fcd34d, #86efac, #67e8f9, #a5b4fc, #f9a8d4) border-box;
 }
 .cta-pill.pill--active {
-  border-color: transparent;
   color: #fff;
-  background: #111;
-  animation: pill-to-black 0.5s ease forwards;
-}
-.cta-pill.pill--active::before {
-  opacity: 0;
+  border: 1.5px solid transparent;
+  background:
+    #111 padding-box,
+    linear-gradient(90deg, #be185d, #b45309, #15803d, #0e7490, #6d28d9) border-box;
 }
 
 .am-cta-group {
