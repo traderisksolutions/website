@@ -467,6 +467,7 @@
 
   function closeCard() {
     card.classList.remove('open');
+    card.classList.remove('nav-ctac--modal');
     card.style.maxHeight = '';
     _activeTrigger = null;
     backdrop.classList.remove('open');
@@ -523,11 +524,20 @@
 
   /* Triggers */
   document.addEventListener('click', function (e) {
-    var trigger = e.target.closest('[data-track="nav_contact_us"], [data-track="drawer_contact_us"]');
+    var trigger = e.target.closest('[data-track="nav_contact_us"], [data-track="drawer_contact_us"], [data-ctac-modal]');
     if (trigger) {
       e.preventDefault();
       e.stopPropagation();
-      if (isOpen()) { closeCard(); } else { openCard(trigger); }
+      if (isOpen()) { closeCard(); return; }
+      var forceModal = trigger.hasAttribute('data-ctac-modal');
+      if (forceModal) {
+        card.classList.add('nav-ctac--modal');
+        openCard(null);
+        backdrop.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      } else {
+        openCard(trigger);
+      }
       return;
     }
     if (isOpen() && !card.contains(e.target)) closeCard();
