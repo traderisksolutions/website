@@ -1423,9 +1423,9 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 .trust-logo:hover { color: #888884; }
 
 .trust-logo img {
-  height: 44px;
+  height: 56px;
   width: auto;
-  max-width: 140px;
+  max-width: 160px;
   object-fit: contain;
   opacity: 0.5;
   filter: grayscale(1);
