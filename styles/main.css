@@ -1282,13 +1282,6 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
     #fff padding-box,
     linear-gradient(90deg, #f9a8d4, #fcd34d, #86efac, #67e8f9, #a5b4fc, #f9a8d4) border-box;
 }
-.cta-pill.pill--active {
-  color: #fff;
-  border: 1.5px solid transparent;
-  background:
-    #111 padding-box,
-    linear-gradient(90deg, #be185d, #b45309, #15803d, #0e7490, #6d28d9) border-box;
-}
 
 .am-cta-group {
   display: flex;
