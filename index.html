@@ -560,6 +560,7 @@
       deptMenu.querySelectorAll('.cta-dept-option').forEach(function (opt) {
         opt.addEventListener('click', function (e) {
           e.stopPropagation();
+          if (opt.dataset.dept === 'Claims') { window.location.href = '/claims'; return; }
           selectedDept = opt.dataset.dept;
           deptLabel.textContent = selectedDept;
           deptMenu.querySelectorAll('.cta-dept-option').forEach(function (o) { o.classList.remove('cta-dept-option--active'); });

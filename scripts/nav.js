@@ -218,6 +218,10 @@
     '<button class="nav-ctac-close" id="nav-ctac-close" aria-label="Close">',
     '  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
     '</button>',
+    '<button class="nav-ctac-back nav-ctac-panel--hidden" id="nav-ctac-back" aria-label="Back">',
+    '  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>',
+    '  Back',
+    '</button>',
 
     /* ── Department selector screen ── */
     '<div class="nav-ctac-dept-screen" id="nav-ctac-dept-screen">',
@@ -306,7 +310,6 @@
     '  </div>',
     '  <button class="nav-ctac-send" id="nav-ctac-e-send" data-track="nav_email_send">',
     '    <span>Submit</span>',
-    '    <span class="nav-ctac-rocket">📧</span>',
     '  </button>',
     '</div>',
 
@@ -350,8 +353,11 @@
   var deptScreen = document.getElementById('nav-ctac-dept-screen');
   var MAIN_PANELS = ['nav-ctac-tabs', 'nav-ctac-header', 'nav-ctac-form-wa', 'nav-ctac-form-email', 'nav-ctac-note-wa', 'nav-ctac-note-email'];
 
+  var backBtn = document.getElementById('nav-ctac-back');
+
   function showDeptScreen() {
     deptScreen.classList.remove('nav-ctac-panel--hidden');
+    backBtn.classList.add('nav-ctac-panel--hidden');
     MAIN_PANELS.forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.classList.add('nav-ctac-panel--hidden');
@@ -360,6 +366,7 @@
 
   function showMainForm() {
     deptScreen.classList.add('nav-ctac-panel--hidden');
+    backBtn.classList.remove('nav-ctac-panel--hidden');
     ['nav-ctac-tabs', 'nav-ctac-header'].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.classList.remove('nav-ctac-panel--hidden');
@@ -528,6 +535,11 @@
   document.getElementById('nav-ctac-close').addEventListener('click', function (e) {
     e.stopPropagation();
     closeCard();
+  });
+
+  backBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    showDeptScreen();
   });
 
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeCard(); });
