@@ -1062,6 +1062,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 .nav-dd-dot--orange { background: #f97316; }
 .nav-dd-dot--yellow { background: #eab308; }
 .nav-dd-dot--green  { background: #22c55e; }
+.nav-dd-dot--red    { background: #dc2626; }
 
 /* ── Item texts ── */
 .nav-dd-texts { flex: 1; }
