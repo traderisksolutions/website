@@ -1334,7 +1334,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 /* ── TRUST SECTION ── */
 .trust-section {
   background: var(--bg);
-  padding: 30px 48px 40px;
+  padding: 80px 48px 80px;
   max-width: 1100px;
   margin: 0 auto;
   width: 100%;
@@ -1437,7 +1437,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   .nav-hamburger { display: flex; }
   .nav-links { display: none; }
 
-  .trust-section { padding: 20px 24px 30px; }
+  .trust-section { padding: 48px 24px 60px; }
   .trust-grid { grid-template-columns: repeat(3, 1fr); }
   .trust-logo { padding: 20px 10px; font-size: 13px; }
 
@@ -1479,7 +1479,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
    ═══════════════════════════════════════════════════════════════ */
 
 .sc-section {
-  padding: 30px 48px 40px;
+  padding: 80px 48px 100px;
 }
 
 .sc-wrap {
@@ -1879,7 +1879,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 /* ── Responsive ── */
 @media (max-width: 760px) {
   .sc-section {
-    padding: 20px 16px 30px;
+    padding: 48px 16px 60px;
   }
 
   .sc-card {
@@ -1932,7 +1932,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
    ═══════════════════════════════════════════════════════════════ */
 
 .acc-section {
-  padding: 40px 48px 80px;
+  padding: 80px 48px 100px;
   background: var(--bg);
 }
 
@@ -2113,7 +2113,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 /* ── Responsive ── */
 @media (max-width: 640px) {
   .acc-section {
-    padding: 30px 20px 60px;
+    padding: 60px 20px 80px;
   }
 
   .acc-heading {
@@ -2139,7 +2139,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
    ═══════════════════════════════════════════════════════════════ */
 
 .cta-section {
-  padding: 50px 48px 60px;
+  padding: 100px 48px 120px;
   background: var(--bg);
   text-align: center;
 }
@@ -2563,7 +2563,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 
 @media (max-width: 640px) {
   .cta-section {
-    padding: 36px 20px 40px;
+    padding: 72px 20px 80px;
   }
 
   .site-footer {
