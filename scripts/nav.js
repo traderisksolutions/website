@@ -411,6 +411,12 @@
     positionCard(_activeTrigger);
   }, { passive: true });
 
+  /* Reposition on resize so popover stays anchored at any viewport width */
+  window.addEventListener('resize', function () {
+    if (!isOpen() || !_activeTrigger) return;
+    positionCard(_activeTrigger);
+  }, { passive: true });
+
   var PANELS = ['nav-ctac-tabs', 'nav-ctac-header', 'nav-ctac-form-wa', 'nav-ctac-form-email', 'nav-ctac-note-wa', 'nav-ctac-note-email'];
 
   function showSuccess(bodyText) {
