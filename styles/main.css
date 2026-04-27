@@ -2297,19 +2297,94 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   gap: 8px;
 }
 
+/* ── Hero department dropdown ── */
+.cta-dept-wrap { position: relative; }
+
+.cta-dept-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  min-width: 190px;
+  overflow: hidden;
+  z-index: 200;
+}
+.cta-dept-option {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  text-align: left;
+  background: none;
+  border: none;
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+}
+.cta-dept-option:hover { background: rgba(0,0,0,0.04); }
+.cta-dept-option--active { font-weight: 600; }
+.cta-dept-option--claims { color: #dc2626; }
+
 .cta-build {
   display: flex;
   align-items: center;
   gap: 4px;
   background: transparent;
   border: none;
-  cursor: default;
+  cursor: pointer;
   font-family: var(--font);
   font-size: 14px;
   font-weight: 500;
   color: #888;
   padding: 0 4px;
 }
+
+/* ── Popover department selector screen ── */
+.nav-ctac-dept-screen {
+  padding: 52px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.nav-ctac-dept-heading {
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(0,0,0,0.4);
+  margin: 0 0 4px;
+}
+.nav-ctac-dept-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.nav-ctac-dept-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: rgba(0,0,0,0.03);
+  border: 1.5px solid rgba(0,0,0,0.08);
+  border-radius: 14px;
+  cursor: pointer;
+  font-family: var(--font);
+  text-align: left;
+  width: 100%;
+}
+.nav-ctac-dept-btn:hover {
+  background: rgba(0,0,0,0.06);
+  border-color: rgba(0,0,0,0.15);
+}
+.nav-ctac-dept-btn--claims { border-color: rgba(220,38,38,0.2); }
+.nav-ctac-dept-btn--claims:hover { background: rgba(220,38,38,0.04); border-color: rgba(220,38,38,0.35); }
+.nav-ctac-dept-icon { font-size: 22px; line-height: 1; }
+.nav-ctac-dept-name { font-size: 15px; font-weight: 600; color: var(--text); margin: 0; }
+.nav-ctac-dept-desc { font-size: 12px; color: var(--text-muted); margin: 2px 0 0; }
 
 .cta-mic {
   width: 34px;

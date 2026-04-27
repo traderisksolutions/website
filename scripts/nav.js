@@ -219,18 +219,37 @@
     '  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
     '</button>',
 
-    '<div class="nav-ctac-tabs" id="nav-ctac-tabs">',
+    /* ── Department selector screen ── */
+    '<div class="nav-ctac-dept-screen" id="nav-ctac-dept-screen">',
+    '  <p class="nav-ctac-dept-heading">Who would you like to speak to?</p>',
+    '  <div class="nav-ctac-dept-options">',
+    '    <button class="nav-ctac-dept-btn" data-dept="Sales">',
+    '      <span class="nav-ctac-dept-icon">💼</span>',
+    '      <div><p class="nav-ctac-dept-name">Sales</p><p class="nav-ctac-dept-desc">Insurance quotes &amp; new plans</p></div>',
+    '    </button>',
+    '    <button class="nav-ctac-dept-btn" data-dept="Customer Support">',
+    '      <span class="nav-ctac-dept-icon">🛟</span>',
+    '      <div><p class="nav-ctac-dept-name">Customer Support</p><p class="nav-ctac-dept-desc">Help with existing policies</p></div>',
+    '    </button>',
+    '    <button class="nav-ctac-dept-btn nav-ctac-dept-btn--claims" data-dept="Claims">',
+    '      <span class="nav-ctac-dept-icon">📋</span>',
+    '      <div><p class="nav-ctac-dept-name">Claims</p><p class="nav-ctac-dept-desc">Start or track a claim →</p></div>',
+    '    </button>',
+    '  </div>',
+    '</div>',
+
+    '<div class="nav-ctac-tabs nav-ctac-panel--hidden" id="nav-ctac-tabs">',
     '  <button class="nav-ctac-tab nav-ctac-tab--active" data-ctac-tab="wa">WhatsApp</button>',
     '  <button class="nav-ctac-tab" data-ctac-tab="email">Email</button>',
     '</div>',
 
-    '<div class="nav-ctac-header" id="nav-ctac-header">',
+    '<div class="nav-ctac-header nav-ctac-panel--hidden" id="nav-ctac-header">',
     '  <p class="nav-ctac-heading">Tell me more about</p>',
     '  <p class="nav-ctac-heading-topic" id="nav-ctac-topic-label">...</p>',
     '</div>',
 
     /* ── WhatsApp form ── */
-    '<div class="nav-ctac-form" id="nav-ctac-form-wa">',
+    '<div class="nav-ctac-form nav-ctac-panel--hidden" id="nav-ctac-form-wa">',
     '  <div class="nav-ctac-field">',
     '    <div class="nav-ctac-chips" id="nav-ctac-chips-wa">' + buildChips('wa') + '</div>',
     '  </div>',
@@ -325,7 +344,44 @@
   var eMsgInput      = document.getElementById('nav-ctac-e-msg');
   var selectedTopicWa    = '';
   var selectedTopicEmail = '';
+  var selectedDept       = '';
   var activeTab = 'wa';
+
+  var deptScreen = document.getElementById('nav-ctac-dept-screen');
+  var MAIN_PANELS = ['nav-ctac-tabs', 'nav-ctac-header', 'nav-ctac-form-wa', 'nav-ctac-form-email', 'nav-ctac-note-wa', 'nav-ctac-note-email'];
+
+  function showDeptScreen() {
+    deptScreen.classList.remove('nav-ctac-panel--hidden');
+    MAIN_PANELS.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.classList.add('nav-ctac-panel--hidden');
+    });
+  }
+
+  function showMainForm() {
+    deptScreen.classList.add('nav-ctac-panel--hidden');
+    ['nav-ctac-tabs', 'nav-ctac-header'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.classList.remove('nav-ctac-panel--hidden');
+    });
+    /* restore active tab panels */
+    var showWa = activeTab === 'wa';
+    document.getElementById('nav-ctac-form-wa').classList.toggle('nav-ctac-panel--hidden', !showWa);
+    document.getElementById('nav-ctac-form-email').classList.toggle('nav-ctac-panel--hidden', showWa);
+    document.getElementById('nav-ctac-note-wa').classList.toggle('nav-ctac-panel--hidden', !showWa);
+    document.getElementById('nav-ctac-note-email').classList.toggle('nav-ctac-panel--hidden', showWa);
+  }
+
+  /* Dept button clicks */
+  card.querySelectorAll('.nav-ctac-dept-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var dept = btn.dataset.dept;
+      if (dept === 'Claims') { closeCard(); window.location.href = '/claims'; return; }
+      selectedDept = dept;
+      showMainForm();
+      setTimeout(function () { firstNameInput.focus(); }, 50);
+    });
+  });
 
   /* Tab switching */
   card.querySelectorAll('.nav-ctac-tab').forEach(function (tab) {
@@ -383,7 +439,7 @@
     }
   }
 
-  function openCard(trigger) {
+  function openCard(trigger, dept) {
     _activeTrigger = trigger || null;
     if (trigger) positionCard(trigger);
     card.classList.add('open');
@@ -391,7 +447,14 @@
       backdrop.classList.add('open');
       document.body.style.overflow = 'hidden';
     }
-    setTimeout(function () { firstNameInput.focus(); }, 50);
+    if (dept) {
+      selectedDept = dept;
+      showMainForm();
+      setTimeout(function () { firstNameInput.focus(); }, 50);
+    } else {
+      selectedDept = '';
+      showDeptScreen();
+    }
   }
 
   function closeCard() {
@@ -512,6 +575,7 @@
     if (typeof window.trsCaptureLead === 'function') window.trsCaptureLead({
       first_name:   firstName,
       last_name:    lastName,
+      department:   selectedDept  || null,
       contact_type: 'Individual',
       topic:        selectedTopicWa,
       details:      extra,
@@ -549,6 +613,7 @@
       email:        eEmail,
       phone:        ePhone    || null,
       company:      eCompany  || null,
+      department:   selectedDept  || null,
       contact_type: eCompany  ? 'Business' : 'Individual',
       topic:        selectedTopicEmail,
       details:      eMsg,
@@ -559,12 +624,12 @@
   }
 
   /* Global hook — pre-fill More details and open popover */
-  window.trsOpenContactPopover = function (msg, trigger) {
+  window.trsOpenContactPopover = function (msg, trigger, dept) {
     if (msg) {
       msgInput.value  = msg;
       eMsgInput.value = msg;
     }
-    openCard(trigger || null);
+    openCard(trigger || null, dept || null);
   };
 
   document.getElementById('nav-ctac-send').addEventListener('click', sendWaMessage);

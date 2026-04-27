@@ -111,6 +111,7 @@
       record.email        = data.email        || null;
       record.phone        = data.phone        || null;
       record.company      = data.company      || null;
+      record.department   = data.department   || null;
       record.contact_type = data.contact_type || null;
       record.topic        = data.topic        || null;
       record.details      = data.details      || null;

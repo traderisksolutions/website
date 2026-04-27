@@ -219,10 +219,17 @@
           <textarea class="cta-input" id="cta-input" placeholder="Ask TRS about…" aria-label="Message to TRS"></textarea>
           <div class="cta-box-footer">
             <div class="cta-right-controls">
-              <button class="cta-build" id="ctac-trigger" aria-label="Sales">
-                Sales
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-              </button>
+              <div class="cta-dept-wrap" id="cta-dept-wrap">
+                <button class="cta-build" id="cta-dept-btn" aria-haspopup="true" aria-expanded="false">
+                  <span id="cta-dept-label">Sales</span>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="cta-dept-menu" id="cta-dept-menu" hidden>
+                  <button class="cta-dept-option cta-dept-option--active" data-dept="Sales">💼 Sales</button>
+                  <button class="cta-dept-option" data-dept="Customer Support">🛟 Customer Support</button>
+                  <button class="cta-dept-option cta-dept-option--claims" data-dept="Claims">📋 Claims</button>
+                </div>
+              </div>
               <button class="cta-mic" tabindex="-1" aria-label="Voice input">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 10a7 7 0 0 1-14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
               </button>
@@ -536,15 +543,46 @@
   <script src="scripts/nav.js"></script>
   <script>
     (function () {
+      /* ── Hero dept dropdown ── */
+      var deptWrap  = document.getElementById('cta-dept-wrap');
+      var deptBtn   = document.getElementById('cta-dept-btn');
+      var deptMenu  = document.getElementById('cta-dept-menu');
+      var deptLabel = document.getElementById('cta-dept-label');
+      var selectedDept = 'Sales';
+
+      deptBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var open = !deptMenu.hidden;
+        deptMenu.hidden = open;
+        deptBtn.setAttribute('aria-expanded', String(!open));
+      });
+
+      deptMenu.querySelectorAll('.cta-dept-option').forEach(function (opt) {
+        opt.addEventListener('click', function (e) {
+          e.stopPropagation();
+          selectedDept = opt.dataset.dept;
+          deptLabel.textContent = selectedDept;
+          deptMenu.querySelectorAll('.cta-dept-option').forEach(function (o) { o.classList.remove('cta-dept-option--active'); });
+          opt.classList.add('cta-dept-option--active');
+          deptMenu.hidden = true;
+          deptBtn.setAttribute('aria-expanded', 'false');
+        });
+      });
+
+      document.addEventListener('click', function (e) {
+        if (!deptWrap.contains(e.target)) { deptMenu.hidden = true; deptBtn.setAttribute('aria-expanded', 'false'); }
+      });
+
       /* ── Hero prompt box → open contact popover pre-filled ── */
       var btn   = document.getElementById('cta-send');
       var input = document.getElementById('cta-input');
       if (!btn || !input) return;
 
       function firePrompt(trigger) {
+        if (selectedDept === 'Claims') { window.location.href = '/claims'; return; }
         var msg = input.value.trim();
         if (typeof window.trsOpenContactPopover === 'function') {
-          window.trsOpenContactPopover(msg, trigger || null);
+          window.trsOpenContactPopover(msg, trigger || null, selectedDept);
         }
         input.value = '';
       }
