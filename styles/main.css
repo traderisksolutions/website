@@ -2083,7 +2083,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   font-size: 15px;
   color: var(--text);
   line-height: 1.65;
-  min-height: 88px;
+  min-height: 44px;
   box-sizing: border-box;
 }
 
