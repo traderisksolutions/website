@@ -1414,7 +1414,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   justify-content: center;
   padding: 32px 16px;
   font-family: var(--font);
-  font-size: 15px;
+  font-size: 16px;
   color: #b0afab;
   letter-spacing: 0.01em;
   transition: color 0.15s var(--ease);
@@ -1422,12 +1422,12 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 }
 .trust-logo:hover { color: #888884; }
 
-/* Wordmark style variants */
-.trust-logo--bold   { font-weight: 800; font-size: 17px; letter-spacing: -0.02em; }
+/* Wordmark style variants — all 16px for optical consistency */
+.trust-logo--bold   { font-weight: 800; font-size: 16px; letter-spacing: -0.02em; }
 .trust-logo--light  { font-weight: 300; font-size: 16px; letter-spacing: 0.04em; }
-.trust-logo--mono   { font-weight: 600; font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; }
-.trust-logo--wide   { font-weight: 500; font-size: 15px; letter-spacing: 0.12em; text-transform: uppercase; }
-.trust-logo--serif  { font-weight: 400; font-size: 17px; font-style: italic; }
+.trust-logo--mono   { font-weight: 600; font-size: 16px; letter-spacing: 0.08em; text-transform: uppercase; }
+.trust-logo--wide   { font-weight: 500; font-size: 16px; letter-spacing: 0.12em; text-transform: uppercase; }
+.trust-logo--serif  { font-weight: 400; font-size: 16px; font-style: italic; }
 
 /* ── Responsive ── */
 .br-lg { display: inline; }
