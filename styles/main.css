@@ -174,12 +174,12 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   padding: 0 28px;
   gap: 24px;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border-bottom: none;
   border-radius: 0;
   box-shadow: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
   transition:
     top 0.4s var(--ease),
     left 0.4s var(--ease),
@@ -1126,7 +1126,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg);
+  background: url('/Gemini_Generated_Image_mn79utmn79utmn79.png') center center / cover no-repeat;
   padding: 80px 24px 60px;
 }
 
@@ -1143,18 +1143,20 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 5px 14px 5px 5px;
-  background: var(--bg);
-  border: 1px solid var(--border);
+  padding: 5px 16px 5px 5px;
+  background: rgba(255,255,255,0.58);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.75);
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.9);
   border-radius: 99px;
   text-decoration: none;
   margin-bottom: 40px;
-  transition: border-color 0.15s var(--ease);
 }
-.am-badge:hover { border-color: var(--text-subtle); }
+.am-badge:hover { background: rgba(255,255,255,0.72); }
 
 .am-badge-label {
-  background: var(--accent);
+  background: linear-gradient(135deg, #6d28d9, #3b82f6);
   color: #fff;
   font-size: 11px;
   font-weight: 700;
@@ -1196,6 +1198,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   color: var(--text);
   margin: 28px 0 16px;
   line-height: 1.2;
+  letter-spacing: normal;
 }
 
 /* ── Apple Intelligence glow wrap ── */
