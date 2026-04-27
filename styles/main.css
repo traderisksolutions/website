@@ -437,19 +437,16 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text);
   cursor: pointer;
   white-space: nowrap;
+  transition: none;
 }
 .nav-ctac-chip:hover {
-  border: 1.5px solid transparent;
-  background:
-    #fff padding-box,
-    linear-gradient(90deg, #f9a8d4, #fcd34d, #86efac, #67e8f9, #a5b4fc, #f9a8d4) border-box;
+  background: rgba(0,0,0,0.05);
+  border-color: rgba(0,0,0,0.18);
 }
 .nav-ctac-chip.active {
+  background: #111;
+  border-color: #111;
   color: #fff;
-  border: 1.5px solid transparent;
-  background:
-    #111 padding-box,
-    linear-gradient(90deg, #be185d, #b45309, #15803d, #0e7490, #6d28d9) border-box;
 }
 
 /* Send button */
@@ -1313,13 +1310,12 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   color: var(--text-muted);
   cursor: pointer;
   white-space: nowrap;
+  transition: none;
 }
 .cta-pill:hover {
   color: var(--text);
-  border: 1.5px solid transparent;
-  background:
-    #fff padding-box,
-    linear-gradient(90deg, #f9a8d4, #fcd34d, #86efac, #67e8f9, #a5b4fc, #f9a8d4) border-box;
+  background: rgba(255,255,255,0.92);
+  border-color: rgba(0,0,0,0.18);
 }
 
 .am-cta-group {
