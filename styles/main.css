@@ -1971,7 +1971,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
    ═══════════════════════════════════════════════════════════════ */
 
 .acc-section {
-  padding: 80px 48px 100px;
+  padding: 80px 48px 160px;
   background: var(--bg);
 }
 
@@ -2709,7 +2709,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   background: var(--bg);
   border-top: 1px solid var(--border);
   padding: 40px 48px;
-  margin-top: 64px;
+  margin-top: 0;
 }
 
 .footer-wrap {
