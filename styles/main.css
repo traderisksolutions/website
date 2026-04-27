@@ -1422,6 +1422,17 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 }
 .trust-logo:hover { color: #888884; }
 
+.trust-logo img {
+  height: 28px;
+  width: auto;
+  max-width: 120px;
+  object-fit: contain;
+  opacity: 0.5;
+  filter: grayscale(1);
+  transition: opacity 0.15s var(--ease);
+}
+.trust-logo:hover img { opacity: 0.75; }
+
 /* Wordmark style variants — all 16px for optical consistency */
 .trust-logo--bold   { font-weight: 800; font-size: 16px; letter-spacing: -0.02em; }
 .trust-logo--light  { font-weight: 300; font-size: 16px; letter-spacing: 0.04em; }
