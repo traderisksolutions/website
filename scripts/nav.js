@@ -215,12 +215,23 @@
   card.setAttribute('aria-label', 'Contact us');
 
   card.innerHTML = [
-    '<button class="nav-ctac-close" id="nav-ctac-close" aria-label="Close">',
-    '  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
-    '</button>',
-    '<button class="nav-ctac-back nav-ctac-panel--hidden" id="nav-ctac-back" aria-label="Back">',
-    '  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>',
-    '</button>',
+    /* ── Topbar: back | tabs | close — all on the same axis ── */
+    '<div class="nav-ctac-topbar">',
+    '  <div class="nav-ctac-topbar-side">',
+    '    <button class="nav-ctac-back nav-ctac-panel--hidden" id="nav-ctac-back" aria-label="Back">',
+    '      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>',
+    '    </button>',
+    '  </div>',
+    '  <div class="nav-ctac-tabs nav-ctac-panel--hidden" id="nav-ctac-tabs">',
+    '    <button class="nav-ctac-tab nav-ctac-tab--active" data-ctac-tab="wa">WhatsApp</button>',
+    '    <button class="nav-ctac-tab" data-ctac-tab="email">Email</button>',
+    '  </div>',
+    '  <div class="nav-ctac-topbar-side nav-ctac-topbar-side--right">',
+    '    <button class="nav-ctac-close" id="nav-ctac-close" aria-label="Close">',
+    '      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+    '    </button>',
+    '  </div>',
+    '</div>',
 
     /* ── Department selector screen ── */
     '<div class="nav-ctac-dept-screen" id="nav-ctac-dept-screen">',
@@ -236,11 +247,6 @@
     '      <div><p class="nav-ctac-dept-name">Claims</p><p class="nav-ctac-dept-desc">Start or track a claim →</p></div>',
     '    </button>',
     '  </div>',
-    '</div>',
-
-    '<div class="nav-ctac-tabs nav-ctac-panel--hidden" id="nav-ctac-tabs">',
-    '  <button class="nav-ctac-tab nav-ctac-tab--active" data-ctac-tab="wa">WhatsApp</button>',
-    '  <button class="nav-ctac-tab" data-ctac-tab="email">Email</button>',
     '</div>',
 
     '<div class="nav-ctac-header nav-ctac-panel--hidden" id="nav-ctac-header">',
