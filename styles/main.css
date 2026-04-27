@@ -1458,13 +1458,16 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   letter-spacing: 0.01em;
   transition: color 0.15s var(--ease);
   cursor: default;
+  overflow: hidden;
+  min-width: 0;
 }
 .trust-logo:hover { color: #888884; }
 
 .trust-logo img {
-  height: 56px;
+  height: auto;
+  max-height: 56px;
   width: auto;
-  max-width: 160px;
+  max-width: 100%;
   object-fit: contain;
   opacity: 0.5;
   filter: grayscale(1);
