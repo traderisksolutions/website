@@ -283,7 +283,7 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 100px;
   padding: 3px;
   gap: 2px;
-  margin: 20px 56px 0 20px; /* right leaves room for close button (14px offset + 28px btn + 14px gap) */
+  margin: 20px 56px 0 56px; /* symmetric: both sides leave room for close/back buttons */
 }
 .nav-ctac-tab {
   flex: 1;
@@ -332,16 +332,13 @@ h1, h2, h3, h4, h5, h6 {
 .nav-ctac-back {
   position: absolute;
   top: 14px; left: 14px;
-  display: flex; align-items: center; gap: 4px;
-  height: 28px; padding: 0 10px;
-  border-radius: 20px;
+  width: 28px; height: 28px;
+  border-radius: 50%;
   border: none;
   background: rgba(0,0,0,0.07);
-  font-family: var(--font);
-  font-size: 12px;
-  font-weight: 500;
-  color: rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center;
   cursor: pointer;
+  color: rgba(0,0,0,0.4);
   transition: background 0.15s, color 0.15s;
   z-index: 1;
 }
