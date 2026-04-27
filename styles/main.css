@@ -1180,7 +1180,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 
 /* ── "Where should we start?" heading ── */
 .am-where-start {
-  font-family: var(--font-heading);
+  font-family: var(--font);
   font-size: clamp(1.6rem, 4vw, 2.4rem);
   font-weight: 700;
   color: var(--text);
@@ -1202,8 +1202,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   border-radius: 26px;
   overflow: hidden;
   z-index: 0;
-  opacity: 0;
-  transition: opacity 0.5s ease;
+  opacity: 0.65;
   pointer-events: none;
 }
 .cta-glow-ring::before {
@@ -1224,10 +1223,6 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
     #c9b1fd
   );
   animation: glow-spin 5s linear infinite;
-}
-.cta-glow-wrap:hover .cta-glow-ring,
-.cta-glow-wrap:focus-within .cta-glow-ring {
-  opacity: 0.75;
 }
 @keyframes glow-spin {
   to { transform: rotate(360deg); }
@@ -2182,7 +2177,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 
 .cta-box-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   margin-top: 8px;
 }
