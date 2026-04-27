@@ -53,7 +53,7 @@
           <div class="nav-dd-left nav-dd-left--full">
             <a href="#" class="nav-dd-item-link"><span class="nav-dd-dot nav-dd-dot--green"></span><div class="nav-dd-texts"><span class="nav-dd-title">Blog</span><span class="nav-dd-sub">Insights &amp; updates</span></div></a>
             <a href="#" class="nav-dd-item-link"><span class="nav-dd-dot nav-dd-dot--yellow"></span><div class="nav-dd-texts"><span class="nav-dd-title">Case Studies</span><span class="nav-dd-sub">Real client stories</span></div></a>
-            <a href="#" class="nav-dd-item-link"><span class="nav-dd-dot nav-dd-dot--blue"></span><div class="nav-dd-texts"><span class="nav-dd-title">FAQ</span><span class="nav-dd-sub">Common questions answered</span></div></a>
+            <a href="/claims" class="nav-dd-item-link"><span class="nav-dd-dot nav-dd-dot--red"></span><div class="nav-dd-texts"><span class="nav-dd-title">Claims</span><span class="nav-dd-sub">Submit and track a claim</span></div></a>
           </div>
         </div>
       </div>
@@ -80,17 +80,30 @@
         <a href="/employees/medical">Medical Benefits</a>
       </div>
       <button class="nav-drawer-accordion">Resources <svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
-      <div class="nav-drawer-sub"><a href="#">Blog</a><a href="#">Case Studies</a><a href="#">FAQ</a></div>
+      <div class="nav-drawer-sub"><a href="#">Blog</a><a href="#">Case Studies</a><a href="/claims">Claims</a></div>
     </nav>
     <div class="nav-drawer-cta"><a href="#" class="btn btn-primary btn-lg" data-track="drawer_contact_us">Contact us</a></div>
   </aside>
 
-  <!-- HERO + FLOATING CARDS -->
+  <!-- ══════════════════════════════════════
+       1. HERO
+       ══════════════════════════════════════ -->
   <section class="au-hero">
     <div class="au-hero-center">
       <p class="au-eyebrow">About us</p>
-      <h1 class="au-heading">We protect what<br>matters most</h1>
-      <p class="au-desc">At TRS, we connect individuals and businesses across Singapore with the right insurance — backed by 18+ leading carriers and decades of advisory expertise.</p>
+      <h1 class="au-heading">
+        <span class="au-word" style="--i:0">Built</span>
+        <span class="au-word" style="--i:1">for</span>
+        <span class="au-word" style="--i:2">the</span>
+        <span class="au-word" style="--i:3">risks</span>
+        <span class="au-word" style="--i:4">that</span>
+        <span class="au-word" style="--i:5">can&#8217;t</span>
+        <span class="au-word" style="--i:6">afford</span>
+        <span class="au-word" style="--i:7">to</span>
+        <span class="au-word" style="--i:8">go</span>
+        <span class="au-word" style="--i:9">wrong.</span>
+      </h1>
+      <p class="au-desc au-desc--animate">Trade Risk Solutions has been the brokerage behind some of Singapore&#8217;s most complex commercial risks. From large corporations to mid-market businesses expanding across Southeast Asia.</p>
     </div>
     <div class="au-card au-card--1" aria-hidden="true">
       <div class="au-card-stat">18+</div>
@@ -119,7 +132,54 @@
     </div>
   </section>
 
-  <!-- SCROLL TEXT REVEAL -->
+  <!-- ══════════════════════════════════════
+       2. ORIGIN — Why We Exist
+       ══════════════════════════════════════ -->
+  <section class="au-origin" data-dark-section>
+    <div class="au-origin-wrap">
+      <p class="au-origin-label au-reveal">WHY WE EXIST</p>
+      <p class="au-origin-p1 au-reveal">We started TRS because we saw the same thing happen too many times.</p>
+      <p class="au-origin-p2 au-reveal">Businesses with real assets, real payroll, and real liability that are carrying coverage looking fine on paper and collapsed when it mattered. Policies that are overpriced or full of exclusions. Claims that took months and left clients to fight alone.</p>
+      <p class="au-origin-p3 au-reveal">We built TRS to be the broker that stays in the room.</p>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════
+       3. STATS STRIP
+       ══════════════════════════════════════ -->
+  <section class="au-stats">
+    <div class="au-stats-wrap">
+      <div class="au-stat-card au-stat-card--1 au-reveal" data-count-to="18" data-count-suffix="+">
+        <div class="au-stat-num">18+</div>
+        <div class="au-stat-label">Insurance carriers</div>
+        <div class="au-stat-sub">AXA · CHUBB · ALLIANZ</div>
+      </div>
+      <div class="au-stat-card au-stat-card--2 au-reveal" data-count-to="10000" data-count-suffix="+" data-count-format="comma">
+        <div class="au-stat-num">10,000+</div>
+        <div class="au-stat-label">Policies protected</div>
+        <div class="au-stat-sub">ACROSS SINGAPORE</div>
+      </div>
+      <div class="au-stat-card au-stat-card--3 au-reveal" data-count-to="98" data-count-suffix="%">
+        <div class="au-stat-num">98%</div>
+        <div class="au-stat-label">Client satisfaction</div>
+        <div class="au-stat-sub">TRADE RISK SOLUTIONS</div>
+      </div>
+      <div class="au-stat-card au-stat-card--4 au-reveal" data-count-to="500" data-count-prefix="S$" data-count-suffix="M+">
+        <div class="au-stat-num">S$500M+</div>
+        <div class="au-stat-label">Coverage arranged</div>
+        <div class="au-stat-sub">ACROSS LISTED AND COMMERCIAL CLIENTS</div>
+      </div>
+      <div class="au-stat-card au-stat-card--5 au-reveal" data-count-to="15" data-count-suffix="+">
+        <div class="au-stat-num">15+</div>
+        <div class="au-stat-label">Years in Singapore</div>
+        <div class="au-stat-sub">EST. 2009</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════
+       4. STORY / PROBLEM PIVOT
+       ══════════════════════════════════════ -->
   <section class="au-story">
     <div class="au-story-wrap">
       <p class="au-story-para" data-reveal-text>Insurance in Singapore is complicated.</p>
@@ -130,36 +190,73 @@
     </div>
   </section>
 
-  <!-- WHAT SETS US APART (DARK) -->
+  <!-- ══════════════════════════════════════
+       5. WHO WE WORK WITH
+       ══════════════════════════════════════ -->
+  <section class="au-who">
+    <div class="au-who-wrap">
+      <div class="au-who-left">
+        <p class="au-who-label au-reveal">WHO WE WORK WITH</p>
+        <h2 class="au-who-heading au-reveal">We work where the stakes are high.</h2>
+        <p class="au-who-sub au-reveal">Our clients don&#8217;t have room for coverage that fails under pressure. Neither do we.</p>
+      </div>
+      <div class="au-who-grid">
+        <div class="au-who-card au-reveal">
+          <h3 class="au-who-card-title">Large Corporations</h3>
+          <p class="au-who-card-body">Directors and officers liability, group benefits, and enterprise risk across listed entities.</p>
+        </div>
+        <div class="au-who-card au-reveal">
+          <h3 class="au-who-card-title">Logistics and Trade Businesses</h3>
+          <p class="au-who-card-body">Fleet, cargo, and foreign worker coverage for businesses moving goods across Singapore and the region.</p>
+        </div>
+        <div class="au-who-card au-reveal">
+          <h3 class="au-who-card-title">Employers and HR Teams</h3>
+          <p class="au-who-card-body">Employee benefits, medical, and workmen compensation designed to attract and protect your people.</p>
+        </div>
+        <div class="au-who-card au-reveal">
+          <h3 class="au-who-card-title">Growing SMEs</h3>
+          <p class="au-who-card-body">Commercial-grade coverage without enterprise complexity — scaled to where you are and where you&#8217;re heading.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════
+       6. WHAT SETS US APART (DARK)
+       ══════════════════════════════════════ -->
   <section class="au-dark" data-dark-section>
     <div class="au-dark-wrap">
-      <h2 class="au-dark-heading">What sets us apart</h2>
+      <span class="au-dark-line" id="au-dark-line"></span>
+      <h2 class="au-dark-heading au-reveal">What sets us apart</h2>
       <div class="au-features">
-        <div class="au-feature">
+        <div class="au-feature au-reveal">
           <div class="au-feature-icon">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/></svg>
           </div>
           <h3 class="au-feature-title">Tailored coverage</h3>
-          <p class="au-feature-body">No one-size-fits-all policies. We map your specific risks to the right products across 18+ carriers so you're never over- or under-insured.</p>
+          <p class="au-feature-body">No one-size-fits-all policies. We map your specific risks across multiple insurers, so you&#8217;re never over-insured on paper and exposed where it counts.</p>
         </div>
-        <div class="au-feature">
+        <div class="au-feature au-reveal">
           <div class="au-feature-icon">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           </div>
-          <h3 class="au-feature-title">Expert advisors</h3>
-          <p class="au-feature-body">Real humans, real advice. Our licensed advisors bring years of market knowledge and are accountable to you — not to any single insurer.</p>
+          <h3 class="au-feature-title">Advisors accountable to you</h3>
+          <p class="au-feature-body">Our licensed advisors are not tied to any single insurer. Their job is to find the right fit for your risk.</p>
         </div>
-        <div class="au-feature">
+        <div class="au-feature au-reveal">
           <div class="au-feature-icon">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           </div>
-          <h3 class="au-feature-title">Fast claims support</h3>
-          <p class="au-feature-body">We advocate for you throughout the entire claims process. From first notice of loss to settlement — we handle the paperwork and push for fair outcomes.</p>
+          <h3 class="au-feature-title">Claims support that actually shows up</h3>
+          <p class="au-feature-body">We advocate for you from first notice of loss to final settlement. We handle the paperwork, push for fair outcomes, and don&#8217;t disappear when things get difficult.</p>
         </div>
       </div>
+
+      <!-- ══ 7. TESTIMONIAL ══ -->
       <div class="au-quote">
-        <blockquote class="au-quote-text">"TRS took the time to understand our business risks and arranged coverage we didn't even know we needed. When our warehouse flooded, they handled the entire claim for us — settlement in 12 days."</blockquote>
-        <div class="au-quote-attr">
+        <span class="au-quote-mark au-reveal">&#8220;</span>
+        <blockquote class="au-quote-text au-reveal">&#8220;TRS took the time to understand our business risks and arranged coverage we didn&#8217;t even know we needed. When our warehouse flooded, they handled the entire claim for us — settlement in 12 days.&#8221;</blockquote>
+        <div class="au-quote-attr au-reveal">
           <div class="au-quote-avatar" aria-hidden="true">LW</div>
           <div>
             <div class="au-quote-name">Leonard Wong</div>
@@ -170,12 +267,17 @@
     </div>
   </section>
 
-  <!-- DARK CTA -->
+  <!-- ══════════════════════════════════════
+       8. DARK CTA
+       ══════════════════════════════════════ -->
   <section class="au-cta-dark" data-dark-section>
     <div class="au-cta-dark-wrap">
-      <h2 class="au-cta-dark-heading">Get covered<br><span class="au-cta-dark-gradient">the right way.</span></h2>
-      <p class="au-cta-dark-sub">Speak to a TRS advisor today — no obligation, no fine print.</p>
-      <a href="mailto:enquiry@trade-risksol.com" class="au-cta-dark-btn">Get in touch</a>
+      <h2 class="au-cta-dark-heading au-reveal">The businesses that trust us<br>didn&#8217;t get lucky.<br><span class="au-cta-dark-gradient">They got advice.</span></h2>
+      <p class="au-cta-dark-sub au-reveal">Have an honest conversation about your risk with us.</p>
+      <button class="au-cta-dark-btn au-reveal" data-ctac-modal aria-label="Contact us">
+        Contact us
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
     </div>
   </section>
 
@@ -196,12 +298,86 @@
   <script>
     (function () {
       if (!window.IntersectionObserver) return;
-      var obs = new IntersectionObserver(function (entries) {
+
+      /* ── Story paragraphs (slide-in on scroll) ── */
+      var storyObs = new IntersectionObserver(function (entries) {
         entries.forEach(function (e) {
-          if (e.isIntersecting) { e.target.classList.add('au-story-para--visible'); obs.unobserve(e.target); }
+          if (e.isIntersecting) {
+            e.target.classList.add('au-story-para--visible');
+            storyObs.unobserve(e.target);
+          }
         });
       }, { threshold: 0.25 });
-      document.querySelectorAll('[data-reveal-text]').forEach(function (el) { obs.observe(el); });
+      document.querySelectorAll('[data-reveal-text]').forEach(function (el) { storyObs.observe(el); });
+
+      /* ── Generic reveal (.au-reveal) ── */
+      var revealObs = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) {
+            e.target.classList.add('au-reveal--visible');
+            revealObs.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.2 });
+      document.querySelectorAll('.au-reveal').forEach(function (el) { revealObs.observe(el); });
+
+      /* ── Dark line draw ── */
+      var lineEl = document.getElementById('au-dark-line');
+      if (lineEl) {
+        var lineObs = new IntersectionObserver(function (entries) {
+          entries.forEach(function (e) {
+            if (e.isIntersecting) {
+              lineEl.classList.add('au-dark-line--visible');
+              lineObs.unobserve(lineEl);
+            }
+          });
+        }, { threshold: 0.5 });
+        lineObs.observe(lineEl);
+      }
+
+      /* ── Stat card counters ── */
+      function animateCounter(el, to, prefix, suffix, useComma, duration) {
+        var numEl = el.querySelector('.au-stat-num');
+        if (!numEl) return;
+        var start = null;
+        function step(ts) {
+          if (!start) start = ts;
+          var progress = Math.min((ts - start) / duration, 1);
+          var ease = 1 - Math.pow(1 - progress, 3);
+          var current = Math.round(ease * to);
+          var display = useComma ? current.toLocaleString() : String(current);
+          numEl.textContent = prefix + display + suffix;
+          if (progress < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      }
+
+      var statCards = document.querySelectorAll('.au-stat-card[data-count-to]');
+      statCards.forEach(function (card, i) {
+        card.style.animationDelay = (i * 80) + 'ms';
+      });
+
+      var statObs = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) {
+            var card = e.target;
+            card.classList.add('au-reveal--visible');
+            var to     = parseInt(card.dataset.countTo, 10);
+            var prefix = card.dataset.countPrefix || '';
+            var suffix = card.dataset.countSuffix || '';
+            var fmt    = card.dataset.countFormat === 'comma';
+            animateCounter(card, to, prefix, suffix, fmt, 1200);
+            statObs.unobserve(card);
+          }
+        });
+      }, { threshold: 0.3 });
+      statCards.forEach(function (card) { statObs.observe(card); });
+
+      /* ── Who-cards stagger ── */
+      document.querySelectorAll('.au-who-card').forEach(function (card, i) {
+        card.style.animationDelay = (i * 120) + 'ms';
+      });
+
     })();
   </script>
   <script src="/scripts/analytics.js"></script>
