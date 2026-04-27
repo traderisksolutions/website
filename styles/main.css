@@ -443,13 +443,13 @@ h1, h2, h3, h4, h5, h6 {
   transition: background-size 0.35s ease, opacity 0.2s;
 }
 .nav-ctac-chip.active {
-  border-color: rgba(0,0,0,0.18);
-  background: rgba(255,255,255,0.72);
-  color: var(--text);
+  border-color: transparent;
+  color: #fff;
+  background: #111;
+  animation: pill-to-black 0.5s ease forwards;
 }
 .nav-ctac-chip.active::before {
-  opacity: 0.32;
-  background-size: 200% 100%;
+  opacity: 0;
 }
 
 /* Send button */
@@ -1276,8 +1276,13 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 
 /* ── Shared gradient pill keyframes ── */
 @keyframes pill-flood {
-  0%   { background-size: 0% 100%; }
-  100% { background-size: 200% 100%; }
+  0%   { background-position: 0% 50%; opacity: 1; }
+  60%  { background-position: 100% 50%; opacity: 1; }
+  100% { background-position: 100% 50%; opacity: 1; }
+}
+@keyframes pill-to-black {
+  0%   { background: linear-gradient(90deg, #be185d, #b45309, #15803d, #0e7490, #6d28d9); }
+  100% { background: #111; }
 }
 
 /* ── Hero prompt pills ── */
@@ -1296,7 +1301,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   font-weight: 500;
   color: var(--text-muted);
   cursor: pointer;
-  transition: border-color 0.2s, color 0.2s, background 0.2s;
+  transition: border-color 0.2s, color 0.3s, background 0.3s;
   white-space: nowrap;
   position: relative;
   overflow: hidden;
@@ -1322,13 +1327,14 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   background-size: 200% 100%;
   transition: background-size 0.35s ease, opacity 0.2s;
 }
-.cta-pill.pill--active::before {
-  opacity: 0.32;
-  animation: pill-flood 0.4s ease forwards;
-}
 .cta-pill.pill--active {
-  border-color: rgba(0,0,0,0.18);
-  color: var(--text);
+  border-color: transparent;
+  color: #fff;
+  background: #111;
+  animation: pill-to-black 0.5s ease forwards;
+}
+.cta-pill.pill--active::before {
+  opacity: 0;
 }
 
 .am-cta-group {
