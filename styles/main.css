@@ -509,8 +509,33 @@ h1, h2, h3, h4, h5, h6 {
   margin-top: 0;
 }
 
-@media (max-width: 600px) {
-  .nav-ctac { top: 70px; right: 12px; left: 12px; width: auto; }
+/* ── Mobile modal overlay ── */
+.nav-ctac-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 9997;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+.nav-ctac-backdrop.open { display: block; }
+
+@media (max-width: 768px) {
+  .nav-ctac {
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-height: 90dvh !important;
+    border-radius: 24px 24px 0 0;
+    transform-origin: bottom center;
+  }
+  @keyframes nav-ctac-in {
+    from { opacity: 0; transform: translateY(32px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
 }
 
 /* ── Dark pill — over dark sections ── */

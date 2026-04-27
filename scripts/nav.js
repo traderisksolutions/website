@@ -305,6 +305,11 @@
     '</div>'
   ].join('');
 
+  /* ── Backdrop (mobile modal) ── */
+  var backdrop = document.createElement('div');
+  backdrop.className = 'nav-ctac-backdrop';
+  backdrop.addEventListener('click', closeCard);
+  document.body.appendChild(backdrop);
   document.body.appendChild(card);
 
   /* Refs */
@@ -348,7 +353,10 @@
 
   var _activeTrigger = null;
 
+  function isMobile() { return window.innerWidth <= 768; }
+
   function positionCard(trigger) {
+    if (isMobile()) return; /* CSS handles layout on mobile */
     var rect       = trigger.getBoundingClientRect();
     var cardW      = 420;
     var spaceBelow = window.innerHeight - rect.bottom - 12;
@@ -379,6 +387,10 @@
     _activeTrigger = trigger || null;
     if (trigger) positionCard(trigger);
     card.classList.add('open');
+    if (isMobile()) {
+      backdrop.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
     setTimeout(function () { firstNameInput.focus(); }, 50);
   }
 
@@ -386,6 +398,8 @@
     card.classList.remove('open');
     card.style.maxHeight = '';
     _activeTrigger = null;
+    backdrop.classList.remove('open');
+    document.body.style.overflow = '';
   }
 
   /* Reposition on scroll so popover follows the trigger button */
