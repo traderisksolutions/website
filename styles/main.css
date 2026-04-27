@@ -1375,20 +1375,9 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   position: relative;
 }
 
-/* Thin top + bottom rules */
-.trust-grid-wrap::before,
-.trust-grid-wrap::after {
-  content: '';
-  position: absolute;
-  left: 0; right: 0;
-  height: 1px;
-  background: var(--border);
-}
-.trust-grid-wrap::before { top: 0; }
-.trust-grid-wrap::after  { bottom: 0; }
-
 /* Corner dots */
 .trust-corner {
+  display: none;
   position: absolute;
   width: 5px;
   height: 5px;
