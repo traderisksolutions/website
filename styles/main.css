@@ -1127,7 +1127,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   align-items: center;
   justify-content: center;
   background: url('/Gemini_Generated_Image_mn79utmn79utmn79.png') center center / cover no-repeat;
-  padding: 80px 24px 60px;
+  padding: 40px 24px 30px;
 }
 
 .am-hero-inner {
@@ -1334,7 +1334,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 /* ── TRUST SECTION ── */
 .trust-section {
   background: var(--bg);
-  padding: 60px 48px 80px;
+  padding: 30px 48px 40px;
   max-width: 1100px;
   margin: 0 auto;
   width: 100%;
@@ -1437,7 +1437,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   .nav-hamburger { display: flex; }
   .nav-links { display: none; }
 
-  .trust-section { padding: 40px 24px 60px; }
+  .trust-section { padding: 20px 24px 30px; }
   .trust-grid { grid-template-columns: repeat(3, 1fr); }
   .trust-logo { padding: 20px 10px; font-size: 13px; }
 
@@ -1479,7 +1479,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
    ═══════════════════════════════════════════════════════════════ */
 
 .sc-section {
-  padding: 60px 48px 80px;
+  padding: 30px 48px 40px;
 }
 
 .sc-wrap {
@@ -1879,7 +1879,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 /* ── Responsive ── */
 @media (max-width: 760px) {
   .sc-section {
-    padding: 40px 16px 60px;
+    padding: 20px 16px 30px;
   }
 
   .sc-card {
@@ -1932,7 +1932,8 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
    ═══════════════════════════════════════════════════════════════ */
 
 .acc-section {
-  padding: 80px 48px 100px;
+  padding: 40px 48px 80px;
+  margin-bottom: 48px;
   background: var(--bg);
 }
 
@@ -2113,7 +2114,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 /* ── Responsive ── */
 @media (max-width: 640px) {
   .acc-section {
-    padding: 60px 20px 80px;
+    padding: 30px 20px 60px;
   }
 
   .acc-heading {
@@ -2139,7 +2140,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
    ═══════════════════════════════════════════════════════════════ */
 
 .cta-section {
-  padding: 100px 48px 120px;
+  padding: 50px 48px 60px;
   background: var(--bg);
   text-align: center;
 }
@@ -2562,7 +2563,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 
 @media (max-width: 640px) {
   .cta-section {
-    padding: 72px 20px 80px;
+    padding: 36px 20px 40px;
   }
 
   .site-footer {
