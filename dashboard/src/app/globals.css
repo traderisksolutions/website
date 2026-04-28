@@ -10,12 +10,12 @@
 
   /* Sidebar */
   --sidebar-width:        240px;
-  --sidebar-bg:           #0a0a0a;
-  --sidebar-text:         rgba(255,255,255,0.55);
-  --sidebar-text-active:  #ffffff;
-  --sidebar-item-active:  rgba(255,255,255,0.08);
-  --sidebar-border:       rgba(255,255,255,0.06);
-  --sidebar-label:        rgba(255,255,255,0.25);
+  --sidebar-bg:           #ffffff;
+  --sidebar-text:         #444444;
+  --sidebar-text-active:  #111111;
+  --sidebar-item-active:  #f0f0f0;
+  --sidebar-border:       #e5e5e5;
+  --sidebar-label:        #999999;
 
   /* Top nav */
   --topnav-height:          52px;
@@ -101,9 +101,9 @@ body {
 }
 
 /* Sidebar item hover */
-.sb-item:hover {
-  background: rgba(255,255,255,0.05) !important;
-  color: rgba(255,255,255,0.8) !important;
+.sb-row:hover {
+  background: #f4f4f5 !important;
+  color: #111 !important;
 }
 
 /* Scrollbar */
