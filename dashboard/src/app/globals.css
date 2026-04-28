@@ -27,8 +27,8 @@
   --topnav-dropdown-shadow: 0 8px 40px rgba(0,0,0,0.13), 0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9);
   --topnav-dropdown-radius: 16px;
 
-  /* Content — warm neutral so glass sidebar/topnav pop */
-  --content-bg: #ededf0;
+  /* Content */
+  --content-bg: #f9f9f9;
 
   /* Glass card */
   --glass-bg:     rgba(255,255,255,0.68);
@@ -43,7 +43,7 @@ html, body, input, button, select, textarea {
 }
 body {
   margin: 0;
-  background: #eeeef3;
+  background: #f9f9f9;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
