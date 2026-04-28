@@ -9,13 +9,13 @@
   --font-heading: var(--font-heading), Georgia, 'Times New Roman', serif;
 
   /* Sidebar */
-  --sidebar-width:        220px;
-  --sidebar-bg:           rgba(12, 12, 12, 0.82);
-  --sidebar-text:         rgba(255,255,255,0.62);
+  --sidebar-width:        240px;
+  --sidebar-bg:           #0a0a0a;
+  --sidebar-text:         rgba(255,255,255,0.55);
   --sidebar-text-active:  #ffffff;
-  --sidebar-item-active:  rgba(255,255,255,0.10);
-  --sidebar-border:       rgba(255,255,255,0.08);
-  --sidebar-label:        rgba(255,255,255,0.28);
+  --sidebar-item-active:  rgba(255,255,255,0.08);
+  --sidebar-border:       rgba(255,255,255,0.06);
+  --sidebar-label:        rgba(255,255,255,0.25);
 
   /* Top nav */
   --topnav-height:          52px;
@@ -98,6 +98,12 @@ body {
   animation: dd-in 0.16s cubic-bezier(0.22,1,0.36,1) forwards;
   backdrop-filter: blur(28px) saturate(200%);
   -webkit-backdrop-filter: blur(28px) saturate(200%);
+}
+
+/* Sidebar item hover */
+.sb-item:hover {
+  background: rgba(255,255,255,0.05) !important;
+  color: rgba(255,255,255,0.8) !important;
 }
 
 /* Scrollbar */

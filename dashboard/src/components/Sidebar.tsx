@@ -1,19 +1,41 @@
 'use client'
 
+import type { ElementType } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
-import { ChevronDown } from 'lucide-react'
-import { SIDEBAR_NAV } from '@/lib/nav-config'
-import type { NavItem, NavSection } from '@/lib/nav-config'
+import { Inbox, Users, BarChart2, FileText, Settings } from 'lucide-react'
+
+type NavItem = {
+  label:    string
+  href:     string
+  icon:     ElementType
+  disabled?: boolean
+}
+
+type NavSection = {
+  label?: string
+  items:  NavItem[]
+}
+
+const NAV: NavSection[] = [
+  {
+    items: [
+      { label: 'Inbound Leads', href: '/inbound',   icon: Inbox },
+      { label: 'Contacts',      href: '/contacts',  icon: Users,    disabled: true },
+      { label: 'Analytics',     href: '/analytics', icon: BarChart2, disabled: true },
+      { label: 'Documents',     href: '/documents', icon: FileText, disabled: true },
+    ],
+  },
+  {
+    label: 'Settings',
+    items: [
+      { label: 'Settings', href: '/settings', icon: Settings, disabled: true },
+    ],
+  },
+]
 
 export default function Sidebar() {
   const pathname = usePathname()
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({ inbound: true })
-
-  function toggle(id: string) {
-    setExpanded(prev => ({ ...prev, [id]: !prev[id] }))
-  }
 
   function isActive(href: string) {
     return pathname === href || pathname.startsWith(href + '/')
@@ -21,114 +43,140 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="fixed inset-y-0 left-0 flex flex-col z-40"
       style={{
-        width:          'var(--sidebar-width)',
-        background:     'rgba(255,255,255,0.72)',
-        backdropFilter: 'blur(28px) saturate(200%)',
-        WebkitBackdropFilter: 'blur(28px) saturate(200%)',
-        borderRight:    '1px solid rgba(200,200,204,0.45)',
-        boxShadow:      '2px 0 24px rgba(0,0,0,0.06), inset -1px 0 0 rgba(255,255,255,0.8)',
+        position:    'fixed',
+        inset:       '0 auto 0 0',
+        width:       'var(--sidebar-width)',
+        display:     'flex',
+        flexDirection: 'column',
+        background:  '#0a0a0a',
+        borderRight: '1px solid rgba(255,255,255,0.06)',
+        zIndex:      40,
+        overflowY:   'auto',
       }}
     >
-      {/* Logo */}
+      {/* Project header */}
       <div
-        className="flex items-center gap-2.5 px-5 h-14 shrink-0"
-        style={{ borderBottom: '1px solid rgba(200,200,204,0.35)' }}
+        style={{
+          display:      'flex',
+          alignItems:   'center',
+          gap:          10,
+          padding:      '0 16px',
+          height:       56,
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          flexShrink:   0,
+        }}
       >
-        <span className="font-bold text-lg tracking-tight leading-none" style={{ color: '#18181b', fontFamily: 'var(--font-heading)' }}>TRS</span>
+        {/* Logo mark */}
         <span
-          className="text-xs font-medium px-1.5 py-0.5 rounded"
-          style={{ background: 'rgba(0,0,0,0.07)', color: '#555' }}
+          style={{
+            width:        26,
+            height:       26,
+            borderRadius: 6,
+            background:   '#fff',
+            display:      'flex',
+            alignItems:   'center',
+            justifyContent: 'center',
+            flexShrink:   0,
+          }}
         >
-          Dashboard
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#000', letterSpacing: '-0.03em' }}>
+            TRS
+          </span>
         </span>
+
+        <div style={{ minWidth: 0 }}>
+          <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: '#fff', lineHeight: 1.2, letterSpacing: '-0.01em' }}>
+            Trade Risk Solutions
+          </p>
+          <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)', lineHeight: 1.3 }}>
+            Internal Dashboard
+          </p>
+        </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-4 px-2">
-        {SIDEBAR_NAV.map((section: NavSection, si: number) => (
-          <div key={section.id} className={si > 0 ? 'mt-1' : ''}>
+      <nav style={{ flex: 1, padding: '8px 8px 0' }}>
+        {NAV.map((section, si) => (
+          <div key={si} style={{ marginBottom: 4 }}>
             {/* Section label */}
-            <div className="flex items-center gap-2 px-3 pt-3 pb-1.5">
-              <span
-                className="text-[10px] font-semibold tracking-widest uppercase"
-                style={{ color: 'rgba(0,0,0,0.35)' }}
+            {section.label && (
+              <p
+                style={{
+                  margin:        '12px 0 4px',
+                  padding:       '0 8px',
+                  fontSize:      11,
+                  fontWeight:    500,
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                  color:         'rgba(255,255,255,0.25)',
+                }}
               >
                 {section.label}
-              </span>
-              <div className="flex-1 h-px" style={{ background: 'rgba(0,0,0,0.08)' }} />
-            </div>
+              </p>
+            )}
 
             {/* Items */}
-            {section.items.map((item: NavItem) => {
-              const active  = isActive(item.href)
-              const hasKids = !!item.children?.length
-              const open    = !!expanded[item.id]
-              const Icon    = item.icon
+            {section.items.map(item => {
+              const active = isActive(item.href)
+              const Icon   = item.icon
 
-              return (
-                <div key={item.id}>
-                  <div
-                    className="flex items-center justify-between rounded-lg px-3 py-2 cursor-pointer select-none"
-                    style={{
-                      background: active ? 'rgba(0,0,0,0.06)' : 'transparent',
-                      color:      active ? '#111' : '#444',
-                    }}
-                    onClick={() => { if (hasKids) toggle(item.id) }}
-                  >
-                    <Link
-                      href={item.href}
-                      className="flex items-center gap-2.5 flex-1 min-w-0"
-                      onClick={e => hasKids && e.preventDefault()}
-                      style={{ color: 'inherit', textDecoration: 'none' }}
+              const inner = (
+                <span
+                  style={{
+                    display:       'flex',
+                    alignItems:    'center',
+                    gap:           8,
+                    padding:       '0 8px',
+                    height:        34,
+                    borderRadius:  6,
+                    background:    active ? 'rgba(255,255,255,0.08)' : 'transparent',
+                    color:         item.disabled
+                                     ? 'rgba(255,255,255,0.22)'
+                                     : active
+                                       ? '#fff'
+                                       : 'rgba(255,255,255,0.55)',
+                    cursor:        item.disabled ? 'default' : 'pointer',
+                    transition:    'background 0.12s, color 0.12s',
+                    textDecoration: 'none',
+                    width:         '100%',
+                  }}
+                  className={item.disabled ? '' : 'sb-item'}
+                >
+                  <Icon
+                    size={15}
+                    strokeWidth={active ? 2.2 : 1.8}
+                    style={{ flexShrink: 0, opacity: item.disabled ? 0.4 : 1 }}
+                  />
+                  <span style={{ fontSize: 13, fontWeight: active ? 500 : 400, letterSpacing: '-0.01em' }}>
+                    {item.label}
+                  </span>
+                  {item.disabled && (
+                    <span
+                      style={{
+                        marginLeft:   'auto',
+                        fontSize:     10,
+                        fontWeight:   500,
+                        padding:      '1px 5px',
+                        borderRadius: 4,
+                        background:   'rgba(255,255,255,0.07)',
+                        color:        'rgba(255,255,255,0.2)',
+                        letterSpacing: '0.04em',
+                        textTransform: 'uppercase',
+                      }}
                     >
-                      <Icon size={15} strokeWidth={active ? 2.2 : 1.8} className="shrink-0" />
-                      <span className="text-[13px] font-medium truncate">{item.label}</span>
-                    </Link>
-
-                    {hasKids && (
-                      <ChevronDown
-                        size={13}
-                        strokeWidth={2}
-                        className="shrink-0 transition-transform duration-200"
-                        style={{
-                          transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-                          color: 'rgba(0,0,0,0.3)',
-                        }}
-                      />
-                    )}
-                  </div>
-
-                  {/* Sub-items */}
-                  {hasKids && (
-                    <div className={`sidebar-sub ${open ? 'open' : ''}`}>
-                      <div className="pl-4 pb-1">
-                        {item.children!.map(child => {
-                          const childActive = pathname === child.href
-                          return (
-                            <Link
-                              key={child.href}
-                              href={child.href}
-                              className="flex items-center gap-2 rounded-md px-3 py-1.5 text-[12.5px] font-medium transition-colors"
-                              style={{
-                                color:          childActive ? '#111' : '#666',
-                                background:     childActive ? 'rgba(0,0,0,0.06)' : 'transparent',
-                                textDecoration: 'none',
-                              }}
-                            >
-                              <span
-                                className="w-1 h-1 rounded-full shrink-0"
-                                style={{ background: childActive ? '#111' : 'rgba(0,0,0,0.25)' }}
-                              />
-                              {child.label}
-                            </Link>
-                          )
-                        })}
-                      </div>
-                    </div>
+                      Soon
+                    </span>
                   )}
-                </div>
+                </span>
+              )
+
+              return item.disabled ? (
+                <div key={item.href}>{inner}</div>
+              ) : (
+                <Link key={item.href} href={item.href} style={{ display: 'block', textDecoration: 'none' }}>
+                  {inner}
+                </Link>
               )
             })}
           </div>
@@ -137,11 +185,14 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div
-        className="px-4 py-3 shrink-0"
-        style={{ borderTop: '1px solid rgba(200,200,204,0.35)' }}
+        style={{
+          padding:      '12px 16px',
+          borderTop:    '1px solid rgba(255,255,255,0.06)',
+          flexShrink:   0,
+        }}
       >
-        <p className="text-[11px]" style={{ color: 'rgba(0,0,0,0.35)' }}>
-          Trade Risk Solutions
+        <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.2)', letterSpacing: '-0.01em' }}>
+          © 2025 Trade Risk Solutions
         </p>
       </div>
     </aside>
