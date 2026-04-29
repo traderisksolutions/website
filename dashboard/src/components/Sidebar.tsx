@@ -154,9 +154,12 @@ export default function Sidebar() {
         {/* Divider */}
         <Divider />
 
-        {/* ── Future ── */}
-        <NavItem label="Contacts"  href="/contacts"  icon={Users}     isActive={false} disabled />
-        <NavItem label="Analytics" href="/analytics" icon={BarChart2} isActive={false} disabled />
+        {/* ── Analytics ── */}
+        <p style={{ margin: '8px 0 2px', padding: '0 10px', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#aaa' }}>
+          Analytics
+        </p>
+        <NavItem label="Funnel"   href="/analytics"        icon={BarChart2} isActive={active('/analytics')} />
+        <NavItem label="Contacts" href="/contacts"         icon={Users}     isActive={false} disabled />
 
         {/* Divider */}
         <Divider />
