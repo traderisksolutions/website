@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import {
   Mail, MessageCircle, AlertCircle,
   Users, BarChart2, Settings,
-  Search, ChevronRight, ChevronDown,
+  Search, ChevronRight, ChevronDown, Bot,
 } from 'lucide-react'
 
 type Counts = { emailNew: number; waNew: number; claimsNew: number }
@@ -135,6 +135,15 @@ export default function Sidebar() {
             />
           </div>
         )}
+
+        {/* Divider */}
+        <Divider />
+
+        {/* ── Engagement Agent ── */}
+        <p style={{ margin: '8px 0 2px', padding: '0 10px', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#aaa' }}>
+          Engagement
+        </p>
+        <NavItem label="Agent" href="/engagement" icon={Bot} isActive={active('/engagement')} />
 
         {/* Divider */}
         <Divider />
