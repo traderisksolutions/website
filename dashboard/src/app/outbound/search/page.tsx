@@ -130,6 +130,45 @@ export default function ManualSearchPage() {
   const stopAutoLoad = useRef(false)
   const stopEmailAll = useRef(false)
 
+  // ── Persist results in sessionStorage so navigation doesn't lose data ──────
+
+  // Restore on mount
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem('obs_session')
+      if (!raw) return
+      const s = JSON.parse(raw)
+      if (Array.isArray(s.results) && s.results.length > 0) {
+        setResults(s.results)
+        setTotal(s.total ?? s.results.length)
+        setSearchType(s.searchType ?? 'people')
+        // strip any in-progress 'fetching' states
+        const em: Record<string, EmailState> = {}
+        for (const [k, v] of Object.entries(s.emailMap ?? {})) {
+          if (v !== 'fetching') em[k] = v as EmailState
+        }
+        setEmailMap(em)
+        setSavedUrls(new Set(s.savedUrls ?? []))
+      }
+    } catch {}
+  }, []) // mount only
+
+  // Save whenever results, email map, or saved set change
+  useEffect(() => {
+    if (results.length === 0) return
+    try {
+      sessionStorage.setItem('obs_session', JSON.stringify({
+        results,
+        total,
+        searchType,
+        emailMap: Object.fromEntries(
+          Object.entries(emailMap).filter(([, v]) => v !== 'fetching')
+        ),
+        savedUrls: [...savedUrls],
+      }))
+    } catch {}
+  }, [results, total, searchType, emailMap, savedUrls])
+
   // People-only fields
   const [keywordTitle,  setKeywordTitle]  = useState('')
   const [keywords,      setKeywords]      = useState('')
@@ -184,9 +223,10 @@ export default function ManualSearchPage() {
   // ── Run search + auto-load all pages ─────────────────────────────────────
 
   async function runSearch() {
+    sessionStorage.removeItem('obs_session')
     stopAutoLoad.current = true
     setLoading(true); setError(null)
-    setResults([]); setChecked(new Set()); setAutoLoaded(0); setEmailMap({})
+    setResults([]); setChecked(new Set()); setAutoLoaded(0); setEmailMap({}); setSavedUrls(new Set())
 
     try {
       const first = await fetchPage(0)
@@ -232,38 +272,48 @@ export default function ManualSearchPage() {
         body: JSON.stringify({ linkedin_url: url }),
       })
       const data = await res.json()
-      setEmailMap(prev => ({
-        ...prev,
-        [url]: data.found ? { email: data.email, status: data.email_status } : 'not_found',
-      }))
+      const entry: EmailState = data.found ? { email: data.email, status: data.email_status } : 'not_found'
+      setEmailMap(prev => ({ ...prev, [url]: entry }))
+      // Auto-save lead to CRM when email is found and lead isn't already saved
+      if (data.found && !savedUrls.has(url) && !crmUrls.has(url)) {
+        await saveOne(result, data.email)
+      }
     } catch {
       setEmailMap(prev => ({ ...prev, [url]: 'not_found' }))
     }
   }
 
-  async function findAllEmails() {
-    const people = results.filter(r => isPerson(r) && !emailMap[getUrl(r)])
-    if (people.length === 0) return
-    const credits = people.length * 5
-    if (!confirm(`Find emails for ${people.length} people?\n\nThis will use ~${credits} Netrows credits (5 per lookup). Proceed?`)) return
+  async function runEmailBatch(targets: SearchResult[]) {
+    if (targets.length === 0) return
+    if (!confirm(`Find emails for ${targets.length} ${targets.length === 1 ? 'person' : 'people'}?\n~${targets.length * 5} Netrows credits. Proceed?`)) return
     setFindingAll(true)
     stopEmailAll.current = false
-    for (const result of people) {
+    for (const result of targets) {
       if (stopEmailAll.current) break
       await findEmail(result)
     }
     setFindingAll(false)
   }
 
+  function findAllEmails() {
+    return runEmailBatch(results.filter(r => isPerson(r) && !emailMap[getUrl(r)]))
+  }
+
+  function findEmailsForSelected() {
+    return runEmailBatch(
+      results.filter(r => isPerson(r) && checked.has(getUrl(r)) && !emailMap[getUrl(r)])
+    )
+  }
+
   // ── Save helpers ──────────────────────────────────────────────────────────
 
-  async function saveOne(result: SearchResult): Promise<void> {
+  async function saveOne(result: SearchResult, overrideEmail?: string): Promise<void> {
     const url = getUrl(result)
-    if (savedUrls.has(url)) return
+    if (savedUrls.has(url) || crmUrls.has(url)) return
     setSavingUrls(prev => new Set([...Array.from(prev), url]))
     try {
       const emailEntry = emailMap[url]
-      const email = emailEntry && typeof emailEntry === 'object' ? emailEntry.email : undefined
+      const email = overrideEmail ?? (emailEntry && typeof emailEntry === 'object' ? emailEntry.email : undefined)
       const res = await fetch('/api/outbound/save', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ record: buildRecord(result, email) }),
@@ -292,13 +342,14 @@ export default function ManualSearchPage() {
 
   // ── Checkbox helpers ──────────────────────────────────────────────────────
 
-  const allChecked   = results.length > 0 && results.every(r => checked.has(getUrl(r)))
-  const checkedCount = results.filter(r => checked.has(getUrl(r))).length
-  const newSelected  = results.filter(r => checked.has(getUrl(r)) && !savedUrls.has(getUrl(r)) && !crmUrls.has(getUrl(r))).length
-  const newTotal     = results.filter(r => !savedUrls.has(getUrl(r)) && !crmUrls.has(getUrl(r))).length
-  const dupCount     = results.filter(r => crmUrls.has(getUrl(r))).length
-  const peopleCount  = results.filter(r => isPerson(r)).length
-  const emailPending = results.filter(r => isPerson(r) && !emailMap[getUrl(r)]).length
+  const allChecked             = results.length > 0 && results.every(r => checked.has(getUrl(r)))
+  const checkedCount           = results.filter(r => checked.has(getUrl(r))).length
+  const newSelected            = results.filter(r => checked.has(getUrl(r)) && !savedUrls.has(getUrl(r)) && !crmUrls.has(getUrl(r))).length
+  const newTotal               = results.filter(r => !savedUrls.has(getUrl(r)) && !crmUrls.has(getUrl(r))).length
+  const dupCount               = results.filter(r => crmUrls.has(getUrl(r))).length
+  const peopleCount            = results.filter(r => isPerson(r)).length
+  const emailPending           = results.filter(r => isPerson(r) && !emailMap[getUrl(r)]).length
+  const checkedPeopleWithoutEmail = results.filter(r => isPerson(r) && checked.has(getUrl(r)) && !emailMap[getUrl(r)]).length
 
   function toggleAll()        { setChecked(allChecked ? new Set() : new Set(results.map(getUrl))) }
   function toggleOne(u: string) {
@@ -460,10 +511,18 @@ export default function ManualSearchPage() {
                   {autoLoading && <span style={{ marginLeft: 8, fontSize: 11, color: '#f59e0b' }}>● loading…</span>}
                   {dupCount > 0 && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 600, color: '#6366f1' }}>{dupCount} in CRM</span>}
                 </span>
+                {/* Find email for checked people */}
+                {searchType === 'people' && checkedPeopleWithoutEmail > 0 && (
+                  <button onClick={findEmailsForSelected} disabled={findingAll} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', fontSize: 12, fontWeight: 600, borderRadius: 7, border: '1px solid #111', background: findingAll ? '#f4f4f5' : '#111', color: findingAll ? '#bbb' : '#fff', cursor: findingAll ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}>
+                    <Mail size={13} />
+                    {findingAll ? 'Finding…' : `Find Email (${checkedPeopleWithoutEmail})`}
+                  </button>
+                )}
+                {/* Find all emails */}
                 {searchType === 'people' && emailPending > 0 && (
                   <button onClick={findAllEmails} disabled={findingAll} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', fontSize: 12, fontWeight: 600, borderRadius: 7, border: '1px solid #e5e5e5', background: findingAll ? '#f4f4f5' : '#fff', color: findingAll ? '#bbb' : '#555', cursor: findingAll ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}>
                     <Mail size={13} />
-                    {findingAll ? 'Finding emails…' : `Find All Emails (${emailPending} × 5 cr)`}
+                    {findingAll ? 'Finding emails…' : `Find All (${emailPending} × 5 cr)`}
                   </button>
                 )}
                 <button onClick={saveSelected} disabled={newSelected === 0} style={{ padding: '6px 12px', fontSize: 12, fontWeight: 600, borderRadius: 7, border: '1px solid', borderColor: newSelected > 0 ? '#111' : '#e5e5e5', background: newSelected > 0 ? '#111' : '#f4f4f5', color: newSelected > 0 ? '#fff' : '#bbb', cursor: newSelected > 0 ? 'pointer' : 'default', whiteSpace: 'nowrap' }}>

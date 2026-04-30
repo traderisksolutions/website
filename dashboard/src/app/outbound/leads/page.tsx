@@ -26,6 +26,8 @@ interface OutboundLead {
   employee_count:     number | null
   headquarters:       string | null
   logo_url:           string | null
+  email:              string | null
+  email_status:       string | null
   status:             Status
   notes:              string | null
 }
@@ -182,7 +184,7 @@ export default function OutboundLeadsPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#fafafa', borderBottom: '1px solid #e5e5e5' }}>
-                {['', 'Name', 'Role / Headline', 'Company', 'Location', 'Source', 'Status', 'Added'].map(col => (
+                {['', 'Name', 'Role / Headline', 'Company', 'Location', 'Email', 'Source', 'Status', 'Added'].map(col => (
                   <th key={col} style={{
                     padding: '9px 14px', fontSize: 11, fontWeight: 600, color: '#aaa',
                     textAlign: 'left', letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap',
@@ -268,6 +270,17 @@ export default function OutboundLeadsPage() {
                         </p>
                       </td>
 
+                      {/* Email */}
+                      <td style={{ padding: '10px 14px', minWidth: 180 }}>
+                        {lead.email ? (
+                          <a href={`mailto:${lead.email}`} onClick={e => e.stopPropagation()} style={{ fontSize: 12, color: '#16a34a', textDecoration: 'none', fontWeight: 500 }}>
+                            {lead.email}
+                          </a>
+                        ) : lead.record_type === 'person' ? (
+                          <span style={{ fontSize: 12, color: '#ddd' }}>—</span>
+                        ) : null}
+                      </td>
+
                       {/* Source */}
                       <td style={{ padding: '10px 14px' }}>
                         <span style={{
@@ -305,7 +318,7 @@ export default function OutboundLeadsPage() {
                     {/* Expanded detail row */}
                     {expanded && (
                       <tr style={{ background: '#fafafa', borderBottom: '1px solid #e5e5e5' }}>
-                        <td colSpan={8} style={{ padding: '14px 14px 18px 60px' }}>
+                        <td colSpan={9} style={{ padding: '14px 14px 18px 60px' }}>
                           <div style={{ display: 'flex', gap: 32 }}>
 
                             {/* Details */}
