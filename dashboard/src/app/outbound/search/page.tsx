@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Globe, SlidersHorizontal } from 'lucide-react'
+import { Globe, SlidersHorizontal, Mail } from 'lucide-react'
 import React from 'react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -18,6 +18,9 @@ interface CompanyResult {
   tagline: string; logo: string; linkedinURL: string
 }
 type SearchResult = PeopleResult | CompanyResult
+
+interface EmailEntry { email: string; status: string }
+type EmailState = EmailEntry | 'fetching' | 'not_found'
 
 interface SavedLead {
   id?: string; full_name?: string | null; headline?: string | null
@@ -61,14 +64,16 @@ function getUrl(r: SearchResult) {
   return isPerson(r) ? (r as PeopleResult).profileURL : (r as CompanyResult).linkedinURL
 }
 
-function buildRecord(result: SearchResult) {
+function buildRecord(result: SearchResult, email?: string) {
   if (isPerson(result)) {
     const r = result as PeopleResult
     return {
       record_type: 'person', source: 'people_search',
       linkedin_url: r.profileURL, username: r.username,
       full_name: r.fullName, headline: r.headline, summary: r.summary,
-      profile_picture: r.profilePicture, location: r.location, raw_payload: result,
+      profile_picture: r.profilePicture, location: r.location,
+      ...(email ? { email, email_status: 'valid' } : {}),
+      raw_payload: result,
     }
   }
   const r = result as CompanyResult
@@ -118,18 +123,20 @@ export default function ManualSearchPage() {
   const [savingUrls,  setSavingUrls]  = useState<Set<string>>(new Set())
   const [checked,     setChecked]     = useState<Set<string>>(new Set())
   const [crmUrls,     setCrmUrls]     = useState<Set<string>>(new Set())
+  const [emailMap,    setEmailMap]    = useState<Record<string, EmailState>>({})
+  const [findingAll,  setFindingAll]  = useState(false)
   const [error,       setError]       = useState<string | null>(null)
 
-  // Stop ongoing auto-load when a new search starts
   const stopAutoLoad = useRef(false)
+  const stopEmailAll = useRef(false)
 
-  // Criteria — people
+  // People-only fields
   const [keywordTitle,  setKeywordTitle]  = useState('')
   const [keywords,      setKeywords]      = useState('')
   const [geo,           setGeo]           = useState('102454443')
   const [company,       setCompany]       = useState('')
 
-  // Criteria — company
+  // Company-only fields
   const [keyword,       setKeyword]       = useState('')
   const [locations,     setLocations]     = useState('102454443')
   const [selectedSizes, setSelectedSizes] = useState<string[]>(['B', 'C', 'D'])
@@ -141,21 +148,18 @@ export default function ManualSearchPage() {
   const [lookupResult,  setLookupResult]  = useState<SavedLead | null>(null)
   const [lookupLoading, setLookupLoading] = useState(false)
 
-  // ── Load existing CRM leads for duplicate detection ───────────────────────
+  // ── Load CRM linkedin_urls for duplicate detection ────────────────────────
 
   useEffect(() => {
     fetch('/api/outbound/leads?urls=true')
       .then(r => r.ok ? r.json() : [])
       .then((rows: { linkedin_url?: string | null }[]) => {
-        const urls = rows
-          .map(r => r.linkedin_url)
-          .filter((u): u is string => Boolean(u))
-        setCrmUrls(new Set(urls))
+        setCrmUrls(new Set(rows.map(r => r.linkedin_url).filter((u): u is string => Boolean(u))))
       })
       .catch(() => {})
   }, [])
 
-  // ── Fetch one page from Netrows ───────────────────────────────────────────
+  // ── Fetch one page ────────────────────────────────────────────────────────
 
   async function fetchPage(offset: number): Promise<{ items: SearchResult[]; total: number }> {
     const body = searchType === 'people'
@@ -174,37 +178,33 @@ export default function ManualSearchPage() {
       : Array.isArray(wrapper)
         ? wrapper
         : wrapper.item ? [wrapper.item] : []
-    const tot = wrapper.total ?? wrapper.paging?.total ?? items.length
-    return { items, total: tot }
+    return { items, total: wrapper.total ?? wrapper.paging?.total ?? items.length }
   }
 
-  // ── Run full search — fetches page 0 then auto-loads remaining ────────────
+  // ── Run search + auto-load all pages ─────────────────────────────────────
 
   async function runSearch() {
-    stopAutoLoad.current = true          // cancel any running auto-load
+    stopAutoLoad.current = true
     setLoading(true); setError(null)
-    setResults([]); setChecked(new Set()); setAutoLoaded(0)
+    setResults([]); setChecked(new Set()); setAutoLoaded(0); setEmailMap({})
 
     try {
       const first = await fetchPage(0)
-      stopAutoLoad.current = false        // reset for this new run
+      stopAutoLoad.current = false
       setResults(first.items)
       setTotal(first.total)
       setLoading(false)
 
-      // Auto-load all remaining pages
       if (first.items.length > 0 && first.items.length < first.total) {
         setAutoLoading(true)
         let loaded = first.items.length
         let offset = 10
-
         while (loaded < first.total && !stopAutoLoad.current) {
           const page = await fetchPage(offset)
           if (page.items.length === 0) break
           setResults(prev => {
             const existing = new Set(prev.map(getUrl))
-            const newOnes  = page.items.filter(r => !existing.has(getUrl(r)))
-            return [...prev, ...newOnes]
+            return [...prev, ...page.items.filter(r => !existing.has(getUrl(r)))]
           })
           loaded += page.items.length
           setAutoLoaded(loaded)
@@ -219,6 +219,42 @@ export default function ManualSearchPage() {
     }
   }
 
+  // ── Email finder ──────────────────────────────────────────────────────────
+
+  async function findEmail(result: SearchResult) {
+    if (!isPerson(result)) return
+    const url = getUrl(result)
+    if (emailMap[url] && emailMap[url] !== 'not_found') return
+    setEmailMap(prev => ({ ...prev, [url]: 'fetching' }))
+    try {
+      const res  = await fetch('/api/outbound/email', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ linkedin_url: url }),
+      })
+      const data = await res.json()
+      setEmailMap(prev => ({
+        ...prev,
+        [url]: data.found ? { email: data.email, status: data.email_status } : 'not_found',
+      }))
+    } catch {
+      setEmailMap(prev => ({ ...prev, [url]: 'not_found' }))
+    }
+  }
+
+  async function findAllEmails() {
+    const people = results.filter(r => isPerson(r) && !emailMap[getUrl(r)])
+    if (people.length === 0) return
+    const credits = people.length * 5
+    if (!confirm(`Find emails for ${people.length} people?\n\nThis will use ~${credits} Netrows credits (5 per lookup). Proceed?`)) return
+    setFindingAll(true)
+    stopEmailAll.current = false
+    for (const result of people) {
+      if (stopEmailAll.current) break
+      await findEmail(result)
+    }
+    setFindingAll(false)
+  }
+
   // ── Save helpers ──────────────────────────────────────────────────────────
 
   async function saveOne(result: SearchResult): Promise<void> {
@@ -226,9 +262,11 @@ export default function ManualSearchPage() {
     if (savedUrls.has(url)) return
     setSavingUrls(prev => new Set([...Array.from(prev), url]))
     try {
+      const emailEntry = emailMap[url]
+      const email = emailEntry && typeof emailEntry === 'object' ? emailEntry.email : undefined
       const res = await fetch('/api/outbound/save', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ record: buildRecord(result) }),
+        body: JSON.stringify({ record: buildRecord(result, email) }),
       })
       if (res.ok) {
         setSavedUrls(prev => new Set([...Array.from(prev), url]))
@@ -240,18 +278,15 @@ export default function ManualSearchPage() {
   }
 
   async function saveSelected() {
-    for (const result of results) {
-      if (checked.has(getUrl(result)) && !savedUrls.has(getUrl(result)) && !crmUrls.has(getUrl(result))) {
-        await saveOne(result)
-      }
+    for (const r of results) {
+      if (checked.has(getUrl(r)) && !savedUrls.has(getUrl(r)) && !crmUrls.has(getUrl(r)))
+        await saveOne(r)
     }
   }
 
   async function saveAll() {
-    for (const result of results) {
-      if (!savedUrls.has(getUrl(result)) && !crmUrls.has(getUrl(result))) {
-        await saveOne(result)
-      }
+    for (const r of results) {
+      if (!savedUrls.has(getUrl(r)) && !crmUrls.has(getUrl(r))) await saveOne(r)
     }
   }
 
@@ -262,16 +297,12 @@ export default function ManualSearchPage() {
   const newSelected  = results.filter(r => checked.has(getUrl(r)) && !savedUrls.has(getUrl(r)) && !crmUrls.has(getUrl(r))).length
   const newTotal     = results.filter(r => !savedUrls.has(getUrl(r)) && !crmUrls.has(getUrl(r))).length
   const dupCount     = results.filter(r => crmUrls.has(getUrl(r))).length
+  const peopleCount  = results.filter(r => isPerson(r)).length
+  const emailPending = results.filter(r => isPerson(r) && !emailMap[getUrl(r)]).length
 
-  function toggleAll() {
-    setChecked(allChecked ? new Set() : new Set(results.map(getUrl)))
-  }
-  function toggleOne(url: string) {
-    setChecked(prev => {
-      const s = new Set(Array.from(prev))
-      if (s.has(url)) s.delete(url); else s.add(url)
-      return s
-    })
+  function toggleAll()        { setChecked(allChecked ? new Set() : new Set(results.map(getUrl))) }
+  function toggleOne(u: string) {
+    setChecked(prev => { const s = new Set(Array.from(prev)); s.has(u) ? s.delete(u) : s.add(u); return s })
   }
 
   // ── URL Lookup ────────────────────────────────────────────────────────────
@@ -290,10 +321,12 @@ export default function ManualSearchPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
+  const showEmailCol = mode === 'criteria' && searchType === 'people' && results.length > 0
+
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
 
-      {/* ── Left panel: form ── */}
+      {/* ── Left panel ── */}
       <div style={{ width: 300, flexShrink: 0, borderRight: '1px solid #e5e5e5', background: '#fff', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
 
         <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #f0f0f0', flexShrink: 0 }}>
@@ -301,14 +334,9 @@ export default function ManualSearchPage() {
           <p style={{ margin: '2px 0 0', fontSize: 12, color: '#aaa' }}>Find & save LinkedIn prospects</p>
         </div>
 
-        {/* Mode toggle */}
         <div style={{ display: 'flex', borderBottom: '1px solid #e5e5e5', flexShrink: 0 }}>
           {(['criteria', 'lookup'] as Mode[]).map(m => (
-            <button key={m} onClick={() => setMode(m)} style={{
-              flex: 1, padding: '9px 0', fontSize: 11, fontWeight: mode === m ? 600 : 400,
-              color: mode === m ? '#111' : '#888', background: 'none', border: 'none',
-              borderBottom: mode === m ? '2px solid #111' : '2px solid transparent', cursor: 'pointer',
-            }}>
+            <button key={m} onClick={() => setMode(m)} style={{ flex: 1, padding: '9px 0', fontSize: 11, fontWeight: mode === m ? 600 : 400, color: mode === m ? '#111' : '#888', background: 'none', border: 'none', borderBottom: mode === m ? '2px solid #111' : '2px solid transparent', cursor: 'pointer' }}>
               {m === 'criteria' ? 'Criteria Search' : 'URL Lookup'}
             </button>
           ))}
@@ -316,7 +344,7 @@ export default function ManualSearchPage() {
 
         <div style={{ flex: 1, padding: 16, overflowY: 'auto' }}>
 
-          {/* ── Criteria form ── */}
+          {/* Criteria form */}
           {mode === 'criteria' && (
             <>
               <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
@@ -382,7 +410,7 @@ export default function ManualSearchPage() {
             </>
           )}
 
-          {/* ── URL Lookup form ── */}
+          {/* URL Lookup form */}
           {mode === 'lookup' && (
             <>
               <div>
@@ -394,7 +422,6 @@ export default function ManualSearchPage() {
               <button onClick={runLookup} disabled={lookupLoading || !lookupUrl.trim()} style={{ marginTop: 16, width: '100%', padding: '10px 0', fontSize: 13, fontWeight: 600, borderRadius: 8, border: 'none', background: lookupLoading || !lookupUrl.trim() ? '#aaa' : '#111', color: '#fff', cursor: lookupLoading || !lookupUrl.trim() ? 'not-allowed' : 'pointer' }}>
                 {lookupLoading ? 'Looking up…' : 'Lookup & Save →'}
               </button>
-
               {lookupResult && (
                 <div style={{ marginTop: 16, padding: 14, borderRadius: 10, border: '1px solid #e5e5e5', background: '#f9f9f9' }}>
                   <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
@@ -415,15 +442,13 @@ export default function ManualSearchPage() {
         </div>
       </div>
 
-      {/* ── Right panel: results table ── */}
+      {/* ── Right panel ── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#f9f9f9' }}>
 
-        {/* URL lookup empty state */}
         {mode === 'lookup' && !lookupResult && (
           <Placeholder icon={<Globe size={44} strokeWidth={1} />} text="Paste a LinkedIn URL on the left to fetch and save a profile" />
         )}
 
-        {/* Criteria results */}
         {mode === 'criteria' && (
           <>
             {results.length === 0 && !loading && (
@@ -438,66 +463,48 @@ export default function ManualSearchPage() {
             {results.length > 0 && (
               <>
                 {/* Toolbar */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 20px', background: '#fff', borderBottom: '1px solid #e5e5e5', flexShrink: 0 }}>
-                  {/* Result counts */}
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 13, color: '#555' }}>
-                      <strong style={{ color: '#111' }}>{results.length}</strong>
-                      {total > results.length ? ` / ${total.toLocaleString()}` : ` of ${total.toLocaleString()}`} results
-                    </span>
-                    {autoLoading && (
-                      <span style={{ fontSize: 11, color: '#aaa', display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', animation: 'pulse 1s infinite' }} />
-                        loading all…
-                      </span>
-                    )}
-                    {dupCount > 0 && (
-                      <span style={{ fontSize: 11, fontWeight: 500, color: '#6366f1', background: '#eef2ff', padding: '2px 8px', borderRadius: 5 }}>
-                        {dupCount} already in CRM
-                      </span>
-                    )}
-                  </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', background: '#fff', borderBottom: '1px solid #e5e5e5', flexShrink: 0, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 13, color: '#555', flex: 1, minWidth: 120 }}>
+                    <strong style={{ color: '#111' }}>{results.length}</strong>
+                    {total > results.length ? ` / ${total.toLocaleString()}` : ` of ${total.toLocaleString()}`}
+                    {autoLoading && <span style={{ marginLeft: 8, fontSize: 11, color: '#f59e0b' }}>● loading…</span>}
+                    {dupCount > 0 && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 600, color: '#6366f1' }}>{dupCount} in CRM</span>}
+                  </span>
 
-                  {/* Actions */}
-                  <button
-                    onClick={saveSelected}
-                    disabled={newSelected === 0}
-                    style={{ padding: '6px 14px', fontSize: 12, fontWeight: 600, borderRadius: 7, border: '1px solid', borderColor: newSelected > 0 ? '#111' : '#e5e5e5', background: newSelected > 0 ? '#111' : '#f4f4f5', color: newSelected > 0 ? '#fff' : '#bbb', cursor: newSelected > 0 ? 'pointer' : 'default', whiteSpace: 'nowrap' }}
-                  >
+                  {/* Email actions — people only */}
+                  {searchType === 'people' && emailPending > 0 && (
+                    <button
+                      onClick={findAllEmails}
+                      disabled={findingAll}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', fontSize: 12, fontWeight: 600, borderRadius: 7, border: '1px solid #e5e5e5', background: findingAll ? '#f4f4f5' : '#fff', color: findingAll ? '#bbb' : '#555', cursor: findingAll ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}
+                    >
+                      <Mail size={13} />
+                      {findingAll ? 'Finding emails…' : `Find All Emails (${emailPending} × 5 cr)`}
+                    </button>
+                  )}
+
+                  <button onClick={saveSelected} disabled={newSelected === 0} style={{ padding: '6px 12px', fontSize: 12, fontWeight: 600, borderRadius: 7, border: '1px solid', borderColor: newSelected > 0 ? '#111' : '#e5e5e5', background: newSelected > 0 ? '#111' : '#f4f4f5', color: newSelected > 0 ? '#fff' : '#bbb', cursor: newSelected > 0 ? 'pointer' : 'default', whiteSpace: 'nowrap' }}>
                     Save Selected {checkedCount > 0 ? `(${checkedCount})` : ''}
                   </button>
-                  <button
-                    onClick={saveAll}
-                    disabled={newTotal === 0}
-                    style={{ padding: '6px 14px', fontSize: 12, fontWeight: 600, borderRadius: 7, border: '1px solid #e5e5e5', background: '#fff', color: newTotal > 0 ? '#111' : '#bbb', cursor: newTotal > 0 ? 'pointer' : 'default', whiteSpace: 'nowrap' }}
-                  >
-                    Save All {newTotal > 0 ? `(${newTotal} new)` : ''}
+                  <button onClick={saveAll} disabled={newTotal === 0} style={{ padding: '6px 12px', fontSize: 12, fontWeight: 600, borderRadius: 7, border: '1px solid #e5e5e5', background: '#fff', color: newTotal > 0 ? '#111' : '#bbb', cursor: newTotal > 0 ? 'pointer' : 'default', whiteSpace: 'nowrap' }}>
+                    Save All {newTotal > 0 ? `(${newTotal})` : ''}
                   </button>
                 </div>
 
                 {/* Table */}
-                <div style={{ flex: 1, overflowY: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: showEmailCol ? 900 : 700 }}>
                     <thead>
                       <tr style={{ background: '#fff', borderBottom: '1px solid #e5e5e5', position: 'sticky', top: 0, zIndex: 1 }}>
                         <th style={{ width: 44, padding: '10px 0 10px 16px', textAlign: 'center' }}>
                           <input type="checkbox" checked={allChecked} onChange={toggleAll} style={{ cursor: 'pointer', width: 15, height: 15 }} />
                         </th>
-                        <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#555', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                          {searchType === 'people' ? 'Person' : 'Company'}
-                        </th>
-                        <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#555', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', width: '35%' }}>
-                          {searchType === 'people' ? 'Headline' : 'Tagline'}
-                        </th>
-                        <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#555', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', width: 140 }}>
-                          {searchType === 'people' ? 'Location' : ''}
-                        </th>
-                        <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#555', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', width: 80 }}>
-                          LinkedIn
-                        </th>
-                        <th style={{ padding: '10px 16px 10px 12px', textAlign: 'center', fontWeight: 600, color: '#555', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', width: 110 }}>
-                          Status
-                        </th>
+                        <Th>{searchType === 'people' ? 'Person' : 'Company'}</Th>
+                        <Th w="30%">{searchType === 'people' ? 'Headline' : 'Tagline'}</Th>
+                        <Th w={120}>{searchType === 'people' ? 'Location' : ''}</Th>
+                        {showEmailCol && <Th w={200}>Email</Th>}
+                        <Th w={70}>LinkedIn</Th>
+                        <Th w={110} center>Status</Th>
                       </tr>
                     </thead>
                     <tbody>
@@ -512,16 +519,17 @@ export default function ManualSearchPage() {
                         const isSaved   = savedUrls.has(url)
                         const isSaving  = savingUrls.has(url)
                         const isChecked = checked.has(url)
+                        const emailState = emailMap[url]
 
                         return (
-                          <tr key={url ?? i} style={{ borderBottom: '1px solid #f0f0f0', background: inCrm ? '#fafafa' : isChecked ? '#f8f8ff' : '#fff', transition: 'background 0.1s' }}>
+                          <tr key={url ?? i} style={{ borderBottom: '1px solid #f0f0f0', background: inCrm ? '#fafafa' : isChecked ? '#f8f8ff' : '#fff' }}>
                             <td style={{ width: 44, padding: '10px 0 10px 16px', textAlign: 'center', verticalAlign: 'middle' }}>
                               <input type="checkbox" checked={isChecked} onChange={() => toggleOne(url)} style={{ cursor: 'pointer', width: 15, height: 15 }} />
                             </td>
                             <td style={{ padding: '10px 12px', verticalAlign: 'middle' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                 {pic ? (
-                                  <img src={pic} alt="" style={{ width: 34, height: 34, borderRadius: person ? '50%' : 6, objectFit: 'cover', flexShrink: 0, background: '#f4f4f5', opacity: inCrm ? 0.5 : 1 }} />
+                                  <img src={pic} alt="" style={{ width: 34, height: 34, borderRadius: person ? '50%' : 6, objectFit: 'cover', flexShrink: 0, opacity: inCrm ? 0.5 : 1 }} />
                                 ) : (
                                   <div style={{ width: 34, height: 34, borderRadius: person ? '50%' : 6, background: '#f4f4f5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 16, opacity: inCrm ? 0.5 : 1 }}>
                                     {person ? '👤' : '🏢'}
@@ -530,7 +538,7 @@ export default function ManualSearchPage() {
                                 <span style={{ fontWeight: 500, color: inCrm ? '#999' : '#111', lineHeight: 1.3 }}>{name || '—'}</span>
                               </div>
                             </td>
-                            <td style={{ padding: '10px 12px', verticalAlign: 'middle', color: inCrm ? '#bbb' : '#555', lineHeight: 1.4, maxWidth: 0 }}>
+                            <td style={{ padding: '10px 12px', verticalAlign: 'middle', color: inCrm ? '#ccc' : '#555', lineHeight: 1.4, maxWidth: 0 }}>
                               <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                                 {sub || '—'}
                               </span>
@@ -538,16 +546,40 @@ export default function ManualSearchPage() {
                             <td style={{ padding: '10px 12px', verticalAlign: 'middle', color: '#aaa', fontSize: 12, whiteSpace: 'nowrap' }}>
                               {loc || '—'}
                             </td>
+
+                            {/* Email cell — people only */}
+                            {showEmailCol && (
+                              <td style={{ padding: '10px 12px', verticalAlign: 'middle' }}>
+                                {!person ? (
+                                  <span style={{ fontSize: 12, color: '#ddd' }}>N/A</span>
+                                ) : emailState === 'fetching' ? (
+                                  <span style={{ fontSize: 12, color: '#aaa' }}>Finding…</span>
+                                ) : emailState === 'not_found' ? (
+                                  <span style={{ fontSize: 12, color: '#ddd' }}>Not found</span>
+                                ) : typeof emailState === 'object' ? (
+                                  <a href={`mailto:${emailState.email}`} style={{ fontSize: 12, color: '#16a34a', textDecoration: 'none', fontWeight: 500 }}>
+                                    {emailState.email}
+                                  </a>
+                                ) : (
+                                  <button
+                                    onClick={() => findEmail(result)}
+                                    style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 5, border: '1px solid #e5e5e5', background: '#fff', color: '#555', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                  >
+                                    <Mail size={11} />
+                                    Find Email
+                                  </button>
+                                )}
+                              </td>
+                            )}
+
                             <td style={{ padding: '10px 12px', verticalAlign: 'middle' }}>
                               {url ? (
-                                <a href={url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#0a66c2', textDecoration: 'none', whiteSpace: 'nowrap' }}>
-                                  View ↗
-                                </a>
+                                <a href={url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#0a66c2', textDecoration: 'none' }}>View ↗</a>
                               ) : '—'}
                             </td>
                             <td style={{ padding: '10px 16px 10px 12px', verticalAlign: 'middle', textAlign: 'center' }}>
                               {inCrm ? (
-                                <span style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', background: '#eef2ff', padding: '3px 8px', borderRadius: 5, whiteSpace: 'nowrap' }}>In CRM</span>
+                                <span style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', background: '#eef2ff', padding: '3px 8px', borderRadius: 5 }}>In CRM</span>
                               ) : isSaved ? (
                                 <span style={{ fontSize: 11, fontWeight: 600, color: '#16a34a', background: '#f0fdf4', padding: '3px 8px', borderRadius: 5 }}>Saved ✓</span>
                               ) : isSaving ? (
@@ -564,16 +596,14 @@ export default function ManualSearchPage() {
                     </tbody>
                   </table>
 
-                  {/* Auto-load progress row */}
                   {autoLoading && (
                     <div style={{ padding: '14px 20px', textAlign: 'center', fontSize: 12, color: '#aaa' }}>
                       Loading {autoLoaded > 0 ? `${autoLoaded} / ${total}` : 'remaining results'}…
                     </div>
                   )}
-
-                  {!autoLoading && results.length === total && results.length > 0 && (
+                  {!autoLoading && results.length > 0 && results.length >= total && (
                     <p style={{ textAlign: 'center', padding: '14px 20px', fontSize: 12, color: '#ccc', margin: 0 }}>
-                      All {results.length} results loaded
+                      All {results.length} results loaded · {peopleCount} people · {results.length - peopleCount} companies
                     </p>
                   )}
                 </div>
@@ -586,10 +616,20 @@ export default function ManualSearchPage() {
   )
 }
 
+// ── Small helpers ──────────────────────────────────────────────────────────
+
+function Th({ children, w, center }: { children?: React.ReactNode; w?: number | string; center?: boolean }) {
+  return (
+    <th style={{ padding: '10px 12px', textAlign: center ? 'center' : 'left', fontWeight: 600, color: '#555', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', width: w, whiteSpace: 'nowrap' }}>
+      {children}
+    </th>
+  )
+}
+
 function Placeholder({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, color: '#ccc', gap: 12 }}>
-      {icon}
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 12 }}>
+      <div style={{ color: '#ddd' }}>{icon}</div>
       <p style={{ margin: 0, fontSize: 14, color: '#bbb' }}>{text}</p>
     </div>
   )
