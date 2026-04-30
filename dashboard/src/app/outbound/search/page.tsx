@@ -173,7 +173,7 @@ export default function ManualSearchPage() {
       sessionStorage.setItem(`obs_${searchType}`, JSON.stringify({
         results, total,
         emailMap: Object.fromEntries(Object.entries(emailMap).filter(([, v]) => v !== 'fetching')),
-        savedUrls: [...savedUrls],
+        savedUrls: Array.from(savedUrls),
       }))
       sessionStorage.setItem('obs_last_type', searchType)
     } catch {}
