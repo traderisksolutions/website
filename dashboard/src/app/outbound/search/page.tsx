@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Globe, SlidersHorizontal, Mail } from 'lucide-react'
+import { Globe, SlidersHorizontal, Mail, Copy, Check, Users } from 'lucide-react'
 import React from 'react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -127,6 +127,9 @@ export default function ManualSearchPage() {
   const [emailMap,    setEmailMap]    = useState<Record<string, EmailState>>({})
   const [findingAll,  setFindingAll]  = useState(false)
   const [error,       setError]       = useState<string | null>(null)
+  const [expandedCompanyUrl, setExpandedCompanyUrl] = useState<string | null>(null)
+  const [companyEmployees,   setCompanyEmployees]   = useState<Record<string, { loading: boolean; people: PeopleResult[] }>>({})
+  const [copiedUrl,          setCopiedUrl]          = useState<string | null>(null)
 
   const stopAutoLoad = useRef(false)
   const stopEmailAll = useRef(false)
@@ -327,6 +330,38 @@ export default function ManualSearchPage() {
     return runEmailBatch(
       results.filter(r => isPerson(r) && checked.has(getUrl(r)) && !emailMap[getUrl(r)])
     )
+  }
+
+  // ── Company employee search ───────────────────────────────────────────────
+
+  function copyUrl(url: string) {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedUrl(url)
+      setTimeout(() => setCopiedUrl(u => u === url ? null : u), 1500)
+    }).catch(() => {})
+  }
+
+  async function searchEmployees(co: CompanyResult) {
+    const url = co.linkedinURL
+    if (expandedCompanyUrl === url) { setExpandedCompanyUrl(null); return }
+    setExpandedCompanyUrl(url)
+    if (companyEmployees[url]?.people.length) return
+    setCompanyEmployees(prev => ({ ...prev, [url]: { loading: true, people: [] } }))
+    try {
+      const res = await fetch('/api/outbound/search', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'people', company: co.name, start: 0 }),
+      })
+      if (!res.ok) throw new Error()
+      const data    = await res.json()
+      const wrapper = data.data ?? data
+      const items: PeopleResult[] = Array.isArray(wrapper.items) ? wrapper.items
+        : Array.isArray(wrapper) ? wrapper
+        : wrapper.item ? [wrapper.item] : []
+      setCompanyEmployees(prev => ({ ...prev, [url]: { loading: false, people: items } }))
+    } catch {
+      setCompanyEmployees(prev => ({ ...prev, [url]: { loading: false, people: [] } }))
+    }
   }
 
   // ── Save helpers ──────────────────────────────────────────────────────────
@@ -612,9 +647,9 @@ export default function ManualSearchPage() {
                     </th>
                     <Th>{searchType === 'people' ? 'Person' : 'Company'}</Th>
                     <Th w="30%">{searchType === 'people' ? 'Headline' : 'Tagline'}</Th>
-                    <Th w={120}>{searchType === 'people' ? 'Location' : ''}</Th>
+                    <Th w={120}>{searchType === 'people' ? 'Location' : 'LinkedIn URL'}</Th>
                     {showEmailCol && <Th w={200}>Email</Th>}
-                    <Th w={70}>LinkedIn</Th>
+                    <Th w={searchType === 'company' ? 140 : 70}>{searchType === 'people' ? 'LinkedIn' : 'Employees'}</Th>
                     <Th w={110} center>Status</Th>
                   </tr>
                 </thead>
@@ -632,8 +667,12 @@ export default function ManualSearchPage() {
                         const isChecked = checked.has(url)
                         const emailState = emailMap[url]
 
+                        const isExpanded = !person && expandedCompanyUrl === url
+                        const empData    = companyEmployees[url]
+
                         return (
-                          <tr key={url ?? i} style={{ borderBottom: '1px solid #f0f0f0', background: inCrm ? '#fafafa' : isChecked ? '#f8f8ff' : '#fff' }}>
+                          <React.Fragment key={url ?? i}>
+                          <tr style={{ borderBottom: '1px solid #f0f0f0', background: inCrm ? '#fafafa' : isChecked ? '#f8f8ff' : '#fff' }}>
                             <td style={{ width: 44, padding: '10px 0 10px 16px', textAlign: 'center', verticalAlign: 'middle' }}>
                               <input type="checkbox" checked={isChecked} onChange={() => toggleOne(url)} style={{ cursor: 'pointer', width: 15, height: 15 }} />
                             </td>
@@ -654,8 +693,17 @@ export default function ManualSearchPage() {
                                 {sub || '—'}
                               </span>
                             </td>
-                            <td style={{ padding: '10px 12px', verticalAlign: 'middle', color: '#aaa', fontSize: 12, whiteSpace: 'nowrap' }}>
-                              {loc || '—'}
+                            <td style={{ padding: '10px 12px', verticalAlign: 'middle', fontSize: 12, whiteSpace: 'nowrap' }}>
+                              {person ? (
+                                <span style={{ color: '#aaa' }}>{loc || '—'}</span>
+                              ) : (
+                                <button
+                                  onClick={() => copyUrl(url)}
+                                  style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 5, border: '1px solid #e5e5e5', background: copiedUrl === url ? '#f0fdf4' : '#fff', color: copiedUrl === url ? '#16a34a' : '#555', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                >
+                                  {copiedUrl === url ? <><Check size={11} /> Copied!</> : <><Copy size={11} /> Copy URL</>}
+                                </button>
+                              )}
                             </td>
 
                             {/* Email cell — people only */}
@@ -684,9 +732,17 @@ export default function ManualSearchPage() {
                             )}
 
                             <td style={{ padding: '10px 12px', verticalAlign: 'middle' }}>
-                              {url ? (
-                                <a href={url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#0a66c2', textDecoration: 'none' }}>View ↗</a>
-                              ) : '—'}
+                              {person ? (
+                                url ? <a href={url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#0a66c2', textDecoration: 'none' }}>View ↗</a> : '—'
+                              ) : (
+                                <button
+                                  onClick={() => searchEmployees(result as CompanyResult)}
+                                  style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 5, border: '1px solid', borderColor: isExpanded ? '#111' : '#e5e5e5', background: isExpanded ? '#111' : '#fff', color: isExpanded ? '#fff' : '#555', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                >
+                                  <Users size={11} />
+                                  {empData?.loading ? 'Loading…' : isExpanded ? 'Hide' : 'Search Employees'}
+                                </button>
+                              )}
                             </td>
                             <td style={{ padding: '10px 16px 10px 12px', verticalAlign: 'middle', textAlign: 'center' }}>
                               {inCrm ? (
@@ -702,6 +758,69 @@ export default function ManualSearchPage() {
                               )}
                             </td>
                           </tr>
+
+                          {/* Expanded employees panel */}
+                          {isExpanded && (
+                            <tr style={{ background: '#f9f9f9', borderBottom: '1px solid #e5e5e5' }}>
+                              <td colSpan={6} style={{ padding: '0 16px 16px 60px' }}>
+                                {empData?.loading ? (
+                                  <p style={{ fontSize: 12, color: '#aaa', margin: '12px 0 0' }}>Searching employees…</p>
+                                ) : !empData?.people.length ? (
+                                  <p style={{ fontSize: 12, color: '#ccc', margin: '12px 0 0' }}>No employees found</p>
+                                ) : (
+                                  <>
+                                    <p style={{ fontSize: 11, fontWeight: 600, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '12px 0 8px' }}>
+                                      {empData.people.length} employee{empData.people.length !== 1 ? 's' : ''} found
+                                    </p>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', borderRadius: 8, overflow: 'hidden', border: '1px solid #f0f0f0' }}>
+                                      <tbody>
+                                        {empData.people.map((emp, ei) => {
+                                          const empUrl   = emp.profileURL
+                                          const empInCrm = crmUrls.has(empUrl)
+                                          const empSaved = savedUrls.has(empUrl)
+                                          return (
+                                            <tr key={empUrl ?? ei} style={{ borderBottom: '1px solid #f4f4f5' }}>
+                                              <td style={{ padding: '8px 10px', width: 32 }}>
+                                                {emp.profilePicture ? (
+                                                  <img src={emp.profilePicture} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
+                                                ) : (
+                                                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#f4f4f5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>👤</div>
+                                                )}
+                                              </td>
+                                              <td style={{ padding: '8px 10px', minWidth: 150 }}>
+                                                <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: '#111' }}>{emp.fullName || '—'}</p>
+                                              </td>
+                                              <td style={{ padding: '8px 10px' }}>
+                                                <p style={{ margin: 0, fontSize: 11, color: '#888' }}>{emp.headline || '—'}</p>
+                                              </td>
+                                              <td style={{ padding: '8px 10px', minWidth: 100 }}>
+                                                <p style={{ margin: 0, fontSize: 11, color: '#bbb' }}>{emp.location || '—'}</p>
+                                              </td>
+                                              <td style={{ padding: '8px 12px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                                {empUrl && (
+                                                  <a href={empUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: '#0a66c2', textDecoration: 'none', marginRight: 10 }}>View ↗</a>
+                                                )}
+                                                {empInCrm ? (
+                                                  <span style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', background: '#eef2ff', padding: '2px 7px', borderRadius: 5 }}>In CRM</span>
+                                                ) : empSaved ? (
+                                                  <span style={{ fontSize: 11, fontWeight: 600, color: '#16a34a', background: '#f0fdf4', padding: '2px 7px', borderRadius: 5 }}>Saved ✓</span>
+                                                ) : (
+                                                  <button onClick={() => saveOne(emp as unknown as SearchResult)} style={{ fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 5, border: '1px solid #e5e5e5', background: '#fff', color: '#555', cursor: 'pointer' }}>
+                                                    Save
+                                                  </button>
+                                                )}
+                                              </td>
+                                            </tr>
+                                          )
+                                        })}
+                                      </tbody>
+                                    </table>
+                                  </>
+                                )}
+                              </td>
+                            </tr>
+                          )}
+                          </React.Fragment>
                         )
                       })}
 
