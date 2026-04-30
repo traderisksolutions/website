@@ -7,7 +7,7 @@ import {
   Mail, MessageCircle, AlertCircle,
   Users, BarChart2, Settings,
   Search, ChevronRight, ChevronDown, Bot,
-  Crosshair, Table2,
+  SlidersHorizontal, Table2,
 } from 'lucide-react'
 
 type Counts = { emailNew: number; waNew: number; claimsNew: number }
@@ -144,8 +144,9 @@ export default function Sidebar() {
         <p style={{ margin: '8px 0 2px', padding: '0 10px', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#aaa' }}>
           Outbound
         </p>
-        <NavItem label="Search"  href="/outbound/search" icon={Crosshair} isActive={active('/outbound/search')} />
-        <NavItem label="Leads"   href="/outbound/leads"  icon={Table2}    isActive={active('/outbound/leads')} />
+        <NavItem label="Manual Search" href="/outbound/search" icon={SlidersHorizontal} isActive={active('/outbound/search')} />
+        <NavItem label="AI Agent"      href="/outbound/agent"  icon={Bot}               isActive={active('/outbound/agent')} />
+        <NavItem label="Leads"         href="/outbound/leads"  icon={Table2}            isActive={active('/outbound/leads')} />
 
         {/* Divider */}
         <Divider />

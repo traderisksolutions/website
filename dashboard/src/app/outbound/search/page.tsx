@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { Crosshair, Globe, Bot, Trash2, Play } from 'lucide-react'
+import { useState } from 'react'
+import { Globe, SlidersHorizontal } from 'lucide-react'
 import React from 'react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type Mode       = 'criteria' | 'lookup' | 'agent'
+type Mode       = 'criteria' | 'lookup'
 type SearchType = 'people' | 'company'
 
 interface PeopleResult {
@@ -26,18 +26,6 @@ interface SavedLead {
   record_type?: string | null; location?: string | null
 }
 
-interface AgentEvent {
-  step: number; status: 'running' | 'done' | 'error'
-  message: string; count?: number; companiesFound?: number; leadsTotal?: number
-}
-
-interface Schedule {
-  id: string; created_at: string; query: string; roles: string[]
-  max_companies: number; frequency: 'daily' | 'weekly'; is_active: boolean
-  last_run_at: string | null; next_run_at: string | null
-  runs_count: number; leads_last: number
-}
-
 // ── Constants ──────────────────────────────────────────────────────────────
 
 const LOCATIONS = [
@@ -50,24 +38,47 @@ const LOCATIONS = [
 ]
 
 const INDUSTRIES = [
-  { label: 'Financial Services',   value: '43' },
-  { label: 'Insurance',            value: '44' },
-  { label: 'Banking',              value: '45' },
-  { label: 'Computer Software',    value: '4'  },
+  { label: 'Financial Services',    value: '43' },
+  { label: 'Insurance',             value: '44' },
+  { label: 'Banking',               value: '45' },
+  { label: 'Computer Software',     value: '4'  },
   { label: 'Management Consulting', value: '96' },
-  { label: 'Accounting',           value: '41' },
+  { label: 'Accounting',            value: '41' },
 ]
 
 const COMPANY_SIZES = [
-  { label: '1–10',    value: 'A' }, { label: '11–50',   value: 'B' },
-  { label: '51–200',  value: 'C' }, { label: '201–500',  value: 'D' },
-  { label: '501–1k',  value: 'E' }, { label: '1k–5k',    value: 'F' },
-  { label: '5k–10k',  value: 'G' }, { label: '10k+',     value: 'H' },
+  { label: '1–10',   value: 'A' }, { label: '11–50',  value: 'B' },
+  { label: '51–200', value: 'C' }, { label: '201–500', value: 'D' },
+  { label: '501–1k', value: 'E' }, { label: '1k–5k',   value: 'F' },
+  { label: '5k–10k', value: 'G' }, { label: '10k+',    value: 'H' },
 ]
 
-const ALL_ROLES = ['CEO', 'CTO', 'Founder', 'CFO', 'COO', 'Head of Risk', 'Director', 'VP']
+// ── Helpers ────────────────────────────────────────────────────────────────
 
-const STEP_ICONS: Record<number, string> = { 1: '🔍', 2: '🤖', 3: '🔗', 4: '✅' }
+function isPerson(r: SearchResult): r is PeopleResult { return 'fullName' in r }
+
+function getUrl(r: SearchResult) {
+  return isPerson(r) ? (r as PeopleResult).profileURL : (r as CompanyResult).linkedinURL
+}
+
+function buildRecord(result: SearchResult) {
+  if (isPerson(result)) {
+    const r = result as PeopleResult
+    return {
+      record_type: 'person', source: 'people_search',
+      linkedin_url: r.profileURL, username: r.username,
+      full_name: r.fullName, headline: r.headline, summary: r.summary,
+      profile_picture: r.profilePicture, location: r.location, raw_payload: result,
+    }
+  }
+  const r = result as CompanyResult
+  return {
+    record_type: 'company', source: 'company_search',
+    linkedin_id: r.id, linkedin_url: r.linkedinURL, username: r.universalName,
+    full_name: r.name, headline: r.tagline, company_tagline: r.tagline,
+    logo_url: r.logo, raw_payload: result,
+  }
+}
 
 // ── Shared styles ──────────────────────────────────────────────────────────
 
@@ -93,64 +104,29 @@ function Field({ label, value, onChange, placeholder }: {
   )
 }
 
-function isPerson(r: SearchResult): r is PeopleResult { return 'fullName' in r }
-
-// ── Result Card ────────────────────────────────────────────────────────────
-
-function ResultCard({ result, saved, saving, onSave }: {
-  result: SearchResult; saved: boolean; saving: boolean; onSave: () => void
-}) {
-  const person  = isPerson(result)
-  const name    = person ? (result as PeopleResult).fullName  : (result as CompanyResult).name
-  const sub     = person ? (result as PeopleResult).headline  : (result as CompanyResult).tagline
-  const loc     = person ? (result as PeopleResult).location  : null
-  const picture = person ? (result as PeopleResult).profilePicture : (result as CompanyResult).logo
-  const url     = person ? (result as PeopleResult).profileURL    : (result as CompanyResult).linkedinURL
-
-  return (
-    <div style={{ background: '#fff', border: '1px solid #e5e5e5', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-        {picture ? (
-          <img src={picture} alt="" style={{ width: 40, height: 40, borderRadius: person ? '50%' : 8, objectFit: 'cover', flexShrink: 0, background: '#f4f4f5' }} />
-        ) : (
-          <div style={{ width: 40, height: 40, borderRadius: person ? '50%' : 8, background: '#f4f4f5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18 }}>
-            {person ? '👤' : '🏢'}
-          </div>
-        )}
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#111', lineHeight: 1.3 }}>{name}</p>
-          {sub && <p style={{ margin: '3px 0 0', fontSize: 12, color: '#666', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{sub}</p>}
-          {loc && <p style={{ margin: '3px 0 0', fontSize: 11, color: '#aaa' }}>{loc}</p>}
-        </div>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <a href={url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: '#0a66c2', textDecoration: 'none' }}>View on LinkedIn ↗</a>
-        <div style={{ flex: 1 }} />
-        <button onClick={onSave} disabled={saved || saving} style={{ padding: '5px 12px', fontSize: 11, fontWeight: 600, borderRadius: 6, border: '1px solid', borderColor: saved ? '#16a34a' : '#111', background: saved ? '#f0fdf4' : '#111', color: saved ? '#16a34a' : '#fff', cursor: saved || saving ? 'default' : 'pointer' }}>
-          {saving ? '…' : saved ? '✓ Saved' : 'Save'}
-        </button>
-      </div>
-    </div>
-  )
-}
-
 // ── Main Page ──────────────────────────────────────────────────────────────
 
-export default function OutboundSearchPage() {
+export default function ManualSearchPage() {
   const [mode,       setMode]       = useState<Mode>('criteria')
   const [searchType, setSearchType] = useState<SearchType>('people')
   const [loading,    setLoading]    = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [results,    setResults]    = useState<SearchResult[]>([])
   const [total,      setTotal]      = useState(0)
+  const [hasMore,    setHasMore]    = useState(false)
+  const [pageOffset, setPageOffset] = useState(0)
   const [savedUrls,  setSavedUrls]  = useState<Set<string>>(new Set())
-  const [savingUrl,  setSavingUrl]  = useState<string | null>(null)
+  const [savingUrls, setSavingUrls] = useState<Set<string>>(new Set())
+  const [checked,    setChecked]    = useState<Set<string>>(new Set())
   const [error,      setError]      = useState<string | null>(null)
 
-  // Criteria form
+  // Criteria — people
   const [keywordTitle,  setKeywordTitle]  = useState('')
   const [keywords,      setKeywords]      = useState('')
   const [geo,           setGeo]           = useState('102454443')
   const [company,       setCompany]       = useState('')
+
+  // Criteria — company
   const [keyword,       setKeyword]       = useState('')
   const [locations,     setLocations]     = useState('102454443')
   const [selectedSizes, setSelectedSizes] = useState<string[]>(['B', 'C', 'D'])
@@ -162,55 +138,89 @@ export default function OutboundSearchPage() {
   const [lookupResult,  setLookupResult]  = useState<SavedLead | null>(null)
   const [lookupLoading, setLookupLoading] = useState(false)
 
-  // Agent
-  const [agentQuery,   setAgentQuery]   = useState('')
-  const [agentRoles,   setAgentRoles]   = useState<string[]>(['CEO', 'CTO', 'Founder'])
-  const [agentMaxCo,   setAgentMaxCo]   = useState(8)
-  const [agentRunning, setAgentRunning] = useState(false)
-  const [agentEvents,  setAgentEvents]  = useState<AgentEvent[]>([])
-  const [agentDone,    setAgentDone]    = useState(false)
-  const [schedules,    setSchedules]    = useState<Schedule[]>([])
-  const [scheduling,   setScheduling]   = useState(false)
-  const [schedFreq,    setSchedFreq]    = useState<'daily' | 'weekly'>('daily')
+  // ── Search ───────────────────────────────────────────────────────────────
 
-  const loadSchedules = useCallback(async () => {
-    const res = await fetch('/api/outbound/schedules')
-    if (res.ok) setSchedules(await res.json())
-  }, [])
-
-  useEffect(() => { loadSchedules() }, [loadSchedules])
-
-  // ── Criteria search ──────────────────────────────────────────────────────
-
-  async function runSearch() {
-    setLoading(true); setError(null); setResults([])
+  async function runSearch(append = false, offset = 0) {
+    if (append) setLoadingMore(true); else setLoading(true)
+    setError(null)
+    if (!append) { setResults([]); setChecked(new Set()); setPageOffset(0) }
     try {
       const body = searchType === 'people'
-        ? { type: 'people', keywordTitle, keywords, geo, company }
-        : { type: 'company', keyword, locations, companySizes: selectedSizes.join(','), industries, hasJobs }
+        ? { type: 'people', keywordTitle, keywords, geo, company, start: offset }
+        : { type: 'company', keyword, locations, companySizes: selectedSizes.join(','), industries, hasJobs, page: offset + 1 }
       const res  = await fetch('/api/outbound/search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Search failed'); return }
-      const items = data.data?.items ?? []
-      setResults(items)
-      setTotal(data.data?.total ?? items.length)
+
+      // Normalize Netrows response — handles both { data: { items, total } } and { items, total }
+      const wrapper = data.data ?? data
+      const newItems: SearchResult[] = Array.isArray(wrapper.items)
+        ? wrapper.items
+        : Array.isArray(wrapper)
+          ? wrapper
+          : wrapper.item ? [wrapper.item] : []
+      const newTotal = wrapper.total ?? wrapper.paging?.total ?? newItems.length
+
+      setResults(prev => append ? [...prev, ...newItems] : newItems)
+      setTotal(newTotal)
+      setHasMore(newItems.length > 0 && (append ? results.length + newItems.length : newItems.length) < newTotal)
     } catch { setError('Network error') }
-    finally   { setLoading(false) }
+    finally { setLoading(false); setLoadingMore(false) }
   }
 
-  async function saveResult(result: SearchResult) {
-    const url    = isPerson(result) ? (result as PeopleResult).profileURL : (result as CompanyResult).linkedinURL
-    setSavingUrl(url)
+  async function loadMore() {
+    const nextOffset = pageOffset + 10
+    setPageOffset(nextOffset)
+    await runSearch(true, nextOffset)
+  }
+
+  // ── Save helpers ─────────────────────────────────────────────────────────
+
+  async function saveOne(result: SearchResult): Promise<boolean> {
+    const url = getUrl(result)
+    if (savedUrls.has(url)) return true
+    setSavingUrls(prev => new Set([...Array.from(prev), url]))
     try {
-      const record = isPerson(result)
-        ? { record_type: 'person', source: 'people_search', linkedin_url: (result as PeopleResult).profileURL, username: (result as PeopleResult).username, full_name: (result as PeopleResult).fullName, headline: (result as PeopleResult).headline, summary: (result as PeopleResult).summary, profile_picture: (result as PeopleResult).profilePicture, location: (result as PeopleResult).location, raw_payload: result }
-        : { record_type: 'company', source: 'company_search', linkedin_id: (result as CompanyResult).id, linkedin_url: (result as CompanyResult).linkedinURL, username: (result as CompanyResult).universalName, full_name: (result as CompanyResult).name, headline: (result as CompanyResult).tagline, company_tagline: (result as CompanyResult).tagline, logo_url: (result as CompanyResult).logo, raw_payload: result }
-      const res = await fetch('/api/outbound/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ record }) })
-      if (res.ok) setSavedUrls(prev => new Set([...Array.from(prev), url]))
-    } finally { setSavingUrl(null) }
+      const res = await fetch('/api/outbound/save', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ record: buildRecord(result) }),
+      })
+      if (res.ok) { setSavedUrls(prev => new Set([...Array.from(prev), url])); return true }
+      return false
+    } finally {
+      setSavingUrls(prev => { const s = new Set(Array.from(prev)); s.delete(url); return s })
+    }
   }
 
-  // ── URL lookup ───────────────────────────────────────────────────────────
+  async function saveSelected() {
+    for (const result of results) {
+      if (checked.has(getUrl(result))) await saveOne(result)
+    }
+  }
+
+  async function saveAll() {
+    for (const result of results) await saveOne(result)
+  }
+
+  // ── Checkbox helpers ──────────────────────────────────────────────────────
+
+  const allChecked = results.length > 0 && results.every(r => checked.has(getUrl(r)))
+  const checkedCount = Array.from(checked).filter(u => results.some(r => getUrl(r) === u)).length
+
+  function toggleAll() {
+    if (allChecked) setChecked(new Set())
+    else setChecked(new Set(results.map(getUrl)))
+  }
+
+  function toggleOne(url: string) {
+    setChecked(prev => {
+      const s = new Set(Array.from(prev))
+      if (s.has(url)) s.delete(url); else s.add(url)
+      return s
+    })
+  }
+
+  // ── URL Lookup ────────────────────────────────────────────────────────────
 
   async function runLookup() {
     if (!lookupUrl.trim()) return
@@ -224,97 +234,30 @@ export default function OutboundSearchPage() {
     finally   { setLookupLoading(false) }
   }
 
-  // ── AI Agent ─────────────────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────────────────────
 
-  async function runAgent() {
-    if (!agentQuery.trim()) return
-    setAgentRunning(true); setAgentEvents([]); setAgentDone(false)
-    try {
-      const res = await fetch('/api/outbound/agent', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: agentQuery, roles: agentRoles, maxCompanies: agentMaxCo }),
-      })
-      if (!res.body) return
-      const reader  = res.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer    = ''
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() ?? ''
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          try {
-            const event: AgentEvent = JSON.parse(line.slice(6))
-            setAgentEvents(prev => {
-              const idx = prev.findIndex(e => e.step === event.step)
-              if (idx >= 0) { const next = [...prev]; next[idx] = event; return next }
-              return [...prev, event]
-            })
-            if (event.step === 4 && event.status === 'done') setAgentDone(true)
-          } catch { /* ignore parse errors */ }
-        }
-      }
-    } catch (e) {
-      setAgentEvents(prev => [...prev, { step: -1, status: 'error', message: e instanceof Error ? e.message : 'Network error' }])
-    } finally {
-      setAgentRunning(false)
-      loadSchedules()
-    }
-  }
-
-  async function scheduleAgent() {
-    if (!agentQuery.trim()) return
-    setScheduling(true)
-    try {
-      await fetch('/api/outbound/schedules', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: agentQuery, roles: agentRoles, maxCompanies: agentMaxCo, frequency: schedFreq }),
-      })
-      await loadSchedules()
-    } finally { setScheduling(false) }
-  }
-
-  async function deleteSchedule(id: string) {
-    await fetch('/api/outbound/schedules', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
-    setSchedules(prev => prev.filter(s => s.id !== id))
-  }
-
-  async function toggleSchedule(id: string, is_active: boolean) {
-    setSchedules(prev => prev.map(s => s.id === id ? { ...s, is_active } : s))
-    await fetch('/api/outbound/schedules', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, is_active }) })
-  }
-
-  // ── Render ────────────────────────────────────────────────────────────────
-
-  const tabs: { key: Mode; label: string }[] = [
-    { key: 'criteria', label: 'Criteria Search' },
-    { key: 'lookup',   label: 'URL Lookup' },
-    { key: 'agent',    label: 'AI Agent' },
-  ]
+  const unsavedChecked = checkedCount - Array.from(checked).filter(u => savedUrls.has(u)).length
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
 
-      {/* ── Left panel ── */}
-      <div style={{ width: 320, flexShrink: 0, borderRight: '1px solid #e5e5e5', background: '#fff', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+      {/* ── Left panel: form ── */}
+      <div style={{ width: 300, flexShrink: 0, borderRight: '1px solid #e5e5e5', background: '#fff', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
 
         <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #f0f0f0', flexShrink: 0 }}>
-          <h1 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#111', letterSpacing: '-0.02em' }}>Outbound Search</h1>
+          <h1 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#111', letterSpacing: '-0.02em' }}>Manual Search</h1>
           <p style={{ margin: '2px 0 0', fontSize: 12, color: '#aaa' }}>Find & save LinkedIn prospects</p>
         </div>
 
-        {/* Tabs */}
+        {/* Mode toggle */}
         <div style={{ display: 'flex', borderBottom: '1px solid #e5e5e5', flexShrink: 0 }}>
-          {tabs.map(t => (
-            <button key={t.key} onClick={() => setMode(t.key)} style={{
-              flex: 1, padding: '9px 0', fontSize: 11, fontWeight: mode === t.key ? 600 : 400,
-              color: mode === t.key ? '#111' : '#888', background: 'none', border: 'none',
-              borderBottom: mode === t.key ? '2px solid #111' : '2px solid transparent', cursor: 'pointer',
+          {(['criteria', 'lookup'] as Mode[]).map(m => (
+            <button key={m} onClick={() => setMode(m)} style={{
+              flex: 1, padding: '9px 0', fontSize: 11, fontWeight: mode === m ? 600 : 400,
+              color: mode === m ? '#111' : '#888', background: 'none', border: 'none',
+              borderBottom: mode === m ? '2px solid #111' : '2px solid transparent', cursor: 'pointer',
             }}>
-              {t.key === 'agent' ? '🤖 ' : ''}{t.label}
+              {m === 'criteria' ? 'Criteria Search' : 'URL Lookup'}
             </button>
           ))}
         </div>
@@ -331,6 +274,7 @@ export default function OutboundSearchPage() {
                   </button>
                 ))}
               </div>
+
               {searchType === 'people' ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <Field label="Title / Role" value={keywordTitle} onChange={setKeywordTitle} placeholder="e.g. CTO, Head of Risk" />
@@ -347,24 +291,24 @@ export default function OutboundSearchPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <Field label="Keyword (required)" value={keyword} onChange={setKeyword} placeholder="e.g. insurance broker" />
                   <div>
-                    <label style={labelStyle}>Location (required)</label>
+                    <label style={labelStyle}>Location</label>
                     <select value={locations} onChange={e => setLocations(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
                       {LOCATIONS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label style={labelStyle}>Industry (required)</label>
+                    <label style={labelStyle}>Industry</label>
                     <select value={industries} onChange={e => setIndustries(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
-                      {INDUSTRIES.map(i => <option key={`${i.value}-${i.label}`} value={i.value}>{i.label}</option>)}
+                      {INDUSTRIES.map(i => <option key={i.value} value={i.value}>{i.label}</option>)}
                     </select>
                   </div>
                   <div>
                     <label style={labelStyle}>Company Size</label>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                       {COMPANY_SIZES.map(s => {
-                        const checked = selectedSizes.includes(s.value)
+                        const on = selectedSizes.includes(s.value)
                         return (
-                          <button key={s.value} onClick={() => setSelectedSizes(prev => checked ? prev.filter(v => v !== s.value) : [...prev, s.value])} style={{ padding: '3px 9px', fontSize: 11, borderRadius: 5, border: '1px solid', borderColor: checked ? '#111' : '#e5e5e5', background: checked ? '#111' : '#fff', color: checked ? '#fff' : '#555', cursor: 'pointer' }}>
+                          <button key={s.value} onClick={() => setSelectedSizes(prev => on ? prev.filter(v => v !== s.value) : [...prev, s.value])} style={{ padding: '3px 9px', fontSize: 11, borderRadius: 5, border: '1px solid', borderColor: on ? '#111' : '#e5e5e5', background: on ? '#111' : '#fff', color: on ? '#fff' : '#555', cursor: 'pointer' }}>
                             {s.label}
                           </button>
                         )
@@ -377,8 +321,10 @@ export default function OutboundSearchPage() {
                   </label>
                 </div>
               )}
+
               {error && <div style={{ marginTop: 12, padding: '8px 12px', background: '#fef2f2', borderRadius: 7, fontSize: 12, color: '#991b1b' }}>{error}</div>}
-              <button onClick={runSearch} disabled={loading} style={{ marginTop: 20, width: '100%', padding: '10px 0', fontSize: 13, fontWeight: 600, borderRadius: 8, border: 'none', background: loading ? '#aaa' : '#111', color: '#fff', cursor: loading ? 'not-allowed' : 'pointer' }}>
+
+              <button onClick={() => runSearch(false, 0)} disabled={loading} style={{ marginTop: 20, width: '100%', padding: '10px 0', fontSize: 13, fontWeight: 600, borderRadius: 8, border: 'none', background: loading ? '#aaa' : '#111', color: '#fff', cursor: loading ? 'not-allowed' : 'pointer' }}>
                 {loading ? 'Searching…' : 'Run Search →'}
               </button>
             </>
@@ -396,6 +342,7 @@ export default function OutboundSearchPage() {
               <button onClick={runLookup} disabled={lookupLoading || !lookupUrl.trim()} style={{ marginTop: 16, width: '100%', padding: '10px 0', fontSize: 13, fontWeight: 600, borderRadius: 8, border: 'none', background: lookupLoading || !lookupUrl.trim() ? '#aaa' : '#111', color: '#fff', cursor: lookupLoading || !lookupUrl.trim() ? 'not-allowed' : 'pointer' }}>
                 {lookupLoading ? 'Looking up…' : 'Lookup & Save →'}
               </button>
+
               {lookupResult && (
                 <div style={{ marginTop: 16, padding: 14, borderRadius: 10, border: '1px solid #e5e5e5', background: '#f9f9f9' }}>
                   <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
@@ -413,171 +360,171 @@ export default function OutboundSearchPage() {
               )}
             </>
           )}
-
-          {/* ── AI Agent form ── */}
-          {mode === 'agent' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div>
-                <label style={labelStyle}>Target Query</label>
-                <textarea
-                  value={agentQuery}
-                  onChange={e => setAgentQuery(e.target.value)}
-                  placeholder="e.g. early stage fintech startups in Singapore"
-                  rows={3}
-                  style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5 }}
-                />
-                <p style={{ margin: '4px 0 0', fontSize: 11, color: '#aaa' }}>Natural language — the AI will search Google + LinkedIn</p>
-              </div>
-
-              <div>
-                <label style={labelStyle}>Target Roles</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {ALL_ROLES.map(role => {
-                    const checked = agentRoles.includes(role)
-                    return (
-                      <button key={role} onClick={() => setAgentRoles(prev => checked ? prev.filter(r => r !== role) : [...prev, role])} style={{ padding: '3px 10px', fontSize: 11, borderRadius: 5, border: '1px solid', borderColor: checked ? '#111' : '#e5e5e5', background: checked ? '#111' : '#fff', color: checked ? '#fff' : '#555', cursor: 'pointer' }}>
-                        {role}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <label style={labelStyle}>Max Companies</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <input type="range" min={3} max={20} value={agentMaxCo} onChange={e => setAgentMaxCo(Number(e.target.value))} style={{ flex: 1 }} />
-                  <span style={{ fontSize: 13, fontWeight: 600, color: '#111', minWidth: 24 }}>{agentMaxCo}</span>
-                </div>
-                <p style={{ margin: '3px 0 0', fontSize: 11, color: '#aaa' }}>~{agentMaxCo * (agentRoles.length * 2 + 2)} Netrows credits per run</p>
-              </div>
-
-              <button onClick={runAgent} disabled={agentRunning || !agentQuery.trim()} style={{ width: '100%', padding: '10px 0', fontSize: 13, fontWeight: 600, borderRadius: 8, border: 'none', background: agentRunning || !agentQuery.trim() ? '#aaa' : '#111', color: '#fff', cursor: agentRunning || !agentQuery.trim() ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                <Play size={14} />
-                {agentRunning ? 'Agent running…' : 'Run Now'}
-              </button>
-
-              <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 14 }}>
-                <label style={labelStyle}>Schedule</label>
-                <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-                  {(['daily', 'weekly'] as const).map(f => (
-                    <button key={f} onClick={() => setSchedFreq(f)} style={{ flex: 1, padding: '6px 0', fontSize: 11, fontWeight: 500, borderRadius: 6, border: '1px solid', borderColor: schedFreq === f ? '#111' : '#e5e5e5', background: schedFreq === f ? '#111' : '#fff', color: schedFreq === f ? '#fff' : '#555', cursor: 'pointer', textTransform: 'capitalize' }}>
-                      {f}
-                    </button>
-                  ))}
-                </div>
-                <button onClick={scheduleAgent} disabled={scheduling || !agentQuery.trim()} style={{ width: '100%', padding: '8px 0', fontSize: 12, fontWeight: 600, borderRadius: 7, border: '1px solid #e5e5e5', background: '#fff', color: scheduling || !agentQuery.trim() ? '#bbb' : '#555', cursor: scheduling || !agentQuery.trim() ? 'not-allowed' : 'pointer' }}>
-                  {scheduling ? 'Scheduling…' : '📅 Save Schedule'}
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* ── Right panel ── */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: 24, background: '#f9f9f9' }}>
+      {/* ── Right panel: results table ── */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#f9f9f9' }}>
+
+        {/* URL lookup empty state */}
+        {mode === 'lookup' && !lookupResult && (
+          <Placeholder icon={<Globe size={44} strokeWidth={1} />} text="Paste a LinkedIn URL on the left to fetch and save a profile" />
+        )}
 
         {/* Criteria results */}
         {mode === 'criteria' && (
           <>
             {results.length === 0 && !loading && (
-              <Placeholder icon={<Crosshair size={44} strokeWidth={1} />} text="Configure criteria and run a search" />
+              <Placeholder icon={<SlidersHorizontal size={44} strokeWidth={1} />} text="Configure search criteria and click Run Search" />
             )}
-            {loading && <div style={{ textAlign: 'center', marginTop: 60, color: '#aaa', fontSize: 13 }}>Fetching from Netrows…</div>}
+            {loading && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, color: '#aaa', fontSize: 13 }}>
+                Fetching from Netrows…
+              </div>
+            )}
+
             {results.length > 0 && (
               <>
-                <p style={{ margin: '0 0 16px', fontSize: 13, color: '#555' }}>
-                  <strong style={{ color: '#111' }}>{total.toLocaleString()}</strong> results · showing {results.length}
-                </p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))', gap: 12 }}>
-                  {results.map((result, i) => {
-                    const url    = isPerson(result) ? (result as PeopleResult).profileURL : (result as CompanyResult).linkedinURL
-                    const saved  = savedUrls.has(url)
-                    const saving = savingUrl === url
-                    return <ResultCard key={url ?? i} result={result} saved={saved} saving={saving} onSave={() => saveResult(result)} />
-                  })}
+                {/* Toolbar */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 20px', background: '#fff', borderBottom: '1px solid #e5e5e5', flexShrink: 0 }}>
+                  <span style={{ fontSize: 13, color: '#555', flex: 1 }}>
+                    <strong style={{ color: '#111' }}>{total.toLocaleString()}</strong> total · <strong style={{ color: '#111' }}>{results.length}</strong> loaded
+                  </span>
+                  <button
+                    onClick={saveSelected}
+                    disabled={unsavedChecked === 0}
+                    style={{ padding: '6px 14px', fontSize: 12, fontWeight: 600, borderRadius: 7, border: '1px solid #e5e5e5', background: unsavedChecked > 0 ? '#111' : '#f4f4f5', color: unsavedChecked > 0 ? '#fff' : '#bbb', cursor: unsavedChecked > 0 ? 'pointer' : 'default' }}
+                  >
+                    Save Selected {checkedCount > 0 ? `(${checkedCount})` : ''}
+                  </button>
+                  <button
+                    onClick={saveAll}
+                    disabled={results.every(r => savedUrls.has(getUrl(r)))}
+                    style={{ padding: '6px 14px', fontSize: 12, fontWeight: 600, borderRadius: 7, border: '1px solid #e5e5e5', background: '#fff', color: '#111', cursor: 'pointer' }}
+                  >
+                    Save All ({results.length})
+                  </button>
+                </div>
+
+                {/* Table */}
+                <div style={{ flex: 1, overflowY: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ background: '#fff', borderBottom: '1px solid #e5e5e5', position: 'sticky', top: 0, zIndex: 1 }}>
+                        <th style={{ width: 44, padding: '10px 0 10px 16px', textAlign: 'center' }}>
+                          <input
+                            type="checkbox"
+                            checked={allChecked}
+                            onChange={toggleAll}
+                            style={{ cursor: 'pointer', width: 15, height: 15 }}
+                          />
+                        </th>
+                        <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#555', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          {searchType === 'people' ? 'Person' : 'Company'}
+                        </th>
+                        <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#555', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', width: '35%' }}>
+                          {searchType === 'people' ? 'Headline' : 'Tagline'}
+                        </th>
+                        <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#555', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', width: 140 }}>
+                          {searchType === 'people' ? 'Location' : ''}
+                        </th>
+                        <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#555', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', width: 100 }}>
+                          LinkedIn
+                        </th>
+                        <th style={{ padding: '10px 16px 10px 12px', textAlign: 'center', fontWeight: 600, color: '#555', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', width: 80 }}>
+                          Status
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {results.map((result, i) => {
+                        const url    = getUrl(result)
+                        const person = isPerson(result)
+                        const name   = person ? (result as PeopleResult).fullName  : (result as CompanyResult).name
+                        const sub    = person ? (result as PeopleResult).headline  : (result as CompanyResult).tagline
+                        const loc    = person ? (result as PeopleResult).location  : null
+                        const pic    = person ? (result as PeopleResult).profilePicture : (result as CompanyResult).logo
+                        const isSaved   = savedUrls.has(url)
+                        const isSaving  = savingUrls.has(url)
+                        const isChecked = checked.has(url)
+
+                        return (
+                          <tr key={url ?? i} style={{ borderBottom: '1px solid #f0f0f0', background: isChecked ? '#f8f8ff' : '#fff', transition: 'background 0.1s' }}>
+                            <td style={{ width: 44, padding: '10px 0 10px 16px', textAlign: 'center', verticalAlign: 'middle' }}>
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => toggleOne(url)}
+                                style={{ cursor: 'pointer', width: 15, height: 15 }}
+                              />
+                            </td>
+                            <td style={{ padding: '10px 12px', verticalAlign: 'middle' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                {pic ? (
+                                  <img src={pic} alt="" style={{ width: 34, height: 34, borderRadius: person ? '50%' : 6, objectFit: 'cover', flexShrink: 0, background: '#f4f4f5' }} />
+                                ) : (
+                                  <div style={{ width: 34, height: 34, borderRadius: person ? '50%' : 6, background: '#f4f4f5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 16 }}>
+                                    {person ? '👤' : '🏢'}
+                                  </div>
+                                )}
+                                <span style={{ fontWeight: 500, color: '#111', lineHeight: 1.3 }}>{name || '—'}</span>
+                              </div>
+                            </td>
+                            <td style={{ padding: '10px 12px', verticalAlign: 'middle', color: '#555', lineHeight: 1.4, maxWidth: 0 }}>
+                              <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                {sub || '—'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '10px 12px', verticalAlign: 'middle', color: '#888', fontSize: 12, whiteSpace: 'nowrap' }}>
+                              {loc || '—'}
+                            </td>
+                            <td style={{ padding: '10px 12px', verticalAlign: 'middle' }}>
+                              {url ? (
+                                <a href={url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#0a66c2', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                                  View ↗
+                                </a>
+                              ) : '—'}
+                            </td>
+                            <td style={{ padding: '10px 16px 10px 12px', verticalAlign: 'middle', textAlign: 'center' }}>
+                              {isSaved ? (
+                                <span style={{ fontSize: 11, fontWeight: 600, color: '#16a34a', background: '#f0fdf4', padding: '3px 8px', borderRadius: 5 }}>Saved</span>
+                              ) : isSaving ? (
+                                <span style={{ fontSize: 11, color: '#aaa' }}>…</span>
+                              ) : (
+                                <button
+                                  onClick={() => saveOne(result)}
+                                  style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 5, border: '1px solid #e5e5e5', background: '#fff', color: '#555', cursor: 'pointer' }}
+                                >
+                                  Save
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+
+                  {/* Load More */}
+                  {hasMore && (
+                    <div style={{ padding: '16px 20px', textAlign: 'center' }}>
+                      <button
+                        onClick={loadMore}
+                        disabled={loadingMore}
+                        style={{ padding: '8px 24px', fontSize: 13, fontWeight: 600, borderRadius: 8, border: '1px solid #e5e5e5', background: '#fff', color: '#555', cursor: loadingMore ? 'not-allowed' : 'pointer' }}
+                      >
+                        {loadingMore ? 'Loading…' : `Load More (${total - results.length} remaining)`}
+                      </button>
+                    </div>
+                  )}
+
+                  {!hasMore && results.length > 0 && (
+                    <p style={{ textAlign: 'center', padding: '16px 20px', fontSize: 12, color: '#bbb', margin: 0 }}>
+                      All {results.length} results loaded
+                    </p>
+                  )}
                 </div>
               </>
-            )}
-          </>
-        )}
-
-        {/* URL lookup placeholder */}
-        {mode === 'lookup' && !lookupResult && (
-          <Placeholder icon={<Globe size={44} strokeWidth={1} />} text="Paste a LinkedIn URL to fetch and save a profile" />
-        )}
-
-        {/* AI Agent progress + schedules */}
-        {mode === 'agent' && (
-          <>
-            {/* Progress steps */}
-            {agentEvents.length > 0 && (
-              <div style={{ marginBottom: 24 }}>
-                <p style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 600, color: '#111' }}>Agent Progress</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {agentEvents.map((ev, i) => (
-                    <div key={i} style={{ background: '#fff', border: '1px solid', borderColor: ev.status === 'error' ? '#fecaca' : ev.status === 'done' ? '#bbf7d0' : '#e5e5e5', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <span style={{ fontSize: 20, flexShrink: 0 }}>
-                        {ev.status === 'error' ? '❌' : ev.status === 'done' ? (ev.step === 4 ? '🎉' : '✅') : (STEP_ICONS[ev.step] ?? '⟳')}
-                      </span>
-                      <div style={{ flex: 1 }}>
-                        <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: ev.status === 'error' ? '#991b1b' : '#111' }}>{ev.message}</p>
-                        {ev.status === 'running' && <p style={{ margin: '2px 0 0', fontSize: 11, color: '#aaa' }}>In progress…</p>}
-                      </div>
-                      {(ev.count ?? ev.leadsTotal) !== undefined && (
-                        <span style={{ fontSize: 12, fontWeight: 600, color: '#555', background: '#f4f4f5', padding: '2px 8px', borderRadius: 5 }}>
-                          {ev.leadsTotal ?? ev.count}
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                {agentDone && (
-                  <a href="/outbound/leads" style={{ display: 'inline-block', marginTop: 14, padding: '10px 20px', fontSize: 13, fontWeight: 600, borderRadius: 8, background: '#111', color: '#fff', textDecoration: 'none' }}>
-                    View Leads in CRM →
-                  </a>
-                )}
-              </div>
-            )}
-
-            {agentEvents.length === 0 && (
-              <Placeholder icon={<Bot size={44} strokeWidth={1} />} text="Enter a target query and run the AI agent" />
-            )}
-
-            {/* Schedules list */}
-            {schedules.length > 0 && (
-              <div>
-                <p style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 600, color: '#111' }}>
-                  Active Schedules <span style={{ fontWeight: 400, color: '#aaa', fontSize: 12 }}>— runs daily at 07:00 SGT</span>
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {schedules.map(s => (
-                    <div key={s.id} style={{ background: '#fff', border: '1px solid #e5e5e5', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: '#111' }}>{s.query}</p>
-                        <p style={{ margin: '3px 0 0', fontSize: 11, color: '#aaa' }}>
-                          {s.frequency} · roles: {s.roles.join(', ')} · max {s.max_companies} co.
-                        </p>
-                        <p style={{ margin: '2px 0 0', fontSize: 11, color: '#aaa' }}>
-                          {s.runs_count} runs · {s.leads_last} leads last run · {s.last_run_at ? `last: ${new Date(s.last_run_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}` : 'never run'}
-                        </p>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                        <button
-                          onClick={() => toggleSchedule(s.id, !s.is_active)}
-                          style={{ padding: '4px 10px', fontSize: 11, fontWeight: 500, borderRadius: 5, border: '1px solid', borderColor: s.is_active ? '#16a34a' : '#e5e5e5', background: s.is_active ? '#f0fdf4' : '#fff', color: s.is_active ? '#16a34a' : '#888', cursor: 'pointer' }}
-                        >
-                          {s.is_active ? 'Active' : 'Paused'}
-                        </button>
-                        <button onClick={() => deleteSchedule(s.id)} style={{ padding: 6, borderRadius: 5, border: '1px solid #fecaca', background: '#fff', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
             )}
           </>
         )}
@@ -588,7 +535,7 @@ export default function OutboundSearchPage() {
 
 function Placeholder({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60%', color: '#ccc', gap: 12 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, color: '#ccc', gap: 12 }}>
       {icon}
       <p style={{ margin: 0, fontSize: 14, color: '#bbb' }}>{text}</p>
     </div>
