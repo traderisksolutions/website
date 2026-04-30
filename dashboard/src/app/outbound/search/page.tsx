@@ -125,11 +125,10 @@ export default function ManualSearchPage() {
   const [checked,     setChecked]     = useState<Set<string>>(new Set())
   const [crmUrls,     setCrmUrls]     = useState<Set<string>>(new Set())
   const [emailMap,    setEmailMap]    = useState<Record<string, EmailState>>({})
-  const [findingAll,  setFindingAll]  = useState(false)
-  const [error,       setError]       = useState<string | null>(null)
-  const [expandedCompanyUrl, setExpandedCompanyUrl] = useState<string | null>(null)
-  const [companyEmployees,   setCompanyEmployees]   = useState<Record<string, { loading: boolean; people: PeopleResult[] }>>({})
-  const [copiedUrl,          setCopiedUrl]          = useState<string | null>(null)
+  const [findingAll,     setFindingAll]     = useState(false)
+  const [error,          setError]          = useState<string | null>(null)
+  const [copiedUrl,      setCopiedUrl]      = useState<string | null>(null)
+  const [employeeContext, setEmployeeContext] = useState<{ name: string; url: string } | null>(null)
 
   const stopAutoLoad = useRef(false)
   const stopEmailAll = useRef(false)
@@ -139,14 +138,15 @@ export default function ManualSearchPage() {
   // Restore on mount
   useEffect(() => {
     try {
-      // Criteria search cache
-      const raw = sessionStorage.getItem('obs_session')
+      // Restore last active search type, then its results
+      const lastType = (sessionStorage.getItem('obs_last_type') ?? 'people') as SearchType
+      setSearchType(lastType)
+      const raw = sessionStorage.getItem(`obs_${lastType}`)
       if (raw) {
         const s = JSON.parse(raw)
         if (Array.isArray(s.results) && s.results.length > 0) {
           setResults(s.results)
           setTotal(s.total ?? s.results.length)
-          setSearchType(s.searchType ?? 'people')
           const em: Record<string, EmailState> = {}
           for (const [k, v] of Object.entries(s.emailMap ?? {})) {
             if (v !== 'fetching') em[k] = v as EmailState
@@ -166,19 +166,16 @@ export default function ManualSearchPage() {
     } catch {}
   }, []) // mount only
 
-  // Save criteria results whenever they change
+  // Save criteria results whenever they change (keyed by type so both survive independently)
   useEffect(() => {
     if (results.length === 0) return
     try {
-      sessionStorage.setItem('obs_session', JSON.stringify({
-        results,
-        total,
-        searchType,
-        emailMap: Object.fromEntries(
-          Object.entries(emailMap).filter(([, v]) => v !== 'fetching')
-        ),
+      sessionStorage.setItem(`obs_${searchType}`, JSON.stringify({
+        results, total,
+        emailMap: Object.fromEntries(Object.entries(emailMap).filter(([, v]) => v !== 'fetching')),
         savedUrls: [...savedUrls],
       }))
+      sessionStorage.setItem('obs_last_type', searchType)
     } catch {}
   }, [results, total, searchType, emailMap, savedUrls])
 
@@ -250,9 +247,9 @@ export default function ManualSearchPage() {
   // ── Run search + auto-load all pages ─────────────────────────────────────
 
   async function runSearch() {
-    sessionStorage.removeItem('obs_session')
+    sessionStorage.removeItem(`obs_${searchType}`)
     stopAutoLoad.current = true
-    setLoading(true); setError(null)
+    setLoading(true); setError(null); setEmployeeContext(null)
     setResults([]); setChecked(new Set()); setAutoLoaded(0); setEmailMap({}); setSavedUrls(new Set())
 
     try {
@@ -341,26 +338,104 @@ export default function ManualSearchPage() {
     }).catch(() => {})
   }
 
-  async function searchEmployees(co: CompanyResult) {
-    const url = co.linkedinURL
-    if (expandedCompanyUrl === url) { setExpandedCompanyUrl(null); return }
-    setExpandedCompanyUrl(url)
-    if (companyEmployees[url]?.people.length) return
-    setCompanyEmployees(prev => ({ ...prev, [url]: { loading: true, people: [] } }))
+  function saveTypeSession() {
+    if (results.length === 0) return
     try {
+      sessionStorage.setItem(`obs_${searchType}`, JSON.stringify({
+        results, total,
+        emailMap: Object.fromEntries(Object.entries(emailMap).filter(([, v]) => v !== 'fetching')),
+        savedUrls: Array.from(savedUrls),
+      }))
+    } catch {}
+  }
+
+  function restoreTypeSession(t: SearchType) {
+    try {
+      const raw = sessionStorage.getItem(`obs_${t}`)
+      if (raw) {
+        const s = JSON.parse(raw)
+        setResults(s.results ?? [])
+        setTotal(s.total ?? 0)
+        const em: Record<string, EmailState> = {}
+        for (const [k, v] of Object.entries(s.emailMap ?? {})) {
+          if (v !== 'fetching') em[k] = v as EmailState
+        }
+        setEmailMap(em)
+        setSavedUrls(new Set(s.savedUrls ?? []))
+        return true
+      }
+    } catch {}
+    return false
+  }
+
+  function switchType(t: SearchType) {
+    if (t === searchType) return
+    saveTypeSession()
+    stopAutoLoad.current = true
+    setEmployeeContext(null)
+    setChecked(new Set())
+    const restored = restoreTypeSession(t)
+    if (!restored) { setResults([]); setTotal(0); setEmailMap({}); setSavedUrls(new Set()) }
+    setSearchType(t)
+    sessionStorage.setItem('obs_last_type', t)
+  }
+
+  function backToCompanySearch() {
+    stopAutoLoad.current = true
+    setEmployeeContext(null)
+    setChecked(new Set())
+    const restored = restoreTypeSession('company')
+    if (!restored) { setResults([]); setTotal(0); setEmailMap({}); setSavedUrls(new Set()) }
+    setSearchType('company')
+    sessionStorage.setItem('obs_last_type', 'company')
+  }
+
+  async function searchEmployees(co: CompanyResult) {
+    saveTypeSession()
+    setEmployeeContext({ name: co.name, url: co.linkedinURL })
+    setSearchType('people')
+    sessionStorage.setItem('obs_last_type', 'people')
+    stopAutoLoad.current = true
+    setLoading(true); setError(null)
+    setResults([]); setChecked(new Set()); setAutoLoaded(0); setEmailMap({}); setSavedUrls(new Set())
+
+    const fetchEmpPage = async (start: number): Promise<{ items: SearchResult[]; total: number }> => {
       const res = await fetch('/api/outbound/search', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'people', company: co.name, start: 0 }),
+        body: JSON.stringify({ type: 'people', company: co.name, start }),
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) return { items: [], total: 0 }
       const data    = await res.json()
       const wrapper = data.data ?? data
-      const items: PeopleResult[] = Array.isArray(wrapper.items) ? wrapper.items
+      const items: SearchResult[] = Array.isArray(wrapper.items) ? wrapper.items
         : Array.isArray(wrapper) ? wrapper
         : wrapper.item ? [wrapper.item] : []
-      setCompanyEmployees(prev => ({ ...prev, [url]: { loading: false, people: items } }))
+      return { items, total: wrapper.total ?? wrapper.paging?.total ?? items.length }
+    }
+
+    try {
+      const first = await fetchEmpPage(0)
+      stopAutoLoad.current = false
+      setResults(first.items)
+      setTotal(first.total)
+      setLoading(false)
+
+      if (first.items.length > 0 && first.items.length < first.total) {
+        setAutoLoading(true)
+        let loaded = first.items.length, offset = 10
+        while (loaded < first.total && !stopAutoLoad.current) {
+          const page = await fetchEmpPage(offset)
+          if (page.items.length === 0) break
+          setResults(prev => {
+            const existing = new Set(prev.map(getUrl))
+            return [...prev, ...page.items.filter(r => !existing.has(getUrl(r)))]
+          })
+          loaded += page.items.length; setAutoLoaded(loaded); offset += 10
+        }
+        setAutoLoading(false)
+      }
     } catch {
-      setCompanyEmployees(prev => ({ ...prev, [url]: { loading: false, people: [] } }))
+      setError('Network error'); setLoading(false); setAutoLoading(false)
     }
   }
 
@@ -480,7 +555,7 @@ export default function ManualSearchPage() {
             <>
               <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
                 {(['people', 'company'] as SearchType[]).map(t => (
-                  <button key={t} onClick={() => setSearchType(t)} style={{ flex: 1, padding: '7px 0', fontSize: 12, fontWeight: 500, borderRadius: 7, border: '1px solid', borderColor: searchType === t ? '#111' : '#e5e5e5', background: searchType === t ? '#111' : '#fff', color: searchType === t ? '#fff' : '#555', cursor: 'pointer' }}>
+                  <button key={t} onClick={() => switchType(t)} style={{ flex: 1, padding: '7px 0', fontSize: 12, fontWeight: 500, borderRadius: 7, border: '1px solid', borderColor: searchType === t ? '#111' : '#e5e5e5', background: searchType === t ? '#111' : '#fff', color: searchType === t ? '#fff' : '#555', cursor: 'pointer' }}>
                     {t === 'people' ? '👤 People' : '🏢 Company'}
                   </button>
                 ))}
@@ -605,6 +680,19 @@ export default function ManualSearchPage() {
 
         {mode === 'criteria' && (
           <>
+            {/* Employee context breadcrumb */}
+            {employeeContext && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', background: '#eef2ff', borderBottom: '1px solid #c7d2fe', flexShrink: 0 }}>
+                <span style={{ fontSize: 12, color: '#4338ca', fontWeight: 500 }}>Employees of {employeeContext.name}</span>
+                <button
+                  onClick={backToCompanySearch}
+                  style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 600, color: '#4338ca', background: '#fff', border: '1px solid #c7d2fe', borderRadius: 5, padding: '3px 10px', cursor: 'pointer' }}
+                >
+                  ← Back to Companies
+                </button>
+              </div>
+            )}
+
             {/* Toolbar — only shown when results exist */}
             {results.length > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', background: '#fff', borderBottom: '1px solid #e5e5e5', flexShrink: 0, flexWrap: 'wrap' }}>
@@ -666,9 +754,6 @@ export default function ManualSearchPage() {
                         const isSaving  = savingUrls.has(url)
                         const isChecked = checked.has(url)
                         const emailState = emailMap[url]
-
-                        const isExpanded = !person && expandedCompanyUrl === url
-                        const empData    = companyEmployees[url]
 
                         return (
                           <React.Fragment key={url ?? i}>
@@ -737,10 +822,10 @@ export default function ManualSearchPage() {
                               ) : (
                                 <button
                                   onClick={() => searchEmployees(result as CompanyResult)}
-                                  style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 5, border: '1px solid', borderColor: isExpanded ? '#111' : '#e5e5e5', background: isExpanded ? '#111' : '#fff', color: isExpanded ? '#fff' : '#555', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                  style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 5, border: '1px solid #e5e5e5', background: '#fff', color: '#555', cursor: 'pointer', whiteSpace: 'nowrap' }}
                                 >
                                   <Users size={11} />
-                                  {empData?.loading ? 'Loading…' : isExpanded ? 'Hide' : 'Search Employees'}
+                                  Search Employees
                                 </button>
                               )}
                             </td>
@@ -758,68 +843,6 @@ export default function ManualSearchPage() {
                               )}
                             </td>
                           </tr>
-
-                          {/* Expanded employees panel */}
-                          {isExpanded && (
-                            <tr style={{ background: '#f9f9f9', borderBottom: '1px solid #e5e5e5' }}>
-                              <td colSpan={6} style={{ padding: '0 16px 16px 60px' }}>
-                                {empData?.loading ? (
-                                  <p style={{ fontSize: 12, color: '#aaa', margin: '12px 0 0' }}>Searching employees…</p>
-                                ) : !empData?.people.length ? (
-                                  <p style={{ fontSize: 12, color: '#ccc', margin: '12px 0 0' }}>No employees found</p>
-                                ) : (
-                                  <>
-                                    <p style={{ fontSize: 11, fontWeight: 600, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '12px 0 8px' }}>
-                                      {empData.people.length} employee{empData.people.length !== 1 ? 's' : ''} found
-                                    </p>
-                                    <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', borderRadius: 8, overflow: 'hidden', border: '1px solid #f0f0f0' }}>
-                                      <tbody>
-                                        {empData.people.map((emp, ei) => {
-                                          const empUrl   = emp.profileURL
-                                          const empInCrm = crmUrls.has(empUrl)
-                                          const empSaved = savedUrls.has(empUrl)
-                                          return (
-                                            <tr key={empUrl ?? ei} style={{ borderBottom: '1px solid #f4f4f5' }}>
-                                              <td style={{ padding: '8px 10px', width: 32 }}>
-                                                {emp.profilePicture ? (
-                                                  <img src={emp.profilePicture} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
-                                                ) : (
-                                                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#f4f4f5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>👤</div>
-                                                )}
-                                              </td>
-                                              <td style={{ padding: '8px 10px', minWidth: 150 }}>
-                                                <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: '#111' }}>{emp.fullName || '—'}</p>
-                                              </td>
-                                              <td style={{ padding: '8px 10px' }}>
-                                                <p style={{ margin: 0, fontSize: 11, color: '#888' }}>{emp.headline || '—'}</p>
-                                              </td>
-                                              <td style={{ padding: '8px 10px', minWidth: 100 }}>
-                                                <p style={{ margin: 0, fontSize: 11, color: '#bbb' }}>{emp.location || '—'}</p>
-                                              </td>
-                                              <td style={{ padding: '8px 12px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                                                {empUrl && (
-                                                  <a href={empUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: '#0a66c2', textDecoration: 'none', marginRight: 10 }}>View ↗</a>
-                                                )}
-                                                {empInCrm ? (
-                                                  <span style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', background: '#eef2ff', padding: '2px 7px', borderRadius: 5 }}>In CRM</span>
-                                                ) : empSaved ? (
-                                                  <span style={{ fontSize: 11, fontWeight: 600, color: '#16a34a', background: '#f0fdf4', padding: '2px 7px', borderRadius: 5 }}>Saved ✓</span>
-                                                ) : (
-                                                  <button onClick={() => saveOne(emp as unknown as SearchResult)} style={{ fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 5, border: '1px solid #e5e5e5', background: '#fff', color: '#555', cursor: 'pointer' }}>
-                                                    Save
-                                                  </button>
-                                                )}
-                                              </td>
-                                            </tr>
-                                          )
-                                        })}
-                                      </tbody>
-                                    </table>
-                                  </>
-                                )}
-                              </td>
-                            </tr>
-                          )}
                           </React.Fragment>
                         )
                       })}
