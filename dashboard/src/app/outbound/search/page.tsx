@@ -27,6 +27,7 @@ interface SavedLead {
   current_title?: string | null; current_company?: string | null
   profile_picture?: string | null; logo_url?: string | null
   record_type?: string | null; location?: string | null
+  linkedin_url?: string | null; email?: string | null
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -135,25 +136,34 @@ export default function ManualSearchPage() {
   // Restore on mount
   useEffect(() => {
     try {
+      // Criteria search cache
       const raw = sessionStorage.getItem('obs_session')
-      if (!raw) return
-      const s = JSON.parse(raw)
-      if (Array.isArray(s.results) && s.results.length > 0) {
-        setResults(s.results)
-        setTotal(s.total ?? s.results.length)
-        setSearchType(s.searchType ?? 'people')
-        // strip any in-progress 'fetching' states
-        const em: Record<string, EmailState> = {}
-        for (const [k, v] of Object.entries(s.emailMap ?? {})) {
-          if (v !== 'fetching') em[k] = v as EmailState
+      if (raw) {
+        const s = JSON.parse(raw)
+        if (Array.isArray(s.results) && s.results.length > 0) {
+          setResults(s.results)
+          setTotal(s.total ?? s.results.length)
+          setSearchType(s.searchType ?? 'people')
+          const em: Record<string, EmailState> = {}
+          for (const [k, v] of Object.entries(s.emailMap ?? {})) {
+            if (v !== 'fetching') em[k] = v as EmailState
+          }
+          setEmailMap(em)
+          setSavedUrls(new Set(s.savedUrls ?? []))
         }
-        setEmailMap(em)
-        setSavedUrls(new Set(s.savedUrls ?? []))
+      }
+      // URL lookup cache
+      const rawLookup = sessionStorage.getItem('obs_lookup')
+      if (rawLookup) {
+        const l = JSON.parse(rawLookup)
+        setLookupUrl(l.url ?? '')
+        setLookupResult(l.result ?? null)
+        if (l.emailState) setLookupEmailState(l.emailState)
       }
     } catch {}
   }, []) // mount only
 
-  // Save whenever results, email map, or saved set change
+  // Save criteria results whenever they change
   useEffect(() => {
     if (results.length === 0) return
     try {
@@ -169,6 +179,18 @@ export default function ManualSearchPage() {
     } catch {}
   }, [results, total, searchType, emailMap, savedUrls])
 
+  // Save lookup result whenever it changes
+  useEffect(() => {
+    if (!lookupResult) return
+    try {
+      sessionStorage.setItem('obs_lookup', JSON.stringify({
+        url: lookupUrl,
+        result: lookupResult,
+        emailState: lookupEmailState && lookupEmailState !== 'fetching' ? lookupEmailState : undefined,
+      }))
+    } catch {}
+  }, [lookupResult, lookupUrl, lookupEmailState])
+
   // People-only fields
   const [keywordTitle,  setKeywordTitle]  = useState('')
   const [keywords,      setKeywords]      = useState('')
@@ -183,9 +205,11 @@ export default function ManualSearchPage() {
   const [hasJobs,       setHasJobs]       = useState(false)
 
   // URL lookup
-  const [lookupUrl,     setLookupUrl]     = useState('')
-  const [lookupResult,  setLookupResult]  = useState<SavedLead | null>(null)
-  const [lookupLoading, setLookupLoading] = useState(false)
+  const [lookupUrl,        setLookupUrl]        = useState('')
+  const [lookupResult,     setLookupResult]      = useState<SavedLead | null>(null)
+  const [lookupLoading,    setLookupLoading]     = useState(false)
+  const [lookupEmailState, setLookupEmailState]  = useState<EmailState | null>(null)
+  const [lookupEmailBusy,  setLookupEmailBusy]   = useState(false)
 
   // ── Load CRM linkedin_urls for duplicate detection ────────────────────────
 
@@ -360,7 +384,8 @@ export default function ManualSearchPage() {
 
   async function runLookup() {
     if (!lookupUrl.trim()) return
-    setLookupLoading(true); setLookupResult(null); setError(null)
+    setLookupLoading(true); setLookupResult(null); setLookupEmailState(null); setError(null)
+    sessionStorage.removeItem('obs_lookup')
     try {
       const res  = await fetch('/api/outbound/lookup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: lookupUrl.trim() }) })
       const data = await res.json()
@@ -368,6 +393,26 @@ export default function ManualSearchPage() {
       setLookupResult(data.lead)
     } catch { setError('Network error') }
     finally   { setLookupLoading(false) }
+  }
+
+  async function findEmailForLookup() {
+    if (!lookupResult?.linkedin_url || lookupResult.record_type !== 'person') return
+    setLookupEmailBusy(true)
+    setLookupEmailState('fetching')
+    try {
+      const res  = await fetch('/api/outbound/email', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ linkedin_url: lookupResult.linkedin_url }),
+      })
+      const data = await res.json()
+      const state: EmailState = data.found ? { email: data.email, status: data.email_status } : 'not_found'
+      setLookupEmailState(state)
+      if (data.found) setLookupResult(prev => prev ? { ...prev, email: data.email } : prev)
+    } catch {
+      setLookupEmailState('not_found')
+    } finally {
+      setLookupEmailBusy(false)
+    }
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -479,13 +524,36 @@ export default function ManualSearchPage() {
                     {(lookupResult.profile_picture || lookupResult.logo_url) && (
                       <img src={String(lookupResult.profile_picture ?? lookupResult.logo_url)} alt="" style={{ width: 40, height: 40, flexShrink: 0, objectFit: 'cover', borderRadius: lookupResult.record_type === 'person' ? '50%' : 8 }} />
                     )}
-                    <div style={{ minWidth: 0 }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
                       <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#111' }}>{String(lookupResult.full_name ?? '')}</p>
                       <p style={{ margin: '2px 0 0', fontSize: 12, color: '#666' }}>{String(lookupResult.headline ?? '')}</p>
                       {lookupResult.current_company && <p style={{ margin: '2px 0 0', fontSize: 11, color: '#aaa' }}>{String(lookupResult.current_title ?? '')} · {String(lookupResult.current_company)}</p>}
                     </div>
                   </div>
                   <div style={{ marginTop: 10, padding: '6px 10px', background: '#f0fdf4', borderRadius: 6, fontSize: 12, color: '#166534', fontWeight: 500 }}>✓ Saved to Outbound Leads</div>
+
+                  {/* Email enrichment — people only */}
+                  {lookupResult.record_type === 'person' && (
+                    <div style={{ marginTop: 10 }}>
+                      {!lookupEmailState && (
+                        <button onClick={findEmailForLookup} disabled={lookupEmailBusy} style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '7px 10px', fontSize: 12, fontWeight: 600, borderRadius: 7, border: '1px solid #e5e5e5', background: '#fff', color: '#555', cursor: 'pointer' }}>
+                          <Mail size={12} /> Find Email (5 credits)
+                        </button>
+                      )}
+                      {lookupEmailState === 'fetching' && (
+                        <p style={{ margin: 0, fontSize: 12, color: '#aaa' }}>Finding email…</p>
+                      )}
+                      {lookupEmailState === 'not_found' && (
+                        <p style={{ margin: 0, fontSize: 12, color: '#bbb' }}>No email found</p>
+                      )}
+                      {lookupEmailState && typeof lookupEmailState === 'object' && (
+                        <div style={{ padding: '6px 10px', background: '#f0fdf4', borderRadius: 6 }}>
+                          <a href={`mailto:${lookupEmailState.email}`} style={{ fontSize: 12, color: '#16a34a', fontWeight: 600, textDecoration: 'none' }}>{lookupEmailState.email}</a>
+                          <span style={{ fontSize: 11, color: '#aaa', marginLeft: 6 }}>· saved to CRM</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </>
