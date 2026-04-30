@@ -179,18 +179,6 @@ export default function ManualSearchPage() {
     } catch {}
   }, [results, total, searchType, emailMap, savedUrls])
 
-  // Save lookup result whenever it changes
-  useEffect(() => {
-    if (!lookupResult) return
-    try {
-      sessionStorage.setItem('obs_lookup', JSON.stringify({
-        url: lookupUrl,
-        result: lookupResult,
-        emailState: lookupEmailState && lookupEmailState !== 'fetching' ? lookupEmailState : undefined,
-      }))
-    } catch {}
-  }, [lookupResult, lookupUrl, lookupEmailState])
-
   // People-only fields
   const [keywordTitle,  setKeywordTitle]  = useState('')
   const [keywords,      setKeywords]      = useState('')
@@ -204,12 +192,24 @@ export default function ManualSearchPage() {
   const [industries,    setIndustries]    = useState('43')
   const [hasJobs,       setHasJobs]       = useState(false)
 
-  // URL lookup
+  // URL lookup (declared before the save useEffect that references them)
   const [lookupUrl,        setLookupUrl]        = useState('')
   const [lookupResult,     setLookupResult]      = useState<SavedLead | null>(null)
   const [lookupLoading,    setLookupLoading]     = useState(false)
   const [lookupEmailState, setLookupEmailState]  = useState<EmailState | null>(null)
   const [lookupEmailBusy,  setLookupEmailBusy]   = useState(false)
+
+  // Save lookup result whenever it changes
+  useEffect(() => {
+    if (!lookupResult) return
+    try {
+      sessionStorage.setItem('obs_lookup', JSON.stringify({
+        url: lookupUrl,
+        result: lookupResult,
+        emailState: lookupEmailState && lookupEmailState !== 'fetching' ? lookupEmailState : undefined,
+      }))
+    } catch {}
+  }, [lookupResult, lookupUrl, lookupEmailState])
 
   // ── Load CRM linkedin_urls for duplicate detection ────────────────────────
 
