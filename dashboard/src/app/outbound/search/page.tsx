@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Globe, SlidersHorizontal } from 'lucide-react'
 import React from 'react'
 
@@ -107,18 +107,21 @@ function Field({ label, value, onChange, placeholder }: {
 // ── Main Page ──────────────────────────────────────────────────────────────
 
 export default function ManualSearchPage() {
-  const [mode,       setMode]       = useState<Mode>('criteria')
-  const [searchType, setSearchType] = useState<SearchType>('people')
-  const [loading,    setLoading]    = useState(false)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [results,    setResults]    = useState<SearchResult[]>([])
-  const [total,      setTotal]      = useState(0)
-  const [hasMore,    setHasMore]    = useState(false)
-  const [pageOffset, setPageOffset] = useState(0)
-  const [savedUrls,  setSavedUrls]  = useState<Set<string>>(new Set())
-  const [savingUrls, setSavingUrls] = useState<Set<string>>(new Set())
-  const [checked,    setChecked]    = useState<Set<string>>(new Set())
-  const [error,      setError]      = useState<string | null>(null)
+  const [mode,        setMode]        = useState<Mode>('criteria')
+  const [searchType,  setSearchType]  = useState<SearchType>('people')
+  const [loading,     setLoading]     = useState(false)
+  const [autoLoading, setAutoLoading] = useState(false)
+  const [autoLoaded,  setAutoLoaded]  = useState(0)
+  const [results,     setResults]     = useState<SearchResult[]>([])
+  const [total,       setTotal]       = useState(0)
+  const [savedUrls,   setSavedUrls]   = useState<Set<string>>(new Set())
+  const [savingUrls,  setSavingUrls]  = useState<Set<string>>(new Set())
+  const [checked,     setChecked]     = useState<Set<string>>(new Set())
+  const [crmUrls,     setCrmUrls]     = useState<Set<string>>(new Set())
+  const [error,       setError]       = useState<string | null>(null)
+
+  // Stop ongoing auto-load when a new search starts
+  const stopAutoLoad = useRef(false)
 
   // Criteria — people
   const [keywordTitle,  setKeywordTitle]  = useState('')
@@ -138,55 +141,99 @@ export default function ManualSearchPage() {
   const [lookupResult,  setLookupResult]  = useState<SavedLead | null>(null)
   const [lookupLoading, setLookupLoading] = useState(false)
 
-  // ── Search ───────────────────────────────────────────────────────────────
+  // ── Load existing CRM leads for duplicate detection ───────────────────────
 
-  async function runSearch(append = false, offset = 0) {
-    if (append) setLoadingMore(true); else setLoading(true)
-    setError(null)
-    if (!append) { setResults([]); setChecked(new Set()); setPageOffset(0) }
+  useEffect(() => {
+    fetch('/api/outbound/leads')
+      .then(r => r.ok ? r.json() : [])
+      .then((leads: { linkedin_url?: string | null }[]) => {
+        const urls = leads
+          .map(l => l.linkedin_url)
+          .filter((u): u is string => Boolean(u))
+        setCrmUrls(new Set(urls))
+      })
+      .catch(() => {})
+  }, [])
+
+  // ── Fetch one page from Netrows ───────────────────────────────────────────
+
+  async function fetchPage(offset: number): Promise<{ items: SearchResult[]; total: number }> {
+    const body = searchType === 'people'
+      ? { type: 'people', keywordTitle, keywords, geo, company, start: offset }
+      : { type: 'company', keyword, locations, companySizes: selectedSizes.join(','), industries, hasJobs, page: Math.floor(offset / 10) + 1 }
+
+    const res = await fetch('/api/outbound/search', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) return { items: [], total: 0 }
+    const data    = await res.json()
+    const wrapper = data.data ?? data
+    const items: SearchResult[] = Array.isArray(wrapper.items)
+      ? wrapper.items
+      : Array.isArray(wrapper)
+        ? wrapper
+        : wrapper.item ? [wrapper.item] : []
+    const tot = wrapper.total ?? wrapper.paging?.total ?? items.length
+    return { items, total: tot }
+  }
+
+  // ── Run full search — fetches page 0 then auto-loads remaining ────────────
+
+  async function runSearch() {
+    stopAutoLoad.current = true          // cancel any running auto-load
+    setLoading(true); setError(null)
+    setResults([]); setChecked(new Set()); setAutoLoaded(0)
+
     try {
-      const body = searchType === 'people'
-        ? { type: 'people', keywordTitle, keywords, geo, company, start: offset }
-        : { type: 'company', keyword, locations, companySizes: selectedSizes.join(','), industries, hasJobs, page: offset + 1 }
-      const res  = await fetch('/api/outbound/search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      const data = await res.json()
-      if (!res.ok) { setError(data.error ?? 'Search failed'); return }
+      const first = await fetchPage(0)
+      stopAutoLoad.current = false        // reset for this new run
+      setResults(first.items)
+      setTotal(first.total)
+      setLoading(false)
 
-      // Normalize Netrows response — handles both { data: { items, total } } and { items, total }
-      const wrapper = data.data ?? data
-      const newItems: SearchResult[] = Array.isArray(wrapper.items)
-        ? wrapper.items
-        : Array.isArray(wrapper)
-          ? wrapper
-          : wrapper.item ? [wrapper.item] : []
-      const newTotal = wrapper.total ?? wrapper.paging?.total ?? newItems.length
+      // Auto-load all remaining pages
+      if (first.items.length > 0 && first.items.length < first.total) {
+        setAutoLoading(true)
+        let loaded = first.items.length
+        let offset = 10
 
-      setResults(prev => append ? [...prev, ...newItems] : newItems)
-      setTotal(newTotal)
-      setHasMore(newItems.length > 0 && (append ? results.length + newItems.length : newItems.length) < newTotal)
-    } catch { setError('Network error') }
-    finally { setLoading(false); setLoadingMore(false) }
+        while (loaded < first.total && !stopAutoLoad.current) {
+          const page = await fetchPage(offset)
+          if (page.items.length === 0) break
+          setResults(prev => {
+            const existing = new Set(prev.map(getUrl))
+            const newOnes  = page.items.filter(r => !existing.has(getUrl(r)))
+            return [...prev, ...newOnes]
+          })
+          loaded += page.items.length
+          setAutoLoaded(loaded)
+          offset += 10
+        }
+        setAutoLoading(false)
+      }
+    } catch {
+      setError('Network error')
+      setLoading(false)
+      setAutoLoading(false)
+    }
   }
 
-  async function loadMore() {
-    const nextOffset = pageOffset + 10
-    setPageOffset(nextOffset)
-    await runSearch(true, nextOffset)
-  }
+  // ── Save helpers ──────────────────────────────────────────────────────────
 
-  // ── Save helpers ─────────────────────────────────────────────────────────
-
-  async function saveOne(result: SearchResult): Promise<boolean> {
+  async function saveOne(result: SearchResult): Promise<void> {
     const url = getUrl(result)
-    if (savedUrls.has(url)) return true
+    if (savedUrls.has(url)) return
     setSavingUrls(prev => new Set([...Array.from(prev), url]))
     try {
       const res = await fetch('/api/outbound/save', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ record: buildRecord(result) }),
       })
-      if (res.ok) { setSavedUrls(prev => new Set([...Array.from(prev), url])); return true }
-      return false
+      if (res.ok) {
+        setSavedUrls(prev => new Set([...Array.from(prev), url]))
+        setCrmUrls(prev => new Set([...Array.from(prev), url]))
+      }
     } finally {
       setSavingUrls(prev => { const s = new Set(Array.from(prev)); s.delete(url); return s })
     }
@@ -194,24 +241,31 @@ export default function ManualSearchPage() {
 
   async function saveSelected() {
     for (const result of results) {
-      if (checked.has(getUrl(result))) await saveOne(result)
+      if (checked.has(getUrl(result)) && !savedUrls.has(getUrl(result)) && !crmUrls.has(getUrl(result))) {
+        await saveOne(result)
+      }
     }
   }
 
   async function saveAll() {
-    for (const result of results) await saveOne(result)
+    for (const result of results) {
+      if (!savedUrls.has(getUrl(result)) && !crmUrls.has(getUrl(result))) {
+        await saveOne(result)
+      }
+    }
   }
 
   // ── Checkbox helpers ──────────────────────────────────────────────────────
 
-  const allChecked = results.length > 0 && results.every(r => checked.has(getUrl(r)))
-  const checkedCount = Array.from(checked).filter(u => results.some(r => getUrl(r) === u)).length
+  const allChecked   = results.length > 0 && results.every(r => checked.has(getUrl(r)))
+  const checkedCount = results.filter(r => checked.has(getUrl(r))).length
+  const newSelected  = results.filter(r => checked.has(getUrl(r)) && !savedUrls.has(getUrl(r)) && !crmUrls.has(getUrl(r))).length
+  const newTotal     = results.filter(r => !savedUrls.has(getUrl(r)) && !crmUrls.has(getUrl(r))).length
+  const dupCount     = results.filter(r => crmUrls.has(getUrl(r))).length
 
   function toggleAll() {
-    if (allChecked) setChecked(new Set())
-    else setChecked(new Set(results.map(getUrl)))
+    setChecked(allChecked ? new Set() : new Set(results.map(getUrl)))
   }
-
   function toggleOne(url: string) {
     setChecked(prev => {
       const s = new Set(Array.from(prev))
@@ -235,8 +289,6 @@ export default function ManualSearchPage() {
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
-
-  const unsavedChecked = checkedCount - Array.from(checked).filter(u => savedUrls.has(u)).length
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
@@ -324,7 +376,7 @@ export default function ManualSearchPage() {
 
               {error && <div style={{ marginTop: 12, padding: '8px 12px', background: '#fef2f2', borderRadius: 7, fontSize: 12, color: '#991b1b' }}>{error}</div>}
 
-              <button onClick={() => runSearch(false, 0)} disabled={loading} style={{ marginTop: 20, width: '100%', padding: '10px 0', fontSize: 13, fontWeight: 600, borderRadius: 8, border: 'none', background: loading ? '#aaa' : '#111', color: '#fff', cursor: loading ? 'not-allowed' : 'pointer' }}>
+              <button onClick={runSearch} disabled={loading} style={{ marginTop: 20, width: '100%', padding: '10px 0', fontSize: 13, fontWeight: 600, borderRadius: 8, border: 'none', background: loading ? '#aaa' : '#111', color: '#fff', cursor: loading ? 'not-allowed' : 'pointer' }}>
                 {loading ? 'Searching…' : 'Run Search →'}
               </button>
             </>
@@ -386,23 +438,40 @@ export default function ManualSearchPage() {
             {results.length > 0 && (
               <>
                 {/* Toolbar */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 20px', background: '#fff', borderBottom: '1px solid #e5e5e5', flexShrink: 0 }}>
-                  <span style={{ fontSize: 13, color: '#555', flex: 1 }}>
-                    <strong style={{ color: '#111' }}>{total.toLocaleString()}</strong> total · <strong style={{ color: '#111' }}>{results.length}</strong> loaded
-                  </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 20px', background: '#fff', borderBottom: '1px solid #e5e5e5', flexShrink: 0 }}>
+                  {/* Result counts */}
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 13, color: '#555' }}>
+                      <strong style={{ color: '#111' }}>{results.length}</strong>
+                      {total > results.length ? ` / ${total.toLocaleString()}` : ` of ${total.toLocaleString()}`} results
+                    </span>
+                    {autoLoading && (
+                      <span style={{ fontSize: 11, color: '#aaa', display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', animation: 'pulse 1s infinite' }} />
+                        loading all…
+                      </span>
+                    )}
+                    {dupCount > 0 && (
+                      <span style={{ fontSize: 11, fontWeight: 500, color: '#6366f1', background: '#eef2ff', padding: '2px 8px', borderRadius: 5 }}>
+                        {dupCount} already in CRM
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Actions */}
                   <button
                     onClick={saveSelected}
-                    disabled={unsavedChecked === 0}
-                    style={{ padding: '6px 14px', fontSize: 12, fontWeight: 600, borderRadius: 7, border: '1px solid #e5e5e5', background: unsavedChecked > 0 ? '#111' : '#f4f4f5', color: unsavedChecked > 0 ? '#fff' : '#bbb', cursor: unsavedChecked > 0 ? 'pointer' : 'default' }}
+                    disabled={newSelected === 0}
+                    style={{ padding: '6px 14px', fontSize: 12, fontWeight: 600, borderRadius: 7, border: '1px solid', borderColor: newSelected > 0 ? '#111' : '#e5e5e5', background: newSelected > 0 ? '#111' : '#f4f4f5', color: newSelected > 0 ? '#fff' : '#bbb', cursor: newSelected > 0 ? 'pointer' : 'default', whiteSpace: 'nowrap' }}
                   >
                     Save Selected {checkedCount > 0 ? `(${checkedCount})` : ''}
                   </button>
                   <button
                     onClick={saveAll}
-                    disabled={results.every(r => savedUrls.has(getUrl(r)))}
-                    style={{ padding: '6px 14px', fontSize: 12, fontWeight: 600, borderRadius: 7, border: '1px solid #e5e5e5', background: '#fff', color: '#111', cursor: 'pointer' }}
+                    disabled={newTotal === 0}
+                    style={{ padding: '6px 14px', fontSize: 12, fontWeight: 600, borderRadius: 7, border: '1px solid #e5e5e5', background: '#fff', color: newTotal > 0 ? '#111' : '#bbb', cursor: newTotal > 0 ? 'pointer' : 'default', whiteSpace: 'nowrap' }}
                   >
-                    Save All ({results.length})
+                    Save All {newTotal > 0 ? `(${newTotal} new)` : ''}
                   </button>
                 </div>
 
@@ -412,12 +481,7 @@ export default function ManualSearchPage() {
                     <thead>
                       <tr style={{ background: '#fff', borderBottom: '1px solid #e5e5e5', position: 'sticky', top: 0, zIndex: 1 }}>
                         <th style={{ width: 44, padding: '10px 0 10px 16px', textAlign: 'center' }}>
-                          <input
-                            type="checkbox"
-                            checked={allChecked}
-                            onChange={toggleAll}
-                            style={{ cursor: 'pointer', width: 15, height: 15 }}
-                          />
+                          <input type="checkbox" checked={allChecked} onChange={toggleAll} style={{ cursor: 'pointer', width: 15, height: 15 }} />
                         </th>
                         <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#555', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                           {searchType === 'people' ? 'Person' : 'Company'}
@@ -428,54 +492,50 @@ export default function ManualSearchPage() {
                         <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#555', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', width: 140 }}>
                           {searchType === 'people' ? 'Location' : ''}
                         </th>
-                        <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#555', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', width: 100 }}>
+                        <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#555', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', width: 80 }}>
                           LinkedIn
                         </th>
-                        <th style={{ padding: '10px 16px 10px 12px', textAlign: 'center', fontWeight: 600, color: '#555', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', width: 80 }}>
+                        <th style={{ padding: '10px 16px 10px 12px', textAlign: 'center', fontWeight: 600, color: '#555', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', width: 110 }}>
                           Status
                         </th>
                       </tr>
                     </thead>
                     <tbody>
                       {results.map((result, i) => {
-                        const url    = getUrl(result)
-                        const person = isPerson(result)
-                        const name   = person ? (result as PeopleResult).fullName  : (result as CompanyResult).name
-                        const sub    = person ? (result as PeopleResult).headline  : (result as CompanyResult).tagline
-                        const loc    = person ? (result as PeopleResult).location  : null
-                        const pic    = person ? (result as PeopleResult).profilePicture : (result as CompanyResult).logo
+                        const url       = getUrl(result)
+                        const person    = isPerson(result)
+                        const name      = person ? (result as PeopleResult).fullName  : (result as CompanyResult).name
+                        const sub       = person ? (result as PeopleResult).headline  : (result as CompanyResult).tagline
+                        const loc       = person ? (result as PeopleResult).location  : null
+                        const pic       = person ? (result as PeopleResult).profilePicture : (result as CompanyResult).logo
+                        const inCrm     = crmUrls.has(url)
                         const isSaved   = savedUrls.has(url)
                         const isSaving  = savingUrls.has(url)
                         const isChecked = checked.has(url)
 
                         return (
-                          <tr key={url ?? i} style={{ borderBottom: '1px solid #f0f0f0', background: isChecked ? '#f8f8ff' : '#fff', transition: 'background 0.1s' }}>
+                          <tr key={url ?? i} style={{ borderBottom: '1px solid #f0f0f0', background: inCrm ? '#fafafa' : isChecked ? '#f8f8ff' : '#fff', transition: 'background 0.1s' }}>
                             <td style={{ width: 44, padding: '10px 0 10px 16px', textAlign: 'center', verticalAlign: 'middle' }}>
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={() => toggleOne(url)}
-                                style={{ cursor: 'pointer', width: 15, height: 15 }}
-                              />
+                              <input type="checkbox" checked={isChecked} onChange={() => toggleOne(url)} style={{ cursor: 'pointer', width: 15, height: 15 }} />
                             </td>
                             <td style={{ padding: '10px 12px', verticalAlign: 'middle' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                 {pic ? (
-                                  <img src={pic} alt="" style={{ width: 34, height: 34, borderRadius: person ? '50%' : 6, objectFit: 'cover', flexShrink: 0, background: '#f4f4f5' }} />
+                                  <img src={pic} alt="" style={{ width: 34, height: 34, borderRadius: person ? '50%' : 6, objectFit: 'cover', flexShrink: 0, background: '#f4f4f5', opacity: inCrm ? 0.5 : 1 }} />
                                 ) : (
-                                  <div style={{ width: 34, height: 34, borderRadius: person ? '50%' : 6, background: '#f4f4f5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 16 }}>
+                                  <div style={{ width: 34, height: 34, borderRadius: person ? '50%' : 6, background: '#f4f4f5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 16, opacity: inCrm ? 0.5 : 1 }}>
                                     {person ? '👤' : '🏢'}
                                   </div>
                                 )}
-                                <span style={{ fontWeight: 500, color: '#111', lineHeight: 1.3 }}>{name || '—'}</span>
+                                <span style={{ fontWeight: 500, color: inCrm ? '#999' : '#111', lineHeight: 1.3 }}>{name || '—'}</span>
                               </div>
                             </td>
-                            <td style={{ padding: '10px 12px', verticalAlign: 'middle', color: '#555', lineHeight: 1.4, maxWidth: 0 }}>
+                            <td style={{ padding: '10px 12px', verticalAlign: 'middle', color: inCrm ? '#bbb' : '#555', lineHeight: 1.4, maxWidth: 0 }}>
                               <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                                 {sub || '—'}
                               </span>
                             </td>
-                            <td style={{ padding: '10px 12px', verticalAlign: 'middle', color: '#888', fontSize: 12, whiteSpace: 'nowrap' }}>
+                            <td style={{ padding: '10px 12px', verticalAlign: 'middle', color: '#aaa', fontSize: 12, whiteSpace: 'nowrap' }}>
                               {loc || '—'}
                             </td>
                             <td style={{ padding: '10px 12px', verticalAlign: 'middle' }}>
@@ -486,15 +546,14 @@ export default function ManualSearchPage() {
                               ) : '—'}
                             </td>
                             <td style={{ padding: '10px 16px 10px 12px', verticalAlign: 'middle', textAlign: 'center' }}>
-                              {isSaved ? (
-                                <span style={{ fontSize: 11, fontWeight: 600, color: '#16a34a', background: '#f0fdf4', padding: '3px 8px', borderRadius: 5 }}>Saved</span>
+                              {inCrm ? (
+                                <span style={{ fontSize: 11, fontWeight: 600, color: '#6366f1', background: '#eef2ff', padding: '3px 8px', borderRadius: 5, whiteSpace: 'nowrap' }}>In CRM</span>
+                              ) : isSaved ? (
+                                <span style={{ fontSize: 11, fontWeight: 600, color: '#16a34a', background: '#f0fdf4', padding: '3px 8px', borderRadius: 5 }}>Saved ✓</span>
                               ) : isSaving ? (
-                                <span style={{ fontSize: 11, color: '#aaa' }}>…</span>
+                                <span style={{ fontSize: 11, color: '#aaa' }}>Saving…</span>
                               ) : (
-                                <button
-                                  onClick={() => saveOne(result)}
-                                  style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 5, border: '1px solid #e5e5e5', background: '#fff', color: '#555', cursor: 'pointer' }}
-                                >
+                                <button onClick={() => saveOne(result)} style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 5, border: '1px solid #e5e5e5', background: '#fff', color: '#555', cursor: 'pointer' }}>
                                   Save
                                 </button>
                               )}
@@ -505,21 +564,15 @@ export default function ManualSearchPage() {
                     </tbody>
                   </table>
 
-                  {/* Load More */}
-                  {hasMore && (
-                    <div style={{ padding: '16px 20px', textAlign: 'center' }}>
-                      <button
-                        onClick={loadMore}
-                        disabled={loadingMore}
-                        style={{ padding: '8px 24px', fontSize: 13, fontWeight: 600, borderRadius: 8, border: '1px solid #e5e5e5', background: '#fff', color: '#555', cursor: loadingMore ? 'not-allowed' : 'pointer' }}
-                      >
-                        {loadingMore ? 'Loading…' : `Load More (${total - results.length} remaining)`}
-                      </button>
+                  {/* Auto-load progress row */}
+                  {autoLoading && (
+                    <div style={{ padding: '14px 20px', textAlign: 'center', fontSize: 12, color: '#aaa' }}>
+                      Loading {autoLoaded > 0 ? `${autoLoaded} / ${total}` : 'remaining results'}…
                     </div>
                   )}
 
-                  {!hasMore && results.length > 0 && (
-                    <p style={{ textAlign: 'center', padding: '16px 20px', fontSize: 12, color: '#bbb', margin: 0 }}>
+                  {!autoLoading && results.length === total && results.length > 0 && (
+                    <p style={{ textAlign: 'center', padding: '14px 20px', fontSize: 12, color: '#ccc', margin: 0 }}>
                       All {results.length} results loaded
                     </p>
                   )}
