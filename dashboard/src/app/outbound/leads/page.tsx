@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Search, RefreshCw } from 'lucide-react'
+import { Search } from 'lucide-react'
 import React from 'react'
 
 type Status     = 'new' | 'contacted' | 'replied' | 'qualified' | 'disqualified'
@@ -165,28 +165,6 @@ export default function OutboundLeadsPage() {
           <option value="company">Companies</option>
         </select>
 
-        <button
-          onClick={load}
-          style={{
-            height: 34, padding: '0 12px', fontSize: 12, borderRadius: 7,
-            border: '1px solid #e5e5e5', background: '#fff', color: '#555',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-          }}
-        >
-          <RefreshCw size={12} />
-          Refresh
-        </button>
-
-        <a
-          href="/outbound/search"
-          style={{
-            height: 34, padding: '0 14px', fontSize: 12, fontWeight: 600, borderRadius: 7,
-            background: '#111', color: '#fff', textDecoration: 'none',
-            display: 'flex', alignItems: 'center',
-          }}
-        >
-          + Search
-        </a>
       </div>
 
       {/* ── Table ── */}

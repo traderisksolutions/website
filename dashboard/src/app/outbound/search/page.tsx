@@ -321,7 +321,7 @@ export default function ManualSearchPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
-  const showEmailCol = mode === 'criteria' && searchType === 'people' && results.length > 0
+  const showEmailCol = mode === 'criteria' && searchType === 'people'
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
@@ -451,63 +451,47 @@ export default function ManualSearchPage() {
 
         {mode === 'criteria' && (
           <>
-            {results.length === 0 && !loading && (
-              <Placeholder icon={<SlidersHorizontal size={44} strokeWidth={1} />} text="Configure search criteria and click Run Search" />
-            )}
-            {loading && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, color: '#aaa', fontSize: 13 }}>
-                Fetching from Netrows…
+            {/* Toolbar — only shown when results exist */}
+            {results.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', background: '#fff', borderBottom: '1px solid #e5e5e5', flexShrink: 0, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 13, color: '#555', flex: 1, minWidth: 120 }}>
+                  <strong style={{ color: '#111' }}>{results.length}</strong>
+                  {total > results.length ? ` / ${total.toLocaleString()}` : ` of ${total.toLocaleString()}`}
+                  {autoLoading && <span style={{ marginLeft: 8, fontSize: 11, color: '#f59e0b' }}>● loading…</span>}
+                  {dupCount > 0 && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 600, color: '#6366f1' }}>{dupCount} in CRM</span>}
+                </span>
+                {searchType === 'people' && emailPending > 0 && (
+                  <button onClick={findAllEmails} disabled={findingAll} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', fontSize: 12, fontWeight: 600, borderRadius: 7, border: '1px solid #e5e5e5', background: findingAll ? '#f4f4f5' : '#fff', color: findingAll ? '#bbb' : '#555', cursor: findingAll ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}>
+                    <Mail size={13} />
+                    {findingAll ? 'Finding emails…' : `Find All Emails (${emailPending} × 5 cr)`}
+                  </button>
+                )}
+                <button onClick={saveSelected} disabled={newSelected === 0} style={{ padding: '6px 12px', fontSize: 12, fontWeight: 600, borderRadius: 7, border: '1px solid', borderColor: newSelected > 0 ? '#111' : '#e5e5e5', background: newSelected > 0 ? '#111' : '#f4f4f5', color: newSelected > 0 ? '#fff' : '#bbb', cursor: newSelected > 0 ? 'pointer' : 'default', whiteSpace: 'nowrap' }}>
+                  Save Selected {checkedCount > 0 ? `(${checkedCount})` : ''}
+                </button>
+                <button onClick={saveAll} disabled={newTotal === 0} style={{ padding: '6px 12px', fontSize: 12, fontWeight: 600, borderRadius: 7, border: '1px solid #e5e5e5', background: '#fff', color: newTotal > 0 ? '#111' : '#bbb', cursor: newTotal > 0 ? 'pointer' : 'default', whiteSpace: 'nowrap' }}>
+                  Save All {newTotal > 0 ? `(${newTotal})` : ''}
+                </button>
               </div>
             )}
 
-            {results.length > 0 && (
-              <>
-                {/* Toolbar */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', background: '#fff', borderBottom: '1px solid #e5e5e5', flexShrink: 0, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 13, color: '#555', flex: 1, minWidth: 120 }}>
-                    <strong style={{ color: '#111' }}>{results.length}</strong>
-                    {total > results.length ? ` / ${total.toLocaleString()}` : ` of ${total.toLocaleString()}`}
-                    {autoLoading && <span style={{ marginLeft: 8, fontSize: 11, color: '#f59e0b' }}>● loading…</span>}
-                    {dupCount > 0 && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 600, color: '#6366f1' }}>{dupCount} in CRM</span>}
-                  </span>
-
-                  {/* Email actions — people only */}
-                  {searchType === 'people' && emailPending > 0 && (
-                    <button
-                      onClick={findAllEmails}
-                      disabled={findingAll}
-                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', fontSize: 12, fontWeight: 600, borderRadius: 7, border: '1px solid #e5e5e5', background: findingAll ? '#f4f4f5' : '#fff', color: findingAll ? '#bbb' : '#555', cursor: findingAll ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}
-                    >
-                      <Mail size={13} />
-                      {findingAll ? 'Finding emails…' : `Find All Emails (${emailPending} × 5 cr)`}
-                    </button>
-                  )}
-
-                  <button onClick={saveSelected} disabled={newSelected === 0} style={{ padding: '6px 12px', fontSize: 12, fontWeight: 600, borderRadius: 7, border: '1px solid', borderColor: newSelected > 0 ? '#111' : '#e5e5e5', background: newSelected > 0 ? '#111' : '#f4f4f5', color: newSelected > 0 ? '#fff' : '#bbb', cursor: newSelected > 0 ? 'pointer' : 'default', whiteSpace: 'nowrap' }}>
-                    Save Selected {checkedCount > 0 ? `(${checkedCount})` : ''}
-                  </button>
-                  <button onClick={saveAll} disabled={newTotal === 0} style={{ padding: '6px 12px', fontSize: 12, fontWeight: 600, borderRadius: 7, border: '1px solid #e5e5e5', background: '#fff', color: newTotal > 0 ? '#111' : '#bbb', cursor: newTotal > 0 ? 'pointer' : 'default', whiteSpace: 'nowrap' }}>
-                    Save All {newTotal > 0 ? `(${newTotal})` : ''}
-                  </button>
-                </div>
-
-                {/* Table */}
-                <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: showEmailCol ? 900 : 700 }}>
-                    <thead>
-                      <tr style={{ background: '#fff', borderBottom: '1px solid #e5e5e5', position: 'sticky', top: 0, zIndex: 1 }}>
-                        <th style={{ width: 44, padding: '10px 0 10px 16px', textAlign: 'center' }}>
-                          <input type="checkbox" checked={allChecked} onChange={toggleAll} style={{ cursor: 'pointer', width: 15, height: 15 }} />
-                        </th>
-                        <Th>{searchType === 'people' ? 'Person' : 'Company'}</Th>
-                        <Th w="30%">{searchType === 'people' ? 'Headline' : 'Tagline'}</Th>
-                        <Th w={120}>{searchType === 'people' ? 'Location' : ''}</Th>
-                        {showEmailCol && <Th w={200}>Email</Th>}
-                        <Th w={70}>LinkedIn</Th>
-                        <Th w={110} center>Status</Th>
-                      </tr>
-                    </thead>
-                    <tbody>
+            {/* Table — always visible */}
+            <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: showEmailCol ? 900 : 700 }}>
+                <thead>
+                  <tr style={{ background: '#fff', borderBottom: '1px solid #e5e5e5', position: 'sticky', top: 0, zIndex: 1 }}>
+                    <th style={{ width: 44, padding: '10px 0 10px 16px', textAlign: 'center' }}>
+                      <input type="checkbox" checked={allChecked} onChange={toggleAll} disabled={results.length === 0} style={{ cursor: results.length > 0 ? 'pointer' : 'default', width: 15, height: 15, opacity: results.length === 0 ? 0.3 : 1 }} />
+                    </th>
+                    <Th>{searchType === 'people' ? 'Person' : 'Company'}</Th>
+                    <Th w="30%">{searchType === 'people' ? 'Headline' : 'Tagline'}</Th>
+                    <Th w={120}>{searchType === 'people' ? 'Location' : ''}</Th>
+                    {showEmailCol && <Th w={200}>Email</Th>}
+                    <Th w={70}>LinkedIn</Th>
+                    <Th w={110} center>Status</Th>
+                  </tr>
+                </thead>
+                <tbody>
                       {results.map((result, i) => {
                         const url       = getUrl(result)
                         const person    = isPerson(result)
@@ -593,6 +577,24 @@ export default function ManualSearchPage() {
                           </tr>
                         )
                       })}
+
+                      {/* Empty / loading states inside tbody */}
+                      {loading && (
+                        <tr>
+                          <td colSpan={showEmailCol ? 7 : 6} style={{ padding: '48px 20px', textAlign: 'center', color: '#aaa', fontSize: 13 }}>
+                            Fetching from Netrows…
+                          </td>
+                        </tr>
+                      )}
+                      {!loading && results.length === 0 && (
+                        <tr>
+                          <td colSpan={showEmailCol ? 7 : 6} style={{ padding: '56px 20px', textAlign: 'center' }}>
+                            <p style={{ margin: 0, fontSize: 13, color: '#ccc' }}>
+                              Set your criteria on the left and click <strong style={{ color: '#aaa' }}>Run Search</strong>
+                            </p>
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
 
@@ -603,12 +605,10 @@ export default function ManualSearchPage() {
                   )}
                   {!autoLoading && results.length > 0 && results.length >= total && (
                     <p style={{ textAlign: 'center', padding: '14px 20px', fontSize: 12, color: '#ccc', margin: 0 }}>
-                      All {results.length} results loaded · {peopleCount} people · {results.length - peopleCount} companies
+                      All {results.length} loaded · {peopleCount} people · {results.length - peopleCount} companies
                     </p>
                   )}
                 </div>
-              </>
-            )}
           </>
         )}
       </div>
