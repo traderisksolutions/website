@@ -12,13 +12,17 @@ function sbHeaders(returnData = false) {
   }
 }
 
-// GET /api/outbound/leads — all leads ordered newest first
-export async function GET() {
+// GET /api/outbound/leads
+// ?urls=true  → returns [{ linkedin_url }] for all rows (no limit) — used for CRM dedup
+// default     → returns full rows, newest first, limit 500
+export async function GET(req: NextRequest) {
   try {
-    const res = await fetch(
-      `${SB_URL}/rest/v1/outbound_leads?select=*&order=created_at.desc&limit=500`,
-      { headers: sbHeaders(), cache: 'no-store' }
-    )
+    const urlsOnly = req.nextUrl.searchParams.get('urls') === 'true'
+    const query = urlsOnly
+      ? `${SB_URL}/rest/v1/outbound_leads?select=linkedin_url`
+      : `${SB_URL}/rest/v1/outbound_leads?select=*&order=created_at.desc&limit=500`
+
+    const res = await fetch(query, { headers: sbHeaders(), cache: 'no-store' })
     if (!res.ok) {
       const body = await res.text()
       return NextResponse.json({ error: body }, { status: res.status })

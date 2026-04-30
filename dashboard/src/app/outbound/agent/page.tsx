@@ -163,7 +163,7 @@ export default function AgentPage() {
           <div>
             <label style={labelStyle}>Max Companies — <span style={{ fontWeight: 400 }}>{agentMaxCo}</span></label>
             <input type="range" min={3} max={20} value={agentMaxCo} onChange={e => setAgentMaxCo(Number(e.target.value))} style={{ width: '100%' }} />
-            <p style={{ margin: '3px 0 0', fontSize: 11, color: '#aaa' }}>~{agentMaxCo * (agentRoles.length * 2 + 2)} Netrows credits per run</p>
+            <p style={{ margin: '3px 0 0', fontSize: 11, color: '#aaa' }}>~{1 + agentMaxCo * 4} Netrows credits per run · 2 roles searched per company</p>
           </div>
 
           {/* Run now */}

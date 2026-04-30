@@ -144,11 +144,11 @@ export default function ManualSearchPage() {
   // ── Load existing CRM leads for duplicate detection ───────────────────────
 
   useEffect(() => {
-    fetch('/api/outbound/leads')
+    fetch('/api/outbound/leads?urls=true')
       .then(r => r.ok ? r.json() : [])
-      .then((leads: { linkedin_url?: string | null }[]) => {
-        const urls = leads
-          .map(l => l.linkedin_url)
+      .then((rows: { linkedin_url?: string | null }[]) => {
+        const urls = rows
+          .map(r => r.linkedin_url)
           .filter((u): u is string => Boolean(u))
         setCrmUrls(new Set(urls))
       })
