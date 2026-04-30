@@ -27,6 +27,18 @@ interface CompanyResult {
 
 type SearchResult = PeopleResult | CompanyResult
 
+interface SavedLead {
+  id?:              string
+  full_name?:       string | null
+  headline?:        string | null
+  current_title?:   string | null
+  current_company?: string | null
+  profile_picture?: string | null
+  logo_url?:        string | null
+  record_type?:     string | null
+  location?:        string | null
+}
+
 function isPerson(r: SearchResult): r is PeopleResult {
   return 'fullName' in r
 }
@@ -193,7 +205,7 @@ export default function OutboundSearchPage() {
 
   // URL lookup
   const [lookupUrl,     setLookupUrl]     = useState('')
-  const [lookupResult,  setLookupResult]  = useState<Record<string, unknown> | null>(null)
+  const [lookupResult,  setLookupResult]  = useState<SavedLead | null>(null)
   const [lookupLoading, setLookupLoading] = useState(false)
 
   async function runSearch() {
