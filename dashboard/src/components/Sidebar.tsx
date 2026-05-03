@@ -7,7 +7,7 @@ import {
   Mail, MessageCircle, AlertCircle,
   Users, BarChart2, Settings,
   Search, ChevronRight, ChevronDown, Bot,
-  SlidersHorizontal, Table2,
+  SlidersHorizontal, Table2, LayoutDashboard, UsersRound,
 } from 'lucide-react'
 
 type Counts = { emailNew: number; waNew: number; claimsNew: number }
@@ -28,8 +28,9 @@ async function fetchCounts(): Promise<Counts> {
 
 export default function Sidebar() {
   const pathname = usePathname()
-  const [counts, setCounts]   = useState<Counts>({ emailNew: 0, waNew: 0, claimsNew: 0 })
+  const [counts,      setCounts]      = useState<Counts>({ emailNew: 0, waNew: 0, claimsNew: 0 })
   const [inboundOpen, setInboundOpen] = useState(true)
+  const [guideOpen,   setGuideOpen]   = useState(true)
 
   useEffect(() => {
     fetchCounts().then(setCounts)
@@ -92,8 +93,43 @@ export default function Sidebar() {
         </div>
       </div>
 
+      {/* How it works */}
+      <div style={{ borderBottom: '1px solid #f0f0f0', flexShrink: 0 }}>
+        <button
+          onClick={() => setGuideOpen(o => !o)}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '9px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+        >
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#aaa', letterSpacing: '0.04em', textTransform: 'uppercase', flex: 1 }}>How it works</span>
+          <ChevronDown size={12} strokeWidth={2} style={{ color: '#ccc', transition: 'transform 0.2s', transform: guideOpen ? 'rotate(0deg)' : 'rotate(-90deg)', flexShrink: 0 }} />
+        </button>
+        {guideOpen && (
+          <div style={{ padding: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[
+              { dot: '#3b82f6', label: 'Inbound Leads',        desc: 'Website forms, email & WhatsApp enquiries are captured automatically and routed to your inbox.' },
+              { dot: '#8b5cf6', label: 'Outbound Prospecting',  desc: 'AI agent searches LinkedIn, extracts decision-makers, and saves them to your Outbound CRM.' },
+              { dot: '#c00',    label: 'Agent 1 — First Reply', desc: 'Instantly responds to every new inbound lead so no enquiry goes cold.' },
+              { dot: '#f59e0b', label: 'Agent 2 — Engagement',  desc: 'Handles the 2nd message onwards, nurturing each lead until they are qualified or convert.' },
+              { dot: '#16a34a', label: 'Lead Pipeline',         desc: 'Every inbound and outbound contact is tracked by stage, channel, and value in one unified view.' },
+            ].map((step, i) => (
+              <div key={i} style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: step.dot, marginTop: 4, flexShrink: 0, display: 'inline-block' }} />
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: '#333', lineHeight: 1.3 }}>{step.label}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: 11, color: '#aaa', lineHeight: 1.4 }}>{step.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Nav */}
       <nav style={{ flex: 1, padding: '4px 8px 8px' }}>
+
+        {/* ── Overview ── */}
+        <NavItem label="Overview" href="/overview" icon={LayoutDashboard} isActive={active('/overview')} />
+
+        <Divider />
 
         {/* ── Inbound Leads group ── */}
         <button
@@ -120,69 +156,47 @@ export default function Sidebar() {
 
         {inboundOpen && (
           <div style={{ paddingLeft: 8 }}>
-            <NavItem
-              label="Email"
-              href="/inbound/email"
-              icon={Mail}
-              badge={counts.emailNew}
-              isActive={active('/inbound/email')}
-            />
-            <NavItem
-              label="WhatsApp"
-              href="/inbound/whatsapp"
-              icon={MessageCircle}
-              badge={counts.waNew}
-              isActive={active('/inbound/whatsapp')}
-            />
+            <NavItem label="Email"     href="/inbound/email"     icon={Mail}          badge={counts.emailNew} isActive={active('/inbound/email')} />
+            <NavItem label="WhatsApp"  href="/inbound/whatsapp"  icon={MessageCircle} badge={counts.waNew}    isActive={active('/inbound/whatsapp')} />
           </div>
         )}
 
-        {/* Divider */}
         <Divider />
 
         {/* ── Outbound ── */}
         <p style={{ margin: '8px 0 2px', padding: '0 10px', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#aaa' }}>
           Outbound
         </p>
-        <NavItem label="Manual Search" href="/outbound/search" icon={SlidersHorizontal} isActive={active('/outbound/search')} />
-        <NavItem label="AI Agent"      href="/outbound/agent"  icon={Bot}               isActive={active('/outbound/agent')} />
-        <NavItem label="Leads"         href="/outbound/leads"  icon={Table2}            isActive={active('/outbound/leads')} />
+        <NavItem label="Manual Search"     href="/outbound/search" icon={SlidersHorizontal} isActive={active('/outbound/search')} />
+        <NavItem label="Outbound AI Agent" href="/outbound/agent"  icon={Bot}               isActive={active('/outbound/agent')} />
+        <NavItem label="Leads"             href="/outbound/leads"  icon={Table2}            isActive={active('/outbound/leads')} />
 
-        {/* Divider */}
         <Divider />
 
         {/* ── Engagement Agent ── */}
         <p style={{ margin: '8px 0 2px', padding: '0 10px', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#aaa' }}>
           Engagement
         </p>
-        <NavItem label="Agent" href="/engagement" icon={Bot} isActive={active('/engagement')} />
+        <NavItem label="Engagement AI Agent" href="/engagement" icon={Bot} isActive={active('/engagement')} />
 
-        {/* Divider */}
         <Divider />
 
         {/* ── Claims ── */}
         <p style={{ margin: '8px 0 2px', padding: '0 10px', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#aaa' }}>
           Claims
         </p>
-        <NavItem
-          label="All Claims"
-          href="/claims"
-          icon={AlertCircle}
-          badge={counts.claimsNew}
-          isActive={active('/claims')}
-        />
+        <NavItem label="All Claims" href="/claims" icon={AlertCircle} badge={counts.claimsNew} isActive={active('/claims')} />
 
-        {/* Divider */}
         <Divider />
 
         {/* ── Analytics ── */}
         <p style={{ margin: '8px 0 2px', padding: '0 10px', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#aaa' }}>
           Analytics
         </p>
-        <NavItem label="Funnel"   href="/analytics"        icon={BarChart2} isActive={active('/analytics')} />
-        <NavItem label="Contacts" href="/contacts"         icon={Users}     isActive={false} disabled />
+        <NavItem label="Funnel"   href="/analytics" icon={BarChart2}  isActive={active('/analytics')} />
+        <NavItem label="Contacts" href="/contacts"  icon={Users}      isActive={active('/contacts')} />
+        <NavItem label="Team"     href="/team"      icon={UsersRound} isActive={active('/team')} />
 
-        {/* Divider */}
         <Divider />
 
         <NavItem label="Settings" href="/settings" icon={Settings} isActive={false} disabled />
