@@ -62,11 +62,22 @@
   var productsBtn  = document.getElementById('products-btn');
   var productsItem = document.getElementById('products-nav-item');
   var productsMega = document.getElementById('products-mega');
+  var megaLeaveTimer;
 
   function positionMega() {
     if (!productsMega) return;
     var rect = nav.getBoundingClientRect();
-    productsMega.style.top = (rect.bottom + 6) + 'px';
+    productsMega.style.top = rect.bottom + 'px';
+    /* Flush against nav bar → square top corners; detached pill → keep radius */
+    if (nav.classList.contains('nav--scrolled')) {
+      productsMega.style.borderTopLeftRadius  = '';
+      productsMega.style.borderTopRightRadius = '';
+      productsMega.style.borderTop            = '';
+    } else {
+      productsMega.style.borderTopLeftRadius  = '0';
+      productsMega.style.borderTopRightRadius = '0';
+      productsMega.style.borderTop            = 'none';
+    }
   }
   function openProducts() {
     productsItem.classList.add('open');
@@ -78,20 +89,27 @@
     productsBtn.setAttribute('aria-expanded', 'false');
   }
 
-  if (productsBtn) {
-    productsBtn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      productsItem.classList.contains('open') ? closeProducts() : openProducts();
+  /* Hover-based open/close */
+  if (productsItem) {
+    productsItem.addEventListener('mouseenter', function () {
+      clearTimeout(megaLeaveTimer);
+      openProducts();
+    });
+    productsItem.addEventListener('mouseleave', function () {
+      megaLeaveTimer = setTimeout(closeProducts, 120);
+    });
+  }
+  /* position:fixed mega is visually outside nav-item bounds — guard re-entry */
+  if (productsMega) {
+    productsMega.addEventListener('mouseenter', function () { clearTimeout(megaLeaveTimer); });
+    productsMega.addEventListener('mouseleave', function () {
+      megaLeaveTimer = setTimeout(closeProducts, 120);
     });
   }
 
   window.addEventListener('scroll', function () {
     if (productsItem && productsItem.classList.contains('open')) positionMega();
   }, { passive: true });
-
-  document.addEventListener('click', function (e) {
-    if (productsItem && !productsItem.contains(e.target)) closeProducts();
-  });
 
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') closeProducts();
