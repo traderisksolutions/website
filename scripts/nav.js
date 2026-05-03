@@ -97,6 +97,18 @@
     if (e.key === 'Escape') closeProducts();
   });
 
+  /* ── Mega-menu category switching ── */
+  document.querySelectorAll('.mega-cat').forEach(function (btn) {
+    btn.addEventListener('mouseenter', function () {
+      var cat = btn.dataset.cat;
+      document.querySelectorAll('.mega-cat').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      document.querySelectorAll('.mega-panel').forEach(function (p) { p.classList.remove('active'); });
+      var panel = document.querySelector('.mega-panel[data-panel="' + cat + '"]');
+      if (panel) panel.classList.add('active');
+    });
+  });
+
   /* ── Mobile accordion ── */
   document.querySelectorAll('.nav-drawer-accordion').forEach(function (btn) {
     btn.addEventListener('click', function () {
