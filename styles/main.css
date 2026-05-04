@@ -1037,19 +1037,21 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   pointer-events: auto;
   transform: translateY(0);
 }
-/* Resources — 2-col grid inside full-width panel */
+/* Resources — 2 items side by side, compact width */
 .nav-dropdown-panel--single {
   padding: 12px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 4px;
+  width: min(380px, calc(100vw - 40px));
 }
-/* Solutions — 3-col grid */
+/* Solutions — 3-col grid, sized to content */
 .nav-dropdown-panel--solutions {
   padding: 12px;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 4px;
+  width: min(660px, calc(100vw - 40px));
 }
 .sol-item {
   display: flex;
@@ -1229,6 +1231,19 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   text-transform: uppercase;
   color: var(--text-subtle);
 }
+/* Static sub-section label inside a drawer sub-panel (e.g. Workers under Workforce) */
+.nav-drawer-inner-label {
+  display: block;
+  padding: 10px 12px 3px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+  margin-top: 4px;
+}
+.nav-drawer-inner-label:first-child { margin-top: 0; }
+
 /* Sub-accordion within the Products drawer */
 .nav-drawer-sub-accordion {
   display: flex;

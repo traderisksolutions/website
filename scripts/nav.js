@@ -30,8 +30,9 @@
 
     if (trigger) {
       var trigRect = trigger.getBoundingClientRect();
-      var panelW   = Math.min(820, window.innerWidth - 40);
-      var left     = trigRect.left;
+      var panelW   = panel.offsetWidth || Math.min(820, window.innerWidth - 40);
+      /* Center panel below the trigger button */
+      var left = trigRect.left + trigRect.width / 2 - panelW / 2;
       if (left + panelW > window.innerWidth - 20) left = window.innerWidth - panelW - 20;
       if (left < 20) left = 20;
       panel.style.left = left + 'px';
@@ -114,8 +115,9 @@
     productsMega.style.top = navRect.bottom + 'px';
 
     var btnRect  = productsBtn.getBoundingClientRect();
-    var megaW    = Math.min(820, window.innerWidth - 40);
-    var left     = btnRect.left;
+    var megaW    = productsMega.offsetWidth || Math.min(820, window.innerWidth - 40);
+    /* Center mega below the Products button */
+    var left = btnRect.left + btnRect.width / 2 - megaW / 2;
     if (left + megaW > window.innerWidth - 20) left = window.innerWidth - megaW - 20;
     if (left < 20) left = 20;
     productsMega.style.left = left + 'px';
