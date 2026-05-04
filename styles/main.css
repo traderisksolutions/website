@@ -1942,6 +1942,147 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 .sc-panel        { display: none; }
 .sc-panel--active { display: block; }
 
+/* ── ElevenLabs-style category tab bar ── */
+.sc-cat-bar {
+  display: flex;
+  gap: 2px;
+  background: #e5e7eb;
+  border-radius: 9999px;
+  padding: 3px;
+  width: fit-content;
+  margin-bottom: 20px;
+}
+
+.sc-cat-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 16px;
+  border-radius: 9999px;
+  border: none;
+  background: transparent;
+  font-family: var(--font);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 100ms var(--ease), box-shadow 100ms var(--ease), color 100ms var(--ease);
+}
+.sc-cat-tab--active {
+  background: #ffffff;
+  color: #18181b;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.06);
+}
+
+.sc-cat-orb {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.sc-cat-orb--orange { background: radial-gradient(ellipse at 32% 30%, #fb923c 0%, #c2410c 100%); }
+.sc-cat-orb--blue   { background: radial-gradient(ellipse at 32% 30%, #60a5fa 0%, #1e40af 100%); }
+.sc-cat-orb--purple { background: radial-gradient(ellipse at 32% 30%, #c084fc 0%, #6d28d9 100%); }
+.sc-cat-orb--gray   { background: radial-gradient(ellipse at 32% 30%, #d1d5db 0%, #4b5563 100%); }
+
+/* ── Category content panels ── */
+.sc-cat-panel        { display: none; }
+.sc-cat-panel--active { display: block; }
+
+/* ── Overview card (Personal / Workforce / API) ── */
+.sc-overview-card {
+  display: none;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 28px 32px 24px;
+  min-height: 220px;
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+.sc-overview-card--active { display: flex; }
+
+.sc-ov-badge {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: rgba(0,0,0,0.05);
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(0,0,0,0.40);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+.sc-ov-title {
+  font-family: var(--font-heading);
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: #18181b;
+  margin: 0 0 10px;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.sc-ov-body {
+  font-size: 14px;
+  line-height: 1.7;
+  color: rgba(24,24,27,0.58);
+  margin: 0;
+  flex: 1;
+}
+
+.sc-ov-footer {
+  margin-top: 20px;
+  display: flex;
+}
+
+/* ── Business sub-panels (assets / liabilities) ── */
+.sc-biz-sub        { display: none; }
+.sc-biz-sub--active { display: block; }
+
+/* ── Bottom product pill bar ── */
+.sc-prod-bar {
+  padding-top: 14px;
+  border-top: 1px solid rgba(0,0,0,0.07);
+  margin-top: 20px;
+}
+
+.sc-prod-pills {
+  display: none;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+.sc-prod-pills--active { display: flex; }
+
+.sc-prod-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 16px;
+  border-radius: 9999px;
+  border: none;
+  background: transparent;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  color: #9ca3af;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 100ms var(--ease);
+}
+.sc-prod-pill--active {
+  background: #ffffff;
+  color: #18181b;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.10), 0 1px 2px rgba(0,0,0,0.06);
+}
+.sc-prod-pill:hover:not(.sc-prod-pill--active) { color: #18181b; }
+
 .sc-panel-inner {
   display: flex;
   gap: 0;
@@ -2206,7 +2347,21 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
     min-height: 300px;
     margin-bottom: 24px;
   }
-}
+
+  .sc-cat-bar {
+    flex-wrap: wrap;
+    background: transparent;
+    padding: 0;
+    gap: 6px;
+    width: 100%;
+  }
+  .sc-cat-tab { border: 1.5px solid rgba(0,0,0,0.10); flex: 1; justify-content: center; }
+  .sc-cat-tab--active { border-color: transparent; }
+
+  .sc-overview-card { padding: 20px; min-height: 180px; }
+  .sc-ov-title { font-size: 1.2rem; }
+
+  .sc-prod-pill { font-size: 12px; padding: 6px 12px; }
 }
 
 /* ═══════════════════════════════════════════════════════════════

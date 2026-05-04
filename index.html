@@ -332,398 +332,263 @@
 
   <!-- SHOWCASE SECTION -->
   <div class="sc-section-header">
-    <h2 class="sc-section-heading">Coverage based on your business</h2>
+    <h2 class="sc-section-heading">Coverage built around you</h2>
   </div>
   <section class="sc-section">
     <div class="sc-wrap">
       <div class="sc-card">
 
-        <!-- Industry selector tabs -->
-        <div class="sc-ind-tabs" role="tablist" aria-label="Business industry">
-          <button class="sc-ind-tab sc-ind-tab--active" data-panel="sme" role="tab" aria-selected="true">SME</button>
-          <button class="sc-ind-tab" data-panel="startups" role="tab" aria-selected="false">Startups</button>
-          <button class="sc-ind-tab" data-panel="cyber" role="tab" aria-selected="false">Cybersecurity</button>
-          <button class="sc-ind-tab" data-panel="construction" role="tab" aria-selected="false">Construction</button>
-          <button class="sc-ind-tab" data-panel="ecommerce" role="tab" aria-selected="false">eCommerce</button>
-          <button class="sc-ind-tab" data-panel="fintech" role="tab" aria-selected="false">FinTech</button>
-          <button class="sc-ind-tab" data-panel="technology" role="tab" aria-selected="false">Technology</button>
-          <button class="sc-ind-tab" data-panel="healthcare" role="tab" aria-selected="false">Healthcare</button>
-          <button class="sc-ind-tab" data-panel="logistics" role="tab" aria-selected="false">Logistics</button>
+        <!-- Category tabs (ElevenLabs-style) -->
+        <div class="sc-cat-bar" role="tablist">
+          <button class="sc-cat-tab sc-cat-tab--active" data-cat="personal" role="tab">
+            <span class="sc-cat-orb sc-cat-orb--orange"></span>Personal
+          </button>
+          <button class="sc-cat-tab" data-cat="business" role="tab">
+            <span class="sc-cat-orb sc-cat-orb--blue"></span>Business
+          </button>
+          <button class="sc-cat-tab" data-cat="workforce" role="tab">
+            <span class="sc-cat-orb sc-cat-orb--purple"></span>Workforce
+          </button>
+          <button class="sc-cat-tab" data-cat="api" role="tab">
+            <span class="sc-cat-orb sc-cat-orb--gray"></span>API
+          </button>
         </div>
 
-        <!-- Content panels per industry -->
-        <div class="sc-body">
+        <!-- Category content panels -->
+        <div class="sc-cat-panels">
 
-          <!-- SME -->
-          <div class="sc-panel sc-panel--active" data-panel="sme">
-            <div class="sc-panel-inner">
-              <div class="sc-panel-left">
-                <div class="sc-prow sc-prow--active" data-prod="sme-property">
-                  <span class="sc-porb sc-porb--b1"></span>
-                  <span class="sc-pname">Business Property</span>
-                  <span class="sc-pcat">Assets &amp; Premises</span>
-                </div>
-                <div class="sc-prow" data-prod="sme-liability">
-                  <span class="sc-porb sc-porb--c2"></span>
-                  <span class="sc-pname">Public Liability</span>
-                  <span class="sc-pcat">Third-Party Risk</span>
-                </div>
-                <div class="sc-prow" data-prod="sme-workforce">
-                  <span class="sc-porb sc-porb--e1"></span>
-                  <span class="sc-pname">Workforce Protection</span>
-                  <span class="sc-pcat">Employee Cover</span>
-                </div>
-                <a href="/solutions/sme" class="sc-explore">Explore all plans</a>
-              </div>
-              <div class="sc-panel-right">
-                <div class="sc-prod-desc sc-prod-desc--active" data-prod="sme-property">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">Covers your office, store, or warehouse against fire, water damage, and theft — including business interruption if operations are forced to stop unexpectedly.</p>
-                  <div class="sc-panel-footer"><a href="/commercial/property" class="sc-panel-btn">Get a quote &rarr;</a></div>
-                </div>
-                <div class="sc-prod-desc" data-prod="sme-liability">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">Protects you against third-party claims of bodily injury and property damage arising from your business operations, products, or services — including legal defence costs.</p>
-                  <div class="sc-panel-footer"><a href="/commercial/core-liability" class="sc-panel-btn">Get a quote &rarr;</a></div>
-                </div>
-                <div class="sc-prod-desc" data-prod="sme-workforce">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">WICA insurance, group medical, and personal accident cover for your employees and workers — keeping your team protected and your business legally compliant.</p>
-                  <div class="sc-panel-footer"><a href="/commercial/workmen" class="sc-panel-btn">Get a quote &rarr;</a></div>
-                </div>
-              </div>
+          <!-- ── Personal ── -->
+          <div class="sc-cat-panel sc-cat-panel--active" data-cat="personal">
+
+            <div class="sc-overview-card sc-overview-card--active" data-prod="per-home">
+              <span class="sc-ov-badge">Property Protection</span>
+              <h3 class="sc-ov-title">Home Contents Insurance</h3>
+              <p class="sc-ov-body">Covers your furniture, electronics, and personal belongings against theft, fire, flood, and accidental damage — protecting everything that makes your house a home.</p>
+              <div class="sc-ov-footer"><a href="/personal/home-contents" class="sc-panel-btn">Learn more &rarr;</a></div>
             </div>
-          </div>
 
-          <!-- Startups -->
-          <div class="sc-panel" data-panel="startups">
-            <div class="sc-panel-inner">
-              <div class="sc-panel-left">
-                <div class="sc-prow sc-prow--active" data-prod="startups-cyber">
-                  <span class="sc-porb sc-porb--c1"></span>
-                  <span class="sc-pname">Cyber Insurance</span>
-                  <span class="sc-pcat">Digital Risk</span>
-                </div>
-                <div class="sc-prow" data-prod="startups-dao">
-                  <span class="sc-porb sc-porb--c2"></span>
-                  <span class="sc-pname">D&amp;O Liability</span>
-                  <span class="sc-pcat">Leadership Cover</span>
-                </div>
-                <div class="sc-prow" data-prod="startups-pi">
-                  <span class="sc-porb sc-porb--b1"></span>
-                  <span class="sc-pname">Professional Indemnity</span>
-                  <span class="sc-pcat">Error &amp; Omission</span>
-                </div>
-                <a href="/solutions/startups" class="sc-explore">Explore all plans</a>
-              </div>
-              <div class="sc-panel-right">
-                <div class="sc-prod-desc sc-prod-desc--active" data-prod="startups-cyber">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">First and third-party cyber cover for data breaches, ransomware, and regulatory investigations — including incident response support and client notification costs.</p>
-                  <div class="sc-panel-footer"><a href="/commercial/cyber" class="sc-panel-btn">Get a quote &rarr;</a></div>
-                </div>
-                <div class="sc-prod-desc" data-prod="startups-dao">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">Protects directors and officers against claims of wrongful acts or mismanagement — critical when investors, employees, or regulators challenge leadership decisions.</p>
-                  <div class="sc-panel-footer"><a href="/commercial/professional-indemnity" class="sc-panel-btn">Get a quote &rarr;</a></div>
-                </div>
-                <div class="sc-prod-desc" data-prod="startups-pi">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">Coverage for claims arising from errors in professional advice or service delivery — protecting revenue and reputation if a client suffers financial loss due to your work.</p>
-                  <div class="sc-panel-footer"><a href="/commercial/professional-indemnity" class="sc-panel-btn">Get a quote &rarr;</a></div>
-                </div>
-              </div>
+            <div class="sc-overview-card" data-prod="per-fire">
+              <span class="sc-ov-badge">Structural Protection</span>
+              <h3 class="sc-ov-title">Fire Insurance</h3>
+              <p class="sc-ov-body">Mandatory protection for HDB and private property owners, covering structural damage from fire and other perils — ensuring your most valuable asset is always protected.</p>
+              <div class="sc-ov-footer"><a href="/personal/fire" class="sc-panel-btn">Learn more &rarr;</a></div>
             </div>
-          </div>
 
-          <!-- Cybersecurity -->
-          <div class="sc-panel" data-panel="cyber">
-            <div class="sc-panel-inner">
-              <div class="sc-panel-left">
-                <div class="sc-prow sc-prow--active" data-prod="cyber-cyber">
-                  <span class="sc-porb sc-porb--c2"></span>
-                  <span class="sc-pname">Cyber Insurance</span>
-                  <span class="sc-pcat">Incident Response</span>
-                </div>
-                <div class="sc-prow" data-prod="cyber-tech-pi">
-                  <span class="sc-porb sc-porb--b2"></span>
-                  <span class="sc-pname">Technology PI</span>
-                  <span class="sc-pcat">Professional Cover</span>
-                </div>
-                <div class="sc-prow" data-prod="cyber-crime">
-                  <span class="sc-porb sc-porb--c3"></span>
-                  <span class="sc-pname">Crime Cover</span>
-                  <span class="sc-pcat">Financial Loss</span>
-                </div>
-                <a href="/solutions/cybersecurity" class="sc-explore">Explore all plans</a>
-              </div>
-              <div class="sc-panel-right">
-                <div class="sc-prod-desc sc-prod-desc--active" data-prod="cyber-cyber">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">Layered cyber cover responding from breach detection through to regulatory defence, customer notification, PR recovery, and restoration of affected systems.</p>
-                  <div class="sc-panel-footer"><a href="/commercial/cyber" class="sc-panel-btn">Get a quote &rarr;</a></div>
-                </div>
-                <div class="sc-prod-desc" data-prod="cyber-tech-pi">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">Covers claims that your technology products or services failed to perform, caused client financial loss, or resulted in a data breach attributable to your solution.</p>
-                  <div class="sc-panel-footer"><a href="/commercial/professional-indemnity" class="sc-panel-btn">Get a quote &rarr;</a></div>
-                </div>
-                <div class="sc-prod-desc" data-prod="cyber-crime">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">First-party financial loss coverage for cyber-enabled fraud, social engineering attacks, and internal dishonesty — protecting assets when controls are circumvented.</p>
-                  <div class="sc-panel-footer"><a href="/commercial/cyber" class="sc-panel-btn">Get a quote &rarr;</a></div>
-                </div>
-              </div>
+            <div class="sc-overview-card" data-prod="per-travel">
+              <span class="sc-ov-badge">Journey Protection</span>
+              <h3 class="sc-ov-title">Travel Insurance</h3>
+              <p class="sc-ov-body">Single or annual trip coverage for medical emergencies, trip cancellations, lost baggage, and travel delays — covering you wherever life takes you.</p>
+              <div class="sc-ov-footer"><a href="/personal/travel" class="sc-panel-btn">Learn more &rarr;</a></div>
             </div>
-          </div>
 
-          <!-- Construction -->
-          <div class="sc-panel" data-panel="construction">
-            <div class="sc-panel-inner">
-              <div class="sc-panel-left">
-                <div class="sc-prow sc-prow--active" data-prod="constr-car">
-                  <span class="sc-porb sc-porb--b1"></span>
-                  <span class="sc-pname">CAR / EAR Insurance</span>
-                  <span class="sc-pcat">Project Cover</span>
-                </div>
-                <div class="sc-prow" data-prod="constr-property">
-                  <span class="sc-porb sc-porb--b2"></span>
-                  <span class="sc-pname">Plant &amp; Equipment</span>
-                  <span class="sc-pcat">Physical Assets</span>
-                </div>
-                <div class="sc-prow" data-prod="constr-wica">
-                  <span class="sc-porb sc-porb--e1"></span>
-                  <span class="sc-pname">Workmen Compensation</span>
-                  <span class="sc-pcat">Workforce Cover</span>
-                </div>
-                <a href="/solutions/construction" class="sc-explore">Explore all plans</a>
-              </div>
-              <div class="sc-panel-right">
-                <div class="sc-prod-desc sc-prod-desc--active" data-prod="constr-car">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">Contractors' All-Risk and Engineering All-Risk insurance covering material damage and third-party liability throughout the construction or engineering project period.</p>
-                  <div class="sc-panel-footer"><a href="/commercial/property" class="sc-panel-btn">Get a quote &rarr;</a></div>
-                </div>
-                <div class="sc-prod-desc" data-prod="constr-property">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">Coverage for owned or rented plant, machinery, and tools on and off-site — including sudden and unforeseen mechanical or electrical breakdown while in operation.</p>
-                  <div class="sc-panel-footer"><a href="/commercial/property" class="sc-panel-btn">Get a quote &rarr;</a></div>
-                </div>
-                <div class="sc-prod-desc" data-prod="constr-wica">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">Mandatory WICA insurance for your workers, covering medical expenses, permanent disability, and death benefits arising from work-related accidents or occupational diseases.</p>
-                  <div class="sc-panel-footer"><a href="/commercial/workmen" class="sc-panel-btn">Get a quote &rarr;</a></div>
-                </div>
-              </div>
+            <div class="sc-overview-card" data-prod="per-maid">
+              <span class="sc-ov-badge">MOM-Compliant Coverage</span>
+              <h3 class="sc-ov-title">Maid Insurance</h3>
+              <p class="sc-ov-body">Mandatory MOM-compliant coverage for your foreign domestic worker — including personal accident, hospitalisation, and repatriation costs.</p>
+              <div class="sc-ov-footer"><a href="/personal/maid" class="sc-panel-btn">Learn more &rarr;</a></div>
             </div>
-          </div>
 
-          <!-- eCommerce -->
-          <div class="sc-panel" data-panel="ecommerce">
-            <div class="sc-panel-inner">
-              <div class="sc-panel-left">
-                <div class="sc-prow sc-prow--active" data-prod="ecomm-stock">
-                  <span class="sc-porb sc-porb--c1"></span>
-                  <span class="sc-pname">Stock &amp; Inventory</span>
-                  <span class="sc-pcat">Product Cover</span>
-                </div>
-                <div class="sc-prow" data-prod="ecomm-transit">
-                  <span class="sc-porb sc-porb--c2"></span>
-                  <span class="sc-pname">Goods in Transit</span>
-                  <span class="sc-pcat">Shipping Cover</span>
-                </div>
-                <div class="sc-prow" data-prod="ecomm-liability">
-                  <span class="sc-porb sc-porb--b1"></span>
-                  <span class="sc-pname">Product Liability</span>
-                  <span class="sc-pcat">Consumer Risk</span>
-                </div>
-                <a href="/solutions/ecommerce" class="sc-explore">Explore all plans</a>
-              </div>
-              <div class="sc-panel-right">
-                <div class="sc-prod-desc sc-prod-desc--active" data-prod="ecomm-stock">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">All-risk cover for your stock in warehouses, fulfillment centres, or retail premises — protecting against theft, fire, water damage, and accidental loss.</p>
-                  <div class="sc-panel-footer"><a href="/commercial/property" class="sc-panel-btn">Get a quote &rarr;</a></div>
-                </div>
-                <div class="sc-prod-desc" data-prod="ecomm-transit">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">Marine cargo and inland transit cover for goods moving between suppliers, warehouses, and customers — protecting shipments locally and internationally against loss or damage.</p>
-                  <div class="sc-panel-footer"><a href="/commercial/property" class="sc-panel-btn">Get a quote &rarr;</a></div>
-                </div>
-                <div class="sc-prod-desc" data-prod="ecomm-liability">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">Protects against claims from customers who suffer bodily injury or property damage from a defective product you sell, import, distribute, or market online.</p>
-                  <div class="sc-panel-footer"><a href="/commercial/core-liability" class="sc-panel-btn">Get a quote &rarr;</a></div>
-                </div>
-              </div>
+            <div class="sc-overview-card" data-prod="per-pa">
+              <span class="sc-ov-badge">24/7 Protection</span>
+              <h3 class="sc-ov-title">Personal Accident</h3>
+              <p class="sc-ov-body">Round-the-clock coverage against accidental injury, permanent disability, and death — providing financial support when life takes an unexpected turn.</p>
+              <div class="sc-ov-footer"><a href="/personal/personal-accident" class="sc-panel-btn">Learn more &rarr;</a></div>
             </div>
-          </div>
 
-          <!-- FinTech -->
-          <div class="sc-panel" data-panel="fintech">
-            <div class="sc-panel-inner">
-              <div class="sc-panel-left">
-                <div class="sc-prow sc-prow--active" data-prod="fintech-pi">
-                  <span class="sc-porb sc-porb--b2"></span>
-                  <span class="sc-pname">Professional Indemnity</span>
-                  <span class="sc-pcat">Regulatory Cover</span>
+          </div><!-- /personal -->
+
+          <!-- ── Business ── -->
+          <div class="sc-cat-panel" data-cat="business">
+
+            <!-- Assets sub-panel -->
+            <div class="sc-biz-sub sc-biz-sub--active" data-sub="assets">
+              <div class="sc-panel-inner">
+                <div class="sc-panel-left">
+                  <div class="sc-prow sc-prow--active" data-prod="biz-property">
+                    <span class="sc-porb sc-porb--b1"></span>
+                    <span class="sc-pname">Business Property</span>
+                    <span class="sc-pcat">Assets &amp; Premises</span>
+                  </div>
+                  <div class="sc-prow" data-prod="biz-equipment">
+                    <span class="sc-porb sc-porb--b2"></span>
+                    <span class="sc-pname">Equipment Breakdown</span>
+                    <span class="sc-pcat">Machinery &amp; Plant</span>
+                  </div>
+                  <div class="sc-prow" data-prod="biz-marine">
+                    <span class="sc-porb sc-porb--c2"></span>
+                    <span class="sc-pname">Marine Cargo</span>
+                    <span class="sc-pcat">Goods in Transit</span>
+                  </div>
+                  <div class="sc-prow" data-prod="biz-motor">
+                    <span class="sc-porb sc-porb--c3"></span>
+                    <span class="sc-pname">Commercial Motor</span>
+                    <span class="sc-pcat">Fleet &amp; Vehicles</span>
+                  </div>
                 </div>
-                <div class="sc-prow" data-prod="fintech-dao">
-                  <span class="sc-porb sc-porb--c1"></span>
-                  <span class="sc-pname">D&amp;O Liability</span>
-                  <span class="sc-pcat">Leadership Cover</span>
+                <div class="sc-panel-right">
+                  <div class="sc-prod-desc sc-prod-desc--active" data-prod="biz-property">
+                    <p class="sc-ph-label">About this coverage</p>
+                    <p class="sc-ph-text">Covers your commercial premises, inventory, and equipment against fire, flood, theft, and business interruption — so your operations continue even when the unexpected happens.</p>
+                    <div class="sc-panel-footer"><a href="/commercial/property" class="sc-panel-btn">Learn more &rarr;</a></div>
+                  </div>
+                  <div class="sc-prod-desc" data-prod="biz-equipment">
+                    <p class="sc-ph-label">About this coverage</p>
+                    <p class="sc-ph-text">Protects critical business machinery against sudden breakdown, covering repair or replacement costs and loss of income while equipment is out of service.</p>
+                    <div class="sc-panel-footer"><a href="/commercial/equipment" class="sc-panel-btn">Learn more &rarr;</a></div>
+                  </div>
+                  <div class="sc-prod-desc" data-prod="biz-marine">
+                    <p class="sc-ph-label">About this coverage</p>
+                    <p class="sc-ph-text">Covers your goods in transit by sea, air, or land against loss and damage — essential protection for importers, exporters, and distributors operating across borders.</p>
+                    <div class="sc-panel-footer"><a href="/commercial/marine" class="sc-panel-btn">Learn more &rarr;</a></div>
+                  </div>
+                  <div class="sc-prod-desc" data-prod="biz-motor">
+                    <p class="sc-ph-label">About this coverage</p>
+                    <p class="sc-ph-text">Third-party liability, own damage, and driver accident cover for your commercial vehicles and fleet — keeping your business on the road and legally compliant.</p>
+                    <div class="sc-panel-footer"><a href="/commercial/motor" class="sc-panel-btn">Learn more &rarr;</a></div>
+                  </div>
                 </div>
-                <div class="sc-prow" data-prod="fintech-crime">
-                  <span class="sc-porb sc-porb--c3"></span>
-                  <span class="sc-pname">Crime &amp; Cyber Fraud</span>
-                  <span class="sc-pcat">Financial Crime</span>
-                </div>
-                <a href="/solutions/fintech" class="sc-explore">Explore all plans</a>
               </div>
-              <div class="sc-panel-right">
-                <div class="sc-prod-desc sc-prod-desc--active" data-prod="fintech-pi">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">Covers regulatory investigations, civil claims, and fines arising from errors in financial advice, platform failures, or breaches of regulatory obligations in your licensed activities.</p>
-                  <div class="sc-panel-footer"><a href="/commercial/professional-indemnity" class="sc-panel-btn">Get a quote &rarr;</a></div>
+            </div><!-- /assets -->
+
+            <!-- Liabilities sub-panel -->
+            <div class="sc-biz-sub" data-sub="liabilities">
+              <div class="sc-panel-inner">
+                <div class="sc-panel-left">
+                  <div class="sc-prow sc-prow--active" data-prod="biz-pl">
+                    <span class="sc-porb sc-porb--c2"></span>
+                    <span class="sc-pname">Public Liability</span>
+                    <span class="sc-pcat">Third-Party Risk</span>
+                  </div>
+                  <div class="sc-prow" data-prod="biz-pi">
+                    <span class="sc-porb sc-porb--c1"></span>
+                    <span class="sc-pname">Professional Indemnity</span>
+                    <span class="sc-pcat">Professional Risk</span>
+                  </div>
+                  <div class="sc-prow" data-prod="biz-cyber">
+                    <span class="sc-porb sc-porb--b2"></span>
+                    <span class="sc-pname">Cyber Liability</span>
+                    <span class="sc-pcat">Digital Risk</span>
+                  </div>
+                  <div class="sc-prow" data-prod="biz-crime">
+                    <span class="sc-porb sc-porb--b1"></span>
+                    <span class="sc-pname">Crime Insurance</span>
+                    <span class="sc-pcat">Financial Crime</span>
+                  </div>
                 </div>
-                <div class="sc-prod-desc" data-prod="fintech-dao">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">Protects directors and officers against claims of wrongful acts or mismanagement from investors, regulators, or employees — including legal costs for regulatory inquiries.</p>
-                  <div class="sc-panel-footer"><a href="/commercial/professional-indemnity" class="sc-panel-btn">Get a quote &rarr;</a></div>
-                </div>
-                <div class="sc-prod-desc" data-prod="fintech-crime">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">First-party crime cover for losses from electronic fraud, social engineering, unauthorised trading, and internal dishonesty — critical for businesses handling client funds.</p>
-                  <div class="sc-panel-footer"><a href="/commercial/cyber" class="sc-panel-btn">Get a quote &rarr;</a></div>
+                <div class="sc-panel-right">
+                  <div class="sc-prod-desc sc-prod-desc--active" data-prod="biz-pl">
+                    <p class="sc-ph-label">About this coverage</p>
+                    <p class="sc-ph-text">Protects against third-party claims of bodily injury or property damage arising from your business operations, products, or services — including legal defence costs.</p>
+                    <div class="sc-panel-footer"><a href="/commercial/liability" class="sc-panel-btn">Learn more &rarr;</a></div>
+                  </div>
+                  <div class="sc-prod-desc" data-prod="biz-pi">
+                    <p class="sc-ph-label">About this coverage</p>
+                    <p class="sc-ph-text">Covers professionals against claims of negligence, errors, or omissions in the delivery of your services — protecting your reputation and financial stability.</p>
+                    <div class="sc-panel-footer"><a href="/commercial/professional-indemnity" class="sc-panel-btn">Learn more &rarr;</a></div>
+                  </div>
+                  <div class="sc-prod-desc" data-prod="biz-cyber">
+                    <p class="sc-ph-label">About this coverage</p>
+                    <p class="sc-ph-text">Responds to data breaches, ransomware, and cyber extortion — covering incident response costs, regulatory penalties, and third-party liability claims.</p>
+                    <div class="sc-panel-footer"><a href="/commercial/cyber" class="sc-panel-btn">Learn more &rarr;</a></div>
+                  </div>
+                  <div class="sc-prod-desc" data-prod="biz-crime">
+                    <p class="sc-ph-label">About this coverage</p>
+                    <p class="sc-ph-text">Protects your business against financial losses from employee dishonesty, fraud, forgery, theft, and other criminal acts — from inside or outside the organisation.</p>
+                    <div class="sc-panel-footer"><a href="/commercial/crime" class="sc-panel-btn">Learn more &rarr;</a></div>
+                  </div>
                 </div>
               </div>
+            </div><!-- /liabilities -->
+
+          </div><!-- /business -->
+
+          <!-- ── Workforce ── -->
+          <div class="sc-cat-panel" data-cat="workforce">
+
+            <div class="sc-overview-card sc-overview-card--active" data-prod="wf-medical">
+              <span class="sc-ov-badge">Employee Health</span>
+              <h3 class="sc-ov-title">Group Medical Insurance</h3>
+              <p class="sc-ov-body">Comprehensive hospitalisation and outpatient coverage for your team — a cornerstone benefit that attracts top talent and ensures your workforce stays protected and productive.</p>
+              <div class="sc-ov-footer"><a href="/workforce/group-medical" class="sc-panel-btn">Learn more &rarr;</a></div>
             </div>
-          </div>
 
-          <!-- Technology -->
-          <div class="sc-panel" data-panel="technology">
-            <div class="sc-panel-inner">
-              <div class="sc-panel-left">
-                <div class="sc-prow sc-prow--active" data-prod="tech-cyber">
-                  <span class="sc-porb sc-porb--c2"></span>
-                  <span class="sc-pname">Cyber Insurance</span>
-                  <span class="sc-pcat">Data Protection</span>
-                </div>
-                <div class="sc-prow" data-prod="tech-pi">
-                  <span class="sc-porb sc-porb--b2"></span>
-                  <span class="sc-pname">Technology PI</span>
-                  <span class="sc-pcat">Tech Cover</span>
-                </div>
-                <div class="sc-prow" data-prod="tech-benefits">
-                  <span class="sc-porb sc-porb--e1"></span>
-                  <span class="sc-pname">Employee Benefits</span>
-                  <span class="sc-pcat">Talent Retention</span>
-                </div>
-                <a href="/solutions/technology" class="sc-explore">Explore all plans</a>
-              </div>
-              <div class="sc-panel-right">
-                <div class="sc-prod-desc sc-prod-desc--active" data-prod="tech-cyber">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">First and third-party cyber cover for data breaches, system outages, and ransomware — including client notification costs, regulatory fines, and forensic investigation support.</p>
-                  <div class="sc-panel-footer"><a href="/commercial/cyber" class="sc-panel-btn">Get a quote &rarr;</a></div>
-                </div>
-                <div class="sc-prod-desc" data-prod="tech-pi">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">Covers claims that your software or platform failed to perform as contracted, caused data loss, or resulted in client financial harm — protecting you from costly professional disputes.</p>
-                  <div class="sc-panel-footer"><a href="/commercial/professional-indemnity" class="sc-panel-btn">Get a quote &rarr;</a></div>
-                </div>
-                <div class="sc-prod-desc" data-prod="tech-benefits">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">Group medical, group life, and flexible benefits programmes designed to attract and retain top technology talent in a competitive market — customisable by seniority and role.</p>
-                  <div class="sc-panel-footer"><a href="/employees/medical" class="sc-panel-btn">Get a quote &rarr;</a></div>
-                </div>
-              </div>
+            <div class="sc-overview-card" data-prod="wf-wica">
+              <span class="sc-ov-badge">Mandatory Coverage</span>
+              <h3 class="sc-ov-title">Work Injury Compensation (WICA)</h3>
+              <p class="sc-ov-body">Legally required coverage for all employees and manual workers, protecting against work-related injuries, illnesses, and death — keeping your business fully MOM-compliant.</p>
+              <div class="sc-ov-footer"><a href="/workforce/wica" class="sc-panel-btn">Learn more &rarr;</a></div>
             </div>
-          </div>
 
-          <!-- Healthcare -->
-          <div class="sc-panel" data-panel="healthcare">
-            <div class="sc-panel-inner">
-              <div class="sc-panel-left">
-                <div class="sc-prow sc-prow--active" data-prod="health-mpi">
-                  <span class="sc-porb sc-porb--c1"></span>
-                  <span class="sc-pname">Medical Malpractice</span>
-                  <span class="sc-pcat">Clinical Cover</span>
-                </div>
-                <div class="sc-prow" data-prod="health-product">
-                  <span class="sc-porb sc-porb--b1"></span>
-                  <span class="sc-pname">Product Liability</span>
-                  <span class="sc-pcat">Patient Safety</span>
-                </div>
-                <div class="sc-prow" data-prod="health-benefits">
-                  <span class="sc-porb sc-porb--e1"></span>
-                  <span class="sc-pname">Group Health Insurance</span>
-                  <span class="sc-pcat">Staff Benefits</span>
-                </div>
-                <a href="/solutions/healthcare" class="sc-explore">Explore all plans</a>
-              </div>
-              <div class="sc-panel-right">
-                <div class="sc-prod-desc sc-prod-desc--active" data-prod="health-mpi">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">Professional indemnity for clinicians, practitioners, and healthcare facilities — covering claims of clinical negligence, misdiagnosis, or malpractice against your practice.</p>
-                  <div class="sc-panel-footer"><a href="/commercial/professional-indemnity" class="sc-panel-btn">Get a quote &rarr;</a></div>
-                </div>
-                <div class="sc-prod-desc" data-prod="health-product">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">Coverage against claims arising from medical devices, pharmaceuticals, or health products that cause harm to patients or users — including recall costs and legal defence.</p>
-                  <div class="sc-panel-footer"><a href="/commercial/core-liability" class="sc-panel-btn">Get a quote &rarr;</a></div>
-                </div>
-                <div class="sc-prod-desc" data-prod="health-benefits">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">Inpatient, outpatient, and specialist cover for your clinical and administrative staff — customisable by grade and coverage tier to attract and retain healthcare professionals.</p>
-                  <div class="sc-panel-footer"><a href="/employees/medical" class="sc-panel-btn">Get a quote &rarr;</a></div>
-                </div>
-              </div>
+            <div class="sc-overview-card" data-prod="wf-life">
+              <span class="sc-ov-badge">Life &amp; Disability</span>
+              <h3 class="sc-ov-title">Group Term Life</h3>
+              <p class="sc-ov-body">Lump-sum death and total permanent disability payouts for your employees — a key pillar of your benefits package that demonstrates genuine care for your team and their families.</p>
+              <div class="sc-ov-footer"><a href="/workforce/group-life" class="sc-panel-btn">Learn more &rarr;</a></div>
             </div>
-          </div>
 
-          <!-- Logistics -->
-          <div class="sc-panel" data-panel="logistics">
-            <div class="sc-panel-inner">
-              <div class="sc-panel-left">
-                <div class="sc-prow sc-prow--active" data-prod="logi-marine">
-                  <span class="sc-porb sc-porb--c2"></span>
-                  <span class="sc-pname">Marine Cargo</span>
-                  <span class="sc-pcat">Freight Cover</span>
-                </div>
-                <div class="sc-prow" data-prod="logi-fleet">
-                  <span class="sc-porb sc-porb--c3"></span>
-                  <span class="sc-pname">Motor Fleet</span>
-                  <span class="sc-pcat">Vehicle Cover</span>
-                </div>
-                <div class="sc-prow" data-prod="logi-warehouse">
-                  <span class="sc-porb sc-porb--b2"></span>
-                  <span class="sc-pname">Warehouse Liability</span>
-                  <span class="sc-pcat">Storage Risk</span>
-                </div>
-                <a href="/solutions/logistics" class="sc-explore">Explore all plans</a>
-              </div>
-              <div class="sc-panel-right">
-                <div class="sc-prod-desc sc-prod-desc--active" data-prod="logi-marine">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">Coverage for goods in transit by sea, air, or land — protecting against loss, damage, and delay from origin to final destination, locally and internationally.</p>
-                  <div class="sc-panel-footer"><a href="/commercial/property" class="sc-panel-btn">Get a quote &rarr;</a></div>
-                </div>
-                <div class="sc-prod-desc" data-prod="logi-fleet">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">Comprehensive or third-party cover for your commercial vehicles — trucks, vans, and forklifts across your owned or managed fleet, with competitive fleet pricing.</p>
-                  <div class="sc-panel-footer"><a href="/commercial/property" class="sc-panel-btn">Get a quote &rarr;</a></div>
-                </div>
-                <div class="sc-prod-desc" data-prod="logi-warehouse">
-                  <p class="sc-ph-label">About this coverage</p>
-                  <p class="sc-ph-text">Covers goods-in-custody liability and property damage at your warehouses, fulfillment hubs, and distribution centres — protecting you against third-party claims for stock in your care.</p>
-                  <div class="sc-panel-footer"><a href="/commercial/core-liability" class="sc-panel-btn">Get a quote &rarr;</a></div>
-                </div>
-              </div>
+            <div class="sc-overview-card" data-prod="wf-pa">
+              <span class="sc-ov-badge">24/7 Cover</span>
+              <h3 class="sc-ov-title">Personal Accident (Employee)</h3>
+              <p class="sc-ov-body">Round-the-clock accident protection for your workforce, complementing Group Medical with benefits covering accidental injury, hospitalisation, and permanent disability.</p>
+              <div class="sc-ov-footer"><a href="/workforce/personal-accident" class="sc-panel-btn">Learn more &rarr;</a></div>
             </div>
-          </div>
 
-        </div><!-- /sc-body -->
+          </div><!-- /workforce -->
+
+          <!-- ── API ── -->
+          <div class="sc-cat-panel" data-cat="api">
+
+            <div class="sc-overview-card sc-overview-card--active" data-prod="api-embedded">
+              <span class="sc-ov-badge">Embedded Distribution</span>
+              <h3 class="sc-ov-title">Embedded Insurance</h3>
+              <p class="sc-ov-body">Integrate insurance directly into your platform or product — offering customers contextual coverage at the point of need, powered by TRS's licensed infrastructure and insurer network.</p>
+              <div class="sc-ov-footer"><a href="/api/embedded" class="sc-panel-btn">Learn more &rarr;</a></div>
+            </div>
+
+            <div class="sc-overview-card" data-prod="api-whitelabel">
+              <span class="sc-ov-badge">Branded Solutions</span>
+              <h3 class="sc-ov-title">White Label Platform</h3>
+              <p class="sc-ov-body">Launch your own insurance platform under your brand, backed by TRS's compliance framework, pricing engine, and relationships with Singapore's leading insurers.</p>
+              <div class="sc-ov-footer"><a href="/api/white-label" class="sc-panel-btn">Learn more &rarr;</a></div>
+            </div>
+
+            <div class="sc-overview-card" data-prod="api-integration">
+              <span class="sc-ov-badge">System Connectivity</span>
+              <h3 class="sc-ov-title">API Integration</h3>
+              <p class="sc-ov-body">Connect your existing systems to TRS's insurance engine for real-time quotes, instant policy issuance, automated renewals, and seamless claims management.</p>
+              <div class="sc-ov-footer"><a href="/api/integration" class="sc-panel-btn">Learn more &rarr;</a></div>
+            </div>
+
+          </div><!-- /api -->
+
+        </div><!-- /sc-cat-panels -->
+
+        <!-- Bottom: product pills per category -->
+        <div class="sc-prod-bar">
+          <div class="sc-prod-pills sc-prod-pills--active" data-cat="personal">
+            <button class="sc-prod-pill sc-prod-pill--active" data-cat="personal" data-prod="per-home">Home Contents</button>
+            <button class="sc-prod-pill" data-cat="personal" data-prod="per-fire">Fire Insurance</button>
+            <button class="sc-prod-pill" data-cat="personal" data-prod="per-travel">Travel</button>
+            <button class="sc-prod-pill" data-cat="personal" data-prod="per-maid">Maid Insurance</button>
+            <button class="sc-prod-pill" data-cat="personal" data-prod="per-pa">Personal Accident</button>
+          </div>
+          <div class="sc-prod-pills" data-cat="business">
+            <button class="sc-prod-pill sc-prod-pill--active" data-cat="business" data-sub="assets">Assets</button>
+            <button class="sc-prod-pill" data-cat="business" data-sub="liabilities">Liabilities</button>
+          </div>
+          <div class="sc-prod-pills" data-cat="workforce">
+            <button class="sc-prod-pill sc-prod-pill--active" data-cat="workforce" data-prod="wf-medical">Group Medical</button>
+            <button class="sc-prod-pill" data-cat="workforce" data-prod="wf-wica">Work Injury (WICA)</button>
+            <button class="sc-prod-pill" data-cat="workforce" data-prod="wf-life">Group Term Life</button>
+            <button class="sc-prod-pill" data-cat="workforce" data-prod="wf-pa">Personal Accident</button>
+          </div>
+          <div class="sc-prod-pills" data-cat="api">
+            <button class="sc-prod-pill sc-prod-pill--active" data-cat="api" data-prod="api-embedded">Embedded Insurance</button>
+            <button class="sc-prod-pill" data-cat="api" data-prod="api-whitelabel">White Label</button>
+            <button class="sc-prod-pill" data-cat="api" data-prod="api-integration">API Integration</button>
+          </div>
+        </div><!-- /sc-prod-bar -->
+
 
       </div><!-- /sc-card -->
     </div><!-- /sc-wrap -->

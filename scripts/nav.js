@@ -274,45 +274,77 @@
   });
 })();
 
-/* ── Showcase tab switcher ── */
+/* ── Coverage section switcher ── */
 (function () {
-  var tabs = document.querySelectorAll('.sc-tab, .sc-ind-tab');
-  if (!tabs.length) return;
+  /* 1 — Category tabs (Personal / Business / Workforce / API) */
+  var catTabs = document.querySelectorAll('.sc-cat-tab');
+  if (!catTabs.length) return;
 
-  function activate(panel) {
-    ['sc-tab', 'sc-ind-tab', 'sc-meta-panel', 'sc-panel', 'sc-subpills'].forEach(function (cls) {
-      document.querySelectorAll('.' + cls).forEach(function (el) {
-        el.classList.toggle(cls + '--active', el.dataset.panel === panel);
-        if (el.getAttribute('role') === 'tab') el.setAttribute('aria-selected', String(el.dataset.panel === panel));
-      });
+  function switchCat(cat) {
+    catTabs.forEach(function (t) {
+      t.classList.toggle('sc-cat-tab--active', t.dataset.cat === cat);
+    });
+    document.querySelectorAll('.sc-cat-panel').forEach(function (p) {
+      p.classList.toggle('sc-cat-panel--active', p.dataset.cat === cat);
+    });
+    document.querySelectorAll('.sc-prod-pills').forEach(function (r) {
+      r.classList.toggle('sc-prod-pills--active', r.dataset.cat === cat);
     });
   }
 
-  tabs.forEach(function (tab) {
-    tab.addEventListener('click', function () { activate(tab.dataset.panel); });
+  catTabs.forEach(function (t) {
+    t.addEventListener('click', function () { switchCat(t.dataset.cat); });
   });
 
-  /* Product row interaction — updates right panel on click */
-  document.querySelectorAll('.sc-prow[data-prod]').forEach(function (row) {
-    row.addEventListener('click', function () {
-      var panel = row.closest('.sc-panel');
-      if (!panel) return;
-      var prod = row.dataset.prod;
-      panel.querySelectorAll('.sc-prow').forEach(function (r) { r.classList.remove('sc-prow--active'); });
-      row.classList.add('sc-prow--active');
-      panel.querySelectorAll('.sc-prod-desc').forEach(function (d) { d.classList.remove('sc-prod-desc--active'); });
-      var desc = panel.querySelector('.sc-prod-desc[data-prod="' + prod + '"]');
-      if (desc) desc.classList.add('sc-prod-desc--active');
+  /* 2 — Bottom product pills → swap overview card (Personal / Workforce / API) */
+  document.querySelectorAll('.sc-prod-pill[data-prod]').forEach(function (pill) {
+    pill.addEventListener('click', function () {
+      var cat = pill.dataset.cat;
+      var prod = pill.dataset.prod;
+      var pillRow = document.querySelector('.sc-prod-pills[data-cat="' + cat + '"]');
+      if (pillRow) {
+        pillRow.querySelectorAll('.sc-prod-pill').forEach(function (p) { p.classList.remove('sc-prod-pill--active'); });
+        pill.classList.add('sc-prod-pill--active');
+      }
+      var catPanel = document.querySelector('.sc-cat-panel[data-cat="' + cat + '"]');
+      if (catPanel) {
+        catPanel.querySelectorAll('.sc-overview-card').forEach(function (c) { c.classList.remove('sc-overview-card--active'); });
+        var card = catPanel.querySelector('.sc-overview-card[data-prod="' + prod + '"]');
+        if (card) card.classList.add('sc-overview-card--active');
+      }
     });
   });
 
-  document.addEventListener('click', function (e) {
-    var spill = e.target.closest('.sc-spill');
-    if (!spill) return;
-    var group = spill.closest('.sc-subpills');
-    if (!group) return;
-    group.querySelectorAll('.sc-spill').forEach(function (s) { s.classList.remove('sc-spill--active'); });
-    spill.classList.add('sc-spill--active');
+  /* 3 — Bottom product pills → swap Business sub-panel (Assets / Liabilities) */
+  document.querySelectorAll('.sc-prod-pill[data-sub]').forEach(function (pill) {
+    pill.addEventListener('click', function () {
+      var sub = pill.dataset.sub;
+      var pillRow = document.querySelector('.sc-prod-pills[data-cat="business"]');
+      if (pillRow) {
+        pillRow.querySelectorAll('.sc-prod-pill').forEach(function (p) { p.classList.remove('sc-prod-pill--active'); });
+        pill.classList.add('sc-prod-pill--active');
+      }
+      var bizPanel = document.querySelector('.sc-cat-panel[data-cat="business"]');
+      if (bizPanel) {
+        bizPanel.querySelectorAll('.sc-biz-sub').forEach(function (s) { s.classList.remove('sc-biz-sub--active'); });
+        var subPanel = bizPanel.querySelector('.sc-biz-sub[data-sub="' + sub + '"]');
+        if (subPanel) subPanel.classList.add('sc-biz-sub--active');
+      }
+    });
+  });
+
+  /* 4 — Product rows in Business sub-panels → update right description */
+  document.querySelectorAll('.sc-biz-sub .sc-prow[data-prod]').forEach(function (row) {
+    row.addEventListener('click', function () {
+      var sub = row.closest('.sc-biz-sub');
+      if (!sub) return;
+      var prod = row.dataset.prod;
+      sub.querySelectorAll('.sc-prow').forEach(function (r) { r.classList.remove('sc-prow--active'); });
+      row.classList.add('sc-prow--active');
+      sub.querySelectorAll('.sc-prod-desc').forEach(function (d) { d.classList.remove('sc-prod-desc--active'); });
+      var desc = sub.querySelector('.sc-prod-desc[data-prod="' + prod + '"]');
+      if (desc) desc.classList.add('sc-prod-desc--active');
+    });
   });
 })();
 
