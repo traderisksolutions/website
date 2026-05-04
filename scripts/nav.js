@@ -21,12 +21,22 @@
   if (closeBtn)  closeBtn.addEventListener('click', closeDrawer);
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
 
-  /* ── Desktop dropdowns (hover) — all panels: position:fixed, flush against nav ── */
+  /* ── Desktop dropdowns (hover) — all panels: position:fixed, anchored to trigger ── */
   var dropdowns = document.querySelectorAll('.nav-dropdown');
 
-  function applyFlush(panel) {
-    var rect = nav.getBoundingClientRect();
-    panel.style.top = rect.bottom + 'px';
+  function applyFlush(panel, trigger) {
+    var navRect = nav.getBoundingClientRect();
+    panel.style.top = navRect.bottom + 'px';
+
+    if (trigger) {
+      var trigRect = trigger.getBoundingClientRect();
+      var panelW   = Math.min(820, window.innerWidth - 40);
+      var left     = trigRect.left;
+      if (left + panelW > window.innerWidth - 20) left = window.innerWidth - panelW - 20;
+      if (left < 20) left = 20;
+      panel.style.left = left + 'px';
+    }
+
     if (nav.classList.contains('nav--scrolled')) {
       panel.style.borderTopLeftRadius  = '';
       panel.style.borderTopRightRadius = '';
@@ -37,14 +47,15 @@
   }
 
   dropdowns.forEach(function (dd) {
-    var panel = dd.querySelector('.nav-dropdown-panel');
+    var trigger = dd.querySelector('.nav-dropdown-trigger');
+    var panel   = dd.querySelector('.nav-dropdown-panel');
     var leaveTimer;
 
     function openDd() {
       clearTimeout(leaveTimer);
       dropdowns.forEach(function (other) { if (other !== dd) other.classList.remove('open'); });
       dd.classList.add('open');
-      if (panel) applyFlush(panel);
+      if (panel) applyFlush(panel, trigger);
     }
     function closeDd() {
       leaveTimer = setTimeout(function () { dd.classList.remove('open'); }, 120);
@@ -63,8 +74,9 @@
   window.addEventListener('scroll', function () {
     dropdowns.forEach(function (dd) {
       if (dd.classList.contains('open')) {
-        var panel = dd.querySelector('.nav-dropdown-panel');
-        if (panel) applyFlush(panel);
+        var panel   = dd.querySelector('.nav-dropdown-panel');
+        var trigger = dd.querySelector('.nav-dropdown-trigger');
+        if (panel) applyFlush(panel, trigger);
       }
     });
   }, { passive: true });
@@ -97,9 +109,17 @@
   var megaLeaveTimer;
 
   function positionMega() {
-    if (!productsMega) return;
-    var rect = nav.getBoundingClientRect();
-    productsMega.style.top = rect.bottom + 'px';
+    if (!productsMega || !productsBtn) return;
+    var navRect = nav.getBoundingClientRect();
+    productsMega.style.top = navRect.bottom + 'px';
+
+    var btnRect  = productsBtn.getBoundingClientRect();
+    var megaW    = Math.min(820, window.innerWidth - 40);
+    var left     = btnRect.left;
+    if (left + megaW > window.innerWidth - 20) left = window.innerWidth - megaW - 20;
+    if (left < 20) left = 20;
+    productsMega.style.left = left + 'px';
+
     if (nav.classList.contains('nav--scrolled')) {
       productsMega.style.borderTopLeftRadius  = '';
       productsMega.style.borderTopRightRadius = '';
@@ -165,6 +185,39 @@
       if (sub && sub.classList.contains('nav-drawer-sub')) {
         sub.classList.toggle('open', !isOpen);
       }
+    });
+  });
+
+  /* ── Convert group labels → collapsible sub-sections in drawer ── */
+  document.querySelectorAll('.nav-drawer-sub').forEach(function (sub) {
+    var labels = Array.from(sub.querySelectorAll('.nav-drawer-group-label'));
+    labels.forEach(function (label) {
+      /* Collect all following siblings until next label */
+      var siblings = [];
+      var el = label.nextElementSibling;
+      while (el && !el.classList.contains('nav-drawer-group-label')) {
+        siblings.push(el);
+        el = el.nextElementSibling;
+      }
+
+      /* Wrap siblings in a collapsible panel */
+      var panel = document.createElement('div');
+      panel.className = 'nav-drawer-sub-panel';
+      siblings.forEach(function (s) { panel.appendChild(s); });
+      label.parentNode.insertBefore(panel, label.nextElementSibling);
+
+      /* Replace label span with an accordion button */
+      var btn = document.createElement('button');
+      btn.className = 'nav-drawer-sub-accordion';
+      btn.innerHTML = label.textContent.trim()
+        + '<svg class="acc-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+      label.parentNode.replaceChild(btn, label);
+
+      btn.addEventListener('click', function () {
+        var open = panel.classList.contains('open');
+        btn.classList.toggle('open', !open);
+        panel.classList.toggle('open', !open);
+      });
     });
   });
 })();
