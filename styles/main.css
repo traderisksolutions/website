@@ -252,7 +252,14 @@ h1, h2, h3, h4, h5, h6 {
   gap: 8px;
   margin-left: auto;
 }
-.nav--scrolled .btn-primary {
+/* Nav buttons: rectangular at top of page, pill when scrolled */
+.nav-actions .btn {
+  border-radius: var(--radius-sm);
+  transition: background 0.15s var(--ease), color 0.15s var(--ease),
+              border-color 0.15s var(--ease), opacity 0.15s var(--ease),
+              border-radius 0.25s var(--ease);
+}
+.nav--scrolled .nav-actions .btn {
   border-radius: 99px;
 }
 
@@ -1001,50 +1008,58 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 .nav-dropdown-trigger .dd-chevron { transition: transform 0.2s var(--ease); }
 .nav-dropdown.open .nav-dropdown-trigger .dd-chevron { transform: rotate(180deg); }
 
-/* ── Dropdown panel ── */
+/* ── Dropdown panel — fixed, same width as mega-menu ── */
 .nav-dropdown-panel {
-  position: absolute;
-  top: calc(100% + 2px);
+  position: fixed;
+  top: 56px; /* overridden by JS */
   left: 50%;
   transform: translateX(-50%) translateY(-4px);
+  width: min(820px, calc(100vw - 40px));
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: 0 8px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.13), 0 2px 8px rgba(0,0,0,0.06);
   overflow: hidden;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.14s var(--ease), transform 0.14s var(--ease);
-  z-index: 300;
+  z-index: 499;
 }
 .nav-dropdown.open .nav-dropdown-panel {
   opacity: 1;
   pointer-events: auto;
   transform: translateX(-50%) translateY(0);
 }
-/* Resources single-column panel */
+/* Resources — 2-col grid inside full-width panel */
 .nav-dropdown-panel--single {
-  min-width: 240px;
-  padding: 8px;
-}
-/* Solutions 2-column panel */
-.nav-dropdown-panel--solutions {
-  min-width: 480px;
-  padding: 8px;
+  padding: 12px;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2px;
+  gap: 4px;
+}
+/* Solutions — 3-col grid */
+.nav-dropdown-panel--solutions {
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 4px;
 }
 .sol-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
-  padding: 8px 10px;
+  padding: 9px 10px;
   border-radius: var(--radius-sm);
   text-decoration: none;
   transition: background 0.1s;
 }
 .sol-item:hover { background: var(--bg-card); }
+/* Stack title + sub vertically */
+.sol-item > div:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 .sol-icon {
   width: 32px;
   height: 32px;
@@ -1053,6 +1068,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-top: 1px;
 }
 
 /* ── Panel left column ── */

@@ -21,21 +21,53 @@
   if (closeBtn)  closeBtn.addEventListener('click', closeDrawer);
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
 
-  /* ── Desktop dropdowns (hover) ── */
+  /* ── Desktop dropdowns (hover) — all panels: position:fixed, flush against nav ── */
   var dropdowns = document.querySelectorAll('.nav-dropdown');
+
+  function applyFlush(panel) {
+    var rect = nav.getBoundingClientRect();
+    panel.style.top = rect.bottom + 'px';
+    if (nav.classList.contains('nav--scrolled')) {
+      panel.style.borderTopLeftRadius  = '';
+      panel.style.borderTopRightRadius = '';
+    } else {
+      panel.style.borderTopLeftRadius  = '0';
+      panel.style.borderTopRightRadius = '0';
+    }
+  }
+
   dropdowns.forEach(function (dd) {
+    var panel = dd.querySelector('.nav-dropdown-panel');
     var leaveTimer;
 
-    dd.addEventListener('mouseenter', function () {
+    function openDd() {
       clearTimeout(leaveTimer);
       dropdowns.forEach(function (other) { if (other !== dd) other.classList.remove('open'); });
       dd.classList.add('open');
-    });
-
-    dd.addEventListener('mouseleave', function () {
+      if (panel) applyFlush(panel);
+    }
+    function closeDd() {
       leaveTimer = setTimeout(function () { dd.classList.remove('open'); }, 120);
-    });
+    }
+
+    dd.addEventListener('mouseenter', openDd);
+    dd.addEventListener('mouseleave', closeDd);
+
+    /* panel is position:fixed — cursor travels outside dd bounds; guard re-entry */
+    if (panel) {
+      panel.addEventListener('mouseenter', function () { clearTimeout(leaveTimer); });
+      panel.addEventListener('mouseleave', closeDd);
+    }
   });
+
+  window.addEventListener('scroll', function () {
+    dropdowns.forEach(function (dd) {
+      if (dd.classList.contains('open')) {
+        var panel = dd.querySelector('.nav-dropdown-panel');
+        if (panel) applyFlush(panel);
+      }
+    });
+  }, { passive: true });
 
   document.addEventListener('click', function (e) {
     if (!e.target.closest('.nav-dropdown')) {
@@ -68,15 +100,12 @@
     if (!productsMega) return;
     var rect = nav.getBoundingClientRect();
     productsMega.style.top = rect.bottom + 'px';
-    /* Flush against nav bar → square top corners; detached pill → keep radius */
     if (nav.classList.contains('nav--scrolled')) {
       productsMega.style.borderTopLeftRadius  = '';
       productsMega.style.borderTopRightRadius = '';
-      productsMega.style.borderTop            = '';
     } else {
       productsMega.style.borderTopLeftRadius  = '0';
       productsMega.style.borderTopRightRadius = '0';
-      productsMega.style.borderTop            = 'none';
     }
   }
   function openProducts() {
