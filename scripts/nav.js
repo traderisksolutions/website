@@ -276,20 +276,34 @@
 
 /* ── Showcase tab switcher ── */
 (function () {
-  var tabs = document.querySelectorAll('.sc-tab');
+  var tabs = document.querySelectorAll('.sc-tab, .sc-ind-tab');
   if (!tabs.length) return;
 
   function activate(panel) {
-    ['sc-tab', 'sc-meta-panel', 'sc-panel', 'sc-subpills'].forEach(function (cls) {
+    ['sc-tab', 'sc-ind-tab', 'sc-meta-panel', 'sc-panel', 'sc-subpills'].forEach(function (cls) {
       document.querySelectorAll('.' + cls).forEach(function (el) {
         el.classList.toggle(cls + '--active', el.dataset.panel === panel);
-        if (el.role === 'tab') el.setAttribute('aria-selected', el.dataset.panel === panel);
+        if (el.getAttribute('role') === 'tab') el.setAttribute('aria-selected', String(el.dataset.panel === panel));
       });
     });
   }
 
   tabs.forEach(function (tab) {
     tab.addEventListener('click', function () { activate(tab.dataset.panel); });
+  });
+
+  /* Product row interaction — updates right panel on click */
+  document.querySelectorAll('.sc-prow[data-prod]').forEach(function (row) {
+    row.addEventListener('click', function () {
+      var panel = row.closest('.sc-panel');
+      if (!panel) return;
+      var prod = row.dataset.prod;
+      panel.querySelectorAll('.sc-prow').forEach(function (r) { r.classList.remove('sc-prow--active'); });
+      row.classList.add('sc-prow--active');
+      panel.querySelectorAll('.sc-prod-desc').forEach(function (d) { d.classList.remove('sc-prod-desc--active'); });
+      var desc = panel.querySelector('.sc-prod-desc[data-prod="' + prod + '"]');
+      if (desc) desc.classList.add('sc-prod-desc--active');
+    });
   });
 
   document.addEventListener('click', function (e) {

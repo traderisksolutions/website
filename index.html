@@ -339,47 +339,16 @@
       <div class="sc-card">
 
         <!-- Industry selector tabs -->
-        <div class="sc-ind-tabs" role="tablist">
-          <button class="sc-ind-tab sc-ind-tab--active" data-panel="sme" role="tab" aria-selected="true" data-track="tab_sme">SME</button>
-          <button class="sc-ind-tab" data-panel="startups" role="tab" aria-selected="false" data-track="tab_startups">Startups</button>
-          <button class="sc-ind-tab" data-panel="cyber" role="tab" aria-selected="false" data-track="tab_cyber">Cybersecurity</button>
-          <button class="sc-ind-tab" data-panel="construction" role="tab" aria-selected="false" data-track="tab_construction">Construction</button>
-          <button class="sc-ind-tab" data-panel="ecommerce" role="tab" aria-selected="false" data-track="tab_ecommerce">eCommerce</button>
-          <button class="sc-ind-tab" data-panel="fintech" role="tab" aria-selected="false" data-track="tab_fintech">FinTech</button>
-          <button class="sc-ind-tab" data-panel="technology" role="tab" aria-selected="false" data-track="tab_technology">Technology</button>
-          <button class="sc-ind-tab" data-panel="healthcare" role="tab" aria-selected="false" data-track="tab_healthcare">Healthcare</button>
-          <button class="sc-ind-tab" data-panel="logistics" role="tab" aria-selected="false" data-track="tab_logistics">Logistics</button>
-        </div>
-
-        <!-- Industry description — updates on tab select -->
-        <div class="sc-ind-desc" aria-live="polite">
-          <div class="sc-ind-desc-panel sc-ind-desc-panel--active" data-panel="sme">
-            <p>Running an SME means wearing many hats. From premises to liability to your most important people — TRS packages the right cover so you can focus on growth, not risk.</p>
-          </div>
-          <div class="sc-ind-desc-panel" data-panel="startups">
-            <p>Fast-moving companies carry fast-moving risks. From IP exposure to investor liability, TRS builds coverage that scales with your funding round and headcount.</p>
-          </div>
-          <div class="sc-ind-desc-panel" data-panel="cyber">
-            <p>A breach isn't just a technical event — it's a business crisis. TRS structures layered cyber cover that responds from incident detection through to regulatory defence.</p>
-          </div>
-          <div class="sc-ind-desc-panel" data-panel="construction">
-            <p>Every project site carries unique exposures. TRS builds insurance programmes around your contracts, subcontractors, and workforce from groundbreak to handover.</p>
-          </div>
-          <div class="sc-ind-desc-panel" data-panel="ecommerce">
-            <p>Online retail means managing stock, shipments, and customer safety simultaneously. TRS combines these exposures into one manageable programme.</p>
-          </div>
-          <div class="sc-ind-desc-panel" data-panel="fintech">
-            <p>At the intersection of finance and technology, regulatory scrutiny and custodial exposure are constant. TRS structures PI, D&amp;O, and crime cover for fintech businesses.</p>
-          </div>
-          <div class="sc-ind-desc-panel" data-panel="technology">
-            <p>Tech companies face IP disputes, service outages, and data breaches. TRS scales cyber, PI, and D&amp;O programmes with your headcount and ARR.</p>
-          </div>
-          <div class="sc-ind-desc-panel" data-panel="healthcare">
-            <p>From clinical operations to patient data to product recalls, healthcare carries unique exposures. TRS works with specialist insurers to match your exact risk profile.</p>
-          </div>
-          <div class="sc-ind-desc-panel" data-panel="logistics">
-            <p>Moving goods across borders means cargo liability, fleet risk, and supply chain disruption. TRS manages your marine, motor, and BI cover under one programme.</p>
-          </div>
+        <div class="sc-ind-tabs" role="tablist" aria-label="Business industry">
+          <button class="sc-ind-tab sc-ind-tab--active" data-panel="sme" role="tab" aria-selected="true">SME</button>
+          <button class="sc-ind-tab" data-panel="startups" role="tab" aria-selected="false">Startups</button>
+          <button class="sc-ind-tab" data-panel="cyber" role="tab" aria-selected="false">Cybersecurity</button>
+          <button class="sc-ind-tab" data-panel="construction" role="tab" aria-selected="false">Construction</button>
+          <button class="sc-ind-tab" data-panel="ecommerce" role="tab" aria-selected="false">eCommerce</button>
+          <button class="sc-ind-tab" data-panel="fintech" role="tab" aria-selected="false">FinTech</button>
+          <button class="sc-ind-tab" data-panel="technology" role="tab" aria-selected="false">Technology</button>
+          <button class="sc-ind-tab" data-panel="healthcare" role="tab" aria-selected="false">Healthcare</button>
+          <button class="sc-ind-tab" data-panel="logistics" role="tab" aria-selected="false">Logistics</button>
         </div>
 
         <!-- Content panels per industry -->
@@ -389,28 +358,38 @@
           <div class="sc-panel sc-panel--active" data-panel="sme">
             <div class="sc-panel-inner">
               <div class="sc-panel-left">
-                <div class="sc-prow sc-prow--active">
+                <div class="sc-prow sc-prow--active" data-prod="sme-property">
                   <span class="sc-porb sc-porb--b1"></span>
-                  <span class="sc-pname">Property &amp; Assets</span>
-                  <span class="sc-pcat">Business Cover</span>
+                  <span class="sc-pname">Business Property</span>
+                  <span class="sc-pcat">Assets &amp; Premises</span>
                 </div>
-                <div class="sc-prow">
+                <div class="sc-prow" data-prod="sme-liability">
                   <span class="sc-porb sc-porb--c2"></span>
-                  <span class="sc-pname">Core Liability</span>
-                  <span class="sc-pcat">Risk Protection</span>
+                  <span class="sc-pname">Public Liability</span>
+                  <span class="sc-pcat">Third-Party Risk</span>
                 </div>
-                <div class="sc-prow">
+                <div class="sc-prow" data-prod="sme-workforce">
                   <span class="sc-porb sc-porb--e1"></span>
                   <span class="sc-pname">Workforce Protection</span>
                   <span class="sc-pcat">Employee Cover</span>
                 </div>
-                <a href="/solutions/sme" class="sc-explore">Explore SME plans</a>
+                <a href="/solutions/sme" class="sc-explore">Explore all plans</a>
               </div>
               <div class="sc-panel-right">
-                <p class="sc-ph-label">Most common for SMEs</p>
-                <p class="sc-ph-text">Most SMEs are underinsured without knowing it. TRS audits your risk, negotiates with leading carriers, and packages the right cover across property, liability, and workforce — all in one place.</p>
-                <div class="sc-panel-footer">
-                  <a href="/solutions/sme" class="sc-panel-btn">View SME plans &rarr;</a>
+                <div class="sc-prod-desc sc-prod-desc--active" data-prod="sme-property">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">Covers your office, store, or warehouse against fire, water damage, and theft — including business interruption if operations are forced to stop unexpectedly.</p>
+                  <div class="sc-panel-footer"><a href="/commercial/property" class="sc-panel-btn">Get a quote &rarr;</a></div>
+                </div>
+                <div class="sc-prod-desc" data-prod="sme-liability">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">Protects you against third-party claims of bodily injury and property damage arising from your business operations, products, or services — including legal defence costs.</p>
+                  <div class="sc-panel-footer"><a href="/commercial/core-liability" class="sc-panel-btn">Get a quote &rarr;</a></div>
+                </div>
+                <div class="sc-prod-desc" data-prod="sme-workforce">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">WICA insurance, group medical, and personal accident cover for your employees and workers — keeping your team protected and your business legally compliant.</p>
+                  <div class="sc-panel-footer"><a href="/commercial/workmen" class="sc-panel-btn">Get a quote &rarr;</a></div>
                 </div>
               </div>
             </div>
@@ -420,28 +399,38 @@
           <div class="sc-panel" data-panel="startups">
             <div class="sc-panel-inner">
               <div class="sc-panel-left">
-                <div class="sc-prow sc-prow--active">
+                <div class="sc-prow sc-prow--active" data-prod="startups-cyber">
                   <span class="sc-porb sc-porb--c1"></span>
                   <span class="sc-pname">Cyber Insurance</span>
                   <span class="sc-pcat">Digital Risk</span>
                 </div>
-                <div class="sc-prow">
+                <div class="sc-prow" data-prod="startups-dao">
                   <span class="sc-porb sc-porb--c2"></span>
                   <span class="sc-pname">D&amp;O Liability</span>
                   <span class="sc-pcat">Leadership Cover</span>
                 </div>
-                <div class="sc-prow">
+                <div class="sc-prow" data-prod="startups-pi">
                   <span class="sc-porb sc-porb--b1"></span>
                   <span class="sc-pname">Professional Indemnity</span>
                   <span class="sc-pcat">Error &amp; Omission</span>
                 </div>
-                <a href="/solutions/startups" class="sc-explore">Explore startup plans</a>
+                <a href="/solutions/startups" class="sc-explore">Explore all plans</a>
               </div>
               <div class="sc-panel-right">
-                <p class="sc-ph-label">Built for early-stage companies</p>
-                <p class="sc-ph-text">Startups move fast and accumulate risk just as quickly. From IP exposure to investor liability to data breaches, TRS builds coverage that scales with your funding round and headcount.</p>
-                <div class="sc-panel-footer">
-                  <a href="/solutions/startups" class="sc-panel-btn">View startup plans &rarr;</a>
+                <div class="sc-prod-desc sc-prod-desc--active" data-prod="startups-cyber">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">First and third-party cyber cover for data breaches, ransomware, and regulatory investigations — including incident response support and client notification costs.</p>
+                  <div class="sc-panel-footer"><a href="/commercial/cyber" class="sc-panel-btn">Get a quote &rarr;</a></div>
+                </div>
+                <div class="sc-prod-desc" data-prod="startups-dao">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">Protects directors and officers against claims of wrongful acts or mismanagement — critical when investors, employees, or regulators challenge leadership decisions.</p>
+                  <div class="sc-panel-footer"><a href="/commercial/professional-indemnity" class="sc-panel-btn">Get a quote &rarr;</a></div>
+                </div>
+                <div class="sc-prod-desc" data-prod="startups-pi">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">Coverage for claims arising from errors in professional advice or service delivery — protecting revenue and reputation if a client suffers financial loss due to your work.</p>
+                  <div class="sc-panel-footer"><a href="/commercial/professional-indemnity" class="sc-panel-btn">Get a quote &rarr;</a></div>
                 </div>
               </div>
             </div>
@@ -451,28 +440,38 @@
           <div class="sc-panel" data-panel="cyber">
             <div class="sc-panel-inner">
               <div class="sc-panel-left">
-                <div class="sc-prow sc-prow--active">
+                <div class="sc-prow sc-prow--active" data-prod="cyber-cyber">
                   <span class="sc-porb sc-porb--c2"></span>
                   <span class="sc-pname">Cyber Insurance</span>
                   <span class="sc-pcat">Incident Response</span>
                 </div>
-                <div class="sc-prow">
+                <div class="sc-prow" data-prod="cyber-tech-pi">
                   <span class="sc-porb sc-porb--b2"></span>
                   <span class="sc-pname">Technology PI</span>
                   <span class="sc-pcat">Professional Cover</span>
                 </div>
-                <div class="sc-prow">
+                <div class="sc-prow" data-prod="cyber-crime">
                   <span class="sc-porb sc-porb--c3"></span>
                   <span class="sc-pname">Crime Cover</span>
                   <span class="sc-pcat">Financial Loss</span>
                 </div>
-                <a href="/solutions/cybersecurity" class="sc-explore">Explore cyber plans</a>
+                <a href="/solutions/cybersecurity" class="sc-explore">Explore all plans</a>
               </div>
               <div class="sc-panel-right">
-                <p class="sc-ph-label">For cyber-native businesses</p>
-                <p class="sc-ph-text">A breach isn't just a technical event — it's a business crisis. TRS structures layered cyber and technology PI cover so that a security incident doesn't become a financial one.</p>
-                <div class="sc-panel-footer">
-                  <a href="/solutions/cybersecurity" class="sc-panel-btn">View cyber plans &rarr;</a>
+                <div class="sc-prod-desc sc-prod-desc--active" data-prod="cyber-cyber">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">Layered cyber cover responding from breach detection through to regulatory defence, customer notification, PR recovery, and restoration of affected systems.</p>
+                  <div class="sc-panel-footer"><a href="/commercial/cyber" class="sc-panel-btn">Get a quote &rarr;</a></div>
+                </div>
+                <div class="sc-prod-desc" data-prod="cyber-tech-pi">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">Covers claims that your technology products or services failed to perform, caused client financial loss, or resulted in a data breach attributable to your solution.</p>
+                  <div class="sc-panel-footer"><a href="/commercial/professional-indemnity" class="sc-panel-btn">Get a quote &rarr;</a></div>
+                </div>
+                <div class="sc-prod-desc" data-prod="cyber-crime">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">First-party financial loss coverage for cyber-enabled fraud, social engineering attacks, and internal dishonesty — protecting assets when controls are circumvented.</p>
+                  <div class="sc-panel-footer"><a href="/commercial/cyber" class="sc-panel-btn">Get a quote &rarr;</a></div>
                 </div>
               </div>
             </div>
@@ -482,28 +481,38 @@
           <div class="sc-panel" data-panel="construction">
             <div class="sc-panel-inner">
               <div class="sc-panel-left">
-                <div class="sc-prow sc-prow--active">
+                <div class="sc-prow sc-prow--active" data-prod="constr-car">
                   <span class="sc-porb sc-porb--b1"></span>
-                  <span class="sc-pname">CAR / EAR</span>
+                  <span class="sc-pname">CAR / EAR Insurance</span>
                   <span class="sc-pcat">Project Cover</span>
                 </div>
-                <div class="sc-prow">
+                <div class="sc-prow" data-prod="constr-property">
                   <span class="sc-porb sc-porb--b2"></span>
-                  <span class="sc-pname">Property &amp; Assets</span>
+                  <span class="sc-pname">Plant &amp; Equipment</span>
                   <span class="sc-pcat">Physical Assets</span>
                 </div>
-                <div class="sc-prow">
+                <div class="sc-prow" data-prod="constr-wica">
                   <span class="sc-porb sc-porb--e1"></span>
                   <span class="sc-pname">Workmen Compensation</span>
                   <span class="sc-pcat">Workforce Cover</span>
                 </div>
-                <a href="/solutions/construction" class="sc-explore">Explore construction plans</a>
+                <a href="/solutions/construction" class="sc-explore">Explore all plans</a>
               </div>
               <div class="sc-panel-right">
-                <p class="sc-ph-label">For builders and developers</p>
-                <p class="sc-ph-text">Every project site carries unique exposures. TRS builds insurance programmes around your contracts, subcontractors, and workforce — from groundbreak through to handover and occupation.</p>
-                <div class="sc-panel-footer">
-                  <a href="/solutions/construction" class="sc-panel-btn">View construction plans &rarr;</a>
+                <div class="sc-prod-desc sc-prod-desc--active" data-prod="constr-car">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">Contractors' All-Risk and Engineering All-Risk insurance covering material damage and third-party liability throughout the construction or engineering project period.</p>
+                  <div class="sc-panel-footer"><a href="/commercial/property" class="sc-panel-btn">Get a quote &rarr;</a></div>
+                </div>
+                <div class="sc-prod-desc" data-prod="constr-property">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">Coverage for owned or rented plant, machinery, and tools on and off-site — including sudden and unforeseen mechanical or electrical breakdown while in operation.</p>
+                  <div class="sc-panel-footer"><a href="/commercial/property" class="sc-panel-btn">Get a quote &rarr;</a></div>
+                </div>
+                <div class="sc-prod-desc" data-prod="constr-wica">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">Mandatory WICA insurance for your workers, covering medical expenses, permanent disability, and death benefits arising from work-related accidents or occupational diseases.</p>
+                  <div class="sc-panel-footer"><a href="/commercial/workmen" class="sc-panel-btn">Get a quote &rarr;</a></div>
                 </div>
               </div>
             </div>
@@ -513,28 +522,38 @@
           <div class="sc-panel" data-panel="ecommerce">
             <div class="sc-panel-inner">
               <div class="sc-panel-left">
-                <div class="sc-prow sc-prow--active">
+                <div class="sc-prow sc-prow--active" data-prod="ecomm-stock">
                   <span class="sc-porb sc-porb--c1"></span>
                   <span class="sc-pname">Stock &amp; Inventory</span>
                   <span class="sc-pcat">Product Cover</span>
                 </div>
-                <div class="sc-prow">
+                <div class="sc-prow" data-prod="ecomm-transit">
                   <span class="sc-porb sc-porb--c2"></span>
                   <span class="sc-pname">Goods in Transit</span>
                   <span class="sc-pcat">Shipping Cover</span>
                 </div>
-                <div class="sc-prow">
+                <div class="sc-prow" data-prod="ecomm-liability">
                   <span class="sc-porb sc-porb--b1"></span>
                   <span class="sc-pname">Product Liability</span>
                   <span class="sc-pcat">Consumer Risk</span>
                 </div>
-                <a href="/solutions/ecommerce" class="sc-explore">Explore eCommerce plans</a>
+                <a href="/solutions/ecommerce" class="sc-explore">Explore all plans</a>
               </div>
               <div class="sc-panel-right">
-                <p class="sc-ph-label">For online retailers</p>
-                <p class="sc-ph-text">Online retail means managing stock, shipments, and customer safety simultaneously. TRS combines your inventory, transit, and liability exposures into one manageable programme.</p>
-                <div class="sc-panel-footer">
-                  <a href="/solutions/ecommerce" class="sc-panel-btn">View eCommerce plans &rarr;</a>
+                <div class="sc-prod-desc sc-prod-desc--active" data-prod="ecomm-stock">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">All-risk cover for your stock in warehouses, fulfillment centres, or retail premises — protecting against theft, fire, water damage, and accidental loss.</p>
+                  <div class="sc-panel-footer"><a href="/commercial/property" class="sc-panel-btn">Get a quote &rarr;</a></div>
+                </div>
+                <div class="sc-prod-desc" data-prod="ecomm-transit">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">Marine cargo and inland transit cover for goods moving between suppliers, warehouses, and customers — protecting shipments locally and internationally against loss or damage.</p>
+                  <div class="sc-panel-footer"><a href="/commercial/property" class="sc-panel-btn">Get a quote &rarr;</a></div>
+                </div>
+                <div class="sc-prod-desc" data-prod="ecomm-liability">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">Protects against claims from customers who suffer bodily injury or property damage from a defective product you sell, import, distribute, or market online.</p>
+                  <div class="sc-panel-footer"><a href="/commercial/core-liability" class="sc-panel-btn">Get a quote &rarr;</a></div>
                 </div>
               </div>
             </div>
@@ -544,28 +563,38 @@
           <div class="sc-panel" data-panel="fintech">
             <div class="sc-panel-inner">
               <div class="sc-panel-left">
-                <div class="sc-prow sc-prow--active">
+                <div class="sc-prow sc-prow--active" data-prod="fintech-pi">
                   <span class="sc-porb sc-porb--b2"></span>
                   <span class="sc-pname">Professional Indemnity</span>
                   <span class="sc-pcat">Regulatory Cover</span>
                 </div>
-                <div class="sc-prow">
+                <div class="sc-prow" data-prod="fintech-dao">
                   <span class="sc-porb sc-porb--c1"></span>
                   <span class="sc-pname">D&amp;O Liability</span>
                   <span class="sc-pcat">Leadership Cover</span>
                 </div>
-                <div class="sc-prow">
+                <div class="sc-prow" data-prod="fintech-crime">
                   <span class="sc-porb sc-porb--c3"></span>
                   <span class="sc-pname">Crime &amp; Cyber Fraud</span>
                   <span class="sc-pcat">Financial Crime</span>
                 </div>
-                <a href="/solutions/fintech" class="sc-explore">Explore FinTech plans</a>
+                <a href="/solutions/fintech" class="sc-explore">Explore all plans</a>
               </div>
               <div class="sc-panel-right">
-                <p class="sc-ph-label">For financial technology businesses</p>
-                <p class="sc-ph-text">Operating at the intersection of finance and technology means regulatory scrutiny and custodial exposure. TRS structures PI, D&amp;O, and crime cover for fintech businesses of all sizes.</p>
-                <div class="sc-panel-footer">
-                  <a href="/solutions/fintech" class="sc-panel-btn">View FinTech plans &rarr;</a>
+                <div class="sc-prod-desc sc-prod-desc--active" data-prod="fintech-pi">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">Covers regulatory investigations, civil claims, and fines arising from errors in financial advice, platform failures, or breaches of regulatory obligations in your licensed activities.</p>
+                  <div class="sc-panel-footer"><a href="/commercial/professional-indemnity" class="sc-panel-btn">Get a quote &rarr;</a></div>
+                </div>
+                <div class="sc-prod-desc" data-prod="fintech-dao">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">Protects directors and officers against claims of wrongful acts or mismanagement from investors, regulators, or employees — including legal costs for regulatory inquiries.</p>
+                  <div class="sc-panel-footer"><a href="/commercial/professional-indemnity" class="sc-panel-btn">Get a quote &rarr;</a></div>
+                </div>
+                <div class="sc-prod-desc" data-prod="fintech-crime">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">First-party crime cover for losses from electronic fraud, social engineering, unauthorised trading, and internal dishonesty — critical for businesses handling client funds.</p>
+                  <div class="sc-panel-footer"><a href="/commercial/cyber" class="sc-panel-btn">Get a quote &rarr;</a></div>
                 </div>
               </div>
             </div>
@@ -575,28 +604,38 @@
           <div class="sc-panel" data-panel="technology">
             <div class="sc-panel-inner">
               <div class="sc-panel-left">
-                <div class="sc-prow sc-prow--active">
+                <div class="sc-prow sc-prow--active" data-prod="tech-cyber">
                   <span class="sc-porb sc-porb--c2"></span>
                   <span class="sc-pname">Cyber Insurance</span>
                   <span class="sc-pcat">Data Protection</span>
                 </div>
-                <div class="sc-prow">
+                <div class="sc-prow" data-prod="tech-pi">
                   <span class="sc-porb sc-porb--b2"></span>
-                  <span class="sc-pname">Professional Indemnity</span>
-                  <span class="sc-pcat">Tech PI</span>
+                  <span class="sc-pname">Technology PI</span>
+                  <span class="sc-pcat">Tech Cover</span>
                 </div>
-                <div class="sc-prow">
+                <div class="sc-prow" data-prod="tech-benefits">
                   <span class="sc-porb sc-porb--e1"></span>
                   <span class="sc-pname">Employee Benefits</span>
                   <span class="sc-pcat">Talent Retention</span>
                 </div>
-                <a href="/solutions/technology" class="sc-explore">Explore Technology plans</a>
+                <a href="/solutions/technology" class="sc-explore">Explore all plans</a>
               </div>
               <div class="sc-panel-right">
-                <p class="sc-ph-label">For tech and SaaS companies</p>
-                <p class="sc-ph-text">Tech companies face IP disputes, service outages, and data breaches. TRS scales cyber, PI, and D&amp;O programmes with your headcount and ARR — whether you're pre-seed or post-IPO.</p>
-                <div class="sc-panel-footer">
-                  <a href="/solutions/technology" class="sc-panel-btn">View Technology plans &rarr;</a>
+                <div class="sc-prod-desc sc-prod-desc--active" data-prod="tech-cyber">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">First and third-party cyber cover for data breaches, system outages, and ransomware — including client notification costs, regulatory fines, and forensic investigation support.</p>
+                  <div class="sc-panel-footer"><a href="/commercial/cyber" class="sc-panel-btn">Get a quote &rarr;</a></div>
+                </div>
+                <div class="sc-prod-desc" data-prod="tech-pi">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">Covers claims that your software or platform failed to perform as contracted, caused data loss, or resulted in client financial harm — protecting you from costly professional disputes.</p>
+                  <div class="sc-panel-footer"><a href="/commercial/professional-indemnity" class="sc-panel-btn">Get a quote &rarr;</a></div>
+                </div>
+                <div class="sc-prod-desc" data-prod="tech-benefits">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">Group medical, group life, and flexible benefits programmes designed to attract and retain top technology talent in a competitive market — customisable by seniority and role.</p>
+                  <div class="sc-panel-footer"><a href="/employees/medical" class="sc-panel-btn">Get a quote &rarr;</a></div>
                 </div>
               </div>
             </div>
@@ -606,28 +645,38 @@
           <div class="sc-panel" data-panel="healthcare">
             <div class="sc-panel-inner">
               <div class="sc-panel-left">
-                <div class="sc-prow sc-prow--active">
+                <div class="sc-prow sc-prow--active" data-prod="health-mpi">
                   <span class="sc-porb sc-porb--c1"></span>
-                  <span class="sc-pname">Medical PI</span>
+                  <span class="sc-pname">Medical Malpractice</span>
                   <span class="sc-pcat">Clinical Cover</span>
                 </div>
-                <div class="sc-prow">
+                <div class="sc-prow" data-prod="health-product">
                   <span class="sc-porb sc-porb--b1"></span>
                   <span class="sc-pname">Product Liability</span>
                   <span class="sc-pcat">Patient Safety</span>
                 </div>
-                <div class="sc-prow">
+                <div class="sc-prow" data-prod="health-benefits">
                   <span class="sc-porb sc-porb--e1"></span>
                   <span class="sc-pname">Group Health Insurance</span>
                   <span class="sc-pcat">Staff Benefits</span>
                 </div>
-                <a href="/solutions/healthcare" class="sc-explore">Explore Healthcare plans</a>
+                <a href="/solutions/healthcare" class="sc-explore">Explore all plans</a>
               </div>
               <div class="sc-panel-right">
-                <p class="sc-ph-label">For medical and biomedical businesses</p>
-                <p class="sc-ph-text">From clinical operations to patient data to product recalls, healthcare carries unique exposures. TRS works with specialist insurers to match the exact risk profile of your organisation.</p>
-                <div class="sc-panel-footer">
-                  <a href="/solutions/healthcare" class="sc-panel-btn">View Healthcare plans &rarr;</a>
+                <div class="sc-prod-desc sc-prod-desc--active" data-prod="health-mpi">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">Professional indemnity for clinicians, practitioners, and healthcare facilities — covering claims of clinical negligence, misdiagnosis, or malpractice against your practice.</p>
+                  <div class="sc-panel-footer"><a href="/commercial/professional-indemnity" class="sc-panel-btn">Get a quote &rarr;</a></div>
+                </div>
+                <div class="sc-prod-desc" data-prod="health-product">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">Coverage against claims arising from medical devices, pharmaceuticals, or health products that cause harm to patients or users — including recall costs and legal defence.</p>
+                  <div class="sc-panel-footer"><a href="/commercial/core-liability" class="sc-panel-btn">Get a quote &rarr;</a></div>
+                </div>
+                <div class="sc-prod-desc" data-prod="health-benefits">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">Inpatient, outpatient, and specialist cover for your clinical and administrative staff — customisable by grade and coverage tier to attract and retain healthcare professionals.</p>
+                  <div class="sc-panel-footer"><a href="/employees/medical" class="sc-panel-btn">Get a quote &rarr;</a></div>
                 </div>
               </div>
             </div>
@@ -637,28 +686,38 @@
           <div class="sc-panel" data-panel="logistics">
             <div class="sc-panel-inner">
               <div class="sc-panel-left">
-                <div class="sc-prow sc-prow--active">
+                <div class="sc-prow sc-prow--active" data-prod="logi-marine">
                   <span class="sc-porb sc-porb--c2"></span>
                   <span class="sc-pname">Marine Cargo</span>
                   <span class="sc-pcat">Freight Cover</span>
                 </div>
-                <div class="sc-prow">
+                <div class="sc-prow" data-prod="logi-fleet">
                   <span class="sc-porb sc-porb--c3"></span>
                   <span class="sc-pname">Motor Fleet</span>
                   <span class="sc-pcat">Vehicle Cover</span>
                 </div>
-                <div class="sc-prow">
+                <div class="sc-prow" data-prod="logi-warehouse">
                   <span class="sc-porb sc-porb--b2"></span>
                   <span class="sc-pname">Warehouse Liability</span>
                   <span class="sc-pcat">Storage Risk</span>
                 </div>
-                <a href="/solutions/logistics" class="sc-explore">Explore Logistics plans</a>
+                <a href="/solutions/logistics" class="sc-explore">Explore all plans</a>
               </div>
               <div class="sc-panel-right">
-                <p class="sc-ph-label">For freight and supply chain operators</p>
-                <p class="sc-ph-text">Moving goods across borders means cargo liability, fleet risk, and supply chain disruption. TRS manages your marine, motor, and business interruption cover under one coordinated programme.</p>
-                <div class="sc-panel-footer">
-                  <a href="/solutions/logistics" class="sc-panel-btn">View Logistics plans &rarr;</a>
+                <div class="sc-prod-desc sc-prod-desc--active" data-prod="logi-marine">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">Coverage for goods in transit by sea, air, or land — protecting against loss, damage, and delay from origin to final destination, locally and internationally.</p>
+                  <div class="sc-panel-footer"><a href="/commercial/property" class="sc-panel-btn">Get a quote &rarr;</a></div>
+                </div>
+                <div class="sc-prod-desc" data-prod="logi-fleet">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">Comprehensive or third-party cover for your commercial vehicles — trucks, vans, and forklifts across your owned or managed fleet, with competitive fleet pricing.</p>
+                  <div class="sc-panel-footer"><a href="/commercial/property" class="sc-panel-btn">Get a quote &rarr;</a></div>
+                </div>
+                <div class="sc-prod-desc" data-prod="logi-warehouse">
+                  <p class="sc-ph-label">About this coverage</p>
+                  <p class="sc-ph-text">Covers goods-in-custody liability and property damage at your warehouses, fulfillment hubs, and distribution centres — protecting you against third-party claims for stock in your care.</p>
+                  <div class="sc-panel-footer"><a href="/commercial/core-liability" class="sc-panel-btn">Get a quote &rarr;</a></div>
                 </div>
               </div>
             </div>
