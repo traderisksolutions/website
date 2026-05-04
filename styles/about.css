@@ -182,7 +182,10 @@
    ══════════════════════════════════════ */
 
 .ab-features {
-  background: #f5f0e8;
+  background:
+    radial-gradient(ellipse at 20% 60%, rgba(30, 90, 170, 0.20) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 15%, rgba(10, 130, 160, 0.14) 0%, transparent 50%),
+    #0b1829;
   padding: 100px 0;
 }
 
@@ -195,7 +198,7 @@
   font-family: var(--font-heading);
   font-size: clamp(2.2rem, 4vw, 3.4rem);
   font-weight: 700;
-  color: #0d1117;
+  color: #ffffff;
   letter-spacing: -0.03em;
   line-height: 1.1;
   margin: 0 0 14px;
@@ -204,7 +207,7 @@
 .ab-feat-sub {
   font-family: var(--font);
   font-size: 16px;
-  color: #888;
+  color: rgba(255,255,255,0.45);
   margin: 0;
 }
 
@@ -216,14 +219,14 @@
 .ab-feat-col {
   padding: 0 52px;
   text-align: left;
-  border-right: 1px solid rgba(0,0,0,0.1);
+  border-right: 1px solid rgba(255,255,255,0.1);
 }
 
 .ab-feat-col:first-child { padding-left: 0; }
 .ab-feat-col:last-child  { border-right: none; padding-right: 0; }
 
 .ab-feat-icon {
-  color: #555;
+  color: rgba(255,255,255,0.55);
   margin-bottom: 32px;
 }
 
@@ -231,7 +234,7 @@
   font-family: var(--font);
   font-size: 17px;
   font-weight: 700;
-  color: #0d1117;
+  color: #ffffff;
   margin: 0 0 12px;
   letter-spacing: -0.01em;
 }
@@ -240,7 +243,7 @@
   font-family: var(--font);
   font-size: 14px;
   line-height: 1.75;
-  color: #777;
+  color: rgba(255,255,255,0.55);
   margin: 0;
 }
 
@@ -328,7 +331,7 @@
   .ab-feat-col {
     padding: 0;
     border-right: none;
-    border-bottom: 1px solid rgba(0,0,0,0.09);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
     padding-bottom: 40px;
   }
   .ab-feat-col:last-child { border-bottom: none; padding-bottom: 0; }

@@ -3208,10 +3208,11 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 
 .expertise-section {
   padding: 100px 48px;
+  --accent: #3b8fca;
   background:
-    radial-gradient(ellipse at 15% 50%, rgba(200, 80, 60, 0.12) 0%, transparent 55%),
-    radial-gradient(ellipse at 85% 20%, rgba(180, 60, 40, 0.08) 0%, transparent 50%),
-    #18181b;
+    radial-gradient(ellipse at 15% 55%, rgba(30, 90, 170, 0.22) 0%, transparent 55%),
+    radial-gradient(ellipse at 82% 18%, rgba(10, 130, 160, 0.16) 0%, transparent 50%),
+    #0b1829;
   overflow: hidden;
 }
 
@@ -3243,7 +3244,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 
 .expertise-italic {
   font-style: italic;
-  color: #c07060;
+  color: #d4924a;
 }
 
 .expertise-body {
