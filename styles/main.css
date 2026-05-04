@@ -3036,9 +3036,9 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 .expertise-section {
   padding: 100px 48px;
   background:
-    radial-gradient(ellipse at 15% 50%, rgba(215, 130, 110, 0.18) 0%, transparent 55%),
-    radial-gradient(ellipse at 85% 20%, rgba(240, 180, 160, 0.12) 0%, transparent 50%),
-    #fdf7f4;
+    radial-gradient(ellipse at 15% 50%, rgba(200, 80, 60, 0.12) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 20%, rgba(180, 60, 40, 0.08) 0%, transparent 50%),
+    #18181b;
   overflow: hidden;
 }
 
@@ -3063,7 +3063,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   font-size: clamp(2.25rem, 3.5vw, 3.25rem);
   font-weight: 700;
   line-height: 1.15;
-  color: var(--text);
+  color: #ffffff;
   margin-bottom: 20px;
   letter-spacing: -0.04em;
 }
@@ -3076,7 +3076,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 .expertise-body {
   font-size: 15px;
   line-height: 1.7;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.58);
   margin-bottom: 32px;
   max-width: 400px;
 }
@@ -3091,9 +3091,9 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 .exp-pill {
   padding: 6px 15px;
   border-radius: 9999px;
-  border: 1.5px solid rgba(190, 100, 80, 0.22);
-  background: rgba(210, 115, 95, 0.09);
-  color: rgba(100, 45, 35, 0.75);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.65);
   font-size: 13px;
   font-weight: 500;
   font-family: var(--font);
@@ -3103,9 +3103,9 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 }
 
 .exp-pill:hover {
-  background: rgba(210, 115, 95, 0.18);
-  border-color: rgba(190, 100, 80, 0.40);
-  color: #5a2e24;
+  background: rgba(255, 255, 255, 0.13);
+  border-color: rgba(255, 255, 255, 0.32);
+  color: #ffffff;
 }
 
 .exp-pill.exp-pill--active {
@@ -3146,12 +3146,12 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 .expertise-card {
   position: absolute;
   inset: 0;
-  background: #18181b;
+  background: #ffffff;
   border-radius: 20px;
   padding: 40px 44px;
   display: flex;
   flex-direction: column;
-  color: #fff;
+  color: #18181b;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.32s var(--ease);
@@ -3166,7 +3166,8 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   width: 68px;
   height: 68px;
   border-radius: 14px;
-  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  border: 1.5px solid rgba(0, 0, 0, 0.09);
+  background: #f4f6f9;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3175,7 +3176,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 }
 
 .expertise-card-icon svg {
-  stroke: rgba(255, 255, 255, 0.78);
+  stroke: #18181b;
 }
 
 .expertise-card-title {
@@ -3185,13 +3186,13 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   margin: 0 0 14px;
   letter-spacing: -0.025em;
   line-height: 1.2;
-  color: #fff;
+  color: #18181b;
 }
 
 .expertise-card-body {
   font-size: 14px;
   line-height: 1.68;
-  color: rgba(255, 255, 255, 0.58);
+  color: rgba(24, 24, 27, 0.58);
   margin: 0;
 }
 
@@ -3215,7 +3216,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   height: 8px;
   border-radius: 9999px;
   border: none;
-  background: rgba(24, 24, 27, 0.18);
+  background: rgba(255, 255, 255, 0.25);
   cursor: pointer;
   padding: 0;
   transition: all 0.2s var(--ease);
@@ -3238,20 +3239,20 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 1.5px solid var(--border);
-  background: var(--bg);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: var(--text);
+  color: #ffffff;
   transition: background 0.14s var(--ease), border-color 0.14s var(--ease);
 }
 
 .expertise-prev:hover,
 .expertise-next:hover {
-  background: var(--bg-card);
-  border-color: var(--text-subtle);
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.38);
 }
 
 /* ── Mobile ── */
