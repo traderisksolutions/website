@@ -148,7 +148,6 @@
           <a href="#" class="mega-link-item"><span class="mega-link-title">Case Studies</span><span class="mega-link-sub">How we&#39;ve helped clients</span></a>
           <a href="#" class="mega-link-item"><span class="mega-link-title">Blog</span><span class="mega-link-sub">Insights &amp; market commentary</span></a>
         </div>
-        </div>
       </div>
     </nav>
     <div class="nav-actions">
@@ -333,142 +332,486 @@
 
   <!-- SHOWCASE SECTION -->
   <div class="sc-section-header">
-    <h2 class="sc-section-heading">Coverage built for how you operate.</h2>
+    <h2 class="sc-section-heading">Coverage based on your business</h2>
   </div>
   <section class="sc-section">
     <div class="sc-wrap">
       <div class="sc-card">
 
-        <!-- Top row: tabs + meta -->
-        <div class="sc-top">
-          <div class="sc-tabs" role="tablist">
-            <button class="sc-tab sc-tab--active" role="tab" aria-selected="true" data-panel="consumers" data-track="tab_consumers">
-              <span class="sc-dot sc-dot--warm"></span>TRSConsumers
-            </button>
-            <button class="sc-tab" role="tab" aria-selected="false" data-panel="commercial" data-track="tab_commercial">
-              <span class="sc-dot sc-dot--blue"></span>TRSCommercial
-            </button>
-            <button class="sc-tab" role="tab" aria-selected="false" data-panel="employees" data-track="tab_employees">
-              <span class="sc-dot sc-dot--teal"></span>TRSEmployees
-            </button>
+        <!-- Industry selector tabs -->
+        <div class="sc-ind-tabs" role="tablist">
+          <button class="sc-ind-tab sc-ind-tab--active" data-panel="sme" role="tab" aria-selected="true" data-track="tab_sme">SME</button>
+          <button class="sc-ind-tab" data-panel="startups" role="tab" aria-selected="false" data-track="tab_startups">Startups</button>
+          <button class="sc-ind-tab" data-panel="cyber" role="tab" aria-selected="false" data-track="tab_cyber">Cybersecurity</button>
+          <button class="sc-ind-tab" data-panel="construction" role="tab" aria-selected="false" data-track="tab_construction">Construction</button>
+          <button class="sc-ind-tab" data-panel="ecommerce" role="tab" aria-selected="false" data-track="tab_ecommerce">eCommerce</button>
+          <button class="sc-ind-tab" data-panel="fintech" role="tab" aria-selected="false" data-track="tab_fintech">FinTech</button>
+          <button class="sc-ind-tab" data-panel="technology" role="tab" aria-selected="false" data-track="tab_technology">Technology</button>
+          <button class="sc-ind-tab" data-panel="healthcare" role="tab" aria-selected="false" data-track="tab_healthcare">Healthcare</button>
+          <button class="sc-ind-tab" data-panel="logistics" role="tab" aria-selected="false" data-track="tab_logistics">Logistics</button>
+        </div>
+
+        <!-- Industry description — updates on tab select -->
+        <div class="sc-ind-desc" aria-live="polite">
+          <div class="sc-ind-desc-panel sc-ind-desc-panel--active" data-panel="sme">
+            <p>Running an SME means wearing many hats. From premises to liability to your most important people — TRS packages the right cover so you can focus on growth, not risk.</p>
           </div>
-          <div class="sc-meta" aria-live="polite">
-            <div class="sc-meta-panel sc-meta-panel--active" data-panel="consumers">
-              <p class="sc-meta-title">Consumers</p>
-              <p class="sc-meta-sub">Personal insurance plans designed around your life.</p>
-            </div>
-            <div class="sc-meta-panel" data-panel="commercial">
-              <p class="sc-meta-title">Commercial</p>
-              <p class="sc-meta-sub">Business-grade coverage from SMEs to enterprise.</p>
-            </div>
-            <div class="sc-meta-panel" data-panel="employees">
-              <p class="sc-meta-title">Employees</p>
-              <p class="sc-meta-sub">Group benefit packages that attract and retain talent.</p>
-            </div>
+          <div class="sc-ind-desc-panel" data-panel="startups">
+            <p>Fast-moving companies carry fast-moving risks. From IP exposure to investor liability, TRS builds coverage that scales with your funding round and headcount.</p>
+          </div>
+          <div class="sc-ind-desc-panel" data-panel="cyber">
+            <p>A breach isn't just a technical event — it's a business crisis. TRS structures layered cyber cover that responds from incident detection through to regulatory defence.</p>
+          </div>
+          <div class="sc-ind-desc-panel" data-panel="construction">
+            <p>Every project site carries unique exposures. TRS builds insurance programmes around your contracts, subcontractors, and workforce from groundbreak to handover.</p>
+          </div>
+          <div class="sc-ind-desc-panel" data-panel="ecommerce">
+            <p>Online retail means managing stock, shipments, and customer safety simultaneously. TRS combines these exposures into one manageable programme.</p>
+          </div>
+          <div class="sc-ind-desc-panel" data-panel="fintech">
+            <p>At the intersection of finance and technology, regulatory scrutiny and custodial exposure are constant. TRS structures PI, D&amp;O, and crime cover for fintech businesses.</p>
+          </div>
+          <div class="sc-ind-desc-panel" data-panel="technology">
+            <p>Tech companies face IP disputes, service outages, and data breaches. TRS scales cyber, PI, and D&amp;O programmes with your headcount and ARR.</p>
+          </div>
+          <div class="sc-ind-desc-panel" data-panel="healthcare">
+            <p>From clinical operations to patient data to product recalls, healthcare carries unique exposures. TRS works with specialist insurers to match your exact risk profile.</p>
+          </div>
+          <div class="sc-ind-desc-panel" data-panel="logistics">
+            <p>Moving goods across borders means cargo liability, fleet risk, and supply chain disruption. TRS manages your marine, motor, and BI cover under one programme.</p>
           </div>
         </div>
 
-        <!-- Centre content panels -->
+        <!-- Content panels per industry -->
         <div class="sc-body">
 
-          <!-- Consumers -->
-          <div class="sc-panel sc-panel--active" data-panel="consumers">
-            <div class="sc-panel-inner">
-              <div class="sc-panel-left">
-                <div class="sc-prow sc-prow--active">
-                  <span class="sc-porb sc-porb--c1"></span>
-                  <span class="sc-pname">Masterpiece</span>
-                  <span class="sc-pcat">Home &amp; Valuables</span>
-                </div>
-                <div class="sc-prow">
-                  <span class="sc-porb sc-porb--c2"></span>
-                  <span class="sc-pname">Travel</span>
-                  <span class="sc-pcat">Worldwide Coverage</span>
-                </div>
-                <div class="sc-prow">
-                  <span class="sc-porb sc-porb--c3"></span>
-                  <span class="sc-pname">Motor</span>
-                  <span class="sc-pcat">Vehicle Protection</span>
-                </div>
-                <button class="sc-explore" data-track="explore_plans">Explore all plans</button>
-              </div>
-              <div class="sc-panel-right">
-                <p class="sc-ph-label">About this coverage</p>
-                <p class="sc-ph-text">Add your description here. Tell your customers what this insurance covers, who it's designed for, and why TRS is the right choice for individuals and families at every stage of life.</p>
-                <div class="sc-panel-footer">
-                  <a href="#" class="sc-panel-btn" data-track="get_quote_panel">Get a quote &rarr;</a>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Commercial -->
-          <div class="sc-panel" data-panel="commercial">
+          <!-- SME -->
+          <div class="sc-panel sc-panel--active" data-panel="sme">
             <div class="sc-panel-inner">
               <div class="sc-panel-left">
                 <div class="sc-prow sc-prow--active">
                   <span class="sc-porb sc-porb--b1"></span>
-                  <span class="sc-pname">Construction</span>
-                  <span class="sc-pcat">Project Coverage</span>
+                  <span class="sc-pname">Property &amp; Assets</span>
+                  <span class="sc-pcat">Business Cover</span>
                 </div>
                 <div class="sc-prow">
-                  <span class="sc-porb sc-porb--b2"></span>
-                  <span class="sc-pname">Foreign Workers Insurance</span>
-                  <span class="sc-pcat">Workforce Protection</span>
+                  <span class="sc-porb sc-porb--c2"></span>
+                  <span class="sc-pname">Core Liability</span>
+                  <span class="sc-pcat">Risk Protection</span>
                 </div>
-                <button class="sc-explore" data-track="explore_plans">Explore all plans</button>
+                <div class="sc-prow">
+                  <span class="sc-porb sc-porb--e1"></span>
+                  <span class="sc-pname">Workforce Protection</span>
+                  <span class="sc-pcat">Employee Cover</span>
+                </div>
+                <a href="/solutions/sme" class="sc-explore">Explore SME plans</a>
               </div>
               <div class="sc-panel-right">
-                <p class="sc-ph-label">About this coverage</p>
-                <p class="sc-ph-text">Add your description here. Explain how TRS helps businesses manage risk, stay compliant, and protect operations — from SMEs scaling up to large enterprise clients.</p>
+                <p class="sc-ph-label">Most common for SMEs</p>
+                <p class="sc-ph-text">Most SMEs are underinsured without knowing it. TRS audits your risk, negotiates with leading carriers, and packages the right cover across property, liability, and workforce — all in one place.</p>
                 <div class="sc-panel-footer">
-                  <a href="#" class="sc-panel-btn" data-track="get_quote_panel">Get a quote &rarr;</a>
+                  <a href="/solutions/sme" class="sc-panel-btn">View SME plans &rarr;</a>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Employees -->
-          <div class="sc-panel" data-panel="employees">
+          <!-- Startups -->
+          <div class="sc-panel" data-panel="startups">
             <div class="sc-panel-inner">
               <div class="sc-panel-left">
                 <div class="sc-prow sc-prow--active">
-                  <span class="sc-porb sc-porb--e1"></span>
-                  <span class="sc-pname">Employee Benefit</span>
-                  <span class="sc-pcat">Group Coverage</span>
+                  <span class="sc-porb sc-porb--c1"></span>
+                  <span class="sc-pname">Cyber Insurance</span>
+                  <span class="sc-pcat">Digital Risk</span>
                 </div>
-                <button class="sc-explore" data-track="explore_plans">Explore all plans</button>
+                <div class="sc-prow">
+                  <span class="sc-porb sc-porb--c2"></span>
+                  <span class="sc-pname">D&amp;O Liability</span>
+                  <span class="sc-pcat">Leadership Cover</span>
+                </div>
+                <div class="sc-prow">
+                  <span class="sc-porb sc-porb--b1"></span>
+                  <span class="sc-pname">Professional Indemnity</span>
+                  <span class="sc-pcat">Error &amp; Omission</span>
+                </div>
+                <a href="/solutions/startups" class="sc-explore">Explore startup plans</a>
               </div>
               <div class="sc-panel-right">
-                <p class="sc-ph-label">About this coverage</p>
-                <p class="sc-ph-text">Add your description here. Show employers how TRS group packages attract talent, improve retention, and give teams the protection and wellness benefits they deserve.</p>
+                <p class="sc-ph-label">Built for early-stage companies</p>
+                <p class="sc-ph-text">Startups move fast and accumulate risk just as quickly. From IP exposure to investor liability to data breaches, TRS builds coverage that scales with your funding round and headcount.</p>
                 <div class="sc-panel-footer">
-                  <a href="#" class="sc-panel-btn" data-track="get_quote_panel">Get a quote &rarr;</a>
+                  <a href="/solutions/startups" class="sc-panel-btn">View startup plans &rarr;</a>
                 </div>
               </div>
             </div>
           </div>
 
+          <!-- Cybersecurity -->
+          <div class="sc-panel" data-panel="cyber">
+            <div class="sc-panel-inner">
+              <div class="sc-panel-left">
+                <div class="sc-prow sc-prow--active">
+                  <span class="sc-porb sc-porb--c2"></span>
+                  <span class="sc-pname">Cyber Insurance</span>
+                  <span class="sc-pcat">Incident Response</span>
+                </div>
+                <div class="sc-prow">
+                  <span class="sc-porb sc-porb--b2"></span>
+                  <span class="sc-pname">Technology PI</span>
+                  <span class="sc-pcat">Professional Cover</span>
+                </div>
+                <div class="sc-prow">
+                  <span class="sc-porb sc-porb--c3"></span>
+                  <span class="sc-pname">Crime Cover</span>
+                  <span class="sc-pcat">Financial Loss</span>
+                </div>
+                <a href="/solutions/cybersecurity" class="sc-explore">Explore cyber plans</a>
+              </div>
+              <div class="sc-panel-right">
+                <p class="sc-ph-label">For cyber-native businesses</p>
+                <p class="sc-ph-text">A breach isn't just a technical event — it's a business crisis. TRS structures layered cyber and technology PI cover so that a security incident doesn't become a financial one.</p>
+                <div class="sc-panel-footer">
+                  <a href="/solutions/cybersecurity" class="sc-panel-btn">View cyber plans &rarr;</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Construction -->
+          <div class="sc-panel" data-panel="construction">
+            <div class="sc-panel-inner">
+              <div class="sc-panel-left">
+                <div class="sc-prow sc-prow--active">
+                  <span class="sc-porb sc-porb--b1"></span>
+                  <span class="sc-pname">CAR / EAR</span>
+                  <span class="sc-pcat">Project Cover</span>
+                </div>
+                <div class="sc-prow">
+                  <span class="sc-porb sc-porb--b2"></span>
+                  <span class="sc-pname">Property &amp; Assets</span>
+                  <span class="sc-pcat">Physical Assets</span>
+                </div>
+                <div class="sc-prow">
+                  <span class="sc-porb sc-porb--e1"></span>
+                  <span class="sc-pname">Workmen Compensation</span>
+                  <span class="sc-pcat">Workforce Cover</span>
+                </div>
+                <a href="/solutions/construction" class="sc-explore">Explore construction plans</a>
+              </div>
+              <div class="sc-panel-right">
+                <p class="sc-ph-label">For builders and developers</p>
+                <p class="sc-ph-text">Every project site carries unique exposures. TRS builds insurance programmes around your contracts, subcontractors, and workforce — from groundbreak through to handover and occupation.</p>
+                <div class="sc-panel-footer">
+                  <a href="/solutions/construction" class="sc-panel-btn">View construction plans &rarr;</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- eCommerce -->
+          <div class="sc-panel" data-panel="ecommerce">
+            <div class="sc-panel-inner">
+              <div class="sc-panel-left">
+                <div class="sc-prow sc-prow--active">
+                  <span class="sc-porb sc-porb--c1"></span>
+                  <span class="sc-pname">Stock &amp; Inventory</span>
+                  <span class="sc-pcat">Product Cover</span>
+                </div>
+                <div class="sc-prow">
+                  <span class="sc-porb sc-porb--c2"></span>
+                  <span class="sc-pname">Goods in Transit</span>
+                  <span class="sc-pcat">Shipping Cover</span>
+                </div>
+                <div class="sc-prow">
+                  <span class="sc-porb sc-porb--b1"></span>
+                  <span class="sc-pname">Product Liability</span>
+                  <span class="sc-pcat">Consumer Risk</span>
+                </div>
+                <a href="/solutions/ecommerce" class="sc-explore">Explore eCommerce plans</a>
+              </div>
+              <div class="sc-panel-right">
+                <p class="sc-ph-label">For online retailers</p>
+                <p class="sc-ph-text">Online retail means managing stock, shipments, and customer safety simultaneously. TRS combines your inventory, transit, and liability exposures into one manageable programme.</p>
+                <div class="sc-panel-footer">
+                  <a href="/solutions/ecommerce" class="sc-panel-btn">View eCommerce plans &rarr;</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- FinTech -->
+          <div class="sc-panel" data-panel="fintech">
+            <div class="sc-panel-inner">
+              <div class="sc-panel-left">
+                <div class="sc-prow sc-prow--active">
+                  <span class="sc-porb sc-porb--b2"></span>
+                  <span class="sc-pname">Professional Indemnity</span>
+                  <span class="sc-pcat">Regulatory Cover</span>
+                </div>
+                <div class="sc-prow">
+                  <span class="sc-porb sc-porb--c1"></span>
+                  <span class="sc-pname">D&amp;O Liability</span>
+                  <span class="sc-pcat">Leadership Cover</span>
+                </div>
+                <div class="sc-prow">
+                  <span class="sc-porb sc-porb--c3"></span>
+                  <span class="sc-pname">Crime &amp; Cyber Fraud</span>
+                  <span class="sc-pcat">Financial Crime</span>
+                </div>
+                <a href="/solutions/fintech" class="sc-explore">Explore FinTech plans</a>
+              </div>
+              <div class="sc-panel-right">
+                <p class="sc-ph-label">For financial technology businesses</p>
+                <p class="sc-ph-text">Operating at the intersection of finance and technology means regulatory scrutiny and custodial exposure. TRS structures PI, D&amp;O, and crime cover for fintech businesses of all sizes.</p>
+                <div class="sc-panel-footer">
+                  <a href="/solutions/fintech" class="sc-panel-btn">View FinTech plans &rarr;</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Technology -->
+          <div class="sc-panel" data-panel="technology">
+            <div class="sc-panel-inner">
+              <div class="sc-panel-left">
+                <div class="sc-prow sc-prow--active">
+                  <span class="sc-porb sc-porb--c2"></span>
+                  <span class="sc-pname">Cyber Insurance</span>
+                  <span class="sc-pcat">Data Protection</span>
+                </div>
+                <div class="sc-prow">
+                  <span class="sc-porb sc-porb--b2"></span>
+                  <span class="sc-pname">Professional Indemnity</span>
+                  <span class="sc-pcat">Tech PI</span>
+                </div>
+                <div class="sc-prow">
+                  <span class="sc-porb sc-porb--e1"></span>
+                  <span class="sc-pname">Employee Benefits</span>
+                  <span class="sc-pcat">Talent Retention</span>
+                </div>
+                <a href="/solutions/technology" class="sc-explore">Explore Technology plans</a>
+              </div>
+              <div class="sc-panel-right">
+                <p class="sc-ph-label">For tech and SaaS companies</p>
+                <p class="sc-ph-text">Tech companies face IP disputes, service outages, and data breaches. TRS scales cyber, PI, and D&amp;O programmes with your headcount and ARR — whether you're pre-seed or post-IPO.</p>
+                <div class="sc-panel-footer">
+                  <a href="/solutions/technology" class="sc-panel-btn">View Technology plans &rarr;</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Healthcare -->
+          <div class="sc-panel" data-panel="healthcare">
+            <div class="sc-panel-inner">
+              <div class="sc-panel-left">
+                <div class="sc-prow sc-prow--active">
+                  <span class="sc-porb sc-porb--c1"></span>
+                  <span class="sc-pname">Medical PI</span>
+                  <span class="sc-pcat">Clinical Cover</span>
+                </div>
+                <div class="sc-prow">
+                  <span class="sc-porb sc-porb--b1"></span>
+                  <span class="sc-pname">Product Liability</span>
+                  <span class="sc-pcat">Patient Safety</span>
+                </div>
+                <div class="sc-prow">
+                  <span class="sc-porb sc-porb--e1"></span>
+                  <span class="sc-pname">Group Health Insurance</span>
+                  <span class="sc-pcat">Staff Benefits</span>
+                </div>
+                <a href="/solutions/healthcare" class="sc-explore">Explore Healthcare plans</a>
+              </div>
+              <div class="sc-panel-right">
+                <p class="sc-ph-label">For medical and biomedical businesses</p>
+                <p class="sc-ph-text">From clinical operations to patient data to product recalls, healthcare carries unique exposures. TRS works with specialist insurers to match the exact risk profile of your organisation.</p>
+                <div class="sc-panel-footer">
+                  <a href="/solutions/healthcare" class="sc-panel-btn">View Healthcare plans &rarr;</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Logistics -->
+          <div class="sc-panel" data-panel="logistics">
+            <div class="sc-panel-inner">
+              <div class="sc-panel-left">
+                <div class="sc-prow sc-prow--active">
+                  <span class="sc-porb sc-porb--c2"></span>
+                  <span class="sc-pname">Marine Cargo</span>
+                  <span class="sc-pcat">Freight Cover</span>
+                </div>
+                <div class="sc-prow">
+                  <span class="sc-porb sc-porb--c3"></span>
+                  <span class="sc-pname">Motor Fleet</span>
+                  <span class="sc-pcat">Vehicle Cover</span>
+                </div>
+                <div class="sc-prow">
+                  <span class="sc-porb sc-porb--b2"></span>
+                  <span class="sc-pname">Warehouse Liability</span>
+                  <span class="sc-pcat">Storage Risk</span>
+                </div>
+                <a href="/solutions/logistics" class="sc-explore">Explore Logistics plans</a>
+              </div>
+              <div class="sc-panel-right">
+                <p class="sc-ph-label">For freight and supply chain operators</p>
+                <p class="sc-ph-text">Moving goods across borders means cargo liability, fleet risk, and supply chain disruption. TRS manages your marine, motor, and business interruption cover under one coordinated programme.</p>
+                <div class="sc-panel-footer">
+                  <a href="/solutions/logistics" class="sc-panel-btn">View Logistics plans &rarr;</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /sc-body -->
+
+      </div><!-- /sc-card -->
+    </div><!-- /sc-wrap -->
+  </section>
+
+  <!-- DEEP INDUSTRY EXPERTISE -->
+  <section class="expertise-section">
+    <div class="expertise-wrap">
+
+      <!-- Left: heading + pills + CTA -->
+      <div class="expertise-left">
+        <h2 class="expertise-heading">
+          Deep industry<br><em class="expertise-italic">expertise</em>
+        </h2>
+        <p class="expertise-body">From FDA-regulated clinics to multi-state construction contractors — these aren't outliers, they're our sweet spot. We understand the nuance behind compliance, liability, and operational complexity, and we match coverage to real-world exposure with speed and precision.</p>
+
+        <div class="expertise-pills">
+          <button class="exp-pill exp-pill--active" data-exp="sme">SME</button>
+          <button class="exp-pill" data-exp="startups">Startups</button>
+          <button class="exp-pill" data-exp="construction">Construction</button>
+          <button class="exp-pill" data-exp="ecommerce">eCommerce</button>
+          <button class="exp-pill" data-exp="fintech">FinTech</button>
+          <button class="exp-pill" data-exp="technology">Technology</button>
+          <button class="exp-pill" data-exp="healthcare">Healthcare</button>
+          <button class="exp-pill" data-exp="logistics">Logistics</button>
+          <button class="exp-pill" data-exp="cyber">Cybersecurity</button>
+          <button class="exp-pill" data-exp="hospitality">Hospitality</button>
         </div>
 
-        <!-- Bottom sub-pills -->
-        <div class="sc-bottom">
-          <div class="sc-subpills sc-subpills--active" data-panel="consumers">
-            <button class="sc-spill sc-spill--active">Masterpiece</button>
-            <button class="sc-spill">Travel</button>
-            <button class="sc-spill">Motor</button>
-          </div>
-          <div class="sc-subpills" data-panel="commercial">
-            <button class="sc-spill sc-spill--active">Construction</button>
-            <button class="sc-spill">Foreign Workers Insurance</button>
-          </div>
-          <div class="sc-subpills" data-panel="employees">
-            <button class="sc-spill sc-spill--active">Employee Benefit</button>
-          </div>
-        </div>
-
+        <a href="/solutions" class="expertise-view-btn">
+          View all industries
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
       </div>
-    </div>
+
+      <!-- Right: rotating dark card -->
+      <div class="expertise-right">
+        <div class="expertise-cards">
+
+          <div class="expertise-card expertise-card--active" data-exp="sme">
+            <div class="expertise-card-icon">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+            </div>
+            <h3 class="expertise-card-title">Small &amp; Medium Enterprise</h3>
+            <p class="expertise-card-body">Complete protection for Singapore's backbone businesses — from premises and liability to your most important people. TRS packages the right cover so you can focus on growth, not risk.</p>
+          </div>
+
+          <div class="expertise-card" data-exp="startups">
+            <div class="expertise-card-icon">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </div>
+            <h3 class="expertise-card-title">Early-Stage Startups</h3>
+            <p class="expertise-card-body">Fast-moving companies carry fast-moving risks. From IP exposure to investor liability, TRS builds coverage that scales with your funding round and headcount.</p>
+          </div>
+
+          <div class="expertise-card" data-exp="construction">
+            <div class="expertise-card-icon">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"/><path d="M5 20V8l7-5 7 5v12"/><path d="M9 20v-5h6v5"/></svg>
+            </div>
+            <h3 class="expertise-card-title">Construction &amp; Real Estate</h3>
+            <p class="expertise-card-body">Every project site carries unique exposures. TRS builds programmes around your contracts, subcontractors, and workforce — from groundbreak to handover.</p>
+          </div>
+
+          <div class="expertise-card" data-exp="ecommerce">
+            <div class="expertise-card-icon">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            </div>
+            <h3 class="expertise-card-title">eCommerce &amp; Retail</h3>
+            <p class="expertise-card-body">Online retail means managing stock, shipments, and customer safety simultaneously. TRS combines these exposures into one coordinated insurance programme.</p>
+          </div>
+
+          <div class="expertise-card" data-exp="fintech">
+            <div class="expertise-card-icon">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            </div>
+            <h3 class="expertise-card-title">FinTech &amp; Crypto</h3>
+            <p class="expertise-card-body">At the intersection of finance and technology, regulatory scrutiny and custodial exposure are constant. TRS structures PI, D&amp;O, and crime cover for fintech businesses.</p>
+          </div>
+
+          <div class="expertise-card" data-exp="technology">
+            <div class="expertise-card-icon">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            </div>
+            <h3 class="expertise-card-title">Technology &amp; SaaS</h3>
+            <p class="expertise-card-body">Tech companies face IP disputes, service outages, and data breaches. TRS scales cyber, PI, and D&amp;O programmes with your headcount and ARR.</p>
+          </div>
+
+          <div class="expertise-card" data-exp="healthcare">
+            <div class="expertise-card-icon">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            </div>
+            <h3 class="expertise-card-title">Healthcare &amp; Biomedical</h3>
+            <p class="expertise-card-body">From clinical operations to patient data to product recalls, healthcare carries unique exposures. TRS works with specialist insurers to match your exact risk profile.</p>
+          </div>
+
+          <div class="expertise-card" data-exp="logistics">
+            <div class="expertise-card-icon">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+            </div>
+            <h3 class="expertise-card-title">Logistics &amp; Supply Chain</h3>
+            <p class="expertise-card-body">Moving goods across borders means cargo liability, fleet risk, and supply chain disruption. TRS manages your marine, motor, and BI cover under one programme.</p>
+          </div>
+
+          <div class="expertise-card" data-exp="cyber">
+            <div class="expertise-card-icon">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+            </div>
+            <h3 class="expertise-card-title">Cybersecurity</h3>
+            <p class="expertise-card-body">A breach isn't just a technical event — it's a business crisis. TRS structures layered cyber cover that responds from incident detection through to regulatory defence.</p>
+          </div>
+
+          <div class="expertise-card" data-exp="hospitality">
+            <div class="expertise-card-icon">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </div>
+            <h3 class="expertise-card-title">Hospitality &amp; F&amp;B</h3>
+            <p class="expertise-card-body">Guest liability, food safety, property damage, and business interruption — TRS structures cover for hotels, restaurants, and event operators across Singapore.</p>
+          </div>
+
+        </div><!-- /expertise-cards -->
+
+        <!-- Nav dots + arrows -->
+        <div class="expertise-nav">
+          <div class="expertise-dots">
+            <button class="expertise-dot expertise-dot--active" data-exp="sme" aria-label="SME"></button>
+            <button class="expertise-dot" data-exp="startups" aria-label="Startups"></button>
+            <button class="expertise-dot" data-exp="construction" aria-label="Construction"></button>
+            <button class="expertise-dot" data-exp="ecommerce" aria-label="eCommerce"></button>
+            <button class="expertise-dot" data-exp="fintech" aria-label="FinTech"></button>
+            <button class="expertise-dot" data-exp="technology" aria-label="Technology"></button>
+            <button class="expertise-dot" data-exp="healthcare" aria-label="Healthcare"></button>
+            <button class="expertise-dot" data-exp="logistics" aria-label="Logistics"></button>
+            <button class="expertise-dot" data-exp="cyber" aria-label="Cybersecurity"></button>
+            <button class="expertise-dot" data-exp="hospitality" aria-label="Hospitality"></button>
+          </div>
+          <div class="expertise-arrows">
+            <button class="expertise-prev" aria-label="Previous industry">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <button class="expertise-next" aria-label="Next industry">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+        </div>
+
+      </div><!-- /expertise-right -->
+    </div><!-- /expertise-wrap -->
   </section>
 
   <!-- ACCORDION SECTION -->
@@ -709,6 +1052,41 @@
         pill.addEventListener('click', function () {
           if (ctaInput) { ctaInput.value = pill.dataset.prompt; ctaInput.focus(); }
         });
+      });
+    })();
+
+    /* ── Deep Industry Expertise ── */
+    (function () {
+      var pills   = document.querySelectorAll('.exp-pill');
+      var cards   = document.querySelectorAll('.expertise-card');
+      var dots    = document.querySelectorAll('.expertise-dot');
+      var prevBtn = document.querySelector('.expertise-prev');
+      var nextBtn = document.querySelector('.expertise-next');
+      if (!pills.length) return;
+
+      var industries = Array.from(pills).map(function (p) { return p.dataset.exp; });
+      var currentIdx = 0;
+
+      function activate(ind) {
+        var idx = industries.indexOf(ind);
+        if (idx === -1) return;
+        currentIdx = idx;
+        pills.forEach(function (p) { p.classList.toggle('exp-pill--active', p.dataset.exp === ind); });
+        cards.forEach(function (c) { c.classList.toggle('expertise-card--active', c.dataset.exp === ind); });
+        dots.forEach(function (d) { d.classList.toggle('expertise-dot--active', d.dataset.exp === ind); });
+      }
+
+      pills.forEach(function (pill) {
+        pill.addEventListener('click', function () { activate(pill.dataset.exp); });
+      });
+      dots.forEach(function (dot) {
+        dot.addEventListener('click', function () { activate(dot.dataset.exp); });
+      });
+      if (prevBtn) prevBtn.addEventListener('click', function () {
+        activate(industries[(currentIdx - 1 + industries.length) % industries.length]);
+      });
+      if (nextBtn) nextBtn.addEventListener('click', function () {
+        activate(industries[(currentIdx + 1) % industries.length]);
       });
     })();
   </script>
