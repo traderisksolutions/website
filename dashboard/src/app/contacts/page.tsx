@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 
 interface Lead {
   id: string
-  full_name: string | null
+  first_name: string | null
+  last_name: string | null
   email: string | null
   company: string | null
   phone: string | null
@@ -92,7 +93,7 @@ export default function ContactsPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid #f0f0f0' }}>
-                {['Name', 'Company', 'Email', 'Source', 'Status', 'Date'].map(h => (
+                {['First Name', 'Last Name', 'Company', 'Email', 'Source', 'Status', 'Date'].map(h => (
                   <th key={h} style={{ padding: '8px 12px', fontSize: 11, fontWeight: 600, color: '#aaa', textAlign: 'left', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
                     {h}
                   </th>
@@ -111,7 +112,10 @@ export default function ContactsPage() {
                   }}
                 >
                   <td style={{ padding: '10px 12px', fontSize: 13, fontWeight: 500, color: '#111' }}>
-                    {lead.full_name ?? '—'}
+                    {lead.first_name ?? '—'}
+                  </td>
+                  <td style={{ padding: '10px 12px', fontSize: 13, fontWeight: 500, color: '#111' }}>
+                    {lead.last_name ?? '—'}
                   </td>
                   <td style={{ padding: '10px 12px', fontSize: 13, color: '#555' }}>
                     {lead.company ?? '—'}
@@ -143,7 +147,7 @@ export default function ContactsPage() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} style={{ padding: '48px 0', textAlign: 'center', color: '#bbb', fontSize: 13 }}>
+                  <td colSpan={7} style={{ padding: '48px 0', textAlign: 'center', color: '#bbb', fontSize: 13 }}>
                     No contacts found
                   </td>
                 </tr>
@@ -174,7 +178,7 @@ export default function ContactsPage() {
           {/* Name + status */}
           <div style={{ marginBottom: 20 }}>
             <h2 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700, color: '#111', letterSpacing: '-0.01em' }}>
-              {selected.full_name ?? 'Unknown'}
+              {[selected.first_name, selected.last_name].filter(Boolean).join(' ') || 'Unknown'}
             </h2>
             <p style={{ margin: '0 0 10px', fontSize: 13, color: '#888' }}>{selected.company ?? '—'}</p>
             <span style={{

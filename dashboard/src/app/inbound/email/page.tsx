@@ -416,7 +416,8 @@ function InboundLeadsPage() {
               <thead>
                 <tr style={{ background: '#fafafa', borderBottom: '1px solid #e8e8e8', position: 'sticky', top: 0, zIndex: 1 }}>
                   <Th w={110}>Channel</Th>
-                  <Th w={160}>Name</Th>
+                  <Th w={120}>First Name</Th>
+                  <Th w={120}>Last Name</Th>
                   <Th w={150}>Company</Th>
                   <Th w={160}>Topic</Th>
                   <Th>Message</Th>
@@ -452,7 +453,10 @@ function InboundLeadsPage() {
                         </div>
                       </td>
                       <td style={{ padding: '11px 12px', verticalAlign: 'middle' }}>
-                        <span style={{ fontWeight: lead.status === 'new' ? 600 : 400, color: '#111' }}>{displayName(lead)}</span>
+                        <span style={{ fontWeight: lead.status === 'new' ? 600 : 400, color: '#111' }}>{lead.first_name || '—'}</span>
+                      </td>
+                      <td style={{ padding: '11px 12px', verticalAlign: 'middle' }}>
+                        <span style={{ fontWeight: lead.status === 'new' ? 600 : 400, color: '#111' }}>{lead.last_name || '—'}</span>
                       </td>
                       <td style={{ padding: '11px 12px', verticalAlign: 'middle', color: '#666', maxWidth: 0 }}>
                         <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
