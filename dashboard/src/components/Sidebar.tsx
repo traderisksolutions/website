@@ -6,41 +6,64 @@ import { usePathname } from 'next/navigation'
 import {
   Mail, MessageCircle, AlertCircle,
   Users, BarChart2, Settings,
-  Search, ChevronRight, ChevronDown, Bot,
-  SlidersHorizontal, Table2, UsersRound,
+  Search, ChevronRight, ChevronDown,
+  Bot, SlidersHorizontal, Table2, UsersRound,
+  Zap,
 } from 'lucide-react'
 
-type Counts = { emailNew: number; waNew: number; claimsNew: number }
+type InboundCounts = { emailNew: number; waNew: number }
+type StageCounts   = { engaged: number; qualified: number; proposal: number; converted: number }
 
-async function fetchCounts(): Promise<Counts> {
+async function fetchInboundCounts(): Promise<InboundCounts> {
   try {
     const res = await fetch('/api/leads', { cache: 'no-store' })
-    if (!res.ok) return { emailNew: 0, waNew: 0, claimsNew: 0 }
+    if (!res.ok) return { emailNew: 0, waNew: 0 }
     const raw = await res.json()
     const data: { status: string; source: string }[] = Array.isArray(raw) ? raw : []
-    const emailSources = new Set(['website_form', 'email', 'manual'])
+    const emailSrc = new Set(['website_form', 'email', 'manual'])
     return {
-      emailNew:  data.filter(l => l.status === 'new' && emailSources.has(l.source)).length,
-      waNew:     data.filter(l => l.status === 'new' && l.source === 'whatsapp_click').length,
-      claimsNew: data.filter(l => l.status === 'new' && l.source === 'claims_form').length,
+      emailNew: data.filter(l => l.status === 'new' && emailSrc.has(l.source)).length,
+      waNew:    data.filter(l => l.status === 'new' && l.source === 'whatsapp_click').length,
     }
-  } catch { return { emailNew: 0, waNew: 0, claimsNew: 0 } }
+  } catch { return { emailNew: 0, waNew: 0 } }
+}
+
+async function fetchStageCounts(): Promise<StageCounts> {
+  try {
+    const res = await fetch('/api/contacts/counts', { cache: 'no-store' })
+    if (!res.ok) return { engaged: 0, qualified: 0, proposal: 0, converted: 0 }
+    const data = await res.json()
+    return {
+      engaged:   data.engaged   ?? 0,
+      qualified: data.qualified ?? 0,
+      proposal:  data.proposal  ?? 0,
+      converted: data.converted ?? 0,
+    }
+  } catch { return { engaged: 0, qualified: 0, proposal: 0, converted: 0 } }
 }
 
 export default function Sidebar() {
   const pathname = usePathname()
-  const [counts,      setCounts]      = useState<Counts>({ emailNew: 0, waNew: 0, claimsNew: 0 })
-  const [inboundOpen, setInboundOpen] = useState(true)
+  const [inbound, setInbound]     = useState<InboundCounts>({ emailNew: 0, waNew: 0 })
+  const [stages,  setStages]      = useState<StageCounts>({ engaged: 0, qualified: 0, proposal: 0, converted: 0 })
+  const [captureOpen, setCaptureOpen] = useState(true)
+  const [engageOpen,  setEngageOpen]  = useState(true)
 
   useEffect(() => {
-    fetchCounts().then(setCounts)
-    const t = setInterval(() => fetchCounts().then(setCounts), 30_000)
+    const load = () => {
+      fetchInboundCounts().then(setInbound)
+      fetchStageCounts().then(setStages)
+    }
+    load()
+    const t = setInterval(load, 30_000)
     return () => clearInterval(t)
   }, [])
 
   function active(href: string) {
     return pathname === href || pathname.startsWith(href + '/')
   }
+
+  const totalEngaged = stages.engaged + stages.qualified + stages.proposal + stages.converted
 
   return (
     <aside style={{
@@ -96,71 +119,113 @@ export default function Sidebar() {
       {/* Nav */}
       <nav style={{ flex: 1, padding: '4px 8px 8px' }}>
 
-        {/* ── Inbound Leads group ── */}
+        {/* ── CAPTURE ── */}
         <button
-          onClick={() => setInboundOpen(o => !o)}
-          className="sb-group"
+          onClick={() => setCaptureOpen(o => !o)}
           style={{
             display: 'flex', alignItems: 'center', gap: 9,
-            padding: '0 10px', height: 36, borderRadius: 6, width: '100%',
+            padding: '0 10px', height: 32, borderRadius: 6, width: '100%',
             background: 'transparent', border: 'none', cursor: 'pointer',
-            color: '#111', textAlign: 'left',
+            textAlign: 'left',
           }}
         >
-          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#aaa', flex: 1 }}>
-            Inbound Leads
+          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#aaa', flex: 1 }}>
+            Capture
           </span>
-          {(counts.emailNew + counts.waNew) > 0 && (
-            <Badge count={counts.emailNew + counts.waNew} />
+          {(inbound.emailNew + inbound.waNew) > 0 && (
+            <Badge count={inbound.emailNew + inbound.waNew} />
           )}
-          {inboundOpen
-            ? <ChevronDown size={13} strokeWidth={2} style={{ color: '#ccc', flexShrink: 0 }} />
-            : <ChevronRight size={13} strokeWidth={2} style={{ color: '#ccc', flexShrink: 0 }} />
+          {captureOpen
+            ? <ChevronDown  size={12} strokeWidth={2} style={{ color: '#ccc' }} />
+            : <ChevronRight size={12} strokeWidth={2} style={{ color: '#ccc' }} />
           }
         </button>
 
-        {inboundOpen && (
-          <div style={{ paddingLeft: 8 }}>
-            <NavItem label="Email"     href="/inbound/email"     icon={Mail}          badge={counts.emailNew} isActive={active('/inbound/email')} />
-            <NavItem label="WhatsApp"  href="/inbound/whatsapp"  icon={MessageCircle} badge={counts.waNew}    isActive={active('/inbound/whatsapp')} />
-          </div>
+        {captureOpen && (
+          <>
+            {/* Inbound sub-label */}
+            <p style={{ margin: '4px 0 2px', padding: '0 10px', fontSize: 11, color: '#bbb', letterSpacing: '0.03em' }}>
+              Inbound
+            </p>
+            <div style={{ paddingLeft: 8 }}>
+              <NavItem label="Email"    href="/inbound/email"    icon={Mail}          badge={inbound.emailNew} isActive={active('/inbound/email')} />
+              <NavItem label="WhatsApp" href="/inbound/whatsapp" icon={MessageCircle} badge={inbound.waNew}    isActive={active('/inbound/whatsapp')} />
+            </div>
+
+            {/* Outbound sub-label */}
+            <p style={{ margin: '8px 0 2px', padding: '0 10px', fontSize: 11, color: '#bbb', letterSpacing: '0.03em' }}>
+              Outbound
+            </p>
+            <div style={{ paddingLeft: 8 }}>
+              <NavItem label="AI Agent"      href="/outbound/agent"  icon={Bot}               isActive={active('/outbound/agent')} />
+              <NavItem label="Manual Search" href="/outbound/search" icon={SlidersHorizontal} isActive={active('/outbound/search')} />
+              <NavItem label="Lead Database" href="/outbound/leads"  icon={Table2}            isActive={active('/outbound/leads')} />
+            </div>
+          </>
         )}
 
         <Divider />
 
-        {/* ── Outbound ── */}
-        <p style={{ margin: '8px 0 2px', padding: '0 10px', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#aaa' }}>
-          Outbound
+        {/* ── OUTREACH ── */}
+        <p style={{ margin: '4px 0 2px', padding: '0 10px', fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#aaa' }}>
+          Outreach
         </p>
-        <NavItem label="Manual Search"     href="/outbound/search" icon={SlidersHorizontal} isActive={active('/outbound/search')} />
-        <NavItem label="Outbound AI Agent" href="/outbound/agent"  icon={Bot}               isActive={active('/outbound/agent')} />
-        <NavItem label="Leads"             href="/outbound/leads"  icon={Table2}            isActive={active('/outbound/leads')} />
+        <NavItem label="Initial Message Agent" href="/outreach/initial" icon={Zap} isActive={active('/outreach/initial')} disabled />
 
         <Divider />
 
-        {/* ── Engagement Agent ── */}
-        <p style={{ margin: '8px 0 2px', padding: '0 10px', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#aaa' }}>
-          Engagement
-        </p>
-        <NavItem label="Engagement AI Agent" href="/engagement" icon={Bot} isActive={active('/engagement')} />
+        {/* ── ENGAGEMENT ── */}
+        <button
+          onClick={() => setEngageOpen(o => !o)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 9,
+            padding: '0 10px', height: 32, borderRadius: 6, width: '100%',
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            textAlign: 'left',
+          }}
+        >
+          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#aaa', flex: 1 }}>
+            Engagement
+          </span>
+          {totalEngaged > 0 && <Badge count={totalEngaged} />}
+          {engageOpen
+            ? <ChevronDown  size={12} strokeWidth={2} style={{ color: '#ccc' }} />
+            : <ChevronRight size={12} strokeWidth={2} style={{ color: '#ccc' }} />
+          }
+        </button>
+
+        {engageOpen && (
+          <>
+            <NavItem label="Active Contacts" href="/contacts" icon={Users} badge={totalEngaged || undefined} isActive={active('/contacts')} />
+            {/* Stage pill breakdown */}
+            {totalEngaged > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '2px 10px 6px 18px' }}>
+                {stages.engaged   > 0 && <StagePill label="Engaged"   count={stages.engaged}   color="#2563eb" />}
+                {stages.qualified > 0 && <StagePill label="Qualified" count={stages.qualified} color="#7c3aed" />}
+                {stages.proposal  > 0 && <StagePill label="Proposal"  count={stages.proposal}  color="#d97706" />}
+                {stages.converted > 0 && <StagePill label="Converted" count={stages.converted} color="#059669" />}
+              </div>
+            )}
+            <NavItem label="Engagement AI Agent" href="/engagement" icon={Bot} isActive={active('/engagement')} />
+          </>
+        )}
 
         <Divider />
 
-        {/* ── Claims ── */}
-        <p style={{ margin: '8px 0 2px', padding: '0 10px', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#aaa' }}>
-          Claims
+        {/* ── OPERATIONS ── */}
+        <p style={{ margin: '4px 0 2px', padding: '0 10px', fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#aaa' }}>
+          Operations
         </p>
-        <NavItem label="All Claims" href="/claims" icon={AlertCircle} badge={counts.claimsNew} isActive={active('/claims')} />
+        <NavItem label="Claims" href="/claims" icon={AlertCircle} isActive={active('/claims')} disabled />
 
         <Divider />
 
-        {/* ── Analytics ── */}
-        <p style={{ margin: '8px 0 2px', padding: '0 10px', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#aaa' }}>
+        {/* ── ANALYTICS ── */}
+        <p style={{ margin: '4px 0 2px', padding: '0 10px', fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#aaa' }}>
           Analytics
         </p>
-        <NavItem label="Funnel"   href="/analytics" icon={BarChart2}  isActive={active('/analytics')} />
-        <NavItem label="Contacts" href="/contacts"  icon={Users}      isActive={active('/contacts')} />
-        <NavItem label="Team"     href="/team"      icon={UsersRound} isActive={active('/team')} />
+        <NavItem label="Funnel" href="/analytics" icon={BarChart2}  isActive={active('/analytics')} />
+        <NavItem label="Team"   href="/team"       icon={UsersRound} isActive={active('/team')} />
 
         <Divider />
 
@@ -196,6 +261,21 @@ function Badge({ count }: { count: number }) {
   )
 }
 
+function StagePill({ label, count, color }: { label: string; count: number; color: string }) {
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      fontSize: 10, fontWeight: 500, color,
+      background: `${color}14`,
+      border: `1px solid ${color}30`,
+      borderRadius: 20, padding: '1px 7px',
+      letterSpacing: '0.01em',
+    }}>
+      {label} {count}
+    </span>
+  )
+}
+
 function NavItem({
   label, href, icon: Icon, badge, isActive, disabled,
 }: {
@@ -207,7 +287,7 @@ function NavItem({
       className={disabled ? '' : 'sb-row'}
       style={{
         display: 'flex', alignItems: 'center', gap: 9,
-        padding: '0 10px', height: 34, borderRadius: 6,
+        padding: '0 10px', height: 32, borderRadius: 6,
         background: isActive ? '#f0f0f0' : 'transparent',
         color: disabled ? '#ccc' : isActive ? '#111' : '#555',
         cursor: disabled ? 'default' : 'pointer',
