@@ -21,29 +21,24 @@
   if (closeBtn)  closeBtn.addEventListener('click', closeDrawer);
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
 
-  /* ── Desktop dropdowns (hover) — all panels: position:fixed, anchored to trigger ── */
+  /* ── Desktop dropdowns (hover) — position:fixed, anchored to trigger ── */
   var dropdowns = document.querySelectorAll('.nav-dropdown');
 
   function applyFlush(panel, trigger) {
     var navRect = nav.getBoundingClientRect();
-    panel.style.top = navRect.bottom + 'px';
+    panel.style.top = (navRect.bottom + 8) + 'px';
 
     if (trigger) {
       var trigRect = trigger.getBoundingClientRect();
-      var panelW   = panel.getBoundingClientRect().width || panel.offsetWidth || Math.min(820, window.innerWidth - 40);
-      /* Center panel below the trigger button */
-      var left = trigRect.left + trigRect.width / 2 - panelW / 2;
-      if (left + panelW > window.innerWidth - 20) left = window.innerWidth - panelW - 20;
-      if (left < 20) left = 20;
+      /* Use offsetWidth — reliable even at opacity:0 since element is in layout */
+      var panelW = panel.offsetWidth || 400;
+      /* Anchor left edge to trigger left; if panel would overflow right, right-align to trigger right */
+      var left = trigRect.left;
+      if (left + panelW > window.innerWidth - 16) {
+        left = trigRect.right - panelW;
+      }
+      if (left < 16) left = 16;
       panel.style.left = left + 'px';
-    }
-
-    if (nav.classList.contains('nav--scrolled')) {
-      panel.style.borderTopLeftRadius  = '';
-      panel.style.borderTopRightRadius = '';
-    } else {
-      panel.style.borderTopLeftRadius  = '0';
-      panel.style.borderTopRightRadius = '0';
     }
   }
 
@@ -112,23 +107,15 @@
   function positionMega() {
     if (!productsMega || !productsBtn) return;
     var navRect = nav.getBoundingClientRect();
-    productsMega.style.top = navRect.bottom + 'px';
+    productsMega.style.top = (navRect.bottom + 8) + 'px';
 
-    var btnRect  = productsBtn.getBoundingClientRect();
-    var megaW    = productsMega.getBoundingClientRect().width || productsMega.offsetWidth || Math.min(820, window.innerWidth - 40);
-    /* Center mega below the Products button */
-    var left = btnRect.left + btnRect.width / 2 - megaW / 2;
-    if (left + megaW > window.innerWidth - 20) left = window.innerWidth - megaW - 20;
-    if (left < 20) left = 20;
+    var btnRect = productsBtn.getBoundingClientRect();
+    var megaW   = productsMega.offsetWidth || Math.min(820, window.innerWidth - 32);
+    /* Anchor left edge to Products button left; clamp to viewport */
+    var left = btnRect.left;
+    if (left + megaW > window.innerWidth - 16) left = window.innerWidth - megaW - 16;
+    if (left < 16) left = 16;
     productsMega.style.left = left + 'px';
-
-    if (nav.classList.contains('nav--scrolled')) {
-      productsMega.style.borderTopLeftRadius  = '';
-      productsMega.style.borderTopRightRadius = '';
-    } else {
-      productsMega.style.borderTopLeftRadius  = '0';
-      productsMega.style.borderTopRightRadius = '0';
-    }
   }
   function openProducts() {
     productsItem.classList.add('open');
