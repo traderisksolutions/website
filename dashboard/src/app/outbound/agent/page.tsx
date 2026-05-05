@@ -195,6 +195,49 @@ export default function OutboundAgentPage() {
 
   useEffect(() => { loadHistory() }, [loadHistory])
 
+  // ── Persist active search to sessionStorage so sidebar navigation doesn't wipe state ──
+  useEffect(() => {
+    if (!currentSearch) return
+    sessionStorage.setItem('ob_agent_session', JSON.stringify({ search: currentSearch, step }))
+  }, [currentSearch, step])
+
+  // ── Restore on mount ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    const raw = sessionStorage.getItem('ob_agent_session')
+    if (!raw) return
+    try {
+      const { search, step: savedStep } = JSON.parse(raw) as { search: SearchRun; step: Step }
+      if (!search?.id) return
+      setCurrentSearch(search)
+      setLoading(true)
+      fetch(`/api/outbound/history?id=${search.id}`)
+        .then(r => r.json())
+        .then(data => {
+          const restoredCompanies: Company[] = Array.isArray(data.companies) ? data.companies : []
+          const restoredPeople:   Person[]  = Array.isArray(data.people)    ? data.people    : []
+          setCompanies(restoredCompanies)
+          setPeople(restoredPeople)
+
+          // Reconstruct email results from people who already had emails looked up
+          const alreadyEmailed = restoredPeople.filter(p => p.email_requested)
+          if (alreadyEmailed.length > 0) {
+            setEmailResults(alreadyEmailed.map(p => ({
+              id:               p.id,
+              email:            p.email,
+              email_status:     p.email_status ?? 'unknown',
+              outbound_lead_id: p.outbound_lead_id,
+            })))
+          }
+
+          // Restore step — validate it's still valid
+          if (savedStep === 'emails' && alreadyEmailed.length > 0) setStep('emails')
+          else if (savedStep === 'people' && restoredPeople.length > 0) setStep('people')
+          else if (restoredCompanies.length > 0) setStep('companies')
+        })
+        .finally(() => setLoading(false))
+    } catch { /* ignore corrupt session */ }
+  }, []) // intentionally empty — restore only on mount
+
   const canGo: Record<Step, boolean> = {
     search:    true,
     companies: !!currentSearch,
@@ -209,6 +252,7 @@ export default function OutboundAgentPage() {
     setError(null); setLoading(true); setIsHistory(false)
     setCompanies([]); setPeople([]); setEmailResults([])
     setSelCompanies(new Set()); setSelPeople(new Set())
+    sessionStorage.removeItem('ob_agent_session')
 
     try {
       const res  = await fetch('/api/outbound/gemini-search', {

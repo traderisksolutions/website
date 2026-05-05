@@ -225,7 +225,7 @@ export default function Sidebar() {
           Analytics
         </p>
         <NavItem label="Funnel" href="/analytics" icon={BarChart2}  isActive={active('/analytics')} />
-        <NavItem label="Team"   href="/team"       icon={UsersRound} isActive={active('/team')} />
+        <NavItem label="Team"   href="/team"       icon={UsersRound} isActive={false} disabled />
 
         <Divider />
 
