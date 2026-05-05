@@ -1,444 +1,773 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Bot, Trash2, Play, Calendar, Settings } from 'lucide-react'
-import Pagination from '@/components/Pagination'
-import React from 'react'
+import Link from 'next/link'
+import {
+  Search, Building2, Users, Mail, ChevronRight,
+  Clock, ArrowLeft, AlertCircle, CheckCircle, ExternalLink, Loader2,
+} from 'lucide-react'
 
-// ── Types ──────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
-interface AgentEvent {
-  step: number; status: 'running' | 'done' | 'error'
-  message: string; count?: number; companiesFound?: number; leadsTotal?: number
+type Step = 'search' | 'companies' | 'people' | 'emails'
+
+interface SearchRun {
+  id: string; sector: string; location: string; geo_id: string
+  product_type: string; roles_targeted: string[]; cron_preference: string | null
+  company_count: number; status: string; created_at: string
 }
 
-interface Schedule {
-  id: string; created_at: string; query: string; title: string; roles: string[]
-  max_companies: number; frequency: 'daily' | 'weekly'; is_active: boolean
-  last_run_at: string | null; next_run_at: string | null
-  runs_count: number; leads_last: number
+interface Company {
+  id: string; search_id: string; name: string; source_rank: number
+  people_fetched: boolean; people_count: number; created_at: string
 }
 
-// ── Constants ──────────────────────────────────────────────────────────────
-
-const ALL_ROLES    = ['CEO', 'CTO', 'Founder', 'CFO', 'COO', 'Head of Risk', 'Director', 'VP']
-const STEP_LABELS  = ['', 'Google search', 'Extract companies', 'Find LinkedIn profiles', 'Save leads']
-const STEP_ICONS: Record<number, string> = { 1: '🔍', 2: '🤖', 3: '🔗', 4: '✅' }
-const RUNS_PER_PAGE = 5
-
-const labelStyle: React.CSSProperties = {
-  display: 'block', fontSize: 11, fontWeight: 600, color: '#888',
-  textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6,
+interface Person {
+  id: string; search_id: string; company_id: string; company_name: string
+  first_name: string | null; last_name: string | null; full_name: string | null
+  username: string | null; headline: string | null; linkedin_url: string | null
+  profile_picture: string | null; location: string | null; summary: string | null
+  email_requested: boolean; email: string | null; email_status: string | null
+  outbound_lead_id: string | null
 }
-const inputStyle: React.CSSProperties = {
+
+interface EmailResult {
+  id: string; email: string | null; email_status: string; outbound_lead_id: string | null
+}
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const PRODUCT_TYPES = [
+  { value: 'assets',       label: 'Business Assets' },
+  { value: 'liabilities',  label: 'Business Liabilities' },
+  { value: 'workforce',    label: 'Workforce' },
+  { value: 'api',          label: 'API' },
+]
+
+const PRODUCT_ROLES: Record<string, string> = {
+  api:         'CTO, VP Engineering, Product Manager',
+  assets:      'CEO, COO, Managing Director, CFO',
+  liabilities: 'CEO, COO, CFO, Head of Risk, Head of Compliance',
+  workforce:   'CEO, COO, HR Director, Chief People Officer',
+}
+
+const LOCATIONS: Record<string, string> = {
+  'Singapore': '102454443',
+  'Hong Kong': '103291313',
+}
+
+const CRON_OPTIONS = [
+  { value: 'none',   label: 'None (run once)' },
+  { value: 'daily',  label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+]
+
+const PER_PAGE         = 30
+const CREDITS_PER_EMAIL = 5
+
+// ── Shared styles ─────────────────────────────────────────────────────────────
+
+const card: React.CSSProperties = {
+  background: '#fff', border: '1px solid #e8e8e8', borderRadius: 12, padding: '20px 24px',
+}
+
+const lbl: React.CSSProperties = {
+  fontSize: 11, fontWeight: 600, color: '#666', marginBottom: 5,
+  display: 'block', letterSpacing: '0.04em', textTransform: 'uppercase',
+}
+
+const inp: React.CSSProperties = {
   width: '100%', padding: '8px 10px', fontSize: 13, borderRadius: 7,
   border: '1px solid #e5e5e5', background: '#fafafa', color: '#111',
   outline: 'none', boxSizing: 'border-box',
 }
 
-// ── Page ───────────────────────────────────────────────────────────────────
+const btnPrimary = (disabled = false, bg = '#111'): React.CSSProperties => ({
+  display: 'inline-flex', alignItems: 'center', gap: 6,
+  padding: '8px 16px', borderRadius: 8, border: 'none',
+  background: bg, color: '#fff', fontSize: 13, fontWeight: 600,
+  cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.45 : 1,
+  whiteSpace: 'nowrap',
+})
 
-export default function AgentPage() {
-  const [agentTitle,   setAgentTitle]   = useState('')
-  const [agentQuery,   setAgentQuery]   = useState('')
-  const [agentRoles,   setAgentRoles]   = useState<string[]>(['CEO', 'CTO', 'Founder'])
-  const [agentMaxCo,   setAgentMaxCo]   = useState(8)
-  const [agentRunning, setAgentRunning] = useState(false)
-  const [agentEvents,  setAgentEvents]  = useState<AgentEvent[]>([])
-  const [agentDone,    setAgentDone]    = useState(false)
-  const [schedules,    setSchedules]    = useState<Schedule[]>([])
-  const [scheduling,   setScheduling]   = useState(false)
-  const [schedFreq,    setSchedFreq]    = useState<'daily' | 'weekly'>('daily')
-  const [editingId,    setEditingId]    = useState<string | null>(null)
-  const [editFreq,     setEditFreq]     = useState<'daily' | 'weekly'>('daily')
-  const [editTime,     setEditTime]     = useState('07:00')
-  const [runsPage,     setRunsPage]     = useState(1)
+const btnSecondary: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: 5,
+  padding: '6px 12px', borderRadius: 7, border: '1px solid #e5e5e5',
+  background: '#fff', color: '#333', fontSize: 12, fontWeight: 500,
+  cursor: 'pointer', whiteSpace: 'nowrap',
+}
 
-  const loadSchedules = useCallback(async () => {
-    const res = await fetch('/api/outbound/schedules')
-    if (res.ok) { const raw = await res.json(); setSchedules(Array.isArray(raw) ? raw : []) }
+const thStyle: React.CSSProperties = {
+  padding: '7px 10px', textAlign: 'left', color: '#aaa',
+  fontWeight: 600, fontSize: 11, borderBottom: '1px solid #f0f0f0',
+  whiteSpace: 'nowrap',
+}
+
+const tdStyle: React.CSSProperties = {
+  padding: '9px 10px', borderBottom: '1px solid #f8f8f8', fontSize: 13,
+}
+
+// ── Breadcrumb ────────────────────────────────────────────────────────────────
+
+function Breadcrumb({ step, onNav, canGo }: {
+  step: Step; onNav: (s: Step) => void; canGo: Record<Step, boolean>
+}) {
+  const steps: { key: Step; label: string; icon: React.ReactNode }[] = [
+    { key: 'search',    label: 'Search',    icon: <Search    size={11} /> },
+    { key: 'companies', label: 'Companies', icon: <Building2 size={11} /> },
+    { key: 'people',    label: 'People',    icon: <Users     size={11} /> },
+    { key: 'emails',    label: 'Emails',    icon: <Mail      size={11} /> },
+  ]
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginBottom: 24 }}>
+      {steps.map((s, i) => (
+        <div key={s.key} style={{ display: 'flex', alignItems: 'center' }}>
+          {i > 0 && <ChevronRight size={12} style={{ color: '#d1d5db', margin: '0 2px' }} />}
+          <button
+            onClick={() => canGo[s.key] && onNav(s.key)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              padding: '4px 11px', borderRadius: 6, border: 'none',
+              background: step === s.key ? '#111' : canGo[s.key] ? '#f4f4f5' : 'transparent',
+              color:      step === s.key ? '#fff'  : canGo[s.key] ? '#444'   : '#ccc',
+              fontSize: 12, fontWeight: step === s.key ? 600 : 400,
+              cursor: canGo[s.key] ? 'pointer' : 'default',
+            }}
+          >
+            {s.icon} {s.label}
+          </button>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Status badge ──────────────────────────────────────────────────────────────
+
+function Badge({ label, color, bg }: { label: string; color: string; bg: string }) {
+  return (
+    <span style={{
+      padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
+      color, background: bg, whiteSpace: 'nowrap',
+    }}>
+      {label}
+    </span>
+  )
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
+
+export default function OutboundAgentPage() {
+  // Wizard state
+  const [step,      setStep]      = useState<Step>('search')
+  const [isHistory, setIsHistory] = useState(false)
+
+  // Data
+  const [history,       setHistory]       = useState<SearchRun[]>([])
+  const [currentSearch, setCurrentSearch] = useState<SearchRun | null>(null)
+  const [companies,     setCompanies]     = useState<Company[]>([])
+  const [people,        setPeople]        = useState<Person[]>([])
+  const [emailResults,  setEmailResults]  = useState<EmailResult[]>([])
+
+  // Selection
+  const [selCompanies, setSelCompanies] = useState<Set<string>>(new Set())
+  const [selPeople,    setSelPeople]    = useState<Set<string>>(new Set())
+
+  // UI
+  const [loading,         setLoading]         = useState(false)
+  const [fetchingPeople,  setFetchingPeople]   = useState(false)
+  const [error,           setError]           = useState<string | null>(null)
+  const [skipped,         setSkipped]         = useState(0)
+  const [creditModal,     setCreditModal]     = useState(false)
+  const [peoplePage,      setPeoplePage]      = useState(1)
+
+  // Form
+  const [sector,      setSector]      = useState('')
+  const [location,    setLocation]    = useState('Singapore')
+  const [productType, setProductType] = useState('')
+  const [cronPref,    setCronPref]    = useState('none')
+
+  const loadHistory = useCallback(async () => {
+    const res  = await fetch('/api/outbound/history')
+    const data = await res.json()
+    setHistory(Array.isArray(data) ? data : [])
   }, [])
 
-  useEffect(() => { loadSchedules() }, [loadSchedules])
+  useEffect(() => { loadHistory() }, [loadHistory])
 
-  // ── Derived stats ──────────────────────────────────────────────────────────
+  const canGo: Record<Step, boolean> = {
+    search:    true,
+    companies: !!currentSearch,
+    people:    !!currentSearch && people.length > 0,
+    emails:    emailResults.length > 0,
+  }
 
-  const activeCount  = schedules.filter(s => s.is_active).length
-  const totalRuns    = schedules.reduce((n, s) => n + (s.runs_count ?? 0), 0)
-  const leadsLastRun = schedules.reduce((n, s) => n + (s.leads_last ?? 0), 0)
+  // ── Step 1: Run search ────────────────────────────────────────────────────
 
-  // ── Agent run ─────────────────────────────────────────────────────────────
+  async function runSearch() {
+    if (!sector.trim() || !productType) { setError('Fill in sector and product type.'); return }
+    setError(null); setLoading(true); setIsHistory(false)
+    setCompanies([]); setPeople([]); setEmailResults([])
+    setSelCompanies(new Set()); setSelPeople(new Set())
 
-  async function runAgent() {
-    if (!agentQuery.trim()) return
-    setAgentRunning(true); setAgentEvents([]); setAgentDone(false)
     try {
-      const res = await fetch('/api/outbound/agent', {
+      const res  = await fetch('/api/outbound/gemini-search', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: agentQuery, roles: agentRoles, maxCompanies: agentMaxCo }),
+        body: JSON.stringify({
+          sector: sector.trim(), location,
+          geoId: LOCATIONS[location], productType,
+          cronPreference: cronPref === 'none' ? null : cronPref,
+        }),
       })
-      if (!res.body) return
-      const reader  = res.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer    = ''
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() ?? ''
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          try {
-            const event: AgentEvent = JSON.parse(line.slice(6))
-            setAgentEvents(prev => {
-              const idx = prev.findIndex(e => e.step === event.step)
-              if (idx >= 0) { const next = [...prev]; next[idx] = event; return next }
-              return [...prev, event]
-            })
-            if (event.step === 4 && event.status === 'done') setAgentDone(true)
-          } catch { /* ignore parse errors */ }
-        }
-      }
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Search failed')
+
+      setCurrentSearch({
+        id: data.searchId, sector: sector.trim(), location,
+        geo_id: LOCATIONS[location], product_type: productType,
+        roles_targeted: [], cron_preference: cronPref === 'none' ? null : cronPref,
+        company_count: data.companies.length, status: 'completed',
+        created_at: new Date().toISOString(),
+      })
+      setCompanies(data.companies)
+      setSkipped(data.skipped ?? 0)
+      setStep('companies')
+      loadHistory()
     } catch (e) {
-      setAgentEvents(prev => [...prev, { step: -1, status: 'error', message: e instanceof Error ? e.message : 'Network error' }])
-    } finally {
-      setAgentRunning(false)
-      loadSchedules()
-    }
+      setError(e instanceof Error ? e.message : 'Search failed')
+    } finally { setLoading(false) }
   }
 
-  async function scheduleAgent() {
-    if (!agentQuery.trim()) return
-    setScheduling(true)
+  // ── History: load a past search (read-only) ───────────────────────────────
+
+  async function viewHistorySearch(s: SearchRun) {
+    setLoading(true); setIsHistory(true); setCurrentSearch(s)
+    setEmailResults([]); setSelCompanies(new Set()); setSelPeople(new Set())
     try {
-      await fetch('/api/outbound/schedules', {
+      const res  = await fetch(`/api/outbound/history?id=${s.id}`)
+      const data = await res.json()
+      setCompanies(Array.isArray(data.companies) ? data.companies : [])
+      setPeople(Array.isArray(data.people)       ? data.people    : [])
+      setStep('companies')
+    } catch { setError('Failed to load history') }
+    finally  { setLoading(false) }
+  }
+
+  // ── Step 2: Fetch people ──────────────────────────────────────────────────
+
+  async function fetchPeople() {
+    if (!currentSearch || selCompanies.size === 0) return
+    setFetchingPeople(true); setError(null)
+    try {
+      const res  = await fetch('/api/outbound/people-fetch', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: agentTitle || agentQuery.slice(0, 40), query: agentQuery, roles: agentRoles, maxCompanies: agentMaxCo, frequency: schedFreq }),
+        body: JSON.stringify({ searchId: currentSearch.id, companyIds: Array.from(selCompanies) }),
       })
-      await loadSchedules()
-    } finally { setScheduling(false) }
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'People fetch failed')
+
+      setPeople(Array.isArray(data.people) ? data.people : [])
+      setCompanies(prev => prev.map(c =>
+        selCompanies.has(c.id) ? { ...c, people_fetched: true } : c
+      ))
+      setSelCompanies(new Set()); setPeoplePage(1); setStep('people')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'People fetch failed')
+    } finally { setFetchingPeople(false) }
   }
 
-  async function deleteSchedule(id: string) {
-    await fetch('/api/outbound/schedules', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
-    setSchedules(prev => prev.filter(s => s.id !== id))
+  // ── Step 3: Email lookup ──────────────────────────────────────────────────
+
+  async function runEmailLookup() {
+    if (!currentSearch || selPeople.size === 0) return
+    setCreditModal(false); setLoading(true); setError(null)
+    try {
+      const res  = await fetch('/api/outbound/email-find', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ personIds: Array.from(selPeople) }),
+      })
+      const data = await res.json()
+      if (res.status === 402) throw new Error(data.error)
+      if (!res.ok)            throw new Error(data.error ?? 'Email lookup failed')
+
+      const results: EmailResult[] = Array.isArray(data.results) ? data.results : []
+      setEmailResults(results)
+      const map = new Map(results.map(r => [r.id, r]))
+      setPeople(prev => prev.map(p => {
+        const r = map.get(p.id)
+        return r ? { ...p, email: r.email, email_status: r.email_status, email_requested: true, outbound_lead_id: r.outbound_lead_id } : p
+      }))
+      setSelPeople(new Set()); setStep('emails')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Email lookup failed')
+    } finally { setLoading(false) }
   }
 
-  async function toggleSchedule(id: string, is_active: boolean) {
-    setSchedules(prev => prev.map(s => s.id === id ? { ...s, is_active } : s))
-    await fetch('/api/outbound/schedules', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, is_active }) })
-  }
+  // ── People pagination ─────────────────────────────────────────────────────
 
-  async function saveEdit(id: string) {
-    await fetch('/api/outbound/schedules', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, frequency: editFreq }) })
-    setSchedules(prev => prev.map(s => s.id === id ? { ...s, frequency: editFreq } : s))
-    setEditingId(null)
-  }
+  const totalPages  = Math.ceil(people.length / PER_PAGE)
+  const pagedPeople = people.slice((peoplePage - 1) * PER_PAGE, peoplePage * PER_PAGE)
 
-  function openEdit(s: Schedule) {
-    setEditingId(s.id)
-    setEditFreq(s.frequency)
-    setEditTime('07:00')
-  }
-
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <div style={{ padding: '28px 32px', maxWidth: 1140, margin: '0 auto' }}>
 
-      {/* ── Left panel: config ── */}
-      <div style={{ width: 300, flexShrink: 0, borderRight: '1px solid #e5e5e5', background: '#fff', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+      {/* Header */}
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#111', letterSpacing: '-0.02em' }}>
+          Outbound AI Agent
+        </h1>
+        <p style={{ margin: '4px 0 0', fontSize: 13, color: '#aaa' }}>
+          Search companies → find decision-makers → get verified emails
+        </p>
+      </div>
 
-        <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #f0f0f0', flexShrink: 0 }}>
-          <h1 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#111', letterSpacing: '-0.02em' }}>Outbound AI Agent</h1>
-          <p style={{ margin: '2px 0 0', fontSize: 12, color: '#aaa' }}>Natural language → LinkedIn leads</p>
+      <Breadcrumb step={step} onNav={setStep} canGo={canGo} />
+
+      {/* Error */}
+      {error && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '10px 14px', marginBottom: 16, borderRadius: 8,
+          background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', fontSize: 13,
+        }}>
+          <AlertCircle size={14} style={{ flexShrink: 0 }} />
+          <span style={{ flex: 1 }}>{error}</span>
+          <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#991b1b', fontSize: 16, lineHeight: 1 }}>×</button>
         </div>
+      )}
 
-        <div style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', gap: 16, overflowY: 'auto' }}>
+      {/* ══════════════════ STEP 1: SEARCH ══════════════════ */}
+      {step === 'search' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: 20, alignItems: 'start' }}>
 
-          {/* Schedule title */}
-          <div>
-            <label style={labelStyle}>Schedule Title</label>
-            <input
-              value={agentTitle}
-              onChange={e => setAgentTitle(e.target.value)}
-              placeholder="e.g. SG InsurTech Leaders"
-              style={inputStyle}
-            />
-            <p style={{ margin: '4px 0 0', fontSize: 11, color: '#aaa' }}>Used as the source label when leads are saved</p>
-          </div>
+          {/* Form card */}
+          <div style={card}>
+            <p style={{ margin: '0 0 18px', fontSize: 15, fontWeight: 700, color: '#111' }}>New Search</p>
 
-          {/* Query */}
-          <div>
-            <label style={labelStyle}>Target Query</label>
-            <textarea
-              value={agentQuery}
-              onChange={e => setAgentQuery(e.target.value)}
-              placeholder="e.g. early stage fintech startups in Singapore raising Series A"
-              rows={4}
-              style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5 }}
-            />
-            <p style={{ margin: '4px 0 0', fontSize: 11, color: '#aaa' }}>The AI will Google, extract companies, then find their key people on LinkedIn</p>
-          </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+              <div>
+                <span style={lbl}>Industry / Sector *</span>
+                <input style={inp} placeholder="e.g. SaaS, FinTech, Logistics"
+                  value={sector} onChange={e => setSector(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && runSearch()} />
+              </div>
 
-          {/* Roles */}
-          <div>
-            <label style={labelStyle}>Target Roles</label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {ALL_ROLES.map(role => {
-                const on = agentRoles.includes(role)
-                return (
-                  <button key={role} onClick={() => setAgentRoles(prev => on ? prev.filter(r => r !== role) : [...prev, role])} style={{ padding: '4px 10px', fontSize: 11, borderRadius: 5, border: '1px solid', borderColor: on ? '#111' : '#e5e5e5', background: on ? '#111' : '#fff', color: on ? '#fff' : '#555', cursor: 'pointer' }}>
-                    {role}
-                  </button>
-                )
-              })}
+              <div>
+                <span style={lbl}>Location *</span>
+                <select style={inp} value={location} onChange={e => setLocation(e.target.value)}>
+                  {Object.keys(LOCATIONS).map(l => <option key={l} value={l}>{l}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <span style={lbl}>Product / Service Type *</span>
+                <select style={inp} value={productType} onChange={e => setProductType(e.target.value)}>
+                  <option value="">Select type…</option>
+                  {PRODUCT_TYPES.map(pt => <option key={pt.value} value={pt.value}>{pt.label}</option>)}
+                </select>
+                {productType && (
+                  <p style={{ margin: '5px 0 0', fontSize: 11, color: '#888', lineHeight: 1.4 }}>
+                    Targeting: {PRODUCT_ROLES[productType]}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <span style={lbl}>Scheduled Run</span>
+                <select style={inp} value={cronPref} onChange={e => setCronPref(e.target.value)}>
+                  {CRON_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+                <p style={{ margin: '4px 0 0', fontSize: 11, color: '#ccc' }}>Cron scheduling — coming soon</p>
+              </div>
             </div>
-          </div>
 
-          {/* Max companies */}
-          <div>
-            <label style={labelStyle}>Max Companies — <span style={{ fontWeight: 400 }}>{agentMaxCo}</span></label>
-            <input type="range" min={3} max={20} value={agentMaxCo} onChange={e => setAgentMaxCo(Number(e.target.value))} style={{ width: '100%' }} />
-            <p style={{ margin: '3px 0 0', fontSize: 11, color: '#aaa' }}>~{1 + agentMaxCo * 4} Netrows credits per run · 2 roles searched per company</p>
-          </div>
-
-          {/* Run now */}
-          <button onClick={runAgent} disabled={agentRunning || !agentQuery.trim()} style={{ width: '100%', padding: '11px 0', fontSize: 13, fontWeight: 600, borderRadius: 8, border: 'none', background: agentRunning || !agentQuery.trim() ? '#d1d5db' : '#111', color: '#fff', cursor: agentRunning || !agentQuery.trim() ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            <Play size={14} />
-            {agentRunning ? 'Agent running…' : 'Run Now'}
-          </button>
-
-          {/* Schedule */}
-          <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 16 }}>
-            <label style={labelStyle}>Schedule</label>
-            <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-              {(['daily', 'weekly'] as const).map(f => (
-                <button key={f} onClick={() => setSchedFreq(f)} style={{ flex: 1, padding: '7px 0', fontSize: 12, fontWeight: 500, borderRadius: 6, border: '1px solid', borderColor: schedFreq === f ? '#111' : '#e5e5e5', background: schedFreq === f ? '#111' : '#fff', color: schedFreq === f ? '#fff' : '#555', cursor: 'pointer', textTransform: 'capitalize' }}>
-                  {f}
-                </button>
-              ))}
-            </div>
-            <p style={{ margin: '0 0 10px', fontSize: 11, color: '#aaa' }}>
-              Runs automatically at 07:00 SGT {schedFreq === 'daily' ? 'every day' : 'every week'}
-            </p>
-            <button onClick={scheduleAgent} disabled={scheduling || !agentQuery.trim()} style={{ width: '100%', padding: '9px 0', fontSize: 12, fontWeight: 600, borderRadius: 7, border: '1px solid #e5e5e5', background: '#fff', color: scheduling || !agentQuery.trim() ? '#bbb' : '#555', cursor: scheduling || !agentQuery.trim() ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <Calendar size={13} />
-              {scheduling ? 'Scheduling…' : 'Save Schedule'}
+            <button
+              onClick={runSearch}
+              disabled={loading || !sector.trim() || !productType}
+              style={{ ...btnPrimary(loading || !sector.trim() || !productType), marginTop: 18, width: '100%', justifyContent: 'center' }}
+            >
+              {loading ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Search size={13} />}
+              {loading ? 'Searching…' : 'Run Search'}
             </button>
           </div>
-        </div>
-      </div>
 
-      {/* ── Right panel ── */}
-      <div style={{ flex: 1, overflowY: 'auto', background: '#f9f9f9' }}>
-
-        {/* Stats bar */}
-        {schedules.length > 0 && (
-          <div style={{ display: 'flex', gap: 1, borderBottom: '1px solid #e5e5e5', background: '#fff', flexShrink: 0 }}>
-            {[
-              { label: 'Active Schedules', value: activeCount },
-              { label: 'Total Schedules',  value: schedules.length },
-              { label: 'Total Runs',       value: totalRuns },
-              { label: 'Leads Last Run',   value: leadsLastRun },
-            ].map((s, i) => (
-              <div key={i} style={{ flex: 1, padding: '14px 20px', borderRight: i < 3 ? '1px solid #f0f0f0' : 'none' }}>
-                <p style={{ margin: 0, fontSize: 11, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>{s.label}</p>
-                <p style={{ margin: '4px 0 0', fontSize: 22, fontWeight: 700, color: '#111', letterSpacing: '-0.03em' }}>{s.value}</p>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div style={{ padding: 24 }}>
-
-          {/* All Schedules */}
-          {schedules.length > 0 && (
-            <div style={{ marginBottom: 32 }}>
-              <p style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600, color: '#111' }}>
-                All Schedules
-                <span style={{ marginLeft: 8, fontWeight: 400, fontSize: 12, color: '#aaa' }}>runs at 07:00 SGT</span>
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 680 }}>
-                {schedules.map(s => (
-                  <div key={s.id}>
-                    <div style={{ background: '#fff', border: '1px solid #e5e5e5', borderRadius: 10, padding: '14px 18px', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-                      {/* Status dot */}
-                      <div style={{ paddingTop: 4, flexShrink: 0 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: s.is_active ? '#16a34a' : '#d1d5db' }} />
-                      </div>
-
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#111', lineHeight: 1.3 }}>
-                          {s.title || s.query}
-                        </p>
-                        {s.title && (
-                          <p style={{ margin: '2px 0 4px', fontSize: 11, color: '#aaa', fontStyle: 'italic', lineHeight: 1.4 }}>{s.query}</p>
-                        )}
-                        <p style={{ margin: '4px 0 0', fontSize: 12, color: '#888' }}>
-                          {s.frequency} · {s.roles.join(', ')} · max {s.max_companies} companies
-                        </p>
-                        <p style={{ margin: '2px 0 0', fontSize: 11, color: '#bbb' }}>
-                          {s.runs_count} run{s.runs_count !== 1 ? 's' : ''}
-                          {s.leads_last ? ` · ${s.leads_last} leads last run` : ''}
-                          {s.last_run_at ? ` · last ran ${new Date(s.last_run_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}` : ' · never run yet'}
-                          {s.next_run_at ? ` · next ${new Date(s.next_run_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}` : ''}
-                        </p>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                        <button
-                          onClick={() => toggleSchedule(s.id, !s.is_active)}
-                          style={{ padding: '5px 12px', fontSize: 12, fontWeight: 500, borderRadius: 6, border: '1px solid', borderColor: s.is_active ? '#16a34a' : '#e5e5e5', background: s.is_active ? '#f0fdf4' : '#fff', color: s.is_active ? '#16a34a' : '#888', cursor: 'pointer' }}
-                        >
-                          {s.is_active ? 'Active' : 'Paused'}
-                        </button>
-                        <button
-                          onClick={() => editingId === s.id ? setEditingId(null) : openEdit(s)}
-                          style={{ padding: 7, borderRadius: 6, border: '1px solid #e5e5e5', background: editingId === s.id ? '#f4f4f5' : '#fff', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                          title="Edit schedule"
-                        >
-                          <Settings size={13} />
-                        </button>
-                        <button
-                          onClick={() => deleteSchedule(s.id)}
-                          style={{ padding: 7, borderRadius: 6, border: '1px solid #fecaca', background: '#fff', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Inline edit panel */}
-                    {editingId === s.id && (
-                      <div style={{ background: '#fafafa', border: '1px solid #e5e5e5', borderTop: 'none', borderRadius: '0 0 10px 10px', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          {(['daily', 'weekly'] as const).map(f => (
-                            <button key={f} onClick={() => setEditFreq(f)} style={{ padding: '5px 14px', fontSize: 12, fontWeight: 500, borderRadius: 6, border: '1px solid', borderColor: editFreq === f ? '#111' : '#e5e5e5', background: editFreq === f ? '#111' : '#fff', color: editFreq === f ? '#fff' : '#555', cursor: 'pointer', textTransform: 'capitalize' }}>
-                              {f}
-                            </button>
-                          ))}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontSize: 12, color: '#888' }}>Time (SGT)</span>
-                          <input type="time" value={editTime} onChange={e => setEditTime(e.target.value)} style={{ fontSize: 12, padding: '4px 8px', borderRadius: 6, border: '1px solid #e5e5e5', background: '#fff', color: '#111', outline: 'none' }} />
-                        </div>
-                        <button onClick={() => saveEdit(s.id)} style={{ padding: '6px 16px', fontSize: 12, fontWeight: 600, borderRadius: 6, border: 'none', background: '#111', color: '#fff', cursor: 'pointer', marginLeft: 'auto' }}>
-                          Save
-                        </button>
-                        <button onClick={() => setEditingId(null)} style={{ padding: '6px 12px', fontSize: 12, borderRadius: 6, border: '1px solid #e5e5e5', background: '#fff', color: '#888', cursor: 'pointer' }}>
-                          Cancel
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+          {/* History card */}
+          <div style={card}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <Clock size={13} style={{ color: '#888' }} />
+              <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#111' }}>Search History</p>
+              <span style={{ marginLeft: 'auto', fontSize: 11, color: '#bbb' }}>Last 30 days</span>
             </div>
-          )}
 
-          {/* Agent run history — sourced from schedules' runs_count + last run metadata */}
-          {schedules.length > 0 && totalRuns > 0 && (
-            <div style={{ marginBottom: 32 }}>
-              <p style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600, color: '#111' }}>
-                Schedule Run Log
-                <span style={{ marginLeft: 8, fontWeight: 400, fontSize: 12, color: '#aaa' }}>one row per schedule</span>
-              </p>
-              <div style={{ background: '#fff', border: '1px solid #e5e5e5', borderRadius: 10, overflow: 'hidden', maxWidth: 680 }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid #f0f0f0' }}>
-                      {['Schedule', 'Frequency', 'Total Runs', 'Leads (last)', 'Last Run', 'Status'].map(h => (
-                        <th key={h} style={{ padding: '10px 14px', fontSize: 11, fontWeight: 600, color: '#aaa', textAlign: 'left', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{h}</th>
-                      ))}
+            {history.length === 0 ? (
+              <p style={{ fontSize: 13, color: '#ccc', textAlign: 'center', padding: '24px 0' }}>No searches yet</p>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead>
+                  <tr>
+                    {['Date', 'Sector', 'Location', 'Type', 'Companies', ''].map(h => (
+                      <th key={h} style={thStyle}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map(s => (
+                    <tr key={s.id}>
+                      <td style={{ ...tdStyle, color: '#888', whiteSpace: 'nowrap' }}>
+                        {new Date(s.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: '2-digit' })}
+                      </td>
+                      <td style={{ ...tdStyle, color: '#111', fontWeight: 500, maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.sector}</td>
+                      <td style={{ ...tdStyle, color: '#666' }}>{s.location}</td>
+                      <td style={{ ...tdStyle }}>
+                        <Badge
+                          label={PRODUCT_TYPES.find(p => p.value === s.product_type)?.label ?? s.product_type}
+                          color="#555" bg="#f4f4f5"
+                        />
+                      </td>
+                      <td style={{ ...tdStyle, color: '#111', fontWeight: 600 }}>{s.company_count}</td>
+                      <td style={{ ...tdStyle }}>
+                        <button onClick={() => viewHistorySearch(s)} style={{ ...btnSecondary, fontSize: 11, padding: '3px 10px' }}>
+                          View
+                        </button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {schedules
-                      .slice((runsPage - 1) * RUNS_PER_PAGE, runsPage * RUNS_PER_PAGE)
-                      .map((s, i) => (
-                        <tr key={s.id} style={{ borderBottom: i < RUNS_PER_PAGE - 1 ? '1px solid #f8f8f8' : 'none' }}>
-                          <td style={{ padding: '10px 14px', fontSize: 12, fontWeight: 600, color: '#111' }}>{s.title || s.query.slice(0, 30)}</td>
-                          <td style={{ padding: '10px 14px', fontSize: 12, color: '#555', textTransform: 'capitalize' }}>{s.frequency}</td>
-                          <td style={{ padding: '10px 14px', fontSize: 13, fontWeight: 700, color: '#111' }}>{s.runs_count}</td>
-                          <td style={{ padding: '10px 14px', fontSize: 12, color: '#555' }}>{s.leads_last ?? '—'}</td>
-                          <td style={{ padding: '10px 14px', fontSize: 12, color: '#888', whiteSpace: 'nowrap' }}>
-                            {s.last_run_at ? new Date(s.last_run_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' }) : 'Never'}
-                          </td>
-                          <td style={{ padding: '10px 14px' }}>
-                            <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: s.is_active ? '#f0fdf4' : '#f4f4f5', color: s.is_active ? '#16a34a' : '#aaa' }}>
-                              {s.is_active ? 'Active' : 'Paused'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-                <Pagination total={schedules.length} page={runsPage} perPage={RUNS_PER_PAGE} onChange={setRunsPage} />
-              </div>
-            </div>
-          )}
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
 
-          {/* Progress */}
-          {agentEvents.length > 0 && (
-            <div style={{ marginBottom: 28 }}>
-              <p style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600, color: '#111' }}>Agent Progress</p>
-              <div style={{ background: '#fff', border: '1px solid #e5e5e5', borderRadius: 12, overflow: 'hidden', maxWidth: 640 }}>
-                {[1, 2, 3, 4].map((step, i) => {
-                  const ev = agentEvents.find(e => e.step === step)
-                  const isDone    = ev?.status === 'done'
-                  const isError   = ev?.status === 'error'
-                  const isRunning = ev?.status === 'running'
-                  const isFinal   = step === 4 && isDone
-                  return (
-                    <div key={step} style={{
-                      display: 'flex', alignItems: 'center', gap: 14,
-                      padding: '14px 18px',
-                      borderBottom: i < 3 ? '1px solid #f4f4f5' : 'none',
-                      background: isFinal ? '#f0fdf4' : 'transparent',
-                    }}>
-                      <div style={{
-                        width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: isError ? '#fef2f2' : isDone ? '#f0fdf4' : isRunning ? '#eff6ff' : '#f4f4f5',
-                        border: `1.5px solid ${isError ? '#fecaca' : isDone ? '#bbf7d0' : isRunning ? '#bfdbfe' : '#e5e5e5'}`,
-                        fontSize: 13, fontWeight: 700,
-                        color: isError ? '#ef4444' : isDone ? '#16a34a' : isRunning ? '#3b82f6' : '#ccc',
-                      }}>
-                        {isError ? '✕' : isDone ? '✓' : step}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: ev ? '#111' : '#bbb' }}>
-                          {ev?.message ?? STEP_LABELS[step]}
-                        </p>
-                        {isRunning && <p style={{ margin: '2px 0 0', fontSize: 11, color: '#3b82f6' }}>Running…</p>}
-                      </div>
-                      {(ev?.count ?? ev?.leadsTotal) !== undefined && (
-                        <span style={{ fontSize: 13, fontWeight: 700, color: '#555', background: '#f4f4f5', padding: '3px 10px', borderRadius: 6 }}>
-                          {ev?.leadsTotal ?? ev?.count}
-                        </span>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-              {agentDone && (
-                <a href="/outbound/leads" style={{ display: 'inline-block', marginTop: 16, padding: '10px 22px', fontSize: 13, fontWeight: 600, borderRadius: 8, background: '#111', color: '#fff', textDecoration: 'none' }}>
-                  View Leads in CRM →
-                </a>
-              )}
+      {/* ══════════════════ STEP 2: COMPANIES ══════════════════ */}
+      {step === 'companies' && currentSearch && (
+        <div>
+          {/* Toolbar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+            <button onClick={() => setStep('search')} style={btnSecondary}>
+              <ArrowLeft size={12} /> Back
+            </button>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#111' }}>
+                {companies.length} companies — <span style={{ fontWeight: 400, color: '#555' }}>{currentSearch.sector} · {currentSearch.location}</span>
+              </p>
+              {skipped > 0 && <p style={{ margin: '2px 0 0', fontSize: 11, color: '#f59e0b' }}>{skipped} duplicate(s) excluded</p>}
             </div>
-          )}
 
-          {agentEvents.length === 0 && schedules.length === 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '50%', color: '#ccc', gap: 12 }}>
-              <Bot size={48} strokeWidth={1} />
-              <p style={{ margin: 0, fontSize: 14, color: '#bbb' }}>Enter a target query and run the agent, or save a schedule</p>
+            {isHistory
+              ? <span style={{ fontSize: 12, color: '#bbb', fontStyle: 'italic' }}>Read-only — history</span>
+              : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 12, color: '#888' }}>{selCompanies.size} selected</span>
+                  <button
+                    onClick={fetchPeople}
+                    disabled={selCompanies.size === 0 || fetchingPeople}
+                    style={btnPrimary(selCompanies.size === 0 || fetchingPeople)}
+                  >
+                    {fetchingPeople
+                      ? <><Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> Fetching…</>
+                      : <><Users size={12} /> Fetch People ({selCompanies.size})</>
+                    }
+                  </button>
+                </div>
+              )
+            }
+          </div>
+
+          <div style={card}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  {!isHistory && (
+                    <th style={{ ...thStyle, width: 36 }}>
+                      <input type="checkbox"
+                        checked={selCompanies.size === companies.length && companies.length > 0}
+                        onChange={e => setSelCompanies(e.target.checked ? new Set(companies.map(c => c.id)) : new Set())}
+                      />
+                    </th>
+                  )}
+                  {['#', 'Company', 'People Status', 'Count'].map(h => <th key={h} style={thStyle}>{h}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {companies.map(c => (
+                  <tr key={c.id}>
+                    {!isHistory && (
+                      <td style={tdStyle}>
+                        <input type="checkbox"
+                          checked={selCompanies.has(c.id)}
+                          onChange={e => setSelCompanies(prev => {
+                            const n = new Set(prev)
+                            e.target.checked ? n.add(c.id) : n.delete(c.id)
+                            return n
+                          })}
+                        />
+                      </td>
+                    )}
+                    <td style={{ ...tdStyle, color: '#ccc', fontSize: 11, width: 36 }}>{c.source_rank}</td>
+                    <td style={{ ...tdStyle, color: '#111', fontWeight: 500 }}>{c.name}</td>
+                    <td style={tdStyle}>
+                      {c.people_fetched
+                        ? <Badge label="People fetched" color="#166534" bg="#f0fdf4" />
+                        : <Badge label="Not fetched"    color="#888"    bg="#f4f4f5" />
+                      }
+                    </td>
+                    <td style={{ ...tdStyle, color: c.people_count > 0 ? '#111' : '#ccc', fontWeight: c.people_count > 0 ? 600 : 400 }}>
+                      {c.people_count > 0 ? c.people_count : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* If people already loaded (history or multi-fetch) */}
+          {people.length > 0 && (
+            <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => setStep('people')} style={btnPrimary()}>
+                <Users size={12} /> View {people.length} people →
+              </button>
             </div>
           )}
         </div>
-      </div>
+      )}
+
+      {/* ══════════════════ STEP 3: PEOPLE ══════════════════ */}
+      {step === 'people' && currentSearch && (
+        <div>
+          {/* Toolbar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+            <button onClick={() => setStep('companies')} style={btnSecondary}>
+              <ArrowLeft size={12} /> Companies
+            </button>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#111' }}>
+                {people.length} people — <span style={{ fontWeight: 400, color: '#555' }}>{currentSearch.sector} · {currentSearch.location}</span>
+              </p>
+              <p style={{ margin: '2px 0 0', fontSize: 11, color: '#888' }}>
+                From {new Set(people.map(p => p.company_id)).size} companies
+              </p>
+            </div>
+
+            {isHistory
+              ? <span style={{ fontSize: 12, color: '#bbb', fontStyle: 'italic' }}>Read-only — history</span>
+              : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 12, color: '#888' }}>{selPeople.size} selected</span>
+                  <button
+                    onClick={() => selPeople.size > 0 && setCreditModal(true)}
+                    disabled={selPeople.size === 0 || loading}
+                    style={btnPrimary(selPeople.size === 0 || loading, '#1d4ed8')}
+                  >
+                    {loading
+                      ? <><Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> Looking up…</>
+                      : <><Mail size={12} /> Request Emails ({selPeople.size} · {selPeople.size * CREDITS_PER_EMAIL} credits)</>
+                    }
+                  </button>
+                </div>
+              )
+            }
+          </div>
+
+          {/* Credit warning modal */}
+          {creditModal && (
+            <div style={{
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 200,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <div style={{
+                background: '#fff', borderRadius: 14, padding: '28px 32px',
+                maxWidth: 420, width: '90%',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+              }}>
+                <p style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700, color: '#111' }}>Confirm Email Lookup</p>
+                <p style={{ margin: '0 0 16px', fontSize: 13, color: '#555', lineHeight: 1.65 }}>
+                  Looking up emails for <strong>{selPeople.size} {selPeople.size === 1 ? 'person' : 'people'}</strong> will use{' '}
+                  <strong>{selPeople.size * CREDITS_PER_EMAIL} Netrows credits</strong> (5 per lookup).
+                </p>
+                <div style={{ background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 8, padding: '10px 14px', marginBottom: 20 }}>
+                  <p style={{ margin: 0, fontSize: 12, color: '#92400e', lineHeight: 1.5 }}>
+                    Monthly limit: 10,000 credits. Credits are consumed even if no email is found.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                  <button onClick={() => setCreditModal(false)} style={btnSecondary}>Cancel</button>
+                  <button onClick={runEmailLookup} style={btnPrimary(false, '#1d4ed8')}>
+                    Confirm — {selPeople.size * CREDITS_PER_EMAIL} credits
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div style={card}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  {!isHistory && (
+                    <th style={{ ...thStyle, width: 36 }}>
+                      <input type="checkbox"
+                        checked={pagedPeople.length > 0 && pagedPeople.every(p => selPeople.has(p.id) || p.email_requested)}
+                        onChange={e => setSelPeople(prev => {
+                          const n = new Set(prev)
+                          pagedPeople.filter(p => !p.email_requested)
+                            .forEach(p => e.target.checked ? n.add(p.id) : n.delete(p.id))
+                          return n
+                        })}
+                      />
+                    </th>
+                  )}
+                  {['Name', 'Title', 'Company', 'Location', 'Email', 'LinkedIn'].map(h => (
+                    <th key={h} style={thStyle}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {pagedPeople.map(p => (
+                  <tr key={p.id}>
+                    {!isHistory && (
+                      <td style={tdStyle}>
+                        <input type="checkbox"
+                          checked={selPeople.has(p.id)}
+                          disabled={p.email_requested}
+                          onChange={e => setSelPeople(prev => {
+                            const n = new Set(prev)
+                            e.target.checked ? n.add(p.id) : n.delete(p.id)
+                            return n
+                          })}
+                        />
+                      </td>
+                    )}
+                    <td style={{ ...tdStyle, color: '#111', fontWeight: 500 }}>{p.full_name || '—'}</td>
+                    <td style={{ ...tdStyle, color: '#555', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {p.headline || '—'}
+                    </td>
+                    <td style={{ ...tdStyle, color: '#555' }}>{p.company_name}</td>
+                    <td style={{ ...tdStyle, color: '#888' }}>{p.location || '—'}</td>
+                    <td style={tdStyle}>
+                      {p.email
+                        ? <span style={{ color: '#166534', fontWeight: 500, fontSize: 12 }}>{p.email}</span>
+                        : p.email_requested
+                        ? <span style={{ color: '#aaa', fontSize: 11 }}>Not found</span>
+                        : <span style={{ color: '#d1d5db', fontSize: 11 }}>—</span>
+                      }
+                    </td>
+                    <td style={tdStyle}>
+                      {p.linkedin_url
+                        ? <a href={p.linkedin_url} target="_blank" rel="noreferrer"
+                            style={{ color: '#1d4ed8', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                            View <ExternalLink size={10} />
+                          </a>
+                        : <span style={{ color: '#d1d5db', fontSize: 11 }}>—</span>
+                      }
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, paddingTop: 12, borderTop: '1px solid #f0f0f0' }}>
+                <span style={{ fontSize: 12, color: '#888' }}>
+                  {(peoplePage - 1) * PER_PAGE + 1}–{Math.min(peoplePage * PER_PAGE, people.length)} of {people.length}
+                </span>
+                <div style={{ display: 'flex', gap: 3 }}>
+                  <button onClick={() => setPeoplePage(p => Math.max(1, p - 1))} disabled={peoplePage === 1}
+                    style={{ ...btnSecondary, opacity: peoplePage === 1 ? 0.4 : 1 }}>← Prev</button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+                    <button key={n} onClick={() => setPeoplePage(n)} style={{
+                      ...btnSecondary,
+                      background: n === peoplePage ? '#111' : '#fff',
+                      color:      n === peoplePage ? '#fff' : '#333',
+                      borderColor: n === peoplePage ? '#111' : '#e5e5e5',
+                    }}>{n}</button>
+                  ))}
+                  <button onClick={() => setPeoplePage(p => Math.min(totalPages, p + 1))} disabled={peoplePage === totalPages}
+                    style={{ ...btnSecondary, opacity: peoplePage === totalPages ? 0.4 : 1 }}>Next →</button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Jump to emails if already done */}
+          {emailResults.length > 0 && (
+            <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => setStep('emails')} style={btnPrimary()}>
+                <Mail size={12} /> View email results →
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ══════════════════ STEP 4: EMAILS ══════════════════ */}
+      {step === 'emails' && (
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            <button onClick={() => setStep('people')} style={btnSecondary}>
+              <ArrowLeft size={12} /> People
+            </button>
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#111' }}>Email Lookup Results</p>
+              <p style={{ margin: '2px 0 0', fontSize: 11, color: '#888' }}>
+                <span style={{ color: '#166534', fontWeight: 600 }}>{people.filter(p => p.email).length} found</span>
+                {' · '}
+                <span style={{ color: '#888' }}>{people.filter(p => p.email_requested && !p.email).length} not found</span>
+              </p>
+            </div>
+            <Link href="/outbound/leads" style={{ ...btnPrimary(false, '#166534'), textDecoration: 'none' }}>
+              <CheckCircle size={12} /> View Outbound Leads →
+            </Link>
+          </div>
+
+          <div style={card}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  {['Name', 'Email', 'Status', 'Company', 'Title', 'Saved to Leads'].map(h => (
+                    <th key={h} style={thStyle}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {people.filter(p => p.email_requested).map(p => (
+                  <tr key={p.id}>
+                    <td style={{ ...tdStyle, color: '#111', fontWeight: 500 }}>{p.full_name || '—'}</td>
+                    <td style={{ ...tdStyle, color: p.email ? '#166534' : '#bbb', fontWeight: p.email ? 500 : 400, fontSize: 12 }}>
+                      {p.email || 'Not found'}
+                    </td>
+                    <td style={tdStyle}>
+                      <Badge
+                        label={p.email_status ?? (p.email ? 'valid' : 'not_found')}
+                        color={p.email ? '#166534' : '#991b1b'}
+                        bg={p.email ? '#f0fdf4' : '#fef2f2'}
+                      />
+                    </td>
+                    <td style={{ ...tdStyle, color: '#555' }}>{p.company_name}</td>
+                    <td style={{ ...tdStyle, color: '#888', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {p.headline || '—'}
+                    </td>
+                    <td style={tdStyle}>
+                      {p.outbound_lead_id
+                        ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#166534', fontSize: 12 }}>
+                            <CheckCircle size={12} /> Saved
+                          </span>
+                        : <span style={{ color: '#d1d5db', fontSize: 12 }}>—</span>
+                      }
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Spinner keyframes */}
+      <style>{`@keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }`}</style>
     </div>
   )
 }
