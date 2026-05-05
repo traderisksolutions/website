@@ -3209,11 +3209,11 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 
 .expertise-section {
   padding: 100px 48px;
-  --accent: #3b8fca;
+  --accent: #5aabdc;
   background:
-    radial-gradient(ellipse at 15% 55%, rgba(30, 90, 170, 0.22) 0%, transparent 55%),
-    radial-gradient(ellipse at 82% 18%, rgba(10, 130, 160, 0.16) 0%, transparent 50%),
-    #0b1829;
+    radial-gradient(ellipse at 15% 55%, rgba(40, 110, 200, 0.28) 0%, transparent 55%),
+    radial-gradient(ellipse at 82% 18%, rgba(15, 150, 180, 0.18) 0%, transparent 50%),
+    #102a4a;
   overflow: hidden;
 }
 

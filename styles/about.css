@@ -96,7 +96,7 @@
 }
 
 .ab-acc-item--open {
-  background: #18181b;
+  background: #102a4a;
 }
 
 .ab-acc-btn {
@@ -183,9 +183,9 @@
 
 .ab-features {
   background:
-    radial-gradient(ellipse at 20% 60%, rgba(30, 90, 170, 0.20) 0%, transparent 55%),
-    radial-gradient(ellipse at 80% 15%, rgba(10, 130, 160, 0.14) 0%, transparent 50%),
-    #0b1829;
+    radial-gradient(ellipse at 20% 60%, rgba(40, 110, 200, 0.28) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 15%, rgba(15, 150, 180, 0.18) 0%, transparent 50%),
+    #102a4a;
   padding: 100px 0;
 }
 
