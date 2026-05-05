@@ -56,7 +56,7 @@ export default function AgentPage() {
 
   const loadSchedules = useCallback(async () => {
     const res = await fetch('/api/outbound/schedules')
-    if (res.ok) setSchedules(await res.json())
+    if (res.ok) { const raw = await res.json(); setSchedules(Array.isArray(raw) ? raw : []) }
   }, [])
 
   useEffect(() => { loadSchedules() }, [loadSchedules])
