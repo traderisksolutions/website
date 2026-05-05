@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ thread: null, messages: [] })
     }
 
-    const threadIds = [...new Set(parts.map(p => p.thread_id))]
+    const threadIds = Array.from(new Set(parts.map(p => p.thread_id)))
 
     // 2. Get the most recent thread
     const threadRes = await fetch(
