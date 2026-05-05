@@ -1744,7 +1744,8 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 }
 
 .sc-card {
-  background: #f4f6f9;
+  background: linear-gradient(160deg, #edf2f8 0%, #e6ecf5 100%);
+  border: 1px solid rgba(100,130,180,0.12);
   border-radius: 24px;
   padding: 28px 32px 32px;
 }
@@ -1965,11 +1966,11 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 .sc-cat-bar {
   display: flex;
   gap: 2px;
-  background: #e5e7eb;
+  background: rgba(100,130,180,0.15);
   border-radius: 9999px;
   padding: 3px;
   width: fit-content;
-  margin-bottom: 20px;
+  margin: 0 auto 20px;
 }
 
 .sc-cat-tab {
