@@ -16,7 +16,8 @@ async function fetchCounts(): Promise<Counts> {
   try {
     const res = await fetch('/api/leads', { cache: 'no-store' })
     if (!res.ok) return { emailNew: 0, waNew: 0, claimsNew: 0 }
-    const data: { status: string; source: string }[] = await res.json()
+    const raw = await res.json()
+    const data: { status: string; source: string }[] = Array.isArray(raw) ? raw : []
     const emailSources = new Set(['website_form', 'email', 'manual'])
     return {
       emailNew:  data.filter(l => l.status === 'new' && emailSources.has(l.source)).length,

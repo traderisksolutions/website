@@ -285,7 +285,8 @@ function buildSummary(lead: Lead, thread: EmailMsg[]): string {
 async function fetchLeads(): Promise<Lead[]> {
   const res = await fetch('/api/leads', { cache: 'no-store' })
   if (!res.ok) return []
-  const all: Lead[] = await res.json()
+  const raw = await res.json()
+  const all: Lead[] = Array.isArray(raw) ? raw : []
   return all.filter(l => EMAIL_SOURCES.has(l.source) && ENGAGED_STATUSES.has(l.status))
 }
 

@@ -61,7 +61,8 @@ export default function OutboundLeadsPage() {
     try {
       const res = await fetch('/api/outbound/leads')
       if (res.ok) {
-        const data: OutboundLead[] = await res.json()
+        const raw = await res.json()
+        const data: OutboundLead[] = Array.isArray(raw) ? raw : []
         setLeads(data)
         const n: Record<string, string> = {}
         data.forEach(l => { n[l.id] = l.notes ?? '' })

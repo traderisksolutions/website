@@ -162,7 +162,8 @@ async function fetchLeads(): Promise<Lead[]> {
     const body = await res.json().catch(() => ({}))
     throw new Error(body.error || `HTTP ${res.status}`)
   }
-  const all: Lead[] = await res.json()
+  const raw = await res.json()
+  const all: Lead[] = Array.isArray(raw) ? raw : []
   return all.filter(l => EMAIL_SOURCES.has(l.source))
 }
 
