@@ -1015,9 +1015,9 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 
 /* ── Dropdown panel — position:fixed, top set by JS, left anchored by JS ── */
 .nav-dropdown-panel {
-  position: fixed;
-  top: 64px;
-  left: 20px;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
   transform: translateY(-8px);
   width: min(720px, calc(100vw - 32px));
   background: #ffffff;

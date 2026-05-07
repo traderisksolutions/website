@@ -21,24 +21,17 @@
   if (closeBtn)  closeBtn.addEventListener('click', closeDrawer);
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
 
-  /* ── Desktop dropdowns (hover) — position:fixed, anchored to trigger ── */
+  /* ── Desktop dropdowns (hover) — position:absolute, anchored to .nav-dropdown ── */
   var dropdowns = document.querySelectorAll('.nav-dropdown');
 
-  function applyFlush(panel, trigger) {
-    var navRect = nav.getBoundingClientRect();
-    panel.style.top = (navRect.bottom + 8) + 'px';
-
-    if (trigger) {
-      var trigRect = trigger.getBoundingClientRect();
-      /* Use offsetWidth — reliable even at opacity:0 since element is in layout */
-      var panelW = panel.offsetWidth || 400;
-      /* Anchor left edge to trigger left; if panel would overflow right, right-align to trigger right */
-      var left = trigRect.left;
-      if (left + panelW > window.innerWidth - 16) {
-        left = trigRect.right - panelW;
-      }
-      if (left < 16) left = 16;
-      panel.style.left = left + 'px';
+  /* Only fix right-edge overflow; top is handled by CSS (position:absolute, top:calc(100%+8px)) */
+  function clampPanel(panel, dd) {
+    panel.style.left = '0';
+    var panelW = panel.offsetWidth;
+    if (!panelW) return;
+    var ddRect = dd.getBoundingClientRect();
+    if (ddRect.left + panelW > window.innerWidth - 16) {
+      panel.style.left = (window.innerWidth - 16 - panelW - ddRect.left) + 'px';
     }
   }
 
@@ -51,7 +44,7 @@
       clearTimeout(leaveTimer);
       dropdowns.forEach(function (other) { if (other !== dd) other.classList.remove('open'); });
       dd.classList.add('open');
-      if (panel) applyFlush(panel, trigger);
+      if (panel) clampPanel(panel, dd);
     }
     function closeDd() {
       leaveTimer = setTimeout(function () { dd.classList.remove('open'); }, 120);
@@ -60,22 +53,12 @@
     dd.addEventListener('mouseenter', openDd);
     dd.addEventListener('mouseleave', closeDd);
 
-    /* panel is position:fixed — cursor travels outside dd bounds; guard re-entry */
+    /* Panel extends below dd bounds — keep hover alive when cursor enters panel */
     if (panel) {
       panel.addEventListener('mouseenter', function () { clearTimeout(leaveTimer); });
       panel.addEventListener('mouseleave', closeDd);
     }
   });
-
-  window.addEventListener('scroll', function () {
-    dropdowns.forEach(function (dd) {
-      if (dd.classList.contains('open')) {
-        var panel   = dd.querySelector('.nav-dropdown-panel');
-        var trigger = dd.querySelector('.nav-dropdown-trigger');
-        if (panel) applyFlush(panel, trigger);
-      }
-    });
-  }, { passive: true });
 
   document.addEventListener('click', function (e) {
     if (!e.target.closest('.nav-dropdown')) {
