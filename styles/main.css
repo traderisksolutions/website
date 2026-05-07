@@ -589,7 +589,9 @@ h1, h2, h3, h4, h5, h6 {
 .nav--dark .nav-links a:hover,
 .nav--dark .nav-dropdown-trigger:hover,
 .nav--dark .nav-dropdown-btn:hover,
-.nav--dark .nav-item.open .nav-dropdown-btn {
+.nav--dark .nav-item.open .nav-dropdown-btn,
+.nav--dark .nav-dropdown.open .nav-dropdown-trigger,
+.nav--dark .nav-dropdown-trigger.nav-active {
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
 }
@@ -992,7 +994,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 .nav--scrolled .logo-text { font-size: 14px; }
 
 /* ── Dropdown trigger ── */
-.nav-dropdown { position: relative; }
+.nav-dropdown { position: relative; align-self: stretch; display: flex; align-items: center; }
 
 .nav-dropdown-trigger {
   display: flex;
@@ -1013,7 +1015,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 .nav-dropdown-trigger:hover,
 .nav-dropdown.open .nav-dropdown-trigger { color: var(--text); }
 
-/* ── Dropdown panel — position:fixed, top set by JS, left anchored by JS ── */
+/* ── Dropdown panel — position:absolute inside .nav-dropdown (position:relative + align-self:stretch) ── */
 .nav-dropdown-panel {
   position: absolute;
   top: calc(100% + 8px);
