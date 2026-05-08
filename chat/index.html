@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat with us — Trade Risk Solutions</title>
+  <meta name="description" content="Speak to a TRS insurance specialist. Get a quote, ask about coverage, or discuss your risk profile with our team." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" /></noscript>
+  <link rel="stylesheet" href="../styles/main.css" />
+  <script defer src="/_vercel/insights/script.js"></script>
+  <style>
+    /* ── Page layout ── */
+    .chat-page {
+      min-height: calc(100vh - 64px);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: stretch;
+    }
+
+    /* ── Left: info panel ── */
+    .chat-info {
+      background: #0f172a;
+      padding: 80px 64px 80px 72px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .chat-info::before {
+      content: '';
+      position: absolute;
+      top: -180px; right: -180px;
+      width: 500px; height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(59,130,246,0.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .chat-info-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px 4px 8px; border-radius: 20px;
+      background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3);
+      font-size: 11.5px; font-weight: 600; color: #60a5fa;
+      margin-bottom: 28px; width: fit-content;
+    }
+    .chat-info h1 {
+      font-family: 'Libre Baskerville', serif;
+      font-size: clamp(28px, 3.5vw, 44px); font-weight: 700;
+      color: #fff; line-height: 1.2; margin: 0 0 18px;
+      letter-spacing: -0.02em;
+    }
+    .chat-info-sub {
+      font-size: 15.5px; color: rgba(255,255,255,0.58);
+      line-height: 1.65; margin: 0 0 48px; max-width: 380px;
+    }
+    .chat-info-points {
+      display: flex; flex-direction: column; gap: 20px;
+    }
+    .chat-info-point {
+      display: flex; align-items: flex-start; gap: 14px;
+    }
+    .chat-info-point-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: rgba(255,255,255,0.06);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .chat-info-point-body { display: flex; flex-direction: column; gap: 2px; }
+    .chat-info-point-title {
+      font-size: 13.5px; font-weight: 600; color: #fff;
+    }
+    .chat-info-point-desc {
+      font-size: 12.5px; color: rgba(255,255,255,0.45); line-height: 1.5;
+    }
+    .chat-info-footer {
+      margin-top: 56px; padding-top: 28px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      font-size: 12px; color: rgba(255,255,255,0.35);
+    }
+    .chat-info-footer a { color: rgba(255,255,255,0.5); text-decoration: none; }
+    .chat-info-footer a:hover { color: rgba(255,255,255,0.8); }
+
+    /* ── Right: form panel ── */
+    .chat-form-wrap {
+      background: #fff;
+      padding: 80px 72px 80px 64px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .chat-form-head {
+      margin-bottom: 36px;
+    }
+    .chat-form-head h2 {
+      font-size: 22px; font-weight: 700; color: #111;
+      letter-spacing: -0.015em; margin: 0 0 6px;
+    }
+    .chat-form-head p {
+      font-size: 13.5px; color: #9ca3af; margin: 0;
+    }
+
+    /* topic chips */
+    .chat-topics {
+      display: flex; flex-wrap: wrap; gap: 7px;
+      margin-bottom: 28px;
+    }
+    .chat-topic {
+      padding: 5px 13px; border-radius: 20px;
+      border: 1.5px solid #e5e7eb;
+      font-size: 12px; font-weight: 500; color: #6b7280;
+      background: #fff; cursor: pointer;
+      transition: border-color 0.12s, color 0.12s, background 0.12s;
+    }
+    .chat-topic:hover { border-color: #3b82f6; color: #3b82f6; }
+    .chat-topic.selected {
+      border-color: #3b82f6; background: #eff6ff; color: #2563eb; font-weight: 600;
+    }
+    .chat-topic-hidden { display: none; }
+
+    /* form fields */
+    .chat-form { display: flex; flex-direction: column; gap: 16px; }
+    .chat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .chat-field { display: flex; flex-direction: column; gap: 5px; }
+    .chat-field label {
+      font-size: 12px; font-weight: 600; color: #374151; letter-spacing: 0.01em;
+    }
+    .chat-field input,
+    .chat-field select,
+    .chat-field textarea {
+      padding: 10px 13px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 9px;
+      font-family: inherit; font-size: 13.5px; color: #111;
+      background: #fafafa;
+      transition: border-color 0.12s, box-shadow 0.12s, background 0.12s;
+      outline: none;
+      width: 100%; box-sizing: border-box;
+    }
+    .chat-field input:focus,
+    .chat-field select:focus,
+    .chat-field textarea:focus {
+      border-color: #3b82f6;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+    }
+    .chat-field textarea {
+      resize: vertical; min-height: 108px; line-height: 1.55;
+    }
+    .chat-field select { appearance: none; cursor: pointer; }
+    .chat-select-wrap { position: relative; }
+    .chat-select-wrap::after {
+      content: '';
+      position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
+      width: 0; height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 5px solid #9ca3af;
+      pointer-events: none;
+    }
+
+    .chat-submit {
+      margin-top: 6px;
+      padding: 13px 24px;
+      background: #111; color: #fff;
+      border: none; border-radius: 10px;
+      font-family: inherit; font-size: 14px; font-weight: 600;
+      cursor: pointer; width: 100%;
+      transition: background 0.15s, transform 0.1s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .chat-submit:hover { background: #1e293b; }
+    .chat-submit:active { transform: scale(0.99); }
+    .chat-submit svg { transition: transform 0.2s; }
+    .chat-submit:hover svg { transform: translateX(3px); }
+
+    .chat-consent {
+      font-size: 11.5px; color: #9ca3af; line-height: 1.55; margin-top: 4px;
+    }
+    .chat-consent a { color: #6b7280; text-decoration: underline; }
+
+    /* ── Success state ── */
+    .chat-success {
+      display: none; flex-direction: column; align-items: center;
+      text-align: center; gap: 16px; padding: 24px 0;
+    }
+    .chat-success-icon {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: #f0fdf4; border: 2px solid #bbf7d0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .chat-success h3 {
+      font-size: 20px; font-weight: 700; color: #111;
+      letter-spacing: -0.01em; margin: 0;
+    }
+    .chat-success p { font-size: 14px; color: #6b7280; margin: 0; }
+    .chat-success-back {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 13.5px; font-weight: 600; color: #3b82f6;
+      text-decoration: none; margin-top: 8px;
+      padding: 8px 16px; border-radius: 8px;
+      transition: background 0.1s;
+    }
+    .chat-success-back:hover { background: #eff6ff; }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .chat-page { grid-template-columns: 1fr; }
+      .chat-info { padding: 64px 32px; }
+      .chat-info::before { display: none; }
+      .chat-form-wrap { padding: 56px 32px; }
+    }
+    @media (max-width: 600px) {
+      .chat-info { padding: 48px 20px; }
+      .chat-form-wrap { padding: 40px 20px; }
+      .chat-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <header class="nav">
+    <button class="nav-hamburger" aria-label="Open menu" aria-expanded="false"><span></span><span></span><span></span></button>
+    <a href="/" class="logo" aria-label="Home"><span class="logo-text">Trade Risk Solutions</span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="/about">Why us</a>
+      <a href="/business">Business</a>
+
+      <div class="nav-item" id="products-nav-item">
+        <button class="nav-dropdown-btn" id="products-btn" aria-expanded="false" aria-haspopup="true">Products</button>
+        <div class="nav-mega" id="products-mega" role="menu">
+          <button class="mega-close-btn" id="products-mega-close" aria-label="Close menu">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+          <div class="mega-left">
+            <button class="mega-cat active" data-cat="personal"><div class="mega-cat-icon" style="background:#fff5f0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><div class="mega-cat-texts"><span class="mega-cat-title">Personal</span><span class="mega-cat-sub">Insurance for individuals</span></div><svg class="mega-cat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+            <button class="mega-cat" data-cat="business"><div class="mega-cat-icon" style="background:#eff6ff"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div><div class="mega-cat-texts"><span class="mega-cat-title">Business</span><span class="mega-cat-sub">Commercial solutions</span></div><svg class="mega-cat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+            <button class="mega-cat" data-cat="workforce"><div class="mega-cat-icon" style="background:#f0fdf4"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div class="mega-cat-texts"><span class="mega-cat-title">Workforce benefits</span><span class="mega-cat-sub">Employee &amp; worker coverage</span></div><svg class="mega-cat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+            <button class="mega-cat" data-cat="api"><div class="mega-cat-icon" style="background:#faf5ff"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div><div class="mega-cat-texts"><span class="mega-cat-title">API</span><span class="mega-cat-sub">White label &amp; embedded APIs</span></div><svg class="mega-cat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+          </div>
+          <div class="mega-right">
+            <div class="mega-panel active" data-panel="personal">
+              <a href="#" class="mega-link-item"><span class="mega-link-title">Home contents insurance</span><span class="mega-link-sub">Protect your home &amp; belongings</span></a>
+              <a href="#" class="mega-link-item"><span class="mega-link-title">Fire insurance</span><span class="mega-link-sub">Coverage against fire &amp; extraneous perils</span></a>
+              <a href="/consumers/travel" class="mega-link-item"><span class="mega-link-title">Single trip</span><span class="mega-link-sub">One-trip travel protection</span></a>
+              <a href="/consumers/travel" class="mega-link-item"><span class="mega-link-title">Annual trip</span><span class="mega-link-sub">Year-round travel coverage</span></a>
+              <a href="#" class="mega-link-item"><span class="mega-link-title">Maid insurance</span><span class="mega-link-sub">Mandatory foreign domestic worker cover</span></a>
+              <a href="#" class="mega-link-item"><span class="mega-link-title">Personal accident</span><span class="mega-link-sub">24/7 accident &amp; disability protection</span></a>
+            </div>
+            <div class="mega-panel" data-panel="business">
+              <a href="/business" class="mega-panel-overview">Business Insurance overview <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></a>
+              <div class="mega-business-cols">
+                <div class="mega-business-col">
+                  <div class="mega-section-head">Assets</div>
+                  <div class="mega-prod-group"><span class="mega-prod-label">Property &amp; Business</span><a href="/commercial/property" class="mega-prod-link">Industrial All Risk (IAR) &amp; Fire</a><a href="#" class="mega-prod-link">Business Interruption (BI)</a></div>
+                  <div class="mega-prod-group"><span class="mega-prod-label">Engineering &amp; Construction</span><a href="/commercial/car" class="mega-prod-link">Contractors' All Risks (CAR)</a><a href="/commercial/equipment" class="mega-prod-link">Machinery Breakdown</a><a href="/commercial/equipment" class="mega-prod-link">Electronic Equipment Insurance</a></div>
+                  <div class="mega-prod-group"><span class="mega-prod-label">Marine, Stock &amp; Logistics</span><a href="/commercial/marine" class="mega-prod-link">Marine Cargo</a><a href="#" class="mega-prod-link">Stock Throughput</a><a href="/commercial/marine" class="mega-prod-link">Inland Transit</a></div>
+                  <div class="mega-prod-group"><span class="mega-prod-label">Trade Credit &amp; Bonds</span><a href="#" class="mega-prod-link">Trade Credit</a><a href="#" class="mega-prod-link">Surety Bonds</a></div>
+                  <div class="mega-prod-group"><span class="mega-prod-label">Commercial Motor</span><a href="/commercial/motor" class="mega-prod-link">Commercial Vehicle Insurance</a></div>
+                </div>
+                <div class="mega-business-col">
+                  <div class="mega-section-head">Liabilities</div>
+                  <div class="mega-prod-group"><span class="mega-prod-label">General Liability</span><a href="/commercial/liability" class="mega-prod-link">General Comprehensive Liability</a></div>
+                  <div class="mega-prod-group"><span class="mega-prod-label">Professional &amp; Management Liability</span><a href="#" class="mega-prod-link">Investment Management Insurance (IMI)</a><a href="#" class="mega-prod-link">Medical Malpractice Insurance</a><a href="/commercial/professional-indemnity" class="mega-prod-link">Directors &amp; Officers (D&amp;O)</a><a href="/commercial/professional-indemnity" class="mega-prod-link">Professional Indemnity (PI)</a></div>
+                  <div class="mega-prod-group"><span class="mega-prod-label">Cyber Insurance</span><a href="/commercial/cyber" class="mega-prod-link">Cyber Insurance</a></div>
+                  <div class="mega-prod-group"><span class="mega-prod-label">Environmental Liability</span><a href="#" class="mega-prod-link">Environmental Liability</a></div>
+                  <div class="mega-prod-group"><span class="mega-prod-label">Employee Liability</span><a href="/workforce" class="mega-prod-link mega-prod-link--cta">Workforce Benefits →</a></div>
+                </div>
+              </div>
+            </div>
+            <div class="mega-panel" data-panel="workforce">
+              <a href="/workforce" class="mega-panel-overview">Workforce Benefits overview <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></a>
+              <div class="mega-section"><div class="mega-section-head">Workers</div><a href="/commercial/workmen" class="mega-link-item"><span class="mega-link-title">Work Injury Compensation (WICA)</span><span class="mega-link-sub">Mandatory WICA insurance</span></a><a href="/commercial/foreign-worker" class="mega-link-item"><span class="mega-link-title">Foreign Worker Medical Insurance</span><span class="mega-link-sub">Medical coverage for foreign workers</span></a><a href="#" class="mega-link-item"><span class="mega-link-title">Foreign Worker Bond Insurance</span><span class="mega-link-sub">Bond insurance for work permit holders</span></a></div>
+              <div class="mega-section"><div class="mega-section-head">Employees</div><a href="/employees/medical" class="mega-link-item"><span class="mega-link-title">Group Health Insurance</span><span class="mega-link-sub">Group health &amp; hospitalisation</span></a><a href="#" class="mega-link-item"><span class="mega-link-title">Group Business Travel</span><span class="mega-link-sub">Business travel coverage</span></a><a href="#" class="mega-link-item"><span class="mega-link-title">Employee Benefits Insurance</span><span class="mega-link-sub">Comprehensive benefits package</span></a></div>
+              <div class="mega-section"><div class="mega-section-head">Executive</div><a href="#" class="mega-link-item"><span class="mega-link-title">D&amp;O Liability</span><span class="mega-link-sub">Directors &amp; Officers protection</span></a><a href="#" class="mega-link-item"><span class="mega-link-title">Keyman Insurance</span><span class="mega-link-sub">Key person &amp; business continuity</span></a></div>
+            </div>
+            <div class="mega-panel" data-panel="api">
+              <a href="#" class="mega-link-item"><span class="mega-link-title">Custom Coverage White Label</span><span class="mega-link-sub">Embedded insurance for your platform</span></a>
+              <a href="#" class="mega-link-item"><span class="mega-link-title">Gig worker</span><span class="mega-link-sub">Coverage for gig economy workers</span></a>
+              <a href="#" class="mega-link-item"><span class="mega-link-title">Rentals</span><span class="mega-link-sub">Rental vehicle &amp; property coverage</span></a>
+            </div>
+          </div>
+          <div class="mega-promo">
+            <div class="mega-promo-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+            <p class="mega-promo-title">Not sure where to start?</p>
+            <p class="mega-promo-body">Our advisors help you find the right cover for your situation in minutes.</p>
+            <a href="/chat" class="mega-promo-cta">Chat with us</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-dropdown">
+        <button class="nav-dropdown-trigger">Solutions</button>
+        <div class="nav-dropdown-panel nav-dropdown-panel--solutions">
+          <div class="sol-grid">
+            <a href="#" class="sol-item"><div class="sol-icon" style="background:#f0fdfa"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div><div><span class="mega-link-title">Logistics, Transportation &amp; Maritime</span><span class="mega-link-sub">Freight, transport &amp; shipping</span></div></a>
+            <a href="#" class="sol-item"><div class="sol-icon" style="background:#f0fdf4"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div><div><span class="mega-link-title">Financial Services &amp; Insurance</span><span class="mega-link-sub">Banking, insurance &amp; wealth</span></div></a>
+            <a href="#" class="sol-item"><div class="sol-icon" style="background:#eff6ff"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div><div><span class="mega-link-title">Manufacturing, Electronics &amp; Aerospace</span><span class="mega-link-sub">Industrial, electronics &amp; defence</span></div></a>
+            <a href="#" class="sol-item"><div class="sol-icon" style="background:#fffbeb"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div><div><span class="mega-link-title">Energy &amp; Chemicals</span><span class="mega-link-sub">Oil, gas, chemicals &amp; renewables</span></div></a>
+            <a href="#" class="sol-item"><div class="sol-icon" style="background:#fff5f0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></div><div><span class="mega-link-title">Built Environment</span><span class="mega-link-sub">Construction, real estate &amp; data centres</span></div></a>
+            <a href="#" class="sol-item"><div class="sol-icon" style="background:#faf5ff"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div><div><span class="mega-link-title">Professional &amp; Business Services</span><span class="mega-link-sub">Consulting, legal &amp; accounting</span></div></a>
+            <a href="#" class="sol-item"><div class="sol-icon" style="background:#eef2ff"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div><div><span class="mega-link-title">Tech, Media &amp; Startups</span><span class="mega-link-sub">Technology, media &amp; venture-backed</span></div></a>
+            <a href="#" class="sol-item"><div class="sol-icon" style="background:#fff1f2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e11d48" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div><div><span class="mega-link-title">Healthcare &amp; Biomedical Sciences</span><span class="mega-link-sub">Medical devices, pharma &amp; life sciences</span></div></a>
+            <a href="#" class="sol-item"><div class="sol-icon" style="background:#ecfeff"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0891b2" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div><div><span class="mega-link-title">Wholesale Trade &amp; Consumers</span><span class="mega-link-sub">Retail, e-commerce &amp; hospitality</span></div></a>
+          </div>
+          <div class="sol-promo">
+            <button class="dd-close-btn" aria-label="Close"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            <div class="mega-promo-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+            <p class="mega-promo-title">Chat with us</p>
+            <p class="mega-promo-body">Speak to a specialist about your industry's risk profile.</p>
+            <a href="/chat" class="mega-promo-cta">Get in touch</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-dropdown">
+        <button class="nav-dropdown-trigger">Resources</button>
+        <div class="nav-dropdown-panel nav-dropdown-panel--single">
+          <a href="#" class="mega-link-item"><span class="mega-link-title">Case Studies</span><span class="mega-link-sub">How we've helped clients</span></a>
+          <a href="#" class="mega-link-item"><span class="mega-link-title">Blog</span><span class="mega-link-sub">Insights &amp; market commentary</span></a>
+        </div>
+      </div>
+    </nav>
+    <div class="nav-actions">
+      <a href="/claims" class="btn btn-outline">Claims</a>
+      <a href="/chat" class="btn btn-primary nav-active-link" data-track="nav_contact_us">Contact us</a>
+    </div>
+  </header>
+
+  <!-- MOBILE DRAWER -->
+  <div class="nav-drawer-overlay" aria-hidden="true"></div>
+  <aside class="nav-drawer" aria-label="Mobile navigation">
+    <div class="nav-drawer-top">
+      <span class="logo-text">Trade Risk Solutions</span>
+      <button class="nav-drawer-close" aria-label="Close menu">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <nav class="nav-drawer-links">
+      <a href="/about">Why us</a>
+      <a href="/business">Business</a>
+      <button class="nav-drawer-accordion">Products<svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <div class="nav-drawer-sub">
+        <span class="nav-drawer-group-label">Personal</span>
+        <a href="#">Home contents insurance</a>
+        <a href="#">Fire insurance</a>
+        <a href="/consumers/travel">Single trip</a>
+        <a href="/consumers/travel">Annual trip</a>
+        <a href="#">Maid insurance</a>
+        <a href="#">Personal accident</a>
+        <span class="nav-drawer-group-label">Business — Assets</span>
+        <a href="/commercial/property">Industrial All Risk &amp; Fire</a>
+        <a href="#">Business Interruption</a>
+        <a href="/commercial/car">Contractors' All Risks (CAR)</a>
+        <a href="/commercial/equipment">Machinery Breakdown</a>
+        <a href="/commercial/marine">Marine Cargo</a>
+        <a href="/commercial/motor">Commercial Vehicle Insurance</a>
+        <span class="nav-drawer-group-label">Business — Liabilities</span>
+        <a href="/commercial/liability">General Comprehensive Liability</a>
+        <a href="/commercial/professional-indemnity">Directors &amp; Officers (D&amp;O)</a>
+        <a href="/commercial/professional-indemnity">Professional Indemnity (PI)</a>
+        <a href="/commercial/cyber">Cyber Insurance</a>
+        <span class="nav-drawer-group-label">Workforce benefits</span>
+        <a href="/commercial/workmen">WICA Insurance</a>
+        <a href="/commercial/foreign-worker">Foreign Worker Medical</a>
+        <a href="/employees/medical">Group Health Insurance</a>
+        <a href="#">Group Business Travel</a>
+        <a href="#">D&amp;O Liability</a>
+        <a href="#">Keyman Insurance</a>
+        <span class="nav-drawer-group-label">API</span>
+        <a href="#">Custom Coverage White Label</a>
+        <a href="#">Gig worker</a>
+        <a href="#">Rentals</a>
+      </div>
+      <button class="nav-drawer-accordion">Solutions<svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <div class="nav-drawer-sub">
+        <a href="#">Logistics, Transportation &amp; Maritime</a>
+        <a href="#">Financial Services &amp; Insurance</a>
+        <a href="#">Manufacturing, Electronics &amp; Aerospace</a>
+        <a href="#">Energy &amp; Chemicals</a>
+        <a href="#">Built Environment</a>
+        <a href="#">Professional &amp; Business Services</a>
+        <a href="#">Tech, Media &amp; Startups</a>
+        <a href="#">Healthcare &amp; Biomedical Sciences</a>
+        <a href="#">Wholesale Trade &amp; Consumers</a>
+      </div>
+      <button class="nav-drawer-accordion">Resources<svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <div class="nav-drawer-sub">
+        <a href="#">Case Studies</a>
+        <a href="#">Blog</a>
+      </div>
+    </nav>
+    <div class="nav-drawer-cta">
+      <a href="/claims" class="btn btn-outline btn-lg">Claims</a>
+      <a href="/chat" class="btn btn-primary btn-lg">Contact us</a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="chat-page">
+
+    <!-- LEFT: info panel -->
+    <div class="chat-info">
+      <div class="chat-info-badge">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Speak to a specialist
+      </div>
+      <h1>Let's find the right cover for you</h1>
+      <p class="chat-info-sub">Our brokers review your situation and recommend the right structure — no generic advice, no hard sell.</p>
+
+      <div class="chat-info-points">
+        <div class="chat-info-point">
+          <div class="chat-info-point-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="chat-info-point-body">
+            <span class="chat-info-point-title">Response within 1 business day</span>
+            <span class="chat-info-point-desc">A dedicated broker will reach out directly — no call centres.</span>
+          </div>
+        </div>
+        <div class="chat-info-point">
+          <div class="chat-info-point-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="chat-info-point-body">
+            <span class="chat-info-point-title">Independent, unbiased recommendations</span>
+            <span class="chat-info-point-desc">We work with 20+ insurers to find the best fit for your risk profile.</span>
+          </div>
+        </div>
+        <div class="chat-info-point">
+          <div class="chat-info-point-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div class="chat-info-point-body">
+            <span class="chat-info-point-title">Trusted by businesses across Singapore</span>
+            <span class="chat-info-point-desc">From SMEs to listed companies — across construction, logistics, tech, and more.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-info-footer">
+        Prefer email? Write to us at <a href="mailto:hello@trade-risksol.com">hello@trade-risksol.com</a>
+      </div>
+    </div>
+
+    <!-- RIGHT: form -->
+    <div class="chat-form-wrap">
+
+      <div id="chat-form-area">
+        <div class="chat-form-head">
+          <h2>Tell us what you need</h2>
+          <p>We'll match you with the right specialist.</p>
+        </div>
+
+        <!-- Topic chips -->
+        <div class="chat-topics" id="chat-topics" role="group" aria-label="Select a topic">
+          <button class="chat-topic" data-topic="Business insurance">Business insurance</button>
+          <button class="chat-topic" data-topic="Workforce benefits">Workforce benefits</button>
+          <button class="chat-topic" data-topic="Personal insurance">Personal insurance</button>
+          <button class="chat-topic" data-topic="Claims support">Claims support</button>
+          <button class="chat-topic" data-topic="API / embedded">API / embedded</button>
+          <button class="chat-topic" data-topic="Policy renewal">Policy renewal</button>
+          <button class="chat-topic" data-topic="Other">Other</button>
+        </div>
+        <input type="hidden" id="selected-topic" name="topic" value="" />
+
+        <form class="chat-form" id="chat-enquiry-form" novalidate>
+          <div class="chat-row">
+            <div class="chat-field">
+              <label for="cf-name">Full name <span style="color:#ef4444">*</span></label>
+              <input type="text" id="cf-name" name="name" placeholder="Jane Tan" autocomplete="name" required />
+            </div>
+            <div class="chat-field">
+              <label for="cf-company">Company</label>
+              <input type="text" id="cf-company" name="company" placeholder="Acme Pte Ltd" autocomplete="organization" />
+            </div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-field">
+              <label for="cf-email">Work email <span style="color:#ef4444">*</span></label>
+              <input type="email" id="cf-email" name="email" placeholder="jane@company.com" autocomplete="email" required />
+            </div>
+            <div class="chat-field">
+              <label for="cf-phone">Phone number</label>
+              <input type="tel" id="cf-phone" name="phone" placeholder="+65 9123 4567" autocomplete="tel" />
+            </div>
+          </div>
+          <div class="chat-field">
+            <label for="cf-size">Company size</label>
+            <div class="chat-select-wrap">
+              <select id="cf-size" name="size">
+                <option value="" disabled selected>Select headcount</option>
+                <option value="1-10">1–10 employees</option>
+                <option value="11-50">11–50 employees</option>
+                <option value="51-200">51–200 employees</option>
+                <option value="201-500">201–500 employees</option>
+                <option value="500+">500+ employees</option>
+              </select>
+            </div>
+          </div>
+          <div class="chat-field">
+            <label for="cf-message">How can we help? <span style="color:#ef4444">*</span></label>
+            <textarea id="cf-message" name="message" placeholder="Describe what you're looking for — coverage type, renewal timeline, specific risks…" required></textarea>
+          </div>
+          <button type="submit" class="chat-submit" id="chat-submit-btn">
+            Send enquiry
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </button>
+          <p class="chat-consent">By submitting this form, you agree to our <a href="/privacy">Privacy Policy</a>. We'll only use your details to respond to your enquiry.</p>
+        </form>
+      </div>
+
+      <!-- Success state (hidden until submit) -->
+      <div class="chat-success" id="chat-success">
+        <div class="chat-success-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <h3>Enquiry received</h3>
+        <p>A specialist will be in touch within 1 business day. Check your inbox — including spam.</p>
+        <a href="/" class="chat-success-back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          Back to home
+        </a>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="../scripts/nav.js" defer></script>
+  <script>
+    /* Topic chip toggle */
+    var topicInput = document.getElementById('selected-topic');
+    document.querySelectorAll('.chat-topic').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var isSelected = btn.classList.contains('selected');
+        document.querySelectorAll('.chat-topic').forEach(function(b) { b.classList.remove('selected'); });
+        if (!isSelected) {
+          btn.classList.add('selected');
+          topicInput.value = btn.dataset.topic;
+        } else {
+          topicInput.value = '';
+        }
+      });
+    });
+
+    /* Pre-select topic from URL query param ?topic=business */
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      var t = params.get('topic');
+      if (!t) return;
+      document.querySelectorAll('.chat-topic').forEach(function(btn) {
+        if (btn.dataset.topic.toLowerCase() === t.toLowerCase()) {
+          btn.classList.add('selected');
+          topicInput.value = btn.dataset.topic;
+        }
+      });
+    })();
+
+    /* Form submit */
+    document.getElementById('chat-enquiry-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var form = e.target;
+      var name = form.querySelector('#cf-name').value.trim();
+      var email = form.querySelector('#cf-email').value.trim();
+      var message = form.querySelector('#cf-message').value.trim();
+      if (!name || !email || !message) {
+        /* Simple inline validation */
+        [['#cf-name', name], ['#cf-email', email], ['#cf-message', message]].forEach(function(pair) {
+          var el = form.querySelector(pair[0]);
+          if (!pair[1]) {
+            el.style.borderColor = '#ef4444';
+            el.addEventListener('input', function() { el.style.borderColor = ''; }, { once: true });
+          }
+        });
+        return;
+      }
+      /* Show success — in production, POST to your backend here */
+      document.getElementById('chat-form-area').style.display = 'none';
+      var success = document.getElementById('chat-success');
+      success.style.display = 'flex';
+    });
+  </script>
+</body>
+</html>
