@@ -21,10 +21,9 @@
   if (closeBtn)  closeBtn.addEventListener('click', closeDrawer);
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
 
-  /* ── Desktop dropdowns (hover) — position:absolute, anchored to .nav-dropdown ── */
+  /* ── Desktop dropdowns — click-based ── */
   var dropdowns = document.querySelectorAll('.nav-dropdown');
 
-  /* Only fix right-edge overflow; top is handled by CSS (position:absolute, top:calc(100%+8px)) */
   function clampPanel(panel, dd) {
     panel.style.left = '0';
     var panelW = panel.offsetWidth;
@@ -35,38 +34,87 @@
     }
   }
 
+  /* ── Products mega-menu ── */
+  var productsBtn      = document.getElementById('products-btn');
+  var productsItem     = document.getElementById('products-nav-item');
+  var productsMega     = document.getElementById('products-mega');
+  var productsCloseBtn = document.getElementById('products-mega-close');
+
+  function openProducts() {
+    dropdowns.forEach(function (dd) { dd.classList.remove('open'); });
+    productsItem.classList.add('open');
+    if (productsBtn) productsBtn.setAttribute('aria-expanded', 'true');
+    /* Clamp right edge if mega overflows viewport */
+    if (productsMega) {
+      var megaW    = productsMega.offsetWidth || Math.min(900, window.innerWidth - 32);
+      var itemRect = productsItem.getBoundingClientRect();
+      var left = 0;
+      if (itemRect.left + megaW > window.innerWidth - 16) {
+        left = window.innerWidth - 16 - megaW - itemRect.left;
+      }
+      if (itemRect.left + left < 16) { left = 16 - itemRect.left; }
+      productsMega.style.left = left + 'px';
+    }
+  }
+  function closeProducts() {
+    if (!productsItem) return;
+    productsItem.classList.remove('open');
+    if (productsBtn) productsBtn.setAttribute('aria-expanded', 'false');
+  }
+
+  if (productsBtn) {
+    productsBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      productsItem.classList.contains('open') ? closeProducts() : openProducts();
+    });
+  }
+  if (productsCloseBtn) {
+    productsCloseBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      closeProducts();
+    });
+  }
+
+  /* Solutions / Resources — click to toggle */
   dropdowns.forEach(function (dd) {
     var trigger = dd.querySelector('.nav-dropdown-trigger');
     var panel   = dd.querySelector('.nav-dropdown-panel');
-    var leaveTimer;
 
-    function openDd() {
-      clearTimeout(leaveTimer);
-      dropdowns.forEach(function (other) { if (other !== dd) other.classList.remove('open'); });
-      dd.classList.add('open');
-      if (panel) clampPanel(panel, dd);
-    }
-    function closeDd() {
-      leaveTimer = setTimeout(function () { dd.classList.remove('open'); }, 120);
-    }
-
-    dd.addEventListener('mouseenter', openDd);
-    dd.addEventListener('mouseleave', closeDd);
-
-    /* Panel extends below dd bounds — keep hover alive when cursor enters panel */
-    if (panel) {
-      panel.addEventListener('mouseenter', function () { clearTimeout(leaveTimer); });
-      panel.addEventListener('mouseleave', closeDd);
+    if (trigger) {
+      trigger.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var isOpen = dd.classList.contains('open');
+        dropdowns.forEach(function (other) { other.classList.remove('open'); });
+        closeProducts();
+        if (!isOpen) {
+          dd.classList.add('open');
+          if (panel) clampPanel(panel, dd);
+        }
+      });
     }
   });
 
+  /* Click outside or X button — close everything */
   document.addEventListener('click', function (e) {
-    if (!e.target.closest('.nav-dropdown')) {
+    if (e.target.closest('.dd-close-btn')) {
+      var dd = e.target.closest('.nav-dropdown');
+      if (dd) dd.classList.remove('open');
+      return;
+    }
+    if (!e.target.closest('.nav-dropdown') && !e.target.closest('#products-nav-item')) {
       dropdowns.forEach(function (dd) { dd.classList.remove('open'); });
+      closeProducts();
     }
   });
 
-  /* ── Dynamic right column: hover left items ── */
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      dropdowns.forEach(function (dd) { dd.classList.remove('open'); });
+      closeProducts();
+    }
+  });
+
+  /* ── Dynamic right column (hover — kept for non-mega panels) ── */
   document.querySelectorAll('.nav-dd-item[data-target]').forEach(function (btn) {
     btn.addEventListener('mouseenter', function () {
       var panel = btn.closest('.nav-dropdown-panel');
@@ -81,64 +129,9 @@
     });
   });
 
-  /* ── Products mega-menu (click-based) ── */
-  var productsBtn  = document.getElementById('products-btn');
-  var productsItem = document.getElementById('products-nav-item');
-  var productsMega = document.getElementById('products-mega');
-  var megaLeaveTimer;
-
-  function positionMega() {
-    if (!productsMega || !productsBtn) return;
-    var navRect = nav.getBoundingClientRect();
-    productsMega.style.top = (navRect.bottom + 8) + 'px';
-
-    var btnRect = productsBtn.getBoundingClientRect();
-    var megaW   = productsMega.offsetWidth || Math.min(820, window.innerWidth - 32);
-    /* Anchor left edge to Products button left; clamp to viewport */
-    var left = btnRect.left;
-    if (left + megaW > window.innerWidth - 16) left = window.innerWidth - megaW - 16;
-    if (left < 16) left = 16;
-    productsMega.style.left = left + 'px';
-  }
-  function openProducts() {
-    productsItem.classList.add('open');
-    productsBtn.setAttribute('aria-expanded', 'true');
-    positionMega();
-  }
-  function closeProducts() {
-    productsItem.classList.remove('open');
-    productsBtn.setAttribute('aria-expanded', 'false');
-  }
-
-  /* Hover-based open/close */
-  if (productsItem) {
-    productsItem.addEventListener('mouseenter', function () {
-      clearTimeout(megaLeaveTimer);
-      openProducts();
-    });
-    productsItem.addEventListener('mouseleave', function () {
-      megaLeaveTimer = setTimeout(closeProducts, 120);
-    });
-  }
-  /* position:fixed mega is visually outside nav-item bounds — guard re-entry */
-  if (productsMega) {
-    productsMega.addEventListener('mouseenter', function () { clearTimeout(megaLeaveTimer); });
-    productsMega.addEventListener('mouseleave', function () {
-      megaLeaveTimer = setTimeout(closeProducts, 120);
-    });
-  }
-
-  window.addEventListener('scroll', function () {
-    if (productsItem && productsItem.classList.contains('open')) positionMega();
-  }, { passive: true });
-
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') closeProducts();
-  });
-
-  /* ── Mega-menu category switching ── */
+  /* ── Mega-menu category switching — click-based ── */
   document.querySelectorAll('.mega-cat').forEach(function (btn) {
-    btn.addEventListener('mouseenter', function () {
+    btn.addEventListener('click', function () {
       var cat = btn.dataset.cat;
       document.querySelectorAll('.mega-cat').forEach(function (b) { b.classList.remove('active'); });
       btn.classList.add('active');
