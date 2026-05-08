@@ -133,6 +133,7 @@
   document.querySelectorAll('.mega-cat').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var cat = btn.dataset.cat;
+      if (cat === 'api') { window.location.href = '/api'; return; }
       document.querySelectorAll('.mega-cat').forEach(function (b) { b.classList.remove('active'); });
       btn.classList.add('active');
       document.querySelectorAll('.mega-panel').forEach(function (p) { p.classList.remove('active'); });
