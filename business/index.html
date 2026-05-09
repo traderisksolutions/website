@@ -16,47 +16,49 @@
     .biz-hero {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      align-items: center;
-      min-height: 520px;
-      padding: 0 72px 0 72px;
-      background: linear-gradient(135deg, #f8faff 0%, #eef2ff 100%);
-      border-bottom: 1px solid #e8edf5;
-      gap: 48px;
+      align-items: stretch;
+      min-height: 540px;
+      padding: 0 80px;
+      background: #f4eff6;
+      gap: 0;
     }
-    .biz-hero-left { padding: 96px 0 80px; }
+    .biz-hero-left {
+      padding: 96px 56px 80px 0;
+      display: flex; flex-direction: column; justify-content: center;
+    }
     .biz-badge {
       display: inline-flex; align-items: center; gap: 6px;
       padding: 4px 12px 4px 8px; border-radius: 20px;
-      background: #eff6ff; border: 1px solid #bfdbfe;
-      font-size: 12px; font-weight: 600; color: #3b82f6;
-      margin-bottom: 22px;
+      background: rgba(255,255,255,0.6); border: 1px solid rgba(0,0,0,0.08);
+      font-size: 12px; font-weight: 500; color: #49454f;
+      margin-bottom: 24px; width: fit-content;
     }
     .biz-hero h1 {
-      font-family: 'Libre Baskerville', serif;
-      font-size: clamp(36px, 4.5vw, 58px); font-weight: 700;
-      color: #0f172a; line-height: 1.1; margin: 0 0 18px;
-      letter-spacing: -0.025em;
+      font-family: 'Archivo', sans-serif;
+      font-size: clamp(52px, 6.5vw, 84px); font-weight: 800;
+      color: #1c1b1f; line-height: 1.0; margin: 0 0 20px;
+      letter-spacing: -0.03em;
     }
     .biz-hero p {
-      font-size: 17px; color: #64748b; max-width: 440px;
-      margin: 0 0 32px; line-height: 1.65;
+      font-size: 17px; color: #49454f; max-width: 400px;
+      margin: 0 0 36px; line-height: 1.6; font-weight: 400;
     }
     .biz-hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; }
     /* ── Right placeholder ── */
     .biz-hero-right {
       display: flex; align-items: center; justify-content: center;
-      padding: 48px 0;
+      padding: 48px 0 48px 40px;
     }
     .biz-chart-placeholder {
-      width: 100%; max-width: 460px; height: 280px;
-      border: 2px dashed #c7d5f0;
-      border-radius: 20px;
-      background: rgba(255,255,255,0.55);
+      width: 100%; height: 100%; min-height: 300px;
+      border-radius: 24px;
+      background: rgba(255,255,255,0.65);
+      box-shadow: 0 2px 32px rgba(29,25,43,0.07), 0 0 0 1px rgba(0,0,0,0.04);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 12px; color: #94a3b8;
+      gap: 10px; color: #b8afc8;
     }
-    .biz-chart-placeholder svg { opacity: 0.45; }
-    .biz-chart-placeholder span { font-size: 12.5px; font-weight: 500; letter-spacing: 0.02em; }
+    .biz-chart-placeholder svg { opacity: 0.5; }
+    .biz-chart-placeholder span { font-size: 12px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
     .biz-body { max-width: 1100px; margin: 0 auto; padding: 64px 24px 80px; }
     .biz-section-label {
       display: inline-flex; align-items: center; gap: 8px;
@@ -122,44 +124,43 @@
     /* ── M3-style pill tab toggle ── */
     .biz-tab-wrap {
       display: flex; justify-content: center;
-      padding: 32px 24px 0;
+      padding: 36px 24px 0;
     }
     .biz-tab-rail {
       display: inline-flex; align-items: center;
-      background: #e8edf8; border-radius: 100px;
+      background: #ece6f0;
+      border-radius: 100px;
       padding: 5px; gap: 2px;
     }
     .biz-tab {
-      padding: 10px 32px; border-radius: 100px;
+      padding: 11px 36px; border-radius: 100px;
       border: none; background: transparent; cursor: pointer;
-      font-family: inherit; font-size: 14px; font-weight: 500; color: #64748b;
-      transition: background 0.22s ease, color 0.18s ease, box-shadow 0.18s ease;
-      white-space: nowrap;
+      font-family: 'Archivo', inherit; font-size: 14px; font-weight: 500; color: #49454f;
+      transition: background 0.2s ease, color 0.15s ease;
+      white-space: nowrap; letter-spacing: 0.01em;
     }
     .biz-tab.active {
-      background: #fff; color: #0f172a; font-weight: 600;
-      box-shadow: 0 1px 4px rgba(59,130,246,0.14), 0 0 0 1px rgba(0,0,0,0.04);
+      background: #e8def8; color: #1d192b; font-weight: 600;
     }
-    .biz-tab:not(.active):hover { background: rgba(255,255,255,0.45); color: #334155; }
+    .biz-tab:not(.active):hover { background: rgba(255,255,255,0.4); color: #1c1b1f; }
 
     /* ── Panel show/hide ── */
     .biz-panel { display: none; }
     .biz-panel.active { display: block; }
 
-    /* ── Section label stays ── */
-    @media (max-width: 900px) {
-      .biz-hero { grid-template-columns: 1fr; padding: 72px 32px 0; min-height: auto; }
-      .biz-hero-left { padding: 0 0 32px; }
+    @media (max-width: 960px) {
+      .biz-hero { grid-template-columns: 1fr; padding: 80px 32px 0; min-height: auto; gap: 0; }
+      .biz-hero-left { padding: 0 0 40px; }
       .biz-hero-right { display: none; }
     }
     @media (max-width: 768px) {
       .biz-grid { grid-template-columns: 1fr 1fr; }
       .biz-cta-section { padding: 40px 24px; }
-      .biz-tab { padding: 9px 22px; font-size: 13.5px; }
+      .biz-tab { padding: 10px 24px; font-size: 13.5px; }
     }
     @media (max-width: 480px) {
       .biz-grid { grid-template-columns: 1fr; }
-      .biz-hero { padding: 64px 20px 0; }
+      .biz-hero { padding: 72px 20px 0; }
     }
   </style>
 </head>
