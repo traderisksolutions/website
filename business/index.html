@@ -17,13 +17,13 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       align-items: stretch;
-      min-height: 540px;
-      padding: 0 80px;
+      min-height: 520px;
+      padding: 0;
       background: #f4eff6;
       gap: 0;
     }
     .biz-hero-left {
-      padding: 96px 56px 80px 0;
+      padding: 96px 48px 80px 80px;
       display: flex; flex-direction: column; justify-content: center;
     }
     .biz-badge {
@@ -44,21 +44,21 @@
       margin: 0 0 36px; line-height: 1.6; font-weight: 400;
     }
     .biz-hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; }
-    /* ── Right placeholder ── */
+    /* ── Right placeholder: fills right half edge-to-edge ── */
     .biz-hero-right {
-      display: flex; align-items: center; justify-content: center;
-      padding: 48px 0 48px 40px;
+      padding: 40px 64px 40px 48px;
+      display: flex; align-items: center;
     }
     .biz-chart-placeholder {
-      width: 100%; height: 100%; min-height: 300px;
-      border-radius: 24px;
-      background: rgba(255,255,255,0.65);
-      box-shadow: 0 2px 32px rgba(29,25,43,0.07), 0 0 0 1px rgba(0,0,0,0.04);
+      width: 100%; height: 100%; min-height: 320px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.7);
+      box-shadow: 0 2px 24px rgba(29,25,43,0.06), 0 0 0 1px rgba(0,0,0,0.04);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 10px; color: #b8afc8;
+      gap: 10px; color: #c0b8d0;
     }
-    .biz-chart-placeholder svg { opacity: 0.5; }
-    .biz-chart-placeholder span { font-size: 12px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
+    .biz-chart-placeholder svg { opacity: 0.45; }
+    .biz-chart-placeholder span { font-size: 11.5px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; }
     .biz-body { max-width: 1100px; margin: 0 auto; padding: 64px 24px 80px; }
     .biz-section-label {
       display: inline-flex; align-items: center; gap: 8px;
@@ -128,29 +128,30 @@
     }
     .biz-tab-rail {
       display: inline-flex; align-items: center;
-      background: #ece6f0;
+      background: #dbeafe;
       border-radius: 100px;
       padding: 5px; gap: 2px;
     }
     .biz-tab {
       padding: 11px 36px; border-radius: 100px;
       border: none; background: transparent; cursor: pointer;
-      font-family: 'Archivo', inherit; font-size: 14px; font-weight: 500; color: #49454f;
+      font-family: 'Archivo', inherit; font-size: 14px; font-weight: 500; color: #3b82f6;
       transition: background 0.2s ease, color 0.15s ease;
       white-space: nowrap; letter-spacing: 0.01em;
     }
     .biz-tab.active {
-      background: #e8def8; color: #1d192b; font-weight: 600;
+      background: #fff; color: #1e3a8a; font-weight: 600;
+      box-shadow: 0 1px 4px rgba(59,130,246,0.18);
     }
-    .biz-tab:not(.active):hover { background: rgba(255,255,255,0.4); color: #1c1b1f; }
+    .biz-tab:not(.active):hover { background: rgba(255,255,255,0.5); color: #1d4ed8; }
 
     /* ── Panel show/hide ── */
     .biz-panel { display: none; }
     .biz-panel.active { display: block; }
 
     @media (max-width: 960px) {
-      .biz-hero { grid-template-columns: 1fr; padding: 80px 32px 0; min-height: auto; gap: 0; }
-      .biz-hero-left { padding: 0 0 40px; }
+      .biz-hero { grid-template-columns: 1fr; min-height: auto; }
+      .biz-hero-left { padding: 80px 32px 48px 32px; }
       .biz-hero-right { display: none; }
     }
     @media (max-width: 768px) {
@@ -160,7 +161,7 @@
     }
     @media (max-width: 480px) {
       .biz-grid { grid-template-columns: 1fr; }
-      .biz-hero { padding: 72px 20px 0; }
+      .biz-hero-left { padding: 72px 20px 40px 20px; }
     }
   </style>
 </head>
