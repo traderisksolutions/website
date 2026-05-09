@@ -12,42 +12,113 @@
   <link rel="stylesheet" href="../styles/main.css" />
   <script defer src="/_vercel/insights/script.js"></script>
   <style>
-    /* ── Pixel-style reset ── */
     body { background: #fff; color: #1f1f1f; }
 
-    /* ── Feature strip ── */
-    .biz-strip {
-      display: grid; grid-template-columns: repeat(5, 1fr);
-      padding: 56px 72px; background: #fff;
-      border-bottom: 1px solid #ebebeb;
+    /* ── Spatial dark hero ── */
+    .biz-hero-spatial {
+      background: #0b1120;
+      min-height: 82vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 140px 24px 120px;
+      position: relative;
+      overflow: hidden;
     }
-    .biz-strip-item {
-      display: flex; flex-direction: column; align-items: center;
-      text-align: center; padding: 0 12px; gap: 16px;
-      border-right: 1px solid #ebebeb;
+    .biz-hero-spatial::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 70% 55% at 50% 65%, rgba(59,130,246,0.14) 0%, transparent 70%);
+      pointer-events: none;
     }
-    .biz-strip-item:last-child { border-right: none; }
-    .biz-strip-icon { color: #1f1f1f; line-height: 0; }
-    .biz-strip-label { font-size: 13.5px; color: #1f1f1f; line-height: 1.55; max-width: 150px; }
-
-    /* ── Big statement ── */
-    .biz-statement {
-      padding: 112px 24px 104px; text-align: center; background: #fff;
+    .biz-hero-spatial::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 1px;
+      background: rgba(255,255,255,0.06);
     }
-    .biz-statement h2 {
+    .biz-hero-spatial-inner {
+      position: relative;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    .biz-hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(147, 197, 253, 0.75);
+      margin: 0 0 36px;
+    }
+    .biz-hero-eyebrow::before,
+    .biz-hero-eyebrow::after {
+      content: '';
+      display: block;
+      width: 32px;
+      height: 1px;
+      background: rgba(147,197,253,0.3);
+    }
+    .biz-hero-spatial-h1 {
       font-family: 'Archivo', sans-serif;
-      font-size: clamp(38px, 5.5vw, 66px); font-weight: 700;
-      color: #1f1f1f; line-height: 1.1; letter-spacing: -0.025em;
-      max-width: 860px; margin: 0 auto 24px;
+      font-size: clamp(64px, 10.5vw, 128px);
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 0.93;
+      letter-spacing: -0.04em;
+      margin: 0 0 40px;
     }
-    .biz-statement p {
-      font-size: 16px; color: #5f6368; max-width: 560px;
-      margin: 0 auto; line-height: 1.65;
+    .biz-hero-spatial-sub {
+      font-size: 17px;
+      color: rgba(255, 255, 255, 0.48);
+      max-width: 500px;
+      margin: 0 auto 52px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .biz-hero-spatial-ctas {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .biz-hero-spatial-btn-primary {
+      padding: 15px 40px;
+      background: #ffffff;
+      color: #0b1120;
+      border-radius: 100px;
+      font-family: 'Archivo', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .biz-hero-spatial-btn-primary:hover { background: #e2e8f0; }
+    .biz-hero-spatial-btn-secondary {
+      padding: 15px 40px;
+      border: 1.5px solid rgba(255,255,255,0.22);
+      color: rgba(255, 255, 255, 0.72);
+      border-radius: 100px;
+      font-family: 'Archivo', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .biz-hero-spatial-btn-secondary:hover {
+      background: rgba(255,255,255,0.07);
+      border-color: rgba(255,255,255,0.38);
     }
 
     /* ── Two Pixel-style product cards ── */
     .biz-product-section {
-      padding: 0 16px 16px; background: #fff;
+      padding: 20px 16px 16px;
+      background: #fff;
     }
     .biz-product-cards {
       display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
@@ -113,8 +184,8 @@
     .biz-panel { display: none; }
     .biz-panel.active { display: block; }
 
-    /* ── Coverage cards below ── */
-    .biz-body { max-width: 1100px; margin: 0 auto; padding: 64px 24px 80px; }
+    /* ── Coverage cards ── */
+    .biz-body { max-width: 1100px; margin: 0 auto; padding: 64px 24px 48px; }
     .biz-section-label {
       display: inline-flex; align-items: center; gap: 8px;
       font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
@@ -141,8 +212,24 @@
     .biz-card-link--cta { color: #3b82f6; font-weight: 600; }
     .biz-card-link--cta:hover { background: #eff6ff; }
 
+    /* ── Feature strip (bottom) ── */
+    .biz-strip {
+      display: grid; grid-template-columns: repeat(5, 1fr);
+      padding: 56px 72px; background: #fff;
+      border-top: 1px solid #ebebeb;
+    }
+    .biz-strip-item {
+      display: flex; flex-direction: column; align-items: center;
+      text-align: center; padding: 0 12px; gap: 16px;
+      border-right: 1px solid #ebebeb;
+    }
+    .biz-strip-item:last-child { border-right: none; }
+    .biz-strip-icon { color: #1f1f1f; line-height: 0; }
+    .biz-strip-label { font-size: 13.5px; color: #1f1f1f; line-height: 1.55; max-width: 150px; }
+
     /* ── Dark CTA ── */
-    .biz-cta-section { background: #111; border-radius: 20px; padding: 56px 40px; text-align: center; margin-top: 24px; }
+    .biz-cta-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 80px; }
+    .biz-cta-section { background: #111; border-radius: 20px; padding: 56px 40px; text-align: center; }
     .biz-cta-section h2 { font-family: 'Libre Baskerville', serif; font-size: 28px; font-weight: 700; color: #fff; margin: 0 0 12px; letter-spacing: -0.01em; }
     .biz-cta-section p { font-size: 15px; color: rgba(255,255,255,0.65); margin: 0 0 28px; }
     .biz-cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
@@ -153,171 +240,21 @@
 
     /* ── Responsive ── */
     @media (max-width: 960px) {
+      .biz-hero-spatial { min-height: 70vh; padding: 110px 24px 90px; }
       .biz-strip { grid-template-columns: 1fr 1fr; padding: 40px 32px; gap: 24px; }
       .biz-strip-item { border-right: none; }
       .biz-product-cards { grid-template-columns: 1fr; }
       .biz-product-card { min-height: 420px; }
     }
     @media (max-width: 640px) {
+      .biz-hero-spatial { min-height: 60vh; padding: 96px 20px 80px; }
+      .biz-hero-spatial-h1 { letter-spacing: -0.03em; }
       .biz-strip { grid-template-columns: 1fr; padding: 32px 20px; }
-      .biz-statement { padding: 72px 20px 64px; }
       .biz-tab { padding: 10px 24px; font-size: 13.5px; }
       .biz-grid { grid-template-columns: 1fr 1fr; }
       .biz-cta-section { padding: 40px 24px; }
     }
     @media (max-width: 400px) { .biz-grid { grid-template-columns: 1fr; } }
-
-    /* keep old .biz-hero ─ replaced below */
-    .biz-hero {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      align-items: stretch;
-      min-height: 520px;
-      padding: 0;
-      background: #f4eff6;
-      gap: 0;
-    }
-    .biz-hero-left {
-      padding: 96px 48px 80px 80px;
-      display: flex; flex-direction: column; justify-content: center;
-    }
-    .biz-badge {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 4px 12px 4px 8px; border-radius: 20px;
-      background: rgba(255,255,255,0.6); border: 1px solid rgba(0,0,0,0.08);
-      font-size: 12px; font-weight: 500; color: #49454f;
-      margin-bottom: 24px; width: fit-content;
-    }
-    .biz-hero h1 {
-      font-family: 'Archivo', sans-serif;
-      font-size: clamp(52px, 6.5vw, 84px); font-weight: 800;
-      color: #1c1b1f; line-height: 1.0; margin: 0 0 20px;
-      letter-spacing: -0.03em;
-    }
-    .biz-hero p {
-      font-size: 17px; color: #49454f; max-width: 400px;
-      margin: 0 0 36px; line-height: 1.6; font-weight: 400;
-    }
-    .biz-hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; }
-    /* ── Right placeholder: fills right half edge-to-edge ── */
-    .biz-hero-right {
-      padding: 40px 64px 40px 48px;
-      display: flex; align-items: center;
-    }
-    .biz-chart-placeholder {
-      width: 100%; height: 100%; min-height: 320px;
-      border-radius: 20px;
-      background: rgba(255,255,255,0.7);
-      box-shadow: 0 2px 24px rgba(29,25,43,0.06), 0 0 0 1px rgba(0,0,0,0.04);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 10px; color: #c0b8d0;
-    }
-    .biz-chart-placeholder svg { opacity: 0.45; }
-    .biz-chart-placeholder span { font-size: 11.5px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; }
-    .biz-body { max-width: 1100px; margin: 0 auto; padding: 64px 24px 80px; }
-    .biz-section-label {
-      display: inline-flex; align-items: center; gap: 8px;
-      font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
-      text-transform: uppercase; color: #9ca3af; margin-bottom: 24px;
-    }
-    .biz-section-label span {
-      display: block; width: 28px; height: 1px; background: #d1d5db;
-    }
-    .biz-row-head {
-      font-size: 22px; font-weight: 700; color: #111;
-      letter-spacing: -0.015em; margin: 0 0 20px;
-    }
-    .biz-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 14px; margin-bottom: 56px;
-    }
-    .biz-card {
-      background: #fff; border: 1px solid #e5e7eb;
-      border-radius: 14px; padding: 20px 18px;
-      transition: box-shadow 0.15s, border-color 0.15s;
-      text-decoration: none; display: flex; flex-direction: column; gap: 10px;
-    }
-    .biz-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); border-color: #d1d5db; }
-    .biz-card-icon {
-      width: 38px; height: 38px; border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-    .biz-card-title {
-      font-size: 14px; font-weight: 700; color: #111; line-height: 1.3;
-    }
-    .biz-card-sub {
-      font-size: 12px; color: #9ca3af; line-height: 1.5;
-      flex: 1;
-    }
-    .biz-card-links { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
-    .biz-card-link {
-      font-size: 12.5px; color: #374151; text-decoration: none;
-      padding: 3px 6px; border-radius: 5px; margin: 0 -6px;
-      transition: background 0.1s, color 0.1s;
-    }
-    .biz-card-link:hover { background: #f3f4f6; color: #111; }
-    .biz-card-link--cta { color: #3b82f6; font-weight: 600; }
-    .biz-card-link--cta:hover { background: #eff6ff; }
-    .biz-divider { height: 1px; background: #f0f0f0; margin: 0 0 48px; }
-    .biz-cta-section {
-      background: #111; border-radius: 20px;
-      padding: 56px 40px; text-align: center; margin-top: 24px;
-    }
-    .biz-cta-section h2 {
-      font-family: 'Libre Baskerville', serif;
-      font-size: 28px; font-weight: 700; color: #fff;
-      margin: 0 0 12px; letter-spacing: -0.01em;
-    }
-    .biz-cta-section p { font-size: 15px; color: rgba(255,255,255,0.65); margin: 0 0 28px; }
-    .biz-cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-    .biz-cta-btns .btn-primary { background: #fff; color: #111; }
-    .biz-cta-btns .btn-primary:hover { background: #f3f4f6; }
-    .biz-cta-btns .btn-outline { border-color: rgba(255,255,255,0.35); color: rgba(255,255,255,0.8); }
-    .biz-cta-btns .btn-outline:hover { background: rgba(255,255,255,0.1); }
-    /* ── M3-style pill tab toggle ── */
-    .biz-tab-wrap {
-      display: flex; justify-content: center;
-      padding: 36px 24px 0;
-    }
-    .biz-tab-rail {
-      display: inline-flex; align-items: center;
-      background: #dbeafe;
-      border-radius: 100px;
-      padding: 5px; gap: 2px;
-    }
-    .biz-tab {
-      padding: 11px 36px; border-radius: 100px;
-      border: none; background: transparent; cursor: pointer;
-      font-family: 'Archivo', inherit; font-size: 14px; font-weight: 500; color: #3b82f6;
-      transition: background 0.2s ease, color 0.15s ease;
-      white-space: nowrap; letter-spacing: 0.01em;
-    }
-    .biz-tab.active {
-      background: #fff; color: #1e3a8a; font-weight: 600;
-      box-shadow: 0 1px 4px rgba(59,130,246,0.18);
-    }
-    .biz-tab:not(.active):hover { background: rgba(255,255,255,0.5); color: #1d4ed8; }
-
-    /* ── Panel show/hide ── */
-    .biz-panel { display: none; }
-    .biz-panel.active { display: block; }
-
-    @media (max-width: 960px) {
-      .biz-hero { grid-template-columns: 1fr; min-height: auto; }
-      .biz-hero-left { padding: 80px 32px 48px 32px; }
-      .biz-hero-right { display: none; }
-    }
-    @media (max-width: 768px) {
-      .biz-grid { grid-template-columns: 1fr 1fr; }
-      .biz-cta-section { padding: 40px 24px; }
-      .biz-tab { padding: 10px 24px; font-size: 13.5px; }
-    }
-    @media (max-width: 480px) {
-      .biz-grid { grid-template-columns: 1fr; }
-      .biz-hero-left { padding: 72px 20px 40px 20px; }
-    }
   </style>
 </head>
 <body>
@@ -431,44 +368,17 @@
     </div>
   </header>
 
-  <!-- FEATURE STRIP -->
-  <section class="biz-strip" aria-label="Why TRS">
-    <div class="biz-strip-item">
-      <div class="biz-strip-icon">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+  <!-- SPATIAL HERO -->
+  <section class="biz-hero-spatial">
+    <div class="biz-hero-spatial-inner">
+      <p class="biz-hero-eyebrow">MAS-Licensed · Singapore</p>
+      <h1 class="biz-hero-spatial-h1">Business<br>Insurance.</h1>
+      <p class="biz-hero-spatial-sub">From property and marine to cyber and professional liability — structured around your actual risk profile, not a generic checklist.</p>
+      <div class="biz-hero-spatial-ctas">
+        <a href="/chat?topic=Business+insurance" class="biz-hero-spatial-btn-primary">Get a quote</a>
+        <a href="#coverage" class="biz-hero-spatial-btn-secondary">Explore coverage ↓</a>
       </div>
-      <p class="biz-strip-label">20+ insurer partners across Singapore</p>
     </div>
-    <div class="biz-strip-item">
-      <div class="biz-strip-icon">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-      </div>
-      <p class="biz-strip-label">MAS-licensed insurance broker</p>
-    </div>
-    <div class="biz-strip-item">
-      <div class="biz-strip-icon">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-      </div>
-      <p class="biz-strip-label">Personalised to your risk profile</p>
-    </div>
-    <div class="biz-strip-item">
-      <div class="biz-strip-icon">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-      </div>
-      <p class="biz-strip-label">Policies placed within days, not weeks</p>
-    </div>
-    <div class="biz-strip-item">
-      <div class="biz-strip-icon">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-      </div>
-      <p class="biz-strip-label">End-to-end claims management</p>
-    </div>
-  </section>
-
-  <!-- STATEMENT -->
-  <section class="biz-statement">
-    <h2>Cover every risk your<br>business faces.</h2>
-    <p>From property and marine to cyber and professional liability — TRS structures coverage around your actual risk profile, not a generic checklist.</p>
   </section>
 
   <!-- TWO PIXEL-STYLE PRODUCT CARDS -->
@@ -638,7 +548,44 @@
     </div>
     </div><!-- /panel-liabilities -->
 
-    <!-- CTA -->
+  </div><!-- /biz-body -->
+
+  <!-- FEATURE STRIP -->
+  <section class="biz-strip" aria-label="Why TRS">
+    <div class="biz-strip-item">
+      <div class="biz-strip-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <p class="biz-strip-label">20+ insurer partners across Singapore</p>
+    </div>
+    <div class="biz-strip-item">
+      <div class="biz-strip-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+      </div>
+      <p class="biz-strip-label">MAS-licensed insurance broker</p>
+    </div>
+    <div class="biz-strip-item">
+      <div class="biz-strip-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <p class="biz-strip-label">Personalised to your risk profile</p>
+    </div>
+    <div class="biz-strip-item">
+      <div class="biz-strip-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      </div>
+      <p class="biz-strip-label">Policies placed within days, not weeks</p>
+    </div>
+    <div class="biz-strip-item">
+      <div class="biz-strip-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      </div>
+      <p class="biz-strip-label">End-to-end claims management</p>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="biz-cta-wrap">
     <div class="biz-cta-section">
       <h2>Not sure which cover you need?</h2>
       <p>Our brokers review your risk profile and recommend the right structure — no generic advice.</p>
@@ -647,7 +594,6 @@
         <a href="/about" class="btn btn-outline">Why TRS</a>
       </div>
     </div>
-
   </div>
 
   <script src="../scripts/nav.js" defer></script>
