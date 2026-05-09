@@ -14,105 +14,19 @@
   <style>
     body { background: #fff; color: #1f1f1f; }
 
-    /* ── Spatial dark hero ── */
-    .biz-hero-spatial {
-      background: #0b1120;
-      min-height: 82vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 140px 24px 120px;
-      position: relative;
-      overflow: hidden;
+    /* ── Big statement ── */
+    .biz-statement {
+      padding: 112px 24px 104px; text-align: center; background: #fff;
     }
-    .biz-hero-spatial::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(ellipse 70% 55% at 50% 65%, rgba(59,130,246,0.14) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    .biz-hero-spatial::after {
-      content: '';
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      height: 1px;
-      background: rgba(255,255,255,0.06);
-    }
-    .biz-hero-spatial-inner {
-      position: relative;
-      max-width: 960px;
-      margin: 0 auto;
-    }
-    .biz-hero-eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 11.5px;
-      font-weight: 600;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: rgba(147, 197, 253, 0.75);
-      margin: 0 0 36px;
-    }
-    .biz-hero-eyebrow::before,
-    .biz-hero-eyebrow::after {
-      content: '';
-      display: block;
-      width: 32px;
-      height: 1px;
-      background: rgba(147,197,253,0.3);
-    }
-    .biz-hero-spatial-h1 {
+    .biz-statement h2 {
       font-family: 'Archivo', sans-serif;
-      font-size: clamp(64px, 10.5vw, 128px);
-      font-weight: 800;
-      color: #ffffff;
-      line-height: 0.93;
-      letter-spacing: -0.04em;
-      margin: 0 0 40px;
+      font-size: clamp(38px, 5.5vw, 66px); font-weight: 700;
+      color: #1f1f1f; line-height: 1.1; letter-spacing: -0.025em;
+      max-width: 860px; margin: 0 auto 24px;
     }
-    .biz-hero-spatial-sub {
-      font-size: 17px;
-      color: rgba(255, 255, 255, 0.48);
-      max-width: 500px;
-      margin: 0 auto 52px;
-      line-height: 1.7;
-      font-weight: 400;
-    }
-    .biz-hero-spatial-ctas {
-      display: flex;
-      gap: 14px;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-    .biz-hero-spatial-btn-primary {
-      padding: 15px 40px;
-      background: #ffffff;
-      color: #0b1120;
-      border-radius: 100px;
-      font-family: 'Archivo', sans-serif;
-      font-size: 15px;
-      font-weight: 600;
-      text-decoration: none;
-      transition: background 0.15s;
-    }
-    .biz-hero-spatial-btn-primary:hover { background: #e2e8f0; }
-    .biz-hero-spatial-btn-secondary {
-      padding: 15px 40px;
-      border: 1.5px solid rgba(255,255,255,0.22);
-      color: rgba(255, 255, 255, 0.72);
-      border-radius: 100px;
-      font-family: 'Archivo', sans-serif;
-      font-size: 15px;
-      font-weight: 500;
-      text-decoration: none;
-      transition: background 0.15s, border-color 0.15s;
-    }
-    .biz-hero-spatial-btn-secondary:hover {
-      background: rgba(255,255,255,0.07);
-      border-color: rgba(255,255,255,0.38);
+    .biz-statement p {
+      font-size: 16px; color: #5f6368; max-width: 560px;
+      margin: 0 auto; line-height: 1.65;
     }
 
     /* ── Two Pixel-style product cards ── */
@@ -240,15 +154,13 @@
 
     /* ── Responsive ── */
     @media (max-width: 960px) {
-      .biz-hero-spatial { min-height: 70vh; padding: 110px 24px 90px; }
       .biz-strip { grid-template-columns: 1fr 1fr; padding: 40px 32px; gap: 24px; }
       .biz-strip-item { border-right: none; }
       .biz-product-cards { grid-template-columns: 1fr; }
       .biz-product-card { min-height: 420px; }
     }
     @media (max-width: 640px) {
-      .biz-hero-spatial { min-height: 60vh; padding: 96px 20px 80px; }
-      .biz-hero-spatial-h1 { letter-spacing: -0.03em; }
+      .biz-statement { padding: 72px 20px 64px; }
       .biz-strip { grid-template-columns: 1fr; padding: 32px 20px; }
       .biz-tab { padding: 10px 24px; font-size: 13.5px; }
       .biz-grid { grid-template-columns: 1fr 1fr; }
@@ -368,17 +280,10 @@
     </div>
   </header>
 
-  <!-- SPATIAL HERO -->
-  <section class="biz-hero-spatial">
-    <div class="biz-hero-spatial-inner">
-      <p class="biz-hero-eyebrow">MAS-Licensed · Singapore</p>
-      <h1 class="biz-hero-spatial-h1">Business<br>Insurance.</h1>
-      <p class="biz-hero-spatial-sub">From property and marine to cyber and professional liability — structured around your actual risk profile, not a generic checklist.</p>
-      <div class="biz-hero-spatial-ctas">
-        <a href="/chat?topic=Business+insurance" class="biz-hero-spatial-btn-primary">Get a quote</a>
-        <a href="#coverage" class="biz-hero-spatial-btn-secondary">Explore coverage ↓</a>
-      </div>
-    </div>
+  <!-- STATEMENT -->
+  <section class="biz-statement">
+    <h2>Cover every risk your<br>business faces.</h2>
+    <p>From property and marine to cyber and professional liability — TRS structures coverage around your actual risk profile, not a generic checklist.</p>
   </section>
 
   <!-- TWO PIXEL-STYLE PRODUCT CARDS -->
