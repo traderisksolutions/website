@@ -15,148 +15,151 @@
     /* ── Page ── */
     .cw-page {
       min-height: calc(100vh - 64px);
-      background: #f5f5f5;
+      background: #f0f0f0;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 56px 16px;
+      padding: 48px 16px;
     }
 
     /* ── Card ── */
     .cw-card {
       background: #fff;
-      border-radius: 20px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 8px 32px rgba(0,0,0,0.07);
+      border-radius: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 12px 40px rgba(0,0,0,0.09);
       width: 100%;
-      max-width: 464px;
-      padding: 44px 40px 40px;
-      position: relative;
+      max-width: 468px;
+      padding: 20px 24px 28px;
     }
 
-    /* ── Steps ── */
-    .cw-step { display: none; }
-    .cw-step.active { display: block; }
-
-    /* ── Back button ── */
-    .cw-back {
-      display: inline-flex; align-items: center; gap: 6px;
-      background: none; border: none; cursor: pointer;
-      font-family: inherit; font-size: 13px; font-weight: 500;
-      color: #6b7280; padding: 0; margin-bottom: 28px;
-      transition: color 0.12s;
-    }
-    .cw-back:hover { color: #111; }
-    .cw-back svg { flex-shrink: 0; }
-
-    /* ── Step label ── */
-    .cw-step-label {
-      font-size: 10.5px;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: #9ca3af;
-      margin: 0 0 20px;
-    }
-
-    /* ── Option cards ── */
-    .cw-options {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .cw-option {
-      width: 100%;
+    /* ── Top control bar ── */
+    .cw-topbar {
       display: flex;
       align-items: center;
-      gap: 14px;
-      padding: 17px 18px;
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      background: #fafafa;
-      cursor: pointer;
-      text-align: left;
-      transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
-      font-family: inherit;
+      gap: 10px;
+      margin-bottom: 24px;
     }
-    .cw-option:hover {
-      background: #f3f4f6;
-      border-color: #d1d5db;
-      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
-    }
-    .cw-option--claims {
-      border-color: #fca5a5;
-      background: #fff5f5;
-    }
-    .cw-option--claims:hover {
-      background: #fef2f2;
-      border-color: #f87171;
-    }
-    .cw-option-icon {
-      width: 40px; height: 40px;
-      border-radius: 10px;
+    .cw-circle-btn {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: #f0f0f0;
       display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
+      cursor: pointer; flex-shrink: 0;
+      color: #555;
+      transition: background 0.12s, color 0.12s;
+      text-decoration: none;
     }
-    .cw-option-text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-    .cw-option-title { font-size: 15px; font-weight: 600; color: #111; line-height: 1.3; }
-    .cw-option-sub { font-size: 13px; color: #6b7280; line-height: 1.4; }
-    .cw-option--claims .cw-option-title { color: #dc2626; }
-    .cw-option--claims .cw-option-sub { color: #ef4444; }
-    .cw-option-chevron { color: #d1d5db; flex-shrink: 0; transition: color 0.12s; }
-    .cw-option:hover .cw-option-chevron { color: #9ca3af; }
+    .cw-circle-btn:hover { background: #e4e4e4; color: #111; }
 
-    /* ── WhatsApp step ── */
-    .cw-wa-intro { font-size: 22px; font-weight: 700; color: #111; letter-spacing: -0.015em; margin: 0 0 8px; }
-    .cw-wa-sub { font-size: 13.5px; color: #6b7280; margin: 0 0 24px; line-height: 1.55; }
-    .cw-wa-context {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-size: 11.5px; font-weight: 600; color: #15803d;
-      background: #f0fdf4; border: 1px solid #bbf7d0;
-      padding: 3px 10px 3px 7px; border-radius: 20px;
-      margin-bottom: 20px;
+    /* ── Segmented WhatsApp / Email toggle ── */
+    .cw-seg {
+      flex: 1;
+      display: flex;
+      background: #f0f0f0;
+      border-radius: 100px;
+      padding: 3px;
+      gap: 2px;
     }
-    .cw-textarea {
-      width: 100%; box-sizing: border-box;
-      padding: 12px 14px;
+    .cw-seg-btn {
+      flex: 1;
+      padding: 9px 12px;
+      border: none;
+      border-radius: 100px;
+      background: transparent;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      color: #9ca3af;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+      white-space: nowrap;
+    }
+    .cw-seg-btn.active {
+      background: #fff;
+      color: #111;
+      font-weight: 600;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.12);
+    }
+
+    /* ── Section label ── */
+    .cw-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      color: #9ca3af;
+      margin: 0 0 14px;
+    }
+
+    /* ── Dots ── */
+    .cw-dots {
+      display: flex; gap: 5px; margin-bottom: 18px;
+    }
+    .cw-dots span {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #d1d5db;
+      display: block;
+    }
+
+    /* ── Topic chips 2×2 ── */
+    .cw-chips {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    .cw-chip {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 11px 16px;
       border: 1.5px solid #e5e7eb;
-      border-radius: 10px;
-      font-family: inherit; font-size: 14px; color: #111;
-      background: #fafafa; resize: vertical;
-      min-height: 120px; line-height: 1.6;
-      transition: border-color 0.12s, box-shadow 0.12s, background 0.12s;
-      outline: none; margin-bottom: 16px;
+      border-radius: 100px;
+      background: #fff;
+      font-family: inherit;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: #374151;
+      cursor: pointer;
+      transition: border-color 0.12s, background 0.12s;
+      white-space: nowrap;
+      overflow: hidden;
     }
-    .cw-textarea:focus { border-color: #22c55e; background: #fff; box-shadow: 0 0 0 3px rgba(34,197,94,0.1); }
+    .cw-chip:hover { border-color: #9ca3af; background: #fafafa; }
+    .cw-chip.selected { border-color: #111; background: #f3f4f6; color: #111; font-weight: 600; }
 
-    /* ── Email form ── */
-    .cw-email-intro { font-size: 22px; font-weight: 700; color: #111; letter-spacing: -0.015em; margin: 0 0 24px; }
+    /* ── Form ── */
     .cw-form { display: flex; flex-direction: column; gap: 14px; }
-    .cw-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .cw-field { display: flex; flex-direction: column; gap: 5px; }
-    .cw-field label { font-size: 11.5px; font-weight: 600; color: #374151; letter-spacing: 0.01em; }
+    .cw-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .cw-field { display: flex; flex-direction: column; gap: 6px; }
+    .cw-field label { font-size: 13px; font-weight: 500; color: #374151; }
     .cw-field input,
     .cw-field select,
     .cw-field textarea {
-      padding: 10px 12px;
+      padding: 11px 14px;
       border: 1.5px solid #e5e7eb;
-      border-radius: 9px;
-      font-family: inherit; font-size: 13.5px; color: #111;
+      border-radius: 12px;
+      font-family: inherit; font-size: 14px; color: #111;
       background: #fafafa;
-      transition: border-color 0.12s, box-shadow 0.12s, background 0.12s;
       outline: none; width: 100%; box-sizing: border-box;
+      transition: border-color 0.12s, box-shadow 0.12s, background 0.12s;
     }
+    .cw-field input::placeholder,
+    .cw-field textarea::placeholder { color: #c0c0c0; }
     .cw-field input:focus,
     .cw-field select:focus,
     .cw-field textarea:focus {
-      border-color: #3b82f6; background: #fff;
-      box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+      border-color: #6b7280; background: #fff;
+      box-shadow: 0 0 0 3px rgba(107,114,128,0.1);
     }
-    .cw-field textarea { resize: vertical; min-height: 100px; line-height: 1.55; }
+    .cw-field textarea { resize: none; height: 96px; line-height: 1.55; }
     .cw-field select { appearance: none; cursor: pointer; }
     .cw-select-wrap { position: relative; }
     .cw-select-wrap::after {
       content: '';
-      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
       width: 0; height: 0;
       border-left: 4px solid transparent;
       border-right: 4px solid transparent;
@@ -164,46 +167,63 @@
       pointer-events: none;
     }
 
-    /* ── Primary button ── */
-    .cw-btn {
-      width: 100%; padding: 14px 20px;
-      background: #111; color: #fff;
-      border: none; border-radius: 10px;
-      font-family: inherit; font-size: 14px; font-weight: 600;
-      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
-      transition: background 0.15s; text-decoration: none;
+    /* Email-only field (hidden in WA mode) */
+    .cw-email-field { display: none; }
+    .cw-email-field.visible { display: flex; }
+
+    /* ── Submit button ── */
+    .cw-submit {
+      width: 100%;
+      padding: 15px;
+      background: #1c1c1e;
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-top: 4px;
     }
-    .cw-btn:hover { background: #1e293b; }
-    .cw-btn--wa { background: #15803d; }
-    .cw-btn--wa:hover { background: #166534; }
-    .cw-btn svg { transition: transform 0.15s; }
-    .cw-btn:hover svg { transform: translateX(2px); }
-    .cw-consent { font-size: 11.5px; color: #9ca3af; line-height: 1.5; margin-top: 10px; }
-    .cw-consent a { color: #6b7280; text-decoration: underline; }
+    .cw-submit:hover { background: #2d2d2f; }
+
+    /* ── Footer note ── */
+    .cw-footer-note {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      font-size: 12.5px;
+      color: #9ca3af;
+      margin-top: 12px;
+    }
 
     /* ── Success ── */
+    .cw-success { display: none; text-align: center; padding: 24px 0 8px; }
     .cw-success-icon {
       width: 52px; height: 52px; border-radius: 50%;
       background: #f0fdf4; border: 2px solid #bbf7d0;
       display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 20px;
+      margin: 0 auto 18px;
     }
-    .cw-success-title { font-size: 22px; font-weight: 700; color: #111; text-align: center; margin: 0 0 8px; }
-    .cw-success-sub { font-size: 14px; color: #6b7280; text-align: center; margin: 0 0 28px; line-height: 1.6; }
+    .cw-success h3 { font-size: 20px; font-weight: 700; color: #111; margin: 0 0 8px; }
+    .cw-success p { font-size: 14px; color: #6b7280; margin: 0 0 24px; line-height: 1.55; }
     .cw-success-link {
-      display: flex; align-items: center; justify-content: center; gap: 6px;
+      display: inline-flex; align-items: center; gap: 6px;
       font-size: 13.5px; font-weight: 600; color: #3b82f6;
-      text-decoration: none; padding: 10px; border-radius: 8px;
+      text-decoration: none; padding: 8px 14px; border-radius: 8px;
       transition: background 0.1s;
     }
     .cw-success-link:hover { background: #eff6ff; }
 
     @media (max-width: 520px) {
-      .cw-card { padding: 32px 24px 28px; border-radius: 16px; }
-      .cw-row { grid-template-columns: 1fr; gap: 12px; }
+      .cw-card { padding: 16px 16px 22px; border-radius: 20px; }
+      .cw-chips { grid-template-columns: 1fr 1fr; }
+      .cw-chip { font-size: 12.5px; padding: 10px 12px; }
     }
     @media (max-width: 360px) {
-      .cw-card { padding: 28px 18px; }
+      .cw-row { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -391,158 +411,74 @@
   <main class="cw-page">
     <div class="cw-card">
 
-      <!-- STEP 1: Who -->
-      <div class="cw-step active" id="cw-step-1">
-        <p class="cw-step-label">Who would you like to speak to?</p>
-        <div class="cw-options">
-
-          <button class="cw-option" data-role="sales" onclick="pickRole('sales')">
-            <div class="cw-option-icon" style="background:#eff6ff">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
-            </div>
-            <div class="cw-option-text">
-              <span class="cw-option-title">Sales</span>
-              <span class="cw-option-sub">Insurance quotes &amp; new plans</span>
-            </div>
-            <svg class="cw-option-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
-
-          <button class="cw-option" data-role="support" onclick="pickRole('support')">
-            <div class="cw-option-icon" style="background:#f0fdf4">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            </div>
-            <div class="cw-option-text">
-              <span class="cw-option-title">Customer Support</span>
-              <span class="cw-option-sub">Help with existing policies</span>
-            </div>
-            <svg class="cw-option-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
-
-          <button class="cw-option cw-option--claims" data-role="claims" onclick="pickRole('claims')">
-            <div class="cw-option-icon" style="background:#fff1f2">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            </div>
-            <div class="cw-option-text">
-              <span class="cw-option-title">Claims</span>
-              <span class="cw-option-sub">Start or track a claim</span>
-            </div>
-            <svg class="cw-option-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
-
+      <!-- Top bar: back | WhatsApp/Email toggle | close -->
+      <div class="cw-topbar">
+        <a href="javascript:history.back()" class="cw-circle-btn" aria-label="Go back">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        </a>
+        <div class="cw-seg" role="group" aria-label="Contact method">
+          <button class="cw-seg-btn active" id="seg-wa" onclick="setMethod('wa')">WhatsApp</button>
+          <button class="cw-seg-btn" id="seg-email" onclick="setMethod('email')">Email</button>
         </div>
+        <a href="/" class="cw-circle-btn" aria-label="Close">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </a>
       </div>
 
-      <!-- STEP 2: How -->
-      <div class="cw-step" id="cw-step-2">
-        <button class="cw-back" onclick="showStep(1)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-          Back
-        </button>
-        <p class="cw-step-label">How would you like to get in touch?</p>
-        <div class="cw-options">
+      <!-- Main form (hidden on success) -->
+      <div id="cw-main">
 
-          <button class="cw-option" onclick="pickMethod('whatsapp')">
-            <div class="cw-option-icon" style="background:#f0fdf4">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-            </div>
-            <div class="cw-option-text">
-              <span class="cw-option-title">WhatsApp</span>
-              <span class="cw-option-sub">Fast, direct message to our team</span>
-            </div>
-            <svg class="cw-option-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
+        <p class="cw-label">Tell me more about</p>
+        <div class="cw-dots"><span></span><span></span><span></span></div>
 
-          <button class="cw-option" onclick="pickMethod('email')">
-            <div class="cw-option-icon" style="background:#eff6ff">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            </div>
-            <div class="cw-option-text">
-              <span class="cw-option-title">Email</span>
-              <span class="cw-option-sub">We'll reply within 1 business day</span>
-            </div>
-            <svg class="cw-option-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
-
+        <!-- Topic chips 2×2 -->
+        <div class="cw-chips" id="cw-chips" role="group" aria-label="Topic">
+          <button class="cw-chip" data-topic="Business Insurance" onclick="toggleChip(this)">🏢 Business Insurance</button>
+          <button class="cw-chip" data-topic="Personal Insurance" onclick="toggleChip(this)">🏠 Personal Insurance</button>
+          <button class="cw-chip" data-topic="Workforce Benefits" onclick="toggleChip(this)">👥 Workforce Benefits</button>
+          <button class="cw-chip" data-topic="Claims Support" onclick="toggleChip(this)">🛡️ Claims Support</button>
         </div>
-      </div>
 
-      <!-- STEP 3a: WhatsApp message -->
-      <div class="cw-step" id="cw-step-3-wa">
-        <button class="cw-back" onclick="showStep(2)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-          Back
-        </button>
-        <p class="cw-step-label">Your message</p>
-        <p class="cw-wa-intro">What would you like to discuss?</p>
-        <p class="cw-wa-sub">Write a short message — we'll open WhatsApp so you can send it directly to our team.</p>
-        <textarea class="cw-textarea" id="wa-message" placeholder="Hi, I'm looking for a quote on…"></textarea>
-        <button class="cw-btn cw-btn--wa" onclick="openWhatsApp()">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-          Open WhatsApp
-        </button>
-      </div>
-
-      <!-- STEP 3b: Email form -->
-      <div class="cw-step" id="cw-step-3-email">
-        <button class="cw-back" onclick="showStep(2)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-          Back
-        </button>
-        <p class="cw-step-label">Tell us more</p>
-        <p class="cw-email-intro">Send us an enquiry</p>
-        <form class="cw-form" id="email-form" novalidate>
+        <form class="cw-form" id="cw-form" novalidate>
           <div class="cw-row">
             <div class="cw-field">
-              <label for="ef-name">Full name <span style="color:#ef4444">*</span></label>
-              <input type="text" id="ef-name" name="name" placeholder="Jane Tan" autocomplete="name" required />
+              <label for="cf-first">First name</label>
+              <input type="text" id="cf-first" name="first" placeholder="Sarah" autocomplete="given-name" required />
             </div>
             <div class="cw-field">
-              <label for="ef-company">Company</label>
-              <input type="text" id="ef-company" name="company" placeholder="Acme Pte Ltd" autocomplete="organization" />
+              <label for="cf-last">Last name</label>
+              <input type="text" id="cf-last" name="last" placeholder="Lim" autocomplete="family-name" required />
             </div>
           </div>
-          <div class="cw-row">
-            <div class="cw-field">
-              <label for="ef-email">Work email <span style="color:#ef4444">*</span></label>
-              <input type="email" id="ef-email" name="email" placeholder="jane@company.com" autocomplete="email" required />
-            </div>
-            <div class="cw-field">
-              <label for="ef-phone">Phone number</label>
-              <input type="tel" id="ef-phone" name="phone" placeholder="+65 9123 4567" autocomplete="tel" />
-            </div>
+
+          <!-- Email field: only shown in email mode -->
+          <div class="cw-field cw-email-field" id="email-field">
+            <label for="cf-email">Work email <span style="color:#ef4444">*</span></label>
+            <input type="email" id="cf-email" name="email" placeholder="sarah@company.com" autocomplete="email" />
           </div>
+
           <div class="cw-field">
-            <label for="ef-size">Company size</label>
-            <div class="cw-select-wrap">
-              <select id="ef-size" name="size">
-                <option value="" disabled selected>Select headcount</option>
-                <option value="1-10">1–10 employees</option>
-                <option value="11-50">11–50 employees</option>
-                <option value="51-200">51–200 employees</option>
-                <option value="201-500">201–500 employees</option>
-                <option value="500+">500+ employees</option>
-              </select>
-            </div>
+            <label for="cf-details">More details</label>
+            <textarea id="cf-details" name="details" placeholder="e.g. renewing in June, fleet of 3 cars…"></textarea>
           </div>
-          <div class="cw-field">
-            <label for="ef-message">How can we help? <span style="color:#ef4444">*</span></label>
-            <textarea id="ef-message" name="message" placeholder="Describe what you're looking for — coverage type, renewal timeline, specific risks…" required></textarea>
+
+          <button type="submit" class="cw-submit" id="cw-submit-btn">Send on WhatsApp</button>
+
+          <div class="cw-footer-note" id="cw-footer-note">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            We'll reply on WhatsApp
           </div>
-          <button type="submit" class="cw-btn">
-            Send enquiry
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-          </button>
-          <p class="cw-consent">By submitting, you agree to our <a href="/privacy">Privacy Policy</a>. We'll only use your details to respond to your enquiry.</p>
         </form>
+
       </div>
 
-      <!-- SUCCESS -->
-      <div class="cw-step" id="cw-step-success">
+      <!-- Success state -->
+      <div class="cw-success" id="cw-success">
         <div class="cw-success-icon">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
-        <p class="cw-success-title">Enquiry received</p>
-        <p class="cw-success-sub">A specialist will be in touch within 1 business day. Check your inbox — including spam.</p>
+        <h3>Enquiry received</h3>
+        <p>A specialist will be in touch within 1 business day. Check your inbox — including spam.</p>
         <a href="/" class="cw-success-link">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
           Back to home
@@ -554,64 +490,85 @@
 
   <script src="../scripts/nav.js" defer></script>
   <script>
-    /* ── Replace with your actual WhatsApp number (no + or spaces) ── */
+    /* ── Replace with your actual WhatsApp number (digits only) ── */
     var WA_NUMBER = '6591234567';
 
-    var selectedRole = '';
+    var currentMethod = 'wa';
+    var selectedTopic = '';
 
-    function showStep(n, sub) {
-      document.querySelectorAll('.cw-step').forEach(function(s) { s.classList.remove('active'); });
-      var id = 'cw-step-' + n;
-      if (sub) id += '-' + sub;
-      var el = document.getElementById(id);
-      if (el) el.classList.add('active');
-    }
-
-    function pickRole(role) {
-      selectedRole = role;
-      showStep(2);
-    }
-
-    function pickMethod(method) {
-      if (method === 'whatsapp') {
-        showStep(3, 'wa');
+    function setMethod(m) {
+      currentMethod = m;
+      document.getElementById('seg-wa').classList.toggle('active', m === 'wa');
+      document.getElementById('seg-email').classList.toggle('active', m === 'email');
+      var emailField = document.getElementById('email-field');
+      emailField.classList.toggle('visible', m === 'email');
+      document.getElementById('cw-submit-btn').textContent = m === 'wa' ? 'Send on WhatsApp' : 'Send enquiry';
+      var note = document.getElementById('cw-footer-note');
+      if (m === 'wa') {
+        note.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg> We\'ll reply on WhatsApp';
       } else {
-        showStep(3, 'email');
+        note.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> We\'ll reply within 1 business day';
       }
     }
 
-    function openWhatsApp() {
-      var msg = document.getElementById('wa-message').value.trim();
-      if (!msg) {
-        var ta = document.getElementById('wa-message');
-        ta.style.borderColor = '#ef4444';
-        ta.focus();
-        ta.addEventListener('input', function() { ta.style.borderColor = ''; }, { once: true });
-        return;
+    function toggleChip(btn) {
+      var isSelected = btn.classList.contains('selected');
+      document.querySelectorAll('.cw-chip').forEach(function(c) { c.classList.remove('selected'); });
+      if (!isSelected) {
+        btn.classList.add('selected');
+        selectedTopic = btn.dataset.topic;
+      } else {
+        selectedTopic = '';
       }
-      var roleLabel = { sales: 'Sales', support: 'Customer Support', claims: 'Claims' }[selectedRole] || '';
-      var prefix = roleLabel ? '[' + roleLabel + '] ' : '';
-      var full = prefix + msg;
-      window.open('https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(full), '_blank');
     }
 
-    document.getElementById('email-form').addEventListener('submit', function(e) {
-      e.preventDefault();
-      var name = document.getElementById('ef-name').value.trim();
-      var email = document.getElementById('ef-email').value.trim();
-      var message = document.getElementById('ef-message').value.trim();
-      var invalid = false;
-      [['ef-name', name], ['ef-email', email], ['ef-message', message]].forEach(function(pair) {
-        if (!pair[1]) {
-          var el = document.getElementById(pair[0]);
-          el.style.borderColor = '#ef4444';
-          el.addEventListener('input', function() { el.style.borderColor = ''; }, { once: true });
-          invalid = true;
+    /* Pre-select chip from ?topic= URL param */
+    (function() {
+      var t = new URLSearchParams(window.location.search).get('topic');
+      if (!t) return;
+      document.querySelectorAll('.cw-chip').forEach(function(c) {
+        if (c.dataset.topic.toLowerCase() === t.toLowerCase()) {
+          c.classList.add('selected');
+          selectedTopic = c.dataset.topic;
         }
       });
-      if (invalid) return;
-      /* In production, POST form data to your backend here */
-      showStep('success');
+    })();
+
+    document.getElementById('cw-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var first = document.getElementById('cf-first').value.trim();
+      var last  = document.getElementById('cf-last').value.trim();
+      var details = document.getElementById('cf-details').value.trim();
+
+      if (!first || !last) {
+        [['cf-first', first], ['cf-last', last]].forEach(function(p) {
+          if (!p[1]) {
+            var el = document.getElementById(p[0]);
+            el.style.borderColor = '#ef4444';
+            el.addEventListener('input', function() { el.style.borderColor = ''; }, { once: true });
+          }
+        });
+        return;
+      }
+
+      if (currentMethod === 'wa') {
+        var parts = [];
+        if (selectedTopic) parts.push('Topic: ' + selectedTopic);
+        parts.push('Name: ' + first + ' ' + last);
+        if (details) parts.push('Details: ' + details);
+        window.open('https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(parts.join('\n')), '_blank');
+      } else {
+        var email = document.getElementById('cf-email').value.trim();
+        if (!email) {
+          var el = document.getElementById('cf-email');
+          el.style.borderColor = '#ef4444';
+          el.addEventListener('input', function() { el.style.borderColor = ''; }, { once: true });
+          return;
+        }
+        /* In production, POST to your backend here */
+        document.getElementById('cw-main').style.display = 'none';
+        document.getElementById('cw-success').style.display = 'block';
+      }
     });
   </script>
 </body>
