@@ -3,6 +3,12 @@ import { NextResponse } from 'next/server'
 const SB_URL    = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const OPS_EMAIL = 'operations@trade-risksol.com'
 
+// Automated senders to exclude from the conversation list
+const EXCLUDED_DOMAINS = ['noreply', 'no-reply', 'donotreply', 'mailer-daemon', 'notifications']
+const isAutomated = (email: string) =>
+  email.endsWith('@google.com') ||
+  EXCLUDED_DOMAINS.some(d => email.toLowerCase().includes(d))
+
 function sbHeaders() {
   const k = process.env.SUPABASE_SERVICE_KEY
   if (!k) throw new Error('SUPABASE_SERVICE_KEY not set')
@@ -61,7 +67,7 @@ export async function GET() {
     const fallbackBySender = new Map<string, { sent_at: string }>()
     for (const m of Array.isArray(allInbound) ? allInbound : []) {
       const addr = m.from_address?.toLowerCase().trim()
-      if (!addr || addr === OPS_EMAIL.toLowerCase() || coveredEmails.has(addr)) continue
+      if (!addr || addr === OPS_EMAIL.toLowerCase() || isAutomated(addr) || coveredEmails.has(addr)) continue
       if (!fallbackBySender.has(addr)) {
         fallbackBySender.set(addr, { sent_at: m.sent_at })
       }
@@ -73,7 +79,9 @@ export async function GET() {
       return { first: parts[0] || null, last: parts.slice(1).join(' ') || null }
     }
 
-    const fromContacts = (Array.isArray(contactRows) ? contactRows : []).map(c => {
+    const fromContacts = (Array.isArray(contactRows) ? contactRows : [])
+      .filter(c => c.email && !isAutomated(c.email))
+      .map(c => {
       const { first, last } = splitName(c.full_name ?? c.email)
       return {
         id:           c.id,
