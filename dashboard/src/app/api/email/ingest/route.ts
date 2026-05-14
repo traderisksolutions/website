@@ -106,8 +106,14 @@ export async function POST(req: NextRequest) {
           `${SB_URL}/rest/v1/email_messages?gmail_message_id=eq.${gmailMsgId}&select=id&limit=1`,
           { headers: sbHeaders('return=minimal') }
         )
+        if (!existsRes.ok) {
+          console.error('[ingest] exists check failed:', existsRes.status, await existsRes.text())
+        }
         const exists = existsRes.ok ? await existsRes.json() : []
-        if (Array.isArray(exists) && exists.length > 0) continue
+        if (Array.isArray(exists) && exists.length > 0) {
+          console.log('[ingest] skipping already-ingested message:', gmailMsgId)
+          continue
+        }
 
         const msg = await fetchGmailMessage(token, gmailMsgId)
         if (!msg) continue
@@ -146,9 +152,14 @@ export async function POST(req: NextRequest) {
             }),
           }
         )
-        const threadRows = threadUpsert.ok ? await threadUpsert.json() : null
+        if (!threadUpsert.ok) {
+          const errText = await threadUpsert.text()
+          console.error('[ingest] thread upsert failed:', threadUpsert.status, errText)
+          continue
+        }
+        const threadRows = await threadUpsert.json()
         const thread     = Array.isArray(threadRows) ? threadRows[0] : threadRows
-        if (!thread?.id) continue
+        if (!thread?.id) { console.error('[ingest] thread upsert returned no id:', JSON.stringify(threadRows)); continue }
 
         // 2. Insert email_message
         const msgInsert = await fetch(`${SB_URL}/rest/v1/email_messages`, {
@@ -167,9 +178,14 @@ export async function POST(req: NextRequest) {
             ),
           }),
         })
-        const msgRows = msgInsert.ok ? await msgInsert.json() : null
+        if (!msgInsert.ok) {
+          const errText = await msgInsert.text()
+          console.error('[ingest] message insert failed:', msgInsert.status, errText)
+          continue
+        }
+        const msgRows = await msgInsert.json()
         const dbMsg   = Array.isArray(msgRows) ? msgRows[0] : msgRows
-        if (!dbMsg?.id) continue
+        if (!dbMsg?.id) { console.error('[ingest] message insert returned no id:', JSON.stringify(msgRows)); continue }
 
         // 3. Resolve or create contact from sender email (inbound messages only)
         let contactId: string | null = null
