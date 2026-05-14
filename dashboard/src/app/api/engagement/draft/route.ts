@@ -107,31 +107,24 @@ Write only the email body. Start with "Hi ${contactName.split(' ')[0] || 'there'
     }
     if (!content) return NextResponse.json({ error: 'Gemini returned no content' }, { status: 502 })
 
-    // Upsert contact by email
+    // Upsert contact by email (ON CONFLICT email DO UPDATE so concurrent calls are safe)
     let contactId: string | null = null
     if (contactEmail) {
-      const cRes = await fetch(
-        `${SB_URL}/rest/v1/contacts?email=eq.${encodeURIComponent(contactEmail)}&select=id&limit=1`,
-        { headers: sbHeaders() }
-      )
-      const existing = cRes.ok ? await cRes.json() : []
-      if (Array.isArray(existing) && existing.length > 0) {
-        contactId = existing[0].id
-      } else {
-        // Create new contact
-        const newContact = await fetch(`${SB_URL}/rest/v1/contacts`, {
+      const upsertRes = await fetch(
+        `${SB_URL}/rest/v1/contacts?on_conflict=email`,
+        {
           method:  'POST',
-          headers: sbHeaders('return=representation'),
+          headers: sbHeaders('return=representation,resolution=merge-duplicates'),
           body: JSON.stringify({
             full_name: contactName,
             email:     contactEmail,
             source:    'email',
           }),
-        })
-        const created = newContact.ok ? await newContact.json() : null
-        const row = Array.isArray(created) ? created[0] : created
-        contactId = row?.id ?? null
-      }
+        }
+      )
+      const upserted = upsertRes.ok ? await upsertRes.json() : null
+      const row = Array.isArray(upserted) ? upserted[0] : upserted
+      contactId = row?.id ?? null
 
       // Link inbound_lead to contact if not already linked
       if (contactId && leadId) {

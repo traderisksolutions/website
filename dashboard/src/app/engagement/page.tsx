@@ -631,10 +631,20 @@ function AIDraftPanel({
     try {
       if (demoMode) { await sleep(600); setSent(true); return }
       if (draftId) {
+        // Save any edits to the draft first, then send via Gmail
         await fetch('/api/engagement/draft', {
           method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ draftId, status: 'sent', content }),
+          body: JSON.stringify({ draftId, status: 'approved', content }),
         })
+        const sendRes = await fetch('/api/email/send', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ draftId }),
+        })
+        if (!sendRes.ok) {
+          const err = await sendRes.json().catch(() => ({}))
+          setError(err.error ?? 'Failed to send email')
+          return
+        }
       }
       setSent(true)
     } finally { setLoading(null) }
