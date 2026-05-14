@@ -101,19 +101,6 @@ export async function POST(req: NextRequest) {
 
     for (const { id: gmailMsgId, threadId: gmailThreadId } of messageRefs) {
 
-        // Skip if already ingested
-        const existsRes = await fetch(
-          `${SB_URL}/rest/v1/email_messages?gmail_message_id=eq.${gmailMsgId}&select=id&limit=1`,
-          { headers: sbHeaders('return=minimal') }
-        )
-        if (!existsRes.ok) {
-          console.error('[ingest] exists check failed:', existsRes.status, await existsRes.text())
-        }
-        const exists = existsRes.ok ? await existsRes.json() : []
-        if (Array.isArray(exists) && exists.length > 0) {
-          console.log('[ingest] skipping already-ingested message:', gmailMsgId)
-          continue
-        }
 
         const msg = await fetchGmailMessage(token, gmailMsgId)
         if (!msg) continue
@@ -161,23 +148,26 @@ export async function POST(req: NextRequest) {
         const thread     = Array.isArray(threadRows) ? threadRows[0] : threadRows
         if (!thread?.id) { console.error('[ingest] thread upsert returned no id:', JSON.stringify(threadRows)); continue }
 
-        // 2. Insert email_message
-        const msgInsert = await fetch(`${SB_URL}/rest/v1/email_messages`, {
-          method:  'POST',
-          headers: sbHeaders('return=representation'),
-          body: JSON.stringify({
-            thread_id:       thread.id,
-            gmail_message_id: gmailMsgId,
-            direction,
-            from_address:    fromEmail,
-            subject,
-            body_text:       bodyText,
-            sent_at:         sentAt,
-            has_attachments: (msg.payload?.parts ?? []).some(
-              (p: { filename?: string }) => p.filename && p.filename.length > 0
-            ),
-          }),
-        })
+        // 2. Upsert email_message (ignore duplicates — RLS may block reads so we can't pre-check)
+        const msgInsert = await fetch(
+          `${SB_URL}/rest/v1/email_messages?on_conflict=gmail_message_id`,
+          {
+            method:  'POST',
+            headers: sbHeaders('return=representation,resolution=ignore-duplicates'),
+            body: JSON.stringify({
+              thread_id:       thread.id,
+              gmail_message_id: gmailMsgId,
+              direction,
+              from_address:    fromEmail,
+              subject,
+              body_text:       bodyText,
+              sent_at:         sentAt,
+              has_attachments: (msg.payload?.parts ?? []).some(
+                (p: { filename?: string }) => p.filename && p.filename.length > 0
+              ),
+            }),
+          }
+        )
         if (!msgInsert.ok) {
           const errText = await msgInsert.text()
           console.error('[ingest] message insert failed:', msgInsert.status, errText)
@@ -185,7 +175,11 @@ export async function POST(req: NextRequest) {
         }
         const msgRows = await msgInsert.json()
         const dbMsg   = Array.isArray(msgRows) ? msgRows[0] : msgRows
-        if (!dbMsg?.id) { console.error('[ingest] message insert returned no id:', JSON.stringify(msgRows)); continue }
+        // Empty response = row already existed and was ignored — skip further processing
+        if (!dbMsg?.id) {
+          console.log('[ingest] message already ingested, skipping:', gmailMsgId)
+          continue
+        }
 
         // 3. Resolve or create contact from sender email (inbound messages only)
         let contactId: string | null = null
