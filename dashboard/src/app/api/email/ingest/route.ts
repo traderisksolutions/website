@@ -86,24 +86,20 @@ export async function POST(req: NextRequest) {
   if (!historyId) return NextResponse.json({ ok: true })
 
   try {
-    console.log('[ingest] historyId from notification:', historyId)
     const token = await getAccessToken()
-    console.log('[ingest] got access token')
+    console.log('[ingest] got token, fetching recent INBOX messages')
 
-    // startHistoryId is exclusive — subtract 1 so we include the change AT historyId
-    const startId = Math.max(1, parseInt(historyId) - 1).toString()
-    const histRes = await fetch(
-      `${GMAIL_API}/history?startHistoryId=${startId}&historyTypes=messageAdded`,
+    // Skip history API (notification fires on label events, not always messageAdded).
+    // Instead fetch the 10 most recent INBOX messages and ingest any we haven't seen.
+    const listRes = await fetch(
+      `${GMAIL_API}/messages?labelIds=INBOX&maxResults=10`,
       { headers: { Authorization: `Bearer ${token}` } }
     )
-    const histData = histRes.ok ? await histRes.json() : null
-    console.log('[ingest] history status:', histRes.status, 'records:', JSON.stringify(histData).slice(0, 300))
-    const historyRecords: { messagesAdded?: { message: { id: string; threadId: string } }[] }[] =
-      histData?.history ?? []
+    const listData = listRes.ok ? await listRes.json() : null
+    const messageRefs: { id: string; threadId: string }[] = listData?.messages ?? []
+    console.log('[ingest] INBOX message count:', messageRefs.length)
 
-    for (const record of historyRecords) {
-      for (const added of record.messagesAdded ?? []) {
-        const { id: gmailMsgId, threadId: gmailThreadId } = added.message
+    for (const { id: gmailMsgId, threadId: gmailThreadId } of messageRefs) {
 
         // Skip if already ingested
         const existsRes = await fetch(
@@ -237,7 +233,6 @@ export async function POST(req: NextRequest) {
           headers: sbHeaders('return=minimal'),
           body:    JSON.stringify(participants),
         })
-      }
     }
 
     return NextResponse.json({ ok: true })
