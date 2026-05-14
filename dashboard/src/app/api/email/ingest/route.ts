@@ -196,9 +196,13 @@ export async function POST(req: NextRequest) {
               }),
             }
           )
+          if (!contactUpsert.ok) {
+            console.error('[ingest] contact upsert failed:', contactUpsert.status, await contactUpsert.text())
+          }
           const contactRows = contactUpsert.ok ? await contactUpsert.json() : null
           const contact     = Array.isArray(contactRows) ? contactRows[0] : contactRows
           contactId = contact?.id ?? null
+          console.log('[ingest] contact upsert result: contactId=', contactId, 'for email:', fromEmail)
 
           // Link thread to contact
           if (contactId) {

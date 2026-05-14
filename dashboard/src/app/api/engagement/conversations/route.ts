@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
-const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL      = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const OPS_EMAIL   = 'operations@trade-risksol.com'
 
 function sbHeaders() {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -13,46 +14,53 @@ function sbHeaders() {
 }
 
 // GET /api/engagement/conversations
-// Returns contacts who have at least one email thread, shaped as Lead objects.
-// Merged with /api/leads in the engagement page to show all inbound email conversations.
+// Returns unique inbound senders as Lead-compatible objects by reading
+// email_messages directly — no dependency on contact_id being set.
 export async function GET() {
   try {
-    // 1. Get all threads with a linked contact, most recent first
-    const threadsRes = await fetch(
-      `${SB_URL}/rest/v1/email_threads?contact_id=not.is.null&select=contact_id,last_message_at&order=last_message_at.desc`,
+    // 1. Fetch all inbound messages (from_address ≠ OPS_EMAIL), most recent first
+    const msgRes = await fetch(
+      `${SB_URL}/rest/v1/email_messages?direction=eq.inbound&select=from_address,thread_id,sent_at&order=sent_at.desc&limit=200`,
       { headers: sbHeaders() }
     )
-    const threads: { contact_id: string; last_message_at: string }[] =
-      threadsRes.ok ? await threadsRes.json() : []
-    if (!Array.isArray(threads) || threads.length === 0) return NextResponse.json([])
+    const msgs: { from_address: string | null; thread_id: string; sent_at: string }[] =
+      msgRes.ok ? await msgRes.json() : []
+    if (!Array.isArray(msgs) || msgs.length === 0) return NextResponse.json([])
 
-    // 2. One entry per contact — keep most recent thread timestamp
-    const latestByContact = new Map<string, string>()
-    for (const t of threads) {
-      if (!latestByContact.has(t.contact_id)) {
-        latestByContact.set(t.contact_id, t.last_message_at)
+    // 2. One entry per sender email — keep most recent sent_at and thread_id
+    const bySender = new Map<string, { thread_id: string; sent_at: string }>()
+    for (const m of msgs) {
+      const addr = m.from_address?.toLowerCase().trim()
+      if (!addr || addr === OPS_EMAIL.toLowerCase()) continue
+      if (!bySender.has(addr)) {
+        bySender.set(addr, { thread_id: m.thread_id, sent_at: m.sent_at })
       }
     }
-    const contactIds = Array.from(latestByContact.keys())
+    if (bySender.size === 0) return NextResponse.json([])
 
-    // 3. Fetch contact details
+    // 3. Try to enrich from contacts table (name lookup)
+    const emailList = Array.from(bySender.keys())
     const contactsRes = await fetch(
-      `${SB_URL}/rest/v1/contacts?id=in.(${contactIds.join(',')})&select=id,full_name,email,created_at`,
+      `${SB_URL}/rest/v1/contacts?email=in.(${emailList.map(e => `"${e}"`).join(',')})&select=id,email,full_name`,
       { headers: sbHeaders() }
     )
-    const contacts: { id: string; full_name: string | null; email: string | null; created_at: string }[] =
+    const contacts: { id: string; email: string; full_name: string | null }[] =
       contactsRes.ok ? await contactsRes.json() : []
+    const contactByEmail = new Map(contacts.map(c => [c.email.toLowerCase(), c]))
 
-    // 4. Shape as Lead-compatible objects so the engagement page can render them unchanged
-    const conversations = contacts.map(c => {
-      const parts = (c.full_name ?? '').trim().split(/\s+/)
+    // 4. Shape as Lead-compatible objects
+    const conversations = emailList.map(email => {
+      const { sent_at } = bySender.get(email)!
+      const contact  = contactByEmail.get(email)
+      const fullName = contact?.full_name ?? email
+      const parts    = fullName.trim().split(/\s+/)
       return {
-        id:           c.id,
-        created_at:   latestByContact.get(c.id) ?? c.created_at,
+        id:           contact?.id ?? email,
+        created_at:   sent_at,
         source:       'email' as const,
         first_name:   parts[0] || null,
         last_name:    parts.slice(1).join(' ') || null,
-        email:        c.email,
+        email,
         phone:        null,
         company:      null,
         department:   null,
