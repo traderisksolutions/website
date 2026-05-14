@@ -88,9 +88,10 @@ export async function POST(req: NextRequest) {
   try {
     const token = await getAccessToken()
 
-    // Fetch history to find new message IDs since last known historyId
+    // startHistoryId is exclusive — subtract 1 so we include the change AT historyId
+    const startId = Math.max(1, parseInt(historyId) - 1).toString()
     const histRes = await fetch(
-      `${GMAIL_API}/history?startHistoryId=${historyId}&historyTypes=messageAdded`,
+      `${GMAIL_API}/history?startHistoryId=${startId}&historyTypes=messageAdded`,
       { headers: { Authorization: `Bearer ${token}` } }
     )
     const histData = histRes.ok ? await histRes.json() : null
