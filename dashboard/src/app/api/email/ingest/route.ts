@@ -86,7 +86,9 @@ export async function POST(req: NextRequest) {
   if (!historyId) return NextResponse.json({ ok: true })
 
   try {
+    console.log('[ingest] historyId from notification:', historyId)
     const token = await getAccessToken()
+    console.log('[ingest] got access token')
 
     // startHistoryId is exclusive — subtract 1 so we include the change AT historyId
     const startId = Math.max(1, parseInt(historyId) - 1).toString()
@@ -95,6 +97,7 @@ export async function POST(req: NextRequest) {
       { headers: { Authorization: `Bearer ${token}` } }
     )
     const histData = histRes.ok ? await histRes.json() : null
+    console.log('[ingest] history status:', histRes.status, 'records:', JSON.stringify(histData).slice(0, 300))
     const historyRecords: { messagesAdded?: { message: { id: string; threadId: string } }[] }[] =
       histData?.history ?? []
 
@@ -129,6 +132,8 @@ export async function POST(req: NextRequest) {
         // Determine direction: inbound if not from our domain
         const OPS_EMAIL = 'operations@trade-risksol.com'
         const direction = fromEmail.toLowerCase() === OPS_EMAIL ? 'outbound' : 'inbound'
+
+        console.log('[ingest] processing message:', gmailMsgId, 'thread:', gmailThreadId, 'direction:', direction)
 
         // 1. Upsert email_thread
         const threadUpsert = await fetch(
@@ -237,7 +242,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true })
   } catch (e) {
-    console.error('[email/inbound]', e)
+    console.error('[ingest] FATAL ERROR:', e)
     // Always return 200 to ack the Pub/Sub message — otherwise Google retries indefinitely
     return NextResponse.json({ ok: true })
   }
