@@ -361,11 +361,25 @@ function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)) }
 // ── API helpers ───────────────────────────────────────────────────────────────
 
 async function fetchLeads(): Promise<Lead[]> {
-  const res = await fetch('/api/leads', { cache: 'no-store' })
-  if (!res.ok) return []
-  const raw = await res.json()
-  const all: Lead[] = Array.isArray(raw) ? raw : []
-  return all.filter(l => EMAIL_SOURCES.has(l.source) && ENGAGED_STATUSES.has(l.status))
+  const [leadsRes, convRes] = await Promise.all([
+    fetch('/api/leads', { cache: 'no-store' }),
+    fetch('/api/engagement/conversations', { cache: 'no-store' }),
+  ])
+
+  const raw: Lead[] = leadsRes.ok ? await leadsRes.json() : []
+  const engagedLeads = (Array.isArray(raw) ? raw : [])
+    .filter(l => EMAIL_SOURCES.has(l.source) && ENGAGED_STATUSES.has(l.status))
+
+  const convRaw: Lead[] = convRes.ok ? await convRes.json() : []
+  const conversations = Array.isArray(convRaw) ? convRaw : []
+
+  // Contacts that are already represented as a lead don't need a second entry
+  const leadEmails = new Set(engagedLeads.map(l => l.email?.toLowerCase()).filter(Boolean))
+  const newConversations = conversations.filter(
+    c => c.email && !leadEmails.has(c.email.toLowerCase())
+  )
+
+  return [...engagedLeads, ...newConversations]
 }
 
 async function patchStatus(id: string, status: string) {
