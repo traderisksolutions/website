@@ -936,15 +936,16 @@ function ThreadView({
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{fullName(lead)}</span>
-                {lead.company && <span style={{ fontSize: 12, color: '#aaa' }}>· {lead.company}</span>}
+                <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>
+                  {thread?.subject ?? lead.subject ?? lead.topic ?? fullName(lead)}
+                </span>
                 {needsReply && (
                   <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: 'rgba(245,158,11,0.10)', color: '#b45309' }}>⚡ Needs reply</span>
                 )}
               </div>
-              {(thread?.subject || lead.topic) && (
-                <p style={{ margin: '4px 0 0', fontSize: 12, color: '#888' }}>{thread?.subject ?? `Enquiry — ${lead.topic}`}</p>
-              )}
+              <p style={{ margin: '3px 0 0', fontSize: 12, color: '#888' }}>
+                {fullName(lead)}{lead.email ? ` · ${lead.email}` : ''}{lead.company ? ` · ${lead.company}` : ''}
+              </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
               <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: st.bg, color: st.color }}>{st.label}</span>
@@ -1018,12 +1019,12 @@ function LeadListItem({
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ marginBottom: 2 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: '#111' }}>{fullName(lead)}</span>
-            {lead.company && <span style={{ fontSize: 11, color: '#aaa' }}> · {lead.company}</span>}
-          </div>
-          {lead.email && <p style={{ margin: '0 0 2px', fontSize: 11, color: '#999', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.email}</p>}
-          {(lead.subject || lead.topic) && <p style={{ margin: '0 0 2px', fontSize: 11, color: '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.subject ?? lead.topic}</p>}
+          <p style={{ margin: '0 0 2px', fontSize: 12, fontWeight: 600, color: '#111', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {lead.subject ?? lead.topic ?? fullName(lead)}
+          </p>
+          <p style={{ margin: '0 0 2px', fontSize: 11, color: '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {fullName(lead)}{lead.company ? ` · ${lead.company}` : ''}
+          </p>
           <p style={{ margin: 0, fontSize: 11, color: '#bbb', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {previewText}
           </p>
