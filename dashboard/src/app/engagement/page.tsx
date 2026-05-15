@@ -332,7 +332,8 @@ function stripQuotedContent(body: string): string {
   }
   // Trim trailing blank lines
   while (clean.length && !clean[clean.length - 1].trim()) clean.pop()
-  return clean.join('\n')
+  // If nothing meaningful remains (e.g. email IS a forwarded message), return the original
+  return clean.some(l => l.trim()) ? clean.join('\n') : body
 }
 
 function fullName(l: Lead) {
