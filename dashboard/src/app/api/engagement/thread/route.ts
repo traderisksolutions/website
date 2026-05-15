@@ -12,33 +12,43 @@ function sbHeaders() {
   }
 }
 
-// GET /api/engagement/thread?email=X
-// Finds the latest email thread for a given email address,
-// returns the thread + all messages with their to/cc recipients.
+// GET /api/engagement/thread?thread_id=X  (preferred — fetches a specific thread)
+// GET /api/engagement/thread?email=X      (fallback — fetches latest thread for an email)
 export async function GET(req: NextRequest) {
   try {
-    const email = new URL(req.url).searchParams.get('email')
-    if (!email) return NextResponse.json({ thread: null, messages: [] })
+    const params   = new URL(req.url).searchParams
+    const threadId = params.get('thread_id')
+    const email    = params.get('email')
+    if (!threadId && !email) return NextResponse.json({ thread: null, messages: [] })
 
-    // 1. Find thread_ids this email appears in (as any role)
-    const partRes = await fetch(
-      `${SB_URL}/rest/v1/email_participants?email=eq.${encodeURIComponent(email)}&select=thread_id`,
-      { headers: sbHeaders() }
-    )
-    const parts: { thread_id: string }[] = partRes.ok ? await partRes.json() : []
-    if (!Array.isArray(parts) || parts.length === 0) {
-      return NextResponse.json({ thread: null, messages: [] })
+    let thread = null
+
+    if (threadId) {
+      // Direct lookup by thread UUID
+      const threadRes = await fetch(
+        `${SB_URL}/rest/v1/email_threads?id=eq.${encodeURIComponent(threadId)}&select=*&limit=1`,
+        { headers: sbHeaders() }
+      )
+      const rows = threadRes.ok ? await threadRes.json() : []
+      thread = Array.isArray(rows) && rows.length > 0 ? rows[0] : null
+    } else {
+      // Email-based lookup: find most recent thread this address appears in
+      const partRes = await fetch(
+        `${SB_URL}/rest/v1/email_participants?email=eq.${encodeURIComponent(email!)}&select=thread_id`,
+        { headers: sbHeaders() }
+      )
+      const parts: { thread_id: string }[] = partRes.ok ? await partRes.json() : []
+      if (!Array.isArray(parts) || parts.length === 0) return NextResponse.json({ thread: null, messages: [] })
+
+      const threadIds = Array.from(new Set(parts.map(p => p.thread_id)))
+      const threadRes = await fetch(
+        `${SB_URL}/rest/v1/email_threads?id=in.(${threadIds.join(',')})&order=last_message_at.desc&limit=1&select=*`,
+        { headers: sbHeaders() }
+      )
+      const threads = threadRes.ok ? await threadRes.json() : []
+      thread = Array.isArray(threads) && threads.length > 0 ? threads[0] : null
     }
 
-    const threadIds = Array.from(new Set(parts.map(p => p.thread_id)))
-
-    // 2. Get the most recent thread
-    const threadRes = await fetch(
-      `${SB_URL}/rest/v1/email_threads?id=in.(${threadIds.join(',')})&order=last_message_at.desc&limit=1&select=*`,
-      { headers: sbHeaders() }
-    )
-    const threads = threadRes.ok ? await threadRes.json() : []
-    const thread = Array.isArray(threads) && threads.length > 0 ? threads[0] : null
     if (!thread) return NextResponse.json({ thread: null, messages: [] })
 
     // 3. Fetch all messages for this thread

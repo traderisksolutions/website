@@ -12,6 +12,8 @@ type Lead = {
   department: string | null; contact_type: string | null
   topic: string | null; details: string | null; message: string | null
   page_url: string | null; status: string
+  subject?: string | null
+  thread_id?: string | null
 }
 
 type RealMsg = {
@@ -364,7 +366,7 @@ function daysSince(iso: string) {
 function matchesSearch(lead: Lead, q: string): boolean {
   if (!q) return true
   const lower = q.toLowerCase()
-  return [lead.first_name, lead.last_name, lead.email, lead.company, lead.topic, lead.department, lead.details, lead.message]
+  return [lead.first_name, lead.last_name, lead.email, lead.company, lead.topic, lead.department, lead.details, lead.message, lead.subject]
     .some(v => v?.toLowerCase().includes(lower))
 }
 
@@ -410,8 +412,12 @@ async function patchStatus(id: string, status: string) {
   })
 }
 
-async function fetchThread(email: string): Promise<{ thread: ThreadState['thread']; messages: RealMsg[] }> {
-  const res = await fetch(`/api/engagement/thread?email=${encodeURIComponent(email)}`, { cache: 'no-store' })
+async function fetchThread(threadId: string | null, email: string | null): Promise<{ thread: ThreadState['thread']; messages: RealMsg[] }> {
+  const param = threadId
+    ? `thread_id=${encodeURIComponent(threadId)}`
+    : email ? `email=${encodeURIComponent(email)}` : null
+  if (!param) return { thread: null, messages: [] }
+  const res = await fetch(`/api/engagement/thread?${param}`, { cache: 'no-store' })
   if (!res.ok) return { thread: null, messages: [] }
   const data = await res.json()
   return {
@@ -1012,11 +1018,12 @@ function LeadListItem({
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
+          <div style={{ marginBottom: 2 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: '#111' }}>{fullName(lead)}</span>
-            {lead.company && <span style={{ fontSize: 11, color: '#aaa' }}>· {lead.company}</span>}
+            {lead.company && <span style={{ fontSize: 11, color: '#aaa' }}> · {lead.company}</span>}
           </div>
-          {lead.topic && <p style={{ margin: '0 0 2px', fontSize: 11, color: '#777' }}>— {lead.topic}</p>}
+          {lead.email && <p style={{ margin: '0 0 2px', fontSize: 11, color: '#999', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.email}</p>}
+          {(lead.subject || lead.topic) && <p style={{ margin: '0 0 2px', fontSize: 11, color: '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.subject ?? lead.topic}</p>}
           <p style={{ margin: 0, fontSize: 11, color: '#bbb', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {previewText}
           </p>
@@ -1104,11 +1111,11 @@ export default function EngagementPage() {
     if (demoMode) return
     if (!selectedId) return
     const lead = leads.find(l => l.id === selectedId)
-    if (!lead?.email) return
+    if (!lead?.thread_id && !lead?.email) return
     if (threadMap[selectedId]) return
 
     setThreadMap(prev => ({ ...prev, [selectedId]: { loading: true, thread: null, messages: [], error: null } }))
-    fetchThread(lead.email).then(({ thread, messages }) => {
+    fetchThread(lead.thread_id ?? null, lead.email).then(({ thread, messages }) => {
       setThreadMap(prev => ({ ...prev, [selectedId]: { loading: false, thread, messages, error: null } }))
     }).catch(err => {
       setThreadMap(prev => ({ ...prev, [selectedId]: { loading: false, thread: null, messages: [], error: err?.message ?? 'Error loading thread' } }))
