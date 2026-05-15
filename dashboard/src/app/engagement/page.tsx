@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
-import { Search, RefreshCw, ChevronDown, Copy, Check, X, Calendar, ArrowUpDown } from 'lucide-react'
+import { Search, RefreshCw, ChevronDown, Copy, Check, X, Calendar, ArrowUpDown, SlidersHorizontal } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -521,8 +521,8 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; defaultOpen: boolean })
               </div>
             )}
           </div>
-          <div style={{ padding: '14px 14px 16px' }}>
-            <p style={{ margin: 0, fontSize: 13, color: '#333', whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{msg.body_text ?? ''}</p>
+          <div style={{ padding: '14px 14px 16px', maxHeight: 400, overflowY: 'auto' }}>
+            <p style={{ margin: 0, fontSize: 13, color: '#333', whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{stripQuotedContent(msg.body_text ?? '')}</p>
           </div>
         </div>
       )}
@@ -1031,7 +1031,6 @@ function LeadListItem({
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
           <span style={{ fontSize: 10, color: '#bbb' }}>{timeAgo(lastMsg?.sent_at ?? lead.created_at)}</span>
-          <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 20, background: st.bg, color: st.color }}>{st.label}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             {msgCount > 0 && <span style={{ fontSize: 10, color: '#bbb' }}>{msgCount} email{msgCount !== 1 ? 's' : ''}</span>}
             {needsReply && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b' }} />}
@@ -1053,11 +1052,11 @@ export default function EngagementPage() {
   const [sortKey,    setSortKey]    = useState<SortKey>('last_activity')
   const [dateFrom,   setDateFrom]   = useState('')
   const [dateTo,     setDateTo]     = useState('')
-  const [sortOpen,   setSortOpen]   = useState(false)
+  const [filterOpen, setFilterOpen] = useState(false)
   const [threadMap,  setThreadMap]  = useState<Record<string, ThreadState>>({})
   const [demoMode,   setDemoMode]   = useState(false)
 
-  const sortRef = useRef<HTMLDivElement>(null)
+  const filterRef = useRef<HTMLDivElement>(null)
 
   // Build a full threadMap from demo data
   const demoThreadMap = useMemo<Record<string, ThreadState>>(() =>
@@ -1101,11 +1100,11 @@ export default function EngagementPage() {
   }, [load]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!sortOpen) return
-    const h = (e: MouseEvent) => { if (sortRef.current && !sortRef.current.contains(e.target as Node)) setSortOpen(false) }
+    if (!filterOpen) return
+    const h = (e: MouseEvent) => { if (filterRef.current && !filterRef.current.contains(e.target as Node)) setFilterOpen(false) }
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
-  }, [sortOpen])
+  }, [filterOpen])
 
   // Load thread lazily (real mode only)
   useEffect(() => {
@@ -1215,41 +1214,43 @@ export default function EngagementPage() {
               )}
             </div>
 
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <div style={{ position: 'relative' }} ref={sortRef}>
-                <button onClick={() => setSortOpen(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#555', background: '#fff', border: '1px solid #e8e8e8', borderRadius: 7, padding: '5px 9px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                  <ArrowUpDown size={11} strokeWidth={2} style={{ color: '#aaa' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ position: 'relative' }} ref={filterRef}>
+                <button
+                  onClick={() => setFilterOpen(v => !v)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: hasFilters ? '#3b82f6' : '#555', background: '#fff', border: `1px solid ${hasFilters ? '#93c5fd' : '#e8e8e8'}`, borderRadius: 7, padding: '5px 9px', cursor: 'pointer' }}
+                >
+                  <SlidersHorizontal size={11} strokeWidth={2} />
                   {SORT_LABELS[sortKey]}
                   <ChevronDown size={10} strokeWidth={2} style={{ color: '#bbb' }} />
                 </button>
-                {sortOpen && (
-                  <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, background: '#fff', border: '1px solid #e8e8e8', borderRadius: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.10)', zIndex: 50, padding: '4px 0', minWidth: 150 }}>
+                {filterOpen && (
+                  <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, background: '#fff', border: '1px solid #e8e8e8', borderRadius: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.10)', zIndex: 50, padding: '12px', minWidth: 220 }}>
+                    <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 600, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sort</p>
                     {(Object.entries(SORT_LABELS) as [SortKey, string][]).map(([k, lbl]) => (
-                      <button key={k} onClick={() => { setSortKey(k); setSortOpen(false) }} style={{ width: '100%', textAlign: 'left', padding: '7px 12px', fontSize: 12, background: 'none', border: 'none', cursor: 'pointer', color: sortKey === k ? '#3b82f6' : '#333', fontWeight: sortKey === k ? 600 : 400 }}>
+                      <button key={k} onClick={() => setSortKey(k)} style={{ width: '100%', textAlign: 'left', padding: '6px 8px', fontSize: 12, background: sortKey === k ? 'rgba(59,130,246,0.06)' : 'none', border: 'none', borderRadius: 6, cursor: 'pointer', color: sortKey === k ? '#3b82f6' : '#333', fontWeight: sortKey === k ? 600 : 400, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <ArrowUpDown size={10} strokeWidth={2} style={{ color: sortKey === k ? '#3b82f6' : '#ccc' }} />
                         {lbl}
                       </button>
                     ))}
+                    <p style={{ margin: '12px 0 6px', fontSize: 10, fontWeight: 600, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date range</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Calendar size={10} style={{ color: '#bbb', flexShrink: 0 }} />
+                      <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+                        style={{ flex: 1, fontSize: 11, border: '1px solid #e8e8e8', borderRadius: 6, padding: '4px 6px', color: '#555', background: '#fff', outline: 'none', fontFamily: 'inherit', minWidth: 0 }} />
+                      <span style={{ fontSize: 10, color: '#bbb' }}>–</span>
+                      <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+                        style={{ flex: 1, fontSize: 11, border: '1px solid #e8e8e8', borderRadius: 6, padding: '4px 6px', color: '#555', background: '#fff', outline: 'none', fontFamily: 'inherit', minWidth: 0 }} />
+                    </div>
+                    {hasFilters && (
+                      <button onClick={() => { clearFilters(); setFilterOpen(false) }} style={{ marginTop: 10, width: '100%', fontSize: 11, color: '#ef4444', background: 'none', border: '1px solid #fecaca', borderRadius: 6, padding: '5px 0', cursor: 'pointer' }}>
+                        Clear filters
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1 }}>
-                <Calendar size={11} style={{ color: '#bbb', flexShrink: 0 }} />
-                <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-                  style={{ flex: 1, fontSize: 10, border: '1px solid #e8e8e8', borderRadius: 6, padding: '4px 5px', color: '#555', background: '#fff', outline: 'none', fontFamily: 'inherit', minWidth: 0 }} />
-                <span style={{ fontSize: 10, color: '#bbb' }}>–</span>
-                <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-                  style={{ flex: 1, fontSize: 10, border: '1px solid #e8e8e8', borderRadius: 6, padding: '4px 5px', color: '#555', background: '#fff', outline: 'none', fontFamily: 'inherit', minWidth: 0 }} />
-              </div>
             </div>
-
-            {hasFilters && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-                {search && <span style={{ fontSize: 10, background: 'rgba(59,130,246,0.08)', color: '#1d4ed8', padding: '2px 8px', borderRadius: 12, border: '1px solid rgba(59,130,246,0.15)' }}>"{search}"</span>}
-                {(dateFrom || dateTo) && <span style={{ fontSize: 10, background: 'rgba(59,130,246,0.08)', color: '#1d4ed8', padding: '2px 8px', borderRadius: 12, border: '1px solid rgba(59,130,246,0.15)' }}>{dateFrom || '…'} → {dateTo || '…'}</span>}
-                <button onClick={clearFilters} style={{ fontSize: 10, color: '#aaa', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Clear all</button>
-              </div>
-            )}
           </div>
 
           <div style={{ padding: '6px 14px', borderBottom: '1px solid #f0f0f0', flexShrink: 0, background: '#fafafa' }}>
