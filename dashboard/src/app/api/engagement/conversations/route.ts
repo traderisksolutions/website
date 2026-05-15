@@ -20,11 +20,6 @@ function sbHeaders() {
   }
 }
 
-const splitName = (full: string | null) => {
-  const parts = (full ?? '').trim().split(/\s+/)
-  return { first: parts[0] || null, last: parts.slice(1).join(' ') || null }
-}
-
 // GET /api/engagement/conversations
 // Returns one entry per email thread (not per contact).
 export async function GET() {
@@ -40,11 +35,11 @@ export async function GET() {
 
     // 2. Batch-fetch contacts for linked threads
     const contactIds = Array.from(new Set(threads.filter(t => t.contact_id).map(t => t.contact_id!)))
-    type ContactRow = { id: string; full_name: string | null; email: string | null }
+    type ContactRow = { id: string; first_name: string | null; last_name: string | null; email: string | null }
     const contactMap = new Map<string, ContactRow>()
     if (contactIds.length > 0) {
       const cRes = await fetch(
-        `${SB_URL}/rest/v1/contacts?id=in.(${contactIds.join(',')})&select=id,full_name,email`,
+        `${SB_URL}/rest/v1/contacts?id=in.(${contactIds.join(',')})&select=id,first_name,last_name,email`,
         { headers: sbHeaders() }
       )
       const rows: ContactRow[] = cRes.ok ? await cRes.json() : []
@@ -73,7 +68,6 @@ export async function GET() {
       const email   = contact?.email ?? orphanSenderMap.get(t.id) ?? null
       if (!email || isInternal(email) || isAutomated(email)) return []
 
-      const { first, last } = splitName(contact?.full_name ?? null)
       return [{
         id:           t.id,
         thread_id:    t.id,
@@ -81,8 +75,8 @@ export async function GET() {
         source:       'email' as const,
         subject:      t.subject,
         snippet:      t.snippet,
-        first_name:   first,
-        last_name:    last,
+        first_name:   contact?.first_name ?? null,
+        last_name:    contact?.last_name  ?? null,
         email,
         phone:        null,
         company:      null,

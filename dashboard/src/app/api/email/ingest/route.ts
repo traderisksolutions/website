@@ -63,6 +63,12 @@ function decodeBody(parts: { mimeType: string; body: { data?: string }; parts?: 
   return ''
 }
 
+function splitDisplayName(name: string | null): { first_name: string | null; last_name: string | null } {
+  if (!name?.trim()) return { first_name: null, last_name: null }
+  const parts = name.trim().split(/\s+/)
+  return { first_name: parts[0] || null, last_name: parts.length > 1 ? parts.slice(1).join(' ') : null }
+}
+
 function parseAddresses(raw: string): { email: string; name: string | null }[] {
   if (!raw.trim()) return []
   return raw.split(',').map(s => s.trim()).filter(Boolean).map(addr => {
@@ -173,11 +179,15 @@ async function ingestMessage(token: string, gmailMsgId: string) {
 
   console.log('[ingest]', gmailMsgId, '|', direction, '|', externalParty.email)
 
-  // 1. Upsert external contact (return=minimal avoids PGRST204; fetch id separately)
+  // 1. Upsert primary external contact using first_name/last_name (omit nulls to avoid overwriting existing names)
+  const { first_name: pFirst, last_name: pLast } = splitDisplayName(externalParty.name)
+  const primaryBody: Record<string, unknown> = { email: externalParty.email, source: 'email' }
+  if (pFirst) primaryBody.first_name = pFirst
+  if (pLast)  primaryBody.last_name  = pLast
   const contactUpsert = await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
     method:  'POST',
     headers: sbHeaders('return=minimal,resolution=merge-duplicates'),
-    body:    JSON.stringify({ full_name: externalParty.name ?? externalParty.email, email: externalParty.email, source: 'email' }),
+    body:    JSON.stringify(primaryBody),
   })
   if (!contactUpsert.ok) console.error('[ingest] contact upsert failed:', await contactUpsert.text())
   const contactFetch = await fetch(
@@ -253,6 +263,23 @@ async function ingestMessage(token: string, gmailMsgId: string) {
     headers: sbHeaders('return=minimal,resolution=ignore-duplicates'),
     body:    JSON.stringify(participants),
   })
+
+  // 5. Upsert contacts for all other external participants (To + CC) to capture their names
+  const otherExternal = allParticipants.filter(
+    p => p.email !== externalParty.email && !isInternal(p.email) && !isAutomated(p.email)
+  )
+  await Promise.allSettled(otherExternal.map(async p => {
+    const { first_name, last_name } = splitDisplayName(p.name)
+    const body: Record<string, unknown> = { email: p.email, source: 'email' }
+    if (first_name) body.first_name = first_name
+    if (last_name)  body.last_name  = last_name
+    const res = await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
+      method:  'POST',
+      headers: sbHeaders('return=minimal,resolution=merge-duplicates'),
+      body:    JSON.stringify(body),
+    })
+    if (!res.ok) console.error('[ingest] cc contact upsert failed for', p.email, ':', await res.text())
+  }))
 }
 
 // POST /api/email/ingest — receives Gmail Pub/Sub push notifications
