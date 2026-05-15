@@ -313,6 +313,26 @@ Trade Risk Solutions`,
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+// Strip quoted reply chains and forwarded message blocks, showing only new content.
+// Preserves full text in the database — only affects display.
+function stripQuotedContent(body: string): string {
+  const lines = body.split('\n')
+  const clean: string[] = []
+  for (const line of lines) {
+    const t = line.trim()
+    // Stop at Gmail/Outlook forwarded message divider
+    if (/^-{3,}\s*(Forwarded message|Original Message)\s*-{3,}/i.test(t)) break
+    // Stop at "On [date], [person] wrote:" reply header
+    if (/^On .{10,} wrote:\s*$/i.test(t)) break
+    // Skip > quoted lines
+    if (t.startsWith('>')) continue
+    clean.push(line)
+  }
+  // Trim trailing blank lines
+  while (clean.length && !clean[clean.length - 1].trim()) clean.pop()
+  return clean.join('\n')
+}
+
 function fullName(l: Lead) {
   return [l.first_name, l.last_name].filter(Boolean).join(' ') || l.email || '—'
 }
@@ -414,7 +434,7 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; defaultOpen: boolean })
   }
 
   const senderLabel = isOut ? TRS_EMAIL : (msg.from_address ?? '—')
-  const bodyLines   = (msg.body_text ?? '').split('\n')
+  const bodyLines   = stripQuotedContent(msg.body_text ?? '').split('\n')
 
   return (
     <div style={{
