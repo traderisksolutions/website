@@ -173,16 +173,19 @@ async function ingestMessage(token: string, gmailMsgId: string) {
 
   console.log('[ingest]', gmailMsgId, '|', direction, '|', externalParty.email)
 
-  // 1. Upsert external contact
+  // 1. Upsert external contact (return=minimal avoids PGRST204; fetch id separately)
   const contactUpsert = await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
     method:  'POST',
-    headers: sbHeaders('return=representation,resolution=merge-duplicates'),
+    headers: sbHeaders('return=minimal,resolution=merge-duplicates'),
     body:    JSON.stringify({ full_name: externalParty.name ?? externalParty.email, email: externalParty.email, source: 'email' }),
   })
   if (!contactUpsert.ok) console.error('[ingest] contact upsert failed:', await contactUpsert.text())
-  const contactRows = contactUpsert.ok ? await contactUpsert.json() : null
-  const contact     = Array.isArray(contactRows) ? contactRows[0] : contactRows
-  const contactId   = contact?.id ?? null
+  const contactFetch = await fetch(
+    `${SB_URL}/rest/v1/contacts?email=eq.${encodeURIComponent(externalParty.email)}&select=id&limit=1`,
+    { headers: sbHeaders() }
+  )
+  const contactFetchRows = contactFetch.ok ? await contactFetch.json() : []
+  const contactId = Array.isArray(contactFetchRows) && contactFetchRows[0]?.id ? contactFetchRows[0].id : null
 
   // 2. Upsert thread linked to external contact
   const threadUpsert = await fetch(`${SB_URL}/rest/v1/email_threads?on_conflict=gmail_thread_id`, {
