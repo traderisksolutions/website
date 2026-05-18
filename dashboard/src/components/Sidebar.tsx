@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   Mail, MessageCircle, AlertCircle,
   Users, BarChart2, Settings,
   Search, ChevronRight, ChevronDown,
   Bot, SlidersHorizontal, Table2, UsersRound,
-  Zap,
+  Zap, LogOut,
 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 type InboundCounts = { emailNew: number; waNew: number }
 type StageCounts   = { engaged: number; qualified: number; proposal: number; converted: number }
@@ -44,10 +45,12 @@ async function fetchStageCounts(): Promise<StageCounts> {
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const router   = useRouter()
   const [inbound, setInbound]     = useState<InboundCounts>({ emailNew: 0, waNew: 0 })
   const [stages,  setStages]      = useState<StageCounts>({ engaged: 0, qualified: 0, proposal: 0, converted: 0 })
   const [captureOpen, setCaptureOpen] = useState(true)
   const [engageOpen,  setEngageOpen]  = useState(true)
+  const [userEmail,   setUserEmail]   = useState<string | null>(null)
 
   useEffect(() => {
     const load = () => {
@@ -58,6 +61,15 @@ export default function Sidebar() {
     const t = setInterval(load, 30_000)
     return () => clearInterval(t)
   }, [])
+
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null))
+  }, [])
+
+  async function signOut() {
+    await createClient().auth.signOut()
+    router.push('/login')
+  }
 
   function active(href: string) {
     return pathname === href || pathname.startsWith(href + '/')
@@ -233,11 +245,26 @@ export default function Sidebar() {
 
       </nav>
 
-      {/* Footer */}
-      <div style={{ padding: '10px 16px', borderTop: '1px solid #e5e5e5', flexShrink: 0 }}>
-        <p style={{ margin: 0, fontSize: 11, color: '#bbb', letterSpacing: '-0.01em' }}>
-          © 2025 Trade Risk Solutions
-        </p>
+      {/* Footer — user + sign out */}
+      <div style={{ padding: '10px 12px', borderTop: '1px solid #e5e5e5', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{
+          width: 28, height: 28, borderRadius: '50%', background: '#f0f0f0',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#555' }}>
+            {userEmail ? userEmail[0].toUpperCase() : '?'}
+          </span>
+        </div>
+        <span style={{ fontSize: 11, color: '#888', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {userEmail ?? '—'}
+        </span>
+        <button
+          onClick={signOut}
+          title="Sign out"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', color: '#bbb', flexShrink: 0 }}
+        >
+          <LogOut size={13} strokeWidth={2} />
+        </button>
       </div>
     </aside>
   )

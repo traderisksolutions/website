@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Archivo, Libre_Baskerville } from 'next/font/google'
 import './globals.css'
-import Sidebar from '@/components/Sidebar'
+import ConditionalShell from '@/components/ConditionalShell'
 
 const archivo = Archivo({
   subsets: ['latin'],
@@ -25,13 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={`${archivo.variable} ${libreBaskerville.variable}`}>
-        <Sidebar />
-        <div
-          className="min-h-screen flex flex-col"
-          style={{ marginLeft: 'var(--sidebar-width)', background: 'var(--content-bg)' }}
-        >
-          {children}
-        </div>
+        <ConditionalShell>{children}</ConditionalShell>
       </body>
     </html>
   )
