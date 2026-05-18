@@ -453,8 +453,9 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; defaultOpen: boolean })
 
   return (
     <div style={{
-      border: '1px solid #e8e8e8', borderRadius: 10, overflow: 'hidden', background: '#fff',
-      marginLeft: isOut ? 32 : 0, marginRight: isOut ? 0 : 32,
+      border: isOut ? '1px solid #dbeafe' : '1px solid #e8e8e8',
+      borderRadius: 10, overflow: 'hidden', background: '#fff',
+      marginLeft: isOut ? 48 : 0, marginRight: isOut ? 0 : 48,
     }}>
       <div
         style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', userSelect: 'none' }}
@@ -530,8 +531,8 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; defaultOpen: boolean })
               </div>
             )}
           </div>
-          <div style={{ padding: '14px 14px 16px', maxHeight: 400, overflowY: 'auto' }}>
-            <p style={{ margin: 0, fontSize: 13, color: '#333', whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{stripQuotedContent(msg.body_text ?? '')}</p>
+          <div style={{ padding: '16px 18px 18px', maxHeight: 400, overflowY: 'auto' }}>
+            <p style={{ margin: 0, fontSize: 13, color: '#333', whiteSpace: 'pre-wrap', lineHeight: 1.75 }}>{stripQuotedContent(msg.body_text ?? '')}</p>
           </div>
         </div>
       )}
@@ -616,12 +617,13 @@ function StoredSummaryStrip({ summaries, loading }: { summaries: StoredSummary[]
 // ── AI Draft panel ────────────────────────────────────────────────────────────
 
 function AIDraftPanel({
-  lead, thread, messages, storedDraft, demoMode,
+  lead, thread, messages, storedDraft, summaryId, demoMode,
 }: {
   lead:        Lead
   thread:      ThreadState['thread']
   messages:    RealMsg[]
   storedDraft?: string | null
+  summaryId?:  string | null
   demoMode?:   boolean
 }) {
   const lastMsg    = messages.at(-1)
@@ -634,11 +636,14 @@ function AIDraftPanel({
   const [sent,             setSent]             = useState(false)
   const [rejected,         setRejected]         = useState(false)
   const [error,            setError]            = useState<string | null>(null)
+  const [savedAt,          setSavedAt]          = useState<string | null>(null)
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Reset when lead changes
   useEffect(() => {
     setDraftId(null); setContent(''); setContentFromStore(false)
-    setSent(false); setRejected(false); setError(null)
+    setSent(false); setRejected(false); setError(null); setSavedAt(null)
+    if (saveTimer.current) clearTimeout(saveTimer.current)
   }, [lead.id])
 
   // Pre-populate from stored draft when it arrives (only if content not yet set)
@@ -648,6 +653,22 @@ function AIDraftPanel({
       setContentFromStore(true)
     }
   }, [storedDraft, contentFromStore, sent, rejected])
+
+  function scheduleAutoSave(text: string) {
+    setSavedAt(null)
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(async () => {
+      if (!summaryId || demoMode) return
+      try {
+        await fetch('/api/engagement/thread-summaries', {
+          method:  'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ id: summaryId, draft_reply: text }),
+        })
+        setSavedAt(new Date().toISOString())
+      } catch { /* silent */ }
+    }, 2000)
+  }
 
   async function generate() {
     if (!lead.email && !demoMode) { setError('Lead has no email address — cannot generate draft'); return }
@@ -712,21 +733,25 @@ function AIDraftPanel({
     } finally { setLoading(null) }
   }
 
+  const draftPanelBase: React.CSSProperties = {
+    borderTop: '2px solid #93c5fd', background: '#eff6ff', flexShrink: 0,
+  }
+
   if (sent) return (
-    <div style={{ borderTop: '1px solid #e8e8e8', background: '#f9fafb', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-      <span style={{ fontSize: 12, color: '#15803d' }}>✓ Draft approved{demoMode ? ' (demo)' : ''}</span>
-      <button onClick={() => { setSent(false); setContent(''); setDraftId(null) }} style={{ fontSize: 11, color: '#aaa', background: 'none', border: 'none', cursor: 'pointer' }}>New draft</button>
+    <div style={{ ...draftPanelBase, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <span style={{ fontSize: 12, color: '#15803d' }}>✓ Reply approved{demoMode ? ' (demo)' : ''}</span>
+      <button onClick={() => { setSent(false); setContent(''); setDraftId(null) }} style={{ fontSize: 11, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer' }}>New draft</button>
     </div>
   )
 
   if (!content && !rejected) return (
-    <div style={{ borderTop: '1px solid #e8e8e8', background: '#f9fafb', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexShrink: 0 }}>
-      <span style={{ fontSize: 12, color: needsReply ? '#b45309' : '#aaa', fontStyle: needsReply ? 'normal' : 'italic', fontWeight: needsReply ? 500 : 400 }}>
+    <div style={{ ...draftPanelBase, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+      <span style={{ fontSize: 12, color: needsReply ? '#b45309' : '#6b7280', fontStyle: needsReply ? 'normal' : 'italic', fontWeight: needsReply ? 500 : 400 }}>
         {needsReply ? '⚡ Client replied — generate a response' : 'No pending draft'}
       </span>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         {error && <span style={{ fontSize: 11, color: '#ef4444' }}>{error}</span>}
-        <button onClick={generate} disabled={!!loading} style={{ fontSize: 11, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500, whiteSpace: 'nowrap' }}>
+        <button onClick={generate} disabled={!!loading} style={{ fontSize: 11, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500, whiteSpace: 'nowrap' }}>
           {loading === 'gen' ? 'Generating…' : 'Generate AI reply'}
         </button>
       </div>
@@ -734,29 +759,32 @@ function AIDraftPanel({
   )
 
   if (rejected) return (
-    <div style={{ borderTop: '1px solid #e8e8e8', background: '#f9fafb', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-      <span style={{ fontSize: 12, color: '#aaa' }}>Draft rejected</span>
-      <button onClick={() => { setRejected(false); generate() }} style={{ fontSize: 11, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer' }}>Regenerate</button>
+    <div style={{ ...draftPanelBase, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <span style={{ fontSize: 12, color: '#6b7280' }}>Draft rejected</span>
+      <button onClick={() => { setRejected(false); generate() }} style={{ fontSize: 11, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer' }}>Regenerate</button>
     </div>
   )
 
   return (
-    <div style={{ borderTop: '1px solid #e8e8e8', background: '#f9fafb', flexShrink: 0 }}>
+    <div style={draftPanelBase}>
       <div style={{ padding: '8px 16px 6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#3b82f6' }}>AI Draft</span>
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#2563eb' }}>AI Draft</span>
           {lastMsg?.sent_at && (
-            <span style={{ fontSize: 11, color: '#bbb' }}>— replying to {lastMsg.from_address} · {timeAgo(lastMsg.sent_at)}</span>
+            <span style={{ fontSize: 11, color: '#93c5fd' }}>— replying to {lastMsg.from_address} · {timeAgo(lastMsg.sent_at)}</span>
           )}
         </div>
-        <button onClick={generate} disabled={!!loading} style={{ fontSize: 11, color: '#aaa', background: 'none', border: 'none', cursor: 'pointer' }}>
-          {loading === 'gen' ? 'Regenerating…' : '↺ Regenerate'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {savedAt && <span style={{ fontSize: 10, color: '#60a5fa' }}>Autosaved {timeAgo(savedAt)}</span>}
+          <button onClick={generate} disabled={!!loading} style={{ fontSize: 11, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer' }}>
+            {loading === 'gen' ? 'Regenerating…' : '↺ Regenerate'}
+          </button>
+        </div>
       </div>
 
       {lastMsg && (
-        <div style={{ margin: '0 16px 6px', padding: '8px 10px', background: '#f0f0f0', borderRadius: 7, borderLeft: '3px solid #ddd' }}>
-          <p style={{ margin: 0, fontSize: 11, color: '#888', lineHeight: 1.5 }}>
+        <div style={{ margin: '0 16px 6px', padding: '8px 10px', background: 'rgba(219,234,254,0.5)', borderRadius: 7, borderLeft: '3px solid #93c5fd' }}>
+          <p style={{ margin: 0, fontSize: 11, color: '#6b7280', lineHeight: 1.5 }}>
             {(lastMsg.body_text ?? '').split('\n').find(l => l.trim())?.slice(0, 120)}…
           </p>
         </div>
@@ -765,16 +793,16 @@ function AIDraftPanel({
       <div style={{ padding: '0 16px 8px' }}>
         <textarea
           value={content}
-          onChange={e => setContent(e.target.value)}
+          onChange={e => { setContent(e.target.value); scheduleAutoSave(e.target.value) }}
           rows={5}
-          style={{ width: '100%', boxSizing: 'border-box', fontSize: 12, color: '#333', lineHeight: 1.65, border: '1px solid #e8e8e8', borderRadius: 8, padding: '10px 12px', resize: 'none', background: '#fff', outline: 'none', fontFamily: 'inherit' }}
+          style={{ width: '100%', boxSizing: 'border-box', fontSize: 12, color: '#1e3a5f', lineHeight: 1.65, border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 12px', resize: 'none', background: '#fff', outline: 'none', fontFamily: 'inherit' }}
         />
       </div>
       <div style={{ padding: '0 16px 12px', display: 'flex', gap: 8 }}>
-        <button onClick={handleReject} disabled={!!loading} style={{ padding: '7px 16px', fontSize: 12, fontWeight: 500, border: '1px solid #e8e8e8', borderRadius: 8, background: '#fff', color: '#666', cursor: 'pointer', opacity: loading ? 0.5 : 1 }}>
+        <button onClick={handleReject} disabled={!!loading} style={{ padding: '7px 16px', fontSize: 12, fontWeight: 500, border: '1px solid #bfdbfe', borderRadius: 8, background: '#fff', color: '#6b7280', cursor: 'pointer', opacity: loading ? 0.5 : 1 }}>
           {loading === 'reject' ? 'Rejecting…' : 'Reject'}
         </button>
-        <button onClick={handleSend} disabled={!!loading || !content.trim()} style={{ flex: 1, padding: '7px 16px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 8, background: '#111', color: '#fff', cursor: 'pointer', opacity: (loading || !content.trim()) ? 0.5 : 1 }}>
+        <button onClick={handleSend} disabled={!!loading || !content.trim()} style={{ flex: 1, padding: '7px 16px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 8, background: '#1d4ed8', color: '#fff', cursor: 'pointer', opacity: (loading || !content.trim()) ? 0.5 : 1 }}>
           {loading === 'send' ? 'Saving…' : 'Approve & Send Reply'}
         </button>
       </div>
@@ -1006,7 +1034,7 @@ function ThreadView({
           ))}
         </div>
 
-        <AIDraftPanel lead={lead} thread={thread} messages={messages} storedDraft={latestSummary?.draft_reply} demoMode={demoMode} />
+        <AIDraftPanel lead={lead} thread={thread} messages={messages} storedDraft={latestSummary?.draft_reply} summaryId={latestSummary?.id ?? null} demoMode={demoMode} />
       </div>
 
       <ContactPanel lead={lead} messages={messages} onStatus={onStatus} />

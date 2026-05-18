@@ -30,3 +30,35 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
+
+// PATCH /api/engagement/thread-summaries
+// Body: { id: string; draft_reply: string }
+// Saves an edited draft back to the summary row (auto-save from the draft panel).
+export async function PATCH(req: NextRequest) {
+  let id: string, draft_reply: string
+  try {
+    ;({ id, draft_reply } = await req.json())
+    if (!id) throw new Error('missing id')
+  } catch {
+    return NextResponse.json({ error: 'Bad request' }, { status: 400 })
+  }
+
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/thread_summaries?id=eq.${encodeURIComponent(id)}`,
+      {
+        method:  'PATCH',
+        headers: { ...sbHeaders(), Prefer: 'return=minimal' },
+        body:    JSON.stringify({ draft_reply }),
+      }
+    )
+    if (!res.ok) {
+      const text = await res.text()
+      return NextResponse.json({ error: text }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Server error'
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
+}

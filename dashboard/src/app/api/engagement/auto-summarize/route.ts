@@ -123,12 +123,13 @@ async function fetchKnowledgeDocs(threadText: string, apiKey: string): Promise<
 
     if (pdfs.length === 0) return []
 
-    // Score and pick top 2; if all scores are 0 (no keyword match), load the first 2 anyway
+    // Score by keyword overlap; load all matching docs (up to 4), fallback to first 2 if none match
     const scored = pdfs
       .map(f => ({ ...f, score: scoreFile(f.name, threadText) }))
       .sort((a, b) => b.score - a.score)
 
-    const selected = scored[0].score > 0 ? scored.slice(0, 2) : scored.slice(0, 2)
+    const matching  = scored.filter(f => f.score > 0).slice(0, 4)
+    const selected  = matching.length > 0 ? matching : scored.slice(0, 2)
 
     const results: { name: string; uri: string }[] = []
     for (const file of selected) {
@@ -195,7 +196,7 @@ export async function POST(req: NextRequest) {
     const threadText = messages.map(m => {
       const who  = m.direction === 'inbound' ? `CLIENT (${m.from_address})` : 'TRS (us)'
       const date = new Date(m.sent_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-      return `[${date}] ${who}:\n${(m.body_text ?? '').slice(0, 800)}`
+      return `[${date}] ${who}:\n${m.body_text ?? ''}`
     }).join('\n\n---\n\n')
 
     // 4. Fetch relevant knowledge docs from Drive (non-blocking if it fails)
@@ -218,8 +219,9 @@ export async function POST(req: NextRequest) {
       : 'No feedback yet — use professional, warm Singapore business English.'
 
     const docsNote = docs.length > 0
-      ? `Pricing documents attached: ${docs.map(d => d.name).join(', ')}. Reference specific figures from these documents in your draft reply where relevant. Cite the document name when you do.`
-      : 'No pricing documents matched this thread — do not fabricate figures. State that TRS will revert with specific terms within 5 business days.'
+      ? `The following knowledge documents have been attached: ${docs.map(d => d.name).join(', ')}.
+Read all attached documents. Based on the conversation topic, identify which document(s) are directly relevant to this client's enquiry. Use specific figures, coverage terms, or pricing from the relevant document(s) in your draft reply, and cite the document name when you do. If an attached document is unrelated to this enquiry, ignore it entirely. If no attached document contains the specific information needed, state that TRS will revert with specific terms within 5 business days.`
+      : 'No knowledge documents are available for this thread — do not fabricate figures or pricing. State that TRS will revert with specific terms within 5 business days.'
 
     const prompt = `You are an email assistant for Trade Risk Solutions, a Singapore insurance brokerage.
 
