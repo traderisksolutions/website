@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { Search, RefreshCw, ChevronDown, Copy, Check, X, Calendar, ArrowUpDown, SlidersHorizontal } from 'lucide-react'
+import { useAuditLog } from '@/hooks/useAuditLog'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -655,6 +656,8 @@ function AIDraftPanel({
     }
   }, [storedDraft, contentFromStore, sent, rejected])
 
+  const log = useAuditLog()
+
   function scheduleAutoSave(text: string) {
     setSavedAt(null)
     if (saveTimer.current) clearTimeout(saveTimer.current)
@@ -693,6 +696,7 @@ function AIDraftPanel({
       const data = await res.json()
       if (data.error) { setError(data.error); return }
       setDraftId(data.draftId); setContent(data.content)
+      log({ action: 'draft.generated', resource_type: 'thread', resource_id: thread?.id ?? lead.id, metadata: { contact: lead.email } })
     } catch { setError('Failed to generate draft') }
     finally { setLoading(null) }
   }
@@ -702,7 +706,6 @@ function AIDraftPanel({
     try {
       if (demoMode) { await sleep(600); setSent(true); return }
       if (draftId) {
-        // Save any edits to the draft first, then send via Gmail
         await fetch('/api/engagement/draft', {
           method: 'PATCH', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ draftId, status: 'approved', content }),
@@ -718,6 +721,7 @@ function AIDraftPanel({
         }
       }
       setSent(true)
+      log({ action: 'draft.approved', resource_type: 'thread', resource_id: thread?.id ?? lead.id, metadata: { contact: lead.email, chars: content.length } })
     } finally { setLoading(null) }
   }
 
@@ -731,6 +735,7 @@ function AIDraftPanel({
         })
       }
       setRejected(true); setContent(''); setDraftId(null)
+      log({ action: 'draft.rejected', resource_type: 'thread', resource_id: thread?.id ?? lead.id, metadata: { contact: lead.email } })
     } finally { setLoading(null) }
   }
 
@@ -970,8 +975,9 @@ function ThreadView({
   // ── Summaries state ───────────────────────────────────────────────────────────
   const [summaries,        setSummaries]        = useState<StoredSummary[]>([])
   const [summariesLoading, setSummariesLoading] = useState(false)
-  const threadId    = thread?.id ?? null
+  const threadId      = thread?.id ?? null
   const latestSummary = summaries[0] ?? null
+  const log           = useAuditLog()
 
   useEffect(() => {
     setSummaries([])
@@ -983,7 +989,8 @@ function ThreadView({
       .then(data => setSummaries(Array.isArray(data) ? data : []))
       .catch(() => setSummaries([]))
       .finally(() => setSummariesLoading(false))
-  }, [threadId, demoMode, lead.id])
+    log({ action: 'thread.viewed', resource_type: 'thread', resource_id: threadId, metadata: { contact: lead.email, subject: lead.subject } })
+  }, [threadId, demoMode, lead.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div style={{ flex: 1, display: 'flex', minWidth: 0, overflow: 'hidden' }}>
@@ -1112,6 +1119,8 @@ export default function EngagementPage() {
   const [threadMap,  setThreadMap]  = useState<Record<string, ThreadState>>({})
   const [demoMode,   setDemoMode]   = useState(false)
 
+  const log = useAuditLog()
+
   const filterRef = useRef<HTMLDivElement>(null)
 
   // Build a full threadMap from demo data
@@ -1179,8 +1188,10 @@ export default function EngagementPage() {
   }, [selectedId, leads, demoMode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleStatus(id: string, status: string) {
+    const lead = leads.find(l => l.id === id)
     setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l))
     if (!demoMode) patchStatus(id, status)
+    log({ action: 'status.changed', resource_type: 'lead', resource_id: id, metadata: { contact: lead?.email, new_status: status } })
   }
 
   function clearFilters() { setSearch(''); setDateFrom(''); setDateTo('') }

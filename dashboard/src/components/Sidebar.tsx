@@ -236,8 +236,8 @@ export default function Sidebar() {
         <p style={{ margin: '4px 0 2px', padding: '0 10px', fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#aaa' }}>
           Analytics
         </p>
-        <NavItem label="Funnel" href="/analytics" icon={BarChart2}  isActive={active('/analytics')} />
-        <NavItem label="Team"   href="/team"       icon={UsersRound} isActive={false} disabled />
+        <NavItem label="Funnel"       href="/analytics"          icon={BarChart2}  isActive={active('/analytics') && !active('/analytics/activity')} />
+        <NavItem label="Activity Log" href="/analytics/activity" icon={UsersRound} isActive={active('/analytics/activity')} />
 
         <Divider />
 
