@@ -453,12 +453,13 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; defaultOpen: boolean })
 
   return (
     <div style={{
-      border: isOut ? '1px solid #dbeafe' : '1px solid #e8e8e8',
+      border: isOut ? '1px solid #dbeafe' : '1px solid #eaeaea',
       borderRadius: 10, overflow: 'hidden', background: '#fff',
-      marginLeft: isOut ? 48 : 0, marginRight: isOut ? 0 : 48,
+      boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+      marginLeft: isOut ? 40 : 0, marginRight: isOut ? 0 : 40,
     }}>
       <div
-        style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', userSelect: 'none' }}
+        style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', userSelect: 'none' }}
         onClick={() => setOpen(v => !v)}
       >
         <div style={{
@@ -1013,7 +1014,7 @@ function ThreadView({
 
         <StoredSummaryStrip summaries={summaries} loading={summariesLoading} />
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
           {loading && <div style={{ textAlign: 'center', padding: '48px 0', fontSize: 12, color: '#bbb' }}>Loading email thread…</div>}
           {!loading && error && <div style={{ textAlign: 'center', padding: '32px 0', fontSize: 12, color: '#ef4444' }}>{error}</div>}
           {!loading && !error && messages.length === 0 && (
