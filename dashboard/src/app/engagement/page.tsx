@@ -34,6 +34,14 @@ type ThreadState = {
   error:    string | null
 }
 
+type StoredSummary = {
+  id:          string
+  summary:     string | null
+  next_action: string | null
+  draft_reply: string | null
+  created_at:  string
+}
+
 type SortKey = 'last_activity' | 'newest' | 'oldest'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -242,43 +250,6 @@ David Park`,
   },
 }
 
-const DEMO_SUMMARIES: Record<string, string> = {
-  'demo-1': `SUMMARY
-Marcus Tan (CFO, Pacific Cargo Pte Ltd) is enquiring about All Risks marine cargo insurance for ~SGD 2M/month in mixed industrial equipment and electronics across Singapore–Jakarta, Manila, and HCMC routes. Clean 3-year claims record. Consignment values SGD 80K–350K.
-
-STATUS
-Engaged — hot prospect with explicit board-meeting deadline. Client has provided full underwriting information and is actively following up.
-
-LAST MESSAGE
-Marcus is chasing a ballpark premium figure for a board presentation on Thursday.
-
-NEXT ACTION
-Send preliminary indication (est. SGD 14,000–19,000/year All Risks) today. Confirm delay coverage availability.`,
-
-  'demo-2': `SUMMARY
-Sarah Lim (Risk Manager, Synapse AI) needs Tech E&O + Cyber Liability ahead of a B2B SaaS launch next quarter. Enterprise clients are requiring SGD 5M coverage. TRS sent a proposal overview on 25 Apr with recommended coverage and estimated premium SGD 18K–24K/year. No client response since.
-
-STATUS
-Qualified — proposal sent, awaiting client confirmation on discovery call.
-
-LAST MESSAGE
-TRS sent proposal overview 10 days ago. Sarah has not responded.
-
-NEXT ACTION
-Follow up to confirm receipt and schedule a 30-minute call before their launch deadline.`,
-
-  'demo-3': `SUMMARY
-David Park (Operations Director, Meridian Fabricators) needs Workmen's Compensation (85 staff, Tuas facility) and Equipment Breakdown insurance for a new SGD 1.8M CNC machining line. Also asking about consolidating existing public liability policy. Has offered to provide MOM licence, policy schedule, and payroll records.
-
-STATUS
-Contacted — two inbound messages, no response from TRS yet. Warm lead with multiple coverage needs.
-
-LAST MESSAGE
-David following up, asking about folding in existing public liability, offers to share documentation immediately.
-
-NEXT ACTION
-Respond urgently — client is ready to engage. Request existing policy schedule and MOM licence to begin underwriting.`,
-}
 
 const DEMO_DRAFTS: Record<string, string> = {
   'demo-1': `Hi Marcus,
@@ -311,6 +282,43 @@ Please do send over your MOM licence, existing policy schedule, and payroll reco
 
 Best regards,
 Trade Risk Solutions`,
+}
+
+const DEMO_SUMMARY_ROWS: Record<string, StoredSummary[]> = {
+  'demo-1': [
+    {
+      id: 'ds1-a',
+      summary: 'Marcus Tan (CFO, Pacific Cargo Pte Ltd) is enquiring about All Risks marine cargo insurance for ~SGD 2M/month in mixed industrial equipment (60%) and electronics (40%) across Singapore–Jakarta, Manila, and HCMC routes. Consignment values SGD 80K–350K per load. Clean 3-year claims record. Client has a board meeting deadline and is actively chasing a ballpark premium.',
+      next_action: 'Send preliminary indication (est. SGD 14,000–19,000/year All Risks) by Wednesday — client needs figures for Thursday board meeting.',
+      draft_reply: DEMO_DRAFTS['demo-1'],
+      created_at: '2026-05-03T01:00:00.000Z',
+    },
+    {
+      id: 'ds1-b',
+      summary: 'Marcus Tan provided full underwriting information — mixed cargo, All Risks preferred, SGD 80K–350K per consignment, no claims history. Also asked about delay coverage.',
+      next_action: 'Prepare underwriting file and request preliminary indications from insurers.',
+      draft_reply: null,
+      created_at: '2026-04-30T03:00:00.000Z',
+    },
+  ],
+  'demo-2': [
+    {
+      id: 'ds2-a',
+      summary: 'Sarah Lim (Risk Manager, Synapse AI Pte Ltd) needs Tech E&O + Cyber Liability ahead of a B2B SaaS platform launch next quarter. Enterprise clients require SGD 5M coverage. TRS sent a proposal overview on 25 Apr with recommended coverage (SGD 18K–24K/year combined). No client response in 10 days.',
+      next_action: 'Follow up to confirm receipt and schedule a 30-minute call before Q3 launch deadline.',
+      draft_reply: DEMO_DRAFTS['demo-2'],
+      created_at: '2026-04-25T03:00:00.000Z',
+    },
+  ],
+  'demo-3': [
+    {
+      id: 'ds3-a',
+      summary: 'David Park (Operations Director, Meridian Fabricators Pte Ltd) needs Workmen\'s Compensation (85 staff, Tuas facility) and Equipment Breakdown insurance for a new SGD 1.8M CNC machining line. Also asking about consolidating existing public liability policy. Ready to provide MOM licence, policy schedule, and payroll records immediately. Two inbound messages with no TRS response yet.',
+      next_action: 'Respond urgently — request MOM licence, existing policy schedule, and payroll records to begin underwriting across all three lines.',
+      draft_reply: DEMO_DRAFTS['demo-3'],
+      created_at: '2026-05-04T02:00:00.000Z',
+    },
+  ],
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -533,37 +541,12 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; defaultOpen: boolean })
 
 // ── AI Summary strip ──────────────────────────────────────────────────────────
 
-function AISummaryStrip({ lead, messages, demoMode }: { lead: Lead; messages: RealMsg[]; demoMode?: boolean }) {
-  const [open,    setOpen]    = useState(true)
-  const [loading, setLoading] = useState(false)
-  const [summary, setSummary] = useState<string | null>(null)
-  const [error,   setError]   = useState<string | null>(null)
+function StoredSummaryStrip({ summaries, loading }: { summaries: StoredSummary[]; loading: boolean }) {
+  const [open,        setOpen]        = useState(true)
+  const [historyOpen, setHistoryOpen] = useState(false)
 
-  // Reset when lead changes
-  useEffect(() => { setSummary(null); setError(null) }, [lead.id])
-
-  async function generate() {
-    setLoading(true); setError(null)
-    try {
-      if (demoMode) {
-        await sleep(1200)
-        setSummary(DEMO_SUMMARIES[lead.id] ?? 'Demo summary not available.')
-        return
-      }
-      const res = await fetch('/api/engagement/summarize', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contactName: fullName(lead), company: lead.company,
-          topic: lead.topic, leadStatus: lead.status,
-          messages: messages.map(m => ({ direction: m.direction, from_address: m.from_address, body_text: m.body_text, sent_at: m.sent_at })),
-        }),
-      })
-      const data = await res.json()
-      if (data.error) setError(data.error)
-      else setSummary(data.summary ?? '')
-    } catch { setError('Failed to generate summary') }
-    finally { setLoading(false) }
-  }
+  const latest = summaries[0] ?? null
+  const older  = summaries.slice(1)
 
   return (
     <div style={{ borderBottom: '1px solid #e8e8e8', flexShrink: 0, background: '#fafafa' }}>
@@ -573,43 +556,55 @@ function AISummaryStrip({ lead, messages, demoMode }: { lead: Lead; messages: Re
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#3b82f6' }}>AI Analysis</span>
-          <span style={{ fontSize: 11, color: '#bbb' }}>· engagement summary</span>
+          {latest && <span style={{ fontSize: 10, color: '#bbb' }}>· {timeAgo(latest.created_at)}</span>}
+          {summaries.length > 1 && <span style={{ fontSize: 10, color: '#bbb' }}>· {summaries.length} updates</span>}
         </div>
         <span style={{ fontSize: 11, color: '#bbb' }}>{open ? '▲' : '▽'}</span>
       </button>
 
       {open && (
         <div style={{ padding: '0 16px 12px' }}>
-          {!summary && !loading && (
-            <button
-              onClick={generate}
-              style={{ fontSize: 11, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-            >
-              {messages.length > 0 ? 'Generate analysis from email thread' : 'No email thread — analysis unavailable'}
-            </button>
-          )}
           {loading && <p style={{ margin: 0, fontSize: 12, color: '#aaa' }}>Analysing thread…</p>}
-          {error   && <p style={{ margin: 0, fontSize: 12, color: '#ef4444' }}>{error}</p>}
-          {summary && (
+
+          {!loading && !latest && (
+            <p style={{ margin: 0, fontSize: 12, color: '#bbb', fontStyle: 'italic' }}>
+              Summary generates automatically after each new email.
+            </p>
+          )}
+
+          {latest && (
             <>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {summary.split('\n').map((line, i) => {
-                  if (!line.trim()) return null
-                  const isHeader = /^[A-Z ]{3,}$/.test(line.trim())
-                  return (
-                    <p key={i} style={{
-                      margin: isHeader ? '6px 0 1px' : '1px 0',
-                      fontSize: isHeader ? 11 : 12,
-                      fontWeight: isHeader ? 700 : 400,
-                      color: isHeader ? '#111' : '#555',
-                      lineHeight: 1.6,
-                    }}>{line}</p>
-                  )
-                })}
-              </div>
-              <button onClick={generate} disabled={loading} style={{ marginTop: 6, fontSize: 11, color: '#bbb', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                {loading ? 'Refreshing…' : '↺ Refresh'}
-              </button>
+              <p style={{ margin: '0 0 8px', fontSize: 12, color: '#444', lineHeight: 1.65 }}>{latest.summary}</p>
+
+              {latest.next_action && (
+                <div style={{ marginBottom: 8, padding: '7px 10px', background: 'rgba(59,130,246,0.06)', borderRadius: 7, borderLeft: '3px solid #3b82f6' }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Next action · </span>
+                  <span style={{ fontSize: 12, color: '#1d4ed8' }}>{latest.next_action}</span>
+                </div>
+              )}
+
+              {older.length > 0 && (
+                <button
+                  onClick={() => setHistoryOpen(v => !v)}
+                  style={{ fontSize: 11, color: '#bbb', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: 2 }}
+                >
+                  {historyOpen ? '▲' : '▽'} {older.length} earlier {older.length === 1 ? 'summary' : 'summaries'}
+                </button>
+              )}
+
+              {historyOpen && (
+                <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {older.map(s => (
+                    <div key={s.id} style={{ padding: '8px 10px', background: '#f0f0f0', borderRadius: 7 }}>
+                      <p style={{ margin: '0 0 4px', fontSize: 10, color: '#aaa' }}>{fmtDateTime(s.created_at)}</p>
+                      <p style={{ margin: 0, fontSize: 11, color: '#666', lineHeight: 1.55 }}>{s.summary}</p>
+                      {s.next_action && (
+                        <p style={{ margin: '4px 0 0', fontSize: 11, color: '#888', fontStyle: 'italic' }}>→ {s.next_action}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </>
           )}
         </div>
@@ -621,25 +616,38 @@ function AISummaryStrip({ lead, messages, demoMode }: { lead: Lead; messages: Re
 // ── AI Draft panel ────────────────────────────────────────────────────────────
 
 function AIDraftPanel({
-  lead, thread, messages, demoMode,
+  lead, thread, messages, storedDraft, demoMode,
 }: {
-  lead:     Lead
-  thread:   ThreadState['thread']
-  messages: RealMsg[]
-  demoMode?: boolean
+  lead:        Lead
+  thread:      ThreadState['thread']
+  messages:    RealMsg[]
+  storedDraft?: string | null
+  demoMode?:   boolean
 }) {
   const lastMsg    = messages.at(-1)
   const needsReply = lastMsg?.direction === 'inbound'
 
-  const [draftId,  setDraftId]  = useState<string | null>(null)
-  const [content,  setContent]  = useState('')
-  const [loading,  setLoading]  = useState<'gen' | 'send' | 'reject' | null>(null)
-  const [sent,     setSent]     = useState(false)
-  const [rejected, setRejected] = useState(false)
-  const [error,    setError]    = useState<string | null>(null)
+  const [draftId,          setDraftId]          = useState<string | null>(null)
+  const [content,          setContent]          = useState('')
+  const [contentFromStore, setContentFromStore] = useState(false)
+  const [loading,          setLoading]          = useState<'gen' | 'send' | 'reject' | null>(null)
+  const [sent,             setSent]             = useState(false)
+  const [rejected,         setRejected]         = useState(false)
+  const [error,            setError]            = useState<string | null>(null)
 
   // Reset when lead changes
-  useEffect(() => { setDraftId(null); setContent(''); setSent(false); setRejected(false); setError(null) }, [lead.id])
+  useEffect(() => {
+    setDraftId(null); setContent(''); setContentFromStore(false)
+    setSent(false); setRejected(false); setError(null)
+  }, [lead.id])
+
+  // Pre-populate from stored draft when it arrives (only if content not yet set)
+  useEffect(() => {
+    if (storedDraft && !contentFromStore && !sent && !rejected) {
+      setContent(storedDraft)
+      setContentFromStore(true)
+    }
+  }, [storedDraft, contentFromStore, sent, rejected])
 
   async function generate() {
     if (!lead.email && !demoMode) { setError('Lead has no email address — cannot generate draft'); return }
@@ -930,6 +938,24 @@ function ThreadView({
   const needsReply = messages.at(-1)?.direction === 'inbound'
   const initialMsg = lead.details || lead.message
 
+  // ── Summaries state ───────────────────────────────────────────────────────────
+  const [summaries,        setSummaries]        = useState<StoredSummary[]>([])
+  const [summariesLoading, setSummariesLoading] = useState(false)
+  const threadId    = thread?.id ?? null
+  const latestSummary = summaries[0] ?? null
+
+  useEffect(() => {
+    setSummaries([])
+    if (demoMode) { setSummaries(DEMO_SUMMARY_ROWS[lead.id] ?? []); return }
+    if (!threadId) return
+    setSummariesLoading(true)
+    fetch(`/api/engagement/thread-summaries?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' })
+      .then(r => r.json())
+      .then(data => setSummaries(Array.isArray(data) ? data : []))
+      .catch(() => setSummaries([]))
+      .finally(() => setSummariesLoading(false))
+  }, [threadId, demoMode, lead.id])
+
   return (
     <div style={{ flex: 1, display: 'flex', minWidth: 0, overflow: 'hidden' }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
@@ -957,7 +983,7 @@ function ThreadView({
           </div>
         </div>
 
-        <AISummaryStrip lead={lead} messages={messages} demoMode={demoMode} />
+        <StoredSummaryStrip summaries={summaries} loading={summariesLoading} />
 
         <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
           {loading && <div style={{ textAlign: 'center', padding: '48px 0', fontSize: 12, color: '#bbb' }}>Loading email thread…</div>}
@@ -980,7 +1006,7 @@ function ThreadView({
           ))}
         </div>
 
-        <AIDraftPanel lead={lead} thread={thread} messages={messages} demoMode={demoMode} />
+        <AIDraftPanel lead={lead} thread={thread} messages={messages} storedDraft={latestSummary?.draft_reply} demoMode={demoMode} />
       </div>
 
       <ContactPanel lead={lead} messages={messages} onStatus={onStatus} />
