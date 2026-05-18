@@ -280,6 +280,14 @@ async function ingestMessage(token: string, gmailMsgId: string) {
     })
     if (!res.ok) console.error('[ingest] cc contact upsert failed for', p.email, ':', await res.text())
   }))
+
+  // 6. Trigger AI summary as a separate serverless invocation (non-blocking)
+  const appUrl = process.env.APP_URL ?? `https://${process.env.VERCEL_URL}`
+  fetch(`${appUrl}/api/engagement/auto-summarize`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.CRON_SECRET ?? '' },
+    body:    JSON.stringify({ thread_id: thread.id, message_id: dbMsg.id }),
+  }).catch(e => console.error('[ingest] auto-summarize trigger failed:', e))
 }
 
 // POST /api/email/ingest — receives Gmail Pub/Sub push notifications
