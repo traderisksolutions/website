@@ -28,7 +28,7 @@ export async function GET() {
     type ThreadRow = { id: string; subject: string | null; snippet: string | null; last_message_at: string; contact_id: string | null }
     const threadRes = await fetch(
       `${SB_URL}/rest/v1/email_threads?select=id,subject,snippet,last_message_at,contact_id&order=last_message_at.desc&limit=200`,
-      { headers: sbHeaders() }
+      { headers: sbHeaders(), cache: 'no-store' }
     )
     const threads: ThreadRow[] = threadRes.ok ? await threadRes.json() : []
     if (!Array.isArray(threads) || threads.length === 0) return NextResponse.json([])
@@ -40,7 +40,7 @@ export async function GET() {
     if (contactIds.length > 0) {
       const cRes = await fetch(
         `${SB_URL}/rest/v1/contacts?id=in.(${contactIds.join(',')})&select=id,first_name,last_name,email`,
-        { headers: sbHeaders() }
+        { headers: sbHeaders(), cache: 'no-store' }
       )
       const rows: ContactRow[] = cRes.ok ? await cRes.json() : []
       for (const c of (Array.isArray(rows) ? rows : [])) contactMap.set(c.id, c)
@@ -52,7 +52,7 @@ export async function GET() {
     if (orphanIds.length > 0) {
       const msgRes = await fetch(
         `${SB_URL}/rest/v1/email_messages?thread_id=in.(${orphanIds.join(',')})&direction=eq.inbound&select=thread_id,from_address&order=sent_at.asc`,
-        { headers: sbHeaders() }
+        { headers: sbHeaders(), cache: 'no-store' }
       )
       const msgs: { thread_id: string; from_address: string | null }[] = msgRes.ok ? await msgRes.json() : []
       for (const m of (Array.isArray(msgs) ? msgs : [])) {
@@ -72,7 +72,7 @@ export async function GET() {
       if (internalOrphanIds.length > 0) {
         const partRes = await fetch(
           `${SB_URL}/rest/v1/email_participants?thread_id=in.(${internalOrphanIds.join(',')})&select=thread_id,email&order=thread_id.asc`,
-          { headers: sbHeaders() }
+          { headers: sbHeaders(), cache: 'no-store' }
         )
         const parts: { thread_id: string; email: string | null }[] = partRes.ok ? await partRes.json() : []
         for (const p of (Array.isArray(parts) ? parts : [])) {
