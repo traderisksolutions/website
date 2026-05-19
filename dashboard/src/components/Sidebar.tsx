@@ -8,7 +8,7 @@ import {
   Users, BarChart2, Settings,
   Search, ChevronRight, ChevronDown,
   Bot, SlidersHorizontal, Table2, UsersRound,
-  Zap, LogOut,
+  LogOut,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -175,14 +175,6 @@ export default function Sidebar() {
             </div>
           </>
         )}
-
-        <Divider />
-
-        {/* ── OUTREACH ── */}
-        <p style={{ margin: '4px 0 2px', padding: '0 10px', fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#aaa' }}>
-          Outreach
-        </p>
-        <NavItem label="Initial Message Agent" href="/outreach/initial" icon={Zap} isActive={active('/outreach/initial')} disabled />
 
         <Divider />
 

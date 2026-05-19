@@ -62,286 +62,19 @@ const ALL_STATUSES = ['contacted', 'engaged', 'qualified', 'proposal', 'converte
 
 const TRS_EMAIL = 'hello@trade-risksol.com'
 
-// ── Demo data ─────────────────────────────────────────────────────────────────
-
-const DEMO_LEADS: Lead[] = [
-  {
-    id: 'demo-1', created_at: '2026-04-28T01:15:00.000Z', source: 'email',
-    first_name: 'Marcus', last_name: 'Tan', email: 'marcus.tan@pacificcargo.com.sg',
-    phone: '+65 9123 4567', company: 'Pacific Cargo Pte Ltd',
-    department: 'Finance', contact_type: 'Corporate', topic: 'Marine Cargo Insurance',
-    details: null, message: 'Enquiry about marine cargo insurance for SEA shipping routes.',
-    page_url: null, status: 'engaged',
-  },
-  {
-    id: 'demo-2', created_at: '2026-04-22T03:20:00.000Z', source: 'website_form',
-    first_name: 'Sarah', last_name: 'Lim', email: 'sarah.lim@synapseai.sg',
-    phone: null, company: 'Synapse AI Pte Ltd',
-    department: 'Risk', contact_type: 'Corporate', topic: 'Product Liability / Tech E&O',
-    details: null, message: 'Need product liability insurance ahead of SaaS platform launch.',
-    page_url: null, status: 'qualified',
-  },
-  {
-    id: 'demo-3', created_at: '2026-05-02T06:00:00.000Z', source: 'email',
-    first_name: 'David', last_name: 'Park', email: 'david.park@meridianfab.com',
-    phone: '+65 9876 5432', company: 'Meridian Fabricators Pte Ltd',
-    department: 'Operations', contact_type: 'Corporate', topic: "Workmen's Compensation & Equipment",
-    details: null, message: 'Reviewing WC and equipment breakdown insurance for fabrication facility.',
-    page_url: null, status: 'contacted',
-  },
-]
-
-const DEMO_THREADS: Record<string, { thread: ThreadState['thread']; messages: RealMsg[] }> = {
-  'demo-1': {
-    thread: { id: 'th-demo-1', subject: 'Marine Cargo Insurance Enquiry', status: 'open', last_message_at: '2026-05-03T00:45:00.000Z', message_count: 4 },
-    messages: [
-      {
-        id: 'dm1-1', direction: 'inbound', from_address: 'marcus.tan@pacificcargo.com.sg',
-        subject: 'Marine Cargo Insurance Enquiry', sent_at: '2026-04-28T01:15:00.000Z',
-        to: [TRS_EMAIL], cc: [],
-        body_text: `Hi Trade Risk Solutions,
-
-I'm reaching out regarding marine cargo insurance for our shipping operations. Pacific Cargo handles approximately SGD 2M in goods monthly across Southeast Asia routes — primarily Singapore–Jakarta, Singapore–Manila, and Singapore–Ho Chi Minh City.
-
-We're currently uninsured and looking to get coverage in place before Q3. Could you advise on what policies would be suitable and what documentation you'd need from our side?
-
-Best regards,
-Marcus Tan
-CFO, Pacific Cargo Pte Ltd`,
-      },
-      {
-        id: 'dm1-2', direction: 'outbound', from_address: TRS_EMAIL,
-        subject: 'Re: Marine Cargo Insurance Enquiry', sent_at: '2026-04-28T06:32:00.000Z',
-        to: ['marcus.tan@pacificcargo.com.sg'], cc: [],
-        body_text: `Hi Marcus,
-
-Thank you for reaching out to Trade Risk Solutions. Marine cargo across the SEA routes you've mentioned is very much our core expertise.
-
-To put together an accurate quote, could you share:
-1. The nature of goods being shipped (general cargo, perishables, electronics?)
-2. Average shipment value per consignment
-3. Whether you require All Risks or Institute Cargo Clauses B/C coverage
-4. Any claims history in the past 3 years
-
-We typically turn around quotes within 3–5 business days once we have the above information.
-
-Best regards,
-Trade Risk Solutions`,
-      },
-      {
-        id: 'dm1-3', direction: 'inbound', from_address: 'marcus.tan@pacificcargo.com.sg',
-        subject: 'Re: Marine Cargo Insurance Enquiry', sent_at: '2026-04-30T02:08:00.000Z',
-        to: [TRS_EMAIL], cc: ['ops@pacificcargo.com.sg'],
-        body_text: `Hi,
-
-Thanks for the quick response. Here are the details:
-
-1. Mixed cargo — primarily industrial equipment (60%) and electronics components (40%)
-2. Average shipment value: SGD 80,000–120,000 per consignment, with occasional high-value loads up to SGD 350,000
-3. We'd prefer All Risks coverage
-4. No claims in the past 3 years — clean record
-
-Also, do you provide coverage for delays or only physical loss/damage? And what's the typical premium range for our volume?
-
-Thanks,
-Marcus`,
-      },
-      {
-        id: 'dm1-4', direction: 'inbound', from_address: 'marcus.tan@pacificcargo.com.sg',
-        subject: 'Re: Marine Cargo Insurance Enquiry', sent_at: '2026-05-03T00:45:00.000Z',
-        to: [TRS_EMAIL], cc: [],
-        body_text: `Hi,
-
-Just following up on my previous email. We have a board meeting next week where I'd like to present insurance options — it would be very helpful to have at least a ballpark figure by Thursday.
-
-Please let me know if you need anything else from our side.
-
-Marcus`,
-      },
-    ],
-  },
-  'demo-2': {
-    thread: { id: 'th-demo-2', subject: 'Product Liability Insurance for SaaS Platform', status: 'open', last_message_at: '2026-04-25T02:30:00.000Z', message_count: 3 },
-    messages: [
-      {
-        id: 'dm2-1', direction: 'inbound', from_address: 'sarah.lim@synapseai.sg',
-        subject: 'Product Liability Insurance for SaaS Platform', sent_at: '2026-04-22T03:20:00.000Z',
-        to: [TRS_EMAIL], cc: [],
-        body_text: `Hi there,
-
-I'm the Risk Manager at Synapse AI, a Singapore-based AI analytics company. We're launching a B2B SaaS platform next quarter and our enterprise clients are requiring us to carry product liability insurance — some are asking for SGD 5M in coverage.
-
-We've never purchased this type of coverage before. Could you advise whether product liability is the right policy type, or whether we'd need Tech E&O / professional indemnity instead?
-
-Best,
-Sarah Lim
-Risk Manager, Synapse AI Pte Ltd`,
-      },
-      {
-        id: 'dm2-2', direction: 'outbound', from_address: TRS_EMAIL,
-        subject: 'Re: Product Liability Insurance for SaaS Platform', sent_at: '2026-04-23T01:45:00.000Z',
-        to: ['sarah.lim@synapseai.sg'], cc: [],
-        body_text: `Hi Sarah,
-
-Great timing to be thinking about this before your launch — many SaaS companies learn the hard way.
-
-For a B2B AI analytics platform, you'd likely need a combination:
-
-- Tech E&O (Errors & Omissions): covers claims arising from software failures or incorrect outputs that cause financial loss to your clients
-- Cyber Liability: increasingly required alongside E&O for platforms handling client data
-- Product liability in the traditional sense is less relevant for pure software
-
-To properly scope the coverage, a few questions:
-1. Do your clients upload their own data to your platform?
-2. Are your AI outputs used for automated decision-making?
-3. Which jurisdictions are your clients based in?
-
-Best regards,
-Trade Risk Solutions`,
-      },
-      {
-        id: 'dm2-3', direction: 'outbound', from_address: TRS_EMAIL,
-        subject: 'Re: Product Liability Insurance for SaaS Platform — Proposal Overview', sent_at: '2026-04-25T02:30:00.000Z',
-        to: ['sarah.lim@synapseai.sg'], cc: [],
-        body_text: `Hi Sarah,
-
-Following up with our initial proposal overview based on your profile.
-
-We'd recommend:
-- Tech E&O: SGD 5M per occurrence / SGD 10M aggregate
-- Cyber Liability: SGD 2M per occurrence
-- Estimated combined premium: SGD 18,000–24,000/year
-
-We're well-positioned to negotiate favourable terms given your clean track record and Singapore-domiciled enterprise clients. Shall we schedule a 30-minute call to walk through the policy terms in detail?
-
-Best regards,
-Trade Risk Solutions`,
-      },
-    ],
-  },
-  'demo-3': {
-    thread: { id: 'th-demo-3', subject: 'Insurance for Manufacturing Operations', status: 'open', last_message_at: '2026-05-04T01:30:00.000Z', message_count: 2 },
-    messages: [
-      {
-        id: 'dm3-1', direction: 'inbound', from_address: 'david.park@meridianfab.com',
-        subject: 'Insurance for Manufacturing Operations', sent_at: '2026-05-02T06:00:00.000Z',
-        to: [TRS_EMAIL], cc: ['hr@meridianfab.com'],
-        body_text: `Hi,
-
-We run a precision fabrication facility in Tuas with about 85 staff. We're looking to review our workmen's compensation and potentially add equipment breakdown insurance — we've recently installed a new CNC machining line worth SGD 1.8M.
-
-Are these the right types of coverage to consider? And can TRS handle both under one policy, or would they be separate?
-
-David Park
-Operations Director, Meridian Fabricators Pte Ltd`,
-      },
-      {
-        id: 'dm3-2', direction: 'inbound', from_address: 'david.park@meridianfab.com',
-        subject: 'Re: Insurance for Manufacturing Operations', sent_at: '2026-05-04T01:30:00.000Z',
-        to: [TRS_EMAIL], cc: [],
-        body_text: `Hi,
-
-I sent an enquiry a few days ago and wanted to follow up. We're also wondering whether our existing public liability policy (held with a different insurer) can be folded in when we switch, or if we'd need to wait for renewal.
-
-Happy to provide any documents you need — MOM licence, existing policy schedule, payroll records, etc.
-
-David Park`,
-      },
-    ],
-  },
-}
-
-
-const DEMO_DRAFTS: Record<string, string> = {
-  'demo-1': `Hi Marcus,
-
-Thank you for your patience — and your follow-up is very timely. Based on the details you've shared (All Risks, SGD 80K–350K per consignment, mixed industrial equipment and electronics, clean 3-year claims record), we're looking at an estimated annual premium of SGD 14,000–19,000. The final figure will depend on insurer appetite and the full route schedule.
-
-I'll have a formal written indication ready by Wednesday so you're well-prepared for your board meeting on Thursday. In the meantime, if you can share any existing policy schedules or packing list samples, that would help us sharpen the numbers.
-
-Best regards,
-Trade Risk Solutions`,
-
-  'demo-2': `Hi Sarah,
-
-I hope you're well. I wanted to follow up on the coverage proposal we sent over on 25 April — has the team had a chance to review it?
-
-We believe the Tech E&O + Cyber package outlined will meet your enterprise clients' SGD 5M requirements and put you in a strong position ahead of your platform launch. If it would help, I'm happy to arrange a 30-minute call to walk through the policy terms and answer any questions before your Q3 go-live.
-
-Are you free for a quick call this week or next?
-
-Best regards,
-Trade Risk Solutions`,
-
-  'demo-3': `Hi David,
-
-Thank you for your patience — I apologise for the delay in getting back to you.
-
-To answer your questions: Workmen's Compensation and Equipment Breakdown would be separate policy types, but we can coordinate both under a single client account with aligned renewal dates for simplicity. As for your existing public liability policy, we can review it at renewal and consolidate everything with one insurer if the terms are competitive — no need to wait.
-
-Please do send over your MOM licence, existing policy schedule, and payroll records at your convenience. We'll aim to have preliminary terms across both lines ready within 5 business days of receiving those.
-
-Best regards,
-Trade Risk Solutions`,
-}
-
-const DEMO_SUMMARY_ROWS: Record<string, StoredSummary[]> = {
-  'demo-1': [
-    {
-      id: 'ds1-a',
-      summary: 'Marcus Tan (CFO, Pacific Cargo Pte Ltd) is enquiring about All Risks marine cargo insurance for ~SGD 2M/month in mixed industrial equipment (60%) and electronics (40%) across Singapore–Jakarta, Manila, and HCMC routes. Consignment values SGD 80K–350K per load. Clean 3-year claims record. Client has a board meeting deadline and is actively chasing a ballpark premium.',
-      next_action: 'Send preliminary indication (est. SGD 14,000–19,000/year All Risks) by Wednesday — client needs figures for Thursday board meeting.',
-      draft_reply: DEMO_DRAFTS['demo-1'],
-      created_at: '2026-05-03T01:00:00.000Z',
-    },
-    {
-      id: 'ds1-b',
-      summary: 'Marcus Tan provided full underwriting information — mixed cargo, All Risks preferred, SGD 80K–350K per consignment, no claims history. Also asked about delay coverage.',
-      next_action: 'Prepare underwriting file and request preliminary indications from insurers.',
-      draft_reply: null,
-      created_at: '2026-04-30T03:00:00.000Z',
-    },
-  ],
-  'demo-2': [
-    {
-      id: 'ds2-a',
-      summary: 'Sarah Lim (Risk Manager, Synapse AI Pte Ltd) needs Tech E&O + Cyber Liability ahead of a B2B SaaS platform launch next quarter. Enterprise clients require SGD 5M coverage. TRS sent a proposal overview on 25 Apr with recommended coverage (SGD 18K–24K/year combined). No client response in 10 days.',
-      next_action: 'Follow up to confirm receipt and schedule a 30-minute call before Q3 launch deadline.',
-      draft_reply: DEMO_DRAFTS['demo-2'],
-      created_at: '2026-04-25T03:00:00.000Z',
-    },
-  ],
-  'demo-3': [
-    {
-      id: 'ds3-a',
-      summary: 'David Park (Operations Director, Meridian Fabricators Pte Ltd) needs Workmen\'s Compensation (85 staff, Tuas facility) and Equipment Breakdown insurance for a new SGD 1.8M CNC machining line. Also asking about consolidating existing public liability policy. Ready to provide MOM licence, policy schedule, and payroll records immediately. Two inbound messages with no TRS response yet.',
-      next_action: 'Respond urgently — request MOM licence, existing policy schedule, and payroll records to begin underwriting across all three lines.',
-      draft_reply: DEMO_DRAFTS['demo-3'],
-      created_at: '2026-05-04T02:00:00.000Z',
-    },
-  ],
-}
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-// Strip quoted reply chains and forwarded message blocks, showing only new content.
-// Preserves full text in the database — only affects display.
 function stripQuotedContent(body: string): string {
   const lines = body.split('\n')
   const clean: string[] = []
   for (const line of lines) {
     const t = line.trim()
-    // Stop at Gmail/Outlook forwarded message divider
     if (/^-{3,}\s*(Forwarded message|Original Message)\s*-{3,}/i.test(t)) break
-    // Stop at "On [date], [person] wrote:" reply header
     if (/^On .{10,} wrote:\s*$/i.test(t)) break
-    // Skip > quoted lines
     if (t.startsWith('>')) continue
     clean.push(line)
   }
-  // Trim trailing blank lines
   while (clean.length && !clean[clean.length - 1].trim()) clean.pop()
-  // If nothing meaningful remains (e.g. email IS a forwarded message), return the original
   return clean.some(l => l.trim()) ? clean.join('\n') : body
 }
 
@@ -388,8 +121,6 @@ function inDateRange(iso: string, from: string, to: string): boolean {
   return d >= lo && d <= hi
 }
 
-function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)) }
-
 // ── API helpers ───────────────────────────────────────────────────────────────
 
 async function fetchLeads(): Promise<Lead[]> {
@@ -405,7 +136,6 @@ async function fetchLeads(): Promise<Lead[]> {
   const convRaw: Lead[] = convRes.ok ? await convRes.json() : []
   const conversations = Array.isArray(convRaw) ? convRaw : []
 
-  // Contacts that are already represented as a lead don't need a second entry
   const leadEmails = new Set(engagedLeads.map(l => l.email?.toLowerCase()).filter(Boolean))
   const newConversations = conversations.filter(
     c => c.email && !leadEmails.has(c.email.toLowerCase())
@@ -619,14 +349,13 @@ function StoredSummaryStrip({ summaries, loading }: { summaries: StoredSummary[]
 // ── AI Draft panel ────────────────────────────────────────────────────────────
 
 function AIDraftPanel({
-  lead, thread, messages, storedDraft, summaryId, demoMode,
+  lead, thread, messages, storedDraft, summaryId,
 }: {
   lead:        Lead
   thread:      ThreadState['thread']
   messages:    RealMsg[]
   storedDraft?: string | null
   summaryId?:  string | null
-  demoMode?:   boolean
 }) {
   const lastMsg    = messages.at(-1)
   const needsReply = lastMsg?.direction === 'inbound'
@@ -641,14 +370,12 @@ function AIDraftPanel({
   const [savedAt,          setSavedAt]          = useState<string | null>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Reset when lead changes
   useEffect(() => {
     setDraftId(null); setContent(''); setContentFromStore(false)
     setSent(false); setRejected(false); setError(null); setSavedAt(null)
     if (saveTimer.current) clearTimeout(saveTimer.current)
   }, [lead.id])
 
-  // Pre-populate from stored draft when it arrives (only if content not yet set)
   useEffect(() => {
     if (storedDraft && !contentFromStore && !sent && !rejected) {
       setContent(storedDraft)
@@ -662,7 +389,7 @@ function AIDraftPanel({
     setSavedAt(null)
     if (saveTimer.current) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(async () => {
-      if (!summaryId || demoMode) return
+      if (!summaryId) return
       try {
         await fetch('/api/engagement/thread-summaries', {
           method:  'PATCH',
@@ -675,15 +402,9 @@ function AIDraftPanel({
   }
 
   async function generate() {
-    if (!lead.email && !demoMode) { setError('Lead has no email address — cannot generate draft'); return }
+    if (!lead.email) { setError('Lead has no email address — cannot generate draft'); return }
     setLoading('gen'); setError(null)
     try {
-      if (demoMode) {
-        await sleep(1500)
-        setDraftId('demo-draft-' + lead.id)
-        setContent(DEMO_DRAFTS[lead.id] ?? 'Demo draft not available.')
-        return
-      }
       const res = await fetch('/api/engagement/draft', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -704,7 +425,6 @@ function AIDraftPanel({
   async function handleSend() {
     setLoading('send')
     try {
-      if (demoMode) { await sleep(600); setSent(true); return }
       if (draftId) {
         await fetch('/api/engagement/draft', {
           method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -728,7 +448,7 @@ function AIDraftPanel({
   async function handleReject() {
     setLoading('reject')
     try {
-      if (!demoMode && draftId) {
+      if (draftId) {
         await fetch('/api/engagement/draft', {
           method: 'PATCH', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ draftId, status: 'rejected', rejection_note: 'Rejected by user' }),
@@ -745,7 +465,7 @@ function AIDraftPanel({
 
   if (sent) return (
     <div style={{ ...draftPanelBase, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-      <span style={{ fontSize: 12, color: '#15803d' }}>✓ Reply approved{demoMode ? ' (demo)' : ''}</span>
+      <span style={{ fontSize: 12, color: '#15803d' }}>✓ Reply approved</span>
       <button onClick={() => { setSent(false); setContent(''); setDraftId(null) }} style={{ fontSize: 11, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer' }}>New draft</button>
     </div>
   )
@@ -960,19 +680,17 @@ function ContactPanel({
 // ── Thread view ───────────────────────────────────────────────────────────────
 
 function ThreadView({
-  lead, threadState, onStatus, demoMode,
+  lead, threadState, onStatus,
 }: {
   lead:        Lead
   threadState: ThreadState
   onStatus:    (id: string, s: string) => void
-  demoMode:    boolean
 }) {
   const { thread, messages, loading, error } = threadState
   const st         = STATUS_MAP[lead.status] ?? STATUS_MAP.contacted
   const needsReply = messages.at(-1)?.direction === 'inbound'
   const initialMsg = lead.details || lead.message
 
-  // ── Summaries state ───────────────────────────────────────────────────────────
   const [summaries,        setSummaries]        = useState<StoredSummary[]>([])
   const [summariesLoading, setSummariesLoading] = useState(false)
   const threadId      = thread?.id ?? null
@@ -981,7 +699,6 @@ function ThreadView({
 
   useEffect(() => {
     setSummaries([])
-    if (demoMode) { setSummaries(DEMO_SUMMARY_ROWS[lead.id] ?? []); return }
     if (!threadId) return
     setSummariesLoading(true)
     fetch(`/api/engagement/thread-summaries?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' })
@@ -990,7 +707,7 @@ function ThreadView({
       .catch(() => setSummaries([]))
       .finally(() => setSummariesLoading(false))
     log({ action: 'thread.viewed', resource_type: 'thread', resource_id: threadId, metadata: { contact: lead.email, subject: lead.subject } })
-  }, [threadId, demoMode, lead.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [threadId, lead.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div style={{ flex: 1, display: 'flex', minWidth: 0, overflow: 'hidden' }}>
@@ -1042,7 +759,7 @@ function ThreadView({
           ))}
         </div>
 
-        <AIDraftPanel lead={lead} thread={thread} messages={messages} storedDraft={latestSummary?.draft_reply} summaryId={latestSummary?.id ?? null} demoMode={demoMode} />
+        <AIDraftPanel lead={lead} thread={thread} messages={messages} storedDraft={latestSummary?.draft_reply} summaryId={latestSummary?.id ?? null} />
       </div>
 
       <ContactPanel lead={lead} messages={messages} onStatus={onStatus} />
@@ -1117,37 +834,10 @@ export default function EngagementPage() {
   const [dateTo,     setDateTo]     = useState('')
   const [filterOpen, setFilterOpen] = useState(false)
   const [threadMap,  setThreadMap]  = useState<Record<string, ThreadState>>({})
-  const [demoMode,   setDemoMode]   = useState(false)
 
   const log = useAuditLog()
 
   const filterRef = useRef<HTMLDivElement>(null)
-
-  // Build a full threadMap from demo data
-  const demoThreadMap = useMemo<Record<string, ThreadState>>(() =>
-    Object.fromEntries(
-      DEMO_LEADS.map(l => [
-        l.id,
-        { loading: false, thread: DEMO_THREADS[l.id]?.thread ?? null, messages: DEMO_THREADS[l.id]?.messages ?? [], error: null },
-      ])
-    ), [])
-
-  function enableDemo() {
-    setDemoMode(true)
-    setLeads(DEMO_LEADS)
-    setThreadMap(demoThreadMap)
-    setSelectedId(DEMO_LEADS[0].id)
-    setLoading(false)
-  }
-
-  function disableDemo() {
-    setDemoMode(false)
-    setLeads([])
-    setThreadMap({})
-    setSelectedId(null)
-    setLoading(true)
-    load()
-  }
 
   const load = useCallback(async (spinner = false) => {
     if (spinner) setRefreshing(true)
@@ -1160,9 +850,9 @@ export default function EngagementPage() {
 
   useEffect(() => {
     load()
-    const t = setInterval(() => { if (!demoMode) load() }, 30_000)
+    const t = setInterval(() => load(), 30_000)
     return () => clearInterval(t)
-  }, [load]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [load])
 
   useEffect(() => {
     if (!filterOpen) return
@@ -1171,9 +861,7 @@ export default function EngagementPage() {
     return () => document.removeEventListener('mousedown', h)
   }, [filterOpen])
 
-  // Load thread lazily (real mode only)
   useEffect(() => {
-    if (demoMode) return
     if (!selectedId) return
     const lead = leads.find(l => l.id === selectedId)
     if (!lead?.thread_id && !lead?.email) return
@@ -1185,12 +873,12 @@ export default function EngagementPage() {
     }).catch(err => {
       setThreadMap(prev => ({ ...prev, [selectedId]: { loading: false, thread: null, messages: [], error: err?.message ?? 'Error loading thread' } }))
     })
-  }, [selectedId, leads, demoMode]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedId, leads]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleStatus(id: string, status: string) {
     const lead = leads.find(l => l.id === id)
     setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l))
-    if (!demoMode) patchStatus(id, status)
+    patchStatus(id, status)
     log({ action: 'status.changed', resource_type: 'lead', resource_id: id, metadata: { contact: lead?.email, new_status: status } })
   }
 
@@ -1223,20 +911,6 @@ export default function EngagementPage() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', flexDirection: 'column' }}>
-
-      {/* Demo banner */}
-      {demoMode && (
-        <div style={{ background: '#fef9c3', borderBottom: '1px solid #fde047', padding: '6px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Demo Mode</span>
-            <span style={{ fontSize: 12, color: '#78350f' }}>Showing 3 sample conversations — no real data is read or written</span>
-          </div>
-          <button onClick={disableDemo} style={{ fontSize: 11, fontWeight: 600, color: '#92400e', background: 'rgba(0,0,0,0.06)', border: 'none', borderRadius: 6, padding: '3px 10px', cursor: 'pointer' }}>
-            Exit Demo
-          </button>
-        </div>
-      )}
-
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
         {/* ── Left panel ── */}
@@ -1251,20 +925,9 @@ export default function EngagementPage() {
                   </span>
                 )}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                {!demoMode && (
-                  <button
-                    onClick={enableDemo}
-                    title="Load sample data to preview the full UI flow"
-                    style={{ fontSize: 10, fontWeight: 600, padding: '3px 9px', borderRadius: 6, border: '1px solid #fde047', background: '#fef9c3', color: '#92400e', cursor: 'pointer', letterSpacing: '0.02em' }}
-                  >
-                    Demo
-                  </button>
-                )}
-                <button onClick={() => !demoMode && load(true)} style={{ background: 'none', border: 'none', cursor: demoMode ? 'default' : 'pointer', color: '#bbb', display: 'flex', opacity: demoMode ? 0.3 : 1 }}>
-                  <RefreshCw size={13} strokeWidth={2} style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }} />
-                </button>
-              </div>
+              <button onClick={() => load(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#bbb', display: 'flex' }}>
+                <RefreshCw size={13} strokeWidth={2} style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }} />
+              </button>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f4f4f5', borderRadius: 8, padding: '0 10px', height: 34, marginBottom: 8 }}>
@@ -1322,7 +985,7 @@ export default function EngagementPage() {
 
           <div style={{ padding: '6px 14px', borderBottom: '1px solid #f0f0f0', flexShrink: 0, background: '#fafafa' }}>
             <span style={{ fontSize: 11, color: '#aaa' }}>
-              {loading ? 'Loading…' : `${visible.length} conversation${visible.length !== 1 ? 's' : ''}${hasFilters ? ' matching' : ''}${demoMode ? ' · sample data' : ''}`}
+              {loading ? 'Loading…' : `${visible.length} conversation${visible.length !== 1 ? 's' : ''}${hasFilters ? ' matching' : ''}`}
             </span>
           </div>
 
@@ -1334,10 +997,9 @@ export default function EngagementPage() {
                 <p style={{ fontSize: 12, color: '#bbb', marginBottom: 8 }}>
                   {hasFilters ? 'No conversations match your search.' : 'No engaged conversations yet.'}
                 </p>
-                {hasFilters
-                  ? <button onClick={clearFilters} style={{ fontSize: 11, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer' }}>Clear filters</button>
-                  : <button onClick={enableDemo} style={{ fontSize: 11, color: '#92400e', background: '#fef9c3', border: '1px solid #fde047', borderRadius: 6, padding: '5px 12px', cursor: 'pointer', fontWeight: 600 }}>Try Demo Mode</button>
-                }
+                {hasFilters && (
+                  <button onClick={clearFilters} style={{ fontSize: 11, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer' }}>Clear filters</button>
+                )}
               </div>
             ) : (
               visible.map(lead => (
@@ -1359,7 +1021,6 @@ export default function EngagementPage() {
             lead={selectedLead}
             threadState={selectedThread ?? { loading: !selectedLead.email, thread: null, messages: [], error: selectedLead.email ? null : 'No email address on this lead' }}
             onStatus={handleStatus}
-            demoMode={demoMode}
           />
         ) : (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#bbb', gap: 8 }}>
