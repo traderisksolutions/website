@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   Mail, MessageCircle, AlertCircle,
-  Users, BarChart2, Settings,
+  Users, BarChart2,
   Search, ChevronRight, ChevronDown,
   Bot, SlidersHorizontal, Table2, UsersRound,
   LogOut, BookOpen,
@@ -48,8 +48,9 @@ export default function Sidebar() {
   const router   = useRouter()
   const [inbound, setInbound]     = useState<InboundCounts>({ emailNew: 0, waNew: 0 })
   const [stages,  setStages]      = useState<StageCounts>({ engaged: 0, qualified: 0, proposal: 0, converted: 0 })
-  const [captureOpen, setCaptureOpen] = useState(true)
-  const [engageOpen,  setEngageOpen]  = useState(true)
+  const [captureOpen,  setCaptureOpen]  = useState(true)
+  const [outboundOpen, setOutboundOpen] = useState(true)
+  const [engageOpen,   setEngageOpen]   = useState(true)
   const [userEmail,   setUserEmail]   = useState<string | null>(null)
 
   useEffect(() => {
@@ -131,7 +132,12 @@ export default function Sidebar() {
       {/* Nav */}
       <nav style={{ flex: 1, padding: '4px 8px 8px' }}>
 
-        {/* ── CAPTURE ── */}
+        {/* ── OVERVIEW ── */}
+        <NavItem label="Overview" href="/documentation" icon={BookOpen} isActive={active('/documentation')} />
+
+        <Divider />
+
+        {/* ── INBOUND LEADS ── */}
         <button
           onClick={() => setCaptureOpen(o => !o)}
           style={{
@@ -142,7 +148,7 @@ export default function Sidebar() {
           }}
         >
           <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#aaa', flex: 1 }}>
-            Capture
+            Inbound Leads
           </span>
           {(inbound.emailNew + inbound.waNew) > 0 && (
             <Badge count={inbound.emailNew + inbound.waNew} />
@@ -155,24 +161,37 @@ export default function Sidebar() {
 
         {captureOpen && (
           <>
-            {/* Inbound sub-label */}
-            <p style={{ margin: '4px 0 2px', padding: '0 10px', fontSize: 11, color: '#bbb', letterSpacing: '0.03em' }}>
-              Inbound
-            </p>
-            <div style={{ paddingLeft: 8 }}>
-              <NavItem label="Email"    href="/inbound/email"    icon={Mail}          badge={inbound.emailNew} isActive={active('/inbound/email')} />
-              <NavItem label="WhatsApp" href="/inbound/whatsapp" icon={MessageCircle} badge={inbound.waNew}    isActive={active('/inbound/whatsapp')} />
-            </div>
+            <NavItem label="Email"    href="/inbound/email"    icon={Mail}          badge={inbound.emailNew} isActive={active('/inbound/email')} />
+            <NavItem label="WhatsApp" href="/inbound/whatsapp" icon={MessageCircle} badge={inbound.waNew}    isActive={active('/inbound/whatsapp')} />
+          </>
+        )}
 
-            {/* Outbound sub-label */}
-            <p style={{ margin: '8px 0 2px', padding: '0 10px', fontSize: 11, color: '#bbb', letterSpacing: '0.03em' }}>
-              Outbound
-            </p>
-            <div style={{ paddingLeft: 8 }}>
-              <NavItem label="AI Agent"      href="/outbound/agent"  icon={Bot}               isActive={active('/outbound/agent')} />
-              <NavItem label="Manual Search" href="/outbound/search" icon={SlidersHorizontal} isActive={active('/outbound/search')} />
-              <NavItem label="Lead Database" href="/outbound/leads"  icon={Table2}            isActive={active('/outbound/leads')} />
-            </div>
+        <Divider />
+
+        {/* ── OUTBOUND LEADS ── */}
+        <button
+          onClick={() => setOutboundOpen(o => !o)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 9,
+            padding: '0 10px', height: 32, borderRadius: 6, width: '100%',
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            textAlign: 'left',
+          }}
+        >
+          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#aaa', flex: 1 }}>
+            Outbound Leads
+          </span>
+          {outboundOpen
+            ? <ChevronDown  size={12} strokeWidth={2} style={{ color: '#ccc' }} />
+            : <ChevronRight size={12} strokeWidth={2} style={{ color: '#ccc' }} />
+          }
+        </button>
+
+        {outboundOpen && (
+          <>
+            <NavItem label="AI Agent"      href="/outbound/agent"  icon={Bot}               isActive={active('/outbound/agent')} />
+            <NavItem label="Manual Search" href="/outbound/search" icon={SlidersHorizontal} isActive={active('/outbound/search')} />
+            <NavItem label="Lead Database" href="/outbound/leads"  icon={Table2}            isActive={active('/outbound/leads')} />
           </>
         )}
 
@@ -201,7 +220,6 @@ export default function Sidebar() {
         {engageOpen && (
           <>
             <NavItem label="Active Contacts" href="/contacts" icon={Users} badge={totalEngaged || undefined} isActive={active('/contacts')} />
-            {/* Stage pill breakdown */}
             {totalEngaged > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '2px 10px 6px 18px' }}>
                 {stages.engaged   > 0 && <StagePill label="Engaged"   count={stages.engaged}   color="#2563eb" />}
@@ -216,28 +234,17 @@ export default function Sidebar() {
 
         <Divider />
 
-        {/* ── OPERATIONS ── */}
-        <p style={{ margin: '4px 0 2px', padding: '0 10px', fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#aaa' }}>
-          Operations
-        </p>
-        <NavItem label="Claims" href="/claims" icon={AlertCircle} isActive={active('/claims')} disabled />
-
-        <Divider />
-
         {/* ── ANALYTICS ── */}
         <p style={{ margin: '4px 0 2px', padding: '0 10px', fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#aaa' }}>
           Analytics
         </p>
-        <NavItem label="Funnel"       href="/analytics"          icon={BarChart2}  isActive={active('/analytics') && !active('/analytics/activity')} />
-        <NavItem label="Activity Log" href="/analytics/activity" icon={UsersRound} isActive={active('/analytics/activity')} />
+        <NavItem label="Funnel"       href="/analytics"          icon={BarChart2}  isActive={false} disabled />
+        <NavItem label="Activity Log" href="/analytics/activity" icon={UsersRound} isActive={false} disabled />
 
         <Divider />
 
-        <NavItem label="Documentation" href="/documentation" icon={BookOpen} isActive={active('/documentation')} />
-
-        <Divider />
-
-        <NavItem label="Settings" href="/settings" icon={Settings} isActive={false} disabled />
+        {/* ── CLAIMS ── */}
+        <NavItem label="Claims" href="/claims" icon={AlertCircle} isActive={active('/claims')} disabled />
 
       </nav>
 
