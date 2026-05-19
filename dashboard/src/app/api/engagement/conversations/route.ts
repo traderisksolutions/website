@@ -67,6 +67,8 @@ export async function GET() {
         const e = orphanSenderMap.get(id)
         return !e || isInternal(e) || isAutomated(e)
       })
+      // Clear the internal entries so participant lookup can fill them in
+      for (const id of internalOrphanIds) orphanSenderMap.delete(id)
       if (internalOrphanIds.length > 0) {
         const partRes = await fetch(
           `${SB_URL}/rest/v1/email_participants?thread_id=in.(${internalOrphanIds.join(',')})&select=thread_id,email&order=thread_id.asc`,
