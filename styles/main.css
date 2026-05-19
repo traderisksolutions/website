@@ -1,3 +1,19 @@
+/* ── Camera Plain Variable ── */
+@font-face {
+  font-family: 'Camera Plain Variable';
+  src: url('/fonts/CameraPlainVariable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Camera Plain Variable';
+  src: url('/fonts/CameraPlainVariableItalic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
 /* ── Reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -15,8 +31,8 @@
 
   /* Typography */
   --font: 'Archivo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-heading: 'Libre Baskerville', Georgia, 'Times New Roman', serif;
-  --font-serif: 'Libre Baskerville', Georgia, 'Times New Roman', serif;
+  --font-heading: 'Camera Plain Variable', 'Archivo', -apple-system, sans-serif;
+  --font-serif: 'Camera Plain Variable', 'Archivo', -apple-system, sans-serif;
 
   /* Radius */
   --radius-sm:   6px;
