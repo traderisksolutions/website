@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
-import { Search, RefreshCw, ChevronDown, Copy, Check, X, Calendar, ArrowUpDown, SlidersHorizontal } from 'lucide-react'
+import { Search, RefreshCw, ChevronDown, Copy, Check, X, Calendar, ArrowUpDown, SlidersHorizontal, Trash2 } from 'lucide-react'
 import { useAuditLog } from '@/hooks/useAuditLog'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -694,11 +694,12 @@ function ContactPanel({
 // ── Thread view ───────────────────────────────────────────────────────────────
 
 function ThreadView({
-  lead, threadState, onStatus,
+  lead, threadState, onStatus, onDelete,
 }: {
   lead:        Lead
   threadState: ThreadState
   onStatus:    (id: string, s: string) => void
+  onDelete:    (id: string) => void
 }) {
   const { thread, messages, loading, error } = threadState
   const st         = STATUS_MAP[lead.status] ?? STATUS_MAP.contacted
@@ -707,9 +708,22 @@ function ThreadView({
 
   const [summaries,        setSummaries]        = useState<StoredSummary[]>([])
   const [summariesLoading, setSummariesLoading] = useState(false)
+  const [deleting,         setDeleting]         = useState(false)
+  const [confirmDelete,    setConfirmDelete]     = useState(false)
   const threadId      = thread?.id ?? null
   const latestSummary = summaries[0] ?? null
   const log           = useAuditLog()
+
+  async function handleDelete() {
+    if (!confirmDelete) { setConfirmDelete(true); return }
+    setDeleting(true)
+    try {
+      if (threadId) {
+        await fetch(`/api/engagement/thread?thread_id=${encodeURIComponent(threadId)}`, { method: 'DELETE' })
+      }
+      onDelete(lead.id)
+    } finally { setDeleting(false); setConfirmDelete(false) }
+  }
 
   useEffect(() => {
     setSummaries([])
@@ -745,6 +759,21 @@ function ThreadView({
               <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: st.bg, color: st.color }}>{st.label}</span>
               {messages.length > 0 && (
                 <span style={{ fontSize: 11, color: '#bbb' }}>{messages.length} email{messages.length !== 1 ? 's' : ''}</span>
+              )}
+              {confirmDelete ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 11, color: '#ef4444' }}>Delete thread?</span>
+                  <button onClick={handleDelete} disabled={deleting} style={{ fontSize: 11, fontWeight: 600, color: '#fff', background: '#ef4444', border: 'none', borderRadius: 6, padding: '3px 10px', cursor: 'pointer', opacity: deleting ? 0.5 : 1 }}>
+                    {deleting ? 'Deleting…' : 'Confirm'}
+                  </button>
+                  <button onClick={() => setConfirmDelete(false)} style={{ fontSize: 11, color: '#888', background: 'none', border: 'none', cursor: 'pointer' }}>
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button onClick={handleDelete} title="Delete thread" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#ddd', display: 'flex', alignItems: 'center' }}>
+                  <Trash2 size={13} strokeWidth={2} />
+                </button>
               )}
             </div>
           </div>
@@ -896,6 +925,12 @@ export default function EngagementPage() {
     log({ action: 'status.changed', resource_type: 'lead', resource_id: id, metadata: { contact: lead?.email, new_status: status } })
   }
 
+  function handleDelete(id: string) {
+    setLeads(prev => prev.filter(l => l.id !== id))
+    setThreadMap(prev => { const next = { ...prev }; delete next[id]; return next })
+    setSelectedId(null)
+  }
+
   function clearFilters() { setSearch(''); setDateFrom(''); setDateTo('') }
   const hasFilters = search || dateFrom || dateTo
 
@@ -1035,6 +1070,7 @@ export default function EngagementPage() {
             lead={selectedLead}
             threadState={selectedThread ?? { loading: !selectedLead.email, thread: null, messages: [], error: selectedLead.email ? null : 'No email address on this lead' }}
             onStatus={handleStatus}
+            onDelete={handleDelete}
           />
         ) : (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#bbb', gap: 8 }}>

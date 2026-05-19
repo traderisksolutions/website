@@ -1,5 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+// DELETE /api/engagement/thread?thread_id=X
+// Deletes a single thread and all dependent rows in safe order.
+export async function DELETE(req: NextRequest) {
+  const threadId = new URL(req.url).searchParams.get('thread_id')
+  if (!threadId) return NextResponse.json({ error: 'thread_id required' }, { status: 400 })
+
+  const k = process.env.SUPABASE_SERVICE_KEY
+  if (!k) return NextResponse.json({ error: 'SUPABASE_SERVICE_KEY not set' }, { status: 500 })
+  const h = { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json' }
+  const id = encodeURIComponent(threadId)
+
+  const steps = [
+    `${SB_URL}/rest/v1/thread_summaries?thread_id=eq.${id}`,
+    `${SB_URL}/rest/v1/ai_drafts?thread_id=eq.${id}`,
+    `${SB_URL}/rest/v1/email_participants?thread_id=eq.${id}`,
+    `${SB_URL}/rest/v1/email_messages?thread_id=eq.${id}`,
+    `${SB_URL}/rest/v1/email_threads?id=eq.${id}`,
+  ]
+
+  for (const url of steps) {
+    const res = await fetch(url, { method: 'DELETE', headers: h })
+    if (!res.ok && res.status !== 404) {
+      const body = await res.text()
+      return NextResponse.json({ error: body }, { status: res.status })
+    }
+  }
+
+  return NextResponse.json({ ok: true })
+}
+
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
 function sbHeaders() {
