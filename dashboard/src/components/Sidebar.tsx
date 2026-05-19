@@ -97,12 +97,12 @@ export default function Sidebar() {
         gap:          10,
         padding:      '0 12px',
         height:       52,
-        borderBottom: '1px solid #e5e5e5',
+        borderBottom: '1px solid #f0f0f0',
         flexShrink:   0,
       }}>
         <span style={{
           width: 28, height: 28, borderRadius: 7,
-          background: '#000',
+          background: '#1677FF',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           flexShrink: 0,
         }}>
@@ -278,7 +278,7 @@ function Badge({ count }: { count: number }) {
   return (
     <span style={{
       minWidth: 18, height: 18, borderRadius: 9,
-      background: '#111', color: '#fff',
+      background: '#1677FF', color: '#fff',
       fontSize: 11, fontWeight: 600,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: '0 5px', flexShrink: 0,
@@ -314,15 +314,16 @@ function NavItem({
       className={disabled ? '' : 'sb-row'}
       style={{
         display: 'flex', alignItems: 'center', gap: 9,
-        padding: '0 10px', height: 32, borderRadius: 6,
-        background: isActive ? '#f0f0f0' : 'transparent',
-        color: disabled ? '#ccc' : isActive ? '#111' : '#555',
+        padding: '0 10px 0 7px', height: 32, borderRadius: 6,
+        background: isActive ? '#E6F4FF' : 'transparent',
+        color: disabled ? '#ccc' : isActive ? '#1677FF' : '#555',
         cursor: disabled ? 'default' : 'pointer',
         textDecoration: 'none', width: '100%',
         transition: 'background 0.1s, color 0.1s',
+        borderLeft: isActive ? '3px solid #1677FF' : '3px solid transparent',
       }}
     >
-      <Icon size={14} strokeWidth={isActive ? 2.2 : 1.8} style={{ flexShrink: 0, color: disabled ? '#ddd' : isActive ? '#111' : '#888' }} />
+      <Icon size={14} strokeWidth={isActive ? 2.2 : 1.8} style={{ flexShrink: 0, color: disabled ? '#ddd' : isActive ? '#1677FF' : '#888' }} />
       <span style={{ fontSize: 13, fontWeight: isActive ? 500 : 400, flex: 1, letterSpacing: '-0.01em', lineHeight: 1 }}>
         {label}
       </span>

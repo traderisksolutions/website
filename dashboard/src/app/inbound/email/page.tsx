@@ -224,7 +224,7 @@ function DetailPanel({ lead, onStatus, onClose }: { lead: Lead; onStatus: (id: s
   const val: React.CSSProperties = { fontSize: 12, color: '#333', margin: 0, wordBreak: 'break-all', lineHeight: 1.5 }
 
   return (
-    <div style={{ width: 320, flexShrink: 0, borderLeft: '1px solid #e8e8e8', background: '#fff', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
 
       {/* Header */}
       <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, flexShrink: 0 }}>
@@ -485,22 +485,31 @@ function InboundLeadsPage() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
 
       {/* Top bar */}
-      <div style={{ height: 52, padding: '0 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e8e8e8', background: '#fff', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>Inbound Leads</span>
-          {!loading && totalNew > 0 && (
-            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: 'rgba(59,130,246,0.10)', color: '#1d4ed8' }}>
-              {totalNew} new
-            </span>
-          )}
+      <div style={{ padding: '20px 24px 0', background: 'var(--content-bg)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#111', letterSpacing: '-0.02em' }}>Inbound Leads</h1>
+            <p style={{ margin: '2px 0 0', fontSize: 13, color: '#888' }}>Enquiries from website forms and email</p>
+          </div>
+          <button onClick={() => load(true)} style={{ background: '#fff', border: '1px solid #e8e8e8', borderRadius: 6, cursor: 'pointer', color: '#666', display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', fontSize: 12 }}>
+            <RefreshCw size={13} strokeWidth={2} style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }} />
+            Refresh
+          </button>
         </div>
-        <button onClick={() => load(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#bbb', display: 'flex', alignItems: 'center' }}>
-          <RefreshCw size={13} strokeWidth={2} style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }} />
-        </button>
+
+        {/* Stat cards */}
+        {!loading && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
+            <StatCard label="Total Leads"  value={leads.length}  color="#1677FF" />
+            <StatCard label="New"          value={totalNew}      color="#1677FF" highlight />
+            <StatCard label="Email / Form" value={emCount}       sub={emNew > 0 ? `${emNew} new` : undefined} color="#722ED1" />
+            <StatCard label="WhatsApp"     value={waCount}       sub={waNew > 0 ? `${waNew} new` : undefined} color="#13C2C2" />
+          </div>
+        )}
       </div>
 
       {/* Filter + search bar */}
-      <div style={{ padding: '8px 20px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid #f0f0f0', background: '#fff', flexShrink: 0, flexWrap: 'wrap' }}>
+      <div style={{ padding: '0 24px 12px', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--content-bg)', flexShrink: 0, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', gap: 4 }}>
           {FILTERS.map(f => (
             <button
@@ -508,24 +517,25 @@ function InboundLeadsPage() {
               onClick={() => setFilter(f.key)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 5,
-                fontSize: 11, fontWeight: 500, padding: '5px 11px', borderRadius: 7, cursor: 'pointer',
-                background: filter === f.key ? '#111' : '#fff',
-                color:      filter === f.key ? '#fff' : '#666',
-                border:     filter === f.key ? '1px solid #111' : '1px solid #e8e8e8',
+                fontSize: 12, fontWeight: 500, padding: '5px 12px', borderRadius: 6, cursor: 'pointer',
+                background: filter === f.key ? '#1677FF' : '#fff',
+                color:      filter === f.key ? '#fff' : '#555',
+                border:     filter === f.key ? '1px solid #1677FF' : '1px solid #e8e8e8',
+                transition: 'all 0.15s',
               }}
             >
               {f.label}
-              <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: filter === f.key ? 'rgba(255,255,255,0.2)' : '#f4f4f5', color: filter === f.key ? '#fff' : '#888' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: filter === f.key ? 'rgba(255,255,255,0.25)' : '#f0f0f0', color: filter === f.key ? '#fff' : '#888' }}>
                 {f.count}
               </span>
               {f.newCount > 0 && (
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#3b82f6', flexShrink: 0 }} />
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: filter === f.key ? '#fff' : '#1677FF', flexShrink: 0 }} />
               )}
             </button>
           ))}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f4f4f5', borderRadius: 8, padding: '0 10px', height: 32, flex: 1, maxWidth: 320 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #e8e8e8', borderRadius: 6, padding: '0 10px', height: 34, flex: 1, maxWidth: 320 }}>
           <Search size={12} style={{ color: '#aaa', flexShrink: 0 }} />
           <input
             value={search} onChange={e => setSearch(e.target.value)}
@@ -541,10 +551,10 @@ function InboundLeadsPage() {
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', padding: '0 24px 24px', gap: 16, background: 'var(--content-bg)' }}>
 
-        {/* Table */}
-        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto' }}>
+        {/* Table card */}
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', background: '#fff', border: '1px solid #e8e8e8', borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
           {loading ? (
             <div style={{ padding: '64px 0', textAlign: 'center', fontSize: 13, color: '#bbb' }}>Loading…</div>
           ) : error ? (
@@ -556,7 +566,7 @@ function InboundLeadsPage() {
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 760 }}>
               <thead>
-                <tr style={{ background: '#fafafa', borderBottom: '1px solid #e8e8e8', position: 'sticky', top: 0, zIndex: 1 }}>
+                <tr style={{ background: '#fafafa', borderBottom: '1px solid #f0f0f0', position: 'sticky', top: 0, zIndex: 1 }}>
                   <Th w={110}>Channel</Th>
                   <Th w={120}>First Name</Th>
                   <Th w={120}>Last Name</Th>
@@ -577,13 +587,13 @@ function InboundLeadsPage() {
                       key={lead.id}
                       onClick={() => setSelectedId(lead.id === selectedId ? null : lead.id)}
                       style={{
-                        borderBottom: '1px solid #f0f0f0',
-                        background: isActive ? '#f5f8ff' : lead.status === 'new' ? '#fff' : '#fff',
+                        borderBottom: '1px solid #f5f5f5',
+                        background: isActive ? '#E6F4FF' : '#fff',
                         cursor: 'pointer',
-                        borderLeft: `3px solid ${isActive ? '#3b82f6' : 'transparent'}`,
+                        borderLeft: `3px solid ${isActive ? '#1677FF' : 'transparent'}`,
                         transition: 'background 0.1s',
                       }}
-                      onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = '#fafafa' }}
+                      onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = '#f0f5ff' }}
                       onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = '#fff' }}
                     >
                       <td style={{ padding: '11px 12px 11px 14px', verticalAlign: 'middle' }}>
@@ -637,11 +647,13 @@ function InboundLeadsPage() {
 
         {/* Detail panel */}
         {selectedLead && (
-          <DetailPanel
-            lead={selectedLead}
-            onStatus={handleStatus}
-            onClose={() => setSelectedId(null)}
-          />
+          <div style={{ width: 320, flexShrink: 0, background: '#fff', border: '1px solid #e8e8e8', borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.04)', overflowY: 'auto' }}>
+            <DetailPanel
+              lead={selectedLead}
+              onStatus={handleStatus}
+              onClose={() => setSelectedId(null)}
+            />
+          </div>
         )}
       </div>
 
@@ -672,5 +684,35 @@ function Th({ children, w, right }: { children?: React.ReactNode; w?: number | s
     }}>
       {children}
     </th>
+  )
+}
+
+// ── Stat card ─────────────────────────────────────────────────────────────────
+
+function StatCard({ label, value, sub, color, highlight }: {
+  label: string; value: number; sub?: string; color: string; highlight?: boolean
+}) {
+  return (
+    <div style={{
+      background: highlight ? color : '#fff',
+      border: `1px solid ${highlight ? color : '#e8e8e8'}`,
+      borderRadius: 8,
+      padding: '16px 20px',
+      boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+    }}>
+      <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 500, color: highlight ? 'rgba(255,255,255,0.85)' : '#888', letterSpacing: '0.01em' }}>
+        {label}
+      </p>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+        <span style={{ fontSize: 28, fontWeight: 700, color: highlight ? '#fff' : '#111', letterSpacing: '-0.03em', lineHeight: 1 }}>
+          {value}
+        </span>
+        {sub && (
+          <span style={{ fontSize: 11, fontWeight: 600, color: highlight ? 'rgba(255,255,255,0.75)' : color, background: highlight ? 'rgba(255,255,255,0.2)' : `${color}18`, borderRadius: 4, padding: '1px 6px' }}>
+            {sub}
+          </span>
+        )}
+      </div>
+    </div>
   )
 }
