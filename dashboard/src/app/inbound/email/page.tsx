@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { RefreshCw, ChevronDown, Copy, Check, X, Search, MessageCircle, Mail, Globe, Pencil } from 'lucide-react'
+import { RefreshCw, ChevronDown, Copy, Check, X, Search, MessageCircle, Mail, Globe, Pencil, Sparkles, Send } from 'lucide-react'
+import { useAuditLog } from '@/hooks/useAuditLog'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -149,21 +150,81 @@ function StatusDropdown({ lead, onChange }: { lead: Lead; onChange: (id: string,
 // ── Detail panel ──────────────────────────────────────────────────────────────
 
 function DetailPanel({ lead, onStatus, onClose }: { lead: Lead; onStatus: (id: string, s: string) => void; onClose: () => void }) {
-  const [copied, setCopied] = useState<string | null>(null)
-  const ch    = channelOf(lead)
-  const msg   = messagePreview(lead)
-  const st    = STATUS_MAP[lead.status] ?? STATUS_MAP.new
+  const [copied,       setCopied]       = useState<string | null>(null)
+  const [draftText,    setDraftText]    = useState('')
+  const [generating,   setGenerating]   = useState(false)
+  const [sending,      setSending]      = useState(false)
+  const [sendError,    setSendError]    = useState<string | null>(null)
+  const [sent,         setSent]         = useState(false)
+  const log = useAuditLog()
+
+  const ch  = channelOf(lead)
+  const msg = messagePreview(lead)
+  const st  = STATUS_MAP[lead.status] ?? STATUS_MAP.new
+
+  // Reset draft state when lead changes
+  useEffect(() => {
+    setDraftText(''); setGenerating(false); setSending(false); setSendError(null); setSent(false)
+  }, [lead.id])
 
   function copy(text: string, key: string) {
     navigator.clipboard.writeText(text)
     setCopied(key); setTimeout(() => setCopied(null), 1500)
   }
 
+  async function generateDraft() {
+    setGenerating(true); setSendError(null)
+    try {
+      const res  = await fetch('/api/inbound/draft', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ name: displayName(lead), topic: lead.topic, message: msg }),
+      })
+      const data = await res.json()
+      if (data.content) {
+        setDraftText(data.content)
+        log({ action: 'draft.generated', resource_type: 'inbound_lead', resource_id: lead.id, metadata: { contact: displayName(lead) } })
+      } else {
+        setSendError(data.error ?? 'Failed to generate draft')
+      }
+    } catch { setSendError('Network error') }
+    finally { setGenerating(false) }
+  }
+
+  async function sendReply() {
+    if (!lead.email || !draftText.trim()) return
+    setSending(true); setSendError(null)
+    try {
+      const res  = await fetch('/api/inbound/reply', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          leadId:          lead.id,
+          name:            displayName(lead),
+          email:           lead.email,
+          company:         lead.company,
+          topic:           lead.topic,
+          originalMessage: msg,
+          draft:           draftText.trim(),
+        }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        setSent(true)
+        onStatus(lead.id, 'contacted')
+        log({ action: 'draft.approved', resource_type: 'inbound_lead', resource_id: lead.id, metadata: { contact: displayName(lead), chars: draftText.length } })
+      } else {
+        setSendError(data.error ?? 'Send failed')
+      }
+    } catch { setSendError('Network error') }
+    finally { setSending(false) }
+  }
+
   const lbl: React.CSSProperties = { fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#bbb', margin: '0 0 3px' }
   const val: React.CSSProperties = { fontSize: 12, color: '#333', margin: 0, wordBreak: 'break-all', lineHeight: 1.5 }
 
   return (
-    <div style={{ width: 300, flexShrink: 0, borderLeft: '1px solid #e8e8e8', background: '#fff', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+    <div style={{ width: 320, flexShrink: 0, borderLeft: '1px solid #e8e8e8', background: '#fff', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
 
       {/* Header */}
       <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, flexShrink: 0 }}>
@@ -239,6 +300,87 @@ function DetailPanel({ lead, onStatus, onClose }: { lead: Lead; onStatus: (id: s
           <p style={{ margin: 0, fontSize: 12, color: '#333', whiteSpace: 'pre-wrap', lineHeight: 1.65, background: '#f9f9f9', borderRadius: 8, padding: '10px 12px', border: '1px solid #f0f0f0' }}>
             {msg}
           </p>
+        </div>
+      )}
+
+      {/* AI Reply — only show for email leads with an email address */}
+      {lead.email && (
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', background: sent ? '#f0fdf4' : '#eff6ff', borderTop: `2px solid ${sent ? '#86efac' : '#93c5fd'}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <p style={{ ...lbl, color: sent ? '#15803d' : '#1d4ed8', margin: 0 }}>
+              {sent ? 'Reply Sent' : 'AI Reply'}
+            </p>
+            {!sent && !draftText && (
+              <button
+                onClick={generateDraft}
+                disabled={generating}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 6,
+                  background: generating ? '#dbeafe' : '#1d4ed8',
+                  color: generating ? '#93c5fd' : '#fff',
+                  border: 'none', cursor: generating ? 'default' : 'pointer',
+                }}
+              >
+                <Sparkles size={11} />
+                {generating ? 'Generating…' : 'Generate Reply'}
+              </button>
+            )}
+            {!sent && draftText && (
+              <button
+                onClick={generateDraft}
+                disabled={generating}
+                style={{ background: 'none', border: 'none', cursor: generating ? 'default' : 'pointer', fontSize: 11, color: '#93c5fd', padding: 0 }}
+              >
+                {generating ? 'Regenerating…' : 'Regenerate'}
+              </button>
+            )}
+          </div>
+
+          {sent ? (
+            <p style={{ margin: 0, fontSize: 12, color: '#15803d', fontWeight: 500 }}>
+              Reply sent to {lead.email}. Lead routed to Engagement Agent.
+            </p>
+          ) : draftText ? (
+            <>
+              <textarea
+                value={draftText}
+                onChange={e => setDraftText(e.target.value)}
+                rows={8}
+                style={{
+                  width: '100%', boxSizing: 'border-box', fontSize: 12, color: '#1e3a5f',
+                  lineHeight: 1.65, border: '1px solid #bfdbfe', borderRadius: 8,
+                  padding: '8px 10px', resize: 'vertical', background: '#fff',
+                  outline: 'none', fontFamily: 'inherit',
+                }}
+              />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+                <span style={{ fontSize: 11, color: '#93c5fd' }}>To: {lead.email}</span>
+                <button
+                  onClick={sendReply}
+                  disabled={sending || !draftText.trim()}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    fontSize: 11, fontWeight: 600, padding: '5px 12px', borderRadius: 6,
+                    background: sending ? '#dbeafe' : '#1d4ed8',
+                    color: sending ? '#93c5fd' : '#fff',
+                    border: 'none', cursor: sending ? 'default' : 'pointer',
+                  }}
+                >
+                  <Send size={11} />
+                  {sending ? 'Sending…' : 'Send Reply'}
+                </button>
+              </div>
+            </>
+          ) : (
+            <p style={{ margin: 0, fontSize: 12, color: '#93c5fd' }}>
+              Click Generate Reply to draft a first-contact email.
+            </p>
+          )}
+
+          {sendError && (
+            <p style={{ margin: '6px 0 0', fontSize: 11, color: '#ef4444' }}>{sendError}</p>
+          )}
         </div>
       )}
 
