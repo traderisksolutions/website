@@ -60,6 +60,25 @@ export async function GET() {
           orphanSenderMap.set(m.thread_id, m.from_address)
         }
       }
+
+      // For threads where the first inbound sender is internal (e.g. forwarded email),
+      // look for an external participant instead
+      const internalOrphanIds = orphanIds.filter(id => {
+        const e = orphanSenderMap.get(id)
+        return !e || isInternal(e) || isAutomated(e)
+      })
+      if (internalOrphanIds.length > 0) {
+        const partRes = await fetch(
+          `${SB_URL}/rest/v1/email_participants?thread_id=in.(${internalOrphanIds.join(',')})&select=thread_id,email&order=thread_id.asc`,
+          { headers: sbHeaders() }
+        )
+        const parts: { thread_id: string; email: string | null }[] = partRes.ok ? await partRes.json() : []
+        for (const p of (Array.isArray(parts) ? parts : [])) {
+          if (!orphanSenderMap.has(p.thread_id) && p.email && !isInternal(p.email) && !isAutomated(p.email)) {
+            orphanSenderMap.set(p.thread_id, p.email)
+          }
+        }
+      }
     }
 
     // 4. Shape one entry per thread
