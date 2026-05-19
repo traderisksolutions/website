@@ -169,8 +169,9 @@ async function fetchThread(threadId: string | null, email: string | null): Promi
 // ── Email card ────────────────────────────────────────────────────────────────
 
 function EmailCard({ msg, defaultOpen }: { msg: RealMsg; defaultOpen: boolean }) {
-  const [open,   setOpen]   = useState(defaultOpen)
-  const [copied, setCopied] = useState<string | null>(null)
+  const [open,     setOpen]     = useState(defaultOpen)
+  const [showFull, setShowFull] = useState(false)
+  const [copied,   setCopied]   = useState<string | null>(null)
   const isOut = msg.direction === 'outbound'
 
   function copy(text: string) {
@@ -179,8 +180,11 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; defaultOpen: boolean })
     setTimeout(() => setCopied(null), 1500)
   }
 
+  const fullBody    = msg.body_text ?? ''
+  const stripped    = stripQuotedContent(fullBody)
+  const hasMore     = stripped.length < fullBody.trim().length
   const senderLabel = isOut ? TRS_EMAIL : (msg.from_address ?? '—')
-  const bodyLines   = stripQuotedContent(msg.body_text ?? '').split('\n')
+  const bodyLines   = stripped.split('\n')
 
   return (
     <div style={{
@@ -263,8 +267,18 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; defaultOpen: boolean })
               </div>
             )}
           </div>
-          <div style={{ padding: '16px 18px 18px', maxHeight: 400, overflowY: 'auto' }}>
-            <p style={{ margin: 0, fontSize: 13, color: '#333', whiteSpace: 'pre-wrap', lineHeight: 1.75 }}>{stripQuotedContent(msg.body_text ?? '')}</p>
+          <div style={{ padding: '16px 18px 18px', maxHeight: 500, overflowY: 'auto' }}>
+            <p style={{ margin: 0, fontSize: 13, color: '#333', whiteSpace: 'pre-wrap', lineHeight: 1.75 }}>
+              {showFull ? fullBody : stripped}
+            </p>
+            {hasMore && (
+              <button
+                onClick={() => setShowFull(v => !v)}
+                style={{ marginTop: 10, fontSize: 11, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+              >
+                {showFull ? 'Hide quoted content' : 'Show full email ↓'}
+              </button>
+            )}
           </div>
         </div>
       )}
