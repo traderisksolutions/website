@@ -17,11 +17,13 @@ interface Lead {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  new:       '#3b82f6',
-  contacted: '#8b5cf6',
-  qualified: '#f59e0b',
-  converted: '#16a34a',
-  dropped:   '#ef4444',
+  new:       '#1677FF',
+  contacted: '#b45309',
+  engaged:   '#2563eb',
+  qualified: '#7c3aed',
+  proposal:  '#d97706',
+  converted: '#059669',
+  dropped:   '#4b5563',
 }
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -32,7 +34,7 @@ const SOURCE_LABEL: Record<string, string> = {
   claims_form:    'Claims',
 }
 
-const STATUS_OPTIONS = ['all', 'new', 'contacted', 'qualified', 'converted', 'dropped']
+const STATUS_OPTIONS = ['all', 'new', 'contacted', 'engaged', 'qualified', 'proposal', 'converted', 'dropped']
 
 export default function ContactsPage() {
   const [leads,    setLeads]    = useState<Lead[]>([])
@@ -41,10 +43,26 @@ export default function ContactsPage() {
   const [filter,   setFilter]   = useState('all')
 
   useEffect(() => {
-    fetch('/api/leads', { cache: 'no-store' })
-      .then(r => r.ok ? r.json() : [])
-      .then((data: Lead[]) => { setLeads(data); setLoading(false) })
-      .catch(() => setLoading(false))
+    Promise.all([
+      fetch('/api/leads', { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
+      fetch('/api/engagement/conversations', { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
+    ]).then(([inbound, conversations]: [Lead[], Lead[]]) => {
+      // Merge: inbound_leads take priority; conversations fill in email-only contacts
+      const seen = new Set<string>()
+      const merged: Lead[] = []
+      for (const l of (Array.isArray(inbound) ? inbound : [])) {
+        merged.push(l)
+        if (l.email) seen.add(l.email.toLowerCase())
+      }
+      for (const c of (Array.isArray(conversations) ? conversations : [])) {
+        if (c.email && !seen.has(c.email.toLowerCase())) {
+          merged.push(c)
+          seen.add(c.email.toLowerCase())
+        }
+      }
+      setLeads(merged)
+      setLoading(false)
+    }).catch(() => setLoading(false))
   }, [])
 
   const filtered = filter === 'all' ? leads : leads.filter(l => l.status === filter)
