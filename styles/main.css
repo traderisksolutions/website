@@ -1105,16 +1105,16 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 12px 10px;
+  padding: 10px 12px;
   border-radius: 10px;
   text-decoration: none;
   transition: background 0.1s;
 }
 .sol-item:hover { background: #f9fafb; }
 
-/* Resources — 2-col, matches Solutions width */
+/* Resources — compact 2-col */
 .nav-dropdown-panel--resources {
-  width: min(780px, calc(100vw - 32px));
+  width: min(460px, calc(100vw - 32px));
 }
 .nav-dd-inner--resources {
   display: grid;
@@ -1457,19 +1457,23 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 .mega-section { margin-bottom: 10px; }
 .mega-section:last-child { margin-bottom: 0; }
 .mega-section-head {
-  /* ElevenLabs-style: 11px muted label with top rule */
   font-size: 11px; font-weight: 500; letter-spacing: 0;
-  text-transform: none; color: #6b7280; padding: 8px 10px 4px;
+  text-transform: none; color: #9ca3af; padding: 8px 12px 4px;
   border-top: 1px solid #f3f4f6; margin-top: 4px;
 }
 .mega-section:first-child .mega-section-head { border-top: none; margin-top: 0; }
 .mega-link-item {
-  display: flex; flex-direction: column; padding: 7px 10px 9px;
-  border-radius: 10px; text-decoration: none; transition: background 0.1s;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: background 0.1s;
 }
 .mega-link-item:hover { background: #f9fafb; }
 .mega-link-title { font-size: 14px; font-weight: 600; color: #18181b; line-height: 1.3; }
-.mega-link-sub { font-size: 12.5px; color: #6b7280; line-height: 1.4; margin-top: 2px; }
+.mega-link-sub { font-size: 12.5px; color: #6b7280; line-height: 1.4; }
 .mega-business-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
 .mega-business-col:first-child { padding-right: 10px; border-right: 1px solid #f3f4f6; }
 .mega-business-col:last-child { padding-left: 10px; }
