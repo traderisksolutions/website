@@ -14,117 +14,54 @@
   <style>
     body { background: #fff; color: #1f1f1f; }
 
-    /* ── Big statement ── */
-    .biz-statement {
-      padding: 112px 24px 104px; text-align: center; background: #fff;
+    /* ── ElevenLabs-style showcase header ── */
+    .biz-showcase {
+      padding: 96px 24px 48px; text-align: center; background: #fff;
     }
-    .biz-statement h2 {
+    .biz-showcase-h2 {
       font-family: 'Archivo', sans-serif;
-      font-size: clamp(38px, 5.5vw, 66px); font-weight: 700;
-      color: #1f1f1f; line-height: 1.1; letter-spacing: -0.025em;
-      max-width: 860px; margin: 0 auto 24px;
+      font-size: clamp(32px, 4.5vw, 56px); font-weight: 700;
+      color: #0d1117; letter-spacing: -0.025em; line-height: 1.1;
+      max-width: 680px; margin: 0 auto 16px;
     }
-    .biz-statement p {
-      font-size: 16px; color: #5f6368; max-width: 560px;
-      margin: 0 auto; line-height: 1.65;
+    .biz-showcase-sub {
+      font-size: 15px; color: #6b7280; max-width: 500px;
+      margin: 0 auto 40px; line-height: 1.65;
     }
 
-    /* ── Two Pixel-style product cards ── */
-    .biz-product-section {
-      padding: 20px 16px 16px;
-      background: #fff;
-    }
-    .biz-product-cards {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
-      max-width: 1400px; margin: 0 auto;
-    }
-    .biz-product-card {
-      border-radius: 28px; overflow: hidden;
-      display: flex; flex-direction: column;
-      min-height: 580px;
-    }
-    .biz-product-card--assets  { background: #e8f0fe; }
-    .biz-product-card--liabilities { background: #e8eaf6; }
-    .biz-product-card-top {
-      padding: 56px 40px 28px; text-align: center;
-      display: flex; flex-direction: column; align-items: center; gap: 10px;
-    }
-    .biz-product-card-title {
-      font-family: 'Archivo', sans-serif;
-      font-size: clamp(36px, 4vw, 56px); font-weight: 700;
-      color: #1f1f1f; letter-spacing: -0.025em; margin: 0; line-height: 1.0;
-    }
-    .biz-product-card-sub {
-      font-size: 14px; color: #444; margin: 0; line-height: 1.55; max-width: 280px;
-    }
-    .biz-product-card-btn {
-      display: inline-flex; align-items: center; padding: 10px 28px;
-      border: 1.5px solid rgba(0,0,0,0.6); border-radius: 100px;
-      font-size: 14px; font-weight: 500; color: #1f1f1f;
-      text-decoration: none; margin-top: 8px;
-      transition: background 0.15s;
-      font-family: 'Archivo', sans-serif;
-    }
-    .biz-product-card-btn:hover { background: rgba(0,0,0,0.06); }
-    .biz-product-card-more {
-      display: inline-flex; align-items: center; gap: 5px;
-      font-size: 14px; color: #1f1f1f; text-decoration: none; font-weight: 500;
-    }
-    .biz-product-card-more:hover { text-decoration: underline; }
-    .biz-product-card-img {
-      flex: 1; display: flex; align-items: center; justify-content: center;
-      min-height: 240px; color: rgba(0,0,0,0.18);
-      font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
-      flex-direction: column; gap: 10px;
-    }
-    .biz-product-card-img svg { opacity: 0.3; }
-
-    /* ── M3 blue pill toggle ── */
-    .biz-tab-wrap {
-      display: flex; justify-content: center; padding: 56px 24px 0;
-    }
+    /* ── Neutral pill toggle (ElevenLabs style) ── */
+    .biz-tab-wrap { display: flex; justify-content: center; }
     .biz-tab-rail {
-      display: inline-flex; background: #dbeafe; border-radius: 100px; padding: 5px; gap: 2px;
+      display: inline-flex; background: #f0f0f0; border-radius: 100px; padding: 4px; gap: 2px;
     }
     .biz-tab {
-      padding: 11px 36px; border-radius: 100px; border: none; background: transparent;
+      padding: 10px 28px; border-radius: 100px; border: none; background: transparent;
       cursor: pointer; font-family: 'Archivo', sans-serif; font-size: 14px; font-weight: 500;
-      color: #3b82f6; transition: background 0.2s ease, color 0.15s ease; white-space: nowrap;
+      color: #6b7280; transition: all 0.15s; white-space: nowrap;
     }
-    .biz-tab.active { background: #fff; color: #1e3a8a; font-weight: 600; box-shadow: 0 1px 4px rgba(59,130,246,0.18); }
-    .biz-tab:not(.active):hover { background: rgba(255,255,255,0.5); color: #1d4ed8; }
+    .biz-tab.active { background: #fff; color: #18181b; font-weight: 600; box-shadow: 0 1px 4px rgba(0,0,0,0.12); }
+    .biz-tab:not(.active):hover { background: rgba(255,255,255,0.6); color: #18181b; }
 
     /* ── Panel show/hide ── */
     .biz-panel { display: none; }
     .biz-panel.active { display: block; }
 
-    /* ── Coverage cards ── */
-    .biz-body { max-width: 1100px; margin: 0 auto; padding: 64px 24px 48px; }
-    .biz-section-label {
-      display: inline-flex; align-items: center; gap: 8px;
-      font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
-      text-transform: uppercase; color: #9ca3af; margin-bottom: 24px;
-    }
-    .biz-section-label span { display: block; width: 28px; height: 1px; background: #d1d5db; }
-    .biz-row-head { font-size: 22px; font-weight: 700; color: #111; letter-spacing: -0.015em; margin: 0 0 20px; }
+    /* ── Coverage cards (gray, full-card link) ── */
+    .biz-body { max-width: 1100px; margin: 0 auto; padding: 48px 24px 64px; }
     .biz-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 14px; margin-bottom: 56px;
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
     }
     .biz-card {
-      background: #fff; border: 1px solid #e5e7eb; border-radius: 14px;
-      padding: 20px 18px; transition: box-shadow 0.15s, border-color 0.15s;
-      text-decoration: none; display: flex; flex-direction: column; gap: 10px;
+      background: #f4f4f5; border-radius: 16px;
+      padding: 24px; transition: background 0.15s;
+      text-decoration: none; display: flex; flex-direction: column; gap: 10px; color: inherit;
     }
-    .biz-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); border-color: #d1d5db; }
-    .biz-card-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .biz-card-title { font-size: 14px; font-weight: 700; color: #111; line-height: 1.3; }
-    .biz-card-sub { font-size: 12px; color: #9ca3af; line-height: 1.5; flex: 1; }
-    .biz-card-links { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
-    .biz-card-link { font-size: 12.5px; color: #374151; text-decoration: none; padding: 3px 6px; border-radius: 5px; margin: 0 -6px; transition: background 0.1s, color 0.1s; }
-    .biz-card-link:hover { background: #f3f4f6; color: #111; }
-    .biz-card-link--cta { color: #3b82f6; font-weight: 600; }
-    .biz-card-link--cta:hover { background: #eff6ff; }
+    .biz-card:hover { background: #ebebec; }
+    .biz-card-icon { color: #9ca3af; display: flex; align-items: center; width: 28px; height: 28px; }
+    .biz-card-icon svg { width: 22px; height: 22px; }
+    .biz-card-title { font-size: 14px; font-weight: 700; color: #18181b; line-height: 1.35; }
+    .biz-card-sub { font-size: 13px; color: #6b7280; line-height: 1.55; }
 
     /* ── Feature strip (bottom) ── */
     .biz-strip {
@@ -156,13 +93,12 @@
     @media (max-width: 960px) {
       .biz-strip { grid-template-columns: 1fr 1fr; padding: 40px 32px; gap: 24px; }
       .biz-strip-item { border-right: none; }
-      .biz-product-cards { grid-template-columns: 1fr; }
-      .biz-product-card { min-height: 420px; }
+      .biz-grid { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 640px) {
-      .biz-statement { padding: 72px 20px 64px; }
+      .biz-showcase { padding: 72px 20px 40px; }
       .biz-strip { grid-template-columns: 1fr; padding: 32px 20px; }
-      .biz-tab { padding: 10px 24px; font-size: 13.5px; }
+      .biz-tab { padding: 10px 20px; font-size: 13.5px; }
       .biz-grid { grid-template-columns: 1fr 1fr; }
       .biz-cta-section { padding: 40px 24px; }
     }
@@ -280,177 +216,93 @@
     </div>
   </header>
 
-  <!-- STATEMENT -->
-  <section class="biz-statement">
-    <h2>Cover every risk your<br>business faces.</h2>
-    <p>From property and marine to cyber and professional liability — TRS structures coverage around your actual risk profile, not a generic checklist.</p>
+  <!-- SHOWCASE HEADER (ElevenLabs "Showcasing the global impact" style) -->
+  <section class="biz-showcase">
+    <h2 class="biz-showcase-h2">Business insurance across every risk category</h2>
+    <p class="biz-showcase-sub">From property and marine to cyber and D&amp;O — we structure coverage around your actual risk profile.</p>
+    <div class="biz-tab-wrap" id="coverage">
+      <div class="biz-tab-rail" role="tablist" aria-label="Coverage type">
+        <button class="biz-tab active" data-panel="assets" role="tab" aria-selected="true">Assets</button>
+        <button class="biz-tab" data-panel="liabilities" role="tab" aria-selected="false">Liabilities</button>
+      </div>
+    </div>
   </section>
-
-  <!-- TWO PIXEL-STYLE PRODUCT CARDS -->
-  <div class="biz-product-section">
-    <div class="biz-product-cards">
-
-      <div class="biz-product-card biz-product-card--assets">
-        <div class="biz-product-card-top">
-          <h2 class="biz-product-card-title">Assets</h2>
-          <p class="biz-product-card-sub">Protect what your business owns and operates.</p>
-          <a href="/chat?topic=Business+insurance" class="biz-product-card-btn">Get a quote</a>
-          <a href="#panel-assets" class="biz-product-card-more" id="learn-assets">
-            Learn more
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-          </a>
-        </div>
-        <div class="biz-product-card-img">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-          <span>Image coming soon</span>
-        </div>
-      </div>
-
-      <div class="biz-product-card biz-product-card--liabilities">
-        <div class="biz-product-card-top">
-          <h2 class="biz-product-card-title">Liabilities</h2>
-          <p class="biz-product-card-sub">Shield your business against third-party claims.</p>
-          <a href="/chat?topic=Business+insurance" class="biz-product-card-btn">Get a quote</a>
-          <a href="#panel-liabilities" class="biz-product-card-more" id="learn-liabilities">
-            Learn more
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-          </a>
-        </div>
-        <div class="biz-product-card-img">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          <span>Image coming soon</span>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- PILL TAB TOGGLE -->
-  <div class="biz-tab-wrap" id="coverage">
-    <div class="biz-tab-rail" role="tablist" aria-label="Coverage type">
-      <button class="biz-tab active" data-panel="assets" role="tab" aria-selected="true">Assets</button>
-      <button class="biz-tab" data-panel="liabilities" role="tab" aria-selected="false">Liabilities</button>
-    </div>
-  </div>
 
   <!-- COVERAGE PANELS -->
   <div class="biz-body">
 
     <!-- ASSETS PANEL -->
     <div class="biz-panel active" id="panel-assets">
-    <div class="biz-section-label"><span></span> Assets <span></span></div>
-    <h2 class="biz-row-head">Protect what your business owns and operates</h2>
-    <div class="biz-grid">
+      <div class="biz-grid">
 
-      <div class="biz-card">
-        <div class="biz-card-icon" style="background:#fff5f0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
-        <div class="biz-card-title">Property &amp; Business</div>
-        <div class="biz-card-sub">Coverage for your physical assets against damage, loss, and business interruption.</div>
-        <div class="biz-card-links">
-          <a href="/commercial/property" class="biz-card-link">Industrial All Risk (IAR) &amp; Fire</a>
-          <a href="#" class="biz-card-link">Business Interruption (BI)</a>
-        </div>
+        <a href="/commercial/property" class="biz-card">
+          <div class="biz-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+          <div class="biz-card-title">Property &amp; Business</div>
+          <div class="biz-card-sub">Coverage for your physical assets against damage, loss, and business interruption.</div>
+        </a>
+
+        <a href="/commercial/car" class="biz-card">
+          <div class="biz-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 12h.01"/><path d="M17 12h.01"/><path d="M7 12h.01"/></svg></div>
+          <div class="biz-card-title">Engineering &amp; Construction</div>
+          <div class="biz-card-sub">Covers projects, machinery, and sensitive equipment during and after construction.</div>
+        </a>
+
+        <a href="/commercial/marine" class="biz-card">
+          <div class="biz-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
+          <div class="biz-card-title">Marine, Stock &amp; Logistics</div>
+          <div class="biz-card-sub">Protect goods in transit — international shipments, warehoused stock, and local movements.</div>
+        </a>
+
+        <a href="#" class="biz-card">
+          <div class="biz-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+          <div class="biz-card-title">Trade Credit &amp; Bonds</div>
+          <div class="biz-card-sub">Safeguard against non-payment by buyers and performance obligations with counterparties.</div>
+        </a>
+
+        <a href="/commercial/motor" class="biz-card">
+          <div class="biz-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/><rect x="9" y="11" width="14" height="10" rx="2"/><circle cx="16" cy="17" r="1"/></svg></div>
+          <div class="biz-card-title">Commercial Motor</div>
+          <div class="biz-card-sub">Comprehensive cover for commercial vehicles, fleets, and goods-carrying trucks.</div>
+        </a>
+
       </div>
-
-      <div class="biz-card">
-        <div class="biz-card-icon" style="background:#eff6ff"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
-        <div class="biz-card-title">Engineering &amp; Construction</div>
-        <div class="biz-card-sub">Covers projects, machinery, and sensitive equipment during and after construction.</div>
-        <div class="biz-card-links">
-          <a href="/commercial/car" class="biz-card-link">Contractors' All Risks (CAR)</a>
-          <a href="/commercial/equipment" class="biz-card-link">Machinery Breakdown</a>
-          <a href="/commercial/equipment" class="biz-card-link">Electronic Equipment Insurance</a>
-        </div>
-      </div>
-
-      <div class="biz-card">
-        <div class="biz-card-icon" style="background:#f0fdfa"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
-        <div class="biz-card-title">Marine, Stock &amp; Logistics</div>
-        <div class="biz-card-sub">Protect goods in transit — international shipments, warehoused stock, and local movements.</div>
-        <div class="biz-card-links">
-          <a href="/commercial/marine" class="biz-card-link">Marine Cargo</a>
-          <a href="#" class="biz-card-link">Stock Throughput</a>
-          <a href="/commercial/marine" class="biz-card-link">Inland Transit</a>
-        </div>
-      </div>
-
-      <div class="biz-card">
-        <div class="biz-card-icon" style="background:#f0fdf4"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
-        <div class="biz-card-title">Trade Credit &amp; Bonds</div>
-        <div class="biz-card-sub">Safeguard against non-payment by buyers and performance obligations with counterparties.</div>
-        <div class="biz-card-links">
-          <a href="#" class="biz-card-link">Trade Credit</a>
-          <a href="#" class="biz-card-link">Surety Bonds</a>
-        </div>
-      </div>
-
-      <div class="biz-card">
-        <div class="biz-card-icon" style="background:#fffbeb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/><rect x="9" y="11" width="14" height="10" rx="2"/><circle cx="16" cy="17" r="1"/></svg></div>
-        <div class="biz-card-title">Commercial Motor</div>
-        <div class="biz-card-sub">Comprehensive cover for commercial vehicles, fleets, and goods-carrying trucks.</div>
-        <div class="biz-card-links">
-          <a href="/commercial/motor" class="biz-card-link">Commercial Vehicle Insurance</a>
-        </div>
-      </div>
-
-    </div>
     </div><!-- /panel-assets -->
 
     <!-- LIABILITIES PANEL -->
     <div class="biz-panel" id="panel-liabilities">
-    <div class="biz-section-label"><span></span> Liabilities <span></span></div>
-    <h2 class="biz-row-head">Protect against claims made against your business</h2>
-    <div class="biz-grid">
+      <div class="biz-grid">
 
-      <div class="biz-card">
-        <div class="biz-card-icon" style="background:#f0fdf4"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
-        <div class="biz-card-title">General Comprehensive Liability</div>
-        <div class="biz-card-sub">Covers third-party bodily injury and property damage arising from your business operations.</div>
-        <div class="biz-card-links">
-          <a href="/commercial/liability" class="biz-card-link">General Comprehensive Liability</a>
-        </div>
+        <a href="/commercial/liability" class="biz-card">
+          <div class="biz-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+          <div class="biz-card-title">General Liability</div>
+          <div class="biz-card-sub">Covers third-party bodily injury and property damage from your business operations.</div>
+        </a>
+
+        <a href="/commercial/professional-indemnity" class="biz-card">
+          <div class="biz-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>
+          <div class="biz-card-title">Professional &amp; Management</div>
+          <div class="biz-card-sub">Protects against claims from professional advice, D&amp;O decisions, and management acts.</div>
+        </a>
+
+        <a href="/commercial/cyber" class="biz-card">
+          <div class="biz-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></div>
+          <div class="biz-card-title">Cyber Insurance</div>
+          <div class="biz-card-sub">Covers data breaches, ransomware, email compromise, and regulatory response costs.</div>
+        </a>
+
+        <a href="#" class="biz-card">
+          <div class="biz-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+          <div class="biz-card-title">Environmental Liability</div>
+          <div class="biz-card-sub">Covers clean-up costs and third-party claims from pollution or environmental damage.</div>
+        </a>
+
+        <a href="/workforce" class="biz-card">
+          <div class="biz-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+          <div class="biz-card-title">Employee &amp; Workforce</div>
+          <div class="biz-card-sub">Work injury compensation, foreign worker obligations, and employee benefit liabilities.</div>
+        </a>
+
       </div>
-
-      <div class="biz-card">
-        <div class="biz-card-icon" style="background:#faf5ff"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>
-        <div class="biz-card-title">Professional &amp; Management Liability</div>
-        <div class="biz-card-sub">Protects individuals and firms from claims arising from professional advice, decisions, and management acts.</div>
-        <div class="biz-card-links">
-          <a href="#" class="biz-card-link">Investment Management Insurance (IMI)</a>
-          <a href="#" class="biz-card-link">Medical Malpractice Insurance</a>
-          <a href="/commercial/professional-indemnity" class="biz-card-link">Directors &amp; Officers (D&amp;O)</a>
-          <a href="/commercial/professional-indemnity" class="biz-card-link">Professional Indemnity (PI)</a>
-        </div>
-      </div>
-
-      <div class="biz-card">
-        <div class="biz-card-icon" style="background:#eef2ff"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></div>
-        <div class="biz-card-title">Cyber Insurance</div>
-        <div class="biz-card-sub">Covers data breaches, ransomware, business email compromise, and regulatory response costs.</div>
-        <div class="biz-card-links">
-          <a href="/commercial/cyber" class="biz-card-link">Cyber Insurance</a>
-        </div>
-      </div>
-
-      <div class="biz-card">
-        <div class="biz-card-icon" style="background:#f0fdf4"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
-        <div class="biz-card-title">Environmental Liability</div>
-        <div class="biz-card-sub">Covers clean-up costs and third-party claims from pollution incidents or environmental damage.</div>
-        <div class="biz-card-links">
-          <a href="#" class="biz-card-link">Environmental Liability</a>
-        </div>
-      </div>
-
-      <div class="biz-card">
-        <div class="biz-card-icon" style="background:#f0fdf4"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-        <div class="biz-card-title">Employee Liability</div>
-        <div class="biz-card-sub">Covers work injury compensation, foreign worker obligations, and employee benefit liabilities.</div>
-        <div class="biz-card-links">
-          <a href="/workforce" class="biz-card-link biz-card-link--cta">View Workforce Benefits →</a>
-        </div>
-      </div>
-
-    </div>
     </div><!-- /panel-liabilities -->
 
   </div><!-- /biz-body -->

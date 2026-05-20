@@ -182,23 +182,20 @@
    ══════════════════════════════════════ */
 
 .ab-features {
-  background:
-    radial-gradient(ellipse at 20% 60%, rgba(40, 110, 200, 0.28) 0%, transparent 55%),
-    radial-gradient(ellipse at 80% 15%, rgba(15, 150, 180, 0.18) 0%, transparent 50%),
-    #102a4a;
+  background: #ffffff;
   padding: 100px 0;
 }
 
 .ab-feat-header {
-  text-align: center;
-  margin-bottom: 72px;
+  text-align: left;
+  margin-bottom: 40px;
 }
 
 .ab-feat-h2 {
   font-family: var(--font-heading);
-  font-size: clamp(2.2rem, 4vw, 3.4rem);
+  font-size: clamp(2rem, 3.6vw, 3rem);
   font-weight: 700;
-  color: #ffffff;
+  color: #0d1117;
   letter-spacing: -0.03em;
   line-height: 1.1;
   margin: 0 0 14px;
@@ -207,43 +204,42 @@
 .ab-feat-sub {
   font-family: var(--font);
   font-size: 16px;
-  color: rgba(255,255,255,0.45);
+  color: #9ca3af;
   margin: 0;
 }
 
 .ab-feat-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
 }
 
 .ab-feat-col {
-  padding: 0 52px;
+  background: #f4f4f5;
+  border-radius: 16px;
+  padding: 28px 24px;
   text-align: left;
-  border-right: 1px solid rgba(255,255,255,0.1);
 }
 
-.ab-feat-col:first-child { padding-left: 0; }
-.ab-feat-col:last-child  { border-right: none; padding-right: 0; }
-
 .ab-feat-icon {
-  color: rgba(255,255,255,0.55);
-  margin-bottom: 32px;
+  color: #9ca3af;
+  margin-bottom: 24px;
 }
 
 .ab-feat-title {
   font-family: var(--font);
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
-  color: #ffffff;
-  margin: 0 0 12px;
+  color: #18181b;
+  margin: 0 0 10px;
   letter-spacing: -0.01em;
 }
 
 .ab-feat-body {
   font-family: var(--font);
   font-size: 14px;
-  line-height: 1.75;
-  color: rgba(255,255,255,0.55);
+  line-height: 1.7;
+  color: #6b7280;
   margin: 0;
 }
 
@@ -326,15 +322,9 @@
 
   .ab-feat-grid {
     grid-template-columns: 1fr;
-    gap: 40px;
+    gap: 12px;
   }
-  .ab-feat-col {
-    padding: 0;
-    border-right: none;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    padding-bottom: 40px;
-  }
-  .ab-feat-col:last-child { border-bottom: none; padding-bottom: 0; }
+  .ab-feat-col { padding: 24px; }
   .ab-features { padding: 72px 24px; }
 }
 
