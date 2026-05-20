@@ -14,170 +14,278 @@
   <style>
     /* ── Hero ── */
     .api-hero {
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: url('/lilac_trs_2.png') center center / cover no-repeat;
       padding: 120px 24px 80px;
+    }
+    .api-hero-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       text-align: center;
-      background: linear-gradient(180deg, #0f0a1e 0%, #1a0533 60%, #0d0d1a 100%);
-      border-bottom: 1px solid rgba(139,92,246,0.2);
-      position: relative; overflow: hidden;
+      max-width: 720px;
+      width: 100%;
     }
-    .api-hero::before {
-      content: '';
-      position: absolute; top: -120px; left: 50%; transform: translateX(-50%);
-      width: 700px; height: 500px; border-radius: 50%;
-      background: radial-gradient(circle, rgba(139,92,246,0.22) 0%, transparent 65%);
-      pointer-events: none;
-    }
-    .api-hero-inner { position: relative; z-index: 1; }
     .api-badge {
-      display: inline-flex; align-items: center; gap: 7px;
-      padding: 5px 14px 5px 10px; border-radius: 20px;
-      background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.35);
-      font-size: 11.5px; font-weight: 600; color: #c4b5fd;
-      margin-bottom: 24px; letter-spacing: 0.01em;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 5px 16px 5px 5px;
+      background: rgba(255,255,255,0.58);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255,255,255,0.75);
+      box-shadow: 0 2px 16px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.9);
+      border-radius: 99px;
+      text-decoration: none;
+      margin-bottom: 40px;
     }
-    .api-hero h1 {
-      font-family: 'Libre Baskerville', serif;
-      font-size: clamp(32px, 5vw, 56px); font-weight: 700;
-      color: #fff; line-height: 1.15; margin: 0 0 18px;
-      letter-spacing: -0.025em;
+    .api-badge-label {
+      background: linear-gradient(135deg, #6d28d9, #3b82f6);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 99px;
+      font-family: var(--font);
     }
-    .api-hero h1 em { font-style: normal; color: #a78bfa; }
-    .api-hero p {
-      font-size: 17px; color: rgba(255,255,255,0.55);
-      max-width: 540px; margin: 0 auto 36px; line-height: 1.65;
+    .api-badge-text {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      font-family: var(--font);
     }
-    .api-hero-ctas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .api-headline {
+      font-family: var(--font-heading);
+      font-size: clamp(42px, 7vw, 72px);
+      font-weight: 700;
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      margin: 0 0 20px;
+    }
+    .api-caption {
+      font-family: var(--font);
+      font-size: clamp(16px, 2vw, 19px);
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin: 0 0 36px;
+      max-width: 560px;
+    }
+    .api-hero-ctas {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 56px;
+    }
     .btn-api-primary {
-      padding: 12px 24px; border-radius: 10px;
-      background: #8b5cf6; color: #fff;
-      font-size: 14px; font-weight: 600; text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #0d1117;
+      color: #fff;
+      border: none;
+      border-radius: 100px;
+      padding: 13px 28px;
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
       transition: background 0.15s;
     }
-    .btn-api-primary:hover { background: #7c3aed; }
-    .btn-api-outline {
-      padding: 12px 24px; border-radius: 10px;
-      background: transparent; color: rgba(255,255,255,0.75);
-      border: 1.5px solid rgba(255,255,255,0.2);
-      font-size: 14px; font-weight: 600; text-decoration: none;
-      transition: border-color 0.15s, color 0.15s;
+    .btn-api-primary:hover { background: #2d2d2d; color: #fff; }
+    .btn-api-ghost {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.65);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: #0d1117;
+      border: 1px solid rgba(255,255,255,0.85);
+      border-radius: 100px;
+      padding: 13px 28px;
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s;
     }
-    .btn-api-outline:hover { border-color: rgba(255,255,255,0.5); color: #fff; }
+    .btn-api-ghost:hover { background: rgba(255,255,255,0.85); color: #0d1117; }
 
-    /* code snippet decoration */
+    /* code strip */
     .api-code-strip {
-      margin: 56px auto 0; max-width: 680px;
-      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 14px; padding: 20px 24px; text-align: left;
+      width: 100%;
+      max-width: 620px;
+      background: rgba(255,255,255,0.55);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255,255,255,0.75);
+      border-radius: 16px;
+      padding: 22px 26px;
+      text-align: left;
       font-family: 'SF Mono', 'Fira Code', 'Fira Mono', monospace;
-      font-size: 12.5px; line-height: 1.7; color: rgba(255,255,255,0.45);
-      overflow: hidden;
+      font-size: 12.5px;
+      line-height: 1.75;
+      color: rgba(20,12,50,0.55);
     }
-    .api-code-strip .kw { color: #c4b5fd; }
-    .api-code-strip .str { color: #86efac; }
-    .api-code-strip .key { color: #93c5fd; }
-    .api-code-strip .num { color: #fca5a5; }
-    .api-code-strip .cmt { color: rgba(255,255,255,0.25); font-style: italic; }
+    .api-code-strip .kw { color: #6d28d9; font-weight: 600; }
+    .api-code-strip .str { color: #059669; }
+    .api-code-strip .key { color: #2563eb; }
+    .api-code-strip .num { color: #dc2626; }
+    .api-code-strip .cmt { color: rgba(20,12,50,0.32); font-style: italic; }
 
-    /* ── Body ── */
-    .api-body { max-width: 1100px; margin: 0 auto; padding: 72px 24px 80px; }
-
-    .api-section-label {
-      display: inline-flex; align-items: center; gap: 8px;
-      font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
-      text-transform: uppercase; color: #9ca3af; margin-bottom: 24px;
+    /* ── Use Cases section ── */
+    .api-use-section {
+      padding: 80px 48px;
+      background: #f7f7f8;
     }
-    .api-section-label span { display: block; width: 28px; height: 1px; background: #d1d5db; }
-
-    .api-row-head {
-      font-size: 22px; font-weight: 700; color: #111;
-      letter-spacing: -0.015em; margin: 0 0 6px;
+    .api-use-inner {
+      max-width: 1200px;
+      margin: 0 auto;
     }
-    .api-row-sub {
-      font-size: 14.5px; color: #6b7280; margin: 0 0 28px; line-height: 1.55;
+    .api-sec-eyebrow {
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #9ca3af;
+      margin: 0 0 16px;
     }
-
-    /* Use case grid */
+    .api-sec-heading {
+      font-family: var(--font-heading);
+      font-size: clamp(1.6rem, 3vw, 2.4rem);
+      font-weight: 700;
+      color: #0d1117;
+      letter-spacing: -0.025em;
+      line-height: 1.15;
+      margin: 0 0 8px;
+    }
+    .api-sec-sub {
+      font-family: var(--font);
+      font-size: 15px;
+      color: #6b7280;
+      line-height: 1.65;
+      margin: 0 0 48px;
+      max-width: 540px;
+    }
     .api-use-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 14px; margin-bottom: 64px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
     }
     .api-use-card {
-      background: #fff; border: 1px solid #e5e7eb; border-radius: 14px;
-      padding: 22px 20px; display: flex; flex-direction: column; gap: 12px;
-      transition: box-shadow 0.15s, border-color 0.15s;
+      background: #fff;
+      border-radius: 16px;
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
-    .api-use-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.07); border-color: #d1d5db; }
     .api-use-icon {
-      width: 40px; height: 40px; border-radius: 11px;
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      border-radius: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
     }
-    .api-use-title { font-size: 14px; font-weight: 700; color: #111; }
-    .api-use-desc { font-size: 12.5px; color: #9ca3af; line-height: 1.55; flex: 1; }
+    .api-use-title {
+      font-family: var(--font);
+      font-size: 15px;
+      font-weight: 700;
+      color: #18181b;
+      line-height: 1.3;
+      margin: 0;
+    }
+    .api-use-desc {
+      font-family: var(--font);
+      font-size: 13.5px;
+      color: #6b7280;
+      line-height: 1.65;
+      flex: 1;
+      margin: 0;
+    }
     .api-use-tag {
-      display: inline-flex; align-items: center; gap: 4px;
-      font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 6px;
       width: fit-content;
+      margin-top: 4px;
     }
 
-    /* How it works */
-    .api-divider { height: 1px; background: #f0f0f0; margin: 0 0 56px; }
-    .api-steps {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 32px; margin-bottom: 64px; counter-reset: step;
+    /* ── Platform Features section ── */
+    .api-feat-section {
+      padding: 80px 48px;
+      background: #fff;
     }
-    .api-step { display: flex; flex-direction: column; gap: 12px; counter-increment: step; }
-    .api-step-num {
-      width: 32px; height: 32px; border-radius: 9px;
-      background: #faf5ff; border: 1.5px solid #e9d5ff;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: 700; color: #7c3aed;
+    .api-feat-inner {
+      max-width: 1200px;
+      margin: 0 auto;
     }
-    .api-step-title { font-size: 14px; font-weight: 700; color: #111; }
-    .api-step-desc { font-size: 12.5px; color: #9ca3af; line-height: 1.55; }
+    .api-feat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    .api-feat-card {
+      background: #fafafa;
+      border: 1px solid #efefef;
+      border-radius: 16px;
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .api-feat-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .api-feat-title {
+      font-family: var(--font);
+      font-size: 15px;
+      font-weight: 700;
+      color: #18181b;
+      line-height: 1.3;
+      margin: 0;
+    }
+    .api-feat-desc {
+      font-family: var(--font);
+      font-size: 13.5px;
+      line-height: 1.65;
+      color: #6b7280;
+      margin: 0;
+    }
 
-    /* Features */
-    .api-features {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 64px;
+    /* ── Responsive ── */
+    @media (max-width: 960px) {
+      .api-use-section, .api-feat-section { padding: 64px 32px; }
+      .api-use-grid, .api-feat-grid { grid-template-columns: 1fr 1fr; }
     }
-    .api-feature {
-      display: flex; align-items: flex-start; gap: 12px;
-      padding: 16px 18px; background: #fafafa; border: 1px solid #f0f0f0;
-      border-radius: 12px;
-    }
-    .api-feature-icon {
-      width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .api-feature-body { display: flex; flex-direction: column; gap: 2px; }
-    .api-feature-title { font-size: 13px; font-weight: 700; color: #111; }
-    .api-feature-desc { font-size: 12px; color: #9ca3af; line-height: 1.5; }
-
-    /* Dark CTA */
-    .api-cta-section {
-      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
-      border-radius: 20px; padding: 56px 40px;
-      text-align: center; margin-top: 24px;
-    }
-    .api-cta-section h2 {
-      font-family: 'Libre Baskerville', serif;
-      font-size: 28px; font-weight: 700; color: #fff;
-      margin: 0 0 12px; letter-spacing: -0.01em;
-    }
-    .api-cta-section p { font-size: 15px; color: rgba(255,255,255,0.6); margin: 0 0 28px; }
-    .api-cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-    .api-cta-btns .btn-api-primary { background: #fff; color: #312e81; }
-    .api-cta-btns .btn-api-primary:hover { background: #f5f3ff; }
-    .api-cta-btns .btn-api-outline { border-color: rgba(255,255,255,0.25); }
-
-    @media (max-width: 768px) {
-      .api-use-grid { grid-template-columns: 1fr 1fr; }
-      .api-features { grid-template-columns: 1fr; }
-      .api-cta-section { padding: 40px 24px; }
+    @media (max-width: 640px) {
+      .api-use-section, .api-feat-section { padding: 56px 24px; }
+      .api-hero { padding: 96px 24px 56px; }
     }
     @media (max-width: 480px) {
-      .api-use-grid { grid-template-columns: 1fr; }
-      .api-steps { grid-template-columns: 1fr 1fr; }
+      .api-use-grid, .api-feat-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -456,16 +564,15 @@
   <section class="api-hero">
     <div class="api-hero-inner">
       <div class="api-badge">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-        Insurance API &amp; White Label
+        <span class="api-badge-label">API</span>
+        <span class="api-badge-text">Insurance API &amp; White Label</span>
       </div>
-      <h1>Embed insurance into<br><em>your</em> platform</h1>
-      <p>Distribution APIs, white-label products, and embedded coverage built for modern platforms — gig, rental, e-commerce, and fintech.</p>
+      <h1 class="api-headline">Build insurance into<br>everything you ship</h1>
+      <p class="api-caption">Distribution APIs, white-label products, and embedded coverage built for modern platforms — gig, rental, e-commerce, and fintech.</p>
       <div class="api-hero-ctas">
         <a href="/chat?topic=API+%2F+embedded" class="btn-api-primary">Talk to our team</a>
-        <a href="#use-cases" class="btn-api-outline">See use cases</a>
+        <a href="#use-cases" class="btn-api-ghost">See use cases</a>
       </div>
-
       <!-- code strip -->
       <div class="api-code-strip">
         <span class="cmt">// Request embedded insurance quote</span><br>
@@ -484,13 +591,12 @@
     </div>
   </section>
 
-  <div class="api-body">
-
-    <!-- USE CASES -->
-    <div id="use-cases">
-      <div class="api-section-label"><span></span> Use cases <span></span></div>
-      <h2 class="api-row-head">Built for platforms that need flexible coverage</h2>
-      <p class="api-row-sub">Whether you're licensing our brand or embedding coverage invisibly, we handle the product, compliance, and claims.</p>
+  <!-- USE CASES -->
+  <section class="api-use-section" id="use-cases">
+    <div class="api-use-inner">
+      <p class="api-sec-eyebrow">Use cases</p>
+      <h2 class="api-sec-heading">Built for platforms that need flexible coverage</h2>
+      <p class="api-sec-sub">Whether you're licensing our brand or embedding coverage invisibly, we handle the product, compliance, and claims.</p>
 
       <div class="api-use-grid">
 
@@ -498,8 +604,8 @@
           <div class="api-use-icon" style="background:#f0fdf4">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           </div>
-          <div class="api-use-title">Gig &amp; On-Demand Platforms</div>
-          <div class="api-use-desc">Per-trip or per-shift personal accident and work injury coverage for drivers, riders, couriers, and freelancers — activated automatically when a job starts.</div>
+          <p class="api-use-title">Gig &amp; On-Demand Platforms</p>
+          <p class="api-use-desc">Per-trip or per-shift personal accident and work injury coverage for drivers, riders, couriers, and freelancers — activated automatically when a job starts.</p>
           <span class="api-use-tag" style="background:#f0fdf4;color:#16a34a">PA · WICA · Medical</span>
         </div>
 
@@ -507,8 +613,8 @@
           <div class="api-use-icon" style="background:#fffbeb">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/><rect x="9" y="11" width="14" height="10" rx="2"/><circle cx="16" cy="17" r="1"/></svg>
           </div>
-          <div class="api-use-title">Rental &amp; Shared Mobility</div>
-          <div class="api-use-desc">Dynamic CDW, damage waiver, and third-party liability coverage for vehicle, equipment, and property rental platforms — priced per booking duration.</div>
+          <p class="api-use-title">Rental &amp; Shared Mobility</p>
+          <p class="api-use-desc">Dynamic CDW, damage waiver, and third-party liability coverage for vehicle, equipment, and property rental platforms — priced per booking duration.</p>
           <span class="api-use-tag" style="background:#fffbeb;color:#d97706">Motor · Property · Liability</span>
         </div>
 
@@ -516,8 +622,8 @@
           <div class="api-use-icon" style="background:#eff6ff">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
           </div>
-          <div class="api-use-title">E-Commerce &amp; Retail</div>
-          <div class="api-use-desc">Embedded purchase protection, extended warranty, and parcel insurance at checkout — increasing basket value and customer confidence without extra effort.</div>
+          <p class="api-use-title">E-Commerce &amp; Retail</p>
+          <p class="api-use-desc">Embedded purchase protection, extended warranty, and parcel insurance at checkout — increasing basket value and customer confidence without extra effort.</p>
           <span class="api-use-tag" style="background:#eff6ff;color:#3b82f6">Product · Cargo · Warranty</span>
         </div>
 
@@ -525,8 +631,8 @@
           <div class="api-use-icon" style="background:#faf5ff">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
           </div>
-          <div class="api-use-title">FinTech &amp; Banks</div>
-          <div class="api-use-desc">Insurance add-ons for credit cards, loan products, and digital wallets — travel, life, and credit protection bundled directly into your financial product.</div>
+          <p class="api-use-title">FinTech &amp; Banks</p>
+          <p class="api-use-desc">Insurance add-ons for credit cards, loan products, and digital wallets — travel, life, and credit protection bundled directly into your financial product.</p>
           <span class="api-use-tag" style="background:#faf5ff;color:#8b5cf6">Travel · Life · Credit</span>
         </div>
 
@@ -534,8 +640,8 @@
           <div class="api-use-icon" style="background:#fff5f0">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
           </div>
-          <div class="api-use-title">Proptech &amp; Real Estate</div>
-          <div class="api-use-desc">Home contents, landlord liability, and building coverage embedded into property listing, management, and leasing platforms at point of transaction.</div>
+          <p class="api-use-title">Proptech &amp; Real Estate</p>
+          <p class="api-use-desc">Home contents, landlord liability, and building coverage embedded into property listing, management, and leasing platforms at point of transaction.</p>
           <span class="api-use-tag" style="background:#fff5f0;color:#f97316">Contents · Liability · Fire</span>
         </div>
 
@@ -543,119 +649,86 @@
           <div class="api-use-icon" style="background:#eef2ff">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
           </div>
-          <div class="api-use-title">Travel &amp; Hospitality</div>
-          <div class="api-use-desc">Single-trip and annual travel insurance embedded in booking flows — flight cancellation, medical evacuation, and baggage coverage without leaving your platform.</div>
+          <p class="api-use-title">Travel &amp; Hospitality</p>
+          <p class="api-use-desc">Single-trip and annual travel insurance embedded in booking flows — flight cancellation, medical evacuation, and baggage coverage without leaving your platform.</p>
           <span class="api-use-tag" style="background:#eef2ff;color:#6366f1">Travel · Medical · Baggage</span>
         </div>
 
       </div>
     </div>
+  </section>
 
-    <div class="api-divider"></div>
+  <!-- PLATFORM FEATURES -->
+  <section class="api-feat-section">
+    <div class="api-feat-inner">
+      <p class="api-sec-eyebrow">Platform features</p>
+      <h2 class="api-sec-heading">Everything you need to distribute insurance</h2>
+      <p class="api-sec-sub">Built for engineering teams and product managers — not insurance specialists.</p>
 
-    <!-- HOW IT WORKS -->
-    <div class="api-section-label"><span></span> How it works <span></span></div>
-    <h2 class="api-row-head">From integration to go-live in weeks</h2>
-    <p class="api-row-sub">We manage the insurer relationships, regulatory filings, and claims — you own the customer experience.</p>
+      <div class="api-feat-grid">
 
-    <div class="api-steps">
-      <div class="api-step">
-        <div class="api-step-num">1</div>
-        <div class="api-step-title">Define your use case</div>
-        <div class="api-step-desc">Tell us your platform model, product type, and target customer. We'll recommend the right coverage structure and distribution model.</div>
-      </div>
-      <div class="api-step">
-        <div class="api-step-num">2</div>
-        <div class="api-step-title">Agree on product design</div>
-        <div class="api-step-desc">We work with insurer partners to structure coverage terms, pricing, and claims triggers that fit your platform's workflow and user expectations.</div>
-      </div>
-      <div class="api-step">
-        <div class="api-step-num">3</div>
-        <div class="api-step-title">Integrate the API</div>
-        <div class="api-step-desc">REST API with sandbox environment. Quote, bind, and cancel policies programmatically — with webhook callbacks for policy events and claims status.</div>
-      </div>
-      <div class="api-step">
-        <div class="api-step-num">4</div>
-        <div class="api-step-title">Launch &amp; scale</div>
-        <div class="api-step-desc">Go live with full MAS-compliant coverage in Singapore. We handle renewals, regulatory reporting, and ongoing product optimisation as you grow.</div>
+        <div class="api-feat-card">
+          <div class="api-feat-icon" style="background:#faf5ff">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          </div>
+          <p class="api-feat-title">REST API &amp; sandbox</p>
+          <p class="api-feat-desc">Full API docs, sandbox environment, and client libraries. Quote, bind, and cancel policies with a single integration.</p>
+        </div>
+
+        <div class="api-feat-card">
+          <div class="api-feat-icon" style="background:#f0fdf4">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <p class="api-feat-title">MAS-compliant products</p>
+          <p class="api-feat-desc">All products are filed and approved with Singapore's Monetary Authority. We handle ongoing regulatory obligations.</p>
+        </div>
+
+        <div class="api-feat-card">
+          <div class="api-feat-icon" style="background:#eff6ff">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <p class="api-feat-title">Webhook event callbacks</p>
+          <p class="api-feat-desc">Real-time notifications for policy issuance, renewals, claims submissions, and settlement updates.</p>
+        </div>
+
+        <div class="api-feat-card">
+          <div class="api-feat-icon" style="background:#fff5f0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+          </div>
+          <p class="api-feat-title">White-label UI components</p>
+          <p class="api-feat-desc">Pre-built, brandable quote and checkout flows you can embed directly — or build your own using the API.</p>
+        </div>
+
+        <div class="api-feat-card">
+          <div class="api-feat-icon" style="background:#f0fdfa">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          </div>
+          <p class="api-feat-title">Dashboard &amp; reporting</p>
+          <p class="api-feat-desc">Live policy counts, premium volume, and claims data in a partner dashboard — with CSV exports for reconciliation.</p>
+        </div>
+
+        <div class="api-feat-card">
+          <div class="api-feat-icon" style="background:#fff1f2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e11d48" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <p class="api-feat-title">Claims management</p>
+          <p class="api-feat-desc">TRS handles all claims on your behalf — from first notification to settlement, with status updates surfaced through your dashboard.</p>
+        </div>
+
       </div>
     </div>
+  </section>
 
-    <div class="api-divider"></div>
-
-    <!-- FEATURES -->
-    <div class="api-section-label"><span></span> Platform features <span></span></div>
-    <h2 class="api-row-head">Everything you need to distribute insurance</h2>
-    <p class="api-row-sub">Built for engineering teams and product managers — not insurance specialists.</p>
-
-    <div class="api-features">
-      <div class="api-feature">
-        <div class="api-feature-icon" style="background:#faf5ff">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-        </div>
-        <div class="api-feature-body">
-          <div class="api-feature-title">REST API &amp; sandbox</div>
-          <div class="api-feature-desc">Full API docs, sandbox environment, and client libraries. Quote, bind, and cancel policies with a single integration.</div>
-        </div>
-      </div>
-      <div class="api-feature">
-        <div class="api-feature-icon" style="background:#f0fdf4">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-        </div>
-        <div class="api-feature-body">
-          <div class="api-feature-title">MAS-compliant products</div>
-          <div class="api-feature-desc">All products are filed and approved with Singapore's Monetary Authority. We handle ongoing regulatory obligations.</div>
-        </div>
-      </div>
-      <div class="api-feature">
-        <div class="api-feature-icon" style="background:#eff6ff">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        </div>
-        <div class="api-feature-body">
-          <div class="api-feature-title">Webhook event callbacks</div>
-          <div class="api-feature-desc">Real-time notifications for policy issuance, renewals, claims submissions, and settlement updates.</div>
-        </div>
-      </div>
-      <div class="api-feature">
-        <div class="api-feature-icon" style="background:#fff5f0">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
-        </div>
-        <div class="api-feature-body">
-          <div class="api-feature-title">White-label UI components</div>
-          <div class="api-feature-desc">Pre-built, brandable quote and checkout flows you can embed directly — or build your own using the API.</div>
-        </div>
-      </div>
-      <div class="api-feature">
-        <div class="api-feature-icon" style="background:#f0fdfa">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        </div>
-        <div class="api-feature-body">
-          <div class="api-feature-title">Dashboard &amp; reporting</div>
-          <div class="api-feature-desc">Live policy counts, premium volume, and claims data in a partner dashboard — with CSV exports for reconciliation.</div>
-        </div>
-      </div>
-      <div class="api-feature">
-        <div class="api-feature-icon" style="background:#fff1f2">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e11d48" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        </div>
-        <div class="api-feature-body">
-          <div class="api-feature-title">Claims management</div>
-          <div class="api-feature-desc">TRS handles all claims on your behalf — from first notification to settlement, with status updates surfaced through your dashboard.</div>
-        </div>
-      </div>
+  <!-- FOOTER CTA -->
+  <section class="footer-cta-section">
+    <div class="footer-cta-wrap">
+      <h2 class="footer-cta-heading">Ready to embed insurance?</h2>
+      <button class="footer-cta-btn" data-track="api_contact_us" data-ctac-modal aria-label="Talk to our team">
+        Talk to our team
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
     </div>
-
-    <!-- CTA -->
-    <div class="api-cta-section">
-      <h2>Ready to embed insurance?</h2>
-      <p>Tell us about your platform and we'll design a coverage structure that fits.</p>
-      <div class="api-cta-btns">
-        <a href="/chat?topic=API+%2F+embedded" class="btn-api-primary">Talk to our team</a>
-        <a href="/about" class="btn-api-outline">About TRS</a>
-      </div>
-    </div>
-
-  </div>
+  </section>
 
   <script src="../scripts/nav.js" defer></script>
 
