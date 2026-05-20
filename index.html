@@ -70,33 +70,44 @@
               <!-- Business -->
               <div class="mega-panel" data-panel="business">
                 <a href="/business" class="mega-panel-overview">View all business insurance →</a>
-                <div class="mega-business-cols">
-                  <div class="mega-business-col">
-                    <div class="mega-section-head">Property &amp; Engineering</div>
-                    <a href="/commercial/property" class="mega-prod-link">Industrial All Risk (IAR) &amp; Fire</a>
-                    <a href="/commercial/revenue" class="mega-prod-link">Business Interruption (BI)</a>
-                    <a href="/commercial/car" class="mega-prod-link">Contractors' All Risks (CAR)</a>
-                    <a href="/commercial/equipment" class="mega-prod-link">Machinery Breakdown</a>
-                    <a href="/commercial/electronic-equipment" class="mega-prod-link">Electronic Equipment Insurance</a>
+                <div class="mega-biz-toggle">
+                  <button class="mega-biz-pill mega-biz-pill--active" data-biz="assets">Assets</button>
+                  <button class="mega-biz-pill" data-biz="liabilities">Liabilities</button>
+                </div>
+                <div class="mega-biz-panel mega-biz-panel--active" data-biz="assets">
+                  <div class="mega-business-cols">
+                    <div class="mega-business-col">
+                      <div class="mega-section-head">Property &amp; Engineering</div>
+                      <a href="/commercial/property" class="mega-prod-link">Industrial All Risk (IAR) &amp; Fire</a>
+                      <a href="/commercial/revenue" class="mega-prod-link">Business Interruption (BI)</a>
+                      <a href="/commercial/car" class="mega-prod-link">Contractors' All Risks (CAR)</a>
+                      <a href="/commercial/equipment" class="mega-prod-link">Machinery Breakdown</a>
+                      <a href="/commercial/electronic-equipment" class="mega-prod-link">Electronic Equipment Insurance</a>
+                    </div>
+                    <div class="mega-business-col">
+                      <div class="mega-section-head">Marine, Stock &amp; Trade</div>
+                      <a href="/commercial/inventory" class="mega-prod-link">Marine Cargo</a>
+                      <a href="/commercial/stock-throughput" class="mega-prod-link">Stock Throughput</a>
+                      <a href="/commercial/inland-transit" class="mega-prod-link">Inland Transit</a>
+                      <a href="/commercial/financial-assets" class="mega-prod-link">Trade Credit</a>
+                      <a href="/commercial/surety-bonds" class="mega-prod-link">Surety Bonds</a>
+                      <a href="/commercial/motor" class="mega-prod-link">Commercial Vehicle Insurance</a>
+                    </div>
                   </div>
-                  <div class="mega-business-col">
-                    <div class="mega-section-head">Marine, Stock &amp; Trade</div>
-                    <a href="/commercial/inventory" class="mega-prod-link">Marine Cargo</a>
-                    <a href="/commercial/stock-throughput" class="mega-prod-link">Stock Throughput</a>
-                    <a href="/commercial/inland-transit" class="mega-prod-link">Inland Transit</a>
-                    <a href="/commercial/financial-assets" class="mega-prod-link">Trade Credit</a>
-                    <a href="/commercial/surety-bonds" class="mega-prod-link">Surety Bonds</a>
-                    <a href="/commercial/motor" class="mega-prod-link">Commercial Vehicle Insurance</a>
-                  </div>
-                  <div class="mega-business-col">
-                    <div class="mega-section-head">Liabilities</div>
-                    <a href="/commercial/core-liability" class="mega-prod-link">General Comprehensive Liability</a>
-                    <a href="/commercial/imi" class="mega-prod-link">Investment Management Insurance (IMI)</a>
-                    <a href="/commercial/medical-malpractice" class="mega-prod-link">Medical Malpractice Insurance</a>
-                    <a href="/commercial/dao" class="mega-prod-link">Directors &amp; Officers (D&amp;O)</a>
-                    <a href="/commercial/professional" class="mega-prod-link">Professional Indemnity (PI)</a>
-                    <a href="/commercial/cyber" class="mega-prod-link">Cyber Insurance</a>
-                    <a href="#" class="mega-prod-link">Environmental Liability</a>
+                </div>
+                <div class="mega-biz-panel" data-biz="liabilities">
+                  <div class="mega-business-cols">
+                    <div class="mega-business-col">
+                      <a href="/commercial/core-liability" class="mega-prod-link">General Comprehensive Liability</a>
+                      <a href="/commercial/imi" class="mega-prod-link">Investment Management Insurance (IMI)</a>
+                      <a href="/commercial/medical-malpractice" class="mega-prod-link">Medical Malpractice Insurance</a>
+                      <a href="/commercial/dao" class="mega-prod-link">Directors &amp; Officers (D&amp;O)</a>
+                    </div>
+                    <div class="mega-business-col">
+                      <a href="/commercial/professional" class="mega-prod-link">Professional Indemnity (PI)</a>
+                      <a href="/commercial/cyber" class="mega-prod-link">Cyber Insurance</a>
+                      <a href="#" class="mega-prod-link">Environmental Liability</a>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -384,6 +395,7 @@
 
       <!-- Sub-product drawer -->
       <div class="wtc-drawer">
+        <div class="wtc-sub-toggle-wrap" id="wtc-sub-toggle"></div>
         <div class="wtc-pills" id="wtc-pills"></div>
         <div class="wtc-product-view">
           <p class="wtc-breadcrumb" id="wtc-breadcrumb"></p>
@@ -943,7 +955,12 @@
           { id: 'maid-insurance', name: 'Maid Insurance', caption: 'Fulfill your statutory obligations while providing top-tier medical security and liability protection for those who look after your household.' },
           { id: 'personal-accident', name: 'Personal Accident', caption: 'Build a reliable financial safety net that provides immediate lump-sum payouts and expense reimbursements if life takes an unpredictable turn.' }
         ]},
-        business: { title: 'Business', products: [
+        business: { title: 'Business',
+          subgroups: [
+            { id: 'assets', label: 'Assets', productIds: ['business-property', 'equipment-breakdown', 'marine-cargo', 'commercial-motor'] },
+            { id: 'liabilities', label: 'Liabilities', productIds: ['general-liability', 'professional-indemnity', 'directors-officers', 'cyber-insurance'] }
+          ],
+          products: [
           { id: 'business-property', name: 'Business Property', caption: 'Protect your commercial buildings, operational infrastructure, and physical stock from catastrophic material damage, fire, and severe weather events.' },
           { id: 'equipment-breakdown', name: 'Equipment Breakdown', caption: 'Guard your core operations against severe financial losses and unexpected downtime caused by the sudden mechanical or electrical failure of critical machinery.' },
           { id: 'marine-cargo', name: 'Marine Cargo', caption: 'Secure your commercial freight, raw materials, and commodities across international supply chains with robust coverage against transit damage, theft, and loss.' },
@@ -964,6 +981,7 @@
         ]}
       };
 
+      var subToggleEl = document.getElementById('wtc-sub-toggle');
       var pillsEl    = document.getElementById('wtc-pills');
       var breadcrumb = document.getElementById('wtc-breadcrumb');
       var prodName   = document.getElementById('wtc-product-name');
@@ -971,13 +989,41 @@
       var cards      = document.querySelectorAll('.wtc-card');
       if (!pillsEl || !cards.length) return;
 
-      var activeCatId  = 'personal';
-      var activeProdId = 'home-contents';
+      var activeCatId      = 'personal';
+      var activeProdId     = 'home-contents';
+      var activeSubgroupId = null;
+
+      function renderSubToggle(catId) {
+        var cat = WTC_DATA[catId];
+        subToggleEl.innerHTML = '';
+        if (!cat.subgroups) return;
+        var wrap = document.createElement('div');
+        wrap.className = 'wtc-sub-toggle';
+        cat.subgroups.forEach(function (sg) {
+          var btn = document.createElement('button');
+          btn.className = 'wtc-sub-pill' + (sg.id === activeSubgroupId ? ' wtc-sub-pill--active' : '');
+          btn.textContent = sg.label;
+          btn.addEventListener('click', function () {
+            activeSubgroupId = sg.id;
+            activeProdId = sg.productIds[0];
+            renderSubToggle(catId);
+            renderPills(catId);
+            renderProduct(catId, activeProdId);
+          });
+          wrap.appendChild(btn);
+        });
+        subToggleEl.appendChild(wrap);
+      }
 
       function renderPills(catId) {
         var cat = WTC_DATA[catId];
         pillsEl.innerHTML = '';
-        cat.products.forEach(function (prod) {
+        var products = cat.products;
+        if (cat.subgroups && activeSubgroupId) {
+          var sg = cat.subgroups.find(function (s) { return s.id === activeSubgroupId; });
+          if (sg) products = cat.products.filter(function (p) { return sg.productIds.indexOf(p.id) !== -1; });
+        }
+        products.forEach(function (prod) {
           var btn = document.createElement('button');
           btn.className = 'wtc-pill' + (prod.id === activeProdId ? ' wtc-pill--active' : '');
           btn.textContent = prod.name;
@@ -1000,11 +1046,19 @@
       }
 
       function switchCategory(catId) {
-        activeCatId  = catId;
-        activeProdId = WTC_DATA[catId].products[0].id;
+        activeCatId = catId;
+        var cat = WTC_DATA[catId];
+        if (cat.subgroups) {
+          activeSubgroupId = cat.subgroups[0].id;
+          activeProdId = cat.subgroups[0].productIds[0];
+        } else {
+          activeSubgroupId = null;
+          activeProdId = cat.products[0].id;
+        }
         cards.forEach(function (c) {
           c.classList.toggle('wtc-card--active', c.dataset.cat === catId);
         });
+        renderSubToggle(catId);
         renderPills(catId);
         renderProduct(catId, activeProdId);
       }

@@ -142,6 +142,15 @@
     });
   });
 
+  /* ── Business Assets / Liabilities toggle ── */
+  document.querySelectorAll('.mega-biz-pill').forEach(function (pill) {
+    pill.addEventListener('click', function () {
+      var biz = pill.dataset.biz;
+      document.querySelectorAll('.mega-biz-pill').forEach(function (p) { p.classList.toggle('mega-biz-pill--active', p.dataset.biz === biz); });
+      document.querySelectorAll('.mega-biz-panel').forEach(function (p) { p.classList.toggle('mega-biz-panel--active', p.dataset.biz === biz); });
+    });
+  });
+
   /* ── Mobile accordion ── */
   document.querySelectorAll('.nav-drawer-accordion').forEach(function (btn) {
     btn.addEventListener('click', function () {
