@@ -1,16 +1,39 @@
-/* ── Camera Plain Variable ── */
+/* ── Waldenburg (ElevenLabs heading font) ── */
+@font-face {
+  font-family: 'Waldenburg';
+  src: url('/fonts/KMR-Waldenburg-Buch-latin.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Waldenburg';
+  src: url('/fonts/KMR-Waldenburg-Normal-latin.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Waldenburg';
+  src: url('/fonts/KMR-Waldenburg-Fett-latin.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Waldenburg';
+  src: url('/fonts/KMR-Waldenburg-FettHalbschmal-latin.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── Camera Plain Variable (kept for fallback) ── */
 @font-face {
   font-family: 'Camera Plain Variable';
   src: url('/fonts/CameraPlainVariable.woff2') format('woff2');
   font-weight: 100 900;
   font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Camera Plain Variable';
-  src: url('/fonts/CameraPlainVariableItalic.woff2') format('woff2');
-  font-weight: 400;
-  font-style: italic;
   font-display: swap;
 }
 
@@ -31,8 +54,8 @@
 
   /* Typography */
   --font: 'Archivo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-heading: 'Camera Plain Variable', 'Archivo', -apple-system, sans-serif;
-  --font-serif: 'Camera Plain Variable', 'Archivo', -apple-system, sans-serif;
+  --font-heading: 'Waldenburg', 'Archivo', -apple-system, sans-serif;
+  --font-serif: 'Waldenburg', 'Archivo', -apple-system, sans-serif;
 
   /* Radius */
   --radius-sm:   6px;
@@ -1094,31 +1117,14 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 }
 .sol-item {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
+  flex-direction: column;
+  gap: 3px;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: 12px;
   text-decoration: none;
   transition: background 0.1s;
 }
 .sol-item:hover { background: #f9fafb; }
-.sol-item > div:last-child {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.sol-icon {
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
-  border-radius: 7px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 2px;
-  background: #f3f4f6 !important;
-}
-.sol-icon svg { stroke: #52525b !important; }
 
 /* ── Panel left column ── */
 .nav-dd-left {
