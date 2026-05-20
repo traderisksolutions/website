@@ -2407,6 +2407,11 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   background: radial-gradient(ellipse at 32% 30%, #60a5fa 0%, #1e3a8a 100%);
 }
 
+/* Unified lilac orb for Business coverage rows */
+.sc-porb--lilac {
+  background: radial-gradient(ellipse at 32% 30%, #d8b4fe 0%, #7c3aed 100%);
+}
+
 /* Employee mini orbs — emerald */
 .sc-porb--e1 {
   background: radial-gradient(ellipse at 32% 30%, #34d399 0%, #065f46 100%);
