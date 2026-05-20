@@ -690,7 +690,8 @@
       <!-- Dark card + industry list -->
       <div class="solutions-body">
 
-        <!-- Left: dark card — swaps per industry -->
+        <!-- Left column: dark card + image card below -->
+        <div class="solutions-left-col">
         <div class="solutions-chat">
 
           <!-- Logistics & Transportation (default active) -->
@@ -715,9 +716,6 @@
                 <p class="schat-cap-body">We tell you exactly what you need and what you do not before placing your risk across our network of 18 Singapore-licensed insurers.</p>
               </div>
             </div>
-            <div class="solutions-chat-visual">
-              <img src="/logistics.png" alt="Logistics coverage" />
-            </div>
           </div>
 
           <!-- Financial Services & FinTech -->
@@ -741,9 +739,6 @@
                 <p class="schat-cap-label">Honest risk advisory</p>
                 <p class="schat-cap-body">We tell you exactly what you need and what you do not before placing your risk across our network of 18 Singapore-licensed insurers.</p>
               </div>
-            </div>
-            <div class="solutions-chat-visual">
-              <img src="/finance.png" alt="Financial services coverage" />
             </div>
           </div>
 
@@ -804,9 +799,6 @@
                 <p class="schat-cap-body">We tell you exactly what you need and what you do not before placing your risk across our network of 18 Singapore-licensed insurers.</p>
               </div>
             </div>
-            <div class="solutions-chat-visual">
-              <img src="/construction.png" alt="Construction coverage" />
-            </div>
           </div>
 
           <!-- Healthcare & Biomedical -->
@@ -830,9 +822,6 @@
                 <p class="schat-cap-label">Honest risk advisory</p>
                 <p class="schat-cap-body">We tell you exactly what you need and what you do not before placing your risk across our network of 18 Singapore-licensed insurers.</p>
               </div>
-            </div>
-            <div class="solutions-chat-visual">
-              <img src="/healthcare.png" alt="Healthcare coverage" />
             </div>
           </div>
 
@@ -858,12 +847,20 @@
                 <p class="schat-cap-body">We tell you exactly what you need and what you do not before placing your risk across our network of 18 Singapore-licensed insurers.</p>
               </div>
             </div>
-            <div class="solutions-chat-visual">
-              <img src="/manufacturing.png" alt="Manufacturing coverage" />
-            </div>
           </div>
 
         </div><!-- /solutions-chat -->
+
+        <!-- Image card below dark card -->
+        <div class="solutions-img-card" id="sol-img-card">
+          <img class="solutions-ind-img solutions-ind-img--active" data-ind="logistics"     src="/logistics.png"     alt="" />
+          <img class="solutions-ind-img"                           data-ind="financial"    src="/finance.png"       alt="" />
+          <img class="solutions-ind-img"                           data-ind="construction" src="/construction.png"  alt="" />
+          <img class="solutions-ind-img"                           data-ind="healthcare"   src="/healthcare.png"    alt="" />
+          <img class="solutions-ind-img"                           data-ind="manufacturing" src="/manufacturing.png" alt="" />
+        </div>
+
+        </div><!-- /solutions-left-col -->
 
         <!-- Right: clickable industry list -->
         <div class="solutions-list">
@@ -1149,8 +1146,10 @@
 
     /* ── Industry solutions tabs ── */
     (function () {
-      var items  = document.querySelectorAll('.solutions-item[data-ind]');
-      var panels = document.querySelectorAll('.solutions-panel[data-ind]');
+      var items   = document.querySelectorAll('.solutions-item[data-ind]');
+      var panels  = document.querySelectorAll('.solutions-panel[data-ind]');
+      var imgs    = document.querySelectorAll('.solutions-ind-img[data-ind]');
+      var imgCard = document.getElementById('sol-img-card');
       if (!items.length) return;
       items.forEach(function (item) {
         item.addEventListener('click', function () {
@@ -1160,6 +1159,14 @@
           panels.forEach(function (p) { p.classList.remove('solutions-panel--active'); });
           var panel = document.querySelector('.solutions-panel[data-ind="' + ind + '"]');
           if (panel) panel.classList.add('solutions-panel--active');
+          imgs.forEach(function (img) { img.classList.remove('solutions-ind-img--active'); });
+          var activeImg = document.querySelector('.solutions-ind-img[data-ind="' + ind + '"]');
+          if (activeImg) {
+            activeImg.classList.add('solutions-ind-img--active');
+            if (imgCard) imgCard.style.display = '';
+          } else {
+            if (imgCard) imgCard.style.display = 'none';
+          }
         });
       });
     })();
