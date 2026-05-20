@@ -683,78 +683,237 @@
         <div>
           <p class="solutions-label">TRS Solutions</p>
           <h2 class="solutions-heading">Industry expertise built into every placement</h2>
-          <a href="#" class="solutions-contact" data-track="nav_contact_us">
-            Contact us
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-          </a>
         </div>
-        <p class="solutions-desc">From logistics to fintech, TRS structures programmes around the specific risks, regulations, and exposures of your sector — with 15+ years of placement experience behind every recommendation.</p>
+        <p class="solutions-desc">From logistics to fintech, TRS structures corporate programs around the specific risks, regulations, and exposures of your sector, leveraging over 15 years of institutional placement experience behind every recommendation.</p>
       </div>
 
-      <!-- Workflow diagram + feature list -->
+      <!-- Dark card + industry list -->
       <div class="solutions-body">
-        <!-- Left: chat-bubble workflow visualization -->
+
+        <!-- Left: dark card — swaps per industry -->
         <div class="solutions-chat">
-          <div class="solutions-chat-bubbles">
-            <!-- Step 1: client asks -->
-            <div class="schat-row schat-row--right">
-              <div class="schat-bubble schat-bubble--client">
-                We're a growing logistics firm — what cover do we actually need?
-              </div>
-            </div>
-            <!-- Step 2: TRS honest assessment -->
-            <div class="schat-row schat-row--left">
-              <div class="schat-bubble schat-bubble--trs">
-                Honest take: you're exposed on cargo liability and WICA. Here's what matters — and what you can skip.
-              </div>
-            </div>
-            <!-- Step 3: solution placed -->
-            <div class="schat-row schat-row--left">
-              <div class="schat-bubble schat-bubble--trs schat-bubble--placing">
-                <span class="schat-status">
-                  <span class="schat-status-dot"></span>
-                  Placing cover
-                </span>
-                3 insurers matched. Policy ready in 48 hours.
-              </div>
-            </div>
-          </div>
-          <div class="solutions-chat-caption">
-            <p class="schat-cap-label">Honest risk advisory</p>
-            <p class="schat-cap-body">We tell you what you need — and what you don't — before placing with 18+ Singapore-licensed insurers.</p>
-          </div>
-        </div>
 
-        <!-- Right: solution feature list -->
+          <!-- Logistics & Transportation (default active) -->
+          <div class="solutions-panel solutions-panel--active" data-ind="logistics">
+            <div class="solutions-panel-content">
+              <div class="solutions-chat-bubbles">
+                <div class="schat-row schat-row--right">
+                  <div class="schat-bubble schat-bubble--client">We are a growing logistics firm. What coverage do we actually need?</div>
+                </div>
+                <div class="schat-row schat-row--left">
+                  <div class="schat-bubble schat-bubble--trs">Honest take: your business is primarily exposed to cargo liability and WICA. Here is what matters and what you can safely skip.</div>
+                </div>
+                <div class="schat-row schat-row--left">
+                  <div class="schat-bubble schat-bubble--trs schat-bubble--placing">
+                    <span class="schat-status"><span class="schat-status-dot"></span>Placing cover</span>
+                    3 insurers matched. Policy ready within 48 hours.
+                  </div>
+                </div>
+              </div>
+              <div class="solutions-chat-caption">
+                <p class="schat-cap-label">Honest risk advisory</p>
+                <p class="schat-cap-body">We tell you exactly what you need and what you do not before placing your risk across our network of 18 Singapore-licensed insurers.</p>
+              </div>
+            </div>
+            <div class="solutions-chat-visual">
+              <img src="/logistics.png" alt="Logistics coverage" />
+            </div>
+          </div>
+
+          <!-- Financial Services & FinTech -->
+          <div class="solutions-panel" data-ind="financial">
+            <div class="solutions-panel-content">
+              <div class="solutions-chat-bubbles">
+                <div class="schat-row schat-row--right">
+                  <div class="schat-bubble schat-bubble--client">We run a licensed fund manager. Which liabilities are non-negotiable for us?</div>
+                </div>
+                <div class="schat-row schat-row--left">
+                  <div class="schat-bubble schat-bubble--trs">PI and D&amp;O are mandatory at your stage. If you hold client assets, layer institutional crime cover on top. Here is how we structure it.</div>
+                </div>
+                <div class="schat-row schat-row--left">
+                  <div class="schat-bubble schat-bubble--trs schat-bubble--placing">
+                    <span class="schat-status"><span class="schat-status-dot"></span>Placing cover</span>
+                    4 insurers matched. Compliance-ready placement in 48 hours.
+                  </div>
+                </div>
+              </div>
+              <div class="solutions-chat-caption">
+                <p class="schat-cap-label">Honest risk advisory</p>
+                <p class="schat-cap-body">We tell you exactly what you need and what you do not before placing your risk across our network of 18 Singapore-licensed insurers.</p>
+              </div>
+            </div>
+            <div class="solutions-chat-visual">
+              <img src="/finance.png" alt="Financial services coverage" />
+            </div>
+          </div>
+
+          <!-- Technology & Startups -->
+          <div class="solutions-panel" data-ind="technology">
+            <div class="solutions-panel-content">
+              <div class="solutions-chat-bubbles">
+                <div class="schat-row schat-row--right">
+                  <div class="schat-bubble schat-bubble--client">We are a 45-person SaaS company about to close Series B. What do we need?</div>
+                </div>
+                <div class="schat-row schat-row--left">
+                  <div class="schat-bubble schat-bubble--trs">Your term sheet likely requires D&amp;O and cyber at minimum. PI is smart given your data exposure. Here is what scales with your headcount.</div>
+                </div>
+                <div class="schat-row schat-row--left">
+                  <div class="schat-bubble schat-bubble--trs schat-bubble--placing">
+                    <span class="schat-status"><span class="schat-status-dot"></span>Placing cover</span>
+                    3 insurers matched. Policy ready within 48 hours.
+                  </div>
+                </div>
+              </div>
+              <div class="solutions-chat-caption">
+                <p class="schat-cap-label">Honest risk advisory</p>
+                <p class="schat-cap-body">We tell you exactly what you need and what you do not before placing your risk across our network of 18 Singapore-licensed insurers.</p>
+              </div>
+            </div>
+            <div class="solutions-api-block">
+              <div><span class="api-method">POST</span> <span class="api-path">/v1/coverage/quote</span></div>
+              <span class="api-head">Request</span>
+              <div>&nbsp;&nbsp;<span class="api-key">sector</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="api-str">"technology"</span></div>
+              <div>&nbsp;&nbsp;<span class="api-key">headcount</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="api-num">45</span></div>
+              <div>&nbsp;&nbsp;<span class="api-key">arr_sgd</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="api-num">3,200,000</span></div>
+              <span class="api-head">Response&nbsp;&nbsp;<span class="api-ok">200 OK</span></span>
+              <div>&nbsp;&nbsp;<span class="api-key">policies</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="api-str">["Cyber", "PI", "D&amp;O"]</span></div>
+              <div>&nbsp;&nbsp;<span class="api-key">premium</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="api-str">SGD 12,400 / yr</span></div>
+              <div>&nbsp;&nbsp;<span class="api-key">status</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="api-str">bound_in_48h</span></div>
+            </div>
+          </div>
+
+          <!-- Construction & Built Environment -->
+          <div class="solutions-panel" data-ind="construction">
+            <div class="solutions-panel-content">
+              <div class="solutions-chat-bubbles">
+                <div class="schat-row schat-row--right">
+                  <div class="schat-bubble schat-bubble--client">We have three active sites. What coverage gaps should we be worried about?</div>
+                </div>
+                <div class="schat-row schat-row--left">
+                  <div class="schat-bubble schat-bubble--trs">CAR needs to be in place before groundbreak. WICA for your sub-contractors is a legal requirement. Here is the full gap analysis.</div>
+                </div>
+                <div class="schat-row schat-row--left">
+                  <div class="schat-bubble schat-bubble--trs schat-bubble--placing">
+                    <span class="schat-status"><span class="schat-status-dot"></span>Placing cover</span>
+                    5 insurers matched. Site-ready policies in 48 hours.
+                  </div>
+                </div>
+              </div>
+              <div class="solutions-chat-caption">
+                <p class="schat-cap-label">Honest risk advisory</p>
+                <p class="schat-cap-body">We tell you exactly what you need and what you do not before placing your risk across our network of 18 Singapore-licensed insurers.</p>
+              </div>
+            </div>
+            <div class="solutions-chat-visual">
+              <img src="/construction.png" alt="Construction coverage" />
+            </div>
+          </div>
+
+          <!-- Healthcare & Biomedical -->
+          <div class="solutions-panel" data-ind="healthcare">
+            <div class="solutions-panel-content">
+              <div class="solutions-chat-bubbles">
+                <div class="schat-row schat-row--right">
+                  <div class="schat-bubble schat-bubble--client">We operate two private clinics. What liability exposure are we actually carrying?</div>
+                </div>
+                <div class="schat-row schat-row--left">
+                  <div class="schat-bubble schat-bubble--trs">Medical malpractice is your primary risk. Patient data and product liability need to sit alongside it. Here is the complete picture.</div>
+                </div>
+                <div class="schat-row schat-row--left">
+                  <div class="schat-bubble schat-bubble--trs schat-bubble--placing">
+                    <span class="schat-status"><span class="schat-status-dot"></span>Placing cover</span>
+                    3 specialist underwriters matched. Policies ready in 48 hours.
+                  </div>
+                </div>
+              </div>
+              <div class="solutions-chat-caption">
+                <p class="schat-cap-label">Honest risk advisory</p>
+                <p class="schat-cap-body">We tell you exactly what you need and what you do not before placing your risk across our network of 18 Singapore-licensed insurers.</p>
+              </div>
+            </div>
+            <div class="solutions-chat-visual">
+              <img src="/healthcare.png" alt="Healthcare coverage" />
+            </div>
+          </div>
+
+          <!-- Manufacturing & Energy -->
+          <div class="solutions-panel" data-ind="manufacturing">
+            <div class="solutions-panel-content">
+              <div class="solutions-chat-bubbles">
+                <div class="schat-row schat-row--right">
+                  <div class="schat-bubble schat-bubble--client">We run a production facility with 80 staff. Where are our biggest exposure gaps?</div>
+                </div>
+                <div class="schat-row schat-row--left">
+                  <div class="schat-bubble schat-bubble--trs">Plant breakdown and WICA are your two largest financial exposures. BI cover matters if downtime is costly. Here is how to structure it.</div>
+                </div>
+                <div class="schat-row schat-row--left">
+                  <div class="schat-bubble schat-bubble--trs schat-bubble--placing">
+                    <span class="schat-status"><span class="schat-status-dot"></span>Placing cover</span>
+                    4 insurers matched. Programme structured within 48 hours.
+                  </div>
+                </div>
+              </div>
+              <div class="solutions-chat-caption">
+                <p class="schat-cap-label">Honest risk advisory</p>
+                <p class="schat-cap-body">We tell you exactly what you need and what you do not before placing your risk across our network of 18 Singapore-licensed insurers.</p>
+              </div>
+            </div>
+            <div class="solutions-chat-visual">
+              <img src="/manufacturing.png" alt="Manufacturing coverage" />
+            </div>
+          </div>
+
+        </div><!-- /solutions-chat -->
+
+        <!-- Right: clickable industry list -->
         <div class="solutions-list">
-          <div class="solutions-item">
-            <p class="solutions-item-title">Logistics &amp; Transportation</p>
-            <p class="solutions-item-desc">Cargo liability, fleet cover, and supply chain interruption — managed under one coordinated programme.</p>
-          </div>
-          <div class="solutions-item">
-            <p class="solutions-item-title">Financial Services &amp; FinTech</p>
-            <p class="solutions-item-desc">PI, D&amp;O, and crime cover for regulated businesses navigating custodial and compliance exposure.</p>
-          </div>
-          <div class="solutions-item">
-            <p class="solutions-item-title">Technology &amp; Startups</p>
-            <p class="solutions-item-desc">Cyber, professional indemnity, and directors' liability that scales with your headcount and ARR.</p>
-          </div>
-          <div class="solutions-item">
-            <p class="solutions-item-title">Construction &amp; Built Environment</p>
-            <p class="solutions-item-desc">Contractor all-risk, CAR, and workforce programmes built around your project contracts and subcontractors.</p>
-          </div>
-          <div class="solutions-item">
-            <p class="solutions-item-title">Healthcare &amp; Biomedical</p>
-            <p class="solutions-item-desc">Clinical operations, patient data, and product liability matched to your exact risk profile by specialist insurers.</p>
-          </div>
-          <div class="solutions-item">
-            <p class="solutions-item-title">Manufacturing &amp; Energy</p>
-            <p class="solutions-item-desc">Plant, equipment breakdown, and operational risk cover for production and utilities businesses.</p>
-          </div>
+          <button class="solutions-item solutions-item--active" data-ind="logistics">
+            <div class="solutions-item-text">
+              <p class="solutions-item-title">Logistics &amp; Transportation</p>
+              <p class="solutions-item-desc">Comprehensive cargo liability, corporate fleet cover, and supply chain disruption insurance managed under a single coordinated programme.</p>
+            </div>
+            <svg class="solutions-item-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <button class="solutions-item" data-ind="financial">
+            <div class="solutions-item-text">
+              <p class="solutions-item-title">Financial Services &amp; FinTech</p>
+              <p class="solutions-item-desc">Tailored PI, D&amp;O, and institutional crime cover built for regulated businesses navigating complex custodial and compliance exposures.</p>
+            </div>
+            <svg class="solutions-item-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <button class="solutions-item" data-ind="technology">
+            <div class="solutions-item-text">
+              <p class="solutions-item-title">Technology &amp; Startups</p>
+              <p class="solutions-item-desc">Scalable cyber risk protections, professional indemnity, and directors' liability structures engineered to flex alongside your headcount and ARR growth.</p>
+            </div>
+            <svg class="solutions-item-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <button class="solutions-item" data-ind="construction">
+            <div class="solutions-item-text">
+              <p class="solutions-item-title">Construction &amp; Built Environment</p>
+              <p class="solutions-item-desc">Contractor all-risk, CAR, and specialized workforce programmes precisely optimized around your specific project contracts and subcontractors.</p>
+            </div>
+            <svg class="solutions-item-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <button class="solutions-item" data-ind="healthcare">
+            <div class="solutions-item-text">
+              <p class="solutions-item-title">Healthcare &amp; Biomedical</p>
+              <p class="solutions-item-desc">Clinical operations protection, medical malpractice, patient data privacy, and product liability matched exactly to your risk profile by specialist underwriters.</p>
+            </div>
+            <svg class="solutions-item-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <button class="solutions-item" data-ind="manufacturing">
+            <div class="solutions-item-text">
+              <p class="solutions-item-title">Manufacturing &amp; Energy</p>
+              <p class="solutions-item-desc">Heavy plant property protections, sudden equipment breakdown, and comprehensive operational risk cover built for production and utilities enterprises.</p>
+            </div>
+            <svg class="solutions-item-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
         </div>
-      </div>
 
-    </div>
+      </div><!-- /solutions-body -->
+
+    </div><!-- /solutions-section -->
   </section>
 
   <!-- ACCORDION SECTION -->
@@ -986,6 +1145,23 @@
       });
 
       setTimeout(tick, 800);
+    })();
+
+    /* ── Industry solutions tabs ── */
+    (function () {
+      var items  = document.querySelectorAll('.solutions-item[data-ind]');
+      var panels = document.querySelectorAll('.solutions-panel[data-ind]');
+      if (!items.length) return;
+      items.forEach(function (item) {
+        item.addEventListener('click', function () {
+          var ind = item.dataset.ind;
+          items.forEach(function (i) { i.classList.remove('solutions-item--active'); });
+          item.classList.add('solutions-item--active');
+          panels.forEach(function (p) { p.classList.remove('solutions-panel--active'); });
+          var panel = document.querySelector('.solutions-panel[data-ind="' + ind + '"]');
+          if (panel) panel.classList.add('solutions-panel--active');
+        });
+      });
     })();
 
     /* ── Prompt pills ── */
