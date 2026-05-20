@@ -764,17 +764,6 @@
                 <p class="schat-cap-body">We tell you exactly what you need and what you do not before placing your risk across our network of 18 Singapore-licensed insurers.</p>
               </div>
             </div>
-            <div class="solutions-api-block">
-              <div><span class="api-method">POST</span> <span class="api-path">/v1/coverage/quote</span></div>
-              <span class="api-head">Request</span>
-              <div>&nbsp;&nbsp;<span class="api-key">sector</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="api-str">"technology"</span></div>
-              <div>&nbsp;&nbsp;<span class="api-key">headcount</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="api-num">45</span></div>
-              <div>&nbsp;&nbsp;<span class="api-key">arr_sgd</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="api-num">3,200,000</span></div>
-              <span class="api-head">Response&nbsp;&nbsp;<span class="api-ok">200 OK</span></span>
-              <div>&nbsp;&nbsp;<span class="api-key">policies</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="api-str">["Cyber", "PI", "D&amp;O"]</span></div>
-              <div>&nbsp;&nbsp;<span class="api-key">premium</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="api-str">SGD 12,400 / yr</span></div>
-              <div>&nbsp;&nbsp;<span class="api-key">status</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="api-str">bound_in_48h</span></div>
-            </div>
           </div>
 
           <!-- Construction & Built Environment -->
@@ -853,11 +842,24 @@
 
         <!-- Image card below dark card -->
         <div class="solutions-img-card" id="sol-img-card">
-          <img class="solutions-ind-img solutions-ind-img--active" data-ind="logistics"     src="/logistics.png"     alt="" />
-          <img class="solutions-ind-img"                           data-ind="financial"    src="/finance.png"       alt="" />
-          <img class="solutions-ind-img"                           data-ind="construction" src="/construction.png"  alt="" />
-          <img class="solutions-ind-img"                           data-ind="healthcare"   src="/healthcare.png"    alt="" />
-          <img class="solutions-ind-img"                           data-ind="manufacturing" src="/manufacturing.png" alt="" />
+          <img class="solutions-ind-panel solutions-ind-img solutions-ind-panel--active" data-ind="logistics"     src="/logistics.png"     alt="" />
+          <img class="solutions-ind-panel solutions-ind-img"                             data-ind="financial"     src="/finance.png"       alt="" />
+          <img class="solutions-ind-panel solutions-ind-img"                             data-ind="construction"  src="/construction.png"  alt="" />
+          <img class="solutions-ind-panel solutions-ind-img"                             data-ind="healthcare"    src="/healthcare.png"    alt="" />
+          <img class="solutions-ind-panel solutions-ind-img"                             data-ind="manufacturing" src="/manufacturing.png" alt="" />
+          <div class="solutions-ind-panel solutions-ind-api" data-ind="technology">
+            <div class="solutions-api-block">
+              <div><span class="api-method">POST</span> <span class="api-path">/v1/coverage/quote</span></div>
+              <span class="api-head">Request</span>
+              <div>&nbsp;&nbsp;<span class="api-key">sector</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="api-str">"technology"</span></div>
+              <div>&nbsp;&nbsp;<span class="api-key">headcount</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="api-num">45</span></div>
+              <div>&nbsp;&nbsp;<span class="api-key">arr_sgd</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="api-num">3,200,000</span></div>
+              <span class="api-head">Response&nbsp;&nbsp;<span class="api-ok">200 OK</span></span>
+              <div>&nbsp;&nbsp;<span class="api-key">policies</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="api-str">["Cyber", "PI", "D&amp;O"]</span></div>
+              <div>&nbsp;&nbsp;<span class="api-key">premium</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="api-str">SGD 12,400 / yr</span></div>
+              <div>&nbsp;&nbsp;<span class="api-key">status</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="api-str">bound_in_48h</span></div>
+            </div>
+          </div>
         </div>
 
         </div><!-- /solutions-left-col -->
@@ -1146,10 +1148,9 @@
 
     /* ── Industry solutions tabs ── */
     (function () {
-      var items   = document.querySelectorAll('.solutions-item[data-ind]');
-      var panels  = document.querySelectorAll('.solutions-panel[data-ind]');
-      var imgs    = document.querySelectorAll('.solutions-ind-img[data-ind]');
-      var imgCard = document.getElementById('sol-img-card');
+      var items    = document.querySelectorAll('.solutions-item[data-ind]');
+      var panels   = document.querySelectorAll('.solutions-panel[data-ind]');
+      var indPanels = document.querySelectorAll('.solutions-ind-panel[data-ind]');
       if (!items.length) return;
       items.forEach(function (item) {
         item.addEventListener('click', function () {
@@ -1159,14 +1160,9 @@
           panels.forEach(function (p) { p.classList.remove('solutions-panel--active'); });
           var panel = document.querySelector('.solutions-panel[data-ind="' + ind + '"]');
           if (panel) panel.classList.add('solutions-panel--active');
-          imgs.forEach(function (img) { img.classList.remove('solutions-ind-img--active'); });
-          var activeImg = document.querySelector('.solutions-ind-img[data-ind="' + ind + '"]');
-          if (activeImg) {
-            activeImg.classList.add('solutions-ind-img--active');
-            if (imgCard) imgCard.style.display = '';
-          } else {
-            if (imgCard) imgCard.style.display = 'none';
-          }
+          indPanels.forEach(function (p) { p.classList.remove('solutions-ind-panel--active'); });
+          var activePanel = document.querySelector('.solutions-ind-panel[data-ind="' + ind + '"]');
+          if (activePanel) activePanel.classList.add('solutions-ind-panel--active');
         });
       });
     })();
