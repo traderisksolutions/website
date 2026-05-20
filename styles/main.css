@@ -3361,7 +3361,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   padding: 28px 32px;
 }
 
-.wtc-sub-toggle-wrap { margin-bottom: 6px; }
+.wtc-sub-toggle-wrap { margin-bottom: 12px; display: flex; justify-content: center; }
 .wtc-sub-toggle { display: inline-flex; background: #f3f4f6; border-radius: 10px; padding: 3px; gap: 2px; }
 .wtc-sub-pill { padding: 5px 18px; border-radius: 8px; font-size: 13px; font-weight: 500; color: #6b7280; background: transparent; border: none; cursor: pointer; font-family: var(--font); transition: background 0.15s, color 0.15s; }
 .wtc-sub-pill--active { background: #ffffff; color: #18181b; box-shadow: 0 1px 3px rgba(0,0,0,0.10); }

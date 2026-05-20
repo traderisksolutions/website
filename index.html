@@ -77,36 +77,48 @@
                 <div class="mega-biz-panel mega-biz-panel--active" data-biz="assets">
                   <div class="mega-business-cols">
                     <div class="mega-business-col">
-                      <div class="mega-section-head">Property &amp; Engineering</div>
+                      <div class="mega-section-head">Property &amp; Business</div>
                       <a href="/commercial/property" class="mega-prod-link">Industrial All Risk (IAR) &amp; Fire</a>
                       <a href="/commercial/revenue" class="mega-prod-link">Business Interruption (BI)</a>
+                      <div class="mega-section-head">Engineering &amp; Construction</div>
                       <a href="/commercial/car" class="mega-prod-link">Contractors' All Risks (CAR)</a>
                       <a href="/commercial/equipment" class="mega-prod-link">Machinery Breakdown</a>
                       <a href="/commercial/electronic-equipment" class="mega-prod-link">Electronic Equipment Insurance</a>
+                      <div class="mega-section-head">Commercial Motor</div>
+                      <a href="/commercial/motor" class="mega-prod-link">Commercial Vehicle Insurance</a>
                     </div>
                     <div class="mega-business-col">
-                      <div class="mega-section-head">Marine, Stock &amp; Trade</div>
+                      <div class="mega-section-head">Marine, Stock &amp; Logistics</div>
                       <a href="/commercial/inventory" class="mega-prod-link">Marine Cargo</a>
                       <a href="/commercial/stock-throughput" class="mega-prod-link">Stock Throughput</a>
                       <a href="/commercial/inland-transit" class="mega-prod-link">Inland Transit</a>
+                      <div class="mega-section-head">Trade Credit &amp; Bonds</div>
                       <a href="/commercial/financial-assets" class="mega-prod-link">Trade Credit</a>
                       <a href="/commercial/surety-bonds" class="mega-prod-link">Surety Bonds</a>
-                      <a href="/commercial/motor" class="mega-prod-link">Commercial Vehicle Insurance</a>
                     </div>
                   </div>
                 </div>
                 <div class="mega-biz-panel" data-biz="liabilities">
                   <div class="mega-business-cols">
                     <div class="mega-business-col">
+                      <div class="mega-section-head">General Liability</div>
                       <a href="/commercial/core-liability" class="mega-prod-link">General Comprehensive Liability</a>
-                      <a href="/commercial/imi" class="mega-prod-link">Investment Management Insurance (IMI)</a>
-                      <a href="/commercial/medical-malpractice" class="mega-prod-link">Medical Malpractice Insurance</a>
+                      <div class="mega-section-head">Professional &amp; Management</div>
+                      <a href="/commercial/professional" class="mega-prod-link">Professional Indemnity (PI)</a>
                       <a href="/commercial/dao" class="mega-prod-link">Directors &amp; Officers (D&amp;O)</a>
+                      <a href="/commercial/imi" class="mega-prod-link">Investment Management Insurance (IMI)</a>
+                      <div class="mega-section-head">Environmental Liability</div>
+                      <a href="#" class="mega-prod-link">Environmental Liability</a>
                     </div>
                     <div class="mega-business-col">
-                      <a href="/commercial/professional" class="mega-prod-link">Professional Indemnity (PI)</a>
+                      <div class="mega-section-head">Cyber Insurance</div>
                       <a href="/commercial/cyber" class="mega-prod-link">Cyber Insurance</a>
-                      <a href="#" class="mega-prod-link">Environmental Liability</a>
+                      <div class="mega-section-head">Employee &amp; Workforce</div>
+                      <a href="/commercial/workmen" class="mega-prod-link">Work Injury Compensation (WICA)</a>
+                      <a href="/commercial/foreign-worker" class="mega-prod-link">Foreign Worker Medical</a>
+                      <a href="/commercial/foreign-worker-bond" class="mega-prod-link">Foreign Worker Bond</a>
+                      <a href="/employees/medical" class="mega-prod-link">Group Health Insurance</a>
+                      <a href="/employees/benefits" class="mega-prod-link">Employee Benefits Insurance</a>
                     </div>
                   </div>
                 </div>
@@ -957,18 +969,20 @@
         ]},
         business: { title: 'Business',
           subgroups: [
-            { id: 'assets', label: 'Assets', productIds: ['business-property', 'equipment-breakdown', 'marine-cargo', 'commercial-motor'] },
-            { id: 'liabilities', label: 'Liabilities', productIds: ['general-liability', 'professional-indemnity', 'directors-officers', 'cyber-insurance'] }
+            { id: 'assets', label: 'Assets', productIds: ['prop-business', 'eng-construction', 'marine-stock-logistics', 'trade-credit-bonds', 'commercial-motor'] },
+            { id: 'liabilities', label: 'Liabilities', productIds: ['general-liability', 'professional-management', 'cyber-insurance', 'environmental-liability', 'employee-workforce'] }
           ],
           products: [
-          { id: 'business-property', name: 'Business Property', caption: 'Protect your commercial buildings, operational infrastructure, and physical stock from catastrophic material damage, fire, and severe weather events.' },
-          { id: 'equipment-breakdown', name: 'Equipment Breakdown', caption: 'Guard your core operations against severe financial losses and unexpected downtime caused by the sudden mechanical or electrical failure of critical machinery.' },
-          { id: 'marine-cargo', name: 'Marine Cargo', caption: 'Secure your commercial freight, raw materials, and commodities across international supply chains with robust coverage against transit damage, theft, and loss.' },
-          { id: 'commercial-motor', name: 'Commercial Motor', caption: 'Safeguard the entire fleet driving your business forward with comprehensive physical damage protection and unlimited third-party road liability coverage.' },
-          { id: 'general-liability', name: 'General Liability', caption: 'Shield your business against costly litigation arising from accidental third-party bodily injury, property damage, or defects in your distributed products.' },
-          { id: 'professional-indemnity', name: 'Professional Indemnity', caption: 'Defend your institutional expertise and commercial consultancy against high-stakes client lawsuits alleging professional negligence, design errors, or financial omissions.' },
-          { id: 'directors-officers', name: 'Directors & Officers', caption: 'Insulate the personal wealth and assets of your board members and senior executives against complex regulatory investigations and stakeholder mismanagement claims.' },
-          { id: 'cyber-insurance', name: 'Cyber Insurance', caption: 'Build immediate corporate resilience against data breaches, ransomware extortion, and systemic network outages while covering regulatory penalties and recovery costs.' }
+          { id: 'prop-business', name: 'Property & Business', caption: 'Coverage for your physical assets against damage, loss, and business interruption.' },
+          { id: 'eng-construction', name: 'Engineering & Construction', caption: 'Covers projects, machinery, and sensitive equipment during and after construction.' },
+          { id: 'marine-stock-logistics', name: 'Marine, Stock & Logistics', caption: 'Protect goods in transit — international shipments, warehoused stock, and local movements.' },
+          { id: 'trade-credit-bonds', name: 'Trade Credit & Bonds', caption: 'Safeguard against non-payment by buyers and performance obligations with counterparties.' },
+          { id: 'commercial-motor', name: 'Commercial Motor', caption: 'Comprehensive cover for commercial vehicles, fleets, and goods-carrying trucks.' },
+          { id: 'general-liability', name: 'General Liability', caption: 'Covers third-party bodily injury and property damage from your business operations.' },
+          { id: 'professional-management', name: 'Professional & Management', caption: 'Protects against claims from professional advice, D&O decisions, and management acts.' },
+          { id: 'cyber-insurance', name: 'Cyber Insurance', caption: 'Covers data breaches, ransomware, email compromise, and regulatory response costs.' },
+          { id: 'environmental-liability', name: 'Environmental Liability', caption: 'Covers clean-up costs and third-party claims from pollution or environmental damage.' },
+          { id: 'employee-workforce', name: 'Employee & Workforce', caption: 'Work injury compensation, foreign worker obligations, and employee benefit liabilities.' }
         ]},
         workforce: { title: 'Workforce', products: [
           { id: 'group-medical', name: 'Group Medical', caption: 'Provide comprehensive hospitalization and outpatient coverage for your team to attract premium talent and ensure your workforce stays protected and productive.' },
