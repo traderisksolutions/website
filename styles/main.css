@@ -1082,31 +1082,36 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 .nav-dd-inner {
   display: flex;
 }
-/* Solutions — full-width 3-col, no promo */
+/* Solutions — full-width 3-col, with column dividers */
 .nav-dropdown-panel--solutions {
   width: min(800px, calc(100vw - 32px));
 }
 .nav-dd-inner--solutions {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  column-gap: 4px;
-  row-gap: 0;
-  padding: 16px 16px 20px;
+  gap: 0;
   width: 100%;
 }
+.sol-col {
+  display: flex;
+  flex-direction: column;
+  padding: 20px 20px 24px;
+}
+.sol-col:not(:last-child) {
+  border-right: 1px solid #e5e7eb;
+}
 .sol-col-head {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   color: #9ca3af;
-  padding: 0 14px 12px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  padding: 0 4px 14px;
+  letter-spacing: 0;
 }
 .sol-item {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  padding: 12px 14px;
+  padding: 10px 8px;
   border-radius: 10px;
   text-decoration: none;
   transition: background 0.1s;
