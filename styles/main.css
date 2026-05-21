@@ -985,6 +985,8 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   gap: 2px;
   padding: 16px 12px;
   flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .nav-drawer-links a {
   display: flex;

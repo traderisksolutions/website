@@ -1,3 +1,251 @@
+/* ═══════════════════════════════════════════════════════════════
+   NAV — Trade Risk Solutions
+   Edit this file to update the navbar on ALL pages at once.
+   ═══════════════════════════════════════════════════════════════ */
+
+var NAV_HTML = `
+  <header class="nav">
+    <button class="nav-hamburger" aria-label="Open menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+    <a href="/" class="logo" aria-label="Home">
+      <span class="logo-text">Trade Risk Solutions</span>
+    </a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="/about">Why us</a>
+      <a href="/business">Business</a>
+
+      <!-- PRODUCTS MEGA -->
+      <div class="nav-item" id="products-nav-item">
+        <button class="nav-dropdown-btn" id="products-btn" aria-expanded="false" aria-haspopup="true">Products<svg class="nav-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="nav-mega" id="products-mega" role="menu">
+          <div class="nav-mega-inner">
+            <div class="mega-left">
+              <button class="mega-cat active" data-cat="personal">
+                <span class="mega-cat-title">Personal</span>
+                <span class="mega-cat-sub">Individuals &amp; home</span>
+              </button>
+              <button class="mega-cat" data-cat="business">
+                <span class="mega-cat-title">Business</span>
+                <span class="mega-cat-sub">Commercial insurance</span>
+              </button>
+              <button class="mega-cat" data-cat="workforce">
+                <span class="mega-cat-title">Workforce</span>
+                <span class="mega-cat-sub">Employee benefits</span>
+              </button>
+              <button class="mega-cat" data-cat="api">
+                <span class="mega-cat-title">API</span>
+                <span class="mega-cat-sub">Embedded &amp; white label</span>
+              </button>
+            </div>
+            <div class="mega-right">
+              <!-- Personal -->
+              <div class="mega-panel active" data-panel="personal">
+                <a href="/personal/home-contents" class="mega-link-item"><span class="mega-link-title">Home contents insurance</span><span class="mega-link-sub">Protect your home &amp; belongings</span></a>
+                <a href="/personal/fire" class="mega-link-item"><span class="mega-link-title">Fire insurance</span><span class="mega-link-sub">Coverage against fire &amp; extraneous perils</span></a>
+                <a href="/consumers/travel" class="mega-link-item"><span class="mega-link-title">Single trip travel</span><span class="mega-link-sub">One-trip travel protection</span></a>
+                <a href="/consumers/travel" class="mega-link-item"><span class="mega-link-title">Annual trip travel</span><span class="mega-link-sub">Year-round travel coverage</span></a>
+                <a href="/personal/maid" class="mega-link-item"><span class="mega-link-title">Maid insurance</span><span class="mega-link-sub">Mandatory foreign domestic worker cover</span></a>
+                <a href="/personal/personal-accident" class="mega-link-item"><span class="mega-link-title">Personal accident</span><span class="mega-link-sub">24/7 accident &amp; disability protection</span></a>
+              </div>
+              <!-- Business -->
+              <div class="mega-panel" data-panel="business">
+                <a href="/business" class="mega-panel-overview">View all business insurance &rarr;</a>
+                <div class="mega-biz-toggle">
+                  <button class="mega-biz-pill mega-biz-pill--active" data-biz="assets">Assets</button>
+                  <button class="mega-biz-pill" data-biz="liabilities">Liabilities</button>
+                </div>
+                <div class="mega-biz-panel mega-biz-panel--active" data-biz="assets">
+                  <div class="mega-business-cols">
+                    <div class="mega-business-col">
+                      <div class="mega-section-head">Property &amp; Business</div>
+                      <a href="/commercial/property" class="mega-prod-link">Industrial All Risk (IAR) &amp; Fire</a>
+                      <a href="/commercial/revenue" class="mega-prod-link">Business Interruption (BI)</a>
+                      <div class="mega-section-head">Engineering &amp; Construction</div>
+                      <a href="/commercial/car" class="mega-prod-link">Contractors&#39; All Risks (CAR)</a>
+                      <a href="/commercial/equipment" class="mega-prod-link">Machinery Breakdown</a>
+                      <a href="/commercial/electronic-equipment" class="mega-prod-link">Electronic Equipment Insurance</a>
+                      <div class="mega-section-head">Commercial Motor</div>
+                      <a href="/commercial/motor" class="mega-prod-link">Commercial Vehicle Insurance</a>
+                    </div>
+                    <div class="mega-business-col">
+                      <div class="mega-section-head">Marine, Stock &amp; Logistics</div>
+                      <a href="/commercial/inventory" class="mega-prod-link">Marine Cargo</a>
+                      <a href="/commercial/stock-throughput" class="mega-prod-link">Stock Throughput</a>
+                      <a href="/commercial/inland-transit" class="mega-prod-link">Inland Transit</a>
+                      <div class="mega-section-head">Trade Credit &amp; Bonds</div>
+                      <a href="/commercial/financial-assets" class="mega-prod-link">Trade Credit</a>
+                      <a href="/commercial/surety-bonds" class="mega-prod-link">Surety Bonds</a>
+                    </div>
+                  </div>
+                </div>
+                <div class="mega-biz-panel" data-biz="liabilities">
+                  <div class="mega-business-cols">
+                    <div class="mega-business-col">
+                      <div class="mega-section-head">General Liability</div>
+                      <a href="/commercial/core-liability" class="mega-prod-link">General Comprehensive Liability</a>
+                      <div class="mega-section-head">Professional &amp; Management</div>
+                      <a href="/commercial/professional" class="mega-prod-link">Professional Indemnity (PI)</a>
+                      <a href="/commercial/dao" class="mega-prod-link">Directors &amp; Officers (D&amp;O)</a>
+                      <a href="/commercial/imi" class="mega-prod-link">Investment Management Insurance (IMI)</a>
+                      <div class="mega-section-head">Environmental Liability</div>
+                      <a href="#" class="mega-prod-link">Environmental Liability</a>
+                    </div>
+                    <div class="mega-business-col">
+                      <div class="mega-section-head">Cyber Insurance</div>
+                      <a href="/commercial/cyber" class="mega-prod-link">Cyber Insurance</a>
+                      <div class="mega-section-head">Employee &amp; Workforce</div>
+                      <a href="/commercial/workmen" class="mega-prod-link">Work Injury Compensation (WICA)</a>
+                      <a href="/commercial/foreign-worker" class="mega-prod-link">Foreign Worker Medical</a>
+                      <a href="/commercial/foreign-worker-bond" class="mega-prod-link">Foreign Worker Bond</a>
+                      <a href="/employees/medical" class="mega-prod-link">Group Health Insurance</a>
+                      <a href="/employees/benefits" class="mega-prod-link">Employee Benefits Insurance</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- Workforce -->
+              <div class="mega-panel" data-panel="workforce">
+                <div class="mega-section">
+                  <div class="mega-section-head">Workers</div>
+                  <a href="/commercial/workmen" class="mega-link-item"><span class="mega-link-title">Work Injury Compensation (WICA)</span><span class="mega-link-sub">Mandatory WICA insurance</span></a>
+                  <a href="/commercial/foreign-worker" class="mega-link-item"><span class="mega-link-title">Foreign Worker Medical Insurance</span><span class="mega-link-sub">Medical coverage for foreign workers</span></a>
+                  <a href="/commercial/foreign-worker-bond" class="mega-link-item"><span class="mega-link-title">Foreign Worker Bond Insurance</span><span class="mega-link-sub">Bond insurance for work permit holders</span></a>
+                </div>
+                <div class="mega-section">
+                  <div class="mega-section-head">Employees</div>
+                  <a href="/employees/medical" class="mega-link-item"><span class="mega-link-title">Group Health Insurance</span><span class="mega-link-sub">Group health &amp; hospitalisation</span></a>
+                  <a href="/employees/group-travel" class="mega-link-item"><span class="mega-link-title">Group Business Travel</span><span class="mega-link-sub">Business travel coverage</span></a>
+                  <a href="/employees/benefits" class="mega-link-item"><span class="mega-link-title">Employee Benefits Insurance</span><span class="mega-link-sub">Comprehensive benefits package</span></a>
+                </div>
+                <div class="mega-section">
+                  <div class="mega-section-head">Executive</div>
+                  <a href="/employees/dao" class="mega-link-item"><span class="mega-link-title">D&amp;O Liability</span><span class="mega-link-sub">Directors &amp; Officers protection</span></a>
+                  <a href="/employees/keyman" class="mega-link-item"><span class="mega-link-title">Keyman Insurance</span><span class="mega-link-sub">Key person &amp; business continuity</span></a>
+                </div>
+              </div>
+              <!-- API -->
+              <div class="mega-panel" data-panel="api">
+                <a href="/api/white-label" class="mega-link-item"><span class="mega-link-title">Custom Coverage White Label</span><span class="mega-link-sub">Embedded insurance for your platform</span></a>
+                <a href="/api/gig-worker" class="mega-link-item"><span class="mega-link-title">Gig worker coverage</span><span class="mega-link-sub">Coverage for gig economy workers</span></a>
+                <a href="/api/rentals" class="mega-link-item"><span class="mega-link-title">Rentals</span><span class="mega-link-sub">Rental vehicle &amp; property coverage</span></a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SOLUTIONS -->
+      <div class="nav-dropdown">
+        <button class="nav-dropdown-trigger">Solutions<svg class="nav-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="nav-dropdown-panel nav-dropdown-panel--solutions">
+          <div class="nav-dd-inner nav-dd-inner--solutions">
+            <p class="sol-who">Who is it for?</p>
+            <div class="sol-grid">
+              <a href="/solutions/logistics" class="sol-sector"><span class="sol-sector-name">Logistics, Transportation &amp; Maritime</span><span class="sol-sector-tag">Freight, transport &amp; shipping</span></a>
+              <a href="/solutions/energy" class="sol-sector"><span class="sol-sector-name">Energy &amp; Chemicals</span><span class="sol-sector-tag">Oil, gas, chemicals &amp; renewables</span></a>
+              <a href="/solutions/wholesale" class="sol-sector"><span class="sol-sector-name">Wholesale Trade &amp; Consumers</span><span class="sol-sector-tag">Retail, e-commerce &amp; hospitality</span></a>
+              <a href="/solutions/financial-services" class="sol-sector"><span class="sol-sector-name">Financial Services &amp; Insurance</span><span class="sol-sector-tag">Banking, insurance &amp; wealth</span></a>
+              <a href="/solutions/built-environment" class="sol-sector"><span class="sol-sector-name">Built Environment</span><span class="sol-sector-tag">Construction, real estate &amp; data centres</span></a>
+              <a href="/solutions/healthcare" class="sol-sector"><span class="sol-sector-name">Healthcare &amp; Biomedical Sciences</span><span class="sol-sector-tag">Medical devices, pharma &amp; life sciences</span></a>
+              <a href="/solutions/manufacturing" class="sol-sector"><span class="sol-sector-name">Manufacturing, Electronics &amp; Aerospace</span><span class="sol-sector-tag">Industrial, electronics &amp; defence</span></a>
+              <a href="/solutions/professional-services" class="sol-sector"><span class="sol-sector-name">Professional &amp; Business Services</span><span class="sol-sector-tag">Consulting, legal &amp; accounting</span></a>
+              <a href="/solutions/tech-media-startups" class="sol-sector"><span class="sol-sector-name">Tech, Media &amp; Startups</span><span class="sol-sector-tag">Technology, media &amp; venture-backed</span></a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </nav>
+    <div class="nav-actions">
+      <a href="#" class="btn btn-primary" data-track="nav_contact_us">Contact us</a>
+    </div>
+  </header>
+
+  <!-- MOBILE DRAWER -->
+  <div class="nav-drawer-overlay" aria-hidden="true"></div>
+  <aside class="nav-drawer" aria-label="Mobile navigation">
+    <div class="nav-drawer-top">
+      <span class="logo-text">Trade Risk Solutions</span>
+      <button class="nav-drawer-close" aria-label="Close menu">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <nav class="nav-drawer-links">
+      <a href="/about">Why us</a>
+      <a href="/business">Business</a>
+
+      <button class="nav-drawer-accordion">Products<svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <div class="nav-drawer-sub">
+        <span class="nav-drawer-group-label">Personal</span>
+        <a href="/personal/home-contents">Home contents insurance</a>
+        <a href="/personal/fire">Fire insurance</a>
+        <a href="/consumers/travel">Single trip travel</a>
+        <a href="/consumers/travel">Annual trip travel</a>
+        <a href="/personal/maid">Maid insurance</a>
+        <a href="/personal/personal-accident">Personal accident</a>
+        <span class="nav-drawer-group-label">Business &#8212; Assets</span>
+        <a href="/commercial/property">IAR &amp; Fire</a>
+        <a href="/commercial/revenue">Business Interruption</a>
+        <a href="/commercial/car">Contractors&#39; All Risks (CAR)</a>
+        <a href="/commercial/equipment">Machinery Breakdown</a>
+        <a href="/commercial/electronic-equipment">Electronic Equipment Insurance</a>
+        <a href="/commercial/inventory">Marine Cargo</a>
+        <a href="/commercial/stock-throughput">Stock Throughput</a>
+        <a href="/commercial/inland-transit">Inland Transit</a>
+        <a href="/commercial/financial-assets">Trade Credit</a>
+        <a href="/commercial/surety-bonds">Surety Bonds</a>
+        <a href="/commercial/motor">Commercial Vehicle Insurance</a>
+        <span class="nav-drawer-group-label">Business &#8212; Liabilities</span>
+        <a href="/commercial/core-liability">General Comprehensive Liability</a>
+        <a href="/commercial/imi">Investment Management Insurance (IMI)</a>
+        <a href="/commercial/medical-malpractice">Medical Malpractice Insurance</a>
+        <a href="/commercial/dao">Directors &amp; Officers (D&amp;O)</a>
+        <a href="/commercial/professional">Professional Indemnity (PI)</a>
+        <a href="/commercial/cyber">Cyber Insurance</a>
+        <span class="nav-drawer-group-label">Workforce benefits</span>
+        <span class="nav-drawer-inner-label">Workers</span>
+        <a href="/commercial/workmen">WICA Insurance</a>
+        <a href="/commercial/foreign-worker">Foreign Worker Medical</a>
+        <a href="/commercial/foreign-worker-bond">Foreign Worker Bond</a>
+        <span class="nav-drawer-inner-label">Employees</span>
+        <a href="/employees/medical">Group Health Insurance</a>
+        <a href="/employees/group-travel">Group Business Travel</a>
+        <a href="/employees/benefits">Employee Benefits Insurance</a>
+        <span class="nav-drawer-inner-label">Executive</span>
+        <a href="/employees/dao">D&amp;O Liability</a>
+        <a href="/employees/keyman">Keyman Insurance</a>
+        <span class="nav-drawer-group-label">API</span>
+        <a href="/api/white-label">Custom Coverage White Label</a>
+        <a href="/api/gig-worker">Gig worker</a>
+        <a href="/api/rentals">Rentals</a>
+      </div>
+
+      <button class="nav-drawer-accordion">Solutions<svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <div class="nav-drawer-sub">
+        <a href="/solutions/logistics">Logistics, Transportation &amp; Maritime</a>
+        <a href="/solutions/financial-services">Financial Services &amp; Insurance</a>
+        <a href="/solutions/tech-media-startups">Tech, Media &amp; Startups</a>
+        <a href="/solutions/built-environment">Built Environment</a>
+        <a href="/solutions/healthcare">Healthcare &amp; Biomedical Sciences</a>
+        <a href="/solutions/manufacturing">Manufacturing, Electronics &amp; Aerospace</a>
+        <a href="/solutions/energy">Energy &amp; Chemicals</a>
+        <a href="/solutions/wholesale">Wholesale Trade &amp; Consumers</a>
+        <a href="/solutions/professional-services">Professional &amp; Business Services</a>
+      </div>
+    </nav>
+    <div class="nav-drawer-cta">
+      <a href="#" class="btn btn-primary btn-lg" data-track="drawer_contact_us">Contact us</a>
+    </div>
+  </aside>
+`;
+
+/* ── Inject nav into #nav-root placeholder ── */
+(function () {
+  var root = document.getElementById('nav-root');
+  if (root) root.innerHTML = NAV_HTML;
+})();
+
 (function () {
   var nav       = document.querySelector('.nav');
   var hamburger = document.querySelector('.nav-hamburger');
@@ -44,7 +292,6 @@
     dropdowns.forEach(function (dd) { dd.classList.remove('open'); });
     productsItem.classList.add('open');
     if (productsBtn) productsBtn.setAttribute('aria-expanded', 'true');
-    /* Clamp right edge if mega overflows viewport */
     if (productsMega) {
       var megaW    = productsMega.offsetWidth || Math.min(900, window.innerWidth - 32);
       var itemRect = productsItem.getBoundingClientRect();
@@ -119,10 +366,8 @@
     btn.addEventListener('mouseenter', function () {
       var panel = btn.closest('.nav-dropdown-panel');
       var target = btn.dataset.target;
-
       panel.querySelectorAll('.nav-dd-item').forEach(function (b) { b.classList.remove('active'); });
       btn.classList.add('active');
-
       panel.querySelectorAll('.nav-dd-group').forEach(function (g) { g.classList.remove('active'); });
       var group = panel.querySelector('.nav-dd-group[data-group="' + target + '"]');
       if (group) group.classList.add('active');
@@ -167,27 +412,21 @@
   document.querySelectorAll('.nav-drawer-sub').forEach(function (sub) {
     var labels = Array.from(sub.querySelectorAll('.nav-drawer-group-label'));
     labels.forEach(function (label) {
-      /* Collect all following siblings until next label */
       var siblings = [];
       var el = label.nextElementSibling;
       while (el && !el.classList.contains('nav-drawer-group-label')) {
         siblings.push(el);
         el = el.nextElementSibling;
       }
-
-      /* Wrap siblings in a collapsible panel */
       var panel = document.createElement('div');
       panel.className = 'nav-drawer-sub-panel';
       siblings.forEach(function (s) { panel.appendChild(s); });
       label.parentNode.insertBefore(panel, label.nextElementSibling);
-
-      /* Replace label span with an accordion button */
       var btn = document.createElement('button');
       btn.className = 'nav-drawer-sub-accordion';
       btn.innerHTML = label.textContent.trim()
         + '<svg class="acc-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
       label.parentNode.replaceChild(btn, label);
-
       btn.addEventListener('click', function () {
         var open = panel.classList.contains('open');
         btn.classList.toggle('open', !open);
@@ -200,32 +439,24 @@
 /* ── Accordion ── */
 (function () {
   document.querySelectorAll('.accordion').forEach(function (acc) {
-    var mode = acc.dataset.mode || 'single'; // 'single' | 'multi'
-
+    var mode = acc.dataset.mode || 'single';
     function getItems()    { return Array.from(acc.querySelectorAll('.acc-item:not(.acc-item--disabled)')); }
     function getTriggers() { return getItems().map(function (i) { return i.querySelector('.acc-trigger'); }).filter(Boolean); }
-
     function open(item) {
       item.classList.add('acc-item--open');
       var btn = item.querySelector('.acc-trigger');
       if (btn) btn.setAttribute('aria-expanded', 'true');
     }
-
     function close(item) {
       item.classList.remove('acc-item--open');
       var btn = item.querySelector('.acc-trigger');
       if (btn) btn.setAttribute('aria-expanded', 'false');
     }
-
     function toggle(item) {
       var isOpen = item.classList.contains('acc-item--open');
-      if (mode === 'single' && !isOpen) {
-        getItems().forEach(close);
-      }
+      if (mode === 'single' && !isOpen) { getItems().forEach(close); }
       isOpen ? close(item) : open(item);
     }
-
-    /* Click */
     acc.querySelectorAll('.acc-trigger').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var item = btn.closest('.acc-item');
@@ -233,8 +464,6 @@
         toggle(item);
       });
     });
-
-    /* Keyboard navigation */
     acc.addEventListener('keydown', function (e) {
       var triggers = getTriggers();
       var idx = triggers.indexOf(document.activeElement);
@@ -249,36 +478,20 @@
 
 /* ── Coverage section switcher ── */
 (function () {
-  /* 1 — Category tabs (Personal / Business / Workforce / API) */
   var catTabs = document.querySelectorAll('.sc-cat-tab');
   if (!catTabs.length) return;
-
   function switchCat(cat) {
-    catTabs.forEach(function (t) {
-      t.classList.toggle('sc-cat-tab--active', t.dataset.cat === cat);
-    });
-    document.querySelectorAll('.sc-cat-panel').forEach(function (p) {
-      p.classList.toggle('sc-cat-panel--active', p.dataset.cat === cat);
-    });
-    document.querySelectorAll('.sc-prod-pills').forEach(function (r) {
-      r.classList.toggle('sc-prod-pills--active', r.dataset.cat === cat);
-    });
+    catTabs.forEach(function (t) { t.classList.toggle('sc-cat-tab--active', t.dataset.cat === cat); });
+    document.querySelectorAll('.sc-cat-panel').forEach(function (p) { p.classList.toggle('sc-cat-panel--active', p.dataset.cat === cat); });
+    document.querySelectorAll('.sc-prod-pills').forEach(function (r) { r.classList.toggle('sc-prod-pills--active', r.dataset.cat === cat); });
   }
-
-  catTabs.forEach(function (t) {
-    t.addEventListener('click', function () { switchCat(t.dataset.cat); });
-  });
-
-  /* 2 — Bottom product pills → swap overview card (Personal / Workforce / API) */
+  catTabs.forEach(function (t) { t.addEventListener('click', function () { switchCat(t.dataset.cat); }); });
   document.querySelectorAll('.sc-prod-pill[data-prod]').forEach(function (pill) {
     pill.addEventListener('click', function () {
       var cat = pill.dataset.cat;
       var prod = pill.dataset.prod;
       var pillRow = document.querySelector('.sc-prod-pills[data-cat="' + cat + '"]');
-      if (pillRow) {
-        pillRow.querySelectorAll('.sc-prod-pill').forEach(function (p) { p.classList.remove('sc-prod-pill--active'); });
-        pill.classList.add('sc-prod-pill--active');
-      }
+      if (pillRow) { pillRow.querySelectorAll('.sc-prod-pill').forEach(function (p) { p.classList.remove('sc-prod-pill--active'); }); pill.classList.add('sc-prod-pill--active'); }
       var catPanel = document.querySelector('.sc-cat-panel[data-cat="' + cat + '"]');
       if (catPanel) {
         catPanel.querySelectorAll('.sc-overview-card').forEach(function (c) { c.classList.remove('sc-overview-card--active'); });
@@ -287,16 +500,11 @@
       }
     });
   });
-
-  /* 3 — Bottom product pills → swap Business sub-panel (Assets / Liabilities) */
   document.querySelectorAll('.sc-prod-pill[data-sub]').forEach(function (pill) {
     pill.addEventListener('click', function () {
       var sub = pill.dataset.sub;
       var pillRow = document.querySelector('.sc-prod-pills[data-cat="business"]');
-      if (pillRow) {
-        pillRow.querySelectorAll('.sc-prod-pill').forEach(function (p) { p.classList.remove('sc-prod-pill--active'); });
-        pill.classList.add('sc-prod-pill--active');
-      }
+      if (pillRow) { pillRow.querySelectorAll('.sc-prod-pill').forEach(function (p) { p.classList.remove('sc-prod-pill--active'); }); pill.classList.add('sc-prod-pill--active'); }
       var bizPanel = document.querySelector('.sc-cat-panel[data-cat="business"]');
       if (bizPanel) {
         bizPanel.querySelectorAll('.sc-biz-sub').forEach(function (s) { s.classList.remove('sc-biz-sub--active'); });
@@ -305,8 +513,6 @@
       }
     });
   });
-
-  /* 4 — Product rows in Business sub-panels → update right description */
   document.querySelectorAll('.sc-biz-sub .sc-prow[data-prod]').forEach(function (row) {
     row.addEventListener('click', function () {
       var sub = row.closest('.sc-biz-sub');
@@ -324,7 +530,6 @@
 /* ── Scroll reveal ── */
 (function () {
   if (!window.IntersectionObserver) return;
-
   var observer = new IntersectionObserver(function (entries) {
     entries.forEach(function (entry) {
       if (!entry.isIntersecting) return;
@@ -332,7 +537,6 @@
       observer.unobserve(entry.target);
     });
   }, { threshold: 0.08, rootMargin: '0px 0px -32px 0px' });
-
   function watch(selector, stagger) {
     document.querySelectorAll(selector).forEach(function (el, i) {
       el.classList.add('reveal');
@@ -340,24 +544,14 @@
       observer.observe(el);
     });
   }
-
-  /* Trust section */
   watch('.trust-heading-row', false);
   watch('.trust-logo-row > *', true);
-
-  /* Showcase */
   watch('.sc-card', false);
-
-  /* Accordion */
   watch('.acc-col-head', false);
   watch('.acc-item', true);
-
-  /* CTA */
   watch('.cta-heading', false);
   watch('.cta-sub',     false);
   watch('.cta-box',     false);
-
-  /* Footer */
   watch('.site-footer', false);
 })();
 
@@ -387,7 +581,6 @@
   card.setAttribute('aria-label', 'Contact us');
 
   card.innerHTML = [
-    /* ── Topbar: back | tabs | close — all on the same axis ── */
     '<div class="nav-ctac-topbar">',
     '  <div class="nav-ctac-topbar-side">',
     '    <button class="nav-ctac-back nav-ctac-panel--hidden" id="nav-ctac-back" aria-label="Back">',
@@ -404,120 +597,65 @@
     '    </button>',
     '  </div>',
     '</div>',
-
-    /* ── Department selector screen ── */
     '<div class="nav-ctac-dept-screen" id="nav-ctac-dept-screen">',
     '  <p class="nav-ctac-dept-heading">Who would you like to speak to?</p>',
     '  <div class="nav-ctac-dept-options">',
-    '    <button class="nav-ctac-dept-btn" data-dept="Sales">',
-    '      <div><p class="nav-ctac-dept-name">Sales</p><p class="nav-ctac-dept-desc">Insurance quotes &amp; new plans</p></div>',
-    '    </button>',
-    '    <button class="nav-ctac-dept-btn" data-dept="Customer Support">',
-    '      <div><p class="nav-ctac-dept-name">Customer Support</p><p class="nav-ctac-dept-desc">Help with existing policies</p></div>',
-    '    </button>',
-    '    <button class="nav-ctac-dept-btn nav-ctac-dept-btn--claims" data-dept="Claims">',
-    '      <div><p class="nav-ctac-dept-name">Claims</p><p class="nav-ctac-dept-desc">Start or track a claim →</p></div>',
-    '    </button>',
+    '    <button class="nav-ctac-dept-btn" data-dept="Sales"><div><p class="nav-ctac-dept-name">Sales</p><p class="nav-ctac-dept-desc">Insurance quotes &amp; new plans</p></div></button>',
+    '    <button class="nav-ctac-dept-btn" data-dept="Customer Support"><div><p class="nav-ctac-dept-name">Customer Support</p><p class="nav-ctac-dept-desc">Help with existing policies</p></div></button>',
+    '    <button class="nav-ctac-dept-btn nav-ctac-dept-btn--claims" data-dept="Claims"><div><p class="nav-ctac-dept-name">Claims</p><p class="nav-ctac-dept-desc">Start or track a claim &rarr;</p></div></button>',
     '  </div>',
     '</div>',
-
     '<div class="nav-ctac-header nav-ctac-panel--hidden" id="nav-ctac-header">',
     '  <p class="nav-ctac-heading">Tell me more about</p>',
     '  <p class="nav-ctac-heading-topic" id="nav-ctac-topic-label">...</p>',
     '</div>',
-
-    /* ── WhatsApp form ── */
     '<div class="nav-ctac-form nav-ctac-panel--hidden" id="nav-ctac-form-wa">',
-    '  <div class="nav-ctac-field">',
-    '    <div class="nav-ctac-chips" id="nav-ctac-chips-wa">' + buildChips('wa') + '</div>',
-    '  </div>',
+    '  <div class="nav-ctac-field"><div class="nav-ctac-chips" id="nav-ctac-chips-wa">' + buildChips('wa') + '</div></div>',
     '  <div class="nav-ctac-field-row">',
-    '    <div class="nav-ctac-field">',
-    '      <label class="nav-ctac-label" for="nav-ctac-fname">First name</label>',
-    '      <input class="nav-ctac-field-input" id="nav-ctac-fname" type="text" placeholder="Sarah" autocomplete="given-name" />',
-    '    </div>',
-    '    <div class="nav-ctac-field">',
-    '      <label class="nav-ctac-label" for="nav-ctac-lname">Last name</label>',
-    '      <input class="nav-ctac-field-input" id="nav-ctac-lname" type="text" placeholder="Lim" autocomplete="family-name" />',
-    '    </div>',
+    '    <div class="nav-ctac-field"><label class="nav-ctac-label" for="nav-ctac-fname">First name</label><input class="nav-ctac-field-input" id="nav-ctac-fname" type="text" placeholder="Sarah" autocomplete="given-name" /></div>',
+    '    <div class="nav-ctac-field"><label class="nav-ctac-label" for="nav-ctac-lname">Last name</label><input class="nav-ctac-field-input" id="nav-ctac-lname" type="text" placeholder="Lim" autocomplete="family-name" /></div>',
     '  </div>',
-    '  <div class="nav-ctac-field">',
-    '    <label class="nav-ctac-label" for="nav-ctac-msg">More details</label>',
-    '    <input class="nav-ctac-field-input" id="nav-ctac-msg" type="text" placeholder="e.g. renewing in June, fleet of 3 cars…" />',
-    '  </div>',
-    '  <button class="nav-ctac-send" id="nav-ctac-send" data-track="nav_contact_send">',
-    '    <span>Send on WhatsApp</span>',
-    '  </button>',
+    '  <div class="nav-ctac-field"><label class="nav-ctac-label" for="nav-ctac-msg">More details</label><input class="nav-ctac-field-input" id="nav-ctac-msg" type="text" placeholder="e.g. renewing in June, fleet of 3 cars…" /></div>',
+    '  <button class="nav-ctac-send" id="nav-ctac-send" data-track="nav_contact_send"><span>Send on WhatsApp</span></button>',
     '</div>',
-
-    /* ── Email form ── */
     '<div class="nav-ctac-form nav-ctac-panel--hidden" id="nav-ctac-form-email">',
-    '  <div class="nav-ctac-field">',
-    '    <div class="nav-ctac-chips" id="nav-ctac-chips-email">' + buildChips('email') + '</div>',
-    '  </div>',
+    '  <div class="nav-ctac-field"><div class="nav-ctac-chips" id="nav-ctac-chips-email">' + buildChips('email') + '</div></div>',
     '  <div class="nav-ctac-field-row">',
-    '    <div class="nav-ctac-field">',
-    '      <label class="nav-ctac-label" for="nav-ctac-e-fname">First name</label>',
-    '      <input class="nav-ctac-field-input" id="nav-ctac-e-fname" type="text" placeholder="Sarah" autocomplete="given-name" />',
-    '    </div>',
-    '    <div class="nav-ctac-field">',
-    '      <label class="nav-ctac-label" for="nav-ctac-e-lname">Last name</label>',
-    '      <input class="nav-ctac-field-input" id="nav-ctac-e-lname" type="text" placeholder="Lim" autocomplete="family-name" />',
-    '    </div>',
+    '    <div class="nav-ctac-field"><label class="nav-ctac-label" for="nav-ctac-e-fname">First name</label><input class="nav-ctac-field-input" id="nav-ctac-e-fname" type="text" placeholder="Sarah" autocomplete="given-name" /></div>',
+    '    <div class="nav-ctac-field"><label class="nav-ctac-label" for="nav-ctac-e-lname">Last name</label><input class="nav-ctac-field-input" id="nav-ctac-e-lname" type="text" placeholder="Lim" autocomplete="family-name" /></div>',
     '  </div>',
-    '  <div class="nav-ctac-field">',
-    '    <label class="nav-ctac-label" for="nav-ctac-e-company">Company name <span class="nav-ctac-optional">(optional — leave blank for individual)</span></label>',
-    '    <input class="nav-ctac-field-input" id="nav-ctac-e-company" type="text" placeholder="e.g. Acme Pte Ltd" autocomplete="organization" />',
-    '  </div>',
-    '  <div class="nav-ctac-field">',
-    '    <label class="nav-ctac-label" for="nav-ctac-e-email">Email</label>',
-    '    <input class="nav-ctac-field-input" id="nav-ctac-e-email" type="email" placeholder="e.g. sarah@company.com" autocomplete="email" />',
-    '  </div>',
-    '  <div class="nav-ctac-field">',
-    '    <label class="nav-ctac-label" for="nav-ctac-e-phone">Phone <span class="nav-ctac-optional">(include area code if not a Singapore number)</span></label>',
-    '    <input class="nav-ctac-field-input" id="nav-ctac-e-phone" type="tel" placeholder="91234567" autocomplete="tel" />',
-    '  </div>',
-    '  <div class="nav-ctac-field">',
-    '    <label class="nav-ctac-label" for="nav-ctac-e-msg">More details</label>',
-    '    <input class="nav-ctac-field-input" id="nav-ctac-e-msg" type="text" placeholder="e.g. fleet renewal, 50 employees…" />',
-    '  </div>',
-    '  <button class="nav-ctac-send" id="nav-ctac-e-send" data-track="nav_email_send">',
-    '    <span>Submit</span>',
-    '  </button>',
+    '  <div class="nav-ctac-field"><label class="nav-ctac-label" for="nav-ctac-e-company">Company name <span class="nav-ctac-optional">(optional)</span></label><input class="nav-ctac-field-input" id="nav-ctac-e-company" type="text" placeholder="e.g. Acme Pte Ltd" autocomplete="organization" /></div>',
+    '  <div class="nav-ctac-field"><label class="nav-ctac-label" for="nav-ctac-e-email">Email</label><input class="nav-ctac-field-input" id="nav-ctac-e-email" type="email" placeholder="e.g. sarah@company.com" autocomplete="email" /></div>',
+    '  <div class="nav-ctac-field"><label class="nav-ctac-label" for="nav-ctac-e-phone">Phone</label><input class="nav-ctac-field-input" id="nav-ctac-e-phone" type="tel" placeholder="91234567" autocomplete="tel" /></div>',
+    '  <div class="nav-ctac-field"><label class="nav-ctac-label" for="nav-ctac-e-msg">More details</label><input class="nav-ctac-field-input" id="nav-ctac-e-msg" type="text" placeholder="e.g. fleet renewal, 50 employees…" /></div>',
+    '  <button class="nav-ctac-send" id="nav-ctac-e-send" data-track="nav_email_send"><span>Submit</span></button>',
     '</div>',
-
     '<p class="nav-ctac-wa-note" id="nav-ctac-note-wa">' + WA_ICON + ' We\'ll reply on WhatsApp</p>',
     '<p class="nav-ctac-wa-note nav-ctac-panel--hidden" id="nav-ctac-note-email">' + EMAIL_ICON + ' We\'ll reply via email within 1 business day</p>',
-
-    /* ── Success screen ── */
     '<div class="nav-ctac-success nav-ctac-panel--hidden" id="nav-ctac-success">',
-    '  <div class="nav-ctac-success-icon">',
-    '    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
-    '  </div>',
+    '  <div class="nav-ctac-success-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>',
     '  <p class="nav-ctac-success-title">Sent!</p>',
     '  <p class="nav-ctac-success-body" id="nav-ctac-success-body">We\'ve received your message.</p>',
     '  <button class="nav-ctac-send" id="nav-ctac-success-close">Close</button>',
     '</div>'
   ].join('');
 
-  /* ── Backdrop (mobile modal) ── */
   var backdrop = document.createElement('div');
   backdrop.className = 'nav-ctac-backdrop';
   backdrop.addEventListener('click', closeCard);
   document.body.appendChild(backdrop);
   document.body.appendChild(card);
 
-  /* Refs */
-  var topicLabel     = document.getElementById('nav-ctac-topic-label');
-  var firstNameInput = document.getElementById('nav-ctac-fname');
-  var lastNameInput  = document.getElementById('nav-ctac-lname');
-  var msgInput       = document.getElementById('nav-ctac-msg');
+  var topicLabel      = document.getElementById('nav-ctac-topic-label');
+  var firstNameInput  = document.getElementById('nav-ctac-fname');
+  var lastNameInput   = document.getElementById('nav-ctac-lname');
+  var msgInput        = document.getElementById('nav-ctac-msg');
   var eFirstNameInput = document.getElementById('nav-ctac-e-fname');
   var eLastNameInput  = document.getElementById('nav-ctac-e-lname');
-  var eCompanyInput  = document.getElementById('nav-ctac-e-company');
-  var eEmailInput    = document.getElementById('nav-ctac-e-email');
-  var ePhoneInput    = document.getElementById('nav-ctac-e-phone');
-  var eMsgInput      = document.getElementById('nav-ctac-e-msg');
+  var eCompanyInput   = document.getElementById('nav-ctac-e-company');
+  var eEmailInput     = document.getElementById('nav-ctac-e-email');
+  var ePhoneInput     = document.getElementById('nav-ctac-e-phone');
+  var eMsgInput       = document.getElementById('nav-ctac-e-msg');
   var selectedTopicWa    = '';
   var selectedTopicEmail = '';
   var selectedDept       = '';
@@ -525,26 +663,17 @@
 
   var deptScreen = document.getElementById('nav-ctac-dept-screen');
   var MAIN_PANELS = ['nav-ctac-tabs', 'nav-ctac-header', 'nav-ctac-form-wa', 'nav-ctac-form-email', 'nav-ctac-note-wa', 'nav-ctac-note-email'];
-
   var backBtn = document.getElementById('nav-ctac-back');
 
   function showDeptScreen() {
     deptScreen.classList.remove('nav-ctac-panel--hidden');
     backBtn.classList.add('nav-ctac-panel--hidden');
-    MAIN_PANELS.forEach(function (id) {
-      var el = document.getElementById(id);
-      if (el) el.classList.add('nav-ctac-panel--hidden');
-    });
+    MAIN_PANELS.forEach(function (id) { var el = document.getElementById(id); if (el) el.classList.add('nav-ctac-panel--hidden'); });
   }
-
   function showMainForm() {
     deptScreen.classList.add('nav-ctac-panel--hidden');
     backBtn.classList.remove('nav-ctac-panel--hidden');
-    ['nav-ctac-tabs', 'nav-ctac-header'].forEach(function (id) {
-      var el = document.getElementById(id);
-      if (el) el.classList.remove('nav-ctac-panel--hidden');
-    });
-    /* restore active tab panels */
+    ['nav-ctac-tabs', 'nav-ctac-header'].forEach(function (id) { var el = document.getElementById(id); if (el) el.classList.remove('nav-ctac-panel--hidden'); });
     var showWa = activeTab === 'wa';
     document.getElementById('nav-ctac-form-wa').classList.toggle('nav-ctac-panel--hidden', !showWa);
     document.getElementById('nav-ctac-form-email').classList.toggle('nav-ctac-panel--hidden', showWa);
@@ -552,7 +681,6 @@
     document.getElementById('nav-ctac-note-email').classList.toggle('nav-ctac-panel--hidden', showWa);
   }
 
-  /* Dept button clicks */
   card.querySelectorAll('.nav-ctac-dept-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var dept = btn.dataset.dept;
@@ -563,51 +691,37 @@
     });
   });
 
-  /* Tab switching */
   card.querySelectorAll('.nav-ctac-tab').forEach(function (tab) {
     tab.addEventListener('click', function () {
       activeTab = tab.dataset.ctacTab;
       card.querySelectorAll('.nav-ctac-tab').forEach(function (t) { t.classList.remove('nav-ctac-tab--active'); });
       tab.classList.add('nav-ctac-tab--active');
-
       var showWa = activeTab === 'wa';
       document.getElementById('nav-ctac-form-wa').classList.toggle('nav-ctac-panel--hidden', !showWa);
       document.getElementById('nav-ctac-form-email').classList.toggle('nav-ctac-panel--hidden', showWa);
       document.getElementById('nav-ctac-note-wa').classList.toggle('nav-ctac-panel--hidden', !showWa);
       document.getElementById('nav-ctac-note-email').classList.toggle('nav-ctac-panel--hidden', showWa);
-
       var topic = showWa ? selectedTopicWa : selectedTopicEmail;
       topicLabel.textContent = topic || '...';
       topicLabel.style.color = topic ? 'var(--text)' : '';
-
       setTimeout(function () { (showWa ? firstNameInput : eFirstNameInput).focus(); }, 50);
     });
   });
 
-  /* State */
   function isOpen() { return card.classList.contains('open'); }
-
   var _activeTrigger = null;
-
   function isMobile() { return window.innerWidth <= 768; }
 
   function positionCard(trigger) {
-    if (isMobile()) return; /* CSS handles layout on mobile */
+    if (isMobile()) return;
     var rect       = trigger.getBoundingClientRect();
     var cardW      = 420;
     var spaceBelow = window.innerHeight - rect.bottom - 12;
     var spaceAbove = rect.top - 12;
-
-    /* Horizontal: right-align to button, clamp left edge */
     var rightEdge = Math.max(window.innerWidth - rect.right, 12);
-    if (window.innerWidth - rightEdge - cardW < 12) {
-      rightEdge = Math.max(window.innerWidth - cardW - 12, 12);
-    }
+    if (window.innerWidth - rightEdge - cardW < 12) { rightEdge = Math.max(window.innerWidth - cardW - 12, 12); }
     card.style.right = rightEdge + 'px';
     card.style.left  = 'auto';
-
-    /* Vertical: open below if enough room, otherwise anchor bottom of card
-       to just above the button so it grows upward */
     if (spaceBelow >= 280) {
       card.style.top      = (rect.bottom + 8) + 'px';
       card.style.bottom   = 'auto';
@@ -623,20 +737,10 @@
     _activeTrigger = trigger || null;
     if (trigger) positionCard(trigger);
     card.classList.add('open');
-    if (isMobile()) {
-      backdrop.classList.add('open');
-      document.body.style.overflow = 'hidden';
-    }
-    if (dept) {
-      selectedDept = dept;
-      showMainForm();
-      setTimeout(function () { firstNameInput.focus(); }, 50);
-    } else {
-      selectedDept = '';
-      showDeptScreen();
-    }
+    if (isMobile()) { backdrop.classList.add('open'); document.body.style.overflow = 'hidden'; }
+    if (dept) { selectedDept = dept; showMainForm(); setTimeout(function () { firstNameInput.focus(); }, 50); }
+    else { selectedDept = ''; showDeptScreen(); }
   }
-
   function closeCard() {
     card.classList.remove('open');
     card.classList.remove('nav-ctac--modal');
@@ -646,16 +750,12 @@
     document.body.style.overflow = '';
   }
 
-  /* Reposition on scroll so popover follows the trigger button */
   window.addEventListener('scroll', function () {
     if (!isOpen() || !_activeTrigger) return;
     var rect = _activeTrigger.getBoundingClientRect();
-    /* Close if trigger has scrolled fully off-screen */
     if (rect.bottom < 0 || rect.top > window.innerHeight) { closeCard(); return; }
     positionCard(_activeTrigger);
   }, { passive: true });
-
-  /* Reposition on resize so popover stays anchored at any viewport width */
   window.addEventListener('resize', function () {
     if (!isOpen() || !_activeTrigger) return;
     positionCard(_activeTrigger);
@@ -664,15 +764,11 @@
   var PANELS = ['nav-ctac-tabs', 'nav-ctac-header', 'nav-ctac-form-wa', 'nav-ctac-form-email', 'nav-ctac-note-wa', 'nav-ctac-note-email'];
 
   function showSuccess(bodyText) {
-    PANELS.forEach(function (id) {
-      var el = document.getElementById(id);
-      if (el) el.classList.add('nav-ctac-panel--hidden');
-    });
+    PANELS.forEach(function (id) { var el = document.getElementById(id); if (el) el.classList.add('nav-ctac-panel--hidden'); });
     document.getElementById('nav-ctac-close').classList.add('nav-ctac-panel--hidden');
     document.getElementById('nav-ctac-success-body').textContent = bodyText || 'We\'ve received your message.';
     document.getElementById('nav-ctac-success').classList.remove('nav-ctac-panel--hidden');
   }
-
   function hideSuccess() {
     document.getElementById('nav-ctac-success').classList.add('nav-ctac-panel--hidden');
     document.getElementById('nav-ctac-close').classList.remove('nav-ctac-panel--hidden');
@@ -684,73 +780,46 @@
     document.getElementById('nav-ctac-note-wa').classList.toggle('nav-ctac-panel--hidden', !showWa);
     document.getElementById('nav-ctac-note-email').classList.toggle('nav-ctac-panel--hidden', showWa);
   }
-
   function resetForm() {
     [firstNameInput, lastNameInput, msgInput, eFirstNameInput, eLastNameInput, eCompanyInput, eEmailInput, ePhoneInput, eMsgInput].forEach(function (el) { el.value = ''; el.classList.remove('nav-ctac-error'); });
-    selectedTopicWa    = '';
-    selectedTopicEmail = '';
-    topicLabel.textContent = '...';
-    topicLabel.style.color = '';
+    selectedTopicWa = ''; selectedTopicEmail = '';
+    topicLabel.textContent = '...'; topicLabel.style.color = '';
     card.querySelectorAll('.nav-ctac-chip').forEach(function (c) { c.classList.remove('active'); });
   }
 
-  /* Triggers */
   document.addEventListener('click', function (e) {
     var trigger = e.target.closest('[data-track="nav_contact_us"], [data-track="drawer_contact_us"], [data-ctac-modal]');
     if (trigger) {
-      e.preventDefault();
-      e.stopPropagation();
+      e.preventDefault(); e.stopPropagation();
       if (isOpen()) { closeCard(); return; }
       var forceModal = trigger.hasAttribute('data-ctac-modal');
-      if (forceModal) {
-        card.classList.add('nav-ctac--modal');
-        openCard(null);
-        backdrop.classList.add('open');
-        document.body.style.overflow = 'hidden';
-      } else {
-        openCard(trigger);
-      }
+      if (forceModal) { card.classList.add('nav-ctac--modal'); openCard(null); backdrop.classList.add('open'); document.body.style.overflow = 'hidden'; }
+      else { openCard(trigger); }
       return;
     }
     if (isOpen() && !card.contains(e.target)) closeCard();
   });
 
-  document.getElementById('nav-ctac-close').addEventListener('click', function (e) {
-    e.stopPropagation();
-    closeCard();
-  });
-
-  backBtn.addEventListener('click', function (e) {
-    e.stopPropagation();
-    showDeptScreen();
-  });
-
+  document.getElementById('nav-ctac-close').addEventListener('click', function (e) { e.stopPropagation(); closeCard(); });
+  backBtn.addEventListener('click', function (e) { e.stopPropagation(); showDeptScreen(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeCard(); });
 
-  /* Chip selection */
   card.querySelectorAll('.nav-ctac-chip').forEach(function (chip) {
     chip.addEventListener('click', function () {
       var form = chip.dataset.form;
       card.querySelectorAll('.nav-ctac-chip[data-form="' + form + '"]').forEach(function (c) { c.classList.remove('active'); });
       chip.classList.add('active');
-      if (form === 'wa') {
-        selectedTopicWa = chip.dataset.topic;
-        msgInput.focus();
-      } else {
-        selectedTopicEmail = chip.dataset.topic;
-        eMsgInput.focus();
-      }
+      if (form === 'wa') { selectedTopicWa = chip.dataset.topic; msgInput.focus(); }
+      else { selectedTopicEmail = chip.dataset.topic; eMsgInput.focus(); }
       topicLabel.textContent = chip.dataset.topic;
       topicLabel.style.color = 'var(--text)';
     });
   });
 
-  /* WA send */
   function sendWaMessage() {
     var firstName = firstNameInput.value.trim();
     var lastName  = lastNameInput.value.trim();
     var extra     = msgInput.value.trim();
-
     if (!firstName) { firstNameInput.focus(); firstNameInput.classList.add('nav-ctac-error'); return; }
     if (!lastName)  { lastNameInput.focus();  lastNameInput.classList.add('nav-ctac-error');  return; }
     if (!selectedTopicWa) {
@@ -759,41 +828,22 @@
       return;
     }
     if (!extra) { msgInput.focus(); msgInput.classList.add('nav-ctac-error'); return; }
-
-    firstNameInput.classList.remove('nav-ctac-error');
-    lastNameInput.classList.remove('nav-ctac-error');
-    msgInput.classList.remove('nav-ctac-error');
-
+    firstNameInput.classList.remove('nav-ctac-error'); lastNameInput.classList.remove('nav-ctac-error'); msgInput.classList.remove('nav-ctac-error');
     var fullName = firstName + ' ' + lastName;
     var msg = 'Hi, I\'m ' + fullName + '. I want to know more about ' + selectedTopicWa + '. ' + extra;
-
-    if (typeof window.trsCaptureLead === 'function') window.trsCaptureLead({
-      first_name:   firstName,
-      last_name:    lastName,
-      department:   selectedDept  || null,
-      contact_type: 'Individual',
-      topic:        selectedTopicWa,
-      details:      extra,
-      message:      msg
-    }, 'whatsapp_click');
+    if (typeof window.trsCaptureLead === 'function') window.trsCaptureLead({ first_name: firstName, last_name: lastName, department: selectedDept || null, contact_type: 'Individual', topic: selectedTopicWa, details: extra, message: msg }, 'whatsapp_click');
     window.open('https://wa.me/6589386813?text=' + encodeURIComponent(msg), '_blank', 'noopener');
-    resetForm();
-    showSuccess('Your message is on its way!');
+    resetForm(); showSuccess('Your message is on its way!');
   }
 
-  /* Email send */
   function sendEmailEnquiry() {
-    var eFirstName = eFirstNameInput.value.trim();
-    var eLastName  = eLastNameInput.value.trim();
-    var eCompany   = eCompanyInput.value.trim();
-    var eEmail     = eEmailInput.value.trim();
-    var ePhone     = ePhoneInput.value.trim();
-    var eMsg       = eMsgInput.value.trim();
+    var eFirstName = eFirstNameInput.value.trim(); var eLastName = eLastNameInput.value.trim();
+    var eCompany = eCompanyInput.value.trim(); var eEmail = eEmailInput.value.trim();
+    var ePhone = ePhoneInput.value.trim(); var eMsg = eMsgInput.value.trim();
     var ok = true;
-
-    if (!eFirstName)                      { eFirstNameInput.classList.add('nav-ctac-error'); ok = false; }
-    if (!eLastName)                       { eLastNameInput.classList.add('nav-ctac-error');  ok = false; }
-    if (!eEmail || !eEmail.includes('@')) { eEmailInput.classList.add('nav-ctac-error');     ok = false; }
+    if (!eFirstName) { eFirstNameInput.classList.add('nav-ctac-error'); ok = false; }
+    if (!eLastName)  { eLastNameInput.classList.add('nav-ctac-error');  ok = false; }
+    if (!eEmail || !eEmail.includes('@')) { eEmailInput.classList.add('nav-ctac-error'); ok = false; }
     if (!selectedTopicEmail) {
       document.getElementById('nav-ctac-chips-email').classList.add('nav-ctac-chips-error');
       setTimeout(function () { document.getElementById('nav-ctac-chips-email').classList.remove('nav-ctac-chips-error'); }, 600);
@@ -801,44 +851,23 @@
     }
     if (!eMsg) { eMsgInput.classList.add('nav-ctac-error'); ok = false; }
     if (!ok) return;
-
-    if (typeof window.trsCaptureLead === 'function') window.trsCaptureLead({
-      first_name:   eFirstName,
-      last_name:    eLastName,
-      email:        eEmail,
-      phone:        ePhone    || null,
-      company:      eCompany  || null,
-      department:   selectedDept  || null,
-      contact_type: eCompany  ? 'Business' : 'Individual',
-      topic:        selectedTopicEmail,
-      details:      eMsg,
-      message:      null
-    }, 'website_form');
-    resetForm();
-    showSuccess('Your enquiry has been received.');
+    if (typeof window.trsCaptureLead === 'function') window.trsCaptureLead({ first_name: eFirstName, last_name: eLastName, email: eEmail, phone: ePhone || null, company: eCompany || null, department: selectedDept || null, contact_type: eCompany ? 'Business' : 'Individual', topic: selectedTopicEmail, details: eMsg, message: null }, 'website_form');
+    resetForm(); showSuccess('Your enquiry has been received.');
   }
 
-  /* Global hook — pre-fill More details and open popover */
   window.trsOpenContactPopover = function (msg, trigger, dept) {
-    if (msg) {
-      msgInput.value  = msg;
-      eMsgInput.value = msg;
-    }
+    if (msg) { msgInput.value = msg; eMsgInput.value = msg; }
     openCard(trigger || null, dept || null);
   };
 
   document.getElementById('nav-ctac-send').addEventListener('click', sendWaMessage);
   document.getElementById('nav-ctac-e-send').addEventListener('click', sendEmailEnquiry);
-  document.getElementById('nav-ctac-success-close').addEventListener('click', function () {
-    hideSuccess();
-    closeCard();
-  });
+  document.getElementById('nav-ctac-success-close').addEventListener('click', function () { hideSuccess(); closeCard(); });
 
   [firstNameInput, lastNameInput, msgInput].forEach(function (el) {
     el.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); sendWaMessage(); } });
     el.addEventListener('input',   function ()  { el.classList.remove('nav-ctac-error'); });
   });
-
   [eFirstNameInput, eLastNameInput, eCompanyInput, eEmailInput, ePhoneInput, eMsgInput].forEach(function (el) {
     el.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); sendEmailEnquiry(); } });
     el.addEventListener('input',   function ()  { el.classList.remove('nav-ctac-error'); });
@@ -849,9 +878,7 @@
 (function () {
   var nav = document.querySelector('.nav');
   if (!nav) return;
-
-  var NAV_BOTTOM = 80; /* px — height of the pill */
-
+  var NAV_BOTTOM = 80;
   function checkDark() {
     var dark = false;
     document.querySelectorAll('[data-dark-section]').forEach(function (el) {
@@ -860,7 +887,6 @@
     });
     nav.classList.toggle('nav--dark', dark);
   }
-
   window.addEventListener('scroll', checkDark, { passive: true });
   window.addEventListener('resize', checkDark, { passive: true });
   checkDark();
