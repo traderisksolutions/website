@@ -2,62 +2,62 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 
   <!-- Core pages -->
-  <url><loc>https://traderisksolutions.com/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
-  <url><loc>https://traderisksolutions.com/about</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://traderisksolutions.com/business/</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://traderisksolutions.com/workforce/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://traderisksolutions.com/api/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/about</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/business/</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/workforce/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/api/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
 
   <!-- Industry solutions -->
-  <url><loc>https://traderisksolutions.com/solutions/logistics/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://traderisksolutions.com/solutions/tech-media-startups/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://traderisksolutions.com/solutions/financial-services/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://traderisksolutions.com/solutions/healthcare/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://traderisksolutions.com/solutions/built-environment/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://traderisksolutions.com/solutions/manufacturing/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://traderisksolutions.com/solutions/energy/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://traderisksolutions.com/solutions/wholesale/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://traderisksolutions.com/solutions/professional-services/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/solutions/logistics/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/solutions/tech-media-startups/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/solutions/financial-services/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/solutions/healthcare/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/solutions/built-environment/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/solutions/manufacturing/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/solutions/energy/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/solutions/wholesale/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/solutions/professional-services/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
 
   <!-- Commercial products -->
-  <url><loc>https://traderisksolutions.com/commercial/cyber/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://traderisksolutions.com/commercial/property/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://traderisksolutions.com/commercial/dao/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://traderisksolutions.com/commercial/professional/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://traderisksolutions.com/commercial/motor/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://traderisksolutions.com/commercial/workmen/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://traderisksolutions.com/commercial/core-liability/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://traderisksolutions.com/commercial/inland-transit/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://traderisksolutions.com/commercial/inventory/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://traderisksolutions.com/commercial/stock-throughput/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://traderisksolutions.com/commercial/financial-assets/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://traderisksolutions.com/commercial/revenue/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://traderisksolutions.com/commercial/car/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://traderisksolutions.com/commercial/equipment/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://traderisksolutions.com/commercial/electronic-equipment/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://traderisksolutions.com/commercial/imi/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://traderisksolutions.com/commercial/specialized/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://traderisksolutions.com/commercial/surety-bonds/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://traderisksolutions.com/commercial/medical-malpractice/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://traderisksolutions.com/commercial/foreign-worker/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://traderisksolutions.com/commercial/foreign-worker-bond/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/commercial/cyber/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/commercial/property/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/commercial/dao/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/commercial/professional/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/commercial/motor/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/commercial/workmen/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/commercial/core-liability/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/commercial/inland-transit/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/commercial/inventory/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/commercial/stock-throughput/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/commercial/financial-assets/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/commercial/revenue/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/commercial/car/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/commercial/equipment/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/commercial/electronic-equipment/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/commercial/imi/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/commercial/specialized/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/commercial/surety-bonds/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/commercial/medical-malpractice/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/commercial/foreign-worker/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/commercial/foreign-worker-bond/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
 
   <!-- Employee & personal -->
-  <url><loc>https://traderisksolutions.com/employees/medical/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://traderisksolutions.com/employees/benefits/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://traderisksolutions.com/employees/dao/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://traderisksolutions.com/employees/keyman/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://traderisksolutions.com/employees/group-travel/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://traderisksolutions.com/personal/home-contents/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://traderisksolutions.com/personal/fire/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://traderisksolutions.com/personal/maid/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://traderisksolutions.com/personal/personal-accident/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://traderisksolutions.com/consumers/travel/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://traderisksolutions.com/consumers/motor/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/employees/medical/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/employees/benefits/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/employees/dao/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/employees/keyman/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/employees/group-travel/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/personal/home-contents/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/personal/fire/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/personal/maid/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/personal/personal-accident/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/consumers/travel/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/consumers/motor/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
 
   <!-- API -->
-  <url><loc>https://traderisksolutions.com/api/rentals/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://traderisksolutions.com/api/gig-worker/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://traderisksolutions.com/api/white-label/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/api/rentals/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/api/gig-worker/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://traderisksolutions.com.sg/api/white-label/</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
 
 </urlset>

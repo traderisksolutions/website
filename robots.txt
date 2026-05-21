@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://traderisksolutions.com/sitemap.xml
+Sitemap: https://traderisksolutions.com.sg/sitemap.xml
