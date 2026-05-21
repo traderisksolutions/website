@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Construction Insurance Solutions — Trade Risk Solutions</title>
-  <meta name="description" content="Insurance for construction companies, property developers, and built environment businesses in Singapore — covering CAR, liability, equipment, and professional risk." />
+  <title>Financial Services Insurance Solutions — Trade Risk Solutions</title>
+  <meta name="description" content="Insurance for financial institutions, fund managers, and regulated firms in Singapore covering professional indemnity, D&O, commercial crime, and cyber liability." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
@@ -25,37 +25,17 @@
     <nav class="nav-links" aria-label="Primary">
       <a href="/about">Why us</a>
       <a href="/business">Business</a>
-
-      <!-- PRODUCTS MEGA -->
       <div class="nav-item" id="products-nav-item">
         <button class="nav-dropdown-btn" id="products-btn" aria-expanded="false" aria-haspopup="true">Products<svg class="nav-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
         <div class="nav-mega" id="products-mega" role="menu">
           <div class="nav-mega-inner">
-
-            <!-- LEFT: text-only category tabs -->
             <div class="mega-left">
-              <button class="mega-cat active" data-cat="personal">
-                <span class="mega-cat-title">Personal</span>
-                <span class="mega-cat-sub">Individuals &amp; home</span>
-              </button>
-              <button class="mega-cat" data-cat="business">
-                <span class="mega-cat-title">Business</span>
-                <span class="mega-cat-sub">Commercial insurance</span>
-              </button>
-              <button class="mega-cat" data-cat="workforce">
-                <span class="mega-cat-title">Workforce</span>
-                <span class="mega-cat-sub">Employee benefits</span>
-              </button>
-              <button class="mega-cat" data-cat="api">
-                <span class="mega-cat-title">API</span>
-                <span class="mega-cat-sub">Embedded &amp; white label</span>
-              </button>
+              <button class="mega-cat active" data-cat="personal"><span class="mega-cat-title">Personal</span><span class="mega-cat-sub">Individuals &amp; home</span></button>
+              <button class="mega-cat" data-cat="business"><span class="mega-cat-title">Business</span><span class="mega-cat-sub">Commercial insurance</span></button>
+              <button class="mega-cat" data-cat="workforce"><span class="mega-cat-title">Workforce</span><span class="mega-cat-sub">Employee benefits</span></button>
+              <button class="mega-cat" data-cat="api"><span class="mega-cat-title">API</span><span class="mega-cat-sub">Embedded &amp; white label</span></button>
             </div>
-
-            <!-- RIGHT: content panels -->
             <div class="mega-right">
-
-              <!-- Personal -->
               <div class="mega-panel active" data-panel="personal">
                 <a href="/personal/home-contents" class="mega-link-item"><span class="mega-link-title">Home contents insurance</span><span class="mega-link-sub">Protect your home &amp; belongings</span></a>
                 <a href="/personal/fire" class="mega-link-item"><span class="mega-link-title">Fire insurance</span><span class="mega-link-sub">Coverage against fire &amp; extraneous perils</span></a>
@@ -64,63 +44,61 @@
                 <a href="/personal/maid" class="mega-link-item"><span class="mega-link-title">Maid insurance</span><span class="mega-link-sub">Mandatory foreign domestic worker cover</span></a>
                 <a href="/personal/personal-accident" class="mega-link-item"><span class="mega-link-title">Personal accident</span><span class="mega-link-sub">24/7 accident &amp; disability protection</span></a>
               </div>
-
-              <!-- Business -->
               <div class="mega-panel" data-panel="business">
-                <a href="/business" class="mega-panel-overview">View all business insurance →</a>
-                <div class="mega-business-cols">
-                  <div class="mega-business-col">
-                    <div class="mega-section-head">Assets</div>
-                    <div class="mega-prod-group">
-                      <span class="mega-prod-label">Property &amp; Business</span>
+                <a href="/business" class="mega-panel-overview">View all business insurance &#8594;</a>
+                <div class="mega-biz-toggle">
+                  <button class="mega-biz-pill mega-biz-pill--active" data-biz="assets">Assets</button>
+                  <button class="mega-biz-pill" data-biz="liabilities">Liabilities</button>
+                </div>
+                <div class="mega-biz-panel mega-biz-panel--active" data-biz="assets">
+                  <div class="mega-business-cols">
+                    <div class="mega-business-col">
+                      <div class="mega-section-head">Property &amp; Business</div>
                       <a href="/commercial/property" class="mega-prod-link">Industrial All Risk (IAR) &amp; Fire</a>
                       <a href="/commercial/revenue" class="mega-prod-link">Business Interruption (BI)</a>
-                    </div>
-                    <div class="mega-prod-group">
-                      <span class="mega-prod-label">Engineering &amp; Construction</span>
-                      <a href="/commercial/car" class="mega-prod-link">Contractors' All Risks (CAR)</a>
+                      <div class="mega-section-head">Engineering &amp; Construction</div>
+                      <a href="/commercial/car" class="mega-prod-link">Contractors&#39; All Risks (CAR)</a>
                       <a href="/commercial/equipment" class="mega-prod-link">Machinery Breakdown</a>
                       <a href="/commercial/electronic-equipment" class="mega-prod-link">Electronic Equipment Insurance</a>
+                      <div class="mega-section-head">Commercial Motor</div>
+                      <a href="/commercial/motor" class="mega-prod-link">Commercial Vehicle Insurance</a>
                     </div>
-                    <div class="mega-prod-group">
-                      <span class="mega-prod-label">Marine, Stock &amp; Logistics</span>
+                    <div class="mega-business-col">
+                      <div class="mega-section-head">Marine, Stock &amp; Logistics</div>
                       <a href="/commercial/inventory" class="mega-prod-link">Marine Cargo</a>
                       <a href="/commercial/stock-throughput" class="mega-prod-link">Stock Throughput</a>
                       <a href="/commercial/inland-transit" class="mega-prod-link">Inland Transit</a>
-                    </div>
-                    <div class="mega-prod-group">
-                      <span class="mega-prod-label">Trade Credit &amp; Bonds</span>
+                      <div class="mega-section-head">Trade Credit &amp; Bonds</div>
                       <a href="/commercial/financial-assets" class="mega-prod-link">Trade Credit</a>
                       <a href="/commercial/surety-bonds" class="mega-prod-link">Surety Bonds</a>
                     </div>
-                    <div class="mega-prod-group">
-                      <span class="mega-prod-label">Commercial Motor</span>
-                      <a href="/commercial/motor" class="mega-prod-link">Commercial Vehicle Insurance</a>
-                    </div>
                   </div>
-                  <div class="mega-business-col">
-                    <div class="mega-section-head">Liabilities</div>
-                    <div class="mega-prod-group">
-                      <span class="mega-prod-label">General Liability</span>
+                </div>
+                <div class="mega-biz-panel" data-biz="liabilities">
+                  <div class="mega-business-cols">
+                    <div class="mega-business-col">
+                      <div class="mega-section-head">General Liability</div>
                       <a href="/commercial/core-liability" class="mega-prod-link">General Comprehensive Liability</a>
-                    </div>
-                    <div class="mega-prod-group">
-                      <span class="mega-prod-label">Professional &amp; Management</span>
-                      <a href="/commercial/imi" class="mega-prod-link">Investment Management Insurance (IMI)</a>
-                      <a href="/commercial/medical-malpractice" class="mega-prod-link">Medical Malpractice Insurance</a>
-                      <a href="/commercial/dao" class="mega-prod-link">Directors &amp; Officers (D&amp;O)</a>
+                      <div class="mega-section-head">Professional &amp; Management</div>
                       <a href="/commercial/professional" class="mega-prod-link">Professional Indemnity (PI)</a>
-                    </div>
-                    <div class="mega-prod-group">
-                      <span class="mega-prod-label">Cyber &amp; Environmental</span>
-                      <a href="/commercial/cyber" class="mega-prod-link">Cyber Insurance</a>
+                      <a href="/commercial/dao" class="mega-prod-link">Directors &amp; Officers (D&amp;O)</a>
+                      <a href="/commercial/imi" class="mega-prod-link">Investment Management Insurance (IMI)</a>
+                      <div class="mega-section-head">Environmental Liability</div>
                       <a href="#" class="mega-prod-link">Environmental Liability</a>
+                    </div>
+                    <div class="mega-business-col">
+                      <div class="mega-section-head">Cyber Insurance</div>
+                      <a href="/commercial/cyber" class="mega-prod-link">Cyber Insurance</a>
+                      <div class="mega-section-head">Employee &amp; Workforce</div>
+                      <a href="/commercial/workmen" class="mega-prod-link">Work Injury Compensation (WICA)</a>
+                      <a href="/commercial/foreign-worker" class="mega-prod-link">Foreign Worker Medical</a>
+                      <a href="/commercial/foreign-worker-bond" class="mega-prod-link">Foreign Worker Bond</a>
+                      <a href="/employees/medical" class="mega-prod-link">Group Health Insurance</a>
+                      <a href="/employees/benefits" class="mega-prod-link">Employee Benefits Insurance</a>
                     </div>
                   </div>
                 </div>
               </div>
-
-              <!-- Workforce -->
               <div class="mega-panel" data-panel="workforce">
                 <div class="mega-section">
                   <div class="mega-section-head">Workers</div>
@@ -140,20 +118,15 @@
                   <a href="/employees/keyman" class="mega-link-item"><span class="mega-link-title">Keyman Insurance</span><span class="mega-link-sub">Key person &amp; business continuity</span></a>
                 </div>
               </div>
-
-              <!-- API -->
               <div class="mega-panel" data-panel="api">
                 <a href="#" class="mega-link-item"><span class="mega-link-title">Custom Coverage White Label</span><span class="mega-link-sub">Embedded insurance for your platform</span></a>
                 <a href="#" class="mega-link-item"><span class="mega-link-title">Gig worker coverage</span><span class="mega-link-sub">Coverage for gig economy workers</span></a>
                 <a href="#" class="mega-link-item"><span class="mega-link-title">Rentals</span><span class="mega-link-sub">Rental vehicle &amp; property coverage</span></a>
               </div>
-
-            </div><!-- /mega-right -->
-          </div><!-- /nav-mega-inner -->
-        </div><!-- /nav-mega -->
-      </div><!-- /nav-item #products -->
-
-      <!-- SOLUTIONS -->
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="nav-dropdown">
         <button class="nav-dropdown-trigger">Solutions<svg class="nav-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
         <div class="nav-dropdown-panel nav-dropdown-panel--solutions">
@@ -173,14 +146,12 @@
           </div>
         </div>
       </div>
-
     </nav>
     <div class="nav-actions">
       <a href="#" class="btn btn-primary" data-track="nav_contact_us">Contact us</a>
     </div>
   </header>
 
-  <!-- MOBILE DRAWER -->
   <div class="nav-drawer-overlay" aria-hidden="true"></div>
   <aside class="nav-drawer" aria-label="Mobile navigation">
     <div class="nav-drawer-top">
@@ -192,11 +163,7 @@
     <nav class="nav-drawer-links">
       <a href="/about">Why us</a>
       <a href="/business">Business</a>
-
-      <button class="nav-drawer-accordion">
-        Products
-        <svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
+      <button class="nav-drawer-accordion">Products<svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
       <div class="nav-drawer-sub">
         <span class="nav-drawer-group-label">Personal</span>
         <a href="/personal/home-contents">Home contents insurance</a>
@@ -219,41 +186,32 @@
         <a href="/commercial/motor">Commercial Vehicle Insurance</a>
         <span class="nav-drawer-group-label">Business &#8212; Liabilities</span>
         <a href="/commercial/core-liability">General Comprehensive Liability</a>
-        <a href="/commercial/imi">Investment Management Insurance (IMI)</a>
-        <a href="/commercial/medical-malpractice">Medical Malpractice Insurance</a>
-        <a href="/commercial/dao">Directors &amp; Officers (D&amp;O)</a>
         <a href="/commercial/professional">Professional Indemnity (PI)</a>
+        <a href="/commercial/dao">Directors &amp; Officers (D&amp;O)</a>
+        <a href="/commercial/imi">Investment Management Insurance (IMI)</a>
         <a href="/commercial/cyber">Cyber Insurance</a>
         <span class="nav-drawer-group-label">Workforce benefits</span>
-        <span class="nav-drawer-inner-label">Workers</span>
         <a href="/commercial/workmen">WICA Insurance</a>
         <a href="/commercial/foreign-worker">Foreign Worker Medical</a>
         <a href="/commercial/foreign-worker-bond">Foreign Worker Bond</a>
-        <span class="nav-drawer-inner-label">Employees</span>
         <a href="/employees/medical">Group Health Insurance</a>
         <a href="/employees/group-travel">Group Business Travel</a>
         <a href="/employees/benefits">Employee Benefits Insurance</a>
-        <span class="nav-drawer-inner-label">Executive</span>
         <a href="/employees/dao">D&amp;O Liability</a>
         <a href="/employees/keyman">Keyman Insurance</a>
-        <span class="nav-drawer-group-label">API</span>
-        <a href="/api/white-label">Custom Coverage White Label</a>
-        <a href="/api/gig-worker">Gig worker</a>
-        <a href="/api/rentals">Rentals</a>
       </div>
       <button class="nav-drawer-accordion">Solutions<svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
       <div class="nav-drawer-sub">
-        <a href="/solutions/sme">SME</a>
-        <a href="/solutions/startups">Startups</a>
-        <a href="/solutions/cybersecurity">Cybersecurity</a>
-        <a href="#">Construction &amp; Real Estate</a>
-        <a href="/solutions/ecommerce">eCommerce</a>
-        <a href="#">FinTech &amp; Crypto</a>
-        <a href="#">Technology &amp; SaaS</a>
-        <a href="#">Healthcare &amp; Biomedical</a>
-        <a href="#">Logistics &amp; Supply Chain</a>
+        <a href="/solutions/logistics">Logistics, Transportation &amp; Maritime</a>
+        <a href="/solutions/energy">Energy &amp; Chemicals</a>
+        <a href="/solutions/wholesale">Wholesale Trade &amp; Consumers</a>
+        <a href="/solutions/financial-services">Financial Services &amp; Insurance</a>
+        <a href="/solutions/built-environment">Built Environment</a>
+        <a href="/solutions/healthcare">Healthcare &amp; Biomedical Sciences</a>
+        <a href="/solutions/manufacturing">Manufacturing, Electronics &amp; Aerospace</a>
+        <a href="/solutions/professional-services">Professional &amp; Business Services</a>
+        <a href="/solutions/tech-media-startups">Tech, Media &amp; Startups</a>
       </div>
-
     </nav>
     <div class="nav-drawer-cta">
       <a href="#" class="btn btn-primary btn-lg" data-track="drawer_contact_us">Contact us</a>
@@ -264,15 +222,15 @@
   <section class="ph-hero">
     <div class="ph-hero-inner">
       <div class="ph-left">
-        <p class="ph-eyebrow">Built Environment</p>
-        <h1 class="ph-heading">Insurance for construction and real estate</h1>
+        <p class="ph-eyebrow">INDUSTRY SOLUTIONS</p>
+        <h1 class="ph-heading">Institutional protection for financial firms</h1>
         <a href="#" class="ph-btn" data-ctac-modal>
           Contact us
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
         </a>
       </div>
       <div class="ph-right">
-        <p class="ph-desc">Construction projects carry concentrated risk across a compressed timeframe — contractor liability, equipment breakdown, worker injury, and professional errors can all surface simultaneously. TRS places cover across the full project lifecycle and holds relationships with specialist construction underwriters.</p>
+        <p class="ph-desc">Navigating strict regulatory oversight requires a bulletproof corporate defense architecture. TRS designs high-limit management liability and professional indemnity programs that align perfectly with MAS compliance guidelines and institutional counterparty demands.</p>
       </div>
     </div>
   </section>
@@ -282,30 +240,29 @@
     <div class="ph-cards-inner">
       <div class="ph-cards-grid">
         <div class="ph-card">
-          <div class="ph-card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
-          <p class="ph-card-title">Contractors' All Risks (CAR)</p>
-          <p class="ph-card-body">All-risk cover for works under construction — materials, temporary structures, and third-party property damage during the project period.</p>
+          <div class="ph-card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+          <p class="ph-card-title">Professional Indemnity for Asset Managers</p>
+          <p class="ph-card-body">Tailored protection against professional negligence, design flaws in advisory models, or breach of investment mandates alleged by institutional clients.</p>
         </div>
         <div class="ph-card">
-          <div class="ph-card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-          <p class="ph-card-title">Work Injury Compensation</p>
-          <p class="ph-card-body">Statutory WICA insurance for workers on site, covering medical expenses and compensation for work-related injuries or death.</p>
+          <div class="ph-card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+          <p class="ph-card-title">Directors &amp; Officers Management Liability</p>
+          <p class="ph-card-body">Premium leadership protection covering defense costs arising from regulatory audits, MAS inquiries, and direct stakeholder actions.</p>
         </div>
         <div class="ph-card">
-          <div class="ph-card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
-          <p class="ph-card-title">Plant &amp; Equipment</p>
-          <p class="ph-card-body">Cover for construction machinery, mobile plant, and electronic equipment against accidental damage, theft, and breakdown on site.</p>
+          <div class="ph-card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+          <p class="ph-card-title">Commercial Crime &amp; Fraud Cover</p>
+          <p class="ph-card-body">Direct financial loss coverage safeguarding corporate capital from employee dishonesty, wire transfer fraud, forgery, and digital asset theft.</p>
         </div>
         <div class="ph-card">
-          <div class="ph-card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>
-          <p class="ph-card-title">Professional Indemnity</p>
-          <p class="ph-card-body">Protects architects, engineers, and project managers against claims arising from design errors or professional negligence.</p>
+          <div class="ph-card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div>
+          <p class="ph-card-title">Cyber Liability &amp; Data Protection</p>
+          <p class="ph-card-body">Advanced network security insurance designed to protect sensitive client financial records, meeting strict data protection benchmarks.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- FOOTER CTA -->
   <section class="footer-cta-section">
     <div class="footer-cta-wrap">
       <h2 class="footer-cta-heading">Find out what the right coverage looks like for you.</h2>
