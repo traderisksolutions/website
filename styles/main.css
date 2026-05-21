@@ -1057,6 +1057,16 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   background: rgba(0,0,0,0.06);
 }
 
+/* Chevron on Products & Solutions nav triggers */
+.nav-chev {
+  margin-left: 4px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+  color: var(--text-muted);
+}
+.nav-dropdown.open .nav-chev,
+.nav-item.open .nav-chev { transform: rotate(180deg); }
+
 /* ── Dropdown panel — ElevenLabs aesthetic: single white layer, 24px radius, layered shadow ── */
 .nav-dropdown-panel {
   position: absolute;
