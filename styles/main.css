@@ -1084,39 +1084,48 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 }
 /* Solutions — full-width 3-col, with column dividers */
 .nav-dropdown-panel--solutions {
-  width: min(800px, calc(100vw - 32px));
+  width: min(680px, calc(100vw - 32px));
 }
 .nav-dd-inner--solutions {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 0;
-  width: 100%;
+  display: block;
+  padding: 22px 20px 18px;
 }
-.sol-col {
-  display: flex;
-  flex-direction: column;
-  padding: 20px 20px 24px;
-}
-.sol-col:not(:last-child) {
-  border-right: 1px solid #e5e7eb;
-}
-.sol-col-head {
+.sol-who {
+  font-family: var(--font);
   font-size: 12px;
   font-weight: 500;
   color: #9ca3af;
-  padding: 0 4px 14px;
-  letter-spacing: 0;
+  margin: 0 0 14px;
+  padding: 0 6px;
 }
-.sol-item {
+.sol-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px 8px;
+}
+.sol-sector {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  padding: 10px 8px;
+  padding: 10px 10px;
   border-radius: 10px;
   text-decoration: none;
   transition: background 0.1s;
 }
-.sol-item:hover { background: #f3f4f6; }
+.sol-sector:hover { background: #f3f4f6; }
+.sol-sector-name {
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  color: #18181b;
+  line-height: 1.3;
+}
+.sol-sector-tag {
+  font-family: var(--font);
+  font-size: 12.5px;
+  color: #9ca3af;
+  line-height: 1.4;
+}
 
 /* Resources — compact 2-col */
 .nav-dropdown-panel--resources {
