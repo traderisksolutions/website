@@ -126,7 +126,7 @@ Format: [{"name": "Company Name", "domain": "company.com"}] — use null for dom
 
   try {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY_DRAFT_EMAIL}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY_DRAFT_EMAIL}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
 
 function sbHeaders() {
   const k = process.env.SUPABASE_SERVICE_KEY

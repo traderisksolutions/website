@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createSign }               from 'crypto'
 
 const SB_URL      = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-const GEMINI_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
+const GEMINI_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
 const GEMINI_UPLOAD_URL = 'https://generativelanguage.googleapis.com/upload/v1beta/files'
 const DRIVE_API   = 'https://www.googleapis.com/drive/v3'
 const FOLDER_ID   = process.env.GOOGLE_DRIVE_KNOWLEDGE_FOLDER_ID ?? ''
