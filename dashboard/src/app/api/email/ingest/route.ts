@@ -69,6 +69,16 @@ function splitDisplayName(name: string | null): { first_name: string | null; las
   return { first_name: parts[0] || null, last_name: parts.length > 1 ? parts.slice(1).join(' ') : null }
 }
 
+// Extract original external sender from a forwarded/replied message body
+function parseForwardedSender(body: string): { email: string; name: string | null } | null {
+  // Matches: "From: Display Name <email@domain.com>" or "From: email@domain.com"
+  const m = body.match(/^From:\s*(.+?)\s*<([^>]+@[^>]+)>/im)
+           ?? body.match(/^From:\s*([^\s<]+@[^\s]+)/im)
+  if (!m) return null
+  if (m[2]) return { email: m[2].trim(), name: m[1].trim().replace(/^"|"$/g, '') || null }
+  return { email: m[1].trim(), name: null }
+}
+
 function parseAddresses(raw: string): { email: string; name: string | null }[] {
   if (!raw.trim()) return []
   return raw.split(',').map(s => s.trim()).filter(Boolean).map(addr => {
@@ -172,16 +182,27 @@ async function ingestMessage(token: string, gmailMsgId: string) {
   const allParticipants = [{ email: fromEmail, name: fromName }, ...toList, ...ccList]
   const externalParty   = allParticipants.find(p => !isInternal(p.email) && !isAutomated(p.email))
 
-  if (!externalParty) {
+  // If no external party in headers, check forwarded message body
+  // e.g. Nathan (internal) forwards a client email to operations@
+  let resolvedParty = externalParty
+  if (!resolvedParty && isInternal(fromEmail)) {
+    const forwarded = parseForwardedSender(bodyText)
+    if (forwarded && !isInternal(forwarded.email) && !isAutomated(forwarded.email)) {
+      resolvedParty = forwarded
+      console.log('[ingest] resolved external from forwarded body:', forwarded.email)
+    }
+  }
+
+  if (!resolvedParty) {
     console.log('[ingest] skip internal-only message:', gmailMsgId)
     return
   }
 
-  console.log('[ingest]', gmailMsgId, '|', direction, '|', externalParty.email)
+  console.log('[ingest]', gmailMsgId, '|', direction, '|', resolvedParty.email)
 
   // 1. Upsert primary external contact using first_name/last_name (omit nulls to avoid overwriting existing names)
-  const { first_name: pFirst, last_name: pLast } = splitDisplayName(externalParty.name)
-  const primaryBody: Record<string, unknown> = { email: externalParty.email, source: 'email' }
+  const { first_name: pFirst, last_name: pLast } = splitDisplayName(resolvedParty.name)
+  const primaryBody: Record<string, unknown> = { email: resolvedParty.email, source: 'email' }
   if (pFirst) primaryBody.first_name = pFirst
   if (pLast)  primaryBody.last_name  = pLast
   const contactUpsert = await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
@@ -191,7 +212,7 @@ async function ingestMessage(token: string, gmailMsgId: string) {
   })
   if (!contactUpsert.ok) console.error('[ingest] contact upsert failed:', await contactUpsert.text())
   const contactFetch = await fetch(
-    `${SB_URL}/rest/v1/contacts?email=eq.${encodeURIComponent(externalParty.email)}&select=id&limit=1`,
+    `${SB_URL}/rest/v1/contacts?email=eq.${encodeURIComponent(resolvedParty.email)}&select=id&limit=1`,
     { headers: sbHeaders() }
   )
   const contactFetchRows = contactFetch.ok ? await contactFetch.json() : []
@@ -251,11 +272,11 @@ async function ingestMessage(token: string, gmailMsgId: string) {
       contact_id: !isInternal(fromEmail) ? contactId : null },
     ...toList.map(({ email, name }) => ({
       thread_id: thread.id, message_id: dbMsg.id, email, name, role: 'to',
-      contact_id: email === externalParty.email ? contactId : null,
+      contact_id: email === resolvedParty.email ? contactId : null,
     })),
     ...ccList.map(({ email, name }) => ({
       thread_id: thread.id, message_id: dbMsg.id, email, name, role: 'cc',
-      contact_id: email === externalParty.email ? contactId : null,
+      contact_id: email === resolvedParty.email ? contactId : null,
     })),
   ]
   await fetch(`${SB_URL}/rest/v1/email_participants?on_conflict=message_id,email,role`, {
@@ -266,7 +287,7 @@ async function ingestMessage(token: string, gmailMsgId: string) {
 
   // 5. Upsert contacts for all other external participants (To + CC) to capture their names
   const otherExternal = allParticipants.filter(
-    p => p.email !== externalParty.email && !isInternal(p.email) && !isAutomated(p.email)
+    p => p.email !== resolvedParty.email && !isInternal(p.email) && !isAutomated(p.email)
   )
   await Promise.allSettled(otherExternal.map(async p => {
     const { first_name, last_name } = splitDisplayName(p.name)
