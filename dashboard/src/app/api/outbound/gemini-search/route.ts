@@ -28,8 +28,8 @@ export async function POST(req: NextRequest) {
     }
 
     const roles = ROLE_MAP[productType] ?? ['CEO', 'COO', 'Managing Director']
-    const geminiKey = process.env.GEMINI_API_KEY
-    if (!geminiKey) return NextResponse.json({ error: 'GEMINI_API_KEY not configured' }, { status: 500 })
+    const geminiKey = process.env.GEMINI_API_KEY_DRAFT_EMAIL
+    if (!geminiKey) return NextResponse.json({ error: 'GEMINI_API_KEY_DRAFT_EMAIL not configured' }, { status: 500 })
 
     // ── 1. Gemini with Google Search Grounding ──────────────────────────────
     const prompt =

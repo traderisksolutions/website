@@ -20,8 +20,8 @@ export async function POST(req: NextRequest) {
         messages:    MsgSnippet[]
       }
 
-    const key = process.env.GEMINI_API_KEY
-    if (!key) return NextResponse.json({ error: 'GEMINI_API_KEY not set' }, { status: 500 })
+    const key = process.env.GEMINI_API_KEY_DRAFT_EMAIL
+    if (!key) return NextResponse.json({ error: 'GEMINI_API_KEY_DRAFT_EMAIL not set' }, { status: 500 })
 
     const thread = messages
       .map(m => {

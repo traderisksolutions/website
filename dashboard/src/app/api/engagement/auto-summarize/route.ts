@@ -156,7 +156,7 @@ type FeedbackRow = { original_draft: string | null; final_sent: string | null }
 // ── Main handler ──────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  if (req.headers.get('x-internal-secret') !== process.env.CRON_SECRET) {
+  if (req.headers.get('x-internal-secret') !== (process.env.CRON_SECRET ?? '')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -200,8 +200,8 @@ export async function POST(req: NextRequest) {
     }).join('\n\n---\n\n')
 
     // 4. Fetch relevant knowledge docs from Drive (non-blocking if it fails)
-    const key  = process.env.GEMINI_API_KEY
-    if (!key) throw new Error('GEMINI_API_KEY not set')
+    const key  = process.env.GEMINI_API_KEY_DRAFT_EMAIL
+    if (!key) throw new Error('GEMINI_API_KEY_DRAFT_EMAIL not set')
     const docs = await fetchKnowledgeDocs(threadText, key)
 
     // ── Build prompt sections ─────────────────────────────────────────────────

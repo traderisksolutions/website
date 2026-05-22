@@ -10,8 +10,8 @@ export async function POST(req: NextRequest) {
     const { name, topic, message } =
       await req.json() as { name: string; topic?: string | null; message?: string | null }
 
-    const geminiKey = process.env.GEMINI_API_KEY_INBOUND
-    if (!geminiKey) return NextResponse.json({ error: 'GEMINI_API_KEY_INBOUND not set' }, { status: 500 })
+    const geminiKey = process.env.GEMINI_API_KEY_EMAIL_ANALYSIS
+    if (!geminiKey) return NextResponse.json({ error: 'GEMINI_API_KEY_EMAIL_ANALYSIS not set' }, { status: 500 })
 
     const firstName = name.split(' ')[0] || 'there'
 

@@ -54,8 +54,8 @@ export async function POST(req: NextRequest) {
         messages:     MsgSnippet[]
       }
 
-    const geminiKey = process.env.GEMINI_API_KEY
-    if (!geminiKey) return NextResponse.json({ error: 'GEMINI_API_KEY not set' }, { status: 500 })
+    const geminiKey = process.env.GEMINI_API_KEY_DRAFT_EMAIL
+    if (!geminiKey) return NextResponse.json({ error: 'GEMINI_API_KEY_DRAFT_EMAIL not set' }, { status: 500 })
 
     // Build thread context for Gemini
     const lastInbound = [...messages].reverse().find(m => m.direction === 'inbound')
