@@ -246,6 +246,113 @@ var NAV_HTML = `
   if (root) root.innerHTML = NAV_HTML;
 })();
 
+/* ═══════════════════════════════════════════════════════════════
+   FOOTER — Trade Risk Solutions
+   Edit this block to update the footer on ALL pages at once.
+   ═══════════════════════════════════════════════════════════════ */
+
+var FOOTER_HTML = `
+  <footer class="ft">
+    <div class="ft-inner">
+      <div class="ft-top">
+
+        <div class="ft-brand">
+          <a href="/" class="ft-logo" aria-label="Trade Risk Solutions home">
+            <span class="ft-logo-text">Trade Risk Solutions</span>
+          </a>
+          <p class="ft-tagline">MAS-licensed insurance broker.<br>Singapore's institutional risk partner.</p>
+          <div class="ft-contact-block">
+            <a href="tel:+6562380888" class="ft-contact-link">+65 6238 0888</a>
+            <a href="mailto:enquiry@trade-risksol.com" class="ft-contact-link">enquiry@trade-risksol.com</a>
+            <address class="ft-address">Suntec Tower 2, 9 Temasek Boulevard<br>Singapore 038989</address>
+          </div>
+        </div>
+
+        <div class="ft-col">
+          <p class="ft-col-head">Company</p>
+          <div class="ft-col-links">
+            <a href="/about" class="ft-link">Why Us</a>
+            <a href="/pricing" class="ft-link">Pricing</a>
+            <a href="/claims" class="ft-link">Claims</a>
+          </div>
+        </div>
+
+        <div class="ft-col">
+          <p class="ft-col-head">Personal</p>
+          <div class="ft-col-links">
+            <a href="/personal/fire" class="ft-link">Fire Insurance</a>
+            <a href="/personal/home-contents" class="ft-link">Home Contents</a>
+            <a href="/personal/maid" class="ft-link">Maid Insurance</a>
+            <a href="/personal/personal-accident" class="ft-link">Personal Accident</a>
+          </div>
+        </div>
+
+        <div class="ft-col">
+          <p class="ft-col-head">Business Assets</p>
+          <div class="ft-col-links">
+            <a href="/commercial/property" class="ft-link">Commercial Property</a>
+            <a href="/commercial/equipment" class="ft-link">Equipment &amp; Machinery</a>
+            <a href="/commercial/electronic-equipment" class="ft-link">Electronic Equipment</a>
+            <a href="/commercial/inventory" class="ft-link">Stock &amp; Inventory</a>
+            <a href="/commercial/stock-throughput" class="ft-link">Stock Throughput</a>
+            <a href="/commercial/financial-assets" class="ft-link">Financial Assets</a>
+            <a href="/commercial/inland-transit" class="ft-link">Inland Transit</a>
+            <a href="/commercial/imi" class="ft-link">Marine &amp; IMI</a>
+            <a href="/commercial/motor" class="ft-link">Motor Fleet</a>
+          </div>
+        </div>
+
+        <div class="ft-col">
+          <p class="ft-col-head">Business Liabilities</p>
+          <div class="ft-col-links">
+            <a href="/commercial/cyber" class="ft-link">Cyber Insurance</a>
+            <a href="/commercial/dao" class="ft-link">Directors &amp; Officers</a>
+            <a href="/commercial/core-liability" class="ft-link">Core Liability</a>
+            <a href="/commercial/professional" class="ft-link">Professional Indemnity</a>
+            <a href="/commercial/medical-malpractice" class="ft-link">Medical Malpractice</a>
+            <a href="/commercial/workmen" class="ft-link">Work Injury (WICA)</a>
+            <a href="/commercial/foreign-worker" class="ft-link">Foreign Worker</a>
+            <a href="/commercial/foreign-worker-bond" class="ft-link">Foreign Worker Bond</a>
+            <a href="/commercial/surety-bonds" class="ft-link">Surety Bonds</a>
+            <a href="/commercial/revenue" class="ft-link">Business Interruption</a>
+            <a href="/commercial/specialized" class="ft-link">Specialized Risks</a>
+          </div>
+        </div>
+
+        <div class="ft-col">
+          <p class="ft-col-head">Solutions</p>
+          <div class="ft-col-links">
+            <a href="/solutions/logistics" class="ft-link">Logistics &amp; Maritime</a>
+            <a href="/solutions/financial-services" class="ft-link">Financial Services</a>
+            <a href="/solutions/tech-media-startups" class="ft-link">Tech, Media &amp; Startups</a>
+            <a href="/solutions/built-environment" class="ft-link">Built Environment</a>
+            <a href="/solutions/healthcare" class="ft-link">Healthcare &amp; Biomedical</a>
+            <a href="/solutions/manufacturing" class="ft-link">Manufacturing &amp; Aerospace</a>
+            <a href="/solutions/energy" class="ft-link">Energy &amp; Chemicals</a>
+            <a href="/solutions/wholesale" class="ft-link">Wholesale Trade</a>
+            <a href="/solutions/professional-services" class="ft-link">Professional Services</a>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="ft-bottom">
+        <p class="ft-copy">&copy; 2025 Trade Risk Solutions Pte Ltd. All rights reserved.</p>
+        <div class="ft-legal">
+          <a href="#" class="ft-legal-link">Privacy Policy</a>
+          <a href="#" class="ft-legal-link">Terms of Service</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+`;
+
+/* ── Inject footer into #footer-root placeholder ── */
+(function () {
+  var root = document.getElementById('footer-root');
+  if (root) root.innerHTML = FOOTER_HTML;
+})();
+
 (function () {
   var nav       = document.querySelector('.nav');
   var hamburger = document.querySelector('.nav-hamburger');
