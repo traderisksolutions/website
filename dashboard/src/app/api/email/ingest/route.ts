@@ -290,6 +290,26 @@ async function ingestMessage(token: string, gmailMsgId: string) {
   }).catch(e => console.error('[ingest] auto-summarize trigger failed:', e))
 }
 
+// GET /api/email/ingest?token=... — manual trigger for testing / backfill
+export async function GET(req: NextRequest) {
+  const secret = req.nextUrl.searchParams.get('token')
+  if (secret !== process.env.GMAIL_PUBSUB_VERIFICATION_TOKEN) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  try {
+    const token      = await getAccessToken()
+    const messageIds = await getNewMessageIds(token)
+    console.log('[ingest:manual] processing', messageIds.length, 'message(s)')
+    const results = await Promise.allSettled(messageIds.map(id => ingestMessage(token, id)))
+    const ok  = results.filter(r => r.status === 'fulfilled').length
+    const err = results.filter(r => r.status === 'rejected').length
+    return NextResponse.json({ ok: true, processed: messageIds.length, succeeded: ok, failed: err })
+  } catch (e) {
+    console.error('[ingest:manual] FATAL:', e)
+    return NextResponse.json({ error: String(e) }, { status: 500 })
+  }
+}
+
 // POST /api/email/ingest — receives Gmail Pub/Sub push notifications
 export async function POST(req: NextRequest) {
   const secret = req.nextUrl.searchParams.get('token') ?? req.headers.get('x-pubsub-secret')
