@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { waitUntil } from '@vercel/functions'
+import { waitUntil }        from '@vercel/functions'
+import { runAutoSummarize } from '@/lib/run-auto-summarize'
 
 const SB_URL          = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GMAIL_TOKEN_URL = 'https://oauth2.googleapis.com/token'
@@ -327,15 +328,13 @@ async function ingestMessage(token: string, gmailMsgId: string) {
     if (!res.ok) console.error('[ingest] cc contact upsert failed for', p.email, ':', await res.text())
   }))
 
-  // 6. Trigger AI summary — waitUntil keeps the function alive until the call completes
-  const appUrl = process.env.APP_URL ?? `https://${process.env.VERCEL_URL}`
-  waitUntil(
-    fetch(`${appUrl}/api/engagement/auto-summarize`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.CRON_SECRET ?? '' },
-      body:    JSON.stringify({ thread_id: thread.id, message_id: dbMsg.id }),
-    }).catch(e => console.error('[ingest] auto-summarize trigger failed:', e))
-  )
+  // 6. Trigger AI analysis + draft reply for inbound messages only
+  if (direction === 'inbound') {
+    waitUntil(
+      runAutoSummarize(thread.id, dbMsg.id)
+        .catch(e => console.error('[ingest] auto-summarize failed:', e instanceof Error ? e.message : e))
+    )
+  }
 }
 
 // GET /api/email/ingest?token=... — manual trigger for testing / backfill
