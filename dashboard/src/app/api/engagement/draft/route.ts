@@ -123,12 +123,17 @@ Write only the email body. Start with "Hi ${contactName.split(' ')[0] || 'there'
       }),
     })
 
-    let content = ''
-    if (gemRes.ok) {
-      const data = await gemRes.json()
-      content = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+    if (!gemRes.ok) {
+      const errText = await gemRes.text()
+      console.error('[engagement/draft] Gemini error:', gemRes.status, errText)
+      return NextResponse.json({ error: `Gemini ${gemRes.status}: ${errText.slice(0, 300)}` }, { status: 502 })
     }
-    if (!content) return NextResponse.json({ error: 'Gemini returned no content' }, { status: 502 })
+    const gemData = await gemRes.json()
+    const content = gemData?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+    if (!content) {
+      const reason = gemData?.candidates?.[0]?.finishReason ?? JSON.stringify(gemData).slice(0, 200)
+      return NextResponse.json({ error: `Gemini returned no content (${reason})` }, { status: 502 })
+    }
 
     // Upsert contact by email (ON CONFLICT email DO UPDATE so concurrent calls are safe)
     let contactId: string | null = null
