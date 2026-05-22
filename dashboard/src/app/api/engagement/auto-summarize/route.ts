@@ -258,7 +258,7 @@ Return ONLY a valid JSON object. If the email is automated, a notification, or p
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents:         [{ parts }],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 900, responseMimeType: 'application/json' },
+        generationConfig: { temperature: 0.3, maxOutputTokens: 2048, responseMimeType: 'application/json' },
       }),
     })
 
