@@ -337,10 +337,12 @@ async function ingestMessage(token: string, gmailMsgId: string) {
   }
 }
 
-// GET /api/email/ingest?token=... — manual trigger for testing / backfill
+// GET /api/email/ingest?token=... — manual trigger / Vercel cron polling fallback
+// Accepts either ?token=GMAIL_PUBSUB_VERIFICATION_TOKEN or Authorization: Bearer CRON_SECRET
 export async function GET(req: NextRequest) {
-  const secret = req.nextUrl.searchParams.get('token')
-  if (secret !== process.env.GMAIL_PUBSUB_VERIFICATION_TOKEN) {
+  const tokenParam  = req.nextUrl.searchParams.get('token')
+  const bearerMatch = req.headers.get('authorization') === `Bearer ${process.env.CRON_SECRET ?? ''}`
+  if (tokenParam !== process.env.GMAIL_PUBSUB_VERIFICATION_TOKEN && !bearerMatch) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   try {

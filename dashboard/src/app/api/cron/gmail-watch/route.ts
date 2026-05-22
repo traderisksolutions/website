@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+
+function sbHeaders() {
+  const k = process.env.SUPABASE_SERVICE_KEY
+  if (!k) throw new Error('SUPABASE_SERVICE_KEY not set')
+  return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' }
+}
+
 // GET /api/cron/gmail-watch
 // Called by Vercel cron every 6 days to renew the Gmail Pub/Sub watch
 // (watch expires after 7 days — renew early to avoid gaps)
 // Also call this manually once during initial setup.
 export async function GET(req: NextRequest) {
-  if (req.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (req.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET ?? ''}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -38,5 +46,25 @@ export async function GET(req: NextRequest) {
   const result = await watchRes.json()
   if (!watchRes.ok) return NextResponse.json({ error: result }, { status: 500 })
 
+  // Seed the historyId into system_config so the ingest History API starts from the right point
+  if (result.historyId) {
+    const existing = await fetch(
+      `${SB_URL}/rest/v1/system_config?key=eq.gmail_history_id&select=key&limit=1`,
+      { headers: sbHeaders() }
+    )
+    const rows  = existing.ok ? await existing.json() : []
+    const hasRow = Array.isArray(rows) && rows.length > 0
+    await fetch(
+      hasRow ? `${SB_URL}/rest/v1/system_config?key=eq.gmail_history_id` : `${SB_URL}/rest/v1/system_config`,
+      {
+        method:  hasRow ? 'PATCH' : 'POST',
+        headers: sbHeaders(),
+        body:    JSON.stringify({ key: 'gmail_history_id', value: String(result.historyId), updated_at: new Date().toISOString() }),
+      }
+    )
+    console.log('[gmail-watch] historyId seeded:', result.historyId)
+  }
+
+  console.log('[gmail-watch] renewed, expires:', result.expiration)
   return NextResponse.json({ ok: true, historyId: result.historyId, expiration: result.expiration })
 }
