@@ -51,14 +51,27 @@ function headerVal(headers: { name: string; value: string }[], name: string): st
 }
 
 function decodeBody(parts: { mimeType: string; body: { data?: string }; parts?: unknown[] }[]): string {
+  let htmlFallback = ''
   for (const part of parts) {
     if (part.mimeType === 'text/plain' && part.body?.data) {
       return Buffer.from(part.body.data, 'base64').toString('utf-8')
+    }
+    if (part.mimeType === 'text/html' && part.body?.data && !htmlFallback) {
+      htmlFallback = Buffer.from(part.body.data, 'base64').toString('utf-8')
     }
     if (part.parts) {
       const nested = decodeBody(part.parts as typeof parts)
       if (nested) return nested
     }
+  }
+  // Strip HTML tags so regex-based parsing still works on HTML-only emails
+  if (htmlFallback) {
+    return htmlFallback
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/(?:div|p|tr|li|blockquote)>/gi, '\n')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+      .replace(/<[^>]+>/g, '')
   }
   return ''
 }
@@ -71,12 +84,23 @@ function splitDisplayName(name: string | null): { first_name: string | null; las
 
 // Extract original external sender from a forwarded/replied message body
 function parseForwardedSender(body: string): { email: string; name: string | null } | null {
-  // Matches: "From: Display Name <email@domain.com>" or "From: email@domain.com"
-  const m = body.match(/^From:\s*(.+?)\s*<([^>]+@[^>]+)>/im)
-           ?? body.match(/^From:\s*([^\s<]+@[^\s]+)/im)
-  if (!m) return null
-  if (m[2]) return { email: m[2].trim(), name: m[1].trim().replace(/^"|"$/g, '') || null }
-  return { email: m[1].trim(), name: null }
+  // Normalise line endings so ^ anchors work regardless of CRLF/LF
+  const text = body.replace(/\r\n/g, '\n')
+
+  // Try every "From:" line in the body (skip the first which may be a quoted-reply header)
+  // Patterns: "From: Name <email>" | "From: email@domain" | HTML-decoded "From: Name <email>"
+  const patterns = [
+    /^From:\s*"?(.+?)"?\s*[<\[]([^\]>]+@[^\]>]+)[\]>]/im,  // Name <email> or Name [email]
+    /^From:\s*([^\s<\[]+@[^\s>\]]+)/im,                       // bare email address
+  ]
+  for (const re of patterns) {
+    const m = text.match(re)
+    if (!m) continue
+    const email = (m[2] ?? m[1]).trim()
+    const name  = m[2] ? (m[1].trim() || null) : null
+    if (email.includes('@')) return { email, name }
+  }
+  return null
 }
 
 function parseAddresses(raw: string): { email: string; name: string | null }[] {
