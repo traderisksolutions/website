@@ -46,7 +46,7 @@ export async function middleware(request: NextRequest) {
 
   // Already logged in → skip the login page
   if (user && pathname === '/login') {
-    const next = request.nextUrl.searchParams.get('next') ?? '/engagement'
+    const next = request.nextUrl.searchParams.get('next') ?? '/overview'
     return NextResponse.redirect(new URL(next, request.url))
   }
 
