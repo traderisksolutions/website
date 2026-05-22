@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { Search, RefreshCw, ChevronDown, Copy, Check, X, Calendar, ArrowUpDown, SlidersHorizontal, Trash2 } from 'lucide-react'
 import { useAuditLog } from '@/hooks/useAuditLog'
+import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -405,64 +406,47 @@ function StoredSummaryStrip({
 // ── AI Draft panel ────────────────────────────────────────────────────────────
 
 function AIDraftPanel({
-  lead, thread, messages, storedDraft, summaryId,
+  lead, thread, messages, storedDraft,
 }: {
   lead:        Lead
   thread:      ThreadState['thread']
   messages:    RealMsg[]
   storedDraft?: string | null
-  summaryId?:  string | null
 }) {
   const lastMsg    = messages.at(-1)
   const needsReply = lastMsg?.direction === 'inbound'
 
-  const [draftId,          setDraftId]          = useState<string | null>(null)
-  const [content,          setContent]          = useState('')
-  const [contentFromStore, setContentFromStore] = useState(false)
-  const [loading,          setLoading]          = useState<'gen' | 'send' | 'reject' | null>(null)
-  const [sent,             setSent]             = useState(false)
-  const [rejected,         setRejected]         = useState(false)
-  const [error,            setError]            = useState<string | null>(null)
-  const [savedAt,          setSavedAt]          = useState<string | null>(null)
-  const [manualMode,       setManualMode]       = useState(false)
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    setDraftId(null); setContent(''); setContentFromStore(false)
-    setSent(false); setRejected(false); setError(null); setSavedAt(null); setManualMode(false)
-    if (saveTimer.current) clearTimeout(saveTimer.current)
-  }, [lead.id])
-
-  useEffect(() => {
-    if (storedDraft && !contentFromStore && !sent && !rejected) {
-      setContent(storedDraft)
-      setContentFromStore(true)
-    }
-  }, [storedDraft, contentFromStore, sent, rejected])
-
+  const [activeTab,      setActiveTab]      = useState<'draft' | 'compose'>('draft')
+  const [draftId,        setDraftId]        = useState<string | null>(null)
+  const [draftHtml,      setDraftHtml]      = useState('')
+  const [composeHtml,    setComposeHtml]    = useState('')
+  const [draftLoaded,    setDraftLoaded]    = useState(false)
+  const [draftEditorKey, setDraftEditorKey] = useState(0)
+  const [loading,        setLoading]        = useState<'gen' | 'send' | 'reject' | null>(null)
+  const [sent,           setSent]           = useState(false)
+  const [error,          setError]          = useState<string | null>(null)
   const log = useAuditLog()
 
-  function scheduleAutoSave(text: string) {
-    setSavedAt(null)
-    if (saveTimer.current) clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(async () => {
-      if (!summaryId) return
-      try {
-        await fetch('/api/engagement/thread-summaries', {
-          method:  'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ id: summaryId, draft_reply: text }),
-        })
-        setSavedAt(new Date().toISOString())
-      } catch { /* silent */ }
-    }, 2000)
-  }
+  // Reset when switching threads
+  useEffect(() => {
+    setActiveTab('draft'); setDraftId(null); setDraftHtml(''); setComposeHtml('')
+    setDraftLoaded(false); setDraftEditorKey(0); setSent(false); setError(null)
+  }, [lead.id])
+
+  // Pre-fill Draft tab from auto-generated stored draft
+  useEffect(() => {
+    if (storedDraft && !draftLoaded && !sent) {
+      setDraftHtml(plainToHtml(storedDraft))
+      setDraftLoaded(true)
+      setDraftEditorKey(k => k + 1)
+    }
+  }, [storedDraft, draftLoaded, sent])
 
   async function generate() {
-    if (!lead.email) { setError('Lead has no email address — cannot generate draft'); return }
+    if (!lead.email) { setError('No email address for this lead'); return }
     setLoading('gen'); setError(null)
     try {
-      const res = await fetch('/api/engagement/draft', {
+      const res  = await fetch('/api/engagement/draft', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           leadId: lead.id, contactName: fullName(lead), contactEmail: lead.email,
@@ -473,52 +457,57 @@ function AIDraftPanel({
       })
       const data = await res.json()
       if (data.error) { setError(data.error); return }
-      setDraftId(data.draftId); setContent(data.content)
+      setDraftId(data.draftId)
+      setDraftHtml(plainToHtml(data.content))
+      setDraftEditorKey(k => k + 1)   // force editor to re-mount with new content
+      setActiveTab('draft')
       log({ action: 'draft.generated', resource_type: 'thread', resource_id: thread?.id ?? lead.id, metadata: { contact: lead.email } })
     } catch { setError('Failed to generate draft') }
     finally { setLoading(null) }
   }
 
   async function handleSend() {
-    if (!lead.email) { setError('Lead has no email address — cannot send'); return }
-    setLoading('send')
-    try {
-      let activeDraftId = draftId
+    if (!lead.email) { setError('No email address — cannot send'); return }
+    const activeHtml = activeTab === 'draft' ? draftHtml : composeHtml
+    const plainText  = htmlToPlain(activeHtml)
+    if (!plainText.trim()) { setError('Cannot send an empty message'); return }
 
-      // Manual compose: create a draft record first so /api/email/send can load it
-      if (!activeDraftId && content.trim()) {
-        const createRes = await fetch('/api/engagement/draft', {
+    setLoading('send'); setError(null)
+    try {
+      let activeDraftId = activeTab === 'draft' ? draftId : null
+
+      // Compose tab (or draft tab without draftId): create a draft record first
+      if (!activeDraftId) {
+        const createRes  = await fetch('/api/engagement/draft', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             leadId: lead.id, contactName: fullName(lead), contactEmail: lead.email,
             company: lead.company, topic: lead.topic, leadStatus: lead.status,
             threadId: thread?.id ?? null, messages: [],
-            manualContent: content,
+            manualContent: plainText,
           }),
         })
         const createData = await createRes.json()
         if (createData.error) { setError(createData.error); return }
         activeDraftId = createData.draftId
-        setDraftId(activeDraftId)
+        if (activeTab === 'draft') setDraftId(activeDraftId)
       }
 
-      if (activeDraftId) {
-        await fetch('/api/engagement/draft', {
-          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ draftId: activeDraftId, status: 'approved', content }),
-        })
-        const sendRes = await fetch('/api/email/send', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ draftId: activeDraftId }),
-        })
-        if (!sendRes.ok) {
-          const err = await sendRes.json().catch(() => ({}))
-          setError(err.error ?? 'Failed to send email')
-          return
-        }
+      await fetch('/api/engagement/draft', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draftId: activeDraftId, status: 'approved', content: plainText }),
+      })
+      const sendRes = await fetch('/api/email/send', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draftId: activeDraftId }),
+      })
+      if (!sendRes.ok) {
+        const err = await sendRes.json().catch(() => ({}))
+        setError(err.error ?? 'Send failed')
+        return
       }
       setSent(true)
-      log({ action: 'draft.approved', resource_type: 'thread', resource_id: thread?.id ?? lead.id, metadata: { contact: lead.email, chars: content.length } })
+      log({ action: 'draft.approved', resource_type: 'thread', resource_id: thread?.id ?? lead.id, metadata: { contact: lead.email, chars: plainText.length } })
     } finally { setLoading(null) }
   }
 
@@ -530,122 +519,99 @@ function AIDraftPanel({
           method: 'PATCH', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ draftId, status: 'rejected', rejection_note: 'Rejected by user' }),
         })
+        log({ action: 'draft.rejected', resource_type: 'thread', resource_id: thread?.id ?? lead.id, metadata: { contact: lead.email } })
       }
-      setRejected(true); setContent(''); setDraftId(null)
-      log({ action: 'draft.rejected', resource_type: 'thread', resource_id: thread?.id ?? lead.id, metadata: { contact: lead.email } })
+      setDraftId(null); setDraftHtml(''); setDraftEditorKey(k => k + 1)
     } finally { setLoading(null) }
   }
 
-  const draftPanelBase: React.CSSProperties = {
-    borderTop: '2px solid #93c5fd', background: '#eff6ff', flexShrink: 0,
-  }
+  const base: React.CSSProperties = { borderTop: '2px solid #93c5fd', background: '#eff6ff', flexShrink: 0 }
 
   if (sent) return (
-    <div style={{ ...draftPanelBase, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-      <span style={{ fontSize: 12, color: '#15803d' }}>✓ Reply approved</span>
-      <button onClick={() => { setSent(false); setContent(''); setDraftId(null) }} style={{ fontSize: 11, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer' }}>New draft</button>
+    <div style={{ ...base, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <span style={{ fontSize: 12, color: '#15803d' }}>✓ Reply sent</span>
+      <button onClick={() => { setSent(false); setDraftHtml(''); setComposeHtml(''); setDraftId(null) }}
+        style={{ fontSize: 11, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer' }}>
+        New reply
+      </button>
     </div>
   )
 
-  if (!content && !rejected && !manualMode) return (
-    <div style={{ ...draftPanelBase, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-      <span style={{ fontSize: 12, color: needsReply ? '#b45309' : '#6b7280', fontStyle: needsReply ? 'normal' : 'italic', fontWeight: needsReply ? 500 : 400 }}>
-        {needsReply ? '⚡ Client replied — generate a response' : 'No pending draft'}
-      </span>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        {error && <span style={{ fontSize: 11, color: '#ef4444' }}>{error}</span>}
-        <button
-          onClick={() => setManualMode(true)}
-          style={{ fontSize: 11, color: '#6b7280', background: 'none', border: '1px solid #e5e7eb', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', whiteSpace: 'nowrap' }}
-        >
-          Compose
-        </button>
-        <button onClick={generate} disabled={!!loading} style={{ fontSize: 11, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500, whiteSpace: 'nowrap' }}>
-          {loading === 'gen' ? 'Generating…' : 'Generate AI reply'}
-        </button>
-      </div>
-    </div>
-  )
+  const hasDraftContent = draftHtml.replace(/<[^>]+>/g, '').trim().length > 0
+  const activeHtml      = activeTab === 'draft' ? draftHtml : composeHtml
+  const canSend         = htmlToPlain(activeHtml).trim().length > 0
 
-  if (manualMode && !content) return (
-    <div style={draftPanelBase}>
-      <div style={{ padding: '8px 16px 6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#2563eb' }}>Compose Reply</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {error && <span style={{ fontSize: 11, color: '#ef4444' }}>{error}</span>}
-          <button onClick={() => setManualMode(false)} style={{ fontSize: 11, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer' }}>Cancel</button>
-          <button onClick={generate} disabled={!!loading} style={{ fontSize: 11, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}>
-            {loading === 'gen' ? 'Generating…' : 'Use AI instead'}
-          </button>
-        </div>
-      </div>
-      <div style={{ padding: '0 16px 8px' }}>
-        <textarea
-          autoFocus
-          placeholder={`Write your reply to ${lead.email ?? 'the client'}…`}
-          rows={5}
-          style={{ width: '100%', boxSizing: 'border-box', fontSize: 12, color: '#1e3a5f', lineHeight: 1.65, border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 12px', resize: 'none', background: '#fff', outline: 'none', fontFamily: 'inherit' }}
-          onChange={e => setContent(e.target.value)}
-        />
-      </div>
-      <div style={{ padding: '0 16px 12px', display: 'flex', gap: 8 }}>
-        <button
-          onClick={handleSend}
-          disabled={!!loading}
-          style={{ flex: 1, padding: '7px 16px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 8, background: '#1d4ed8', color: '#fff', cursor: 'pointer', opacity: loading ? 0.5 : 1 }}
-        >
-          {loading === 'send' ? 'Sending…' : 'Send Reply'}
-        </button>
-      </div>
-    </div>
-  )
-
-  if (rejected) return (
-    <div style={{ ...draftPanelBase, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-      <span style={{ fontSize: 12, color: '#6b7280' }}>Draft rejected</span>
-      <button onClick={() => { setRejected(false); generate() }} style={{ fontSize: 11, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer' }}>Regenerate</button>
-    </div>
-  )
+  // Tab button style
+  function tabBtn(tab: 'draft' | 'compose'): React.CSSProperties {
+    const active = activeTab === tab
+    return {
+      padding: '7px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+      background: 'none', border: 'none', borderBottom: active ? '2px solid #2563eb' : '2px solid transparent',
+      color: active ? '#2563eb' : '#9ca3af', transition: 'color 0.15s',
+    }
+  }
 
   return (
-    <div style={draftPanelBase}>
-      <div style={{ padding: '8px 16px 6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#2563eb' }}>AI Draft</span>
-          {lastMsg?.sent_at && (
-            <span style={{ fontSize: 11, color: '#93c5fd' }}>— replying to {lastMsg.from_address} · {timeAgo(lastMsg.sent_at)}</span>
-          )}
+    <div style={base}>
+      {/* ── Tab navigation ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #dbeafe', padding: '0 12px' }}>
+        <div style={{ display: 'flex' }}>
+          <button onClick={() => setActiveTab('draft')} style={tabBtn('draft')}>Draft</button>
+          <button onClick={() => setActiveTab('compose')} style={tabBtn('compose')}>Compose</button>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {savedAt && <span style={{ fontSize: 10, color: '#60a5fa' }}>Autosaved {timeAgo(savedAt)}</span>}
-          <button onClick={generate} disabled={!!loading} style={{ fontSize: 11, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer' }}>
-            {loading === 'gen' ? 'Regenerating…' : '↺ Regenerate'}
-          </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {error && <span style={{ fontSize: 11, color: '#ef4444' }}>{error}</span>}
+          {activeTab === 'draft' && (
+            <button onClick={generate} disabled={!!loading}
+              style={{ fontSize: 11, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
+              <RefreshCw size={11} style={{ animation: loading === 'gen' ? 'spin 1s linear infinite' : undefined }} />
+              {loading === 'gen' ? 'Generating…' : hasDraftContent ? 'Regenerate' : 'Generate AI reply'}
+            </button>
+          )}
         </div>
       </div>
 
-      {lastMsg && (
-        <div style={{ margin: '0 16px 6px', padding: '8px 10px', background: 'rgba(219,234,254,0.5)', borderRadius: 7, borderLeft: '3px solid #93c5fd' }}>
+      {/* ── Replying-to context strip ── */}
+      {needsReply && lastMsg && (
+        <div style={{ margin: '8px 12px 0', padding: '6px 10px', background: 'rgba(219,234,254,0.5)', borderRadius: 6, borderLeft: '3px solid #93c5fd' }}>
           <p style={{ margin: 0, fontSize: 11, color: '#6b7280', lineHeight: 1.5 }}>
-            {(lastMsg.body_text ?? '').split('\n').find(l => l.trim())?.slice(0, 120)}…
+            <strong style={{ color: '#3b82f6' }}>Replying to</strong> {lastMsg.from_address} · {timeAgo(lastMsg.sent_at)}
           </p>
         </div>
       )}
 
-      <div style={{ padding: '0 16px 8px' }}>
-        <textarea
-          value={content}
-          onChange={e => { setContent(e.target.value); scheduleAutoSave(e.target.value) }}
-          rows={5}
-          style={{ width: '100%', boxSizing: 'border-box', fontSize: 12, color: '#1e3a5f', lineHeight: 1.65, border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 12px', resize: 'none', background: '#fff', outline: 'none', fontFamily: 'inherit' }}
-        />
+      {/* ── Editor ── */}
+      <div style={{ padding: '8px 12px' }}>
+        {activeTab === 'draft' ? (
+          <RichEditor
+            key={draftEditorKey}
+            initialHtml={draftHtml}
+            onChange={setDraftHtml}
+            placeholder={loading === 'gen' ? 'Generating AI draft…' : 'Click "Generate AI reply" to draft a response, or switch to Compose to write manually.'}
+            minHeight={160}
+          />
+        ) : (
+          <RichEditor
+            key="compose"
+            initialHtml={composeHtml}
+            onChange={setComposeHtml}
+            placeholder={`Write your reply to ${lead.email ?? 'the client'}…`}
+            minHeight={160}
+          />
+        )}
       </div>
-      <div style={{ padding: '0 16px 12px', display: 'flex', gap: 8 }}>
-        <button onClick={handleReject} disabled={!!loading} style={{ padding: '7px 16px', fontSize: 12, fontWeight: 500, border: '1px solid #bfdbfe', borderRadius: 8, background: '#fff', color: '#6b7280', cursor: 'pointer', opacity: loading ? 0.5 : 1 }}>
-          {loading === 'reject' ? 'Rejecting…' : 'Reject'}
-        </button>
-        <button onClick={handleSend} disabled={!!loading || !content.trim()} style={{ flex: 1, padding: '7px 16px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 8, background: '#1d4ed8', color: '#fff', cursor: 'pointer', opacity: (loading || !content.trim()) ? 0.5 : 1 }}>
-          {loading === 'send' ? 'Saving…' : 'Approve & Send Reply'}
+
+      {/* ── Actions ── */}
+      <div style={{ padding: '4px 12px 10px', display: 'flex', gap: 8 }}>
+        {activeTab === 'draft' && hasDraftContent && (
+          <button onClick={handleReject} disabled={!!loading}
+            style={{ padding: '7px 16px', fontSize: 12, fontWeight: 500, border: '1px solid #bfdbfe', borderRadius: 8, background: '#fff', color: '#6b7280', cursor: 'pointer', opacity: loading ? 0.5 : 1 }}>
+            {loading === 'reject' ? 'Rejecting…' : 'Reject'}
+          </button>
+        )}
+        <button onClick={handleSend} disabled={!!loading || !canSend}
+          style={{ flex: 1, padding: '7px 16px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 8, background: '#1d4ed8', color: '#fff', cursor: 'pointer', opacity: (loading || !canSend) ? 0.5 : 1 }}>
+          {loading === 'send' ? 'Sending…' : 'Approve & Send Reply'}
         </button>
       </div>
     </div>
@@ -921,7 +887,7 @@ function ThreadView({
           ))}
         </div>
 
-        <AIDraftPanel lead={lead} thread={thread} messages={messages} storedDraft={latestSummary?.draft_reply} summaryId={latestSummary?.id ?? null} />
+        <AIDraftPanel lead={lead} thread={thread} messages={messages} storedDraft={latestSummary?.draft_reply} />
       </div>
 
       <ContactPanel lead={lead} messages={messages} onStatus={onStatus} />
