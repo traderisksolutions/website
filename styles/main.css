@@ -1,42 +1,3 @@
-/* ── Waldenburg (ElevenLabs heading font) ── */
-@font-face {
-  font-family: 'Waldenburg';
-  src: url('/fonts/KMR-Waldenburg-Buch-latin.woff2') format('woff2');
-  font-weight: 300;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Waldenburg';
-  src: url('/fonts/KMR-Waldenburg-Normal-latin.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Waldenburg';
-  src: url('/fonts/KMR-Waldenburg-Fett-latin.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Waldenburg';
-  src: url('/fonts/KMR-Waldenburg-FettHalbschmal-latin.woff2') format('woff2');
-  font-weight: 800;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* ── Camera Plain Variable (kept for fallback) ── */
-@font-face {
-  font-family: 'Camera Plain Variable';
-  src: url('/fonts/CameraPlainVariable.woff2') format('woff2');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
 /* ── Reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -53,9 +14,9 @@
   --accent:      #18181b;
 
   /* Typography */
-  --font: 'Archivo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-heading: 'Waldenburg', 'Archivo', -apple-system, sans-serif;
-  --font-serif: 'Waldenburg', 'Archivo', -apple-system, sans-serif;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-heading: 'Inter', -apple-system, sans-serif;
+  --font-serif: 'Inter', -apple-system, sans-serif;
 
   /* Radius */
   --radius-sm:   6px;
@@ -3903,7 +3864,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   border-radius: 10px;
   margin: 0 20px 20px;
   padding: 14px 18px;
-  font-family: 'Courier New', monospace;
+  font-family: 'Inter', -apple-system, sans-serif;
   font-size: 11.5px;
   line-height: 1.75;
   flex-shrink: 0;
