@@ -42,17 +42,40 @@ export async function GET(req: NextRequest) {
 // POST /api/engagement/draft  → generate AI draft, upsert contact, save to ai_drafts
 export async function POST(req: NextRequest) {
   try {
-    const { leadId, contactName, contactEmail, company, topic, leadStatus, threadId, messages } =
+    const { leadId, contactName, contactEmail, company, topic, leadStatus, threadId, messages, manualContent } =
       await req.json() as {
-        leadId:       string
-        contactName:  string
-        contactEmail: string | null
-        company:      string | null
-        topic:        string | null
-        leadStatus:   string
-        threadId:     string | null
-        messages:     MsgSnippet[]
+        leadId:         string
+        contactName:    string
+        contactEmail:   string | null
+        company:        string | null
+        topic:          string | null
+        leadStatus:     string
+        threadId:       string | null
+        messages:       MsgSnippet[]
+        manualContent?: string
       }
+
+    // Manual compose — skip Gemini entirely
+    if (manualContent !== undefined) {
+      if (!contactEmail) return NextResponse.json({ error: 'Contact has no email address' }, { status: 400 })
+      // Upsert contact
+      const upsertRes = await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
+        method:  'POST',
+        headers: sbHeaders('return=representation,resolution=merge-duplicates'),
+        body: JSON.stringify({ full_name: contactName, email: contactEmail, source: 'email' }),
+      })
+      const upserted  = upsertRes.ok ? await upsertRes.json() : null
+      const contactId = (Array.isArray(upserted) ? upserted[0] : upserted)?.id ?? null
+      if (!contactId) return NextResponse.json({ error: 'Could not resolve contact_id' }, { status: 400 })
+      const draftRes = await fetch(`${SB_URL}/rest/v1/ai_drafts`, {
+        method:  'POST',
+        headers: sbHeaders('return=representation'),
+        body: JSON.stringify({ contact_id: contactId, thread_id: threadId ?? null, channel: 'email', body: manualContent, status: 'pending', generated_by: 'manual' }),
+      })
+      const saved = draftRes.ok ? await draftRes.json() : null
+      const draft = Array.isArray(saved) ? saved[0] : saved
+      return NextResponse.json({ draftId: draft?.id ?? null, content: manualContent, contactId })
+    }
 
     const geminiKey = process.env.GEMINI_API_KEY_DRAFT_EMAIL
     if (!geminiKey) return NextResponse.json({ error: 'GEMINI_API_KEY_DRAFT_EMAIL not set' }, { status: 500 })

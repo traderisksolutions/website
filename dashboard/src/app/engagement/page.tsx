@@ -288,34 +288,76 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; defaultOpen: boolean })
 
 // ── AI Summary strip ──────────────────────────────────────────────────────────
 
-function StoredSummaryStrip({ summaries, loading }: { summaries: StoredSummary[]; loading: boolean }) {
-  const [open,        setOpen]        = useState(true)
-  const [historyOpen, setHistoryOpen] = useState(false)
+function StoredSummaryStrip({
+  summaries, loading, threadId, latestMessageId, onRefresh,
+}: {
+  summaries:        StoredSummary[]
+  loading:          boolean
+  threadId:         string | null
+  latestMessageId:  string | null
+  onRefresh:        () => void
+}) {
+  const [open,         setOpen]         = useState(true)
+  const [historyOpen,  setHistoryOpen]  = useState(false)
+  const [regenerating, setRegenerating] = useState(false)
+  const [regenErr,     setRegenErr]     = useState<string | null>(null)
 
   const latest = summaries[0] ?? null
   const older  = summaries.slice(1)
 
+  async function handleRegenerate() {
+    if (!threadId || !latestMessageId) return
+    setRegenerating(true); setRegenErr(null)
+    try {
+      const res = await fetch('/api/engagement/refresh-summary', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ thread_id: threadId, message_id: latestMessageId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed')
+      onRefresh()
+    } catch (e) {
+      setRegenErr(e instanceof Error ? e.message : 'Failed')
+    } finally {
+      setRegenerating(false)
+    }
+  }
+
   return (
     <div style={{ borderBottom: '1px solid #e8e8e8', flexShrink: 0, background: '#fafafa' }}>
-      <button
-        onClick={() => setOpen(v => !v)}
-        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', background: 'none', border: 'none', cursor: 'pointer' }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px' }}>
+        <button
+          onClick={() => setOpen(v => !v)}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+        >
           <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#3b82f6' }}>AI Analysis</span>
           {latest && <span style={{ fontSize: 10, color: '#bbb' }}>· {timeAgo(latest.created_at)}</span>}
           {summaries.length > 1 && <span style={{ fontSize: 10, color: '#bbb' }}>· {summaries.length} updates</span>}
+          <span style={{ fontSize: 11, color: '#bbb' }}>{open ? '▲' : '▽'}</span>
+        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {regenErr && <span style={{ fontSize: 10, color: '#ef4444' }}>{regenErr}</span>}
+          {threadId && latestMessageId && (
+            <button
+              onClick={handleRegenerate}
+              disabled={regenerating || loading}
+              style={{ fontSize: 11, color: regenerating ? '#93c5fd' : '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4, opacity: (regenerating || loading) ? 0.6 : 1 }}
+            >
+              <RefreshCw size={11} style={{ animation: regenerating ? 'spin 1s linear infinite' : undefined }} />
+              {regenerating ? 'Generating…' : latest ? 'Regenerate' : 'Generate Now'}
+            </button>
+          )}
         </div>
-        <span style={{ fontSize: 11, color: '#bbb' }}>{open ? '▲' : '▽'}</span>
-      </button>
+      </div>
 
       {open && (
         <div style={{ padding: '0 16px 12px' }}>
-          {loading && <p style={{ margin: 0, fontSize: 12, color: '#aaa' }}>Analysing thread…</p>}
+          {(loading || regenerating) && <p style={{ margin: 0, fontSize: 12, color: '#aaa' }}>Analysing thread…</p>}
 
-          {!loading && !latest && (
+          {!loading && !regenerating && !latest && (
             <p style={{ margin: 0, fontSize: 12, color: '#bbb', fontStyle: 'italic' }}>
-              Summary generates automatically after each new email.
+              Click &ldquo;Generate Now&rdquo; to analyse this thread, or it generates automatically on each new email.
             </p>
           )}
 
@@ -382,11 +424,12 @@ function AIDraftPanel({
   const [rejected,         setRejected]         = useState(false)
   const [error,            setError]            = useState<string | null>(null)
   const [savedAt,          setSavedAt]          = useState<string | null>(null)
+  const [manualMode,       setManualMode]       = useState(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     setDraftId(null); setContent(''); setContentFromStore(false)
-    setSent(false); setRejected(false); setError(null); setSavedAt(null)
+    setSent(false); setRejected(false); setError(null); setSavedAt(null); setManualMode(false)
     if (saveTimer.current) clearTimeout(saveTimer.current)
   }, [lead.id])
 
@@ -437,16 +480,36 @@ function AIDraftPanel({
   }
 
   async function handleSend() {
+    if (!lead.email) { setError('Lead has no email address — cannot send'); return }
     setLoading('send')
     try {
-      if (draftId) {
+      let activeDraftId = draftId
+
+      // Manual compose: create a draft record first so /api/email/send can load it
+      if (!activeDraftId && content.trim()) {
+        const createRes = await fetch('/api/engagement/draft', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            leadId: lead.id, contactName: fullName(lead), contactEmail: lead.email,
+            company: lead.company, topic: lead.topic, leadStatus: lead.status,
+            threadId: thread?.id ?? null, messages: [],
+            manualContent: content,
+          }),
+        })
+        const createData = await createRes.json()
+        if (createData.error) { setError(createData.error); return }
+        activeDraftId = createData.draftId
+        setDraftId(activeDraftId)
+      }
+
+      if (activeDraftId) {
         await fetch('/api/engagement/draft', {
           method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ draftId, status: 'approved', content }),
+          body: JSON.stringify({ draftId: activeDraftId, status: 'approved', content }),
         })
         const sendRes = await fetch('/api/email/send', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ draftId }),
+          body: JSON.stringify({ draftId: activeDraftId }),
         })
         if (!sendRes.ok) {
           const err = await sendRes.json().catch(() => ({}))
@@ -484,15 +547,54 @@ function AIDraftPanel({
     </div>
   )
 
-  if (!content && !rejected) return (
+  if (!content && !rejected && !manualMode) return (
     <div style={{ ...draftPanelBase, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
       <span style={{ fontSize: 12, color: needsReply ? '#b45309' : '#6b7280', fontStyle: needsReply ? 'normal' : 'italic', fontWeight: needsReply ? 500 : 400 }}>
         {needsReply ? '⚡ Client replied — generate a response' : 'No pending draft'}
       </span>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         {error && <span style={{ fontSize: 11, color: '#ef4444' }}>{error}</span>}
+        <button
+          onClick={() => setManualMode(true)}
+          style={{ fontSize: 11, color: '#6b7280', background: 'none', border: '1px solid #e5e7eb', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+        >
+          Compose
+        </button>
         <button onClick={generate} disabled={!!loading} style={{ fontSize: 11, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500, whiteSpace: 'nowrap' }}>
           {loading === 'gen' ? 'Generating…' : 'Generate AI reply'}
+        </button>
+      </div>
+    </div>
+  )
+
+  if (manualMode && !content) return (
+    <div style={draftPanelBase}>
+      <div style={{ padding: '8px 16px 6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#2563eb' }}>Compose Reply</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {error && <span style={{ fontSize: 11, color: '#ef4444' }}>{error}</span>}
+          <button onClick={() => setManualMode(false)} style={{ fontSize: 11, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={generate} disabled={!!loading} style={{ fontSize: 11, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}>
+            {loading === 'gen' ? 'Generating…' : 'Use AI instead'}
+          </button>
+        </div>
+      </div>
+      <div style={{ padding: '0 16px 8px' }}>
+        <textarea
+          autoFocus
+          placeholder={`Write your reply to ${lead.email ?? 'the client'}…`}
+          rows={5}
+          style={{ width: '100%', boxSizing: 'border-box', fontSize: 12, color: '#1e3a5f', lineHeight: 1.65, border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 12px', resize: 'none', background: '#fff', outline: 'none', fontFamily: 'inherit' }}
+          onChange={e => setContent(e.target.value)}
+        />
+      </div>
+      <div style={{ padding: '0 16px 12px', display: 'flex', gap: 8 }}>
+        <button
+          onClick={handleSend}
+          disabled={!!loading}
+          style={{ flex: 1, padding: '7px 16px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 8, background: '#1d4ed8', color: '#fff', cursor: 'pointer', opacity: loading ? 0.5 : 1 }}
+        >
+          {loading === 'send' ? 'Sending…' : 'Send Reply'}
         </button>
       </div>
     </div>
@@ -710,9 +812,20 @@ function ThreadView({
   const [summariesLoading, setSummariesLoading] = useState(false)
   const [deleting,         setDeleting]         = useState(false)
   const [confirmDelete,    setConfirmDelete]     = useState(false)
-  const threadId      = thread?.id ?? null
-  const latestSummary = summaries[0] ?? null
-  const log           = useAuditLog()
+  const threadId        = thread?.id ?? null
+  const latestSummary   = summaries[0] ?? null
+  const latestMessageId = messages.at(-1)?.id ?? null
+  const log             = useAuditLog()
+
+  function refreshSummaries() {
+    if (!threadId) return
+    setSummariesLoading(true)
+    fetch(`/api/engagement/thread-summaries?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' })
+      .then(r => r.json())
+      .then(data => setSummaries(Array.isArray(data) ? data : []))
+      .catch(() => setSummaries([]))
+      .finally(() => setSummariesLoading(false))
+  }
 
   async function handleDelete() {
     if (!confirmDelete) { setConfirmDelete(true); return }
@@ -779,7 +892,13 @@ function ThreadView({
           </div>
         </div>
 
-        <StoredSummaryStrip summaries={summaries} loading={summariesLoading} />
+        <StoredSummaryStrip
+          summaries={summaries}
+          loading={summariesLoading}
+          threadId={threadId}
+          latestMessageId={latestMessageId}
+          onRefresh={refreshSummaries}
+        />
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
           {loading && <div style={{ textAlign: 'center', padding: '48px 0', fontSize: 12, color: '#bbb' }}>Loading email thread…</div>}
