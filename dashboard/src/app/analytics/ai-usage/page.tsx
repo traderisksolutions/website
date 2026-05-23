@@ -2,7 +2,11 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-import { Cpu, DollarSign, Hash, RefreshCw } from 'lucide-react'
+import { Cpu } from 'lucide-react'
+import {
+  Card, Statistic, Tag, Segmented, Button, Flex, Typography, Row, Col,
+} from 'antd'
+import { ReloadOutlined } from '@ant-design/icons'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -40,9 +44,9 @@ const FEATURES: { key: string; label: string; color: string; desc: string }[] = 
 
 const RANGE_DAYS: Record<Range, number> = { '7d': 7, '30d': 30, '90d': 90 }
 
-const INPUT_CPM  = 0.15   // $ per 1M input tokens
-const OUTPUT_CPM = 0.60   // $ per 1M output tokens
-const SGD_PER_USD = 1.35  // approximate rate
+const INPUT_CPM   = 0.15
+const OUTPUT_CPM  = 0.60
+const SGD_PER_USD = 1.35
 
 function fmtCost(n: number) {
   if (n < 0.01) return `$${(n * 100).toFixed(3)}¢`
@@ -97,34 +101,14 @@ function bucketByDay(rows: UsageRow[], features: string[]): DayBucket[] {
     .map(([, v]) => v)
 }
 
-// ── Stat card ─────────────────────────────────────────────────────────────────
-
-function StatCard({ label, value, sub, icon: Icon, color }: {
-  label: string; value: string; sub?: string
-  icon: React.ElementType; color: string
-}) {
-  return (
-    <div style={{ background: '#fff', border: '1px solid #e8e8e8', borderRadius: 12, padding: '16px 20px', flex: 1, minWidth: 160 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#aaa' }}>{label}</span>
-        <span style={{ width: 28, height: 28, borderRadius: 8, background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon size={13} style={{ color }} strokeWidth={2} />
-        </span>
-      </div>
-      <div style={{ fontSize: 26, fontWeight: 700, color: '#111', letterSpacing: '-0.02em', lineHeight: 1 }}>{value}</div>
-      {sub && <div style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>{sub}</div>}
-    </div>
-  )
-}
-
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function AIUsagePage() {
-  const [rows,            setRows]            = useState<UsageRow[]>([])
-  const [range,           setRange]           = useState<Range>('30d')
-  const [activeFeatures,  setActiveFeatures]  = useState<string[]>(FEATURES.map(f => f.key))
-  const [metric,          setMetric]          = useState<'tokens' | 'cost'>('tokens')
-  const [loading,         setLoading]         = useState(true)
+  const [rows,           setRows]           = useState<UsageRow[]>([])
+  const [range,          setRange]          = useState<Range>('30d')
+  const [activeFeatures, setActiveFeatures] = useState<string[]>(FEATURES.map(f => f.key))
+  const [metric,         setMetric]         = useState<'tokens' | 'cost'>('tokens')
+  const [loading,        setLoading]        = useState(true)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -151,74 +135,139 @@ export default function AIUsagePage() {
     )
   }
 
-  const pillStyle = (active: boolean, color: string): React.CSSProperties => ({
-    padding: '4px 10px', fontSize: 11, fontWeight: 600, borderRadius: 20, cursor: 'pointer',
-    border: `1px solid ${active ? color : '#e5e7eb'}`,
-    background: active ? `${color}18` : '#fff',
-    color: active ? color : '#9ca3af',
-    transition: 'all 0.15s',
-  })
-
   return (
     <div style={{ padding: '24px 28px', maxWidth: 1100, margin: '0 auto' }}>
 
       {/* ── Header ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+      <Flex justify="space-between" align="center" style={{ marginBottom: 24 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#111' }}>AI Usage</h1>
-          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6b7280' }}>Gemini 2.5 Flash — token consumption &amp; cost</p>
+          <Typography.Title level={4} style={{ margin: 0, letterSpacing: '-0.02em' }}>AI Usage</Typography.Title>
+          <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+            Gemini 2.5 Flash — token consumption &amp; cost
+          </Typography.Text>
         </div>
-        <button onClick={load} disabled={loading}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', fontSize: 12, fontWeight: 500, border: '1px solid #e5e7eb', borderRadius: 8, background: '#fff', color: '#555', cursor: 'pointer' }}>
-          <RefreshCw size={12} style={{ animation: loading ? 'spin 1s linear infinite' : undefined }} />
+        <Button
+          icon={<ReloadOutlined spin={loading} />}
+          onClick={load}
+          loading={loading}
+        >
           Refresh
-        </button>
-      </div>
+        </Button>
+      </Flex>
 
       {/* ── Stat cards ── */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
-        <StatCard label="Total Tokens"    value={fmtTokens(totalTok)}  sub={`${range} · ${activeFeatures.length} feature${activeFeatures.length !== 1 ? 's' : ''}`} icon={Hash}        color="#3b82f6" />
-        <StatCard label="Total Cost"      value={fmtCost(totalCost)}   sub={`${fmtCostSGD(totalCost)} SGD · Gemini 2.5 Flash`}                                      icon={DollarSign}  color="#10b981" />
-        <StatCard label="API Calls"       value={totalCall.toLocaleString()} sub="Gemini requests made"                                                             icon={Cpu}         color="#8b5cf6" />
-        <StatCard label="Avg per Call"    value={fmtTokens(avgTok)}    sub="tokens per request"                                                                    icon={Hash}        color="#f59e0b" />
-      </div>
+      <Row gutter={12} style={{ marginBottom: 24 }}>
+        {[
+          {
+            label: 'Total Tokens',
+            value: fmtTokens(totalTok),
+            sub:   `${range} · ${activeFeatures.length} feature${activeFeatures.length !== 1 ? 's' : ''}`,
+            color: '#3b82f6',
+          },
+          {
+            label: 'Total Cost',
+            value: fmtCost(totalCost),
+            sub:   `${fmtCostSGD(totalCost)} SGD · Gemini 2.5 Flash`,
+            color: '#10b981',
+          },
+          {
+            label: 'API Calls',
+            value: totalCall.toLocaleString(),
+            sub:   'Gemini requests made',
+            color: '#8b5cf6',
+          },
+          {
+            label: 'Avg per Call',
+            value: fmtTokens(avgTok),
+            sub:   'tokens per request',
+            color: '#f59e0b',
+          },
+        ].map(card => (
+          <Col key={card.label} xs={24} sm={12} lg={6}>
+            <Card
+              size="small"
+              style={{ borderRadius: 12, marginBottom: 12 }}
+              styles={{ body: { padding: '16px 20px' } }}
+            >
+              <Flex justify="space-between" align="flex-start" style={{ marginBottom: 8 }}>
+                <Typography.Text style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#aaa' }}>
+                  {card.label}
+                </Typography.Text>
+                <span style={{
+                  width: 28, height: 28, borderRadius: 8,
+                  background: `${card.color}18`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Cpu size={13} style={{ color: card.color }} strokeWidth={2} />
+                </span>
+              </Flex>
+              <Statistic
+                value={card.value}
+                styles={{ value: { fontSize: 26, fontWeight: 700, color: '#111', letterSpacing: '-0.02em', lineHeight: 1 } }}
+              />
+              <Typography.Text style={{ fontSize: 11, color: '#aaa', display: 'block', marginTop: 4 }}>
+                {card.sub}
+              </Typography.Text>
+            </Card>
+          </Col>
+        ))}
+      </Row>
 
       {/* ── Chart card ── */}
-      <div style={{ background: '#fff', border: '1px solid #e8e8e8', borderRadius: 12, padding: '20px 24px' }}>
+      <Card style={{ marginBottom: 16, borderRadius: 12 }} styles={{ body: { padding: '20px 24px' } }}>
 
         {/* Row 1 — feature pills */}
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-          {FEATURES.map(f => (
-            <button key={f.key} onClick={() => toggleFeature(f.key)}
-              title={f.desc}
-              style={pillStyle(activeFeatures.includes(f.key), f.color)}>
-              {f.label}
-            </button>
-          ))}
-        </div>
+        <Flex gap={6} wrap="wrap" style={{ marginBottom: 12 }}>
+          {FEATURES.map(f => {
+            const active = activeFeatures.includes(f.key)
+            return (
+              <Tag
+                key={f.key}
+                title={f.desc}
+                onClick={() => toggleFeature(f.key)}
+                style={{
+                  cursor:     'pointer',
+                  userSelect: 'none',
+                  fontSize:   11,
+                  fontWeight: 600,
+                  padding:    '4px 10px',
+                  borderRadius: 20,
+                  lineHeight: '18px',
+                  border:     `1px solid ${active ? f.color : '#e5e7eb'}`,
+                  background: active ? `${f.color}18` : '#fff',
+                  color:      active ? f.color : '#9ca3af',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {f.label}
+              </Tag>
+            )
+          })}
+        </Flex>
 
         {/* Row 2 — metric + range toggles */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 20, paddingTop: 2, borderTop: '1px solid #f3f4f6' }}>
-          {(['tokens', 'cost'] as const).map(m => (
-            <button key={m} onClick={() => setMetric(m)}
-              style={{ padding: '5px 12px', fontSize: 11, fontWeight: 600, borderRadius: 6, cursor: 'pointer',
-                border: `1px solid ${metric === m ? '#2563eb' : '#e5e7eb'}`,
-                background: metric === m ? '#eff6ff' : '#fff',
-                color: metric === m ? '#2563eb' : '#9ca3af' }}>
-              {m === 'tokens' ? 'Tokens' : 'Cost (USD · SGD)'}
-            </button>
-          ))}
-          <div style={{ width: 1, background: '#e5e7eb', margin: '0 2px' }} />
-          {(['7d', '30d', '90d'] as Range[]).map(r => (
-            <button key={r} onClick={() => setRange(r)}
-              style={{ padding: '5px 12px', fontSize: 11, fontWeight: 600, borderRadius: 6, cursor: 'pointer',
-                border: `1px solid ${range === r ? '#2563eb' : '#e5e7eb'}`,
-                background: range === r ? '#eff6ff' : '#fff',
-                color: range === r ? '#2563eb' : '#9ca3af' }}>
-              {r}
-            </button>
-          ))}
-        </div>
+        <Flex
+          justify="flex-end"
+          align="center"
+          gap={8}
+          style={{ marginBottom: 20, paddingTop: 10, borderTop: '1px solid #f3f4f6' }}
+        >
+          <Segmented
+            size="small"
+            options={[
+              { label: 'Tokens',         value: 'tokens' },
+              { label: 'Cost (USD · SGD)', value: 'cost'   },
+            ]}
+            value={metric}
+            onChange={v => setMetric(v as 'tokens' | 'cost')}
+          />
+          <Segmented
+            size="small"
+            options={['7d', '30d', '90d']}
+            value={range}
+            onChange={v => setRange(v as Range)}
+          />
+        </Flex>
 
         {/* Chart */}
         {loading ? (
@@ -227,8 +276,10 @@ export default function AIUsagePage() {
           </div>
         ) : chartData.length === 0 ? (
           <div style={{ height: 280, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: '#aaa' }}>
-            <Cpu size={32} style={{ opacity: 0.3 }} />
-            <p style={{ margin: 0, fontSize: 13 }}>No usage data yet — data appears once Gemini API calls are made.</p>
+            <Cpu size={32} style={{ opacity: 0.3 }} strokeWidth={1.5} />
+            <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+              No usage data yet — data appears once Gemini API calls are made.
+            </Typography.Text>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={300}>
@@ -262,25 +313,28 @@ export default function AIUsagePage() {
             )}
           </ResponsiveContainer>
         )}
-      </div>
+      </Card>
 
       {/* ── Feature key ── */}
-      <div style={{ marginTop: 16, background: '#fff', border: '1px solid #e8e8e8', borderRadius: 12, padding: '16px 24px' }}>
-        <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#aaa' }}>What each feature tracks</p>
+      <Card style={{ borderRadius: 12 }} styles={{ body: { padding: '16px 24px' } }}>
+        <Typography.Text style={{ display: 'block', marginBottom: 12, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#aaa' }}>
+          What each feature tracks
+        </Typography.Text>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '8px 24px' }}>
           {FEATURES.map(f => (
-            <div key={f.key} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <Flex key={f.key} gap={10} align="flex-start">
               <span style={{ width: 10, height: 10, borderRadius: 3, background: f.color, flexShrink: 0, marginTop: 3 }} />
               <div>
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>{f.label}</span>
-                <p style={{ margin: '2px 0 0', fontSize: 11, color: '#9ca3af', lineHeight: 1.5 }}>{f.desc}</p>
+                <Typography.Text strong style={{ fontSize: 12, color: '#374151' }}>{f.label}</Typography.Text>
+                <Typography.Paragraph style={{ margin: '2px 0 0', fontSize: 11, color: '#9ca3af', lineHeight: 1.5 }}>
+                  {f.desc}
+                </Typography.Paragraph>
               </div>
-            </div>
+            </Flex>
           ))}
         </div>
-      </div>
+      </Card>
 
-      <style>{`@keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }`}</style>
     </div>
   )
 }
