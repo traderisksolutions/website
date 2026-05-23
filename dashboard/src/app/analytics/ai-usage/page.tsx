@@ -42,10 +42,16 @@ const RANGE_DAYS: Record<Range, number> = { '7d': 7, '30d': 30, '90d': 90 }
 
 const INPUT_CPM  = 0.15   // $ per 1M input tokens
 const OUTPUT_CPM = 0.60   // $ per 1M output tokens
+const SGD_PER_USD = 1.35  // approximate rate
 
 function fmtCost(n: number) {
   if (n < 0.01) return `$${(n * 100).toFixed(3)}¢`
   return `$${n.toFixed(4)}`
+}
+function fmtCostSGD(n: number) {
+  const s = n * SGD_PER_USD
+  if (s < 0.01) return `S$${(s * 100).toFixed(3)}¢`
+  return `S$${s.toFixed(4)}`
 }
 function fmtTokens(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`
@@ -172,7 +178,7 @@ export default function AIUsagePage() {
       {/* ── Stat cards ── */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
         <StatCard label="Total Tokens"    value={fmtTokens(totalTok)}  sub={`${range} · ${activeFeatures.length} feature${activeFeatures.length !== 1 ? 's' : ''}`} icon={Hash}        color="#3b82f6" />
-        <StatCard label="Total Cost"      value={fmtCost(totalCost)}   sub="Gemini 2.5 Flash pricing"                                                                icon={DollarSign}  color="#10b981" />
+        <StatCard label="Total Cost"      value={fmtCost(totalCost)}   sub={`${fmtCostSGD(totalCost)} SGD · Gemini 2.5 Flash`}                                      icon={DollarSign}  color="#10b981" />
         <StatCard label="API Calls"       value={totalCall.toLocaleString()} sub="Gemini requests made"                                                             icon={Cpu}         color="#8b5cf6" />
         <StatCard label="Avg per Call"    value={fmtTokens(avgTok)}    sub="tokens per request"                                                                    icon={Hash}        color="#f59e0b" />
       </div>
@@ -180,40 +186,38 @@ export default function AIUsagePage() {
       {/* ── Chart card ── */}
       <div style={{ background: '#fff', border: '1px solid #e8e8e8', borderRadius: 12, padding: '20px 24px' }}>
 
-        {/* Controls row */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {FEATURES.map(f => (
-              <button key={f.key} onClick={() => toggleFeature(f.key)}
-                title={f.desc}
-                style={pillStyle(activeFeatures.includes(f.key), f.color)}>
-                {f.label}
-              </button>
-            ))}
-          </div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {/* Metric toggle */}
-            {(['tokens', 'cost'] as const).map(m => (
-              <button key={m} onClick={() => setMetric(m)}
-                style={{ padding: '5px 12px', fontSize: 11, fontWeight: 600, borderRadius: 6, cursor: 'pointer',
-                  border: `1px solid ${metric === m ? '#2563eb' : '#e5e7eb'}`,
-                  background: metric === m ? '#eff6ff' : '#fff',
-                  color: metric === m ? '#2563eb' : '#9ca3af' }}>
-                {m === 'tokens' ? 'Tokens' : 'Cost ($)'}
-              </button>
-            ))}
-            {/* Range toggle */}
-            <div style={{ width: 1, background: '#e5e7eb', margin: '0 2px' }} />
-            {(['7d', '30d', '90d'] as Range[]).map(r => (
-              <button key={r} onClick={() => setRange(r)}
-                style={{ padding: '5px 12px', fontSize: 11, fontWeight: 600, borderRadius: 6, cursor: 'pointer',
-                  border: `1px solid ${range === r ? '#2563eb' : '#e5e7eb'}`,
-                  background: range === r ? '#eff6ff' : '#fff',
-                  color: range === r ? '#2563eb' : '#9ca3af' }}>
-                {r}
-              </button>
-            ))}
-          </div>
+        {/* Row 1 — feature pills */}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+          {FEATURES.map(f => (
+            <button key={f.key} onClick={() => toggleFeature(f.key)}
+              title={f.desc}
+              style={pillStyle(activeFeatures.includes(f.key), f.color)}>
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Row 2 — metric + range toggles */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 20, paddingTop: 2, borderTop: '1px solid #f3f4f6' }}>
+          {(['tokens', 'cost'] as const).map(m => (
+            <button key={m} onClick={() => setMetric(m)}
+              style={{ padding: '5px 12px', fontSize: 11, fontWeight: 600, borderRadius: 6, cursor: 'pointer',
+                border: `1px solid ${metric === m ? '#2563eb' : '#e5e7eb'}`,
+                background: metric === m ? '#eff6ff' : '#fff',
+                color: metric === m ? '#2563eb' : '#9ca3af' }}>
+              {m === 'tokens' ? 'Tokens' : 'Cost (USD · SGD)'}
+            </button>
+          ))}
+          <div style={{ width: 1, background: '#e5e7eb', margin: '0 2px' }} />
+          {(['7d', '30d', '90d'] as Range[]).map(r => (
+            <button key={r} onClick={() => setRange(r)}
+              style={{ padding: '5px 12px', fontSize: 11, fontWeight: 600, borderRadius: 6, cursor: 'pointer',
+                border: `1px solid ${range === r ? '#2563eb' : '#e5e7eb'}`,
+                background: range === r ? '#eff6ff' : '#fff',
+                color: range === r ? '#2563eb' : '#9ca3af' }}>
+              {r}
+            </button>
+          ))}
         </div>
 
         {/* Chart */}
@@ -250,7 +254,7 @@ export default function AIUsagePage() {
                 <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false}
                   tickFormatter={v => `$${(v as number).toFixed(4)}`} width={60} />
                 <Tooltip
-                  formatter={v => [`$${Number(v).toFixed(6)}`, 'Cost']}
+                  formatter={v => [`$${Number(v).toFixed(6)} · S$${(Number(v) * SGD_PER_USD).toFixed(6)}`, 'Cost']}
                   labelFormatter={l => `Date: ${l}`}
                   contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e5e7eb' }} />
                 <Bar dataKey="cost" fill="#3b82f6" radius={[4, 4, 0, 0]} />

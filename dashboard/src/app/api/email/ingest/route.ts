@@ -84,6 +84,18 @@ function splitDisplayName(name: string | null): { first_name: string | null; las
   return { first_name: parts[0] || null, last_name: parts.length > 1 ? parts.slice(1).join(' ') : null }
 }
 
+const PERSONAL_DOMAINS = new Set([
+  'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com',
+  'live.com', 'me.com', 'msn.com', 'protonmail.com', 'aol.com', 'googlemail.com',
+])
+
+function inferCompanyFromEmail(email: string): string | null {
+  const domain = email.split('@')[1]?.toLowerCase()
+  if (!domain || PERSONAL_DOMAINS.has(domain)) return null
+  const name = domain.split('.')[0]
+  return name.charAt(0).toUpperCase() + name.slice(1)
+}
+
 // Extract original external sender from a forwarded/replied message body
 function parseForwardedSender(body: string): { email: string; name: string | null } | null {
   // Normalise line endings so ^ anchors work regardless of CRLF/LF
@@ -238,11 +250,24 @@ async function ingestMessage(token: string, gmailMsgId: string) {
   })
   if (!contactUpsert.ok) console.error('[ingest] contact upsert failed:', await contactUpsert.text())
   const contactFetch = await fetch(
-    `${SB_URL}/rest/v1/contacts?email=eq.${encodeURIComponent(resolvedParty.email)}&select=id&limit=1`,
+    `${SB_URL}/rest/v1/contacts?email=eq.${encodeURIComponent(resolvedParty.email)}&select=id,company&limit=1`,
     { headers: sbHeaders() }
   )
-  const contactFetchRows = contactFetch.ok ? await contactFetch.json() : []
-  const contactId = Array.isArray(contactFetchRows) && contactFetchRows[0]?.id ? contactFetchRows[0].id : null
+  const contactFetchRows  = contactFetch.ok ? await contactFetch.json() : []
+  const existingContact   = Array.isArray(contactFetchRows) ? contactFetchRows[0] : null
+  const contactId         = existingContact?.id ?? null
+
+  // Persist inferred company if the contact doesn't already have one set
+  if (contactId && !existingContact?.company) {
+    const inferred = inferCompanyFromEmail(resolvedParty.email)
+    if (inferred) {
+      await fetch(`${SB_URL}/rest/v1/contacts?id=eq.${contactId}`, {
+        method:  'PATCH',
+        headers: sbHeaders('return=minimal'),
+        body:    JSON.stringify({ company: inferred }),
+      })
+    }
+  }
 
   // 2. Upsert thread linked to external contact
   const threadUpsert = await fetch(`${SB_URL}/rest/v1/email_threads?on_conflict=gmail_thread_id`, {
@@ -320,6 +345,8 @@ async function ingestMessage(token: string, gmailMsgId: string) {
     const body: Record<string, unknown> = { email: p.email, source: 'email' }
     if (first_name) body.first_name = first_name
     if (last_name)  body.last_name  = last_name
+    const inferredCo = inferCompanyFromEmail(p.email)
+    if (inferredCo)  body.company   = inferredCo
     const res = await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
       method:  'POST',
       headers: sbHeaders('return=minimal,resolution=merge-duplicates'),
