@@ -29,13 +29,13 @@ type DayBucket = {
 
 type Range = '7d' | '30d' | '90d'
 
-const FEATURES: { key: string; label: string; color: string }[] = [
-  { key: 'auto_summarize',  label: 'Auto Summarize',  color: '#3b82f6' },
-  { key: 'draft_reply',     label: 'Draft Reply',     color: '#10b981' },
-  { key: 'refresh_summary', label: 'Refresh Summary', color: '#f59e0b' },
-  { key: 'email_analysis',  label: 'Email Analysis',  color: '#8b5cf6' },
-  { key: 'outbound_search', label: 'Outbound Search', color: '#ef4444' },
-  { key: 'summarize',       label: 'Summarize',       color: '#06b6d4' },
+const FEATURES: { key: string; label: string; color: string; desc: string }[] = [
+  { key: 'auto_summarize',  label: 'Auto Summarize',  color: '#3b82f6', desc: 'Triggered automatically on every new inbound client email. Generates the AI analysis, next action, and draft reply stored in the engagement view.' },
+  { key: 'draft_reply',     label: 'Draft Reply',     color: '#10b981', desc: 'Triggered when a staff member clicks "Generate AI reply" in the Engagement → Draft tab.' },
+  { key: 'refresh_summary', label: 'Refresh Summary', color: '#f59e0b', desc: 'Triggered by the "Regenerate" button in the AI Analysis section of a thread. Re-runs the analysis on demand.' },
+  { key: 'email_analysis',  label: 'Email Analysis',  color: '#8b5cf6', desc: 'Triggered when a new inbound lead submits the website enquiry form. Generates the first-contact reply draft.' },
+  { key: 'outbound_search', label: 'Outbound Search', color: '#ef4444', desc: 'Triggered during outbound prospecting — Gemini extracts company names from Google search results.' },
+  { key: 'summarize',       label: 'Summarize',       color: '#06b6d4', desc: 'On-demand thread summarization called from the engagement dashboard.' },
 ]
 
 const RANGE_DAYS: Record<Range, number> = { '7d': 7, '30d': 30, '90d': 90 }
@@ -184,7 +184,9 @@ export default function AIUsagePage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {FEATURES.map(f => (
-              <button key={f.key} onClick={() => toggleFeature(f.key)} style={pillStyle(activeFeatures.includes(f.key), f.color)}>
+              <button key={f.key} onClick={() => toggleFeature(f.key)}
+                title={f.desc}
+                style={pillStyle(activeFeatures.includes(f.key), f.color)}>
                 {f.label}
               </button>
             ))}
@@ -256,6 +258,22 @@ export default function AIUsagePage() {
             )}
           </ResponsiveContainer>
         )}
+      </div>
+
+      {/* ── Feature key ── */}
+      <div style={{ marginTop: 16, background: '#fff', border: '1px solid #e8e8e8', borderRadius: 12, padding: '16px 24px' }}>
+        <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#aaa' }}>What each feature tracks</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '8px 24px' }}>
+          {FEATURES.map(f => (
+            <div key={f.key} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <span style={{ width: 10, height: 10, borderRadius: 3, background: f.color, flexShrink: 0, marginTop: 3 }} />
+              <div>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>{f.label}</span>
+                <p style={{ margin: '2px 0 0', fontSize: 11, color: '#9ca3af', lineHeight: 1.5 }}>{f.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <style>{`@keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }`}</style>
