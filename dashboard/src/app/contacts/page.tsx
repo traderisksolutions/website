@@ -40,6 +40,24 @@ const SOURCE_LABEL: Record<string, string> = {
 
 const STATUS_OPTIONS = ['all', 'new', 'contacted', 'engaged', 'qualified', 'proposal', 'converted', 'dropped', 'cc']
 
+const PERSONAL_DOMAINS = new Set([
+  'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com',
+  'live.com', 'me.com', 'msn.com', 'protonmail.com', 'aol.com', 'googlemail.com',
+])
+
+function inferCompany(email: string | null): string | null {
+  if (!email) return null
+  const domain = email.split('@')[1]?.toLowerCase()
+  if (!domain || PERSONAL_DOMAINS.has(domain)) return null
+  // Use the label before the first dot, title-cased
+  const name = domain.split('.')[0]
+  return name.charAt(0).toUpperCase() + name.slice(1)
+}
+
+function resolvedCompany(c: Contact): string | null {
+  return c.company?.trim() || inferCompany(c.email) || null
+}
+
 function fullName(c: Contact) {
   return [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || '—'
 }
@@ -47,7 +65,7 @@ function fullName(c: Contact) {
 function groupByCompany(contacts: Contact[]): CompanyGroup[] {
   const map = new Map<string, Contact[]>()
   for (const c of contacts) {
-    const key = c.company?.trim() || '—'
+    const key = resolvedCompany(c) ?? '—'
     if (!map.has(key)) map.set(key, [])
     map.get(key)!.push(c)
   }
@@ -59,7 +77,6 @@ function groupByCompany(contacts: Contact[]): CompanyGroup[] {
     return a.localeCompare(b)
   })
   for (const [company, contacts] of sorted) {
-    // Within each group: primary contacts first, CC contacts last
     const primary = contacts.filter(c => !c.isCC)
     const cc      = contacts.filter(c => c.isCC)
     groups.push({ company: company === '—' ? null : company, contacts: [...primary, ...cc] })
@@ -244,7 +261,7 @@ export default function ContactsPage() {
                 <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: '#f3f4f6', color: '#9ca3af' }}>CC</span>
               )}
             </div>
-            <p style={{ margin: '0 0 10px', fontSize: 13, color: '#888' }}>{selected.company ?? 'No company'}</p>
+            <p style={{ margin: '0 0 10px', fontSize: 13, color: '#888' }}>{resolvedCompany(selected) ?? 'No company'}</p>
             <span style={{
               display: 'inline-block', fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, textTransform: 'capitalize',
               background: (STATUS_COLORS[selected.status] ?? '#aaa') + '18',
