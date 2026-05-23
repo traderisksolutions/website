@@ -183,11 +183,11 @@ export default function AIUsagePage() {
             color: '#f59e0b',
           },
         ].map(card => (
-          <Col key={card.label} xs={24} sm={12} lg={6}>
+          <Col key={card.label} xs={24} sm={12} lg={6} style={{ display: 'flex', flexDirection: 'column' }}>
             <Card
               size="small"
-              style={{ borderRadius: 12, marginBottom: 12 }}
-              styles={{ body: { padding: '16px 20px' } }}
+              style={{ borderRadius: 12, marginBottom: 12, flex: 1 }}
+              styles={{ body: { padding: '16px 20px', height: '100%', display: 'flex', flexDirection: 'column' } }}
             >
               <Flex justify="space-between" align="flex-start" style={{ marginBottom: 8 }}>
                 <Typography.Text style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#aaa' }}>
