@@ -8,7 +8,7 @@ import {
   Users, BarChart2,
   Search, ChevronRight, ChevronDown,
   Bot, SlidersHorizontal, Table2, UsersRound,
-  LogOut, BookOpen,
+  LogOut, BookOpen, Cpu,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -238,8 +238,9 @@ export default function Sidebar() {
         <p style={{ margin: '4px 0 2px', padding: '0 10px', fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#aaa' }}>
           Analytics
         </p>
-        <NavItem label="Funnel"       href="/analytics"          icon={BarChart2}  isActive={false} disabled />
-        <NavItem label="Activity Log" href="/analytics/activity" icon={UsersRound} isActive={false} disabled />
+        <NavItem label="Funnel"       href="/analytics"             icon={BarChart2}  isActive={active('/analytics') && !active('/analytics/ai-usage') && !active('/analytics/activity')} disabled />
+        <NavItem label="Activity Log" href="/analytics/activity"    icon={UsersRound} isActive={active('/analytics/activity')} disabled />
+        <NavItem label="AI Usage"     href="/analytics/ai-usage"    icon={Cpu}        isActive={active('/analytics/ai-usage')} />
 
         <Divider />
 

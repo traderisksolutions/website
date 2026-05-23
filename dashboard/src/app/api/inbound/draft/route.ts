@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logGeminiUsage }           from '@/lib/gemini-usage'
 
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
 
@@ -51,6 +52,7 @@ Write only the email body.`
     }
 
     const data    = await gemRes.json()
+    void logGeminiUsage('email_analysis', data.usageMetadata ?? {})
     const content = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
 
     if (!content) return NextResponse.json({ error: 'Gemini returned no content' }, { status: 502 })

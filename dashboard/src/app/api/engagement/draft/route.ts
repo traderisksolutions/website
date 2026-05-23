@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logGeminiUsage }           from '@/lib/gemini-usage'
 
 const SB_URL    = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
@@ -129,6 +130,7 @@ Write only the email body. Start with "Hi ${contactName.split(' ')[0] || 'there'
       return NextResponse.json({ error: `Gemini ${gemRes.status}: ${errText.slice(0, 300)}` }, { status: 502 })
     }
     const gemData = await gemRes.json()
+    void logGeminiUsage('draft_reply', gemData.usageMetadata ?? {}, threadId)
     const content = gemData?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
     if (!content) {
       const reason = gemData?.candidates?.[0]?.finishReason ?? JSON.stringify(gemData).slice(0, 200)

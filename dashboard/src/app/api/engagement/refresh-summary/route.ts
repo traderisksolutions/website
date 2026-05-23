@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logGeminiUsage }           from '@/lib/gemini-usage'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
@@ -89,6 +90,7 @@ Return ONLY a valid JSON object. If the email is purely internal (TRS-to-TRS) wi
   }
 
   const gemData   = await gemRes.json()
+  void logGeminiUsage('refresh_summary', gemData.usageMetadata ?? {}, thread_id)
   const resultText = gemData?.candidates?.[0]?.content?.parts?.[0]?.text
   if (!resultText) {
     const reason = gemData?.candidates?.[0]?.finishReason ?? 'unknown'

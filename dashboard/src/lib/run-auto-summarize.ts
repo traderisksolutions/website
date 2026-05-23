@@ -1,4 +1,5 @@
-import { createSign } from 'crypto'
+import { createSign }     from 'crypto'
+import { logGeminiUsage } from '@/lib/gemini-usage'
 
 const SB_URL         = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL     = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
@@ -208,6 +209,7 @@ Return ONLY a valid JSON object. If the email is automated, a notification, or p
   }
 
   const geminiData = await geminiRes.json()
+  void logGeminiUsage('auto_summarize', geminiData.usageMetadata ?? {}, thread_id)
   const resultText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text
   if (!resultText) throw new Error('Gemini returned empty response')
 
