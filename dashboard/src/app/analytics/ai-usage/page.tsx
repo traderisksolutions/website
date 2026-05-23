@@ -290,6 +290,7 @@ export default function AIUsagePage() {
                 <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false}
                   tickFormatter={v => fmtTokens(v as number)} width={48} />
                 <Tooltip
+                  cursor={false}
                   formatter={(v, name) => [fmtTokens(Number(v)), FEATURES.find(f => f.key === name)?.label ?? String(name)]}
                   labelFormatter={l => `Date: ${l}`}
                   contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e5e7eb' }} />
@@ -305,6 +306,7 @@ export default function AIUsagePage() {
                 <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false}
                   tickFormatter={v => `$${(v as number).toFixed(4)}`} width={60} />
                 <Tooltip
+                  cursor={false}
                   formatter={v => [`$${Number(v).toFixed(6)} · S$${(Number(v) * SGD_PER_USD).toFixed(6)}`, 'Cost']}
                   labelFormatter={l => `Date: ${l}`}
                   contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e5e7eb' }} />
