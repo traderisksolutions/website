@@ -4,9 +4,7 @@
  */
 
 import { createSign } from 'crypto'
-// pdf-parse: import from lib path to avoid test-file side-effect on import
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdfParse: (data: Buffer) => Promise<{ text: string }> = require('pdf-parse/lib/pdf-parse.js')
+import { PDFParse }   from 'pdf-parse'
 
 const SB_URL    = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const DRIVE_API = 'https://www.googleapis.com/drive/v3'
@@ -171,7 +169,9 @@ export async function runRagIndex(force = false): Promise<IndexResult> {
 
       // Download + extract text
       const pdf    = await downloadPdf(driveToken, file.id)
-      const parsed = await pdfParse(pdf)
+      const parser = new PDFParse({ data: pdf })
+      const parsed = await parser.getText()
+      await parser.destroy()
       const text   = parsed.text?.trim() ?? ''
       if (text.length < 50) {
         result.errors.push(`${file.name}: extracted text too short (may be scanned image PDF)`)
