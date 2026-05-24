@@ -55,11 +55,48 @@ async function listDriveFiles(token: string, folderId: string): Promise<DriveFil
   return Array.isArray(data.files) ? data.files : []
 }
 
-async function downloadPdf(token: string, fileId: string): Promise<Buffer> {
+async function downloadFile(token: string, fileId: string): Promise<Buffer> {
   const res = await fetch(`${DRIVE_API}/files/${fileId}?alt=media`, {
     headers: { Authorization: `Bearer ${token}` },
   })
   return Buffer.from(await res.arrayBuffer())
+}
+
+// Export Google Doc / Sheet / Slide as plain text
+async function exportGoogleDoc(token: string, fileId: string): Promise<string> {
+  const res = await fetch(`${DRIVE_API}/files/${fileId}/export?mimeType=text/plain`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  return res.text()
+}
+
+function isSupportedFile(f: DriveFileMeta): boolean {
+  const name = f.name.toLowerCase()
+  return (
+    f.mimeType === 'application/pdf' ||
+    f.mimeType === 'text/plain' ||
+    f.mimeType === 'application/vnd.google-apps.document' ||
+    name.endsWith('.pdf') ||
+    name.endsWith('.txt') ||
+    name.endsWith('.md')
+  )
+}
+
+async function extractText(token: string, file: DriveFileMeta): Promise<string> {
+  if (file.mimeType === 'application/vnd.google-apps.document') {
+    return exportGoogleDoc(token, file.id)
+  }
+  if (file.mimeType === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+    const { PDFParse } = await import('pdf-parse')
+    const buf    = await downloadFile(token, file.id)
+    const parser = new PDFParse({ data: buf })
+    const parsed = await parser.getText()
+    await parser.destroy()
+    return parsed.text?.trim() ?? ''
+  }
+  // Plain text / markdown
+  const buf = await downloadFile(token, file.id)
+  return buf.toString('utf-8').trim()
 }
 
 // Split text into overlapping chunks of ~chunkSize chars
@@ -156,25 +193,18 @@ export async function runRagIndex(force = false): Promise<IndexResult> {
     }
   }
 
-  // Index each Drive file
-  const pdfs = driveFiles.filter(f => f.mimeType === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'))
-  for (const file of pdfs) {
+  // Index each supported Drive file (PDF, TXT, MD, Google Docs)
+  const supported = driveFiles.filter(isSupportedFile)
+  for (const file of supported) {
     try {
       if (!force && existingFileIds.has(file.id)) {
-        // Already indexed — skip (modifiedTime comparison could be added for smarter updates)
         result.skipped.push(file.name)
         continue
       }
 
-      // Download + extract text (lazy import avoids pdf-parse loading at module init)
-      const { PDFParse } = await import('pdf-parse')
-      const pdf    = await downloadPdf(driveToken, file.id)
-      const parser = new PDFParse({ data: pdf })
-      const parsed = await parser.getText()
-      await parser.destroy()
-      const text   = parsed.text?.trim() ?? ''
+      const text = await extractText(driveToken, file)
       if (text.length < 50) {
-        result.errors.push(`${file.name}: extracted text too short (may be scanned image PDF)`)
+        result.errors.push(`${file.name}: extracted text too short`)
         continue
       }
 
