@@ -4,7 +4,7 @@ const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const INPUT_COST_PER_TOKEN  = 0.15  / 1_000_000   // $0.15 per 1M input tokens
 const OUTPUT_COST_PER_TOKEN = 0.60  / 1_000_000   // $0.60 per 1M output tokens
 
-// text-embedding-004 pricing: $0.000025 per 1,000 characters
+// gemini-embedding-001 pricing: $0.000025 per 1,000 characters
 const EMBED_COST_PER_CHAR = 0.000025 / 1_000
 
 export type GeminiFeature =
@@ -76,7 +76,7 @@ export async function logEmbeddingUsage(totalChars: number, fileCount: number): 
         output_tokens: 0,
         cost_usd:      totalChars * EMBED_COST_PER_CHAR,
         thread_id:     null,
-        metadata:      JSON.stringify({ files_indexed: fileCount, model: 'text-embedding-004' }),
+        metadata:      JSON.stringify({ files_indexed: fileCount, model: 'gemini-embedding-001' }),
       }),
     })
   } catch {
