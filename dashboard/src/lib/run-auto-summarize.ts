@@ -1,5 +1,6 @@
 import { createSign }     from 'crypto'
 import { logGeminiUsage } from '@/lib/gemini-usage'
+import { runRagDraft }    from '@/lib/run-rag-draft'
 
 const SB_URL         = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL     = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
@@ -230,4 +231,9 @@ Return ONLY a valid JSON object. If the email is automated, a notification, or p
   if (!insertRes.ok) throw new Error(`Supabase insert failed: ${await insertRes.text()}`)
 
   console.log('[auto-summarize] stored for thread', thread_id, '| docs used:', docs.map(d => d.name).join(', ') || 'none')
+
+  // Fire RAG draft in parallel — non-fatal, runs alongside GDrive draft
+  runRagDraft(thread_id, message_id).catch(e =>
+    console.error('[auto-summarize] RAG draft failed (non-fatal):', e instanceof Error ? e.message : e)
+  )
 }

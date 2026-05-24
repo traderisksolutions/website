@@ -240,8 +240,8 @@ export default function Sidebar() {
         </p>
         <NavItem label="Funnel"       href="/analytics"             icon={BarChart2}  isActive={active('/analytics') && !active('/analytics/ai-usage') && !active('/analytics/activity')} disabled />
         <NavItem label="Activity Log" href="/analytics/activity"    icon={UsersRound} isActive={active('/analytics/activity')} disabled />
-        <NavItem label="AI Usage"          href="/analytics/ai-usage"       icon={Cpu}        isActive={active('/analytics/ai-usage')} />
-        <NavItem label="Knowledge Base"    href="/analytics/knowledge-base" icon={FolderOpen} isActive={active('/analytics/knowledge-base')} />
+        <NavItem label="AI Usage"   href="/analytics/ai-usage"  icon={Cpu}        isActive={active('/analytics/ai-usage')} />
+        <NavItem label="RAG Index"  href="/analytics/rag-index" icon={FolderOpen} isActive={active('/analytics/rag-index')} />
 
         <Divider />
 

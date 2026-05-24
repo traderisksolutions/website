@@ -44,6 +44,14 @@ type StoredSummary = {
   created_at:  string
 }
 
+type RagSource = {
+  file_id:     string
+  file_name:   string
+  chunk_index: number
+  similarity:  number
+  content:     string
+}
+
 type SortKey = 'last_activity' | 'newest' | 'oldest'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -406,17 +414,21 @@ function StoredSummaryStrip({
 // ── AI Draft panel ────────────────────────────────────────────────────────────
 
 function AIDraftPanel({
-  lead, thread, messages, storedDraft,
+  lead, thread, messages, storedDraft, storedRagDraft, storedRagSources, onRagRefresh,
 }: {
-  lead:        Lead
-  thread:      ThreadState['thread']
-  messages:    RealMsg[]
-  storedDraft?: string | null
+  lead:              Lead
+  thread:            ThreadState['thread']
+  messages:          RealMsg[]
+  storedDraft?:      string | null
+  storedRagDraft?:   string | null
+  storedRagSources?: RagSource[]
+  onRagRefresh?:     () => void
 }) {
+  type ActiveTab = 'gdrive' | 'rag' | 'compose'
   const lastMsg    = messages.at(-1)
   const needsReply = lastMsg?.direction === 'inbound'
 
-  const [activeTab,      setActiveTab]      = useState<'draft' | 'compose'>('draft')
+  const [activeTab,      setActiveTab]      = useState<ActiveTab>('gdrive')
   const [draftId,        setDraftId]        = useState<string | null>(null)
   const [draftHtml,      setDraftHtml]      = useState('')
   const [composeHtml,    setComposeHtml]    = useState('')
@@ -425,15 +437,24 @@ function AIDraftPanel({
   const [loading,        setLoading]        = useState<'gen' | 'send' | 'reject' | null>(null)
   const [sent,           setSent]           = useState(false)
   const [error,          setError]          = useState<string | null>(null)
+
+  // RAG tab state
+  const [ragHtml,      setRagHtml]      = useState('')
+  const [ragLoaded,    setRagLoaded]    = useState(false)
+  const [ragEditorKey, setRagEditorKey] = useState(0)
+  const [ragSources,   setRagSources]   = useState<RagSource[]>(storedRagSources ?? [])
+  const [ragGenerating, setRagGenerating] = useState(false)
+
   const log = useAuditLog()
 
   // Reset when switching threads
   useEffect(() => {
-    setActiveTab('draft'); setDraftId(null); setDraftHtml(''); setComposeHtml('')
+    setActiveTab('gdrive'); setDraftId(null); setDraftHtml(''); setComposeHtml('')
     setDraftLoaded(false); setDraftEditorKey(0); setSent(false); setError(null)
+    setRagHtml(''); setRagLoaded(false); setRagEditorKey(0); setRagSources([])
   }, [lead.id])
 
-  // Pre-fill Draft tab from auto-generated stored draft
+  // Pre-fill GDrive draft tab from auto-generated stored draft
   useEffect(() => {
     if (storedDraft && !draftLoaded && !sent) {
       setDraftHtml(plainToHtml(storedDraft))
@@ -441,6 +462,35 @@ function AIDraftPanel({
       setDraftEditorKey(k => k + 1)
     }
   }, [storedDraft, draftLoaded, sent])
+
+  // Pre-fill RAG draft tab from stored RAG draft
+  useEffect(() => {
+    if (storedRagDraft && !ragLoaded && !sent) {
+      setRagHtml(plainToHtml(storedRagDraft))
+      setRagLoaded(true)
+      setRagEditorKey(k => k + 1)
+      setRagSources(storedRagSources ?? [])
+    }
+  }, [storedRagDraft, ragLoaded, sent]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function generateRag() {
+    if (!thread?.id) { setError('No thread found'); return }
+    setRagGenerating(true); setError(null)
+    try {
+      const res  = await fetch('/api/engagement/draft-rag', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ thread_id: thread.id, message_id: lastMsg?.id ?? null }),
+      })
+      const data = await res.json()
+      if (data.error) { setError(data.error); return }
+      setRagHtml(plainToHtml(data.content))
+      setRagEditorKey(k => k + 1)
+      setRagSources(data.sources ?? [])
+      setRagLoaded(true)
+      onRagRefresh?.()
+    } catch { setError('Failed to generate RAG draft') }
+    finally { setRagGenerating(false) }
+  }
 
   async function generate() {
     if (!lead.email) { setError('No email address for this lead'); return }
@@ -459,8 +509,8 @@ function AIDraftPanel({
       if (data.error) { setError(data.error); return }
       setDraftId(data.draftId)
       setDraftHtml(plainToHtml(data.content))
-      setDraftEditorKey(k => k + 1)   // force editor to re-mount with new content
-      setActiveTab('draft')
+      setDraftEditorKey(k => k + 1)
+      setActiveTab('gdrive')
       log({ action: 'draft.generated', resource_type: 'thread', resource_id: thread?.id ?? lead.id, metadata: { contact: lead.email } })
     } catch { setError('Failed to generate draft') }
     finally { setLoading(null) }
@@ -468,15 +518,14 @@ function AIDraftPanel({
 
   async function handleSend() {
     if (!lead.email) { setError('No email address — cannot send'); return }
-    const activeHtml = activeTab === 'draft' ? draftHtml : composeHtml
+    const activeHtml = activeTab === 'gdrive' ? draftHtml : activeTab === 'rag' ? ragHtml : composeHtml
     const plainText  = htmlToPlain(activeHtml)
     if (!plainText.trim()) { setError('Cannot send an empty message'); return }
 
     setLoading('send'); setError(null)
     try {
-      let activeDraftId = activeTab === 'draft' ? draftId : null
+      let activeDraftId = activeTab === 'gdrive' ? draftId : null
 
-      // Compose tab (or draft tab without draftId): create a draft record first
       if (!activeDraftId) {
         const createRes  = await fetch('/api/engagement/draft', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -490,7 +539,7 @@ function AIDraftPanel({
         const createData = await createRes.json()
         if (createData.error) { setError(createData.error); return }
         activeDraftId = createData.draftId
-        if (activeTab === 'draft') setDraftId(activeDraftId)
+        if (activeTab === 'gdrive') setDraftId(activeDraftId)
       }
 
       await fetch('/api/engagement/draft', {
@@ -530,24 +579,24 @@ function AIDraftPanel({
   if (sent) return (
     <div style={{ ...base, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
       <span style={{ fontSize: 12, color: '#15803d' }}>✓ Reply sent</span>
-      <button onClick={() => { setSent(false); setDraftHtml(''); setComposeHtml(''); setDraftId(null) }}
+      <button onClick={() => { setSent(false); setDraftHtml(''); setRagHtml(''); setComposeHtml(''); setDraftId(null) }}
         style={{ fontSize: 11, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer' }}>
         New reply
       </button>
     </div>
   )
 
-  const hasDraftContent = draftHtml.replace(/<[^>]+>/g, '').trim().length > 0
-  const activeHtml      = activeTab === 'draft' ? draftHtml : composeHtml
-  const canSend         = htmlToPlain(activeHtml).trim().length > 0
+  const hasDraftContent    = draftHtml.replace(/<[^>]+>/g, '').trim().length > 0
+  const hasRagDraftContent = ragHtml.replace(/<[^>]+>/g, '').trim().length > 0
+  const activeHtml         = activeTab === 'gdrive' ? draftHtml : activeTab === 'rag' ? ragHtml : composeHtml
+  const canSend            = htmlToPlain(activeHtml).trim().length > 0
 
-  // Tab button style
-  function tabBtn(tab: 'draft' | 'compose'): React.CSSProperties {
+  function tabBtn(tab: ActiveTab): React.CSSProperties {
     const active = activeTab === tab
     return {
-      padding: '7px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+      padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
       background: 'none', border: 'none', borderBottom: active ? '2px solid #2563eb' : '2px solid transparent',
-      color: active ? '#2563eb' : '#9ca3af', transition: 'color 0.15s',
+      color: active ? '#2563eb' : '#9ca3af', transition: 'color 0.15s', whiteSpace: 'nowrap',
     }
   }
 
@@ -556,16 +605,24 @@ function AIDraftPanel({
       {/* ── Tab navigation ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #dbeafe', padding: '0 12px' }}>
         <div style={{ display: 'flex' }}>
-          <button onClick={() => setActiveTab('draft')} style={tabBtn('draft')}>Draft</button>
+          <button onClick={() => setActiveTab('gdrive')} style={tabBtn('gdrive')}>Draft (GDrive)</button>
+          <button onClick={() => setActiveTab('rag')}    style={tabBtn('rag')}>Draft (RAG)</button>
           <button onClick={() => setActiveTab('compose')} style={tabBtn('compose')}>Compose</button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {error && <span style={{ fontSize: 11, color: '#ef4444' }}>{error}</span>}
-          {activeTab === 'draft' && (
+          {activeTab === 'gdrive' && (
             <button onClick={generate} disabled={!!loading}
               style={{ fontSize: 11, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
               <RefreshCw size={11} style={{ animation: loading === 'gen' ? 'spin 1s linear infinite' : undefined }} />
               {loading === 'gen' ? 'Generating…' : hasDraftContent ? 'Regenerate' : 'Generate AI reply'}
+            </button>
+          )}
+          {activeTab === 'rag' && (
+            <button onClick={generateRag} disabled={ragGenerating}
+              style={{ fontSize: 11, color: '#7c3aed', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
+              <RefreshCw size={11} style={{ animation: ragGenerating ? 'spin 1s linear infinite' : undefined }} />
+              {ragGenerating ? 'Generating…' : hasRagDraftContent ? 'Regenerate (RAG)' : 'Generate RAG reply'}
             </button>
           )}
         </div>
@@ -582,28 +639,46 @@ function AIDraftPanel({
 
       {/* ── Editor ── */}
       <div style={{ padding: '8px 12px' }}>
-        {activeTab === 'draft' ? (
-          <RichEditor
-            key={draftEditorKey}
-            initialHtml={draftHtml}
-            onChange={setDraftHtml}
-            placeholder={loading === 'gen' ? 'Generating AI draft…' : 'Click "Generate AI reply" to draft a response, or switch to Compose to write manually.'}
-            minHeight={160}
-          />
-        ) : (
-          <RichEditor
-            key="compose"
-            initialHtml={composeHtml}
-            onChange={setComposeHtml}
+        {activeTab === 'gdrive' && (
+          <RichEditor key={draftEditorKey} initialHtml={draftHtml} onChange={setDraftHtml}
+            placeholder={loading === 'gen' ? 'Generating GDrive draft…' : 'Click "Generate AI reply" to draft using knowledge documents.'}
+            minHeight={140} />
+        )}
+        {activeTab === 'rag' && (
+          <RichEditor key={`rag-${ragEditorKey}`} initialHtml={ragHtml} onChange={setRagHtml}
+            placeholder={ragGenerating ? 'Generating RAG draft…' : 'Click "Generate RAG reply" to draft using retrieved knowledge chunks.'}
+            minHeight={140} />
+        )}
+        {activeTab === 'compose' && (
+          <RichEditor key="compose" initialHtml={composeHtml} onChange={setComposeHtml}
             placeholder={`Write your reply to ${lead.email ?? 'the client'}…`}
-            minHeight={160}
-          />
+            minHeight={140} />
         )}
       </div>
 
+      {/* ── RAG sources ── */}
+      {activeTab === 'rag' && ragSources.length > 0 && (
+        <div style={{ margin: '0 12px 8px', padding: '10px 12px', background: '#f5f3ff', borderRadius: 8, border: '1px solid #ede9fe' }}>
+          <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#7c3aed' }}>
+            Sources retrieved from knowledge base
+          </p>
+          {ragSources.map((s, i) => (
+            <div key={i} style={{ marginBottom: i < ragSources.length - 1 ? 6 : 0, padding: '7px 10px', background: '#fff', borderRadius: 6, border: '1px solid #ede9fe' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#374151' }}>📄 {s.file_name}</span>
+                <span style={{ fontSize: 10, color: '#10b981', fontWeight: 700 }}>{Math.round(s.similarity * 100)}% match</span>
+              </div>
+              <p style={{ margin: 0, fontSize: 11, color: '#6b7280', lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                {s.content}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* ── Actions ── */}
       <div style={{ padding: '4px 12px 10px', display: 'flex', gap: 8 }}>
-        {activeTab === 'draft' && hasDraftContent && (
+        {activeTab === 'gdrive' && hasDraftContent && (
           <button onClick={handleReject} disabled={!!loading}
             style={{ padding: '7px 16px', fontSize: 12, fontWeight: 500, border: '1px solid #bfdbfe', borderRadius: 8, background: '#fff', color: '#6b7280', cursor: 'pointer', opacity: loading ? 0.5 : 1 }}>
             {loading === 'reject' ? 'Rejecting…' : 'Reject'}
@@ -778,6 +853,7 @@ function ThreadView({
   const [summariesLoading, setSummariesLoading] = useState(false)
   const [deleting,         setDeleting]         = useState(false)
   const [confirmDelete,    setConfirmDelete]     = useState(false)
+  const [ragDraft,         setRagDraft]         = useState<{ content: string; sources: RagSource[] } | null>(null)
   const threadId        = thread?.id ?? null
   const latestSummary   = summaries[0] ?? null
   const latestMessageId = messages.at(-1)?.id ?? null
@@ -793,6 +869,14 @@ function ThreadView({
       .finally(() => setSummariesLoading(false))
   }
 
+  function refreshRagDraft() {
+    if (!threadId) return
+    fetch(`/api/engagement/draft-rag?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' })
+      .then(r => r.json())
+      .then(data => { if (data && data.content) setRagDraft({ content: data.content, sources: data.sources ?? [] }) })
+      .catch(() => {})
+  }
+
   async function handleDelete() {
     if (!confirmDelete) { setConfirmDelete(true); return }
     setDeleting(true)
@@ -806,6 +890,7 @@ function ThreadView({
 
   useEffect(() => {
     setSummaries([])
+    setRagDraft(null)
     if (!threadId) return
     setSummariesLoading(true)
     fetch(`/api/engagement/thread-summaries?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' })
@@ -813,6 +898,11 @@ function ThreadView({
       .then(data => setSummaries(Array.isArray(data) ? data : []))
       .catch(() => setSummaries([]))
       .finally(() => setSummariesLoading(false))
+    // Load latest RAG draft in parallel (non-fatal)
+    fetch(`/api/engagement/draft-rag?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' })
+      .then(r => r.json())
+      .then(data => { if (data?.content) setRagDraft({ content: data.content, sources: data.sources ?? [] }) })
+      .catch(() => {})
     log({ action: 'thread.viewed', resource_type: 'thread', resource_id: threadId, metadata: { contact: lead.email, subject: lead.subject } })
   }, [threadId, lead.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -887,7 +977,7 @@ function ThreadView({
           ))}
         </div>
 
-        <AIDraftPanel lead={lead} thread={thread} messages={messages} storedDraft={latestSummary?.draft_reply} />
+        <AIDraftPanel lead={lead} thread={thread} messages={messages} storedDraft={latestSummary?.draft_reply} storedRagDraft={ragDraft?.content ?? null} storedRagSources={ragDraft?.sources ?? []} onRagRefresh={refreshRagDraft} />
       </div>
 
       <ContactPanel lead={lead} messages={messages} onStatus={onStatus} />

@@ -15,6 +15,10 @@
     {
       "path": "/api/email/ingest",
       "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/knowledge/index?reindex=1",
+      "schedule": "0 2 * * *"
     }
   ]
 }
