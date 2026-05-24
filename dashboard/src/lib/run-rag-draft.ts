@@ -5,7 +5,7 @@
 
 const SB_URL      = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
-const EMBED_URL   = 'https://generativelanguage.googleapis.com/v1/models/text-embedding-004:embedContent'
+const EMBED_URL   = 'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent'
 
 import { logGeminiUsage } from '@/lib/gemini-usage'
 
@@ -28,7 +28,7 @@ async function embedText(text: string, apiKey: string): Promise<number[]> {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model:   'models/text-embedding-004',
+      model:   'text-embedding-004',
       content: { parts: [{ text: text.slice(0, 8000) }] },
     }),
   })

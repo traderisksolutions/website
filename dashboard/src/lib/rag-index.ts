@@ -8,7 +8,7 @@ import { logEmbeddingUsage } from '@/lib/gemini-usage'
 
 const SB_URL    = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const DRIVE_API = 'https://www.googleapis.com/drive/v3'
-const EMBED_URL = 'https://generativelanguage.googleapis.com/v1/models/text-embedding-004:embedContent'
+const EMBED_URL = 'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent'
 
 function sbHeaders(prefer = 'return=minimal') {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -120,7 +120,7 @@ async function embedText(text: string, apiKey: string): Promise<number[]> {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model:   'models/text-embedding-004',
+      model:   'text-embedding-004',
       content: { parts: [{ text: text.slice(0, 8000) }] },
     }),
   })
