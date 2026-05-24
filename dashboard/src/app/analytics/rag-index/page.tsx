@@ -159,9 +159,9 @@ export default function RagIndexPage() {
             description="Deletes all existing chunks and rebuilds the entire index from scratch. Use this if a file was updated or replaced in Drive, or if results seem stale. Slower — re-processes every PDF."
           />
           <LegendRow
-            label="Auto-sync (Nightly 2am)"
+            label="Auto-sync (Nightly 2am SGT)"
             color="#10b981"
-            description="Runs automatically every night. Same as Re-index New Files — only picks up PDFs added since the last run. No action needed from you."
+            description="Runs automatically every night at 2am Singapore time. Same as Re-index New Files — only picks up PDFs added since the last run. No action needed from you."
           />
           <LegendRow
             label="Chunks"
@@ -230,7 +230,7 @@ export default function RagIndexPage() {
               Auto-sync
             </Typography.Text>
             <Typography.Text style={{ fontSize: 20, fontWeight: 700, color: '#10b981', display: 'block', letterSpacing: '-0.02em' }}>
-              Nightly 2am
+              Nightly 2am SGT
             </Typography.Text>
             <Typography.Text style={{ fontSize: 11, color: '#aaa', display: 'block', marginTop: 4 }}>
               New files only · use Re-index for immediate

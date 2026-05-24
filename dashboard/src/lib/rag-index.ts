@@ -4,7 +4,6 @@
  */
 
 import { createSign } from 'crypto'
-import { PDFParse }   from 'pdf-parse'
 
 const SB_URL    = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const DRIVE_API = 'https://www.googleapis.com/drive/v3'
@@ -167,7 +166,8 @@ export async function runRagIndex(force = false): Promise<IndexResult> {
         continue
       }
 
-      // Download + extract text
+      // Download + extract text (lazy import avoids pdf-parse loading at module init)
+      const { PDFParse } = await import('pdf-parse')
       const pdf    = await downloadPdf(driveToken, file.id)
       const parser = new PDFParse({ data: pdf })
       const parsed = await parser.getText()
