@@ -41,7 +41,7 @@ async function searchChunks(embedding: number[]): Promise<RagSource[]> {
     method:  'POST',
     headers: { ...sbHeaders('return=representation'), Prefer: 'return=representation' },
     body: JSON.stringify({
-      query_embedding:      embedding,
+      query_embedding:      `[${embedding.join(',')}]`,
       match_count:          6,
       similarity_threshold: 0.4,
     }),
