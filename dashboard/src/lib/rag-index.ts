@@ -120,11 +120,15 @@ async function embedText(text: string, apiKey: string): Promise<number[]> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model:   'models/text-embedding-004',
-      content: { parts: [{ text: text.slice(0, 8000) }] }, // embedding model input cap
+      content: { parts: [{ text: text.slice(0, 8000) }] },
     }),
   })
   const data = await res.json()
-  return data.embedding?.values ?? []
+  if (!res.ok || !data.embedding?.values) {
+    const reason = data.error?.message ?? data.error?.status ?? JSON.stringify(data).slice(0, 300)
+    throw new Error(`Gemini embedding failed (${res.status}): ${reason}`)
+  }
+  return data.embedding.values
 }
 
 
