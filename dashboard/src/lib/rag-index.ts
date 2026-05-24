@@ -3,11 +3,12 @@
  * Called by /api/knowledge/index (POST = manual, GET cron).
  */
 
-import { createSign } from 'crypto'
+import { createSign }       from 'crypto'
+import { logEmbeddingUsage } from '@/lib/gemini-usage'
 
 const SB_URL    = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const DRIVE_API = 'https://www.googleapis.com/drive/v3'
-const EMBED_URL = 'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent'
+const EMBED_URL = 'https://generativelanguage.googleapis.com/v1/models/text-embedding-004:embedContent'
 
 function sbHeaders(prefer = 'return=minimal') {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -172,11 +173,14 @@ export type IndexResult = {
 
 export async function runRagIndex(force = false): Promise<IndexResult> {
   const apiKey   = process.env.GEMINI_API_KEY_DRAFT_EMAIL
+  const embedKey = process.env.GEMINI_VECTOR_UPLOAD ?? apiKey   // dedicated embedding key, falls back to draft key
   const folderId = process.env.GOOGLE_DRIVE_KNOWLEDGE_FOLDER_ID
   if (!apiKey)   throw new Error('GEMINI_API_KEY_DRAFT_EMAIL not set')
+  if (!embedKey) throw new Error('GEMINI_VECTOR_UPLOAD not set')
   if (!folderId) throw new Error('GOOGLE_DRIVE_KNOWLEDGE_FOLDER_ID not set')
 
   const result: IndexResult = { indexed: [], skipped: [], deleted: [], errors: [], totalChunks: 0 }
+  let totalCharsEmbedded = 0
   const driveToken = await getDriveToken()
   const driveFiles = await listDriveFiles(driveToken, folderId)
 
@@ -219,9 +223,10 @@ export async function runRagIndex(force = false): Promise<IndexResult> {
       // Embed each chunk (sequential to avoid rate limits)
       const embeddings: number[][] = []
       for (const chunk of chunks) {
-        const emb = await embedText(chunk, apiKey)
+        const emb = await embedText(chunk, embedKey)
         if (emb.length === 0) throw new Error('Empty embedding returned')
         embeddings.push(emb)
+        totalCharsEmbedded += chunk.length
       }
 
       // Delete old chunks for this file then store new ones
@@ -236,6 +241,10 @@ export async function runRagIndex(force = false): Promise<IndexResult> {
       result.errors.push(`${file.name}: ${msg}`)
       console.error(`[rag-index] error on ${file.name}:`, msg)
     }
+  }
+
+  if (totalCharsEmbedded > 0) {
+    void logEmbeddingUsage(totalCharsEmbedded, result.indexed.length)
   }
 
   return result

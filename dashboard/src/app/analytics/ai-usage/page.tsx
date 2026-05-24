@@ -27,6 +27,7 @@ type DayBucket = {
   email_analysis:  number
   outbound_search: number
   summarize:       number
+  rag_index:       number
   total:           number
   cost:            number
 }
@@ -40,12 +41,11 @@ const FEATURES: { key: string; label: string; color: string; desc: string }[] = 
   { key: 'email_analysis',  label: 'Email Analysis',  color: '#8b5cf6', desc: 'Triggered when a new inbound lead submits the website enquiry form. Generates the first-contact reply draft.' },
   { key: 'outbound_search', label: 'Outbound Search', color: '#ef4444', desc: 'Triggered during outbound prospecting — Gemini extracts company names from Google search results.' },
   { key: 'summarize',       label: 'Summarize',       color: '#06b6d4', desc: 'On-demand thread summarization called from the engagement dashboard.' },
+  { key: 'rag_index',      label: 'RAG Index',       color: '#f97316', desc: 'Embedding cost for indexing Google Drive files into the knowledge base (text-embedding-004, priced per character).' },
 ]
 
 const RANGE_DAYS: Record<Range, number> = { '7d': 7, '30d': 30, '90d': 90 }
 
-const INPUT_CPM   = 0.15
-const OUTPUT_CPM  = 0.60
 const SGD_PER_USD = 1.35
 
 function fmtCost(n: number) {
@@ -83,17 +83,16 @@ function bucketByDay(rows: UsageRow[], features: string[]): DayBucket[] {
       map.set(date, {
         date, total: 0, cost: 0,
         auto_summarize: 0, draft_reply: 0, refresh_summary: 0,
-        email_analysis: 0, outbound_search: 0, summarize: 0,
+        email_analysis: 0, outbound_search: 0, summarize: 0, rag_index: 0,
       })
     }
     const b   = map.get(date)!
     const tok = row.input_tokens + row.output_tokens
-    const cos = row.input_tokens * INPUT_CPM / 1_000_000 + row.output_tokens * OUTPUT_CPM / 1_000_000
     if (features.includes(row.feature)) {
       const key = row.feature as keyof Omit<DayBucket, 'date' | 'total' | 'cost'>
       b[key] = (b[key] ?? 0) + tok
       b.total += tok
-      b.cost  += cos
+      b.cost  += row.cost_usd
     }
   }
   return Array.from(map.entries())
@@ -121,7 +120,7 @@ export default function AIUsagePage() {
 
   const filtered  = rows.filter(r => activeFeatures.includes(r.feature))
   const totalTok  = filtered.reduce((s, r) => s + r.input_tokens + r.output_tokens, 0)
-  const totalCost = filtered.reduce((s, r) => s + r.input_tokens * INPUT_CPM / 1_000_000 + r.output_tokens * OUTPUT_CPM / 1_000_000, 0)
+  const totalCost = filtered.reduce((s, r) => s + r.cost_usd, 0)
   const totalCall = filtered.length
   const avgTok    = totalCall ? Math.round(totalTok / totalCall) : 0
 
