@@ -722,6 +722,7 @@ var FOOTER_HTML = `
     '    <div class="nav-ctac-field"><label class="nav-ctac-label" for="nav-ctac-fname">First name</label><input class="nav-ctac-field-input" id="nav-ctac-fname" type="text" placeholder="Sarah" autocomplete="given-name" /></div>',
     '    <div class="nav-ctac-field"><label class="nav-ctac-label" for="nav-ctac-lname">Last name</label><input class="nav-ctac-field-input" id="nav-ctac-lname" type="text" placeholder="Lim" autocomplete="family-name" /></div>',
     '  </div>',
+    '  <div class="nav-ctac-field"><label class="nav-ctac-label" for="nav-ctac-wa-phone">Phone number</label><input class="nav-ctac-field-input" id="nav-ctac-wa-phone" type="tel" placeholder="91234567" autocomplete="tel" /></div>',
     '  <div class="nav-ctac-field"><label class="nav-ctac-label" for="nav-ctac-msg">More details</label><input class="nav-ctac-field-input" id="nav-ctac-msg" type="text" placeholder="e.g. renewing in June, fleet of 3 cars…" /></div>',
     '  <button class="nav-ctac-send" id="nav-ctac-send" data-track="nav_contact_send"><span>Send on WhatsApp</span></button>',
     '</div>',
@@ -756,6 +757,7 @@ var FOOTER_HTML = `
   var topicLabel      = document.getElementById('nav-ctac-topic-label');
   var firstNameInput  = document.getElementById('nav-ctac-fname');
   var lastNameInput   = document.getElementById('nav-ctac-lname');
+  var waPhoneInput    = document.getElementById('nav-ctac-wa-phone');
   var msgInput        = document.getElementById('nav-ctac-msg');
   var eFirstNameInput = document.getElementById('nav-ctac-e-fname');
   var eLastNameInput  = document.getElementById('nav-ctac-e-lname');
@@ -888,7 +890,7 @@ var FOOTER_HTML = `
     document.getElementById('nav-ctac-note-email').classList.toggle('nav-ctac-panel--hidden', showWa);
   }
   function resetForm() {
-    [firstNameInput, lastNameInput, msgInput, eFirstNameInput, eLastNameInput, eCompanyInput, eEmailInput, ePhoneInput, eMsgInput].forEach(function (el) { el.value = ''; el.classList.remove('nav-ctac-error'); });
+    [firstNameInput, lastNameInput, waPhoneInput, msgInput, eFirstNameInput, eLastNameInput, eCompanyInput, eEmailInput, ePhoneInput, eMsgInput].forEach(function (el) { el.value = ''; el.classList.remove('nav-ctac-error'); });
     selectedTopicWa = ''; selectedTopicEmail = '';
     topicLabel.textContent = '...'; topicLabel.style.color = '';
     card.querySelectorAll('.nav-ctac-chip').forEach(function (c) { c.classList.remove('active'); });
@@ -926,6 +928,7 @@ var FOOTER_HTML = `
   function sendWaMessage() {
     var firstName = firstNameInput.value.trim();
     var lastName  = lastNameInput.value.trim();
+    var waPhone   = waPhoneInput.value.trim();
     var extra     = msgInput.value.trim();
     if (!firstName) { firstNameInput.focus(); firstNameInput.classList.add('nav-ctac-error'); return; }
     if (!lastName)  { lastNameInput.focus();  lastNameInput.classList.add('nav-ctac-error');  return; }
@@ -938,7 +941,7 @@ var FOOTER_HTML = `
     firstNameInput.classList.remove('nav-ctac-error'); lastNameInput.classList.remove('nav-ctac-error'); msgInput.classList.remove('nav-ctac-error');
     var fullName = firstName + ' ' + lastName;
     var msg = 'Hi, I\'m ' + fullName + '. I want to know more about ' + selectedTopicWa + '. ' + extra;
-    if (typeof window.trsCaptureLead === 'function') window.trsCaptureLead({ first_name: firstName, last_name: lastName, department: selectedDept || null, contact_type: 'Individual', topic: selectedTopicWa, details: extra, message: msg }, 'whatsapp_click');
+    if (typeof window.trsCaptureLead === 'function') window.trsCaptureLead({ first_name: firstName, last_name: lastName, phone: waPhone || null, department: selectedDept || null, contact_type: 'Individual', topic: selectedTopicWa, details: extra, message: msg }, 'whatsapp_click');
     window.open('https://wa.me/6589386813?text=' + encodeURIComponent(msg), '_blank', 'noopener');
     resetForm(); showSuccess('Your message is on its way!');
   }
