@@ -26,7 +26,7 @@ var NAV_HTML = `
                 <span class="mega-cat-sub">Individuals &amp; home</span>
               </button>
               <button class="mega-cat" data-cat="business">
-                <span class="mega-cat-title">Business</span>
+                <span class="mega-cat-title">For Business</span>
                 <span class="mega-cat-sub">Commercial insurance</span>
               </button>
               <button class="mega-cat" data-cat="workforce">
