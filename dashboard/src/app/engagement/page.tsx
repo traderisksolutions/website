@@ -583,9 +583,11 @@ function AIDraftPanel({
   const [selectedSigId, setSelectedSigId] = useState<string>('')
   const [sigsLoaded,    setSigsLoaded]    = useState(false)
 
-  // CC / BCC state
-  const [ccList,  setCcList]  = useState<string[]>([])
-  const [bccList, setBccList] = useState<string[]>([])
+  // CC / BCC / Subject / Reply-To state
+  const [ccList,        setCcList]        = useState<string[]>([])
+  const [bccList,       setBccList]       = useState<string[]>([])
+  const [customSubject, setCustomSubject] = useState('')
+  const [replyTo,       setReplyTo]       = useState('operations@trade-risksol.com')
 
   const log = useAuditLog()
 
@@ -599,9 +601,14 @@ function AIDraftPanel({
     }).catch(() => {})
   }, [sigsLoaded])
 
-  // Pre-fill CC from thread message participants, reset on thread change
+  // Pre-fill CC, subject from thread; reset BCC and reply-to on thread change
   useEffect(() => {
     setBccList([])
+    setReplyTo('operations@trade-risksol.com')
+    // Subject
+    const s = thread?.subject ?? ''
+    setCustomSubject(s ? (s.startsWith('Re:') ? s : `Re: ${s}`) : 'Re: Your enquiry — Trade Risk Solutions')
+    // CC from thread messages
     const seen = new Set<string>()
     const ccs: string[] = []
     for (const m of messages) {
@@ -743,11 +750,13 @@ function AIDraftPanel({
       const sendRes = await fetch('/api/email/send', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          draftId:     activeDraftId,
-          htmlBody:    activeHtml,
-          signatureId: selectedSigId || undefined,
-          cc:          ccList.length  ? ccList  : undefined,
-          bcc:         bccList.length ? bccList : undefined,
+          draftId:       activeDraftId,
+          htmlBody:      activeHtml,
+          signatureId:   selectedSigId || undefined,
+          cc:            ccList.length  ? ccList  : undefined,
+          bcc:           bccList.length ? bccList : undefined,
+          customSubject: customSubject || undefined,
+          replyTo:       replyTo !== 'operations@trade-risksol.com' ? replyTo : undefined,
         }),
       })
       if (!sendRes.ok) {
@@ -837,8 +846,27 @@ function AIDraftPanel({
         </div>
       )}
 
-      {/* ── CC / BCC fields ── */}
+      {/* ── Subject / Reply-To / CC / BCC ── */}
       <div style={{ padding: '6px 12px 0', display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {/* Subject */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff' }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', flexShrink: 0, width: 52 }}>Subject</span>
+          <input
+            value={customSubject}
+            onChange={e => setCustomSubject(e.target.value)}
+            style={{ flex: 1, fontSize: 12, border: 'none', outline: 'none', padding: '2px 0', background: 'transparent', color: '#111' }}
+          />
+        </div>
+        {/* Reply-To */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff' }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', flexShrink: 0, width: 52 }}>Reply-To</span>
+          <input
+            value={replyTo}
+            onChange={e => setReplyTo(e.target.value)}
+            placeholder="operations@trade-risksol.com"
+            style={{ flex: 1, fontSize: 12, border: 'none', outline: 'none', padding: '2px 0', background: 'transparent', color: '#111' }}
+          />
+        </div>
         <EmailChipInput label="CC"  chips={ccList}  onChange={setCcList} />
         <EmailChipInput label="BCC" chips={bccList} onChange={setBccList} />
       </div>

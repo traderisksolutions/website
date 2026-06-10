@@ -127,55 +127,96 @@ export async function POST(req: NextRequest) {
     // Thread subject for additional context (topic comes from the lead/thread metadata)
     const threadSubject = topic || ''
 
-    const prompt = `You are an AI email assistant for Trade Risk Solutions (TRS), a Singapore insurance brokerage.
+    const lastInboundText = lastInbound ? (lastInbound.body_text || '').slice(0, 2000) : '(no inbound message found)'
 
-Your task: write a professional reply from TRS to the client based on their latest email. Use the thread history only as background context.
+    // ── Agent 1: Drafter — write a complete, accurate reply ──────────────────
+    const drafterPrompt = `You are an email assistant for Trade Risk Solutions (TRS), a Singapore insurance brokerage.
+
+Write a complete professional reply from TRS to the client's latest email.
 ${campaignCtxStr}
-GUIDELINES:
-- Greeting: start with exactly "${salutation}"
-- Length: 2–3 paragraphs — respond directly to what the client asked or sent, confirm receipt of any documents/attachments, and state the clear next step TRS will take
+RULES:
+- Start with exactly "${salutation}"
+- Respond to EVERYTHING the client asked or mentioned — do not omit any point
+- Confirm receipt of any documents or attachments specifically mentioned
+- State clearly what TRS will do next (review, revert, arrange meeting, etc.)
 - Tone: professional, warm, Singaporean business English
-- Reference specific details from the latest email (tender name, document type, coverage requirements, deadlines — whatever is present)
 - End with: "Best regards,\nTrade Risk Solutions"
-- Do NOT include a subject line — body text only
-- Do NOT use filler phrases like "Thank you for reaching out" if the email is not a first contact
+- Body text only — no subject line, no meta-commentary
 
 CLIENT DETAILS:
 - Name: ${hasRealName ? contactName : '(unknown)'}
 - Email: ${contactEmail ?? '—'}
 - Company: ${company || '(unknown)'}
 - Thread subject: ${threadSubject}
-- Lead status: ${leadStatus}
 
-CLIENT'S LATEST EMAIL (primary — respond to this):
-${lastInbound ? (lastInbound.body_text || '').slice(0, 2000) : '(no inbound message found)'}
+CLIENT'S LATEST EMAIL (respond to this):
+${lastInboundText}
 
-THREAD HISTORY (reference only — do not re-address old points unless directly relevant):
+THREAD HISTORY (background context only):
 ${threadCtx || '(no prior messages)'}
 
-Write only the email body, starting with "${salutation}".`
+Write only the email body starting with "${salutation}".`
 
-    const gemRes = await fetch(`${GEMINI_URL}?key=${geminiKey}`, {
+    const drafterRes = await fetch(`${GEMINI_URL}?key=${geminiKey}`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 1000 },
+        contents: [{ parts: [{ text: drafterPrompt }] }],
+        generationConfig: { temperature: 0.4, maxOutputTokens: 2048 },
       }),
     })
 
-    if (!gemRes.ok) {
-      const errText = await gemRes.text()
-      console.error('[engagement/draft] Gemini error:', gemRes.status, errText)
-      return NextResponse.json({ error: `Gemini ${gemRes.status}: ${errText.slice(0, 300)}` }, { status: 502 })
+    if (!drafterRes.ok) {
+      const errText = await drafterRes.text()
+      console.error('[engagement/draft] Gemini drafter error:', drafterRes.status, errText)
+      return NextResponse.json({ error: `Gemini ${drafterRes.status}: ${errText.slice(0, 300)}` }, { status: 502 })
     }
-    const gemData = await gemRes.json()
-    void logGeminiUsage('draft_reply', gemData.usageMetadata ?? {}, threadId)
-    const content = gemData?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-    if (!content) {
-      const reason = gemData?.candidates?.[0]?.finishReason ?? JSON.stringify(gemData).slice(0, 200)
-      return NextResponse.json({ error: `Gemini returned no content (${reason})` }, { status: 502 })
+    const drafterData = await drafterRes.json()
+    void logGeminiUsage('draft_reply_drafter', drafterData.usageMetadata ?? {}, threadId)
+    const rawDraft = drafterData?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+    if (!rawDraft) {
+      const reason = drafterData?.candidates?.[0]?.finishReason ?? JSON.stringify(drafterData).slice(0, 200)
+      return NextResponse.json({ error: `Gemini drafter returned no content (${reason})` }, { status: 502 })
     }
+
+    // ── Agent 2: Editor — trim to natural, context-appropriate length ────────
+    const editorPrompt = `You are a professional email editor for Trade Risk Solutions (TRS).
+
+Edit the draft reply below to make it concise and natural. Apply these rules:
+
+EDITING RULES:
+- Remove repetition, filler, and unnecessary elaboration
+- KEEP all key information: what was received, what TRS will do next, any specific details (names, dates, amounts)
+- Match length to complexity:
+    • Simple acknowledgement or single-question email → 2-4 sentences
+    • Standard enquiry with 1-2 topics → 1-2 short paragraphs
+    • Complex multi-topic or detailed email → 2-3 paragraphs maximum
+- Preserve the exact greeting "${salutation}" and the closing "Best regards,\nTrade Risk Solutions"
+- Natural business English — not stiff or corporate-sounding
+- Output ONLY the final email body. No commentary, no "Here is the edited version:", nothing else.
+
+DRAFT TO EDIT:
+${rawDraft}
+
+CLIENT'S EMAIL (for context on what must be addressed):
+${lastInboundText}`
+
+    const editorRes = await fetch(`${GEMINI_URL}?key=${geminiKey}`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: editorPrompt }] }],
+        generationConfig: { temperature: 0.2, maxOutputTokens: 1024 },
+      }),
+    })
+
+    if (!editorRes.ok) {
+      // Editor failed — fall back to raw draft rather than erroring
+      console.warn('[engagement/draft] Gemini editor failed — using raw draft')
+    }
+    const editorData = editorRes.ok ? await editorRes.json() : null
+    if (editorData) void logGeminiUsage('draft_reply_editor', editorData.usageMetadata ?? {}, threadId)
+    const content = editorData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || rawDraft
 
     // Upsert contact then re-fetch by email to get ID reliably.
     // merge-duplicates returns empty when the row already exists — never rely on its response body.

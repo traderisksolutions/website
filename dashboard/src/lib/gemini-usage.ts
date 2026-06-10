@@ -10,6 +10,8 @@ const EMBED_COST_PER_CHAR = 0.000025 / 1_000
 export type GeminiFeature =
   | 'auto_summarize'
   | 'draft_reply'
+  | 'draft_reply_drafter'
+  | 'draft_reply_editor'
   | 'refresh_summary'
   | 'email_analysis'
   | 'outbound_search'

@@ -59,11 +59,11 @@ function wrapBase64Lines(b64: string): string {
   return b64.match(/.{1,76}/g)?.join('\r\n') ?? b64
 }
 
-function buildRawEmail(to: string, subject: string, body: string, htmlBody?: string | null, cc?: string[], bcc?: string[]): string {
+function buildRawEmail(to: string, subject: string, body: string, htmlBody?: string | null, cc?: string[], bcc?: string[], replyTo?: string): string {
   const boundary    = `trs_${Date.now()}`
   const plainText   = htmlBody ? htmlToText(htmlBody) : body
   const emailCss = `<style>body{margin:0;padding:0}p{margin:0 0 10px 0;padding:0}p:last-child{margin-bottom:0}ul,ol{margin:0 0 10px 0;padding-left:22px}li{margin-bottom:3px}strong{font-weight:600}a{color:#1d4ed8}</style>`
-  const bodyStyle = `font-family:Arial,sans-serif;font-size:14px;line-height:1.65;color:#333;max-width:640px;margin:0 auto;padding:16px 0`
+  const bodyStyle = `font-family:Arial,sans-serif;font-size:14px;line-height:1.65;color:#333`
   const fullHtml    = htmlBody
     ? `<!DOCTYPE html><html><head><meta charset="utf-8">${emailCss}</head><body style="${bodyStyle}">${htmlBody}</body></html>`
     : `<!DOCTYPE html><html><head><meta charset="utf-8">${emailCss}</head><body style="${bodyStyle}"><p style="white-space:pre-wrap">${body.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p></body></html>`
@@ -74,6 +74,7 @@ function buildRawEmail(to: string, subject: string, body: string, htmlBody?: str
   const lines = [
     `From: Trade Risk Solutions <${OPS_EMAIL}>`,
     `To: ${to}`,
+    ...(replyTo && replyTo !== OPS_EMAIL ? [`Reply-To: ${replyTo}`] : []),
     ...(cc?.length  ? [`Cc: ${cc.join(', ')}`]  : []),
     ...(bcc?.length ? [`Bcc: ${bcc.join(', ')}`] : []),
     `Subject: ${encodeSubject(subject)}`,
@@ -127,7 +128,7 @@ function buildSignatureText(sig: Signature): string {
 // and records the outbound message in email_messages.
 export async function POST(req: NextRequest) {
   try {
-    const { draftId, htmlBody, signatureId, cc, bcc } = await req.json() as { draftId: string; htmlBody?: string; signatureId?: string; cc?: string[]; bcc?: string[] }
+    const { draftId, htmlBody, signatureId, cc, bcc, customSubject, replyTo } = await req.json() as { draftId: string; htmlBody?: string; signatureId?: string; cc?: string[]; bcc?: string[]; customSubject?: string; replyTo?: string }
     if (!draftId) return NextResponse.json({ error: 'draftId required' }, { status: 400 })
 
     // 1. Load the draft + contact email
@@ -161,6 +162,7 @@ export async function POST(req: NextRequest) {
       const threads = threadRes.ok ? await threadRes.json() : []
       const thread  = Array.isArray(threads) ? threads[0] : null
       if (thread?.subject) subject = thread.subject.startsWith('Re:') ? thread.subject : `Re: ${thread.subject}`
+      if (customSubject?.trim()) subject = customSubject.trim()
       gmailThreadId = thread?.gmail_thread_id ?? null
     }
 
@@ -182,7 +184,7 @@ export async function POST(req: NextRequest) {
 
     // 5. Send via Gmail API
     const token    = await getAccessToken()
-    const rawEmail = buildRawEmail(contact.email, subject, finalPlain, finalHtml, cc, bcc)
+    const rawEmail = buildRawEmail(contact.email, subject, finalPlain, finalHtml, cc, bcc, replyTo)
 
     const sendPayload: Record<string, unknown> = { raw: rawEmail }
     if (gmailThreadId) sendPayload.threadId = gmailThreadId
