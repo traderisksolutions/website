@@ -525,7 +525,23 @@ function AIDraftPanel({
   const [ragSources,    setRagSources]    = useState<RagSource[]>(storedRagSources ?? [])
   const [ragGenerating, setRagGenerating] = useState(false)
 
+  // Signature state
+  type SigOption = { id: string; name: string; title: string | null; phone: string | null }
+  const [signatures,    setSignatures]    = useState<SigOption[]>([])
+  const [selectedSigId, setSelectedSigId] = useState<string>('')
+  const [sigsLoaded,    setSigsLoaded]    = useState(false)
+
   const log = useAuditLog()
+
+  // Load signatures once
+  useEffect(() => {
+    if (sigsLoaded) return
+    setSigsLoaded(true)
+    fetch('/api/signatures').then(r => r.ok ? r.json() : []).then((rows: SigOption[]) => {
+      const active = (Array.isArray(rows) ? rows : []).filter(s => (s as unknown as { is_active: boolean }).is_active !== false)
+      setSignatures(active)
+    }).catch(() => {})
+  }, [sigsLoaded])
 
   // Reset when switching threads
   useEffect(() => {
@@ -653,7 +669,7 @@ function AIDraftPanel({
       })
       const sendRes = await fetch('/api/email/send', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ draftId: activeDraftId, htmlBody: activeHtml }),
+        body: JSON.stringify({ draftId: activeDraftId, htmlBody: activeHtml, signatureId: selectedSigId || undefined }),
       })
       if (!sendRes.ok) {
         const err = await sendRes.json().catch(() => ({}))
@@ -781,18 +797,35 @@ function AIDraftPanel({
         </div>
       )}
 
-      {/* ── Actions ── */}
-      <div style={{ padding: '4px 12px 10px', display: 'flex', gap: 8 }}>
-        {activeTab === 'gdrive' && hasDraftContent && (
-          <button onClick={handleReject} disabled={!!loading}
-            style={{ padding: '7px 16px', fontSize: 12, fontWeight: 500, border: '1px solid #bfdbfe', borderRadius: 8, background: '#fff', color: '#6b7280', cursor: 'pointer', opacity: loading ? 0.5 : 1 }}>
-            {loading === 'reject' ? 'Rejecting…' : 'Reject'}
-          </button>
+      {/* ── Signature selector + Actions ── */}
+      <div style={{ padding: '4px 12px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {signatures.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 11, color: '#9ca3af', whiteSpace: 'nowrap' }}>Sign as</span>
+            <select
+              value={selectedSigId}
+              onChange={e => setSelectedSigId(e.target.value)}
+              style={{ flex: 1, fontSize: 12, padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff', color: '#374151', cursor: 'pointer' }}
+            >
+              <option value="">— No signature —</option>
+              {signatures.map(s => (
+                <option key={s.id} value={s.id}>{s.name}{s.title ? ` · ${s.title}` : ''}</option>
+              ))}
+            </select>
+          </div>
         )}
-        <button onClick={handleSend} disabled={!!loading || !canSend}
-          style={{ flex: 1, padding: '7px 16px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 8, background: '#1d4ed8', color: '#fff', cursor: 'pointer', opacity: (loading || !canSend) ? 0.5 : 1 }}>
-          {loading === 'send' ? 'Sending…' : 'Approve & Send Reply'}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {activeTab === 'gdrive' && hasDraftContent && (
+            <button onClick={handleReject} disabled={!!loading}
+              style={{ padding: '7px 16px', fontSize: 12, fontWeight: 500, border: '1px solid #bfdbfe', borderRadius: 8, background: '#fff', color: '#6b7280', cursor: 'pointer', opacity: loading ? 0.5 : 1 }}>
+              {loading === 'reject' ? 'Rejecting…' : 'Reject'}
+            </button>
+          )}
+          <button onClick={handleSend} disabled={!!loading || !canSend}
+            style={{ flex: 1, padding: '7px 16px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 8, background: '#1d4ed8', color: '#fff', cursor: 'pointer', opacity: (loading || !canSend) ? 0.5 : 1 }}>
+            {loading === 'send' ? 'Sending…' : 'Approve & Send Reply'}
+          </button>
+        </div>
       </div>
     </div>
   )

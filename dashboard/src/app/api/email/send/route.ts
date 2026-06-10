@@ -93,13 +93,37 @@ function buildRawEmail(to: string, subject: string, body: string, htmlBody?: str
   return Buffer.from(lines.join('\r\n')).toString('base64url')
 }
 
+type Signature = { id: string; name: string; title: string | null; phone: string | null }
+
+function buildSignatureHtml(sig: Signature): string {
+  return [
+    '<br>',
+    '<hr style="margin:16px 0;border:none;border-top:1px solid #e5e7eb">',
+    `<p style="margin:0;font-size:13px;color:#1e3a5f;font-weight:600">${sig.name}</p>`,
+    sig.title ? `<p style="margin:4px 0 0;font-size:12px;color:#666">${sig.title}</p>` : '',
+    sig.phone ? `<p style="margin:4px 0 0;font-size:12px;color:#666">${sig.phone}</p>` : '',
+    '<p style="margin:4px 0 0;font-size:12px;color:#999">Trade Risk Solutions</p>',
+  ].filter(Boolean).join('\n')
+}
+
+function buildSignatureText(sig: Signature): string {
+  return [
+    '',
+    '--',
+    sig.name,
+    sig.title ?? '',
+    sig.phone ?? '',
+    'Trade Risk Solutions',
+  ].filter((l, i) => i < 2 || l).join('\n')
+}
+
 // POST /api/email/send
-// Body: { draftId: string }
+// Body: { draftId: string; htmlBody?: string; signatureId?: string }
 // Fetches the approved ai_draft, sends via Gmail API, marks draft sent,
 // and records the outbound message in email_messages.
 export async function POST(req: NextRequest) {
   try {
-    const { draftId, htmlBody } = await req.json() as { draftId: string; htmlBody?: string }
+    const { draftId, htmlBody, signatureId } = await req.json() as { draftId: string; htmlBody?: string; signatureId?: string }
     if (!draftId) return NextResponse.json({ error: 'draftId required' }, { status: 400 })
 
     // 1. Load the draft + contact email
@@ -136,9 +160,25 @@ export async function POST(req: NextRequest) {
       gmailThreadId = thread?.gmail_thread_id ?? null
     }
 
-    // 4. Send via Gmail API
+    // 4. Load signature and build final bodies
+    let finalHtml = htmlBody ?? null
+    let finalPlain = draft.body
+    if (signatureId) {
+      const sigRes = await fetch(
+        `${SB_URL}/rest/v1/user_signatures?id=eq.${signatureId}&select=id,name,title,phone&limit=1`,
+        { headers: sbHeaders() }
+      )
+      const sigs: Signature[] = sigRes.ok ? await sigRes.json() : []
+      const sig = sigs[0] ?? null
+      if (sig) {
+        if (finalHtml) finalHtml = finalHtml + buildSignatureHtml(sig)
+        finalPlain = finalPlain + buildSignatureText(sig)
+      }
+    }
+
+    // 5. Send via Gmail API
     const token    = await getAccessToken()
-    const rawEmail = buildRawEmail(contact.email, subject, draft.body, htmlBody ?? null)
+    const rawEmail = buildRawEmail(contact.email, subject, finalPlain, finalHtml)
 
     const sendPayload: Record<string, unknown> = { raw: rawEmail }
     if (gmailThreadId) sendPayload.threadId = gmailThreadId
@@ -157,14 +197,14 @@ export async function POST(req: NextRequest) {
     const sent = await sendRes.json()
     const sentAt = new Date().toISOString()
 
-    // 5. Mark draft as sent
+    // 6. Mark draft as sent
     await fetch(`${SB_URL}/rest/v1/ai_drafts?id=eq.${draftId}`, {
       method:  'PATCH',
       headers: sbHeaders('return=minimal'),
       body:    JSON.stringify({ status: 'sent', sent_at: sentAt }),
     })
 
-    // 6. Record outbound message in email_messages (if thread exists in DB)
+    // 7. Record outbound message in email_messages (if thread exists in DB)
     if (draft.thread_id && sent.id) {
       await fetch(`${SB_URL}/rest/v1/email_messages`, {
         method:  'POST',
@@ -175,7 +215,7 @@ export async function POST(req: NextRequest) {
           direction:        'outbound',
           from_address:     OPS_EMAIL,
           subject,
-          body_text:        htmlBody ? htmlToText(htmlBody) : draft.body,
+          body_text:        finalHtml ? htmlToText(finalHtml) : finalPlain,
           sent_at:          sentAt,
           has_attachments:  false,
         }),
