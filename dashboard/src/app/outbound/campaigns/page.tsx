@@ -29,11 +29,14 @@ export default function CampaignsPage() {
   const [loading,   setLoading]   = useState(true)
   const [error,     setError]     = useState<string | null>(null)
 
+  const PRODUCT_TYPES = ['Business Assets', 'Business Liabilities', 'Workforce', 'API', 'General'] as const
+
   // New campaign modal state
-  const [showModal,  setShowModal]  = useState(false)
-  const [campName,   setCampName]   = useState('')
-  const [newsUrl,    setNewsUrl]    = useState('')
-  const [creating,   setCreating]   = useState(false)
+  const [showModal,    setShowModal]    = useState(false)
+  const [campName,     setCampName]     = useState('')
+  const [campPt,       setCampPt]       = useState('General')
+  const [newsUrl,      setNewsUrl]      = useState('')
+  const [creating,     setCreating]     = useState(false)
 
   const loadCampaigns = useCallback(async () => {
     try {
@@ -56,11 +59,16 @@ export default function CampaignsPage() {
       const res  = await fetch('/api/outbound/campaigns', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ name: campName.trim(), leadIds: ['placeholder'], newsUrl: newsUrl.trim() || null }),
+        body:    JSON.stringify({
+          name:        campName.trim(),
+          productType: campPt,
+          leadIds:     ['placeholder'],
+          newsUrl:     newsUrl.trim() || null,
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Failed to create')
-      setShowModal(false); setCampName(''); setNewsUrl('')
+      setShowModal(false); setCampName(''); setCampPt('General'); setNewsUrl('')
       await loadCampaigns()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create campaign')
@@ -211,6 +219,18 @@ export default function CampaignsPage() {
               </div>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 600, color: '#666', display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Product / Service Type *
+                </label>
+                <select
+                  value={campPt}
+                  onChange={e => setCampPt(e.target.value)}
+                  style={{ width: '100%', padding: '8px 10px', fontSize: 13, borderRadius: 7, border: '1px solid #e5e5e5', background: '#fafafa', color: '#111', outline: 'none' }}
+                >
+                  {PRODUCT_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 600, color: '#666', display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   News Hook URL (optional)
                 </label>
                 <input
@@ -226,7 +246,7 @@ export default function CampaignsPage() {
             </div>
 
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 22 }}>
-              <button onClick={() => { setShowModal(false); setCampName(''); setNewsUrl('') }} style={{
+              <button onClick={() => { setShowModal(false); setCampName(''); setCampPt('General'); setNewsUrl('') }} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5,
                 padding: '6px 12px', borderRadius: 7, border: '1px solid #e5e5e5',
                 background: '#fff', color: '#333', fontSize: 12, fontWeight: 500, cursor: 'pointer',

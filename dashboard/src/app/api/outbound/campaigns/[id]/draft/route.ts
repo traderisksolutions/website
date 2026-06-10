@@ -50,6 +50,24 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       sampleLeads = leadsRes.ok ? await leadsRes.json() : []
     }
 
+    // Fetch product knowledge for this campaign's product type + General entries
+    let knowledgeContext = ''
+    try {
+      const productType = campaign.product_type ?? 'General'
+      const ptFilter    = productType === 'General'
+        ? `product_type=eq.General`
+        : `product_type=in.(${encodeURIComponent(productType)},General)`
+      const kbRes = await fetch(
+        `${SB_URL}/rest/v1/ob_knowledge_base?${ptFilter}&is_active=eq.true&order=sort_order.asc&limit=10`,
+        { headers: sbHeaders() }
+      )
+      const kbEntries: { title: string; content: string }[] = kbRes.ok ? await kbRes.json() : []
+      if (kbEntries.length > 0) {
+        knowledgeContext = '\n\nProduct knowledge to draw from:\n' +
+          kbEntries.map(e => `### ${e.title}\n${e.content}`).join('\n\n')
+      }
+    } catch { /* non-fatal — proceed without knowledge */ }
+
     const newsContext = campaign.news_headline
       ? `\nNews hook to weave in naturally: "${campaign.news_headline}"\nNews context: ${campaign.news_summary ?? ''}`
       : ''
@@ -61,7 +79,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const prompt = `You are writing a 3-step cold email outbound sequence for Trade Risk Solutions (TRS), a B2B insurance brokerage in Singapore.
 
 TRS sells: business property insurance, liability, cyber, workmen compensation, trade credit, and marine cargo insurance.
-Campaign name / target audience: "${campaign.name}"${newsContext}${sampleContext}
+Campaign name / target audience: "${campaign.name}"
+Product focus: ${campaign.product_type ?? 'General'}${newsContext}${sampleContext}${knowledgeContext}
 
 Write a 3-email sequence. Each email must:
 - Be professional but conversational, not salesy

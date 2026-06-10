@@ -9,7 +9,7 @@ import {
   Search, ChevronRight, ChevronDown,
   Bot, Table2, UsersRound,
   LogOut, BookOpen, Cpu, FolderOpen,
-  Telescope, Megaphone,
+  Telescope, Megaphone, BookMarked,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -190,9 +190,10 @@ export default function Sidebar() {
 
         {outboundOpen && (
           <>
-            <NavItem label="Lead Discovery" href="/outbound/agent"     icon={Telescope}  isActive={active('/outbound/agent')} />
-            <NavItem label="Lead Database"  href="/outbound/leads"     icon={Table2}     isActive={active('/outbound/leads')} />
-            <NavItem label="Campaigns"      href="/outbound/campaigns" icon={Megaphone}  isActive={active('/outbound/campaigns')} />
+            <NavItem label="Lead Discovery"    href="/outbound/agent"     icon={Telescope}   isActive={active('/outbound/agent')} />
+            <NavItem label="Lead Database"    href="/outbound/leads"     icon={Table2}      isActive={active('/outbound/leads')} />
+            <NavItem label="Campaigns"        href="/outbound/campaigns" icon={Megaphone}   isActive={active('/outbound/campaigns')} />
+            <NavItem label="Product Knowledge" href="/outbound/knowledge" icon={BookMarked}  isActive={active('/outbound/knowledge')} />
           </>
         )}
 

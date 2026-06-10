@@ -31,7 +31,7 @@ export async function GET() {
 // Body: { name, leadIds: string[], searchId?, newsUrl? }
 export async function POST(req: NextRequest) {
   try {
-    const { name, leadIds, searchId, newsUrl } = await req.json()
+    const { name, leadIds, searchId, newsUrl, productType } = await req.json()
     if (!name || !Array.isArray(leadIds) || leadIds.length === 0) {
       return NextResponse.json({ error: 'name and leadIds are required' }, { status: 400 })
     }
@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
       headers: sbHeaders('return=representation'),
       body:    JSON.stringify({
         name,
+        product_type:   productType ?? 'General',
         search_id:      searchId ?? null,
         status:         'draft',
         news_url:       resolvedUrl,
