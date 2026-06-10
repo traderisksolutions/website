@@ -22,16 +22,24 @@ interface MsgSnippet {
   sent_at: string
 }
 
-// GET /api/engagement/draft?contactId=X  → pending drafts for a contact
+// GET /api/engagement/draft?thread_id=X or ?contactId=X
+// Returns the latest pending/approved draft for a thread or contact.
 export async function GET(req: NextRequest) {
   try {
-    const contactId = new URL(req.url).searchParams.get('contactId')
-    if (!contactId) return NextResponse.json([])
+    const sp       = new URL(req.url).searchParams
+    const threadId = sp.get('thread_id')
+    const contactId = sp.get('contactId')
 
-    const res = await fetch(
-      `${SB_URL}/rest/v1/ai_drafts?contact_id=eq.${contactId}&status=in.(pending,approved)&order=created_at.desc&limit=5`,
-      { headers: sbHeaders() }
-    )
+    let url: string
+    if (threadId) {
+      url = `${SB_URL}/rest/v1/ai_drafts?thread_id=eq.${encodeURIComponent(threadId)}&status=in.(pending,approved)&order=created_at.desc&limit=1`
+    } else if (contactId) {
+      url = `${SB_URL}/rest/v1/ai_drafts?contact_id=eq.${contactId}&status=in.(pending,approved)&order=created_at.desc&limit=5`
+    } else {
+      return NextResponse.json([])
+    }
+
+    const res  = await fetch(url, { headers: sbHeaders(), cache: 'no-store' })
     const rows = res.ok ? await res.json() : []
     return NextResponse.json(Array.isArray(rows) ? rows : [])
   } catch (e) {
@@ -59,14 +67,15 @@ export async function POST(req: NextRequest) {
     // Manual compose — skip Gemini entirely
     if (manualContent !== undefined) {
       if (!contactEmail) return NextResponse.json({ error: 'Contact has no email address' }, { status: 400 })
-      // Upsert contact
-      const upsertRes = await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
+      // Upsert then fetch (merge-duplicates returns empty when row exists — always re-fetch)
+      await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
         method:  'POST',
-        headers: sbHeaders('return=representation,resolution=merge-duplicates'),
-        body: JSON.stringify({ full_name: contactName, email: contactEmail, source: 'email' }),
+        headers: sbHeaders('return=minimal,resolution=merge-duplicates'),
+        body:    JSON.stringify({ email: contactEmail, source: 'email' }),
       })
-      const upserted  = upsertRes.ok ? await upsertRes.json() : null
-      const contactId = (Array.isArray(upserted) ? upserted[0] : upserted)?.id ?? null
+      const cFetch    = await fetch(`${SB_URL}/rest/v1/contacts?email=eq.${encodeURIComponent(contactEmail)}&select=id&limit=1`, { headers: sbHeaders(), cache: 'no-store' })
+      const cRows     = cFetch.ok ? await cFetch.json() : []
+      const contactId = Array.isArray(cRows) ? (cRows[0]?.id ?? null) : null
       if (!contactId) return NextResponse.json({ error: 'Could not resolve contact_id' }, { status: 400 })
       const draftRes = await fetch(`${SB_URL}/rest/v1/ai_drafts`, {
         method:  'POST',
@@ -81,46 +90,77 @@ export async function POST(req: NextRequest) {
     const geminiKey = process.env.GEMINI_API_KEY_DRAFT_EMAIL
     if (!geminiKey) return NextResponse.json({ error: 'GEMINI_API_KEY_DRAFT_EMAIL not set' }, { status: 500 })
 
-    // Build thread context for Gemini
+    // Resolve a human-readable greeting name
+    // If contactName is just an email address, fall back to generic salutation
+    const hasRealName   = contactName && !contactName.includes('@')
+    const salutation    = hasRealName ? `Dear ${contactName.split(' ')[0]},` : 'Dear Sir/Madam,'
+
+    // Fetch campaign context if this thread came from a campaign reply
+    let campaignCtxStr = ''
+    if (threadId) {
+      try {
+        const ctxRes = await fetch(
+          `${SB_URL}/rest/v1/email_threads?id=eq.${encodeURIComponent(threadId)}&select=campaign_context&limit=1`,
+          { headers: sbHeaders(), cache: 'no-store' }
+        )
+        const ctxRows = ctxRes.ok ? await ctxRes.json() : []
+        const ctx = ctxRows[0]?.campaign_context
+        if (ctx?.campaign_name) {
+          campaignCtxStr = `\nCAMPAIGN CONTEXT: This contact replied to a TRS cold outreach campaign "${ctx.campaign_name}" (${ctx.product_type} focus${ctx.step_replied_to ? `, step ${ctx.step_replied_to}` : ''}). This is their first real engagement — acknowledge their interest warmly and continue naturally. Do NOT explicitly reference the campaign or that this was a cold email.`
+        }
+      } catch { /* non-fatal — proceed without context */ }
+    }
+
+    // Build thread context — last 15 messages, 1500 chars each, with dates
     const lastInbound = [...messages].reverse().find(m => m.direction === 'inbound')
-    const recentMsgs  = messages.slice(-6) // last 6 messages for context
+    const recentMsgs  = messages.slice(-15)
 
     const threadCtx = recentMsgs
       .map(m => {
         const who  = m.direction === 'inbound' ? `CLIENT (${m.from_address})` : 'TRS (us)'
-        const body = (m.body_text || '').slice(0, 500)
-        return `${who}:\n${body}`
+        const date = m.sent_at ? new Date(m.sent_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
+        const body = (m.body_text || '').slice(0, 1500)
+        return `[${date}] ${who}:\n${body}`
       })
       .join('\n\n---\n\n')
 
-    const prompt = `You are an AI email assistant for Trade Risk Solutions, a Singapore insurance brokerage.
+    // Thread subject for additional context (topic comes from the lead/thread metadata)
+    const threadSubject = topic || ''
 
-Write a professional reply email from TRS to the client. The reply should:
-- Be addressed to ${contactName}
-- Directly respond to the client's most recent message
-- Be warm but professional in tone
-- Reference specific details from the conversation (coverage type, amounts, timeline if mentioned)
-- End with "Best regards,\nTrade Risk Solutions"
-- Be 3–6 sentences (concise and actionable)
-- NOT include a subject line — just the body text
+    const prompt = `You are an AI email assistant for Trade Risk Solutions (TRS), a Singapore insurance brokerage.
 
-Contact: ${contactName}${company ? ` at ${company}` : ''}
-Topic: ${topic || 'Insurance enquiry'}
-Current status: ${leadStatus}
+Your task: write a professional reply from TRS to the client based on their latest email. Use the thread history only as background context.
+${campaignCtxStr}
+GUIDELINES:
+- Greeting: start with exactly "${salutation}"
+- Length: 2–3 paragraphs — respond directly to what the client asked or sent, confirm receipt of any documents/attachments, and state the clear next step TRS will take
+- Tone: professional, warm, Singaporean business English
+- Reference specific details from the latest email (tender name, document type, coverage requirements, deadlines — whatever is present)
+- End with: "Best regards,\nTrade Risk Solutions"
+- Do NOT include a subject line — body text only
+- Do NOT use filler phrases like "Thank you for reaching out" if the email is not a first contact
 
-${lastInbound ? `CLIENT'S LAST MESSAGE:\n${(lastInbound.body_text || '').slice(0, 600)}` : ''}
+CLIENT DETAILS:
+- Name: ${hasRealName ? contactName : '(unknown)'}
+- Email: ${contactEmail ?? '—'}
+- Company: ${company || '(unknown)'}
+- Thread subject: ${threadSubject}
+- Lead status: ${leadStatus}
 
-RECENT THREAD CONTEXT:
-${threadCtx || '(No prior messages — this is the first reply)'}
+CLIENT'S LATEST EMAIL (primary — respond to this):
+${lastInbound ? (lastInbound.body_text || '').slice(0, 2000) : '(no inbound message found)'}
 
-Write only the email body. Start with "Hi ${contactName.split(' ')[0] || 'there'}," and end with the sign-off.`
+THREAD HISTORY (reference only — do not re-address old points unless directly relevant):
+${threadCtx || '(no prior messages)'}
+
+Write only the email body, starting with "${salutation}".`
 
     const gemRes = await fetch(`${GEMINI_URL}?key=${geminiKey}`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.4, maxOutputTokens: 500 },
+        generationConfig: { temperature: 0.3, maxOutputTokens: 1000 },
       }),
     })
 
@@ -137,37 +177,130 @@ Write only the email body. Start with "Hi ${contactName.split(' ')[0] || 'there'
       return NextResponse.json({ error: `Gemini returned no content (${reason})` }, { status: 502 })
     }
 
-    // Upsert contact by email (ON CONFLICT email DO UPDATE so concurrent calls are safe)
+    // Upsert contact then re-fetch by email to get ID reliably.
+    // merge-duplicates returns empty when the row already exists — never rely on its response body.
     let contactId: string | null = null
     if (contactEmail) {
-      const upsertRes = await fetch(
-        `${SB_URL}/rest/v1/contacts?on_conflict=email`,
-        {
-          method:  'POST',
-          headers: sbHeaders('return=representation,resolution=merge-duplicates'),
-          body: JSON.stringify({
-            full_name: contactName,
-            email:     contactEmail,
-            source:    'email',
-          }),
-        }
+      await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
+        method:  'POST',
+        headers: sbHeaders('return=minimal,resolution=merge-duplicates'),
+        body:    JSON.stringify({ email: contactEmail, source: 'email' }),
+      })
+      const cFetch = await fetch(
+        `${SB_URL}/rest/v1/contacts?email=eq.${encodeURIComponent(contactEmail)}&select=id&limit=1`,
+        { headers: sbHeaders(), cache: 'no-store' }
       )
-      const upserted = upsertRes.ok ? await upsertRes.json() : null
-      const row = Array.isArray(upserted) ? upserted[0] : upserted
-      contactId = row?.id ?? null
+      const cRows = cFetch.ok ? await cFetch.json() : []
+      contactId = Array.isArray(cRows) ? (cRows[0]?.id ?? null) : null
 
-      // Link inbound_lead to contact if not already linked
       if (contactId && leadId) {
         await fetch(`${SB_URL}/rest/v1/inbound_leads?id=eq.${leadId}`, {
           method:  'PATCH',
           headers: sbHeaders('return=minimal'),
-          body: JSON.stringify({ contact_id: contactId }),
+          body:    JSON.stringify({ contact_id: contactId }),
         })
+      }
+    }
+
+    // Fallback chain when contactEmail is null (thread stored without a resolved contact).
+    // Tries three sources in order: thread.contact_id → email_participants → email_messages.
+    if (!contactId && threadId) {
+      const isInternalAddr = (e: string) => e.toLowerCase().endsWith('@trade-risksol.com')
+      const isAutomatedAddr = (e: string) => {
+        const l = e.toLowerCase()
+        return l.includes('noreply') || l.includes('no-reply') || l.includes('mailer-daemon') || l.includes('postmaster')
+      }
+      const isUsable = (e: string) => e && !isInternalAddr(e) && !isAutomatedAddr(e)
+
+      // 1. thread.contact_id → contacts table
+      const tRes = await fetch(
+        `${SB_URL}/rest/v1/email_threads?id=eq.${encodeURIComponent(threadId)}&select=contact_id&limit=1`,
+        { headers: sbHeaders(), cache: 'no-store' }
+      )
+      const tRows = tRes.ok ? await tRes.json() : []
+      const threadContactId: string | null = Array.isArray(tRows) ? (tRows[0]?.contact_id ?? null) : null
+      if (threadContactId) {
+        contactId = threadContactId
+      }
+
+      // Helper: upsert contact by email and return its ID (two-step — merge-duplicates returns empty for existing rows)
+      const upsertAndGetId = async (email: string): Promise<string | null> => {
+        await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
+          method:  'POST',
+          headers: sbHeaders('return=minimal,resolution=merge-duplicates'),
+          body:    JSON.stringify({ email, source: 'email' }),
+        })
+        const r = await fetch(`${SB_URL}/rest/v1/contacts?email=eq.${encodeURIComponent(email)}&select=id&limit=1`, { headers: sbHeaders(), cache: 'no-store' })
+        const rows = r.ok ? await r.json() : []
+        return Array.isArray(rows) ? (rows[0]?.id ?? null) : null
+      }
+
+      // 2. email_participants for this thread — first external address
+      if (!contactId) {
+        const pRes = await fetch(
+          `${SB_URL}/rest/v1/email_participants?thread_id=eq.${encodeURIComponent(threadId)}&select=email,contact_id&order=id.asc`,
+          { headers: sbHeaders(), cache: 'no-store' }
+        )
+        const parts: { email: string | null; contact_id: string | null }[] = pRes.ok ? await pRes.json() : []
+        for (const p of Array.isArray(parts) ? parts : []) {
+          if (p.contact_id) { contactId = p.contact_id; break }
+          if (p.email && isUsable(p.email)) {
+            const id = await upsertAndGetId(p.email)
+            if (id) { contactId = id; break }
+          }
+        }
+      }
+
+      // 3. email_messages inbound from_address
+      if (!contactId) {
+        const mRes = await fetch(
+          `${SB_URL}/rest/v1/email_messages?thread_id=eq.${encodeURIComponent(threadId)}&direction=eq.inbound&select=from_address&order=sent_at.asc&limit=5`,
+          { headers: sbHeaders(), cache: 'no-store' }
+        )
+        const msgs: { from_address: string | null }[] = mRes.ok ? await mRes.json() : []
+        for (const msg of Array.isArray(msgs) ? msgs : []) {
+          if (msg.from_address && isUsable(msg.from_address)) {
+            const id = await upsertAndGetId(msg.from_address)
+            if (id) { contactId = id; break }
+          }
+        }
+      }
+
+      // 4. Parse body_text of all messages for external To:/Cc: addresses.
+      //    Catches forwarded emails where the external contact only appears inside the body
+      //    (e.g. "To: Carolyn.tan@chubb.com" in a forwarded chain).
+      if (!contactId) {
+        const bRes = await fetch(
+          `${SB_URL}/rest/v1/email_messages?thread_id=eq.${encodeURIComponent(threadId)}&select=body_text&limit=10`,
+          { headers: sbHeaders(), cache: 'no-store' }
+        )
+        const bodyMsgs: { body_text: string | null }[] = bRes.ok ? await bRes.json() : []
+        const allBodyText = bodyMsgs.map(m => m.body_text ?? '').join('\n')
+        const lineRe = /^(?:To|Cc|CC):[^\n]+/gim
+        let lm: RegExpExecArray | null
+        outer: while ((lm = lineRe.exec(allBodyText)) !== null) {
+          const emails = lm[0].match(/[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[a-z]{2,}/g) ?? []
+          for (const e of emails) {
+            if (isUsable(e)) {
+              const id = await upsertAndGetId(e)
+              if (id) { contactId = id; break outer }
+            }
+          }
+        }
       }
     }
 
     if (!contactId) {
       return NextResponse.json({ error: 'Could not resolve contact_id — lead has no email' }, { status: 400 })
+    }
+
+    // Supersede any existing pending drafts for this thread so only the latest is shown
+    if (threadId) {
+      await fetch(`${SB_URL}/rest/v1/ai_drafts?thread_id=eq.${encodeURIComponent(threadId)}&status=eq.pending`, {
+        method:  'PATCH',
+        headers: sbHeaders('return=minimal'),
+        body:    JSON.stringify({ status: 'superseded' }),
+      })
     }
 
     // Save draft to ai_drafts

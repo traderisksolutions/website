@@ -16,6 +16,12 @@ type Lead = {
   page_url: string | null; status: string
   subject?: string | null
   thread_id?: string | null
+  campaign_context?: {
+    campaign_id: string
+    campaign_name: string
+    product_type: string
+    step_replied_to: number | null
+  } | null
 }
 
 type RealMsg = {
@@ -146,8 +152,8 @@ async function fetchLeads(): Promise<Lead[]> {
   const conversations = Array.isArray(convRaw) ? convRaw : []
 
   const leadEmails = new Set(engagedLeads.map(l => l.email?.toLowerCase()).filter(Boolean))
-  const newConversations = conversations.filter(
-    c => c.email && !leadEmails.has(c.email.toLowerCase())
+  const newConversations = conversations.filter(c =>
+    !c.email || !leadEmails.has(c.email.toLowerCase())
   )
 
   return [...engagedLeads, ...newConversations]
@@ -295,6 +301,79 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; defaultOpen: boolean })
   )
 }
 
+// ── Campaign context panel ────────────────────────────────────────────────────
+
+type CampaignCtx = NonNullable<Lead['campaign_context']>
+
+function CampaignContextPanel({ ctx }: { ctx: CampaignCtx }) {
+  const [open,        setOpen]        = useState(false)
+  const [seqs,        setSeqs]        = useState<{ step_number: number; subject: string; body: string }[]>([])
+  const [seqsLoaded,  setSeqsLoaded]  = useState(false)
+  const [seqsLoading, setSeqsLoading] = useState(false)
+
+  async function toggle() {
+    const next = !open
+    setOpen(next)
+    if (next && !seqsLoaded) {
+      setSeqsLoading(true)
+      try {
+        const res  = await fetch(`/api/outbound/campaigns/${ctx.campaign_id}`)
+        const data = await res.json()
+        setSeqs(Array.isArray(data.sequences) ? data.sequences : [])
+        setSeqsLoaded(true)
+      } catch { /* non-fatal */ }
+      finally { setSeqsLoading(false) }
+    }
+  }
+
+  return (
+    <div style={{ borderBottom: '1px solid #fde68a', background: '#fffbeb', flexShrink: 0 }}>
+      <button onClick={toggle} style={{
+        width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+        padding: '8px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
+      }}>
+        <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 10, background: '#f59e0b', color: '#fff', flexShrink: 0 }}>
+          CAMPAIGN
+        </span>
+        <span style={{ fontSize: 12, color: '#92400e', fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {ctx.campaign_name}
+          {ctx.product_type !== 'General' ? ` · ${ctx.product_type}` : ''}
+          {ctx.step_replied_to ? ` · step ${ctx.step_replied_to} replied` : ''}
+        </span>
+        <span style={{ fontSize: 10, color: '#b45309', flexShrink: 0 }}>
+          {open ? '▲ hide' : '▽ emails sent'}
+        </span>
+      </button>
+
+      {open && (
+        <div style={{ padding: '0 16px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {seqsLoading && <p style={{ margin: 0, fontSize: 12, color: '#aaa' }}>Loading…</p>}
+          {!seqsLoading && seqsLoaded && seqs.length === 0 && (
+            <p style={{ margin: 0, fontSize: 12, color: '#bbb', fontStyle: 'italic' }}>No sequence steps found.</p>
+          )}
+          {!seqsLoading && seqs.map(seq => (
+            <div key={seq.step_number} style={{ padding: '8px 12px', background: '#fff', borderRadius: 8, border: '1px solid #fde68a' }}>
+              <p style={{ margin: '0 0 3px', fontSize: 11, fontWeight: 700, color: '#92400e', display: 'flex', alignItems: 'center', gap: 6 }}>
+                Step {seq.step_number}{seq.subject ? `: ${seq.subject}` : ''}
+                {ctx.step_replied_to === seq.step_number && (
+                  <span style={{ fontSize: 10, background: '#f59e0b', color: '#fff', padding: '1px 6px', borderRadius: 8 }}>replied here</span>
+                )}
+              </p>
+              <p style={{
+                margin: 0, fontSize: 11, color: '#666', lineHeight: 1.55,
+                overflow: 'hidden', display: '-webkit-box',
+                WebkitLineClamp: 3, WebkitBoxOrient: 'vertical',
+              }}>
+                {seq.body || '(empty)'}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── AI Summary strip ──────────────────────────────────────────────────────────
 
 function StoredSummaryStrip({
@@ -428,21 +507,22 @@ function AIDraftPanel({
   const lastMsg    = messages.at(-1)
   const needsReply = lastMsg?.direction === 'inbound'
 
-  const [activeTab,      setActiveTab]      = useState<ActiveTab>('gdrive')
-  const [draftId,        setDraftId]        = useState<string | null>(null)
-  const [draftHtml,      setDraftHtml]      = useState('')
-  const [composeHtml,    setComposeHtml]    = useState('')
-  const [draftLoaded,    setDraftLoaded]    = useState(false)
-  const [draftEditorKey, setDraftEditorKey] = useState(0)
-  const [loading,        setLoading]        = useState<'gen' | 'send' | 'reject' | null>(null)
-  const [sent,           setSent]           = useState(false)
-  const [error,          setError]          = useState<string | null>(null)
+  const [activeTab,       setActiveTab]       = useState<ActiveTab>('gdrive')
+  const [draftId,         setDraftId]         = useState<string | null>(null)
+  const [draftHtml,       setDraftHtml]       = useState('')
+  const [composeHtml,     setComposeHtml]     = useState('')
+  const [draftLoaded,     setDraftLoaded]     = useState(false)
+  const [draftEditorKey,  setDraftEditorKey]  = useState(0)
+  const [loading,         setLoading]         = useState<'gen' | 'send' | 'reject' | null>(null)
+  const [sent,            setSent]            = useState(false)
+  const [error,           setError]           = useState<string | null>(null)
+  const [aiDraftChecked,  setAiDraftChecked]  = useState(false)
 
   // RAG tab state
-  const [ragHtml,      setRagHtml]      = useState('')
-  const [ragLoaded,    setRagLoaded]    = useState(false)
-  const [ragEditorKey, setRagEditorKey] = useState(0)
-  const [ragSources,   setRagSources]   = useState<RagSource[]>(storedRagSources ?? [])
+  const [ragHtml,       setRagHtml]       = useState('')
+  const [ragLoaded,     setRagLoaded]     = useState(false)
+  const [ragEditorKey,  setRagEditorKey]  = useState(0)
+  const [ragSources,    setRagSources]    = useState<RagSource[]>(storedRagSources ?? [])
   const [ragGenerating, setRagGenerating] = useState(false)
 
   const log = useAuditLog()
@@ -452,6 +532,7 @@ function AIDraftPanel({
     setActiveTab('gdrive'); setDraftId(null); setDraftHtml(''); setComposeHtml('')
     setDraftLoaded(false); setDraftEditorKey(0); setSent(false); setError(null)
     setRagHtml(''); setRagLoaded(false); setRagEditorKey(0); setRagSources([])
+    setAiDraftChecked(false)
   }, [lead.id])
 
   // Pre-fill GDrive draft tab from auto-generated stored draft
@@ -473,6 +554,32 @@ function AIDraftPanel({
     }
   }, [storedRagDraft, ragLoaded, sent]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Auto-load saved draft or auto-generate when thread + messages are ready.
+  // Runs once per thread: checks ai_drafts first; if found loads it, otherwise triggers generation.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const tid = thread?.id
+    if (!tid || aiDraftChecked || messages.length === 0 || draftLoaded || sent) return
+    setAiDraftChecked(true)
+
+    fetch(`/api/engagement/draft?thread_id=${encodeURIComponent(tid)}`, { cache: 'no-store' })
+      .then(r => r.json())
+      .then((rows: { id: string; body: string }[]) => {
+        const latest = Array.isArray(rows) ? rows[0] : null
+        if (latest?.body) {
+          // Existing draft found — load it silently
+          setDraftId(latest.id)
+          setDraftHtml(plainToHtml(latest.body))
+          setDraftLoaded(true)
+          setDraftEditorKey(k => k + 1)
+        } else {
+          // No draft yet — auto-generate one in the background
+          generate()
+        }
+      })
+      .catch(() => { /* leave blank if fetch fails */ })
+  }, [thread?.id, messages.length]) // intentional: only re-run when thread or messages change
+
   async function generateRag() {
     if (!thread?.id) { setError('No thread found'); return }
     setRagGenerating(true); setError(null)
@@ -493,7 +600,6 @@ function AIDraftPanel({
   }
 
   async function generate() {
-    if (!lead.email) { setError('No email address for this lead'); return }
     setLoading('gen'); setError(null)
     try {
       const res  = await fetch('/api/engagement/draft', {
@@ -517,7 +623,6 @@ function AIDraftPanel({
   }
 
   async function handleSend() {
-    if (!lead.email) { setError('No email address — cannot send'); return }
     const activeHtml = activeTab === 'gdrive' ? draftHtml : activeTab === 'rag' ? ragHtml : composeHtml
     const plainText  = htmlToPlain(activeHtml)
     if (!plainText.trim()) { setError('Cannot send an empty message'); return }
@@ -956,6 +1061,10 @@ function ThreadView({
           onRefresh={refreshSummaries}
         />
 
+        {lead.campaign_context && (
+          <CampaignContextPanel ctx={lead.campaign_context} />
+        )}
+
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
           {loading && <div style={{ textAlign: 'center', padding: '48px 0', fontSize: 12, color: '#bbb' }}>Loading email thread…</div>}
           {!loading && error && <div style={{ textAlign: 'center', padding: '32px 0', fontSize: 12, color: '#ef4444' }}>{error}</div>}
@@ -1030,6 +1139,9 @@ function LeadListItem({
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
           <span style={{ fontSize: 10, color: '#bbb' }}>{timeAgo(lastMsg?.sent_at ?? lead.created_at)}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            {lead.campaign_context && (
+              <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 8, background: '#fef3c7', color: '#b45309' }}>Campaign</span>
+            )}
             {msgCount > 0 && <span style={{ fontSize: 10, color: '#bbb' }}>{msgCount} email{msgCount !== 1 ? 's' : ''}</span>}
             {needsReply && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b' }} />}
           </div>
@@ -1243,7 +1355,7 @@ export default function EngagementPage() {
         {selectedLead ? (
           <ThreadView
             lead={selectedLead}
-            threadState={selectedThread ?? { loading: !selectedLead.email, thread: null, messages: [], error: selectedLead.email ? null : 'No email address on this lead' }}
+            threadState={selectedThread ?? { loading: true, thread: null, messages: [], error: null }}
             onStatus={handleStatus}
             onDelete={handleDelete}
           />

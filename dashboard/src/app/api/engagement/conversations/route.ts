@@ -25,9 +25,10 @@ function sbHeaders() {
 export async function GET() {
   try {
     // 1. Fetch all threads ordered by last activity
-    type ThreadRow = { id: string; subject: string | null; snippet: string | null; last_message_at: string; contact_id: string | null }
+    type CampaignCtx = { campaign_id: string; campaign_name: string; product_type: string; step_replied_to: number | null } | null
+    type ThreadRow = { id: string; subject: string | null; snippet: string | null; last_message_at: string; contact_id: string | null; campaign_context: CampaignCtx }
     const threadRes = await fetch(
-      `${SB_URL}/rest/v1/email_threads?select=id,subject,snippet,last_message_at,contact_id&order=last_message_at.desc&limit=200`,
+      `${SB_URL}/rest/v1/email_threads?select=id,subject,snippet,last_message_at,contact_id,campaign_context&order=last_message_at.desc&limit=200`,
       { headers: sbHeaders(), cache: 'no-store' }
     )
     const threads: ThreadRow[] = threadRes.ok ? await threadRes.json() : []
@@ -46,38 +47,37 @@ export async function GET() {
       for (const c of (Array.isArray(rows) ? rows : [])) contactMap.set(c.id, c)
     }
 
-    // 3. For threads with no contact_id, find the inbound sender from email_messages
-    const orphanIds = threads.filter(t => !t.contact_id).map(t => t.id)
-    const orphanSenderMap = new Map<string, string>() // thread_id -> from_address
-    if (orphanIds.length > 0) {
+    // 3. For all threads, look up sender email from email_messages as fallback
+    //    — includes both inbound AND outbound because forwarded emails are stored as outbound
+    const allThreadIds = threads.map(t => t.id)
+    const threadSenderMap = new Map<string, string>() // thread_id -> best external email
+    if (allThreadIds.length > 0) {
+      // Prefer inbound messages first (direct client email)
       const msgRes = await fetch(
-        `${SB_URL}/rest/v1/email_messages?thread_id=in.(${orphanIds.join(',')})&direction=eq.inbound&select=thread_id,from_address&order=sent_at.asc`,
+        `${SB_URL}/rest/v1/email_messages?thread_id=in.(${allThreadIds.join(',')})&select=thread_id,from_address,direction&order=sent_at.asc`,
         { headers: sbHeaders(), cache: 'no-store' }
       )
-      const msgs: { thread_id: string; from_address: string | null }[] = msgRes.ok ? await msgRes.json() : []
+      const msgs: { thread_id: string; from_address: string | null; direction: string }[] =
+        msgRes.ok ? await msgRes.json() : []
+      // First pass: inbound messages
       for (const m of (Array.isArray(msgs) ? msgs : [])) {
-        if (!orphanSenderMap.has(m.thread_id) && m.from_address) {
-          orphanSenderMap.set(m.thread_id, m.from_address)
+        if (m.direction === 'inbound' && !threadSenderMap.has(m.thread_id) &&
+            m.from_address && !isInternal(m.from_address) && !isAutomated(m.from_address)) {
+          threadSenderMap.set(m.thread_id, m.from_address)
         }
       }
-
-      // For threads where the first inbound sender is internal (e.g. forwarded email),
-      // look for an external participant instead
-      const internalOrphanIds = orphanIds.filter(id => {
-        const e = orphanSenderMap.get(id)
-        return !e || isInternal(e) || isAutomated(e)
-      })
-      // Clear the internal entries so participant lookup can fill them in
-      for (const id of internalOrphanIds) orphanSenderMap.delete(id)
-      if (internalOrphanIds.length > 0) {
+      // Second pass: external participants from email_participants
+      const unresolved = allThreadIds.filter(id => !threadSenderMap.has(id))
+      if (unresolved.length > 0) {
         const partRes = await fetch(
-          `${SB_URL}/rest/v1/email_participants?thread_id=in.(${internalOrphanIds.join(',')})&select=thread_id,email&order=thread_id.asc`,
+          `${SB_URL}/rest/v1/email_participants?thread_id=in.(${unresolved.join(',')})&select=thread_id,email&order=thread_id.asc`,
           { headers: sbHeaders(), cache: 'no-store' }
         )
         const parts: { thread_id: string; email: string | null }[] = partRes.ok ? await partRes.json() : []
         for (const p of (Array.isArray(parts) ? parts : [])) {
-          if (!orphanSenderMap.has(p.thread_id) && p.email && !isInternal(p.email) && !isAutomated(p.email)) {
-            orphanSenderMap.set(p.thread_id, p.email)
+          if (!threadSenderMap.has(p.thread_id) && p.email &&
+              !isInternal(p.email) && !isAutomated(p.email)) {
+            threadSenderMap.set(p.thread_id, p.email)
           }
         }
       }
@@ -86,28 +86,49 @@ export async function GET() {
     // 4. Shape one entry per thread
     const result = threads.flatMap(t => {
       const contact = t.contact_id ? contactMap.get(t.contact_id) : null
-      const email   = contact?.email ?? orphanSenderMap.get(t.id) ?? null
-      if (!email || isInternal(email) || isAutomated(email)) return []
+
+      // Resolve email: contact record → message/participant lookup → snippet → null
+      let email: string | null = null
+      const contactEmail = contact?.email ?? null
+      if (contactEmail && !isInternal(contactEmail) && !isAutomated(contactEmail)) {
+        email = contactEmail
+      }
+      if (!email) email = threadSenderMap.get(t.id) ?? null
+
+      // Snippet fallback: covers cases where snippet starts with "From: Name <email>"
+      if (!email && t.snippet) {
+        const m = t.snippet.match(/[\w.+\-]+@[\w.\-]+\.[a-z]{2,}/i)
+        const candidate = m?.[0] ?? null
+        if (candidate && !isInternal(candidate) && !isAutomated(candidate)) {
+          email = candidate
+        }
+      }
+
+      // Skip only threads that are provably internal-only (spam/system/TRS-internal loops)
+      if (email && (isInternal(email) || isAutomated(email))) return []
+      // Skip threads with no subject and no snippet (empty/ghost records)
+      if (!email && !t.subject && !t.snippet) return []
 
       return [{
-        id:           t.id,
-        thread_id:    t.id,
-        created_at:   t.last_message_at,
-        source:       'email' as const,
-        subject:      t.subject,
-        snippet:      t.snippet,
-        first_name:   contact?.first_name ?? null,
-        last_name:    contact?.last_name  ?? null,
+        id:               t.id,
+        thread_id:        t.id,
+        created_at:       t.last_message_at,
+        source:           'email' as const,
+        subject:          t.subject,
+        snippet:          t.snippet,
+        first_name:       contact?.first_name ?? null,
+        last_name:        contact?.last_name  ?? null,
         email,
-        phone:        null,
-        company:      null,
-        department:   null,
-        contact_type: null,
-        topic:        null,
-        details:      null,
-        message:      null,
-        page_url:     null,
-        status:       'contacted',
+        phone:            null,
+        company:          null,
+        department:       null,
+        contact_type:     null,
+        topic:            null,
+        details:          null,
+        message:          null,
+        page_url:         null,
+        status:           'contacted',
+        campaign_context: t.campaign_context ?? null,
       }]
     })
 

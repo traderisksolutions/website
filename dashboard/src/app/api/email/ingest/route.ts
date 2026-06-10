@@ -52,7 +52,19 @@ function headerVal(headers: { name: string; value: string }[], name: string): st
   return headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value ?? ''
 }
 
-function decodeBody(parts: { mimeType: string; body: { data?: string }; parts?: unknown[] }[]): string {
+type MimePart = { mimeType: string; body: { data?: string }; parts?: unknown[] }
+
+function stripHtml(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(?:div|p|tr|li|blockquote)>/gi, '\n')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+    .replace(/<[^>]+>/g, '')
+}
+
+// Returns the primary display text (first text/plain or stripped HTML), same as before.
+function decodeBody(parts: MimePart[]): string {
   let htmlFallback = ''
   for (const part of parts) {
     if (part.mimeType === 'text/plain' && part.body?.data) {
@@ -62,20 +74,29 @@ function decodeBody(parts: { mimeType: string; body: { data?: string }; parts?: 
       htmlFallback = Buffer.from(part.body.data, 'base64').toString('utf-8')
     }
     if (part.parts) {
-      const nested = decodeBody(part.parts as typeof parts)
+      const nested = decodeBody(part.parts as MimePart[])
       if (nested) return nested
     }
   }
-  // Strip HTML tags so regex-based parsing still works on HTML-only emails
-  if (htmlFallback) {
-    return htmlFallback
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<\/(?:div|p|tr|li|blockquote)>/gi, '\n')
-      .replace(/&nbsp;/gi, ' ')
-      .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
-      .replace(/<[^>]+>/g, '')
-  }
+  if (htmlFallback) return stripHtml(htmlFallback)
   return ''
+}
+
+// Collects ALL text content from ALL MIME parts — including embedded message/rfc822 attachments
+// used for Outlook-style forwarded emails where the original message is a nested attachment.
+function decodeFullText(parts: MimePart[]): string {
+  const chunks: string[] = []
+  for (const part of parts) {
+    if (part.mimeType === 'text/plain' && part.body?.data) {
+      chunks.push(Buffer.from(part.body.data, 'base64').toString('utf-8'))
+    } else if (part.mimeType === 'text/html' && part.body?.data) {
+      chunks.push(stripHtml(Buffer.from(part.body.data, 'base64').toString('utf-8')))
+    }
+    if (part.parts) {
+      chunks.push(decodeFullText(part.parts as MimePart[]))
+    }
+  }
+  return chunks.filter(Boolean).join('\n')
 }
 
 function splitDisplayName(name: string | null): { first_name: string | null; last_name: string | null } {
@@ -96,23 +117,41 @@ function inferCompanyFromEmail(email: string): string | null {
   return name.charAt(0).toUpperCase() + name.slice(1)
 }
 
-// Extract original external sender from a forwarded/replied message body
+// Extract all unique external email addresses from To:/Cc: lines in a forwarded message body.
+// Used to capture third-party participants (insurers, clients, brokers) as contacts.
+function extractForwardedParticipants(text: string): string[] {
+  const normalised = text.replace(/\r\n/g, '\n')
+  const emails: string[] = []
+  const lineRe = /^(?:To|Cc|CC):[^\n]+/gim
+  let m: RegExpExecArray | null
+  while ((m = lineRe.exec(normalised)) !== null) {
+    const found = m[0].match(/[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[a-z]{2,}/g) ?? []
+    for (const e of found) {
+      if (!isInternal(e) && !isAutomated(e)) emails.push(e.toLowerCase())
+    }
+  }
+  return Array.from(new Set(emails))
+}
+
+// Extract original external sender from a forwarded/replied message body.
+// Scans ALL "From:" lines and returns the first non-internal, non-automated one,
+// because email chains may have multiple From: lines (internal forwarders before the client).
 function parseForwardedSender(body: string): { email: string; name: string | null } | null {
-  // Normalise line endings so ^ anchors work regardless of CRLF/LF
   const text = body.replace(/\r\n/g, '\n')
 
-  // Try every "From:" line in the body (skip the first which may be a quoted-reply header)
-  // Patterns: "From: Name <email>" | "From: email@domain" | HTML-decoded "From: Name <email>"
   const patterns = [
-    /^From:\s*"?(.+?)"?\s*[<\[]([^\]>]+@[^\]>]+)[\]>]/im,  // Name <email> or Name [email]
-    /^From:\s*([^\s<\[]+@[^\s>\]]+)/im,                       // bare email address
+    /^From:\s*"?(.+?)"?\s*[<\[](?:mailto:)?([^\]>]+@[^\]>]+)[\]>]/gim,  // Name <email> or Name [mailto:email]
+    /^From:\s*([^\s<\[]+@[^\s>\]]+)/gim,                                    // bare email address
   ]
   for (const re of patterns) {
-    const m = text.match(re)
-    if (!m) continue
-    const email = (m[2] ?? m[1]).trim()
-    const name  = m[2] ? (m[1].trim() || null) : null
-    if (email.includes('@')) return { email, name }
+    let m: RegExpExecArray | null
+    while ((m = re.exec(text)) !== null) {
+      const email = (m[2] ?? m[1]).trim().replace(/^mailto:/i, '')
+      const name  = m[2] ? (m[1].trim() || null) : null
+      if (email.includes('@') && !isInternal(email) && !isAutomated(email)) {
+        return { email, name }
+      }
+    }
   }
   return null
 }
@@ -189,6 +228,56 @@ async function getNewMessageIds(token: string): Promise<string[]> {
   return (listData.messages ?? []).map((m: { id: string }) => m.id)
 }
 
+// If the sender is an outbound campaign lead, tag the thread with campaign context.
+// Non-blocking — called fire-and-forget inside ingestMessage. Never throws.
+async function tagThreadWithCampaignContext(email: string, threadId: string): Promise<void> {
+  const h = sbHeaders('return=minimal')
+
+  // Is this email in outbound_leads?
+  const leadRes = await fetch(
+    `${SB_URL}/rest/v1/outbound_leads?email=eq.${encodeURIComponent(email)}&select=id&limit=1`,
+    { headers: h, cache: 'no-store' }
+  )
+  const leads: { id: string }[] = leadRes.ok ? await leadRes.json() : []
+  if (!leads.length) return
+
+  const leadId = leads[0].id
+
+  // Does this lead have any campaign sends?
+  const sendRes = await fetch(
+    `${SB_URL}/rest/v1/ob_campaign_sends?outbound_lead_id=eq.${leadId}&select=campaign_id,sequence_id&order=created_at.desc&limit=1`,
+    { headers: h, cache: 'no-store' }
+  )
+  const sends: { campaign_id: string; sequence_id: string }[] = sendRes.ok ? await sendRes.json() : []
+  if (!sends.length) return
+
+  const { campaign_id, sequence_id } = sends[0]
+
+  // Fetch campaign name + product type + step number in parallel
+  const [campRes, seqRes] = await Promise.all([
+    fetch(`${SB_URL}/rest/v1/ob_campaigns?id=eq.${campaign_id}&select=name,product_type&limit=1`, { headers: h, cache: 'no-store' }),
+    fetch(`${SB_URL}/rest/v1/ob_campaign_sequences?id=eq.${sequence_id}&select=step_number&limit=1`, { headers: h, cache: 'no-store' }),
+  ])
+  const camps: { name: string; product_type: string }[] = campRes.ok ? await campRes.json() : []
+  if (!camps.length) return
+  const seqs: { step_number: number }[] = seqRes.ok ? await seqRes.json() : []
+
+  const ctx = {
+    campaign_id,
+    campaign_name:    camps[0].name,
+    product_type:     camps[0].product_type ?? 'General',
+    step_replied_to:  seqs[0]?.step_number ?? null,
+    outbound_lead_id: leadId,
+  }
+
+  await fetch(`${SB_URL}/rest/v1/email_threads?id=eq.${threadId}`, {
+    method:  'PATCH',
+    headers: h,
+    body:    JSON.stringify({ campaign_context: ctx }),
+  })
+  console.log('[ingest] campaign context tagged on thread', threadId, '→', ctx.campaign_name)
+}
+
 // Core: ingest a single Gmail message into the database
 async function ingestMessage(token: string, gmailMsgId: string) {
   const msg = await fetchGmailMessage(token, gmailMsgId)
@@ -211,7 +300,8 @@ async function ingestMessage(token: string, gmailMsgId: string) {
     return
   }
 
-  const bodyText  = decodeBody(msg.payload?.parts ?? [msg.payload])
+  const parts    = msg.payload?.parts ?? [msg.payload]
+  const bodyText = decodeBody(parts)
   const direction: 'inbound' | 'outbound' = isInternal(fromEmail) ? 'outbound' : 'inbound'
 
   // Identify the primary external (non-TRS) contact for this thread
@@ -220,52 +310,63 @@ async function ingestMessage(token: string, gmailMsgId: string) {
   const allParticipants = [{ email: fromEmail, name: fromName }, ...toList, ...ccList]
   const externalParty   = allParticipants.find(p => !isInternal(p.email) && !isAutomated(p.email))
 
-  // If no external party in headers, check forwarded message body
-  // e.g. Nathan (internal) forwards a client email to operations@
+  // If no external party in headers, check forwarded message body.
+  // Use decodeFullText (which reads all MIME parts incl. nested message/rfc822) so that
+  // Outlook-style forwards where the original email is an embedded attachment are handled.
   let resolvedParty = externalParty
   if (!resolvedParty && isInternal(fromEmail)) {
-    const forwarded = parseForwardedSender(bodyText)
+    const fullText  = decodeFullText(parts)
+    const forwarded = parseForwardedSender(fullText)
     if (forwarded && !isInternal(forwarded.email) && !isAutomated(forwarded.email)) {
       resolvedParty = forwarded
       console.log('[ingest] resolved external from forwarded body:', forwarded.email)
     }
   }
 
+  // If no external party found but sender is an internal TRS employee, still store the thread
+  // so ops team can see it. This covers internal forwards (e.g. FlyORO doc chain) where the
+  // original client email is buried in a format we can't yet parse.
   if (!resolvedParty) {
-    console.log('[ingest] skip internal-only message:', gmailMsgId)
-    return
+    if (isInternal(fromEmail)) {
+      console.log('[ingest] no external party found for internal forward — storing with null contact:', gmailMsgId)
+    } else {
+      console.log('[ingest] skip — no external party and sender is not internal:', gmailMsgId)
+      return
+    }
   }
 
-  console.log('[ingest]', gmailMsgId, '|', direction, '|', resolvedParty.email)
+  console.log('[ingest]', gmailMsgId, '|', direction, '|', resolvedParty?.email ?? 'no-contact')
 
-  // 1. Upsert primary external contact using first_name/last_name (omit nulls to avoid overwriting existing names)
-  const { first_name: pFirst, last_name: pLast } = splitDisplayName(resolvedParty.name)
-  const primaryBody: Record<string, unknown> = { email: resolvedParty.email, source: 'email' }
-  if (pFirst) primaryBody.first_name = pFirst
-  if (pLast)  primaryBody.last_name  = pLast
-  const contactUpsert = await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
-    method:  'POST',
-    headers: sbHeaders('return=minimal,resolution=merge-duplicates'),
-    body:    JSON.stringify(primaryBody),
-  })
-  if (!contactUpsert.ok) console.error('[ingest] contact upsert failed:', await contactUpsert.text())
-  const contactFetch = await fetch(
-    `${SB_URL}/rest/v1/contacts?email=eq.${encodeURIComponent(resolvedParty.email)}&select=id,company&limit=1`,
-    { headers: sbHeaders() }
-  )
-  const contactFetchRows  = contactFetch.ok ? await contactFetch.json() : []
-  const existingContact   = Array.isArray(contactFetchRows) ? contactFetchRows[0] : null
-  const contactId         = existingContact?.id ?? null
+  // 1. Upsert primary external contact (skip if no party resolved)
+  let contactId: string | null = null
+  if (resolvedParty) {
+    const { first_name: pFirst, last_name: pLast } = splitDisplayName(resolvedParty.name)
+    const primaryBody: Record<string, unknown> = { email: resolvedParty.email, source: 'email' }
+    if (pFirst) primaryBody.first_name = pFirst
+    if (pLast)  primaryBody.last_name  = pLast
+    const contactUpsert = await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
+      method:  'POST',
+      headers: sbHeaders('return=minimal,resolution=merge-duplicates'),
+      body:    JSON.stringify(primaryBody),
+    })
+    if (!contactUpsert.ok) console.error('[ingest] contact upsert failed:', await contactUpsert.text())
+    const contactFetch = await fetch(
+      `${SB_URL}/rest/v1/contacts?email=eq.${encodeURIComponent(resolvedParty.email)}&select=id,company&limit=1`,
+      { headers: sbHeaders() }
+    )
+    const contactFetchRows = contactFetch.ok ? await contactFetch.json() : []
+    const existingContact  = Array.isArray(contactFetchRows) ? contactFetchRows[0] : null
+    contactId = existingContact?.id ?? null
 
-  // Persist inferred company if the contact doesn't already have one set
-  if (contactId && !existingContact?.company) {
-    const inferred = inferCompanyFromEmail(resolvedParty.email)
-    if (inferred) {
-      await fetch(`${SB_URL}/rest/v1/contacts?id=eq.${contactId}`, {
-        method:  'PATCH',
-        headers: sbHeaders('return=minimal'),
-        body:    JSON.stringify({ company: inferred }),
-      })
+    if (contactId && !existingContact?.company) {
+      const inferred = inferCompanyFromEmail(resolvedParty.email)
+      if (inferred) {
+        await fetch(`${SB_URL}/rest/v1/contacts?id=eq.${contactId}`, {
+          method:  'PATCH',
+          headers: sbHeaders('return=minimal'),
+          body:    JSON.stringify({ company: inferred }),
+        })
+      }
     }
   }
 
@@ -323,11 +424,11 @@ async function ingestMessage(token: string, gmailMsgId: string) {
       contact_id: !isInternal(fromEmail) ? contactId : null },
     ...toList.map(({ email, name }) => ({
       thread_id: thread.id, message_id: dbMsg.id, email, name, role: 'to',
-      contact_id: email === resolvedParty.email ? contactId : null,
+      contact_id: resolvedParty && email === resolvedParty.email ? contactId : null,
     })),
     ...ccList.map(({ email, name }) => ({
       thread_id: thread.id, message_id: dbMsg.id, email, name, role: 'cc',
-      contact_id: email === resolvedParty.email ? contactId : null,
+      contact_id: resolvedParty && email === resolvedParty.email ? contactId : null,
     })),
   ]
   await fetch(`${SB_URL}/rest/v1/email_participants?on_conflict=message_id,email,role`, {
@@ -336,9 +437,9 @@ async function ingestMessage(token: string, gmailMsgId: string) {
     body:    JSON.stringify(participants),
   })
 
-  // 5. Upsert contacts for all other external participants (To + CC) to capture their names
+  // 5. Upsert contacts for all other external participants (To + CC header addresses)
   const otherExternal = allParticipants.filter(
-    p => p.email !== resolvedParty.email && !isInternal(p.email) && !isAutomated(p.email)
+    p => resolvedParty?.email !== p.email && !isInternal(p.email) && !isAutomated(p.email)
   )
   await Promise.allSettled(otherExternal.map(async p => {
     const { first_name, last_name } = splitDisplayName(p.name)
@@ -355,8 +456,39 @@ async function ingestMessage(token: string, gmailMsgId: string) {
     if (!res.ok) console.error('[ingest] cc contact upsert failed for', p.email, ':', await res.text())
   }))
 
+  // 5b. Capture external participants buried in forwarded email bodies (To: / Cc: lines).
+  //     For internal forwards (Nathan, Catherine) the full body contains the original
+  //     email chain — extract every external address so they all land in contacts.
+  if (isInternal(fromEmail)) {
+    const fullText   = decodeFullText(parts)
+    const bodyEmails = extractForwardedParticipants(fullText)
+    const alreadySeen = new Set([
+      fromEmail,
+      ...(resolvedParty ? [resolvedParty.email] : []),
+      ...allParticipants.map(p => p.email.toLowerCase()),
+    ])
+    const newExternals = bodyEmails.filter(e => !alreadySeen.has(e))
+    if (newExternals.length > 0) {
+      console.log('[ingest] capturing', newExternals.length, 'forwarded-body participant(s):', newExternals)
+      await Promise.allSettled(newExternals.map(async email => {
+        const inferred: Record<string, unknown> = { email, source: 'email' }
+        const co = inferCompanyFromEmail(email)
+        if (co) inferred.company = co
+        await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
+          method:  'POST',
+          headers: sbHeaders('return=minimal,resolution=merge-duplicates'),
+          body:    JSON.stringify(inferred),
+        })
+      }))
+    }
+  }
+
   // 6. Trigger AI analysis + draft reply for inbound messages only
   if (direction === 'inbound') {
+    // Tag thread with campaign context if sender is an outbound campaign lead (non-blocking)
+    if (resolvedParty && !isInternal(fromEmail)) {
+      tagThreadWithCampaignContext(fromEmail, thread.id).catch(() => {})
+    }
     waitUntil(
       runAutoSummarize(thread.id, dbMsg.id)
         .catch(e => console.error('[ingest] auto-summarize failed:', e instanceof Error ? e.message : e))
