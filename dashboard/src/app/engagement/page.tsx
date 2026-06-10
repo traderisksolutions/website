@@ -653,7 +653,7 @@ function AIDraftPanel({
       })
       const sendRes = await fetch('/api/email/send', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ draftId: activeDraftId }),
+        body: JSON.stringify({ draftId: activeDraftId, htmlBody: activeHtml }),
       })
       if (!sendRes.ok) {
         const err = await sendRes.json().catch(() => ({}))

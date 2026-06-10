@@ -31,15 +31,64 @@ async function getAccessToken(): Promise<string> {
   return data.access_token
 }
 
-function buildRawEmail(to: string, subject: string, body: string, threadId?: string | null): string {
+function encodeSubject(subject: string): string {
+  if (!/[^\x20-\x7E]/.test(subject)) return subject
+  return `=?UTF-8?B?${Buffer.from(subject, 'utf-8').toString('base64')}?=`
+}
+
+function htmlToText(html: string): string {
+  return html
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/h[1-6]>/gi, '\n\n')
+    .replace(/<li>/gi, '• ')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<\/ul>|<\/ol>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+function wrapBase64Lines(b64: string): string {
+  return b64.match(/.{1,76}/g)?.join('\r\n') ?? b64
+}
+
+function buildRawEmail(to: string, subject: string, body: string, htmlBody?: string | null): string {
+  const boundary    = `trs_${Date.now()}`
+  const plainText   = htmlBody ? htmlToText(htmlBody) : body
+  const fullHtml    = htmlBody
+    ? `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="font-family:Arial,sans-serif;font-size:14px;line-height:1.65;color:#333;max-width:640px;margin:0 auto;padding:16px 0">${htmlBody}</body></html>`
+    : `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="font-family:Arial,sans-serif;font-size:14px;line-height:1.65;color:#333;max-width:640px;margin:0 auto;padding:16px 0"><p style="white-space:pre-wrap">${body.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p></body></html>`
+
+  const plainB64 = wrapBase64Lines(Buffer.from(plainText, 'utf-8').toString('base64'))
+  const htmlB64  = wrapBase64Lines(Buffer.from(fullHtml,  'utf-8').toString('base64'))
+
   const lines = [
     `From: Trade Risk Solutions <${OPS_EMAIL}>`,
     `To: ${to}`,
-    `Subject: ${subject}`,
+    `Subject: ${encodeSubject(subject)}`,
     'MIME-Version: 1.0',
-    'Content-Type: text/plain; charset=utf-8',
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
     '',
-    body,
+    `--${boundary}`,
+    'Content-Type: text/plain; charset=utf-8',
+    'Content-Transfer-Encoding: base64',
+    '',
+    plainB64,
+    '',
+    `--${boundary}`,
+    'Content-Type: text/html; charset=utf-8',
+    'Content-Transfer-Encoding: base64',
+    '',
+    htmlB64,
+    '',
+    `--${boundary}--`,
   ]
   return Buffer.from(lines.join('\r\n')).toString('base64url')
 }
@@ -50,7 +99,7 @@ function buildRawEmail(to: string, subject: string, body: string, threadId?: str
 // and records the outbound message in email_messages.
 export async function POST(req: NextRequest) {
   try {
-    const { draftId } = await req.json() as { draftId: string }
+    const { draftId, htmlBody } = await req.json() as { draftId: string; htmlBody?: string }
     if (!draftId) return NextResponse.json({ error: 'draftId required' }, { status: 400 })
 
     // 1. Load the draft + contact email
@@ -88,8 +137,8 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Send via Gmail API
-    const token   = await getAccessToken()
-    const rawEmail = buildRawEmail(contact.email, subject, draft.body, gmailThreadId)
+    const token    = await getAccessToken()
+    const rawEmail = buildRawEmail(contact.email, subject, draft.body, htmlBody ?? null)
 
     const sendPayload: Record<string, unknown> = { raw: rawEmail }
     if (gmailThreadId) sendPayload.threadId = gmailThreadId
@@ -126,7 +175,7 @@ export async function POST(req: NextRequest) {
           direction:        'outbound',
           from_address:     OPS_EMAIL,
           subject,
-          body_text:        draft.body,
+          body_text:        htmlBody ? htmlToText(htmlBody) : draft.body,
           sent_at:          sentAt,
           has_attachments:  false,
         }),
