@@ -59,7 +59,7 @@ function wrapBase64Lines(b64: string): string {
   return b64.match(/.{1,76}/g)?.join('\r\n') ?? b64
 }
 
-function buildRawEmail(to: string, subject: string, body: string, htmlBody?: string | null): string {
+function buildRawEmail(to: string, subject: string, body: string, htmlBody?: string | null, cc?: string[], bcc?: string[]): string {
   const boundary    = `trs_${Date.now()}`
   const plainText   = htmlBody ? htmlToText(htmlBody) : body
   const emailCss = `<style>body{margin:0;padding:0}p{margin:0 0 10px 0;padding:0}p:last-child{margin-bottom:0}ul,ol{margin:0 0 10px 0;padding-left:22px}li{margin-bottom:3px}strong{font-weight:600}a{color:#1d4ed8}</style>`
@@ -74,6 +74,8 @@ function buildRawEmail(to: string, subject: string, body: string, htmlBody?: str
   const lines = [
     `From: Trade Risk Solutions <${OPS_EMAIL}>`,
     `To: ${to}`,
+    ...(cc?.length  ? [`Cc: ${cc.join(', ')}`]  : []),
+    ...(bcc?.length ? [`Bcc: ${bcc.join(', ')}`] : []),
     `Subject: ${encodeSubject(subject)}`,
     'MIME-Version: 1.0',
     `Content-Type: multipart/alternative; boundary="${boundary}"`,
@@ -125,7 +127,7 @@ function buildSignatureText(sig: Signature): string {
 // and records the outbound message in email_messages.
 export async function POST(req: NextRequest) {
   try {
-    const { draftId, htmlBody, signatureId } = await req.json() as { draftId: string; htmlBody?: string; signatureId?: string }
+    const { draftId, htmlBody, signatureId, cc, bcc } = await req.json() as { draftId: string; htmlBody?: string; signatureId?: string; cc?: string[]; bcc?: string[] }
     if (!draftId) return NextResponse.json({ error: 'draftId required' }, { status: 400 })
 
     // 1. Load the draft + contact email
@@ -180,7 +182,7 @@ export async function POST(req: NextRequest) {
 
     // 5. Send via Gmail API
     const token    = await getAccessToken()
-    const rawEmail = buildRawEmail(contact.email, subject, finalPlain, finalHtml)
+    const rawEmail = buildRawEmail(contact.email, subject, finalPlain, finalHtml, cc, bcc)
 
     const sendPayload: Record<string, unknown> = { raw: rawEmail }
     if (gmailThreadId) sendPayload.threadId = gmailThreadId

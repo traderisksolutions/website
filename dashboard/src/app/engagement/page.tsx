@@ -490,6 +490,58 @@ function StoredSummaryStrip({
   )
 }
 
+// ── Email chip input (CC / BCC) ───────────────────────────────────────────────
+
+function EmailChipInput({ label, chips, onChange }: {
+  label:    string
+  chips:    string[]
+  onChange: (chips: string[]) => void
+}) {
+  const [input, setInput] = useState('')
+
+  function tryAdd(raw: string) {
+    const val = raw.trim().toLowerCase().replace(/,$/, '')
+    if (!val || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) return
+    if (!chips.includes(val)) onChange([...chips, val])
+    setInput('')
+  }
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4,
+      padding: '4px 8px', border: '1px solid #e5e7eb', borderRadius: 6,
+      background: '#fff', minHeight: 32, cursor: 'text',
+    }}>
+      <span style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', flexShrink: 0, width: 28 }}>{label}</span>
+      {chips.map(email => (
+        <span key={email} style={{
+          display: 'inline-flex', alignItems: 'center', gap: 3,
+          fontSize: 11, background: '#eff6ff', color: '#1d4ed8',
+          padding: '2px 6px 2px 7px', borderRadius: 4, border: '1px solid #bfdbfe',
+        }}>
+          {email}
+          <button
+            type="button"
+            onClick={() => onChange(chips.filter(c => c !== email))}
+            style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', padding: '0 1px', cursor: 'pointer', color: '#60a5fa', fontSize: 13, lineHeight: 1 }}
+          >×</button>
+        </span>
+      ))}
+      <input
+        value={input}
+        onChange={e => setInput(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); tryAdd(input) }
+          if (e.key === 'Backspace' && !input && chips.length) onChange(chips.slice(0, -1))
+        }}
+        onBlur={() => tryAdd(input)}
+        placeholder={chips.length === 0 ? 'Type email, press Enter' : ''}
+        style={{ flex: 1, minWidth: 140, fontSize: 12, border: 'none', outline: 'none', padding: '2px 0', background: 'transparent', color: '#111' }}
+      />
+    </div>
+  )
+}
+
 // ── AI Draft panel ────────────────────────────────────────────────────────────
 
 function AIDraftPanel({
@@ -531,6 +583,10 @@ function AIDraftPanel({
   const [selectedSigId, setSelectedSigId] = useState<string>('')
   const [sigsLoaded,    setSigsLoaded]    = useState(false)
 
+  // CC / BCC state
+  const [ccList,  setCcList]  = useState<string[]>([])
+  const [bccList, setBccList] = useState<string[]>([])
+
   const log = useAuditLog()
 
   // Load signatures once
@@ -542,6 +598,23 @@ function AIDraftPanel({
       setSignatures(active)
     }).catch(() => {})
   }, [sigsLoaded])
+
+  // Pre-fill CC from thread message participants, reset on thread change
+  useEffect(() => {
+    setBccList([])
+    const seen = new Set<string>()
+    const ccs: string[] = []
+    for (const m of messages) {
+      for (const addr of m.cc) {
+        const a = addr.toLowerCase()
+        if (!seen.has(a) && !a.endsWith('@trade-risksol.com') &&
+            !a.includes('noreply') && !a.includes('no-reply') && !a.includes('mailer-daemon')) {
+          seen.add(a); ccs.push(a)
+        }
+      }
+    }
+    setCcList(ccs)
+  }, [lead.id, messages.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reset when switching threads
   useEffect(() => {
@@ -669,7 +742,13 @@ function AIDraftPanel({
       })
       const sendRes = await fetch('/api/email/send', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ draftId: activeDraftId, htmlBody: activeHtml, signatureId: selectedSigId || undefined }),
+        body: JSON.stringify({
+          draftId:     activeDraftId,
+          htmlBody:    activeHtml,
+          signatureId: selectedSigId || undefined,
+          cc:          ccList.length  ? ccList  : undefined,
+          bcc:         bccList.length ? bccList : undefined,
+        }),
       })
       if (!sendRes.ok) {
         const err = await sendRes.json().catch(() => ({}))
@@ -757,6 +836,12 @@ function AIDraftPanel({
           </p>
         </div>
       )}
+
+      {/* ── CC / BCC fields ── */}
+      <div style={{ padding: '6px 12px 0', display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <EmailChipInput label="CC"  chips={ccList}  onChange={setCcList} />
+        <EmailChipInput label="BCC" chips={bccList} onChange={setBccList} />
+      </div>
 
       {/* ── Editor ── */}
       <div style={{ padding: '8px 12px' }}>
