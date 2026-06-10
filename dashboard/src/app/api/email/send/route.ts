@@ -62,9 +62,11 @@ function wrapBase64Lines(b64: string): string {
 function buildRawEmail(to: string, subject: string, body: string, htmlBody?: string | null): string {
   const boundary    = `trs_${Date.now()}`
   const plainText   = htmlBody ? htmlToText(htmlBody) : body
+  const emailCss = `<style>body{margin:0;padding:0}p{margin:0 0 10px 0;padding:0}p:last-child{margin-bottom:0}ul,ol{margin:0 0 10px 0;padding-left:22px}li{margin-bottom:3px}strong{font-weight:600}a{color:#1d4ed8}</style>`
+  const bodyStyle = `font-family:Arial,sans-serif;font-size:14px;line-height:1.65;color:#333;max-width:640px;margin:0 auto;padding:16px 0`
   const fullHtml    = htmlBody
-    ? `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="font-family:Arial,sans-serif;font-size:14px;line-height:1.65;color:#333;max-width:640px;margin:0 auto;padding:16px 0">${htmlBody}</body></html>`
-    : `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="font-family:Arial,sans-serif;font-size:14px;line-height:1.65;color:#333;max-width:640px;margin:0 auto;padding:16px 0"><p style="white-space:pre-wrap">${body.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p></body></html>`
+    ? `<!DOCTYPE html><html><head><meta charset="utf-8">${emailCss}</head><body style="${bodyStyle}">${htmlBody}</body></html>`
+    : `<!DOCTYPE html><html><head><meta charset="utf-8">${emailCss}</head><body style="${bodyStyle}"><p style="white-space:pre-wrap">${body.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p></body></html>`
 
   const plainB64 = wrapBase64Lines(Buffer.from(plainText, 'utf-8').toString('base64'))
   const htmlB64  = wrapBase64Lines(Buffer.from(fullHtml,  'utf-8').toString('base64'))
