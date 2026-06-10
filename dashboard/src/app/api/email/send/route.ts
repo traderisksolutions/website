@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Load recipient email from contacts
     const contactRes = await fetch(
-      `${SB_URL}/rest/v1/contacts?id=eq.${draft.contact_id}&select=email,full_name&limit=1`,
+      `${SB_URL}/rest/v1/contacts?id=eq.${draft.contact_id}&select=email&limit=1`,
       { headers: sbHeaders() }
     )
     const contacts = contactRes.ok ? await contactRes.json() : []
