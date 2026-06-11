@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
     const salutation  = firstName ? `Dear ${firstName},` : 'Dear Sir/Madam,'
 
     // ── Pre-classification: skip drafting for newsletters / spam / non-enquiries ─
-    const lastMsgText = messages.slice(-3).map(m => (m.body_text || '').slice(0, 600)).join('\n---\n')
+    const lastMsgText = messages.slice(-3).map(m => (m.body_text || '').slice(0, 3000)).join('\n---\n')
     const classifyPrompt = `Is this email a genuine insurance enquiry that requires a professional reply from a Singapore brokerage?
 
 Reply with exactly one word: YES or NO.
@@ -149,7 +149,7 @@ ${lastMsgText}`
       .map(m => {
         const who  = m.direction === 'inbound' ? `CLIENT (${m.from_address})` : 'TRS (us)'
         const date = m.sent_at ? new Date(m.sent_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
-        const body = (m.body_text || '').slice(0, 1500)
+        const body = (m.body_text || '').slice(0, 4000)
         return `[${date}] ${who}:\n${body}`
       })
       .join('\n\n---\n\n')
@@ -157,7 +157,7 @@ ${lastMsgText}`
     // Thread subject for additional context (topic comes from the lead/thread metadata)
     const threadSubject = topic || ''
 
-    const lastInboundText = lastInbound ? (lastInbound.body_text || '').slice(0, 2000) : '(no inbound message found)'
+    const lastInboundText = lastInbound ? (lastInbound.body_text || '').slice(0, 12000) : '(no inbound message found)'
 
     // ── Agent 1: Drafter — write a complete, accurate reply ──────────────────
     const drafterPrompt = `You are an email assistant for Trade Risk Solutions (TRS), a Singapore insurance brokerage.

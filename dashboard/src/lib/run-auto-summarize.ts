@@ -147,7 +147,7 @@ export async function runAutoSummarize(thread_id: string, message_id: string): P
   const threadText = messages.map(m => {
     const who  = m.direction === 'inbound' ? `CLIENT (${m.from_address})` : 'TRS (us)'
     const date = new Date(m.sent_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-    return `[${date}] ${who}:\n${m.body_text ?? ''}`
+    return `[${date}] ${who}:\n${(m.body_text ?? '').slice(0, 8000)}`
   }).join('\n\n---\n\n')
 
   const docs = await fetchKnowledgeDocs(threadText, key)
