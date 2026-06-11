@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { RefreshCw, ChevronDown, Copy, Check, X, Search, MessageCircle, Mail, Globe, Pencil, Sparkles, Send } from 'lucide-react'
 import { useAuditLog } from '@/hooks/useAuditLog'
+import { Tip } from '@/components/Tip'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -243,7 +244,7 @@ function DetailPanel({ lead, onStatus, onClose }: { lead: Lead; onStatus: (id: s
 
       {/* Status changer */}
       <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0' }}>
-        <p style={lbl}>Status</p>
+        <p style={lbl}>Status <Tip placement="right" text="Update this as the conversation progresses — from New to Contacted once you've replied, through to Converted when a policy is placed." /></p>
         <StatusDropdown lead={lead} onChange={onStatus} />
       </div>
 
@@ -307,8 +308,9 @@ function DetailPanel({ lead, onStatus, onClose }: { lead: Lead; onStatus: (id: s
       {lead.email && (
         <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', background: sent ? '#f0fdf4' : '#eff6ff', borderTop: `2px solid ${sent ? '#86efac' : '#93c5fd'}` }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <p style={{ ...lbl, color: sent ? '#15803d' : '#1d4ed8', margin: 0 }}>
+            <p style={{ ...lbl, color: sent ? '#15803d' : '#1d4ed8', margin: 0, display: 'flex', alignItems: 'center' }}>
               {sent ? 'Reply Sent' : 'AI Reply'}
+              {!sent && <Tip text="Drafts a personalised first-contact email using AI — it reads the lead's name, topic, and original message. Review and edit the draft before clicking Send Reply." />}
             </p>
             {!sent && !draftText && (
               <button
@@ -355,7 +357,10 @@ function DetailPanel({ lead, onStatus, onClose }: { lead: Lead; onStatus: (id: s
                 }}
               />
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
-                <span style={{ fontSize: 11, color: '#93c5fd' }}>To: {lead.email}</span>
+                <span style={{ fontSize: 11, color: '#93c5fd', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  To: {lead.email}
+                  <Tip text="This reply is sent from your connected TRS email address. The lead will see it as a normal email — no mention of AI." />
+                </span>
                 <button
                   onClick={sendReply}
                   disabled={sending || !draftText.trim()}
@@ -386,7 +391,7 @@ function DetailPanel({ lead, onStatus, onClose }: { lead: Lead; onStatus: (id: s
 
       {/* Notes */}
       <div style={{ padding: '12px 16px', flex: 1 }}>
-        <p style={{ ...lbl, marginBottom: 6 }}>Internal Notes</p>
+        <p style={{ ...lbl, marginBottom: 6 }}>Internal Notes <Tip placement="right" text="Only visible to your TRS team — the contact never sees these. Use this to record context like which insurer to quote, a follow-up date, or notes from a call." /></p>
         <textarea
           placeholder="Add notes…"
           rows={4}
@@ -567,13 +572,13 @@ function InboundLeadsPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 760 }}>
               <thead>
                 <tr style={{ background: '#fafafa', borderBottom: '1px solid #f0f0f0', position: 'sticky', top: 0, zIndex: 1 }}>
-                  <Th w={110}>Channel</Th>
+                  <Th w={110}>Channel <Tip text="Shows where this lead came from — Website = contact form, Email = direct email, WhatsApp = click-to-chat button. Manual means a team member added them." /></Th>
                   <Th w={120}>First Name</Th>
                   <Th w={120}>Last Name</Th>
                   <Th w={150}>Company</Th>
                   <Th w={160}>Topic</Th>
                   <Th>Message</Th>
-                  <Th w={130}>Status</Th>
+                  <Th w={130}>Status <Tip text="Tracks where this lead sits in your pipeline, from New (not yet replied) to Converted (policy placed). Update this as conversations progress." /></Th>
                   <Th w={90} right>Time</Th>
                 </tr>
               </thead>

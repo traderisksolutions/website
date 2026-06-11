@@ -307,6 +307,180 @@ const SECTIONS: Section[] = [
       </div>
     ),
   },
+  {
+    id:    'discovery',
+    title: 'Lead Discovery',
+    emoji: '🔍',
+    content: (
+      <div>
+        <H2>Lead Discovery</H2>
+        <Lead>
+          Lead Discovery is your outbound prospecting tool. It uses Apollo.io to search for companies in a target industry, find the decision-makers you want to reach, and retrieve their verified work email addresses — all in four steps.
+        </Lead>
+
+        <Callout color="blue">
+          Every email you retrieve here is automatically saved to the Lead Database. From there you can add those leads to a Campaign to send them an AI-drafted email sequence.
+        </Callout>
+
+        <H3>The four steps</H3>
+        <Steps items={[
+          {
+            title: 'Search — define your target',
+            body: <p style={{ margin: 0 }}>Enter your target industry (e.g. "Logistics", "Marine"), pick one or more locations, optionally set a company headcount range, and choose the TRS product type (Business Assets, Liabilities, Workforce, or API). You can also paste a news article URL to give the AI a topical hook for outreach emails. Click <strong>Run Search</strong>.</p>,
+          },
+          {
+            title: 'Companies — pick the ones you want',
+            body: <p style={{ margin: 0 }}>Apollo returns a ranked list of companies matching your criteria. Tick the ones you want to pursue, then click <strong>Fetch People</strong>. Apollo will find the relevant decision-makers at each selected company.</p>,
+          },
+          {
+            title: 'People — select decision-makers',
+            body: <p style={{ margin: 0 }}>A list of decision-makers appears — name, title, company, location, and LinkedIn profile. Tick the individuals you want to contact and click <strong>Get Emails</strong>. Apollo looks up each person's verified work email. Each lookup uses Apollo credits, so be selective.</p>,
+          },
+          {
+            title: 'Emails — review results and save',
+            body: <p style={{ margin: 0 }}>Results show which emails were found (green) or not found (grey). Every person with a found email is automatically saved to the Lead Database. Click <strong>View Lead Database</strong> to see them there and start building a campaign.</p>,
+          },
+        ]} />
+
+        <Callout color="amber">
+          Apollo Basic allows 30,000 credits per month. Each email lookup consumes credits even if no email is found. Only select people you genuinely intend to contact.
+        </Callout>
+
+        <H3>Search history</H3>
+        <P>
+          Every search is saved and visible in the <strong>Search History</strong> panel on the right side of the Search screen. Click any past search to review its companies and people. History searches are read-only — you cannot request new emails from a history view.
+        </P>
+
+        <H3>Scheduled runs</H3>
+        <P>
+          When setting up a search you can set a <strong>Scheduled Run</strong> to "Weekly". This repeats the same search automatically each week and adds any newly discovered companies and people to the Lead Database.
+        </P>
+
+        <H3>News hook</H3>
+        <P>
+          If you paste a news article URL in the search form, the AI uses that article as the opening angle in Campaign emails — "I came across this article on [topic]…" This makes outreach feel timely and relevant rather than generic. If you leave it blank, the AI finds a relevant article automatically when you later generate a Campaign sequence.
+        </P>
+      </div>
+    ),
+  },
+  {
+    id:    'database',
+    title: 'Lead Database',
+    emoji: '📋',
+    content: (
+      <div>
+        <H2>Lead Database</H2>
+        <Lead>
+          The Lead Database holds every outbound lead discovered through Lead Discovery. It's your working list of companies and decision-makers that TRS has identified as prospective clients.
+        </Lead>
+
+        <H3>What you'll see</H3>
+        <P>
+          Each row shows a lead's name (or company name), job title, current employer, email address, email verification status, location, and their current outreach status. Click a row to expand it and see more detail or add notes.
+        </P>
+        <P>
+          Use the filter tabs to switch between All, New, Contacted, Replied, Qualified, and Disqualified. The search bar lets you find anyone by name, email, title, or company.
+        </P>
+
+        <H3>Lead statuses</H3>
+        <P>Outbound leads have their own status track, separate from inbound leads:</P>
+        <div style={{ marginBottom: 16 }}>
+          <Badge label="New" color="gray" /> Added to the database — not yet contacted.
+          <br /><br />
+          <Badge label="Contacted" color="blue" /> Added to a campaign; emails are being sent.
+          <br /><br />
+          <Badge label="Replied" color="amber" /> The lead has replied to an outbound email. Your cue to engage them directly via the Engagement Agent.
+          <br /><br />
+          <Badge label="Qualified" color="green" /> Shown genuine interest — moved into the active pipeline.
+          <br /><br />
+          <Badge label="Disqualified" color="gray" /> Not a fit, or the lead has opted out.
+        </div>
+
+        <H3>Notes</H3>
+        <P>
+          Each lead has a notes field. Expand any row and type relevant context — the insurer they currently use, a conversation you had, or a specific risk they mentioned. Notes save automatically.
+        </P>
+
+        <Callout color="green">
+          Leads that opt out are flagged automatically and excluded from all future campaigns. You do not need to remove them manually.
+        </Callout>
+      </div>
+    ),
+  },
+  {
+    id:    'campaigns',
+    title: 'Campaigns',
+    emoji: '📣',
+    content: (
+      <div>
+        <H2>Campaigns</H2>
+        <Lead>
+          Campaigns turn a list of outbound leads into a structured, multi-step email outreach. The AI writes a personalised email sequence; you review and approve it; the system sends each email automatically via Instantly, spaced out over days.
+        </Lead>
+
+        <Callout color="blue">
+          Think of a Campaign as a carefully timed sequence of emails sent to a targeted group of leads. The first email introduces TRS using a news hook; follow-ups add a gentle nudge or a new angle. You stay in control by approving every email before anything sends.
+        </Callout>
+
+        <H3>Campaign statuses</H3>
+        <div style={{ marginBottom: 16 }}>
+          <Badge label="Draft" color="amber" /> Just created — the AI is writing the email sequence.
+          <br /><br />
+          <Badge label="Review" color="blue" /> Sequence is ready for you to read and approve.
+          <br /><br />
+          <Badge label="Active" color="green" /> Emails are sending on schedule.
+          <br /><br />
+          <Badge label="Paused" color="purple" /> Sending is temporarily stopped. You can resume at any time.
+          <br /><br />
+          <Badge label="Completed" color="gray" /> All emails in the sequence have been sent.
+          <br /><br />
+          <Badge label="Archived" color="gray" /> Stored for reference — no longer active.
+        </div>
+
+        <Divider />
+
+        <H3>Step-by-step: Creating a campaign</H3>
+        <Steps items={[
+          {
+            title: 'Click "New Campaign"',
+            body: <p style={{ margin: 0 }}>Give the campaign a descriptive name (e.g. "SG Logistics Q3 — Liability"), choose the TRS product type, and optionally paste a news article URL. If you leave the URL blank, the AI will find a relevant insurance news hook automatically.</p>,
+          },
+          {
+            title: 'Select leads from the Lead Database',
+            body: <p style={{ margin: 0 }}>On the campaign detail screen, go to the <strong>Leads</strong> tab. Add the outbound leads you want this campaign to target. These should already be in the Lead Database from a Lead Discovery run.</p>,
+          },
+          {
+            title: 'Generate the email sequence',
+            body: <p style={{ margin: 0 }}>Go to the <strong>Sequence</strong> tab and click <strong>Generate with AI</strong>. The AI writes up to five emails — each with a subject line, body, and a delay in days from the previous one. The first email uses the news hook as the opening angle.</p>,
+          },
+          {
+            title: 'Review and approve each step',
+            body: <p style={{ margin: 0 }}>Read every draft carefully. You can edit the subject line or body of any email. When you are happy with a step, click <strong>Approve</strong>. The campaign will not launch until all steps are approved.</p>,
+          },
+          {
+            title: 'Launch the campaign',
+            body: <p style={{ margin: 0 }}>Once all steps are approved, click <strong>Launch via Instantly</strong>. The campaign moves to Active and emails begin sending to your lead list according to the delay schedule.</p>,
+          },
+          {
+            title: 'Monitor replies',
+            body: <p style={{ margin: 0 }}>The campaign dashboard shows Leads, Sent, Replies, and Reply Rate in real time. When a lead replies, their status in the Lead Database updates to Replied — your cue to open the Engagement Agent and continue the conversation personally.</p>,
+          },
+        ]} />
+
+        <H3>The news hook</H3>
+        <P>
+          The first email in every sequence references a recent, relevant news article — for example, a port disruption report or a regulatory change affecting a specific sector. This gives the recipient a concrete reason to open the email beyond a generic introduction.
+        </P>
+        <P>
+          If you paste a URL when creating the campaign, the AI uses that article. If you leave it blank, the AI searches for the most relevant recent news for your target industry and product type.
+        </P>
+
+        <Callout color="amber">
+          Always read the full sequence before approving. The AI does not know your current premium rates, specific insurer relationships, or regulatory details unique to TRS. Add those details yourself before launching.
+        </Callout>
+      </div>
+    ),
+  },
 ]
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -348,7 +522,7 @@ export default function DocumentationPage() {
         <div style={{ flex: 1 }} />
         <div style={{ padding: '12px 16px', borderTop: '1px solid #f0f0f0' }}>
           <p style={{ margin: 0, fontSize: 11, color: '#ccc', lineHeight: 1.5 }}>
-            TRS Internal Dashboard<br />Documentation v1.0
+            TRS Internal Dashboard<br />Documentation v1.1
           </p>
         </div>
       </div>

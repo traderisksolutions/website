@@ -7,6 +7,8 @@ import {
   Clock, ArrowLeft, AlertCircle, CheckCircle, ExternalLink, Loader2, Link2,
 } from 'lucide-react'
 
+import { Tip } from '@/components/Tip'
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Step = 'search' | 'companies' | 'people' | 'emails'
@@ -443,7 +445,7 @@ export default function OutboundAgentPage() {
               />
 
               <div>
-                <span style={lbl}>Product / Service Type *</span>
+                <span style={lbl}>Product / Service Type * <Tip placement="right" text="Tells the AI which TRS product to pitch in the outreach email. Choose the one that best matches the sector you're targeting." /></span>
                 <select style={inp} value={productType} onChange={e => setProductType(e.target.value)}>
                   <option value="">Select type…</option>
                   {PRODUCT_TYPES.map(pt => <option key={pt.value} value={pt.value}>{pt.label}</option>)}
@@ -451,7 +453,7 @@ export default function OutboundAgentPage() {
               </div>
 
               <div>
-                <span style={lbl}>News Hook URL (optional)</span>
+                <span style={lbl}>News Hook URL (optional) <Tip placement="right" text="Paste a relevant news article — a regulation change, market disruption, or sector report — and the AI uses it as the email opening hook. Leave blank and the AI finds one automatically." /></span>
                 <div style={{ position: 'relative' }}>
                   <Link2 size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#bbb' }} />
                   <input
@@ -467,7 +469,7 @@ export default function OutboundAgentPage() {
               </div>
 
               <div>
-                <span style={lbl}>Scheduled Run</span>
+                <span style={lbl}>Scheduled Run <Tip placement="right" text="Set how often the AI automatically re-runs this search with the same criteria and adds new companies to the Lead Database. Choose Manual to run it yourself each time." /></span>
                 <select style={inp} value={cronPref} onChange={e => setCronPref(e.target.value)}>
                   {CRON_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
@@ -559,6 +561,7 @@ export default function OutboundAgentPage() {
               : (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 12, color: '#888' }}>{selCompanies.size} selected</span>
+                  <Tip text="Looks up decision-makers (Risk Managers, CFOs, Operations leads) at the selected companies using Apollo.io. Tick the companies you want before clicking." />
                   <button
                     onClick={fetchPeople}
                     disabled={selCompanies.size === 0 || fetchingPeople}
@@ -657,6 +660,7 @@ export default function OutboundAgentPage() {
               : (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 12, color: '#888' }}>{selPeople.size} selected</span>
+                  <Tip text="Reveals the work email addresses for the selected people via Apollo.io. Each reveal uses one Apollo credit — a confirmation dialog shows you the count before proceeding." />
                   <button
                     onClick={() => selPeople.size > 0 && setCreditModal(true)}
                     disabled={selPeople.size === 0 || loading}

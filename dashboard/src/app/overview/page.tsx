@@ -16,14 +16,15 @@ const NODES: Node[] = [
   { id: 'website',  label: 'Website Form',   sublabel: 'Contact form on site',           color: '#3b82f6', x: 1, y: 1 },
   { id: 'email',    label: 'Email Enquiry',  sublabel: 'Direct inbound email',           color: '#3b82f6', x: 3, y: 1 },
   { id: 'whatsapp', label: 'WhatsApp Click', sublabel: 'Click-to-chat campaign',         color: '#3b82f6', x: 5, y: 1 },
-  { id: 'linkedin', label: 'LinkedIn',       sublabel: 'AI-scraped decision-makers',     color: '#8b5cf6', x: 7, y: 1 },
+  { id: 'linkedin',  label: 'Apollo.io',      sublabel: 'Company & people data',          color: '#8b5cf6', x: 7, y: 1 },
 
-  { id: 'inbound',  label: 'Inbound Inbox',  sublabel: 'Email · WhatsApp · Web',         color: '#3b82f6', x: 2, y: 3, href: '/inbound/email' },
-  { id: 'outbound', label: 'Outbound CRM',   sublabel: 'Scraped & enriched leads',       color: '#8b5cf6', x: 6, y: 3, href: '/outbound/leads' },
+  { id: 'inbound',   label: 'Inbound Inbox',  sublabel: 'Email · WhatsApp · Web',         color: '#3b82f6', x: 2, y: 3, href: '/inbound/email' },
+  { id: 'agent2',    label: 'Lead Discovery', sublabel: 'Apollo search & email lookup',   color: '#8b5cf6', x: 5, y: 3, href: '/outbound/agent' },
 
-  { id: 'agent1',   label: 'Agent 1',        sublabel: 'First reply — instant response', color: '#c00',    x: 2, y: 5, href: '/inbound/email' },
-  { id: 'agent2',   label: 'Outbound Agent', sublabel: 'LinkedIn search & save',         color: '#8b5cf6', x: 5, y: 5, href: '/outbound/agent' },
-  { id: 'engage',   label: 'Agent 2',        sublabel: 'Engagement — 2nd msg onwards',   color: '#f59e0b', x: 2, y: 7, href: '/engagement' },
+  { id: 'agent1',    label: 'Agent 1',        sublabel: 'First reply — instant response', color: '#c00',    x: 2, y: 5, href: '/inbound/email' },
+  { id: 'outbound',  label: 'Lead Database',  sublabel: 'Saved outbound leads',           color: '#8b5cf6', x: 6, y: 5, href: '/outbound/leads' },
+  { id: 'engage',    label: 'Agent 2',        sublabel: 'Engagement — 2nd msg onwards',   color: '#f59e0b', x: 2, y: 7, href: '/engagement' },
+  { id: 'campaigns', label: 'Campaigns',      sublabel: 'AI sequences → Instantly',       color: '#0891b2', x: 6, y: 7, href: '/outbound/campaigns' },
 
   { id: 'pipeline', label: 'Lead Pipeline',  sublabel: 'Stage · channel · value',        color: '#16a34a', x: 4, y: 9, href: '/contacts' },
   { id: 'analytics',label: 'Analytics',      sublabel: 'Funnel · conversion · ROI',      color: '#16a34a', x: 6, y: 9, href: '/analytics' },
@@ -31,19 +32,20 @@ const NODES: Node[] = [
 ]
 
 const ARROWS: { from: string; to: string; label?: string }[] = [
-  { from: 'website',  to: 'inbound' },
-  { from: 'email',    to: 'inbound' },
-  { from: 'whatsapp', to: 'inbound' },
-  { from: 'linkedin', to: 'outbound' },
-  { from: 'inbound',  to: 'agent1',   label: 'triggers' },
-  { from: 'outbound', to: 'agent2' },
-  { from: 'agent1',   to: 'engage',   label: 'hands off' },
-  { from: 'agent1',   to: 'pipeline' },
-  { from: 'agent2',   to: 'outbound' },
-  { from: 'engage',   to: 'pipeline' },
-  { from: 'outbound', to: 'pipeline' },
-  { from: 'pipeline', to: 'analytics' },
-  { from: 'pipeline', to: 'team' },
+  { from: 'website',   to: 'inbound' },
+  { from: 'email',     to: 'inbound' },
+  { from: 'whatsapp',  to: 'inbound' },
+  { from: 'linkedin',  to: 'agent2' },
+  { from: 'inbound',   to: 'agent1',   label: 'triggers' },
+  { from: 'agent1',    to: 'engage',   label: 'hands off' },
+  { from: 'agent1',    to: 'pipeline' },
+  { from: 'agent2',    to: 'outbound' },
+  { from: 'outbound',  to: 'campaigns' },
+  { from: 'outbound',  to: 'pipeline' },
+  { from: 'campaigns', to: 'pipeline' },
+  { from: 'engage',    to: 'pipeline' },
+  { from: 'pipeline',  to: 'analytics' },
+  { from: 'pipeline',  to: 'team' },
 ]
 
 const COL_W = 110
@@ -91,6 +93,7 @@ export default function OverviewPage() {
       <div style={{ display: 'flex', gap: 20, marginBottom: 24, flexWrap: 'wrap' }}>
         <Legend color="#3b82f6" label="Inbound channels" />
         <Legend color="#8b5cf6" label="Outbound prospecting" />
+        <Legend color="#0891b2" label="Campaigns — AI email sequences" />
         <Legend color="#c00"    label="AI Agent 1 — First Reply" />
         <Legend color="#f59e0b" label="AI Agent 2 — Engagement" />
         <Legend color="#16a34a" label="Pipeline & analytics" />
@@ -150,11 +153,11 @@ export default function OverviewPage() {
       <div style={{ marginTop: 32, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
         {[
           { color: '#3b82f6', step: '01', title: 'Capture Inbound',       desc: 'Website forms, email enquiries, and WhatsApp click-to-chat messages are automatically captured and routed to the Inbound Inbox.', href: '/inbound/email', linkLabel: 'Open Inbox →' },
-          { color: '#8b5cf6', step: '02', title: 'Prospect Outbound',      desc: 'The AI Outbound Agent searches LinkedIn for decision-makers matching your target criteria and saves qualified profiles to the CRM.', href: '/outbound/agent', linkLabel: 'Outbound Agent →' },
-          { color: '#c00',    step: '03', title: 'Agent 1 — First Reply',  desc: 'Every new inbound lead receives an instant, personalised response within seconds — no lead goes cold.', href: '/inbound/email', linkLabel: 'View Inbound →' },
-          { color: '#f59e0b', step: '04', title: 'Agent 2 — Engagement',   desc: 'Agent 2 takes over from the second message onwards, nurturing each conversation until the lead is qualified or converts.', href: '/engagement', linkLabel: 'Engagement Agent →' },
-          { color: '#16a34a', step: '05', title: 'Unified Pipeline',        desc: 'Every inbound and outbound contact is tracked by stage, channel, and value in one unified Contacts & Analytics view.', href: '/contacts', linkLabel: 'View Contacts →' },
-          { color: '#16a34a', step: '06', title: 'Team Activity',           desc: 'Managers see each employee\'s outreach cadence, reply rates, and meeting conversions — keeping the whole team accountable.', href: '/team', linkLabel: 'View Team →' },
+          { color: '#8b5cf6', step: '02', title: 'Discover Leads',         desc: 'Lead Discovery uses Apollo to search for companies and decision-makers by sector and location. Select people and retrieve their verified email addresses in four steps.', href: '/outbound/agent', linkLabel: 'Lead Discovery →' },
+          { color: '#0891b2', step: '03', title: 'Run Campaigns',          desc: 'Add discovered leads to a Campaign. The AI drafts a multi-step email sequence tied to a news hook; you review and approve it, then it sends automatically via Instantly.', href: '/outbound/campaigns', linkLabel: 'Campaigns →' },
+          { color: '#c00',    step: '04', title: 'Agent 1 — First Reply',  desc: 'Every new inbound lead receives an instant, personalised response within seconds — no lead goes cold.', href: '/inbound/email', linkLabel: 'View Inbound →' },
+          { color: '#f59e0b', step: '05', title: 'Agent 2 — Engagement',   desc: 'Agent 2 takes over from the second message onwards, nurturing each conversation until the lead is qualified or converts.', href: '/engagement', linkLabel: 'Engagement Agent →' },
+          { color: '#16a34a', step: '06', title: 'Unified Pipeline',        desc: 'Every inbound and outbound contact is tracked by stage, channel, and value in one unified Contacts & Analytics view.', href: '/contacts', linkLabel: 'View Contacts →' },
         ].map(s => (
           <div key={s.step} style={{ border: '1px solid #f0f0f0', borderRadius: 10, padding: '16px 18px', background: '#fff', borderTop: `3px solid ${s.color}` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>

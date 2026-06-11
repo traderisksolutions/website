@@ -232,6 +232,41 @@ Return ONLY a valid JSON object. If the email is automated, a notification, or p
 
   console.log('[auto-summarize] stored for thread', thread_id, '| docs used:', docs.map(d => d.name).join(', ') || 'none')
 
+  // Save auto-draft to ai_drafts (single source of truth).
+  // This means users see the draft immediately when opening the thread — no manual generate needed.
+  if (result.draft_reply) {
+    // Look up contact_id from email_threads so the draft can be sent later
+    const tRes      = await fetch(`${SB_URL}/rest/v1/email_threads?id=eq.${thread_id}&select=contact_id&limit=1`, { headers: sbHeaders() })
+    const tRows     = tRes.ok ? await tRes.json() : []
+    const contactId = Array.isArray(tRows) ? (tRows[0]?.contact_id ?? null) : null
+
+    // Supersede any existing pending drafts for this thread so only the latest is shown
+    await fetch(`${SB_URL}/rest/v1/ai_drafts?thread_id=eq.${thread_id}&status=eq.pending`, {
+      method:  'PATCH',
+      headers: sbHeaders('return=minimal'),
+      body:    JSON.stringify({ status: 'rejected', rejection_note: 'Superseded by newer auto-draft' }),
+    })
+
+    // Insert new auto-draft
+    const draftRes = await fetch(`${SB_URL}/rest/v1/ai_drafts`, {
+      method:  'POST',
+      headers: sbHeaders('return=minimal'),
+      body: JSON.stringify({
+        contact_id:   contactId,
+        thread_id:    thread_id,
+        channel:      'email',
+        body:         result.draft_reply,
+        status:       'pending',
+        generated_by: 'auto',
+      }),
+    })
+    if (!draftRes.ok) {
+      console.error('[auto-summarize] ai_drafts insert failed (non-fatal):', await draftRes.text())
+    } else {
+      console.log('[auto-summarize] auto-draft saved to ai_drafts for thread', thread_id)
+    }
+  }
+
   // Fire RAG draft in parallel — non-fatal, runs alongside GDrive draft
   runRagDraft(thread_id, message_id).catch(e =>
     console.error('[auto-summarize] RAG draft failed (non-fatal):', e instanceof Error ? e.message : e)

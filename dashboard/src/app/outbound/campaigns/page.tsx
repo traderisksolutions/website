@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { Megaphone, Plus, Loader2, AlertCircle, ChevronRight, Newspaper } from 'lucide-react'
+import { Tip } from '@/components/Tip'
 
 interface Campaign {
   id: string; name: string; status: string
@@ -231,7 +232,7 @@ export default function CampaignsPage() {
               </div>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 600, color: '#666', display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  News Hook URL (optional)
+                  News Hook URL (optional) <Tip placement="right" text="Paste a relevant article and the AI opens Email 1 with it as a hook — 'I came across this on [topic]…' Leave blank and the AI finds a suitable piece automatically." />
                 </label>
                 <input
                   style={{ width: '100%', padding: '8px 10px', fontSize: 13, borderRadius: 7, border: '1px solid #e5e5e5', background: '#fafafa', color: '#111', outline: 'none', boxSizing: 'border-box' }}

@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { Search, RefreshCw, ChevronDown, Copy, Check, X, Calendar, ArrowUpDown, SlidersHorizontal, Trash2 } from 'lucide-react'
 import { useAuditLog } from '@/hooks/useAuditLog'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
+import { Tip } from '@/components/Tip'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -425,6 +426,7 @@ function StoredSummaryStrip({
           <span style={{ fontSize: 11, color: '#bbb' }}>{open ? '▲' : '▽'}</span>
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Tip text="Generated automatically each time the contact sends a new email — no action needed. Summarises the thread and suggests a next step so you can reply without re-reading everything." />
           {regenErr && <span style={{ fontSize: 10, color: '#ef4444' }}>{regenErr}</span>}
           {threadId && latestMessageId && (
             <button
@@ -456,6 +458,7 @@ function StoredSummaryStrip({
               {latest.next_action && (
                 <div style={{ marginBottom: 8, padding: '7px 10px', background: 'rgba(59,130,246,0.06)', borderRadius: 7, borderLeft: '3px solid #3b82f6' }}>
                   <span style={{ fontSize: 10, fontWeight: 700, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Next action · </span>
+                  <Tip text="AI-suggested next step based on the conversation so far — a prompt to help you decide what to do before replying. You are always in control; treat this as a starting point." />
                   <span style={{ fontSize: 12, color: '#1d4ed8' }}>{latest.next_action}</span>
                 </div>
               )}
@@ -821,11 +824,14 @@ function AIDraftPanel({
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {error && <span style={{ fontSize: 11, color: '#ef4444' }}>{error}</span>}
           {activeTab === 'gdrive' && (
-            <button onClick={generate} disabled={!!loading}
-              style={{ fontSize: 11, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
-              <RefreshCw size={11} style={{ animation: loading === 'gen' ? 'spin 1s linear infinite' : undefined }} />
-              {loading === 'gen' ? 'Generating…' : hasDraftContent ? 'Regenerate' : 'Generate AI reply'}
-            </button>
+            <>
+              <Tip text="Reads the full email thread and your knowledge documents to draft a contextual reply. Always review the draft before clicking Approve & Send — you have final say." />
+              <button onClick={generate} disabled={!!loading}
+                style={{ fontSize: 11, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
+                <RefreshCw size={11} style={{ animation: loading === 'gen' ? 'spin 1s linear infinite' : undefined }} />
+                {loading === 'gen' ? 'Generating…' : hasDraftContent ? 'Regenerate' : 'Generate AI reply'}
+              </button>
+            </>
           )}
           {activeTab === 'rag' && (
             <button onClick={generateRag} disabled={ragGenerating}
@@ -927,7 +933,7 @@ function AIDraftPanel({
             </select>
           </div>
         )}
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {activeTab === 'gdrive' && hasDraftContent && (
             <button onClick={handleReject} disabled={!!loading}
               style={{ padding: '7px 16px', fontSize: 12, fontWeight: 500, border: '1px solid #bfdbfe', borderRadius: 8, background: '#fff', color: '#6b7280', cursor: 'pointer', opacity: loading ? 0.5 : 1 }}>
@@ -938,6 +944,7 @@ function AIDraftPanel({
             style={{ flex: 1, padding: '7px 16px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 8, background: '#1d4ed8', color: '#fff', cursor: 'pointer', opacity: (loading || !canSend) ? 0.5 : 1 }}>
             {loading === 'send' ? 'Sending…' : 'Approve & Send Reply'}
           </button>
+          <Tip placement="left" text="Sends the email in your name and marks the lead as Replied. Reject discards the AI draft so you can write your own or generate again." />
         </div>
       </div>
     </div>
@@ -1052,7 +1059,7 @@ function ContactPanel({
 
       {allCcs.length > 0 && (
         <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0' }}>
-          <p style={lbl}>CC Participants</p>
+          <p style={lbl}>CC Participants <Tip placement="left" text="People who were copied on one or more emails in this thread. They can see the full conversation — keep this in mind when drafting replies." /></p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             {allCcs.map(addr => (
               <div key={addr} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1168,7 +1175,10 @@ function ThreadView({
                   {thread?.subject ?? lead.subject ?? lead.topic ?? fullName(lead)}
                 </span>
                 {needsReply && (
-                  <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: 'rgba(245,158,11,0.10)', color: '#b45309' }}>⚡ Needs reply</span>
+                  <>
+                    <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: 'rgba(245,158,11,0.10)', color: '#b45309' }}>⚡ Needs reply</span>
+                    <Tip text="The last email in this thread was from the contact — they are waiting on your response. Use the reply panel below to draft and send a reply." />
+                  </>
                 )}
               </div>
               <p style={{ margin: '3px 0 0', fontSize: 12, color: '#888' }}>

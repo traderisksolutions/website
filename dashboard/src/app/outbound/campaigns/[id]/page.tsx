@@ -8,6 +8,7 @@ import {
   Newspaper, Rocket, RefreshCw, ChevronDown, ChevronUp,
   Mail, Users, BarChart2,
 } from 'lucide-react'
+import { Tip } from '@/components/Tip'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -251,7 +252,7 @@ export default function CampaignDetailPage() {
           }}>
             <Newspaper size={13} style={{ color: '#166534', flexShrink: 0, marginTop: 1 }} />
             <div>
-              <p style={{ margin: '0 0 2px', fontSize: 12, fontWeight: 600, color: '#166534' }}>News Hook</p>
+              <p style={{ margin: '0 0 2px', fontSize: 12, fontWeight: 600, color: '#166534', display: 'flex', alignItems: 'center', gap: 4 }}>News Hook <Tip text="The AI uses this article as the opening line in Email 1 — 'I came across this on [topic]…' It makes cold outreach feel timely and relevant rather than generic." /></p>
               <p style={{ margin: '0 0 2px', fontSize: 12, color: '#166534' }}>{campaign.news_headline}</p>
               {campaign.news_summary && <p style={{ margin: 0, fontSize: 11, color: '#4ade80', lineHeight: 1.5 }}>{campaign.news_summary}</p>}
             </div>
@@ -309,6 +310,7 @@ export default function CampaignDetailPage() {
                   : 'Generate AI drafts to get started.'}
               </p>
             </div>
+            <Tip text="The AI writes all 3 email steps using the news hook and lead details. Review and edit each draft before approving — nothing is sent until you click Launch Campaign." />
             <button
               onClick={draftSequences}
               disabled={drafting || isActive}
@@ -328,12 +330,15 @@ export default function CampaignDetailPage() {
               </button>
             )}
             {allApproved && !isActive && (
-              <button onClick={() => setLaunchConfirm(true)} disabled={launching} style={btnPrimary(launching, '#166534')}>
-                {launching
-                  ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Launching…</>
-                  : <><Rocket size={13} /> Launch Campaign</>
-                }
-              </button>
+              <>
+                <Tip text="Sends the approved email sequence to Instantly, which then delivers each step to your leads on schedule. This cannot be undone — double-check all steps before launching." />
+                <button onClick={() => setLaunchConfirm(true)} disabled={launching} style={btnPrimary(launching, '#166534')}>
+                  {launching
+                    ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Launching…</>
+                    : <><Rocket size={13} /> Launch Campaign</>
+                  }
+                </button>
+              </>
             )}
           </div>
 
@@ -438,18 +443,21 @@ export default function CampaignDetailPage() {
                           disabled={isActive}
                           onChange={e => updateLocalSeq(seq.id, 'body', e.target.value)}
                         />
-                        <p style={{ margin: '4px 0 0', fontSize: 11, color: '#bbb' }}>
-                          Tokens: {'{{first_name}}'} · {'{{company}}'}
+                        <p style={{ margin: '4px 0 0', fontSize: 11, color: '#bbb', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          Tokens: {'{{first_name}}'} · {'{{company}}'} <Tip text="Personalisation placeholders — Instantly replaces them automatically with each lead's first name and company before sending. Do not remove the double curly braces." />
                         </p>
                       </div>
 
                       {!isActive && !approved && seq.subject && seq.body && (
-                        <button
-                          onClick={() => approveStep(seq.id)}
-                          style={btnPrimary(false, '#166534')}
-                        >
-                          <CheckCircle size={13} /> Approve Step {seq.step_number}
-                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <button
+                            onClick={() => approveStep(seq.id)}
+                            style={btnPrimary(false, '#166534')}
+                          >
+                            <CheckCircle size={13} /> Approve Step {seq.step_number}
+                          </button>
+                          <Tip text="Marks this email as ready to send. All 3 steps must be approved before the Launch Campaign button appears." />
+                        </div>
                       )}
                       {!isActive && approved && (
                         <button
