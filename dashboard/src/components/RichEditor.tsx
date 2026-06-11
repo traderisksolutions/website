@@ -29,6 +29,7 @@ export function RichEditor({ initialHtml, onChange, placeholder = 'Write your me
       },
     },
     immediatelyRender: false,
+    shouldRerenderOnTransaction: true,
   })
 
   if (!editor) return null
@@ -48,25 +49,25 @@ export function RichEditor({ initialHtml, onChange, placeholder = 'Write your me
       {/* ── Toolbar ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '5px 8px', borderBottom: '1px solid #e5e7eb', background: '#f8fafc', flexWrap: 'wrap' }}>
         <button type="button" title="Bold"
-          onMouseDown={e => { e.preventDefault(); editor.chain().focus().toggleBold().run() }}
+          onMouseDown={e => { e.preventDefault(); editor.chain().toggleBold().run() }}
           style={tb(editor.isActive('bold'))}>B</button>
 
         <button type="button" title="Italic"
-          onMouseDown={e => { e.preventDefault(); editor.chain().focus().toggleItalic().run() }}
+          onMouseDown={e => { e.preventDefault(); editor.chain().toggleItalic().run() }}
           style={tb(editor.isActive('italic'), { fontStyle: 'italic' })}>I</button>
 
         <button type="button" title="Underline"
-          onMouseDown={e => { e.preventDefault(); editor.chain().focus().toggleUnderline().run() }}
+          onMouseDown={e => { e.preventDefault(); editor.chain().toggleUnderline().run() }}
           style={tb(editor.isActive('underline'), { textDecoration: 'underline' })}>U</button>
 
         <div style={{ width: 1, height: 16, background: '#e5e7eb', margin: '0 3px' }} />
 
         <button type="button" title="Bullet list"
-          onMouseDown={e => { e.preventDefault(); editor.chain().focus().toggleBulletList().run() }}
+          onMouseDown={e => { e.preventDefault(); editor.chain().toggleBulletList().run() }}
           style={tb(editor.isActive('bulletList'))}>• —</button>
 
         <button type="button" title="Numbered list"
-          onMouseDown={e => { e.preventDefault(); editor.chain().focus().toggleOrderedList().run() }}
+          onMouseDown={e => { e.preventDefault(); editor.chain().toggleOrderedList().run() }}
           style={tb(editor.isActive('orderedList'))}>1. —</button>
 
         <div style={{ width: 1, height: 16, background: '#e5e7eb', margin: '0 3px' }} />
@@ -75,10 +76,10 @@ export function RichEditor({ initialHtml, onChange, placeholder = 'Write your me
           onMouseDown={e => {
             e.preventDefault()
             if (editor.isActive('link')) {
-              editor.chain().focus().unsetLink().run()
+              editor.chain().unsetLink().run()
             } else {
               const url = window.prompt('Enter URL:')
-              if (url) editor.chain().focus().setLink({ href: url }).run()
+              if (url) editor.chain().setLink({ href: url }).run()
             }
           }}
           style={tb(editor.isActive('link'))}>🔗</button>
