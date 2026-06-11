@@ -711,6 +711,10 @@ function AIDraftPanel({
         }),
       })
       const data = await res.json()
+      if (res.status === 422 && data.error === 'not_an_enquiry') {
+        setError('Not an insurance enquiry — this looks like a newsletter, spam, or accidental forward. No draft generated.')
+        return
+      }
       if (data.error) { setError(data.error); return }
       setDraftId(data.draftId)
       setDraftHtml(plainToHtml(data.content))

@@ -184,12 +184,19 @@ ${feedbackText}
 ${docsNote}
 
 ━━ YOUR TASK ━━
-Return ONLY a valid JSON object. If the email is automated, a notification, or purely internal with no external client, return {"summary":null,"next_action":null,"draft_reply":null}.
+Return ONLY a valid JSON object.
 
+Return {"summary":null,"next_action":null,"draft_reply":null} if the email is ANY of:
+- Automated notification, system alert, delivery receipt, or out-of-office reply
+- A newsletter, promotional content, or marketing email (even if forwarded by a real person)
+- Spam or accidental forward with no genuine insurance enquiry
+- Purely internal (TRS-to-TRS) with no external client action required
+
+Otherwise, for genuine client insurance enquiries:
 {
   "summary": "2-3 sentences: who is the client, what do they need, where does the conversation stand. Reference previous summaries to show progression.",
   "next_action": "One specific concrete next step for TRS — name the product, client, and timeframe.",
-  "draft_reply": "Complete ready-to-send reply. (1) Acknowledge client message. (2) Provide specific figures from attached docs if available, or state 5-business-day turnaround. (3) Clear next step for the client. Sign off as: Trade Risk Solutions Operations. No subject line."
+  "draft_reply": "Complete ready-to-send reply. Start with Dear [first name], or Dear Sir/Madam if name unknown. (1) Acknowledge client message specifically. (2) Provide specific figures from attached docs if available, or state 5-business-day turnaround. (3) Clear next step for the client. Sign off as: Best regards,\nTrade Risk Solutions"
 }`
 
   const parts: unknown[] = docs.map(d => ({ file_data: { mime_type: 'application/pdf', file_uri: d.uri } }))
@@ -200,7 +207,7 @@ Return ONLY a valid JSON object. If the email is automated, a notification, or p
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents:         [{ parts }],
-      generationConfig: { temperature: 0.3, maxOutputTokens: 2048, responseMimeType: 'application/json' },
+      generationConfig: { temperature: 0.3, maxOutputTokens: 4096, responseMimeType: 'application/json' },
     }),
   })
 

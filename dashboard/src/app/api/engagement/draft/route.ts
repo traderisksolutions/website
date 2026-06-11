@@ -91,9 +91,39 @@ export async function POST(req: NextRequest) {
     if (!geminiKey) return NextResponse.json({ error: 'GEMINI_API_KEY_DRAFT_EMAIL not set' }, { status: 500 })
 
     // Resolve a human-readable greeting name
-    // If contactName is just an email address, fall back to generic salutation
-    const hasRealName   = contactName && !contactName.includes('@')
-    const salutation    = hasRealName ? `Dear ${contactName.split(' ')[0]},` : 'Dear Sir/Madam,'
+    const hasRealName = contactName && !contactName.includes('@')
+    const firstName   = hasRealName ? contactName.split(' ')[0] : null
+    const salutation  = firstName ? `Dear ${firstName},` : 'Dear Sir/Madam,'
+
+    // ── Pre-classification: skip drafting for newsletters / spam / non-enquiries ─
+    const lastMsgText = messages.slice(-3).map(m => (m.body_text || '').slice(0, 600)).join('\n---\n')
+    const classifyPrompt = `Is this email a genuine insurance enquiry that requires a professional reply from a Singapore brokerage?
+
+Reply with exactly one word: YES or NO.
+
+Classify as NO if it is: a forwarded newsletter, promotional content, marketing email, spam, automated notification, delivery receipt, out-of-office, or accidental forward with no real insurance question.
+
+EMAIL:
+${lastMsgText}`
+
+    const classifyRes = await fetch(`${GEMINI_URL}?key=${geminiKey}`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: classifyPrompt }] }],
+        generationConfig: { temperature: 0, maxOutputTokens: 4 },
+      }),
+    })
+    if (classifyRes.ok) {
+      const classifyData = await classifyRes.json()
+      const verdict = (classifyData?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim().toUpperCase()
+      if (verdict.startsWith('NO')) {
+        return NextResponse.json({
+          error: 'not_an_enquiry',
+          message: 'This email does not appear to be a genuine insurance enquiry (newsletter, spam, or accidental forward). No draft generated.',
+        }, { status: 422 })
+      }
+    }
 
     // Fetch campaign context if this thread came from a campaign reply
     let campaignCtxStr = ''
@@ -206,7 +236,7 @@ ${lastInboundText}`
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: editorPrompt }] }],
-        generationConfig: { temperature: 0.2, maxOutputTokens: 1024 },
+        generationConfig: { temperature: 0.2, maxOutputTokens: 2048 },
       }),
     })
 
@@ -214,9 +244,12 @@ ${lastInboundText}`
       // Editor failed — fall back to raw draft rather than erroring
       console.warn('[engagement/draft] Gemini editor failed — using raw draft')
     }
-    const editorData = editorRes.ok ? await editorRes.json() : null
+    const editorData   = editorRes.ok ? await editorRes.json() : null
     if (editorData) void logGeminiUsage('draft_reply_editor', editorData.usageMetadata ?? {}, threadId)
-    const content = editorData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || rawDraft
+    const editorFinish = editorData?.candidates?.[0]?.finishReason ?? ''
+    const editorText   = editorData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? ''
+    // Fall back to rawDraft if editor was truncated (MAX_TOKENS) or returned nothing
+    const content = (editorText && editorFinish !== 'MAX_TOKENS') ? editorText : rawDraft
 
     // Upsert contact then re-fetch by email to get ID reliably.
     // merge-duplicates returns empty when the row already exists — never rely on its response body.
