@@ -634,14 +634,47 @@ function AIDraftPanel({
     setAiDraftChecked(false)
   }, [lead.id])
 
-  // Pre-fill GDrive draft tab from auto-generated stored draft
+  // Effect A — check ai_drafts immediately on thread open (no messages dependency).
+  // ai_drafts is always the authoritative source — newest manually-generated draft wins.
+  // Uses an isCurrent flag to discard results from a previous thread if switching quickly.
   useEffect(() => {
-    if (storedDraft && !draftLoaded && !sent) {
+    const tid = thread?.id
+    if (!tid || sent) return
+    let current = true
+    setAiDraftChecked(false)
+    fetch(`/api/engagement/draft?thread_id=${encodeURIComponent(tid)}`, { cache: 'no-store' })
+      .then(r => r.json())
+      .then((rows: { id: string; body: string }[]) => {
+        if (!current) return
+        const latest = Array.isArray(rows) ? rows[0] : null
+        if (latest?.body) {
+          setDraftId(latest.id)
+          setDraftHtml(plainToHtml(latest.body))
+          setDraftLoaded(true)
+          setDraftEditorKey(k => k + 1)
+        }
+      })
+      .catch(() => {})
+      .finally(() => { if (current) setAiDraftChecked(true) })
+    return () => { current = false }
+  }, [thread?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Effect B — fallback: if ai_drafts check completed with nothing, load thread_summaries draft.
+  // This covers threads that have a summary draft but no ai_drafts row yet.
+  useEffect(() => {
+    if (!aiDraftChecked || draftLoaded || sent) return
+    if (storedDraft) {
       setDraftHtml(plainToHtml(storedDraft))
       setDraftLoaded(true)
       setDraftEditorKey(k => k + 1)
     }
-  }, [storedDraft, draftLoaded, sent])
+  }, [aiDraftChecked, draftLoaded, sent, storedDraft]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Effect C — auto-generate if both checks returned nothing and messages are ready.
+  useEffect(() => {
+    if (!thread?.id || !aiDraftChecked || draftLoaded || messages.length === 0 || sent) return
+    generate()
+  }, [thread?.id, aiDraftChecked, draftLoaded, messages.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Pre-fill RAG draft tab from stored RAG draft
   useEffect(() => {
@@ -652,32 +685,6 @@ function AIDraftPanel({
       setRagSources(storedRagSources ?? [])
     }
   }, [storedRagDraft, ragLoaded, sent]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Auto-load saved draft or auto-generate when thread + messages are ready.
-  // Runs once per thread: checks ai_drafts first; if found loads it, otherwise triggers generation.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    const tid = thread?.id
-    if (!tid || aiDraftChecked || messages.length === 0 || draftLoaded || sent) return
-    setAiDraftChecked(true)
-
-    fetch(`/api/engagement/draft?thread_id=${encodeURIComponent(tid)}`, { cache: 'no-store' })
-      .then(r => r.json())
-      .then((rows: { id: string; body: string }[]) => {
-        const latest = Array.isArray(rows) ? rows[0] : null
-        if (latest?.body) {
-          // Existing draft found — load it silently
-          setDraftId(latest.id)
-          setDraftHtml(plainToHtml(latest.body))
-          setDraftLoaded(true)
-          setDraftEditorKey(k => k + 1)
-        } else {
-          // No draft yet — auto-generate one in the background
-          generate()
-        }
-      })
-      .catch(() => { /* leave blank if fetch fails */ })
-  }, [thread?.id, messages.length]) // intentional: only re-run when thread or messages change
 
   async function generateRag() {
     if (!thread?.id) { setError('No thread found'); return }

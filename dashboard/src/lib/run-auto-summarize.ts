@@ -162,7 +162,7 @@ Rules for draft_reply:
     await fetch(`${SB_URL}/rest/v1/ai_drafts?thread_id=eq.${thread_id}&status=eq.pending`, {
       method:  'PATCH',
       headers: sbHeaders('return=minimal'),
-      body:    JSON.stringify({ status: 'rejected', rejection_note: 'Superseded by newer auto-draft' }),
+      body:    JSON.stringify({ status: 'superseded' }),
     })
 
     // Insert new auto-draft

@@ -439,7 +439,7 @@ Write only the email body starting with "${salutation}".`
         channel:      'email',
         body:         content,
         status:       'pending',
-        generated_by: 'gemini',
+        generated_by: 'gdrive',
       }),
     })
 
