@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logGeminiUsage }           from '@/lib/gemini-usage'
+import { fetchKnowledgeDocs }       from '@/lib/gdrive-knowledge'
 
 const SB_URL    = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
@@ -158,6 +159,12 @@ ${lastMsgText}`
 
     const lastInboundText = lastInbound ? (lastInbound.body_text || '').slice(0, 12000) : '(no inbound message found)'
 
+    // Fetch relevant GDrive knowledge docs and upload to Gemini file API
+    const knowledgeDocs = await fetchKnowledgeDocs(threadCtx + '\n' + lastInboundText, geminiKey, 'gdrive-draft')
+    const docsNote = knowledgeDocs.length > 0
+      ? `ATTACHED KNOWLEDGE DOCUMENTS: ${knowledgeDocs.map(d => d.name).join(', ')}\nRead the attached PDFs. If they contain specific figures for this enquiry (premiums, coverage limits, deductibles, exclusions), quote them precisely and name the document. Example: "Based on our Marine Cargo schedule, the premium is SGD X for coverage up to SGD Y." If no attached document covers the specific information, write: "We will revert with specific terms within 2 business days."`
+      : 'No knowledge documents available. Do not fabricate figures. Write: "We will revert with specific terms within 2 business days."'
+
     // ── Agent 1: Drafter — write a complete, accurate reply ──────────────────
     const drafterPrompt = `You are an email assistant for Trade Risk Solutions (TRS), a Singapore insurance brokerage.
 
@@ -166,14 +173,14 @@ ${campaignCtxStr}
 RULES:
 - Start with exactly "${salutation}"
 - Lead immediately with the key answer — pricing quote, coverage confirmation, or main action point. No warm-up sentences.
-- If the attached knowledge documents contain specific figures (premiums, coverage limits, deductibles, exclusions), quote them precisely and name the source document. Example: "Based on our Cargo Insurance schedule, the premium is SGD X for coverage up to SGD Y."
 - Address every question the client raised — no omissions.
 - State one clear next step (what TRS will do and by when).
 - Tone: professional, direct, Singaporean business English.
 - End with: "Best regards,\nTrade Risk Solutions"
 - Body text only — no subject line.
 - NEVER use: "Thank you for reaching out / contacting us", "We hope this email finds you well", "Please do not hesitate to contact us", "I trust this answers your query", or any other filler phrases.
-- If no knowledge document covers the specific information needed, write: "We will revert with specific terms within 2 business days."
+
+${docsNote}
 
 CLIENT DETAILS:
 - Name: ${hasRealName ? contactName : '(unknown)'}
@@ -189,11 +196,14 @@ ${threadCtx || '(no prior messages)'}
 
 Write only the email body starting with "${salutation}".`
 
+    const drafterParts: unknown[] = knowledgeDocs.map(d => ({ file_data: { mime_type: 'application/pdf', file_uri: d.uri } }))
+    drafterParts.push({ text: drafterPrompt })
+
     const drafterRes = await fetch(`${GEMINI_URL}?key=${geminiKey}`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: drafterPrompt }] }],
+        contents: [{ parts: drafterParts }],
         generationConfig: { temperature: 0.4, maxOutputTokens: 2048 },
       }),
     })
