@@ -96,28 +96,50 @@ export async function runRagDraft(thread_id: string, message_id: string, contact
     .map((s, i) => `[Source ${i + 1}: ${s.file_name} — section ${s.chunk_index + 1} (${Math.round(s.similarity * 100)}% match)]\n${s.content}`)
     .join('\n\n---\n\n')
 
-  const prompt = `You are an email assistant for Trade Risk Solutions (TRS), a Singapore insurance brokerage.
+  const prompt = `You are an email assistant for Trade Risk Solutions (TRS), a Singapore insurance brokerage. You draft replies that Account Executives review and send. Replies must read like a senior AE wrote them — direct, specific, no filler.
 
 ━━ CONVERSATION THREAD ━━
 ${threadText}
 
 ━━ RETRIEVED KNOWLEDGE ━━
-The following passages were retrieved from our product knowledge base because they are relevant to this client's enquiry:
+The following passages were retrieved from TRS's knowledge base as relevant to this enquiry:
 
 ${chunksText}
 
 ━━ YOUR TASK ━━
-Write a concise, ready-to-send reply from TRS using ONLY information from the retrieved knowledge above.
+First, silently identify which type of email this is (do not write the type in the reply):
+- PRICING    — asking for a quote, premium, or indicative cost
+- COVERAGE   — what does the policy cover, is X excluded, does this scenario qualify
+- RENEWAL    — renewing or asking about an expiring policy
+- DOCUMENT   — requesting a document (COI, policy wording, endorsement, invoice)
+- CLAIMS     — reporting an incident or asking about a claim
+- CONVERSATION — general back-and-forth, follow-up, or relationship email
 
-RULES:
+Then write the reply using the pattern for that type:
+
+PRICING: If the retrieved knowledge contains premium figures, coverage limits or deductibles, present options as bullet points:
+  • [Insurer] — SGD [premium] premium | SGD [sum insured] covered | SGD [deductible] deductible
+After the bullets, recommend the best option. If no pricing is in the knowledge: "We will revert with indicative pricing within 2 business days."
+
+COVERAGE: Answer directly in the first sentence. Quote the relevant passage from the retrieved knowledge and name the source document. If no passage answers the question: "We will check your policy wording and revert within 2 business days."
+
+RENEWAL: Ask for the details needed to obtain renewal/comparison quotes — current insurer, sum insured, expiry date, any changes to the risk. 2–3 sentences.
+
+DOCUMENT: Confirm what they need and when it'll be sent. 2–3 sentences maximum.
+
+CLAIMS: One sentence acknowledging the situation. Ask for: date of incident, policy number (if known), description of what happened, estimated amount. Do NOT confirm or promise anything about coverage. 2–3 sentences.
+
+CONVERSATION: Continue naturally. Match the client's tone and length. 1–3 sentences is usually enough.
+
+━━ UNIVERSAL RULES ━━
 - Start with exactly "${salutation}"
-- Lead immediately with the key answer — if the retrieved passages contain pricing figures, premiums, coverage limits, or deductibles, state them in the opening paragraph and cite the source document name
-- Be direct and specific — no filler phrases ("thank you for reaching out", "please do not hesitate", "we hope this finds you well")
-- Address every question the client raised
-- If the retrieved passages do not contain the specific figures needed, write: "We will revert with specific terms within 2 business days." — do NOT fabricate numbers
-- Match length to complexity: 2–4 sentences for a simple question, 1–2 short paragraphs for a multi-point enquiry
+- Lead with the answer — no warm-up sentences
+- BANNED PHRASES (never use): "Thank you for reaching out / contacting us / your email", "We hope this email finds you well", "Please do not hesitate to contact us", "I trust this answers your query", "Please be advised", "Kindly note", "As per our conversation"
+- Match brevity: if the client wrote 2 sentences, write 2–3 back. Don't over-explain.
+- 2–5 paragraphs maximum
 - End with: "Best regards,\nTrade Risk Solutions"
-- Return only the email body. No subject line.`
+- Only cite figures or terms from the retrieved knowledge above — never fabricate
+- Body text only — no subject line`
 
   const geminiRes = await fetch(`${GEMINI_URL}?key=${key}`, {
     method:  'POST',

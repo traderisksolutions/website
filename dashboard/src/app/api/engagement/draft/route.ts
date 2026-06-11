@@ -95,35 +95,48 @@ export async function POST(req: NextRequest) {
     const firstName   = hasRealName ? contactName.split(' ')[0] : null
     const salutation  = firstName ? `Dear ${firstName},` : 'Dear Sir/Madam,'
 
-    // ── Pre-classification: skip drafting for newsletters / spam / non-enquiries ─
+    // ── Classify email type (spam filter + routing) ────────────────────────────
     const lastMsgText = messages.slice(-3).map(m => (m.body_text || '').slice(0, 3000)).join('\n---\n')
-    const classifyPrompt = `Is this email a genuine insurance enquiry that requires a professional reply from a Singapore brokerage?
+    const classifyPrompt = `Classify this email for a Singapore insurance brokerage. Reply with EXACTLY one word from this list:
 
-Reply with exactly one word: YES or NO.
-
-Classify as NO if it is: a forwarded newsletter, promotional content, marketing email, spam, automated notification, delivery receipt, out-of-office, or accidental forward with no real insurance question.
+SKIP       — spam, newsletter, promotional email, automated notification, delivery receipt, out-of-office
+PRICING    — client asking for a quote, premium, or indicative cost for insurance coverage
+COVERAGE   — client asking what a policy covers, whether a scenario is covered, or about exclusions/terms
+RENEWAL    — renewing an existing policy, or asking about expiry/renewal options
+DOCUMENT   — requesting a document (certificate of insurance, policy wording, endorsement, invoice)
+CLAIMS     — reporting an incident, asking about a claim, or requesting claims assistance
+CONVERSATION — general back-and-forth, follow-up, relationship email, or anything not in the above
 
 EMAIL:
-${lastMsgText}`
+${lastMsgText}
+
+Reply with one word only.`
 
     const classifyRes = await fetch(`${GEMINI_URL}?key=${geminiKey}`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: classifyPrompt }] }],
-        generationConfig: { temperature: 0, maxOutputTokens: 4 },
+        generationConfig: { temperature: 0, maxOutputTokens: 12 },
       }),
     })
+
+    const VALID_TYPES = ['PRICING', 'COVERAGE', 'RENEWAL', 'DOCUMENT', 'CLAIMS', 'CONVERSATION'] as const
+    type EmailType = typeof VALID_TYPES[number]
+    let emailType: EmailType = 'CONVERSATION'
+
     if (classifyRes.ok) {
       const classifyData = await classifyRes.json()
       const verdict = (classifyData?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim().toUpperCase()
-      if (verdict.startsWith('NO')) {
+      if (verdict.startsWith('SKIP')) {
         return NextResponse.json({
           error: 'not_an_enquiry',
-          message: 'This email does not appear to be a genuine insurance enquiry (newsletter, spam, or accidental forward). No draft generated.',
+          message: 'This email does not require a reply (newsletter, spam, or automated notification). No draft generated.',
         }, { status: 422 })
       }
+      emailType = VALID_TYPES.find(t => verdict.startsWith(t)) ?? 'CONVERSATION'
     }
+    console.log('[engagement/draft] email type:', emailType)
 
     // Fetch campaign context if this thread came from a campaign reply
     let campaignCtxStr = ''
@@ -159,54 +172,97 @@ ${lastMsgText}`
 
     const lastInboundText = lastInbound ? (lastInbound.body_text || '').slice(0, 12000) : '(no inbound message found)'
 
-    // Fetch relevant GDrive knowledge docs and upload to Gemini file API
-    const knowledgeDocs = await fetchKnowledgeDocs(threadCtx + '\n' + lastInboundText, geminiKey, 'gdrive-draft')
-    const hasDocs       = knowledgeDocs.length > 0
-    const docNames      = hasDocs ? knowledgeDocs.map(d => d.name).join(', ') : ''
+    // Only fetch GDrive docs when they're actually useful (pricing or coverage types)
+    const needsDocs  = emailType === 'PRICING' || emailType === 'COVERAGE'
+    const knowledgeDocs = needsDocs
+      ? await fetchKnowledgeDocs(threadCtx + '\n' + lastInboundText, geminiKey, 'gdrive-draft')
+      : []
+    const hasDocs  = knowledgeDocs.length > 0
+    const docNames = hasDocs ? knowledgeDocs.map(d => d.name).join(', ') : ''
 
-    // ── Single-pass drafter with comparison-aware prompt ─────────────────────
-    const drafterPrompt = `You are an email assistant for Trade Risk Solutions (TRS), a Singapore insurance brokerage. Your reply will be sent directly to the client — make it ready to send.
+    // ── Build type-specific instructions ─────────────────────────────────────
+    const typeInstructions = (() => {
+      switch (emailType) {
+        case 'PRICING':
+          return hasDocs
+            ? `━━ PRICING ENQUIRY ━━
+Attached documents: ${docNames}
+
+For each attached PDF: identify the insurer name (in header/footer), find pricing relevant to the product asked about, and extract: Premium (SGD), Sum Insured, Deductible, and key conditions.
+
+Reply structure:
+1. One sentence acknowledging the specific product and parameters the client mentioned
+2. "We have obtained indicative quotes for your [product] enquiry:"
+   • [Insurer] — SGD [premium] premium | SGD [sum insured] covered | SGD [deductible] deductible[, key note if important]
+   (one bullet per insurer with relevant pricing found in the documents)
+3. One sentence recommending the best option and why
+4. One sentence: what TRS does next
+
+If a document has no pricing for the requested product, skip it.
+If NO document contains relevant pricing: "We will revert with indicative pricing within 2 business days."`
+            : `━━ PRICING ENQUIRY ━━
+No pricing documents are attached. Write: "We will revert with indicative pricing within 2 business days."
+Ask for any missing details needed to obtain a quote (coverage amount, specific risk details, etc.).`
+
+        case 'COVERAGE':
+          return hasDocs
+            ? `━━ COVERAGE QUESTION ━━
+Attached documents: ${docNames}
+
+Read the documents, find the specific clause or section that answers the client's question.
+- State the answer directly in the first sentence after the greeting
+- Quote the relevant coverage detail or exclusion and name the source document
+- If no document answers it: "We will check your policy wording and revert within 2 business days."
+- 2–3 sentences unless the client asked multiple distinct questions`
+            : `━━ COVERAGE QUESTION ━━
+No policy documents are attached.
+- Answer from general knowledge only if certain
+- If uncertain: "We will check your policy wording and revert within 2 business days."
+- 2–3 sentences maximum`
+
+        case 'RENEWAL':
+          return `━━ RENEWAL ━━
+- If TRS doesn't yet have renewal terms: ask for the policy details needed — current insurer, sum insured, expiry date, any changes to the risk (new locations, headcount changes, fleet additions, etc.)
+- If renewal terms are already in the thread: confirm next steps clearly
+- 2–3 short sentences`
+
+        case 'DOCUMENT':
+          return `━━ DOCUMENT REQUEST ━━
+- Confirm what they need and when TRS will provide it: "We will send your [document type] by [end of day / within 24 hours]."
+- If you cannot identify the specific document from the thread: ask one focused clarifying question
+- 2–3 sentences maximum — do not over-explain`
+
+        case 'CLAIMS':
+          return `━━ CLAIMS ━━
+- One sentence acknowledging the situation (brief, calm, no drama)
+- Ask for what TRS needs: date of incident, policy number (if known), brief description of what happened, estimated amount of loss/damage
+- Do NOT promise or imply anything about coverage, liability, or outcome
+- 2–3 sentences`
+
+        default: // CONVERSATION
+          return `━━ CONVERSATION / FOLLOW-UP ━━
+- Continue the thread naturally — respond to what was actually asked or said
+- Match the tone and length of the client's latest message. If they wrote 2 sentences, write 2–3 back.
+- 1–3 sentences is usually enough
+- If they asked a direct question, answer it in the first sentence`
+      }
+    })()
+
+    // ── Single-pass drafter ───────────────────────────────────────────────────
+    const drafterPrompt = `You are an email assistant for Trade Risk Solutions (TRS), a Singapore insurance brokerage. You draft replies that Account Executives review and send. Replies must read like a senior AE wrote them — direct, specific, no filler.
 ${campaignCtxStr}
-━━ STEP 1 — IDENTIFY THE PRODUCT ━━
-Read the client's email and identify the exact insurance product(s) they are asking about (e.g. Marine Cargo, Property All Risks, Workmen's Compensation, Professional Indemnity, etc.).
+${typeInstructions}
 
-━━ STEP 2 — EXTRACT PRICING FROM ATTACHED DOCUMENTS ━━
-${hasDocs
-  ? `Attached documents: ${docNames}
-
-For each attached PDF:
-1. Identify the insurer name (usually in the document header or footer)
-2. Find all pricing relevant to the product the client asked about
-3. Extract: Premium (SGD), Sum Insured / Coverage Limit, Deductible, and any key conditions or exclusions`
-  : 'No pricing documents are attached. Do not fabricate any figures.'}
-
-━━ STEP 3 — WRITE THE REPLY ━━
-Structure the reply as follows:
-
-GREETING: "${salutation}"
-
-OPENING: One sentence acknowledging the specific product and parameters the client mentioned. No filler ("thank you for reaching out", "we hope this email finds you well", "please do not hesitate" are all banned).
-
-${hasDocs ? `PRICING (if relevant figures were found in the documents):
-Write: "We have obtained indicative quotes for your [product] enquiry:"
-Then one bullet per insurer:
-• [Insurer name] — SGD [premium] premium | SGD [sum insured] covered | SGD [deductible] deductible[, brief note on key condition or exclusion if important]
-
-After the bullets, one sentence recommending the best option and why (e.g. most competitive rate, or best coverage-to-price ratio based on the client's stated requirements).
-
-If a document does not contain pricing for the requested product, skip it entirely.
-If NO document contains relevant pricing, write: "We will revert with indicative pricing within 2 business days."` : 'PRICING: Write: "We will revert with indicative pricing within 2 business days."'}
-
-NEXT STEP: One sentence — what TRS will do next or what the client needs to provide (e.g. "We will prepare a formal proposal once you confirm the coverage level.")
-
-CLOSING: "Best regards,\nTrade Risk Solutions"
-
-━━ RULES ━━
-- Body text only — no subject line
+━━ UNIVERSAL RULES ━━
+- Start with exactly "${salutation}"
+- Lead immediately with the answer or action — no warm-up sentences
+- BANNED PHRASES (never use): "Thank you for reaching out / contacting us / your email", "We hope this email finds you well", "Please do not hesitate to contact us", "I trust this answers your query", "Please be advised", "Kindly note", "As per our conversation", "As always, we appreciate"
+- Match brevity to the thread: if the client wrote 2 sentences, write 2–3 back. Don't over-explain.
+- Short sentences — aim for 15–20 words max
 - 2–5 paragraphs maximum
-- Only quote figures you can read directly from the attached PDFs — never estimate or fabricate
-- Every question the client raised must be addressed
-- Tone: professional, direct, Singaporean business English
+- End with exactly: "Best regards,\nTrade Risk Solutions"
+- Body text only — no subject line
+- Only cite figures or coverage terms you can read directly from the attached documents — never fabricate
 
 ━━ CLIENT DETAILS ━━
 - Name: ${hasRealName ? contactName : '(unknown)'}
@@ -217,7 +273,7 @@ CLOSING: "Best regards,\nTrade Risk Solutions"
 ━━ CLIENT'S LATEST EMAIL (respond to this) ━━
 ${lastInboundText}
 
-━━ THREAD HISTORY (background context only) ━━
+━━ THREAD HISTORY (read for full context) ━━
 ${threadCtx || '(no prior messages)'}
 
 Write only the email body starting with "${salutation}".`

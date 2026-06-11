@@ -66,7 +66,7 @@ export async function runAutoSummarize(thread_id: string, message_id: string): P
 Read all attached documents. Based on the conversation topic, identify which document(s) are directly relevant to this client's enquiry. Use specific figures, coverage terms, or pricing from the relevant document(s) in your draft reply, and cite the document name when you do. If an attached document is unrelated to this enquiry, ignore it entirely. If no attached document contains the specific information needed, state that TRS will revert with specific terms within 5 business days.`
     : 'No knowledge documents are available for this thread — do not fabricate figures or pricing. State that TRS will revert with specific terms within 5 business days.'
 
-  const prompt = `You are an email assistant for Trade Risk Solutions, a Singapore insurance brokerage.
+  const prompt = `You are an email assistant for Trade Risk Solutions (TRS), a Singapore insurance brokerage.
 
 ━━ CONVERSATION THREAD ━━
 ${threadText}
@@ -86,15 +86,29 @@ Return ONLY a valid JSON object.
 Return {"summary":null,"next_action":null,"draft_reply":null} if the email is ANY of:
 - Automated notification, system alert, delivery receipt, or out-of-office reply
 - A newsletter, promotional content, or marketing email (even if forwarded by a real person)
-- Spam or accidental forward with no genuine insurance enquiry
+- Spam or accidental forward with no genuine client action required
 - Purely internal (TRS-to-TRS) with no external client action required
 
-Otherwise, for genuine client insurance enquiries:
+Otherwise return:
 {
-  "summary": "2-3 sentences: who is the client, what do they need, where does the conversation stand. Reference previous summaries to show progression.",
+  "summary": "2-3 sentences: who is the client, what do they need, where does the conversation stand.",
   "next_action": "One specific concrete next step for TRS — name the product, client, and timeframe.",
-  "draft_reply": "Complete ready-to-send reply. Start with Dear [first name], or Dear Sir/Madam if name unknown. (1) Acknowledge client message specifically. (2) Provide specific figures from attached docs if available, or state 5-business-day turnaround. (3) Clear next step for the client. Sign off as: Best regards,\nTrade Risk Solutions"
-}`
+  "draft_reply": "<full reply following the rules below>"
+}
+
+Rules for draft_reply:
+- Silently identify the email type: PRICING / COVERAGE / RENEWAL / DOCUMENT / CLAIMS / CONVERSATION
+- Start with Dear [FirstName], or Dear Sir/Madam if name unknown
+- BANNED: "Thank you for reaching out", "We hope this email finds you well", "Please do not hesitate", "I trust this answers", "Please be advised", "Kindly note"
+- Lead immediately with the answer or action — no warm-up sentence
+- PRICING: if knowledge docs have pricing, present as bullet points (• Insurer — SGD X | SGD Y covered | SGD Z deductible), then recommend best option. If no pricing in docs: "We will revert with indicative pricing within 2 business days."
+- COVERAGE: answer directly, cite the document name if quoting a clause. If uncertain: "We will check your policy wording and revert within 2 business days."
+- RENEWAL: ask for current insurer, sum insured, expiry date, any risk changes. 2-3 sentences.
+- DOCUMENT: confirm what's being sent and when. 2-3 sentences max.
+- CLAIMS: acknowledge briefly, ask for date of incident / policy number / description / estimated amount. Do not promise anything about coverage.
+- CONVERSATION: continue naturally, match the client's tone and length
+- Match brevity: short client email → short reply. 2-5 paragraphs maximum.
+- End with: Best regards,\\nTrade Risk Solutions`
 
   const parts: unknown[] = docs.map(d => ({ file_data: { mime_type: 'application/pdf', file_uri: d.uri } }))
   parts.push({ text: prompt })
