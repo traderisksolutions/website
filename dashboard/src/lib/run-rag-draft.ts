@@ -55,7 +55,7 @@ async function searchChunks(embedding: number[]): Promise<RagSource[]> {
   return Array.isArray(rows) ? rows : []
 }
 
-export async function runRagDraft(thread_id: string, message_id: string): Promise<void> {
+export async function runRagDraft(thread_id: string, message_id: string, contactName?: string | null): Promise<void> {
   const key = process.env.GEMINI_API_KEY_DRAFT_EMAIL
   if (!key) throw new Error('GEMINI_API_KEY_DRAFT_EMAIL not set')
 
@@ -68,10 +68,14 @@ export async function runRagDraft(thread_id: string, message_id: string): Promis
     msgsRes.ok ? await msgsRes.json() : []
   if (!Array.isArray(messages) || messages.length === 0) return
 
+  const hasRealName = contactName && !contactName.includes('@')
+  const firstName   = hasRealName ? contactName.split(' ')[0] : null
+  const salutation  = firstName ? `Dear ${firstName},` : 'Dear Sir/Madam,'
+
   const threadText = messages.map(m => {
     const who  = m.direction === 'inbound' ? `CLIENT (${m.from_address})` : 'TRS (us)'
     const date = new Date(m.sent_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-    return `[${date}] ${who}:\n${m.body_text ?? ''}`
+    return `[${date}] ${who}:\n${(m.body_text ?? '').slice(0, 8000)}`
   }).join('\n\n---\n\n')
 
   // 2. Embed the thread text and search for relevant chunks
@@ -92,32 +96,35 @@ export async function runRagDraft(thread_id: string, message_id: string): Promis
     .map((s, i) => `[Source ${i + 1}: ${s.file_name} — section ${s.chunk_index + 1} (${Math.round(s.similarity * 100)}% match)]\n${s.content}`)
     .join('\n\n---\n\n')
 
-  const prompt = `You are an email assistant for Trade Risk Solutions, a Singapore insurance brokerage.
-You have been given relevant excerpts retrieved from our pricing knowledge base that match this client conversation.
+  const prompt = `You are an email assistant for Trade Risk Solutions (TRS), a Singapore insurance brokerage.
 
 ━━ CONVERSATION THREAD ━━
 ${threadText}
 
-━━ RETRIEVED KNOWLEDGE (RAG) ━━
-The following passages were retrieved from our knowledge base because they are semantically relevant to this conversation:
+━━ RETRIEVED KNOWLEDGE ━━
+The following passages were retrieved from our product knowledge base because they are relevant to this client's enquiry:
 
 ${chunksText}
 
 ━━ YOUR TASK ━━
-Write a complete, ready-to-send email reply using ONLY information from the retrieved knowledge above.
-- If specific pricing figures, coverage terms, or limits are mentioned in the retrieved passages, cite them precisely.
-- If the retrieved passages do not contain the specific information needed, state that TRS will revert with specific terms within 5 business days.
-- Do NOT fabricate figures.
-- Sign off as: Trade Risk Solutions Operations
-- No subject line.
-- Return only the email body text, nothing else.`
+Write a concise, ready-to-send reply from TRS using ONLY information from the retrieved knowledge above.
+
+RULES:
+- Start with exactly "${salutation}"
+- Lead immediately with the key answer — if the retrieved passages contain pricing figures, premiums, coverage limits, or deductibles, state them in the opening paragraph and cite the source document name
+- Be direct and specific — no filler phrases ("thank you for reaching out", "please do not hesitate", "we hope this finds you well")
+- Address every question the client raised
+- If the retrieved passages do not contain the specific figures needed, write: "We will revert with specific terms within 2 business days." — do NOT fabricate numbers
+- Match length to complexity: 2–4 sentences for a simple question, 1–2 short paragraphs for a multi-point enquiry
+- End with: "Best regards,\nTrade Risk Solutions"
+- Return only the email body. No subject line.`
 
   const geminiRes = await fetch(`${GEMINI_URL}?key=${key}`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents:         [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.2, maxOutputTokens: 1024 },
+      generationConfig: { temperature: 0.2, maxOutputTokens: 2048 },
     }),
   })
 

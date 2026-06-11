@@ -12,10 +12,10 @@ function sbHeaders(prefer = 'return=representation') {
 // POST — generate a RAG draft for a thread on demand
 export async function POST(req: NextRequest) {
   try {
-    const { thread_id, message_id } = await req.json()
+    const { thread_id, message_id, contactName } = await req.json()
     if (!thread_id) return NextResponse.json({ error: 'thread_id required' }, { status: 400 })
 
-    await runRagDraft(thread_id, message_id ?? null)
+    await runRagDraft(thread_id, message_id ?? null, contactName ?? null)
 
     // Return the freshly created draft + sources
     const draftRes = await fetch(

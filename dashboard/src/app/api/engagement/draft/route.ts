@@ -51,14 +51,13 @@ export async function GET(req: NextRequest) {
 // POST /api/engagement/draft  → generate AI draft, upsert contact, save to ai_drafts
 export async function POST(req: NextRequest) {
   try {
-    const { leadId, contactName, contactEmail, company, topic, leadStatus, threadId, messages, manualContent } =
+    const { leadId, contactName, contactEmail, company, topic, threadId, messages, manualContent } =
       await req.json() as {
         leadId:         string
         contactName:    string
         contactEmail:   string | null
         company:        string | null
         topic:          string | null
-        leadStatus:     string
         threadId:       string | null
         messages:       MsgSnippet[]
         manualContent?: string
@@ -162,16 +161,19 @@ ${lastMsgText}`
     // ── Agent 1: Drafter — write a complete, accurate reply ──────────────────
     const drafterPrompt = `You are an email assistant for Trade Risk Solutions (TRS), a Singapore insurance brokerage.
 
-Write a complete professional reply from TRS to the client's latest email.
+Write a concise, direct reply from TRS to the client's latest email.
 ${campaignCtxStr}
 RULES:
 - Start with exactly "${salutation}"
-- Respond to EVERYTHING the client asked or mentioned — do not omit any point
-- Confirm receipt of any documents or attachments specifically mentioned
-- State clearly what TRS will do next (review, revert, arrange meeting, etc.)
-- Tone: professional, warm, Singaporean business English
+- Lead immediately with the key answer — pricing quote, coverage confirmation, or main action point. No warm-up sentences.
+- If the attached knowledge documents contain specific figures (premiums, coverage limits, deductibles, exclusions), quote them precisely and name the source document. Example: "Based on our Cargo Insurance schedule, the premium is SGD X for coverage up to SGD Y."
+- Address every question the client raised — no omissions.
+- State one clear next step (what TRS will do and by when).
+- Tone: professional, direct, Singaporean business English.
 - End with: "Best regards,\nTrade Risk Solutions"
-- Body text only — no subject line, no meta-commentary
+- Body text only — no subject line.
+- NEVER use: "Thank you for reaching out / contacting us", "We hope this email finds you well", "Please do not hesitate to contact us", "I trust this answers your query", or any other filler phrases.
+- If no knowledge document covers the specific information needed, write: "We will revert with specific terms within 2 business days."
 
 CLIENT DETAILS:
 - Name: ${hasRealName ? contactName : '(unknown)'}
@@ -209,26 +211,37 @@ Write only the email body starting with "${salutation}".`
       return NextResponse.json({ error: `Gemini drafter returned no content (${reason})` }, { status: 502 })
     }
 
-    // ── Agent 2: Editor — trim to natural, context-appropriate length ────────
+    // ── Agent 2: Editor — sharpen, remove filler, enforce structure ─────────
     const editorPrompt = `You are a professional email editor for Trade Risk Solutions (TRS).
 
-Edit the draft reply below to make it concise and natural. Apply these rules:
+Edit the draft reply below. Be ruthless about conciseness.
 
 EDITING RULES:
-- Remove repetition, filler, and unnecessary elaboration
-- KEEP all key information: what was received, what TRS will do next, any specific details (names, dates, amounts)
-- Match length to complexity:
-    • Simple acknowledgement or single-question email → 2-4 sentences
-    • Standard enquiry with 1-2 topics → 1-2 short paragraphs
-    • Complex multi-topic or detailed email → 2-3 paragraphs maximum
-- Preserve the exact greeting "${salutation}" and the closing "Best regards,\nTrade Risk Solutions"
-- Natural business English — not stiff or corporate-sounding
-- Output ONLY the final email body. No commentary, no "Here is the edited version:", nothing else.
+1. REMOVE all filler phrases:
+   - "Thank you for reaching out / your email / contacting us"
+   - "We hope this email / message finds you well"
+   - "Please feel free to / do not hesitate to contact us"
+   - "I trust this answers your query"
+   - "As always, we appreciate your…"
+   - Any sentence that restates what the client already said without adding new information
+
+2. LEAD with the answer — if the draft buries pricing, a quote, or coverage details after filler, move them to the first sentence after the greeting.
+
+3. KEEP all substantive content: pricing figures, coverage limits, document citations, specific dates, amounts, next steps. Do not drop any.
+
+4. LENGTH — match to complexity:
+   - Single question or simple acknowledgement → 2–4 sentences total
+   - Standard enquiry (1–2 topics) → 2–3 sentences per topic, 1 paragraph each
+   - Detailed multi-topic email → 3–4 short paragraphs maximum
+
+5. Preserve exactly: the greeting "${salutation}" and closing "Best regards,\nTrade Risk Solutions"
+
+6. Output ONLY the final email body. No commentary, no preamble.
 
 DRAFT TO EDIT:
 ${rawDraft}
 
-CLIENT'S EMAIL (for context on what must be addressed):
+CLIENT'S EMAIL (every question here must still be answered in the output):
 ${lastInboundText}`
 
     const editorRes = await fetch(`${GEMINI_URL}?key=${geminiKey}`, {

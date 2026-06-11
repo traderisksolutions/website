@@ -685,7 +685,7 @@ function AIDraftPanel({
     try {
       const res  = await fetch('/api/engagement/draft-rag', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ thread_id: thread.id, message_id: lastMsg?.id ?? null }),
+        body: JSON.stringify({ thread_id: thread.id, message_id: lastMsg?.id ?? null, contactName: fullName(lead) || null }),
       })
       const data = await res.json()
       if (data.error) { setError(data.error); return }
