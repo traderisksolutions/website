@@ -9,7 +9,7 @@ import {
   Search, ChevronRight, ChevronDown,
   Bot, Table2, UsersRound,
   LogOut, BookOpen, Cpu, FolderOpen,
-  Telescope, Megaphone, BookMarked,
+  Telescope, Megaphone, BookMarked, Settings,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -249,6 +249,11 @@ export default function Sidebar() {
 
         {/* ── CLAIMS ── */}
         <NavItem label="Claims" href="/claims" icon={AlertCircle} isActive={active('/claims')} disabled />
+
+        <Divider />
+
+        {/* ── SETTINGS ── */}
+        <NavItem label="Settings" href="/settings" icon={Settings} isActive={active('/settings')} />
 
       </nav>
 

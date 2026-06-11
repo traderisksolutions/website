@@ -13,11 +13,11 @@ function sbHeaders(prefer = 'return=representation') {
   }
 }
 
-// GET /api/signatures — list all active signatures
+// GET /api/signatures — list all signatures
 export async function GET() {
   try {
     const res  = await fetch(
-      `${SB_URL}/rest/v1/user_signatures?select=id,name,title,phone,is_active&order=created_at.asc`,
+      `${SB_URL}/rest/v1/user_signatures?select=id,name,title,phone,email,company_tagline,is_active&order=created_at.asc`,
       { headers: sbHeaders(), cache: 'no-store' }
     )
     const rows = res.ok ? await res.json() : []
@@ -30,13 +30,20 @@ export async function GET() {
 // POST /api/signatures — create a signature
 export async function POST(req: NextRequest) {
   try {
-    const { name, title, phone } = await req.json() as { name?: string; title?: string; phone?: string }
+    const { name, title, phone, email, company_tagline } =
+      await req.json() as { name?: string; title?: string; phone?: string; email?: string; company_tagline?: string }
     if (!name?.trim()) return NextResponse.json({ error: 'name required' }, { status: 400 })
 
     const res = await fetch(`${SB_URL}/rest/v1/user_signatures`, {
       method:  'POST',
       headers: sbHeaders(),
-      body:    JSON.stringify({ name: name.trim(), title: title?.trim() ?? null, phone: phone?.trim() ?? null }),
+      body:    JSON.stringify({
+        name:            name.trim(),
+        title:           title?.trim()           || null,
+        phone:           phone?.trim()           || null,
+        email:           email?.trim()           || null,
+        company_tagline: company_tagline?.trim() || null,
+      }),
     })
     const data = await res.json()
     if (!res.ok) return NextResponse.json({ error: 'Failed to create signature' }, { status: 500 })

@@ -13,7 +13,7 @@ function sbHeaders(prefer = 'return=representation') {
   }
 }
 
-const ALLOWED = new Set(['name', 'title', 'phone', 'is_active'])
+const ALLOWED = new Set(['name', 'title', 'phone', 'email', 'company_tagline', 'is_active'])
 
 // PATCH /api/signatures/[id]
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

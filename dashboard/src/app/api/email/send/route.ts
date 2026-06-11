@@ -98,16 +98,20 @@ function buildRawEmail(to: string, subject: string, body: string, htmlBody?: str
   return Buffer.from(lines.join('\r\n')).toString('base64url')
 }
 
-type Signature = { id: string; name: string; title: string | null; phone: string | null }
+type Signature = {
+  id: string; name: string; title: string | null; phone: string | null
+  email: string | null; company_tagline: string | null
+}
 
 function buildSignatureHtml(sig: Signature): string {
   return [
     '<br>',
     '<hr style="margin:16px 0;border:none;border-top:1px solid #e5e7eb">',
     `<p style="margin:0;font-size:13px;color:#1e3a5f;font-weight:600">${sig.name}</p>`,
-    sig.title ? `<p style="margin:4px 0 0;font-size:12px;color:#666">${sig.title}</p>` : '',
-    sig.phone ? `<p style="margin:4px 0 0;font-size:12px;color:#666">${sig.phone}</p>` : '',
-    '<p style="margin:4px 0 0;font-size:12px;color:#999">Trade Risk Solutions</p>',
+    sig.title           ? `<p style="margin:4px 0 0;font-size:12px;color:#666">${sig.title}</p>` : '',
+    sig.phone           ? `<p style="margin:4px 0 0;font-size:12px;color:#666">${sig.phone}</p>` : '',
+    sig.email           ? `<p style="margin:4px 0 0;font-size:12px;color:#666"><a href="mailto:${sig.email}" style="color:#1d4ed8;text-decoration:none">${sig.email}</a></p>` : '',
+    sig.company_tagline ? `<p style="margin:4px 0 0;font-size:12px;color:#999">${sig.company_tagline}</p>` : '<p style="margin:4px 0 0;font-size:12px;color:#999">Trade Risk Solutions</p>',
   ].filter(Boolean).join('\n')
 }
 
@@ -116,9 +120,10 @@ function buildSignatureText(sig: Signature): string {
     '',
     '--',
     sig.name,
-    sig.title ?? '',
-    sig.phone ?? '',
-    'Trade Risk Solutions',
+    sig.title           ?? '',
+    sig.phone           ?? '',
+    sig.email           ?? '',
+    sig.company_tagline ?? 'Trade Risk Solutions',
   ].filter((l, i) => i < 2 || l).join('\n')
 }
 
@@ -171,7 +176,7 @@ export async function POST(req: NextRequest) {
     let finalPlain = draft.body
     if (signatureId) {
       const sigRes = await fetch(
-        `${SB_URL}/rest/v1/user_signatures?id=eq.${signatureId}&select=id,name,title,phone&limit=1`,
+        `${SB_URL}/rest/v1/user_signatures?id=eq.${signatureId}&select=id,name,title,phone,email,company_tagline&limit=1`,
         { headers: sbHeaders() }
       )
       const sigs: Signature[] = sigRes.ok ? await sigRes.json() : []
