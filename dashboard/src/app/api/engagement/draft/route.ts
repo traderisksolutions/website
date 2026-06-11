@@ -161,37 +161,63 @@ ${lastMsgText}`
 
     // Fetch relevant GDrive knowledge docs and upload to Gemini file API
     const knowledgeDocs = await fetchKnowledgeDocs(threadCtx + '\n' + lastInboundText, geminiKey, 'gdrive-draft')
-    const docsNote = knowledgeDocs.length > 0
-      ? `ATTACHED KNOWLEDGE DOCUMENTS: ${knowledgeDocs.map(d => d.name).join(', ')}\nRead the attached PDFs. If they contain specific figures for this enquiry (premiums, coverage limits, deductibles, exclusions), quote them precisely and name the document. Example: "Based on our Marine Cargo schedule, the premium is SGD X for coverage up to SGD Y." If no attached document covers the specific information, write: "We will revert with specific terms within 2 business days."`
-      : 'No knowledge documents available. Do not fabricate figures. Write: "We will revert with specific terms within 2 business days."'
+    const hasDocs       = knowledgeDocs.length > 0
+    const docNames      = hasDocs ? knowledgeDocs.map(d => d.name).join(', ') : ''
 
-    // ── Agent 1: Drafter — write a complete, accurate reply ──────────────────
-    const drafterPrompt = `You are an email assistant for Trade Risk Solutions (TRS), a Singapore insurance brokerage.
-
-Write a concise, direct reply from TRS to the client's latest email.
+    // ── Single-pass drafter with comparison-aware prompt ─────────────────────
+    const drafterPrompt = `You are an email assistant for Trade Risk Solutions (TRS), a Singapore insurance brokerage. Your reply will be sent directly to the client — make it ready to send.
 ${campaignCtxStr}
-RULES:
-- Start with exactly "${salutation}"
-- Lead immediately with the key answer — pricing quote, coverage confirmation, or main action point. No warm-up sentences.
-- Address every question the client raised — no omissions.
-- State one clear next step (what TRS will do and by when).
-- Tone: professional, direct, Singaporean business English.
-- End with: "Best regards,\nTrade Risk Solutions"
-- Body text only — no subject line.
-- NEVER use: "Thank you for reaching out / contacting us", "We hope this email finds you well", "Please do not hesitate to contact us", "I trust this answers your query", or any other filler phrases.
+━━ STEP 1 — IDENTIFY THE PRODUCT ━━
+Read the client's email and identify the exact insurance product(s) they are asking about (e.g. Marine Cargo, Property All Risks, Workmen's Compensation, Professional Indemnity, etc.).
 
-${docsNote}
+━━ STEP 2 — EXTRACT PRICING FROM ATTACHED DOCUMENTS ━━
+${hasDocs
+  ? `Attached documents: ${docNames}
 
-CLIENT DETAILS:
+For each attached PDF:
+1. Identify the insurer name (usually in the document header or footer)
+2. Find all pricing relevant to the product the client asked about
+3. Extract: Premium (SGD), Sum Insured / Coverage Limit, Deductible, and any key conditions or exclusions`
+  : 'No pricing documents are attached. Do not fabricate any figures.'}
+
+━━ STEP 3 — WRITE THE REPLY ━━
+Structure the reply as follows:
+
+GREETING: "${salutation}"
+
+OPENING: One sentence acknowledging the specific product and parameters the client mentioned. No filler ("thank you for reaching out", "we hope this email finds you well", "please do not hesitate" are all banned).
+
+${hasDocs ? `PRICING (if relevant figures were found in the documents):
+Write: "We have obtained indicative quotes for your [product] enquiry:"
+Then one bullet per insurer:
+• [Insurer name] — SGD [premium] premium | SGD [sum insured] covered | SGD [deductible] deductible[, brief note on key condition or exclusion if important]
+
+After the bullets, one sentence recommending the best option and why (e.g. most competitive rate, or best coverage-to-price ratio based on the client's stated requirements).
+
+If a document does not contain pricing for the requested product, skip it entirely.
+If NO document contains relevant pricing, write: "We will revert with indicative pricing within 2 business days."` : 'PRICING: Write: "We will revert with indicative pricing within 2 business days."'}
+
+NEXT STEP: One sentence — what TRS will do next or what the client needs to provide (e.g. "We will prepare a formal proposal once you confirm the coverage level.")
+
+CLOSING: "Best regards,\nTrade Risk Solutions"
+
+━━ RULES ━━
+- Body text only — no subject line
+- 2–5 paragraphs maximum
+- Only quote figures you can read directly from the attached PDFs — never estimate or fabricate
+- Every question the client raised must be addressed
+- Tone: professional, direct, Singaporean business English
+
+━━ CLIENT DETAILS ━━
 - Name: ${hasRealName ? contactName : '(unknown)'}
 - Email: ${contactEmail ?? '—'}
 - Company: ${company || '(unknown)'}
 - Thread subject: ${threadSubject}
 
-CLIENT'S LATEST EMAIL (respond to this):
+━━ CLIENT'S LATEST EMAIL (respond to this) ━━
 ${lastInboundText}
 
-THREAD HISTORY (background context only):
+━━ THREAD HISTORY (background context only) ━━
 ${threadCtx || '(no prior messages)'}
 
 Write only the email body starting with "${salutation}".`
@@ -204,7 +230,7 @@ Write only the email body starting with "${salutation}".`
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: drafterParts }],
-        generationConfig: { temperature: 0.4, maxOutputTokens: 2048 },
+        generationConfig: { temperature: 0.3, maxOutputTokens: 4096 },
       }),
     })
 
@@ -215,64 +241,11 @@ Write only the email body starting with "${salutation}".`
     }
     const drafterData = await drafterRes.json()
     void logGeminiUsage('draft_reply_drafter', drafterData.usageMetadata ?? {}, threadId)
-    const rawDraft = drafterData?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-    if (!rawDraft) {
+    const content = drafterData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? ''
+    if (!content) {
       const reason = drafterData?.candidates?.[0]?.finishReason ?? JSON.stringify(drafterData).slice(0, 200)
       return NextResponse.json({ error: `Gemini drafter returned no content (${reason})` }, { status: 502 })
     }
-
-    // ── Agent 2: Editor — sharpen, remove filler, enforce structure ─────────
-    const editorPrompt = `You are a professional email editor for Trade Risk Solutions (TRS).
-
-Edit the draft reply below. Be ruthless about conciseness.
-
-EDITING RULES:
-1. REMOVE all filler phrases:
-   - "Thank you for reaching out / your email / contacting us"
-   - "We hope this email / message finds you well"
-   - "Please feel free to / do not hesitate to contact us"
-   - "I trust this answers your query"
-   - "As always, we appreciate your…"
-   - Any sentence that restates what the client already said without adding new information
-
-2. LEAD with the answer — if the draft buries pricing, a quote, or coverage details after filler, move them to the first sentence after the greeting.
-
-3. KEEP all substantive content: pricing figures, coverage limits, document citations, specific dates, amounts, next steps. Do not drop any.
-
-4. LENGTH — match to complexity:
-   - Single question or simple acknowledgement → 2–4 sentences total
-   - Standard enquiry (1–2 topics) → 2–3 sentences per topic, 1 paragraph each
-   - Detailed multi-topic email → 3–4 short paragraphs maximum
-
-5. Preserve exactly: the greeting "${salutation}" and closing "Best regards,\nTrade Risk Solutions"
-
-6. Output ONLY the final email body. No commentary, no preamble.
-
-DRAFT TO EDIT:
-${rawDraft}
-
-CLIENT'S EMAIL (every question here must still be answered in the output):
-${lastInboundText}`
-
-    const editorRes = await fetch(`${GEMINI_URL}?key=${geminiKey}`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: editorPrompt }] }],
-        generationConfig: { temperature: 0.2, maxOutputTokens: 2048 },
-      }),
-    })
-
-    if (!editorRes.ok) {
-      // Editor failed — fall back to raw draft rather than erroring
-      console.warn('[engagement/draft] Gemini editor failed — using raw draft')
-    }
-    const editorData   = editorRes.ok ? await editorRes.json() : null
-    if (editorData) void logGeminiUsage('draft_reply_editor', editorData.usageMetadata ?? {}, threadId)
-    const editorFinish = editorData?.candidates?.[0]?.finishReason ?? ''
-    const editorText   = editorData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? ''
-    // Fall back to rawDraft if editor was truncated (MAX_TOKENS) or returned nothing
-    const content = (editorText && editorFinish !== 'MAX_TOKENS') ? editorText : rawDraft
 
     // Upsert contact then re-fetch by email to get ID reliably.
     // merge-duplicates returns empty when the row already exists — never rely on its response body.

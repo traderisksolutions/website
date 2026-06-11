@@ -124,7 +124,7 @@ RULES:
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents:         [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.2, maxOutputTokens: 2048 },
+      generationConfig: { temperature: 0.2, maxOutputTokens: 4096 },
     }),
   })
 
