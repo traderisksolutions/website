@@ -581,10 +581,28 @@ function AIDraftPanel({
   const [ragGenerating, setRagGenerating] = useState(false)
 
   // Signature state
-  type SigOption = { id: string; name: string; title: string | null; phone: string | null }
+  type SigOption = {
+    id: string; name: string; title: string | null; phone: string | null
+    email: string | null; company_tagline: string | null
+  }
   const [signatures,    setSignatures]    = useState<SigOption[]>([])
   const [selectedSigId, setSelectedSigId] = useState<string>('')
   const [sigsLoaded,    setSigsLoaded]    = useState(false)
+
+  function buildClientSigHtml(sig: SigOption): string {
+    return [
+      '<br>',
+      '<hr style="margin:16px 0;border:none;border-top:1px solid #e5e7eb">',
+      `<p style="margin:0;font-size:13px;color:#1e3a5f;font-weight:600">${sig.name}</p>`,
+      sig.title           ? `<p style="margin:4px 0 0;font-size:12px;color:#666">${sig.title}</p>` : '',
+      sig.phone           ? `<p style="margin:4px 0 0;font-size:12px;color:#666">${sig.phone}</p>` : '',
+      sig.email           ? `<p style="margin:4px 0 0;font-size:12px;color:#666"><a href="mailto:${sig.email}" style="color:#1d4ed8;text-decoration:none">${sig.email}</a></p>` : '',
+      sig.company_tagline ? `<p style="margin:4px 0 0;font-size:12px;color:#999">${sig.company_tagline}</p>` : '<p style="margin:4px 0 0;font-size:12px;color:#999">Trade Risk Solutions</p>',
+    ].filter(Boolean).join('\n')
+  }
+
+  const selectedSig = signatures.find(s => s.id === selectedSigId) ?? null
+  const sigHtml     = selectedSig ? buildClientSigHtml(selectedSig) : ''
 
   // CC / BCC / Subject / Reply-To state
   const [ccList,        setCcList]        = useState<string[]>([])
@@ -765,8 +783,7 @@ function AIDraftPanel({
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           draftId:       activeDraftId,
-          htmlBody:      activeHtml,
-          signatureId:   selectedSigId || undefined,
+          htmlBody:      sigHtml ? activeHtml + sigHtml : activeHtml,
           cc:            ccList.length  ? ccList  : undefined,
           bcc:           bccList.length ? bccList : undefined,
           customSubject: customSubject || undefined,
@@ -891,17 +908,17 @@ function AIDraftPanel({
       {/* ── Editor ── */}
       <div style={{ padding: '8px 12px' }}>
         {activeTab === 'gdrive' && (
-          <RichEditor key={draftEditorKey} initialHtml={draftHtml} onChange={setDraftHtml}
+          <RichEditor key={draftEditorKey} initialHtml={draftHtml} onChange={setDraftHtml} sigHtml={sigHtml}
             placeholder={loading === 'gen' ? 'Generating GDrive draft…' : 'Click "Generate AI reply" to draft using knowledge documents.'}
             minHeight={140} />
         )}
         {activeTab === 'rag' && (
-          <RichEditor key={`rag-${ragEditorKey}`} initialHtml={ragHtml} onChange={setRagHtml}
+          <RichEditor key={`rag-${ragEditorKey}`} initialHtml={ragHtml} onChange={setRagHtml} sigHtml={sigHtml}
             placeholder={ragGenerating ? 'Generating RAG draft…' : 'Click "Generate RAG reply" to draft using retrieved knowledge chunks.'}
             minHeight={140} />
         )}
         {activeTab === 'compose' && (
-          <RichEditor key="compose" initialHtml={composeHtml} onChange={setComposeHtml}
+          <RichEditor key="compose" initialHtml={composeHtml} onChange={setComposeHtml} sigHtml={sigHtml}
             placeholder={`Write your reply to ${lead.email ?? 'the client'}…`}
             minHeight={140} />
         )}
