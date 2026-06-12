@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { waitUntil }                  from '@vercel/functions'
 import { runDraftEvaluation }         from '@/lib/run-draft-evaluation'
 
 const SB_URL      = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
@@ -241,8 +242,8 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // Fire-and-forget evaluation — compares AI draft vs what was sent, stores to draft_evaluations
-    void runDraftEvaluation(draftId, draft.thread_id ?? null)
+    // Run evaluation after response — waitUntil keeps the function alive on Vercel
+    waitUntil(runDraftEvaluation(draftId, draft.thread_id ?? null))
 
     return NextResponse.json({ ok: true, gmailMessageId: sent.id })
   } catch (e) {
