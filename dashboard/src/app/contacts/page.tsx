@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 
 interface Contact {
@@ -114,7 +115,11 @@ export default function ContactsPage() {
               {loading ? 'Loading…' : `${primaryCount} contact${primaryCount !== 1 ? 's' : ''} · ${ccCount} CC`}
             </p>
           </div>
-          <div className="flex flex-wrap gap-1.5">
+        </div>
+
+        <div className="rounded-lg border bg-card overflow-hidden">
+          {/* Filter bar */}
+          <div className="border-b p-4 flex flex-wrap gap-1.5">
             {STATUS_OPTIONS.map(s => (
               <button key={s} onClick={() => setFilter(s)}
                 className={cn(
@@ -128,90 +133,85 @@ export default function ContactsPage() {
               </button>
             ))}
           </div>
-        </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center h-48 text-sm text-muted-foreground">Loading contacts…</div>
-        ) : groups.length === 0 ? (
-          <div className="text-center py-12 text-sm text-muted-foreground">No contacts found</div>
-        ) : (
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b border-border">
-                {['Name', 'Email', 'Source', 'Status', 'Date'].map(h => (
-                  <th key={h} className="px-3 py-2 text-[11px] font-semibold text-muted-foreground text-left uppercase tracking-wider whitespace-nowrap">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {groups.map(group => {
-                const key = group.company ?? '—'
-                const isCollapsed = collapsed.has(key)
-                const ccInGroup = group.contacts.filter(c => c.isCC).length
-                return (
-                  <>
-                    {/* Company group header */}
-                    <tr key={`g-${key}`} onClick={() => toggleCollapse(key)} className="cursor-pointer bg-muted/40 hover:bg-muted/60">
-                      <td colSpan={5} className="px-3 py-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-muted-foreground w-3">{isCollapsed ? '▶' : '▼'}</span>
-                          <span className="text-[12px] font-semibold text-foreground">
-                            {group.company ?? <span className="text-muted-foreground/50 italic">No company</span>}
-                          </span>
-                          <span className="text-[11px] text-muted-foreground">
-                            {group.contacts.length} contact{group.contacts.length !== 1 ? 's' : ''}
-                            {ccInGroup > 0 && ` · ${ccInGroup} CC`}
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-
-                    {/* Contacts in group */}
-                    {!isCollapsed && group.contacts.map(contact => (
-                      <tr key={contact.id}
-                        onClick={() => setSelected(selected?.id === contact.id ? null : contact)}
-                        className={cn(
-                          'border-b border-border/50 cursor-pointer transition-colors',
-                          selected?.id === contact.id ? 'bg-primary/5' : 'hover:bg-muted/30'
-                        )}
-                      >
-                        <td className="pl-8 pr-3 py-2.5">
+          {loading ? (
+            <div className="flex items-center justify-center h-48 text-sm text-muted-foreground">Loading contacts…</div>
+          ) : groups.length === 0 ? (
+            <div className="text-center py-12 text-sm text-muted-foreground">No contacts found</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  {['Name', 'Email', 'Source', 'Status', 'Date'].map(h => (
+                    <TableHead key={h}>{h}</TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {groups.map(group => {
+                  const key = group.company ?? '—'
+                  const isCollapsed = collapsed.has(key)
+                  const ccInGroup = group.contacts.filter(c => c.isCC).length
+                  return (
+                    <>
+                      {/* Company group header */}
+                      <tr key={`g-${key}`} onClick={() => toggleCollapse(key)} className="cursor-pointer bg-muted/40 hover:bg-muted/60 border-b transition-colors">
+                        <td colSpan={5} className="px-3 py-2">
                           <div className="flex items-center gap-2">
-                            <span className="text-[13px] font-medium text-foreground">{fullName(contact)}</span>
-                            {contact.isCC && (
-                              <Badge variant="secondary" className="text-[9px] px-1.5 py-0">CC</Badge>
-                            )}
+                            <span className="text-[10px] text-muted-foreground w-3">{isCollapsed ? '▶' : '▼'}</span>
+                            <span className="text-[12px] font-semibold text-foreground">
+                              {group.company ?? <span className="text-muted-foreground/50 italic">No company</span>}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">
+                              {group.contacts.length} contact{group.contacts.length !== 1 ? 's' : ''}
+                              {ccInGroup > 0 && ` · ${ccInGroup} CC`}
+                            </span>
                           </div>
                         </td>
-                        <td className="px-3 py-2.5 text-[12px] text-muted-foreground">{contact.email ?? '—'}</td>
-                        <td className="px-3 py-2.5">
-                          <Badge variant="outline" className="text-[10px] font-medium">
-                            {SOURCE_LABEL[contact.source] ?? contact.source}
-                          </Badge>
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded capitalize"
-                            style={{
-                              background: (STATUS_COLORS[contact.status] ?? STATUS_COLORS.cc).bg,
-                              color:      (STATUS_COLORS[contact.status] ?? STATUS_COLORS.cc).text,
-                            }}
-                          >
-                            {contact.status}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2.5 text-[12px] text-muted-foreground whitespace-nowrap">
-                          {new Date(contact.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </td>
                       </tr>
-                    ))}
-                  </>
-                )
-              })}
-            </tbody>
-          </table>
-        )}
+
+                      {/* Contacts in group */}
+                      {!isCollapsed && group.contacts.map(contact => (
+                        <TableRow key={contact.id}
+                          onClick={() => setSelected(selected?.id === contact.id ? null : contact)}
+                          className={cn('cursor-pointer', selected?.id === contact.id && 'bg-primary/5 hover:bg-primary/5')}
+                        >
+                          <TableCell className="pl-8 pr-3">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[13px] font-medium text-foreground">{fullName(contact)}</span>
+                              {contact.isCC && (
+                                <Badge variant="secondary" className="text-[9px] px-1.5 py-0">CC</Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-[12px] text-muted-foreground">{contact.email ?? '—'}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-[10px] font-medium">
+                              {SOURCE_LABEL[contact.source] ?? contact.source}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded capitalize"
+                              style={{
+                                background: (STATUS_COLORS[contact.status] ?? STATUS_COLORS.cc).bg,
+                                color:      (STATUS_COLORS[contact.status] ?? STATUS_COLORS.cc).text,
+                              }}
+                            >
+                              {contact.status}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-[12px] text-muted-foreground whitespace-nowrap">
+                            {new Date(contact.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </div>
       </div>
 
       {/* ── Detail panel ── */}

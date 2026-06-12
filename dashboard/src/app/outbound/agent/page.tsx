@@ -76,7 +76,7 @@ function TBadge({ label, color, bg }: { label: string; color: string; bg: string
 
 function Th({ children, w }: { children?: React.ReactNode; w?: number }) {
   return (
-    <th className="px-2.5 py-2 text-left text-muted-foreground font-semibold text-[11px] border-b border-border whitespace-nowrap" style={{ width: w }}>
+    <th className="h-10 px-3 text-left align-middle text-muted-foreground font-medium text-[12px] whitespace-nowrap border-b border-border" style={{ width: w }}>
       {children}
     </th>
   )
@@ -84,7 +84,7 @@ function Th({ children, w }: { children?: React.ReactNode; w?: number }) {
 
 function Td({ children, className }: { children?: React.ReactNode; className?: string }) {
   return (
-    <td className={cn('px-2.5 py-2.5 border-b border-border/40 text-[13px]', className)}>
+    <td className={cn('px-3 py-2.5 align-middle border-b border-border/40 text-[13px]', className)}>
       {children}
     </td>
   )
@@ -414,7 +414,7 @@ export default function OutboundAgentPage() {
                   </thead>
                   <tbody>
                     {history.map(s => (
-                      <tr key={s.id}>
+                      <tr key={s.id} className="hover:bg-muted/50 transition-colors">
                         <Td className="text-muted-foreground whitespace-nowrap">
                           {new Date(s.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: '2-digit' })}
                         </Td>

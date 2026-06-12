@@ -524,7 +524,7 @@ function InboundLeadsPage() {
           ) : (
             <table className="w-full border-collapse text-[13px] min-w-[760px]">
               <thead>
-                <tr className="bg-muted/40 border-b border-border sticky top-0 z-[1]">
+                <tr className="border-b border-border sticky top-0 z-[1] bg-card">
                   <Th w={110}>Channel <Tip text="Shows where this lead came from — Website = contact form, Email = direct email, WhatsApp = click-to-chat button. Manual means a team member added them." /></Th>
                   <Th w={120}>First Name</Th>
                   <Th w={120}>Last Name</Th>
@@ -543,8 +543,8 @@ function InboundLeadsPage() {
                     <tr key={lead.id}
                       onClick={() => setSelectedId(lead.id === selectedId ? null : lead.id)}
                       className={cn(
-                        'border-b border-border/50 cursor-pointer transition-colors',
-                        isActive ? 'bg-primary/5' : 'hover:bg-muted/20'
+                        'border-b transition-colors cursor-pointer',
+                        isActive ? 'bg-primary/5' : 'hover:bg-muted/50'
                       )}
                       style={{ borderLeft: `3px solid ${isActive ? 'hsl(var(--primary))' : 'transparent'}` }}
                     >
@@ -620,7 +620,7 @@ export default function InboundLeadsPageWrapper() {
 
 function Th({ children, w, right }: { children?: React.ReactNode; w?: number | string; right?: boolean }) {
   return (
-    <th className={cn('px-3 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap', right ? 'text-right' : 'text-left')}
+    <th className={cn('h-10 px-3 align-middle text-[12px] font-medium text-muted-foreground whitespace-nowrap', right ? 'text-right' : 'text-left')}
       style={{ width: w }}>
       {children}
     </th>

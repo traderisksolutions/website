@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import React from 'react'
 import { Search } from 'lucide-react'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 
 type Status     = 'new' | 'contacted' | 'replied' | 'qualified' | 'disqualified'
@@ -154,15 +155,15 @@ export default function OutboundLeadsPage() {
             <a href="/outbound/search" className="text-foreground font-medium no-underline">Search for prospects →</a>
           </div>
         ) : (
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-muted/40 border-b border-border">
+          <Table>
+            <TableHeader>
+              <TableRow>
                 {['', 'Name', 'Role / Headline', 'Company', 'Location', 'Email', 'Source', 'Status', 'Added'].map(col => (
-                  <th key={col} className="px-3.5 py-2.5 text-[11px] font-semibold text-muted-foreground text-left uppercase tracking-wider whitespace-nowrap">{col}</th>
+                  <TableHead key={col}>{col}</TableHead>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {filtered.map(lead => {
                 const expanded = expandedId === lead.id
                 const s        = STATUS_STYLE[lead.status]
@@ -170,11 +171,11 @@ export default function OutboundLeadsPage() {
                 const date     = new Date(lead.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
                 return (
                   <React.Fragment key={lead.id}>
-                    <tr onClick={() => setExpandedId(expanded ? null : lead.id)}
-                      className={cn('border-b border-border/50 cursor-pointer transition-colors', expanded ? 'bg-muted/30' : 'hover:bg-muted/20')}
+                    <TableRow onClick={() => setExpandedId(expanded ? null : lead.id)}
+                      className={cn('cursor-pointer', expanded && 'bg-muted/30 hover:bg-muted/30')}
                     >
                       {/* Avatar */}
-                      <td className="py-2.5 px-2 pl-3.5 w-11">
+                      <TableCell className="py-2.5 px-2 pl-3.5 w-11">
                         {avatar ? (
                           <img src={avatar} alt="" className="w-8 h-8 object-cover bg-muted"
                             style={{ borderRadius: lead.record_type === 'person' ? '50%' : 6 }} />
@@ -184,9 +185,9 @@ export default function OutboundLeadsPage() {
                             {lead.record_type === 'person' ? '👤' : '🏢'}
                           </div>
                         )}
-                      </td>
+                      </TableCell>
                       {/* Name */}
-                      <td className="px-3.5 py-2.5 min-w-[160px]">
+                      <TableCell className="min-w-[160px]">
                         <p className="text-[13px] font-medium text-foreground tracking-tight">{lead.full_name ?? '—'}</p>
                         {lead.linkedin_url && (
                           <a href={lead.linkedin_url} target="_blank" rel="noopener noreferrer"
@@ -195,38 +196,38 @@ export default function OutboundLeadsPage() {
                             LinkedIn ↗
                           </a>
                         )}
-                      </td>
+                      </TableCell>
                       {/* Role */}
-                      <td className="px-3.5 py-2.5 max-w-[200px]">
+                      <TableCell className="max-w-[200px]">
                         <p className="text-[12px] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                           {lead.current_title ?? lead.headline ?? lead.company_tagline ?? '—'}
                         </p>
-                      </td>
+                      </TableCell>
                       {/* Company */}
-                      <td className="px-3.5 py-2.5 min-w-[140px]">
+                      <TableCell className="min-w-[140px]">
                         <p className="text-[12px] text-muted-foreground">{lead.current_company ?? '—'}</p>
-                      </td>
+                      </TableCell>
                       {/* Location */}
-                      <td className="px-3.5 py-2.5 min-w-[120px]">
+                      <TableCell className="min-w-[120px]">
                         <p className="text-[12px] text-muted-foreground/70">{lead.location ?? lead.headquarters ?? '—'}</p>
-                      </td>
+                      </TableCell>
                       {/* Email */}
-                      <td className="px-3.5 py-2.5 min-w-[180px]">
+                      <TableCell className="min-w-[180px]">
                         {lead.email ? (
                           <a href={`mailto:${lead.email}`} onClick={e => e.stopPropagation()}
                             className="text-[12px] text-emerald-600 no-underline font-medium">{lead.email}</a>
                         ) : lead.record_type === 'person' ? (
                           <span className="text-[12px] text-muted-foreground/30">—</span>
                         ) : null}
-                      </td>
+                      </TableCell>
                       {/* Source */}
-                      <td className="px-3.5 py-2.5">
+                      <TableCell>
                         <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-muted text-muted-foreground">
                           {SOURCE_LABEL[lead.source]}
                         </span>
-                      </td>
+                      </TableCell>
                       {/* Status */}
-                      <td className="px-3.5 py-2.5" onClick={e => e.stopPropagation()}>
+                      <TableCell onClick={e => e.stopPropagation()}>
                         <select value={lead.status} onChange={e => updateStatus(lead.id, e.target.value as Status)}
                           className="text-[11px] font-semibold px-2 py-1 rounded border-0 cursor-pointer"
                           style={{ background: s.bg, color: s.color }}>
@@ -236,12 +237,12 @@ export default function OutboundLeadsPage() {
                           <option value="qualified">Qualified</option>
                           <option value="disqualified">Disqualified</option>
                         </select>
-                      </td>
+                      </TableCell>
                       {/* Date */}
-                      <td className="px-3.5 py-2.5 whitespace-nowrap">
+                      <TableCell className="whitespace-nowrap">
                         <p className="text-[12px] text-muted-foreground/60">{date}</p>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
 
                     {/* Expanded row */}
                     {expanded && (
@@ -286,8 +287,8 @@ export default function OutboundLeadsPage() {
                   </React.Fragment>
                 )
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         )}
       </div>
     </div>

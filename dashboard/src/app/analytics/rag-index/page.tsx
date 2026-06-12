@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { RefreshCw, CheckCircle, AlertTriangle, RotateCcw } from 'lucide-react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 
 type IndexedFile = {
@@ -191,28 +192,28 @@ export default function RagIndexPage() {
               No files indexed yet — click &quot;Re-index New Files&quot; to start
             </div>
           ) : (
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b border-border">
+            <Table>
+              <TableHeader>
+                <TableRow>
                   {['File', 'Chunks', 'Last Indexed'].map(h => (
-                    <th key={h} className="px-4 py-2.5 text-[11px] font-semibold text-muted-foreground text-left uppercase tracking-wider">{h}</th>
+                    <TableHead key={h}>{h}</TableHead>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {status.files.map((f, i) => (
-                  <tr key={f.file_id} className={cn('border-b border-border/50', i % 2 === 0 ? 'bg-background' : 'bg-muted/20')}>
-                    <td className="px-4 py-2.5 text-[13px] text-foreground">{f.file_name}</td>
-                    <td className="px-4 py-2.5">
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {status.files.map((f) => (
+                  <TableRow key={f.file_id}>
+                    <TableCell className="text-[13px] text-foreground">{f.file_name}</TableCell>
+                    <TableCell>
                       <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-primary/10 text-primary">{f.chunk_count}</span>
-                    </td>
-                    <td className="px-4 py-2.5 text-[12px] text-muted-foreground">
+                    </TableCell>
+                    <TableCell className="text-[12px] text-muted-foreground">
                       {new Date(f.last_indexed).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
