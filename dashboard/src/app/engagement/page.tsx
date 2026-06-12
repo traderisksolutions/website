@@ -68,10 +68,10 @@ const EMAIL_SOURCES    = new Set(['website_form', 'email', 'manual'])
 
 const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
   contacted: { label: 'Contacted', color: '#b45309', bg: 'rgba(245,158,11,0.10)'  },
-  engaged:   { label: 'Engaged',   color: '#2563eb', bg: 'rgba(37,99,235,0.10)'   },
-  qualified: { label: 'Qualified', color: '#7c3aed', bg: 'rgba(124,58,237,0.10)'  },
+  engaged:   { label: 'Engaged',   color: 'var(--primary-hex)', bg: 'var(--primary-badge-bg)'   },
+  qualified: { label: 'Qualified', color: 'var(--primary-hex)', bg: 'var(--primary-badge-bg)'  },
   proposal:  { label: 'Proposal',  color: '#d97706', bg: 'rgba(217,119,6,0.10)'   },
-  converted: { label: 'Converted', color: '#059669', bg: 'rgba(5,150,105,0.10)'   },
+  converted: { label: 'Converted', color: 'var(--success)', bg: 'var(--success-bg)'   },
   dropped:   { label: 'Dropped',   color: '#4b5563', bg: 'rgba(107,114,128,0.10)' },
 }
 const ALL_STATUSES = ['contacted', 'engaged', 'qualified', 'proposal', 'converted', 'dropped']
@@ -201,14 +201,14 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; index?: number; default
   const senderLabel   = isOut ? 'Trade Risk Solutions' : (msg.from_address ?? '—')
   const senderInitial = isOut ? 'T' : (msg.from_address?.[0] ?? '?').toUpperCase()
 
-  // Lunar theme palette
-  const bubbleBg     = isOut ? '#eef2ff' : '#ffffff'
-  const bubbleBorder = isOut ? 'rgba(99,102,241,0.18)' : 'rgba(0,0,0,0.07)'
+  // Lunar theme palette — mapped to design tokens
+  const bubbleBg     = isOut ? 'var(--surface-sent)' : 'var(--surface-solid)'
+  const bubbleBorder = isOut ? 'var(--primary-focus-ring)' : 'var(--border-subtle)'
   const bubbleShadow = isOut
-    ? '0 1px 2px rgba(99,102,241,0.08), 0 4px 12px rgba(99,102,241,0.10)'
-    : '0 1px 2px rgba(0,0,0,0.05), 0 4px 12px rgba(0,0,0,0.07)'
-  const avatarBg    = isOut ? '#c7d2fe' : '#e5e7eb'
-  const avatarColor = isOut ? '#3730a3' : '#6b7280'
+    ? '0 1px 2px rgba(15,61,145,0.07), 0 4px 12px rgba(15,61,145,0.08)'
+    : '0 1px 2px rgba(20,30,50,0.04), 0 4px 12px rgba(20,30,50,0.06)'
+  const avatarBg    = isOut ? 'rgba(15,61,145,0.14)' : 'rgba(20,30,50,0.07)'
+  const avatarColor = isOut ? 'var(--primary-hex)' : 'var(--text-muted)'
 
   // ── Collapsed: chat bubble ──
   if (!open) {
@@ -228,8 +228,8 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; index?: number; default
           }}>T</div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
             <div style={{ display: 'flex', gap: 7, alignItems: 'center', marginBottom: 5 }}>
-              <span style={{ fontSize: 11, color: '#9ca3af', fontVariantNumeric: 'tabular-nums' }}>{fmtDateTime(msg.sent_at)}</span>
-              <span style={{ fontSize: 11.5, fontWeight: 600, color: '#374151' }}>{senderLabel}</span>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{fmtDateTime(msg.sent_at)}</span>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-secondary)' }}>{senderLabel}</span>
             </div>
             <div
               onClick={() => setOpen(true)}
@@ -240,7 +240,7 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; index?: number; default
                 padding: '9px 13px', cursor: 'pointer',
               }}
             >
-              <span style={{ fontSize: 12.5, color: '#6b7280', fontStyle: 'italic', lineHeight: 1.5 }}>{preview}</span>
+              <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontStyle: 'italic', lineHeight: 1.5 }}>{preview}</span>
             </div>
           </div>
         </div>
@@ -257,8 +257,8 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; index?: number; default
         }}>{senderInitial}</div>
         <div>
           <div style={{ display: 'flex', gap: 7, alignItems: 'center', marginBottom: 5 }}>
-            <span style={{ fontSize: 11.5, fontWeight: 600, color: '#374151' }}>{senderLabel}</span>
-            <span style={{ fontSize: 11, color: '#9ca3af', fontVariantNumeric: 'tabular-nums' }}>{fmtDateTime(msg.sent_at)}</span>
+            <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-secondary)' }}>{senderLabel}</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{fmtDateTime(msg.sent_at)}</span>
           </div>
           <div
             onClick={() => setOpen(true)}
@@ -269,7 +269,7 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; index?: number; default
               padding: '9px 13px', cursor: 'pointer',
             }}
           >
-            <span style={{ fontSize: 12.5, color: '#374151', lineHeight: 1.5 }}>{preview}</span>
+            <span style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{preview}</span>
           </div>
         </div>
       </div>
@@ -300,18 +300,18 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; index?: number; default
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', letterSpacing: '-0.01em' }}>{senderLabel}</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>{senderLabel}</span>
             <span style={{
               fontSize: 10, fontWeight: 600, padding: '1px 7px', borderRadius: 20,
-              background: isOut ? 'rgba(99,102,241,0.12)' : 'rgba(0,0,0,0.06)',
-              color: isOut ? '#4338ca' : '#6b7280',
+              background: isOut ? 'var(--primary-selected-bg)' : 'rgba(0,0,0,0.06)',
+              color: isOut ? 'var(--primary-hex)' : 'var(--text-muted)',
             }}>
               {isOut ? 'Sent' : 'Received'}
             </span>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          <span style={{ fontSize: 11, color: '#9ca3af', fontVariantNumeric: 'tabular-nums' }}>{fmtDateTime(msg.sent_at)}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{fmtDateTime(msg.sent_at)}</span>
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ color: '#d1d5db', flexShrink: 0 }}>
             <path d="M2 8l4-4 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
@@ -322,7 +322,7 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; index?: number; default
       <div style={{ padding: '0 16px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <span style={{ fontSize: 11, fontWeight: 600, color: '#c8cbd0', width: 36, flexShrink: 0 }}>From</span>
-          <span style={{ fontSize: 12, color: '#374151' }}>{msg.from_address ?? '—'}</span>
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{msg.from_address ?? '—'}</span>
           <button onClick={() => copy(msg.from_address ?? '')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', lineHeight: 1, display: 'flex', alignItems: 'center' }}>
             {copied === msg.from_address ? <Check size={10} style={{ color: '#22c55e' }} /> : <Copy size={10} style={{ color: '#e5e7eb' }} />}
           </button>
@@ -332,7 +332,7 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; index?: number; default
             <span style={{ fontSize: 11, fontWeight: 600, color: '#c8cbd0', width: 36, flexShrink: 0 }}>To</span>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
               {msg.to.map(a => (
-                <span key={a} style={{ fontSize: 11, background: isOut ? 'rgba(99,102,241,0.08)' : '#f3f4f6', color: isOut ? '#4338ca' : '#374151', padding: '2px 8px', borderRadius: 20 }}>{a}</span>
+                <span key={a} style={{ fontSize: 11, background: isOut ? 'rgba(15,61,145,0.07)' : '#f3f4f6', color: isOut ? 'var(--primary-hex)' : 'var(--text-secondary)', padding: '2px 8px', borderRadius: 20 }}>{a}</span>
               ))}
             </div>
           </div>
@@ -342,7 +342,7 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; index?: number; default
             <span style={{ fontSize: 11, fontWeight: 600, color: '#c8cbd0', width: 36, flexShrink: 0 }}>CC</span>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
               {msg.cc.map(a => (
-                <span key={a} style={{ fontSize: 11, background: 'rgba(129,140,248,0.08)', color: '#4338ca', padding: '2px 8px', borderRadius: 20, border: '1px solid rgba(129,140,248,0.18)' }}>{a}</span>
+                <span key={a} style={{ fontSize: 11, background: 'rgba(15,61,145,0.07)', color: 'var(--primary-hex)', padding: '2px 8px', borderRadius: 20, border: '1px solid rgba(129,140,248,0.18)' }}>{a}</span>
               ))}
             </div>
           </div>
@@ -350,20 +350,20 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; index?: number; default
         {msg.subject && (
           <div style={{ display: 'flex', gap: 12 }}>
             <span style={{ fontSize: 11, fontWeight: 600, color: '#c8cbd0', width: 36, flexShrink: 0 }}>Subj</span>
-            <span style={{ fontSize: 12, color: '#374151', fontWeight: 500 }}>{msg.subject}</span>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>{msg.subject}</span>
           </div>
         )}
       </div>
 
       {/* Body */}
       <div style={{ borderTop: `1px solid ${bubbleBorder}`, padding: '14px 16px 18px' }}>
-        <p style={{ margin: 0, fontSize: 13.5, color: '#1f2937', whiteSpace: 'pre-wrap', lineHeight: 1.85 }}>
+        <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', lineHeight: 1.85 }}>
           {showFull ? fullBody : stripped}
         </p>
         {hasMore && (
           <button
             onClick={() => setShowFull(v => !v)}
-            style={{ marginTop: 12, fontSize: 11, color: '#6b7280', background: 'none', border: '1px solid #e5e7eb', borderRadius: 6, cursor: 'pointer', padding: '3px 10px' }}
+            style={{ marginTop: 12, fontSize: 11, color: 'var(--text-muted)', background: 'none', border: '1px solid #e5e7eb', borderRadius: 6, cursor: 'pointer', padding: '3px 10px' }}
           >
             {showFull ? '↑ Hide quoted content' : '↓ Show full email'}
           </button>
@@ -421,7 +421,7 @@ function CampaignContextPanel({ ctx }: { ctx: CampaignCtx }) {
         <div style={{ padding: '0 16px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {seqsLoading && <p style={{ margin: 0, fontSize: 12, color: '#aaa' }}>Loading…</p>}
           {!seqsLoading && seqsLoaded && seqs.length === 0 && (
-            <p style={{ margin: 0, fontSize: 12, color: '#bbb', fontStyle: 'italic' }}>No sequence steps found.</p>
+            <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>No sequence steps found.</p>
           )}
           {!seqsLoading && seqs.map(seq => (
             <div key={seq.step_number} style={{ padding: '8px 12px', background: '#fff', borderRadius: 8, border: '1px solid #fde68a' }}>
@@ -485,16 +485,16 @@ function StoredSummaryStrip({
   }
 
   return (
-    <div style={{ borderBottom: '1px solid #e8e8e8', flexShrink: 0, background: '#fafafa' }}>
+    <div style={{ borderBottom: '1px solid #e8e8e8', flexShrink: 0, background: 'hsl(var(--background))' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px' }}>
         <button
           onClick={() => setOpen(v => !v)}
           style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
         >
           <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#3b82f6' }}>AI Analysis</span>
-          {latest && <span style={{ fontSize: 10, color: '#bbb' }}>· {timeAgo(latest.created_at)}</span>}
-          {summaries.length > 1 && <span style={{ fontSize: 10, color: '#bbb' }}>· {summaries.length} updates</span>}
-          <span style={{ fontSize: 11, color: '#bbb' }}>{open ? '▲' : '▽'}</span>
+          {latest && <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>· {timeAgo(latest.created_at)}</span>}
+          {summaries.length > 1 && <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>· {summaries.length} updates</span>}
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{open ? '▲' : '▽'}</span>
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Tip text="Generated automatically each time the contact sends a new email — no action needed. Summarises the thread and suggests a next step so you can reply without re-reading everything." />
@@ -517,7 +517,7 @@ function StoredSummaryStrip({
           {(loading || regenerating) && <p style={{ margin: 0, fontSize: 12, color: '#aaa' }}>Analysing thread…</p>}
 
           {!loading && !regenerating && !latest && (
-            <p style={{ margin: 0, fontSize: 12, color: '#bbb', fontStyle: 'italic' }}>
+            <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
               Click &ldquo;Generate Now&rdquo; to analyse this thread, or it generates automatically on each new email.
             </p>
           )}
@@ -530,14 +530,14 @@ function StoredSummaryStrip({
                 <div style={{ marginBottom: 8, padding: '7px 10px', background: 'rgba(59,130,246,0.06)', borderRadius: 7, borderLeft: '3px solid #3b82f6' }}>
                   <span style={{ fontSize: 10, fontWeight: 700, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Next action · </span>
                   <Tip text="AI-suggested next step based on the conversation so far — a prompt to help you decide what to do before replying. You are always in control; treat this as a starting point." />
-                  <span style={{ fontSize: 12, color: '#1d4ed8' }}>{latest.next_action}</span>
+                  <span style={{ fontSize: 12, color: 'var(--primary-hex)' }}>{latest.next_action}</span>
                 </div>
               )}
 
               {older.length > 0 && (
                 <button
                   onClick={() => setHistoryOpen(v => !v)}
-                  style={{ fontSize: 11, color: '#bbb', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: 2 }}
+                  style={{ fontSize: 11, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: 2 }}
                 >
                   {historyOpen ? '▲' : '▽'} {older.length} earlier {older.length === 1 ? 'summary' : 'summaries'}
                 </button>
@@ -586,11 +586,11 @@ function EmailChipInput({ label, chips, onChange }: {
       padding: '4px 8px', border: '1px solid #e5e7eb', borderRadius: 6,
       background: '#fff', minHeight: 32, cursor: 'text',
     }}>
-      <span style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', flexShrink: 0, width: 28 }}>{label}</span>
+      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', flexShrink: 0, width: 28 }}>{label}</span>
       {chips.map(email => (
         <span key={email} style={{
           display: 'inline-flex', alignItems: 'center', gap: 3,
-          fontSize: 11, background: '#eff6ff', color: '#1d4ed8',
+          fontSize: 11, background: '#eff6ff', color: 'var(--primary-hex)',
           padding: '2px 6px 2px 7px', borderRadius: 4, border: '1px solid #bfdbfe',
         }}>
           {email}
@@ -891,7 +891,7 @@ function AIDraftPanel({
     <div style={{ ...base, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
       <span style={{ fontSize: 12, color: '#15803d' }}>✓ Reply sent</span>
       <button onClick={() => { setSent(false); setDraftHtml(''); setRagHtml(''); setComposeHtml(''); setDraftId(null) }}
-        style={{ fontSize: 11, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer' }}>
+        style={{ fontSize: 11, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
         New reply
       </button>
     </div>
@@ -907,7 +907,7 @@ function AIDraftPanel({
     return {
       padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
       background: 'none', border: 'none', borderBottom: active ? '2px solid #2563eb' : '2px solid transparent',
-      color: active ? '#2563eb' : '#9ca3af', transition: 'color 0.15s', whiteSpace: 'nowrap',
+      color: active ? 'var(--primary-hex)' : 'var(--text-muted)', transition: 'color 0.15s', whiteSpace: 'nowrap',
     }
   }
 
@@ -926,7 +926,7 @@ function AIDraftPanel({
             <>
               <Tip text="Reads the full email thread and your knowledge documents to draft a contextual reply. Always review the draft before clicking Approve & Send — you have final say." />
               <button onClick={generate} disabled={!!loading}
-                style={{ fontSize: 11, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
+                style={{ fontSize: 11, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
                 <RefreshCw size={11} style={{ animation: loading === 'gen' ? 'spin 1s linear infinite' : undefined }} />
                 {loading === 'gen' ? 'Generating…' : hasDraftContent ? 'Regenerate' : 'Generate AI reply'}
               </button>
@@ -934,7 +934,7 @@ function AIDraftPanel({
           )}
           {activeTab === 'rag' && (
             <button onClick={generateRag} disabled={ragGenerating}
-              style={{ fontSize: 11, color: '#7c3aed', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
+              style={{ fontSize: 11, color: 'var(--primary-hex)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
               <RefreshCw size={11} style={{ animation: ragGenerating ? 'spin 1s linear infinite' : undefined }} />
               {ragGenerating ? 'Generating…' : hasRagDraftContent ? 'Regenerate (RAG)' : 'Generate RAG reply'}
             </button>
@@ -945,7 +945,7 @@ function AIDraftPanel({
       {/* ── Replying-to context strip ── */}
       {needsReply && lastMsg && (
         <div style={{ margin: '8px 12px 0', padding: '6px 10px', background: 'rgba(219,234,254,0.5)', borderRadius: 6, borderLeft: '3px solid #93c5fd' }}>
-          <p style={{ margin: 0, fontSize: 11, color: '#6b7280', lineHeight: 1.5 }}>
+          <p style={{ margin: 0, fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
             <strong style={{ color: '#3b82f6' }}>Replying to</strong> {lastMsg.from_address} · {timeAgo(lastMsg.sent_at)}
           </p>
         </div>
@@ -955,7 +955,7 @@ function AIDraftPanel({
       <div style={{ padding: '6px 12px 0', display: 'flex', flexDirection: 'column', gap: 4 }}>
         {/* Subject */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff' }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', flexShrink: 0, width: 52 }}>Subject</span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', flexShrink: 0, width: 52 }}>Subject</span>
           <input
             value={customSubject}
             onChange={e => setCustomSubject(e.target.value)}
@@ -964,7 +964,7 @@ function AIDraftPanel({
         </div>
         {/* Reply-To */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff' }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', flexShrink: 0, width: 52 }}>Reply-To</span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', flexShrink: 0, width: 52 }}>Reply-To</span>
           <input
             value={replyTo}
             onChange={e => setReplyTo(e.target.value)}
@@ -998,16 +998,16 @@ function AIDraftPanel({
       {/* ── RAG sources ── */}
       {activeTab === 'rag' && ragSources.length > 0 && (
         <div style={{ margin: '0 12px 8px', padding: '10px 12px', background: '#f5f3ff', borderRadius: 8, border: '1px solid #ede9fe' }}>
-          <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#7c3aed' }}>
+          <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--primary-hex)' }}>
             Sources retrieved from knowledge base
           </p>
           {ragSources.map((s, i) => (
             <div key={i} style={{ marginBottom: i < ragSources.length - 1 ? 6 : 0, padding: '7px 10px', background: '#fff', borderRadius: 6, border: '1px solid #ede9fe' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#374151' }}>📄 {s.file_name}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>📄 {s.file_name}</span>
                 <span style={{ fontSize: 10, color: '#10b981', fontWeight: 700 }}>{Math.round(s.similarity * 100)}% match</span>
               </div>
-              <p style={{ margin: 0, fontSize: 11, color: '#6b7280', lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+              <p style={{ margin: 0, fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                 {s.content}
               </p>
             </div>
@@ -1019,11 +1019,11 @@ function AIDraftPanel({
       <div style={{ padding: '4px 12px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {signatures.length > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 11, color: '#9ca3af', whiteSpace: 'nowrap' }}>Sign as</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Sign as</span>
             <select
               value={selectedSigId}
               onChange={e => setSelectedSigId(e.target.value)}
-              style={{ flex: 1, fontSize: 12, padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff', color: '#374151', cursor: 'pointer' }}
+              style={{ flex: 1, fontSize: 12, padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff', color: 'var(--text-secondary)', cursor: 'pointer' }}
             >
               <option value="">— No signature —</option>
               {signatures.map(s => (
@@ -1034,7 +1034,7 @@ function AIDraftPanel({
         )}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <button onClick={handleSend} disabled={!!loading || !canSend}
-            style={{ flex: 1, padding: '7px 16px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 8, background: '#1d4ed8', color: '#fff', cursor: 'pointer', opacity: (loading || !canSend) ? 0.5 : 1 }}>
+            style={{ flex: 1, padding: '7px 16px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 8, background: 'var(--primary-hex)', color: '#fff', cursor: 'pointer', opacity: (loading || !canSend) ? 0.5 : 1 }}>
             {loading === 'send' ? 'Sending…' : 'Approve & Send Reply'}
           </button>
           <Tip placement="left" text="Edit the draft then click Approve & Send. Every sent reply is automatically evaluated to improve future AI drafts." />
@@ -1076,15 +1076,15 @@ function DraftHistoryPanel({ threadId, onRestore }: { threadId: string | null; o
   }, [threadId, loaded])
 
   if (!threadId) return (
-    <div style={{ padding: '24px 16px', fontSize: 12, color: '#bbb', fontStyle: 'italic' }}>
+    <div style={{ padding: '24px 16px', fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
       No thread — drafts appear once a thread is active.
     </div>
   )
 
-  if (loading) return <div style={{ padding: '20px 16px', fontSize: 12, color: '#bbb' }}>Loading…</div>
+  if (loading) return <div style={{ padding: '20px 16px', fontSize: 12, color: 'var(--text-muted)' }}>Loading…</div>
 
   if (loaded && items.length === 0) return (
-    <div style={{ padding: '20px 16px', fontSize: 12, color: '#bbb', fontStyle: 'italic', lineHeight: 1.6 }}>
+    <div style={{ padding: '20px 16px', fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic', lineHeight: 1.6 }}>
       No AI drafts yet — click "Regenerate" to generate one and it will appear here.
     </div>
   )
@@ -1100,12 +1100,12 @@ function DraftHistoryPanel({ threadId, onRestore }: { threadId: string | null; o
         const isRAG      = item.generated_by === 'rag'
         const expanded   = preview === item.id
 
-        const srcColor   = isRAG ? '#7c3aed' : '#1d4ed8'
+        const srcColor   = isRAG ? 'var(--primary-hex)' : 'var(--primary-hex)'
         const srcBg      = isRAG ? 'rgba(124,58,237,0.08)' : 'rgba(29,78,216,0.08)'
         const srcLabel   = isRAG ? 'RAG' : 'GDrive'
 
         const statusLabel = isCurrent ? 'current' : isSent ? 'sent' : 'older'
-        const statusColor = isCurrent ? '#059669' : isSent ? '#1d4ed8' : '#9ca3af'
+        const statusColor = isCurrent ? 'var(--success)' : isSent ? 'var(--primary-hex)' : 'var(--text-muted)'
 
         const bodyPreview = item.body.replace(/\s+/g, ' ').slice(0, 100)
 
@@ -1116,7 +1116,7 @@ function DraftHistoryPanel({ threadId, onRestore }: { threadId: string | null; o
           }}>
             <div style={{ padding: '10px 12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: '#bbb' }}>v{vNum}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)' }}>v{vNum}</span>
                 <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: srcBg, color: srcColor }}>
                   {srcLabel}
                 </span>
@@ -1131,13 +1131,13 @@ function DraftHistoryPanel({ threadId, onRestore }: { threadId: string | null; o
               <div style={{ display: 'flex', gap: 6 }}>
                 <button
                   onClick={() => setPreview(expanded ? null : item.id)}
-                  style={{ fontSize: 10, color: '#6b7280', background: '#f4f4f5', border: 'none', borderRadius: 4, padding: '2px 8px', cursor: 'pointer' }}
+                  style={{ fontSize: 10, color: 'var(--text-muted)', background: '#f4f4f5', border: 'none', borderRadius: 4, padding: '2px 8px', cursor: 'pointer' }}
                 >
                   {expanded ? 'Hide' : 'Preview'}
                 </button>
                 <button
                   onClick={() => onRestore(item.body, item.generated_by)}
-                  style={{ fontSize: 10, fontWeight: 600, color: '#fff', background: isCurrent ? '#059669' : '#1d4ed8', border: 'none', borderRadius: 4, padding: '2px 8px', cursor: 'pointer' }}
+                  style={{ fontSize: 10, fontWeight: 600, color: '#fff', background: isCurrent ? 'var(--success)' : 'var(--primary-hex)', border: 'none', borderRadius: 4, padding: '2px 8px', cursor: 'pointer' }}
                 >
                   {isCurrent ? 'Reload' : 'Load'}
                 </button>
@@ -1145,7 +1145,7 @@ function DraftHistoryPanel({ threadId, onRestore }: { threadId: string | null; o
 
               {expanded && (
                 <div style={{ marginTop: 8, padding: '8px 10px', background: '#f8f9fa', borderRadius: 6, border: '1px solid #e5e7eb', maxHeight: 200, overflowY: 'auto' }}>
-                  <pre style={{ margin: 0, fontSize: 11, color: '#374151', whiteSpace: 'pre-wrap', lineHeight: 1.6, fontFamily: 'inherit' }}>
+                  <pre style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.6, fontFamily: 'inherit' }}>
                     {item.body}
                   </pre>
                 </div>
@@ -1190,7 +1190,7 @@ function ContactPanel({
     return () => document.removeEventListener('mousedown', h)
   }, [menuOpen])
 
-  const lbl: React.CSSProperties = { fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#bbb', margin: '0 0 4px' }
+  const lbl: React.CSSProperties = { fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', margin: '0 0 4px' }
   const val: React.CSSProperties = { fontSize: 12, color: '#333', margin: 0, wordBreak: 'break-all' }
 
   return (
@@ -1201,7 +1201,7 @@ function ContactPanel({
         {(['contact', 'drafts'] as const).map(t => (
           <button key={t} onClick={() => setPanelTab(t)} style={{
             flex: 1, padding: '8px 0', fontSize: 11, fontWeight: panelTab === t ? 600 : 400,
-            color: panelTab === t ? '#1677FF' : '#9ca3af', background: 'none', border: 'none',
+            color: panelTab === t ? 'var(--primary-hex)' : 'var(--text-muted)', background: 'none', border: 'none',
             borderBottom: panelTab === t ? '2px solid #1677FF' : '2px solid transparent',
             cursor: 'pointer', textTransform: 'capitalize', letterSpacing: '0.01em',
           }}>
@@ -1295,11 +1295,11 @@ function ContactPanel({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             {allCcs.map(addr => (
               <div key={addr} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(59,130,246,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#1d4ed8', flexShrink: 0 }}>
+                <span style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(59,130,246,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: 'var(--primary-hex)', flexShrink: 0 }}>
                   {addr[0].toUpperCase()}
                 </span>
                 <span style={{ fontSize: 11, color: '#555', wordBreak: 'break-all', flex: 1 }}>{addr}</span>
-                <span style={{ fontSize: 9, color: '#bbb', background: '#f4f4f5', padding: '1px 5px', borderRadius: 4 }}>CC</span>
+                <span style={{ fontSize: 9, color: 'var(--text-muted)', background: '#f4f4f5', padding: '1px 5px', borderRadius: 4 }}>CC</span>
               </div>
             ))}
           </div>
@@ -1318,7 +1318,7 @@ function ContactPanel({
 
       <div style={{ padding: '12px 16px', flex: 1 }}>
         <p style={lbl}>Internal Notes</p>
-        <textarea placeholder="Add notes…" rows={4} style={{ width: '100%', boxSizing: 'border-box', fontSize: 12, color: '#333', lineHeight: 1.6, border: '1px solid #e8e8e8', borderRadius: 8, padding: '8px 10px', resize: 'none', background: '#fafafa', outline: 'none', fontFamily: 'inherit' }} />
+        <textarea placeholder="Add notes…" rows={4} style={{ width: '100%', boxSizing: 'border-box', fontSize: 12, color: '#333', lineHeight: 1.6, border: '1px solid #e8e8e8', borderRadius: 8, padding: '8px 10px', resize: 'none', background: 'hsl(var(--background))', outline: 'none', fontFamily: 'inherit' }} />
       </div>
       </>}
     </div>
@@ -1407,7 +1407,7 @@ function ThreadView({
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
-                <span style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.02em', lineHeight: 1.3 }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1.3 }}>
                   {thread?.subject ?? lead.subject ?? lead.topic ?? fullName(lead)}
                 </span>
                 {needsReply && (
@@ -1418,11 +1418,11 @@ function ThreadView({
                 )}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 11.5, color: '#6b7280' }}>
+                <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
                   {fullName(lead)}{lead.email ? ` · ${lead.email}` : ''}{lead.company ? ` · ${lead.company}` : ''}
                 </span>
                 {messages.length > 0 && (
-                  <span style={{ fontSize: 10.5, color: '#9ca3af', background: '#f3f4f6', padding: '1px 7px', borderRadius: 20 }}>
+                  <span style={{ fontSize: 10.5, color: 'var(--text-muted)', background: '#f3f4f6', padding: '1px 7px', borderRadius: 20 }}>
                     {messages.length} email{messages.length !== 1 ? 's' : ''}
                   </span>
                 )}
@@ -1461,12 +1461,12 @@ function ThreadView({
           <CampaignContextPanel ctx={lead.campaign_context} />
         )}
 
-        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20, padding: '20px 20px', background: '#f5f7fa' }}>
-          {loading && <div style={{ textAlign: 'center', padding: '48px 0', fontSize: 12, color: '#bbb' }}>Loading email thread…</div>}
+        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20, padding: '20px 20px', background: 'hsl(var(--background))' }}>
+          {loading && <div style={{ textAlign: 'center', padding: '48px 0', fontSize: 12, color: 'var(--text-muted)' }}>Loading email thread…</div>}
           {!loading && error && <div style={{ textAlign: 'center', padding: '32px 0', fontSize: 12, color: '#ef4444' }}>{error}</div>}
           {!loading && !error && messages.length === 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '24px 18px' }}>
-              <div style={{ textAlign: 'center', fontSize: 12, color: '#bbb' }}>
+              <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-muted)' }}>
                 No email thread found for {lead.email ?? 'this contact'}.
               </div>
               {initialMsg && (
@@ -1497,13 +1497,13 @@ function ThreadView({
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '0 16px', height: 38, flexShrink: 0, cursor: 'pointer', userSelect: 'none',
             borderTop: '1px solid #e8eaed',
-            background: showReply ? '#ffffff' : '#f9fafb',
+            background: showReply ? 'var(--surface-solid)' : 'hsl(var(--background))',
           }}
         >
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
             ✏ Reply
           </span>
-          <ChevronDown size={14} style={{ color: '#9ca3af', transform: showReply ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+          <ChevronDown size={14} style={{ color: 'var(--text-muted)', transform: showReply ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
         </div>
         {showReply && (
           <AIDraftPanel lead={lead} thread={thread} messages={messages} storedDraft={latestSummary?.draft_reply} storedRagDraft={ragDraft?.content ?? null} storedRagSources={ragDraft?.sources ?? []} onRagRefresh={refreshRagDraft} onThreadRefresh={onThreadRefresh} pendingRestore={pendingRestore} />
@@ -1545,7 +1545,7 @@ function LeadListItem({
         background: isActive ? '#f0f6ff' : '#fff',
         border: 'none', borderLeft: 'none', cursor: 'pointer', display: 'block',
         borderLeftWidth: 3, borderLeftStyle: 'solid',
-        borderLeftColor: isActive ? '#1677FF' : needsReply ? '#f59e0b' : 'transparent',
+        borderLeftColor: isActive ? 'var(--primary-hex)' : needsReply ? '#f59e0b' : 'transparent',
         transition: 'background 0.1s',
       }}
     >
@@ -1555,8 +1555,8 @@ function LeadListItem({
           width: 34, height: 34, borderRadius: '50%', flexShrink: 0, marginTop: 1,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 13, fontWeight: 700,
-          background: isActive ? 'rgba(22,119,255,0.12)' : '#f3f4f6',
-          color: isActive ? '#1677FF' : '#6b7280',
+          background: isActive ? 'var(--primary-selected-bg)' : '#f3f4f6',
+          color: isActive ? 'var(--primary-hex)' : 'var(--text-muted)',
         }}>
           {initial}
         </div>
@@ -1566,13 +1566,13 @@ function LeadListItem({
             <p style={{ margin: 0, fontSize: 12.5, fontWeight: 600, color: '#111', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
               {name || (lead.email?.split('@')[0] ?? '—')}
             </p>
-            <span style={{ fontSize: 10.5, color: '#9ca3af', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{timeAgo(lastMsg?.sent_at ?? lead.created_at)}</span>
+            <span style={{ fontSize: 10.5, color: 'var(--text-muted)', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{timeAgo(lastMsg?.sent_at ?? lead.created_at)}</span>
           </div>
-          <p style={{ margin: '0 0 3px', fontSize: 11, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <p style={{ margin: '0 0 3px', fontSize: 11, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {lead.subject ?? lead.topic ?? lead.company ?? lead.email ?? '—'}
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <p style={{ margin: 0, flex: 1, fontSize: 11, color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <p style={{ margin: 0, flex: 1, fontSize: 11, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {previewText}
             </p>
             {needsReply && (
@@ -1710,7 +1710,7 @@ export default function EngagementPage() {
                   </span>
                 )}
               </div>
-              <button onClick={() => load(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#bbb', display: 'flex' }}>
+              <button onClick={() => load(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
                 <RefreshCw size={13} strokeWidth={2} style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }} />
               </button>
             </div>
@@ -1733,11 +1733,11 @@ export default function EngagementPage() {
               <div style={{ position: 'relative' }} ref={filterRef}>
                 <button
                   onClick={() => setFilterOpen(v => !v)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: hasFilters ? '#3b82f6' : '#555', background: '#fff', border: `1px solid ${hasFilters ? '#93c5fd' : '#e8e8e8'}`, borderRadius: 7, padding: '5px 9px', cursor: 'pointer' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: hasFilters ? '#3b82f6' : '#555', background: '#fff', border: `1px solid ${hasFilters ? '#93c5fd' : 'var(--border-subtle)'}`, borderRadius: 7, padding: '5px 9px', cursor: 'pointer' }}
                 >
                   <SlidersHorizontal size={11} strokeWidth={2} />
                   {SORT_LABELS[sortKey]}
-                  <ChevronDown size={10} strokeWidth={2} style={{ color: '#bbb' }} />
+                  <ChevronDown size={10} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />
                 </button>
                 {filterOpen && (
                   <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, background: '#fff', border: '1px solid #e8e8e8', borderRadius: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.10)', zIndex: 50, padding: '12px', minWidth: 220 }}>
@@ -1750,10 +1750,10 @@ export default function EngagementPage() {
                     ))}
                     <p style={{ margin: '12px 0 6px', fontSize: 10, fontWeight: 600, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date range</p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Calendar size={10} style={{ color: '#bbb', flexShrink: 0 }} />
+                      <Calendar size={10} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                       <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
                         style={{ flex: 1, fontSize: 11, border: '1px solid #e8e8e8', borderRadius: 6, padding: '4px 6px', color: '#555', background: '#fff', outline: 'none', fontFamily: 'inherit', minWidth: 0 }} />
-                      <span style={{ fontSize: 10, color: '#bbb' }}>–</span>
+                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>–</span>
                       <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
                         style={{ flex: 1, fontSize: 11, border: '1px solid #e8e8e8', borderRadius: 6, padding: '4px 6px', color: '#555', background: '#fff', outline: 'none', fontFamily: 'inherit', minWidth: 0 }} />
                     </div>
@@ -1768,7 +1768,7 @@ export default function EngagementPage() {
             </div>
           </div>
 
-          <div style={{ padding: '6px 14px', borderBottom: '1px solid #f0f0f0', flexShrink: 0, background: '#fafafa' }}>
+          <div style={{ padding: '6px 14px', borderBottom: '1px solid #f0f0f0', flexShrink: 0, background: 'hsl(var(--background))' }}>
             <span style={{ fontSize: 11, color: '#aaa' }}>
               {loading ? 'Loading…' : `${visible.length} conversation${visible.length !== 1 ? 's' : ''}${hasFilters ? ' matching' : ''}`}
             </span>
@@ -1776,10 +1776,10 @@ export default function EngagementPage() {
 
           <div style={{ flex: 1, overflowY: 'auto' }}>
             {loading ? (
-              <div style={{ padding: '48px 0', textAlign: 'center', fontSize: 12, color: '#bbb' }}>Loading…</div>
+              <div style={{ padding: '48px 0', textAlign: 'center', fontSize: 12, color: 'var(--text-muted)' }}>Loading…</div>
             ) : visible.length === 0 ? (
               <div style={{ padding: '48px 16px', textAlign: 'center' }}>
-                <p style={{ fontSize: 12, color: '#bbb', marginBottom: 8 }}>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
                   {hasFilters ? 'No conversations match your search.' : 'No engaged conversations yet.'}
                 </p>
                 {hasFilters && (
@@ -1810,9 +1810,9 @@ export default function EngagementPage() {
             onThreadRefresh={refreshSelectedThread}
           />
         ) : (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#bbb', gap: 8 }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', gap: 8 }}>
             <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: '#888' }}>Select a conversation</p>
-            <p style={{ margin: 0, fontSize: 12, color: '#bbb' }}>
+            <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
               {loading ? 'Loading…' : leads.length === 0 ? 'No engaged leads yet. Change a lead status to Contacted or above.' : 'Choose from the list on the left.'}
             </p>
           </div>

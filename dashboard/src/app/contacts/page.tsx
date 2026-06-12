@@ -17,14 +17,14 @@ interface Contact {
 type CompanyGroup = { company: string | null; contacts: Contact[] }
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  new:       { bg: '#eff6ff', text: '#2563eb' },
-  contacted: { bg: '#fefce8', text: '#b45309' },
-  engaged:   { bg: '#eff6ff', text: '#1d4ed8' },
-  qualified: { bg: '#f5f3ff', text: '#7c3aed' },
-  proposal:  { bg: '#fffbeb', text: '#d97706' },
-  converted: { bg: '#f0fdf4', text: '#059669' },
-  dropped:   { bg: '#f9fafb', text: '#6b7280' },
-  cc:        { bg: '#f9fafb', text: '#9ca3af' },
+  new:       { bg: 'rgba(15,61,145,0.07)',  text: '#0F3D91' },
+  contacted: { bg: 'rgba(194,122,7,0.08)',  text: '#C27A07' },
+  engaged:   { bg: 'rgba(15,61,145,0.07)',  text: '#0F3D91' },
+  qualified: { bg: 'rgba(15,138,95,0.08)',  text: '#0F8A5F' },
+  proposal:  { bg: 'rgba(194,122,7,0.08)',  text: '#C27A07' },
+  converted: { bg: 'rgba(15,138,95,0.08)',  text: '#0F8A5F' },
+  dropped:   { bg: 'rgba(20,30,50,0.05)',   text: '#667085' },
+  cc:        { bg: 'rgba(20,30,50,0.04)',   text: '#9ca3af' },
 }
 
 const SOURCE_LABEL: Record<string, string> = {

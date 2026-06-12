@@ -35,11 +35,11 @@ interface OutboundLead {
 }
 
 const STATUS_STYLE: Record<Status, { bg: string; color: string }> = {
-  new:          { bg: '#f4f4f5', color: '#555'    },
-  contacted:    { bg: '#eff6ff', color: '#1d4ed8' },
-  replied:      { bg: '#fef3c7', color: '#92400e' },
-  qualified:    { bg: '#f0fdf4', color: '#166534' },
-  disqualified: { bg: '#fef2f2', color: '#991b1b' },
+  new:          { bg: 'rgba(20,30,50,0.05)',  color: '#667085' },
+  contacted:    { bg: 'rgba(15,61,145,0.07)', color: '#0F3D91' },
+  replied:      { bg: 'rgba(194,122,7,0.08)', color: '#C27A07' },
+  qualified:    { bg: 'rgba(15,138,95,0.08)', color: '#0F8A5F' },
+  disqualified: { bg: 'rgba(194,65,77,0.08)', color: '#C2414D' },
 }
 
 const SOURCE_LABEL: Record<Source, string> = {

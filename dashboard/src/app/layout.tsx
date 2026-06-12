@@ -23,7 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AntdRegistry>
           <ConfigProvider theme={{
             token: {
-              colorPrimary:     '#2563eb',
+              colorPrimary:     '#0F3D91',
               fontFamily:       'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
               borderRadius:     8,
               colorBgContainer: '#ffffff',

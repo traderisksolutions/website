@@ -86,10 +86,10 @@ export default function Sidebar() {
     >
       {/* ── Logo / Brand ── */}
       <div className="flex items-center gap-3 px-4 h-[52px] flex-shrink-0"
-        style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}
+        style={{ borderBottom: '1px solid var(--border-subtle)' }}
       >
         <div className="flex items-center justify-center rounded-lg flex-shrink-0"
-          style={{ width: 32, height: 32, background: 'hsl(var(--sidebar-ring))', boxShadow: '0 0 0 2px rgba(96,165,250,0.25)' }}
+          style={{ width: 32, height: 32, background: 'hsl(var(--sidebar-ring))', boxShadow: '0 0 0 2px var(--primary-focus-ring)' }}
         >
           <span className="text-[10px] font-black text-white tracking-tight">TRS</span>
         </div>
@@ -108,7 +108,7 @@ export default function Sidebar() {
       {/* ── Search ── */}
       <div className="px-3 pt-3 pb-1 flex-shrink-0">
         <div className="flex items-center gap-2 rounded-md px-3 h-8 cursor-pointer group"
-          style={{ background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.07)' }}
+          style={{ background: 'var(--neutral-status-bg)', border: '1px solid var(--border-subtle)' }}
         >
           <Search size={12} style={{ color: 'hsl(var(--sidebar-fg))' }} />
           <span className="text-[12px] flex-1" style={{ color: 'hsl(var(--sidebar-fg))' }}>Search...</span>
@@ -165,10 +165,10 @@ export default function Sidebar() {
             <NavItem label="Active Contacts"      href="/contacts"   icon={Users} badge={totalEngaged || undefined} isActive={active('/contacts')} />
             {totalEngaged > 0 && (
               <div className="flex flex-wrap gap-1 pl-7 pb-1">
-                {stages.engaged   > 0 && <StagePill label="Engaged"   count={stages.engaged}   color="#60a5fa" />}
-                {stages.qualified > 0 && <StagePill label="Qualified" count={stages.qualified} color="#a78bfa" />}
-                {stages.proposal  > 0 && <StagePill label="Proposal"  count={stages.proposal}  color="#fbbf24" />}
-                {stages.converted > 0 && <StagePill label="Converted" count={stages.converted} color="#34d399" />}
+                {stages.engaged   > 0 && <StagePill label="Engaged"   count={stages.engaged}   color="#0F3D91" />}
+                {stages.qualified > 0 && <StagePill label="Qualified" count={stages.qualified} color="#475467" />}
+                {stages.proposal  > 0 && <StagePill label="Proposal"  count={stages.proposal}  color="#C27A07" />}
+                {stages.converted > 0 && <StagePill label="Converted" count={stages.converted} color="#0F8A5F" />}
               </div>
             )}
             <NavItem label="Engagement AI Agent" href="/engagement" icon={Bot} isActive={active('/engagement')} />
@@ -199,7 +199,7 @@ export default function Sidebar() {
 
       {/* ── Footer ── */}
       <div className="flex items-center gap-2.5 px-3 py-3 flex-shrink-0"
-        style={{ borderTop: '1px solid rgba(0,0,0,0.07)' }}
+        style={{ borderTop: '1px solid var(--border-subtle)' }}
       >
         <div className="flex items-center justify-center rounded-full flex-shrink-0 text-[11px] font-bold"
           style={{ width: 28, height: 28, background: 'rgba(0,0,0,0.06)', color: 'hsl(var(--sidebar-primary))' }}
@@ -230,7 +230,7 @@ export default function Sidebar() {
 
 function SectionDivider() {
   return (
-    <div className="my-2 mx-2 h-px" style={{ background: 'rgba(0,0,0,0.07)' }} />
+    <div className="my-2 mx-2 h-px" style={{ background: 'var(--border-subtle)' }} />
   )
 }
 
