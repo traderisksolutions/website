@@ -36,15 +36,15 @@
     --ring:                  221 83% 53%;
     --radius:                0.5rem;
 
-    /* ── Deep navy blue sidebar (#172554 palette) ── */
-    --sidebar-bg:          224 71% 20%;   /* #172554  blue-950  */
-    --sidebar-fg:          213 50% 70%;   /* #7eb8f7  muted blue text */
-    --sidebar-primary:     213 97% 87%;   /* #bfdbfe  blue-200  */
-    --sidebar-primary-fg:  224 71% 15%;   /* very dark navy */
-    --sidebar-accent:      224 64% 27%;   /* #1e3a8a  blue-900 hover */
-    --sidebar-accent-fg:   213 97% 87%;   /* #bfdbfe  */
-    --sidebar-border:      224 60% 24%;   /* slightly lighter than bg */
-    --sidebar-ring:        213 94% 68%;   /* #60a5fa  blue-400 */
+    /* ── Light sidebar — deep blue as accent only ── */
+    --sidebar-bg:          0 0% 100%;     /* white */
+    --sidebar-fg:          215 16% 47%;   /* gray-500 */
+    --sidebar-primary:     222 47% 11%;   /* gray-900 text */
+    --sidebar-primary-fg:  0 0% 100%;     /* white */
+    --sidebar-accent:      210 40% 96%;   /* gray-100 hover */
+    --sidebar-accent-fg:   221 83% 53%;   /* blue-600 active */
+    --sidebar-border:      214 32% 91%;   /* gray-200 */
+    --sidebar-ring:        221 83% 53%;   /* blue-600 accent */
 
     /* Legacy tokens — kept for compatibility */
     --sidebar-width:        240px;
@@ -117,4 +117,50 @@
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid rgba(255,255,255,0.75);
+}
+
+/* ── Glass refraction buttons ── */
+@keyframes glass-shimmer {
+  0%   { transform: translateX(-100%) skewX(-15deg); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateX(300%)  skewX(-15deg); opacity: 0; }
+}
+
+.btn-glass {
+  position: relative;
+  overflow: hidden;
+  border-top: 1px solid rgba(255, 255, 255, 0.30) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.20) !important;
+}
+
+.btn-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.16) 0%,
+    rgba(255,255,255,0.04) 55%,
+    rgba(0,0,0,0.06) 100%
+  );
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.btn-glass::after {
+  content: '';
+  position: absolute;
+  top: -10%;
+  left: -60%;
+  width: 40%;
+  height: 120%;
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0)    0%,
+    rgba(255,255,255,0.28) 50%,
+    rgba(255,255,255,0)    100%
+  );
+  animation: glass-shimmer 5s ease-in-out 0.8s infinite;
+  pointer-events: none;
 }

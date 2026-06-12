@@ -1447,63 +1447,49 @@ function LeadListItem({
   threadState: ThreadState | undefined
   onClick:     () => void
 }) {
-  const msgs        = threadState?.messages ?? []
-  const lastMsg     = msgs.at(-1)
-  const needsReply  = lastMsg?.direction === 'inbound'
-
-  const previewText = lastMsg
-    ? `${lastMsg.direction === 'outbound' ? 'You: ' : ''}${(lastMsg.body_text ?? '').split('\n').find(l => l.trim()) ?? ''}`
-    : (lead.details || lead.message || lead.topic || '—')
-
-  const name    = fullName(lead)
-  const initial = (name[0] ?? lead.email?.[0] ?? '?').toUpperCase()
+  const msgs       = threadState?.messages ?? []
+  const lastMsg    = msgs.at(-1)
+  const needsReply = lastMsg?.direction === 'inbound'
+  const subject    = lead.subject ?? lead.topic ?? lead.company ?? lead.email ?? '—'
 
   return (
     <button
       onClick={onClick}
       style={{
-        width: '100%', textAlign: 'left', padding: '10px 14px',
-        borderBottom: '1px solid #f0f0f0',
-        background: isActive ? '#f0f6ff' : '#fff',
-        border: 'none', borderLeft: 'none', cursor: 'pointer', display: 'block',
-        borderLeftWidth: 3, borderLeftStyle: 'solid',
-        borderLeftColor: isActive ? '#1677FF' : needsReply ? '#f59e0b' : 'transparent',
+        width: '100%', textAlign: 'left',
+        padding: '9px 14px',
+        background: isActive ? '#eff6ff' : '#fff',
+        border: 'none', cursor: 'pointer', display: 'block',
+        borderBottom: '1px solid #f3f4f6',
+        borderLeft: `3px solid ${isActive ? '#2563eb' : needsReply ? '#f59e0b' : 'transparent'}`,
         transition: 'background 0.1s',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-        {/* Avatar */}
-        <div style={{
-          width: 34, height: 34, borderRadius: '50%', flexShrink: 0, marginTop: 1,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 13, fontWeight: 700,
-          background: isActive ? 'rgba(22,119,255,0.12)' : '#f3f4f6',
-          color: isActive ? '#1677FF' : '#6b7280',
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <p style={{
+          margin: 0, flex: 1, fontSize: 12.5, fontWeight: isActive ? 600 : 500,
+          color: isActive ? '#1d4ed8' : '#374151',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          letterSpacing: '-0.01em',
         }}>
-          {initial}
-        </div>
-
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 2 }}>
-            <p style={{ margin: 0, fontSize: 12.5, fontWeight: 600, color: '#111', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
-              {name || (lead.email?.split('@')[0] ?? '—')}
-            </p>
-            <span style={{ fontSize: 10.5, color: '#9ca3af', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{timeAgo(lastMsg?.sent_at ?? lead.created_at)}</span>
-          </div>
-          <p style={{ margin: '0 0 3px', fontSize: 11, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {lead.subject ?? lead.topic ?? lead.company ?? lead.email ?? '—'}
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <p style={{ margin: 0, flex: 1, fontSize: 11, color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {previewText}
-            </p>
-            {needsReply && (
-              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} />
-            )}
-            {lead.campaign_context && (
-              <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 8, background: '#fef3c7', color: '#b45309', flexShrink: 0 }}>C</span>
-            )}
-          </div>
+          {subject}
+        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+          {needsReply && (
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b' }} />
+          )}
+          {msgs.length > 0 && (
+            <span style={{
+              fontSize: 10, fontWeight: 700,
+              minWidth: 18, height: 18, borderRadius: 9,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              padding: '0 5px',
+              background: isActive ? '#2563eb' : '#e5e7eb',
+              color: isActive ? '#fff' : '#6b7280',
+            }}>
+              {msgs.length}
+            </span>
+          )}
         </div>
       </div>
     </button>

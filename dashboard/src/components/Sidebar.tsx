@@ -277,7 +277,7 @@ function NavItem({
         color: disabled
           ? 'hsl(var(--sidebar-fg) / 0.35)'
           : isActive
-          ? 'hsl(var(--sidebar-primary))'
+          ? 'hsl(var(--sidebar-ring))'
           : 'hsl(var(--sidebar-fg))',
         textDecoration: 'none',
         borderLeft: isActive ? '2px solid hsl(var(--sidebar-ring))' : '2px solid transparent',
