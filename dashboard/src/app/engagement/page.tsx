@@ -1369,7 +1369,9 @@ function ThreadView({
   const [ragDraft,         setRagDraft]         = useState<{ content: string; sources: RagSource[] } | null>(null)
   const [pendingRestore,   setPendingRestore]   = useState<{ body: string; generatedBy: string; stamp: number } | null>(null)
   const [showReply,        setShowReply]        = useState(true)
+  const [replyOverlayH,    setReplyOverlayH]    = useState(38)
   const [selectedMsgId,    setSelectedMsgId]    = useState<string | null>(null)
+  const replyOverlayRef = useRef<HTMLDivElement>(null)
   const threadId        = thread?.id ?? null
   const latestSummary   = summaries[0] ?? null
   const latestMessageId = messages.at(-1)?.id ?? null
@@ -1377,6 +1379,15 @@ function ThreadView({
 
   // Reset selected message when switching leads
   useEffect(() => { setSelectedMsgId(null) }, [lead.id])
+
+  // Track reply overlay height so messages paddingBottom stays in sync
+  useEffect(() => {
+    const el = replyOverlayRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => setReplyOverlayH(el.getBoundingClientRect().height))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   // Default to the most recent message; update when user expands a specific one
   const selectedMsg = (selectedMsgId ? messages.find(m => m.id === selectedMsgId) : null) ?? messages.at(-1) ?? null
@@ -1489,54 +1500,69 @@ function ThreadView({
           <CampaignContextPanel ctx={lead.campaign_context} />
         )}
 
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20, padding: '20px 20px', background: 'hsl(var(--background))' }}>
-          {loading && <div style={{ textAlign: 'center', padding: '48px 0', fontSize: 12, color: 'var(--text-muted)' }}>Loading email thread…</div>}
-          {!loading && error && <div style={{ textAlign: 'center', padding: '32px 0', fontSize: 12, color: '#ef4444' }}>{error}</div>}
-          {!loading && !error && messages.length === 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '24px 18px' }}>
-              <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-muted)' }}>
-                No email thread found for {lead.email ?? 'this contact'}.
-              </div>
-              {initialMsg && (
-                <div style={{ border: '1px solid #e8e8e8', borderRadius: 10, padding: 14, background: '#fff' }}>
-                  <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 600, color: '#aaa' }}>Original message from lead form</p>
-                  <p style={{ margin: 0, fontSize: 13, color: '#333', whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{initialMsg}</p>
+        {/* Relative wrapper — thread scrolls freely, reply panel overlays at bottom */}
+        <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
+          {/* Messages: fills entire area, padded bottom so last message scrolls above the overlay */}
+          <div style={{
+            position: 'absolute', inset: 0, overflowY: 'auto',
+            display: 'flex', flexDirection: 'column', gap: 20,
+            padding: `20px 20px ${replyOverlayH}px`,
+            background: 'hsl(var(--background))',
+          }}>
+            {loading && <div style={{ textAlign: 'center', padding: '48px 0', fontSize: 12, color: 'var(--text-muted)' }}>Loading email thread…</div>}
+            {!loading && error && <div style={{ textAlign: 'center', padding: '32px 0', fontSize: 12, color: '#ef4444' }}>{error}</div>}
+            {!loading && !error && messages.length === 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '24px 18px' }}>
+                <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-muted)' }}>
+                  No email thread found for {lead.email ?? 'this contact'}.
                 </div>
-              )}
-            </div>
-          )}
-          {!loading && (() => {
-            // kExpandAuto: always expand the last message + the last inbound message.
-            // Outbound messages that aren't the last collapse — you already know what you wrote.
-            const lastInboundIdx = messages.reduce((found, m, i) => m.direction === 'inbound' ? i : found, -1)
-            return messages.map((msg, i) => (
-              <EmailCard
-                key={msg.id} msg={msg} index={i + 1}
-                defaultOpen={i === messages.length - 1 || i === lastInboundIdx}
-                onOpen={(id) => setSelectedMsgId(id)}
-              />
-            ))
-          })()}
-        </div>
+                {initialMsg && (
+                  <div style={{ border: '1px solid #e8e8e8', borderRadius: 10, padding: 14, background: '#fff' }}>
+                    <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 600, color: '#aaa' }}>Original message from lead form</p>
+                    <p style={{ margin: 0, fontSize: 13, color: '#333', whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{initialMsg}</p>
+                  </div>
+                )}
+              </div>
+            )}
+            {!loading && (() => {
+              // kExpandAuto: always expand the last message + the last inbound message.
+              // Outbound messages that aren't the last collapse — you already know what you wrote.
+              const lastInboundIdx = messages.reduce((found, m, i) => m.direction === 'inbound' ? i : found, -1)
+              return messages.map((msg, i) => (
+                <EmailCard
+                  key={msg.id} msg={msg} index={i + 1}
+                  defaultOpen={i === messages.length - 1 || i === lastInboundIdx}
+                  onOpen={(id) => setSelectedMsgId(id)}
+                />
+              ))
+            })()}
+          </div>
 
-        {/* Reply panel toggle bar */}
-        <div
-          onClick={() => setShowReply(v => !v)}
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '0 16px', height: 38, flexShrink: 0, cursor: 'pointer', userSelect: 'none',
-            borderTop: '1px solid #e8eaed',
-            background: showReply ? 'var(--surface-solid)' : 'hsl(var(--background))',
-          }}
-        >
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-            ✏ Reply
-          </span>
-          <ChevronDown size={14} style={{ color: 'var(--text-muted)', transform: showReply ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+          {/* Reply overlay — floats at the bottom over the thread, never squishes it */}
+          <div ref={replyOverlayRef} style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0,
+            zIndex: 10,
+            boxShadow: showReply ? '0 -4px 20px rgba(0,0,0,0.08)' : 'none',
+          }}>
+            <div
+              onClick={() => setShowReply(v => !v)}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '0 16px', height: 38, cursor: 'pointer', userSelect: 'none',
+                borderTop: '1px solid #e8eaed',
+                background: showReply ? 'var(--surface-solid)' : 'hsl(var(--background))',
+              }}
+            >
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                ✏ Reply
+              </span>
+              <ChevronDown size={14} style={{ color: 'var(--text-muted)', transform: showReply ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+            </div>
+            {showReply && (
+              <AIDraftPanel lead={lead} thread={thread} messages={messages} storedDraft={latestSummary?.draft_reply} storedRagDraft={ragDraft?.content ?? null} storedRagSources={ragDraft?.sources ?? []} onRagRefresh={refreshRagDraft} onThreadRefresh={onThreadRefresh} pendingRestore={pendingRestore} />
+            )}
+          </div>
         </div>
-        {showReply && (
-          <AIDraftPanel lead={lead} thread={thread} messages={messages} storedDraft={latestSummary?.draft_reply} storedRagDraft={ragDraft?.content ?? null} storedRagSources={ragDraft?.sources ?? []} onRagRefresh={refreshRagDraft} onThreadRefresh={onThreadRefresh} pendingRestore={pendingRestore} />
-        )}
       </div>
 
       <ContactPanel lead={lead} messages={messages} onStatus={onStatus} threadId={threadId} selectedMsg={selectedMsg} onRestoreDraft={(body, generatedBy) => setPendingRestore({ body, generatedBy, stamp: Date.now() })} />
