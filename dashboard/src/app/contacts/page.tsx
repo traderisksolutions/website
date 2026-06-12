@@ -1,41 +1,33 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 interface Contact {
-  id:         string
-  first_name: string | null
-  last_name:  string | null
-  email:      string | null
-  company:    string | null
-  phone?:     string | null
-  message?:   string | null
-  status:     string
-  source:     string
-  department?: string | null
-  created_at: string
-  isCC?:      boolean
+  id: string; first_name: string | null; last_name: string | null
+  email: string | null; company: string | null; phone?: string | null
+  message?: string | null; status: string; source: string
+  department?: string | null; created_at: string; isCC?: boolean
 }
 
 type CompanyGroup = { company: string | null; contacts: Contact[] }
 
-const STATUS_COLORS: Record<string, string> = {
-  new:       '#1677FF',
-  contacted: '#b45309',
-  engaged:   '#2563eb',
-  qualified: '#7c3aed',
-  proposal:  '#d97706',
-  converted: '#059669',
-  dropped:   '#4b5563',
-  cc:        '#9ca3af',
+const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
+  new:       { bg: '#eff6ff', text: '#2563eb' },
+  contacted: { bg: '#fefce8', text: '#b45309' },
+  engaged:   { bg: '#eff6ff', text: '#1d4ed8' },
+  qualified: { bg: '#f5f3ff', text: '#7c3aed' },
+  proposal:  { bg: '#fffbeb', text: '#d97706' },
+  converted: { bg: '#f0fdf4', text: '#059669' },
+  dropped:   { bg: '#f9fafb', text: '#6b7280' },
+  cc:        { bg: '#f9fafb', text: '#9ca3af' },
 }
 
 const SOURCE_LABEL: Record<string, string> = {
-  website_form:   'Website',
-  email:          'Email',
-  manual:         'Manual',
-  whatsapp_click: 'WhatsApp',
-  claims_form:    'Claims',
+  website_form: 'Website', email: 'Email', manual: 'Manual',
+  whatsapp_click: 'WhatsApp', claims_form: 'Claims',
 }
 
 const STATUS_OPTIONS = ['all', 'new', 'contacted', 'engaged', 'qualified', 'proposal', 'converted', 'dropped', 'cc']
@@ -49,18 +41,11 @@ function inferCompany(email: string | null): string | null {
   if (!email) return null
   const domain = email.split('@')[1]?.toLowerCase()
   if (!domain || PERSONAL_DOMAINS.has(domain)) return null
-  // Use the label before the first dot, title-cased
   const name = domain.split('.')[0]
   return name.charAt(0).toUpperCase() + name.slice(1)
 }
-
-function resolvedCompany(c: Contact): string | null {
-  return c.company?.trim() || inferCompany(c.email) || null
-}
-
-function fullName(c: Contact) {
-  return [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || '—'
-}
+function resolvedCompany(c: Contact) { return c.company?.trim() || inferCompany(c.email) || null }
+function fullName(c: Contact) { return [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || '—' }
 
 function groupByCompany(contacts: Contact[]): CompanyGroup[] {
   const map = new Map<string, Contact[]>()
@@ -69,19 +54,13 @@ function groupByCompany(contacts: Contact[]): CompanyGroup[] {
     if (!map.has(key)) map.set(key, [])
     map.get(key)!.push(c)
   }
-  // Sort: named companies A-Z, '—' last
-  const groups: CompanyGroup[] = []
   const sorted = Array.from(map.entries()).sort(([a], [b]) => {
-    if (a === '—') return 1
-    if (b === '—') return -1
-    return a.localeCompare(b)
+    if (a === '—') return 1; if (b === '—') return -1; return a.localeCompare(b)
   })
-  for (const [company, contacts] of sorted) {
-    const primary = contacts.filter(c => !c.isCC)
-    const cc      = contacts.filter(c => c.isCC)
-    groups.push({ company: company === '—' ? null : company, contacts: [...primary, ...cc] })
-  }
-  return groups
+  return sorted.map(([company, contacts]) => {
+    const primary = contacts.filter(c => !c.isCC); const cc = contacts.filter(c => c.isCC)
+    return { company: company === '—' ? null : company, contacts: [...primary, ...cc] }
+  })
 }
 
 export default function ContactsPage() {
@@ -93,31 +72,21 @@ export default function ContactsPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/leads',                        { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
-      fetch('/api/engagement/conversations',      { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
-      fetch('/api/contacts/cc-participants',      { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
+      fetch('/api/leads', { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
+      fetch('/api/engagement/conversations', { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
+      fetch('/api/contacts/cc-participants', { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
     ]).then(([inbound, conversations, ccList]: [Contact[], Contact[], Contact[]]) => {
-      const seen   = new Set<string>()
-      const merged: Contact[] = []
-
+      const seen: string[] = []; const merged: Contact[] = []
       for (const l of (Array.isArray(inbound) ? inbound : [])) {
-        merged.push(l)
-        if (l.email) seen.add(l.email.toLowerCase())
+        merged.push(l); if (l.email) seen.push(l.email.toLowerCase())
       }
       for (const c of (Array.isArray(conversations) ? conversations : [])) {
-        if (c.email && !seen.has(c.email.toLowerCase())) {
-          merged.push(c)
-          seen.add(c.email.toLowerCase())
-        }
+        if (c.email && !seen.includes(c.email.toLowerCase())) { merged.push(c); seen.push(c.email.toLowerCase()) }
       }
       for (const c of (Array.isArray(ccList) ? ccList : [])) {
-        if (c.email && !seen.has(c.email.toLowerCase())) {
-          merged.push({ ...c, isCC: true })
-          seen.add(c.email.toLowerCase())
-        }
+        if (c.email && !seen.includes(c.email.toLowerCase())) { merged.push({ ...c, isCC: true }); seen.push(c.email.toLowerCase()) }
       }
-      setContacts(merged)
-      setLoading(false)
+      setContacts(merged); setLoading(false)
     }).catch(() => setLoading(false))
   }, [])
 
@@ -125,39 +94,36 @@ export default function ContactsPage() {
   const groups   = groupByCompany(filtered)
 
   function toggleCollapse(company: string) {
-    setCollapsed(prev => {
-      const next = new Set(prev)
-      next.has(company) ? next.delete(company) : next.add(company)
-      return next
-    })
+    setCollapsed(prev => { const next = new Set(prev); next.has(company) ? next.delete(company) : next.add(company); return next })
   }
 
-  const ccCount      = contacts.filter(c => c.isCC).length
+  const ccCount = contacts.filter(c => c.isCC).length
   const primaryCount = contacts.length - ccCount
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <div className="flex h-screen overflow-hidden">
 
       {/* ── Table area ── */}
-      <div style={{ flex: 1, overflow: 'auto', padding: '24px 28px' }}>
+      <div className="flex-1 overflow-auto p-6 lg:p-8">
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div className="flex items-start justify-between mb-5 gap-4">
           <div>
-            <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#111', letterSpacing: '-0.02em' }}>Contacts</h1>
-            <p style={{ margin: '4px 0 0', fontSize: 13, color: '#aaa' }}>
+            <h1 className="text-xl font-bold tracking-tight text-foreground">Contacts</h1>
+            <p className="text-sm text-muted-foreground mt-1">
               {loading ? 'Loading…' : `${primaryCount} contact${primaryCount !== 1 ? 's' : ''} · ${ccCount} CC`}
             </p>
           </div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <div className="flex flex-wrap gap-1.5">
             {STATUS_OPTIONS.map(s => (
-              <button key={s} onClick={() => setFilter(s)} style={{
-                padding: '5px 12px', fontSize: 11, borderRadius: 20, border: '1px solid',
-                fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize',
-                borderColor: filter === s ? '#111' : '#e5e5e5',
-                background:  filter === s ? '#111' : '#fff',
-                color:       filter === s ? '#fff' : '#888',
-              }}>
+              <button key={s} onClick={() => setFilter(s)}
+                className={cn(
+                  'px-3 py-1 text-[11px] font-semibold rounded-full border transition-colors capitalize',
+                  filter === s
+                    ? 'bg-foreground text-background border-foreground'
+                    : 'bg-background text-muted-foreground border-border hover:border-muted-foreground'
+                )}
+              >
                 {s}
               </button>
             ))}
@@ -165,17 +131,15 @@ export default function ContactsPage() {
         </div>
 
         {loading ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, color: '#bbb', fontSize: 13 }}>
-            Loading contacts…
-          </div>
+          <div className="flex items-center justify-center h-48 text-sm text-muted-foreground">Loading contacts…</div>
         ) : groups.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '48px 0', color: '#bbb', fontSize: 13 }}>No contacts found</div>
+          <div className="text-center py-12 text-sm text-muted-foreground">No contacts found</div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table className="w-full border-collapse">
             <thead>
-              <tr style={{ borderBottom: '1px solid #f0f0f0' }}>
+              <tr className="border-b border-border">
                 {['Name', 'Email', 'Source', 'Status', 'Date'].map(h => (
-                  <th key={h} style={{ padding: '8px 12px', fontSize: 11, fontWeight: 600, color: '#aaa', textAlign: 'left', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+                  <th key={h} className="px-3 py-2 text-[11px] font-semibold text-muted-foreground text-left uppercase tracking-wider whitespace-nowrap">
                     {h}
                   </th>
                 ))}
@@ -183,20 +147,20 @@ export default function ContactsPage() {
             </thead>
             <tbody>
               {groups.map(group => {
-                const key        = group.company ?? '—'
+                const key = group.company ?? '—'
                 const isCollapsed = collapsed.has(key)
-                const ccInGroup  = group.contacts.filter(c => c.isCC).length
+                const ccInGroup = group.contacts.filter(c => c.isCC).length
                 return (
                   <>
-                    {/* ── Company group header ── */}
-                    <tr key={`group-${key}`} onClick={() => toggleCollapse(key)} style={{ cursor: 'pointer', background: '#f8f9fa' }}>
-                      <td colSpan={5} style={{ padding: '8px 12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontSize: 11, color: '#9ca3af', width: 10 }}>{isCollapsed ? '▶' : '▼'}</span>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>
-                            {group.company ?? <span style={{ color: '#d1d5db', fontStyle: 'italic' }}>No company</span>}
+                    {/* Company group header */}
+                    <tr key={`g-${key}`} onClick={() => toggleCollapse(key)} className="cursor-pointer bg-muted/40 hover:bg-muted/60">
+                      <td colSpan={5} className="px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-muted-foreground w-3">{isCollapsed ? '▶' : '▼'}</span>
+                          <span className="text-[12px] font-semibold text-foreground">
+                            {group.company ?? <span className="text-muted-foreground/50 italic">No company</span>}
                           </span>
-                          <span style={{ fontSize: 11, color: '#9ca3af' }}>
+                          <span className="text-[11px] text-muted-foreground">
                             {group.contacts.length} contact{group.contacts.length !== 1 ? 's' : ''}
                             {ccInGroup > 0 && ` · ${ccInGroup} CC`}
                           </span>
@@ -204,36 +168,40 @@ export default function ContactsPage() {
                       </td>
                     </tr>
 
-                    {/* ── Contacts in group ── */}
+                    {/* Contacts in group */}
                     {!isCollapsed && group.contacts.map(contact => (
                       <tr key={contact.id}
                         onClick={() => setSelected(selected?.id === contact.id ? null : contact)}
-                        style={{ borderBottom: '1px solid #f8f8f8', cursor: 'pointer', background: selected?.id === contact.id ? '#f0f4ff' : 'transparent' }}
+                        className={cn(
+                          'border-b border-border/50 cursor-pointer transition-colors',
+                          selected?.id === contact.id ? 'bg-primary/5' : 'hover:bg-muted/30'
+                        )}
                       >
-                        <td style={{ padding: '10px 12px 10px 28px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontSize: 13, fontWeight: 500, color: '#111' }}>{fullName(contact)}</span>
+                        <td className="pl-8 pr-3 py-2.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[13px] font-medium text-foreground">{fullName(contact)}</span>
                             {contact.isCC && (
-                              <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: '#f3f4f6', color: '#9ca3af', letterSpacing: '0.04em' }}>CC</span>
+                              <Badge variant="secondary" className="text-[9px] px-1.5 py-0">CC</Badge>
                             )}
                           </div>
                         </td>
-                        <td style={{ padding: '10px 12px', fontSize: 12, color: '#888' }}>{contact.email ?? '—'}</td>
-                        <td style={{ padding: '10px 12px' }}>
-                          <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: '#f4f4f5', color: '#888' }}>
+                        <td className="px-3 py-2.5 text-[12px] text-muted-foreground">{contact.email ?? '—'}</td>
+                        <td className="px-3 py-2.5">
+                          <Badge variant="outline" className="text-[10px] font-medium">
                             {SOURCE_LABEL[contact.source] ?? contact.source}
-                          </span>
+                          </Badge>
                         </td>
-                        <td style={{ padding: '10px 12px' }}>
-                          <span style={{
-                            fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 4, textTransform: 'capitalize',
-                            background: (STATUS_COLORS[contact.status] ?? '#aaa') + '18',
-                            color:       STATUS_COLORS[contact.status] ?? '#aaa',
-                          }}>
+                        <td className="px-3 py-2.5">
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded capitalize"
+                            style={{
+                              background: (STATUS_COLORS[contact.status] ?? STATUS_COLORS.cc).bg,
+                              color:      (STATUS_COLORS[contact.status] ?? STATUS_COLORS.cc).text,
+                            }}
+                          >
                             {contact.status}
                           </span>
                         </td>
-                        <td style={{ padding: '10px 12px', fontSize: 12, color: '#bbb', whiteSpace: 'nowrap' }}>
+                        <td className="px-3 py-2.5 text-[12px] text-muted-foreground whitespace-nowrap">
                           {new Date(contact.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </td>
                       </tr>
@@ -248,42 +216,43 @@ export default function ContactsPage() {
 
       {/* ── Detail panel ── */}
       {selected && (
-        <div style={{ width: 340, flexShrink: 0, borderLeft: '1px solid #e5e5e5', background: '#fff', overflowY: 'auto', padding: '20px 22px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-            <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Contact Details</p>
-            <button onClick={() => setSelected(null)} style={{ fontSize: 13, color: '#bbb', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+        <div className="w-80 flex-shrink-0 border-l border-border bg-card overflow-y-auto p-5">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Contact Details</p>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setSelected(null)}>✕</Button>
           </div>
 
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#111' }}>{fullName(selected)}</h2>
-              {selected.isCC && (
-                <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: '#f3f4f6', color: '#9ca3af' }}>CC</span>
-              )}
+          <div className="mb-5">
+            <div className="flex items-center gap-2 mb-1">
+              <h2 className="text-base font-bold text-foreground tracking-tight">{fullName(selected)}</h2>
+              {selected.isCC && <Badge variant="secondary" className="text-[9px]">CC</Badge>}
             </div>
-            <p style={{ margin: '0 0 10px', fontSize: 13, color: '#888' }}>{resolvedCompany(selected) ?? 'No company'}</p>
-            <span style={{
-              display: 'inline-block', fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, textTransform: 'capitalize',
-              background: (STATUS_COLORS[selected.status] ?? '#aaa') + '18',
-              color:       STATUS_COLORS[selected.status] ?? '#aaa',
-            }}>
-              {selected.isCC ? 'CC’d on email thread' : selected.status}
+            <p className="text-sm text-muted-foreground mb-2">{resolvedCompany(selected) ?? 'No company'}</p>
+            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full capitalize"
+              style={{
+                background: (STATUS_COLORS[selected.status] ?? STATUS_COLORS.cc).bg,
+                color:      (STATUS_COLORS[selected.status] ?? STATUS_COLORS.cc).text,
+              }}
+            >
+              {selected.isCC ? "CC'd on thread" : selected.status}
             </span>
           </div>
 
-          {([
-            { label: 'Email',      value: selected.email },
-            { label: 'Phone',      value: selected.phone },
-            { label: 'Source',     value: SOURCE_LABEL[selected.source] ?? selected.source },
-            { label: 'Department', value: selected.department },
-            { label: 'Message',    value: selected.message },
-            { label: 'Created',    value: new Date(selected.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }) },
-          ] as { label: string; value: string | null | undefined }[]).filter(f => f.value).map(f => (
-            <div key={f.label} style={{ marginBottom: 14, padding: '10px 14px', background: '#fafafa', borderRadius: 8 }}>
-              <p style={{ margin: '0 0 3px', fontSize: 11, fontWeight: 600, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{f.label}</p>
-              <p style={{ margin: 0, fontSize: 13, color: '#444', lineHeight: 1.5 }}>{f.value}</p>
-            </div>
-          ))}
+          <div className="flex flex-col gap-3">
+            {([
+              { label: 'Email',      value: selected.email },
+              { label: 'Phone',      value: selected.phone },
+              { label: 'Source',     value: SOURCE_LABEL[selected.source] ?? selected.source },
+              { label: 'Department', value: selected.department },
+              { label: 'Message',    value: selected.message },
+              { label: 'Created',    value: new Date(selected.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }) },
+            ] as { label: string; value: string | null | undefined }[]).filter(f => f.value).map(f => (
+              <div key={f.label} className="p-3 bg-muted/50 rounded-lg">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">{f.label}</p>
+                <p className="text-[13px] text-foreground leading-relaxed">{f.value}</p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
