@@ -204,19 +204,19 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; defaultOpen: boolean })
 
   return (
     <div style={{
-      border: isOut ? '1px solid #dbeafe' : '1px solid #eaeaea',
-      borderRadius: 10, overflow: 'hidden', background: '#fff',
-      boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
-      marginLeft: isOut ? 40 : 0, marginRight: isOut ? 0 : 40,
+      border: isOut ? '1px solid #dbeafe' : '1px solid #ebebeb',
+      borderRadius: 8, overflow: 'hidden', background: '#fff',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+      marginLeft: isOut ? 32 : 0, marginRight: isOut ? 0 : 32,
     }}>
       <div
-        style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', userSelect: 'none' }}
+        style={{ padding: '9px 12px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}
         onClick={() => setOpen(v => !v)}
       >
         <div style={{
-          width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+          width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 11, fontWeight: 700,
+          fontSize: 10, fontWeight: 700,
           background: isOut ? 'rgba(59,130,246,0.10)' : '#f4f4f5',
           color: isOut ? '#1d4ed8' : '#555',
         }}>
@@ -235,7 +235,7 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; defaultOpen: boolean })
           </div>
           {!open && (
             <p style={{ margin: 0, fontSize: 11, color: '#aaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {bodyLines.find(l => l.trim()) ?? ''}
+              {msg.subject ? `${msg.subject}` : (bodyLines.find(l => l.trim()) ?? '')}
             </p>
           )}
         </div>
@@ -248,7 +248,7 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; defaultOpen: boolean })
 
       {open && (
         <div style={{ borderTop: '1px solid #f0f0f0' }}>
-          <div style={{ padding: '10px 14px', background: '#fafafa', borderBottom: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <div style={{ padding: '8px 12px', background: '#fafafa', borderBottom: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column', gap: 4 }}>
             {[{ lbl: 'From', val: msg.from_address ?? '—' }].map(({ lbl, val }) => (
               <div key={lbl} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <span style={{ fontSize: 11, fontWeight: 600, color: '#aaa', width: 44, flexShrink: 0 }}>{lbl}</span>
@@ -283,7 +283,7 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; defaultOpen: boolean })
               </div>
             )}
           </div>
-          <div style={{ padding: '16px 18px 18px', maxHeight: 500, overflowY: 'auto' }}>
+          <div style={{ padding: '12px 14px 14px', maxHeight: 480, overflowY: 'auto' }}>
             <p style={{ margin: 0, fontSize: 13, color: '#333', whiteSpace: 'pre-wrap', lineHeight: 1.75 }}>
               {showFull ? fullBody : stripped}
             </p>
@@ -548,15 +548,16 @@ function EmailChipInput({ label, chips, onChange }: {
 // ── AI Draft panel ────────────────────────────────────────────────────────────
 
 function AIDraftPanel({
-  lead, thread, messages, storedDraft, storedRagDraft, storedRagSources, onRagRefresh,
+  lead, thread, messages, storedDraft, storedRagDraft, storedRagSources, onRagRefresh, onThreadRefresh,
 }: {
-  lead:              Lead
-  thread:            ThreadState['thread']
-  messages:          RealMsg[]
-  storedDraft?:      string | null
-  storedRagDraft?:   string | null
-  storedRagSources?: RagSource[]
-  onRagRefresh?:     () => void
+  lead:               Lead
+  thread:             ThreadState['thread']
+  messages:           RealMsg[]
+  storedDraft?:       string | null
+  storedRagDraft?:    string | null
+  storedRagSources?:  RagSource[]
+  onRagRefresh?:      () => void
+  onThreadRefresh?:   () => void
 }) {
   type ActiveTab = 'gdrive' | 'rag' | 'compose'
   const lastMsg    = messages.at(-1)
@@ -797,6 +798,7 @@ function AIDraftPanel({
       }
       setSent(true)
       log({ action: 'draft.approved', resource_type: 'thread', resource_id: thread?.id ?? lead.id, metadata: { contact: lead.email, chars: plainText.length } })
+      onThreadRefresh?.()
     } finally { setLoading(null) }
   }
 
@@ -1103,12 +1105,13 @@ function ContactPanel({
 // ── Thread view ───────────────────────────────────────────────────────────────
 
 function ThreadView({
-  lead, threadState, onStatus, onDelete,
+  lead, threadState, onStatus, onDelete, onThreadRefresh,
 }: {
-  lead:        Lead
-  threadState: ThreadState
-  onStatus:    (id: string, s: string) => void
-  onDelete:    (id: string) => void
+  lead:             Lead
+  threadState:      ThreadState
+  onStatus:         (id: string, s: string) => void
+  onDelete:         (id: string) => void
+  onThreadRefresh:  () => void
 }) {
   const { thread, messages, loading, error } = threadState
   const st         = STATUS_MAP[lead.status] ?? STATUS_MAP.contacted
@@ -1229,7 +1232,7 @@ function ThreadView({
           <CampaignContextPanel ctx={lead.campaign_context} />
         )}
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px 24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {loading && <div style={{ textAlign: 'center', padding: '48px 0', fontSize: 12, color: '#bbb' }}>Loading email thread…</div>}
           {!loading && error && <div style={{ textAlign: 'center', padding: '32px 0', fontSize: 12, color: '#ef4444' }}>{error}</div>}
           {!loading && !error && messages.length === 0 && (
@@ -1250,7 +1253,7 @@ function ThreadView({
           ))}
         </div>
 
-        <AIDraftPanel lead={lead} thread={thread} messages={messages} storedDraft={latestSummary?.draft_reply} storedRagDraft={ragDraft?.content ?? null} storedRagSources={ragDraft?.sources ?? []} onRagRefresh={refreshRagDraft} />
+        <AIDraftPanel lead={lead} thread={thread} messages={messages} storedDraft={latestSummary?.draft_reply} storedRagDraft={ragDraft?.content ?? null} storedRagSources={ragDraft?.sources ?? []} onRagRefresh={refreshRagDraft} onThreadRefresh={onThreadRefresh} />
       </div>
 
       <ContactPanel lead={lead} messages={messages} onStatus={onStatus} />
@@ -1380,6 +1383,18 @@ export default function EngagementPage() {
     setLeads(prev => prev.filter(l => l.id !== id))
     setThreadMap(prev => { const next = { ...prev }; delete next[id]; return next })
     setSelectedId(null)
+  }
+
+  function refreshSelectedThread() {
+    if (!selectedId) return
+    const lead = leads.find(l => l.id === selectedId)
+    if (!lead?.thread_id && !lead?.email) return
+    setThreadMap(prev => ({ ...prev, [selectedId]: { ...(prev[selectedId] ?? { thread: null, error: null }), loading: true, messages: prev[selectedId]?.messages ?? [] } }))
+    fetchThread(lead.thread_id ?? null, lead.email).then(({ thread, messages }) => {
+      setThreadMap(prev => ({ ...prev, [selectedId]: { loading: false, thread, messages, error: null } }))
+    }).catch(() => {
+      setThreadMap(prev => ({ ...prev, [selectedId]: { ...(prev[selectedId] ?? { thread: null, messages: [] }), loading: false, error: null } }))
+    })
   }
 
   function clearFilters() { setSearch(''); setDateFrom(''); setDateTo('') }
@@ -1522,6 +1537,7 @@ export default function EngagementPage() {
             threadState={selectedThread ?? { loading: true, thread: null, messages: [], error: null }}
             onStatus={handleStatus}
             onDelete={handleDelete}
+            onThreadRefresh={refreshSelectedThread}
           />
         ) : (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#bbb', gap: 8 }}>
