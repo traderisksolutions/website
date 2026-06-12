@@ -277,6 +277,10 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; index?: number; default
   }
 
   // ── Expanded: Lunar card ──
+  // Height scales with content: short emails stay compact, long ones get more room (capped at 680)
+  const bodyText = showFull ? fullBody : stripped
+  const bodyMaxHeight = Math.min(Math.max(220, Math.ceil(bodyText.length * 0.2)), 680)
+
   return (
     <div style={{
       background: bubbleBg,
@@ -356,7 +360,7 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; index?: number; default
       </div>
 
       {/* Body */}
-      <div style={{ borderTop: `1px solid ${bubbleBorder}`, padding: '14px 16px 18px' }}>
+      <div style={{ borderTop: `1px solid ${bubbleBorder}`, padding: '14px 16px 18px', maxHeight: bodyMaxHeight, overflowY: 'auto' }}>
         <p style={{ margin: 0, fontSize: 13.5, color: '#1f2937', whiteSpace: 'pre-wrap', lineHeight: 1.85 }}>
           {showFull ? fullBody : stripped}
         </p>
