@@ -209,27 +209,51 @@ function EmailCard({ msg, index, defaultOpen }: { msg: RealMsg; index: number; d
   const avatarColor = isOut ? '#15803d' : '#4338ca'
 
   return (
-    <div style={{
-      borderRadius: 10,
-      background: '#fff',
-      border: '1px solid #e8eaed',
-      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-      overflow: 'hidden',
-      borderLeft: `3px solid ${accent}`,
-    }}>
+    <div
+      className={!open ? 'glass-thin' : ''}
+      style={{
+        borderRadius: 12,
+        overflow: 'hidden',
+        ...(open ? {
+          background: '#fff',
+          border: '1px solid #e8eaed',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+        } : {}),
+      }}
+    >
       {/* ── Header row ── */}
       <div
         style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}
         onClick={() => setOpen(v => !v)}
       >
-        {open ? (
+        {!open ? (
+          /* Collapsed: dot + sender/subject two-line + chevron */
           <>
-            {/* Expanded: avatar + sender + badge */}
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: accent, flexShrink: 0 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 2 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#374151', letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {senderLabel}
+                </span>
+                <span style={{ fontSize: 11, color: '#9ca3af', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
+                  {fmtDateTime(msg.sent_at)}
+                </span>
+              </div>
+              <p style={{ margin: 0, fontSize: 11.5, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {msg.subject || previewLine || '—'}
+              </p>
+            </div>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0, color: '#d1d5db' }}>
+              <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </>
+        ) : (
+          /* Expanded: avatar + sender + badge + time + chevron */
+          <>
             <div style={{
               width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 12, fontWeight: 700,
-              background: avatarBg, color: avatarColor,
+              fontSize: 12, fontWeight: 700, background: avatarBg, color: avatarColor,
               letterSpacing: '-0.02em',
             }}>
               {senderInitial}
@@ -246,35 +270,14 @@ function EmailCard({ msg, index, defaultOpen }: { msg: RealMsg; index: number; d
                 </span>
               </div>
             </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+              <span style={{ fontSize: 11, color: '#9ca3af', fontVariantNumeric: 'tabular-nums' }}>{fmtDateTime(msg.sent_at)}</span>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ color: '#d1d5db' }}>
+                <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(180deg)', transformOrigin: '6px 6px' }}/>
+              </svg>
+            </div>
           </>
-        ) : (
-          /* Collapsed: subject only */
-          <p style={{
-            margin: 0, flex: 1, fontSize: 12.5, fontWeight: 500,
-            color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            letterSpacing: '-0.01em',
-          }}>
-            {msg.subject || previewLine || '—'}
-          </p>
         )}
-
-        {/* Time + # + chevron */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-          {!open && (
-            <span style={{
-              fontSize: 10, fontWeight: 700, minWidth: 20, height: 18, borderRadius: 9,
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px',
-              background: isOut ? 'rgba(34,197,94,0.10)' : 'rgba(129,140,248,0.10)',
-              color: isOut ? '#15803d' : '#4338ca',
-            }}>
-              #{index}
-            </span>
-          )}
-          <span style={{ fontSize: 11, color: '#9ca3af', fontVariantNumeric: 'tabular-nums' }}>{fmtDateTime(msg.sent_at)}</span>
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s', color: '#d1d5db' }}>
-            <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </div>
       </div>
 
       {/* ── Expanded content ── */}
