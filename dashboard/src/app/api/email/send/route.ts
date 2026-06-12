@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { runDraftEvaluation }         from '@/lib/run-draft-evaluation'
 
 const SB_URL      = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GMAIL_API   = 'https://gmail.googleapis.com/gmail/v1/users/me'
@@ -239,6 +240,9 @@ export async function POST(req: NextRequest) {
         body:    JSON.stringify({ last_message_at: sentAt }),
       })
     }
+
+    // Fire-and-forget evaluation — compares AI draft vs what was sent, stores to draft_evaluations
+    void runDraftEvaluation(draftId, draft.thread_id ?? null)
 
     return NextResponse.json({ ok: true, gmailMessageId: sent.id })
   } catch (e) {

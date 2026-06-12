@@ -138,6 +138,23 @@ Reply with one word only.`
     }
     console.log('[engagement/draft] email type:', emailType)
 
+    // Fetch up to 2 high-scoring human-approved examples for this email type
+    // and inject them as few-shot examples so the AI learns from past edits
+    let fewShotSection = ''
+    try {
+      const exRes = await fetch(
+        `${SB_URL}/rest/v1/prompt_examples?email_type=eq.${emailType}&order=score.desc,created_at.desc&limit=2&select=context_summary,ideal_reply`,
+        { headers: sbHeaders(), cache: 'no-store' }
+      )
+      const examples: { context_summary?: string; ideal_reply: string }[] = exRes.ok ? await exRes.json() : []
+      if (Array.isArray(examples) && examples.length > 0) {
+        fewShotSection = `\n━━ EXAMPLES OF EXCELLENT ${emailType} REPLIES — learn the pattern, match this quality ━━\n` +
+          examples.map((ex, i) =>
+            `[Example ${i + 1}]${ex.context_summary ? `\nContext: ${ex.context_summary}` : ''}\nReply:\n${ex.ideal_reply.slice(0, 1200)}`
+          ).join('\n\n') + '\n'
+      }
+    } catch { /* non-fatal */ }
+
     // Fetch campaign context if this thread came from a campaign reply
     let campaignCtxStr = ''
     if (threadId) {
@@ -252,6 +269,7 @@ No policy documents are attached.
     const drafterPrompt = `You are an email assistant for Trade Risk Solutions (TRS), a Singapore insurance brokerage. You draft replies that Account Executives review and send. Replies must read like a senior AE wrote them — direct, specific, no filler.
 ${campaignCtxStr}
 ${typeInstructions}
+${fewShotSection}
 
 ━━ UNIVERSAL RULES ━━
 - Start with exactly "${salutation}"
@@ -440,6 +458,7 @@ Write only the email body starting with "${salutation}".`
         body:         content,
         status:       'pending',
         generated_by: 'gdrive',
+        email_type:   emailType,
       }),
     })
 

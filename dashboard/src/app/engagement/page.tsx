@@ -568,7 +568,7 @@ function AIDraftPanel({
   const [composeHtml,     setComposeHtml]     = useState('')
   const [draftLoaded,     setDraftLoaded]     = useState(false)
   const [draftEditorKey,  setDraftEditorKey]  = useState(0)
-  const [loading,         setLoading]         = useState<'gen' | 'send' | 'reject' | null>(null)
+  const [loading,         setLoading]         = useState<'gen' | 'send' | null>(null)
   const [sent,            setSent]            = useState(false)
   const [error,           setError]           = useState<string | null>(null)
   const [aiDraftChecked,  setAiDraftChecked]  = useState(false)
@@ -800,20 +800,6 @@ function AIDraftPanel({
     } finally { setLoading(null) }
   }
 
-  async function handleReject() {
-    setLoading('reject')
-    try {
-      if (draftId) {
-        await fetch('/api/engagement/draft', {
-          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ draftId, status: 'rejected', rejection_note: 'Rejected by user' }),
-        })
-        log({ action: 'draft.rejected', resource_type: 'thread', resource_id: thread?.id ?? lead.id, metadata: { contact: lead.email } })
-      }
-      setDraftId(null); setDraftHtml(''); setDraftEditorKey(k => k + 1)
-    } finally { setLoading(null) }
-  }
-
   const base: React.CSSProperties = { borderTop: '2px solid #93c5fd', background: '#eff6ff', flexShrink: 0 }
 
   if (sent) return (
@@ -962,17 +948,11 @@ function AIDraftPanel({
           </div>
         )}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {activeTab === 'gdrive' && hasDraftContent && (
-            <button onClick={handleReject} disabled={!!loading}
-              style={{ padding: '7px 16px', fontSize: 12, fontWeight: 500, border: '1px solid #bfdbfe', borderRadius: 8, background: '#fff', color: '#6b7280', cursor: 'pointer', opacity: loading ? 0.5 : 1 }}>
-              {loading === 'reject' ? 'Rejecting…' : 'Reject'}
-            </button>
-          )}
           <button onClick={handleSend} disabled={!!loading || !canSend}
             style={{ flex: 1, padding: '7px 16px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 8, background: '#1d4ed8', color: '#fff', cursor: 'pointer', opacity: (loading || !canSend) ? 0.5 : 1 }}>
             {loading === 'send' ? 'Sending…' : 'Approve & Send Reply'}
           </button>
-          <Tip placement="left" text="Sends the email in your name and marks the lead as Replied. Reject discards the AI draft so you can write your own or generate again." />
+          <Tip placement="left" text="Edit the draft then click Approve & Send. Every sent reply is automatically evaluated to improve future AI drafts." />
         </div>
       </div>
     </div>

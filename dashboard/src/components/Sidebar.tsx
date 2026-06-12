@@ -9,7 +9,7 @@ import {
   Search, ChevronRight, ChevronDown,
   Bot, Table2, UsersRound,
   LogOut, BookOpen, Cpu, FolderOpen,
-  Telescope, Megaphone, BookMarked, Settings,
+  Telescope, Megaphone, BookMarked, Settings, FlaskConical,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -240,10 +240,11 @@ export default function Sidebar() {
         <p style={{ margin: '4px 0 2px', padding: '0 10px', fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#aaa' }}>
           Analytics
         </p>
-        <NavItem label="Funnel"       href="/analytics"             icon={BarChart2}  isActive={active('/analytics') && !active('/analytics/ai-usage') && !active('/analytics/activity')} disabled />
+        <NavItem label="Funnel"       href="/analytics"             icon={BarChart2}  isActive={active('/analytics') && !active('/analytics/ai-usage') && !active('/analytics/activity') && !active('/analytics/eval') && !active('/analytics/rag-index')} disabled />
         <NavItem label="Activity Log" href="/analytics/activity"    icon={UsersRound} isActive={active('/analytics/activity')} disabled />
         <NavItem label="AI Usage"   href="/analytics/ai-usage"  icon={Cpu}        isActive={active('/analytics/ai-usage')} />
         <NavItem label="RAG Index"  href="/analytics/rag-index" icon={FolderOpen} isActive={active('/analytics/rag-index')} />
+        <NavItem label="Draft Evals" href="/analytics/eval"      icon={FlaskConical} isActive={active('/analytics/eval')} />
 
         <Divider />
 
