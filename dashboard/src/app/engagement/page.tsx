@@ -318,7 +318,7 @@ function EmailCard({ msg, defaultOpen, onOpen }: { msg: RealMsg; index?: number;
 
       {/* Body */}
       <div style={{ borderTop: `1px solid ${bubbleBorder}`, padding: '14px 16px 18px' }}>
-        <div style={{ maxHeight: 280, overflowY: 'auto', paddingRight: 2 }}>
+        <div style={{ maxHeight: showFull ? 'none' : 280, overflowY: showFull ? 'visible' : 'auto', paddingRight: 2 }}>
           <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', lineHeight: 1.85 }}>
             {showFull ? fullBody : stripped}
           </p>
