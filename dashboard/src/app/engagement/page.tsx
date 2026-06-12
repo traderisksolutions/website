@@ -184,10 +184,9 @@ async function fetchThread(threadId: string | null, email: string | null): Promi
 // ── Email card ────────────────────────────────────────────────────────────────
 
 function EmailCard({ msg, defaultOpen }: { msg: RealMsg; index?: number; defaultOpen: boolean }) {
-  const [open,    setOpen]    = useState(defaultOpen)
+  const [open,     setOpen]     = useState(defaultOpen)
   const [showFull, setShowFull] = useState(false)
-  const [copied,  setCopied]  = useState<string | null>(null)
-  const [hovered, setHovered] = useState(false)
+  const [copied,   setCopied]   = useState<string | null>(null)
   const isOut = msg.direction === 'outbound'
 
   function copy(text: string) {
@@ -201,56 +200,96 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; index?: number; default
   const hasMore       = stripped.length < fullBody.trim().length
   const senderLabel   = isOut ? 'Trade Risk Solutions' : (msg.from_address ?? '—')
   const senderInitial = isOut ? 'T' : (msg.from_address?.[0] ?? '?').toUpperCase()
-  const avatarBg      = isOut ? '#f0fdf4' : '#eef2ff'
-  const avatarColor   = isOut ? '#15803d' : '#4338ca'
 
-  // ── Collapsed: flat single row ──
+  // Lunar theme palette
+  const bubbleBg     = isOut ? '#eef2ff' : '#ffffff'
+  const bubbleBorder = isOut ? 'rgba(99,102,241,0.18)' : 'rgba(0,0,0,0.07)'
+  const bubbleShadow = isOut
+    ? '0 1px 2px rgba(99,102,241,0.08), 0 4px 12px rgba(99,102,241,0.10)'
+    : '0 1px 2px rgba(0,0,0,0.05), 0 4px 12px rgba(0,0,0,0.07)'
+  const avatarBg    = isOut ? '#c7d2fe' : '#e5e7eb'
+  const avatarColor = isOut ? '#3730a3' : '#6b7280'
+
+  // ── Collapsed: chat bubble ──
   if (!open) {
-    return (
-      <div
-        onClick={() => setOpen(true)}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '9px 18px', cursor: 'pointer', userSelect: 'none',
-          borderBottom: '1px solid #f3f4f6',
-          background: hovered ? '#fafafa' : '#fff',
-          transition: 'background 0.1s',
-        }}
-      >
-        <div style={{
-          width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 10, fontWeight: 700,
-          background: isOut ? '#f3f4f6' : avatarBg,
-          color: isOut ? '#9ca3af' : avatarColor,
-        }}>
-          {senderInitial}
+    const preview = (() => {
+      const raw = msg.subject || stripped.split('\n').find(l => l.trim()) || '—'
+      return raw.length > 80 ? raw.slice(0, 78) + '…' : raw
+    })()
+
+    if (isOut) {
+      // Sent — right-aligned (iMessage style)
+      return (
+        <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start', alignSelf: 'flex-end', maxWidth: '68%', flexDirection: 'row-reverse' }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 11, fontWeight: 700, background: avatarBg, color: avatarColor,
+          }}>T</div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: 7, alignItems: 'center', marginBottom: 5 }}>
+              <span style={{ fontSize: 11, color: '#9ca3af', fontVariantNumeric: 'tabular-nums' }}>{fmtDateTime(msg.sent_at)}</span>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: '#374151' }}>{senderLabel}</span>
+            </div>
+            <div
+              onClick={() => setOpen(true)}
+              style={{
+                background: bubbleBg, border: `1px solid ${bubbleBorder}`,
+                boxShadow: bubbleShadow,
+                borderRadius: '14px 3px 14px 14px',
+                padding: '9px 13px', cursor: 'pointer',
+              }}
+            >
+              <span style={{ fontSize: 12.5, color: '#6b7280', fontStyle: 'italic', lineHeight: 1.5 }}>{preview}</span>
+            </div>
+          </div>
         </div>
-        <span style={{
-          flex: 1, fontSize: 13, fontWeight: 500,
-          color: isOut ? '#9ca3af' : '#374151',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          letterSpacing: '-0.01em',
-          fontStyle: isOut ? 'italic' : 'normal',
-        }}>
-          {senderLabel}
-        </span>
-        <span style={{ fontSize: 11, color: '#d1d5db', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
-          {fmtDateTime(msg.sent_at)}
-        </span>
+      )
+    }
+
+    // Received — left-aligned
+    return (
+      <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start', maxWidth: '68%' }}>
+        <div style={{
+          width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 11, fontWeight: 700, background: avatarBg, color: avatarColor,
+        }}>{senderInitial}</div>
+        <div>
+          <div style={{ display: 'flex', gap: 7, alignItems: 'center', marginBottom: 5 }}>
+            <span style={{ fontSize: 11.5, fontWeight: 600, color: '#374151' }}>{senderLabel}</span>
+            <span style={{ fontSize: 11, color: '#9ca3af', fontVariantNumeric: 'tabular-nums' }}>{fmtDateTime(msg.sent_at)}</span>
+          </div>
+          <div
+            onClick={() => setOpen(true)}
+            style={{
+              background: bubbleBg, border: `1px solid ${bubbleBorder}`,
+              boxShadow: bubbleShadow,
+              borderRadius: '3px 14px 14px 14px',
+              padding: '9px 13px', cursor: 'pointer',
+            }}
+          >
+            <span style={{ fontSize: 12.5, color: '#374151', lineHeight: 1.5 }}>{preview}</span>
+          </div>
+        </div>
       </div>
     )
   }
 
-  // ── Expanded: full email ──
+  // ── Expanded: Lunar card ──
   return (
-    <div style={{ background: '#fff', borderBottom: '1px solid #eaecef' }}>
+    <div style={{
+      background: bubbleBg,
+      border: `1px solid ${bubbleBorder}`,
+      borderRadius: 14,
+      boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.08)',
+      overflow: 'hidden',
+      ...(isOut ? { marginLeft: '8%' } : { marginRight: '8%' }),
+    }}>
       {/* Header — click to collapse */}
       <div
         onClick={() => setOpen(false)}
-        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 18px 8px', cursor: 'pointer', userSelect: 'none' }}
+        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px 8px', cursor: 'pointer', userSelect: 'none' }}
       >
         <div style={{
           width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
@@ -264,8 +303,8 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; index?: number; default
             <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', letterSpacing: '-0.01em' }}>{senderLabel}</span>
             <span style={{
               fontSize: 10, fontWeight: 600, padding: '1px 7px', borderRadius: 20,
-              background: isOut ? 'rgba(34,197,94,0.10)' : 'rgba(129,140,248,0.10)',
-              color: isOut ? '#15803d' : '#4338ca',
+              background: isOut ? 'rgba(99,102,241,0.12)' : 'rgba(0,0,0,0.06)',
+              color: isOut ? '#4338ca' : '#6b7280',
             }}>
               {isOut ? 'Sent' : 'Received'}
             </span>
@@ -280,7 +319,7 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; index?: number; default
       </div>
 
       {/* Meta rows */}
-      <div style={{ padding: '0 18px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ padding: '0 16px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <span style={{ fontSize: 11, fontWeight: 600, color: '#c8cbd0', width: 36, flexShrink: 0 }}>From</span>
           <span style={{ fontSize: 12, color: '#374151' }}>{msg.from_address ?? '—'}</span>
@@ -292,7 +331,9 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; index?: number; default
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
             <span style={{ fontSize: 11, fontWeight: 600, color: '#c8cbd0', width: 36, flexShrink: 0 }}>To</span>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-              {msg.to.map(a => <span key={a} style={{ fontSize: 11, background: '#f3f4f6', color: '#374151', padding: '2px 8px', borderRadius: 20 }}>{a}</span>)}
+              {msg.to.map(a => (
+                <span key={a} style={{ fontSize: 11, background: isOut ? 'rgba(99,102,241,0.08)' : '#f3f4f6', color: isOut ? '#4338ca' : '#374151', padding: '2px 8px', borderRadius: 20 }}>{a}</span>
+              ))}
             </div>
           </div>
         )}
@@ -315,7 +356,7 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; index?: number; default
       </div>
 
       {/* Body */}
-      <div style={{ borderTop: '1px solid #f3f4f6', padding: '14px 18px 18px', maxHeight: 480, overflowY: 'auto' }}>
+      <div style={{ borderTop: `1px solid ${bubbleBorder}`, padding: '14px 16px 18px', maxHeight: 480, overflowY: 'auto' }}>
         <p style={{ margin: 0, fontSize: 13.5, color: '#1f2937', whiteSpace: 'pre-wrap', lineHeight: 1.85 }}>
           {showFull ? fullBody : stripped}
         </p>
@@ -1419,7 +1460,7 @@ function ThreadView({
           <CampaignContextPanel ctx={lead.campaign_context} />
         )}
 
-        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: '#fff' }}>
+        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20, padding: '20px 20px', background: '#f5f7fa' }}>
           {loading && <div style={{ textAlign: 'center', padding: '48px 0', fontSize: 12, color: '#bbb' }}>Loading email thread…</div>}
           {!loading && error && <div style={{ textAlign: 'center', padding: '32px 0', fontSize: 12, color: '#ef4444' }}>{error}</div>}
           {!loading && !error && messages.length === 0 && (
