@@ -244,7 +244,7 @@ export default function Sidebar() {
         <NavItem label="Activity Log" href="/analytics/activity"    icon={UsersRound} isActive={active('/analytics/activity')} disabled />
         <NavItem label="AI Usage"   href="/analytics/ai-usage"  icon={Cpu}        isActive={active('/analytics/ai-usage')} />
         <NavItem label="RAG Index"  href="/analytics/rag-index" icon={FolderOpen} isActive={active('/analytics/rag-index')} />
-        <NavItem label="Draft Evals" href="/analytics/eval"      icon={FlaskConical} isActive={active('/analytics/eval')} />
+        <NavItem label="Email Evaluation" href="/analytics/eval"      icon={FlaskConical} isActive={active('/analytics/eval')} />
 
         <Divider />
 

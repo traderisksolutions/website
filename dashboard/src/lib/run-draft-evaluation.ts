@@ -20,54 +20,85 @@ function sbH() {
   }
 }
 
-async function sb<T>(path: string): Promise<T[]> {
+async function sb<T>(path: string): Promise<{ ok: boolean; data: T[]; status: number }> {
   const res = await fetch(`${SB_URL}/rest/v1/${path}`, { headers: sbH(), cache: 'no-store' })
   const data = res.ok ? await res.json() : []
-  return Array.isArray(data) ? data : []
+  return { ok: res.ok, status: res.status, data: Array.isArray(data) ? data : [] }
 }
 
 export async function runDraftEvaluation(draftId: string, threadId: string | null): Promise<void> {
   try {
+    console.log(`[eval] starting for draft=${draftId} thread=${threadId}`)
+
     const geminiKey = process.env.GEMINI_API_KEY_DRAFT_EMAIL
-    if (!geminiKey) return
+    if (!geminiKey) {
+      console.error('[eval] GEMINI_API_KEY_DRAFT_EMAIL not set — skipping')
+      return
+    }
 
-    // 1. Load the AI draft
-    const drafts = await sb<{ body: string; email_type: string | null; thread_id: string | null }>(
-      `ai_drafts?id=eq.${draftId}&select=body,email_type,thread_id&limit=1`
+    // 1. Load the AI draft (select without email_type first to avoid 400 if column missing)
+    const draftRes = await sb<{ body: string; thread_id: string | null }>(
+      `ai_drafts?id=eq.${draftId}&select=body,thread_id&limit=1`
     )
-    const draft = drafts[0]
-    if (!draft?.body) return
+    if (!draftRes.ok) {
+      console.error(`[eval] draft fetch failed status=${draftRes.status}`)
+      return
+    }
+    const draftRow = draftRes.data[0]
+    if (!draftRow?.body) {
+      console.error(`[eval] no draft body found for id=${draftId}`)
+      return
+    }
 
-    const tid = threadId ?? draft.thread_id
-    if (!tid) return
+    // Try to get email_type separately (column may not exist yet)
+    let emailType = 'CONVERSATION'
+    const etRes = await sb<{ email_type: string | null }>(
+      `ai_drafts?id=eq.${draftId}&select=email_type&limit=1`
+    )
+    if (etRes.ok && etRes.data[0]?.email_type) emailType = etRes.data[0].email_type
+
+    const tid = threadId ?? draftRow.thread_id
+    if (!tid) {
+      console.error(`[eval] no thread_id for draft=${draftId}`)
+      return
+    }
 
     // 2. Last outbound message = what the human actually sent
-    const outbound = await sb<{ body_text: string }>(
+    const outRes = await sb<{ body_text: string }>(
       `email_messages?thread_id=eq.${encodeURIComponent(tid)}&direction=eq.outbound&order=sent_at.desc&select=body_text&limit=1`
     )
-    const humanBody = outbound[0]?.body_text ?? ''
-    if (!humanBody.trim()) return
+    if (!outRes.ok) {
+      console.error(`[eval] outbound message fetch failed status=${outRes.status}`)
+      return
+    }
+    const humanBody = outRes.data[0]?.body_text ?? ''
+    if (!humanBody.trim()) {
+      console.error(`[eval] no outbound email body found for thread=${tid}`)
+      return
+    }
+    console.log(`[eval] found outbound message (${humanBody.length} chars)`)
+
+    const draft = { body: draftRow.body, email_type: emailType, thread_id: draftRow.thread_id }
 
     // 3. Last inbound message = what the client sent (context for scoring)
-    const inbound = await sb<{ body_text: string }>(
+    const inboundRes = await sb<{ body_text: string }>(
       `email_messages?thread_id=eq.${encodeURIComponent(tid)}&direction=eq.inbound&order=sent_at.desc&select=body_text&limit=1`
     )
-    const incomingEmail = inbound[0]?.body_text ?? ''
+    const incomingEmail = inboundRes.data[0]?.body_text ?? ''
 
-    const emailType = draft.email_type ?? 'CONVERSATION'
-    const aiBody    = draft.body
+    const aiBody = draft.body
 
     // Skip evaluation if the AI and human bodies are nearly identical (no edits made)
     const aiTrimmed    = aiBody.trim().replace(/\s+/g, ' ')
     const humanTrimmed = humanBody.trim().replace(/\s+/g, ' ')
     const longer  = Math.max(aiTrimmed.length, humanTrimmed.length)
     const shorter = Math.min(aiTrimmed.length, humanTrimmed.length)
-    // Count matching chars at same positions — rough similarity check
     let matching = 0
     for (let i = 0; i < shorter; i++) { if (aiTrimmed[i] === humanTrimmed[i]) matching++ }
     const overlap = longer > 0 ? matching / longer : 0
     // If >95% identical, score it as a 5 without calling Gemini (saves cost)
     if (overlap > 0.95) {
+      console.log(`[eval] >95% overlap — storing score=5 without Gemini call`)
       await storeEval(draftId, tid, emailType, aiBody, humanBody, 5, {
         what_human_changed: 'No meaningful changes — sent almost as-is.',
         why_better:         'AI draft was high quality.',
@@ -78,6 +109,7 @@ export async function runDraftEvaluation(draftId: string, threadId: string | nul
     }
 
     // 4. Gemini evaluation call
+    console.log(`[eval] calling Gemini to score draft (overlap=${Math.round(overlap*100)}%)`)
     const evalPrompt = `You evaluate AI-generated email replies for Trade Risk Solutions, a Singapore insurance brokerage.
 
 EMAIL TYPE: ${emailType}
@@ -115,7 +147,10 @@ Return ONLY valid JSON (no markdown fences, no text outside the JSON):
         generationConfig: { temperature: 0, maxOutputTokens: 512 },
       }),
     })
-    if (!evalRes.ok) return
+    if (!evalRes.ok) {
+      console.error(`[eval] Gemini call failed status=${evalRes.status}`)
+      return
+    }
 
     const evalData = await evalRes.json()
     const raw = evalData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? ''

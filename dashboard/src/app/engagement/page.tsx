@@ -76,7 +76,6 @@ const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> =
 }
 const ALL_STATUSES = ['contacted', 'engaged', 'qualified', 'proposal', 'converted', 'dropped']
 
-const TRS_EMAIL = 'hello@trade-risksol.com'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -199,100 +198,120 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; defaultOpen: boolean })
   const fullBody    = msg.body_text ?? ''
   const stripped    = stripQuotedContent(fullBody)
   const hasMore     = stripped.length < fullBody.trim().length
-  const senderLabel = isOut ? TRS_EMAIL : (msg.from_address ?? '—')
+  const senderLabel = isOut ? 'Trade Risk Solutions' : (msg.from_address ?? '—')
+  const senderInitial = isOut ? 'T' : (msg.from_address?.[0] ?? '?').toUpperCase()
   const bodyLines   = stripped.split('\n')
+  const previewLine = msg.subject || bodyLines.find(l => l.trim()) || ''
+
+  // Direction accent colours
+  const accent     = isOut ? '#22c55e' : '#818cf8'
+  const avatarBg   = isOut ? '#f0fdf4'  : '#eef2ff'
+  const avatarColor = isOut ? '#15803d' : '#4338ca'
 
   return (
     <div style={{
-      border: isOut ? '1px solid #dbeafe' : '1px solid #ebebeb',
-      borderRadius: 8, overflow: 'hidden', background: '#fff',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-      marginLeft: isOut ? 32 : 0, marginRight: isOut ? 0 : 32,
+      borderRadius: 10,
+      background: '#fff',
+      border: '1px solid #e8eaed',
+      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+      overflow: 'hidden',
+      borderLeft: `3px solid ${accent}`,
     }}>
+      {/* ── Header row ── */}
       <div
-        style={{ padding: '9px 12px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}
+        style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}
         onClick={() => setOpen(v => !v)}
       >
+        {/* Avatar */}
         <div style={{
-          width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+          width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 10, fontWeight: 700,
-          background: isOut ? 'rgba(59,130,246,0.10)' : '#f4f4f5',
-          color: isOut ? '#1d4ed8' : '#555',
+          fontSize: 12, fontWeight: 700,
+          background: avatarBg, color: avatarColor,
+          letterSpacing: '-0.02em',
         }}>
-          {isOut ? 'TRS' : (msg.from_address?.[0] ?? '?').toUpperCase()}
+          {senderInitial}
         </div>
 
+        {/* Sender + preview */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: '#111' }}>{senderLabel}</span>
-            {isOut && (
-              <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 10, background: 'rgba(34,197,94,0.10)', color: '#15803d' }}>Sent</span>
-            )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: open ? 0 : 2 }}>
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: '#111', letterSpacing: '-0.01em' }}>{senderLabel}</span>
+            <span style={{
+              fontSize: 10, fontWeight: 600, padding: '1px 7px', borderRadius: 20,
+              background: isOut ? 'rgba(34,197,94,0.10)' : 'rgba(129,140,248,0.10)',
+              color: isOut ? '#15803d' : '#4338ca',
+            }}>
+              {isOut ? 'Sent' : 'Received'}
+            </span>
             {msg.cc.length > 0 && !open && (
-              <span style={{ fontSize: 10, color: '#bbb' }}>CC: {msg.cc.length}</span>
+              <span style={{ fontSize: 10, color: '#bbb' }}>+{msg.cc.length} CC</span>
             )}
           </div>
           {!open && (
-            <p style={{ margin: 0, fontSize: 11, color: '#aaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {msg.subject ? `${msg.subject}` : (bodyLines.find(l => l.trim()) ?? '')}
+            <p style={{ margin: 0, fontSize: 11.5, color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {previewLine}
             </p>
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-          <span style={{ fontSize: 11, color: '#bbb' }}>{fmtDateTime(msg.sent_at)}</span>
-          <span style={{ fontSize: 11, color: '#ccc' }}>{open ? '▲' : '▽'}</span>
+        {/* Time + chevron */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          <span style={{ fontSize: 11, color: '#9ca3af', fontVariantNumeric: 'tabular-nums' }}>{fmtDateTime(msg.sent_at)}</span>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s', color: '#d1d5db' }}>
+            <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
         </div>
       </div>
 
+      {/* ── Expanded content ── */}
       {open && (
-        <div style={{ borderTop: '1px solid #f0f0f0' }}>
-          <div style={{ padding: '8px 12px', background: '#fafafa', borderBottom: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {[{ lbl: 'From', val: msg.from_address ?? '—' }].map(({ lbl, val }) => (
-              <div key={lbl} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#aaa', width: 44, flexShrink: 0 }}>{lbl}</span>
-                <span style={{ fontSize: 11, color: '#333' }}>{val}</span>
-                <button onClick={() => copy(val)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
-                  {copied === val ? <Check size={10} style={{ color: '#22c55e' }} /> : <Copy size={10} style={{ color: '#ddd' }} />}
-                </button>
-              </div>
-            ))}
+        <div style={{ borderTop: `1px solid #f0f0f0` }}>
+          {/* Meta row */}
+          <div style={{ padding: '8px 14px', background: '#fafbfc', borderBottom: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: '#aaa', width: 36, flexShrink: 0 }}>From</span>
+              <span style={{ fontSize: 11.5, color: '#374151' }}>{msg.from_address ?? '—'}</span>
+              <button onClick={() => copy(msg.from_address ?? '')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', lineHeight: 1 }}>
+                {copied === msg.from_address ? <Check size={10} style={{ color: '#22c55e' }} /> : <Copy size={10} style={{ color: '#d1d5db' }} />}
+              </button>
+            </div>
             {msg.to.length > 0 && (
-              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#aaa', width: 44, flexShrink: 0 }}>To</span>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#aaa', width: 36, flexShrink: 0 }}>To</span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                  {msg.to.map(a => <span key={a} style={{ fontSize: 11, background: '#f0f0f0', color: '#333', padding: '1px 7px', borderRadius: 12 }}>{a}</span>)}
+                  {msg.to.map(a => <span key={a} style={{ fontSize: 11, background: '#f3f4f6', color: '#374151', padding: '2px 8px', borderRadius: 20 }}>{a}</span>)}
                 </div>
               </div>
             )}
             {msg.cc.length > 0 && (
-              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#aaa', width: 44, flexShrink: 0 }}>CC</span>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#aaa', width: 36, flexShrink: 0 }}>CC</span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                   {msg.cc.map(a => (
-                    <span key={a} style={{ fontSize: 11, background: 'rgba(59,130,246,0.08)', color: '#1d4ed8', padding: '1px 7px', borderRadius: 12, border: '1px solid rgba(59,130,246,0.15)' }}>{a}</span>
+                    <span key={a} style={{ fontSize: 11, background: 'rgba(129,140,248,0.08)', color: '#4338ca', padding: '2px 8px', borderRadius: 20, border: '1px solid rgba(129,140,248,0.18)' }}>{a}</span>
                   ))}
                 </div>
               </div>
             )}
             {msg.subject && (
-              <div style={{ display: 'flex', gap: 8 }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#aaa', width: 44, flexShrink: 0 }}>Subj</span>
-                <span style={{ fontSize: 11, color: '#555' }}>{msg.subject}</span>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#aaa', width: 36, flexShrink: 0 }}>Subj</span>
+                <span style={{ fontSize: 11.5, color: '#374151', fontWeight: 500 }}>{msg.subject}</span>
               </div>
             )}
           </div>
-          <div style={{ padding: '12px 14px 14px', maxHeight: 480, overflowY: 'auto' }}>
-            <p style={{ margin: 0, fontSize: 13, color: '#333', whiteSpace: 'pre-wrap', lineHeight: 1.75 }}>
+          {/* Body */}
+          <div style={{ padding: '14px 16px 16px', maxHeight: 500, overflowY: 'auto' }}>
+            <p style={{ margin: 0, fontSize: 13, color: '#1f2937', whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>
               {showFull ? fullBody : stripped}
             </p>
             {hasMore && (
               <button
                 onClick={() => setShowFull(v => !v)}
-                style={{ marginTop: 10, fontSize: 11, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+                style={{ marginTop: 12, fontSize: 11, color: '#6b7280', background: 'none', border: '1px solid #e5e7eb', borderRadius: 6, cursor: 'pointer', padding: '3px 10px' }}
               >
-                {showFull ? 'Hide quoted content' : 'Show full email ↓'}
+                {showFull ? '↑ Hide quoted content' : '↓ Show full email'}
               </button>
             )}
           </div>
@@ -548,7 +567,7 @@ function EmailChipInput({ label, chips, onChange }: {
 // ── AI Draft panel ────────────────────────────────────────────────────────────
 
 function AIDraftPanel({
-  lead, thread, messages, storedDraft, storedRagDraft, storedRagSources, onRagRefresh, onThreadRefresh,
+  lead, thread, messages, storedDraft, storedRagDraft, storedRagSources, onRagRefresh, onThreadRefresh, pendingRestore,
 }: {
   lead:               Lead
   thread:             ThreadState['thread']
@@ -558,6 +577,7 @@ function AIDraftPanel({
   storedRagSources?:  RagSource[]
   onRagRefresh?:      () => void
   onThreadRefresh?:   () => void
+  pendingRestore?:    { body: string; generatedBy: string; stamp: number } | null
 }) {
   type ActiveTab = 'gdrive' | 'rag' | 'compose'
   const lastMsg    = messages.at(-1)
@@ -652,6 +672,17 @@ function AIDraftPanel({
     setRagHtml(''); setRagLoaded(false); setRagEditorKey(0); setRagSources([])
     setAiDraftChecked(false)
   }, [lead.id])
+
+  // Restore a draft selected from Draft History panel
+  useEffect(() => {
+    if (!pendingRestore) return
+    const { body, generatedBy } = pendingRestore
+    if (generatedBy === 'rag') {
+      setRagHtml(body); setRagLoaded(true); setRagEditorKey(k => k + 1); setActiveTab('rag')
+    } else {
+      setDraftHtml(body); setDraftLoaded(true); setDraftEditorKey(k => k + 1); setActiveTab('gdrive')
+    }
+  }, [pendingRestore?.stamp]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Effect A — check ai_drafts immediately on thread open (no messages dependency).
   // ai_drafts is always the authoritative source — newest manually-generated draft wins.
@@ -961,15 +992,132 @@ function AIDraftPanel({
   )
 }
 
+// ── Draft history panel ───────────────────────────────────────────────────────
+
+type DraftHistoryItem = {
+  id:           string
+  body:         string
+  status:       string
+  generated_by: string
+  email_type:   string | null
+  created_at:   string
+}
+
+function DraftHistoryPanel({ threadId, onRestore }: { threadId: string | null; onRestore: (body: string, generatedBy: string) => void }) {
+  const [items,   setItems]   = useState<DraftHistoryItem[]>([])
+  const [loading, setLoading] = useState(false)
+  const [loaded,  setLoaded]  = useState(false)
+  const [preview, setPreview] = useState<string | null>(null)
+
+  useEffect(() => {
+    setItems([]); setLoaded(false); setPreview(null)
+  }, [threadId])
+
+  useEffect(() => {
+    if (loaded || !threadId) return
+    setLoading(true)
+    fetch(`/api/engagement/draft?thread_id=${encodeURIComponent(threadId)}&history=true`, { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : [])
+      .then((rows: DraftHistoryItem[]) => setItems(Array.isArray(rows) ? rows : []))
+      .catch(() => {})
+      .finally(() => { setLoading(false); setLoaded(true) })
+  }, [threadId, loaded])
+
+  if (!threadId) return (
+    <div style={{ padding: '24px 16px', fontSize: 12, color: '#bbb', fontStyle: 'italic' }}>
+      No thread — drafts appear once a thread is active.
+    </div>
+  )
+
+  if (loading) return <div style={{ padding: '20px 16px', fontSize: 12, color: '#bbb' }}>Loading…</div>
+
+  if (loaded && items.length === 0) return (
+    <div style={{ padding: '20px 16px', fontSize: 12, color: '#bbb', fontStyle: 'italic', lineHeight: 1.6 }}>
+      No AI drafts yet — click "Regenerate" to generate one and it will appear here.
+    </div>
+  )
+
+  const total = items.length
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+      {items.map((item, idx) => {
+        const vNum       = total - idx
+        const isCurrent  = idx === 0 && (item.status === 'pending' || item.status === 'approved')
+        const isSent     = item.status === 'sent'
+        const isRAG      = item.generated_by === 'rag'
+        const expanded   = preview === item.id
+
+        const srcColor   = isRAG ? '#7c3aed' : '#1d4ed8'
+        const srcBg      = isRAG ? 'rgba(124,58,237,0.08)' : 'rgba(29,78,216,0.08)'
+        const srcLabel   = isRAG ? 'RAG' : 'GDrive'
+
+        const statusLabel = isCurrent ? 'current' : isSent ? 'sent' : 'older'
+        const statusColor = isCurrent ? '#059669' : isSent ? '#1d4ed8' : '#9ca3af'
+
+        const bodyPreview = item.body.replace(/\s+/g, ' ').slice(0, 100)
+
+        return (
+          <div key={item.id} style={{
+            borderBottom: '1px solid #f0f0f0',
+            background: isCurrent ? '#f9fffe' : '#fff',
+          }}>
+            <div style={{ padding: '10px 12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#bbb' }}>v{vNum}</span>
+                <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: srcBg, color: srcColor }}>
+                  {srcLabel}
+                </span>
+                <span style={{ fontSize: 10, color: statusColor, fontWeight: 600 }}>· {statusLabel}</span>
+                <span style={{ fontSize: 10, color: '#ccc', marginLeft: 'auto' }}>{timeAgo(item.created_at)}</span>
+              </div>
+
+              <p style={{ margin: '0 0 7px', fontSize: 11, color: '#555', lineHeight: 1.55 }}>
+                {bodyPreview}{item.body.length > 100 ? '…' : ''}
+              </p>
+
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  onClick={() => setPreview(expanded ? null : item.id)}
+                  style={{ fontSize: 10, color: '#6b7280', background: '#f4f4f5', border: 'none', borderRadius: 4, padding: '2px 8px', cursor: 'pointer' }}
+                >
+                  {expanded ? 'Hide' : 'Preview'}
+                </button>
+                <button
+                  onClick={() => onRestore(item.body, item.generated_by)}
+                  style={{ fontSize: 10, fontWeight: 600, color: '#fff', background: isCurrent ? '#059669' : '#1d4ed8', border: 'none', borderRadius: 4, padding: '2px 8px', cursor: 'pointer' }}
+                >
+                  {isCurrent ? 'Reload' : 'Load'}
+                </button>
+              </div>
+
+              {expanded && (
+                <div style={{ marginTop: 8, padding: '8px 10px', background: '#f8f9fa', borderRadius: 6, border: '1px solid #e5e7eb', maxHeight: 200, overflowY: 'auto' }}>
+                  <pre style={{ margin: 0, fontSize: 11, color: '#374151', whiteSpace: 'pre-wrap', lineHeight: 1.6, fontFamily: 'inherit' }}>
+                    {item.body}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // ── Contact panel ─────────────────────────────────────────────────────────────
 
 function ContactPanel({
-  lead, messages, onStatus,
+  lead, messages, onStatus, threadId, onRestoreDraft,
 }: {
-  lead:      Lead
-  messages:  RealMsg[]
-  onStatus:  (id: string, s: string) => void
+  lead:            Lead
+  messages:        RealMsg[]
+  onStatus:        (id: string, s: string) => void
+  threadId:        string | null
+  onRestoreDraft:  (body: string, generatedBy: string) => void
 }) {
+  const [panelTab, setPanelTab] = useState<'contact' | 'drafts'>('contact')
   const [menuOpen, setMenuOpen] = useState(false)
   const [copied,   setCopied]   = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -995,6 +1143,28 @@ function ContactPanel({
 
   return (
     <div style={{ width: 248, flexShrink: 0, borderLeft: '1px solid #e8e8e8', background: '#fff', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+
+      {/* Tab switcher */}
+      <div style={{ display: 'flex', borderBottom: '1px solid #e8e8e8', flexShrink: 0 }}>
+        {(['contact', 'drafts'] as const).map(t => (
+          <button key={t} onClick={() => setPanelTab(t)} style={{
+            flex: 1, padding: '8px 0', fontSize: 11, fontWeight: panelTab === t ? 600 : 400,
+            color: panelTab === t ? '#1677FF' : '#9ca3af', background: 'none', border: 'none',
+            borderBottom: panelTab === t ? '2px solid #1677FF' : '2px solid transparent',
+            cursor: 'pointer', textTransform: 'capitalize', letterSpacing: '0.01em',
+          }}>
+            {t === 'drafts' ? 'Draft History' : 'Contact'}
+          </button>
+        ))}
+      </div>
+
+      {/* Draft History tab */}
+      {panelTab === 'drafts' && (
+        <DraftHistoryPanel threadId={threadId} onRestore={onRestoreDraft} />
+      )}
+
+      {/* Contact tab */}
+      {panelTab === 'contact' && <>
       <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', background: needsReply ? '#fffbeb' : '#fff' }}>
         {needsReply ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1098,6 +1268,7 @@ function ContactPanel({
         <p style={lbl}>Internal Notes</p>
         <textarea placeholder="Add notes…" rows={4} style={{ width: '100%', boxSizing: 'border-box', fontSize: 12, color: '#333', lineHeight: 1.6, border: '1px solid #e8e8e8', borderRadius: 8, padding: '8px 10px', resize: 'none', background: '#fafafa', outline: 'none', fontFamily: 'inherit' }} />
       </div>
+      </>}
     </div>
   )
 }
@@ -1123,6 +1294,7 @@ function ThreadView({
   const [deleting,         setDeleting]         = useState(false)
   const [confirmDelete,    setConfirmDelete]     = useState(false)
   const [ragDraft,         setRagDraft]         = useState<{ content: string; sources: RagSource[] } | null>(null)
+  const [pendingRestore,   setPendingRestore]   = useState<{ body: string; generatedBy: string; stamp: number } | null>(null)
   const threadId        = thread?.id ?? null
   const latestSummary   = summaries[0] ?? null
   const latestMessageId = messages.at(-1)?.id ?? null
@@ -1178,32 +1350,36 @@ function ThreadView({
   return (
     <div style={{ flex: 1, display: 'flex', minWidth: 0, overflow: 'hidden' }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid #e8e8e8', background: '#fff', flexShrink: 0 }}>
+        <div style={{ padding: '14px 18px 12px', borderBottom: '1px solid #e8eaed', background: '#fff', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
             <div style={{ minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.02em', lineHeight: 1.3 }}>
                   {thread?.subject ?? lead.subject ?? lead.topic ?? fullName(lead)}
                 </span>
                 {needsReply && (
                   <>
-                    <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: 'rgba(245,158,11,0.10)', color: '#b45309' }}>⚡ Needs reply</span>
+                    <span style={{ fontSize: 10.5, fontWeight: 600, padding: '2px 9px', borderRadius: 20, background: 'rgba(245,158,11,0.10)', color: '#b45309', border: '1px solid rgba(245,158,11,0.20)' }}>⚡ Needs reply</span>
                     <Tip text="The last email in this thread was from the contact — they are waiting on your response. Use the reply panel below to draft and send a reply." />
                   </>
                 )}
               </div>
-              <p style={{ margin: '3px 0 0', fontSize: 12, color: '#888' }}>
-                {fullName(lead)}{lead.email ? ` · ${lead.email}` : ''}{lead.company ? ` · ${lead.company}` : ''}
-              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 11.5, color: '#6b7280' }}>
+                  {fullName(lead)}{lead.email ? ` · ${lead.email}` : ''}{lead.company ? ` · ${lead.company}` : ''}
+                </span>
+                {messages.length > 0 && (
+                  <span style={{ fontSize: 10.5, color: '#9ca3af', background: '#f3f4f6', padding: '1px 7px', borderRadius: 20 }}>
+                    {messages.length} email{messages.length !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
               <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: st.bg, color: st.color }}>{st.label}</span>
-              {messages.length > 0 && (
-                <span style={{ fontSize: 11, color: '#bbb' }}>{messages.length} email{messages.length !== 1 ? 's' : ''}</span>
-              )}
               {confirmDelete ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 11, color: '#ef4444' }}>Delete thread?</span>
+                  <span style={{ fontSize: 11, color: '#ef4444' }}>Delete?</span>
                   <button onClick={handleDelete} disabled={deleting} style={{ fontSize: 11, fontWeight: 600, color: '#fff', background: '#ef4444', border: 'none', borderRadius: 6, padding: '3px 10px', cursor: 'pointer', opacity: deleting ? 0.5 : 1 }}>
                     {deleting ? 'Deleting…' : 'Confirm'}
                   </button>
@@ -1212,7 +1388,7 @@ function ThreadView({
                   </button>
                 </div>
               ) : (
-                <button onClick={handleDelete} title="Delete thread" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#ddd', display: 'flex', alignItems: 'center' }}>
+                <button onClick={handleDelete} title="Delete thread" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#d1d5db', display: 'flex', alignItems: 'center', borderRadius: 6 }}>
                   <Trash2 size={13} strokeWidth={2} />
                 </button>
               )}
@@ -1232,7 +1408,7 @@ function ThreadView({
           <CampaignContextPanel ctx={lead.campaign_context} />
         )}
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px 24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 28px', display: 'flex', flexDirection: 'column', gap: 10, background: '#f8fafc' }}>
           {loading && <div style={{ textAlign: 'center', padding: '48px 0', fontSize: 12, color: '#bbb' }}>Loading email thread…</div>}
           {!loading && error && <div style={{ textAlign: 'center', padding: '32px 0', fontSize: 12, color: '#ef4444' }}>{error}</div>}
           {!loading && !error && messages.length === 0 && (
@@ -1253,10 +1429,10 @@ function ThreadView({
           ))}
         </div>
 
-        <AIDraftPanel lead={lead} thread={thread} messages={messages} storedDraft={latestSummary?.draft_reply} storedRagDraft={ragDraft?.content ?? null} storedRagSources={ragDraft?.sources ?? []} onRagRefresh={refreshRagDraft} onThreadRefresh={onThreadRefresh} />
+        <AIDraftPanel lead={lead} thread={thread} messages={messages} storedDraft={latestSummary?.draft_reply} storedRagDraft={ragDraft?.content ?? null} storedRagSources={ragDraft?.sources ?? []} onRagRefresh={refreshRagDraft} onThreadRefresh={onThreadRefresh} pendingRestore={pendingRestore} />
       </div>
 
-      <ContactPanel lead={lead} messages={messages} onStatus={onStatus} />
+      <ContactPanel lead={lead} messages={messages} onStatus={onStatus} threadId={threadId} onRestoreDraft={(body, generatedBy) => setPendingRestore({ body, generatedBy, stamp: Date.now() })} />
     </div>
   )
 }
@@ -1271,46 +1447,62 @@ function LeadListItem({
   threadState: ThreadState | undefined
   onClick:     () => void
 }) {
-  const st          = STATUS_MAP[lead.status] ?? STATUS_MAP.contacted
   const msgs        = threadState?.messages ?? []
   const lastMsg     = msgs.at(-1)
   const needsReply  = lastMsg?.direction === 'inbound'
-  const msgCount    = msgs.length
 
   const previewText = lastMsg
     ? `${lastMsg.direction === 'outbound' ? 'You: ' : ''}${(lastMsg.body_text ?? '').split('\n').find(l => l.trim()) ?? ''}`
     : (lead.details || lead.message || lead.topic || '—')
 
+  const name    = fullName(lead)
+  const initial = (name[0] ?? lead.email?.[0] ?? '?').toUpperCase()
+
   return (
     <button
       onClick={onClick}
       style={{
-        width: '100%', textAlign: 'left', padding: '11px 14px',
-        borderBottom: '1px solid #f0f0f0', background: isActive ? '#f7f7f7' : '#fff',
-        border: 'none', cursor: 'pointer', display: 'block',
-        borderLeftWidth: 3, borderLeftStyle: 'solid', borderLeftColor: isActive ? st.color : 'transparent',
+        width: '100%', textAlign: 'left', padding: '10px 14px',
+        borderBottom: '1px solid #f0f0f0',
+        background: isActive ? '#f0f6ff' : '#fff',
+        border: 'none', borderLeft: 'none', cursor: 'pointer', display: 'block',
+        borderLeftWidth: 3, borderLeftStyle: 'solid',
+        borderLeftColor: isActive ? '#1677FF' : needsReply ? '#f59e0b' : 'transparent',
+        transition: 'background 0.1s',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ margin: '0 0 2px', fontSize: 12, fontWeight: 600, color: '#111', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {lead.subject ?? lead.topic ?? fullName(lead)}
-          </p>
-          <p style={{ margin: '0 0 2px', fontSize: 11, color: '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {fullName(lead)}{lead.company ? ` · ${lead.company}` : ''}
-          </p>
-          <p style={{ margin: 0, fontSize: 11, color: '#bbb', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {previewText}
-          </p>
+        {/* Avatar */}
+        <div style={{
+          width: 34, height: 34, borderRadius: '50%', flexShrink: 0, marginTop: 1,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 13, fontWeight: 700,
+          background: isActive ? 'rgba(22,119,255,0.12)' : '#f3f4f6',
+          color: isActive ? '#1677FF' : '#6b7280',
+        }}>
+          {initial}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
-          <span style={{ fontSize: 10, color: '#bbb' }}>{timeAgo(lastMsg?.sent_at ?? lead.created_at)}</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            {lead.campaign_context && (
-              <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 8, background: '#fef3c7', color: '#b45309' }}>Campaign</span>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 2 }}>
+            <p style={{ margin: 0, fontSize: 12.5, fontWeight: 600, color: '#111', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
+              {name || (lead.email?.split('@')[0] ?? '—')}
+            </p>
+            <span style={{ fontSize: 10.5, color: '#9ca3af', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{timeAgo(lastMsg?.sent_at ?? lead.created_at)}</span>
+          </div>
+          <p style={{ margin: '0 0 3px', fontSize: 11, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {lead.subject ?? lead.topic ?? lead.company ?? lead.email ?? '—'}
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <p style={{ margin: 0, flex: 1, fontSize: 11, color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {previewText}
+            </p>
+            {needsReply && (
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} />
             )}
-            {msgCount > 0 && <span style={{ fontSize: 10, color: '#bbb' }}>{msgCount} email{msgCount !== 1 ? 's' : ''}</span>}
-            {needsReply && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b' }} />}
+            {lead.campaign_context && (
+              <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 8, background: '#fef3c7', color: '#b45309', flexShrink: 0 }}>C</span>
+            )}
           </div>
         </div>
       </div>
@@ -1429,8 +1621,8 @@ export default function EngagementPage() {
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
         {/* ── Left panel ── */}
-        <div style={{ width: 320, flexShrink: 0, borderRight: '1px solid #e8e8e8', background: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <div style={{ padding: '12px 14px 10px', borderBottom: '1px solid #e8e8e8', flexShrink: 0 }}>
+        <div style={{ width: 320, flexShrink: 0, borderRight: '1px solid #e8eaed', background: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{ padding: '12px 14px 10px', borderBottom: '1px solid #e8eaed', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>Engagement Agent</span>

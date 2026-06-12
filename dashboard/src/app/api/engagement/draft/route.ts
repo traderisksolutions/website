@@ -32,7 +32,10 @@ export async function GET(req: NextRequest) {
     const contactId = sp.get('contactId')
 
     let url: string
-    if (threadId) {
+    if (threadId && sp.get('history') === 'true') {
+      // Full AI draft history for a thread (GDrive + RAG only, newest first)
+      url = `${SB_URL}/rest/v1/ai_drafts?thread_id=eq.${encodeURIComponent(threadId)}&generated_by=in.(gdrive,rag)&order=created_at.desc&select=id,body,status,generated_by,email_type,created_at&limit=20`
+    } else if (threadId) {
       url = `${SB_URL}/rest/v1/ai_drafts?thread_id=eq.${encodeURIComponent(threadId)}&status=in.(pending,approved)&order=created_at.desc&limit=1`
     } else if (contactId) {
       url = `${SB_URL}/rest/v1/ai_drafts?contact_id=eq.${contactId}&status=in.(pending,approved)&order=created_at.desc&limit=5`
