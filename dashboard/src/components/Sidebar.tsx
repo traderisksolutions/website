@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   Mail, MessageCircle, AlertCircle,
   Users, BarChart2,
-  Search, ChevronRight, ChevronDown,
+  Search, ChevronRight, ChevronDown, ChevronLeft,
   Bot, Table2, UsersRound,
   LogOut, BookOpen, Cpu, FolderOpen,
   Telescope, Megaphone, BookMarked, Settings, FlaskConical,
@@ -48,12 +48,14 @@ async function fetchStageCounts(): Promise<StageCounts> {
 export default function Sidebar() {
   const pathname = usePathname()
   const router   = useRouter()
-  const [inbound,      setInbound]      = useState<InboundCounts>({ emailNew: 0, waNew: 0 })
-  const [stages,       setStages]       = useState<StageCounts>({ engaged: 0, qualified: 0, proposal: 0, converted: 0 })
-  const [captureOpen,  setCaptureOpen]  = useState(true)
-  const [outboundOpen, setOutboundOpen] = useState(true)
-  const [engageOpen,   setEngageOpen]   = useState(true)
-  const [userEmail,    setUserEmail]    = useState<string | null>(null)
+  const [inbound,       setInbound]       = useState<InboundCounts>({ emailNew: 0, waNew: 0 })
+  const [stages,        setStages]        = useState<StageCounts>({ engaged: 0, qualified: 0, proposal: 0, converted: 0 })
+  const [captureOpen,   setCaptureOpen]   = useState(true)
+  const [outboundOpen,  setOutboundOpen]  = useState(true)
+  const [engageOpen,    setEngageOpen]    = useState(true)
+  const [analyticsOpen, setAnalyticsOpen] = useState(true)
+  const [collapsed,     setCollapsed]     = useState(false)
+  const [userEmail,     setUserEmail]     = useState<string | null>(null)
 
   useEffect(() => {
     const load = () => {
@@ -69,6 +71,17 @@ export default function Sidebar() {
     createClient().auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null))
   }, [])
 
+  // Restore collapsed state from localStorage on mount
+  useEffect(() => {
+    if (localStorage.getItem('sidebar-collapsed') === 'true') setCollapsed(true)
+  }, [])
+
+  // Sync CSS variable and localStorage whenever collapsed changes
+  useEffect(() => {
+    document.documentElement.style.setProperty('--sidebar-width', collapsed ? '52px' : '240px')
+    localStorage.setItem('sidebar-collapsed', String(collapsed))
+  }, [collapsed])
+
   async function signOut() {
     await createClient().auth.signOut()
     router.push('/login')
@@ -80,6 +93,63 @@ export default function Sidebar() {
 
   const totalEngaged = stages.engaged + stages.qualified + stages.proposal + stages.converted
 
+  // ── Collapsed (icon-rail) mode ─────────────────────────────────────────────
+  if (collapsed) {
+    return (
+      <aside className="fixed inset-y-0 left-0 flex flex-col z-40 glass-sidebar"
+        style={{ width: 52, overflowY: 'hidden' }}
+      >
+        {/* Logo */}
+        <div style={{ height: 52, borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'hsl(var(--sidebar-ring))', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 2px var(--primary-focus-ring)' }}>
+            <span style={{ fontSize: 10, fontWeight: 900, color: '#fff', letterSpacing: '-0.03em' }}>TRS</span>
+          </div>
+          {/* Expand toggle — floats on the right edge */}
+          <button
+            onClick={() => setCollapsed(false)}
+            title="Expand sidebar"
+            style={{ position: 'absolute', top: 16, right: -10, width: 20, height: 20, borderRadius: '50%', background: '#fff', border: '1px solid #e5e7eb', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.12)', zIndex: 50 }}
+          >
+            <ChevronRight size={10} strokeWidth={2.5} style={{ color: 'hsl(var(--sidebar-fg))' }} />
+          </button>
+        </div>
+
+        {/* Icon-only nav */}
+        <nav style={{ flex: 1, overflowY: 'auto', padding: '8px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+          <CollapsedIcon icon={BookOpen} href="/documentation" isActive={active('/documentation')} label="Overview" />
+          <IconDivider />
+          <CollapsedIcon icon={Mail}          href="/inbound/email"    isActive={active('/inbound/email')}    label="Email"    hasBadge={inbound.emailNew > 0} />
+          <CollapsedIcon icon={MessageCircle} href="/inbound/whatsapp" isActive={active('/inbound/whatsapp')} label="WhatsApp" hasBadge={inbound.waNew > 0} />
+          <IconDivider />
+          <CollapsedIcon icon={Telescope}  href="/outbound/agent"     isActive={active('/outbound/agent')}     label="Lead Discovery" />
+          <CollapsedIcon icon={Table2}     href="/outbound/leads"     isActive={active('/outbound/leads')}     label="Lead Database" />
+          <CollapsedIcon icon={Megaphone}  href="/outbound/campaigns" isActive={active('/outbound/campaigns')} label="Campaigns" />
+          <CollapsedIcon icon={BookMarked} href="/outbound/knowledge" isActive={active('/outbound/knowledge')} label="Product Knowledge" />
+          <IconDivider />
+          <CollapsedIcon icon={Users} href="/contacts"  isActive={active('/contacts')}  label="Active Contacts" hasBadge={totalEngaged > 0} />
+          <CollapsedIcon icon={Bot}   href="/engagement" isActive={active('/engagement')} label="Engagement AI Agent" />
+          <IconDivider />
+          <CollapsedIcon icon={Cpu}         href="/analytics/ai-usage"  isActive={active('/analytics/ai-usage')}  label="AI Usage" />
+          <CollapsedIcon icon={FolderOpen}  href="/analytics/rag-index" isActive={active('/analytics/rag-index')} label="RAG Index" />
+          <CollapsedIcon icon={FlaskConical} href="/analytics/eval"     isActive={active('/analytics/eval')}      label="Email Evaluation" />
+          <IconDivider />
+          <CollapsedIcon icon={Settings} href="/settings" isActive={active('/settings')} label="Settings" />
+        </nav>
+
+        {/* Footer */}
+        <div style={{ borderTop: '1px solid var(--border-subtle)', padding: '10px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'hsl(var(--sidebar-primary))' }}>
+            {userEmail ? userEmail[0].toUpperCase() : '?'}
+          </div>
+          <button onClick={signOut} title="Sign out" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'hsl(var(--sidebar-fg))', display: 'flex', alignItems: 'center' }}>
+            <LogOut size={13} strokeWidth={2} />
+          </button>
+        </div>
+      </aside>
+    )
+  }
+
+  // ── Expanded mode ──────────────────────────────────────────────────────────
   return (
     <aside className="fixed inset-y-0 left-0 flex flex-col z-40 overflow-y-auto glass-sidebar"
       style={{ width: 'var(--sidebar-width)' }}
@@ -93,7 +163,7 @@ export default function Sidebar() {
         >
           <span className="text-[10px] font-black text-white tracking-tight">TRS</span>
         </div>
-        <div className="flex flex-col min-w-0">
+        <div className="flex flex-col min-w-0 flex-1">
           <span className="text-[13px] font-semibold leading-tight tracking-tight"
             style={{ color: 'hsl(var(--sidebar-primary))' }}
           >
@@ -103,6 +173,16 @@ export default function Sidebar() {
             Internal Dashboard
           </span>
         </div>
+        {/* Collapse toggle */}
+        <button
+          onClick={() => setCollapsed(true)}
+          title="Collapse sidebar"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'hsl(var(--sidebar-fg))', display: 'flex', alignItems: 'center', flexShrink: 0, borderRadius: 6, opacity: 0.6 }}
+          onMouseEnter={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.background = 'hsl(var(--sidebar-accent))' }}
+          onMouseLeave={e => { e.currentTarget.style.opacity = '0.6'; e.currentTarget.style.background = 'none' }}
+        >
+          <ChevronLeft size={14} strokeWidth={2} />
+        </button>
       </div>
 
       {/* ── Search ── */}
@@ -177,21 +257,21 @@ export default function Sidebar() {
 
         <SectionDivider />
 
-        {/* Analytics */}
-        <p className="px-2.5 pt-1 pb-0.5 text-[10px] font-semibold uppercase tracking-widest"
-          style={{ color: 'hsl(var(--sidebar-fg))' }}
-        >
-          Analytics
-        </p>
-        <NavItem label="Funnel"           href="/analytics"          icon={BarChart2}   isActive={active('/analytics') && !active('/analytics/ai-usage') && !active('/analytics/activity') && !active('/analytics/eval') && !active('/analytics/rag-index')} disabled />
-        <NavItem label="Activity Log"     href="/analytics/activity" icon={UsersRound}  isActive={active('/analytics/activity')} disabled />
-        <NavItem label="AI Usage"         href="/analytics/ai-usage" icon={Cpu}         isActive={active('/analytics/ai-usage')} />
-        <NavItem label="RAG Index"        href="/analytics/rag-index" icon={FolderOpen} isActive={active('/analytics/rag-index')} />
-        <NavItem label="Email Evaluation" href="/analytics/eval"     icon={FlaskConical} isActive={active('/analytics/eval')} />
+        {/* Analytics — now collapsible */}
+        <SectionHeader label="Analytics" open={analyticsOpen} onToggle={() => setAnalyticsOpen(o => !o)} />
+        {analyticsOpen && (
+          <div className="space-y-0.5">
+            <NavItem label="Funnel"           href="/analytics"           icon={BarChart2}    isActive={active('/analytics') && !active('/analytics/ai-usage') && !active('/analytics/activity') && !active('/analytics/eval') && !active('/analytics/rag-index')} disabled />
+            <NavItem label="Activity Log"     href="/analytics/activity"  icon={UsersRound}   isActive={active('/analytics/activity')} disabled />
+            <NavItem label="AI Usage"         href="/analytics/ai-usage"  icon={Cpu}          isActive={active('/analytics/ai-usage')} />
+            <NavItem label="RAG Index"        href="/analytics/rag-index" icon={FolderOpen}   isActive={active('/analytics/rag-index')} />
+            <NavItem label="Email Evaluation" href="/analytics/eval"      icon={FlaskConical} isActive={active('/analytics/eval')} />
+          </div>
+        )}
 
         <SectionDivider />
 
-        {/* Claims */}
+        {/* Claims / Settings */}
         <NavItem label="Claims"   href="/claims"   icon={AlertCircle} isActive={active('/claims')}   disabled />
         <NavItem label="Settings" href="/settings" icon={Settings}    isActive={active('/settings')} />
 
@@ -335,4 +415,49 @@ function StagePill({ label, count, color }: { label: string; count: number; colo
       {label} {count}
     </span>
   )
+}
+
+// ── Collapsed-mode icon components ─────────────────────────────────────────────
+
+function CollapsedIcon({
+  icon: Icon, href, isActive, label, hasBadge, disabled,
+}: {
+  icon: React.ElementType; href: string; isActive: boolean; label: string; hasBadge?: boolean; disabled?: boolean
+}) {
+  const inner = (
+    <span
+      title={label}
+      style={{
+        width: 36, height: 36, borderRadius: 8,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: isActive ? 'hsl(var(--sidebar-accent))' : 'transparent',
+        cursor: disabled ? 'default' : 'pointer',
+        opacity: disabled ? 0.35 : 1,
+        position: 'relative',
+        transition: 'background 0.1s',
+      }}
+    >
+      <Icon
+        size={16}
+        strokeWidth={isActive ? 2.2 : 1.8}
+        style={{ color: isActive ? 'hsl(var(--sidebar-ring))' : 'hsl(var(--sidebar-fg))' }}
+      />
+      {hasBadge && (
+        <span style={{
+          position: 'absolute', top: 7, right: 7,
+          width: 6, height: 6, borderRadius: '50%',
+          background: 'hsl(var(--sidebar-ring))',
+          border: '1px solid #fff',
+        }} />
+      )}
+    </span>
+  )
+
+  return disabled
+    ? <div>{inner}</div>
+    : <Link href={href} className="no-underline">{inner}</Link>
+}
+
+function IconDivider() {
+  return <div style={{ width: 28, height: 1, background: 'var(--border-subtle)', margin: '3px 0' }} />
 }

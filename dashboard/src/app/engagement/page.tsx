@@ -183,16 +183,14 @@ async function fetchThread(threadId: string | null, email: string | null): Promi
 
 // ── Email card ────────────────────────────────────────────────────────────────
 
-function EmailCard({ msg, defaultOpen }: { msg: RealMsg; index?: number; defaultOpen: boolean }) {
+function EmailCard({ msg, defaultOpen, onOpen }: { msg: RealMsg; index?: number; defaultOpen: boolean; onOpen?: (id: string) => void }) {
   const [open,     setOpen]     = useState(defaultOpen)
   const [showFull, setShowFull] = useState(false)
-  const [copied,   setCopied]   = useState<string | null>(null)
   const isOut = msg.direction === 'outbound'
 
-  function copy(text: string) {
-    navigator.clipboard.writeText(text)
-    setCopied(text)
-    setTimeout(() => setCopied(null), 1500)
+  function expand() {
+    setOpen(true)
+    onOpen?.(msg.id)
   }
 
   const fullBody      = msg.body_text ?? ''
@@ -232,7 +230,7 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; index?: number; default
               <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-secondary)' }}>{senderLabel}</span>
             </div>
             <div
-              onClick={() => setOpen(true)}
+              onClick={expand}
               style={{
                 background: bubbleBg, border: `1px solid ${bubbleBorder}`,
                 boxShadow: bubbleShadow,
@@ -261,7 +259,7 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; index?: number; default
             <span style={{ fontSize: 11, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{fmtDateTime(msg.sent_at)}</span>
           </div>
           <div
-            onClick={() => setOpen(true)}
+            onClick={expand}
             style={{
               background: bubbleBg, border: `1px solid ${bubbleBorder}`,
               boxShadow: bubbleShadow,
@@ -316,43 +314,6 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; index?: number; default
             <path d="M2 8l4-4 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </div>
-      </div>
-
-      {/* Meta rows */}
-      <div style={{ padding: '0 16px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#c8cbd0', width: 36, flexShrink: 0 }}>From</span>
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{msg.from_address ?? '—'}</span>
-          <button onClick={() => copy(msg.from_address ?? '')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', lineHeight: 1, display: 'flex', alignItems: 'center' }}>
-            {copied === msg.from_address ? <Check size={10} style={{ color: '#22c55e' }} /> : <Copy size={10} style={{ color: '#e5e7eb' }} />}
-          </button>
-        </div>
-        {msg.to.length > 0 && (
-          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-            <span style={{ fontSize: 11, fontWeight: 600, color: '#c8cbd0', width: 36, flexShrink: 0 }}>To</span>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-              {msg.to.map(a => (
-                <span key={a} style={{ fontSize: 11, background: isOut ? 'rgba(15,61,145,0.07)' : '#f3f4f6', color: isOut ? 'var(--primary-hex)' : 'var(--text-secondary)', padding: '2px 8px', borderRadius: 20 }}>{a}</span>
-              ))}
-            </div>
-          </div>
-        )}
-        {msg.cc.length > 0 && (
-          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-            <span style={{ fontSize: 11, fontWeight: 600, color: '#c8cbd0', width: 36, flexShrink: 0 }}>CC</span>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-              {msg.cc.map(a => (
-                <span key={a} style={{ fontSize: 11, background: 'rgba(15,61,145,0.07)', color: 'var(--primary-hex)', padding: '2px 8px', borderRadius: 20, border: '1px solid rgba(129,140,248,0.18)' }}>{a}</span>
-              ))}
-            </div>
-          </div>
-        )}
-        {msg.subject && (
-          <div style={{ display: 'flex', gap: 12 }}>
-            <span style={{ fontSize: 11, fontWeight: 600, color: '#c8cbd0', width: 36, flexShrink: 0 }}>Subj</span>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>{msg.subject}</span>
-          </div>
-        )}
       </div>
 
       {/* Body */}
@@ -1158,18 +1119,89 @@ function DraftHistoryPanel({ threadId, onRestore }: { threadId: string | null; o
   )
 }
 
+// ── Thread metadata panel ─────────────────────────────────────────────────────
+
+function ThreadMetaPanel({ msg }: { msg: RealMsg | null }) {
+  const lbl: React.CSSProperties = { fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', margin: '0 0 4px' }
+
+  if (!msg) return (
+    <div style={{ padding: '32px 16px', fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'center', lineHeight: 1.7 }}>
+      Click a message to see its details.
+    </div>
+  )
+
+  return (
+    <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto' }}>
+      {/* Direction + timestamp */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{
+          fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 20,
+          background: msg.direction === 'outbound' ? 'rgba(15,61,145,0.08)' : 'rgba(0,0,0,0.05)',
+          color: msg.direction === 'outbound' ? 'var(--primary-hex)' : 'var(--text-secondary)',
+        }}>
+          {msg.direction === 'outbound' ? 'Sent' : 'Received'}
+        </span>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{fmtDateTime(msg.sent_at)}</span>
+      </div>
+
+      {/* Subject */}
+      {msg.subject && (
+        <div>
+          <p style={lbl}>Subject</p>
+          <p style={{ margin: 0, fontSize: 12.5, color: '#111', fontWeight: 500, lineHeight: 1.5 }}>{msg.subject}</p>
+        </div>
+      )}
+
+      {/* From */}
+      <div>
+        <p style={lbl}>From</p>
+        <p style={{ margin: 0, fontSize: 12, color: '#333', wordBreak: 'break-all' }}>{msg.from_address ?? '—'}</p>
+      </div>
+
+      {/* To */}
+      {msg.to.length > 0 && (
+        <div>
+          <p style={lbl}>To</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {msg.to.map(a => (
+              <span key={a} style={{ fontSize: 11.5, color: '#333', wordBreak: 'break-all' }}>{a}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* CC */}
+      {msg.cc.length > 0 && (
+        <div>
+          <p style={lbl}>CC</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {msg.cc.map(a => (
+              <span key={a} style={{
+                fontSize: 11, padding: '3px 9px', borderRadius: 12,
+                background: 'rgba(15,61,145,0.07)', color: 'var(--primary-hex)',
+                border: '1px solid rgba(129,140,248,0.2)',
+              }}>{a}</span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Contact panel ─────────────────────────────────────────────────────────────
 
 function ContactPanel({
-  lead, messages, onStatus, threadId, onRestoreDraft,
+  lead, messages, onStatus, threadId, selectedMsg, onRestoreDraft,
 }: {
   lead:            Lead
   messages:        RealMsg[]
   onStatus:        (id: string, s: string) => void
   threadId:        string | null
+  selectedMsg:     RealMsg | null
   onRestoreDraft:  (body: string, generatedBy: string) => void
 }) {
-  const [panelTab, setPanelTab] = useState<'contact' | 'drafts'>('contact')
+  const [panelTab, setPanelTab] = useState<'contact' | 'thread' | 'drafts'>('contact')
   const [menuOpen, setMenuOpen] = useState(false)
   const [copied,   setCopied]   = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -1177,7 +1209,6 @@ function ContactPanel({
   const st = STATUS_MAP[lead.status] ?? STATUS_MAP.contacted
   const lastInbound  = [...messages].reverse().find(m => m.direction === 'inbound')
   const needsReply   = messages.at(-1)?.direction === 'inbound'
-  const allCcs = Array.from(new Set(messages.flatMap(m => m.cc)))
 
   function copy(text: string, k: string) {
     navigator.clipboard.writeText(text); setCopied(k); setTimeout(() => setCopied(null), 1500)
@@ -1198,14 +1229,14 @@ function ContactPanel({
 
       {/* Tab switcher */}
       <div style={{ display: 'flex', borderBottom: '1px solid #e8e8e8', flexShrink: 0 }}>
-        {(['contact', 'drafts'] as const).map(t => (
+        {(['contact', 'thread', 'drafts'] as const).map(t => (
           <button key={t} onClick={() => setPanelTab(t)} style={{
-            flex: 1, padding: '8px 0', fontSize: 11, fontWeight: panelTab === t ? 600 : 400,
+            flex: 1, padding: '8px 0', fontSize: 10.5, fontWeight: panelTab === t ? 600 : 400,
             color: panelTab === t ? 'var(--primary-hex)' : 'var(--text-muted)', background: 'none', border: 'none',
             borderBottom: panelTab === t ? '2px solid #1677FF' : '2px solid transparent',
-            cursor: 'pointer', textTransform: 'capitalize', letterSpacing: '0.01em',
+            cursor: 'pointer', letterSpacing: '0.01em',
           }}>
-            {t === 'drafts' ? 'Draft History' : 'Contact'}
+            {t === 'drafts' ? 'Drafts' : t === 'thread' ? 'Thread' : 'Contact'}
           </button>
         ))}
       </div>
@@ -1213,6 +1244,11 @@ function ContactPanel({
       {/* Draft History tab */}
       {panelTab === 'drafts' && (
         <DraftHistoryPanel threadId={threadId} onRestore={onRestoreDraft} />
+      )}
+
+      {/* Thread metadata tab */}
+      {panelTab === 'thread' && (
+        <ThreadMetaPanel msg={selectedMsg} />
       )}
 
       {/* Contact tab */}
@@ -1289,23 +1325,6 @@ function ContactPanel({
         </div>
       </div>
 
-      {allCcs.length > 0 && (
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0' }}>
-          <p style={lbl}>CC Participants <Tip placement="left" text="People who were copied on one or more emails in this thread. They can see the full conversation — keep this in mind when drafting replies." /></p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-            {allCcs.map(addr => (
-              <div key={addr} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(59,130,246,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: 'var(--primary-hex)', flexShrink: 0 }}>
-                  {addr[0].toUpperCase()}
-                </span>
-                <span style={{ fontSize: 11, color: '#555', wordBreak: 'break-all', flex: 1 }}>{addr}</span>
-                <span style={{ fontSize: 9, color: 'var(--text-muted)', background: '#f4f4f5', padding: '1px 5px', borderRadius: 4 }}>CC</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0' }}>
         <p style={lbl}>Lead Info</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -1348,10 +1367,17 @@ function ThreadView({
   const [ragDraft,         setRagDraft]         = useState<{ content: string; sources: RagSource[] } | null>(null)
   const [pendingRestore,   setPendingRestore]   = useState<{ body: string; generatedBy: string; stamp: number } | null>(null)
   const [showReply,        setShowReply]        = useState(true)
+  const [selectedMsgId,    setSelectedMsgId]    = useState<string | null>(null)
   const threadId        = thread?.id ?? null
   const latestSummary   = summaries[0] ?? null
   const latestMessageId = messages.at(-1)?.id ?? null
   const log             = useAuditLog()
+
+  // Reset selected message when switching leads
+  useEffect(() => { setSelectedMsgId(null) }, [lead.id])
+
+  // Default to the most recent message; update when user expands a specific one
+  const selectedMsg = (selectedMsgId ? messages.find(m => m.id === selectedMsgId) : null) ?? messages.at(-1) ?? null
 
   function refreshSummaries() {
     if (!threadId) return
@@ -1485,6 +1511,7 @@ function ThreadView({
               <EmailCard
                 key={msg.id} msg={msg} index={i + 1}
                 defaultOpen={i === messages.length - 1 || i === lastInboundIdx}
+                onOpen={(id) => setSelectedMsgId(id)}
               />
             ))
           })()}
@@ -1510,7 +1537,7 @@ function ThreadView({
         )}
       </div>
 
-      <ContactPanel lead={lead} messages={messages} onStatus={onStatus} threadId={threadId} onRestoreDraft={(body, generatedBy) => setPendingRestore({ body, generatedBy, stamp: Date.now() })} />
+      <ContactPanel lead={lead} messages={messages} onStatus={onStatus} threadId={threadId} selectedMsg={selectedMsg} onRestoreDraft={(body, generatedBy) => setPendingRestore({ body, generatedBy, stamp: Date.now() })} />
     </div>
   )
 }
