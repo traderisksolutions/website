@@ -159,8 +159,9 @@ export default function CampaignsPage() {
 
       {/* New Campaign Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/45 z-[200] flex items-center justify-center">
-          <div className="bg-card border border-border rounded-[14px] p-7 max-w-[460px] w-[90%] shadow-2xl">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center backdrop-blur-[3px]"
+          style={{ background: 'rgba(0,0,0,0.22)' }}>
+          <div className="glass-modal rounded-2xl p-7 max-w-[460px] w-[90%]">
             <p className="text-[16px] font-bold text-foreground mb-5">New Campaign</p>
             <div className="flex flex-col gap-3.5">
               <div>

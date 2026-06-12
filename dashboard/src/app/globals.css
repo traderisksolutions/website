@@ -91,7 +91,9 @@
 
   body {
     margin: 0;
-    background-color: hsl(var(--background));
+    /* Barely-there neutral gradient — gives backdrop-filter something to diffuse */
+    background: linear-gradient(135deg, hsl(210 18% 97%) 0%, hsl(0 0% 100%) 55%);
+    min-height: 100vh;
     color: hsl(var(--foreground));
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -128,7 +130,74 @@
 }
 .dd-panel { animation: dd-in 0.16s cubic-bezier(0.22,1,0.36,1) forwards; }
 
-/* ── Glass utility ── */
+/* ════════════════════════════════════════════════════════
+   Apple Liquid Glass Material System
+   Applied to: sidebar, modals, floating chrome elements.
+   NOT applied to: cards, tables, data surfaces.
+   ════════════════════════════════════════════════════════ */
+
+:root {
+  /* Specular catch-light — top-edge white highlight */
+  --glass-specular:  inset 0 1px 0 rgba(255,255,255,0.65);
+  /* Elevation shadows — soft, no hard edges */
+  --glass-shadow-sm: 1px 0 0 rgba(0,0,0,0.04), 4px 0 20px rgba(0,0,0,0.05);
+  --glass-shadow-md: 0 8px 32px rgba(0,0,0,0.07), 0 2px 8px rgba(0,0,0,0.04);
+  --glass-shadow-lg: 0 0 0 1px rgba(0,0,0,0.04), 0 28px 72px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.06);
+}
+
+/* ── Sidebar panel — regular material ── */
+.glass-sidebar {
+  background: rgba(255,255,255,0.78);
+  backdrop-filter: blur(24px) saturate(170%) brightness(102%);
+  -webkit-backdrop-filter: blur(24px) saturate(170%) brightness(102%);
+  border-right: 1px solid rgba(255,255,255,0.55);
+  box-shadow: var(--glass-shadow-sm);
+}
+
+/* ── Search / filter controls — thin material ── */
+.glass-thin {
+  background: rgba(255,255,255,0.60);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.52);
+  box-shadow: var(--glass-specular), var(--glass-shadow-md);
+}
+
+/* ── Floating panels / overlapping surfaces — regular material ── */
+.glass-regular {
+  background: rgba(255,255,255,0.76);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.55);
+  box-shadow: var(--glass-specular), var(--glass-shadow-md);
+}
+
+/* ── Modals / sheets / dialogs — thick material ── */
+.glass-modal {
+  background: rgba(255,255,255,0.90);
+  backdrop-filter: blur(40px) saturate(145%);
+  -webkit-backdrop-filter: blur(40px) saturate(145%);
+  border: 1px solid rgba(255,255,255,0.75);
+  box-shadow: var(--glass-shadow-lg);
+}
+
+/* ── Fallback: no backdrop-filter support (Firefox < 103, old Edge) ── */
+@supports not (backdrop-filter: blur(1px)) {
+  .glass-sidebar  { background: hsl(0 0% 99%); border-right-color: hsl(var(--border)); }
+  .glass-thin     { background: hsl(var(--background)); border-color: hsl(var(--border)); }
+  .glass-regular  { background: hsl(var(--background)); border-color: hsl(var(--border)); }
+  .glass-modal    { background: hsl(var(--background)); border-color: hsl(var(--border)); }
+}
+
+/* ── Accessibility: user prefers reduced transparency ── */
+@media (prefers-reduced-transparency: reduce) {
+  .glass-sidebar  { background: hsl(0 0% 100%);          backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .glass-thin     { background: hsl(var(--background));   backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .glass-regular  { background: hsl(var(--background));   backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .glass-modal    { background: hsl(var(--background));   backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+
+/* ── Legacy .glass utility (preserved) ── */
 .glass {
   background: rgba(255,255,255,0.7);
   backdrop-filter: blur(24px) saturate(180%);

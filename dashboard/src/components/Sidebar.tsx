@@ -81,12 +81,12 @@ export default function Sidebar() {
   const totalEngaged = stages.engaged + stages.qualified + stages.proposal + stages.converted
 
   return (
-    <aside className="fixed inset-y-0 left-0 flex flex-col z-40 overflow-y-auto"
-      style={{ width: 'var(--sidebar-width)', background: 'hsl(var(--sidebar-bg))', borderRight: '1px solid hsl(var(--sidebar-border))' }}
+    <aside className="fixed inset-y-0 left-0 flex flex-col z-40 overflow-y-auto glass-sidebar"
+      style={{ width: 'var(--sidebar-width)' }}
     >
       {/* ── Logo / Brand ── */}
       <div className="flex items-center gap-3 px-4 h-[52px] flex-shrink-0"
-        style={{ borderBottom: '1px solid hsl(var(--sidebar-border))' }}
+        style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}
       >
         <div className="flex items-center justify-center rounded-lg flex-shrink-0"
           style={{ width: 32, height: 32, background: 'hsl(var(--sidebar-ring))', boxShadow: '0 0 0 2px rgba(96,165,250,0.25)' }}
@@ -108,11 +108,11 @@ export default function Sidebar() {
       {/* ── Search ── */}
       <div className="px-3 pt-3 pb-1 flex-shrink-0">
         <div className="flex items-center gap-2 rounded-md px-3 h-8 cursor-pointer group"
-          style={{ background: 'hsl(var(--sidebar-accent))', border: '1px solid hsl(var(--sidebar-border))' }}
+          style={{ background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.07)' }}
         >
           <Search size={12} style={{ color: 'hsl(var(--sidebar-fg))' }} />
           <span className="text-[12px] flex-1" style={{ color: 'hsl(var(--sidebar-fg))' }}>Search...</span>
-          <kbd className="text-[10px] rounded px-1" style={{ background: 'hsl(var(--sidebar-border))', color: 'hsl(var(--sidebar-fg))' }}>F</kbd>
+          <kbd className="text-[10px] rounded px-1" style={{ background: 'rgba(0,0,0,0.07)', color: 'hsl(var(--sidebar-fg))' }}>F</kbd>
         </div>
       </div>
 
@@ -199,10 +199,10 @@ export default function Sidebar() {
 
       {/* ── Footer ── */}
       <div className="flex items-center gap-2.5 px-3 py-3 flex-shrink-0"
-        style={{ borderTop: '1px solid hsl(var(--sidebar-border))' }}
+        style={{ borderTop: '1px solid rgba(0,0,0,0.07)' }}
       >
         <div className="flex items-center justify-center rounded-full flex-shrink-0 text-[11px] font-bold"
-          style={{ width: 28, height: 28, background: 'hsl(var(--sidebar-accent))', color: 'hsl(var(--sidebar-primary))' }}
+          style={{ width: 28, height: 28, background: 'rgba(0,0,0,0.06)', color: 'hsl(var(--sidebar-primary))' }}
         >
           {userEmail ? userEmail[0].toUpperCase() : '?'}
         </div>
@@ -230,7 +230,7 @@ export default function Sidebar() {
 
 function SectionDivider() {
   return (
-    <div className="my-2 mx-2 h-px" style={{ background: 'hsl(var(--sidebar-border))' }} />
+    <div className="my-2 mx-2 h-px" style={{ background: 'rgba(0,0,0,0.07)' }} />
   )
 }
 
