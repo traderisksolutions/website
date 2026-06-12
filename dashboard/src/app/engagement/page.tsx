@@ -183,7 +183,7 @@ async function fetchThread(threadId: string | null, email: string | null): Promi
 
 // ── Email card ────────────────────────────────────────────────────────────────
 
-function EmailCard({ msg, defaultOpen }: { msg: RealMsg; defaultOpen: boolean }) {
+function EmailCard({ msg, index, defaultOpen }: { msg: RealMsg; index: number; defaultOpen: boolean }) {
   const [open,     setOpen]     = useState(defaultOpen)
   const [showFull, setShowFull] = useState(false)
   const [copied,   setCopied]   = useState<string | null>(null)
@@ -222,41 +222,54 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; defaultOpen: boolean })
         style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}
         onClick={() => setOpen(v => !v)}
       >
-        {/* Avatar */}
-        <div style={{
-          width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 12, fontWeight: 700,
-          background: avatarBg, color: avatarColor,
-          letterSpacing: '-0.02em',
-        }}>
-          {senderInitial}
-        </div>
+        {open ? (
+          <>
+            {/* Expanded: avatar + sender + badge */}
+            <div style={{
+              width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 12, fontWeight: 700,
+              background: avatarBg, color: avatarColor,
+              letterSpacing: '-0.02em',
+            }}>
+              {senderInitial}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: '#111', letterSpacing: '-0.01em' }}>{senderLabel}</span>
+                <span style={{
+                  fontSize: 10, fontWeight: 600, padding: '1px 7px', borderRadius: 20,
+                  background: isOut ? 'rgba(34,197,94,0.10)' : 'rgba(129,140,248,0.10)',
+                  color: isOut ? '#15803d' : '#4338ca',
+                }}>
+                  {isOut ? 'Sent' : 'Received'}
+                </span>
+              </div>
+            </div>
+          </>
+        ) : (
+          /* Collapsed: subject only */
+          <p style={{
+            margin: 0, flex: 1, fontSize: 12.5, fontWeight: 500,
+            color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            letterSpacing: '-0.01em',
+          }}>
+            {msg.subject || previewLine || '—'}
+          </p>
+        )}
 
-        {/* Sender + preview */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: open ? 0 : 2 }}>
-            <span style={{ fontSize: 12.5, fontWeight: 600, color: '#111', letterSpacing: '-0.01em' }}>{senderLabel}</span>
+        {/* Time + # + chevron */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          {!open && (
             <span style={{
-              fontSize: 10, fontWeight: 600, padding: '1px 7px', borderRadius: 20,
+              fontSize: 10, fontWeight: 700, minWidth: 20, height: 18, borderRadius: 9,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px',
               background: isOut ? 'rgba(34,197,94,0.10)' : 'rgba(129,140,248,0.10)',
               color: isOut ? '#15803d' : '#4338ca',
             }}>
-              {isOut ? 'Sent' : 'Received'}
+              #{index}
             </span>
-            {msg.cc.length > 0 && !open && (
-              <span style={{ fontSize: 10, color: '#bbb' }}>+{msg.cc.length} CC</span>
-            )}
-          </div>
-          {!open && (
-            <p style={{ margin: 0, fontSize: 11.5, color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {previewLine}
-            </p>
           )}
-        </div>
-
-        {/* Time + chevron */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           <span style={{ fontSize: 11, color: '#9ca3af', fontVariantNumeric: 'tabular-nums' }}>{fmtDateTime(msg.sent_at)}</span>
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s', color: '#d1d5db' }}>
             <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -1425,7 +1438,7 @@ function ThreadView({
             </div>
           )}
           {!loading && messages.map((msg, i) => (
-            <EmailCard key={msg.id} msg={msg} defaultOpen={i === messages.length - 1} />
+            <EmailCard key={msg.id} msg={msg} index={i + 1} defaultOpen={i === messages.length - 1} />
           ))}
         </div>
 
@@ -1447,49 +1460,63 @@ function LeadListItem({
   threadState: ThreadState | undefined
   onClick:     () => void
 }) {
-  const msgs       = threadState?.messages ?? []
-  const lastMsg    = msgs.at(-1)
-  const needsReply = lastMsg?.direction === 'inbound'
-  const subject    = lead.subject ?? lead.topic ?? lead.company ?? lead.email ?? '—'
+  const msgs        = threadState?.messages ?? []
+  const lastMsg     = msgs.at(-1)
+  const needsReply  = lastMsg?.direction === 'inbound'
+
+  const previewText = lastMsg
+    ? `${lastMsg.direction === 'outbound' ? 'You: ' : ''}${(lastMsg.body_text ?? '').split('\n').find(l => l.trim()) ?? ''}`
+    : (lead.details || lead.message || lead.topic || '—')
+
+  const name    = fullName(lead)
+  const initial = (name[0] ?? lead.email?.[0] ?? '?').toUpperCase()
 
   return (
     <button
       onClick={onClick}
       style={{
-        width: '100%', textAlign: 'left',
-        padding: '9px 14px',
-        background: isActive ? '#eff6ff' : '#fff',
-        border: 'none', cursor: 'pointer', display: 'block',
-        borderBottom: '1px solid #f3f4f6',
-        borderLeft: `3px solid ${isActive ? '#2563eb' : needsReply ? '#f59e0b' : 'transparent'}`,
+        width: '100%', textAlign: 'left', padding: '10px 14px',
+        borderBottom: '1px solid #f0f0f0',
+        background: isActive ? '#f0f6ff' : '#fff',
+        border: 'none', borderLeft: 'none', cursor: 'pointer', display: 'block',
+        borderLeftWidth: 3, borderLeftStyle: 'solid',
+        borderLeftColor: isActive ? '#1677FF' : needsReply ? '#f59e0b' : 'transparent',
         transition: 'background 0.1s',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <p style={{
-          margin: 0, flex: 1, fontSize: 12.5, fontWeight: isActive ? 600 : 500,
-          color: isActive ? '#1d4ed8' : '#374151',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          letterSpacing: '-0.01em',
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+        {/* Avatar */}
+        <div style={{
+          width: 34, height: 34, borderRadius: '50%', flexShrink: 0, marginTop: 1,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 13, fontWeight: 700,
+          background: isActive ? 'rgba(22,119,255,0.12)' : '#f3f4f6',
+          color: isActive ? '#1677FF' : '#6b7280',
         }}>
-          {subject}
-        </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-          {needsReply && (
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b' }} />
-          )}
-          {msgs.length > 0 && (
-            <span style={{
-              fontSize: 10, fontWeight: 700,
-              minWidth: 18, height: 18, borderRadius: 9,
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              padding: '0 5px',
-              background: isActive ? '#2563eb' : '#e5e7eb',
-              color: isActive ? '#fff' : '#6b7280',
-            }}>
-              {msgs.length}
-            </span>
-          )}
+          {initial}
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 2 }}>
+            <p style={{ margin: 0, fontSize: 12.5, fontWeight: 600, color: '#111', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
+              {name || (lead.email?.split('@')[0] ?? '—')}
+            </p>
+            <span style={{ fontSize: 10.5, color: '#9ca3af', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{timeAgo(lastMsg?.sent_at ?? lead.created_at)}</span>
+          </div>
+          <p style={{ margin: '0 0 3px', fontSize: 11, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {lead.subject ?? lead.topic ?? lead.company ?? lead.email ?? '—'}
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <p style={{ margin: 0, flex: 1, fontSize: 11, color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {previewText}
+            </p>
+            {needsReply && (
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} />
+            )}
+            {lead.campaign_context && (
+              <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 8, background: '#fef3c7', color: '#b45309', flexShrink: 0 }}>C</span>
+            )}
+          </div>
         </div>
       </div>
     </button>
