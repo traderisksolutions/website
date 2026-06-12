@@ -26,7 +26,7 @@ The reply should:
 - Briefly mention what TRS specialises in (commercial insurance in Singapore — trade credit, marine cargo, property, liability, employee benefits, etc.) only if relevant to their topic
 - Let them know a specialist from the team will follow up within 1 business day
 - If their topic mentions a specific insurance type, acknowledge it specifically
-- End with "Best regards,\nTrade Risk Solutions"
+- Do NOT include any closing, sign-off, or signature (no "Best regards" etc.) — the signature is appended separately
 - Be 3–5 sentences — concise and human, not corporate-sounding
 - Do NOT include a subject line, just the email body
 
@@ -35,7 +35,7 @@ Topic / enquiry type: ${topic || 'General insurance enquiry'}
 Their message:
 ${message || '(No message provided)'}
 
-Write only the email body.`
+Write only the email body. End after the last paragraph — no closing line or signature.`
 
     const gemRes = await fetch(`${GEMINI_URL}?key=${geminiKey}`, {
       method:  'POST',

@@ -278,7 +278,7 @@ ${fewShotSection}
 - Match brevity to the thread: if the client wrote 2 sentences, write 2–3 back. Don't over-explain.
 - Short sentences — aim for 15–20 words max
 - 2–5 paragraphs maximum
-- End with exactly: "Best regards,\nTrade Risk Solutions"
+- Do NOT include any closing, sign-off, or signature (no "Best regards", "Warm regards", "Sincerely", etc.) — the signature is appended separately by the sender
 - Body text only — no subject line
 - Only cite figures or coverage terms you can read directly from the attached documents — never fabricate
 
@@ -294,7 +294,7 @@ ${lastInboundText}
 ━━ THREAD HISTORY (read for full context) ━━
 ${threadCtx || '(no prior messages)'}
 
-Write only the email body starting with "${salutation}".`
+Write only the email body starting with "${salutation}". End after the last paragraph — no closing line or signature.`
 
     const drafterParts: unknown[] = knowledgeDocs.map(d => ({ file_data: { mime_type: 'application/pdf', file_uri: d.uri } }))
     drafterParts.push({ text: drafterPrompt })
