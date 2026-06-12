@@ -1437,9 +1437,17 @@ function ThreadView({
               )}
             </div>
           )}
-          {!loading && messages.map((msg, i) => (
-            <EmailCard key={msg.id} msg={msg} index={i + 1} defaultOpen={i === messages.length - 1} />
-          ))}
+          {!loading && (() => {
+            // kExpandAuto: always expand the last message + the last inbound message.
+            // Outbound messages that aren't the last collapse — you already know what you wrote.
+            const lastInboundIdx = messages.reduce((found, m, i) => m.direction === 'inbound' ? i : found, -1)
+            return messages.map((msg, i) => (
+              <EmailCard
+                key={msg.id} msg={msg} index={i + 1}
+                defaultOpen={i === messages.length - 1 || i === lastInboundIdx}
+              />
+            ))
+          })()}
         </div>
 
         <AIDraftPanel lead={lead} thread={thread} messages={messages} storedDraft={latestSummary?.draft_reply} storedRagDraft={ragDraft?.content ?? null} storedRagSources={ragDraft?.sources ?? []} onRagRefresh={refreshRagDraft} onThreadRefresh={onThreadRefresh} pendingRestore={pendingRestore} />
