@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Search, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
@@ -48,6 +49,21 @@ function inferCompany(email: string | null): string | null {
 function resolvedCompany(c: Contact) { return c.company?.trim() || inferCompany(c.email) || null }
 function fullName(c: Contact) { return [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || '—' }
 
+function matchesSearch(c: Contact, q: string): boolean {
+  if (!q) return true
+  const lower = q.toLowerCase()
+  return [
+    [c.first_name, c.last_name].filter(Boolean).join(' '),
+    c.email,
+    c.company,
+    c.phone,
+    c.department,
+    c.message,
+    SOURCE_LABEL[c.source] ?? c.source,
+    c.status,
+  ].some(v => v?.toLowerCase().includes(lower))
+}
+
 function groupByCompany(contacts: Contact[]): CompanyGroup[] {
   const map = new Map<string, Contact[]>()
   for (const c of contacts) {
@@ -69,6 +85,7 @@ export default function ContactsPage() {
   const [loading,   setLoading]   = useState(true)
   const [selected,  setSelected]  = useState<Contact | null>(null)
   const [filter,    setFilter]    = useState('all')
+  const [search,    setSearch]    = useState('')
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
 
   useEffect(() => {
@@ -91,8 +108,11 @@ export default function ContactsPage() {
     }).catch(() => setLoading(false))
   }, [])
 
-  const filtered = filter === 'all' ? contacts : contacts.filter(l => l.status === filter)
-  const groups   = groupByCompany(filtered)
+  const statusFiltered = filter === 'all' ? contacts : contacts.filter(l => l.status === filter)
+  const filtered       = statusFiltered.filter(c => matchesSearch(c, search))
+  const groups         = groupByCompany(filtered)
+  // Auto-expand all groups while searching so results aren't hidden
+  const effectiveCollapsed = search.trim() ? new Set<string>() : collapsed
 
   function toggleCollapse(company: string) {
     setCollapsed(prev => { const next = new Set(prev); next.has(company) ? next.delete(company) : next.add(company); return next })
@@ -119,25 +139,43 @@ export default function ContactsPage() {
 
         <div className="rounded-lg border bg-card overflow-hidden">
           {/* Filter bar */}
-          <div className="border-b p-4 flex flex-wrap gap-1.5">
-            {STATUS_OPTIONS.map(s => (
-              <button key={s} onClick={() => setFilter(s)}
-                className={cn(
-                  'px-3 py-1 text-[11px] font-semibold rounded-full border transition-colors capitalize',
-                  filter === s
-                    ? 'bg-foreground text-background border-foreground'
-                    : 'bg-background text-muted-foreground border-border hover:border-muted-foreground'
-                )}
-              >
-                {s}
-              </button>
-            ))}
+          <div className="border-b px-4 py-3 flex items-center gap-3">
+            <div className="flex flex-wrap gap-1.5 flex-1">
+              {STATUS_OPTIONS.map(s => (
+                <button key={s} onClick={() => setFilter(s)}
+                  className={cn(
+                    'px-3 py-1 text-[11px] font-semibold rounded-full border transition-colors capitalize',
+                    filter === s
+                      ? 'bg-foreground text-background border-foreground'
+                      : 'bg-background text-muted-foreground border-border hover:border-muted-foreground'
+                  )}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 bg-muted rounded-md px-3 h-8 w-52 flex-shrink-0">
+              <Search size={13} className="text-muted-foreground flex-shrink-0" />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search contacts…"
+                className="flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted-foreground min-w-0"
+              />
+              {search && (
+                <button onClick={() => setSearch('')} className="flex-shrink-0">
+                  <X size={12} className="text-muted-foreground" />
+                </button>
+              )}
+            </div>
           </div>
 
           {loading ? (
             <div className="flex items-center justify-center h-48 text-sm text-muted-foreground">Loading contacts…</div>
           ) : groups.length === 0 ? (
-            <div className="text-center py-12 text-sm text-muted-foreground">No contacts found</div>
+            <div className="text-center py-12 text-sm text-muted-foreground">
+              {search ? `No contacts matching "${search}"` : 'No contacts found'}
+            </div>
           ) : (
             <Table>
               <TableHeader>
@@ -150,7 +188,7 @@ export default function ContactsPage() {
               <TableBody>
                 {groups.map(group => {
                   const key = group.company ?? '—'
-                  const isCollapsed = collapsed.has(key)
+                  const isCollapsed = effectiveCollapsed.has(key)
                   const ccInGroup = group.contacts.filter(c => c.isCC).length
                   return (
                     <>
