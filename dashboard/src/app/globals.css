@@ -2,123 +2,119 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Design tokens ── */
-:root {
-  /* Fonts */
-  --font:         var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-heading: var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+/* ── shadcn/ui CSS variable system ── */
+@layer base {
+  :root {
+    /* Content area — clean light slate */
+    --background:            210 40% 98%;
+    --foreground:            222 47% 11%;
 
-  /* Brand */
-  --primary:        #1677FF;
-  --primary-light:  #E6F4FF;
-  --primary-hover:  #0958D9;
-  --primary-border: #91CAFF;
+    --card:                  0 0% 100%;
+    --card-foreground:       222 47% 11%;
 
-  /* Sidebar */
-  --sidebar-width:        240px;
-  --sidebar-bg:           #ffffff;
-  --sidebar-text:         #555555;
-  --sidebar-text-active:  #1677FF;
-  --sidebar-item-active:  #E6F4FF;
-  --sidebar-border:       #f0f0f0;
-  --sidebar-label:        #aaaaaa;
+    --popover:               0 0% 100%;
+    --popover-foreground:    222 47% 11%;
 
-  /* Top nav */
-  --topnav-height:          52px;
-  --topnav-bg:              rgba(255,255,255,0.92);
-  --topnav-border:          rgba(200,200,204,0.45);
-  --topnav-link-spacing:    1.5rem;
-  --topnav-active-line:     #1677FF;
-  --topnav-dropdown-bg:     rgba(255,255,255,0.82);
-  --topnav-dropdown-shadow: 0 8px 40px rgba(0,0,0,0.13), 0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9);
-  --topnav-dropdown-radius: 8px;
+    /* Deep navy blue as primary */
+    --primary:               221 83% 53%;
+    --primary-foreground:    210 40% 98%;
 
-  /* Content */
-  --content-bg: #f5f7fa;
+    --secondary:             210 40% 96%;
+    --secondary-foreground:  222 47% 11%;
 
-  /* Cards */
-  --card-bg:     #ffffff;
-  --card-border: #e8e8e8;
-  --card-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.03);
-  --card-radius: 8px;
+    --muted:                 210 40% 96%;
+    --muted-foreground:      215 16% 47%;
 
-  /* Glass card */
-  --glass-bg:     rgba(255,255,255,0.68);
-  --glass-border: rgba(255,255,255,0.75);
-  --glass-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.9);
+    --accent:                210 40% 96%;
+    --accent-foreground:     222 47% 11%;
+
+    --destructive:           0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border:                214 32% 91%;
+    --input:                 214 32% 91%;
+    --ring:                  221 83% 53%;
+    --radius:                0.5rem;
+
+    /* ── Deep navy blue sidebar (#172554 palette) ── */
+    --sidebar-bg:          224 71% 20%;   /* #172554  blue-950  */
+    --sidebar-fg:          213 50% 70%;   /* #7eb8f7  muted blue text */
+    --sidebar-primary:     213 97% 87%;   /* #bfdbfe  blue-200  */
+    --sidebar-primary-fg:  224 71% 15%;   /* very dark navy */
+    --sidebar-accent:      224 64% 27%;   /* #1e3a8a  blue-900 hover */
+    --sidebar-accent-fg:   213 97% 87%;   /* #bfdbfe  */
+    --sidebar-border:      224 60% 24%;   /* slightly lighter than bg */
+    --sidebar-ring:        213 94% 68%;   /* #60a5fa  blue-400 */
+
+    /* Legacy tokens — kept for compatibility */
+    --sidebar-width:        240px;
+    --topnav-height:        52px;
+    --content-bg:           hsl(210 40% 98%);
+    --card-bg:              #ffffff;
+    --card-border:          hsl(214 32% 91%);
+    --card-shadow:          0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --card-radius:          0.5rem;
+
+    /* Chart palette */
+    --chart-1:              221 83% 53%;
+    --chart-2:              160 60% 45%;
+    --chart-3:              30  80% 55%;
+    --chart-4:              280 65% 60%;
+    --chart-5:              340 75% 55%;
+  }
 }
 
-/* ── Base ── */
-* { box-sizing: border-box; }
-html, body, input, button, select, textarea {
-  font-family: var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-}
-body {
-  margin: 0;
-  background: var(--content-bg);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* ── Base reset ── */
+@layer base {
+  * { box-sizing: border-box; border-color: hsl(var(--border)); }
+
+  html, body, input, button, select, textarea {
+    font-family: var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  body {
+    margin: 0;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.02em;
+  }
 }
 
-/* ── Glass utility ── */
-.glass {
-  background: var(--glass-bg);
-  backdrop-filter: blur(28px) saturate(200%);
-  -webkit-backdrop-filter: blur(28px) saturate(200%);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }
+
+/* ── Sidebar nav item hover ── */
+.sb-row:hover {
+  background-color: hsl(var(--sidebar-accent)) !important;
+  color: hsl(var(--sidebar-primary)) !important;
 }
 
-/* ── Sidebar glass ── */
-.sidebar-glass {
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-}
-
-/* Smooth sub-menu transition */
+/* ── Sidebar submenu animation ── */
 .sidebar-sub {
   overflow: hidden;
   max-height: 0;
   transition: max-height 0.22s cubic-bezier(0.4,0,0.2,1);
 }
-.sidebar-sub.open { max-height: 300px; }
+.sidebar-sub.open { max-height: 400px; }
 
-/* Top-nav active underline */
-.topnav-trigger-active::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0; right: 0;
-  height: 2px;
-  border-radius: 1px;
-  background: var(--topnav-active-line);
-}
-
-/* Top nav glass */
-.topnav-glass {
-  backdrop-filter: blur(28px) saturate(200%);
-  -webkit-backdrop-filter: blur(28px) saturate(200%);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.6), 0 2px 12px rgba(0,0,0,0.06);
-}
-
-/* Dropdown enter animation */
+/* ── Dropdown animation ── */
 @keyframes dd-in {
   from { opacity: 0; transform: translateY(-6px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0)   scale(1);    }
 }
-.dd-panel {
-  animation: dd-in 0.16s cubic-bezier(0.22,1,0.36,1) forwards;
-  backdrop-filter: blur(28px) saturate(200%);
-  -webkit-backdrop-filter: blur(28px) saturate(200%);
-}
+.dd-panel { animation: dd-in 0.16s cubic-bezier(0.22,1,0.36,1) forwards; }
 
-/* Sidebar item hover */
-.sb-row:hover {
-  background: #f0f5ff !important;
-  color: #1677FF !important;
+/* ── Glass utility ── */
+.glass {
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.75);
 }
-
-/* Scrollbar */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }

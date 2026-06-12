@@ -12,6 +12,7 @@ import {
   Telescope, Megaphone, BookMarked, Settings, FlaskConical,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { cn } from '@/lib/utils'
 
 type InboundCounts = { emailNew: number; waNew: number }
 type StageCounts   = { engaged: number; qualified: number; proposal: number; converted: number }
@@ -47,12 +48,12 @@ async function fetchStageCounts(): Promise<StageCounts> {
 export default function Sidebar() {
   const pathname = usePathname()
   const router   = useRouter()
-  const [inbound, setInbound]     = useState<InboundCounts>({ emailNew: 0, waNew: 0 })
-  const [stages,  setStages]      = useState<StageCounts>({ engaged: 0, qualified: 0, proposal: 0, converted: 0 })
+  const [inbound,      setInbound]      = useState<InboundCounts>({ emailNew: 0, waNew: 0 })
+  const [stages,       setStages]       = useState<StageCounts>({ engaged: 0, qualified: 0, proposal: 0, converted: 0 })
   const [captureOpen,  setCaptureOpen]  = useState(true)
   const [outboundOpen, setOutboundOpen] = useState(true)
   const [engageOpen,   setEngageOpen]   = useState(true)
-  const [userEmail,   setUserEmail]   = useState<string | null>(null)
+  const [userEmail,    setUserEmail]    = useState<string | null>(null)
 
   useEffect(() => {
     const load = () => {
@@ -80,201 +81,143 @@ export default function Sidebar() {
   const totalEngaged = stages.engaged + stages.qualified + stages.proposal + stages.converted
 
   return (
-    <aside style={{
-      position:      'fixed',
-      inset:         '0 auto 0 0',
-      width:         'var(--sidebar-width)',
-      display:       'flex',
-      flexDirection: 'column',
-      background:    '#fff',
-      borderRight:   '1px solid #e5e5e5',
-      zIndex:        40,
-      overflowY:     'auto',
-    }}>
-
-      {/* Account header */}
-      <div style={{
-        display:      'flex',
-        alignItems:   'center',
-        gap:          10,
-        padding:      '0 12px',
-        height:       52,
-        borderBottom: '1px solid #f0f0f0',
-        flexShrink:   0,
-      }}>
-        <span style={{
-          width: 28, height: 28, borderRadius: 7,
-          background: '#1677FF',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0,
-        }}>
-          <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', letterSpacing: '-0.03em' }}>TRS</span>
-        </span>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: '#111', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+    <aside className="fixed inset-y-0 left-0 flex flex-col z-40 overflow-y-auto"
+      style={{ width: 'var(--sidebar-width)', background: 'hsl(var(--sidebar-bg))', borderRight: '1px solid hsl(var(--sidebar-border))' }}
+    >
+      {/* ── Logo / Brand ── */}
+      <div className="flex items-center gap-3 px-4 h-[52px] flex-shrink-0"
+        style={{ borderBottom: '1px solid hsl(var(--sidebar-border))' }}
+      >
+        <div className="flex items-center justify-center rounded-lg flex-shrink-0"
+          style={{ width: 32, height: 32, background: 'hsl(var(--sidebar-ring))', boxShadow: '0 0 0 2px rgba(96,165,250,0.25)' }}
+        >
+          <span className="text-[10px] font-black text-white tracking-tight">TRS</span>
+        </div>
+        <div className="flex flex-col min-w-0">
+          <span className="text-[13px] font-semibold leading-tight tracking-tight"
+            style={{ color: 'hsl(var(--sidebar-primary))' }}
+          >
             Trade Risk Solutions
-          </p>
-          <p style={{ margin: 0, fontSize: 11, color: '#999', lineHeight: 1.3 }}>Internal Dashboard</p>
+          </span>
+          <span className="text-[11px] leading-tight" style={{ color: 'hsl(var(--sidebar-fg))' }}>
+            Internal Dashboard
+          </span>
         </div>
       </div>
 
-      {/* Search */}
-      <div style={{ padding: '10px 10px 4px', flexShrink: 0 }}>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          background: '#f4f4f5', borderRadius: 7, padding: '0 10px', height: 34,
-        }}>
-          <Search size={13} style={{ color: '#aaa', flexShrink: 0 }} />
-          <span style={{ fontSize: 13, color: '#aaa', flex: 1 }}>Find...</span>
-          <kbd style={{ fontSize: 11, color: '#bbb', background: '#e8e8e8', borderRadius: 4, padding: '1px 5px', fontFamily: 'inherit' }}>F</kbd>
+      {/* ── Search ── */}
+      <div className="px-3 pt-3 pb-1 flex-shrink-0">
+        <div className="flex items-center gap-2 rounded-md px-3 h-8 cursor-pointer group"
+          style={{ background: 'hsl(var(--sidebar-accent))', border: '1px solid hsl(var(--sidebar-border))' }}
+        >
+          <Search size={12} style={{ color: 'hsl(var(--sidebar-fg))' }} />
+          <span className="text-[12px] flex-1" style={{ color: 'hsl(var(--sidebar-fg))' }}>Search...</span>
+          <kbd className="text-[10px] rounded px-1" style={{ background: 'hsl(var(--sidebar-border))', color: 'hsl(var(--sidebar-fg))' }}>F</kbd>
         </div>
       </div>
 
-      {/* Nav */}
-      <nav style={{ flex: 1, padding: '4px 8px 8px' }}>
+      {/* ── Nav ── */}
+      <nav className="flex-1 px-2 py-2 space-y-0.5">
 
-        {/* ── OVERVIEW ── */}
+        {/* Overview */}
         <NavItem label="Overview" href="/documentation" icon={BookOpen} isActive={active('/documentation')} />
 
-        <Divider />
+        <SectionDivider />
 
-        {/* ── INBOUND LEADS ── */}
-        <button
-          onClick={() => setCaptureOpen(o => !o)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 9,
-            padding: '0 10px', height: 32, borderRadius: 6, width: '100%',
-            background: 'transparent', border: 'none', cursor: 'pointer',
-            textAlign: 'left',
-          }}
-        >
-          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#aaa', flex: 1 }}>
-            Inbound Leads
-          </span>
-          {(inbound.emailNew + inbound.waNew) > 0 && (
-            <Badge count={inbound.emailNew + inbound.waNew} />
-          )}
-          {captureOpen
-            ? <ChevronDown  size={12} strokeWidth={2} style={{ color: '#ccc' }} />
-            : <ChevronRight size={12} strokeWidth={2} style={{ color: '#ccc' }} />
-          }
-        </button>
-
+        {/* Inbound Leads */}
+        <SectionHeader
+          label="Inbound Leads"
+          open={captureOpen}
+          onToggle={() => setCaptureOpen(o => !o)}
+          badge={(inbound.emailNew + inbound.waNew) || undefined}
+        />
         {captureOpen && (
-          <>
+          <div className="space-y-0.5">
             <NavItem label="Email"    href="/inbound/email"    icon={Mail}          badge={inbound.emailNew} isActive={active('/inbound/email')} />
             <NavItem label="WhatsApp" href="/inbound/whatsapp" icon={MessageCircle} badge={inbound.waNew}    isActive={active('/inbound/whatsapp')} />
-          </>
+          </div>
         )}
 
-        <Divider />
+        <SectionDivider />
 
-        {/* ── OUTBOUND LEADS ── */}
-        <button
-          onClick={() => setOutboundOpen(o => !o)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 9,
-            padding: '0 10px', height: 32, borderRadius: 6, width: '100%',
-            background: 'transparent', border: 'none', cursor: 'pointer',
-            textAlign: 'left',
-          }}
-        >
-          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#aaa', flex: 1 }}>
-            Outbound Leads
-          </span>
-          {outboundOpen
-            ? <ChevronDown  size={12} strokeWidth={2} style={{ color: '#ccc' }} />
-            : <ChevronRight size={12} strokeWidth={2} style={{ color: '#ccc' }} />
-          }
-        </button>
-
+        {/* Outbound Leads */}
+        <SectionHeader label="Outbound Leads" open={outboundOpen} onToggle={() => setOutboundOpen(o => !o)} />
         {outboundOpen && (
-          <>
-            <NavItem label="Lead Discovery"    href="/outbound/agent"     icon={Telescope}   isActive={active('/outbound/agent')} />
-            <NavItem label="Lead Database"    href="/outbound/leads"     icon={Table2}      isActive={active('/outbound/leads')} />
-            <NavItem label="Campaigns"        href="/outbound/campaigns" icon={Megaphone}   isActive={active('/outbound/campaigns')} />
-            <NavItem label="Product Knowledge" href="/outbound/knowledge" icon={BookMarked}  isActive={active('/outbound/knowledge')} />
-          </>
+          <div className="space-y-0.5">
+            <NavItem label="Lead Discovery"    href="/outbound/agent"     icon={Telescope}  isActive={active('/outbound/agent')} />
+            <NavItem label="Lead Database"     href="/outbound/leads"     icon={Table2}     isActive={active('/outbound/leads')} />
+            <NavItem label="Campaigns"         href="/outbound/campaigns" icon={Megaphone}  isActive={active('/outbound/campaigns')} />
+            <NavItem label="Product Knowledge" href="/outbound/knowledge" icon={BookMarked} isActive={active('/outbound/knowledge')} />
+          </div>
         )}
 
-        <Divider />
+        <SectionDivider />
 
-        {/* ── ENGAGEMENT ── */}
-        <button
-          onClick={() => setEngageOpen(o => !o)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 9,
-            padding: '0 10px', height: 32, borderRadius: 6, width: '100%',
-            background: 'transparent', border: 'none', cursor: 'pointer',
-            textAlign: 'left',
-          }}
-        >
-          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#aaa', flex: 1 }}>
-            Engagement
-          </span>
-          {totalEngaged > 0 && <Badge count={totalEngaged} />}
-          {engageOpen
-            ? <ChevronDown  size={12} strokeWidth={2} style={{ color: '#ccc' }} />
-            : <ChevronRight size={12} strokeWidth={2} style={{ color: '#ccc' }} />
-          }
-        </button>
-
+        {/* Engagement */}
+        <SectionHeader
+          label="Engagement"
+          open={engageOpen}
+          onToggle={() => setEngageOpen(o => !o)}
+          badge={totalEngaged || undefined}
+        />
         {engageOpen && (
-          <>
-            <NavItem label="Active Contacts" href="/contacts" icon={Users} badge={totalEngaged || undefined} isActive={active('/contacts')} />
+          <div className="space-y-0.5">
+            <NavItem label="Active Contacts"      href="/contacts"   icon={Users} badge={totalEngaged || undefined} isActive={active('/contacts')} />
             {totalEngaged > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '2px 10px 6px 18px' }}>
-                {stages.engaged   > 0 && <StagePill label="Engaged"   count={stages.engaged}   color="#2563eb" />}
-                {stages.qualified > 0 && <StagePill label="Qualified" count={stages.qualified} color="#7c3aed" />}
-                {stages.proposal  > 0 && <StagePill label="Proposal"  count={stages.proposal}  color="#d97706" />}
-                {stages.converted > 0 && <StagePill label="Converted" count={stages.converted} color="#059669" />}
+              <div className="flex flex-wrap gap-1 pl-7 pb-1">
+                {stages.engaged   > 0 && <StagePill label="Engaged"   count={stages.engaged}   color="#60a5fa" />}
+                {stages.qualified > 0 && <StagePill label="Qualified" count={stages.qualified} color="#a78bfa" />}
+                {stages.proposal  > 0 && <StagePill label="Proposal"  count={stages.proposal}  color="#fbbf24" />}
+                {stages.converted > 0 && <StagePill label="Converted" count={stages.converted} color="#34d399" />}
               </div>
             )}
             <NavItem label="Engagement AI Agent" href="/engagement" icon={Bot} isActive={active('/engagement')} />
-          </>
+          </div>
         )}
 
-        <Divider />
+        <SectionDivider />
 
-        {/* ── ANALYTICS ── */}
-        <p style={{ margin: '4px 0 2px', padding: '0 10px', fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#aaa' }}>
+        {/* Analytics */}
+        <p className="px-2.5 pt-1 pb-0.5 text-[10px] font-semibold uppercase tracking-widest"
+          style={{ color: 'hsl(var(--sidebar-fg))' }}
+        >
           Analytics
         </p>
-        <NavItem label="Funnel"       href="/analytics"             icon={BarChart2}  isActive={active('/analytics') && !active('/analytics/ai-usage') && !active('/analytics/activity') && !active('/analytics/eval') && !active('/analytics/rag-index')} disabled />
-        <NavItem label="Activity Log" href="/analytics/activity"    icon={UsersRound} isActive={active('/analytics/activity')} disabled />
-        <NavItem label="AI Usage"   href="/analytics/ai-usage"  icon={Cpu}        isActive={active('/analytics/ai-usage')} />
-        <NavItem label="RAG Index"  href="/analytics/rag-index" icon={FolderOpen} isActive={active('/analytics/rag-index')} />
-        <NavItem label="Email Evaluation" href="/analytics/eval"      icon={FlaskConical} isActive={active('/analytics/eval')} />
+        <NavItem label="Funnel"           href="/analytics"          icon={BarChart2}   isActive={active('/analytics') && !active('/analytics/ai-usage') && !active('/analytics/activity') && !active('/analytics/eval') && !active('/analytics/rag-index')} disabled />
+        <NavItem label="Activity Log"     href="/analytics/activity" icon={UsersRound}  isActive={active('/analytics/activity')} disabled />
+        <NavItem label="AI Usage"         href="/analytics/ai-usage" icon={Cpu}         isActive={active('/analytics/ai-usage')} />
+        <NavItem label="RAG Index"        href="/analytics/rag-index" icon={FolderOpen} isActive={active('/analytics/rag-index')} />
+        <NavItem label="Email Evaluation" href="/analytics/eval"     icon={FlaskConical} isActive={active('/analytics/eval')} />
 
-        <Divider />
+        <SectionDivider />
 
-        {/* ── CLAIMS ── */}
-        <NavItem label="Claims" href="/claims" icon={AlertCircle} isActive={active('/claims')} disabled />
-
-        <Divider />
-
-        {/* ── SETTINGS ── */}
-        <NavItem label="Settings" href="/settings" icon={Settings} isActive={active('/settings')} />
+        {/* Claims */}
+        <NavItem label="Claims"   href="/claims"   icon={AlertCircle} isActive={active('/claims')}   disabled />
+        <NavItem label="Settings" href="/settings" icon={Settings}    isActive={active('/settings')} />
 
       </nav>
 
-      {/* Footer — user + sign out */}
-      <div style={{ padding: '10px 12px', borderTop: '1px solid #e5e5e5', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div style={{
-          width: 28, height: 28, borderRadius: '50%', background: '#f0f0f0',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-        }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#555' }}>
-            {userEmail ? userEmail[0].toUpperCase() : '?'}
-          </span>
+      {/* ── Footer ── */}
+      <div className="flex items-center gap-2.5 px-3 py-3 flex-shrink-0"
+        style={{ borderTop: '1px solid hsl(var(--sidebar-border))' }}
+      >
+        <div className="flex items-center justify-center rounded-full flex-shrink-0 text-[11px] font-bold"
+          style={{ width: 28, height: 28, background: 'hsl(var(--sidebar-accent))', color: 'hsl(var(--sidebar-primary))' }}
+        >
+          {userEmail ? userEmail[0].toUpperCase() : '?'}
         </div>
-        <span style={{ fontSize: 11, color: '#888', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span className="text-[11px] flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
+          style={{ color: 'hsl(var(--sidebar-fg))' }}
+        >
           {userEmail ?? '—'}
         </span>
         <button
           onClick={signOut}
           title="Sign out"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', color: '#bbb', flexShrink: 0 }}
+          className="p-1.5 rounded-md transition-colors flex-shrink-0"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(var(--sidebar-fg))' }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'hsl(var(--sidebar-accent))')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'none')}
         >
           <LogOut size={13} strokeWidth={2} />
         </button>
@@ -283,69 +226,84 @@ export default function Sidebar() {
   )
 }
 
-function Divider() {
-  return <div style={{ height: 1, background: '#f0f0f0', margin: '6px 4px' }} />
-}
+// ── Sub-components ─────────────────────────────────────────────────────────────
 
-function Badge({ count }: { count: number }) {
+function SectionDivider() {
   return (
-    <span style={{
-      minWidth: 18, height: 18, borderRadius: 9,
-      background: '#1677FF', color: '#fff',
-      fontSize: 11, fontWeight: 600,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '0 5px', flexShrink: 0,
-    }}>
-      {count > 99 ? '99+' : count}
-    </span>
+    <div className="my-2 mx-2 h-px" style={{ background: 'hsl(var(--sidebar-border))' }} />
   )
 }
 
-function StagePill({ label, count, color }: { label: string; count: number; color: string }) {
+function SectionHeader({
+  label, open, onToggle, badge,
+}: {
+  label: string; open: boolean; onToggle: () => void; badge?: number
+}) {
   return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4,
-      fontSize: 10, fontWeight: 500, color,
-      background: `${color}14`,
-      border: `1px solid ${color}30`,
-      borderRadius: 20, padding: '1px 7px',
-      letterSpacing: '0.01em',
-    }}>
-      {label} {count}
-    </span>
+    <button
+      onClick={onToggle}
+      className="flex items-center gap-2 w-full h-8 px-2.5 rounded-md text-left transition-colors"
+      style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+    >
+      <span className="text-[10px] font-semibold uppercase tracking-widest flex-1"
+        style={{ color: 'hsl(var(--sidebar-fg))' }}
+      >
+        {label}
+      </span>
+      {badge !== undefined && badge > 0 && <NavBadge count={badge} />}
+      {open
+        ? <ChevronDown  size={12} strokeWidth={2} style={{ color: 'hsl(var(--sidebar-fg))', flexShrink: 0 }} />
+        : <ChevronRight size={12} strokeWidth={2} style={{ color: 'hsl(var(--sidebar-fg))', flexShrink: 0 }} />
+      }
+    </button>
   )
 }
 
 function NavItem({
   label, href, icon: Icon, badge, isActive, disabled,
 }: {
-  label: string; href: string; icon: React.ElementType;
-  badge?: number; isActive: boolean; disabled?: boolean;
+  label: string; href: string; icon: React.ElementType
+  badge?: number; isActive: boolean; disabled?: boolean
 }) {
   const row = (
     <span
-      className={disabled ? '' : 'sb-row'}
+      className={cn(
+        'sb-row flex items-center gap-2.5 px-2.5 h-8 rounded-md w-full transition-all duration-150',
+        isActive && 'font-medium',
+        disabled && 'pointer-events-none',
+      )}
       style={{
-        display: 'flex', alignItems: 'center', gap: 9,
-        padding: '0 10px 0 7px', height: 32, borderRadius: 6,
-        background: isActive ? '#E6F4FF' : 'transparent',
-        color: disabled ? '#ccc' : isActive ? '#1677FF' : '#555',
-        cursor: disabled ? 'default' : 'pointer',
-        textDecoration: 'none', width: '100%',
-        transition: 'background 0.1s, color 0.1s',
-        borderLeft: isActive ? '3px solid #1677FF' : '3px solid transparent',
+        background: isActive ? 'hsl(var(--sidebar-accent))' : 'transparent',
+        color: disabled
+          ? 'hsl(var(--sidebar-fg) / 0.35)'
+          : isActive
+          ? 'hsl(var(--sidebar-primary))'
+          : 'hsl(var(--sidebar-fg))',
+        textDecoration: 'none',
+        borderLeft: isActive ? '2px solid hsl(var(--sidebar-ring))' : '2px solid transparent',
+        paddingLeft: isActive ? '8px' : '10px',
       }}
     >
-      <Icon size={14} strokeWidth={isActive ? 2.2 : 1.8} style={{ flexShrink: 0, color: disabled ? '#ddd' : isActive ? '#1677FF' : '#888' }} />
-      <span style={{ fontSize: 13, fontWeight: isActive ? 500 : 400, flex: 1, letterSpacing: '-0.01em', lineHeight: 1 }}>
+      <Icon
+        size={14}
+        strokeWidth={isActive ? 2.2 : 1.8}
+        style={{
+          flexShrink: 0,
+          color: disabled
+            ? 'hsl(var(--sidebar-fg) / 0.25)'
+            : isActive
+            ? 'hsl(var(--sidebar-ring))'
+            : 'hsl(var(--sidebar-fg))',
+        }}
+      />
+      <span className="text-[12.5px] flex-1 tracking-tight leading-none">
         {label}
       </span>
-      {badge !== undefined && badge > 0 && <Badge count={badge} />}
+      {badge !== undefined && badge > 0 && <NavBadge count={badge} />}
       {disabled && (
-        <span style={{
-          fontSize: 10, fontWeight: 500, padding: '1px 5px', borderRadius: 4,
-          background: '#f4f4f5', color: '#ccc', letterSpacing: '0.04em', textTransform: 'uppercase',
-        }}>
+        <span className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded"
+          style={{ background: 'hsl(var(--sidebar-border))', color: 'hsl(var(--sidebar-fg) / 0.5)' }}
+        >
           Soon
         </span>
       )}
@@ -353,8 +311,28 @@ function NavItem({
   )
 
   return disabled ? (
-    <div>{row}</div>
+    <div className="block">{row}</div>
   ) : (
-    <Link href={href} style={{ display: 'block', textDecoration: 'none' }}>{row}</Link>
+    <Link href={href} className="block no-underline">{row}</Link>
+  )
+}
+
+function NavBadge({ count }: { count: number }) {
+  return (
+    <span className="flex items-center justify-center text-[10px] font-bold rounded-full px-1.5 min-w-[18px] h-[18px] flex-shrink-0"
+      style={{ background: 'hsl(var(--sidebar-ring))', color: '#fff' }}
+    >
+      {count > 99 ? '99+' : count}
+    </span>
+  )
+}
+
+function StagePill({ label, count, color }: { label: string; count: number; color: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] font-medium rounded-full px-2 py-0.5 border"
+      style={{ color, background: `${color}18`, borderColor: `${color}30`, letterSpacing: '0.01em' }}
+    >
+      {label} {count}
+    </span>
   )
 }

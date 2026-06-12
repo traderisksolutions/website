@@ -1,27 +1,89 @@
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
+  darkMode: ['class'],
   content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
   theme: {
     extend: {
       fontFamily: {
-        sans:    ['var(--font-archivo)', 'system-ui', 'sans-serif'],
-        heading: ['var(--font-heading)', 'Georgia', 'serif'],
+        sans: ['var(--font-inter)', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
       },
       colors: {
+        border:     'hsl(var(--border))',
+        input:      'hsl(var(--input))',
+        ring:       'hsl(var(--ring))',
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        primary: {
+          DEFAULT:    'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
+        },
+        secondary: {
+          DEFAULT:    'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        destructive: {
+          DEFAULT:    'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
+        muted: {
+          DEFAULT:    'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT:    'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        popover: {
+          DEFAULT:    'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
+        card: {
+          DEFAULT:    'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
+        },
+        // Deep navy blue sidebar palette
         sidebar: {
-          bg:        '#0c0c0c',
-          text:      'rgba(255,255,255,0.62)',
-          active:    '#ffffff',
-          activebg:  'rgba(255,255,255,0.08)',
-          border:    'rgba(255,255,255,0.08)',
-          label:     'rgba(255,255,255,0.28)',
+          DEFAULT:              'hsl(var(--sidebar-bg))',
+          foreground:           'hsl(var(--sidebar-fg))',
+          primary:              'hsl(var(--sidebar-primary))',
+          'primary-foreground': 'hsl(var(--sidebar-primary-fg))',
+          accent:               'hsl(var(--sidebar-accent))',
+          'accent-foreground':  'hsl(var(--sidebar-accent-fg))',
+          border:               'hsl(var(--sidebar-border))',
+          ring:                 'hsl(var(--sidebar-ring))',
         },
       },
-      width: { sidebar: 'var(--sidebar-width)' },
-      height: { topnav: 'var(--topnav-height)' },
+      borderRadius: {
+        lg:   'var(--radius)',
+        md:   'calc(var(--radius) - 2px)',
+        sm:   'calc(var(--radius) - 4px)',
+        xl:   'calc(var(--radius) + 4px)',
+        '2xl':'calc(var(--radius) + 8px)',
+      },
+      width:  { sidebar: 'var(--sidebar-width)' },
+      height: { topnav:  'var(--topnav-height)' },
+      keyframes: {
+        'accordion-down': {
+          from: { height: '0' },
+          to:   { height: 'var(--radix-accordion-content-height)' },
+        },
+        'accordion-up': {
+          from: { height: 'var(--radix-accordion-content-height)' },
+          to:   { height: '0' },
+        },
+        'fade-in': {
+          from: { opacity: '0', transform: 'translateY(-4px)' },
+          to:   { opacity: '1', transform: 'translateY(0)' },
+        },
+      },
+      animation: {
+        'accordion-down': 'accordion-down 0.2s ease-out',
+        'accordion-up':   'accordion-up 0.2s ease-out',
+        'fade-in':        'fade-in 0.15s ease-out',
+      },
     },
   },
-  plugins: [],
+  plugins: [require('tailwindcss-animate')],
 }
 export default config

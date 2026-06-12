@@ -16,7 +16,7 @@ export default function ConditionalShell({ children }: { children: React.ReactNo
       <Sidebar />
       <div
         className="min-h-screen flex flex-col"
-        style={{ marginLeft: 'var(--sidebar-width)', background: 'var(--content-bg)' }}
+        style={{ marginLeft: 'var(--sidebar-width)', background: 'hsl(var(--background))' }}
       >
         {children}
       </div>

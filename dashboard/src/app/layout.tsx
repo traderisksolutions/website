@@ -6,9 +6,9 @@ import './globals.css'
 import ConditionalShell from '@/components/ConditionalShell'
 
 const inter = Inter({
-  subsets: ['latin'],
+  subsets:  ['latin'],
   variable: '--font-inter',
-  display: 'swap',
+  display:  'swap',
 })
 
 export const metadata: Metadata = {
@@ -19,13 +19,13 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={inter.variable}>
+      <body className={`${inter.variable} font-sans antialiased`}>
         <AntdRegistry>
           <ConfigProvider theme={{
             token: {
-              colorPrimary:  '#1677FF',
-              fontFamily:    'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-              borderRadius:  8,
+              colorPrimary:     '#2563eb',
+              fontFamily:       'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+              borderRadius:     8,
               colorBgContainer: '#ffffff',
             },
           }}>
