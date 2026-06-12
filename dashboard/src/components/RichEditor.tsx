@@ -55,6 +55,10 @@ export function RichEditor({
         formats: ['bold', 'italic', 'underline', 'align', 'list', 'link'],
       })
 
+      // Strip Quill snow's inner border/margin — our outer wrapper handles the border
+      const containerEl = mountRef.current.querySelector<HTMLElement>('.ql-container')
+      if (containerEl) containerEl.style.cssText += ';border:none !important;font-size:inherit'
+
       // Apply editor content styles
       const editorEl = mountRef.current.querySelector<HTMLElement>('.ql-editor')
       if (editorEl) {
