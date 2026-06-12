@@ -2,65 +2,82 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── shadcn/ui CSS variable system ── */
+/* ── shadcn-admin color system (OKLCH → HSL, exact conversion) ── */
 @layer base {
   :root {
-    /* Content area — clean light slate */
-    --background:            210 40% 98%;
-    --foreground:            222 47% 11%;
+    /* oklch(1 0 0) */
+    --background:            0 0% 100%;
+    /* oklch(0.129 0.042 264.695) */
+    --foreground:            224 39% 11%;
 
+    /* oklch(1 0 0) */
     --card:                  0 0% 100%;
-    --card-foreground:       222 47% 11%;
+    /* oklch(0.129 0.042 264.695) */
+    --card-foreground:       224 39% 11%;
 
+    /* oklch(1 0 0) */
     --popover:               0 0% 100%;
-    --popover-foreground:    222 47% 11%;
+    /* oklch(0.129 0.042 264.695) */
+    --popover-foreground:    224 39% 11%;
 
-    /* Deep navy blue as primary */
-    --primary:               221 83% 53%;
-    --primary-foreground:    210 40% 98%;
+    /* oklch(0.208 0.042 265.755) — dark navy, shadcn-admin default */
+    --primary:               224 38% 18%;
+    /* oklch(0.984 0.003 247.858) */
+    --primary-foreground:    210 20% 98%;
 
+    /* oklch(0.968 0.007 247.896) */
     --secondary:             210 40% 96%;
-    --secondary-foreground:  222 47% 11%;
+    /* oklch(0.208 0.042 265.755) */
+    --secondary-foreground:  224 38% 18%;
 
+    /* oklch(0.968 0.007 247.896) */
     --muted:                 210 40% 96%;
+    /* oklch(0.554 0.046 257.417) */
     --muted-foreground:      215 16% 47%;
 
+    /* oklch(0.968 0.007 247.896) */
     --accent:                210 40% 96%;
-    --accent-foreground:     222 47% 11%;
+    /* oklch(0.208 0.042 265.755) */
+    --accent-foreground:     224 38% 18%;
 
+    /* oklch(0.577 0.245 27.325) */
     --destructive:           0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 210 20% 98%;
 
+    /* oklch(0.929 0.013 255.508) */
     --border:                214 32% 91%;
+    /* oklch(0.929 0.013 255.508) */
     --input:                 214 32% 91%;
-    --ring:                  221 83% 53%;
-    --radius:                0.5rem;
+    /* oklch(0.704 0.04 256.788) */
+    --ring:                  215 20% 65%;
+    /* 0.625rem matches shadcn-admin */
+    --radius:                0.625rem;
 
-    /* ── Light sidebar — deep blue as accent only ── */
-    --sidebar-bg:          0 0% 100%;     /* white */
-    --sidebar-fg:          215 16% 47%;   /* gray-500 */
-    --sidebar-primary:     222 47% 11%;   /* gray-900 text */
-    --sidebar-primary-fg:  0 0% 100%;     /* white */
-    --sidebar-accent:      210 40% 96%;   /* gray-100 hover */
-    --sidebar-accent-fg:   221 83% 53%;   /* blue-600 active */
-    --sidebar-border:      214 32% 91%;   /* gray-200 */
-    --sidebar-ring:        221 83% 53%;   /* blue-600 accent */
+    /* ── Sidebar — white bg, blue-600 active accent ── */
+    --sidebar-bg:          0 0% 100%;
+    --sidebar-fg:          215 16% 47%;
+    --sidebar-primary:     224 39% 11%;
+    --sidebar-primary-fg:  0 0% 100%;
+    --sidebar-accent:      210 40% 96%;
+    --sidebar-accent-fg:   224 39% 11%;
+    --sidebar-border:      214 32% 91%;
+    --sidebar-ring:        221 83% 53%;   /* blue-600 — active left-border accent */
 
-    /* Legacy tokens — kept for compatibility */
+    /* Legacy layout tokens */
     --sidebar-width:        240px;
     --topnav-height:        52px;
-    --content-bg:           hsl(210 40% 98%);
+    --content-bg:           hsl(0 0% 100%);
     --card-bg:              #ffffff;
     --card-border:          hsl(214 32% 91%);
     --card-shadow:          0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-    --card-radius:          0.5rem;
+    --card-radius:          0.625rem;
 
-    /* Chart palette */
-    --chart-1:              221 83% 53%;
-    --chart-2:              160 60% 45%;
-    --chart-3:              30  80% 55%;
-    --chart-4:              280 65% 60%;
-    --chart-5:              340 75% 55%;
+    /* shadcn-admin chart palette */
+    --chart-1:              25 95% 55%;
+    --chart-2:              173 45% 45%;
+    --chart-3:              213 29% 35%;
+    --chart-4:              43 80% 65%;
+    --chart-5:              38 75% 60%;
   }
 }
 
