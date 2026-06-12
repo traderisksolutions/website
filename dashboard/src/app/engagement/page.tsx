@@ -1347,6 +1347,7 @@ function ThreadView({
   const [confirmDelete,    setConfirmDelete]     = useState(false)
   const [ragDraft,         setRagDraft]         = useState<{ content: string; sources: RagSource[] } | null>(null)
   const [pendingRestore,   setPendingRestore]   = useState<{ body: string; generatedBy: string; stamp: number } | null>(null)
+  const [showReply,        setShowReply]        = useState(true)
   const threadId        = thread?.id ?? null
   const latestSummary   = summaries[0] ?? null
   const latestMessageId = messages.at(-1)?.id ?? null
@@ -1489,7 +1490,24 @@ function ThreadView({
           })()}
         </div>
 
-        <AIDraftPanel lead={lead} thread={thread} messages={messages} storedDraft={latestSummary?.draft_reply} storedRagDraft={ragDraft?.content ?? null} storedRagSources={ragDraft?.sources ?? []} onRagRefresh={refreshRagDraft} onThreadRefresh={onThreadRefresh} pendingRestore={pendingRestore} />
+        {/* Reply panel toggle bar */}
+        <div
+          onClick={() => setShowReply(v => !v)}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '0 16px', height: 38, flexShrink: 0, cursor: 'pointer', userSelect: 'none',
+            borderTop: '1px solid #e8eaed',
+            background: showReply ? '#ffffff' : '#f9fafb',
+          }}
+        >
+          <span style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: 6 }}>
+            ✏ Reply
+          </span>
+          <ChevronDown size={14} style={{ color: '#9ca3af', transform: showReply ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+        </div>
+        {showReply && (
+          <AIDraftPanel lead={lead} thread={thread} messages={messages} storedDraft={latestSummary?.draft_reply} storedRagDraft={ragDraft?.content ?? null} storedRagSources={ragDraft?.sources ?? []} onRagRefresh={refreshRagDraft} onThreadRefresh={onThreadRefresh} pendingRestore={pendingRestore} />
+        )}
       </div>
 
       <ContactPanel lead={lead} messages={messages} onStatus={onStatus} threadId={threadId} onRestoreDraft={(body, generatedBy) => setPendingRestore({ body, generatedBy, stamp: Date.now() })} />
