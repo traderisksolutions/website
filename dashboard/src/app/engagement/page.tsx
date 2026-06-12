@@ -356,7 +356,7 @@ function EmailCard({ msg, defaultOpen }: { msg: RealMsg; index?: number; default
       </div>
 
       {/* Body */}
-      <div style={{ borderTop: `1px solid ${bubbleBorder}`, padding: '14px 16px 18px', maxHeight: 480, overflowY: 'auto' }}>
+      <div style={{ borderTop: `1px solid ${bubbleBorder}`, padding: '14px 16px 18px' }}>
         <p style={{ margin: 0, fontSize: 13.5, color: '#1f2937', whiteSpace: 'pre-wrap', lineHeight: 1.85 }}>
           {showFull ? fullBody : stripped}
         </p>
