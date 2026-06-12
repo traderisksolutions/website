@@ -183,10 +183,11 @@ async function fetchThread(threadId: string | null, email: string | null): Promi
 
 // ── Email card ────────────────────────────────────────────────────────────────
 
-function EmailCard({ msg, index, defaultOpen }: { msg: RealMsg; index: number; defaultOpen: boolean }) {
-  const [open,     setOpen]     = useState(defaultOpen)
+function EmailCard({ msg, defaultOpen }: { msg: RealMsg; index?: number; defaultOpen: boolean }) {
+  const [open,    setOpen]    = useState(defaultOpen)
   const [showFull, setShowFull] = useState(false)
-  const [copied,   setCopied]   = useState<string | null>(null)
+  const [copied,  setCopied]  = useState<string | null>(null)
+  const [hovered, setHovered] = useState(false)
   const isOut = msg.direction === 'outbound'
 
   function copy(text: string) {
@@ -195,144 +196,138 @@ function EmailCard({ msg, index, defaultOpen }: { msg: RealMsg; index: number; d
     setTimeout(() => setCopied(null), 1500)
   }
 
-  const fullBody    = msg.body_text ?? ''
-  const stripped    = stripQuotedContent(fullBody)
-  const hasMore     = stripped.length < fullBody.trim().length
-  const senderLabel = isOut ? 'Trade Risk Solutions' : (msg.from_address ?? '—')
+  const fullBody      = msg.body_text ?? ''
+  const stripped      = stripQuotedContent(fullBody)
+  const hasMore       = stripped.length < fullBody.trim().length
+  const senderLabel   = isOut ? 'Trade Risk Solutions' : (msg.from_address ?? '—')
   const senderInitial = isOut ? 'T' : (msg.from_address?.[0] ?? '?').toUpperCase()
-  const bodyLines   = stripped.split('\n')
-  const previewLine = msg.subject || bodyLines.find(l => l.trim()) || ''
+  const avatarBg      = isOut ? '#f0fdf4' : '#eef2ff'
+  const avatarColor   = isOut ? '#15803d' : '#4338ca'
 
-  // Direction accent colours
-  const accent     = isOut ? '#22c55e' : '#818cf8'
-  const avatarBg   = isOut ? '#f0fdf4'  : '#eef2ff'
-  const avatarColor = isOut ? '#15803d' : '#4338ca'
-
-  return (
-    <div
-      className={!open ? 'glass-thin' : ''}
-      style={{
-        borderRadius: 12,
-        overflow: 'hidden',
-        ...(open ? {
-          background: '#fff',
-          border: '1px solid #e8eaed',
-          boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-        } : {}),
-      }}
-    >
-      {/* ── Header row ── */}
+  // ── Collapsed: flat single row ──
+  if (!open) {
+    return (
       <div
-        style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}
-        onClick={() => setOpen(v => !v)}
+        onClick={() => setOpen(true)}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '9px 18px', cursor: 'pointer', userSelect: 'none',
+          borderBottom: '1px solid #f3f4f6',
+          background: hovered ? '#fafafa' : '#fff',
+          transition: 'background 0.1s',
+        }}
       >
-        {!open ? (
-          /* Collapsed: dot + sender/subject two-line + chevron */
-          <>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: accent, flexShrink: 0 }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 2 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#374151', letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {senderLabel}
-                </span>
-                <span style={{ fontSize: 11, color: '#9ca3af', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
-                  {fmtDateTime(msg.sent_at)}
-                </span>
-              </div>
-              <p style={{ margin: 0, fontSize: 11.5, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {msg.subject || previewLine || '—'}
-              </p>
-            </div>
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0, color: '#d1d5db' }}>
-              <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </>
-        ) : (
-          /* Expanded: avatar + sender + badge + time + chevron */
-          <>
-            <div style={{
-              width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 12, fontWeight: 700, background: avatarBg, color: avatarColor,
-              letterSpacing: '-0.02em',
+        <div style={{
+          width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 10, fontWeight: 700,
+          background: isOut ? '#f3f4f6' : avatarBg,
+          color: isOut ? '#9ca3af' : avatarColor,
+        }}>
+          {senderInitial}
+        </div>
+        <span style={{
+          flex: 1, fontSize: 13, fontWeight: 500,
+          color: isOut ? '#9ca3af' : '#374151',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          letterSpacing: '-0.01em',
+          fontStyle: isOut ? 'italic' : 'normal',
+        }}>
+          {senderLabel}
+        </span>
+        <span style={{ fontSize: 11, color: '#d1d5db', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
+          {fmtDateTime(msg.sent_at)}
+        </span>
+      </div>
+    )
+  }
+
+  // ── Expanded: full email ──
+  return (
+    <div style={{ background: '#fff', borderBottom: '1px solid #eaecef' }}>
+      {/* Header — click to collapse */}
+      <div
+        onClick={() => setOpen(false)}
+        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 18px 8px', cursor: 'pointer', userSelect: 'none' }}
+      >
+        <div style={{
+          width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 12, fontWeight: 700, background: avatarBg, color: avatarColor,
+        }}>
+          {senderInitial}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', letterSpacing: '-0.01em' }}>{senderLabel}</span>
+            <span style={{
+              fontSize: 10, fontWeight: 600, padding: '1px 7px', borderRadius: 20,
+              background: isOut ? 'rgba(34,197,94,0.10)' : 'rgba(129,140,248,0.10)',
+              color: isOut ? '#15803d' : '#4338ca',
             }}>
-              {senderInitial}
+              {isOut ? 'Sent' : 'Received'}
+            </span>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          <span style={{ fontSize: 11, color: '#9ca3af', fontVariantNumeric: 'tabular-nums' }}>{fmtDateTime(msg.sent_at)}</span>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ color: '#d1d5db', flexShrink: 0 }}>
+            <path d="M2 8l4-4 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+      </div>
+
+      {/* Meta rows */}
+      <div style={{ padding: '0 18px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#c8cbd0', width: 36, flexShrink: 0 }}>From</span>
+          <span style={{ fontSize: 12, color: '#374151' }}>{msg.from_address ?? '—'}</span>
+          <button onClick={() => copy(msg.from_address ?? '')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', lineHeight: 1, display: 'flex', alignItems: 'center' }}>
+            {copied === msg.from_address ? <Check size={10} style={{ color: '#22c55e' }} /> : <Copy size={10} style={{ color: '#e5e7eb' }} />}
+          </button>
+        </div>
+        {msg.to.length > 0 && (
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#c8cbd0', width: 36, flexShrink: 0 }}>To</span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+              {msg.to.map(a => <span key={a} style={{ fontSize: 11, background: '#f3f4f6', color: '#374151', padding: '2px 8px', borderRadius: 20 }}>{a}</span>)}
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                <span style={{ fontSize: 12.5, fontWeight: 600, color: '#111', letterSpacing: '-0.01em' }}>{senderLabel}</span>
-                <span style={{
-                  fontSize: 10, fontWeight: 600, padding: '1px 7px', borderRadius: 20,
-                  background: isOut ? 'rgba(34,197,94,0.10)' : 'rgba(129,140,248,0.10)',
-                  color: isOut ? '#15803d' : '#4338ca',
-                }}>
-                  {isOut ? 'Sent' : 'Received'}
-                </span>
-              </div>
+          </div>
+        )}
+        {msg.cc.length > 0 && (
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#c8cbd0', width: 36, flexShrink: 0 }}>CC</span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+              {msg.cc.map(a => (
+                <span key={a} style={{ fontSize: 11, background: 'rgba(129,140,248,0.08)', color: '#4338ca', padding: '2px 8px', borderRadius: 20, border: '1px solid rgba(129,140,248,0.18)' }}>{a}</span>
+              ))}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-              <span style={{ fontSize: 11, color: '#9ca3af', fontVariantNumeric: 'tabular-nums' }}>{fmtDateTime(msg.sent_at)}</span>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ color: '#d1d5db' }}>
-                <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(180deg)', transformOrigin: '6px 6px' }}/>
-              </svg>
-            </div>
-          </>
+          </div>
+        )}
+        {msg.subject && (
+          <div style={{ display: 'flex', gap: 12 }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#c8cbd0', width: 36, flexShrink: 0 }}>Subj</span>
+            <span style={{ fontSize: 12, color: '#374151', fontWeight: 500 }}>{msg.subject}</span>
+          </div>
         )}
       </div>
 
-      {/* ── Expanded content ── */}
-      {open && (
-        <div style={{ borderTop: `1px solid #f0f0f0` }}>
-          {/* Meta row */}
-          <div style={{ padding: '8px 14px', background: '#fafbfc', borderBottom: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column', gap: 5 }}>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-              <span style={{ fontSize: 11, fontWeight: 600, color: '#aaa', width: 36, flexShrink: 0 }}>From</span>
-              <span style={{ fontSize: 11.5, color: '#374151' }}>{msg.from_address ?? '—'}</span>
-              <button onClick={() => copy(msg.from_address ?? '')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', lineHeight: 1 }}>
-                {copied === msg.from_address ? <Check size={10} style={{ color: '#22c55e' }} /> : <Copy size={10} style={{ color: '#d1d5db' }} />}
-              </button>
-            </div>
-            {msg.to.length > 0 && (
-              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#aaa', width: 36, flexShrink: 0 }}>To</span>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                  {msg.to.map(a => <span key={a} style={{ fontSize: 11, background: '#f3f4f6', color: '#374151', padding: '2px 8px', borderRadius: 20 }}>{a}</span>)}
-                </div>
-              </div>
-            )}
-            {msg.cc.length > 0 && (
-              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#aaa', width: 36, flexShrink: 0 }}>CC</span>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                  {msg.cc.map(a => (
-                    <span key={a} style={{ fontSize: 11, background: 'rgba(129,140,248,0.08)', color: '#4338ca', padding: '2px 8px', borderRadius: 20, border: '1px solid rgba(129,140,248,0.18)' }}>{a}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {msg.subject && (
-              <div style={{ display: 'flex', gap: 10 }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#aaa', width: 36, flexShrink: 0 }}>Subj</span>
-                <span style={{ fontSize: 11.5, color: '#374151', fontWeight: 500 }}>{msg.subject}</span>
-              </div>
-            )}
-          </div>
-          {/* Body */}
-          <div style={{ padding: '14px 16px 16px', maxHeight: 500, overflowY: 'auto' }}>
-            <p style={{ margin: 0, fontSize: 13, color: '#1f2937', whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>
-              {showFull ? fullBody : stripped}
-            </p>
-            {hasMore && (
-              <button
-                onClick={() => setShowFull(v => !v)}
-                style={{ marginTop: 12, fontSize: 11, color: '#6b7280', background: 'none', border: '1px solid #e5e7eb', borderRadius: 6, cursor: 'pointer', padding: '3px 10px' }}
-              >
-                {showFull ? '↑ Hide quoted content' : '↓ Show full email'}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Body */}
+      <div style={{ borderTop: '1px solid #f3f4f6', padding: '14px 18px 18px', maxHeight: 480, overflowY: 'auto' }}>
+        <p style={{ margin: 0, fontSize: 13.5, color: '#1f2937', whiteSpace: 'pre-wrap', lineHeight: 1.85 }}>
+          {showFull ? fullBody : stripped}
+        </p>
+        {hasMore && (
+          <button
+            onClick={() => setShowFull(v => !v)}
+            style={{ marginTop: 12, fontSize: 11, color: '#6b7280', background: 'none', border: '1px solid #e5e7eb', borderRadius: 6, cursor: 'pointer', padding: '3px 10px' }}
+          >
+            {showFull ? '↑ Hide quoted content' : '↓ Show full email'}
+          </button>
+        )}
+      </div>
     </div>
   )
 }
@@ -1424,12 +1419,12 @@ function ThreadView({
           <CampaignContextPanel ctx={lead.campaign_context} />
         )}
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 28px', display: 'flex', flexDirection: 'column', gap: 10, background: '#f8fafc' }}>
+        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: '#fff' }}>
           {loading && <div style={{ textAlign: 'center', padding: '48px 0', fontSize: 12, color: '#bbb' }}>Loading email thread…</div>}
           {!loading && error && <div style={{ textAlign: 'center', padding: '32px 0', fontSize: 12, color: '#ef4444' }}>{error}</div>}
           {!loading && !error && messages.length === 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ textAlign: 'center', padding: '24px 0 8px', fontSize: 12, color: '#bbb' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '24px 18px' }}>
+              <div style={{ textAlign: 'center', fontSize: 12, color: '#bbb' }}>
                 No email thread found for {lead.email ?? 'this contact'}.
               </div>
               {initialMsg && (
