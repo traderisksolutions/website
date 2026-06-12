@@ -6,8 +6,11 @@ import {
   Search, Building2, Users, Mail, ChevronRight,
   Clock, ArrowLeft, AlertCircle, CheckCircle, ExternalLink, Loader2, Link2,
 } from 'lucide-react'
-
 import { Tip } from '@/components/Tip'
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -19,13 +22,11 @@ interface SearchRun {
   roles_targeted: string[]; cron_preference: string | null
   company_count: number; status: string; created_at: string
 }
-
 interface Company {
   id: string; search_id: string; name: string; source_rank: number
   employee_count: number | null; industry: string | null
   people_fetched: boolean; people_count: number; created_at: string
 }
-
 interface Person {
   id: string; search_id: string; company_id: string; company_name: string
   first_name: string | null; last_name: string | null; full_name: string | null
@@ -34,7 +35,6 @@ interface Person {
   email_requested: boolean; email: string | null; email_status: string | null
   outbound_lead_id: string | null
 }
-
 interface EmailResult {
   id: string; email: string | null; email_status: string; outbound_lead_id: string | null
 }
@@ -42,103 +42,75 @@ interface EmailResult {
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const PRODUCT_TYPES = [
-  { value: 'assets',       label: 'Business Assets' },
-  { value: 'liabilities',  label: 'Business Liabilities' },
-  { value: 'workforce',    label: 'Workforce' },
-  { value: 'api',          label: 'API' },
+  { value: 'assets',      label: 'Business Assets' },
+  { value: 'liabilities', label: 'Business Liabilities' },
+  { value: 'workforce',   label: 'Workforce' },
+  { value: 'api',         label: 'API' },
 ]
-
 const LOCATIONS = ['Singapore', 'Hong Kong', 'Malaysia', 'Indonesia']
-
 const HEADCOUNT_OPTIONS = [
   { value: '<50',      label: '< 50' },
   { value: '50-200',   label: '50–200' },
   { value: '200-1000', label: '200–1,000' },
   { value: '1000+',    label: '1,000+' },
 ]
-
 const CRON_OPTIONS = [
   { value: 'none',   label: 'None (run once)' },
   { value: 'weekly', label: 'Weekly' },
 ]
-
 const PER_PAGE = 30
 
-// ── Shared styles ─────────────────────────────────────────────────────────────
+// ── Shared sub-components ─────────────────────────────────────────────────────
 
-const card: React.CSSProperties = {
-  background: '#fff', border: '1px solid #e8e8e8', borderRadius: 12, padding: '20px 24px',
+function FormLabel({ children }: { children: React.ReactNode }) {
+  return <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">{children}</span>
 }
 
-const lbl: React.CSSProperties = {
-  fontSize: 11, fontWeight: 600, color: '#666', marginBottom: 5,
-  display: 'block', letterSpacing: '0.04em', textTransform: 'uppercase',
+function TBadge({ label, color, bg }: { label: string; color: string; bg: string }) {
+  return (
+    <span className="text-[11px] font-semibold px-2 py-0.5 rounded whitespace-nowrap" style={{ color, background: bg }}>
+      {label}
+    </span>
+  )
 }
 
-const inp: React.CSSProperties = {
-  width: '100%', padding: '8px 10px', fontSize: 13, borderRadius: 7,
-  border: '1px solid #e5e5e5', background: '#fafafa', color: '#111',
-  outline: 'none', boxSizing: 'border-box',
+function Th({ children, w }: { children?: React.ReactNode; w?: number }) {
+  return (
+    <th className="px-2.5 py-2 text-left text-muted-foreground font-semibold text-[11px] border-b border-border whitespace-nowrap" style={{ width: w }}>
+      {children}
+    </th>
+  )
 }
 
-const btnPrimary = (disabled = false, bg = '#111'): React.CSSProperties => ({
-  display: 'inline-flex', alignItems: 'center', gap: 6,
-  padding: '8px 16px', borderRadius: 8, border: 'none',
-  background: bg, color: '#fff', fontSize: 13, fontWeight: 600,
-  cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.45 : 1,
-  whiteSpace: 'nowrap',
-})
-
-const btnSecondary: React.CSSProperties = {
-  display: 'inline-flex', alignItems: 'center', gap: 5,
-  padding: '6px 12px', borderRadius: 7, border: '1px solid #e5e5e5',
-  background: '#fff', color: '#333', fontSize: 12, fontWeight: 500,
-  cursor: 'pointer', whiteSpace: 'nowrap',
+function Td({ children, className }: { children?: React.ReactNode; className?: string }) {
+  return (
+    <td className={cn('px-2.5 py-2.5 border-b border-border/40 text-[13px]', className)}>
+      {children}
+    </td>
+  )
 }
 
-const thStyle: React.CSSProperties = {
-  padding: '7px 10px', textAlign: 'left', color: '#aaa',
-  fontWeight: 600, fontSize: 11, borderBottom: '1px solid #f0f0f0',
-  whiteSpace: 'nowrap',
-}
+// ── Multi-select chip component ───────────────────────────────────────────────
 
-const tdStyle: React.CSSProperties = {
-  padding: '9px 10px', borderBottom: '1px solid #f8f8f8', fontSize: 13,
-}
-
-// ── Multi-select chip component ────────────────────────────────────────────────
-
-function ChipSelect({
-  options, selected, onChange, label,
-}: {
-  options: { value: string; label: string }[]
-  selected: string[]
-  onChange: (v: string[]) => void
-  label: string
+function ChipSelect({ options, selected, onChange, label }: {
+  options: { value: string; label: string }[]; selected: string[]
+  onChange: (v: string[]) => void; label: string
 }) {
   function toggle(value: string) {
-    onChange(selected.includes(value)
-      ? selected.filter(v => v !== value)
-      : [...selected, value])
+    onChange(selected.includes(value) ? selected.filter(v => v !== value) : [...selected, value])
   }
   return (
     <div>
-      <span style={lbl}>{label}</span>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+      <FormLabel>{label}</FormLabel>
+      <div className="flex flex-wrap gap-1.5">
         {options.map(o => {
           const active = selected.includes(o.value)
           return (
-            <button
-              key={o.value}
-              type="button"
-              onClick={() => toggle(o.value)}
-              style={{
-                padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500,
-                border: `1px solid ${active ? '#111' : '#e5e5e5'}`,
-                background: active ? '#111' : '#fafafa',
-                color: active ? '#fff' : '#444',
-                cursor: 'pointer', transition: 'all 0.1s',
-              }}
+            <button key={o.value} type="button" onClick={() => toggle(o.value)}
+              className={cn(
+                'px-3 py-1 rounded-full text-[12px] font-medium border cursor-pointer transition-all',
+                active ? 'bg-foreground text-background border-foreground' : 'bg-muted/50 text-muted-foreground border-border hover:border-muted-foreground'
+              )}
             >
               {o.label}
             </button>
@@ -161,37 +133,21 @@ function Breadcrumb({ step, onNav, canGo }: {
     { key: 'emails',    label: 'Emails',    icon: <Mail      size={11} /> },
   ]
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginBottom: 24 }}>
+    <div className="flex items-center gap-0.5 mb-6">
       {steps.map((s, i) => (
-        <div key={s.key} style={{ display: 'flex', alignItems: 'center' }}>
-          {i > 0 && <ChevronRight size={12} style={{ color: '#d1d5db', margin: '0 2px' }} />}
-          <button
-            onClick={() => canGo[s.key] && onNav(s.key)}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 5,
-              padding: '4px 11px', borderRadius: 6, border: 'none',
-              background: step === s.key ? '#111' : canGo[s.key] ? '#f4f4f5' : 'transparent',
-              color:      step === s.key ? '#fff'  : canGo[s.key] ? '#444'   : '#ccc',
-              fontSize: 12, fontWeight: step === s.key ? 600 : 400,
-              cursor: canGo[s.key] ? 'pointer' : 'default',
-            }}
+        <div key={s.key} className="flex items-center">
+          {i > 0 && <ChevronRight size={12} className="text-border mx-0.5" />}
+          <button onClick={() => canGo[s.key] && onNav(s.key)}
+            className={cn(
+              'inline-flex items-center gap-1.5 px-3 py-1 rounded-md border-0 text-[12px] transition-all',
+              step === s.key ? 'bg-foreground text-background font-semibold' : canGo[s.key] ? 'bg-muted text-muted-foreground font-normal cursor-pointer hover:bg-muted/80' : 'bg-transparent text-muted-foreground/30 cursor-default font-normal'
+            )}
           >
             {s.icon} {s.label}
           </button>
         </div>
       ))}
     </div>
-  )
-}
-
-function Badge({ label, color, bg }: { label: string; color: string; bg: string }) {
-  return (
-    <span style={{
-      padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
-      color, background: bg, whiteSpace: 'nowrap',
-    }}>
-      {label}
-    </span>
   )
 }
 
@@ -244,15 +200,13 @@ export default function OutboundAgentPage() {
     try {
       const { search, step: savedStep } = JSON.parse(raw) as { search: SearchRun; step: Step }
       if (!search?.id) return
-      setCurrentSearch(search)
-      setLoading(true)
+      setCurrentSearch(search); setLoading(true)
       fetch(`/api/outbound/history?id=${search.id}`)
         .then(r => r.json())
         .then(data => {
           const restoredCompanies: Company[] = Array.isArray(data.companies) ? data.companies : []
-          const restoredPeople:   Person[]  = Array.isArray(data.people)    ? data.people    : []
-          setCompanies(restoredCompanies)
-          setPeople(restoredPeople)
+          const restoredPeople:   Person[]   = Array.isArray(data.people)    ? data.people    : []
+          setCompanies(restoredCompanies); setPeople(restoredPeople)
           const alreadyEmailed = restoredPeople.filter(p => p.email_requested)
           if (alreadyEmailed.length > 0) {
             setEmailResults(alreadyEmailed.map(p => ({
@@ -275,8 +229,6 @@ export default function OutboundAgentPage() {
     emails:    emailResults.length > 0,
   }
 
-  // ── Step 1: Run search ────────────────────────────────────────────────────
-
   async function runSearch() {
     if (!sector.trim() || !productType || locations.length === 0) {
       setError('Fill in sector, at least one location, and product type.')
@@ -286,34 +238,24 @@ export default function OutboundAgentPage() {
     setCompanies([]); setPeople([]); setEmailResults([])
     setSelCompanies(new Set()); setSelPeople(new Set())
     sessionStorage.removeItem('ob_agent_session')
-
     try {
       const res  = await fetch('/api/outbound/apollo-search', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          sector: sector.trim(),
-          locations,
-          headcountRanges,
-          productType,
+          sector: sector.trim(), locations, headcountRanges, productType,
           cronPreference: cronPref === 'none' ? null : cronPref,
           newsUrl: newsUrl.trim() || null,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Search failed')
-
       setCurrentSearch({
-        id: data.searchId, sector: sector.trim(),
-        location: locations[0], locations,
-        headcount_ranges: headcountRanges,
-        product_type: productType, roles_targeted: [],
+        id: data.searchId, sector: sector.trim(), location: locations[0], locations,
+        headcount_ranges: headcountRanges, product_type: productType, roles_targeted: [],
         cron_preference: cronPref === 'none' ? null : cronPref,
-        company_count: data.companies.length, status: 'completed',
-        created_at: new Date().toISOString(),
+        company_count: data.companies.length, status: 'completed', created_at: new Date().toISOString(),
       })
-      setCompanies(data.companies)
-      setSkipped(data.skipped ?? 0)
-      setStep('companies')
+      setCompanies(data.companies); setSkipped(data.skipped ?? 0); setStep('companies')
       loadHistory()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Search failed')
@@ -327,13 +269,11 @@ export default function OutboundAgentPage() {
       const res  = await fetch(`/api/outbound/history?id=${s.id}`)
       const data = await res.json()
       setCompanies(Array.isArray(data.companies) ? data.companies : [])
-      setPeople(Array.isArray(data.people)       ? data.people    : [])
+      setPeople(Array.isArray(data.people) ? data.people : [])
       setStep('companies')
     } catch { setError('Failed to load history') }
     finally  { setLoading(false) }
   }
-
-  // ── Step 2: Fetch people ──────────────────────────────────────────────────
 
   async function fetchPeople() {
     if (!currentSearch || selCompanies.size === 0) return
@@ -341,26 +281,17 @@ export default function OutboundAgentPage() {
     try {
       const res  = await fetch('/api/outbound/apollo-people', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          searchId:    currentSearch.id,
-          companyIds:  Array.from(selCompanies),
-          productType: currentSearch.product_type,
-        }),
+        body: JSON.stringify({ searchId: currentSearch.id, companyIds: Array.from(selCompanies), productType: currentSearch.product_type }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'People fetch failed')
-
       setPeople(Array.isArray(data.people) ? data.people : [])
-      setCompanies(prev => prev.map(c =>
-        selCompanies.has(c.id) ? { ...c, people_fetched: true } : c
-      ))
+      setCompanies(prev => prev.map(c => selCompanies.has(c.id) ? { ...c, people_fetched: true } : c))
       setSelCompanies(new Set()); setPeoplePage(1); setStep('people')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'People fetch failed')
     } finally { setFetchingPeople(false) }
   }
-
-  // ── Step 3: Email lookup ──────────────────────────────────────────────────
 
   async function runEmailLookup() {
     if (!currentSearch || selPeople.size === 0) return
@@ -372,7 +303,6 @@ export default function OutboundAgentPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Email lookup failed')
-
       const results: EmailResult[] = Array.isArray(data.results) ? data.results : []
       setEmailResults(results)
       const map = new Map(results.map(r => [r.id, r]))
@@ -390,484 +320,401 @@ export default function OutboundAgentPage() {
   const pagedPeople = people.slice((peoplePage - 1) * PER_PAGE, peoplePage * PER_PAGE)
 
   return (
-    <div style={{ padding: '28px 32px', maxWidth: 1140, margin: '0 auto' }}>
+    <div className="p-8 max-w-[1140px] mx-auto">
 
-      <div style={{ marginBottom: 20 }}>
-        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#111', letterSpacing: '-0.02em' }}>
-          Lead Discovery
-        </h1>
-        <p style={{ margin: '4px 0 0', fontSize: 13, color: '#aaa' }}>
-          Search companies → find decision-makers → get verified emails
-        </p>
+      <div className="mb-5">
+        <h1 className="text-xl font-bold tracking-tight text-foreground">Lead Discovery</h1>
+        <p className="text-sm text-muted-foreground mt-1">Search companies → find decision-makers → get verified emails</p>
       </div>
 
       <Breadcrumb step={step} onNav={setStep} canGo={canGo} />
 
+      {/* Error */}
       {error && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '10px 14px', marginBottom: 16, borderRadius: 8,
-          background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', fontSize: 13,
-        }}>
-          <AlertCircle size={14} style={{ flexShrink: 0 }} />
-          <span style={{ flex: 1 }}>{error}</span>
-          <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#991b1b', fontSize: 16, lineHeight: 1 }}>×</button>
+        <div className="flex items-center gap-2 px-3.5 py-2.5 mb-4 rounded-lg bg-destructive/8 border border-destructive/20 text-[13px] text-destructive">
+          <AlertCircle size={14} className="flex-shrink-0" strokeWidth={2} />
+          <span className="flex-1">{error}</span>
+          <button onClick={() => setError(null)} className="bg-transparent border-0 cursor-pointer text-destructive text-base leading-none">×</button>
         </div>
       )}
 
-      {/* ══════════════════ STEP 1: SEARCH ══════════════════ */}
+      {/* ══ STEP 1: SEARCH ══ */}
       {step === 'search' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '400px 1fr', gap: 20, alignItems: 'start' }}>
+        <div className="grid grid-cols-[400px_1fr] gap-5 items-start">
 
-          <div style={card}>
-            <p style={{ margin: '0 0 18px', fontSize: 15, fontWeight: 700, color: '#111' }}>New Search</p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div>
-                <span style={lbl}>Industry / Sector *</span>
-                <input style={inp} placeholder="e.g. SaaS, FinTech, Logistics, Marine"
-                  value={sector} onChange={e => setSector(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && runSearch()} />
-              </div>
-
-              <ChipSelect
-                label="Location * (select all that apply)"
-                options={LOCATIONS.map(l => ({ value: l, label: l }))}
-                selected={locations}
-                onChange={setLocations}
-              />
-
-              <ChipSelect
-                label="Company Headcount (optional)"
-                options={HEADCOUNT_OPTIONS}
-                selected={headcountRanges}
-                onChange={setHeadcountRanges}
-              />
-
-              <div>
-                <span style={lbl}>Product / Service Type * <Tip placement="right" text="Tells the AI which TRS product to pitch in the outreach email. Choose the one that best matches the sector you're targeting." /></span>
-                <select style={inp} value={productType} onChange={e => setProductType(e.target.value)}>
-                  <option value="">Select type…</option>
-                  {PRODUCT_TYPES.map(pt => <option key={pt.value} value={pt.value}>{pt.label}</option>)}
-                </select>
-              </div>
-
-              <div>
-                <span style={lbl}>News Hook URL (optional) <Tip placement="right" text="Paste a relevant news article — a regulation change, market disruption, or sector report — and the AI uses it as the email opening hook. Leave blank and the AI finds one automatically." /></span>
-                <div style={{ position: 'relative' }}>
-                  <Link2 size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#bbb' }} />
-                  <input
-                    style={{ ...inp, paddingLeft: 28 }}
-                    placeholder="Paste article URL — or leave blank for auto-fetch"
-                    value={newsUrl}
-                    onChange={e => setNewsUrl(e.target.value)}
-                  />
+          <Card>
+            <CardContent className="p-6">
+              <p className="text-[15px] font-bold text-foreground mb-4">New Search</p>
+              <div className="flex flex-col gap-3.5">
+                <div>
+                  <FormLabel>Industry / Sector *</FormLabel>
+                  <Input placeholder="e.g. SaaS, FinTech, Logistics, Marine"
+                    value={sector} onChange={e => setSector(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && runSearch()} />
                 </div>
-                <p style={{ margin: '4px 0 0', fontSize: 11, color: '#bbb', lineHeight: 1.4 }}>
-                  AI will find a relevant insurance-angle news hook automatically if left blank
-                </p>
+                <ChipSelect label="Location * (select all that apply)" options={LOCATIONS.map(l => ({ value: l, label: l }))} selected={locations} onChange={setLocations} />
+                <ChipSelect label="Company Headcount (optional)" options={HEADCOUNT_OPTIONS} selected={headcountRanges} onChange={setHeadcountRanges} />
+                <div>
+                  <FormLabel>
+                    Product / Service Type *{' '}
+                    <Tip placement="right" text="Tells the AI which TRS product to pitch in the outreach email. Choose the one that best matches the sector you're targeting." />
+                  </FormLabel>
+                  <select value={productType} onChange={e => setProductType(e.target.value)}
+                    className="w-full h-9 px-3 text-[13px] text-foreground bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-ring">
+                    <option value="">Select type…</option>
+                    {PRODUCT_TYPES.map(pt => <option key={pt.value} value={pt.value}>{pt.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <FormLabel>
+                    News Hook URL (optional){' '}
+                    <Tip placement="right" text="Paste a relevant news article — a regulation change, market disruption, or sector report — and the AI uses it as the email opening hook. Leave blank and the AI finds one automatically." />
+                  </FormLabel>
+                  <div className="relative">
+                    <Link2 size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
+                    <Input className="pl-8" placeholder="Paste article URL — or leave blank for auto-fetch" value={newsUrl} onChange={e => setNewsUrl(e.target.value)} />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground/50 mt-1 leading-snug">AI will find a relevant insurance-angle news hook automatically if left blank</p>
+                </div>
+                <div>
+                  <FormLabel>
+                    Scheduled Run{' '}
+                    <Tip placement="right" text="Set how often the AI automatically re-runs this search with the same criteria and adds new companies to the Lead Database." />
+                  </FormLabel>
+                  <select value={cronPref} onChange={e => setCronPref(e.target.value)}
+                    className="w-full h-9 px-3 text-[13px] text-foreground bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-ring">
+                    {CRON_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
               </div>
-
-              <div>
-                <span style={lbl}>Scheduled Run <Tip placement="right" text="Set how often the AI automatically re-runs this search with the same criteria and adds new companies to the Lead Database. Choose Manual to run it yourself each time." /></span>
-                <select style={inp} value={cronPref} onChange={e => setCronPref(e.target.value)}>
-                  {CRON_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              </div>
-            </div>
-
-            <button
-              onClick={runSearch}
-              disabled={loading || !sector.trim() || !productType || locations.length === 0}
-              style={{
-                ...btnPrimary(loading || !sector.trim() || !productType || locations.length === 0),
-                marginTop: 18, width: '100%', justifyContent: 'center',
-              }}
-            >
-              {loading ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Search size={13} />}
-              {loading ? 'Searching Apollo…' : 'Run Search'}
-            </button>
-          </div>
+              <Button className="mt-5 w-full gap-1.5" onClick={runSearch}
+                disabled={loading || !sector.trim() || !productType || locations.length === 0}>
+                {loading ? <Loader2 size={13} className="animate-spin" /> : <Search size={13} />}
+                {loading ? 'Searching Apollo…' : 'Run Search'}
+              </Button>
+            </CardContent>
+          </Card>
 
           {/* History card */}
-          <div style={card}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-              <Clock size={13} style={{ color: '#888' }} />
-              <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#111' }}>Search History</p>
-              <span style={{ marginLeft: 'auto', fontSize: 11, color: '#bbb' }}>Last 30 days</span>
-            </div>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Clock size={13} className="text-muted-foreground" />
+                <p className="text-[15px] font-bold text-foreground m-0">Search History</p>
+                <span className="ml-auto text-[11px] text-muted-foreground/50">Last 30 days</span>
+              </div>
+              {history.length === 0 ? (
+                <p className="text-[13px] text-muted-foreground/40 text-center py-6">No searches yet</p>
+              ) : (
+                <table className="w-full border-collapse text-[12px]">
+                  <thead>
+                    <tr>
+                      {['Date', 'Sector', 'Locations', 'Type', 'Companies', ''].map(h => <Th key={h}>{h}</Th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.map(s => (
+                      <tr key={s.id}>
+                        <Td className="text-muted-foreground whitespace-nowrap">
+                          {new Date(s.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: '2-digit' })}
+                        </Td>
+                        <Td className="font-medium text-foreground max-w-[130px] overflow-hidden text-ellipsis whitespace-nowrap">{s.sector}</Td>
+                        <Td className="text-muted-foreground text-[11px]">{(s.locations?.length ? s.locations : [s.location]).join(', ')}</Td>
+                        <Td>
+                          <TBadge label={PRODUCT_TYPES.find(p => p.value === s.product_type)?.label ?? s.product_type} color="hsl(var(--muted-foreground))" bg="hsl(var(--muted))" />
+                        </Td>
+                        <Td className="font-semibold text-foreground">{s.company_count}</Td>
+                        <Td>
+                          <Button variant="outline" size="sm" className="text-[11px] h-7 px-2.5" onClick={() => viewHistorySearch(s)}>View</Button>
+                        </Td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
-            {history.length === 0 ? (
-              <p style={{ fontSize: 13, color: '#ccc', textAlign: 'center', padding: '24px 0' }}>No searches yet</p>
-            ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+      {/* ══ STEP 2: COMPANIES ══ */}
+      {step === 'companies' && currentSearch && (
+        <div>
+          <div className="flex items-center gap-2.5 mb-4 flex-wrap">
+            <Button variant="outline" size="sm" onClick={() => setStep('search')} className="gap-1.5">
+              <ArrowLeft size={12} /> Back
+            </Button>
+            <div className="flex-1 min-w-0">
+              <p className="text-[14px] font-bold text-foreground m-0">
+                {companies.length} companies{' '}
+                <span className="font-normal text-muted-foreground">
+                  — {currentSearch.sector} · {(currentSearch.locations ?? [currentSearch.location]).join(', ')}
+                </span>
+              </p>
+              {skipped > 0 && <p className="text-[11px] text-amber-600 mt-0.5 mb-0">{skipped} duplicate(s) excluded</p>}
+            </div>
+            {isHistory
+              ? <span className="text-[12px] text-muted-foreground/50 italic">Read-only — history</span>
+              : (
+                <div className="flex items-center gap-2">
+                  <span className="text-[12px] text-muted-foreground">{selCompanies.size} selected</span>
+                  <Tip text="Looks up decision-makers (Risk Managers, CFOs, Operations leads) at the selected companies using Apollo.io. Tick the companies you want before clicking." />
+                  <Button size="sm" onClick={fetchPeople} disabled={selCompanies.size === 0 || fetchingPeople} className="gap-1.5">
+                    {fetchingPeople
+                      ? <><Loader2 size={12} className="animate-spin" /> Fetching…</>
+                      : <><Users size={12} /> Fetch People ({selCompanies.size})</>
+                    }
+                  </Button>
+                </div>
+              )
+            }
+          </div>
+
+          <Card>
+            <CardContent className="p-0">
+              <table className="w-full border-collapse">
                 <thead>
                   <tr>
-                    {['Date', 'Sector', 'Locations', 'Type', 'Companies', ''].map(h => (
-                      <th key={h} style={thStyle}>{h}</th>
-                    ))}
+                    {!isHistory && <Th w={36}><input type="checkbox" checked={selCompanies.size === companies.length && companies.length > 0} onChange={e => setSelCompanies(e.target.checked ? new Set(companies.map(c => c.id)) : new Set())} /></Th>}
+                    {['#', 'Company', 'Industry', 'Headcount', 'People Status', 'Count'].map(h => <Th key={h}>{h}</Th>)}
                   </tr>
                 </thead>
                 <tbody>
-                  {history.map(s => (
-                    <tr key={s.id}>
-                      <td style={{ ...tdStyle, color: '#888', whiteSpace: 'nowrap' }}>
-                        {new Date(s.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: '2-digit' })}
-                      </td>
-                      <td style={{ ...tdStyle, color: '#111', fontWeight: 500, maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.sector}</td>
-                      <td style={{ ...tdStyle, color: '#666', fontSize: 11 }}>
-                        {(s.locations?.length ? s.locations : [s.location]).join(', ')}
-                      </td>
-                      <td style={{ ...tdStyle }}>
-                        <Badge
-                          label={PRODUCT_TYPES.find(p => p.value === s.product_type)?.label ?? s.product_type}
-                          color="#555" bg="#f4f4f5"
-                        />
-                      </td>
-                      <td style={{ ...tdStyle, color: '#111', fontWeight: 600 }}>{s.company_count}</td>
-                      <td style={{ ...tdStyle }}>
-                        <button onClick={() => viewHistorySearch(s)} style={{ ...btnSecondary, fontSize: 11, padding: '3px 10px' }}>
-                          View
-                        </button>
-                      </td>
+                  {companies.map(c => (
+                    <tr key={c.id}>
+                      {!isHistory && (
+                        <Td><input type="checkbox" checked={selCompanies.has(c.id)} onChange={e => setSelCompanies(prev => { const n = new Set(prev); e.target.checked ? n.add(c.id) : n.delete(c.id); return n })} /></Td>
+                      )}
+                      <Td className="text-muted-foreground/40 text-[11px] w-9">{c.source_rank}</Td>
+                      <Td className="font-medium text-foreground">{c.name}</Td>
+                      <Td className="text-muted-foreground text-[12px]">{c.industry ?? '—'}</Td>
+                      <Td className="text-muted-foreground text-[12px]">{c.employee_count ? c.employee_count.toLocaleString() : '—'}</Td>
+                      <Td>
+                        {c.people_fetched
+                          ? <TBadge label="Fetched" color="#166534" bg="#f0fdf4" />
+                          : <TBadge label="Pending" color="hsl(var(--muted-foreground))" bg="hsl(var(--muted))" />
+                        }
+                      </Td>
+                      <Td className={c.people_count > 0 ? 'font-semibold text-foreground' : 'text-muted-foreground/30'}>
+                        {c.people_count > 0 ? c.people_count : '—'}
+                      </Td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ══════════════════ STEP 2: COMPANIES ══════════════════ */}
-      {step === 'companies' && currentSearch && (
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-            <button onClick={() => setStep('search')} style={btnSecondary}>
-              <ArrowLeft size={12} /> Back
-            </button>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#111' }}>
-                {companies.length} companies —{' '}
-                <span style={{ fontWeight: 400, color: '#555' }}>
-                  {currentSearch.sector} · {(currentSearch.locations ?? [currentSearch.location]).join(', ')}
-                </span>
-              </p>
-              {skipped > 0 && <p style={{ margin: '2px 0 0', fontSize: 11, color: '#f59e0b' }}>{skipped} duplicate(s) excluded</p>}
-            </div>
-
-            {isHistory
-              ? <span style={{ fontSize: 12, color: '#bbb', fontStyle: 'italic' }}>Read-only — history</span>
-              : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 12, color: '#888' }}>{selCompanies.size} selected</span>
-                  <Tip text="Looks up decision-makers (Risk Managers, CFOs, Operations leads) at the selected companies using Apollo.io. Tick the companies you want before clicking." />
-                  <button
-                    onClick={fetchPeople}
-                    disabled={selCompanies.size === 0 || fetchingPeople}
-                    style={btnPrimary(selCompanies.size === 0 || fetchingPeople)}
-                  >
-                    {fetchingPeople
-                      ? <><Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> Fetching…</>
-                      : <><Users size={12} /> Fetch People ({selCompanies.size})</>
-                    }
-                  </button>
-                </div>
-              )
-            }
-          </div>
-
-          <div style={card}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  {!isHistory && (
-                    <th style={{ ...thStyle, width: 36 }}>
-                      <input type="checkbox"
-                        checked={selCompanies.size === companies.length && companies.length > 0}
-                        onChange={e => setSelCompanies(e.target.checked ? new Set(companies.map(c => c.id)) : new Set())}
-                      />
-                    </th>
-                  )}
-                  {['#', 'Company', 'Industry', 'Headcount', 'People Status', 'Count'].map(h => <th key={h} style={thStyle}>{h}</th>)}
-                </tr>
-              </thead>
-              <tbody>
-                {companies.map(c => (
-                  <tr key={c.id}>
-                    {!isHistory && (
-                      <td style={tdStyle}>
-                        <input type="checkbox"
-                          checked={selCompanies.has(c.id)}
-                          onChange={e => setSelCompanies(prev => {
-                            const n = new Set(prev)
-                            e.target.checked ? n.add(c.id) : n.delete(c.id)
-                            return n
-                          })}
-                        />
-                      </td>
-                    )}
-                    <td style={{ ...tdStyle, color: '#ccc', fontSize: 11, width: 36 }}>{c.source_rank}</td>
-                    <td style={{ ...tdStyle, color: '#111', fontWeight: 500 }}>{c.name}</td>
-                    <td style={{ ...tdStyle, color: '#888', fontSize: 12 }}>{c.industry ?? '—'}</td>
-                    <td style={{ ...tdStyle, color: '#888', fontSize: 12 }}>
-                      {c.employee_count ? c.employee_count.toLocaleString() : '—'}
-                    </td>
-                    <td style={tdStyle}>
-                      {c.people_fetched
-                        ? <Badge label="Fetched" color="#166534" bg="#f0fdf4" />
-                        : <Badge label="Pending" color="#888"    bg="#f4f4f5" />
-                      }
-                    </td>
-                    <td style={{ ...tdStyle, color: c.people_count > 0 ? '#111' : '#ccc', fontWeight: c.people_count > 0 ? 600 : 400 }}>
-                      {c.people_count > 0 ? c.people_count : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+            </CardContent>
+          </Card>
 
           {people.length > 0 && (
-            <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end' }}>
-              <button onClick={() => setStep('people')} style={btnPrimary()}>
+            <div className="mt-3.5 flex justify-end">
+              <Button onClick={() => setStep('people')} className="gap-1.5">
                 <Users size={12} /> View {people.length} people →
-              </button>
+              </Button>
             </div>
           )}
         </div>
       )}
 
-      {/* ══════════════════ STEP 3: PEOPLE ══════════════════ */}
+      {/* ══ STEP 3: PEOPLE ══ */}
       {step === 'people' && currentSearch && (
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-            <button onClick={() => setStep('companies')} style={btnSecondary}>
+          <div className="flex items-center gap-2.5 mb-4 flex-wrap">
+            <Button variant="outline" size="sm" onClick={() => setStep('companies')} className="gap-1.5">
               <ArrowLeft size={12} /> Companies
-            </button>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#111' }}>
+            </Button>
+            <div className="flex-1 min-w-0">
+              <p className="text-[14px] font-bold text-foreground m-0">
                 {people.length} people —{' '}
-                <span style={{ fontWeight: 400, color: '#555' }}>{currentSearch.sector}</span>
+                <span className="font-normal text-muted-foreground">{currentSearch.sector}</span>
               </p>
-              <p style={{ margin: '2px 0 0', fontSize: 11, color: '#888' }}>
+              <p className="text-[11px] text-muted-foreground mt-0.5 mb-0">
                 From {new Set(people.map(p => p.company_id)).size} companies
               </p>
             </div>
-
             {isHistory
-              ? <span style={{ fontSize: 12, color: '#bbb', fontStyle: 'italic' }}>Read-only — history</span>
+              ? <span className="text-[12px] text-muted-foreground/50 italic">Read-only — history</span>
               : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 12, color: '#888' }}>{selPeople.size} selected</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[12px] text-muted-foreground">{selPeople.size} selected</span>
                   <Tip text="Reveals the work email addresses for the selected people via Apollo.io. Each reveal uses one Apollo credit — a confirmation dialog shows you the count before proceeding." />
-                  <button
-                    onClick={() => selPeople.size > 0 && setCreditModal(true)}
-                    disabled={selPeople.size === 0 || loading}
-                    style={btnPrimary(selPeople.size === 0 || loading, '#1d4ed8')}
-                  >
+                  <Button size="sm" onClick={() => selPeople.size > 0 && setCreditModal(true)} disabled={selPeople.size === 0 || loading} className="gap-1.5" style={{ background: '#1d4ed8' }}>
                     {loading
-                      ? <><Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> Looking up…</>
+                      ? <><Loader2 size={12} className="animate-spin" /> Looking up…</>
                       : <><Mail size={12} /> Get Emails ({selPeople.size})</>
                     }
-                  </button>
+                  </Button>
                 </div>
               )
             }
           </div>
 
+          {/* Credit confirm modal */}
           {creditModal && (
-            <div style={{
-              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 200,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <div style={{
-                background: '#fff', borderRadius: 14, padding: '28px 32px',
-                maxWidth: 420, width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
-              }}>
-                <p style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700, color: '#111' }}>Confirm Email Lookup</p>
-                <p style={{ margin: '0 0 16px', fontSize: 13, color: '#555', lineHeight: 1.65 }}>
-                  Looking up emails for <strong>{selPeople.size} {selPeople.size === 1 ? 'person' : 'people'}</strong> via Apollo.
+            <div className="fixed inset-0 bg-black/45 z-[200] flex items-center justify-center">
+              <div className="bg-card border border-border rounded-[14px] p-7 max-w-[420px] w-[90%] shadow-2xl">
+                <p className="text-[16px] font-bold text-foreground mb-2">Confirm Email Lookup</p>
+                <p className="text-[13px] text-muted-foreground leading-[1.65] mb-4">
+                  Looking up emails for <strong className="text-foreground">{selPeople.size} {selPeople.size === 1 ? 'person' : 'people'}</strong> via Apollo.
                   Each lookup consumes Apollo credits.
                 </p>
-                <div style={{ background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 8, padding: '10px 14px', marginBottom: 20 }}>
-                  <p style={{ margin: 0, fontSize: 12, color: '#92400e', lineHeight: 1.5 }}>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg px-3.5 py-2.5 mb-5">
+                  <p className="text-[12px] text-amber-800 leading-relaxed m-0">
                     Apollo Basic: 30,000 credits/month. Email reveals consume credits even if no email is found.
                   </p>
                 </div>
-                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                  <button onClick={() => setCreditModal(false)} style={btnSecondary}>Cancel</button>
-                  <button onClick={runEmailLookup} style={btnPrimary(false, '#1d4ed8')}>
+                <div className="flex gap-2.5 justify-end">
+                  <Button variant="outline" size="sm" onClick={() => setCreditModal(false)}>Cancel</Button>
+                  <Button size="sm" onClick={runEmailLookup} className="gap-1.5" style={{ background: '#1d4ed8' }}>
                     Confirm — Look up {selPeople.size} emails
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
           )}
 
-          <div style={card}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  {!isHistory && (
-                    <th style={{ ...thStyle, width: 36 }}>
-                      <input type="checkbox"
-                        checked={pagedPeople.length > 0 && pagedPeople.every(p => selPeople.has(p.id) || p.email_requested)}
-                        onChange={e => setSelPeople(prev => {
-                          const n = new Set(prev)
-                          pagedPeople.filter(p => !p.email_requested)
-                            .forEach(p => e.target.checked ? n.add(p.id) : n.delete(p.id))
-                          return n
-                        })}
-                      />
-                    </th>
-                  )}
-                  {['Name', 'Title', 'Company', 'Location', 'Email', 'LinkedIn'].map(h => (
-                    <th key={h} style={thStyle}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {pagedPeople.map(p => (
-                  <tr key={p.id}>
+          <Card>
+            <CardContent className="p-0">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
                     {!isHistory && (
-                      <td style={tdStyle}>
+                      <Th w={36}>
                         <input type="checkbox"
-                          checked={selPeople.has(p.id)}
-                          disabled={p.email_requested}
+                          checked={pagedPeople.length > 0 && pagedPeople.every(p => selPeople.has(p.id) || p.email_requested)}
                           onChange={e => setSelPeople(prev => {
                             const n = new Set(prev)
-                            e.target.checked ? n.add(p.id) : n.delete(p.id)
+                            pagedPeople.filter(p => !p.email_requested).forEach(p => e.target.checked ? n.add(p.id) : n.delete(p.id))
                             return n
                           })}
                         />
-                      </td>
+                      </Th>
                     )}
-                    <td style={{ ...tdStyle, color: '#111', fontWeight: 500 }}>{p.full_name || '—'}</td>
-                    <td style={{ ...tdStyle, color: '#555', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {p.title || p.headline || '—'}
-                    </td>
-                    <td style={{ ...tdStyle, color: '#555' }}>{p.company_name}</td>
-                    <td style={{ ...tdStyle, color: '#888' }}>{p.location || '—'}</td>
-                    <td style={tdStyle}>
-                      {p.email
-                        ? <span style={{ color: '#166534', fontWeight: 500, fontSize: 12 }}>{p.email}</span>
-                        : p.email_requested
-                        ? <span style={{ color: '#aaa', fontSize: 11 }}>Not found</span>
-                        : <span style={{ color: '#d1d5db', fontSize: 11 }}>—</span>
-                      }
-                    </td>
-                    <td style={tdStyle}>
-                      {p.linkedin_url
-                        ? <a href={p.linkedin_url} target="_blank" rel="noreferrer"
-                            style={{ color: '#1d4ed8', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                            View <ExternalLink size={10} />
-                          </a>
-                        : <span style={{ color: '#d1d5db', fontSize: 11 }}>—</span>
-                      }
-                    </td>
+                    {['Name', 'Title', 'Company', 'Location', 'Email', 'LinkedIn'].map(h => <Th key={h}>{h}</Th>)}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {totalPages > 1 && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, paddingTop: 12, borderTop: '1px solid #f0f0f0' }}>
-                <span style={{ fontSize: 12, color: '#888' }}>
-                  {(peoplePage - 1) * PER_PAGE + 1}–{Math.min(peoplePage * PER_PAGE, people.length)} of {people.length}
-                </span>
-                <div style={{ display: 'flex', gap: 3 }}>
-                  <button onClick={() => setPeoplePage(p => Math.max(1, p - 1))} disabled={peoplePage === 1}
-                    style={{ ...btnSecondary, opacity: peoplePage === 1 ? 0.4 : 1 }}>← Prev</button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
-                    <button key={n} onClick={() => setPeoplePage(n)} style={{
-                      ...btnSecondary,
-                      background: n === peoplePage ? '#111' : '#fff',
-                      color:      n === peoplePage ? '#fff' : '#333',
-                      borderColor: n === peoplePage ? '#111' : '#e5e5e5',
-                    }}>{n}</button>
+                </thead>
+                <tbody>
+                  {pagedPeople.map(p => (
+                    <tr key={p.id}>
+                      {!isHistory && (
+                        <Td>
+                          <input type="checkbox" checked={selPeople.has(p.id)} disabled={p.email_requested}
+                            onChange={e => setSelPeople(prev => { const n = new Set(prev); e.target.checked ? n.add(p.id) : n.delete(p.id); return n })}
+                          />
+                        </Td>
+                      )}
+                      <Td className="font-medium text-foreground">{p.full_name || '—'}</Td>
+                      <Td className="text-muted-foreground max-w-[160px] overflow-hidden text-ellipsis whitespace-nowrap">{p.title || p.headline || '—'}</Td>
+                      <Td className="text-muted-foreground">{p.company_name}</Td>
+                      <Td className="text-muted-foreground/70">{p.location || '—'}</Td>
+                      <Td>
+                        {p.email
+                          ? <span className="text-emerald-700 font-medium text-[12px]">{p.email}</span>
+                          : p.email_requested
+                          ? <span className="text-muted-foreground/50 text-[11px]">Not found</span>
+                          : <span className="text-muted-foreground/20 text-[11px]">—</span>
+                        }
+                      </Td>
+                      <Td>
+                        {p.linkedin_url
+                          ? <a href={p.linkedin_url} target="_blank" rel="noreferrer"
+                              className="text-primary text-[11px] inline-flex items-center gap-1 no-underline">
+                              View <ExternalLink size={10} />
+                            </a>
+                          : <span className="text-muted-foreground/20 text-[11px]">—</span>
+                        }
+                      </Td>
+                    </tr>
                   ))}
-                  <button onClick={() => setPeoplePage(p => Math.min(totalPages, p + 1))} disabled={peoplePage === totalPages}
-                    style={{ ...btnSecondary, opacity: peoplePage === totalPages ? 0.4 : 1 }}>Next →</button>
+                </tbody>
+              </table>
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-3.5 pt-3 border-t border-border px-4 pb-3">
+                  <span className="text-[12px] text-muted-foreground">
+                    {(peoplePage - 1) * PER_PAGE + 1}–{Math.min(peoplePage * PER_PAGE, people.length)} of {people.length}
+                  </span>
+                  <div className="flex gap-1">
+                    <Button variant="outline" size="sm" onClick={() => setPeoplePage(p => Math.max(1, p - 1))} disabled={peoplePage === 1} className="text-[11px] h-7 px-2">← Prev</Button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+                      <Button key={n} variant={n === peoplePage ? 'default' : 'outline'} size="sm" onClick={() => setPeoplePage(n)} className="text-[11px] h-7 w-7 p-0">{n}</Button>
+                    ))}
+                    <Button variant="outline" size="sm" onClick={() => setPeoplePage(p => Math.min(totalPages, p + 1))} disabled={peoplePage === totalPages} className="text-[11px] h-7 px-2">Next →</Button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </CardContent>
+          </Card>
 
           {emailResults.length > 0 && (
-            <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end' }}>
-              <button onClick={() => setStep('emails')} style={btnPrimary()}>
+            <div className="mt-3.5 flex justify-end">
+              <Button onClick={() => setStep('emails')} className="gap-1.5">
                 <Mail size={12} /> View email results →
-              </button>
+              </Button>
             </div>
           )}
         </div>
       )}
 
-      {/* ══════════════════ STEP 4: EMAILS ══════════════════ */}
+      {/* ══ STEP 4: EMAILS ══ */}
       {step === 'emails' && (
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-            <button onClick={() => setStep('people')} style={btnSecondary}>
+          <div className="flex items-center gap-2.5 mb-4">
+            <Button variant="outline" size="sm" onClick={() => setStep('people')} className="gap-1.5">
               <ArrowLeft size={12} /> People
-            </button>
-            <div style={{ flex: 1 }}>
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#111' }}>Email Lookup Results</p>
-              <p style={{ margin: '2px 0 0', fontSize: 11, color: '#888' }}>
-                <span style={{ color: '#166534', fontWeight: 600 }}>{people.filter(p => p.email).length} found</span>
+            </Button>
+            <div className="flex-1">
+              <p className="text-[14px] font-bold text-foreground m-0">Email Lookup Results</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5 mb-0">
+                <span className="text-emerald-700 font-semibold">{people.filter(p => p.email).length} found</span>
                 {' · '}
-                <span style={{ color: '#888' }}>{people.filter(p => p.email_requested && !p.email).length} not found</span>
+                <span>{people.filter(p => p.email_requested && !p.email).length} not found</span>
               </p>
             </div>
-            <Link href="/outbound/leads" style={{ ...btnPrimary(false, '#166534'), textDecoration: 'none' }}>
-              <CheckCircle size={12} /> View Lead Database →
+            <Link href="/outbound/leads" className="no-underline">
+              <Button size="sm" className="gap-1.5" style={{ background: '#166534' }}>
+                <CheckCircle size={12} /> View Lead Database →
+              </Button>
             </Link>
           </div>
 
-          <div style={card}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  {['Name', 'Email', 'Status', 'Company', 'Title', 'Saved'].map(h => (
-                    <th key={h} style={thStyle}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {people.filter(p => p.email_requested).map(p => (
-                  <tr key={p.id}>
-                    <td style={{ ...tdStyle, color: '#111', fontWeight: 500 }}>{p.full_name || '—'}</td>
-                    <td style={{ ...tdStyle, color: p.email ? '#166534' : '#bbb', fontWeight: p.email ? 500 : 400, fontSize: 12 }}>
-                      {p.email || 'Not found'}
-                    </td>
-                    <td style={tdStyle}>
-                      <Badge
-                        label={p.email_status ?? (p.email ? 'valid' : 'not_found')}
-                        color={p.email ? '#166534' : '#991b1b'}
-                        bg={p.email ? '#f0fdf4' : '#fef2f2'}
-                      />
-                    </td>
-                    <td style={{ ...tdStyle, color: '#555' }}>{p.company_name}</td>
-                    <td style={{ ...tdStyle, color: '#888', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {p.title || p.headline || '—'}
-                    </td>
-                    <td style={tdStyle}>
-                      {p.outbound_lead_id
-                        ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#166534', fontSize: 12 }}>
-                            <CheckCircle size={12} /> Saved
-                          </span>
-                        : <span style={{ color: '#d1d5db', fontSize: 12 }}>—</span>
-                      }
-                    </td>
+          <Card>
+            <CardContent className="p-0">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    {['Name', 'Email', 'Status', 'Company', 'Title', 'Saved'].map(h => <Th key={h}>{h}</Th>)}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {people.filter(p => p.email_requested).map(p => (
+                    <tr key={p.id}>
+                      <Td className="font-medium text-foreground">{p.full_name || '—'}</Td>
+                      <Td className={cn('text-[12px]', p.email ? 'text-emerald-700 font-medium' : 'text-muted-foreground/40')}>
+                        {p.email || 'Not found'}
+                      </Td>
+                      <Td>
+                        <TBadge
+                          label={p.email_status ?? (p.email ? 'valid' : 'not_found')}
+                          color={p.email ? '#166534' : '#991b1b'}
+                          bg={p.email ? '#f0fdf4' : '#fef2f2'}
+                        />
+                      </Td>
+                      <Td className="text-muted-foreground">{p.company_name}</Td>
+                      <Td className="text-muted-foreground/70 max-w-[160px] overflow-hidden text-ellipsis whitespace-nowrap">{p.title || p.headline || '—'}</Td>
+                      <Td>
+                        {p.outbound_lead_id
+                          ? <span className="inline-flex items-center gap-1 text-emerald-700 text-[12px]"><CheckCircle size={12} /> Saved</span>
+                          : <span className="text-muted-foreground/20 text-[12px]">—</span>
+                        }
+                      </Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
         </div>
       )}
-
-      <style>{`@keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }`}</style>
     </div>
   )
 }

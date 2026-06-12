@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Search } from 'lucide-react'
 import React from 'react'
+import { Search } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 type Status     = 'new' | 'contacted' | 'replied' | 'qualified' | 'disqualified'
 type RecordType = 'person' | 'company'
@@ -33,7 +34,7 @@ interface OutboundLead {
 }
 
 const STATUS_STYLE: Record<Status, { bg: string; color: string }> = {
-  new:          { bg: '#f0f0f0', color: '#555'    },
+  new:          { bg: '#f4f4f5', color: '#555'    },
   contacted:    { bg: '#eff6ff', color: '#1d4ed8' },
   replied:      { bg: '#fef3c7', color: '#92400e' },
   qualified:    { bg: '#f0fdf4', color: '#166534' },
@@ -47,14 +48,14 @@ const SOURCE_LABEL: Record<Source, string> = {
 }
 
 export default function OutboundLeadsPage() {
-  const [leads,       setLeads]       = useState<OutboundLead[]>([])
-  const [loading,     setLoading]     = useState(true)
-  const [q,           setQ]           = useState('')
-  const [statusFilter, setStatusFilter] = useState<Status | 'all'>('all')
-  const [typeFilter,   setTypeFilter]   = useState<RecordType | 'all'>('all')
-  const [expandedId,  setExpandedId]  = useState<string | null>(null)
-  const [notes,       setNotes]       = useState<Record<string, string>>({})
-  const [saving,      setSaving]      = useState<string | null>(null)
+  const [leads,         setLeads]         = useState<OutboundLead[]>([])
+  const [loading,       setLoading]       = useState(true)
+  const [q,             setQ]             = useState('')
+  const [statusFilter,  setStatusFilter]  = useState<Status | 'all'>('all')
+  const [typeFilter,    setTypeFilter]    = useState<RecordType | 'all'>('all')
+  const [expandedId,    setExpandedId]    = useState<string | null>(null)
+  const [notes,         setNotes]         = useState<Record<string, string>>({})
+  const [saving,        setSaving]        = useState<string | null>(null)
 
   async function load() {
     setLoading(true)
@@ -96,56 +97,36 @@ export default function OutboundLeadsPage() {
     if (!q) return true
     const s = q.toLowerCase()
     return (
-      l.full_name?.toLowerCase().includes(s)       ||
-      l.headline?.toLowerCase().includes(s)         ||
-      l.current_company?.toLowerCase().includes(s)  ||
-      l.current_title?.toLowerCase().includes(s)    ||
-      l.location?.toLowerCase().includes(s)         ||
+      l.full_name?.toLowerCase().includes(s)      ||
+      l.headline?.toLowerCase().includes(s)        ||
+      l.current_company?.toLowerCase().includes(s) ||
+      l.current_title?.toLowerCase().includes(s)   ||
+      l.location?.toLowerCase().includes(s)        ||
       l.headquarters?.toLowerCase().includes(s)
     )
   })
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+    <div className="flex flex-col h-screen overflow-hidden">
 
-      {/* ── Top bar ── */}
-      <div style={{
-        padding: '12px 20px', borderBottom: '1px solid #e5e5e5', background: '#fff',
-        display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0,
-      }}>
+      {/* Top bar */}
+      <div className="flex items-center gap-3 px-5 py-3 border-b border-border bg-background flex-shrink-0 flex-wrap">
         <div>
-          <h1 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#111', letterSpacing: '-0.02em' }}>
-            Outbound Leads
-          </h1>
-          <p style={{ margin: 0, fontSize: 12, color: '#aaa' }}>
-            {leads.length} total · {leads.filter(l => l.status === 'new').length} new
-          </p>
+          <h1 className="text-[15px] font-semibold tracking-tight text-foreground">Outbound Leads</h1>
+          <p className="text-[12px] text-muted-foreground">{leads.length} total · {leads.filter(l => l.status === 'new').length} new</p>
         </div>
-        <div style={{ flex: 1 }} />
+        <div className="flex-1" />
 
         {/* Search */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 7,
-          background: '#f4f4f5', borderRadius: 7, padding: '0 10px', height: 34, width: 220,
-        }}>
-          <Search size={13} style={{ color: '#aaa', flexShrink: 0 }} />
-          <input
-            value={q}
-            onChange={e => setQ(e.target.value)}
-            placeholder="Search leads…"
-            style={{ flex: 1, border: 'none', background: 'none', fontSize: 13, color: '#111', outline: 'none' }}
-          />
+        <div className="flex items-center gap-2 bg-muted rounded-md px-3 h-[34px] w-52">
+          <Search size={13} className="text-muted-foreground flex-shrink-0" />
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search leads…"
+            className="flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted-foreground" />
         </div>
 
         {/* Status filter */}
-        <select
-          value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value as Status | 'all')}
-          style={{
-            height: 34, padding: '0 10px', borderRadius: 7,
-            border: '1px solid #e5e5e5', fontSize: 12, color: '#555', background: '#fff', cursor: 'pointer',
-          }}
-        >
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as Status | 'all')}
+          className="h-[34px] px-2.5 rounded-md border border-border text-[12px] text-foreground bg-background cursor-pointer">
           <option value="all">All Statuses</option>
           <option value="new">New</option>
           <option value="contacted">Contacted</option>
@@ -155,43 +136,29 @@ export default function OutboundLeadsPage() {
         </select>
 
         {/* Type filter */}
-        <select
-          value={typeFilter}
-          onChange={e => setTypeFilter(e.target.value as RecordType | 'all')}
-          style={{
-            height: 34, padding: '0 10px', borderRadius: 7,
-            border: '1px solid #e5e5e5', fontSize: 12, color: '#555', background: '#fff', cursor: 'pointer',
-          }}
-        >
+        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value as RecordType | 'all')}
+          className="h-[34px] px-2.5 rounded-md border border-border text-[12px] text-foreground bg-background cursor-pointer">
           <option value="all">All Types</option>
           <option value="person">People</option>
           <option value="company">Companies</option>
         </select>
-
       </div>
 
-      {/* ── Table ── */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      {/* Table */}
+      <div className="flex-1 overflow-y-auto">
         {loading ? (
-          <div style={{ padding: 40, textAlign: 'center', color: '#aaa', fontSize: 13 }}>Loading…</div>
+          <div className="py-10 text-center text-sm text-muted-foreground">Loading…</div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: 60, textAlign: 'center', color: '#aaa', fontSize: 13 }}>
+          <div className="py-14 text-center text-sm text-muted-foreground">
             No leads yet.{' '}
-            <a href="/outbound/search" style={{ color: '#111', fontWeight: 500 }}>
-              Search for prospects →
-            </a>
+            <a href="/outbound/search" className="text-foreground font-medium no-underline">Search for prospects →</a>
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table className="w-full border-collapse">
             <thead>
-              <tr style={{ background: '#fafafa', borderBottom: '1px solid #e5e5e5' }}>
+              <tr className="bg-muted/40 border-b border-border">
                 {['', 'Name', 'Role / Headline', 'Company', 'Location', 'Email', 'Source', 'Status', 'Added'].map(col => (
-                  <th key={col} style={{
-                    padding: '9px 14px', fontSize: 11, fontWeight: 600, color: '#aaa',
-                    textAlign: 'left', letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap',
-                  }}>
-                    {col}
-                  </th>
+                  <th key={col} className="px-3.5 py-2.5 text-[11px] font-semibold text-muted-foreground text-left uppercase tracking-wider whitespace-nowrap">{col}</th>
                 ))}
               </tr>
             </thead>
@@ -201,107 +168,68 @@ export default function OutboundLeadsPage() {
                 const s        = STATUS_STYLE[lead.status]
                 const avatar   = lead.profile_picture ?? lead.logo_url
                 const date     = new Date(lead.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
-
                 return (
                   <React.Fragment key={lead.id}>
-                    <tr
-                      onClick={() => setExpandedId(expanded ? null : lead.id)}
-                      style={{
-                        borderBottom: '1px solid #f0f0f0',
-                        background:   expanded ? '#fafafa' : '#fff',
-                        cursor:       'pointer',
-                        transition:   'background 0.1s',
-                      }}
+                    <tr onClick={() => setExpandedId(expanded ? null : lead.id)}
+                      className={cn('border-b border-border/50 cursor-pointer transition-colors', expanded ? 'bg-muted/30' : 'hover:bg-muted/20')}
                     >
                       {/* Avatar */}
-                      <td style={{ padding: '10px 8px 10px 14px', width: 44 }}>
+                      <td className="py-2.5 px-2 pl-3.5 w-11">
                         {avatar ? (
-                          <img src={avatar} alt="" style={{
-                            width: 32, height: 32, objectFit: 'cover', background: '#f4f4f5',
-                            borderRadius: lead.record_type === 'person' ? '50%' : 6,
-                          }} />
+                          <img src={avatar} alt="" className="w-8 h-8 object-cover bg-muted"
+                            style={{ borderRadius: lead.record_type === 'person' ? '50%' : 6 }} />
                         ) : (
-                          <div style={{
-                            width: 32, height: 32, background: '#f4f4f5', fontSize: 15,
-                            borderRadius: lead.record_type === 'person' ? '50%' : 6,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          }}>
+                          <div className="w-8 h-8 bg-muted text-[15px] flex items-center justify-center"
+                            style={{ borderRadius: lead.record_type === 'person' ? '50%' : 6 }}>
                             {lead.record_type === 'person' ? '👤' : '🏢'}
                           </div>
                         )}
                       </td>
-
                       {/* Name */}
-                      <td style={{ padding: '10px 14px', minWidth: 160 }}>
-                        <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: '#111', letterSpacing: '-0.01em' }}>
-                          {lead.full_name ?? '—'}
-                        </p>
+                      <td className="px-3.5 py-2.5 min-w-[160px]">
+                        <p className="text-[13px] font-medium text-foreground tracking-tight">{lead.full_name ?? '—'}</p>
                         {lead.linkedin_url && (
-                          <a
-                            href={lead.linkedin_url} target="_blank" rel="noopener noreferrer"
+                          <a href={lead.linkedin_url} target="_blank" rel="noopener noreferrer"
                             onClick={e => e.stopPropagation()}
-                            style={{ fontSize: 11, color: '#0a66c2', textDecoration: 'none' }}
-                          >
+                            className="text-[11px] text-[#0a66c2] no-underline">
                             LinkedIn ↗
                           </a>
                         )}
                       </td>
-
                       {/* Role */}
-                      <td style={{ padding: '10px 14px', maxWidth: 200 }}>
-                        <p style={{
-                          margin: 0, fontSize: 12, color: '#555',
-                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                        }}>
+                      <td className="px-3.5 py-2.5 max-w-[200px]">
+                        <p className="text-[12px] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                           {lead.current_title ?? lead.headline ?? lead.company_tagline ?? '—'}
                         </p>
                       </td>
-
                       {/* Company */}
-                      <td style={{ padding: '10px 14px', minWidth: 140 }}>
-                        <p style={{ margin: 0, fontSize: 12, color: '#555' }}>
-                          {lead.current_company ?? '—'}
-                        </p>
+                      <td className="px-3.5 py-2.5 min-w-[140px]">
+                        <p className="text-[12px] text-muted-foreground">{lead.current_company ?? '—'}</p>
                       </td>
-
                       {/* Location */}
-                      <td style={{ padding: '10px 14px', minWidth: 120 }}>
-                        <p style={{ margin: 0, fontSize: 12, color: '#888' }}>
-                          {lead.location ?? lead.headquarters ?? '—'}
-                        </p>
+                      <td className="px-3.5 py-2.5 min-w-[120px]">
+                        <p className="text-[12px] text-muted-foreground/70">{lead.location ?? lead.headquarters ?? '—'}</p>
                       </td>
-
                       {/* Email */}
-                      <td style={{ padding: '10px 14px', minWidth: 180 }}>
+                      <td className="px-3.5 py-2.5 min-w-[180px]">
                         {lead.email ? (
-                          <a href={`mailto:${lead.email}`} onClick={e => e.stopPropagation()} style={{ fontSize: 12, color: '#16a34a', textDecoration: 'none', fontWeight: 500 }}>
-                            {lead.email}
-                          </a>
+                          <a href={`mailto:${lead.email}`} onClick={e => e.stopPropagation()}
+                            className="text-[12px] text-emerald-600 no-underline font-medium">{lead.email}</a>
                         ) : lead.record_type === 'person' ? (
-                          <span style={{ fontSize: 12, color: '#ddd' }}>—</span>
+                          <span className="text-[12px] text-muted-foreground/30">—</span>
                         ) : null}
                       </td>
-
                       {/* Source */}
-                      <td style={{ padding: '10px 14px' }}>
-                        <span style={{
-                          fontSize: 11, fontWeight: 500, padding: '2px 7px',
-                          borderRadius: 5, background: '#f4f4f5', color: '#888',
-                        }}>
+                      <td className="px-3.5 py-2.5">
+                        <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-muted text-muted-foreground">
                           {SOURCE_LABEL[lead.source]}
                         </span>
                       </td>
-
                       {/* Status */}
-                      <td style={{ padding: '10px 14px' }} onClick={e => e.stopPropagation()}>
-                        <select
-                          value={lead.status}
-                          onChange={e => updateStatus(lead.id, e.target.value as Status)}
-                          style={{
-                            padding: '3px 8px', fontSize: 11, fontWeight: 500, borderRadius: 5,
-                            border: 'none', background: s.bg, color: s.color, cursor: 'pointer',
-                          }}
-                        >
+                      <td className="px-3.5 py-2.5" onClick={e => e.stopPropagation()}>
+                        <select value={lead.status} onChange={e => updateStatus(lead.id, e.target.value as Status)}
+                          className="text-[11px] font-semibold px-2 py-1 rounded border-0 cursor-pointer"
+                          style={{ background: s.bg, color: s.color }}>
                           <option value="new">New</option>
                           <option value="contacted">Contacted</option>
                           <option value="replied">Replied</option>
@@ -309,66 +237,44 @@ export default function OutboundLeadsPage() {
                           <option value="disqualified">Disqualified</option>
                         </select>
                       </td>
-
                       {/* Date */}
-                      <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
-                        <p style={{ margin: 0, fontSize: 12, color: '#aaa' }}>{date}</p>
+                      <td className="px-3.5 py-2.5 whitespace-nowrap">
+                        <p className="text-[12px] text-muted-foreground/60">{date}</p>
                       </td>
                     </tr>
 
-                    {/* Expanded detail row */}
+                    {/* Expanded row */}
                     {expanded && (
-                      <tr style={{ background: '#fafafa', borderBottom: '1px solid #e5e5e5' }}>
-                        <td colSpan={9} style={{ padding: '14px 14px 18px 60px' }}>
-                          <div style={{ display: 'flex', gap: 32 }}>
-
-                            {/* Details */}
+                      <tr className="bg-muted/20 border-b border-border">
+                        <td colSpan={9} className="px-3.5 pb-4 pt-3 pl-14">
+                          <div className="flex gap-8">
                             {(lead.headline || lead.company_tagline || lead.current_industry) && (
-                              <div style={{ flex: 2 }}>
-                                <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 600, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                  Details
-                                </p>
+                              <div className="flex-[2]">
+                                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Details</p>
                                 {(lead.headline || lead.company_tagline) && (
-                                  <p style={{ margin: '0 0 6px', fontSize: 13, color: '#555', lineHeight: 1.5 }}>
-                                    {lead.headline ?? lead.company_tagline}
-                                  </p>
+                                  <p className="text-[13px] text-muted-foreground leading-relaxed mb-1.5">{lead.headline ?? lead.company_tagline}</p>
                                 )}
                                 {lead.current_industry && (
-                                  <p style={{ margin: 0, fontSize: 12, color: '#888' }}>Industry: {lead.current_industry}</p>
+                                  <p className="text-[12px] text-muted-foreground/70">Industry: {lead.current_industry}</p>
                                 )}
                                 {lead.employee_count && (
-                                  <p style={{ margin: '4px 0 0', fontSize: 12, color: '#888' }}>
-                                    Employees: {lead.employee_count.toLocaleString()}
-                                  </p>
+                                  <p className="text-[12px] text-muted-foreground/70 mt-1">Employees: {lead.employee_count.toLocaleString()}</p>
                                 )}
                               </div>
                             )}
-
-                            {/* Notes */}
-                            <div style={{ flex: 1, minWidth: 240 }}>
-                              <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 600, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                Notes
-                              </p>
+                            <div className="flex-1 min-w-[240px]">
+                              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Notes</p>
                               <textarea
                                 value={notes[lead.id] ?? ''}
                                 onChange={e => setNotes(prev => ({ ...prev, [lead.id]: e.target.value }))}
                                 placeholder="Add notes…"
                                 rows={3}
-                                style={{
-                                  width: '100%', padding: '8px 10px', fontSize: 12,
-                                  borderRadius: 7, border: '1px solid #e5e5e5',
-                                  resize: 'vertical', fontFamily: 'inherit', color: '#555',
-                                  boxSizing: 'border-box', background: '#fff',
-                                }}
+                                className="w-full px-2.5 py-2 text-[12px] text-foreground bg-background border border-border rounded-md resize-y font-sans outline-none focus:ring-1 focus:ring-ring"
                               />
                               <button
                                 onClick={() => saveNotes(lead.id)}
                                 disabled={saving === lead.id}
-                                style={{
-                                  marginTop: 6, padding: '5px 14px', fontSize: 12, fontWeight: 500,
-                                  borderRadius: 6, border: '1px solid #e5e5e5',
-                                  background: '#fff', color: '#555', cursor: 'pointer',
-                                }}
+                                className="mt-1.5 px-3.5 py-1.5 text-[12px] font-medium text-foreground bg-background border border-border rounded-md cursor-pointer disabled:opacity-50"
                               >
                                 {saving === lead.id ? 'Saving…' : 'Save Notes'}
                               </button>

@@ -14,15 +14,15 @@ type Section = {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function H2({ children }: { children: React.ReactNode }) {
-  return <h2 style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 700, color: '#111', letterSpacing: '-0.02em' }}>{children}</h2>
+  return <h2 className="text-[18px] font-bold text-foreground tracking-tight mb-1.5">{children}</h2>
 }
 
 function P({ children }: { children: React.ReactNode }) {
-  return <p style={{ margin: '0 0 12px', fontSize: 13, color: '#444', lineHeight: 1.75 }}>{children}</p>
+  return <p className="text-[13px] text-foreground/70 leading-[1.75] mb-3">{children}</p>
 }
 
 function Lead({ children }: { children: React.ReactNode }) {
-  return <p style={{ margin: '0 0 20px', fontSize: 14, color: '#666', lineHeight: 1.7 }}>{children}</p>
+  return <p className="text-[14px] text-muted-foreground leading-[1.7] mb-5">{children}</p>
 }
 
 function Callout({ color, children }: { color: string; children: React.ReactNode }) {
@@ -34,32 +34,26 @@ function Callout({ color, children }: { color: string; children: React.ReactNode
   }
   const c = colors[color] ?? colors.blue
   return (
-    <div style={{ background: c.bg, border: `1px solid ${c.border}`, borderLeft: `4px solid ${c.border}`, borderRadius: 8, padding: '12px 16px', marginBottom: 16 }}>
-      <p style={{ margin: 0, fontSize: 13, color: c.text, lineHeight: 1.65 }}>{children}</p>
+    <div className="rounded-lg px-4 py-3 mb-4" style={{ background: c.bg, border: `1px solid ${c.border}`, borderLeft: `4px solid ${c.border}` }}>
+      <p className="text-[13px] leading-[1.65] m-0" style={{ color: c.text }}>{children}</p>
     </div>
   )
 }
 
 function Steps({ items }: { items: { title: string; body: React.ReactNode }[] }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginBottom: 20 }}>
+    <div className="flex flex-col mb-5">
       {items.map((item, i) => (
-        <div key={i} style={{ display: 'flex', gap: 16 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
-            <div style={{
-              width: 28, height: 28, borderRadius: '50%', background: '#1677FF',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0,
-            }}>
+        <div key={i} className="flex gap-4">
+          <div className="flex flex-col items-center flex-shrink-0">
+            <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-[12px] font-bold text-primary-foreground flex-shrink-0">
               {i + 1}
             </div>
-            {i < items.length - 1 && (
-              <div style={{ width: 2, flex: 1, background: '#e8e8e8', margin: '4px 0' }} />
-            )}
+            {i < items.length - 1 && <div className="w-0.5 flex-1 bg-border my-1" />}
           </div>
-          <div style={{ paddingBottom: i < items.length - 1 ? 20 : 0, paddingTop: 4 }}>
-            <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 600, color: '#111' }}>{item.title}</p>
-            <div style={{ fontSize: 13, color: '#555', lineHeight: 1.65 }}>{item.body}</div>
+          <div className={i < items.length - 1 ? 'pb-5 pt-1' : 'pt-1'}>
+            <p className="text-[13px] font-semibold text-foreground mb-1">{item.title}</p>
+            <div className="text-[13px] text-muted-foreground leading-[1.65]">{item.body}</div>
           </div>
         </div>
       ))}
@@ -69,7 +63,7 @@ function Steps({ items }: { items: { title: string; body: React.ReactNode }[] })
 
 function Badge({ label, color }: { label: string; color: string }) {
   const map: Record<string, { bg: string; text: string }> = {
-    blue:   { bg: '#E6F4FF',              text: '#1677FF' },
+    blue:   { bg: '#E6F4FF',               text: '#1677FF' },
     amber:  { bg: 'rgba(245,158,11,0.12)', text: '#b45309' },
     purple: { bg: 'rgba(124,58,237,0.10)', text: '#7c3aed' },
     orange: { bg: 'rgba(217,119,6,0.10)',  text: '#d97706' },
@@ -78,41 +72,33 @@ function Badge({ label, color }: { label: string; color: string }) {
   }
   const c = map[color] ?? map.blue
   return (
-    <span style={{ display: 'inline-block', fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: c.bg, color: c.text, marginRight: 6, marginBottom: 4 }}>
+    <span className="inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full mr-1.5 mb-1"
+      style={{ background: c.bg, color: c.text }}>
       {label}
     </span>
   )
 }
 
 function Divider() {
-  return <div style={{ height: 1, background: '#f0f0f0', margin: '20px 0' }} />
+  return <div className="h-px bg-border my-5" />
 }
 
 function CollapsibleSection({ title, children }: { title: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   return (
-    <div style={{ marginBottom: 2 }}>
-      <button
-        onClick={() => setOpen(o => !o)}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 7,
-          width: '100%', textAlign: 'left', background: open ? '#f9fafb' : 'transparent',
-          border: 'none', borderRadius: 6, cursor: 'pointer',
-          padding: '7px 10px', margin: '0',
-          transition: 'background 0.1s',
-        }}
+    <div className="mb-0.5">
+      <button onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 w-full text-left rounded-md cursor-pointer px-2.5 py-2 border-0 transition-colors hover:bg-muted/50"
+        style={{ background: open ? 'hsl(var(--muted) / 0.4)' : 'transparent' }}
       >
-        <span style={{
-          fontSize: 10, color: '#aaa', flexShrink: 0, display: 'inline-block',
-          transform: open ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s',
-          lineHeight: 1,
-        }}>▶</span>
-        <span style={{ fontSize: 14, fontWeight: 700, color: open ? '#111' : '#333', letterSpacing: '-0.01em' }}>
+        <span className="text-[10px] text-muted-foreground flex-shrink-0 transition-transform duration-150"
+          style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)', lineHeight: 1 }}>▶</span>
+        <span className="text-[14px] font-bold tracking-tight" style={{ color: open ? 'hsl(var(--foreground))' : 'hsl(var(--foreground) / 0.7)' }}>
           {title}
         </span>
       </button>
       {open && (
-        <div style={{ paddingLeft: 24, paddingTop: 8, paddingBottom: 4 }}>
+        <div className="pl-6 pt-2 pb-1">
           {children}
         </div>
       )}
@@ -180,19 +166,19 @@ const SECTIONS: Section[] = [
           <Steps items={[
             {
               title: 'Click a lead row',
-              body: <p style={{ margin: 0 }}>The detail panel opens on the right — contact info, topic, and original message.</p>,
+              body: <p className="m-0">The detail panel opens on the right — contact info, topic, and original message.</p>,
             },
             {
               title: 'Click "Generate Reply"',
-              body: <p style={{ margin: 0 }}>The AI reads the lead's name, topic, and message, then drafts a warm first-contact reply. Takes 2–5 seconds.</p>,
+              body: <p className="m-0">The AI reads the lead's name, topic, and message, then drafts a warm first-contact reply. Takes 2–5 seconds.</p>,
             },
             {
               title: 'Review and edit',
-              body: <p style={{ margin: 0 }}>The draft appears in a blue text box. Edit freely — change the tone, add details, or shorten it.</p>,
+              body: <p className="m-0">The draft appears in a blue text box. Edit freely — change the tone, add details, or shorten it.</p>,
             },
             {
               title: 'Click "Send Reply"',
-              body: <p style={{ margin: 0 }}>Sent from <strong>operations@trade-risksol.com</strong>. Status changes to Contacted, the unread badge decreases, and the lead is added to the Engagement Agent automatically.</p>,
+              body: <p className="m-0">Sent from <strong>operations@trade-risksol.com</strong>. Status changes to Contacted, the unread badge decreases, and the lead is added to the Engagement Agent automatically.</p>,
             },
           ]} />
           <Callout color="green">
@@ -235,19 +221,19 @@ const SECTIONS: Section[] = [
           <Steps items={[
             {
               title: 'Search — define your target',
-              body: <p style={{ margin: 0 }}>Enter a target industry (e.g. "Logistics", "Marine"), pick locations, optionally set headcount range, and choose a TRS product type. Optionally paste a news article URL for a topical outreach hook. Click <strong>Run Search</strong>.</p>,
+              body: <p className="m-0">Enter a target industry (e.g. "Logistics", "Marine"), pick locations, optionally set headcount range, and choose a TRS product type. Optionally paste a news article URL for a topical outreach hook. Click <strong>Run Search</strong>.</p>,
             },
             {
               title: 'Companies — pick the ones you want',
-              body: <p style={{ margin: 0 }}>Apollo returns a ranked list of matching companies. Tick the ones you want to pursue, then click <strong>Fetch People</strong>.</p>,
+              body: <p className="m-0">Apollo returns a ranked list of matching companies. Tick the ones you want to pursue, then click <strong>Fetch People</strong>.</p>,
             },
             {
               title: 'People — select decision-makers',
-              body: <p style={{ margin: 0 }}>A list of decision-makers appears — name, title, company, location, LinkedIn. Tick individuals and click <strong>Get Emails</strong>. Each lookup uses Apollo credits, so be selective.</p>,
+              body: <p className="m-0">A list of decision-makers appears — name, title, company, location, LinkedIn. Tick individuals and click <strong>Get Emails</strong>. Each lookup uses Apollo credits, so be selective.</p>,
             },
             {
               title: 'Emails — review results and save',
-              body: <p style={{ margin: 0 }}>Results show found (green) or not found (grey). Everyone with a found email is automatically saved to the Lead Database.</p>,
+              body: <p className="m-0">Results show found (green) or not found (grey). Everyone with a found email is automatically saved to the Lead Database.</p>,
             },
           ]} />
           <Callout color="amber">
@@ -361,27 +347,27 @@ const SECTIONS: Section[] = [
           <Steps items={[
             {
               title: 'Click "New Campaign"',
-              body: <p style={{ margin: 0 }}>Name the campaign (e.g. "SG Logistics Q3 — Liability"), choose a TRS product type, and optionally paste a news article URL. Leave the URL blank and the AI finds a relevant hook automatically.</p>,
+              body: <p className="m-0">Name the campaign (e.g. "SG Logistics Q3 — Liability"), choose a TRS product type, and optionally paste a news article URL. Leave the URL blank and the AI finds a relevant hook automatically.</p>,
             },
             {
               title: 'Select leads',
-              body: <p style={{ margin: 0 }}>In the <strong>Leads</strong> tab, add the outbound leads you want to target. These should already be in the Lead Database from a Discovery run.</p>,
+              body: <p className="m-0">In the <strong>Leads</strong> tab, add the outbound leads you want to target. These should already be in the Lead Database from a Discovery run.</p>,
             },
             {
               title: 'Generate the email sequence',
-              body: <p style={{ margin: 0 }}>Go to the <strong>Sequence</strong> tab and click <strong>Generate with AI</strong>. The AI writes up to five emails — each with a subject line, body, and delay in days. The first uses the news hook as an opening angle.</p>,
+              body: <p className="m-0">Go to the <strong>Sequence</strong> tab and click <strong>Generate with AI</strong>. The AI writes up to five emails — each with a subject line, body, and delay in days. The first uses the news hook as an opening angle.</p>,
             },
             {
               title: 'Review and approve each step',
-              body: <p style={{ margin: 0 }}>Read every draft. Edit subject line or body. When happy, click <strong>Approve</strong>. The campaign won't launch until all steps are approved.</p>,
+              body: <p className="m-0">Read every draft. Edit subject line or body. When happy, click <strong>Approve</strong>. The campaign won't launch until all steps are approved.</p>,
             },
             {
               title: 'Launch',
-              body: <p style={{ margin: 0 }}>Click <strong>Launch via Instantly</strong>. Campaign moves to Active; emails begin sending according to the delay schedule.</p>,
+              body: <p className="m-0">Click <strong>Launch via Instantly</strong>. Campaign moves to Active; emails begin sending according to the delay schedule.</p>,
             },
             {
               title: 'Monitor replies',
-              body: <p style={{ margin: 0 }}>Dashboard shows Leads, Sent, Replies, and Reply Rate in real time. When a lead replies, their status updates to Replied — open the Engagement Agent to continue that conversation personally.</p>,
+              body: <p className="m-0">Dashboard shows Leads, Sent, Replies, and Reply Rate in real time. When a lead replies, their status updates to Replied — open the Engagement Agent to continue that conversation personally.</p>,
             },
           ]} />
           <Callout color="amber">
@@ -450,27 +436,27 @@ const SECTIONS: Section[] = [
           <Steps items={[
             {
               title: 'Select a conversation',
-              body: <p style={{ margin: 0 }}>Click any contact to load their email thread. An amber "⚡ Needs reply" badge appears if they're waiting.</p>,
+              body: <p className="m-0">Click any contact to load their email thread. An amber "⚡ Needs reply" badge appears if they're waiting.</p>,
             },
             {
               title: 'Read the AI Analysis',
-              body: <p style={{ margin: 0 }}>Check the blue strip at the top — it briefs you on the conversation and recommends the next action.</p>,
+              body: <p className="m-0">Check the blue strip at the top — it briefs you on the conversation and recommends the next action.</p>,
             },
             {
               title: 'Click "Generate AI reply"',
-              body: <p style={{ margin: 0 }}>At the bottom of the thread, click "Generate AI reply". The AI reads the full thread and drafts a contextual reply — referencing coverage types, deadlines, amounts from the emails.</p>,
+              body: <p className="m-0">At the bottom of the thread, click "Generate AI reply". The AI reads the full thread and drafts a contextual reply — referencing coverage types, deadlines, amounts from the emails.</p>,
             },
             {
               title: 'Review and edit',
-              body: <p style={{ margin: 0 }}>The draft appears in a rich text editor. Edit freely — formatting (bold, lists, links) is preserved in the email. Add context the AI couldn't know, like pricing confirmed with an insurer.</p>,
+              body: <p className="m-0">The draft appears in a rich text editor. Edit freely — formatting (bold, lists, links) is preserved in the email. Add context the AI couldn't know, like pricing confirmed with an insurer.</p>,
             },
             {
               title: 'Select your signature and send',
-              body: <p style={{ margin: 0 }}>Choose who is sending from the <strong>Sign as</strong> dropdown — the signature appears in the editor. Click <strong>Approve &amp; Send</strong> to send from operations@trade-risksol.com. The amber indicator clears.</p>,
+              body: <p className="m-0">Choose who is sending from the <strong>Sign as</strong> dropdown — the signature appears in the editor. Click <strong>Approve &amp; Send</strong> to send from operations@trade-risksol.com. The amber indicator clears.</p>,
             },
             {
               title: 'Update lead status if needed',
-              body: <p style={{ margin: 0 }}>In the right panel, update the status dropdown — e.g. move from Engaged to Qualified once you've confirmed requirements, or to Proposal after sending a quote.</p>,
+              body: <p className="m-0">In the right panel, update the status dropdown — e.g. move from Engaged to Qualified once you've confirmed requirements, or to Proposal after sending a quote.</p>,
             },
           ]} />
         </CollapsibleSection>
@@ -485,7 +471,7 @@ const SECTIONS: Section[] = [
           <Steps items={[
             {
               title: 'Compares AI draft vs what you actually sent',
-              body: <p style={{ margin: 0 }}>If the two are nearly identical (&gt;95% match), the draft scores a 5/5 automatically — no API call needed. If you made edits, Gemini evaluates the difference.</p>,
+              body: <p className="m-0">If the two are nearly identical (&gt;95% match), the draft scores a 5/5 automatically — no API call needed. If you made edits, Gemini evaluates the difference.</p>,
             },
             {
               title: 'Gemini scores the draft (1–5)',
@@ -498,7 +484,7 @@ const SECTIONS: Section[] = [
             },
             {
               title: 'High-scoring replies become examples',
-              body: <p style={{ margin: 0 }}>Scores 4–5 are saved as few-shot examples. The next time the AI drafts a reply of the same email type (e.g. PRICING, COVERAGE, RENEWAL), it references these examples to match your style and quality.</p>,
+              body: <p className="m-0">Scores 4–5 are saved as few-shot examples. The next time the AI drafts a reply of the same email type (e.g. PRICING, COVERAGE, RENEWAL), it references these examples to match your style and quality.</p>,
             },
           ]} />
           <Callout color="purple">
@@ -562,50 +548,48 @@ export default function DocumentationPage() {
   const active = SECTIONS.find(s => s.id === activeId) ?? SECTIONS[0]
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--content-bg)' }}>
+    <div className="flex h-screen overflow-hidden bg-background">
 
       {/* Sidebar nav */}
-      <div style={{ width: 220, flexShrink: 0, background: '#fff', borderRight: '1px solid #e8e8e8', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
-        <div style={{ padding: '20px 16px 12px', borderBottom: '1px solid #f0f0f0' }}>
-          <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Documentation</p>
-          <p style={{ margin: 0, fontSize: 11, color: '#ccc', lineHeight: 1.4 }}>Workflow order: top → bottom</p>
+      <div className="w-[220px] flex-shrink-0 bg-card border-r border-border flex flex-col overflow-y-auto">
+        <div className="px-4 pt-5 pb-3 border-b border-border">
+          <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5">Documentation</p>
+          <p className="text-[11px] text-muted-foreground/50 leading-snug">Workflow order: top → bottom</p>
         </div>
-        <nav style={{ padding: '8px' }}>
-          {SECTIONS.map((s, i) => (
-            <button
-              key={s.id}
-              onClick={() => setActiveId(s.id)}
-              style={{
-                width: '100%', textAlign: 'left', padding: '8px 10px',
-                borderRadius: 6, border: 'none', cursor: 'pointer',
-                background: activeId === s.id ? '#E6F4FF' : 'transparent',
-                color:      activeId === s.id ? '#1677FF' : '#555',
-                fontSize: 13, fontWeight: activeId === s.id ? 600 : 400,
-                display: 'flex', alignItems: 'center', gap: 8,
-                borderLeft: `3px solid ${activeId === s.id ? '#1677FF' : 'transparent'}`,
-                marginBottom: 2,
-                transition: 'all 0.1s',
-              }}
-            >
-              <span style={{ fontSize: 11, fontWeight: 700, color: activeId === s.id ? '#1677FF' : '#bbb', minWidth: 14, textAlign: 'right', flexShrink: 0 }}>
-                {i + 1}
-              </span>
-              <span style={{ fontSize: 15, flexShrink: 0 }}>{s.emoji}</span>
-              {s.title}
-            </button>
-          ))}
+        <nav className="p-2">
+          {SECTIONS.map((s, i) => {
+            const isActive = activeId === s.id
+            return (
+              <button key={s.id} onClick={() => setActiveId(s.id)}
+                className="w-full text-left px-2.5 py-2 rounded-md border-0 cursor-pointer flex items-center gap-2 mb-0.5 transition-all text-[13px]"
+                style={{
+                  background: isActive ? 'hsl(var(--primary) / 0.08)' : 'transparent',
+                  color:      isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                  fontWeight: isActive ? 600 : 400,
+                  borderLeft: `3px solid ${isActive ? 'hsl(var(--primary))' : 'transparent'}`,
+                }}
+              >
+                <span className="text-[11px] font-bold min-w-[14px] text-right flex-shrink-0"
+                  style={{ color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground) / 0.4)' }}>
+                  {i + 1}
+                </span>
+                <span className="text-[15px] flex-shrink-0">{s.emoji}</span>
+                {s.title}
+              </button>
+            )
+          })}
         </nav>
-        <div style={{ flex: 1 }} />
-        <div style={{ padding: '12px 16px', borderTop: '1px solid #f0f0f0' }}>
-          <p style={{ margin: 0, fontSize: 11, color: '#ccc', lineHeight: 1.5 }}>
+        <div className="flex-1" />
+        <div className="px-4 py-3 border-t border-border">
+          <p className="text-[11px] text-muted-foreground/40 leading-relaxed">
             TRS Internal Dashboard<br />Documentation v1.2
           </p>
         </div>
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
-        <div style={{ maxWidth: 740, margin: '0 auto', padding: '40px 48px 80px' }}>
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-[740px] mx-auto px-12 py-10 pb-20">
           {active.content}
         </div>
       </div>

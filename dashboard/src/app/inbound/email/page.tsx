@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { RefreshCw, ChevronDown, Copy, Check, X, Search, MessageCircle, Mail, Globe, Pencil, Sparkles, Send } from 'lucide-react'
 import { useAuditLog } from '@/hooks/useAuditLog'
 import { Tip } from '@/components/Tip'
+import { cn } from '@/lib/utils'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -41,23 +42,16 @@ const ALL_STATUSES = ['new', 'contacted', 'engaged', 'qualified', 'proposal', 'c
 function fullName(l: Lead) {
   return [l.first_name, l.last_name].filter(Boolean).join(' ') || '—'
 }
-
 function displayName(l: Lead) {
   const n = fullName(l)
-  if (n !== '—') return n
-  return l.email ?? l.phone ?? '—'
+  return n !== '—' ? n : l.email ?? l.phone ?? '—'
 }
-
 function channelOf(l: Lead): 'whatsapp' | 'email' | 'manual' {
   if (WA_SOURCES.has(l.source)) return 'whatsapp'
   if (l.source === 'manual') return 'manual'
   return 'email'
 }
-
-function messagePreview(l: Lead) {
-  return l.details || l.message || ''
-}
-
+function messagePreview(l: Lead) { return l.details || l.message || '' }
 function timeAgo(iso: string) {
   const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
   if (m < 1)  return 'just now'
@@ -65,15 +59,12 @@ function timeAgo(iso: string) {
   const h = Math.floor(m / 60)
   if (h < 24) return `${h}h ago`
   const d = Math.floor(h / 24)
-  if (d < 7)  return `${d}d ago`
   if (d < 30) return `${d}d ago`
   return new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })
 }
-
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleString('en-SG', {
-    day: 'numeric', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
+    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
 }
 
@@ -82,27 +73,27 @@ function fmtDate(iso: string) {
 function ChannelBadge({ source }: { source: string }) {
   if (WA_SOURCES.has(source)) {
     return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: 'rgba(34,197,94,0.10)', color: '#15803d', whiteSpace: 'nowrap' }}>
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 whitespace-nowrap">
         <MessageCircle size={10} />WhatsApp
       </span>
     )
   }
   if (source === 'website_form') {
     return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: 'rgba(59,130,246,0.10)', color: '#1d4ed8', whiteSpace: 'nowrap' }}>
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-700 whitespace-nowrap">
         <Globe size={10} />Website
       </span>
     )
   }
   if (source === 'manual') {
     return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: '#f4f4f5', color: '#888', whiteSpace: 'nowrap' }}>
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground whitespace-nowrap">
         <Pencil size={10} />Manual
       </span>
     )
   }
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: 'rgba(59,130,246,0.10)', color: '#1d4ed8', whiteSpace: 'nowrap' }}>
+    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-700 whitespace-nowrap">
       <Mail size={10} />Email
     </span>
   )
@@ -123,21 +114,24 @@ function StatusDropdown({ lead, onChange }: { lead: Lead; onChange: (id: string,
   }, [open])
 
   return (
-    <div style={{ position: 'relative' }} ref={ref}>
+    <div className="relative" ref={ref}>
       <button
         onClick={e => { e.stopPropagation(); setOpen(v => !v) }}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 20, background: st.bg, color: st.color, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+        className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border-0 cursor-pointer whitespace-nowrap"
+        style={{ background: st.bg, color: st.color }}
       >
         {st.label} <ChevronDown size={10} strokeWidth={2.5} />
       </button>
       {open && (
-        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, background: '#fff', border: '1px solid #e8e8e8', borderRadius: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.12)', zIndex: 100, padding: '4px 0', minWidth: 140 }}>
+        <div className="absolute top-[calc(100%+4px)] left-0 bg-card border border-border rounded-[10px] shadow-lg z-[100] py-1 min-w-[140px]">
           {ALL_STATUSES.map(s => {
             const sc = STATUS_MAP[s]
             return (
               <button key={s} onClick={e => { e.stopPropagation(); onChange(lead.id, s); setOpen(false) }}
-                style={{ width: '100%', textAlign: 'left', padding: '7px 12px', fontSize: 12, fontWeight: lead.status === s ? 600 : 400, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: lead.status === s ? sc.color : '#555' }}>
-                <span style={{ width: 6, height: 6, borderRadius: 3, background: sc.color, flexShrink: 0 }} />
+                className="w-full text-left px-3 py-1.5 text-[12px] bg-transparent border-0 cursor-pointer flex items-center gap-2 hover:bg-muted/50"
+                style={{ fontWeight: lead.status === s ? 600 : 400, color: lead.status === s ? sc.color : 'hsl(var(--muted-foreground))' }}
+              >
+                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: sc.color }} />
                 {sc.label}
               </button>
             )
@@ -151,19 +145,18 @@ function StatusDropdown({ lead, onChange }: { lead: Lead; onChange: (id: string,
 // ── Detail panel ──────────────────────────────────────────────────────────────
 
 function DetailPanel({ lead, onStatus, onClose }: { lead: Lead; onStatus: (id: string, s: string) => void; onClose: () => void }) {
-  const [copied,       setCopied]       = useState<string | null>(null)
-  const [draftText,    setDraftText]    = useState('')
-  const [generating,   setGenerating]   = useState(false)
-  const [sending,      setSending]      = useState(false)
-  const [sendError,    setSendError]    = useState<string | null>(null)
-  const [sent,         setSent]         = useState(false)
+  const [copied,     setCopied]     = useState<string | null>(null)
+  const [draftText,  setDraftText]  = useState('')
+  const [generating, setGenerating] = useState(false)
+  const [sending,    setSending]    = useState(false)
+  const [sendError,  setSendError]  = useState<string | null>(null)
+  const [sent,       setSent]       = useState(false)
   const log = useAuditLog()
 
   const ch  = channelOf(lead)
   const msg = messagePreview(lead)
   const st  = STATUS_MAP[lead.status] ?? STATUS_MAP.new
 
-  // Reset draft state when lead changes
   useEffect(() => {
     setDraftText(''); setGenerating(false); setSending(false); setSendError(null); setSent(false)
   }, [lead.id])
@@ -177,9 +170,8 @@ function DetailPanel({ lead, onStatus, onClose }: { lead: Lead; onStatus: (id: s
     setGenerating(true); setSendError(null)
     try {
       const res  = await fetch('/api/inbound/draft', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ name: displayName(lead), topic: lead.topic, message: msg }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: displayName(lead), topic: lead.topic, message: msg }),
       })
       const data = await res.json()
       if (data.content) {
@@ -197,22 +189,16 @@ function DetailPanel({ lead, onStatus, onClose }: { lead: Lead; onStatus: (id: s
     setSending(true); setSendError(null)
     try {
       const res  = await fetch('/api/inbound/reply', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          leadId:          lead.id,
-          name:            displayName(lead),
-          email:           lead.email,
-          company:         lead.company,
-          topic:           lead.topic,
-          originalMessage: msg,
-          draft:           draftText.trim(),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadId: lead.id, name: displayName(lead), email: lead.email,
+          company: lead.company, topic: lead.topic,
+          originalMessage: msg, draft: draftText.trim(),
         }),
       })
       const data = await res.json()
       if (data.ok) {
-        setSent(true)
-        onStatus(lead.id, 'contacted')
+        setSent(true); onStatus(lead.id, 'contacted')
         log({ action: 'draft.approved', resource_type: 'inbound_lead', resource_id: lead.id, metadata: { contact: displayName(lead), chars: draftText.length } })
       } else {
         setSendError(data.error ?? 'Send failed')
@@ -221,118 +207,107 @@ function DetailPanel({ lead, onStatus, onClose }: { lead: Lead; onStatus: (id: s
     finally { setSending(false) }
   }
 
-  const lbl: React.CSSProperties = { fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#bbb', margin: '0 0 3px' }
-  const val: React.CSSProperties = { fontSize: 12, color: '#333', margin: 0, wordBreak: 'break-all', lineHeight: 1.5 }
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div className="flex flex-col h-full">
 
       {/* Header */}
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, flexShrink: 0 }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
+      <div className="px-4 py-3 border-b border-border flex items-start justify-between gap-2 flex-shrink-0">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 mb-1 flex-wrap">
             <ChannelBadge source={lead.source} />
-            <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 20, background: st.bg, color: st.color }}>{st.label}</span>
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: st.bg, color: st.color }}>{st.label}</span>
           </div>
-          <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#111' }}>{displayName(lead)}</p>
-          {lead.company && <p style={{ margin: '2px 0 0', fontSize: 12, color: '#888' }}>{lead.company}</p>}
+          <p className="text-[14px] font-semibold text-foreground m-0">{displayName(lead)}</p>
+          {lead.company && <p className="text-[12px] text-muted-foreground mt-0.5 mb-0">{lead.company}</p>}
         </div>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#bbb', flexShrink: 0, padding: 2 }}>
+        <button onClick={onClose} className="bg-transparent border-0 cursor-pointer text-muted-foreground/50 flex-shrink-0 p-0.5 hover:text-muted-foreground">
           <X size={14} />
         </button>
       </div>
 
-      {/* Status changer */}
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0' }}>
-        <p style={lbl}>Status <Tip placement="right" text="Update this as the conversation progresses — from New to Contacted once you've replied, through to Converted when a policy is placed." /></p>
+      {/* Status */}
+      <div className="px-4 py-3 border-b border-border">
+        <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60 mb-1.5">
+          Status <Tip placement="right" text="Update this as the conversation progresses — from New to Contacted once you've replied, through to Converted when a policy is placed." />
+        </p>
         <StatusDropdown lead={lead} onChange={onStatus} />
       </div>
 
       {/* Contact info */}
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <p style={{ ...lbl, marginBottom: 6 }}>Contact</p>
+      <div className="px-4 py-3 border-b border-border flex flex-col gap-2.5">
+        <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60 mb-1">Contact</p>
         {(lead.first_name || lead.last_name) && (
-          <div><p style={lbl}>Name</p><p style={val}>{fullName(lead)}</p></div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60 mb-0.5">Name</p>
+            <p className="text-[12px] text-foreground/80 m-0">{fullName(lead)}</p>
+          </div>
         )}
         {lead.email && (
           <div>
-            <p style={lbl}>Email</p>
-            <button onClick={() => copy(lead.email!, 'email')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, maxWidth: '100%' }}>
-              <span style={{ ...val, flex: 1, minWidth: 0, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{lead.email}</span>
-              {copied === 'email' ? <Check size={11} style={{ color: '#22c55e', flexShrink: 0 }} /> : <Copy size={10} style={{ color: '#ccc', flexShrink: 0 }} />}
+            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60 mb-0.5">Email</p>
+            <button onClick={() => copy(lead.email!, 'email')} className="bg-transparent border-0 p-0 cursor-pointer flex items-center gap-1.5 max-w-full">
+              <span className="text-[12px] text-foreground/80 flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{lead.email}</span>
+              {copied === 'email' ? <Check size={11} className="text-emerald-500 flex-shrink-0" /> : <Copy size={10} className="text-muted-foreground/30 flex-shrink-0" />}
             </button>
           </div>
         )}
         {lead.phone && (
           <div>
-            <p style={lbl}>Phone / WhatsApp</p>
-            <button onClick={() => copy(lead.phone!, 'phone')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
-              <span style={val}>{lead.phone}</span>
-              {copied === 'phone' ? <Check size={11} style={{ color: '#22c55e', flexShrink: 0 }} /> : <Copy size={10} style={{ color: '#ccc', flexShrink: 0 }} />}
+            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60 mb-0.5">Phone / WhatsApp</p>
+            <button onClick={() => copy(lead.phone!, 'phone')} className="bg-transparent border-0 p-0 cursor-pointer flex items-center gap-1.5">
+              <span className="text-[12px] text-foreground/80">{lead.phone}</span>
+              {copied === 'phone' ? <Check size={11} className="text-emerald-500 flex-shrink-0" /> : <Copy size={10} className="text-muted-foreground/30 flex-shrink-0" />}
             </button>
           </div>
         )}
         {ch === 'whatsapp' && lead.phone && (
-          <a
-            href={`https://wa.me/${lead.phone.replace(/\D/g, '')}`}
-            target="_blank" rel="noopener noreferrer"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: '#15803d', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.20)', borderRadius: 7, padding: '5px 10px', textDecoration: 'none', width: 'fit-content' }}
-          >
+          <a href={`https://wa.me/${lead.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-500/8 border border-emerald-500/20 rounded-lg px-2.5 py-1.5 no-underline w-fit">
             <MessageCircle size={12} /> Open in WhatsApp
           </a>
         )}
       </div>
 
       {/* Lead info */}
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <p style={{ ...lbl, marginBottom: 6 }}>Lead Info</p>
-        {lead.topic       && <div><p style={lbl}>Topic</p><p style={val}>{lead.topic}</p></div>}
-        {lead.department  && <div><p style={lbl}>Department</p><p style={val}>{lead.department}</p></div>}
-        {lead.contact_type && <div><p style={lbl}>Type</p><p style={val}>{lead.contact_type}</p></div>}
-        <div><p style={lbl}>Source</p><p style={val}>{lead.source.replace(/_/g, ' ')}</p></div>
-        <div><p style={lbl}>Received</p><p style={val}>{fmtDate(lead.created_at)}</p></div>
-        {lead.page_url && <div><p style={lbl}>Page</p><p style={{ ...val, fontSize: 11 }}>{lead.page_url}</p></div>}
+      <div className="px-4 py-3 border-b border-border flex flex-col gap-2.5">
+        <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60 mb-1">Lead Info</p>
+        {lead.topic        && <Field label="Topic"      value={lead.topic} />}
+        {lead.department   && <Field label="Department" value={lead.department} />}
+        {lead.contact_type && <Field label="Type"       value={lead.contact_type} />}
+        <Field label="Source"   value={lead.source.replace(/_/g, ' ')} />
+        <Field label="Received" value={fmtDate(lead.created_at)} />
+        {lead.page_url && <Field label="Page" value={lead.page_url} small />}
       </div>
 
       {/* Message */}
       {msg && (
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0' }}>
-          <p style={{ ...lbl, marginBottom: 6 }}>Original Message</p>
-          <p style={{ margin: 0, fontSize: 12, color: '#333', whiteSpace: 'pre-wrap', lineHeight: 1.65, background: '#f9f9f9', borderRadius: 8, padding: '10px 12px', border: '1px solid #f0f0f0' }}>
+        <div className="px-4 py-3 border-b border-border">
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60 mb-1.5">Original Message</p>
+          <p className="text-[12px] text-foreground/80 whitespace-pre-wrap leading-[1.65] bg-muted/40 border border-border rounded-lg px-3 py-2.5 m-0">
             {msg}
           </p>
         </div>
       )}
 
-      {/* AI Reply — only show for email leads with an email address */}
+      {/* AI Reply */}
       {lead.email && (
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', background: sent ? '#f0fdf4' : '#eff6ff', borderTop: `2px solid ${sent ? '#86efac' : '#93c5fd'}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <p style={{ ...lbl, color: sent ? '#15803d' : '#1d4ed8', margin: 0, display: 'flex', alignItems: 'center' }}>
+        <div className={cn('px-4 py-3 border-b border-border', sent ? 'bg-emerald-50 border-t-2 border-t-emerald-300' : 'bg-blue-50 border-t-2 border-t-blue-300')}>
+          <div className="flex items-center justify-between mb-2">
+            <p className={cn('text-[10px] font-bold uppercase tracking-[0.08em] m-0 flex items-center', sent ? 'text-emerald-700' : 'text-blue-700')}>
               {sent ? 'Reply Sent' : 'AI Reply'}
               {!sent && <Tip text="Drafts a personalised first-contact email using AI — it reads the lead's name, topic, and original message. Review and edit the draft before clicking Send Reply." />}
             </p>
             {!sent && !draftText && (
-              <button
-                onClick={generateDraft}
-                disabled={generating}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                  fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 6,
-                  background: generating ? '#dbeafe' : '#1d4ed8',
-                  color: generating ? '#93c5fd' : '#fff',
-                  border: 'none', cursor: generating ? 'default' : 'pointer',
-                }}
+              <button onClick={generateDraft} disabled={generating}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md border-0 cursor-pointer"
+                style={{ background: generating ? '#dbeafe' : '#1d4ed8', color: generating ? '#93c5fd' : '#fff' }}
               >
-                <Sparkles size={11} />
-                {generating ? 'Generating…' : 'Generate Reply'}
+                <Sparkles size={11} /> {generating ? 'Generating…' : 'Generate Reply'}
               </button>
             )}
             {!sent && draftText && (
-              <button
-                onClick={generateDraft}
-                disabled={generating}
-                style={{ background: 'none', border: 'none', cursor: generating ? 'default' : 'pointer', fontSize: 11, color: '#93c5fd', padding: 0 }}
+              <button onClick={generateDraft} disabled={generating}
+                className="bg-transparent border-0 cursor-pointer text-[11px] text-blue-300 p-0 hover:text-blue-500"
               >
                 {generating ? 'Regenerating…' : 'Regenerate'}
               </button>
@@ -340,64 +315,55 @@ function DetailPanel({ lead, onStatus, onClose }: { lead: Lead; onStatus: (id: s
           </div>
 
           {sent ? (
-            <p style={{ margin: 0, fontSize: 12, color: '#15803d', fontWeight: 500 }}>
+            <p className="text-[12px] text-emerald-700 font-medium m-0">
               Reply sent to {lead.email}. Lead routed to Engagement Agent.
             </p>
           ) : draftText ? (
             <>
-              <textarea
-                value={draftText}
-                onChange={e => setDraftText(e.target.value)}
-                rows={8}
-                style={{
-                  width: '100%', boxSizing: 'border-box', fontSize: 12, color: '#1e3a5f',
-                  lineHeight: 1.65, border: '1px solid #bfdbfe', borderRadius: 8,
-                  padding: '8px 10px', resize: 'vertical', background: '#fff',
-                  outline: 'none', fontFamily: 'inherit',
-                }}
+              <textarea value={draftText} onChange={e => setDraftText(e.target.value)} rows={8}
+                className="w-full box-border text-[12px] text-blue-900 leading-[1.65] border border-blue-200 rounded-lg px-2.5 py-2 resize-y bg-white outline-none font-sans focus:ring-1 focus:ring-blue-300"
               />
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
-                <span style={{ fontSize: 11, color: '#93c5fd', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-[11px] text-blue-300 flex items-center gap-1">
                   To: {lead.email}
                   <Tip text="This reply is sent from your connected TRS email address. The lead will see it as a normal email — no mention of AI." />
                 </span>
-                <button
-                  onClick={sendReply}
-                  disabled={sending || !draftText.trim()}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 5,
-                    fontSize: 11, fontWeight: 600, padding: '5px 12px', borderRadius: 6,
-                    background: sending ? '#dbeafe' : '#1d4ed8',
-                    color: sending ? '#93c5fd' : '#fff',
-                    border: 'none', cursor: sending ? 'default' : 'pointer',
-                  }}
+                <button onClick={sendReply} disabled={sending || !draftText.trim()}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 rounded-md border-0 cursor-pointer disabled:opacity-50"
+                  style={{ background: sending ? '#dbeafe' : '#1d4ed8', color: sending ? '#93c5fd' : '#fff' }}
                 >
-                  <Send size={11} />
-                  {sending ? 'Sending…' : 'Send Reply'}
+                  <Send size={11} /> {sending ? 'Sending…' : 'Send Reply'}
                 </button>
               </div>
             </>
           ) : (
-            <p style={{ margin: 0, fontSize: 12, color: '#93c5fd' }}>
-              Click Generate Reply to draft a first-contact email.
-            </p>
+            <p className="text-[12px] text-blue-300 m-0">Click Generate Reply to draft a first-contact email.</p>
           )}
 
-          {sendError && (
-            <p style={{ margin: '6px 0 0', fontSize: 11, color: '#ef4444' }}>{sendError}</p>
-          )}
+          {sendError && <p className="text-[11px] text-destructive mt-1.5 mb-0">{sendError}</p>}
         </div>
       )}
 
       {/* Notes */}
-      <div style={{ padding: '12px 16px', flex: 1 }}>
-        <p style={{ ...lbl, marginBottom: 6 }}>Internal Notes <Tip placement="right" text="Only visible to your TRS team — the contact never sees these. Use this to record context like which insurer to quote, a follow-up date, or notes from a call." /></p>
-        <textarea
-          placeholder="Add notes…"
-          rows={4}
-          style={{ width: '100%', boxSizing: 'border-box', fontSize: 12, color: '#333', lineHeight: 1.6, border: '1px solid #e8e8e8', borderRadius: 8, padding: '8px 10px', resize: 'none', background: '#fafafa', outline: 'none', fontFamily: 'inherit' }}
+      <div className="px-4 py-3 flex-1">
+        <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60 mb-1.5">
+          Internal Notes <Tip placement="right" text="Only visible to your TRS team — the contact never sees these. Use this to record context like which insurer to quote, a follow-up date, or notes from a call." />
+        </p>
+        <textarea placeholder="Add notes…" rows={4}
+          className="w-full box-border text-[12px] text-foreground leading-[1.6] border border-border rounded-lg px-2.5 py-2 resize-none bg-muted/30 outline-none font-sans focus:ring-1 focus:ring-ring"
         />
       </div>
+    </div>
+  )
+}
+
+// ── Field helper ──────────────────────────────────────────────────────────────
+
+function Field({ label, value, small }: { label: string; value: string; small?: boolean }) {
+  return (
+    <div>
+      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60 mb-0.5">{label}</p>
+      <p className={cn('text-foreground/80 break-all leading-relaxed m-0', small ? 'text-[11px]' : 'text-[12px]')}>{value}</p>
     </div>
   )
 }
@@ -437,14 +403,10 @@ function InboundLeadsPage() {
   const load = useCallback(async (spinner = false) => {
     if (spinner) setRefreshing(true)
     try {
-      const data = await fetchLeads()
-      setLeads(data)
-      setError(null)
+      const data = await fetchLeads(); setLeads(data); setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load')
-    } finally {
-      setLoading(false); setRefreshing(false)
-    }
+    } finally { setLoading(false); setRefreshing(false) }
   }, [])
 
   useEffect(() => {
@@ -458,18 +420,17 @@ function InboundLeadsPage() {
     patchStatus(id, status)
   }
 
-  // Counts
-  const totalNew  = leads.filter(l => l.status === 'new').length
-  const waCount   = leads.filter(l => WA_SOURCES.has(l.source)).length
-  const emCount   = leads.filter(l => EMAIL_SOURCES.has(l.source)).length
-  const waNew     = leads.filter(l => WA_SOURCES.has(l.source) && l.status === 'new').length
-  const emNew     = leads.filter(l => EMAIL_SOURCES.has(l.source) && l.status === 'new').length
+  const totalNew = leads.filter(l => l.status === 'new').length
+  const waCount  = leads.filter(l => WA_SOURCES.has(l.source)).length
+  const emCount  = leads.filter(l => EMAIL_SOURCES.has(l.source)).length
+  const waNew    = leads.filter(l => WA_SOURCES.has(l.source) && l.status === 'new').length
+  const emNew    = leads.filter(l => EMAIL_SOURCES.has(l.source) && l.status === 'new').length
 
   const FILTERS: { key: Filter; label: string; count: number; newCount: number }[] = [
-    { key: 'all',      label: 'All Leads',  count: leads.length, newCount: totalNew },
-    { key: 'new',      label: 'New',        count: totalNew,     newCount: 0 },
-    { key: 'email',    label: 'Email / Form', count: emCount,    newCount: emNew },
-    { key: 'whatsapp', label: 'WhatsApp',   count: waCount,      newCount: waNew },
+    { key: 'all',      label: 'All Leads',   count: leads.length, newCount: totalNew },
+    { key: 'new',      label: 'New',         count: totalNew,     newCount: 0 },
+    { key: 'email',    label: 'Email / Form', count: emCount,      newCount: emNew },
+    { key: 'whatsapp', label: 'WhatsApp',    count: waCount,      newCount: waNew },
   ]
 
   const filtered = leads.filter(l => {
@@ -487,91 +448,83 @@ function InboundLeadsPage() {
   const selectedLead = leads.find(l => l.id === selectedId) ?? null
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+    <div className="flex flex-col h-screen overflow-hidden">
 
       {/* Top bar */}
-      <div style={{ padding: '20px 24px 0', background: 'var(--content-bg)', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+      <div className="px-6 pt-5 pb-0 bg-background flex-shrink-0">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#111', letterSpacing: '-0.02em' }}>Inbound Leads</h1>
-            <p style={{ margin: '2px 0 0', fontSize: 13, color: '#888' }}>Enquiries from website forms and email</p>
+            <h1 className="text-[20px] font-semibold tracking-tight text-foreground m-0">Inbound Leads</h1>
+            <p className="text-[13px] text-muted-foreground mt-0.5 mb-0">Enquiries from website forms and email</p>
           </div>
-          <button onClick={() => load(true)} style={{ background: '#fff', border: '1px solid #e8e8e8', borderRadius: 6, cursor: 'pointer', color: '#666', display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', fontSize: 12 }}>
-            <RefreshCw size={13} strokeWidth={2} style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }} />
+          <button onClick={() => load(true)} className="bg-card border border-border rounded-md cursor-pointer text-muted-foreground flex items-center gap-1.5 px-3 py-1.5 text-[12px] hover:bg-muted/50">
+            <RefreshCw size={13} strokeWidth={2} className={refreshing ? 'animate-spin' : ''} />
             Refresh
           </button>
         </div>
 
         {/* Stat cards */}
         {!loading && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
-            <StatCard label="Total Leads"  value={leads.length}  color="#1677FF" />
-            <StatCard label="New"          value={totalNew}      color="#1677FF" highlight />
-            <StatCard label="Email / Form" value={emCount}       sub={emNew > 0 ? `${emNew} new` : undefined} color="#722ED1" />
-            <StatCard label="WhatsApp"     value={waCount}       sub={waNew > 0 ? `${waNew} new` : undefined} color="#13C2C2" />
+          <div className="grid grid-cols-4 gap-3 mb-4">
+            <StatCard label="Total Leads"  value={leads.length} color="#2563eb" />
+            <StatCard label="New"          value={totalNew}     color="#2563eb" highlight />
+            <StatCard label="Email / Form" value={emCount}      sub={emNew > 0 ? `${emNew} new` : undefined} color="#7c3aed" />
+            <StatCard label="WhatsApp"     value={waCount}      sub={waNew > 0 ? `${waNew} new` : undefined} color="#0891b2" />
           </div>
         )}
       </div>
 
       {/* Filter + search bar */}
-      <div style={{ padding: '0 24px 12px', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--content-bg)', flexShrink: 0, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', gap: 4 }}>
+      <div className="px-6 pb-3 flex items-center gap-2.5 bg-background flex-shrink-0 flex-wrap">
+        <div className="flex gap-1">
           {FILTERS.map(f => (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                fontSize: 12, fontWeight: 500, padding: '5px 12px', borderRadius: 6, cursor: 'pointer',
-                background: filter === f.key ? '#1677FF' : '#fff',
-                color:      filter === f.key ? '#fff' : '#555',
-                border:     filter === f.key ? '1px solid #1677FF' : '1px solid #e8e8e8',
-                transition: 'all 0.15s',
-              }}
+            <button key={f.key} onClick={() => setFilter(f.key)}
+              className={cn(
+                'flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-md cursor-pointer border transition-all',
+                filter === f.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:bg-muted/50'
+              )}
             >
               {f.label}
-              <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: filter === f.key ? 'rgba(255,255,255,0.25)' : '#f0f0f0', color: filter === f.key ? '#fff' : '#888' }}>
+              <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded', filter === f.key ? 'bg-white/25 text-white' : 'bg-muted text-muted-foreground/70')}>
                 {f.count}
               </span>
               {f.newCount > 0 && (
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: filter === f.key ? '#fff' : '#1677FF', flexShrink: 0 }} />
+                <span className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', filter === f.key ? 'bg-white' : 'bg-primary')} />
               )}
             </button>
           ))}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #e8e8e8', borderRadius: 6, padding: '0 10px', height: 34, flex: 1, maxWidth: 320 }}>
-          <Search size={12} style={{ color: '#aaa', flexShrink: 0 }} />
-          <input
-            value={search} onChange={e => setSearch(e.target.value)}
+        <div className="flex items-center gap-1.5 bg-card border border-border rounded-md px-2.5 h-[34px] flex-1 max-w-[320px]">
+          <Search size={12} className="text-muted-foreground/50 flex-shrink-0" />
+          <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search name, email, phone, topic…"
-            style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 12, color: '#333', fontFamily: 'inherit' }}
-          />
+            className="flex-1 bg-transparent border-0 outline-none text-[12px] text-foreground font-sans" />
           {search && (
-            <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
-              <X size={11} style={{ color: '#aaa' }} />
+            <button onClick={() => setSearch('')} className="bg-transparent border-0 p-0 cursor-pointer">
+              <X size={11} className="text-muted-foreground/50" />
             </button>
           )}
         </div>
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', padding: '0 24px 24px', gap: 16, background: 'var(--content-bg)' }}>
+      <div className="flex-1 flex overflow-hidden px-6 pb-6 gap-4 bg-background">
 
         {/* Table card */}
-        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', background: '#fff', border: '1px solid #e8e8e8', borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
+        <div className="flex-1 overflow-y-auto overflow-x-auto bg-card border border-border rounded-lg shadow-sm">
           {loading ? (
-            <div style={{ padding: '64px 0', textAlign: 'center', fontSize: 13, color: '#bbb' }}>Loading…</div>
+            <div className="py-16 text-center text-[13px] text-muted-foreground/50">Loading…</div>
           ) : error ? (
-            <div style={{ padding: '64px 0', textAlign: 'center', fontSize: 13, color: '#ef4444' }}>{error}</div>
+            <div className="py-16 text-center text-[13px] text-destructive">{error}</div>
           ) : filtered.length === 0 ? (
-            <div style={{ padding: '64px 0', textAlign: 'center', fontSize: 13, color: '#bbb' }}>
+            <div className="py-16 text-center text-[13px] text-muted-foreground/50">
               {search ? `No leads matching "${search}"` : 'No leads yet.'}
             </div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 760 }}>
+            <table className="w-full border-collapse text-[13px] min-w-[760px]">
               <thead>
-                <tr style={{ background: '#fafafa', borderBottom: '1px solid #f0f0f0', position: 'sticky', top: 0, zIndex: 1 }}>
+                <tr className="bg-muted/40 border-b border-border sticky top-0 z-[1]">
                   <Th w={110}>Channel <Tip text="Shows where this lead came from — Website = contact form, Email = direct email, WhatsApp = click-to-chat button. Manual means a team member added them." /></Th>
                   <Th w={120}>First Name</Th>
                   <Th w={120}>Last Name</Th>
@@ -586,54 +539,46 @@ function InboundLeadsPage() {
                 {filtered.map(lead => {
                   const isActive = lead.id === selectedId
                   const msg      = messagePreview(lead)
-                  const st       = STATUS_MAP[lead.status] ?? STATUS_MAP.new
                   return (
-                    <tr
-                      key={lead.id}
+                    <tr key={lead.id}
                       onClick={() => setSelectedId(lead.id === selectedId ? null : lead.id)}
-                      style={{
-                        borderBottom: '1px solid #f5f5f5',
-                        background: isActive ? '#E6F4FF' : '#fff',
-                        cursor: 'pointer',
-                        borderLeft: `3px solid ${isActive ? '#1677FF' : 'transparent'}`,
-                        transition: 'background 0.1s',
-                      }}
-                      onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = '#f0f5ff' }}
-                      onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = '#fff' }}
+                      className={cn(
+                        'border-b border-border/50 cursor-pointer transition-colors',
+                        isActive ? 'bg-primary/5' : 'hover:bg-muted/20'
+                      )}
+                      style={{ borderLeft: `3px solid ${isActive ? 'hsl(var(--primary))' : 'transparent'}` }}
                     >
-                      <td style={{ padding: '11px 12px 11px 14px', verticalAlign: 'middle' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <td className="px-3.5 py-2.5 align-middle">
+                        <div className="flex items-center gap-1.5">
                           {lead.status === 'new' && (
-                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#3b82f6', flexShrink: 0 }} />
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
                           )}
                           <ChannelBadge source={lead.source} />
                         </div>
                       </td>
-                      <td style={{ padding: '11px 12px', verticalAlign: 'middle' }}>
-                        <span style={{ fontWeight: lead.status === 'new' ? 600 : 400, color: '#111' }}>{lead.first_name || '—'}</span>
-                      </td>
-                      <td style={{ padding: '11px 12px', verticalAlign: 'middle' }}>
-                        <span style={{ fontWeight: lead.status === 'new' ? 600 : 400, color: '#111' }}>{lead.last_name || '—'}</span>
-                      </td>
-                      <td style={{ padding: '11px 12px', verticalAlign: 'middle', color: '#666', maxWidth: 0 }}>
-                        <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {lead.company || '—'}
+                      <td className="px-3 py-2.5 align-middle">
+                        <span className={cn('text-foreground', lead.status === 'new' ? 'font-semibold' : 'font-normal')}>
+                          {lead.first_name || '—'}
                         </span>
                       </td>
-                      <td style={{ padding: '11px 12px', verticalAlign: 'middle', color: '#555', maxWidth: 0 }}>
-                        <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {lead.topic || lead.department || '—'}
+                      <td className="px-3 py-2.5 align-middle">
+                        <span className={cn('text-foreground', lead.status === 'new' ? 'font-semibold' : 'font-normal')}>
+                          {lead.last_name || '—'}
                         </span>
                       </td>
-                      <td style={{ padding: '11px 12px', verticalAlign: 'middle', color: '#aaa', maxWidth: 0 }}>
-                        <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12 }}>
-                          {msg || '—'}
-                        </span>
+                      <td className="px-3 py-2.5 align-middle text-muted-foreground max-w-0">
+                        <span className="block overflow-hidden text-ellipsis whitespace-nowrap">{lead.company || '—'}</span>
                       </td>
-                      <td style={{ padding: '11px 12px', verticalAlign: 'middle' }}>
+                      <td className="px-3 py-2.5 align-middle text-muted-foreground max-w-0">
+                        <span className="block overflow-hidden text-ellipsis whitespace-nowrap">{lead.topic || lead.department || '—'}</span>
+                      </td>
+                      <td className="px-3 py-2.5 align-middle text-muted-foreground/60 max-w-0 text-[12px]">
+                        <span className="block overflow-hidden text-ellipsis whitespace-nowrap">{msg || '—'}</span>
+                      </td>
+                      <td className="px-3 py-2.5 align-middle">
                         <StatusDropdown lead={lead} onChange={handleStatus} />
                       </td>
-                      <td style={{ padding: '11px 14px 11px 12px', verticalAlign: 'middle', textAlign: 'right', color: '#bbb', fontSize: 11, whiteSpace: 'nowrap' }}>
+                      <td className="px-3.5 py-2.5 align-middle text-right text-muted-foreground/50 text-[11px] whitespace-nowrap">
                         {timeAgo(lead.created_at)}
                       </td>
                     </tr>
@@ -644,7 +589,7 @@ function InboundLeadsPage() {
           )}
 
           {!loading && filtered.length > 0 && (
-            <p style={{ padding: '12px 20px', fontSize: 11, color: '#ccc', margin: 0 }}>
+            <p className="px-5 py-3 text-[11px] text-muted-foreground/40 m-0">
               {filtered.length} lead{filtered.length !== 1 ? 's' : ''} · {totalNew} new
             </p>
           )}
@@ -652,17 +597,11 @@ function InboundLeadsPage() {
 
         {/* Detail panel */}
         {selectedLead && (
-          <div style={{ width: 320, flexShrink: 0, background: '#fff', border: '1px solid #e8e8e8', borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.04)', overflowY: 'auto' }}>
-            <DetailPanel
-              lead={selectedLead}
-              onStatus={handleStatus}
-              onClose={() => setSelectedId(null)}
-            />
+          <div className="w-80 flex-shrink-0 bg-card border border-border rounded-lg shadow-sm overflow-y-auto">
+            <DetailPanel lead={selectedLead} onStatus={handleStatus} onClose={() => setSelectedId(null)} />
           </div>
         )}
       </div>
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }
@@ -681,12 +620,8 @@ export default function InboundLeadsPageWrapper() {
 
 function Th({ children, w, right }: { children?: React.ReactNode; w?: number | string; right?: boolean }) {
   return (
-    <th style={{
-      padding: '9px 12px', textAlign: right ? 'right' : 'left',
-      fontWeight: 600, color: '#888', fontSize: 11,
-      textTransform: 'uppercase', letterSpacing: '0.04em',
-      width: w, whiteSpace: 'nowrap',
-    }}>
+    <th className={cn('px-3 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap', right ? 'text-right' : 'text-left')}
+      style={{ width: w }}>
       {children}
     </th>
   )
@@ -698,22 +633,14 @@ function StatCard({ label, value, sub, color, highlight }: {
   label: string; value: number; sub?: string; color: string; highlight?: boolean
 }) {
   return (
-    <div style={{
-      background: highlight ? color : '#fff',
-      border: `1px solid ${highlight ? color : '#e8e8e8'}`,
-      borderRadius: 8,
-      padding: '16px 20px',
-      boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-    }}>
-      <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 500, color: highlight ? 'rgba(255,255,255,0.85)' : '#888', letterSpacing: '0.01em' }}>
-        {label}
-      </p>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-        <span style={{ fontSize: 28, fontWeight: 700, color: highlight ? '#fff' : '#111', letterSpacing: '-0.03em', lineHeight: 1 }}>
-          {value}
-        </span>
+    <div className="rounded-lg px-5 py-4 border shadow-sm"
+      style={{ background: highlight ? color : 'hsl(var(--card))', border: `1px solid ${highlight ? color : 'hsl(var(--border))'}` }}>
+      <p className="text-[12px] font-medium mb-1.5 m-0" style={{ color: highlight ? 'rgba(255,255,255,0.85)' : 'hsl(var(--muted-foreground))' }}>{label}</p>
+      <div className="flex items-baseline gap-2">
+        <span className="text-[28px] font-bold leading-none tracking-tight" style={{ color: highlight ? '#fff' : 'hsl(var(--foreground))' }}>{value}</span>
         {sub && (
-          <span style={{ fontSize: 11, fontWeight: 600, color: highlight ? 'rgba(255,255,255,0.75)' : color, background: highlight ? 'rgba(255,255,255,0.2)' : `${color}18`, borderRadius: 4, padding: '1px 6px' }}>
+          <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded"
+            style={{ color: highlight ? 'rgba(255,255,255,0.75)' : color, background: highlight ? 'rgba(255,255,255,0.2)' : `${color}18` }}>
             {sub}
           </span>
         )}
