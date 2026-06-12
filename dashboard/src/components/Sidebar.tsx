@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   Mail, MessageCircle, AlertCircle,
   Users, BarChart2,
-  Search, ChevronRight, ChevronDown, ChevronLeft,
+  ChevronRight, ChevronDown, ChevronLeft,
   Bot, Table2, UsersRound,
   LogOut, BookOpen, Cpu, FolderOpen,
   Telescope, Megaphone, BookMarked, Settings, FlaskConical,
@@ -100,19 +100,22 @@ export default function Sidebar() {
         style={{ width: 52, overflowY: 'hidden' }}
       >
         {/* Logo */}
-        <div style={{ height: 52, borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
+        <div style={{ height: 52, borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <div style={{ width: 32, height: 32, borderRadius: 8, background: 'hsl(var(--sidebar-ring))', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 2px var(--primary-focus-ring)' }}>
             <span style={{ fontSize: 10, fontWeight: 900, color: '#fff', letterSpacing: '-0.03em' }}>TRS</span>
           </div>
-          {/* Expand toggle — floats on the right edge */}
-          <button
-            onClick={() => setCollapsed(false)}
-            title="Expand sidebar"
-            style={{ position: 'absolute', top: 16, right: -10, width: 20, height: 20, borderRadius: '50%', background: '#fff', border: '1px solid #e5e7eb', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.12)', zIndex: 50 }}
-          >
-            <ChevronRight size={10} strokeWidth={2.5} style={{ color: 'hsl(var(--sidebar-fg))' }} />
-          </button>
         </div>
+
+        {/* Expand button — sits directly below logo */}
+        <button
+          onClick={() => setCollapsed(false)}
+          title="Expand sidebar"
+          style={{ flexShrink: 0, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer', width: '100%', color: 'hsl(var(--sidebar-fg))' }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'hsl(var(--sidebar-accent))')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+        >
+          <ChevronRight size={13} strokeWidth={2} />
+        </button>
 
         {/* Icon-only nav */}
         <nav style={{ flex: 1, overflowY: 'auto', padding: '8px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
@@ -183,17 +186,6 @@ export default function Sidebar() {
         >
           <ChevronLeft size={14} strokeWidth={2} />
         </button>
-      </div>
-
-      {/* ── Search ── */}
-      <div className="px-3 pt-3 pb-1 flex-shrink-0">
-        <div className="flex items-center gap-2 rounded-md px-3 h-8 cursor-pointer group"
-          style={{ background: 'var(--neutral-status-bg)', border: '1px solid var(--border-subtle)' }}
-        >
-          <Search size={12} style={{ color: 'hsl(var(--sidebar-fg))' }} />
-          <span className="text-[12px] flex-1" style={{ color: 'hsl(var(--sidebar-fg))' }}>Search...</span>
-          <kbd className="text-[10px] rounded px-1" style={{ background: 'rgba(0,0,0,0.07)', color: 'hsl(var(--sidebar-fg))' }}>F</kbd>
-        </div>
       </div>
 
       {/* ── Nav ── */}
