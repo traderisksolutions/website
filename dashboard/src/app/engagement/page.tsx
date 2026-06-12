@@ -318,13 +318,15 @@ function EmailCard({ msg, defaultOpen, onOpen }: { msg: RealMsg; index?: number;
 
       {/* Body */}
       <div style={{ borderTop: `1px solid ${bubbleBorder}`, padding: '14px 16px 18px' }}>
-        <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', lineHeight: 1.85 }}>
-          {showFull ? fullBody : stripped}
-        </p>
+        <div style={{ maxHeight: 280, overflowY: 'auto', paddingRight: 2 }}>
+          <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', lineHeight: 1.85 }}>
+            {showFull ? fullBody : stripped}
+          </p>
+        </div>
         {hasMore && (
           <button
             onClick={() => setShowFull(v => !v)}
-            style={{ marginTop: 12, fontSize: 11, color: 'var(--text-muted)', background: 'none', border: '1px solid #e5e7eb', borderRadius: 6, cursor: 'pointer', padding: '3px 10px' }}
+            style={{ marginTop: 10, fontSize: 11, color: 'var(--text-muted)', background: 'none', border: '1px solid #e5e7eb', borderRadius: 6, cursor: 'pointer', padding: '3px 10px' }}
           >
             {showFull ? '↑ Hide quoted content' : '↓ Show full email'}
           </button>
@@ -846,7 +848,7 @@ function AIDraftPanel({
     } finally { setLoading(null) }
   }
 
-  const base: React.CSSProperties = { borderTop: '2px solid #93c5fd', background: '#eff6ff', flexShrink: 0 }
+  const base: React.CSSProperties = { borderTop: '2px solid #93c5fd', background: '#eff6ff', flexShrink: 0, maxHeight: '50vh', overflowY: 'auto' }
 
   if (sent) return (
     <div style={{ ...base, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1428,7 +1430,7 @@ function ThreadView({
 
   return (
     <div style={{ flex: 1, display: 'flex', minWidth: 0, overflow: 'hidden' }}>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
         <div style={{ padding: '14px 18px 12px', borderBottom: '1px solid #e8eaed', background: '#fff', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
             <div style={{ minWidth: 0 }}>
@@ -1487,7 +1489,7 @@ function ThreadView({
           <CampaignContextPanel ctx={lead.campaign_context} />
         )}
 
-        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20, padding: '20px 20px', background: 'hsl(var(--background))' }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20, padding: '20px 20px', background: 'hsl(var(--background))' }}>
           {loading && <div style={{ textAlign: 'center', padding: '48px 0', fontSize: 12, color: 'var(--text-muted)' }}>Loading email thread…</div>}
           {!loading && error && <div style={{ textAlign: 'center', padding: '32px 0', fontSize: 12, color: '#ef4444' }}>{error}</div>}
           {!loading && !error && messages.length === 0 && (
