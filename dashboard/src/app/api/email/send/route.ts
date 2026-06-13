@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { waitUntil }                  from '@vercel/functions'
 import { runDraftEvaluation }         from '@/lib/run-draft-evaluation'
+import { logActivity }                from '@/lib/log-activity'
 import { createClient }               from '@/lib/supabase/server'
 
 const SB_URL    = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
@@ -308,6 +309,22 @@ export async function POST(req: NextRequest) {
         body:    JSON.stringify({ last_message_at: sentAt }),
       })
     }
+
+    // Log email send server-side — more reliable than client-side logging
+    void logActivity({
+      action:        'email.sent',
+      resource_type: 'thread',
+      resource_id:   draft.thread_id ?? undefined,
+      lead_email:    contact.email,
+      new_value: {
+        recipient:    contact.email,
+        subject,
+        from_address: FROM_EMAIL,
+        gmail_message_id: sent.id,
+        draft_id:     draftId,
+        chars:        sentBodyPlain.length,
+      },
+    })
 
     // Run evaluation after response — waitUntil keeps the function alive on Vercel.
     // Pass sentBodyPlain directly so evaluation never fails due to missing thread_id or

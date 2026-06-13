@@ -1,9 +1,12 @@
 import { useCallback } from 'react'
 
-type LogPayload = {
+export type LogPayload = {
   action:        string
   resource_type?: string
   resource_id?:  string
+  lead_email?:   string
+  old_value?:    Record<string, unknown>
+  new_value?:    Record<string, unknown>
   metadata?:     Record<string, unknown>
 }
 

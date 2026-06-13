@@ -36,16 +36,20 @@ export async function GET() {
   }
 }
 
-// PATCH /api/leads — update status for one lead
+// PATCH /api/leads — update status and/or notes for one lead
 export async function PATCH(req: NextRequest) {
   try {
-    const { id, status } = await req.json()
-    if (!id || !status) {
-      return NextResponse.json({ error: 'id and status required' }, { status: 400 })
-    }
+    const { id, status, notes } = await req.json() as { id?: string; status?: string; notes?: string }
+    if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
+
+    const patch: Record<string, unknown> = {}
+    if (status !== undefined) patch.status = status
+    if (notes  !== undefined) patch.notes  = notes
+    if (Object.keys(patch).length === 0) return NextResponse.json({ error: 'nothing to update' }, { status: 400 })
+
     const res = await fetch(
       `${SB_URL}/rest/v1/inbound_leads?id=eq.${id}`,
-      { method: 'PATCH', headers: headers(), body: JSON.stringify({ status }) }
+      { method: 'PATCH', headers: headers(), body: JSON.stringify(patch) }
     )
     if (!res.ok) {
       const body = await res.text()

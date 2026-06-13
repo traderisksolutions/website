@@ -14,7 +14,7 @@ type Lead = {
   email: string | null; phone: string | null; company: string | null
   department: string | null; contact_type: string | null
   topic: string | null; details: string | null; message: string | null
-  page_url: string | null; status: string
+  page_url: string | null; status: string; notes?: string | null
   subject?: string | null
   thread_id?: string | null
   campaign_context?: {
@@ -761,6 +761,13 @@ function AIDraftPanel({
       setRagSources(data.sources ?? [])
       setRagLoaded(true)
       onRagRefresh?.()
+      log({
+        action:        'rag_draft.generated',
+        resource_type: 'thread',
+        resource_id:   thread.id,
+        lead_email:    lead.email ?? undefined,
+        metadata:      { contact: fullName(lead) || null, sources: (data.sources ?? []).length },
+      })
     } catch { setError('Failed to generate RAG draft') }
     finally { setRagGenerating(false) }
   }
@@ -1203,9 +1210,37 @@ function ContactPanel({
   replyTo:          string
   setReplyTo:       (r: string) => void
 }) {
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [copied,   setCopied]   = useState<string | null>(null)
+  const [menuOpen,     setMenuOpen]     = useState(false)
+  const [copied,       setCopied]       = useState<string | null>(null)
+  const [notesText,    setNotesText]    = useState(lead.notes ?? '')
+  const [notesSaving,  setNotesSaving]  = useState(false)
+  const [notesSaved,   setNotesSaved]   = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const log     = useAuditLog()
+
+  // Reset notes when switching leads
+  useEffect(() => { setNotesText(lead.notes ?? ''); setNotesSaved(false) }, [lead.id, lead.notes])
+
+  async function saveNotes() {
+    if (notesText === (lead.notes ?? '')) return
+    setNotesSaving(true)
+    try {
+      await fetch('/api/leads', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: lead.id, notes: notesText }),
+      })
+      log({
+        action:        'note.saved',
+        resource_type: 'lead',
+        resource_id:   lead.id,
+        lead_email:    lead.email ?? undefined,
+        old_value:     { notes: lead.notes ?? null },
+        new_value:     { notes: notesText },
+      })
+      setNotesSaved(true)
+      setTimeout(() => setNotesSaved(false), 2000)
+    } finally { setNotesSaving(false) }
+  }
 
   const st = STATUS_MAP[lead.status] ?? STATUS_MAP.contacted
   const lastInbound  = [...messages].reverse().find(m => m.direction === 'inbound')
@@ -1355,8 +1390,24 @@ function ContactPanel({
       </div>
 
       <div style={{ padding: '12px 16px', flex: 1 }}>
-        <p style={lbl}>Internal Notes</p>
-        <textarea placeholder="Add notes…" rows={4} style={{ width: '100%', boxSizing: 'border-box', fontSize: 12, color: '#333', lineHeight: 1.6, border: '1px solid #e8e8e8', borderRadius: 8, padding: '8px 10px', resize: 'none', background: 'hsl(var(--background))', outline: 'none', fontFamily: 'inherit' }} />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+          <p style={lbl}>Internal Notes</p>
+          {notesSaved
+            ? <span style={{ fontSize: 10, color: '#15803d' }}>Saved ✓</span>
+            : notesSaving
+              ? <span style={{ fontSize: 10, color: '#888' }}>Saving…</span>
+              : notesText !== (lead.notes ?? '') && <span style={{ fontSize: 10, color: '#f59e0b' }}>Unsaved</span>
+          }
+        </div>
+        <textarea
+          value={notesText}
+          onChange={e => { setNotesText(e.target.value); setNotesSaved(false) }}
+          onBlur={saveNotes}
+          onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); saveNotes() } }}
+          placeholder="Add notes… (auto-saves on blur, or Ctrl+Enter)"
+          rows={5}
+          style={{ width: '100%', boxSizing: 'border-box', fontSize: 12, color: '#333', lineHeight: 1.6, border: '1px solid #e8e8e8', borderRadius: 8, padding: '8px 10px', resize: 'vertical', background: 'hsl(var(--background))', outline: 'none', fontFamily: 'inherit' }}
+        />
       </div>
       </>}
     </div>
@@ -1742,7 +1793,15 @@ export default function EngagementPage() {
     const lead = leads.find(l => l.id === id)
     setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l))
     patchStatus(id, status)
-    log({ action: 'status.changed', resource_type: 'lead', resource_id: id, metadata: { contact: lead?.email, new_status: status } })
+    log({
+      action:        'status.changed',
+      resource_type: 'lead',
+      resource_id:   id,
+      lead_email:    lead?.email ?? undefined,
+      old_value:     { status: lead?.status ?? null },
+      new_value:     { status },
+      metadata:      { contact: lead?.email },
+    })
   }
 
   function handleDelete(id: string) {
