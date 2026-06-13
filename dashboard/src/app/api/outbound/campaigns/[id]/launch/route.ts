@@ -72,14 +72,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       body:    JSON.stringify({
         name:          campaign.name,
         campaign_type: 'email',
-        sequences:     sequences.map(s => ({
-          steps: [{
+        sequences: [{
+          steps: sequences.map((s, i) => ({
             type:    'email',
             subject: s.subject,
             body:    s.body,
-            delay:   s.delay_days * 24 * 60, // minutes
-          }],
-        })),
+            delay:   i === 0 ? 0 : s.delay_days * 24 * 60, // step 1 sends immediately; subsequent steps use delay in minutes
+          })),
+        }],
       }),
     })
 
