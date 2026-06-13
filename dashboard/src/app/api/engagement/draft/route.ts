@@ -158,6 +158,26 @@ Reply with one word only.`
       }
     } catch { /* non-fatal */ }
 
+    // Fetch key_learnings from low-scoring drafts (1–3) for this email type and inject as
+    // AVOID patterns — closes the feedback loop end-to-end so past human edits improve future drafts
+    let antiPatternSection = ''
+    try {
+      const apRes = await fetch(
+        `${SB_URL}/rest/v1/draft_evaluations?email_type=eq.${emailType}&score=lte.3&order=created_at.desc&limit=6&select=eval_json`,
+        { headers: sbHeaders(), cache: 'no-store' }
+      )
+      const apRows: { eval_json: { key_learning?: string } | null }[] = apRes.ok ? await apRes.json() : []
+      const learnings = (Array.isArray(apRows) ? apRows : [])
+        .map(r => r.eval_json?.key_learning)
+        .filter((l): l is string => typeof l === 'string' && l.length > 15)
+        .filter((l, i, arr) => arr.indexOf(l) === i) // deduplicate
+        .slice(0, 4)
+      if (learnings.length > 0) {
+        antiPatternSection = `\n━━ AVOID THESE PATTERNS (learned from heavily-edited or rejected ${emailType} drafts — do NOT repeat these mistakes) ━━\n` +
+          learnings.map((l, i) => `${i + 1}. ${l}`).join('\n') + '\n'
+      }
+    } catch { /* non-fatal */ }
+
     // Fetch campaign context if this thread came from a campaign reply
     let campaignCtxStr = ''
     if (threadId) {
@@ -272,7 +292,7 @@ No policy documents are attached.
     const drafterPrompt = `You are an email assistant for Trade Risk Solutions (TRS), a Singapore insurance brokerage. You draft replies that Account Executives review and send. Replies must read like a senior AE wrote them — direct, specific, no filler.
 ${campaignCtxStr}
 ${typeInstructions}
-${fewShotSection}
+${fewShotSection}${antiPatternSection}
 
 ━━ UNIVERSAL RULES ━━
 - Start with exactly "${salutation}"

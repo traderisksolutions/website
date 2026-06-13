@@ -38,9 +38,9 @@ function ReplyFromSection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Reply-From Address</CardTitle>
+        <CardTitle>Send-From Address</CardTitle>
         <CardDescription>
-          The email address used as the default Reply-To on outbound emails from the Engagement Agent
+          The email address emails are sent <strong>from</strong> (the Gmail "From:" field). Must be set up as a "Send as" alias on the connected Gmail account. Employees can change this to send from a personal or team address.
         </CardDescription>
       </CardHeader>
       <CardContent>

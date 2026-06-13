@@ -26,7 +26,13 @@ async function sb<T>(path: string): Promise<{ ok: boolean; data: T[]; status: nu
   return { ok: res.ok, status: res.status, data: Array.isArray(data) ? data : [] }
 }
 
-export async function runDraftEvaluation(draftId: string, threadId: string | null): Promise<void> {
+// humanBodyOverride: the plain-text body of what was actually sent, passed directly from the
+// send route so evaluation works even when thread_id is null or email_messages insert is delayed.
+export async function runDraftEvaluation(
+  draftId:           string,
+  threadId:          string | null,
+  humanBodyOverride?: string,
+): Promise<void> {
   try {
     console.log(`[eval] starting for draft=${draftId} thread=${threadId}`)
 
@@ -58,25 +64,37 @@ export async function runDraftEvaluation(draftId: string, threadId: string | nul
     if (etRes.ok && etRes.data[0]?.email_type) emailType = etRes.data[0].email_type
 
     const tid = threadId ?? draftRow.thread_id
-    if (!tid) {
-      console.error(`[eval] no thread_id for draft=${draftId}`)
-      return
+
+    // 2. Resolve the human-sent body — prefer the override (passed directly from send route),
+    //    then fall back to email_messages DB lookup. The override is the reliable path when
+    //    thread_id is null or the DB insert hasn't committed yet.
+    let humanBody = humanBodyOverride?.trim() ?? ''
+
+    if (!humanBody && tid) {
+      const outRes = await sb<{ body_text: string }>(
+        `email_messages?thread_id=eq.${encodeURIComponent(tid)}&direction=eq.outbound&order=sent_at.desc&select=body_text&limit=1`
+      )
+      if (!outRes.ok) {
+        console.error(`[eval] outbound message fetch failed status=${outRes.status}`)
+        return
+      }
+      humanBody = outRes.data[0]?.body_text?.trim() ?? ''
     }
 
-    // 2. Last outbound message = what the human actually sent
-    const outRes = await sb<{ body_text: string }>(
-      `email_messages?thread_id=eq.${encodeURIComponent(tid)}&direction=eq.outbound&order=sent_at.desc&select=body_text&limit=1`
-    )
-    if (!outRes.ok) {
-      console.error(`[eval] outbound message fetch failed status=${outRes.status}`)
-      return
-    }
-    const humanBody = outRes.data[0]?.body_text ?? ''
-    if (!humanBody.trim()) {
-      console.error(`[eval] no outbound email body found for thread=${tid}`)
+    if (!humanBody) {
+      console.error(`[eval] no outbound email body found for draft=${draftId} thread=${tid ?? 'null'}`)
       return
     }
     console.log(`[eval] found outbound message (${humanBody.length} chars)`)
+
+    // Strip email signature before comparison — the sent body includes the appended signature
+    // (e.g. "--\nJarod Hong\n...") but the AI draft does not. Stripping prevents artificially
+    // low overlap scores that would trigger an unnecessary Gemini evaluation call.
+    const sigDelimiters = ['\n--\n', '\n___\n', '\n—\n']
+    for (const delim of sigDelimiters) {
+      const idx = humanBody.indexOf(delim)
+      if (idx > 60) { humanBody = humanBody.slice(0, idx).trim(); break }
+    }
 
     const draft = { body: draftRow.body, email_type: emailType, thread_id: draftRow.thread_id }
 

@@ -2,9 +2,28 @@ import { NextRequest, NextResponse } from 'next/server'
 import { waitUntil }                  from '@vercel/functions'
 import { runDraftEvaluation }         from '@/lib/run-draft-evaluation'
 
-const SB_URL      = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-const GMAIL_API   = 'https://gmail.googleapis.com/gmail/v1/users/me'
-const OPS_EMAIL   = 'operations@trade-risksol.com'
+const SB_URL    = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me'
+const DEFAULT_OPS_EMAIL = 'operations@trade-risksol.com'
+
+// Reads the send-from email from app_settings (key: reply_from_email).
+// Falls back to DEFAULT_OPS_EMAIL if not configured.
+// Note: the Gmail OAuth account must have this address set up as a "Send as" alias for it to work.
+async function getOpsEmail(): Promise<string> {
+  try {
+    const k = process.env.SUPABASE_SERVICE_KEY
+    if (!k) return DEFAULT_OPS_EMAIL
+    const res = await fetch(
+      `${SB_URL}/rest/v1/app_settings?key=eq.reply_from_email&select=value&limit=1`,
+      { headers: { apikey: k, Authorization: `Bearer ${k}` }, cache: 'no-store' }
+    )
+    const rows = res.ok ? await res.json() : []
+    const val  = Array.isArray(rows) ? rows[0]?.value : null
+    return (typeof val === 'string' && val.includes('@')) ? val : DEFAULT_OPS_EMAIL
+  } catch {
+    return DEFAULT_OPS_EMAIL
+  }
+}
 
 function sbHeaders(prefer = 'return=representation') {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -61,7 +80,7 @@ function wrapBase64Lines(b64: string): string {
   return b64.match(/.{1,76}/g)?.join('\r\n') ?? b64
 }
 
-function buildRawEmail(to: string, subject: string, body: string, htmlBody?: string | null, cc?: string[], bcc?: string[], replyTo?: string): string {
+function buildRawEmail(to: string, subject: string, body: string, htmlBody?: string | null, cc?: string[], bcc?: string[], replyTo?: string, fromEmail = DEFAULT_OPS_EMAIL): string {
   const boundary    = `trs_${Date.now()}`
   const plainText   = htmlBody ? htmlToText(htmlBody) : body
   const emailCss = `<style>body{margin:0;padding:0}p{margin:0 0 10px 0;padding:0}p:last-child{margin-bottom:0}ul,ol{margin:0 0 10px 0;padding-left:22px}li{margin-bottom:3px}strong{font-weight:600}a{color:#1d4ed8}</style>`
@@ -74,9 +93,9 @@ function buildRawEmail(to: string, subject: string, body: string, htmlBody?: str
   const htmlB64  = wrapBase64Lines(Buffer.from(fullHtml,  'utf-8').toString('base64'))
 
   const lines = [
-    `From: Trade Risk Solutions <${OPS_EMAIL}>`,
+    `From: Trade Risk Solutions <${fromEmail}>`,
     `To: ${to}`,
-    ...(replyTo && replyTo !== OPS_EMAIL ? [`Reply-To: ${replyTo}`] : []),
+    ...(replyTo && replyTo !== fromEmail ? [`Reply-To: ${replyTo}`] : []),
     ...(cc?.length  ? [`Cc: ${cc.join(', ')}`]  : []),
     ...(bcc?.length ? [`Bcc: ${bcc.join(', ')}`] : []),
     `Subject: ${encodeSubject(subject)}`,
@@ -138,6 +157,8 @@ export async function POST(req: NextRequest) {
     const { draftId, htmlBody, signatureId, cc, bcc, customSubject, replyTo } = await req.json() as { draftId: string; htmlBody?: string; signatureId?: string; cc?: string[]; bcc?: string[]; customSubject?: string; replyTo?: string }
     if (!draftId) return NextResponse.json({ error: 'draftId required' }, { status: 400 })
 
+    const OPS_EMAIL = await getOpsEmail()
+
     // 1. Load the draft + contact email
     const draftRes = await fetch(
       `${SB_URL}/rest/v1/ai_drafts?id=eq.${draftId}&select=*&limit=1`,
@@ -191,7 +212,7 @@ export async function POST(req: NextRequest) {
 
     // 5. Send via Gmail API
     const token    = await getAccessToken()
-    const rawEmail = buildRawEmail(contact.email, subject, finalPlain, finalHtml, cc, bcc, replyTo)
+    const rawEmail = buildRawEmail(contact.email, subject, finalPlain, finalHtml, cc, bcc, replyTo, OPS_EMAIL)
 
     const sendPayload: Record<string, unknown> = { raw: rawEmail }
     if (gmailThreadId) sendPayload.threadId = gmailThreadId
@@ -217,6 +238,9 @@ export async function POST(req: NextRequest) {
       body:    JSON.stringify({ status: 'sent', sent_at: sentAt }),
     })
 
+    // The plain-text body of what was actually sent (signature stripped for cleaner eval comparison)
+    const sentBodyPlain = finalHtml ? htmlToText(finalHtml) : finalPlain
+
     // 7. Record outbound message in email_messages (if thread exists in DB)
     if (draft.thread_id && sent.id) {
       await fetch(`${SB_URL}/rest/v1/email_messages`, {
@@ -228,7 +252,7 @@ export async function POST(req: NextRequest) {
           direction:        'outbound',
           from_address:     OPS_EMAIL,
           subject,
-          body_text:        finalHtml ? htmlToText(finalHtml) : finalPlain,
+          body_text:        sentBodyPlain,
           sent_at:          sentAt,
           has_attachments:  false,
         }),
@@ -242,8 +266,10 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // Run evaluation after response — waitUntil keeps the function alive on Vercel
-    waitUntil(runDraftEvaluation(draftId, draft.thread_id ?? null))
+    // Run evaluation after response — waitUntil keeps the function alive on Vercel.
+    // Pass sentBodyPlain directly so evaluation never fails due to missing thread_id or
+    // a race condition between the email_messages insert and the evaluation read.
+    waitUntil(runDraftEvaluation(draftId, draft.thread_id ?? null, sentBodyPlain))
 
     return NextResponse.json({ ok: true, gmailMessageId: sent.id })
   } catch (e) {
