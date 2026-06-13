@@ -825,7 +825,7 @@ function AIDraftPanel({
     } finally { setLoading(null) }
   }
 
-  const base: React.CSSProperties = { borderTop: '2px solid #93c5fd', background: '#eff6ff', flexShrink: 0, maxHeight: '40vh', overflowY: 'auto' }
+  const base: React.CSSProperties = { borderTop: '2px solid #93c5fd', background: '#eff6ff', flexShrink: 0, height: '40vh', overflowY: 'auto' }
 
   if (sent) return (
     <div style={{ ...base, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1435,9 +1435,9 @@ function ThreadView({
   }, [threadId, lead.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div style={{ flex: 1, display: 'flex', minWidth: 0 }}>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflowY: 'auto' }}>
-        <div style={{ position: 'sticky', top: 0, zIndex: 10, padding: '14px 18px 12px', borderBottom: '1px solid #e8eaed', background: '#fff', flexShrink: 0 }}>
+    <div style={{ flex: 1, display: 'flex', minWidth: 0, overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '14px 18px 12px', borderBottom: '1px solid #e8eaed', background: '#fff', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
@@ -1495,8 +1495,8 @@ function ThreadView({
           <CampaignContextPanel ctx={lead.campaign_context} />
         )}
 
-        {/* Email cards — natural flow, column scrolls as one unit */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: '20px', background: 'hsl(var(--background))' }}>
+        {/* Email cards — independently scrollable, reply panel fixed below */}
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20, padding: '20px', background: 'hsl(var(--background))' }}>
           {loading && <div style={{ textAlign: 'center', padding: '48px 0', fontSize: 12, color: 'var(--text-muted)' }}>Loading email thread…</div>}
           {!loading && error && <div style={{ textAlign: 'center', padding: '32px 0', fontSize: 12, color: '#ef4444' }}>{error}</div>}
           {!loading && !error && messages.length === 0 && (
