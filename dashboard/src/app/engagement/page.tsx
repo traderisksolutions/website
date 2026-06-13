@@ -844,7 +844,7 @@ function AIDraftPanel({
     } finally { setLoading(null) }
   }
 
-  const base: React.CSSProperties = { borderTop: '2px solid #93c5fd', background: '#fff', flexShrink: 0, height: '40vh', overflowY: 'auto' }
+  const base: React.CSSProperties = { borderTop: '2px solid #93c5fd', background: '#fff', flexShrink: 0, maxHeight: '50vh', overflowY: 'auto' }
 
   if (sent) return (
     <div style={{ ...base, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1469,9 +1469,9 @@ function ThreadView({
   }, [threadId, lead.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div style={{ flex: 1, display: 'flex', minWidth: 0, overflow: 'hidden' }}>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '14px 18px 12px', borderBottom: '1px solid #e8eaed', background: '#fff', flexShrink: 0 }}>
+    <div className="flex-1 flex min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
+        <div className="shrink-0" style={{ padding: '14px 18px 12px', borderBottom: '1px solid #e8eaed', background: '#fff' }}>
           {onBack && (
             <button
               className="lg:hidden"
@@ -1539,8 +1539,8 @@ function ThreadView({
           <CampaignContextPanel ctx={lead.campaign_context} />
         )}
 
-        {/* Email cards — independently scrollable, reply panel fixed below */}
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20, padding: '20px', background: 'hsl(var(--background))' }}>
+        {/* Email cards — primary scroll container; reply panel fixed below */}
+        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-5 p-5" style={{ background: 'hsl(var(--background))' }}>
           {loading && <div style={{ textAlign: 'center', padding: '48px 0', fontSize: 12, color: 'var(--text-muted)' }}>Loading email thread…</div>}
           {!loading && error && <div style={{ textAlign: 'center', padding: '32px 0', fontSize: 12, color: '#ef4444' }}>{error}</div>}
           {!loading && !error && messages.length === 0 && (
@@ -1570,8 +1570,8 @@ function ThreadView({
           })()}
         </div>
 
-        {/* Reply panel — flows below emails, scroll down to access */}
-        <div style={{ flexShrink: 0 }}>
+        {/* Reply panel — fixed at bottom, natural height (capped at 50vh) */}
+        <div className="shrink-0">
           <div
             onClick={() => { const next = !showReply; setShowReply(next); if (next) setPanelTab('thread') }}
             style={{
@@ -1898,8 +1898,7 @@ export default function EngagementPage() {
 
         {/* ── Right: thread detail ── */}
         <div
-          className={`engagement-thread-area${mobilePanelView === 'list' ? ' mobile-list' : ''}`}
-          style={{ flex: 1, display: 'flex', minWidth: 0, overflow: 'hidden' }}
+          className={`engagement-thread-area flex-1 flex min-w-0 overflow-hidden${mobilePanelView === 'list' ? ' mobile-list' : ''}`}
         >
           {selectedLead ? (
             <ThreadView
