@@ -28,10 +28,13 @@ async function sb<T>(path: string): Promise<{ ok: boolean; data: T[]; status: nu
 
 // humanBodyOverride: the plain-text body of what was actually sent, passed directly from the
 // send route so evaluation works even when thread_id is null or email_messages insert is delayed.
+// aiBodyOverride: the original AI-generated body before human edits. Passed for RAG drafts because
+// the ai_drafts row is created at send time with the already-edited content.
 export async function runDraftEvaluation(
   draftId:           string,
   threadId:          string | null,
   humanBodyOverride?: string,
+  aiBodyOverride?:    string,
 ): Promise<void> {
   try {
     console.log(`[eval] starting for draft=${draftId} thread=${threadId}`)
@@ -107,7 +110,8 @@ export async function runDraftEvaluation(
       incomingEmail = inboundRes.data[0]?.body_text ?? ''
     }
 
-    const aiBody = draft.body
+    // Use override when provided (RAG drafts: original AI content before human edits)
+    const aiBody = aiBodyOverride?.trim() || draft.body
 
     // Skip evaluation if the AI and human bodies are nearly identical (no edits made)
     const aiTrimmed    = aiBody.trim().replace(/\s+/g, ' ')

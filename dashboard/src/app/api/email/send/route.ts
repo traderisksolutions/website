@@ -189,8 +189,8 @@ function buildSignatureText(sig: Signature): string {
 // their own Gmail and fromEmail matches, their token is used. Otherwise falls back to ops@.
 export async function POST(req: NextRequest) {
   try {
-    const { draftId, htmlBody, signatureId, cc, bcc, customSubject, replyTo, fromEmail: requestedFrom } =
-      await req.json() as { draftId: string; htmlBody?: string; signatureId?: string; cc?: string[]; bcc?: string[]; customSubject?: string; replyTo?: string; fromEmail?: string }
+    const { draftId, htmlBody, signatureId, cc, bcc, customSubject, replyTo, fromEmail: requestedFrom, originalAiBody } =
+      await req.json() as { draftId: string; htmlBody?: string; signatureId?: string; cc?: string[]; bcc?: string[]; customSubject?: string; replyTo?: string; fromEmail?: string; originalAiBody?: string }
     if (!draftId) return NextResponse.json({ error: 'draftId required' }, { status: 400 })
 
     // Identify the logged-in employee so we can use their Gmail token if they've connected one
@@ -312,7 +312,7 @@ export async function POST(req: NextRequest) {
     // Run evaluation after response — waitUntil keeps the function alive on Vercel.
     // Pass sentBodyPlain directly so evaluation never fails due to missing thread_id or
     // a race condition between the email_messages insert and the evaluation read.
-    waitUntil(runDraftEvaluation(draftId, draft.thread_id ?? null, sentBodyPlain))
+    waitUntil(runDraftEvaluation(draftId, draft.thread_id ?? null, sentBodyPlain, originalAiBody))
 
     return NextResponse.json({ ok: true, gmailMessageId: sent.id })
   } catch (e) {

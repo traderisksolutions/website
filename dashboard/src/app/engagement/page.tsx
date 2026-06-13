@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
-import { Search, RefreshCw, ChevronDown, Copy, Check, X, Calendar, ArrowUpDown, SlidersHorizontal, Trash2 } from 'lucide-react'
+import { Search, RefreshCw, ChevronDown, Copy, Check, X, Calendar, ArrowUpDown, SlidersHorizontal, Trash2, ArrowLeft } from 'lucide-react'
 import { useAuditLog } from '@/hooks/useAuditLog'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
 import { Tip } from '@/components/Tip'
@@ -615,11 +615,12 @@ function AIDraftPanel({
   const [aiDraftChecked,  setAiDraftChecked]  = useState(false)
 
   // RAG tab state
-  const [ragHtml,       setRagHtml]       = useState('')
-  const [ragLoaded,     setRagLoaded]     = useState(false)
-  const [ragEditorKey,  setRagEditorKey]  = useState(0)
-  const [ragSources,    setRagSources]    = useState<RagSource[]>(storedRagSources ?? [])
-  const [ragGenerating, setRagGenerating] = useState(false)
+  const [ragHtml,           setRagHtml]           = useState('')
+  const [ragLoaded,         setRagLoaded]         = useState(false)
+  const [ragEditorKey,      setRagEditorKey]      = useState(0)
+  const [ragSources,        setRagSources]        = useState<RagSource[]>(storedRagSources ?? [])
+  const [ragGenerating,     setRagGenerating]     = useState(false)
+  const [ragOriginalContent, setRagOriginalContent] = useState<string>('')
 
   // Signature state
   type SigOption = {
@@ -672,7 +673,7 @@ function AIDraftPanel({
   useEffect(() => {
     setActiveTab('gdrive'); setDraftId(null); setDraftHtml(''); setComposeHtml('')
     setDraftLoaded(false); setDraftEditorKey(0); setSent(false); setError(null)
-    setRagHtml(''); setRagLoaded(false); setRagEditorKey(0); setRagSources([])
+    setRagHtml(''); setRagLoaded(false); setRagEditorKey(0); setRagSources([]); setRagOriginalContent('')
     setAiDraftChecked(false)
     setSelectedFromEmail(senders[0]?.email ?? '')
   }, [lead.id]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -734,6 +735,7 @@ function AIDraftPanel({
   useEffect(() => {
     if (storedRagDraft && !ragLoaded && !sent) {
       setRagHtml(plainToHtml(storedRagDraft))
+      setRagOriginalContent(storedRagDraft)
       setRagLoaded(true)
       setRagEditorKey(k => k + 1)
       setRagSources(storedRagSources ?? [])
@@ -751,6 +753,7 @@ function AIDraftPanel({
       const data = await res.json()
       if (data.error) { setError(data.error); return }
       setRagHtml(plainToHtml(data.content))
+      setRagOriginalContent(data.content ?? '')
       setRagEditorKey(k => k + 1)
       setRagSources(data.sources ?? [])
       setRagLoaded(true)
@@ -818,13 +821,16 @@ function AIDraftPanel({
       const sendRes = await fetch('/api/email/send', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          draftId:       activeDraftId,
-          htmlBody:      sigHtml ? activeHtml + sigHtml : activeHtml,
-          cc:            ccList.length  ? ccList  : undefined,
-          bcc:           bccList.length ? bccList : undefined,
-          customSubject: customSubject || undefined,
-          replyTo:       replyTo !== 'operations@trade-risksol.com' ? replyTo : undefined,
-          fromEmail:     selectedFromEmail || undefined,
+          draftId:         activeDraftId,
+          htmlBody:        sigHtml ? activeHtml + sigHtml : activeHtml,
+          cc:              ccList.length  ? ccList  : undefined,
+          bcc:             bccList.length ? bccList : undefined,
+          customSubject:   customSubject || undefined,
+          replyTo:         replyTo !== 'operations@trade-risksol.com' ? replyTo : undefined,
+          fromEmail:       selectedFromEmail || undefined,
+          // Original AI output before human edits — used so evaluation compares the real AI draft
+          // vs what was sent, not the edited-vs-edited tautology.
+          originalAiBody:  activeTab === 'rag' && ragOriginalContent ? ragOriginalContent : undefined,
         }),
       })
       if (!sendRes.ok) {
@@ -1357,13 +1363,14 @@ function ContactPanel({
 // ── Thread view ───────────────────────────────────────────────────────────────
 
 function ThreadView({
-  lead, threadState, onStatus, onDelete, onThreadRefresh,
+  lead, threadState, onStatus, onDelete, onThreadRefresh, onBack,
 }: {
   lead:             Lead
   threadState:      ThreadState
   onStatus:         (id: string, s: string) => void
   onDelete:         (id: string) => void
   onThreadRefresh:  () => void
+  onBack?:          () => void
 }) {
   const { thread, messages, loading, error } = threadState
   const st         = STATUS_MAP[lead.status] ?? STATUS_MAP.contacted
@@ -1465,6 +1472,16 @@ function ThreadView({
     <div style={{ flex: 1, display: 'flex', minWidth: 0, overflow: 'hidden' }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
         <div style={{ padding: '14px 18px 12px', borderBottom: '1px solid #e8eaed', background: '#fff', flexShrink: 0 }}>
+          {onBack && (
+            <button
+              className="lg:hidden"
+              onClick={onBack}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 10, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, padding: 0 }}
+            >
+              <ArrowLeft size={13} strokeWidth={2} />
+              All conversations
+            </button>
+          )}
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
@@ -1580,7 +1597,9 @@ function ThreadView({
         </div>
       </div>
 
-      <ContactPanel lead={lead} messages={messages} onStatus={onStatus} threadId={threadId} selectedMsg={selectedMsg} onRestoreDraft={(body, generatedBy) => setPendingRestore({ body, generatedBy, stamp: Date.now() })} panelTab={panelTab} setPanelTab={setPanelTab} ccList={ccList} setCcList={setCcList} bccList={bccList} setBccList={setBccList} customSubject={customSubject} setCustomSubject={setCustomSubject} replyTo={replyTo} setReplyTo={setReplyTo} />
+      <div className="contact-panel-wrapper">
+        <ContactPanel lead={lead} messages={messages} onStatus={onStatus} threadId={threadId} selectedMsg={selectedMsg} onRestoreDraft={(body, generatedBy) => setPendingRestore({ body, generatedBy, stamp: Date.now() })} panelTab={panelTab} setPanelTab={setPanelTab} ccList={ccList} setCcList={setCcList} bccList={bccList} setBccList={setBccList} customSubject={customSubject} setCustomSubject={setCustomSubject} replyTo={replyTo} setReplyTo={setReplyTo} />
+      </div>
     </div>
   )
 }
@@ -1661,16 +1680,17 @@ function LeadListItem({
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function EngagementPage() {
-  const [leads,      setLeads]      = useState<Lead[]>([])
-  const [loading,    setLoading]    = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [search,     setSearch]     = useState('')
-  const [sortKey,    setSortKey]    = useState<SortKey>('last_activity')
-  const [dateFrom,   setDateFrom]   = useState('')
-  const [dateTo,     setDateTo]     = useState('')
-  const [filterOpen, setFilterOpen] = useState(false)
-  const [threadMap,  setThreadMap]  = useState<Record<string, ThreadState>>({})
+  const [leads,           setLeads]           = useState<Lead[]>([])
+  const [loading,         setLoading]         = useState(true)
+  const [refreshing,      setRefreshing]      = useState(false)
+  const [selectedId,      setSelectedId]      = useState<string | null>(null)
+  const [search,          setSearch]          = useState('')
+  const [sortKey,         setSortKey]         = useState<SortKey>('last_activity')
+  const [dateFrom,        setDateFrom]        = useState('')
+  const [dateTo,          setDateTo]          = useState('')
+  const [filterOpen,      setFilterOpen]      = useState(false)
+  const [threadMap,       setThreadMap]       = useState<Record<string, ThreadState>>({})
+  const [mobilePanelView, setMobilePanelView] = useState<'list' | 'thread'>('list')
 
   const log = useAuditLog()
 
@@ -1765,11 +1785,17 @@ export default function EngagementPage() {
   }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', flexDirection: 'column' }}>
+    <div style={{ display: 'flex', height: 'calc(100vh - var(--mobile-nav-h, 0px))', overflow: 'hidden', flexDirection: 'column' }}>
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
-        {/* ── Left panel ── */}
-        <div style={{ width: 320, flexShrink: 0, borderRight: '1px solid #e8eaed', background: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {/* ── Left panel — full width on mobile when showing list, hidden when in thread ── */}
+        <div
+          className={`engagement-list-panel${mobilePanelView === 'thread' ? ' mobile-thread' : ''}`}
+          style={{
+            width: 320, flexShrink: 0, borderRight: '1px solid #e8eaed', background: '#fff',
+            display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          }}
+        >
           <div style={{ padding: '12px 14px 10px', borderBottom: '1px solid #e8eaed', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1863,7 +1889,7 @@ export default function EngagementPage() {
                   lead={lead}
                   isActive={lead.id === selectedId}
                   threadState={threadMap[lead.id]}
-                  onClick={() => setSelectedId(lead.id)}
+                  onClick={() => { setSelectedId(lead.id); setMobilePanelView('thread') }}
                 />
               ))
             )}
@@ -1871,22 +1897,28 @@ export default function EngagementPage() {
         </div>
 
         {/* ── Right: thread detail ── */}
-        {selectedLead ? (
-          <ThreadView
-            lead={selectedLead}
-            threadState={selectedThread ?? { loading: true, thread: null, messages: [], error: null }}
-            onStatus={handleStatus}
-            onDelete={handleDelete}
-            onThreadRefresh={refreshSelectedThread}
-          />
-        ) : (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', gap: 8 }}>
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: '#888' }}>Select a conversation</p>
-            <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
-              {loading ? 'Loading…' : leads.length === 0 ? 'No engaged leads yet. Change a lead status to Contacted or above.' : 'Choose from the list on the left.'}
-            </p>
-          </div>
-        )}
+        <div
+          className={`engagement-thread-area${mobilePanelView === 'list' ? ' mobile-list' : ''}`}
+          style={{ flex: 1, display: 'flex', minWidth: 0, overflow: 'hidden' }}
+        >
+          {selectedLead ? (
+            <ThreadView
+              lead={selectedLead}
+              threadState={selectedThread ?? { loading: true, thread: null, messages: [], error: null }}
+              onStatus={handleStatus}
+              onDelete={handleDelete}
+              onThreadRefresh={refreshSelectedThread}
+              onBack={() => setMobilePanelView('list')}
+            />
+          ) : (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', gap: 8 }}>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: '#888' }}>Select a conversation</p>
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
+                {loading ? 'Loading…' : leads.length === 0 ? 'No engaged leads yet. Change a lead status to Contacted or above.' : 'Choose from the list on the left.'}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

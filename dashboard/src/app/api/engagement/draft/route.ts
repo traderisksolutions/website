@@ -562,7 +562,9 @@ export async function PATCH(req: NextRequest) {
     }
 
     const patch: Record<string, unknown> = { status }
-    if (content)        patch.body           = content
+    // Do NOT update body on 'approved' — preserve the original AI output so the evaluation loop
+    // can compare it against the human-sent version. The final sent content is in email_messages.body_text.
+    if (status === 'rejected' && content) patch.body = content
     if (rejection_note) patch.rejection_note = rejection_note
     if (status === 'sent') patch.sent_at     = new Date().toISOString()
 
