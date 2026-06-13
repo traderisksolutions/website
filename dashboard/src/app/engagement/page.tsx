@@ -1527,20 +1527,22 @@ function ThreadView({
           </div>
         </div>
 
-        <StoredSummaryStrip
-          summaries={summaries}
-          loading={summariesLoading}
-          threadId={threadId}
-          latestMessageId={latestMessageId}
-          onRefresh={refreshSummaries}
-        />
+        {/* Single scroll region — AI Analysis + Campaign + Email cards all scroll together */}
+        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col" style={{ background: 'hsl(var(--background))' }}>
+          <StoredSummaryStrip
+            summaries={summaries}
+            loading={summariesLoading}
+            threadId={threadId}
+            latestMessageId={latestMessageId}
+            onRefresh={refreshSummaries}
+          />
 
-        {lead.campaign_context && (
-          <CampaignContextPanel ctx={lead.campaign_context} />
-        )}
+          {lead.campaign_context && (
+            <CampaignContextPanel ctx={lead.campaign_context} />
+          )}
 
-        {/* Email cards — primary scroll container; reply panel fixed below */}
-        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-5 p-5" style={{ background: 'hsl(var(--background))' }}>
+          {/* Email cards */}
+          <div className="flex flex-col gap-5 p-5">
           {loading && <div style={{ textAlign: 'center', padding: '48px 0', fontSize: 12, color: 'var(--text-muted)' }}>Loading email thread…</div>}
           {!loading && error && <div style={{ textAlign: 'center', padding: '32px 0', fontSize: 12, color: '#ef4444' }}>{error}</div>}
           {!loading && !error && messages.length === 0 && (
@@ -1568,6 +1570,7 @@ function ThreadView({
               />
             ))
           })()}
+          </div>
         </div>
 
         {/* Reply panel — fixed at bottom, natural height (capped at 50vh) */}
