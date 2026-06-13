@@ -276,14 +276,17 @@ function EmailCard({ msg, defaultOpen, onOpen }: { msg: RealMsg; index?: number;
 
   // ── Expanded: Lunar card ──
   return (
-    <div style={{
-      background: bubbleBg,
-      border: `1px solid ${bubbleBorder}`,
-      borderRadius: 14,
-      boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.08)',
-      overflow: 'hidden',
-      ...(isOut ? { marginLeft: '8%' } : { marginRight: '8%' }),
-    }}>
+    <div
+      className="email-card-expanded"
+      style={{
+        background: bubbleBg,
+        border: `1px solid ${bubbleBorder}`,
+        borderRadius: 14,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.08)',
+        overflow: 'hidden',
+        ...(isOut ? { marginLeft: 'auto' } : { marginRight: 'auto' }),
+      }}
+    >
       {/* Header — click to collapse */}
       <div
         onClick={() => setOpen(false)}
@@ -319,7 +322,7 @@ function EmailCard({ msg, defaultOpen, onOpen }: { msg: RealMsg; index?: number;
       {/* Body */}
       <div style={{ borderTop: `1px solid ${bubbleBorder}`, padding: '14px 16px 18px' }}>
         <div style={{ maxHeight: showFull ? 'none' : 280, overflowY: showFull ? 'visible' : 'auto', paddingRight: 2 }}>
-          <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', lineHeight: 1.85 }}>
+          <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', lineHeight: 1.85, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
             {showFull ? fullBody : stripped}
           </p>
         </div>

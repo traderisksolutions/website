@@ -190,6 +190,17 @@
   }
 }
 
+/* ── Email card expanded — readable max width ── */
+.email-card-expanded {
+  max-width: 680px;
+  width: 100%;
+}
+@media (max-width: 767px) {
+  .email-card-expanded {
+    max-width: 100%;
+  }
+}
+
 /* ── Sidebar nav item hover ── */
 .sb-row:hover {
   background-color: hsl(var(--sidebar-accent)) !important;
