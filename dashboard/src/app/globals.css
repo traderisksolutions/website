@@ -60,6 +60,7 @@
     /* ── Layout dimensions ── */
     --sidebar-width:         240px;
     --topnav-height:         52px;
+    --mobile-nav-h:          0px;
     --content-bg:            hsl(216 18% 97%);
     --card-bg:               #ffffff;
     --card-border:           hsl(216 18% 91%);
@@ -150,6 +151,44 @@
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(20,30,50,0.12); border-radius: 4px; }
+
+/* ── Responsive layout — desktop: sidebar pushes content; mobile: top nav ── */
+.main-content {
+  margin-left: var(--sidebar-width, 240px);
+}
+
+/* Contact panel wrapper — visible on desktop (display:contents = transparent box),
+   hidden on mobile so thread fills full width */
+.contact-panel-wrapper {
+  display: contents;
+}
+
+@media (max-width: 1023px) {
+  :root {
+    --mobile-nav-h: 88px;
+  }
+  .main-content {
+    margin-left: 0;
+    padding-top: 88px;
+  }
+  .contact-panel-wrapper {
+    display: none;
+  }
+
+  /* Engagement page: full-width list panel on mobile */
+  .engagement-list-panel {
+    width: 100% !important;
+    border-right: none !important;
+  }
+  /* Hide list panel when viewing thread on mobile */
+  .engagement-list-panel.mobile-thread {
+    display: none !important;
+  }
+  /* Hide thread area when viewing list on mobile */
+  .engagement-thread-area.mobile-list {
+    display: none !important;
+  }
+}
 
 /* ── Sidebar nav item hover ── */
 .sb-row:hover {

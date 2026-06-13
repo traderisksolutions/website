@@ -96,7 +96,7 @@ export default function Sidebar() {
   // ── Collapsed (icon-rail) mode ─────────────────────────────────────────────
   if (collapsed) {
     return (
-      <aside className="fixed inset-y-0 left-0 flex flex-col z-40 glass-sidebar"
+      <aside className="hidden lg:flex fixed inset-y-0 left-0 flex-col z-40 glass-sidebar"
         style={{ width: 52, overflowY: 'hidden' }}
       >
         {/* Logo */}
@@ -154,7 +154,7 @@ export default function Sidebar() {
 
   // ── Expanded mode ──────────────────────────────────────────────────────────
   return (
-    <aside className="fixed inset-y-0 left-0 flex flex-col z-40 overflow-y-auto glass-sidebar"
+    <aside className="hidden lg:flex fixed inset-y-0 left-0 flex-col z-40 overflow-y-auto glass-sidebar"
       style={{ width: 'var(--sidebar-width)' }}
     >
       {/* ── Logo / Brand ── */}

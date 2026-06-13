@@ -2,11 +2,10 @@
 
 import { usePathname } from 'next/navigation'
 import Sidebar from './Sidebar'
+import MobileTopNav from './MobileTopNav'
 
-// Renders the sidebar + content margin only on authenticated pages.
-// Login page gets a clean full-screen layout.
 export default function ConditionalShell({ children }: { children: React.ReactNode }) {
-  const pathname  = usePathname()
+  const pathname   = usePathname()
   const isAuthPage = pathname === '/login' || pathname.startsWith('/auth/')
 
   if (isAuthPage) return <>{children}</>
@@ -14,9 +13,10 @@ export default function ConditionalShell({ children }: { children: React.ReactNo
   return (
     <>
       <Sidebar />
+      <MobileTopNav />
       <div
-        className="min-h-screen flex flex-col"
-        style={{ marginLeft: 'var(--sidebar-width)', background: 'hsl(var(--background))' }}
+        className="main-content min-h-screen flex flex-col"
+        style={{ background: 'hsl(var(--background))' }}
       >
         {children}
       </div>
