@@ -583,6 +583,7 @@ function EmailChipInput({ label, chips, onChange }: {
 
 function AIDraftPanel({
   lead, thread, messages, storedDraft, storedRagDraft, storedRagSources, onRagRefresh, onThreadRefresh, pendingRestore,
+  ccList, bccList, customSubject, replyTo,
 }: {
   lead:               Lead
   thread:             ThreadState['thread']
@@ -593,6 +594,10 @@ function AIDraftPanel({
   onRagRefresh?:      () => void
   onThreadRefresh?:   () => void
   pendingRestore?:    { body: string; generatedBy: string; stamp: number } | null
+  ccList:             string[]
+  bccList:            string[]
+  customSubject:      string
+  replyTo:            string
 }) {
   type ActiveTab = 'gdrive' | 'rag' | 'compose'
   const lastMsg    = messages.at(-1)
@@ -640,12 +645,6 @@ function AIDraftPanel({
   const selectedSig = signatures.find(s => s.id === selectedSigId) ?? null
   const sigHtml     = selectedSig ? buildClientSigHtml(selectedSig) : ''
 
-  // CC / BCC / Subject / Reply-To state
-  const [ccList,        setCcList]        = useState<string[]>([])
-  const [bccList,       setBccList]       = useState<string[]>([])
-  const [customSubject, setCustomSubject] = useState('')
-  const [replyTo,       setReplyTo]       = useState('operations@trade-risksol.com')
-
   const log = useAuditLog()
 
   // Load signatures once
@@ -657,28 +656,6 @@ function AIDraftPanel({
       setSignatures(active)
     }).catch(() => {})
   }, [sigsLoaded])
-
-  // Pre-fill CC, subject from thread; reset BCC and reply-to on thread change
-  useEffect(() => {
-    setBccList([])
-    setReplyTo('operations@trade-risksol.com')
-    // Subject
-    const s = thread?.subject ?? ''
-    setCustomSubject(s ? (s.startsWith('Re:') ? s : `Re: ${s}`) : 'Re: Your enquiry — Trade Risk Solutions')
-    // CC from thread messages
-    const seen = new Set<string>()
-    const ccs: string[] = []
-    for (const m of messages) {
-      for (const addr of m.cc) {
-        const a = addr.toLowerCase()
-        if (!seen.has(a) && !a.endsWith('@trade-risksol.com') &&
-            !a.includes('noreply') && !a.includes('no-reply') && !a.includes('mailer-daemon')) {
-          seen.add(a); ccs.push(a)
-        }
-      }
-    }
-    setCcList(ccs)
-  }, [lead.id, messages.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reset when switching threads
   useEffect(() => {
@@ -848,7 +825,7 @@ function AIDraftPanel({
     } finally { setLoading(null) }
   }
 
-  const base: React.CSSProperties = { borderTop: '2px solid #93c5fd', background: '#eff6ff', flexShrink: 0, maxHeight: '50vh', overflowY: 'auto' }
+  const base: React.CSSProperties = { borderTop: '2px solid #93c5fd', background: '#eff6ff', flexShrink: 0, maxHeight: '40vh', overflowY: 'auto' }
 
   if (sent) return (
     <div style={{ ...base, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -913,31 +890,6 @@ function AIDraftPanel({
           </p>
         </div>
       )}
-
-      {/* ── Subject / Reply-To / CC / BCC ── */}
-      <div style={{ padding: '6px 12px 0', display: 'flex', flexDirection: 'column', gap: 4 }}>
-        {/* Subject */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff' }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', flexShrink: 0, width: 52 }}>Subject</span>
-          <input
-            value={customSubject}
-            onChange={e => setCustomSubject(e.target.value)}
-            style={{ flex: 1, fontSize: 12, border: 'none', outline: 'none', padding: '2px 0', background: 'transparent', color: '#111' }}
-          />
-        </div>
-        {/* Reply-To */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff' }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', flexShrink: 0, width: 52 }}>Reply-To</span>
-          <input
-            value={replyTo}
-            onChange={e => setReplyTo(e.target.value)}
-            placeholder="operations@trade-risksol.com"
-            style={{ flex: 1, fontSize: 12, border: 'none', outline: 'none', padding: '2px 0', background: 'transparent', color: '#111' }}
-          />
-        </div>
-        <EmailChipInput label="CC"  chips={ccList}  onChange={setCcList} />
-        <EmailChipInput label="BCC" chips={bccList} onChange={setBccList} />
-      </div>
 
       {/* ── Editor ── */}
       <div style={{ padding: '8px 12px' }}>
@@ -1195,15 +1147,26 @@ function ThreadMetaPanel({ msg }: { msg: RealMsg | null }) {
 
 function ContactPanel({
   lead, messages, onStatus, threadId, selectedMsg, onRestoreDraft,
+  panelTab, setPanelTab,
+  ccList, setCcList, bccList, setBccList, customSubject, setCustomSubject, replyTo, setReplyTo,
 }: {
-  lead:            Lead
-  messages:        RealMsg[]
-  onStatus:        (id: string, s: string) => void
-  threadId:        string | null
-  selectedMsg:     RealMsg | null
-  onRestoreDraft:  (body: string, generatedBy: string) => void
+  lead:             Lead
+  messages:         RealMsg[]
+  onStatus:         (id: string, s: string) => void
+  threadId:         string | null
+  selectedMsg:      RealMsg | null
+  onRestoreDraft:   (body: string, generatedBy: string) => void
+  panelTab:         'contact' | 'thread' | 'drafts'
+  setPanelTab:      (t: 'contact' | 'thread' | 'drafts') => void
+  ccList:           string[]
+  setCcList:        (c: string[]) => void
+  bccList:          string[]
+  setBccList:       (b: string[]) => void
+  customSubject:    string
+  setCustomSubject: (s: string) => void
+  replyTo:          string
+  setReplyTo:       (r: string) => void
 }) {
-  const [panelTab, setPanelTab] = useState<'contact' | 'thread' | 'drafts'>('contact')
   const [menuOpen, setMenuOpen] = useState(false)
   const [copied,   setCopied]   = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -1248,9 +1211,27 @@ function ContactPanel({
         <DraftHistoryPanel threadId={threadId} onRestore={onRestoreDraft} />
       )}
 
-      {/* Thread metadata tab */}
+      {/* Thread tab: message info + reply headers */}
       {panelTab === 'thread' && (
-        <ThreadMetaPanel msg={selectedMsg} />
+        <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', flex: 1 }}>
+          <ThreadMetaPanel msg={selectedMsg} />
+          <div style={{ borderTop: '1px solid #f0f0f0', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>Reply Headers</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff' }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', flexShrink: 0, width: 52 }}>Subject</span>
+              <input value={customSubject} onChange={e => setCustomSubject(e.target.value)}
+                style={{ flex: 1, fontSize: 12, border: 'none', outline: 'none', padding: '2px 0', background: 'transparent', color: '#111' }} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff' }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', flexShrink: 0, width: 52 }}>Reply-To</span>
+              <input value={replyTo} onChange={e => setReplyTo(e.target.value)}
+                placeholder="operations@trade-risksol.com"
+                style={{ flex: 1, fontSize: 12, border: 'none', outline: 'none', padding: '2px 0', background: 'transparent', color: '#111' }} />
+            </div>
+            <EmailChipInput label="CC"  chips={ccList}  onChange={setCcList} />
+            <EmailChipInput label="BCC" chips={bccList} onChange={setBccList} />
+          </div>
+        </div>
       )}
 
       {/* Contact tab */}
@@ -1371,14 +1352,39 @@ function ThreadView({
   const [showReply,        setShowReply]        = useState(true)
   const [replyOverlayH,    setReplyOverlayH]    = useState(38)
   const [selectedMsgId,    setSelectedMsgId]    = useState<string | null>(null)
+  const [panelTab,         setPanelTab]         = useState<'contact' | 'thread' | 'drafts'>('contact')
+  const [ccList,           setCcList]           = useState<string[]>([])
+  const [bccList,          setBccList]          = useState<string[]>([])
+  const [customSubject,    setCustomSubject]    = useState('')
+  const [replyTo,          setReplyTo]          = useState('operations@trade-risksol.com')
   const replyOverlayRef = useRef<HTMLDivElement>(null)
   const threadId        = thread?.id ?? null
   const latestSummary   = summaries[0] ?? null
   const latestMessageId = messages.at(-1)?.id ?? null
   const log             = useAuditLog()
 
-  // Reset selected message when switching leads
-  useEffect(() => { setSelectedMsgId(null) }, [lead.id])
+  // Reset per-lead state when switching leads
+  useEffect(() => { setSelectedMsgId(null); setPanelTab('contact') }, [lead.id])
+
+  // Initialize compose headers from thread + messages (lifted from AIDraftPanel)
+  useEffect(() => {
+    setBccList([])
+    setReplyTo('operations@trade-risksol.com')
+    const s = thread?.subject ?? ''
+    setCustomSubject(s ? (s.startsWith('Re:') ? s : `Re: ${s}`) : 'Re: Your enquiry — Trade Risk Solutions')
+    const seen = new Set<string>()
+    const ccs: string[] = []
+    for (const m of messages) {
+      for (const addr of m.cc) {
+        const a = addr.toLowerCase()
+        if (!seen.has(a) && !a.endsWith('@trade-risksol.com') &&
+            !a.includes('noreply') && !a.includes('no-reply') && !a.includes('mailer-daemon')) {
+          seen.add(a); ccs.push(a)
+        }
+      }
+    }
+    setCcList(ccs)
+  }, [lead.id, messages.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Track reply overlay height so messages paddingBottom stays in sync
   useEffect(() => {
@@ -1545,7 +1551,7 @@ function ThreadView({
             boxShadow: showReply ? '0 -4px 20px rgba(0,0,0,0.08)' : 'none',
           }}>
             <div
-              onClick={() => setShowReply(v => !v)}
+              onClick={() => { const next = !showReply; setShowReply(next); if (next) setPanelTab('thread') }}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 padding: '0 16px', height: 38, cursor: 'pointer', userSelect: 'none',
@@ -1553,19 +1559,24 @@ function ThreadView({
                 background: showReply ? 'var(--surface-solid)' : 'hsl(var(--background))',
               }}
             >
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden' }}>
                 ✏ Reply
+                {customSubject && (
+                  <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    · {customSubject.length > 42 ? customSubject.slice(0, 40) + '…' : customSubject}
+                  </span>
+                )}
               </span>
-              <ChevronDown size={14} style={{ color: 'var(--text-muted)', transform: showReply ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+              <ChevronDown size={14} style={{ color: 'var(--text-muted)', transform: showReply ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
             </div>
             {showReply && (
-              <AIDraftPanel lead={lead} thread={thread} messages={messages} storedDraft={latestSummary?.draft_reply} storedRagDraft={ragDraft?.content ?? null} storedRagSources={ragDraft?.sources ?? []} onRagRefresh={refreshRagDraft} onThreadRefresh={onThreadRefresh} pendingRestore={pendingRestore} />
+              <AIDraftPanel lead={lead} thread={thread} messages={messages} storedDraft={latestSummary?.draft_reply} storedRagDraft={ragDraft?.content ?? null} storedRagSources={ragDraft?.sources ?? []} onRagRefresh={refreshRagDraft} onThreadRefresh={onThreadRefresh} pendingRestore={pendingRestore} ccList={ccList} bccList={bccList} customSubject={customSubject} replyTo={replyTo} />
             )}
           </div>
         </div>
       </div>
 
-      <ContactPanel lead={lead} messages={messages} onStatus={onStatus} threadId={threadId} selectedMsg={selectedMsg} onRestoreDraft={(body, generatedBy) => setPendingRestore({ body, generatedBy, stamp: Date.now() })} />
+      <ContactPanel lead={lead} messages={messages} onStatus={onStatus} threadId={threadId} selectedMsg={selectedMsg} onRestoreDraft={(body, generatedBy) => setPendingRestore({ body, generatedBy, stamp: Date.now() })} panelTab={panelTab} setPanelTab={setPanelTab} ccList={ccList} setCcList={setCcList} bccList={bccList} setBccList={setBccList} customSubject={customSubject} setCustomSubject={setCustomSubject} replyTo={replyTo} setReplyTo={setReplyTo} />
     </div>
   )
 }
