@@ -844,7 +844,7 @@ function AIDraftPanel({
     } finally { setLoading(null) }
   }
 
-  const base: React.CSSProperties = { borderTop: '2px solid #93c5fd', background: '#eff6ff', flexShrink: 0, height: '40vh', overflowY: 'auto' }
+  const base: React.CSSProperties = { borderTop: '2px solid #93c5fd', background: '#fff', flexShrink: 0, height: '40vh', overflowY: 'auto' }
 
   if (sent) return (
     <div style={{ ...base, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -903,7 +903,7 @@ function AIDraftPanel({
 
       {/* ── Replying-to context strip ── */}
       {needsReply && lastMsg && (
-        <div style={{ margin: '8px 12px 0', padding: '6px 10px', background: 'rgba(219,234,254,0.5)', borderRadius: 6, borderLeft: '3px solid #93c5fd' }}>
+        <div style={{ margin: '4px 12px 0', padding: '5px 10px', background: 'rgba(219,234,254,0.5)', borderRadius: 6, borderLeft: '3px solid #93c5fd' }}>
           <p style={{ margin: 0, fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
             <strong style={{ color: '#3b82f6' }}>Replying to</strong> {lastMsg.from_address} · {timeAgo(lastMsg.sent_at)}
           </p>
@@ -911,7 +911,7 @@ function AIDraftPanel({
       )}
 
       {/* ── Editor ── */}
-      <div style={{ padding: '8px 12px' }}>
+      <div style={{ padding: '0 12px' }}>
         {activeTab === 'gdrive' && (
           <RichEditor key={draftEditorKey} initialHtml={draftHtml} onChange={setDraftHtml} sigHtml={sigHtml}
             placeholder={loading === 'gen' ? 'Generating GDrive draft…' : 'Click "Generate AI reply" to draft using knowledge documents.'}
