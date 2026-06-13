@@ -178,8 +178,9 @@ Reply with one word only.`
       }
     } catch { /* non-fatal */ }
 
-    // Fetch campaign context if this thread came from a campaign reply
+    // Fetch campaign context + outbound lead profile if this thread came from a campaign reply
     let campaignCtxStr = ''
+    let leadProfileStr = ''
     if (threadId) {
       try {
         const ctxRes = await fetch(
@@ -190,6 +191,27 @@ Reply with one word only.`
         const ctx = ctxRows[0]?.campaign_context
         if (ctx?.campaign_name) {
           campaignCtxStr = `\nCAMPAIGN CONTEXT: This contact replied to a TRS cold outreach campaign "${ctx.campaign_name}" (${ctx.product_type} focus${ctx.step_replied_to ? `, step ${ctx.step_replied_to}` : ''}). This is their first real engagement — acknowledge their interest warmly and continue naturally. Do NOT explicitly reference the campaign or that this was a cold email.`
+        }
+        if (ctx?.outbound_lead_id) {
+          const leadRes = await fetch(
+            `${SB_URL}/rest/v1/outbound_leads?id=eq.${ctx.outbound_lead_id}&select=title,headline,current_company,industry,employee_count&limit=1`,
+            { headers: sbHeaders(), cache: 'no-store' }
+          )
+          const leads: { title: string | null; headline: string | null; current_company: string | null; industry: string | null; employee_count: number | null }[] =
+            leadRes.ok ? await leadRes.json() : []
+          const lead = leads[0]
+          if (lead) {
+            const role = lead.title || lead.headline || null
+            const profileParts = [
+              role                 && `Role: ${role}`,
+              lead.current_company && `Company: ${lead.current_company}`,
+              lead.industry        && `Industry: ${lead.industry}`,
+              lead.employee_count  && `~${lead.employee_count.toLocaleString()} employees`,
+            ].filter((p): p is string => Boolean(p))
+            if (profileParts.length > 0) {
+              leadProfileStr = `\nLEAD PROFILE (outbound contact — use to personalise tone and examples): ${profileParts.join(' | ')}`
+            }
+          }
         }
       } catch { /* non-fatal — proceed without context */ }
     }
@@ -212,11 +234,10 @@ Reply with one word only.`
 
     const lastInboundText = lastInbound ? (lastInbound.body_text || '').slice(0, 12000) : '(no inbound message found)'
 
-    // Only fetch GDrive docs when they're actually useful (pricing or coverage types)
-    const needsDocs  = emailType === 'PRICING' || emailType === 'COVERAGE'
-    const knowledgeDocs = needsDocs
-      ? await fetchKnowledgeDocs(threadCtx + '\n' + lastInboundText, geminiKey, 'gdrive-draft')
-      : []
+    // Fetch GDrive docs for all email types — the folder contains pricing docs, product FAQs,
+    // claims procedures, and company knowledge relevant to any enquiry type.
+    // Keyword scoring selects the most relevant files; returns [] silently on error.
+    const knowledgeDocs = await fetchKnowledgeDocs(threadCtx + '\n' + lastInboundText, geminiKey, 'gdrive-draft')
     const hasDocs  = knowledgeDocs.length > 0
     const docNames = hasDocs ? knowledgeDocs.map(d => d.name).join(', ') : ''
 
@@ -261,26 +282,56 @@ No policy documents are attached.
 - 2–3 sentences maximum`
 
         case 'RENEWAL':
-          return `━━ RENEWAL ━━
+          return hasDocs
+            ? `━━ RENEWAL ━━
+Attached knowledge: ${docNames}
+Reference product specs, coverage limits, or pricing from the docs when explaining options or what TRS needs to obtain renewal terms.
+- Ask for: current insurer, sum insured, expiry date, any changes to the risk (new locations, headcount changes, fleet additions, etc.)
+- If renewal terms are already in the thread: confirm next steps clearly
+- 2–3 short sentences`
+            : `━━ RENEWAL ━━
 - If TRS doesn't yet have renewal terms: ask for the policy details needed — current insurer, sum insured, expiry date, any changes to the risk (new locations, headcount changes, fleet additions, etc.)
 - If renewal terms are already in the thread: confirm next steps clearly
 - 2–3 short sentences`
 
         case 'DOCUMENT':
-          return `━━ DOCUMENT REQUEST ━━
+          return hasDocs
+            ? `━━ DOCUMENT REQUEST ━━
+Attached knowledge: ${docNames}
+If the attached docs describe the document being requested (policy wording, COI format, endorsement terms), reference that knowledge in your reply.
+- Confirm what they need and when TRS will provide it: "We will send your [document type] by [end of day / within 24 hours]."
+- If you cannot identify the specific document from the thread: ask one focused clarifying question
+- 2–3 sentences maximum — do not over-explain`
+            : `━━ DOCUMENT REQUEST ━━
 - Confirm what they need and when TRS will provide it: "We will send your [document type] by [end of day / within 24 hours]."
 - If you cannot identify the specific document from the thread: ask one focused clarifying question
 - 2–3 sentences maximum — do not over-explain`
 
         case 'CLAIMS':
-          return `━━ CLAIMS ━━
+          return hasDocs
+            ? `━━ CLAIMS ━━
+Attached knowledge: ${docNames}
+Reference claims procedures or notification requirements from the docs only if clearly stated — do not infer or fabricate.
+- One sentence acknowledging the situation (brief, calm, no drama)
+- Ask for: date of incident, policy number (if known), brief description of what happened, estimated amount of loss/damage
+- Do NOT promise or imply anything about coverage, liability, or outcome
+- 2–3 sentences`
+            : `━━ CLAIMS ━━
 - One sentence acknowledging the situation (brief, calm, no drama)
 - Ask for what TRS needs: date of incident, policy number (if known), brief description of what happened, estimated amount of loss/damage
 - Do NOT promise or imply anything about coverage, liability, or outcome
 - 2–3 sentences`
 
         default: // CONVERSATION
-          return `━━ CONVERSATION / FOLLOW-UP ━━
+          return hasDocs
+            ? `━━ CONVERSATION / FOLLOW-UP ━━
+Attached knowledge: ${docNames}
+If the conversation touches on a specific product or coverage detail, you may reference the relevant knowledge naturally.
+- Continue the thread naturally — respond to what was actually asked or said
+- Match the tone and length of the client's latest message. If they wrote 2 sentences, write 2–3 back.
+- 1–3 sentences is usually enough
+- If they asked a direct question, answer it in the first sentence`
+            : `━━ CONVERSATION / FOLLOW-UP ━━
 - Continue the thread naturally — respond to what was actually asked or said
 - Match the tone and length of the client's latest message. If they wrote 2 sentences, write 2–3 back.
 - 1–3 sentences is usually enough
@@ -309,7 +360,7 @@ ${fewShotSection}${antiPatternSection}
 - Name: ${hasRealName ? contactName : '(unknown)'}
 - Email: ${contactEmail ?? '—'}
 - Company: ${company || '(unknown)'}
-- Thread subject: ${threadSubject}
+- Thread subject: ${threadSubject}${leadProfileStr}
 
 ━━ CLIENT'S LATEST EMAIL (respond to this) ━━
 ${lastInboundText}

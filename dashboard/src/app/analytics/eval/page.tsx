@@ -65,12 +65,13 @@ export default function EvalPage() {
     : null
 
   const learnings = evals.map(e => e.eval_json?.key_learning).filter((l): l is string => !!l && l.length > 10)
-  const learningsByType: Record<string, string[]> = {}
+  const learningsByType: Record<string, { text: string; score: number }[]> = {}
   evals.forEach(e => {
-    const t = e.email_type ?? 'UNKNOWN'; const l = e.eval_json?.key_learning
+    const t = e.email_type ?? 'UNKNOWN'
+    const l = e.eval_json?.key_learning
     if (!l) return
     if (!learningsByType[t]) learningsByType[t] = []
-    if (!learningsByType[t].includes(l)) learningsByType[t].push(l)
+    if (!learningsByType[t].find(x => x.text === l)) learningsByType[t].push({ text: l, score: e.score })
   })
 
   return (
@@ -182,27 +183,51 @@ export default function EvalPage() {
               <div className="flex flex-col gap-4">
                 {Object.keys(learningsByType).length === 0 ? (
                   <p className="text-sm text-muted-foreground italic">No learnings yet.</p>
-                ) : Object.entries(learningsByType).map(([type, rules]) => (
-                  <Card key={type}>
-                    <CardHeader className="pb-2 flex-row items-center gap-2">
-                      <TypePill type={type} />
-                      <span className="text-[12px] text-muted-foreground">{rules.length} rule{rules.length !== 1 ? 's' : ''} learned</span>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="flex flex-col gap-2 list-disc pl-4">
-                        {rules.map((r, i) => (
-                          <li key={i} className="text-[13px] text-foreground leading-relaxed">{r}</li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  </Card>
-                ))}
+                ) : Object.entries(learningsByType).map(([type, rules]) => {
+                  const injectedCount = rules.filter(r => r.score <= 3).length
+                  return (
+                    <Card key={type}>
+                      <CardHeader className="pb-2 flex-row items-center gap-2 flex-wrap">
+                        <TypePill type={type} />
+                        <span className="text-[12px] text-muted-foreground">{rules.length} rule{rules.length !== 1 ? 's' : ''} learned</span>
+                        {injectedCount > 0 && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                            ⚡ {injectedCount} auto-injected into prompt
+                          </span>
+                        )}
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="flex flex-col gap-2.5 list-none pl-0">
+                          {rules.map((r, i) => (
+                            <li key={i} className="flex items-start gap-2 group">
+                              <span className="text-muted-foreground mt-0.5 text-[11px] flex-shrink-0 select-none">•</span>
+                              <span className="text-[13px] text-foreground leading-relaxed flex-1">{r.text}</span>
+                              <div className="flex items-center gap-1.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                {r.score <= 3 && (
+                                  <span title="Automatically injected into the AI prompt as an AVOID pattern" className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 whitespace-nowrap">
+                                    ⚡ live
+                                  </span>
+                                )}
+                                <button
+                                  onClick={() => navigator.clipboard.writeText(r.text)}
+                                  className="text-[10px] text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded border border-border/50 hover:border-border transition-colors"
+                                  title="Copy to clipboard"
+                                >
+                                  copy
+                                </button>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
                 <div className="border border-dashed border-border rounded-xl p-5 bg-muted/30">
-                  <p className="text-[12px] font-semibold text-foreground mb-1.5">How to use these</p>
+                  <p className="text-[12px] font-semibold text-foreground mb-1.5">How learnings work</p>
                   <p className="text-[12px] text-muted-foreground leading-relaxed">
-                    Each learning is a rule extracted from differences between AI drafts and what was actually sent.
-                    Add the most frequent rules to the prompt in{' '}
-                    <code className="text-[11px] bg-muted px-1.5 py-0.5 rounded font-mono">src/app/api/engagement/draft/route.ts</code>.
+                    Rules from <strong className="text-foreground">score 1–3</strong> drafts are marked <span className="font-semibold text-amber-600">⚡ live</span> — automatically injected as AVOID patterns into every new draft of that email type, no manual action needed.{' '}
+                    Rules from score 4–5 drafts feed the few-shot examples. Both loops run on every send.
                   </p>
                 </div>
               </div>
