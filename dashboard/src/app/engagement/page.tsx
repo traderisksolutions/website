@@ -630,6 +630,11 @@ function AIDraftPanel({
   const [selectedSigId, setSelectedSigId] = useState<string>('')
   const [sigsLoaded,    setSigsLoaded]    = useState(false)
 
+  // Sender state (From: dropdown — only shown when employee has connected their personal Gmail)
+  type Sender = { email: string; label: string; type: 'shared' | 'personal' }
+  const [senders,           setSenders]           = useState<Sender[]>([])
+  const [selectedFromEmail, setSelectedFromEmail] = useState<string>('')
+
   function buildClientSigHtml(sig: SigOption): string {
     return [
       '<br>',
@@ -647,13 +652,19 @@ function AIDraftPanel({
 
   const log = useAuditLog()
 
-  // Load signatures once
+  // Load signatures + available senders once
   useEffect(() => {
     if (sigsLoaded) return
     setSigsLoaded(true)
     fetch('/api/signatures').then(r => r.ok ? r.json() : []).then((rows: SigOption[]) => {
       const active = (Array.isArray(rows) ? rows : []).filter(s => (s as unknown as { is_active: boolean }).is_active !== false)
       setSignatures(active)
+    }).catch(() => {})
+    fetch('/api/email/available-senders').then(r => r.ok ? r.json() : []).then((rows: Sender[]) => {
+      if (Array.isArray(rows) && rows.length > 0) {
+        setSenders(rows)
+        setSelectedFromEmail(rows[0].email)
+      }
     }).catch(() => {})
   }, [sigsLoaded])
 
@@ -663,7 +674,8 @@ function AIDraftPanel({
     setDraftLoaded(false); setDraftEditorKey(0); setSent(false); setError(null)
     setRagHtml(''); setRagLoaded(false); setRagEditorKey(0); setRagSources([])
     setAiDraftChecked(false)
-  }, [lead.id])
+    setSelectedFromEmail(senders[0]?.email ?? '')
+  }, [lead.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Restore a draft selected from Draft History panel
   useEffect(() => {
@@ -812,6 +824,7 @@ function AIDraftPanel({
           bcc:           bccList.length ? bccList : undefined,
           customSubject: customSubject || undefined,
           replyTo:       replyTo !== 'operations@trade-risksol.com' ? replyTo : undefined,
+          fromEmail:     selectedFromEmail || undefined,
         }),
       })
       if (!sendRes.ok) {
@@ -932,6 +945,20 @@ function AIDraftPanel({
 
       {/* ── Signature selector + Actions ── */}
       <div style={{ padding: '4px 12px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {senders.length > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>From</span>
+            <select
+              value={selectedFromEmail}
+              onChange={e => setSelectedFromEmail(e.target.value)}
+              style={{ flex: 1, fontSize: 12, padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff', color: 'var(--text-secondary)', cursor: 'pointer' }}
+            >
+              {senders.map(s => (
+                <option key={s.email} value={s.email}>{s.label} &lt;{s.email}&gt;</option>
+              ))}
+            </select>
+          </div>
+        )}
         {signatures.length > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Sign as</span>

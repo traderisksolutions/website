@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { waitUntil }                  from '@vercel/functions'
 import { runDraftEvaluation }         from '@/lib/run-draft-evaluation'
+import { createClient }               from '@/lib/supabase/server'
 
 const SB_URL    = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me'
@@ -50,6 +51,40 @@ async function getAccessToken(): Promise<string> {
   const data = await res.json()
   if (!data.access_token) throw new Error('Failed to get Gmail access token')
   return data.access_token
+}
+
+// Returns a Gmail access token for the given fromEmail.
+// If the employee has connected their personal Gmail and fromEmail matches,
+// use their stored refresh token. Otherwise fall back to the shared ops@ token.
+async function getTokenForSender(fromEmail: string, userId: string | null): Promise<string> {
+  if (userId) {
+    try {
+      const k = process.env.SUPABASE_SERVICE_KEY
+      if (k) {
+        const profileRes = await fetch(
+          `${SB_URL}/rest/v1/employee_profiles?user_id=eq.${userId}&select=gmail_email,gmail_refresh_token&limit=1`,
+          { headers: { apikey: k, Authorization: `Bearer ${k}` }, cache: 'no-store' }
+        )
+        const profiles = profileRes.ok ? await profileRes.json() : []
+        const profile  = Array.isArray(profiles) ? profiles[0] : null
+        if (profile?.gmail_refresh_token && profile?.gmail_email === fromEmail) {
+          const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              client_id:     process.env.GMAIL_CLIENT_ID!,
+              client_secret: process.env.GMAIL_CLIENT_SECRET!,
+              refresh_token: profile.gmail_refresh_token as string,
+              grant_type:    'refresh_token',
+            }),
+          })
+          const tokenData = await tokenRes.json()
+          if (tokenData.access_token) return tokenData.access_token as string
+        }
+      }
+    } catch { /* fall through to shared token */ }
+  }
+  return getAccessToken()
 }
 
 function encodeSubject(subject: string): string {
@@ -149,15 +184,22 @@ function buildSignatureText(sig: Signature): string {
 }
 
 // POST /api/email/send
-// Body: { draftId: string; htmlBody?: string; signatureId?: string }
-// Fetches the approved ai_draft, sends via Gmail API, marks draft sent,
-// and records the outbound message in email_messages.
+// Body: { draftId, htmlBody?, signatureId?, cc?, bcc?, customSubject?, replyTo?, fromEmail? }
+// fromEmail selects which sender address to use. If the logged-in employee has connected
+// their own Gmail and fromEmail matches, their token is used. Otherwise falls back to ops@.
 export async function POST(req: NextRequest) {
   try {
-    const { draftId, htmlBody, signatureId, cc, bcc, customSubject, replyTo } = await req.json() as { draftId: string; htmlBody?: string; signatureId?: string; cc?: string[]; bcc?: string[]; customSubject?: string; replyTo?: string }
+    const { draftId, htmlBody, signatureId, cc, bcc, customSubject, replyTo, fromEmail: requestedFrom } =
+      await req.json() as { draftId: string; htmlBody?: string; signatureId?: string; cc?: string[]; bcc?: string[]; customSubject?: string; replyTo?: string; fromEmail?: string }
     if (!draftId) return NextResponse.json({ error: 'draftId required' }, { status: 400 })
 
-    const OPS_EMAIL = await getOpsEmail()
+    // Identify the logged-in employee so we can use their Gmail token if they've connected one
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    const userId = user?.id ?? null
+
+    const OPS_EMAIL  = await getOpsEmail()
+    const FROM_EMAIL = (requestedFrom && requestedFrom.includes('@')) ? requestedFrom : OPS_EMAIL
 
     // 1. Load the draft + contact email
     const draftRes = await fetch(
@@ -210,9 +252,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 5. Send via Gmail API
-    const token    = await getAccessToken()
-    const rawEmail = buildRawEmail(contact.email, subject, finalPlain, finalHtml, cc, bcc, replyTo, OPS_EMAIL)
+    // 5. Send via Gmail API — use the employee's personal token if they've connected their Gmail,
+    //    otherwise fall back to the shared ops@ token.
+    const token    = await getTokenForSender(FROM_EMAIL, userId)
+    const rawEmail = buildRawEmail(contact.email, subject, finalPlain, finalHtml, cc, bcc, replyTo, FROM_EMAIL)
 
     const sendPayload: Record<string, unknown> = { raw: rawEmail }
     if (gmailThreadId) sendPayload.threadId = gmailThreadId
@@ -250,7 +293,7 @@ export async function POST(req: NextRequest) {
           thread_id:        draft.thread_id,
           gmail_message_id: sent.id,
           direction:        'outbound',
-          from_address:     OPS_EMAIL,
+          from_address:     FROM_EMAIL,
           subject,
           body_text:        sentBodyPlain,
           sent_at:          sentAt,

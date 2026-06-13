@@ -99,10 +99,13 @@ export async function runDraftEvaluation(
     const draft = { body: draftRow.body, email_type: emailType, thread_id: draftRow.thread_id }
 
     // 3. Last inbound message = what the client sent (context for scoring)
-    const inboundRes = await sb<{ body_text: string }>(
-      `email_messages?thread_id=eq.${encodeURIComponent(tid)}&direction=eq.inbound&order=sent_at.desc&select=body_text&limit=1`
-    )
-    const incomingEmail = inboundRes.data[0]?.body_text ?? ''
+    let incomingEmail = ''
+    if (tid) {
+      const inboundRes = await sb<{ body_text: string }>(
+        `email_messages?thread_id=eq.${encodeURIComponent(tid)}&direction=eq.inbound&order=sent_at.desc&select=body_text&limit=1`
+      )
+      incomingEmail = inboundRes.data[0]?.body_text ?? ''
+    }
 
     const aiBody = draft.body
 
@@ -117,7 +120,7 @@ export async function runDraftEvaluation(
     // If >95% identical, score it as a 5 without calling Gemini (saves cost)
     if (overlap > 0.95) {
       console.log(`[eval] >95% overlap — storing score=5 without Gemini call`)
-      await storeEval(draftId, tid, emailType, aiBody, humanBody, 5, {
+      await storeEval(draftId, tid ?? '', emailType, aiBody, humanBody, 5, {
         what_human_changed: 'No meaningful changes — sent almost as-is.',
         why_better:         'AI draft was high quality.',
         key_learning:       'Continue current approach for this email type.',
@@ -182,7 +185,7 @@ Return ONLY valid JSON (no markdown fences, no text outside the JSON):
     const score = typeof parsed.score === 'number' ? Math.min(5, Math.max(1, Math.round(parsed.score))) : 0
     if (!score) return
 
-    await storeEval(draftId, tid, emailType, aiBody, humanBody, score, {
+    await storeEval(draftId, tid ?? '', emailType, aiBody, humanBody, score, {
       what_human_changed: String(parsed.what_human_changed ?? ''),
       why_better:         String(parsed.why_better ?? ''),
       key_learning:       String(parsed.key_learning ?? ''),

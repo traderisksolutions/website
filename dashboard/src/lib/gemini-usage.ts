@@ -17,6 +17,7 @@ export type GeminiFeature =
   | 'outbound_search'
   | 'summarize'
   | 'rag_index'
+  | 'rag_draft_reply'
 
 export interface GeminiUsageMeta {
   promptTokenCount?:     number

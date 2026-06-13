@@ -209,7 +209,7 @@ Reply with one word only.`
   }
 
   // 6. Type-specific instructions (knowledge chunks are always present here)
-  const chunkSources = [...new Set(sources.map(s => s.file_name))].join(', ')
+  const chunkSources = Array.from(new Set(sources.map(s => s.file_name))).join(', ')
   const typeInstructions = (() => {
     switch (emailType) {
       case 'PRICING':
