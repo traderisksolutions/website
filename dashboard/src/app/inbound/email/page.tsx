@@ -451,7 +451,7 @@ function InboundLeadsPage() {
     <div className="flex flex-col h-screen overflow-hidden">
 
       {/* Top bar */}
-      <div className="px-6 pt-5 pb-0 bg-background flex-shrink-0">
+      <div className="px-4 sm:px-6 pt-5 pb-0 bg-background flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-[20px] font-semibold tracking-tight text-foreground m-0">Inbound Leads</h1>
@@ -465,7 +465,7 @@ function InboundLeadsPage() {
 
         {/* Stat cards */}
         {!loading && (
-          <div className="grid grid-cols-4 gap-3 mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
             <StatCard label="Total Leads"  value={leads.length} color="#2563eb" />
             <StatCard label="New"          value={totalNew}     color="#2563eb" highlight />
             <StatCard label="Email / Form" value={emCount}      sub={emNew > 0 ? `${emNew} new` : undefined} color="#7c3aed" />
@@ -475,8 +475,8 @@ function InboundLeadsPage() {
       </div>
 
       {/* Filter + search bar */}
-      <div className="px-6 pb-3 flex items-center gap-2.5 bg-background flex-shrink-0 flex-wrap">
-        <div className="flex gap-1">
+      <div className="px-4 sm:px-6 pb-3 flex items-center gap-2.5 bg-background flex-shrink-0 flex-wrap">
+        <div className="flex gap-1 flex-wrap">
           {FILTERS.map(f => (
             <button key={f.key} onClick={() => setFilter(f.key)}
               className={cn(
@@ -509,10 +509,13 @@ function InboundLeadsPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 flex overflow-hidden px-6 pb-6 gap-4 bg-background">
+      <div className="flex-1 flex overflow-hidden px-4 sm:px-6 pb-6 gap-4 bg-background">
 
-        {/* Table card */}
-        <div className="flex-1 overflow-y-auto overflow-x-auto bg-card border border-border rounded-lg shadow-sm">
+        {/* Table / card list — hidden on mobile when detail panel is open */}
+        <div className={cn(
+          'flex-1 overflow-y-auto bg-card border border-border rounded-lg shadow-sm',
+          selectedId ? 'hidden sm:flex sm:flex-col overflow-x-auto' : 'overflow-x-auto'
+        )}>
           {loading ? (
             <div className="py-16 text-center text-[13px] text-muted-foreground/50">Loading…</div>
           ) : error ? (
@@ -522,70 +525,97 @@ function InboundLeadsPage() {
               {search ? `No leads matching "${search}"` : 'No leads yet.'}
             </div>
           ) : (
-            <table className="w-full border-collapse text-[13px] min-w-[760px]">
-              <thead>
-                <tr className="border-b border-border sticky top-0 z-[1] bg-card">
-                  <Th w={110}>Channel <Tip text="Shows where this lead came from — Website = contact form, Email = direct email, WhatsApp = click-to-chat button. Manual means a team member added them." /></Th>
-                  <Th w={120}>First Name</Th>
-                  <Th w={120}>Last Name</Th>
-                  <Th w={150}>Company</Th>
-                  <Th w={160}>Topic</Th>
-                  <Th>Message</Th>
-                  <Th w={130}>Status <Tip text="Tracks where this lead sits in your pipeline, from New (not yet replied) to Converted (policy placed). Update this as conversations progress." /></Th>
-                  <Th w={90} right>Time</Th>
-                </tr>
-              </thead>
-              <tbody>
+            <>
+              {/* ── Desktop table (≥640px) ── */}
+              <table className="hidden sm:table w-full border-collapse text-[13px] min-w-[760px]">
+                <thead>
+                  <tr className="border-b border-border sticky top-0 z-[1] bg-card">
+                    <Th w={110}>Channel <Tip text="Shows where this lead came from — Website = contact form, Email = direct email, WhatsApp = click-to-chat button. Manual means a team member added them." /></Th>
+                    <Th w={120}>First Name</Th>
+                    <Th w={120}>Last Name</Th>
+                    <Th w={150}>Company</Th>
+                    <Th w={160}>Topic</Th>
+                    <Th>Message</Th>
+                    <Th w={130}>Status <Tip text="Tracks where this lead sits in your pipeline, from New (not yet replied) to Converted (policy placed). Update this as conversations progress." /></Th>
+                    <Th w={90} right>Time</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map(lead => {
+                    const isActive = lead.id === selectedId
+                    const msg      = messagePreview(lead)
+                    return (
+                      <tr key={lead.id}
+                        onClick={() => setSelectedId(lead.id === selectedId ? null : lead.id)}
+                        className={cn('border-b transition-colors cursor-pointer', isActive ? 'bg-primary/5' : 'hover:bg-muted/50')}
+                        style={{ borderLeft: `3px solid ${isActive ? 'hsl(var(--primary))' : 'transparent'}` }}
+                      >
+                        <td className="px-3.5 py-2.5 align-middle">
+                          <div className="flex items-center gap-1.5">
+                            {lead.status === 'new' && <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />}
+                            <ChannelBadge source={lead.source} />
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5 align-middle">
+                          <span className={cn('text-foreground', lead.status === 'new' ? 'font-semibold' : 'font-normal')}>{lead.first_name || '—'}</span>
+                        </td>
+                        <td className="px-3 py-2.5 align-middle">
+                          <span className={cn('text-foreground', lead.status === 'new' ? 'font-semibold' : 'font-normal')}>{lead.last_name || '—'}</span>
+                        </td>
+                        <td className="px-3 py-2.5 align-middle text-muted-foreground max-w-0">
+                          <span className="block overflow-hidden text-ellipsis whitespace-nowrap">{lead.company || '—'}</span>
+                        </td>
+                        <td className="px-3 py-2.5 align-middle text-muted-foreground max-w-0">
+                          <span className="block overflow-hidden text-ellipsis whitespace-nowrap">{lead.topic || lead.department || '—'}</span>
+                        </td>
+                        <td className="px-3 py-2.5 align-middle text-muted-foreground/60 max-w-0 text-[12px]">
+                          <span className="block overflow-hidden text-ellipsis whitespace-nowrap">{msg || '—'}</span>
+                        </td>
+                        <td className="px-3 py-2.5 align-middle"><StatusDropdown lead={lead} onChange={handleStatus} /></td>
+                        <td className="px-3.5 py-2.5 align-middle text-right text-muted-foreground/50 text-[11px] whitespace-nowrap">{timeAgo(lead.created_at)}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+
+              {/* ── Mobile card list (<640px) ── */}
+              <div className="sm:hidden divide-y divide-border">
                 {filtered.map(lead => {
                   const isActive = lead.id === selectedId
                   const msg      = messagePreview(lead)
                   return (
-                    <tr key={lead.id}
+                    <div key={lead.id}
                       onClick={() => setSelectedId(lead.id === selectedId ? null : lead.id)}
-                      className={cn(
-                        'border-b transition-colors cursor-pointer',
-                        isActive ? 'bg-primary/5' : 'hover:bg-muted/50'
-                      )}
+                      className={cn('px-4 py-3 cursor-pointer', isActive ? 'bg-primary/5' : '')}
                       style={{ borderLeft: `3px solid ${isActive ? 'hsl(var(--primary))' : 'transparent'}` }}
                     >
-                      <td className="px-3.5 py-2.5 align-middle">
-                        <div className="flex items-center gap-1.5">
-                          {lead.status === 'new' && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
-                          )}
-                          <ChannelBadge source={lead.source} />
-                        </div>
-                      </td>
-                      <td className="px-3 py-2.5 align-middle">
-                        <span className={cn('text-foreground', lead.status === 'new' ? 'font-semibold' : 'font-normal')}>
-                          {lead.first_name || '—'}
+                      {/* Top row: channel + name + time */}
+                      <div className="flex items-center gap-2 mb-1">
+                        {lead.status === 'new' && <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />}
+                        <ChannelBadge source={lead.source} />
+                        <span className={cn('flex-1 text-[13px] truncate', lead.status === 'new' ? 'font-semibold text-foreground' : 'text-foreground')}>
+                          {[lead.first_name, lead.last_name].filter(Boolean).join(' ') || '—'}
                         </span>
-                      </td>
-                      <td className="px-3 py-2.5 align-middle">
-                        <span className={cn('text-foreground', lead.status === 'new' ? 'font-semibold' : 'font-normal')}>
-                          {lead.last_name || '—'}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2.5 align-middle text-muted-foreground max-w-0">
-                        <span className="block overflow-hidden text-ellipsis whitespace-nowrap">{lead.company || '—'}</span>
-                      </td>
-                      <td className="px-3 py-2.5 align-middle text-muted-foreground max-w-0">
-                        <span className="block overflow-hidden text-ellipsis whitespace-nowrap">{lead.topic || lead.department || '—'}</span>
-                      </td>
-                      <td className="px-3 py-2.5 align-middle text-muted-foreground/60 max-w-0 text-[12px]">
-                        <span className="block overflow-hidden text-ellipsis whitespace-nowrap">{msg || '—'}</span>
-                      </td>
-                      <td className="px-3 py-2.5 align-middle">
+                        <span className="text-[11px] text-muted-foreground/50 flex-shrink-0">{timeAgo(lead.created_at)}</span>
+                      </div>
+                      {/* Company + topic */}
+                      {(lead.company || lead.topic || lead.department) && (
+                        <p className="text-[12px] text-muted-foreground truncate mb-1">
+                          {[lead.company, lead.topic ?? lead.department].filter(Boolean).join(' · ')}
+                        </p>
+                      )}
+                      {/* Message preview */}
+                      {msg && <p className="text-[12px] text-muted-foreground/60 truncate mb-1.5">{msg}</p>}
+                      {/* Status */}
+                      <div onClick={e => e.stopPropagation()}>
                         <StatusDropdown lead={lead} onChange={handleStatus} />
-                      </td>
-                      <td className="px-3.5 py-2.5 align-middle text-right text-muted-foreground/50 text-[11px] whitespace-nowrap">
-                        {timeAgo(lead.created_at)}
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   )
                 })}
-              </tbody>
-            </table>
+              </div>
+            </>
           )}
 
           {!loading && filtered.length > 0 && (
@@ -595,9 +625,15 @@ function InboundLeadsPage() {
           )}
         </div>
 
-        {/* Detail panel */}
+        {/* Detail panel — full-width on mobile, w-80 sidebar on desktop */}
         {selectedLead && (
-          <div className="w-80 flex-shrink-0 bg-card border border-border rounded-lg shadow-sm overflow-y-auto">
+          <div className="w-full sm:w-80 sm:flex-shrink-0 bg-card border border-border rounded-lg shadow-sm overflow-y-auto">
+            <button
+              onClick={() => setSelectedId(null)}
+              className="sm:hidden flex items-center gap-1.5 px-4 pt-3 pb-1 text-[12px] text-muted-foreground bg-transparent border-0 cursor-pointer"
+            >
+              ← Back to list
+            </button>
             <DetailPanel lead={selectedLead} onStatus={handleStatus} onClose={() => setSelectedId(null)} />
           </div>
         )}

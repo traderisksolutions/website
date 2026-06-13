@@ -79,7 +79,7 @@ export default function CampaignsPage() {
   function closeModal() { setShowModal(false); setCampName(''); setCampPt('General'); setNewsUrl('') }
 
   return (
-    <div className="p-8 max-w-[1100px] mx-auto">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-[1100px] mx-auto">
 
       {/* Header */}
       <div className="flex items-start justify-between mb-6 gap-4">

@@ -876,13 +876,13 @@ function AIDraftPanel({
   return (
     <div style={base}>
       {/* ── Tab navigation ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #dbeafe', padding: '0 12px' }}>
-        <div style={{ display: 'flex' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #dbeafe', padding: '0 12px', flexWrap: 'wrap', minHeight: 38 }}>
+        <div style={{ display: 'flex', flexShrink: 0 }}>
           <button onClick={() => setActiveTab('gdrive')} style={tabBtn('gdrive')}>Draft (GDrive)</button>
           <button onClick={() => setActiveTab('rag')}    style={tabBtn('rag')}>Draft (RAG)</button>
           <button onClick={() => setActiveTab('compose')} style={tabBtn('compose')}>Compose</button>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           {error && <span style={{ fontSize: 11, color: '#ef4444' }}>{error}</span>}
           {activeTab === 'gdrive' && (
             <>

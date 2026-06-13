@@ -320,7 +320,7 @@ export default function OutboundAgentPage() {
   const pagedPeople = people.slice((peoplePage - 1) * PER_PAGE, peoplePage * PER_PAGE)
 
   return (
-    <div className="p-8 max-w-[1140px] mx-auto">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-[1140px] mx-auto">
 
       <div className="mb-5">
         <h1 className="text-xl font-bold tracking-tight text-foreground">Lead Discovery</h1>
@@ -340,7 +340,7 @@ export default function OutboundAgentPage() {
 
       {/* ══ STEP 1: SEARCH ══ */}
       {step === 'search' && (
-        <div className="grid grid-cols-[400px_1fr] gap-5 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-5 items-start">
 
           <Card>
             <CardContent className="p-6">

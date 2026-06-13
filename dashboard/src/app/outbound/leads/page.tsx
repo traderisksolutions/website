@@ -145,7 +145,7 @@ export default function OutboundLeadsPage() {
         </select>
       </div>
 
-      {/* Table */}
+      {/* Content */}
       <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="py-10 text-center text-sm text-muted-foreground">Loading…</div>
@@ -155,140 +155,211 @@ export default function OutboundLeadsPage() {
             <a href="/outbound/search" className="text-foreground font-medium no-underline">Search for prospects →</a>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {['', 'Name', 'Role / Headline', 'Company', 'Location', 'Email', 'Source', 'Status', 'Added'].map(col => (
-                  <TableHead key={col}>{col}</TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <>
+            {/* ── Desktop table (≥640px) ── */}
+            <div className="hidden sm:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {['', 'Name', 'Role / Headline', 'Company', 'Location', 'Email', 'Source', 'Status', 'Added'].map(col => (
+                      <TableHead key={col}>{col}</TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map(lead => {
+                    const expanded = expandedId === lead.id
+                    const s        = STATUS_STYLE[lead.status]
+                    const avatar   = lead.profile_picture ?? lead.logo_url
+                    const date     = new Date(lead.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
+                    return (
+                      <React.Fragment key={lead.id}>
+                        <TableRow onClick={() => setExpandedId(expanded ? null : lead.id)}
+                          className={cn('cursor-pointer', expanded && 'bg-muted/30 hover:bg-muted/30')}
+                        >
+                          <TableCell className="py-2.5 px-2 pl-3.5 w-11">
+                            {avatar ? (
+                              <img src={avatar} alt="" className="w-8 h-8 object-cover bg-muted"
+                                style={{ borderRadius: lead.record_type === 'person' ? '50%' : 6 }} />
+                            ) : (
+                              <div className="w-8 h-8 bg-muted text-[15px] flex items-center justify-center"
+                                style={{ borderRadius: lead.record_type === 'person' ? '50%' : 6 }}>
+                                {lead.record_type === 'person' ? '👤' : '🏢'}
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="min-w-[160px]">
+                            <p className="text-[13px] font-medium text-foreground tracking-tight">{lead.full_name ?? '—'}</p>
+                            {lead.linkedin_url && (
+                              <a href={lead.linkedin_url} target="_blank" rel="noopener noreferrer"
+                                onClick={e => e.stopPropagation()}
+                                className="text-[11px] text-[#0a66c2] no-underline">LinkedIn ↗</a>
+                            )}
+                          </TableCell>
+                          <TableCell className="max-w-[200px]">
+                            <p className="text-[12px] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
+                              {lead.current_title ?? lead.headline ?? lead.company_tagline ?? '—'}
+                            </p>
+                          </TableCell>
+                          <TableCell className="min-w-[140px]">
+                            <p className="text-[12px] text-muted-foreground">{lead.current_company ?? '—'}</p>
+                          </TableCell>
+                          <TableCell className="min-w-[120px]">
+                            <p className="text-[12px] text-muted-foreground/70">{lead.location ?? lead.headquarters ?? '—'}</p>
+                          </TableCell>
+                          <TableCell className="min-w-[180px]">
+                            {lead.email ? (
+                              <a href={`mailto:${lead.email}`} onClick={e => e.stopPropagation()}
+                                className="text-[12px] text-emerald-600 no-underline font-medium">{lead.email}</a>
+                            ) : lead.record_type === 'person' ? (
+                              <span className="text-[12px] text-muted-foreground/30">—</span>
+                            ) : null}
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                              {SOURCE_LABEL[lead.source]}
+                            </span>
+                          </TableCell>
+                          <TableCell onClick={e => e.stopPropagation()}>
+                            <select value={lead.status} onChange={e => updateStatus(lead.id, e.target.value as Status)}
+                              className="text-[11px] font-semibold px-2 py-1 rounded border-0 cursor-pointer"
+                              style={{ background: s.bg, color: s.color }}>
+                              <option value="new">New</option>
+                              <option value="contacted">Contacted</option>
+                              <option value="replied">Replied</option>
+                              <option value="qualified">Qualified</option>
+                              <option value="disqualified">Disqualified</option>
+                            </select>
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <p className="text-[12px] text-muted-foreground/60">{date}</p>
+                          </TableCell>
+                        </TableRow>
+
+                        {expanded && (
+                          <tr className="bg-muted/20 border-b border-border">
+                            <td colSpan={9} className="px-3.5 pb-4 pt-3 pl-14">
+                              <div className="flex gap-8 flex-wrap">
+                                {(lead.headline || lead.company_tagline || lead.current_industry) && (
+                                  <div className="flex-[2] min-w-[200px]">
+                                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Details</p>
+                                    {(lead.headline || lead.company_tagline) && (
+                                      <p className="text-[13px] text-muted-foreground leading-relaxed mb-1.5">{lead.headline ?? lead.company_tagline}</p>
+                                    )}
+                                    {lead.current_industry && <p className="text-[12px] text-muted-foreground/70">Industry: {lead.current_industry}</p>}
+                                    {lead.employee_count && <p className="text-[12px] text-muted-foreground/70 mt-1">Employees: {lead.employee_count.toLocaleString()}</p>}
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-[200px]">
+                                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Notes</p>
+                                  <textarea value={notes[lead.id] ?? ''} onChange={e => setNotes(prev => ({ ...prev, [lead.id]: e.target.value }))}
+                                    placeholder="Add notes…" rows={3}
+                                    className="w-full px-2.5 py-2 text-[12px] text-foreground bg-background border border-border rounded-md resize-y font-sans outline-none focus:ring-1 focus:ring-ring" />
+                                  <button onClick={() => saveNotes(lead.id)} disabled={saving === lead.id}
+                                    className="mt-1.5 px-3.5 py-1.5 text-[12px] font-medium text-foreground bg-background border border-border rounded-md cursor-pointer disabled:opacity-50">
+                                    {saving === lead.id ? 'Saving…' : 'Save Notes'}
+                                  </button>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* ── Mobile card list (<640px) ── */}
+            <div className="sm:hidden divide-y divide-border">
               {filtered.map(lead => {
                 const expanded = expandedId === lead.id
                 const s        = STATUS_STYLE[lead.status]
                 const avatar   = lead.profile_picture ?? lead.logo_url
                 const date     = new Date(lead.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
                 return (
-                  <React.Fragment key={lead.id}>
-                    <TableRow onClick={() => setExpandedId(expanded ? null : lead.id)}
-                      className={cn('cursor-pointer', expanded && 'bg-muted/30 hover:bg-muted/30')}
-                    >
-                      {/* Avatar */}
-                      <TableCell className="py-2.5 px-2 pl-3.5 w-11">
-                        {avatar ? (
-                          <img src={avatar} alt="" className="w-8 h-8 object-cover bg-muted"
-                            style={{ borderRadius: lead.record_type === 'person' ? '50%' : 6 }} />
-                        ) : (
-                          <div className="w-8 h-8 bg-muted text-[15px] flex items-center justify-center"
-                            style={{ borderRadius: lead.record_type === 'person' ? '50%' : 6 }}>
-                            {lead.record_type === 'person' ? '👤' : '🏢'}
-                          </div>
-                        )}
-                      </TableCell>
-                      {/* Name */}
-                      <TableCell className="min-w-[160px]">
-                        <p className="text-[13px] font-medium text-foreground tracking-tight">{lead.full_name ?? '—'}</p>
-                        {lead.linkedin_url && (
-                          <a href={lead.linkedin_url} target="_blank" rel="noopener noreferrer"
-                            onClick={e => e.stopPropagation()}
-                            className="text-[11px] text-[#0a66c2] no-underline">
-                            LinkedIn ↗
-                          </a>
-                        )}
-                      </TableCell>
-                      {/* Role */}
-                      <TableCell className="max-w-[200px]">
-                        <p className="text-[12px] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
+                  <div key={lead.id} className={cn('px-4 py-3', expanded && 'bg-muted/20')}>
+                    {/* Top row: avatar + name + date */}
+                    <div className="flex items-center gap-3 mb-1.5" onClick={() => setExpandedId(expanded ? null : lead.id)}>
+                      {avatar ? (
+                        <img src={avatar} alt="" className="w-9 h-9 flex-shrink-0 object-cover bg-muted"
+                          style={{ borderRadius: lead.record_type === 'person' ? '50%' : 6 }} />
+                      ) : (
+                        <div className="w-9 h-9 flex-shrink-0 bg-muted text-[16px] flex items-center justify-center"
+                          style={{ borderRadius: lead.record_type === 'person' ? '50%' : 6 }}>
+                          {lead.record_type === 'person' ? '👤' : '🏢'}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-semibold text-foreground truncate">{lead.full_name ?? '—'}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">
                           {lead.current_title ?? lead.headline ?? lead.company_tagline ?? '—'}
                         </p>
-                      </TableCell>
-                      {/* Company */}
-                      <TableCell className="min-w-[140px]">
-                        <p className="text-[12px] text-muted-foreground">{lead.current_company ?? '—'}</p>
-                      </TableCell>
-                      {/* Location */}
-                      <TableCell className="min-w-[120px]">
-                        <p className="text-[12px] text-muted-foreground/70">{lead.location ?? lead.headquarters ?? '—'}</p>
-                      </TableCell>
-                      {/* Email */}
-                      <TableCell className="min-w-[180px]">
-                        {lead.email ? (
-                          <a href={`mailto:${lead.email}`} onClick={e => e.stopPropagation()}
-                            className="text-[12px] text-emerald-600 no-underline font-medium">{lead.email}</a>
-                        ) : lead.record_type === 'person' ? (
-                          <span className="text-[12px] text-muted-foreground/30">—</span>
-                        ) : null}
-                      </TableCell>
-                      {/* Source */}
-                      <TableCell>
-                        <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-muted text-muted-foreground">
-                          {SOURCE_LABEL[lead.source]}
-                        </span>
-                      </TableCell>
-                      {/* Status */}
-                      <TableCell onClick={e => e.stopPropagation()}>
-                        <select value={lead.status} onChange={e => updateStatus(lead.id, e.target.value as Status)}
-                          className="text-[11px] font-semibold px-2 py-1 rounded border-0 cursor-pointer"
-                          style={{ background: s.bg, color: s.color }}>
-                          <option value="new">New</option>
-                          <option value="contacted">Contacted</option>
-                          <option value="replied">Replied</option>
-                          <option value="qualified">Qualified</option>
-                          <option value="disqualified">Disqualified</option>
-                        </select>
-                      </TableCell>
-                      {/* Date */}
-                      <TableCell className="whitespace-nowrap">
-                        <p className="text-[12px] text-muted-foreground/60">{date}</p>
-                      </TableCell>
-                    </TableRow>
+                      </div>
+                      <span className="text-[11px] text-muted-foreground/50 flex-shrink-0">{date}</span>
+                    </div>
 
-                    {/* Expanded row */}
-                    {expanded && (
-                      <tr className="bg-muted/20 border-b border-border">
-                        <td colSpan={9} className="px-3.5 pb-4 pt-3 pl-14">
-                          <div className="flex gap-8">
-                            {(lead.headline || lead.company_tagline || lead.current_industry) && (
-                              <div className="flex-[2]">
-                                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Details</p>
-                                {(lead.headline || lead.company_tagline) && (
-                                  <p className="text-[13px] text-muted-foreground leading-relaxed mb-1.5">{lead.headline ?? lead.company_tagline}</p>
-                                )}
-                                {lead.current_industry && (
-                                  <p className="text-[12px] text-muted-foreground/70">Industry: {lead.current_industry}</p>
-                                )}
-                                {lead.employee_count && (
-                                  <p className="text-[12px] text-muted-foreground/70 mt-1">Employees: {lead.employee_count.toLocaleString()}</p>
-                                )}
-                              </div>
-                            )}
-                            <div className="flex-1 min-w-[240px]">
-                              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Notes</p>
-                              <textarea
-                                value={notes[lead.id] ?? ''}
-                                onChange={e => setNotes(prev => ({ ...prev, [lead.id]: e.target.value }))}
-                                placeholder="Add notes…"
-                                rows={3}
-                                className="w-full px-2.5 py-2 text-[12px] text-foreground bg-background border border-border rounded-md resize-y font-sans outline-none focus:ring-1 focus:ring-ring"
-                              />
-                              <button
-                                onClick={() => saveNotes(lead.id)}
-                                disabled={saving === lead.id}
-                                className="mt-1.5 px-3.5 py-1.5 text-[12px] font-medium text-foreground bg-background border border-border rounded-md cursor-pointer disabled:opacity-50"
-                              >
-                                {saving === lead.id ? 'Saving…' : 'Save Notes'}
-                              </button>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
+                    {/* Company + location */}
+                    {(lead.current_company || lead.location || lead.headquarters) && (
+                      <p className="text-[12px] text-muted-foreground mb-1.5 truncate">
+                        {[lead.current_company, lead.location ?? lead.headquarters].filter(Boolean).join(' · ')}
+                      </p>
                     )}
-                  </React.Fragment>
+
+                    {/* Email */}
+                    {lead.email && (
+                      <a href={`mailto:${lead.email}`} className="text-[12px] text-emerald-600 no-underline font-medium block mb-2 truncate">
+                        {lead.email}
+                      </a>
+                    )}
+
+                    {/* Status row */}
+                    <div className="flex items-center gap-2">
+                      <select value={lead.status} onChange={e => updateStatus(lead.id, e.target.value as Status)}
+                        className="text-[11px] font-semibold px-2 py-1 rounded border-0 cursor-pointer flex-1"
+                        style={{ background: s.bg, color: s.color }}>
+                        <option value="new">New</option>
+                        <option value="contacted">Contacted</option>
+                        <option value="replied">Replied</option>
+                        <option value="qualified">Qualified</option>
+                        <option value="disqualified">Disqualified</option>
+                      </select>
+                      <span className="text-[11px] px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                        {SOURCE_LABEL[lead.source]}
+                      </span>
+                      {lead.linkedin_url && (
+                        <a href={lead.linkedin_url} target="_blank" rel="noopener noreferrer"
+                          className="text-[11px] text-[#0a66c2] no-underline">LinkedIn ↗</a>
+                      )}
+                    </div>
+
+                    {/* Expanded notes */}
+                    {expanded && (
+                      <div className="mt-3 pt-3 border-t border-border">
+                        {(lead.headline || lead.current_industry || lead.employee_count) && (
+                          <div className="mb-3">
+                            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Details</p>
+                            {lead.headline && <p className="text-[12px] text-muted-foreground leading-relaxed">{lead.headline}</p>}
+                            {lead.current_industry && <p className="text-[12px] text-muted-foreground/70 mt-1">Industry: {lead.current_industry}</p>}
+                            {lead.employee_count && <p className="text-[12px] text-muted-foreground/70">Employees: {lead.employee_count.toLocaleString()}</p>}
+                          </div>
+                        )}
+                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Notes</p>
+                        <textarea value={notes[lead.id] ?? ''} onChange={e => setNotes(prev => ({ ...prev, [lead.id]: e.target.value }))}
+                          placeholder="Add notes…" rows={3}
+                          className="w-full px-2.5 py-2 text-[12px] text-foreground bg-background border border-border rounded-md resize-y font-sans outline-none focus:ring-1 focus:ring-ring" />
+                        <button onClick={() => saveNotes(lead.id)} disabled={saving === lead.id}
+                          className="mt-1.5 px-3.5 py-1.5 text-[12px] font-medium text-foreground bg-background border border-border rounded-md cursor-pointer disabled:opacity-50">
+                          {saving === lead.id ? 'Saving…' : 'Save Notes'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )
               })}
-            </TableBody>
-          </Table>
+            </div>
+          </>
         )}
       </div>
     </div>

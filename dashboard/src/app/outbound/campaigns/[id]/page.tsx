@@ -226,7 +226,7 @@ export default function CampaignDetailPage() {
   const sc = STATUS_COLORS[campaign.status] ?? STATUS_COLORS.draft
 
   return (
-    <div style={{ padding: '28px 32px', maxWidth: 1000, margin: '0 auto' }}>
+    <div className="px-4 py-5 sm:px-8 sm:py-7" style={{ maxWidth: 1000, margin: '0 auto' }}>
 
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
