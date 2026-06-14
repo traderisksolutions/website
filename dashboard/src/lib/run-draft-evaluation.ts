@@ -169,7 +169,7 @@ Return ONLY valid JSON (no markdown fences, no text outside the JSON):
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents:         [{ parts: [{ text: evalPrompt }] }],
-        generationConfig: { temperature: 0, maxOutputTokens: 512 },
+        generationConfig: { temperature: 0, maxOutputTokens: 1024, responseMimeType: 'application/json' },
       }),
     })
     if (!evalRes.ok) {

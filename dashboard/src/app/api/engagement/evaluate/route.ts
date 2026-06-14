@@ -137,7 +137,7 @@ Return ONLY valid JSON:
 
     const gRes = await fetch(`${GEMINI_URL}?key=${geminiKey}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: evalPrompt }] }], generationConfig: { temperature: 0, maxOutputTokens: 512 } }),
+      body: JSON.stringify({ contents: [{ parts: [{ text: evalPrompt }] }], generationConfig: { temperature: 0, maxOutputTokens: 1024, responseMimeType: 'application/json' } }),
     })
     step(`Gemini call: status=${gRes.status} ok=${gRes.ok}`)
     if (!gRes.ok) { const err = await gRes.text(); step(`Gemini error: ${err.slice(0,300)}`); return NextResponse.json({ ok: false, trace, error: 'Gemini call failed' }) }
