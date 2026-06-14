@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { RefreshCw, CheckCircle, AlertTriangle, RotateCcw } from 'lucide-react'
+import { RefreshCw, CheckCircle, AlertTriangle, RotateCcw, Megaphone, Bot, FileText } from 'lucide-react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
@@ -33,6 +33,70 @@ function LegendRow({ label, color, description }: { label: string; color: string
     </div>
   )
 }
+
+type NamingExample = { filename: string; description: string }
+
+function NamingGuide({
+  folder, color, icon: Icon, purpose, examples,
+}: {
+  folder: string
+  color: string
+  icon: React.ElementType
+  purpose: string
+  examples: NamingExample[]
+}) {
+  return (
+    <Card>
+      <CardContent className="p-5">
+        <div className="flex items-center gap-2.5 mb-3">
+          <div className="flex items-center justify-center rounded-lg flex-shrink-0"
+            style={{ width: 32, height: 32, background: `${color}18`, border: `1px solid ${color}30` }}>
+            <Icon size={16} style={{ color }} strokeWidth={1.8} />
+          </div>
+          <div>
+            <p className="text-[13px] font-semibold text-foreground font-mono">{folder}</p>
+            <p className="text-[11px] text-muted-foreground">{purpose}</p>
+          </div>
+        </div>
+
+        <div className="mb-3 p-3 rounded-md" style={{ background: `${color}08`, border: `1px solid ${color}20` }}>
+          <p className="text-[11px] font-semibold uppercase tracking-widest mb-1.5" style={{ color }}>Naming format</p>
+          <code className="text-[12px] font-mono text-foreground">[category]_[short-description].pdf</code>
+          <p className="text-[11px] text-muted-foreground mt-1">Lowercase · hyphens within words · underscores between parts · no spaces</p>
+        </div>
+
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Examples</p>
+          {examples.map(ex => (
+            <div key={ex.filename} className="flex items-start gap-2.5">
+              <FileText size={12} className="flex-shrink-0 mt-0.5" style={{ color }} strokeWidth={2} />
+              <div>
+                <code className="text-[12px] font-mono text-foreground">{ex.filename}</code>
+                <span className="text-[11px] text-muted-foreground ml-2">— {ex.description}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+const OUTBOUND_EXAMPLES: NamingExample[] = [
+  { filename: 'product_cyber-insurance-overview.pdf',    description: 'Main product sheet for cyber coverage' },
+  { filename: 'product_marine-cargo-summary.pdf',        description: 'Marine cargo product one-pager' },
+  { filename: 'pricing_sme-package-rates-2025.pdf',      description: 'SME bundle pricing guide' },
+  { filename: 'case-study_logistics-firm-renewal.pdf',   description: 'Customer story for outbound context' },
+  { filename: 'company_trs-about-us.pdf',                description: 'TRS company introduction' },
+]
+
+const ENGAGEMENT_EXAMPLES: NamingExample[] = [
+  { filename: 'faq_coverage-types.pdf',                  description: 'Common coverage questions and answers' },
+  { filename: 'faq_claims-process.pdf',                  description: 'How to make a claim' },
+  { filename: 'response_pricing-objections.pdf',         description: 'How to handle pricing pushback' },
+  { filename: 'response_competitor-comparison.pdf',      description: 'Handling competitor comparison questions' },
+  { filename: 'company_trs-credentials.pdf',             description: 'TRS licences, awards, track record' },
+]
 
 export default function RagIndexPage() {
   const [status,   setStatus]   = useState<Status | null>(null)
@@ -80,7 +144,7 @@ export default function RagIndexPage() {
       <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-foreground">RAG Knowledge Index</h1>
-          <p className="text-sm text-muted-foreground mt-1">Google Drive PDFs → vector chunks → Gemini retrieval</p>
+          <p className="text-sm text-muted-foreground mt-1">Google Drive PDFs → vector chunks → AI retrieval</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={loadStatus} disabled={loading} className="gap-1.5">
@@ -99,10 +163,56 @@ export default function RagIndexPage() {
         </div>
       </div>
 
+      {/* Two knowledge bases */}
+      <div className="mb-5">
+        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Two Knowledge Bases</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+          <div className="rounded-lg border p-4" style={{ borderColor: '#2563eb30', background: '#2563eb08' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Megaphone size={14} style={{ color: '#2563eb' }} strokeWidth={2} />
+              <span className="text-[12px] font-semibold text-foreground font-mono">ai-outbound</span>
+            </div>
+            <p className="text-[12px] text-muted-foreground leading-relaxed">
+              Used by the <strong>outbound campaign AI</strong> when drafting cold emails. Upload product sheets, pricing guides, TRS credentials, and case studies here.
+            </p>
+          </div>
+          <div className="rounded-lg border p-4" style={{ borderColor: '#10b98130', background: '#10b98108' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Bot size={14} style={{ color: '#10b981' }} strokeWidth={2} />
+              <span className="text-[12px] font-semibold text-foreground font-mono">engagement_ai_agent</span>
+            </div>
+            <p className="text-[12px] text-muted-foreground leading-relaxed">
+              Used by the <strong>engagement AI agent</strong> when replying to inbound leads. Upload FAQ docs, objection-handling guides, and TRS company information here.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* File naming guide */}
+      <div className="mb-5">
+        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">File Naming Guide</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <NamingGuide
+            folder="ai-outbound/"
+            color="#2563eb"
+            icon={Megaphone}
+            purpose="Outbound campaign knowledge"
+            examples={OUTBOUND_EXAMPLES}
+          />
+          <NamingGuide
+            folder="engagement_ai_agent/"
+            color="#10b981"
+            icon={Bot}
+            purpose="Engagement AI reply knowledge"
+            examples={ENGAGEMENT_EXAMPLES}
+          />
+        </div>
+      </div>
+
       {/* How it works */}
       <Card className="mb-5">
         <CardContent className="p-4">
-          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">How it works</p>
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">How indexing works</p>
           <div className="flex flex-col gap-2.5">
             <LegendRow label="Re-index New Files" color="#2563eb" description="Scans your Google Drive folder. Only processes PDFs that have never been indexed before. Files already in the index are skipped. Use this after uploading new documents." />
             <LegendRow label="Force Re-index All" color="#dc2626" description="Deletes all existing chunks and rebuilds the entire index from scratch. Use this if a file was updated or replaced in Drive, or if results seem stale. Slower — re-processes every PDF." />
@@ -151,7 +261,7 @@ export default function RagIndexPage() {
             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Indexed Files</p>
             <p className="text-[26px] font-bold tracking-tight text-foreground">{loading ? '—' : fileCount}</p>
             <p className={cn('text-[11px] mt-1', overLimit ? 'text-destructive' : 'text-muted-foreground')}>
-              {overLimit ? '⚠ Over recommended 15-file limit' : 'Target: ≤ 15 files'}
+              {overLimit ? '⚠ Over recommended 15-file limit' : 'Target: ≤ 15 files per folder'}
             </p>
           </CardContent>
         </Card>

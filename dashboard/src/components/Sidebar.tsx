@@ -9,7 +9,7 @@ import {
   ChevronRight, ChevronDown, ChevronLeft,
   Bot, Table2, UsersRound,
   LogOut, BookOpen, Cpu, FolderOpen,
-  Telescope, Megaphone, BookMarked, Settings, FlaskConical, Zap,
+  Telescope, Megaphone, Settings, FlaskConical,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -127,8 +127,6 @@ export default function Sidebar() {
           <CollapsedIcon icon={Telescope}  href="/outbound/agent"     isActive={active('/outbound/agent')}     label="Lead Discovery" />
           <CollapsedIcon icon={Table2}     href="/outbound/leads"     isActive={active('/outbound/leads')}     label="Lead Database" />
           <CollapsedIcon icon={Megaphone}  href="/outbound/campaigns" isActive={active('/outbound/campaigns')} label="Campaigns" />
-          <CollapsedIcon icon={BookMarked} href="/outbound/knowledge" isActive={active('/outbound/knowledge')} label="Product Knowledge" />
-          <CollapsedIcon icon={Zap}        href="/outbound/signals"  isActive={active('/outbound/signals')}  label="Signal Library" />
           <CollapsedIcon icon={MessageCircle} href="/outbound/replies" isActive={active('/outbound/replies')} label="Reply Review" />
           <IconDivider />
           <CollapsedIcon icon={Users} href="/contacts"  isActive={active('/contacts')}  label="Active Contacts" hasBadge={totalEngaged > 0} />
@@ -221,9 +219,7 @@ export default function Sidebar() {
             <NavItem label="Lead Discovery"    href="/outbound/agent"     icon={Telescope}  isActive={active('/outbound/agent')} />
             <NavItem label="Lead Database"     href="/outbound/leads"     icon={Table2}     isActive={active('/outbound/leads')} />
             <NavItem label="Campaigns"         href="/outbound/campaigns" icon={Megaphone}  isActive={active('/outbound/campaigns')} />
-            <NavItem label="Product Knowledge" href="/outbound/knowledge" icon={BookMarked} isActive={active('/outbound/knowledge')} />
-            <NavItem label="Signal Library"    href="/outbound/signals"  icon={Zap}           isActive={active('/outbound/signals')} />
-            <NavItem label="Reply Review"      href="/outbound/replies"  icon={MessageCircle} isActive={active('/outbound/replies')} />
+            <NavItem label="Reply Review" href="/outbound/replies" icon={MessageCircle} isActive={active('/outbound/replies')} />
           </div>
         )}
 
