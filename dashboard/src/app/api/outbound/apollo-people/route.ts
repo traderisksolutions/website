@@ -30,7 +30,6 @@ async function promotePersonToLead(person: Record<string, unknown>): Promise<str
     if (lead?.id) return lead.id as string
   }
 
-  // Duplicate — find existing lead by linkedin_url
   if (person.linkedin_url) {
     const encoded = encodeURIComponent(person.linkedin_url as string)
     const findRes = await fetch(
@@ -60,17 +59,25 @@ export async function POST(req: NextRequest) {
     const apolloKey = process.env.APOLLO_API_KEY
     if (!apolloKey) return NextResponse.json({ error: 'APOLLO_API_KEY not configured' }, { status: 500 })
 
-    // Load company rows to get apollo_id
+    // Use select=* so we don't fail if apollo_id column doesn't exist yet
     const compRes = await fetch(
       `${SB_URL}/rest/v1/ob_company_dump?id=in.(${companyIds.join(',')})&select=id,name,apollo_id`,
       { headers: sbHeaders() }
     )
-    const compRows: { id: string; name: string; apollo_id: string | null }[] =
-      compRes.ok ? await compRes.json() : []
+    // Fallback: if apollo_id column missing, select without it
+    let compRows: { id: string; name: string; apollo_id: string | null }[] = []
+    if (compRes.ok) {
+      compRows = await compRes.json()
+    } else {
+      const fallbackRes = await fetch(
+        `${SB_URL}/rest/v1/ob_company_dump?id=in.(${companyIds.join(',')})&select=id,name`,
+        { headers: sbHeaders() }
+      )
+      const rows: { id: string; name: string }[] = fallbackRes.ok ? await fallbackRes.json() : []
+      compRows = rows.map(r => ({ ...r, apollo_id: null }))
+    }
 
-    const allPeople: Record<string, unknown>[] = []
-
-    // Check which people are already saved for these companies to avoid re-fetching
+    // Check which people are already saved for these companies
     const existingRes = await fetch(
       `${SB_URL}/rest/v1/ob_people_dump?search_id=eq.${searchId}&company_id=in.(${companyIds.join(',')})`,
       { headers: sbHeaders() }
@@ -80,15 +87,23 @@ export async function POST(req: NextRequest) {
       Array.isArray(existingPeople) ? existingPeople.map(p => String(p.company_id)) : []
     )
 
+    const allPeople: Record<string, unknown>[] = []
+    const warnings: string[] = []
+    const companiesFetched: string[] = []
+
     for (const comp of compRows) {
-      // If already fetched for this company, use DB data
+      // If already fetched and we have people, return from DB
       if (fetchedCompanyIds.has(comp.id)) {
         const existing = existingPeople.filter(p => String(p.company_id) === comp.id)
         allPeople.push(...existing)
+        companiesFetched.push(comp.id)
         continue
       }
 
-      if (!comp.apollo_id) continue
+      if (!comp.apollo_id) {
+        warnings.push(`${comp.name}: no Apollo ID — run a new search to get people data`)
+        continue
+      }
 
       let apolloPeople: Record<string, unknown>[] = []
       try {
@@ -108,25 +123,31 @@ export async function POST(req: NextRequest) {
         if (res.ok) {
           const data = await res.json()
           apolloPeople = Array.isArray(data.people) ? data.people : []
+        } else {
+          const errText = await res.text().catch(() => '')
+          warnings.push(`${comp.name}: Apollo returned ${res.status} — ${errText.slice(0, 120)}`)
         }
-      } catch { /* skip this company on network error */ }
+      } catch (e) {
+        warnings.push(`${comp.name}: network error — ${e instanceof Error ? e.message : String(e)}`)
+      }
 
-      if (apolloPeople.length === 0) continue
+      if (apolloPeople.length === 0) {
+        warnings.push(`${comp.name}: no people found in Apollo database`)
+        continue
+      }
 
-      // Save to ob_people_dump
       const toInsert = apolloPeople.map(p => ({
-        search_id:        searchId,
-        company_id:       comp.id,
-        company_name:     comp.name,
-        apollo_person_id: (p.id as string) ?? null,
-        first_name:       (p.first_name as string) ?? null,
-        last_name:        (p.last_name as string) ?? null,
-        full_name:        (p.name as string) ?? null,
-        title:            (p.title as string) ?? null,
-        headline:         (p.headline as string) ?? (p.title as string) ?? null,
-        linkedin_url:     (p.linkedin_url as string) ?? null,
-        profile_picture:  (p.photo_url as string) ?? null,
-        location:         [p.city, p.state, p.country].filter(Boolean).join(', ') || null,
+        search_id:       searchId,
+        company_id:      comp.id,
+        company_name:    comp.name,
+        first_name:      (p.first_name as string) ?? null,
+        last_name:       (p.last_name as string) ?? null,
+        full_name:       (p.name as string) ?? null,
+        title:           (p.title as string) ?? null,
+        headline:        (p.headline as string) ?? (p.title as string) ?? null,
+        linkedin_url:    (p.linkedin_url as string) ?? null,
+        profile_picture: (p.photo_url as string) ?? null,
+        location:        [p.city, p.state, p.country].filter(Boolean).join(', ') || null,
       }))
 
       const insertRes = await fetch(`${SB_URL}/rest/v1/ob_people_dump`, {
@@ -134,8 +155,25 @@ export async function POST(req: NextRequest) {
         headers: sbHeaders('return=representation,resolution=ignore-duplicates'),
         body:    JSON.stringify(toInsert),
       })
-      const insertedRows: Record<string, unknown>[] = insertRes.ok ? await insertRes.json() : []
-      allPeople.push(...(Array.isArray(insertedRows) ? insertedRows : []))
+      const insertedRows: Record<string, unknown>[] = insertRes.ok
+        ? await insertRes.json().catch(() => [])
+        : []
+
+      if (insertedRows.length > 0) {
+        allPeople.push(...insertedRows)
+        companiesFetched.push(comp.id)
+      }
+    }
+
+    // Only mark as people_fetched if we actually got people for them
+    if (companiesFetched.length > 0) {
+      await Promise.all(companiesFetched.map((cid: string) =>
+        fetch(`${SB_URL}/rest/v1/ob_company_dump?id=eq.${cid}`, {
+          method:  'PATCH',
+          headers: sbHeaders(),
+          body:    JSON.stringify({ people_fetched: true }),
+        })
+      ))
     }
 
     // Promote to outbound_leads
@@ -152,16 +190,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Mark companies as people_fetched
-    await Promise.all(companyIds.map((cid: string) =>
-      fetch(`${SB_URL}/rest/v1/ob_company_dump?id=eq.${cid}`, {
-        method:  'PATCH',
-        headers: sbHeaders(),
-        body:    JSON.stringify({ people_fetched: true }),
-      })
-    ))
-
-    return NextResponse.json({ people: allPeople })
+    return NextResponse.json({ people: allPeople, warnings })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }

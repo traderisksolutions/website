@@ -176,7 +176,6 @@ export default function OutboundAgentPage() {
   const [sector,          setSector]          = useState('')
   const [locations,       setLocations]       = useState<string[]>(['Singapore'])
   const [headcountRanges, setHeadcountRanges] = useState<string[]>([])
-  const [productType,     setProductType]     = useState('')
   const [cronPref,        setCronPref]        = useState('none')
   const [perPage,         setPerPage]         = useState(10)
 
@@ -229,8 +228,8 @@ export default function OutboundAgentPage() {
   }
 
   async function runSearch() {
-    if (!sector.trim() || !productType || locations.length === 0) {
-      setError('Fill in sector, at least one location, and product type.')
+    if (!sector.trim() || locations.length === 0) {
+      setError('Fill in sector and at least one location.')
       return
     }
     setError(null); setLoading(true); setIsHistory(false)
@@ -241,7 +240,8 @@ export default function OutboundAgentPage() {
       const res  = await fetch('/api/outbound/apollo-search', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          sector: sector.trim(), locations, headcountRanges, productType,
+          sector: sector.trim(), locations, headcountRanges,
+          productType: 'General',
           cronPreference: cronPref === 'none' ? null : cronPref,
           perPage,
         }),
@@ -250,7 +250,7 @@ export default function OutboundAgentPage() {
       if (!res.ok) throw new Error(data.error ?? 'Search failed')
       setCurrentSearch({
         id: data.searchId, sector: sector.trim(), location: locations[0], locations,
-        headcount_ranges: headcountRanges, product_type: productType, roles_targeted: [],
+        headcount_ranges: headcountRanges, product_type: 'General', roles_targeted: [],
         cron_preference: cronPref === 'none' ? null : cronPref,
         company_count: data.companies.length, status: 'completed', created_at: new Date().toISOString(),
       })
@@ -280,12 +280,19 @@ export default function OutboundAgentPage() {
     try {
       const res  = await fetch('/api/outbound/apollo-people', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ searchId: currentSearch.id, companyIds: Array.from(selCompanies), productType: currentSearch.product_type }),
+        body: JSON.stringify({ searchId: currentSearch.id, companyIds: Array.from(selCompanies) }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'People fetch failed')
-      setPeople(Array.isArray(data.people) ? data.people : [])
-      setCompanies(prev => prev.map(c => selCompanies.has(c.id) ? { ...c, people_fetched: true } : c))
+      const people: Record<string, unknown>[] = Array.isArray(data.people) ? data.people : []
+      const warnings: string[] = Array.isArray(data.warnings) ? data.warnings : []
+      setPeople(people as unknown as Person[])
+      if (people.length > 0) {
+        setCompanies(prev => prev.map(c => selCompanies.has(c.id) ? { ...c, people_fetched: true } : c))
+      }
+      if (warnings.length > 0) {
+        setError(warnings.join(' · '))
+      }
       setSelCompanies(new Set()); setPeoplePage(1); setStep('people')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'People fetch failed')
@@ -356,17 +363,6 @@ export default function OutboundAgentPage() {
                 <ChipSelect label="Company Headcount (optional)" options={HEADCOUNT_OPTIONS} selected={headcountRanges} onChange={setHeadcountRanges} />
                 <div>
                   <FormLabel>
-                    Product / Service Type *{' '}
-                    <Tip placement="right" text="Tells the AI which TRS product to pitch in the outreach email. Choose the one that best matches the sector you're targeting." />
-                  </FormLabel>
-                  <select value={productType} onChange={e => setProductType(e.target.value)}
-                    className="w-full h-9 px-3 text-[13px] text-foreground bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-ring">
-                    <option value="">Select type…</option>
-                    {PRODUCT_TYPES.map(pt => <option key={pt.value} value={pt.value}>{pt.label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <FormLabel>
                     Scheduled Run{' '}
                     <Tip placement="right" text="Set how often the AI automatically re-runs this search with the same criteria and adds new companies to the Lead Database." />
                   </FormLabel>
@@ -391,7 +387,7 @@ export default function OutboundAgentPage() {
                 </div>
               </div>
               <Button className="mt-5 w-full gap-1.5" onClick={runSearch}
-                disabled={loading || !sector.trim() || !productType || locations.length === 0}>
+                disabled={loading || !sector.trim() || locations.length === 0}>
                 {loading ? <Loader2 size={13} className="animate-spin" /> : <Search size={13} />}
                 {loading ? 'Searching Apollo…' : 'Run Search'}
               </Button>

@@ -24,14 +24,15 @@ export async function POST(req: NextRequest) {
   try {
     const { sector, locations, headcountRanges, productType, cronPreference, perPage } = await req.json()
 
-    if (!sector || !Array.isArray(locations) || locations.length === 0 || !productType) {
+    if (!sector || !Array.isArray(locations) || locations.length === 0) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
     const apolloKey = process.env.APOLLO_API_KEY
     if (!apolloKey) return NextResponse.json({ error: 'APOLLO_API_KEY not configured' }, { status: 500 })
 
-    const roles        = ROLE_MAP[productType] ?? ['CEO', 'COO', 'Managing Director']
+    const pt           = productType ?? 'General'
+    const roles        = ROLE_MAP[pt] ?? ['CEO', 'COO', 'Managing Director']
     const resultCount  = Math.min(Math.max(1, parseInt(String(perPage ?? 10)) || 10), 100)
     const employeeRanges: string[] = Array.isArray(headcountRanges) && headcountRanges.length > 0
       ? headcountRanges.map((r: string) => HEADCOUNT_MAP[r]).filter(Boolean)
@@ -93,7 +94,7 @@ export async function POST(req: NextRequest) {
       sector,
       location:         locations[0],
       geo_id:           locations[0],
-      product_type:     productType,
+      product_type:     pt,
       roles_targeted:   roles,
       cron_preference:  cronPreference ?? null,
       company_count:    newOrgs.length,
