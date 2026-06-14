@@ -92,6 +92,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const prompt = `You are writing a 3-step cold email outbound sequence for Trade Risk Solutions (TRS), a B2B insurance brokerage in Singapore.
 
+COMPLIANCE GUARDRAILS — mandatory, non-negotiable:
+You must comply with MAS Guidelines on Fair Dealing and Digital Advertising. Generate marketing emails that are clear, fair, balanced and not misleading, and that:
+- Do not guarantee or exaggerate returns or benefits.
+- Present key risks together with benefits in plain language.
+- Avoid any language that pressures, shames or frightens customers into taking action.
+- Do not provide personalised financial advice or product recommendations; instead, encourage readers to seek advice from a licensed financial adviser.
+- Clearly state that investments involve risks, including possible loss of principal, and that past performance is not indicative of future results.
+
+
 TRS sells: business property insurance, liability, cyber, workmen compensation, trade credit, and marine cargo insurance.
 Campaign name / target audience: "${campaign.name}"
 Product focus: ${campaign.product_type ?? 'General'}${briefContext}${newsContext}${sampleContext}${knowledgeContext}
