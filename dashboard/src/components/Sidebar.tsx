@@ -9,7 +9,7 @@ import {
   ChevronRight, ChevronDown, ChevronLeft,
   Bot, Table2, UsersRound,
   LogOut, BookOpen, Cpu, FolderOpen,
-  Telescope, Megaphone, BookMarked, Settings, FlaskConical, Zap, Sparkles,
+  Telescope, Megaphone, BookMarked, Settings, FlaskConical, Zap,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -130,7 +130,6 @@ export default function Sidebar() {
           <CollapsedIcon icon={BookMarked} href="/outbound/knowledge" isActive={active('/outbound/knowledge')} label="Product Knowledge" />
           <CollapsedIcon icon={Zap}        href="/outbound/signals"  isActive={active('/outbound/signals')}  label="Signal Library" />
           <CollapsedIcon icon={MessageCircle} href="/outbound/replies" isActive={active('/outbound/replies')} label="Reply Review" />
-          <CollapsedIcon icon={Sparkles}   href="/outbound/ai-usage" isActive={active('/outbound/ai-usage')} label="AI Usage" />
           <IconDivider />
           <CollapsedIcon icon={Users} href="/contacts"  isActive={active('/contacts')}  label="Active Contacts" hasBadge={totalEngaged > 0} />
           <CollapsedIcon icon={Bot}   href="/engagement" isActive={active('/engagement')} label="Engagement AI Agent" />
@@ -225,7 +224,6 @@ export default function Sidebar() {
             <NavItem label="Product Knowledge" href="/outbound/knowledge" icon={BookMarked} isActive={active('/outbound/knowledge')} />
             <NavItem label="Signal Library"    href="/outbound/signals"  icon={Zap}           isActive={active('/outbound/signals')} />
             <NavItem label="Reply Review"      href="/outbound/replies"  icon={MessageCircle} isActive={active('/outbound/replies')} />
-            <NavItem label="AI Usage"          href="/outbound/ai-usage" icon={Sparkles}      isActive={active('/outbound/ai-usage')} />
           </div>
         )}
 
