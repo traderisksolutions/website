@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { SB_URL, sbHeaders } from '@/lib/sb'
 
-const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const APOLLO = 'https://api.apollo.io/v1'
 
 // AI-style role decision based on employee count + product type
@@ -45,20 +45,53 @@ function decideTitles(employeeCount: number | null, productType: string): string
   return matrix[productType]?.[size] ?? ['CEO', 'COO', 'Managing Director']
 }
 
-function sbHeaders(prefer = 'return=minimal') {
-  const k = process.env.SUPABASE_SERVICE_KEY
-  if (!k) throw new Error('SUPABASE_SERVICE_KEY not set')
-  return {
-    apikey:        k,
-    Authorization: `Bearer ${k}`,
-    'Content-Type': 'application/json',
-    Prefer:        prefer,
-  }
-}
-
 interface CompanyRow {
   id: string; name: string; apollo_id: string | null
   employee_count: number | null; linkedin_url: string | null
+}
+
+async function promotePersonToLead(person: Record<string, unknown>): Promise<string | null> {
+  const leadRes = await fetch(`${SB_URL}/rest/v1/outbound_leads`, {
+    method:  'POST',
+    headers: sbHeaders('return=representation,resolution=ignore-duplicates'),
+    body: JSON.stringify({
+      record_type:     'person',
+      source:          'people_search',
+      linkedin_url:    person.linkedin_url    ?? null,
+      first_name:      person.first_name      ?? null,
+      last_name:       person.last_name       ?? null,
+      full_name:       person.full_name       ?? null,
+      headline:        (person.headline ?? person.title) ?? null,
+      profile_picture: person.profile_picture ?? null,
+      location:        person.location        ?? null,
+      current_title:   (person.headline ?? person.title) ?? null,
+      current_company: person.company_name    ?? null,
+      status:          'new',
+      consent_source:  'public_business_data',
+    }),
+  })
+
+  if (leadRes.ok) {
+    const body = await leadRes.json().catch(() => null)
+    const lead = Array.isArray(body) ? body[0] : body
+    if (lead?.id) return lead.id as string
+  }
+
+  // Duplicate — find existing lead by linkedin_url
+  if (person.linkedin_url) {
+    const encoded = encodeURIComponent(person.linkedin_url as string)
+    const findRes = await fetch(
+      `${SB_URL}/rest/v1/outbound_leads?linkedin_url=eq.${encoded}&select=id&limit=1`,
+      { headers: sbHeaders() }
+    )
+    if (findRes.ok) {
+      const rows = await findRes.json().catch(() => null)
+      const row = Array.isArray(rows) ? rows[0] : null
+      if (row?.id) return row.id as string
+    }
+  }
+
+  return null
 }
 
 // POST /api/outbound/apollo-people
@@ -139,8 +172,22 @@ export async function POST(req: NextRequest) {
         headers: { ...sbHeaders('return=representation'), Prefer: 'return=representation,resolution=ignore-duplicates' },
         body:    JSON.stringify(rows),
       })
-      const inserted = insertRes.ok ? await insertRes.json() : []
+      const inserted: Record<string, unknown>[] = insertRes.ok ? await insertRes.json() : []
       if (Array.isArray(inserted)) allPeople.push(...inserted)
+
+      // Promote each newly inserted person to outbound_leads (without email) immediately
+      for (const insertedPerson of inserted) {
+        if (insertedPerson.outbound_lead_id) continue
+        const leadId = await promotePersonToLead(insertedPerson)
+        if (leadId) {
+          insertedPerson.outbound_lead_id = leadId
+          await fetch(`${SB_URL}/rest/v1/ob_people_dump?id=eq.${insertedPerson.id}`, {
+            method:  'PATCH',
+            headers: sbHeaders(),
+            body:    JSON.stringify({ outbound_lead_id: leadId }),
+          })
+        }
+      }
 
       // Mark company as people_fetched
       await fetch(`${SB_URL}/rest/v1/ob_company_dump?id=eq.${company.id}`, {

@@ -1,35 +1,24 @@
 import { NextResponse } from 'next/server'
 import { getGDriveToken, listDocsInFolder, exportDocText, parseDocName } from '@/lib/gdrive'
-
-const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-
-function sbHeaders(prefer = 'return=minimal') {
-  const k = process.env.SUPABASE_SERVICE_KEY
-  if (!k) throw new Error('SUPABASE_SERVICE_KEY not set')
-  return {
-    apikey:         k,
-    Authorization:  `Bearer ${k}`,
-    'Content-Type': 'application/json',
-    Prefer:         prefer,
-  }
-}
+import { SB_URL, sbHeaders } from '@/lib/sb'
 
 // POST /api/outbound/knowledge/sync
-// Syncs all Google Docs from GDRIVE_KNOWLEDGE_FOLDER_ID into ob_knowledge_base.
+// Syncs Google Docs, TXT, and PDF files from GOOGLE_DRIVE_OUTBOUND_FOLDER_ID into ob_knowledge_base.
+// Uses GOOGLE_SERVICE_ACC_OUTBOUND_JSON service account — isolated from the engagement GDrive.
 // Upserts by gdrive_doc_id — existing entries keep their is_active / sort_order.
 // Returns { synced, errors[] }
 export async function POST() {
-  const folderId = process.env.GDRIVE_KNOWLEDGE_FOLDER_ID
+  const folderId = process.env.GOOGLE_DRIVE_OUTBOUND_FOLDER_ID
   if (!folderId) {
     return NextResponse.json(
-      { error: 'GDRIVE_KNOWLEDGE_FOLDER_ID not set', code: 'GDRIVE_NOT_CONFIGURED' },
+      { error: 'GOOGLE_DRIVE_OUTBOUND_FOLDER_ID not set', code: 'GDRIVE_NOT_CONFIGURED' },
       { status: 501 }
     )
   }
 
-  if (!process.env.GDRIVE_SERVICE_ACCOUNT_KEY) {
+  if (!process.env.GOOGLE_SERVICE_ACC_OUTBOUND_JSON) {
     return NextResponse.json(
-      { error: 'GDRIVE_SERVICE_ACCOUNT_KEY not set', code: 'GDRIVE_NOT_CONFIGURED' },
+      { error: 'GOOGLE_SERVICE_ACC_OUTBOUND_JSON not set', code: 'GDRIVE_NOT_CONFIGURED' },
       { status: 501 }
     )
   }
@@ -64,7 +53,7 @@ export async function POST() {
 
   for (const doc of docs) {
     try {
-      const content                   = await exportDocText(doc.id, token)
+      const content                   = await exportDocText(doc.id, token, doc.mimeType)
       const { productType, title }    = parseDocName(doc.name)
 
       // Upsert by gdrive_doc_id

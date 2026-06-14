@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import React from 'react'
-import { Search } from 'lucide-react'
+import { Search, Loader2 } from 'lucide-react'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 
@@ -54,9 +54,15 @@ export default function OutboundLeadsPage() {
   const [q,             setQ]             = useState('')
   const [statusFilter,  setStatusFilter]  = useState<Status | 'all'>('all')
   const [typeFilter,    setTypeFilter]    = useState<RecordType | 'all'>('all')
-  const [expandedId,    setExpandedId]    = useState<string | null>(null)
-  const [notes,         setNotes]         = useState<Record<string, string>>({})
-  const [saving,        setSaving]        = useState<string | null>(null)
+  const [expandedId,        setExpandedId]        = useState<string | null>(null)
+  const [notes,             setNotes]             = useState<Record<string, string>>({})
+  const [saving,            setSaving]            = useState<string | null>(null)
+  const [fetchingEmailLead, setFetchingEmailLead] = useState<Set<string>>(new Set())
+  const [campaigns,         setCampaigns]         = useState<{ id: string; name: string }[]>([])
+  const [campaignsLoaded,   setCampaignsLoaded]   = useState(false)
+  const [campaignPick,      setCampaignPick]      = useState<Record<string, string>>({})
+  const [addingToCampaign,  setAddingToCampaign]  = useState<string | null>(null)
+  const [addSuccess,        setAddSuccess]        = useState<Record<string, string>>({})
 
   async function load() {
     setLoading(true)
@@ -83,6 +89,22 @@ export default function OutboundLeadsPage() {
     })
   }
 
+  async function fetchEmailForLead(leadId: string) {
+    setFetchingEmailLead(prev => { const n = new Set(prev); n.add(leadId); return n })
+    try {
+      const res  = await fetch('/api/outbound/apollo-email', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId }),
+      })
+      const data = await res.json()
+      if (res.ok && data.results?.[0]?.email) {
+        setLeads(prev => prev.map(l => l.id === leadId ? { ...l, email: data.results[0].email } : l))
+      }
+    } finally {
+      setFetchingEmailLead(prev => { const n = new Set(prev); n.delete(leadId); return n })
+    }
+  }
+
   async function saveNotes(id: string) {
     setSaving(id)
     await fetch('/api/outbound/leads', {
@@ -90,6 +112,32 @@ export default function OutboundLeadsPage() {
       body: JSON.stringify({ id, notes: notes[id] }),
     })
     setSaving(null)
+  }
+
+  async function ensureCampaigns() {
+    if (campaignsLoaded) return
+    const res = await fetch('/api/outbound/campaigns')
+    const data = await res.json()
+    setCampaigns(Array.isArray(data) ? data.map((c: { id: string; name: string }) => ({ id: c.id, name: c.name })) : [])
+    setCampaignsLoaded(true)
+  }
+
+  async function addToCampaign(lead: OutboundLead) {
+    const campaignId = campaignPick[lead.id]
+    if (!campaignId) return
+    setAddingToCampaign(lead.id)
+    try {
+      const sourceType = lead.source === 'people_search' ? 'agent_discovery' : 'manual'
+      const res = await fetch(`/api/outbound/campaigns/${campaignId}/leads`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lead_ids: [lead.id], source_type: sourceType }),
+      })
+      if (res.ok) {
+        const campName = campaigns.find(c => c.id === campaignId)?.name ?? 'campaign'
+        setAddSuccess(prev => ({ ...prev, [lead.id]: `Added to "${campName}"` }))
+        setTimeout(() => setAddSuccess(prev => { const n = { ...prev }; delete n[lead.id]; return n }), 3000)
+      }
+    } finally { setAddingToCampaign(null) }
   }
 
   const filtered = leads.filter(l => {
@@ -174,7 +222,7 @@ export default function OutboundLeadsPage() {
                     const date     = new Date(lead.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
                     return (
                       <React.Fragment key={lead.id}>
-                        <TableRow onClick={() => setExpandedId(expanded ? null : lead.id)}
+                        <TableRow onClick={() => { setExpandedId(expanded ? null : lead.id); ensureCampaigns() }}
                           className={cn('cursor-pointer', expanded && 'bg-muted/30 hover:bg-muted/30')}
                         >
                           <TableCell className="py-2.5 px-2 pl-3.5 w-11">
@@ -212,7 +260,14 @@ export default function OutboundLeadsPage() {
                               <a href={`mailto:${lead.email}`} onClick={e => e.stopPropagation()}
                                 className="text-[12px] text-emerald-600 no-underline font-medium">{lead.email}</a>
                             ) : lead.record_type === 'person' ? (
-                              <span className="text-[12px] text-muted-foreground/30">—</span>
+                              fetchingEmailLead.has(lead.id)
+                                ? <Loader2 size={12} className="animate-spin text-muted-foreground" />
+                                : (
+                                  <button onClick={e => { e.stopPropagation(); fetchEmailForLead(lead.id) }}
+                                    className="text-[11px] px-2 py-0.5 rounded border-0 cursor-pointer bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+                                    Get Email
+                                  </button>
+                                )
                             ) : null}
                           </TableCell>
                           <TableCell>
@@ -260,6 +315,31 @@ export default function OutboundLeadsPage() {
                                     {saving === lead.id ? 'Saving…' : 'Save Notes'}
                                   </button>
                                 </div>
+                                <div className="min-w-[200px]">
+                                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Add to Campaign</p>
+                                  {addSuccess[lead.id] ? (
+                                    <p className="text-[12px] text-emerald-600 font-medium">{addSuccess[lead.id]}</p>
+                                  ) : (
+                                    <div className="flex gap-2 items-center">
+                                      <select
+                                        value={campaignPick[lead.id] ?? ''}
+                                        onChange={e => setCampaignPick(prev => ({ ...prev, [lead.id]: e.target.value }))}
+                                        onClick={e => e.stopPropagation()}
+                                        className="flex-1 h-[30px] px-2 text-[12px] text-foreground bg-background border border-border rounded-md outline-none"
+                                      >
+                                        <option value="">Select campaign…</option>
+                                        {campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                      </select>
+                                      <button
+                                        onClick={e => { e.stopPropagation(); addToCampaign(lead) }}
+                                        disabled={!campaignPick[lead.id] || addingToCampaign === lead.id}
+                                        className="px-3 py-1.5 text-[12px] font-medium text-white bg-foreground rounded-md cursor-pointer disabled:opacity-40 whitespace-nowrap"
+                                      >
+                                        {addingToCampaign === lead.id ? <Loader2 size={12} className="animate-spin" /> : 'Add'}
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </td>
                           </tr>
@@ -281,7 +361,7 @@ export default function OutboundLeadsPage() {
                 return (
                   <div key={lead.id} className={cn('px-4 py-3', expanded && 'bg-muted/20')}>
                     {/* Top row: avatar + name + date */}
-                    <div className="flex items-center gap-3 mb-1.5" onClick={() => setExpandedId(expanded ? null : lead.id)}>
+                    <div className="flex items-center gap-3 mb-1.5" onClick={() => { setExpandedId(expanded ? null : lead.id); ensureCampaigns() }}>
                       {avatar ? (
                         <img src={avatar} alt="" className="w-9 h-9 flex-shrink-0 object-cover bg-muted"
                           style={{ borderRadius: lead.record_type === 'person' ? '50%' : 6 }} />
@@ -308,11 +388,23 @@ export default function OutboundLeadsPage() {
                     )}
 
                     {/* Email */}
-                    {lead.email && (
+                    {lead.email ? (
                       <a href={`mailto:${lead.email}`} className="text-[12px] text-emerald-600 no-underline font-medium block mb-2 truncate">
                         {lead.email}
                       </a>
-                    )}
+                    ) : lead.record_type === 'person' ? (
+                      <div className="mb-2">
+                        {fetchingEmailLead.has(lead.id)
+                          ? <Loader2 size={12} className="animate-spin text-muted-foreground" />
+                          : (
+                            <button onClick={() => fetchEmailForLead(lead.id)}
+                              className="text-[11px] px-2 py-0.5 rounded border-0 cursor-pointer bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+                              Get Email
+                            </button>
+                          )
+                        }
+                      </div>
+                    ) : null}
 
                     {/* Status row */}
                     <div className="flex items-center gap-2">
@@ -334,7 +426,7 @@ export default function OutboundLeadsPage() {
                       )}
                     </div>
 
-                    {/* Expanded notes */}
+                    {/* Expanded notes + campaign */}
                     {expanded && (
                       <div className="mt-3 pt-3 border-t border-border">
                         {(lead.headline || lead.current_industry || lead.employee_count) && (
@@ -353,6 +445,30 @@ export default function OutboundLeadsPage() {
                           className="mt-1.5 px-3.5 py-1.5 text-[12px] font-medium text-foreground bg-background border border-border rounded-md cursor-pointer disabled:opacity-50">
                           {saving === lead.id ? 'Saving…' : 'Save Notes'}
                         </button>
+                        <div className="mt-3 pt-3 border-t border-border">
+                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Add to Campaign</p>
+                          {addSuccess[lead.id] ? (
+                            <p className="text-[12px] text-emerald-600 font-medium">{addSuccess[lead.id]}</p>
+                          ) : (
+                            <div className="flex gap-2">
+                              <select
+                                value={campaignPick[lead.id] ?? ''}
+                                onChange={e => setCampaignPick(prev => ({ ...prev, [lead.id]: e.target.value }))}
+                                className="flex-1 h-[32px] px-2 text-[12px] text-foreground bg-background border border-border rounded-md outline-none"
+                              >
+                                <option value="">Select campaign…</option>
+                                {campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                              </select>
+                              <button
+                                onClick={() => addToCampaign(lead)}
+                                disabled={!campaignPick[lead.id] || addingToCampaign === lead.id}
+                                className="px-3 py-1.5 text-[12px] font-medium text-white bg-foreground rounded-md cursor-pointer disabled:opacity-40 whitespace-nowrap"
+                              >
+                                {addingToCampaign === lead.id ? <Loader2 size={12} className="animate-spin" /> : 'Add'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>

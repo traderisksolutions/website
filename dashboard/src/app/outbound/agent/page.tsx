@@ -164,14 +164,13 @@ export default function OutboundAgentPage() {
   const [emailResults,  setEmailResults]  = useState<EmailResult[]>([])
 
   const [selCompanies, setSelCompanies] = useState<Set<string>>(new Set())
-  const [selPeople,    setSelPeople]    = useState<Set<string>>(new Set())
 
-  const [loading,        setLoading]        = useState(false)
-  const [fetchingPeople, setFetchingPeople] = useState(false)
-  const [error,          setError]          = useState<string | null>(null)
-  const [skipped,        setSkipped]        = useState(0)
-  const [creditModal,    setCreditModal]    = useState(false)
-  const [peoplePage,     setPeoplePage]     = useState(1)
+  const [loading,          setLoading]          = useState(false)
+  const [fetchingPeople,   setFetchingPeople]   = useState(false)
+  const [fetchingEmailFor, setFetchingEmailFor] = useState<Set<string>>(new Set())
+  const [error,            setError]            = useState<string | null>(null)
+  const [skipped,          setSkipped]          = useState(0)
+  const [peoplePage,       setPeoplePage]       = useState(1)
 
   // Form state
   const [sector,          setSector]          = useState('')
@@ -226,7 +225,7 @@ export default function OutboundAgentPage() {
     search:    true,
     companies: !!currentSearch,
     people:    !!currentSearch && people.length > 0,
-    emails:    emailResults.length > 0,
+    emails:    people.some(p => p.email_requested),
   }
 
   async function runSearch() {
@@ -236,7 +235,7 @@ export default function OutboundAgentPage() {
     }
     setError(null); setLoading(true); setIsHistory(false)
     setCompanies([]); setPeople([]); setEmailResults([])
-    setSelCompanies(new Set()); setSelPeople(new Set())
+    setSelCompanies(new Set())
     sessionStorage.removeItem('ob_agent_session')
     try {
       const res  = await fetch('/api/outbound/apollo-search', {
@@ -264,7 +263,7 @@ export default function OutboundAgentPage() {
 
   async function viewHistorySearch(s: SearchRun) {
     setLoading(true); setIsHistory(true); setCurrentSearch(s)
-    setEmailResults([]); setSelCompanies(new Set()); setSelPeople(new Set())
+    setEmailResults([]); setSelCompanies(new Set())
     try {
       const res  = await fetch(`/api/outbound/history?id=${s.id}`)
       const data = await res.json()
@@ -293,27 +292,28 @@ export default function OutboundAgentPage() {
     } finally { setFetchingPeople(false) }
   }
 
-  async function runEmailLookup() {
-    if (!currentSearch || selPeople.size === 0) return
-    setCreditModal(false); setLoading(true); setError(null)
+  async function fetchEmailForPerson(personId: string) {
+    setFetchingEmailFor(prev => { const n = new Set(prev); n.add(personId); return n })
+    setError(null)
     try {
       const res  = await fetch('/api/outbound/apollo-email', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ personIds: Array.from(selPeople) }),
+        body: JSON.stringify({ personIds: [personId] }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Email lookup failed')
       const results: EmailResult[] = Array.isArray(data.results) ? data.results : []
-      setEmailResults(results)
+      setEmailResults(prev => [...prev, ...results.filter(r => !prev.find(e => e.id === r.id))])
       const map = new Map(results.map(r => [r.id, r]))
       setPeople(prev => prev.map(p => {
         const r = map.get(p.id)
         return r ? { ...p, email: r.email, email_status: r.email_status, email_requested: true, outbound_lead_id: r.outbound_lead_id } : p
       }))
-      setSelPeople(new Set()); setStep('emails')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Email lookup failed')
-    } finally { setLoading(false) }
+    } finally {
+      setFetchingEmailFor(prev => { const n = new Set(prev); n.delete(personId); return n })
+    }
   }
 
   const totalPages  = Math.ceil(people.length / PER_PAGE)
@@ -531,77 +531,20 @@ export default function OutboundAgentPage() {
                 From {new Set(people.map(p => p.company_id)).size} companies
               </p>
             </div>
-            {isHistory
-              ? <span className="text-[12px] text-muted-foreground/50 italic">Read-only — history</span>
-              : (
-                <div className="flex items-center gap-2">
-                  <span className="text-[12px] text-muted-foreground">{selPeople.size} selected</span>
-                  <Tip text="Reveals the work email addresses for the selected people via Apollo.io. Each reveal uses one Apollo credit — a confirmation dialog shows you the count before proceeding." />
-                  <Button size="sm" onClick={() => selPeople.size > 0 && setCreditModal(true)} disabled={selPeople.size === 0 || loading} className="gap-1.5" style={{ background: '#1d4ed8' }}>
-                    {loading
-                      ? <><Loader2 size={12} className="animate-spin" /> Looking up…</>
-                      : <><Mail size={12} /> Get Emails ({selPeople.size})</>
-                    }
-                  </Button>
-                </div>
-              )
-            }
+            {isHistory && <span className="text-[12px] text-muted-foreground/50 italic">Read-only — history</span>}
           </div>
-
-          {/* Credit confirm modal */}
-          {creditModal && (
-            <div className="fixed inset-0 bg-black/45 z-[200] flex items-center justify-center">
-              <div className="bg-card border border-border rounded-[14px] p-7 max-w-[420px] w-[90%] shadow-2xl">
-                <p className="text-[16px] font-bold text-foreground mb-2">Confirm Email Lookup</p>
-                <p className="text-[13px] text-muted-foreground leading-[1.65] mb-4">
-                  Looking up emails for <strong className="text-foreground">{selPeople.size} {selPeople.size === 1 ? 'person' : 'people'}</strong> via Apollo.
-                  Each lookup consumes Apollo credits.
-                </p>
-                <div className="bg-amber-50 border border-amber-200 rounded-lg px-3.5 py-2.5 mb-5">
-                  <p className="text-[12px] text-amber-800 leading-relaxed m-0">
-                    Apollo Basic: 30,000 credits/month. Email reveals consume credits even if no email is found.
-                  </p>
-                </div>
-                <div className="flex gap-2.5 justify-end">
-                  <Button variant="outline" size="sm" onClick={() => setCreditModal(false)}>Cancel</Button>
-                  <Button size="sm" onClick={runEmailLookup} className="gap-1.5" style={{ background: '#1d4ed8' }}>
-                    Confirm — Look up {selPeople.size} emails
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
 
           <Card>
             <CardContent className="p-0">
               <table className="w-full border-collapse">
                 <thead>
                   <tr>
-                    {!isHistory && (
-                      <Th w={36}>
-                        <input type="checkbox"
-                          checked={pagedPeople.length > 0 && pagedPeople.every(p => selPeople.has(p.id) || p.email_requested)}
-                          onChange={e => setSelPeople(prev => {
-                            const n = new Set(prev)
-                            pagedPeople.filter(p => !p.email_requested).forEach(p => e.target.checked ? n.add(p.id) : n.delete(p.id))
-                            return n
-                          })}
-                        />
-                      </Th>
-                    )}
                     {['Name', 'Title', 'Company', 'Location', 'Email', 'LinkedIn'].map(h => <Th key={h}>{h}</Th>)}
                   </tr>
                 </thead>
                 <tbody>
                   {pagedPeople.map(p => (
                     <tr key={p.id}>
-                      {!isHistory && (
-                        <Td>
-                          <input type="checkbox" checked={selPeople.has(p.id)} disabled={p.email_requested}
-                            onChange={e => setSelPeople(prev => { const n = new Set(prev); e.target.checked ? n.add(p.id) : n.delete(p.id); return n })}
-                          />
-                        </Td>
-                      )}
                       <Td className="font-medium text-foreground">{p.full_name || '—'}</Td>
                       <Td className="text-muted-foreground max-w-[160px] overflow-hidden text-ellipsis whitespace-nowrap">{p.title || p.headline || '—'}</Td>
                       <Td className="text-muted-foreground">{p.company_name}</Td>
@@ -611,6 +554,15 @@ export default function OutboundAgentPage() {
                           ? <span className="text-emerald-700 font-medium text-[12px]">{p.email}</span>
                           : p.email_requested
                           ? <span className="text-muted-foreground/50 text-[11px]">Not found</span>
+                          : fetchingEmailFor.has(p.id)
+                          ? <Loader2 size={12} className="animate-spin text-muted-foreground" />
+                          : !isHistory
+                          ? (
+                            <button onClick={() => fetchEmailForPerson(p.id)}
+                              className="text-[11px] px-2 py-0.5 rounded border-0 cursor-pointer bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+                              Get Email
+                            </button>
+                          )
                           : <span className="text-muted-foreground/20 text-[11px]">—</span>
                         }
                       </Td>
@@ -645,7 +597,7 @@ export default function OutboundAgentPage() {
             </CardContent>
           </Card>
 
-          {emailResults.length > 0 && (
+          {people.some(p => p.email_requested) && (
             <div className="mt-3.5 flex justify-end">
               <Button onClick={() => setStep('emails')} className="gap-1.5">
                 <Mail size={12} /> View email results →

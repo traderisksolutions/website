@@ -1,16 +1,5 @@
 import { NextResponse } from 'next/server'
-
-const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-
-function sbHeaders() {
-  const k = process.env.SUPABASE_SERVICE_KEY
-  if (!k) throw new Error('SUPABASE_SERVICE_KEY not set')
-  return {
-    apikey:        k,
-    Authorization: `Bearer ${k}`,
-    'Content-Type': 'application/json',
-  }
-}
+import { SB_URL, sbHeaders } from '@/lib/sb'
 
 // GET /api/outbound/history           → search log (last 30 days)
 // GET /api/outbound/history?id=<uuid> → companies + people for that search
@@ -32,7 +21,6 @@ export async function GET(req: Request) {
       })
     }
 
-    // Return last 30 days of searches
     const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
     const res = await fetch(
       `${SB_URL}/rest/v1/ob_search_log?created_at=gte.${cutoff}&order=created_at.desc&limit=100`,

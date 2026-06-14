@@ -1,28 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { SB_URL, sbHeaders, logEvent } from '@/lib/sb'
 
-const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-const INSTANTLY_API = 'https://api.instantly.ai/api/v1'
+const DEFAULT_OPS_EMAIL = 'operations@trade-risksol.com'
 
-function sbHeaders(prefer = 'return=minimal') {
-  const k = process.env.SUPABASE_SERVICE_KEY
-  if (!k) throw new Error('SUPABASE_SERVICE_KEY not set')
-  return {
-    apikey:        k,
-    Authorization: `Bearer ${k}`,
-    'Content-Type': 'application/json',
-    Prefer:        prefer,
+async function getOpsEmail(): Promise<string> {
+  try {
+    const k = process.env.SUPABASE_SERVICE_KEY
+    if (!k) return DEFAULT_OPS_EMAIL
+    const res = await fetch(
+      `${SB_URL}/rest/v1/app_settings?key=eq.reply_from_email&select=value&limit=1`,
+      { headers: { apikey: k, Authorization: `Bearer ${k}` }, cache: 'no-store' }
+    )
+    const rows = res.ok ? await res.json() : []
+    const val  = Array.isArray(rows) ? rows[0]?.value : null
+    return (typeof val === 'string' && val.includes('@')) ? val : DEFAULT_OPS_EMAIL
+  } catch {
+    return DEFAULT_OPS_EMAIL
   }
-}
-
-function instantlyHeaders() {
-  const k = process.env.INSTANTLY_API_KEY
-  if (!k) throw new Error('INSTANTLY_API_KEY not configured')
-  return { 'Content-Type': 'application/json', Authorization: `Bearer ${k}` }
 }
 
 // POST /api/outbound/campaigns/[id]/launch
 // Body: { leadIds: string[] }
-// Pushes approved sequences + leads to Instantly, marks campaign active
+// Queues approved leads for staggered Gmail delivery via the hourly cron.
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id }      = await params
@@ -32,109 +31,95 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'leadIds required' }, { status: 400 })
     }
 
-    const instantlyKey = process.env.INSTANTLY_API_KEY
-    if (!instantlyKey) {
-      return NextResponse.json({
-        error: 'INSTANTLY_API_KEY not configured. Add your Instantly API key to environment variables.',
-        code:  'INSTANTLY_NOT_CONFIGURED',
-      }, { status: 501 })
-    }
-
-    // Load campaign + approved sequences + leads
-    const [campRes, seqRes, leadsRes] = await Promise.all([
-      fetch(`${SB_URL}/rest/v1/ob_campaigns?id=eq.${id}`, { headers: sbHeaders() }),
-      fetch(`${SB_URL}/rest/v1/ob_campaign_sequences?campaign_id=eq.${id}&status=eq.approved&order=step_number.asc`, { headers: sbHeaders() }),
-      fetch(`${SB_URL}/rest/v1/outbound_leads?id=in.(${leadIds.join(',')})&opt_out=eq.false&select=*`, { headers: sbHeaders() }),
-    ])
-
+    // Load campaign
+    const campRes = await fetch(`${SB_URL}/rest/v1/ob_campaigns?id=eq.${id}`, { headers: sbHeaders() })
     const [campaign] = campRes.ok ? await campRes.json() : [null]
     if (!campaign) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
 
-    const sequences: { id: string; step_number: number; subject: string; body: string; delay_days: number }[]
-      = seqRes.ok ? await seqRes.json() : []
+    // Load valid leads (must have email and not opted out)
+    const leadsRes = await fetch(
+      `${SB_URL}/rest/v1/outbound_leads?id=in.(${leadIds.join(',')})&opt_out=eq.false&select=id,email,first_name,full_name,current_company`,
+      { headers: sbHeaders() }
+    )
+    const allLeads: { id: string; email: string | null }[] = leadsRes.ok ? await leadsRes.json() : []
+    const validLeads = allLeads.filter(l => l.email)
 
-    if (sequences.length === 0) {
-      return NextResponse.json({ error: 'No approved sequences. Approve all steps before launching.' }, { status: 400 })
-    }
-
-    const leads: { id: string; email: string | null; full_name: string | null; first_name: string | null; current_company: string | null }[]
-      = leadsRes.ok ? await leadsRes.json() : []
-
-    const validLeads = leads.filter(l => l.email)
     if (validLeads.length === 0) {
-      return NextResponse.json({ error: 'No leads with valid emails' }, { status: 400 })
+      return NextResponse.json({ error: 'No leads with valid emails. Add emails before launching.' }, { status: 400 })
     }
 
-    // Create Instantly campaign
-    const instCampRes = await fetch(`${INSTANTLY_API}/campaign/create`, {
-      method:  'POST',
-      headers: instantlyHeaders(),
-      body:    JSON.stringify({
-        name:          campaign.name,
-        campaign_type: 'email',
-        sequences: [{
-          steps: sequences.map((s, i) => ({
-            type:    'email',
-            subject: s.subject,
-            body:    s.body,
-            delay:   i === 0 ? 0 : s.delay_days * 24 * 60, // step 1 sends immediately; subsequent steps use delay in minutes
-          })),
-        }],
-      }),
-    })
+    // Load approved sequence steps
+    let steps: { subject: string; body: string; delay_days: number }[]
 
-    if (!instCampRes.ok) {
-      const err = await instCampRes.text()
-      return NextResponse.json({ error: `Instantly campaign creation failed: ${err}` }, { status: 502 })
+    if (campaign.variant_mode) {
+      const varRes = await fetch(
+        `${SB_URL}/rest/v1/ob_sequence_variants?campaign_id=eq.${id}&status=eq.approved&order=created_at.asc&limit=1`,
+        { headers: sbHeaders() }
+      )
+      const variants: { id: string }[] = varRes.ok ? await varRes.json() : []
+      if (!Array.isArray(variants) || variants.length === 0) {
+        return NextResponse.json({
+          error: 'No approved variants. Approve at least one variant in the Variants tab before launching.',
+        }, { status: 400 })
+      }
+      const stepsRes = await fetch(
+        `${SB_URL}/rest/v1/ob_sequence_variant_steps?variant_id=eq.${variants[0].id}&order=step_number.asc`,
+        { headers: sbHeaders() }
+      )
+      steps = stepsRes.ok ? await stepsRes.json() : []
+    } else {
+      const seqRes = await fetch(
+        `${SB_URL}/rest/v1/ob_campaign_sequences?campaign_id=eq.${id}&status=eq.approved&order=step_number.asc`,
+        { headers: sbHeaders() }
+      )
+      steps = seqRes.ok ? await seqRes.json() : []
     }
 
-    const instCamp = await instCampRes.json()
-    const instantlyCampaignId: string = instCamp.id
+    if (!Array.isArray(steps) || steps.length === 0) {
+      return NextResponse.json({ error: 'No approved sequence steps. Approve all steps before launching.' }, { status: 400 })
+    }
 
-    // Add leads to Instantly campaign
-    const contactsPayload = validLeads.map(l => ({
-      email:        l.email,
-      first_name:   l.first_name ?? l.full_name?.split(' ')[0] ?? '',
-      company_name: l.current_company ?? '',
-    }))
+    const fromEmail  = await getOpsEmail()
+    const now        = new Date().toISOString()
+    const validIds   = validLeads.map(l => l.id)
 
-    await fetch(`${INSTANTLY_API}/lead/add`, {
-      method:  'POST',
-      headers: instantlyHeaders(),
-      body:    JSON.stringify({ campaign_id: instantlyCampaignId, leads: contactsPayload }),
-    })
+    // Queue all leads: cron picks up 30/hour, providing natural stagger
+    await fetch(
+      `${SB_URL}/rest/v1/ob_campaign_leads?campaign_id=eq.${id}&lead_id=in.(${validIds.join(',')})&approval_status=eq.included`,
+      {
+        method:  'PATCH',
+        headers: sbHeaders(),
+        body:    JSON.stringify({
+          send_status:       'queued',
+          current_step:      0,
+          send_scheduled_at: now,
+          from_email:        fromEmail,
+          metadata:          { steps },
+          last_synced_at:    now,
+        }),
+      }
+    )
 
-    // Create ob_campaign_sends records for step 1
-    const step1 = sequences[0]
-    const sendRows = validLeads.map(l => ({
-      campaign_id:      id,
-      sequence_id:      step1.id,
-      outbound_lead_id: l.id,
-      status:           'pending',
-    }))
-
-    await fetch(`${SB_URL}/rest/v1/ob_campaign_sends`, {
-      method:  'POST',
-      headers: { ...sbHeaders(), Prefer: 'return=minimal,resolution=ignore-duplicates' },
-      body:    JSON.stringify(sendRows),
-    })
-
-    // Update campaign status + Instantly ID
     await fetch(`${SB_URL}/rest/v1/ob_campaigns?id=eq.${id}`, {
       method:  'PATCH',
       headers: sbHeaders(),
-      body:    JSON.stringify({
-        status:                'active',
-        instantly_campaign_id: instantlyCampaignId,
-        sent_count:            validLeads.length,
-      }),
+      body:    JSON.stringify({ status: 'active', sent_count: validLeads.length }),
     })
 
-    return NextResponse.json({
-      success:              true,
-      instantlyCampaignId,
-      leadsQueued:          validLeads.length,
+    await logEvent({
+      event_type:  'launch_started',
+      entity_type: 'campaign',
+      entity_id:   id,
+      campaign_id: id,
+      payload: {
+        leads_queued: validLeads.length,
+        variant_mode: campaign.variant_mode ?? false,
+        sender:       'gmail',
+        from_email:   fromEmail,
+      },
     })
+
+    return NextResponse.json({ success: true, leadsQueued: validLeads.length })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }

@@ -228,12 +228,50 @@ async function getNewMessageIds(token: string): Promise<string[]> {
   return (listData.messages ?? []).map((m: { id: string }) => m.id)
 }
 
-// If the sender is an outbound campaign lead, tag the thread with campaign context.
+// If the sender is an outbound campaign lead, tag the thread and mark the lead as replied.
 // Non-blocking — called fire-and-forget inside ingestMessage. Never throws.
 async function tagThreadWithCampaignContext(email: string, threadId: string): Promise<void> {
   const h = sbHeaders('return=minimal')
 
-  // Is this email in outbound_leads?
+  // Check if this Gmail thread was sent by our outbound cron (ob_campaign_leads.gmail_thread_id)
+  const obLeadRes = await fetch(
+    `${SB_URL}/rest/v1/ob_campaign_leads?gmail_thread_id=eq.${encodeURIComponent(threadId)}&select=id,campaign_id,send_status&limit=1`,
+    { headers: h, cache: 'no-store' }
+  )
+  const obLeads: { id: string; campaign_id: string; send_status: string }[] = obLeadRes.ok ? await obLeadRes.json() : []
+
+  if (obLeads.length > 0 && obLeads[0].send_status !== 'replied') {
+    // Mark the lead as replied
+    await fetch(`${SB_URL}/rest/v1/ob_campaign_leads?id=eq.${obLeads[0].id}`, {
+      method:  'PATCH',
+      headers: h,
+      body:    JSON.stringify({ send_status: 'replied' }),
+    })
+
+    // Tag the thread with campaign context
+    const campRes = await fetch(
+      `${SB_URL}/rest/v1/ob_campaigns?id=eq.${obLeads[0].campaign_id}&select=name,product_type&limit=1`,
+      { headers: h, cache: 'no-store' }
+    )
+    const camps: { name: string; product_type: string }[] = campRes.ok ? await campRes.json() : []
+    if (camps.length) {
+      await fetch(`${SB_URL}/rest/v1/email_threads?id=eq.${threadId}`, {
+        method:  'PATCH',
+        headers: h,
+        body:    JSON.stringify({
+          campaign_context: {
+            campaign_id:      obLeads[0].campaign_id,
+            campaign_name:    camps[0].name,
+            product_type:     camps[0].product_type ?? 'General',
+          },
+        }),
+      })
+      console.log('[ingest] outbound reply detected on thread', threadId, '→', camps[0].name)
+    }
+    return
+  }
+
+  // Fallback: check by sender email in outbound_leads (for non-Gmail-tracked campaigns)
   const leadRes = await fetch(
     `${SB_URL}/rest/v1/outbound_leads?email=eq.${encodeURIComponent(email)}&select=id&limit=1`,
     { headers: h, cache: 'no-store' }
@@ -242,40 +280,38 @@ async function tagThreadWithCampaignContext(email: string, threadId: string): Pr
   if (!leads.length) return
 
   const leadId = leads[0].id
-
-  // Does this lead have any campaign sends?
-  const sendRes = await fetch(
-    `${SB_URL}/rest/v1/ob_campaign_sends?outbound_lead_id=eq.${leadId}&select=campaign_id,sequence_id&order=created_at.desc&limit=1`,
+  const clRes = await fetch(
+    `${SB_URL}/rest/v1/ob_campaign_leads?lead_id=eq.${leadId}&send_status=in.(queued,sent)&select=id,campaign_id&order=created_at.desc&limit=1`,
     { headers: h, cache: 'no-store' }
   )
-  const sends: { campaign_id: string; sequence_id: string }[] = sendRes.ok ? await sendRes.json() : []
-  if (!sends.length) return
+  const cls: { id: string; campaign_id: string }[] = clRes.ok ? await clRes.json() : []
+  if (!cls.length) return
 
-  const { campaign_id, sequence_id } = sends[0]
+  await fetch(`${SB_URL}/rest/v1/ob_campaign_leads?id=eq.${cls[0].id}`, {
+    method:  'PATCH',
+    headers: h,
+    body:    JSON.stringify({ send_status: 'replied' }),
+  })
 
-  // Fetch campaign name + product type + step number in parallel
-  const [campRes, seqRes] = await Promise.all([
-    fetch(`${SB_URL}/rest/v1/ob_campaigns?id=eq.${campaign_id}&select=name,product_type&limit=1`, { headers: h, cache: 'no-store' }),
-    fetch(`${SB_URL}/rest/v1/ob_campaign_sequences?id=eq.${sequence_id}&select=step_number&limit=1`, { headers: h, cache: 'no-store' }),
-  ])
+  const campRes = await fetch(
+    `${SB_URL}/rest/v1/ob_campaigns?id=eq.${cls[0].campaign_id}&select=name,product_type&limit=1`,
+    { headers: h, cache: 'no-store' }
+  )
   const camps: { name: string; product_type: string }[] = campRes.ok ? await campRes.json() : []
   if (!camps.length) return
-  const seqs: { step_number: number }[] = seqRes.ok ? await seqRes.json() : []
-
-  const ctx = {
-    campaign_id,
-    campaign_name:    camps[0].name,
-    product_type:     camps[0].product_type ?? 'General',
-    step_replied_to:  seqs[0]?.step_number ?? null,
-    outbound_lead_id: leadId,
-  }
 
   await fetch(`${SB_URL}/rest/v1/email_threads?id=eq.${threadId}`, {
     method:  'PATCH',
     headers: h,
-    body:    JSON.stringify({ campaign_context: ctx }),
+    body:    JSON.stringify({
+      campaign_context: {
+        campaign_id:   cls[0].campaign_id,
+        campaign_name: camps[0].name,
+        product_type:  camps[0].product_type ?? 'General',
+      },
+    }),
   })
-  console.log('[ingest] campaign context tagged on thread', threadId, '→', ctx.campaign_name)
+  console.log('[ingest] outbound reply (email match) on thread', threadId, '→', camps[0].name)
 }
 
 // Core: ingest a single Gmail message into the database

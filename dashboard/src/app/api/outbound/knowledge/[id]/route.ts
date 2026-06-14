@@ -1,17 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-
-function sbHeaders(prefer = 'return=minimal') {
-  const k = process.env.SUPABASE_SERVICE_KEY
-  if (!k) throw new Error('SUPABASE_SERVICE_KEY not set')
-  return {
-    apikey:         k,
-    Authorization:  `Bearer ${k}`,
-    'Content-Type': 'application/json',
-    Prefer:         prefer,
-  }
-}
+import { SB_URL, sbHeaders } from '@/lib/sb'
 
 // PATCH /api/outbound/knowledge/[id]
 // Body: any subset of { product_type, title, content, is_active, sort_order }

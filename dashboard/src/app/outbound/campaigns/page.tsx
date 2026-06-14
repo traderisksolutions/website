@@ -41,11 +41,12 @@ export default function CampaignsPage() {
 
   const PRODUCT_TYPES = ['Business Assets', 'Business Liabilities', 'Workforce', 'API', 'General'] as const
 
-  const [showModal, setShowModal] = useState(false)
-  const [campName,  setCampName]  = useState('')
-  const [campPt,    setCampPt]    = useState('General')
-  const [newsUrl,   setNewsUrl]   = useState('')
-  const [creating,  setCreating]  = useState(false)
+  const [showModal,    setShowModal]    = useState(false)
+  const [campName,     setCampName]     = useState('')
+  const [campPt,       setCampPt]       = useState('General')
+  const [newsUrl,      setNewsUrl]      = useState('')
+  const [variantMode,  setVariantMode]  = useState(false)
+  const [creating,     setCreating]     = useState(false)
 
   const loadCampaigns = useCallback(async () => {
     try {
@@ -65,7 +66,7 @@ export default function CampaignsPage() {
     try {
       const res  = await fetch('/api/outbound/campaigns', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: campName.trim(), productType: campPt, leadIds: ['placeholder'], newsUrl: newsUrl.trim() || null }),
+        body: JSON.stringify({ name: campName.trim(), productType: campPt, variant_mode: variantMode, newsUrl: newsUrl.trim() || null }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Failed to create')
@@ -76,7 +77,7 @@ export default function CampaignsPage() {
     } finally { setCreating(false) }
   }
 
-  function closeModal() { setShowModal(false); setCampName(''); setCampPt('General'); setNewsUrl('') }
+  function closeModal() { setShowModal(false); setCampName(''); setCampPt('General'); setNewsUrl(''); setVariantMode(false) }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-[1100px] mx-auto">
@@ -192,6 +193,16 @@ export default function CampaignsPage() {
                   onChange={e => setNewsUrl(e.target.value)}
                 />
               </div>
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={variantMode}
+                  onChange={e => setVariantMode(e.target.checked)}
+                  className="cursor-pointer"
+                />
+                <span className="text-[13px] text-foreground">Enable A/B variant mode</span>
+                <span className="text-[11px] text-muted-foreground">(generate and test multiple sequence variants)</span>
+              </label>
               <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
                 You&apos;ll select leads and generate AI drafts on the next screen.
               </p>

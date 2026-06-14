@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { SB_URL, sbHeaders } from '@/lib/sb'
 
-const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const APOLLO = 'https://api.apollo.io/v1'
 
 // Maps UI headcount chip values → Apollo employee_ranges format
@@ -18,17 +18,6 @@ const ROLE_MAP: Record<string, string[]> = {
   workforce:   ['CEO', 'COO', 'HR Director', 'Chief People Officer', 'Head of HR'],
 }
 
-function sbHeaders(returnRepresentation = false) {
-  const k = process.env.SUPABASE_SERVICE_KEY
-  if (!k) throw new Error('SUPABASE_SERVICE_KEY not set')
-  return {
-    apikey:        k,
-    Authorization: `Bearer ${k}`,
-    'Content-Type': 'application/json',
-    Prefer:        returnRepresentation ? 'return=representation' : 'return=minimal',
-  }
-}
-
 // POST /api/outbound/apollo-search
 // Body: { sector, locations: string[], headcountRanges: string[], productType, cronPreference? }
 export async function POST(req: NextRequest) {
@@ -44,12 +33,10 @@ export async function POST(req: NextRequest) {
 
     const roles = ROLE_MAP[productType] ?? ['CEO', 'COO', 'Managing Director']
 
-    // Build Apollo employee ranges filter
     const employeeRanges: string[] = Array.isArray(headcountRanges) && headcountRanges.length > 0
-      ? headcountRanges.map(r => HEADCOUNT_MAP[r]).filter(Boolean)
+      ? headcountRanges.map((r: string) => HEADCOUNT_MAP[r]).filter(Boolean)
       : []
 
-    // Apollo company search
     const apolloBody: Record<string, unknown> = {
       q_organization_keyword_tags: [sector],
       organization_locations:      locations,
@@ -86,7 +73,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Apollo returned no companies. Try different criteria.' }, { status: 422 })
     }
 
-    // Deduplicate against ob_company_dump + outbound_leads
     const [dumpRes, leadsRes] = await Promise.all([
       fetch(`${SB_URL}/rest/v1/ob_company_dump?select=name`, { headers: sbHeaders() }),
       fetch(`${SB_URL}/rest/v1/outbound_leads?select=current_company&record_type=eq.person`, { headers: sbHeaders() }),
@@ -103,10 +89,9 @@ export async function POST(req: NextRequest) {
     const newCompanies = rawCompanies.filter(c => !existingNames.has(c.name.toLowerCase()))
     const skipped      = rawCompanies.length - newCompanies.length
 
-    // Save search log
     const logRes = await fetch(`${SB_URL}/rest/v1/ob_search_log`, {
       method:  'POST',
-      headers: sbHeaders(true),
+      headers: sbHeaders('return=representation'),
       body:    JSON.stringify({
         sector,
         location:         locations[0],
@@ -123,27 +108,25 @@ export async function POST(req: NextRequest) {
     if (!logRes.ok) return NextResponse.json({ error: 'Failed to save search log' }, { status: 500 })
     const [searchLog] = await logRes.json()
 
-    // Insert companies with Apollo data
     if (newCompanies.length > 0) {
       await fetch(`${SB_URL}/rest/v1/ob_company_dump`, {
         method:  'POST',
-        headers: { ...sbHeaders(), Prefer: 'return=minimal,resolution=ignore-duplicates' },
+        headers: sbHeaders('return=minimal,resolution=ignore-duplicates'),
         body:    JSON.stringify(
           newCompanies.map((c, i) => ({
-            search_id:     searchLog.id,
-            name:          c.name,
-            source_rank:   i + 1,
-            apollo_id:     c.id ?? null,
-            website:       c.website_url ?? null,
+            search_id:      searchLog.id,
+            name:           c.name,
+            source_rank:    i + 1,
+            apollo_id:      c.id ?? null,
+            website:        c.website_url ?? null,
             employee_count: c.estimated_num_employees ?? null,
-            industry:      c.industry ?? null,
-            linkedin_url:  c.linkedin_url ?? null,
+            industry:       c.industry ?? null,
+            linkedin_url:   c.linkedin_url ?? null,
           }))
         ),
       })
     }
 
-    // Return inserted companies
     const companiesRes = await fetch(
       `${SB_URL}/rest/v1/ob_company_dump?search_id=eq.${searchLog.id}&order=source_rank.asc`,
       { headers: sbHeaders() }

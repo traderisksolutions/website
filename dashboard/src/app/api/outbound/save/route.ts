@@ -1,16 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-
-function sbHeaders() {
-  const k = process.env.SUPABASE_SERVICE_KEY!
-  return {
-    apikey:         k,
-    Authorization:  `Bearer ${k}`,
-    'Content-Type': 'application/json',
-    Prefer:         'return=representation,resolution=merge-duplicates',
-  }
-}
+import { SB_URL, sbHeaders } from '@/lib/sb'
 
 // POST /api/outbound/save  { record: object }
 // Upserts a lead (from search results) into outbound_leads.
@@ -22,7 +11,11 @@ export async function POST(req: NextRequest) {
 
     const res = await fetch(
       `${SB_URL}/rest/v1/outbound_leads?on_conflict=linkedin_url`,
-      { method: 'POST', headers: sbHeaders(), body: JSON.stringify(record) }
+      {
+        method:  'POST',
+        headers: sbHeaders('return=representation,resolution=merge-duplicates'),
+        body:    JSON.stringify(record),
+      }
     )
     if (!res.ok) {
       const body = await res.text()

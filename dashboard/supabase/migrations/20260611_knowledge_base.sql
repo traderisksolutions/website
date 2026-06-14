@@ -44,6 +44,7 @@ CREATE OR REPLACE TRIGGER ob_knowledge_updated_at
 -- 5. RLS
 ALTER TABLE public.ob_knowledge_base ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "staff_ob_knowledge" ON public.ob_knowledge_base;
 CREATE POLICY "staff_ob_knowledge" ON public.ob_knowledge_base
   USING (auth.role() = 'authenticated');
 

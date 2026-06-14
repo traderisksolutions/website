@@ -1,10 +1,10 @@
 // Google Drive service account auth + file read helpers.
-// Requires GDRIVE_SERVICE_ACCOUNT_KEY (JSON string of the service account key file)
+// Requires GOOGLE_SERVICE_ACC_OUTBOUND_JSON (JSON string of the service account key file)
 // and that the Drive folder is shared with the service account email.
 
 export async function getGDriveToken(): Promise<string> {
-  const raw = process.env.GDRIVE_SERVICE_ACCOUNT_KEY
-  if (!raw) throw new Error('GDRIVE_SERVICE_ACCOUNT_KEY not set')
+  const raw = process.env.GOOGLE_SERVICE_ACC_OUTBOUND_JSON
+  if (!raw) throw new Error('GOOGLE_SERVICE_ACC_OUTBOUND_JSON not set')
 
   const sa = JSON.parse(raw) as {
     client_email: string
@@ -42,25 +42,60 @@ export async function getGDriveToken(): Promise<string> {
   return access_token as string
 }
 
+export type DriveFile = { id: string; name: string; modifiedTime: string; mimeType: string }
+
 export async function listDocsInFolder(
   folderId: string, token: string
-): Promise<Array<{ id: string; name: string; modifiedTime: string }>> {
-  const q = encodeURIComponent(
-    `'${folderId}' in parents and mimeType='application/vnd.google-apps.document' and trashed=false`
-  )
+): Promise<DriveFile[]> {
+  const mimes = [
+    "application/vnd.google-apps.document",
+    "text/plain",
+    "application/pdf",
+  ].map(m => `mimeType='${m}'`).join(' or ')
+  const q = encodeURIComponent(`'${folderId}' in parents and (${mimes}) and trashed=false`)
   const res = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime)&pageSize=200`,
+    `https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime,mimeType)&pageSize=200`,
     { headers: { Authorization: `Bearer ${token}` } }
   )
   if (!res.ok) throw new Error(`Drive list error: ${await res.text()}`)
   const data = await res.json()
-  return (data.files ?? []) as Array<{ id: string; name: string; modifiedTime: string }>
+  return (data.files ?? []) as DriveFile[]
 }
 
-export async function exportDocText(fileId: string, token: string): Promise<string> {
+// Exports/downloads file content as plain text.
+// Google Docs → export API; TXT → direct download; PDF → export as text (works for text-based PDFs).
+export async function exportDocText(fileId: string, token: string, mimeType?: string): Promise<string> {
+  const h = { Authorization: `Bearer ${token}` }
+
+  if (mimeType === 'text/plain') {
+    const res = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+      { headers: h }
+    )
+    if (!res.ok) throw new Error(`Drive download error: ${await res.text()}`)
+    return res.text()
+  }
+
+  if (mimeType === 'application/pdf') {
+    // Export PDF as plain text — works reliably for text-based PDFs
+    const res = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=text/plain`,
+      { headers: h }
+    )
+    if (res.ok) return res.text()
+    // Fallback: direct download (for scanned/image PDFs this will be garbled)
+    const res2 = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+      { headers: h }
+    )
+    if (!res2.ok) throw new Error(`Drive PDF error: ${await res2.text()}`)
+    return res2.text()
+  }
+
+  // Google Docs (and everything else)
   const res = await fetch(
     `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=text/plain`,
-    { headers: { Authorization: `Bearer ${token}` } }
+    { headers: h }
   )
   if (!res.ok) throw new Error(`Drive export error: ${await res.text()}`)
   return res.text()

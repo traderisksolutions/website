@@ -105,7 +105,7 @@ export async function fetchKnowledgeDocs(
   apiKey:     string,
   label =     'gdrive-knowledge',
 ): Promise<{ name: string; uri: string }[]> {
-  const folderId = process.env.GOOGLE_DRIVE_KNOWLEDGE_FOLDER_ID ?? process.env.GDRIVE_KNOWLEDGE_FOLDER_ID ?? ''
+  const folderId = process.env.GOOGLE_DRIVE_KNOWLEDGE_FOLDER_ID ?? ''
   if (!folderId || !process.env.GOOGLE_SERVICE_ACCOUNT_JSON) return []
   try {
     const token  = await getServiceAccountToken()

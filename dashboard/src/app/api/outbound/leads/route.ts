@@ -1,19 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-
-function sbHeaders(returnData = false) {
-  const k = process.env.SUPABASE_SERVICE_KEY!
-  return {
-    apikey:         k,
-    Authorization:  `Bearer ${k}`,
-    'Content-Type': 'application/json',
-    Prefer:         returnData ? 'return=representation' : 'return=minimal',
-  }
-}
+import { SB_URL, sbHeaders } from '@/lib/sb'
 
 // GET /api/outbound/leads
-// ?urls=true  → returns [{ linkedin_url }] for all rows (no limit) — used for CRM dedup
+// ?urls=true  → returns [{ linkedin_url }] for all rows — used for CRM dedup
 // default     → returns full rows, newest first, limit 500
 export async function GET(req: NextRequest) {
   try {

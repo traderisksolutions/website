@@ -1,21 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { SB_URL, sbHeaders } from '@/lib/sb'
 
 const NETROWS = 'https://api.netrows.com/v1'
-const SB_URL  = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
 function netHead() {
   return { Authorization: `Bearer ${process.env.NETROWS_API_KEY}` }
-}
-function sbHead() {
-  const k = process.env.SUPABASE_SERVICE_KEY!
-  return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: 'return=representation,resolution=merge-duplicates' }
 }
 
 // POST /api/outbound/generate-email
 // Body: { url: string }  — a LinkedIn /in/ person URL
 // 1. Find email via Netrows
 // 2. If found: fetch profile, save to outbound_leads with email, return result
-// 3. If not found: return { found: false } — nothing saved
+// 3. If not found: return { found: false }
 export async function POST(req: NextRequest) {
   try {
     const { url } = await req.json() as { url: string }
@@ -24,7 +20,6 @@ export async function POST(req: NextRequest) {
     const key = process.env.NETROWS_API_KEY
     if (!key) return NextResponse.json({ error: 'NETROWS_API_KEY not set' }, { status: 500 })
 
-    // 1. Find email
     const emailRes = await fetch(
       `${NETROWS}/email-finder/by-linkedin?linkedin_url=${encodeURIComponent(url)}`,
       { headers: netHead() as HeadersInit }
@@ -43,7 +38,6 @@ export async function POST(req: NextRequest) {
     const emailStatus = emailData.email_status ?? (email ? 'valid' : 'not_found')
 
     if (!email) {
-      // Fetch minimal profile for display (name) without saving
       const profRes = await fetch(
         `${NETROWS}/people/profile-by-url?url=${encodeURIComponent(url)}`,
         { headers: netHead() as HeadersInit }
@@ -53,7 +47,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ found: false, name })
     }
 
-    // 2. Email found — fetch full profile
     const profRes = await fetch(
       `${NETROWS}/people/profile-by-url?url=${encodeURIComponent(url)}`,
       { headers: netHead() as HeadersInit }
@@ -80,23 +73,26 @@ export async function POST(req: NextRequest) {
       status:          'new',
     }
 
-    // 3. Save to outbound_leads (upsert by linkedin_url)
     const sbRes = await fetch(
       `${SB_URL}/rest/v1/outbound_leads?on_conflict=linkedin_url`,
-      { method: 'POST', headers: sbHead(), body: JSON.stringify(row) }
+      {
+        method:  'POST',
+        headers: sbHeaders('return=representation,resolution=merge-duplicates'),
+        body:    JSON.stringify(row),
+      }
     )
     const saved = sbRes.ok ? await sbRes.json() : null
     const lead  = Array.isArray(saved) ? saved[0] : saved
 
     return NextResponse.json({
-      found:        true,
+      found:           true,
       email,
-      email_status: emailStatus,
-      name:         row.full_name,
-      headline:     row.headline,
-      company:      row.current_company,
+      email_status:    emailStatus,
+      name:            row.full_name,
+      headline:        row.headline,
+      company:         row.current_company,
       profile_picture: row.profile_picture,
-      lead_id:      lead?.id ?? null,
+      lead_id:         lead?.id ?? null,
     })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })

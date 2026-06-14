@@ -1,17 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-
-function sbHeaders(prefer = 'return=minimal') {
-  const k = process.env.SUPABASE_SERVICE_KEY
-  if (!k) throw new Error('SUPABASE_SERVICE_KEY not set')
-  return {
-    apikey:        k,
-    Authorization: `Bearer ${k}`,
-    'Content-Type': 'application/json',
-    Prefer:        prefer,
-  }
-}
+import { SB_URL, sbHeaders, logEvent } from '@/lib/sb'
 
 interface Lead {
   full_name: string | null
@@ -38,6 +26,22 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     ])
     const [campaign] = campRes.ok ? await campRes.json() : [null]
     if (!campaign) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
+
+    // Brief gate: new campaigns require an approved brief before drafting
+    if (campaign.brief_required) {
+      const briefRes = await fetch(
+        `${SB_URL}/rest/v1/ob_campaign_briefs?campaign_id=eq.${id}&status=eq.approved&select=id&limit=1`,
+        { headers: sbHeaders() }
+      )
+      const briefs = briefRes.ok ? await briefRes.json() : []
+      if (!Array.isArray(briefs) || briefs.length === 0) {
+        return NextResponse.json(
+          { error: 'Brief approval required. Create and approve a campaign brief before generating drafts.', code: 'BRIEF_REQUIRED' },
+          { status: 403 }
+        )
+      }
+    }
+
     const sequences: { id: string; step_number: number }[] = seqRes.ok ? await seqRes.json() : []
 
     // Load sample leads for context (up to 3)
@@ -109,23 +113,46 @@ Return ONLY valid JSON — no markdown, no extra text:
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 2048 },
+          generationConfig: {
+            responseMimeType: 'application/json',
+            maxOutputTokens:  2048,
+            thinkingConfig:   { thinkingBudget: 0 },
+          },
         }),
       }
     )
 
     if (!geminiRes.ok) {
-      return NextResponse.json({ error: 'AI drafting failed' }, { status: 502 })
+      const errText = await geminiRes.text()
+      return NextResponse.json({ error: `AI drafting failed (${geminiRes.status}): ${errText.slice(0, 200)}` }, { status: 502 })
     }
 
     const geminiData = await geminiRes.json()
-    const rawText    = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}'
+
+    // Gemini 2.5 Flash may return thinking in parts[0] and JSON in a later part.
+    // Find the first part whose text looks like JSON.
+    const parts: Array<{ text?: string }> = geminiData.candidates?.[0]?.content?.parts ?? []
+    let rawText = ''
+    for (const part of parts) {
+      const candidate = (part?.text ?? '').replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+      if (candidate.startsWith('{')) { rawText = candidate; break }
+    }
+    if (!rawText) {
+      rawText = (parts[parts.length - 1]?.text ?? '{}')
+        .replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+    }
+    // Extract the outermost JSON object in case there is surrounding text
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/)
+    if (jsonMatch) rawText = jsonMatch[0]
 
     let drafted: { sequences: { step: number; subject: string; body: string }[] }
     try {
-      drafted = JSON.parse(rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim())
+      drafted = JSON.parse(rawText)
     } catch {
-      return NextResponse.json({ error: 'AI returned malformed JSON' }, { status: 502 })
+      return NextResponse.json(
+        { error: 'AI returned malformed JSON', raw: rawText.slice(0, 300) },
+        { status: 502 }
+      )
     }
 
     // Save drafted content to sequences
@@ -142,6 +169,15 @@ Return ONLY valid JSON — no markdown, no extra text:
     )
 
     const updatedSequences = updates.filter(Boolean).flat()
+
+    await logEvent({
+      event_type:  'draft_generated',
+      entity_type: 'campaign',
+      entity_id:   id,
+      campaign_id: id,
+      payload:     { step_count: updatedSequences.length },
+    })
+
     return NextResponse.json({ sequences: updatedSequences })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })

@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { SB_URL, sbHeaders } from '@/lib/sb'
 
 const NETROWS = 'https://api.netrows.com/v1'
-const SB_URL  = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-
-function sbHeaders() {
-  const k = process.env.SUPABASE_SERVICE_KEY!
-  return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' }
-}
 
 // POST /api/outbound/email
 // Body: { linkedin_url: string }
@@ -31,7 +26,6 @@ export async function POST(req: NextRequest) {
   const email_status = data.email_status ?? 'unknown'
 
   if (email && email_status === 'valid') {
-    // Patch the lead record if it already exists in Supabase
     await fetch(
       `${SB_URL}/rest/v1/outbound_leads?linkedin_url=eq.${encodeURIComponent(linkedin_url)}`,
       { method: 'PATCH', headers: sbHeaders(), body: JSON.stringify({ email, email_status }) }

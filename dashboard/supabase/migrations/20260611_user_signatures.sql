@@ -10,9 +10,10 @@ CREATE TABLE IF NOT EXISTS public.user_signatures (
 );
 
 ALTER TABLE public.user_signatures ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "service_full_access" ON public.user_signatures;
 CREATE POLICY "service_full_access" ON public.user_signatures
   TO service_role USING (true) WITH CHECK (true);
 
-CREATE TRIGGER set_updated_at
+CREATE OR REPLACE TRIGGER set_updated_at
   BEFORE UPDATE ON public.user_signatures
-  FOR EACH ROW EXECUTE FUNCTION moddatetime(updated_at);
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
