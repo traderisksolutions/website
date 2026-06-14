@@ -58,7 +58,7 @@ const CRON_OPTIONS = [
   { value: 'none',   label: 'None (run once)' },
   { value: 'weekly', label: 'Weekly' },
 ]
-const PER_PAGE = 30
+const PEOPLE_PAGE_SIZE = 30
 
 // ── Shared sub-components ─────────────────────────────────────────────────────
 
@@ -178,6 +178,7 @@ export default function OutboundAgentPage() {
   const [headcountRanges, setHeadcountRanges] = useState<string[]>([])
   const [productType,     setProductType]     = useState('')
   const [cronPref,        setCronPref]        = useState('none')
+  const [perPage,         setPerPage]         = useState(10)
 
   const loadHistory = useCallback(async () => {
     const res  = await fetch('/api/outbound/history')
@@ -242,6 +243,7 @@ export default function OutboundAgentPage() {
         body: JSON.stringify({
           sector: sector.trim(), locations, headcountRanges, productType,
           cronPreference: cronPref === 'none' ? null : cronPref,
+          perPage,
         }),
       })
       const data = await res.json()
@@ -314,8 +316,8 @@ export default function OutboundAgentPage() {
     }
   }
 
-  const totalPages  = Math.ceil(people.length / PER_PAGE)
-  const pagedPeople = people.slice((peoplePage - 1) * PER_PAGE, peoplePage * PER_PAGE)
+  const totalPages  = Math.ceil(people.length / PEOPLE_PAGE_SIZE)
+  const pagedPeople = people.slice((peoplePage - 1) * PEOPLE_PAGE_SIZE, peoplePage * PEOPLE_PAGE_SIZE)
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-[1140px] mx-auto">
@@ -372,6 +374,20 @@ export default function OutboundAgentPage() {
                     className="w-full h-9 px-3 text-[13px] text-foreground bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-ring">
                     {CRON_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
+                </div>
+                <div>
+                  <FormLabel>
+                    Number of results{' '}
+                    <Tip placement="right" text="How many companies Apollo returns per search. Apollo free plan: 75 credits/month total — keep this low and run fewer searches." />
+                  </FormLabel>
+                  <input
+                    type="number" min={1} max={100} value={perPage}
+                    onChange={e => setPerPage(Math.min(100, Math.max(1, parseInt(e.target.value) || 1)))}
+                    className="w-full h-9 px-3 text-[13px] text-foreground bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-ring"
+                  />
+                  <p className="text-[11px] mt-1 text-amber-600">
+                    ~{perPage} credits per search · 75/month free ({Math.floor(75 / perPage)} searches remaining if unused)
+                  </p>
                 </div>
               </div>
               <Button className="mt-5 w-full gap-1.5" onClick={runSearch}
@@ -570,7 +586,7 @@ export default function OutboundAgentPage() {
               {totalPages > 1 && (
                 <div className="flex items-center justify-between mt-3.5 pt-3 border-t border-border px-4 pb-3">
                   <span className="text-[12px] text-muted-foreground">
-                    {(peoplePage - 1) * PER_PAGE + 1}–{Math.min(peoplePage * PER_PAGE, people.length)} of {people.length}
+                    {(peoplePage - 1) * PEOPLE_PAGE_SIZE + 1}–{Math.min(peoplePage * PEOPLE_PAGE_SIZE, people.length)} of {people.length}
                   </span>
                   <div className="flex gap-1">
                     <Button variant="outline" size="sm" onClick={() => setPeoplePage(p => Math.max(1, p - 1))} disabled={peoplePage === 1} className="text-[11px] h-7 px-2">← Prev</Button>

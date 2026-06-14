@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders } from '@/lib/sb'
 
+const APOLLO = 'https://api.apollo.io/api/v1'
+
 async function promotePersonToLead(person: Record<string, unknown>): Promise<string | null> {
   const leadRes = await fetch(`${SB_URL}/rest/v1/outbound_leads`, {
     method:  'POST',
@@ -46,7 +48,8 @@ async function promotePersonToLead(person: Record<string, unknown>): Promise<str
 }
 
 // POST /api/outbound/apollo-people
-// Body: { searchId, companyIds: string[], productType }
+// Body: { searchId, companyIds: string[] }
+// Calls mixed_people/organization_top_people for each company using stored apollo_id.
 export async function POST(req: NextRequest) {
   try {
     const { searchId, companyIds } = await req.json()
@@ -54,15 +57,89 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // People are pre-populated during apollo-search; just query them from DB
-    const savedRes = await fetch(
-      `${SB_URL}/rest/v1/ob_people_dump?search_id=eq.${searchId}&company_id=in.(${companyIds.join(',')})&order=created_at.asc`,
+    const apolloKey = process.env.APOLLO_API_KEY
+    if (!apolloKey) return NextResponse.json({ error: 'APOLLO_API_KEY not configured' }, { status: 500 })
+
+    // Load company rows to get apollo_id
+    const compRes = await fetch(
+      `${SB_URL}/rest/v1/ob_company_dump?id=in.(${companyIds.join(',')})&select=id,name,apollo_id`,
       { headers: sbHeaders() }
     )
-    const saved: Record<string, unknown>[] = savedRes.ok ? await savedRes.json() : []
+    const compRows: { id: string; name: string; apollo_id: string | null }[] =
+      compRes.ok ? await compRes.json() : []
 
-    // Promote any person not yet linked to outbound_leads
-    for (const person of saved) {
+    const allPeople: Record<string, unknown>[] = []
+
+    // Check which people are already saved for these companies to avoid re-fetching
+    const existingRes = await fetch(
+      `${SB_URL}/rest/v1/ob_people_dump?search_id=eq.${searchId}&company_id=in.(${companyIds.join(',')})`,
+      { headers: sbHeaders() }
+    )
+    const existingPeople: Record<string, unknown>[] = existingRes.ok ? await existingRes.json() : []
+    const fetchedCompanyIds = new Set(
+      Array.isArray(existingPeople) ? existingPeople.map(p => String(p.company_id)) : []
+    )
+
+    for (const comp of compRows) {
+      // If already fetched for this company, use DB data
+      if (fetchedCompanyIds.has(comp.id)) {
+        const existing = existingPeople.filter(p => String(p.company_id) === comp.id)
+        allPeople.push(...existing)
+        continue
+      }
+
+      if (!comp.apollo_id) continue
+
+      let apolloPeople: Record<string, unknown>[] = []
+      try {
+        const res = await fetch(`${APOLLO}/mixed_people/organization_top_people`, {
+          method:  'POST',
+          headers: {
+            'Content-Type':  'application/json',
+            'Cache-Control': 'no-cache',
+            'X-Api-Key':     apolloKey,
+          },
+          body: JSON.stringify({
+            organization_id: comp.apollo_id,
+            page:            1,
+            per_page:        10,
+          }),
+        })
+        if (res.ok) {
+          const data = await res.json()
+          apolloPeople = Array.isArray(data.people) ? data.people : []
+        }
+      } catch { /* skip this company on network error */ }
+
+      if (apolloPeople.length === 0) continue
+
+      // Save to ob_people_dump
+      const toInsert = apolloPeople.map(p => ({
+        search_id:        searchId,
+        company_id:       comp.id,
+        company_name:     comp.name,
+        apollo_person_id: (p.id as string) ?? null,
+        first_name:       (p.first_name as string) ?? null,
+        last_name:        (p.last_name as string) ?? null,
+        full_name:        (p.name as string) ?? null,
+        title:            (p.title as string) ?? null,
+        headline:         (p.headline as string) ?? (p.title as string) ?? null,
+        linkedin_url:     (p.linkedin_url as string) ?? null,
+        profile_picture:  (p.photo_url as string) ?? null,
+        location:         [p.city, p.state, p.country].filter(Boolean).join(', ') || null,
+      }))
+
+      const insertRes = await fetch(`${SB_URL}/rest/v1/ob_people_dump`, {
+        method:  'POST',
+        headers: sbHeaders('return=representation,resolution=ignore-duplicates'),
+        body:    JSON.stringify(toInsert),
+      })
+      const insertedRows: Record<string, unknown>[] = insertRes.ok ? await insertRes.json() : []
+      allPeople.push(...(Array.isArray(insertedRows) ? insertedRows : []))
+    }
+
+    // Promote to outbound_leads
+    for (const person of allPeople) {
       if (person.outbound_lead_id) continue
       const leadId = await promotePersonToLead(person)
       if (leadId) {
@@ -84,9 +161,8 @@ export async function POST(req: NextRequest) {
       })
     ))
 
-    return NextResponse.json({ people: Array.isArray(saved) ? saved : [] })
+    return NextResponse.json({ people: allPeople })
   } catch (e) {
-    const msg = e instanceof Error ? e.message : 'Server error'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
 }
