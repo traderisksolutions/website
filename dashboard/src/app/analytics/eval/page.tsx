@@ -47,6 +47,31 @@ export default function EvalPage() {
   const [stats,    setStats]    = useState<Stat[]>([])
   const [loading,  setLoading]  = useState(true)
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [debugging,  setDebugging]  = useState(false)
+  const [debugTrace, setDebugTrace] = useState<string[] | null>(null)
+  const [debugError, setDebugError] = useState<string | null>(null)
+
+  async function runDebug() {
+    setDebugging(true); setDebugTrace(null); setDebugError(null)
+    try {
+      const res  = await fetch('/api/engagement/evaluate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) })
+      const data = await res.json()
+      setDebugTrace(data.trace ?? [])
+      if (!data.ok) setDebugError(data.error ?? 'Unknown error')
+      else {
+        // Reload eval data to show new result
+        fetch('/api/engagement/evaluate?limit=100', { cache: 'no-store' })
+          .then(r => r.ok ? r.json() : {})
+          .then((d: { evaluations?: EvalRow[]; examples?: ExampleRow[]; stats?: Stat[] }) => {
+            setEvals(Array.isArray(d.evaluations) ? d.evaluations : [])
+            setExamples(Array.isArray(d.examples) ? d.examples : [])
+            setStats(Array.isArray(d.stats) ? d.stats : [])
+          }).catch(() => {})
+      }
+    } catch (e) {
+      setDebugError(e instanceof Error ? e.message : 'Request failed')
+    } finally { setDebugging(false) }
+  }
 
   useEffect(() => {
     fetch('/api/engagement/evaluate?limit=100', { cache: 'no-store' })
@@ -81,6 +106,36 @@ export default function EvalPage() {
         <p className="text-sm text-muted-foreground mt-1">
           How closely AI drafts matched what was actually sent — and what the model is learning
         </p>
+      </div>
+
+      {/* Debug panel */}
+      <div className="mb-6 border border-dashed border-border rounded-xl p-4 bg-muted/20">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <p className="text-[12px] font-semibold text-foreground">Debug: Run evaluation on last sent email</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Finds the most recently sent AI draft and runs evaluation synchronously, showing each step.</p>
+          </div>
+          <button
+            onClick={runDebug}
+            disabled={debugging}
+            className="text-[12px] font-semibold px-3 py-1.5 rounded-md border border-border bg-background hover:bg-muted transition-colors disabled:opacity-50 whitespace-nowrap"
+          >
+            {debugging ? 'Running…' : 'Run Debug Eval'}
+          </button>
+        </div>
+        {debugTrace && (
+          <div className="mt-3 rounded-lg bg-zinc-950 p-3 max-h-64 overflow-y-auto">
+            {debugTrace.map((line, i) => (
+              <p key={i} className={cn(
+                'text-[11px] font-mono leading-relaxed',
+                line.includes('MISSING') || line.includes('error') || line.includes('EXCEPTION') || line.includes('failed')
+                  ? 'text-red-400' : line.includes('ok=true') || line.includes('score=') ? 'text-emerald-400' : 'text-zinc-300'
+              )}>{line}</p>
+            ))}
+            {debugError && <p className="text-[11px] font-mono text-red-400 mt-1 font-bold">✗ {debugError}</p>}
+            {!debugError && <p className="text-[11px] font-mono text-emerald-400 mt-1 font-bold">✓ Evaluation complete — refresh to see result above</p>}
+          </div>
+        )}
       </div>
 
       {loading ? (
