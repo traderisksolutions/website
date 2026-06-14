@@ -3,8 +3,7 @@ import { SB_URL, sbHeaders } from '@/lib/sb'
 
 export const maxDuration = 60
 
-const GMAIL_API    = 'https://gmail.googleapis.com/gmail/v1/users/me'
-const SENDS_PER_RUN = 30
+const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me'
 
 interface SequenceStep {
   subject:    string
@@ -52,17 +51,26 @@ export async function GET(req: NextRequest) {
     )
   }
 
+  // Count total due sends, then take 20% (min 1) to stagger delivery naturally
+  const countRes = await fetch(
+    `${SB_URL}/rest/v1/ob_campaign_leads` +
+    `?send_status=in.(queued,sent)&send_scheduled_at=lte.${now}&approval_status=eq.included&select=id`,
+    { method: 'HEAD', headers: { ...sbHeaders(), 'Prefer': 'count=exact' }, cache: 'no-store' }
+  )
+  const totalDue    = parseInt(countRes.headers.get('content-range')?.split('/')[1] ?? '0', 10)
+  const sendsThisRun = Math.max(1, Math.ceil(totalDue * 0.2))
+
   // Fetch sends due now — covers initial sends (queued) and follow-up steps (sent with future schedule)
   const dueRes = await fetch(
     `${SB_URL}/rest/v1/ob_campaign_leads` +
     `?send_status=in.(queued,sent)&send_scheduled_at=lte.${now}&approval_status=eq.included` +
     `&select=id,campaign_id,lead_id,current_step,gmail_thread_id,from_email,send_scheduled_at,metadata` +
-    `&order=send_scheduled_at.asc&limit=${SENDS_PER_RUN}`,
+    `&order=send_scheduled_at.asc&limit=${sendsThisRun}`,
     { headers: sbHeaders(), cache: 'no-store' }
   )
   const dueSends: DueSend[] = dueRes.ok ? await dueRes.json() : []
   if (!Array.isArray(dueSends) || dueSends.length === 0) {
-    return NextResponse.json({ sent: 0, at: now })
+    return NextResponse.json({ sent: 0, total_due: totalDue, at: now })
   }
 
   // Skip sends for paused or completed campaigns
@@ -155,7 +163,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ sent, errors, at: now })
+  return NextResponse.json({ sent, total_due: totalDue, batch_size: sendsThisRun, errors, at: now })
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
