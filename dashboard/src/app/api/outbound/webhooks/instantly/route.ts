@@ -119,6 +119,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Promote outbound lead to Active Contacts when they reply
+    if (mappedType === 'reply' && leadEmail) {
+      try {
+        await promoteOutboundToContact({ leadId, leadEmail, campaignId })
+      } catch { /* non-fatal — contact promotion must never break webhook ACK */ }
+    }
+
     await logEvent({
       event_type:  'reply_synced',
       entity_type: 'lead',
@@ -212,4 +219,74 @@ Return: { "label": "<one of the above>", "confidence": <0.0–1.0>, "reasoning":
       payload:     { label: parsed.label, confidence: parsed.confidence },
     })
   } catch { /* non-fatal — classification failure must not break webhook ACK */ }
+}
+
+// Promotes an outbound lead to the contacts pipeline when they reply.
+// Uses find-then-act to avoid downgrading an existing pipeline stage.
+async function promoteOutboundToContact({
+  leadId, leadEmail, campaignId,
+}: {
+  leadId:     string | null
+  leadEmail:  string
+  campaignId: string | null
+}) {
+  // Load lead details if we have an ID
+  let leadName:    string | null = null
+  let leadCompany: string | null = null
+  if (leadId) {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/outbound_leads?id=eq.${leadId}&select=full_name,current_company&limit=1`,
+      { headers: sbHeaders() }
+    )
+    const rows = res.ok ? await res.json() : []
+    const row  = Array.isArray(rows) ? rows[0] : null
+    leadName    = row?.full_name      ?? null
+    leadCompany = row?.current_company ?? null
+
+    // Mark outbound_leads.status = 'replied'
+    await fetch(`${SB_URL}/rest/v1/outbound_leads?id=eq.${leadId}`, {
+      method:  'PATCH',
+      headers: sbHeaders(),
+      body:    JSON.stringify({ status: 'replied' }),
+    })
+  }
+
+  // Check if contact already exists by email
+  const encoded    = encodeURIComponent(leadEmail)
+  const existRes   = await fetch(
+    `${SB_URL}/rest/v1/contacts?email=eq.${encoded}&select=id,engagement_stage&limit=1`,
+    { headers: sbHeaders() }
+  )
+  const existRows  = existRes.ok ? await existRes.json() : []
+  const existing   = Array.isArray(existRows) ? existRows[0] : null
+
+  if (existing) {
+    // Only add FK linkage — never downgrade an existing pipeline stage
+    const patch: Record<string, unknown> = {}
+    if (leadId && !existing.outbound_lead_id) patch.outbound_lead_id = leadId
+    if (campaignId)                           patch.campaign_id      = campaignId
+    if (!existing.engagement_stage)           patch.engagement_stage = 'engaged'
+    if (Object.keys(patch).length > 0) {
+      await fetch(`${SB_URL}/rest/v1/contacts?id=eq.${existing.id}`, {
+        method:  'PATCH',
+        headers: sbHeaders(),
+        body:    JSON.stringify(patch),
+      })
+    }
+  } else {
+    // New contact — create with engaged stage
+    await fetch(`${SB_URL}/rest/v1/contacts`, {
+      method:  'POST',
+      headers: sbHeaders('return=minimal'),
+      body:    JSON.stringify({
+        email:            leadEmail,
+        full_name:        leadName,
+        company:          leadCompany,
+        source:           'outbound_campaign',
+        engagement_stage: 'engaged',
+        outbound_lead_id: leadId,
+        campaign_id:      campaignId,
+      }),
+    })
+  }
 }

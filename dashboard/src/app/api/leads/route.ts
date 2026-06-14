@@ -36,6 +36,17 @@ export async function GET() {
   }
 }
 
+// Maps inbound_leads.status to contacts.engagement_stage
+const STAGE_MAP: Record<string, string> = {
+  contacted: 'engaged',
+  engaged:   'engaged',
+  qualified: 'qualified',
+  proposal:  'proposal',
+  converted: 'converted',
+}
+
+const STAGE_ORDER = ['engaged', 'qualified', 'proposal', 'converted']
+
 // PATCH /api/leads — update status and/or notes for one lead
 export async function PATCH(req: NextRequest) {
   try {
@@ -55,6 +66,60 @@ export async function PATCH(req: NextRequest) {
       const body = await res.text()
       return NextResponse.json({ error: body }, { status: res.status })
     }
+
+    // Sync pipeline stage to contacts table when status changes to a pipeline stage
+    if (status !== undefined && STAGE_MAP[status]) {
+      try {
+        const newStage = STAGE_MAP[status]
+
+        // Fetch the lead to get email + existing contact_id
+        const leadRes = await fetch(
+          `${SB_URL}/rest/v1/inbound_leads?id=eq.${id}&select=email,first_name,last_name,company,contact_id&limit=1`,
+          { headers: headers() }
+        )
+        const leadRows = leadRes.ok ? await leadRes.json() : []
+        const lead     = Array.isArray(leadRows) ? leadRows[0] : null
+
+        if (lead?.email) {
+          const encoded  = encodeURIComponent(lead.email)
+          const exRes    = await fetch(
+            `${SB_URL}/rest/v1/contacts?email=eq.${encoded}&select=id,engagement_stage&limit=1`,
+            { headers: headers() }
+          )
+          const exRows   = exRes.ok ? await exRes.json() : []
+          const existing = Array.isArray(exRows) ? exRows[0] : null
+
+          if (existing) {
+            // Only advance the stage — never downgrade
+            const currentIdx = STAGE_ORDER.indexOf(existing.engagement_stage ?? '')
+            const newIdx     = STAGE_ORDER.indexOf(newStage)
+            if (newIdx > currentIdx) {
+              await fetch(`${SB_URL}/rest/v1/contacts?id=eq.${existing.id}`, {
+                method:  'PATCH',
+                headers: headers(),
+                body:    JSON.stringify({ engagement_stage: newStage }),
+              })
+            }
+          } else {
+            // No contact yet — create one linked to this lead
+            const fullName = [lead.first_name, lead.last_name].filter(Boolean).join(' ') || null
+            await fetch(`${SB_URL}/rest/v1/contacts`, {
+              method:  'POST',
+              headers: { ...headers(), Prefer: 'return=minimal' },
+              body:    JSON.stringify({
+                email:            lead.email,
+                full_name:        fullName,
+                company:          lead.company ?? null,
+                source:           'inbound_lead',
+                engagement_stage: newStage,
+                inbound_lead_id:  id,
+              }),
+            })
+          }
+        }
+      } catch { /* non-fatal — status update already succeeded */ }
+    }
+
     return NextResponse.json({ ok: true })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Server error'
