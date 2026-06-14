@@ -23,8 +23,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    const geminiKey = process.env.GEMINI_API_KEY_DRAFT_EMAIL
-    if (!geminiKey) return NextResponse.json({ error: 'GEMINI_API_KEY_DRAFT_EMAIL not configured' }, { status: 500 })
+    const geminiKey = process.env.GEMINI_API_KEY_NEWS
+    if (!geminiKey) return NextResponse.json({ error: 'GEMINI_API_KEY_NEWS not configured' }, { status: 500 })
 
     const apolloKey = process.env.APOLLO_API_KEY
     if (!apolloKey) return NextResponse.json({ error: 'APOLLO_API_KEY not configured' }, { status: 500 })
