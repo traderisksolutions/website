@@ -180,12 +180,19 @@ Return ONLY valid JSON — no markdown, no extra text:
 
     const updatedSequences = updates.filter(Boolean).flat()
 
+    const usage = geminiData.usageMetadata ?? {}
     await logEvent({
-      event_type:  'draft_generated',
+      event_type:  'ai_draft',
       entity_type: 'campaign',
       entity_id:   id,
       campaign_id: id,
-      payload:     { step_count: updatedSequences.length },
+      payload:     {
+        model:         'gemini-2.5-flash',
+        step_count:    updatedSequences.length,
+        prompt_tokens: usage.promptTokenCount   ?? 0,
+        output_tokens: usage.candidatesTokenCount ?? 0,
+        total_tokens:  usage.totalTokenCount    ?? 0,
+      },
     })
 
     return NextResponse.json({ sequences: updatedSequences })

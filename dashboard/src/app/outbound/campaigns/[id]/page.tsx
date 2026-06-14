@@ -6,7 +6,7 @@ import Link from 'next/link'
 import {
   ArrowLeft, Loader2, AlertCircle, CheckCircle, Sparkles,
   Newspaper, Rocket, RefreshCw, ChevronDown, ChevronUp,
-  Mail, Users, BarChart2, FileText, Pause, Play, GitBranch, Zap, X,
+  Mail, Users, BarChart2, FileText, Pause, Play, GitBranch, X, Send,
 } from 'lucide-react'
 import { Tip } from '@/components/Tip'
 
@@ -41,19 +41,6 @@ interface SequenceVariant {
 interface Sequence {
   id: string; campaign_id: string; step_number: number
   subject: string; body: string; delay_days: number; status: 'draft' | 'approved'
-}
-
-interface CampaignSignal {
-  id: string
-  campaign_id: string
-  signal_id: string
-  notes: string | null
-  created_at: string
-  ob_signal_library: {
-    id: string; signal_name: string; signal_type: string
-    scope: string; sector: string | null; corroboration_count: number
-    status: string; source_url: string | null; source_summary: string | null
-  } | null
 }
 
 interface CampaignLead {
@@ -119,7 +106,7 @@ const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
   completed: { color: '#555',    bg: '#f4f4f5' },
 }
 
-type Tab = 'sequence' | 'leads' | 'brief' | 'variants' | 'signals' | 'analytics'
+type Tab = 'sequence' | 'leads' | 'brief' | 'variants' | 'analytics'
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
@@ -159,13 +146,11 @@ export default function CampaignDetailPage() {
   const [analytics,         setAnalytics]         = useState<AnalyticsSummary | null>(null)
   const [analyticsSegments, setAnalyticsSegments] = useState<{ segment_id: string; name: string; total: number; sent: number; replied: number }[]>([])
   const [fetchingAnalytics, setFetchingAnalytics] = useState(false)
+  const [aiUsage,           setAiUsage]           = useState<{ calls: number; total_tokens: number; prompt_tokens: number; output_tokens: number } | null>(null)
   const [pausing,        setPausing]        = useState(false)
-  const [signals,        setSignals]        = useState<CampaignSignal[]>([])
-  const [fetchingSignals,setFetchingSignals] = useState(false)
-  const [signalIdInput,  setSignalIdInput]  = useState('')
-  const [addingSignal,   setAddingSignal]   = useState(false)
-  const [removingSignal, setRemovingSignal] = useState<string | null>(null)
-  const [availableSignals, setAvailableSignals] = useState<{ id: string; signal_name: string; signal_type: string }[]>([])
+  const [sendMode,       setSendMode]       = useState<'all' | 'batch'>('all')
+  const [batchSize,      setBatchSize]      = useState(5)
+  const [sendingNow,     setSendingNow]     = useState(false)
   const [segments,         setSegments]         = useState<{ id: string; name: string; description: string | null }[]>([])
   const [newSegmentName,   setNewSegmentName]   = useState('')
   const [addingSegment,    setAddingSegment]    = useState(false)
@@ -218,30 +203,20 @@ export default function CampaignDetailPage() {
   useEffect(() => {
     if (tab !== 'analytics') return
     setFetchingAnalytics(true)
-    fetch(`/api/outbound/campaigns/${id}/analytics`)
-      .then(r => r.json())
-      .then(data => {
-        setAnalytics(data.summary ?? null)
-        setAnalyticsSegments(Array.isArray(data.segments) ? data.segments : [])
+    Promise.all([
+      fetch(`/api/outbound/campaigns/${id}/analytics`).then(r => r.json()),
+      fetch('/api/outbound/ai-usage').then(r => r.json()),
+    ])
+      .then(([analyticsData, aiData]) => {
+        setAnalytics(analyticsData.summary ?? null)
+        setAnalyticsSegments(Array.isArray(analyticsData.segments) ? analyticsData.segments : [])
+        const campAi = Array.isArray(aiData.per_campaign)
+          ? aiData.per_campaign.find((c: { campaign_id: string | null }) => c.campaign_id === id)
+          : null
+        setAiUsage(campAi ?? null)
       })
       .catch(() => {})
       .finally(() => setFetchingAnalytics(false))
-  }, [tab, id])
-
-  // Load signals when switching to signals tab
-  useEffect(() => {
-    if (tab !== 'signals') return
-    setFetchingSignals(true)
-    Promise.all([
-      fetch(`/api/outbound/campaigns/${id}/signals`).then(r => r.json()),
-      fetch('/api/outbound/signals?status=active&limit=100').then(r => r.json()),
-    ])
-      .then(([attached, library]) => {
-        setSignals(Array.isArray(attached) ? attached : [])
-        setAvailableSignals(Array.isArray(library) ? library : [])
-      })
-      .catch(() => {})
-      .finally(() => setFetchingSignals(false))
   }, [tab, id])
 
   // Load brief when switching to brief tab
@@ -426,10 +401,18 @@ export default function CampaignDetailPage() {
         body:    JSON.stringify({ leadIds: validLeadIds }),
       })
       const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data.error ?? 'Launch failed')
+      if (!res.ok) throw new Error(data.error ?? 'Launch failed')
+
+      if (sendMode === 'all') {
+        const sendRes = await fetch(`/api/outbound/campaigns/${id}/send-now`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ limit: validLeadIds.length }),
+        })
+        const sendData = sendRes.ok ? await sendRes.json() : {}
+        setSuccessMsg(`Campaign launched! ${sendData.sent ?? 0} emails sent now.`)
+      } else {
+        setSuccessMsg(`Campaign launched! ${data.leadsQueued} leads queued. Use "Send Now" to send ${batchSize} at a time.`)
       }
-      setSuccessMsg(`Campaign launched! ${data.leadsQueued} leads queued for Gmail delivery (~30/hour).`)
       await load()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Launch failed')
@@ -479,34 +462,21 @@ export default function CampaignDetailPage() {
     } finally { setGeneratingVariants(false) }
   }
 
-  async function addSignal() {
-    if (!signalIdInput) return
-    setAddingSignal(true)
-    try {
-      const res = await fetch(`/api/outbound/campaigns/${id}/signals`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ signal_id: signalIdInput }),
-      })
-      if (res.ok) {
-        setSignalIdInput('')
-        // Refresh signals list
-        const updated = await fetch(`/api/outbound/campaigns/${id}/signals`).then(r => r.json())
-        setSignals(Array.isArray(updated) ? updated : [])
-      }
-    } catch { /* non-fatal */ }
-    finally { setAddingSignal(false) }
-  }
+  // ── Send Now ──────────────────────────────────────────────────────────────
 
-  async function removeSignal(signalId: string) {
-    setRemovingSignal(signalId)
+  async function sendNow() {
+    setSendingNow(true); setError(null)
     try {
-      const res = await fetch(`/api/outbound/campaigns/${id}/signals`, {
-        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ signal_id: signalId }),
+      const res = await fetch(`/api/outbound/campaigns/${id}/send-now`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit: batchSize }),
       })
-      if (res.ok) setSignals(prev => prev.filter(s => s.signal_id !== signalId))
-    } catch { /* non-fatal */ }
-    finally { setRemovingSignal(null) }
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Send failed')
+      setSuccessMsg(`Sent ${data.sent} email${data.sent !== 1 ? 's' : ''} now!`)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Send failed')
+    } finally { setSendingNow(false) }
   }
 
   async function approveVariant(variantId: string) {
@@ -566,17 +536,29 @@ export default function CampaignDetailPage() {
             {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
           </span>
           {(isActive || isPaused) && (
-            <button
-              onClick={togglePause}
-              disabled={pausing}
-              style={btnPrimary(pausing, isPaused ? '#166534' : '#7c3aed')}
-            >
-              {pausing
-                ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
-                : isPaused ? <Play size={13} /> : <Pause size={13} />
-              }
-              {isPaused ? 'Resume' : 'Pause'}
-            </button>
+            <>
+              <button
+                onClick={togglePause}
+                disabled={pausing}
+                style={btnPrimary(pausing, isPaused ? '#166534' : '#7c3aed')}
+              >
+                {pausing
+                  ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
+                  : isPaused ? <Play size={13} /> : <Pause size={13} />
+                }
+                {isPaused ? 'Resume' : 'Pause'}
+              </button>
+              <button
+                onClick={sendNow}
+                disabled={sendingNow}
+                style={btnPrimary(sendingNow, '#1d4ed8')}
+              >
+                {sendingNow
+                  ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Sending…</>
+                  : <><Send size={13} /> Send Now</>
+                }
+              </button>
+            </>
           )}
         </div>
 
@@ -635,7 +617,6 @@ export default function CampaignDetailPage() {
           { key: 'leads',     label: 'Leads',     icon: <Users size={13} /> },
           { key: 'sequence',  label: 'Sequence',  icon: <Mail size={13} /> },
           ...(campaign.variant_mode ? [{ key: 'variants' as Tab, label: 'Variants', icon: <GitBranch size={13} /> }] : []),
-          { key: 'signals',   label: 'Signals',   icon: <Zap size={13} /> },
           { key: 'analytics', label: 'Analytics', icon: <BarChart2 size={13} /> },
         ] as { key: Tab; label: string; icon: React.ReactNode; badge?: boolean }[]).map(t => (
           <button
@@ -1231,100 +1212,6 @@ export default function CampaignDetailPage() {
         </div>
       )}
 
-      {/* ══ SIGNALS TAB ══ */}
-      {tab === 'signals' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* Add signal picker */}
-          <div style={card}>
-            <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 600, color: '#111' }}>Attach signal to campaign</p>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <select
-                value={signalIdInput}
-                onChange={e => setSignalIdInput(e.target.value)}
-                style={{ flex: 1, minWidth: 200, height: 36, padding: '0 10px', fontSize: 13, color: '#111', background: '#fff', border: '1px solid #e5e5e5', borderRadius: 7, outline: 'none' }}
-              >
-                <option value="">Select a signal from the library…</option>
-                {availableSignals
-                  .filter(s => !signals.some(cs => cs.signal_id === s.id))
-                  .map(s => (
-                    <option key={s.id} value={s.id}>{s.signal_name} ({s.signal_type})</option>
-                  ))
-                }
-              </select>
-              <button
-                onClick={addSignal}
-                disabled={addingSignal || !signalIdInput}
-                style={btnPrimary(addingSignal || !signalIdInput, '#7c3aed')}
-              >
-                {addingSignal
-                  ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Adding…</>
-                  : <><Zap size={13} /> Add Signal</>
-                }
-              </button>
-            </div>
-          </div>
-
-          {/* Attached signals list */}
-          {fetchingSignals ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '32px 0' }}>
-              <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: '#ccc' }} />
-            </div>
-          ) : signals.length === 0 ? (
-            <div style={{ ...card, textAlign: 'center', padding: '36px 24px' }}>
-              <Zap size={28} style={{ color: '#e5e5e5', marginBottom: 10 }} />
-              <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 600, color: '#555' }}>No signals attached</p>
-              <p style={{ margin: 0, fontSize: 13, color: '#aaa' }}>Attach signals from the library above to inform AI brief generation.</p>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {signals.map(cs => {
-                const sig = cs.ob_signal_library
-                return (
-                  <div key={cs.id} style={{ ...card, padding: '14px 18px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                    <Zap size={14} style={{ color: '#7c3aed', flexShrink: 0, marginTop: 2 }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{sig?.signal_name ?? '—'}</span>
-                        {sig?.signal_type && (
-                          <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 4, color: '#7c3aed', background: '#ede9fe' }}>
-                            {sig.signal_type}
-                          </span>
-                        )}
-                        {sig?.scope && (
-                          <span style={{ fontSize: 10, color: '#aaa' }}>{sig.scope}</span>
-                        )}
-                        {(sig?.corroboration_count ?? 0) >= 2 && (
-                          <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 4, color: '#166534', background: '#f0fdf4' }}>
-                            ✓ Corroborated
-                          </span>
-                        )}
-                      </div>
-                      {sig?.source_summary && (
-                        <p style={{ margin: 0, fontSize: 12, color: '#888', lineHeight: 1.5 }}>{sig.source_summary}</p>
-                      )}
-                      {cs.notes && (
-                        <p style={{ margin: '4px 0 0', fontSize: 11, color: '#aaa', fontStyle: 'italic' }}>{cs.notes}</p>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => removeSignal(cs.signal_id)}
-                      disabled={removingSignal === cs.signal_id}
-                      title="Remove signal"
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ccc', padding: 2, display: 'flex', flexShrink: 0 }}
-                    >
-                      {removingSignal === cs.signal_id
-                        ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
-                        : <X size={13} />
-                      }
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* ══ ANALYTICS TAB ══ */}
       {tab === 'analytics' && (
         <div>
@@ -1377,6 +1264,30 @@ export default function CampaignDetailPage() {
                   </table>
                 </div>
               )}
+              {/* AI usage for this campaign */}
+              {aiUsage && (
+                <div style={{ ...card, marginBottom: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+                    <Sparkles size={13} style={{ color: '#7c3aed' }} />
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#111' }}>AI Usage</p>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                    {[
+                      { label: 'Draft Calls',    value: aiUsage.calls },
+                      { label: 'Total Tokens',   value: aiUsage.total_tokens >= 1000 ? `${(aiUsage.total_tokens / 1000).toFixed(1)}k` : String(aiUsage.total_tokens) },
+                      { label: 'Output Tokens',  value: aiUsage.output_tokens >= 1000 ? `${(aiUsage.output_tokens / 1000).toFixed(1)}k` : String(aiUsage.output_tokens) },
+                    ].map(s => (
+                      <div key={s.label} style={{ textAlign: 'center', padding: '10px', borderRadius: 8, background: '#faf5ff', border: '1px solid #e9d5ff' }}>
+                        <p style={{ margin: '0 0 2px', fontSize: 16, fontWeight: 700, color: '#7c3aed' }}>{s.value}</p>
+                        <p style={{ margin: 0, fontSize: 10, color: '#9333ea', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>{s.label}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <p style={{ margin: '10px 0 0', fontSize: 11, color: '#bbb', textAlign: 'right' }}>
+                    <Link href="/outbound/ai-usage" style={{ color: '#9333ea', textDecoration: 'none' }}>View full AI usage →</Link>
+                  </p>
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginBottom: 8 }}>
                 <Link href={`/outbound/replies?campaign_id=${id}`} style={{ ...btnSecondary, textDecoration: 'none', fontSize: 12 }}>
                   Review Replies →
@@ -1396,15 +1307,52 @@ export default function CampaignDetailPage() {
       {/* Launch confirm modal */}
       {launchConfirm && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: '#fff', borderRadius: 14, padding: '28px 32px', maxWidth: 420, width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
-            <p style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700, color: '#111' }}>Launch Campaign</p>
-            <p style={{ margin: '0 0 16px', fontSize: 13, color: '#555', lineHeight: 1.65 }}>
-              All qualified leads will be queued for Gmail delivery at ~30 emails/hour.
-              Follow-up steps send automatically on the configured delay. Opt-outs are excluded.
-            </p>
+          <div style={{ background: '#fff', borderRadius: 14, padding: '28px 32px', maxWidth: 460, width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <p style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: '#111' }}>Launch Campaign</p>
+
+            {/* Send mode picker */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+              <label style={{
+                display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer',
+                padding: '10px 14px', borderRadius: 8,
+                border: `1px solid ${sendMode === 'all' ? '#166534' : '#e5e5e5'}`,
+                background: sendMode === 'all' ? '#f0fdf4' : '#fafafa',
+              }}>
+                <input type="radio" checked={sendMode === 'all'} onChange={() => setSendMode('all')} style={{ marginTop: 3 }} />
+                <div>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#111' }}>Send all now</p>
+                  <p style={{ margin: '2px 0 0', fontSize: 12, color: '#888' }}>All leads get emailed immediately after launch</p>
+                </div>
+              </label>
+              <label style={{
+                display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer',
+                padding: '10px 14px', borderRadius: 8,
+                border: `1px solid ${sendMode === 'batch' ? '#1d4ed8' : '#e5e5e5'}`,
+                background: sendMode === 'batch' ? '#eff6ff' : '#fafafa',
+              }}>
+                <input type="radio" checked={sendMode === 'batch'} onChange={() => setSendMode('batch')} style={{ marginTop: 3 }} />
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#111' }}>Send in batches</p>
+                  <p style={{ margin: '2px 0 0', fontSize: 12, color: '#888' }}>Queue all leads, use "Send Now" to send a batch at a time</p>
+                  {sendMode === 'batch' && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+                      <span style={{ fontSize: 12, color: '#666' }}>Batch size:</span>
+                      <input
+                        type="number" min={1} max={500}
+                        value={batchSize}
+                        onChange={e => setBatchSize(Math.max(1, parseInt(e.target.value) || 1))}
+                        style={{ width: 70, padding: '4px 8px', fontSize: 13, borderRadius: 6, border: '1px solid #e5e5e5', textAlign: 'center' }}
+                      />
+                      <span style={{ fontSize: 12, color: '#888' }}>emails per "Send Now"</span>
+                    </div>
+                  )}
+                </div>
+              </label>
+            </div>
+
             <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 14px', marginBottom: 20 }}>
               <p style={{ margin: 0, fontSize: 12, color: '#166534', lineHeight: 1.5 }}>
-                Sends from your configured ops email. Once launched the campaign is active — pause it from the campaign header if needed.
+                Sends from your configured ops email. Opt-outs are excluded. Pause the campaign from the header if needed.
               </p>
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
