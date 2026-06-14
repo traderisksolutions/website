@@ -816,6 +816,20 @@ export default function CampaignDetailPage() {
                         <p style={{ margin: '4px 0 0', fontSize: 11, color: '#bbb', display: 'flex', alignItems: 'center', gap: 4 }}>
                           Tokens: {'{{first_name}}'} · {'{{company}}'} <Tip text="Gmail replaces these with each lead's first name and company before sending." />
                         </p>
+                        {/* Signature preview */}
+                        {signatureId && (() => {
+                          const sig = signatures.find(s => s.id === signatureId)
+                          return sig ? (
+                            <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 7, background: '#f8f8f8', border: '1px dashed #e0e0e0', fontSize: 12, color: '#888', lineHeight: 1.7 }}>
+                              <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 600, color: '#ccc', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Signature appended at send</p>
+                              Best regards,<br />
+                              <strong style={{ color: '#555' }}>{sig.name}</strong><br />
+                              {[sig.title, sig.phone].filter(Boolean).join(' · ')}{(sig.title || sig.phone) ? <br /> : null}
+                              {sig.email && <>{sig.email}<br /></>}
+                              {sig.company_tagline && <span style={{ color: '#bbb' }}>{sig.company_tagline}</span>}
+                            </div>
+                          ) : null
+                        })()}
                       </div>
 
                       {!isActive && !approved && seq.subject && seq.body && (

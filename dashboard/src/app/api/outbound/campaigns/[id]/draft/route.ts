@@ -119,8 +119,9 @@ Use {{first_name}} and {{company}} as personalisation tokens.
 BODY FORMAT — very important:
 - Start with a greeting line: "Hi {{first_name}},"
 - Separate each paragraph with \\n\\n (two newlines) in the JSON string
-- Each email should have 3–4 short paragraphs: opening, value point, CTA, sign-off line
+- Each email should have 3–4 short paragraphs: opening, value point, CTA
 - Do NOT write the body as one long run-on paragraph
+- Do NOT include any closing, sign-off, "Best regards", "Warm regards", or signature — the sender's signature is appended automatically by the system
 - Example body format: "Hi {{first_name}},\\n\\nOpening sentence.\\n\\nValue paragraph.\\n\\nCTA sentence."
 
 Return ONLY valid JSON — no markdown, no extra text:
