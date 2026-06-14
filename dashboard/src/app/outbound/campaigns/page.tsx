@@ -193,16 +193,6 @@ export default function CampaignsPage() {
                   onChange={e => setNewsUrl(e.target.value)}
                 />
               </div>
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={variantMode}
-                  onChange={e => setVariantMode(e.target.checked)}
-                  className="cursor-pointer"
-                />
-                <span className="text-[13px] text-foreground">Enable A/B variant mode</span>
-                <span className="text-[11px] text-muted-foreground">(generate and test multiple sequence variants)</span>
-              </label>
               <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
                 You&apos;ll select leads and generate AI drafts on the next screen.
               </p>
