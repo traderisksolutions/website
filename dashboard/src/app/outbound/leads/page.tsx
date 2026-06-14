@@ -63,6 +63,10 @@ export default function OutboundLeadsPage() {
   const [campaignPick,      setCampaignPick]      = useState<Record<string, string>>({})
   const [addingToCampaign,  setAddingToCampaign]  = useState<string | null>(null)
   const [addSuccess,        setAddSuccess]        = useState<Record<string, string>>({})
+  const [selectedLeads,     setSelectedLeads]     = useState<string[]>([])
+  const [bulkCampaign,      setBulkCampaign]      = useState('')
+  const [bulkAdding,        setBulkAdding]        = useState(false)
+  const [bulkSuccess,       setBulkSuccess]       = useState<string | null>(null)
 
   async function load() {
     setLoading(true)
@@ -140,6 +144,31 @@ export default function OutboundLeadsPage() {
     } finally { setAddingToCampaign(null) }
   }
 
+  async function addBulkToCampaign() {
+    if (!bulkCampaign || selectedLeads.length === 0) return
+    setBulkAdding(true)
+    try {
+      const res = await fetch(`/api/outbound/campaigns/${bulkCampaign}/leads`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lead_ids: selectedLeads, source_type: 'manual' }),
+      })
+      if (res.ok) {
+        const campName = campaigns.find(c => c.id === bulkCampaign)?.name ?? 'campaign'
+        setBulkSuccess(`${selectedLeads.length} lead${selectedLeads.length > 1 ? 's' : ''} added to "${campName}"`)
+        setSelectedLeads([])
+        setTimeout(() => setBulkSuccess(null), 4000)
+      }
+    } finally { setBulkAdding(false) }
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedLeads(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
+  function toggleSelectAll(pool: OutboundLead[]) {
+    setSelectedLeads(selectedLeads.length === pool.length ? [] : pool.map(l => l.id))
+  }
+
   const filtered = leads.filter(l => {
     if (statusFilter !== 'all' && l.status !== statusFilter) return false
     if (typeFilter   !== 'all' && l.record_type !== typeFilter) return false
@@ -204,11 +233,53 @@ export default function OutboundLeadsPage() {
           </div>
         ) : (
           <>
+            {/* ── Bulk action bar ── */}
+            {selectedLeads.length > 0 && (
+              <div className="sticky top-0 z-10 flex items-center gap-3 px-5 py-2.5 bg-foreground text-background text-[13px] flex-wrap">
+                <span className="font-semibold">{selectedLeads.length} selected</span>
+                <div className="flex-1" />
+                {bulkSuccess ? (
+                  <span className="text-emerald-400 font-medium">{bulkSuccess}</span>
+                ) : (
+                  <>
+                    <select
+                      value={bulkCampaign}
+                      onChange={e => setBulkCampaign(e.target.value)}
+                      onClick={ensureCampaigns}
+                      className="h-[30px] px-2 text-[12px] text-foreground bg-background border border-border rounded-md outline-none"
+                    >
+                      <option value="">Select campaign…</option>
+                      {campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                    <button
+                      onClick={addBulkToCampaign}
+                      disabled={!bulkCampaign || bulkAdding}
+                      className="px-3 py-1.5 text-[12px] font-semibold bg-background text-foreground rounded-md cursor-pointer disabled:opacity-40 whitespace-nowrap"
+                    >
+                      {bulkAdding ? <Loader2 size={12} className="animate-spin inline" /> : `Add to Campaign`}
+                    </button>
+                  </>
+                )}
+                <button onClick={() => setSelectedLeads([])} className="text-[12px] opacity-60 hover:opacity-100 cursor-pointer bg-transparent border-0 text-background">
+                  Clear
+                </button>
+              </div>
+            )}
+
             {/* ── Desktop table (≥640px) ── */}
             <div className="hidden sm:block">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-8 px-2 pl-3.5">
+                      <input
+                        type="checkbox"
+                        checked={filtered.length > 0 && selectedLeads.length === filtered.length}
+                        onChange={() => { ensureCampaigns(); toggleSelectAll(filtered) }}
+                        className="cursor-pointer"
+                        title="Select all"
+                      />
+                    </TableHead>
                     {['', 'Name', 'Role / Headline', 'Company', 'Location', 'Email', 'Source', 'Status', 'Added'].map(col => (
                       <TableHead key={col}>{col}</TableHead>
                     ))}
@@ -225,6 +296,14 @@ export default function OutboundLeadsPage() {
                         <TableRow onClick={() => { setExpandedId(expanded ? null : lead.id); ensureCampaigns() }}
                           className={cn('cursor-pointer', expanded && 'bg-muted/30 hover:bg-muted/30')}
                         >
+                          <TableCell className="py-2.5 px-2 pl-3.5 w-8" onClick={e => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={selectedLeads.includes(lead.id)}
+                              onChange={() => { ensureCampaigns(); toggleSelect(lead.id) }}
+                              className="cursor-pointer"
+                            />
+                          </TableCell>
                           <TableCell className="py-2.5 px-2 pl-3.5 w-11">
                             {avatar ? (
                               <img src={avatar} alt="" className="w-8 h-8 object-cover bg-muted"
@@ -293,7 +372,7 @@ export default function OutboundLeadsPage() {
 
                         {expanded && (
                           <tr className="bg-muted/20 border-b border-border">
-                            <td colSpan={9} className="px-3.5 pb-4 pt-3 pl-14">
+                            <td colSpan={10} className="px-3.5 pb-4 pt-3 pl-14">
                               <div className="flex gap-8 flex-wrap">
                                 {(lead.headline || lead.company_tagline || lead.current_industry) && (
                                   <div className="flex-[2] min-w-[200px]">
@@ -360,8 +439,16 @@ export default function OutboundLeadsPage() {
                 const date     = new Date(lead.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
                 return (
                   <div key={lead.id} className={cn('px-4 py-3', expanded && 'bg-muted/20')}>
-                    {/* Top row: avatar + name + date */}
-                    <div className="flex items-center gap-3 mb-1.5" onClick={() => { setExpandedId(expanded ? null : lead.id); ensureCampaigns() }}>
+                    {/* Top row: checkbox + avatar + name + date */}
+                    <div className="flex items-center gap-3 mb-1.5">
+                      <input
+                        type="checkbox"
+                        checked={selectedLeads.includes(lead.id)}
+                        onChange={() => { ensureCampaigns(); toggleSelect(lead.id) }}
+                        className="cursor-pointer flex-shrink-0"
+                        onClick={e => e.stopPropagation()}
+                      />
+                    <div className="flex items-center gap-3 flex-1" onClick={() => { setExpandedId(expanded ? null : lead.id); ensureCampaigns() }}>
                       {avatar ? (
                         <img src={avatar} alt="" className="w-9 h-9 flex-shrink-0 object-cover bg-muted"
                           style={{ borderRadius: lead.record_type === 'person' ? '50%' : 6 }} />
@@ -378,6 +465,7 @@ export default function OutboundLeadsPage() {
                         </p>
                       </div>
                       <span className="text-[11px] text-muted-foreground/50 flex-shrink-0">{date}</span>
+                    </div>
                     </div>
 
                     {/* Company + location */}

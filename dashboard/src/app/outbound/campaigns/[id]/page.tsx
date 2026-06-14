@@ -146,8 +146,10 @@ export default function CampaignDetailPage() {
   const [fetchingBrief,  setFetchingBrief]  = useState(false)
   const [briefSaving,    setBriefSaving]    = useState(false)
   const [briefApproving, setBriefApproving] = useState(false)
-  const [briefGoals,        setBriefGoals]        = useState('')
-  const [briefConstraints,  setBriefConstraints]  = useState('')
+  const [briefGoal,         setBriefGoal]         = useState('')
+  const [briefAudience,     setBriefAudience]     = useState('')
+  const [briefTone,         setBriefTone]         = useState('')
+  const [briefAvoid,        setBriefAvoid]        = useState('')
   const [briefProducts,     setBriefProducts]     = useState<{ id: string; product_code: string; product_name: string; priority: number }[]>([])
   const [briefSegments,     setBriefSegments]     = useState<{ id: string; name: string; description: string | null }[]>([])
   const [variants,       setVariants]       = useState<SequenceVariant[]>([])
@@ -254,16 +256,12 @@ export default function CampaignDetailPage() {
         setBriefProducts(Array.isArray(data.products) ? data.products : [])
         setBriefSegments(Array.isArray(data.segments) ? data.segments : [])
         if (b) {
-          setBriefGoals(
-            typeof b.messaging_goals === 'object' && b.messaging_goals !== null
-              ? JSON.stringify(b.messaging_goals, null, 2)
-              : ''
-          )
-          setBriefConstraints(
-            typeof b.constraints === 'object' && b.constraints !== null
-              ? JSON.stringify(b.constraints, null, 2)
-              : ''
-          )
+          const mg = (typeof b.messaging_goals === 'object' && b.messaging_goals !== null ? b.messaging_goals : {}) as Record<string, unknown>
+          const cn = (typeof b.constraints     === 'object' && b.constraints     !== null ? b.constraints     : {}) as Record<string, unknown>
+          setBriefGoal(String(mg.goal ?? mg.primary_goal ?? ''))
+          setBriefAudience(String(mg.target_audience ?? ''))
+          setBriefTone(String(cn.tone ?? ''))
+          setBriefAvoid(Array.isArray(cn.avoid) ? (cn.avoid as string[]).join(', ') : String(cn.avoid ?? ''))
         }
       })
       .catch(() => {})
@@ -377,15 +375,13 @@ export default function CampaignDetailPage() {
   async function createBrief() {
     setBriefSaving(true); setError(null)
     try {
-      let goals: Record<string, unknown> = {}
-      let constraints: Record<string, unknown> = {}
-      try { goals       = JSON.parse(briefGoals       || '{}') } catch { goals       = { notes: briefGoals } }
-      try { constraints = JSON.parse(briefConstraints || '{}') } catch { constraints = { notes: briefConstraints } }
-
       const res = await fetch(`/api/outbound/campaigns/${id}/brief`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ messaging_goals: goals, constraints }),
+        body:    JSON.stringify({
+          messaging_goals: { goal: briefGoal, target_audience: briefAudience },
+          constraints:     { tone: briefTone, avoid: briefAvoid },
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Failed to create brief')
@@ -1048,42 +1044,27 @@ export default function CampaignDetailPage() {
                   {brief ? `${briefApproved ? 'Approved brief' : 'Edit draft brief'} v${brief.version_number}` : 'New brief'}
                 </p>
 
-                <div style={{ marginBottom: 14 }}>
-                  <label style={{ fontSize: 11, fontWeight: 600, color: '#666', display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Messaging goals
-                    <Tip text="What outcome do we want from this campaign? E.g. book a meeting, build awareness for a specific product, re-engage warm leads." />
-                  </label>
-                  <textarea
-                    style={{
-                      width: '100%', padding: '10px', fontSize: 13, borderRadius: 7,
-                      border: '1px solid #e5e5e5', background: briefApproved ? '#fafafa' : '#fff',
-                      color: '#111', outline: 'none', boxSizing: 'border-box',
-                      minHeight: 100, resize: 'vertical', lineHeight: 1.6, fontFamily: 'inherit',
-                    }}
-                    placeholder='{"primary_goal": "Book 15-min discovery call", "secondary": "Educate on cyber risk"}'
-                    value={briefGoals}
-                    disabled={briefApproved}
-                    onChange={e => setBriefGoals(e.target.value)}
-                  />
-                </div>
-
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ fontSize: 11, fontWeight: 600, color: '#666', display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Constraints
-                    <Tip text="Any restrictions on the AI: topics to avoid, tone requirements, regulatory language, competitor mentions to skip, etc." />
-                  </label>
-                  <textarea
-                    style={{
-                      width: '100%', padding: '10px', fontSize: 13, borderRadius: 7,
-                      border: '1px solid #e5e5e5', background: briefApproved ? '#fafafa' : '#fff',
-                      color: '#111', outline: 'none', boxSizing: 'border-box',
-                      minHeight: 80, resize: 'vertical', lineHeight: 1.6, fontFamily: 'inherit',
-                    }}
-                    placeholder='{"avoid": ["pricing discussion", "competitor names"], "tone": "professional, not salesy"}'
-                    value={briefConstraints}
-                    disabled={briefApproved}
-                    onChange={e => setBriefConstraints(e.target.value)}
-                  />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 16 }}>
+                  {([
+                    { label: 'Campaign Goal',     tip: 'What do you want recipients to do? e.g. Book a 15-min call to discuss cyber insurance.', placeholder: 'e.g. Book a 15-min discovery call to discuss cyber insurance coverage', value: briefGoal,     set: setBriefGoal },
+                    { label: 'Target Audience',   tip: 'Who are we targeting? Be specific — industry, seniority, geography.',                      placeholder: 'e.g. SME founders and business owners in Singapore',                  value: briefAudience, set: setBriefAudience },
+                    { label: 'Tone',              tip: 'How should the emails sound?',                                                              placeholder: 'e.g. Professional, direct, not salesy',                             value: briefTone,     set: setBriefTone },
+                    { label: 'Topics to Avoid',   tip: 'Anything the AI should steer clear of — pricing, competitor names, regulatory details.',   placeholder: 'e.g. Pricing discussion, competitor names',                         value: briefAvoid,    set: setBriefAvoid },
+                  ] as { label: string; tip: string; placeholder: string; value: string; set: (v: string) => void }[]).map(f => (
+                    <div key={f.label}>
+                      <label style={{ fontSize: 11, fontWeight: 600, color: '#666', display: 'flex', alignItems: 'center', gap: 4, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        {f.label} <Tip text={f.tip} />
+                      </label>
+                      <input
+                        type="text"
+                        style={{ width: '100%', padding: '8px 10px', fontSize: 13, borderRadius: 7, border: '1px solid #e5e5e5', background: briefApproved ? '#fafafa' : '#fff', color: '#111', outline: 'none', boxSizing: 'border-box' }}
+                        placeholder={f.placeholder}
+                        value={f.value}
+                        disabled={briefApproved}
+                        onChange={e => f.set(e.target.value)}
+                      />
+                    </div>
+                  ))}
                 </div>
 
                 {!briefApproved && (

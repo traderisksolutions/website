@@ -28,9 +28,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!campaign) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
 
     // Brief gate: new campaigns require an approved brief before drafting
+    let briefContext = ''
     if (campaign.brief_required) {
       const briefRes = await fetch(
-        `${SB_URL}/rest/v1/ob_campaign_briefs?campaign_id=eq.${id}&status=eq.approved&select=id&limit=1`,
+        `${SB_URL}/rest/v1/ob_campaign_briefs?campaign_id=eq.${id}&status=eq.approved&select=messaging_goals,constraints&order=created_at.desc&limit=1`,
         { headers: sbHeaders() }
       )
       const briefs = briefRes.ok ? await briefRes.json() : []
@@ -40,6 +41,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           { status: 403 }
         )
       }
+      const b = briefs[0]
+      const mg = (typeof b.messaging_goals === 'object' && b.messaging_goals ? b.messaging_goals : {}) as Record<string, string>
+      const cn = (typeof b.constraints     === 'object' && b.constraints     ? b.constraints     : {}) as Record<string, string>
+      const parts: string[] = []
+      if (mg.goal)             parts.push(`Campaign goal: ${mg.goal}`)
+      if (mg.target_audience)  parts.push(`Target audience: ${mg.target_audience}`)
+      if (cn.tone)             parts.push(`Tone: ${cn.tone}`)
+      if (cn.avoid)            parts.push(`Avoid: ${cn.avoid}`)
+      if (parts.length > 0)   briefContext = '\n\nCampaign brief:\n' + parts.join('\n')
     }
 
     const sequences: { id: string; step_number: number }[] = seqRes.ok ? await seqRes.json() : []
@@ -84,7 +94,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
 TRS sells: business property insurance, liability, cyber, workmen compensation, trade credit, and marine cargo insurance.
 Campaign name / target audience: "${campaign.name}"
-Product focus: ${campaign.product_type ?? 'General'}${newsContext}${sampleContext}${knowledgeContext}
+Product focus: ${campaign.product_type ?? 'General'}${briefContext}${newsContext}${sampleContext}${knowledgeContext}
 
 Write a 3-email sequence. Each email must:
 - Be professional but conversational, not salesy
