@@ -73,14 +73,28 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ sent: 0, total_due: totalDue, at: now })
   }
 
-  // Skip sends for paused or completed campaigns
+  // Load campaigns — status + metadata (for signature)
   const campaignIds = Array.from(new Set(dueSends.map(d => d.campaign_id)))
   const campRes = await fetch(
-    `${SB_URL}/rest/v1/ob_campaigns?id=in.(${campaignIds.join(',')})&select=id,status`,
+    `${SB_URL}/rest/v1/ob_campaigns?id=in.(${campaignIds.join(',')})&select=id,status,metadata`,
     { headers: sbHeaders(), cache: 'no-store' }
   )
-  const campRows: { id: string; status: string }[] = campRes.ok ? await campRes.json() : []
+  const campRows: { id: string; status: string; metadata: Record<string, unknown> | null }[] = campRes.ok ? await campRes.json() : []
   const activeCampaigns = new Set(campRows.filter(c => c.status === 'active').map(c => c.id))
+  const campMetaMap     = new Map(campRows.map(c => [c.id, c.metadata ?? {}]))
+
+  // Load signatures needed
+  const allSigIds = campRows.map(c => c.metadata?.signature_id).filter(Boolean) as string[]
+  const sigIds    = allSigIds.filter((v, i, a) => a.indexOf(v) === i)
+  const sigMap = new Map<string, { name: string; title: string | null; phone: string | null; email: string | null; company_tagline: string | null }>()
+  if (sigIds.length > 0) {
+    const sigsRes = await fetch(
+      `${SB_URL}/rest/v1/user_signatures?id=in.(${sigIds.join(',')})&select=id,name,title,phone,email,company_tagline`,
+      { headers: sbHeaders() }
+    )
+    const sigRows: { id: string; name: string; title: string | null; phone: string | null; email: string | null; company_tagline: string | null }[] = sigsRes.ok ? await sigsRes.json() : []
+    sigRows.forEach(s => sigMap.set(s.id, s))
+  }
   const activeSends = dueSends.filter(d => activeCampaigns.has(d.campaign_id))
   if (activeSends.length === 0) return NextResponse.json({ sent: 0, skipped_paused: dueSends.length, at: now })
 
@@ -117,18 +131,21 @@ export async function GET(req: NextRequest) {
         continue
       }
 
-      const firstName = lead.first_name ?? lead.full_name?.split(' ')[0] ?? ''
-      const company   = lead.current_company ?? ''
-      const subject   = substituteTokens(step.subject, firstName, company)
-      const body      = substituteTokens(step.body,    firstName, company)
-      const fromEmail = d.from_email ?? 'operations@trade-risksol.com'
+      const firstName    = lead.first_name ?? lead.full_name?.split(' ')[0] ?? ''
+      const company      = lead.current_company ?? ''
+      const subject      = substituteTokens(step.subject, firstName, company)
+      const rawBody      = substituteTokens(step.body,    firstName, company)
+      const campMeta     = campMetaMap.get(d.campaign_id) ?? {}
+      const sig          = sigMap.get(String(campMeta.signature_id ?? '')) ?? null
+      const htmlBody     = formatEmailBody(rawBody) + (sig ? buildSignatureHtml(sig) : '')
+      const fromEmail    = d.from_email ?? 'operations@trade-risksol.com'
 
       const { threadId } = await sendGmailMessage({
         token:    gmailToken,
         from:     fromEmail,
         to:       lead.email,
         subject,
-        body,
+        body:     htmlBody,
         threadId: d.current_step > 0 ? (d.gmail_thread_id ?? undefined) : undefined,
       })
 
@@ -180,6 +197,31 @@ function substituteTokens(text: string, firstName: string, company: string): str
   return text
     .replace(/\{\{first_name\}\}/gi, firstName || 'there')
     .replace(/\{\{company\}\}/gi,    company   || 'your company')
+}
+
+function formatEmailBody(text: string): string {
+  if (text.includes('<p>') || text.includes('<br>') || text.includes('<div>')) return text
+  const paragraphs = text.split(/\n\n+/).filter(p => p.trim())
+  if (paragraphs.length === 0) return `<p>${text}</p>`
+  return paragraphs.map(p =>
+    `<p style="margin:0 0 12px 0">${p.trim().replace(/\n/g, '<br>')}</p>`
+  ).join('')
+}
+
+function buildSignatureHtml(sig: {
+  name: string; title?: string | null; phone?: string | null
+  email?: string | null; company_tagline?: string | null
+}): string {
+  const lines: string[] = [
+    'Best regards,',
+    `<strong>${sig.name}</strong>`,
+    ...[sig.title, sig.phone].filter(Boolean).length > 0
+      ? [[sig.title, sig.phone].filter(Boolean).join(' · ')]
+      : [],
+    ...(sig.email ? [`<a href="mailto:${sig.email}" style="color:#1d4ed8;text-decoration:none">${sig.email}</a>`] : []),
+    ...(sig.company_tagline ? [sig.company_tagline] : []),
+  ]
+  return `<br><p style="margin:16px 0 0;font-size:13px;color:#555;line-height:1.7">${lines.join('<br>')}</p>`
 }
 
 function buildRfc2822(from: string, to: string, subject: string, htmlBody: string): string {

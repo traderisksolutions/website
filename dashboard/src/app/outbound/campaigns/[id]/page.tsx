@@ -18,6 +18,12 @@ interface Campaign {
   lead_count: number; sent_count: number; reply_count: number
   instantly_campaign_id: string | null; created_at: string
   brief_required?: boolean; variant_mode?: boolean
+  metadata?: Record<string, unknown> | null
+}
+
+interface UserSignature {
+  id: string; name: string; title: string | null; phone: string | null
+  email: string | null; company_tagline: string | null
 }
 
 interface AnalyticsSummary {
@@ -151,6 +157,9 @@ export default function CampaignDetailPage() {
   const [sendMode,       setSendMode]       = useState<'all' | 'batch'>('all')
   const [batchSize,      setBatchSize]      = useState(5)
   const [sendingNow,     setSendingNow]     = useState(false)
+  const [signatures,     setSignatures]     = useState<UserSignature[]>([])
+  const [signatureId,    setSignatureId]    = useState<string>('')
+  const [savingSig,      setSavingSig]      = useState(false)
   const [segments,         setSegments]         = useState<{ id: string; name: string; description: string | null }[]>([])
   const [newSegmentName,   setNewSegmentName]   = useState('')
   const [addingSegment,    setAddingSegment]    = useState(false)
@@ -163,6 +172,7 @@ export default function CampaignDetailPage() {
       if (!res.ok) throw new Error(data.error ?? 'Not found')
       setCampaign(data.campaign)
       setLocalSeqs(data.sequences ?? [])
+      setSignatureId(String(data.campaign?.metadata?.signature_id ?? ''))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load')
     } finally {
@@ -171,6 +181,14 @@ export default function CampaignDetailPage() {
   }, [id])
 
   useEffect(() => { load() }, [load])
+
+  // Load signatures once on mount
+  useEffect(() => {
+    fetch('/api/signatures')
+      .then(r => r.ok ? r.json() : [])
+      .then(rows => setSignatures(Array.isArray(rows) ? rows : []))
+      .catch(() => {})
+  }, [])
 
   // Load campaign leads + segments when switching to leads tab
   useEffect(() => {
@@ -460,6 +478,21 @@ export default function CampaignDetailPage() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Generation failed')
     } finally { setGeneratingVariants(false) }
+  }
+
+  // ── Signature ─────────────────────────────────────────────────────────────
+
+  async function saveSignature(newId: string) {
+    setSignatureId(newId)
+    setSavingSig(true)
+    try {
+      const currentMeta = (campaign?.metadata ?? {}) as Record<string, unknown>
+      await fetch(`/api/outbound/campaigns/${id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ metadata: { ...currentMeta, signature_id: newId || null } }),
+      })
+    } catch { /* non-fatal */ }
+    finally { setSavingSig(false) }
   }
 
   // ── Send Now ──────────────────────────────────────────────────────────────
@@ -1088,6 +1121,40 @@ export default function CampaignDetailPage() {
               </div>
             </div>
           )}
+
+          {/* Sender signature */}
+          <div style={card}>
+            <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 600, color: '#111' }}>Sender Signature</p>
+            <select
+              value={signatureId}
+              onChange={e => saveSignature(e.target.value)}
+              style={{ width: '100%', height: 36, padding: '0 10px', fontSize: 13, color: '#111', background: '#fff', border: '1px solid #e5e5e5', borderRadius: 7, outline: 'none' }}
+            >
+              <option value="">No signature</option>
+              {signatures.map(s => (
+                <option key={s.id} value={s.id}>
+                  {s.name}{s.title ? ` — ${s.title}` : ''}
+                </option>
+              ))}
+            </select>
+            {savingSig && <p style={{ margin: '6px 0 0', fontSize: 11, color: '#aaa' }}>Saving…</p>}
+            {signatureId && (() => {
+              const sig = signatures.find(s => s.id === signatureId)
+              return sig ? (
+                <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, background: '#f8f8f8', border: '1px solid #f0f0f0', fontSize: 12, color: '#555', lineHeight: 1.7 }}>
+                  Best regards,<br />
+                  <strong>{sig.name}</strong><br />
+                  {[sig.title, sig.phone].filter(Boolean).join(' · ')}{(sig.title || sig.phone) && <br />}
+                  {sig.email && <>{sig.email}<br /></>}
+                  {sig.company_tagline && <span style={{ color: '#aaa' }}>{sig.company_tagline}</span>}
+                </div>
+              ) : null
+            })()}
+            <p style={{ margin: '8px 0 0', fontSize: 11, color: '#bbb' }}>
+              Appended to all emails sent from this campaign. Manage signatures in{' '}
+              <Link href="/settings" style={{ color: '#888', textDecoration: 'underline' }}>Settings</Link>.
+            </p>
+          </div>
         </div>
       )}
 

@@ -41,13 +41,25 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     )
   }
 
-  // Verify campaign exists
+  // Load campaign (status + metadata for signature)
   const campRes = await fetch(
-    `${SB_URL}/rest/v1/ob_campaigns?id=eq.${id}&select=id,status`,
+    `${SB_URL}/rest/v1/ob_campaigns?id=eq.${id}&select=id,status,metadata`,
     { headers: sbHeaders(), cache: 'no-store' }
   )
   const [camp] = campRes.ok ? await campRes.json() : [null]
   if (!camp) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
+
+  // Load signature if set
+  let signatureHtml = ''
+  const sigId = (camp.metadata as Record<string, unknown> | null)?.signature_id
+  if (sigId) {
+    const sigRes = await fetch(
+      `${SB_URL}/rest/v1/user_signatures?id=eq.${sigId}&select=name,title,phone,email,company_tagline`,
+      { headers: sbHeaders() }
+    )
+    const [sig] = sigRes.ok ? await sigRes.json() : [null]
+    if (sig) signatureHtml = buildSignatureHtml(sig)
+  }
 
   // Fetch due sends for this campaign — includes both initial (queued) and follow-up (sent + scheduled)
   const dueRes = await fetch(
@@ -103,7 +115,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       const firstName = lead.first_name ?? lead.full_name?.split(' ')[0] ?? ''
       const company   = lead.current_company ?? ''
       const subject   = substituteTokens(step.subject, firstName, company)
-      const emailBody = substituteTokens(step.body,    firstName, company)
+      const rawBody   = substituteTokens(step.body,    firstName, company)
+      const htmlBody  = formatEmailBody(rawBody) + signatureHtml
       const fromEmail = d.from_email ?? 'operations@trade-risksol.com'
 
       const { threadId } = await sendGmailMessage({
@@ -111,7 +124,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         from:     fromEmail,
         to:       lead.email,
         subject,
-        body:     emailBody,
+        body:     htmlBody,
         threadId: d.current_step > 0 ? (d.gmail_thread_id ?? undefined) : undefined,
       })
 
@@ -161,6 +174,31 @@ function substituteTokens(text: string, firstName: string, company: string): str
   return text
     .replace(/\{\{first_name\}\}/gi, firstName || 'there')
     .replace(/\{\{company\}\}/gi,    company   || 'your company')
+}
+
+function formatEmailBody(text: string): string {
+  if (text.includes('<p>') || text.includes('<br>') || text.includes('<div>')) return text
+  const paragraphs = text.split(/\n\n+/).filter(p => p.trim())
+  if (paragraphs.length === 0) return `<p>${text}</p>`
+  return paragraphs.map(p =>
+    `<p style="margin:0 0 12px 0">${p.trim().replace(/\n/g, '<br>')}</p>`
+  ).join('')
+}
+
+function buildSignatureHtml(sig: {
+  name: string; title?: string | null; phone?: string | null
+  email?: string | null; company_tagline?: string | null
+}): string {
+  const lines: string[] = [
+    'Best regards,',
+    `<strong>${sig.name}</strong>`,
+    ...[sig.title, sig.phone].filter(Boolean).length > 0
+      ? [[sig.title, sig.phone].filter(Boolean).join(' · ')]
+      : [],
+    ...(sig.email ? [`<a href="mailto:${sig.email}" style="color:#1d4ed8;text-decoration:none">${sig.email}</a>`] : []),
+    ...(sig.company_tagline ? [sig.company_tagline] : []),
+  ]
+  return `<br><p style="margin:16px 0 0;font-size:13px;color:#555;line-height:1.7">${lines.join('<br>')}</p>`
 }
 
 function buildRfc2822(from: string, to: string, subject: string, htmlBody: string): string {

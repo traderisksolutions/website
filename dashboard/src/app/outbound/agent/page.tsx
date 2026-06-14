@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import {
   Search, Building2, Users, Mail, ChevronRight,
-  Clock, ArrowLeft, AlertCircle, CheckCircle, ExternalLink, Loader2, Link2,
+  Clock, ArrowLeft, AlertCircle, CheckCircle, ExternalLink, Loader2,
 } from 'lucide-react'
 import { Tip } from '@/components/Tip'
 import { Card, CardContent } from '@/components/ui/card'
@@ -177,7 +177,6 @@ export default function OutboundAgentPage() {
   const [locations,       setLocations]       = useState<string[]>(['Singapore'])
   const [headcountRanges, setHeadcountRanges] = useState<string[]>([])
   const [productType,     setProductType]     = useState('')
-  const [newsUrl,         setNewsUrl]         = useState('')
   const [cronPref,        setCronPref]        = useState('none')
 
   const loadHistory = useCallback(async () => {
@@ -243,7 +242,6 @@ export default function OutboundAgentPage() {
         body: JSON.stringify({
           sector: sector.trim(), locations, headcountRanges, productType,
           cronPreference: cronPref === 'none' ? null : cronPref,
-          newsUrl: newsUrl.trim() || null,
         }),
       })
       const data = await res.json()
@@ -364,17 +362,6 @@ export default function OutboundAgentPage() {
                     <option value="">Select type…</option>
                     {PRODUCT_TYPES.map(pt => <option key={pt.value} value={pt.value}>{pt.label}</option>)}
                   </select>
-                </div>
-                <div>
-                  <FormLabel>
-                    News Hook URL (optional){' '}
-                    <Tip placement="right" text="Paste a relevant news article — a regulation change, market disruption, or sector report — and the AI uses it as the email opening hook. Leave blank and the AI finds one automatically." />
-                  </FormLabel>
-                  <div className="relative">
-                    <Link2 size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/40" />
-                    <Input className="pl-8" placeholder="Paste article URL — or leave blank for auto-fetch" value={newsUrl} onChange={e => setNewsUrl(e.target.value)} />
-                  </div>
-                  <p className="text-[11px] text-muted-foreground/50 mt-1 leading-snug">AI will find a relevant insurance-angle news hook automatically if left blank</p>
                 </div>
                 <div>
                   <FormLabel>
