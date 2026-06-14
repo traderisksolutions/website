@@ -41,12 +41,6 @@ interface EmailResult {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const PRODUCT_TYPES = [
-  { value: 'assets',      label: 'Business Assets' },
-  { value: 'liabilities', label: 'Business Liabilities' },
-  { value: 'workforce',   label: 'Workforce' },
-  { value: 'api',         label: 'API' },
-]
 const LOCATIONS = ['Singapore', 'Hong Kong', 'Malaysia', 'Indonesia']
 const HEADCOUNT_OPTIONS = [
   { value: '<50',      label: '< 50' },
@@ -254,7 +248,13 @@ export default function OutboundAgentPage() {
         cron_preference: cronPref === 'none' ? null : cronPref,
         company_count: data.companies.length, status: 'completed', created_at: new Date().toISOString(),
       })
-      setCompanies(data.companies); setSkipped(data.skipped ?? 0); setStep('companies')
+      setCompanies(data.companies)
+      setSkipped(data.skipped ?? 0)
+      const notEnriched = data.notEnriched ?? 0
+      if (notEnriched > 0) {
+        setError(`${notEnriched} companies suggested by AI could not be verified in Apollo — they were skipped.`)
+      }
+      setStep('companies')
       loadHistory()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Search failed')
@@ -331,7 +331,7 @@ export default function OutboundAgentPage() {
 
       <div className="mb-5">
         <h1 className="text-xl font-bold tracking-tight text-foreground">Lead Discovery</h1>
-        <p className="text-sm text-muted-foreground mt-1">Search companies → find decision-makers → get verified emails</p>
+        <p className="text-sm text-muted-foreground mt-1">AI finds real companies in any sector → Apollo finds decision-makers → verified emails</p>
       </div>
 
       <Breadcrumb step={step} onNav={setStep} canGo={canGo} />
@@ -382,14 +382,14 @@ export default function OutboundAgentPage() {
                     className="w-full h-9 px-3 text-[13px] text-foreground bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-ring"
                   />
                   <p className="text-[11px] mt-1 text-amber-600">
-                    ~{perPage} credits per search · 75/month free ({Math.floor(75 / perPage)} searches remaining if unused)
+                    Gemini discovers companies · Apollo verifies each (~{perPage} credits) · 75 credits/month free
                   </p>
                 </div>
               </div>
               <Button className="mt-5 w-full gap-1.5" onClick={runSearch}
                 disabled={loading || !sector.trim() || locations.length === 0}>
                 {loading ? <Loader2 size={13} className="animate-spin" /> : <Search size={13} />}
-                {loading ? 'Searching Apollo…' : 'Run Search'}
+                {loading ? 'AI is finding companies…' : 'Find Companies'}
               </Button>
             </CardContent>
           </Card>
@@ -420,7 +420,7 @@ export default function OutboundAgentPage() {
                         <Td className="font-medium text-foreground max-w-[130px] overflow-hidden text-ellipsis whitespace-nowrap">{s.sector}</Td>
                         <Td className="text-muted-foreground text-[11px]">{(s.locations?.length ? s.locations : [s.location]).join(', ')}</Td>
                         <Td>
-                          <TBadge label={PRODUCT_TYPES.find(p => p.value === s.product_type)?.label ?? s.product_type} color="hsl(var(--muted-foreground))" bg="hsl(var(--muted))" />
+                          <TBadge label={s.product_type ?? 'General'} color="hsl(var(--muted-foreground))" bg="hsl(var(--muted))" />
                         </Td>
                         <Td className="font-semibold text-foreground">{s.company_count}</Td>
                         <Td>
