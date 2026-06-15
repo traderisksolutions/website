@@ -94,9 +94,47 @@ export async function POST(req: NextRequest) {
     if (!geminiKey) return NextResponse.json({ error: 'GEMINI_API_KEY_DRAFT_EMAIL not set' }, { status: 500 })
 
     // Resolve a human-readable greeting name
-    const hasRealName = contactName && !contactName.includes('@')
-    const firstName   = hasRealName ? contactName.split(' ')[0] : null
-    const salutation  = firstName ? `Dear ${firstName},` : 'Dear Sir/Madam,'
+    // Priority: 1) passed contactName if it's a real name (no @)
+    //           2) Gemini extract from last inbound email body/signature
+    // Names in parentheses like "Xinrong (Leona) Li" → "Leona" (preferred/common name).
+    // Extracted name is persisted to inbound_leads so future drafts skip the Gemini call.
+    let resolvedFirstName: string | null = null
+
+    if (contactName && !contactName.includes('@')) {
+      const nick = contactName.match(/\(([A-Za-z]+)\)/)
+      resolvedFirstName = nick ? nick[1] : contactName.split(' ')[0]
+    } else if (messages.length > 0) {
+      const latestInbound = [...messages].reverse().find(m => m.direction === 'inbound')
+      const bodySnippet   = (latestInbound?.body_text ?? '').slice(0, 2000)
+      if (bodySnippet.length > 30) {
+        try {
+          const nameRes = await fetch(`${GEMINI_URL}?key=${geminiKey}`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: `Extract the sender's preferred first name from this email. Names in parentheses like "(Leona)" are preferred common names — always choose those. Reply with ONLY one word (the first name). Reply "UNKNOWN" if no name is found.\n\nEMAIL:\n${bodySnippet}` }] }],
+              generationConfig: { temperature: 0, maxOutputTokens: 10 },
+            }),
+          })
+          if (nameRes.ok) {
+            const nd  = await nameRes.json()
+            const raw = (nd?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim()
+            if (raw && raw.toUpperCase() !== 'UNKNOWN' && /^[A-Za-z]+$/.test(raw) && raw.length < 25) {
+              resolvedFirstName = raw
+              if (leadId) {
+                fetch(`${SB_URL}/rest/v1/inbound_leads?id=eq.${leadId}`, {
+                  method:  'PATCH',
+                  headers: sbHeaders('return=minimal'),
+                  body:    JSON.stringify({ first_name: raw }),
+                }).catch(() => {})
+              }
+            }
+          }
+        } catch { /* non-fatal */ }
+      }
+    }
+
+    const salutation = resolvedFirstName ? `Dear ${resolvedFirstName},` : 'Dear Sir/Madam,'
 
     // ── Classify email type (spam filter + routing) ────────────────────────────
     const lastMsgText = messages.slice(-3).map(m => (m.body_text || '').slice(0, 3000)).join('\n---\n')
@@ -357,7 +395,7 @@ ${fewShotSection}${antiPatternSection}
 - Only cite figures or coverage terms you can read directly from the attached documents — never fabricate
 
 ━━ CLIENT DETAILS ━━
-- Name: ${hasRealName ? contactName : '(unknown)'}
+- Name: ${resolvedFirstName ?? (contactName && !contactName.includes('@') ? contactName : '(unknown)')}
 - Email: ${contactEmail ?? '—'}
 - Company: ${company || '(unknown)'}
 - Thread subject: ${threadSubject}${leadProfileStr}

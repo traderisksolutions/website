@@ -729,8 +729,11 @@ function AIDraftPanel({
   }, [aiDraftChecked, draftLoaded, sent, storedDraft]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Effect C — auto-generate if both checks returned nothing and messages are ready.
+  // Only fires for white threads (client emailed last, direction = inbound).
+  // Grey/blue threads (TRS replied last) skip auto-generation — no draft needed.
   useEffect(() => {
     if (!thread?.id || !aiDraftChecked || draftLoaded || messages.length === 0 || sent) return
+    if (messages.at(-1)?.direction !== 'inbound') return
     generate()
   }, [thread?.id, aiDraftChecked, draftLoaded, messages.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
