@@ -9,6 +9,7 @@ import {
   Mail, Users, BarChart2, FileText, Pause, Play, GitBranch, X, Send,
 } from 'lucide-react'
 import { Tip } from '@/components/Tip'
+import { RichEditor, plainToHtml } from '@/components/RichEditor'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -798,21 +799,26 @@ export default function CampaignDetailPage() {
                       </div>
 
                       <div style={{ marginBottom: 14 }}>
-                        <label style={{ fontSize: 11, fontWeight: 600, color: '#666', display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                          Email Body
-                        </label>
-                        <textarea
-                          style={{
-                            width: '100%', padding: '10px', fontSize: 13, borderRadius: 7,
-                            border: '1px solid #e5e5e5', background: isActive ? '#fafafa' : '#fff',
-                            color: '#111', outline: 'none', boxSizing: 'border-box',
-                            minHeight: 160, resize: 'vertical', lineHeight: 1.6, fontFamily: 'inherit',
-                          }}
-                          placeholder="Email body… Use {{first_name}} and {{company}} for personalisation."
-                          value={seq.body}
-                          disabled={isActive}
-                          onChange={e => updateLocalSeq(seq.id, 'body', e.target.value)}
-                        />
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+                          <label style={{ fontSize: 11, fontWeight: 600, color: '#666', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                            Email Body
+                          </label>
+                          <span style={{ fontSize: 10, color: '#f59e0b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
+                            ⚠ Images &amp; HTML reduce cold-email deliverability — use sparingly
+                          </span>
+                        </div>
+                        {isActive ? (
+                          <div style={{ padding: '10px 12px', fontSize: 13, borderRadius: 7, border: '1px solid #e5e5e5', background: '#fafafa', minHeight: 120, color: '#111', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}
+                            dangerouslySetInnerHTML={{ __html: seq.body }} />
+                        ) : (
+                          <RichEditor
+                            key={seq.id}
+                            initialHtml={seq.body.startsWith('<') ? seq.body : plainToHtml(seq.body)}
+                            onChange={html => updateLocalSeq(seq.id, 'body', html)}
+                            placeholder="Email body… Use {{first_name}} and {{company}} for personalisation."
+                            minHeight={160}
+                          />
+                        )}
                         <p style={{ margin: '4px 0 0', fontSize: 11, color: '#bbb', display: 'flex', alignItems: 'center', gap: 4 }}>
                           Tokens: {'{{first_name}}'} · {'{{company}}'} <Tip text="Gmail replaces these with each lead's first name and company before sending." />
                         </p>

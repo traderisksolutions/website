@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   Bold, Italic, Underline as ULIcon,
   AlignLeft, AlignCenter, AlignRight,
-  List, ListOrdered, Link2,
+  List, ListOrdered, Link2, ImageIcon, Upload,
 } from 'lucide-react'
 import type React from 'react'
 import 'quill/dist/quill.snow.css'
@@ -26,10 +26,12 @@ export function RichEditor({
 }: RichEditorProps) {
   const mountRef    = useRef<HTMLDivElement>(null)
   const quillRef    = useRef<import('quill').default | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
 
-  const [fmt, setFmt] = useState<Record<string, unknown>>({})
+  const [fmt,         setFmt]         = useState<Record<string, unknown>>({})
+  const [imgUploading, setImgUploading] = useState(false)
 
   useEffect(() => {
     if (!mountRef.current || quillRef.current) return
@@ -52,7 +54,7 @@ export function RichEditor({
           history: { delay: 1000, maxStack: 100, userOnly: true },
         },
         placeholder,
-        formats: ['bold', 'italic', 'underline', 'align', 'list', 'link'],
+        formats: ['bold', 'italic', 'underline', 'align', 'list', 'link', 'image'],
       })
 
       // Strip Quill snow's inner border/margin — our outer wrapper handles the border
@@ -64,6 +66,10 @@ export function RichEditor({
       if (editorEl) {
         editorEl.style.cssText +=
           `;font-size:13px;line-height:1.65;color:#1e3a5f;font-family:inherit;min-height:${minHeight}px;padding:10px 12px;outline:none`
+        // Inject responsive image style so inserted images don't overflow the editor
+        const styleEl = document.createElement('style')
+        styleEl.textContent = '.ql-editor img{max-width:100%;height:auto;display:block;margin:8px 0;border-radius:4px}'
+        mountRef.current?.appendChild(styleEl)
       }
 
       if (initialHtml?.trim()) {
@@ -93,6 +99,38 @@ export function RichEditor({
 
   function apply(name: string, val: unknown) {
     quillRef.current?.format(name, val, 'user')
+  }
+
+  function insertImageAtCursor(url: string) {
+    const q = quillRef.current
+    if (!q) return
+    const range = q.getSelection(true) ?? { index: q.getLength() - 1, length: 0 }
+    q.insertEmbed(range.index, 'image', url, 'user')
+    q.setSelection(range.index + 1, 0, 'user')
+  }
+
+  function handleInsertImageUrl() {
+    const url = window.prompt('Image URL (must start with https://):')
+    if (url?.trim().startsWith('http')) insertImageAtCursor(url.trim())
+  }
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    setImgUploading(true)
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const res  = await fetch('/api/upload/image', { method: 'POST', body: form })
+      const data = await res.json()
+      if (data.url) insertImageAtCursor(data.url)
+      else alert(data.error ?? 'Image upload failed')
+    } catch {
+      alert('Image upload failed — check your connection')
+    } finally {
+      setImgUploading(false)
+    }
   }
 
   function s(active: boolean): React.CSSProperties {
@@ -177,6 +215,29 @@ export function RichEditor({
           }}>
           <Link2 size={12} />
         </button>
+
+        <Sep />
+
+        {/* Image: paste URL */}
+        <button type="button" title="Insert image from URL" style={s(false)}
+          onMouseDown={e => { e.preventDefault(); handleInsertImageUrl() }}>
+          <ImageIcon size={12} />
+        </button>
+
+        {/* Image: upload from device */}
+        <label
+          title={imgUploading ? 'Uploading…' : 'Upload image from device'}
+          style={{ ...s(false), cursor: imgUploading ? 'wait' : 'pointer', opacity: imgUploading ? 0.5 : 1 }}
+        >
+          <Upload size={12} />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            style={{ display: 'none' }}
+            onChange={handleImageUpload}
+          />
+        </label>
 
       </div>
 

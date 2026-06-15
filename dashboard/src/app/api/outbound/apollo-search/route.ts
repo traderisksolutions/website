@@ -35,6 +35,23 @@ export async function POST(req: NextRequest) {
       ? `Preferred company size: ${headcountRanges.map((r: string) => HEADCOUNT_LABELS[r] ?? r).join(' or ')}.`
       : ''
 
+    // ── Pre-load existing companies BEFORE calling Gemini ────────────────────
+    // This prevents Gemini from suggesting companies we already have, and stops
+    // Apollo credits being spent on enriching companies already in the DB.
+    const existingRes = await fetch(
+      `${SB_URL}/rest/v1/ob_company_dump?select=name,primary_domain&limit=2000`,
+      { headers: sbHeaders() }
+    )
+    const existingRows: { name: string; primary_domain: string | null }[] =
+      existingRes.ok ? await existingRes.json() : []
+    const existingNameSet   = new Set(existingRows.map(r => r.name.toLowerCase()))
+    const existingDomainSet = new Set(
+      existingRows.map(r => r.primary_domain?.toLowerCase().replace(/^www\./, '')).filter(Boolean) as string[]
+    )
+    const exclusionNote = existingRows.length > 0
+      ? `\nEXCLUDE these companies — already in our database: ${existingRows.slice(0, 80).map(r => r.name).join(', ')}`
+      : ''
+
     // ── Step 1: Gemini company discovery ─────────────────────────────────────
     const geminiPrompt = `You are a B2B business researcher specialising in Asian markets.
 
@@ -45,7 +62,7 @@ STRICT RULES:
 - Companies that plausibly purchase commercial insurance (property, liability, cyber, marine, etc.)
 - Diverse mix across ${sector} sub-sectors — do not repeat the same type of company
 - Real companies that exist today, not hypothetical
-${headcountNote}
+${headcountNote}${exclusionNote}
 
 Return ONLY valid JSON — no markdown, no commentary:
 {"companies":[{"name":"Exact company name","website":"domain.com or null","description":"one-line description of what they do"}]}`
@@ -92,7 +109,20 @@ Return ONLY valid JSON — no markdown, no commentary:
       return NextResponse.json({ error: 'AI found no companies. Try a broader sector or different location.' }, { status: 422 })
     }
 
-    // ── Step 2: Apollo enrich each company to validate + get Apollo ID ────────
+    // ── Step 2: Pre-filter Gemini companies before calling Apollo ────────────
+    // Any company already in ob_company_dump is skipped — no Apollo credit spent.
+    const isKnown = (comp: { name: string; website?: string }) => {
+      if (existingNameSet.has(comp.name.toLowerCase())) return true
+      if (comp.website) {
+        const d = comp.website.toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '')
+        if (existingDomainSet.has(d)) return true
+      }
+      return false
+    }
+    const toEnrich = geminiCompanies.filter(c => !isKnown(c))
+    const skippedBeforeApollo = geminiCompanies.length - toEnrich.length
+
+    // ── Step 3: Apollo enrich each new company to validate + get Apollo ID ────
     const enrichedOrgs: {
       id: string; name: string; website_url: string | null
       estimated_num_employees: number | null; industry: string | null
@@ -100,7 +130,7 @@ Return ONLY valid JSON — no markdown, no commentary:
       ai_description: string | null
     }[] = []
 
-    for (const comp of geminiCompanies) {
+    for (const comp of toEnrich) {
       try {
         const params = new URLSearchParams({ name: comp.name })
         if (comp.website) params.set('domain', comp.website)
@@ -127,22 +157,10 @@ Return ONLY valid JSON — no markdown, no commentary:
       } catch { /* skip unresolvable company */ }
     }
 
-    const notEnriched = geminiCompanies.length - enrichedOrgs.length
-
-    // ── Dedup against existing DB ─────────────────────────────────────────────
-    const [dumpRes, leadsRes] = await Promise.all([
-      fetch(`${SB_URL}/rest/v1/ob_company_dump?select=name`, { headers: sbHeaders() }),
-      fetch(`${SB_URL}/rest/v1/outbound_leads?select=current_company&record_type=eq.person`, { headers: sbHeaders() }),
-    ])
-    const dumpRows:  { name: string }[]            = dumpRes.ok  ? await dumpRes.json() : []
-    const leadsRows: { current_company: string }[] = leadsRes.ok ? await leadsRes.json() : []
-    const existingNames = new Set([
-      ...(Array.isArray(dumpRows)  ? dumpRows.map(r => r.name.toLowerCase())                                       : []),
-      ...(Array.isArray(leadsRows) ? leadsRows.map(r => r.current_company?.toLowerCase()).filter(Boolean) : []),
-    ])
-
-    const newOrgs = enrichedOrgs.filter(o => !existingNames.has(o.name.toLowerCase()))
-    const skipped = enrichedOrgs.length - newOrgs.length
+    const notEnriched = toEnrich.length - enrichedOrgs.length
+    // All enriched orgs are already guaranteed new (pre-filtered above)
+    const newOrgs = enrichedOrgs
+    const skipped = skippedBeforeApollo
 
     // ── Save search log ───────────────────────────────────────────────────────
     const logPayload = {

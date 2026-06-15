@@ -119,7 +119,7 @@ function wrapBase64Lines(b64: string): string {
 function buildRawEmail(to: string, subject: string, body: string, htmlBody?: string | null, cc?: string[], bcc?: string[], replyTo?: string, fromEmail = DEFAULT_OPS_EMAIL): string {
   const boundary    = `trs_${Date.now()}`
   const plainText   = htmlBody ? htmlToText(htmlBody) : body
-  const emailCss = `<style>body{margin:0;padding:0}p{margin:0 0 10px 0;padding:0}p:last-child{margin-bottom:0}ul,ol{margin:0 0 10px 0;padding-left:22px}li{margin-bottom:3px}strong{font-weight:600}a{color:#1d4ed8}</style>`
+  const emailCss = `<style>body{margin:0;padding:0}p{margin:0 0 10px 0;padding:0}p:last-child{margin-bottom:0}ul,ol{margin:0 0 10px 0;padding-left:22px}li{margin-bottom:3px}strong{font-weight:600}a{color:#1d4ed8}img{max-width:100%;height:auto;display:block;margin:8px 0}</style>`
   const bodyStyle = `font-family:Arial,sans-serif;font-size:14px;line-height:1.65;color:#333`
   const fullHtml    = htmlBody
     ? `<!DOCTYPE html><html><head><meta charset="utf-8">${emailCss}</head><body style="${bodyStyle}">${htmlBody}</body></html>`
