@@ -586,7 +586,7 @@ function EmailChipInput({ label, chips, onChange }: {
 
 function AIDraftPanel({
   lead, thread, messages, storedDraft, storedRagDraft, storedRagSources, onRagRefresh, onThreadRefresh, pendingRestore,
-  ccList, bccList, customSubject, replyTo,
+  ccList, bccList, customSubject, toAddress,
 }: {
   lead:               Lead
   thread:             ThreadState['thread']
@@ -600,7 +600,7 @@ function AIDraftPanel({
   ccList:             string[]
   bccList:            string[]
   customSubject:      string
-  replyTo:            string
+  toAddress:          string
 }) {
   type ActiveTab = 'gdrive' | 'rag' | 'compose'
   const lastMsg    = messages.at(-1)
@@ -634,8 +634,8 @@ function AIDraftPanel({
   const [selectedSigId, setSelectedSigId] = useState<string>('')
   const [sigsLoaded,    setSigsLoaded]    = useState(false)
 
-  // Sender state (From: dropdown — only shown when employee has connected their personal Gmail)
-  type Sender = { email: string; label: string; type: 'shared' | 'personal' }
+  // Sender state (From: dropdown)
+  type Sender = { email: string; label: string; type: 'shared' | 'personal'; verified: boolean }
   const [senders,           setSenders]           = useState<Sender[]>([])
   const [selectedFromEmail, setSelectedFromEmail] = useState<string>('')
 
@@ -836,13 +836,11 @@ function AIDraftPanel({
         body: JSON.stringify({
           draftId:         activeDraftId,
           htmlBody:        sigHtml ? activeHtml + sigHtml : activeHtml,
+          toEmail:         toAddress || undefined,
           cc:              ccList.length  ? ccList  : undefined,
           bcc:             bccList.length ? bccList : undefined,
           customSubject:   customSubject || undefined,
-          replyTo:         replyTo !== 'operations@trade-risksol.com' ? replyTo : undefined,
           fromEmail:       selectedFromEmail || undefined,
-          // Original AI output before human edits — used so evaluation compares the real AI draft
-          // vs what was sent, not the edited-vs-edited tautology.
           originalAiBody:  activeTab === 'rag' && ragOriginalContent ? ragOriginalContent : undefined,
         }),
       })
@@ -964,20 +962,33 @@ function AIDraftPanel({
 
       {/* ── Signature selector + Actions ── */}
       <div style={{ padding: '4px 12px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {senders.length > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>From</span>
-            <select
-              value={selectedFromEmail}
-              onChange={e => setSelectedFromEmail(e.target.value)}
-              style={{ flex: 1, fontSize: 12, padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff', color: 'var(--text-secondary)', cursor: 'pointer' }}
-            >
-              {senders.map(s => (
-                <option key={s.email} value={s.email}>{s.label} &lt;{s.email}&gt;</option>
-              ))}
-            </select>
-          </div>
-        )}
+        {senders.length > 0 && (() => {
+          const selectedSender = senders.find(s => s.email === selectedFromEmail)
+          const unverified = selectedSender && !selectedSender.verified && selectedSender.type === 'shared'
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>From</span>
+                <select
+                  value={selectedFromEmail}
+                  onChange={e => setSelectedFromEmail(e.target.value)}
+                  style={{ flex: 1, fontSize: 12, padding: '5px 8px', border: `1px solid ${unverified ? '#fbbf24' : '#e5e7eb'}`, borderRadius: 6, background: '#fff', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                >
+                  {senders.map(s => (
+                    <option key={s.email} value={s.email}>
+                      {s.label} &lt;{s.email}&gt;{!s.verified && s.type === 'shared' ? ' ⚠' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {unverified && (
+                <p style={{ margin: 0, fontSize: 10.5, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 5, padding: '3px 8px' }}>
+                  ⚠ Alias not verified — set up &ldquo;Send as&rdquo; in Gmail Settings, then mark as Verified in Settings.
+                </p>
+              )}
+            </div>
+          )
+        })()}
         {signatures.length > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Sign as</span>
@@ -991,6 +1002,11 @@ function AIDraftPanel({
                 <option key={s.id} value={s.id}>{s.name}{s.title ? ` · ${s.title}` : ''}</option>
               ))}
             </select>
+          </div>
+        )}
+        {toAddress && (
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '5px 10px', background: '#f0f6ff', borderRadius: 6, border: '1px solid #bfdbfe' }}>
+            Sending to: <strong style={{ color: 'var(--primary-hex)' }}>{toAddress}</strong>
           </div>
         )}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -1194,7 +1210,8 @@ function ThreadMetaPanel({ msg }: { msg: RealMsg | null }) {
 function ContactPanel({
   lead, messages, onStatus, threadId, selectedMsg, onRestoreDraft,
   panelTab, setPanelTab,
-  ccList, setCcList, bccList, setBccList, customSubject, setCustomSubject, replyTo, setReplyTo,
+  toAddress, setToAddress,
+  ccList, setCcList, bccList, setBccList, customSubject, setCustomSubject,
 }: {
   lead:             Lead
   messages:         RealMsg[]
@@ -1204,14 +1221,14 @@ function ContactPanel({
   onRestoreDraft:   (body: string, generatedBy: string) => void
   panelTab:         'contact' | 'thread' | 'drafts'
   setPanelTab:      (t: 'contact' | 'thread' | 'drafts') => void
+  toAddress:        string
+  setToAddress:     (t: string) => void
   ccList:           string[]
   setCcList:        (c: string[]) => void
   bccList:          string[]
   setBccList:       (b: string[]) => void
   customSubject:    string
   setCustomSubject: (s: string) => void
-  replyTo:          string
-  setReplyTo:       (r: string) => void
 }) {
   const [menuOpen,     setMenuOpen]     = useState(false)
   const [copied,       setCopied]       = useState<string | null>(null)
@@ -1290,16 +1307,19 @@ function ContactPanel({
         <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', flex: 1 }}>
           <ThreadMetaPanel msg={selectedMsg} />
           <div style={{ borderTop: '1px solid #f0f0f0', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>Reply Headers</p>
+            <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>Compose to</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px', border: '1px solid #bfdbfe', borderRadius: 6, background: '#eff6ff', minHeight: 40 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary-hex)', flexShrink: 0, width: 52 }}>TO</span>
+              <input
+                value={toAddress}
+                onChange={e => setToAddress(e.target.value)}
+                placeholder="recipient@example.com"
+                style={{ flex: 1, fontSize: 12, border: 'none', outline: 'none', padding: 0, background: 'transparent', color: '#111' }}
+              />
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff', minHeight: 40 }}>
               <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', flexShrink: 0, width: 52 }}>Subject</span>
               <input value={customSubject} onChange={e => setCustomSubject(e.target.value)}
-                style={{ flex: 1, fontSize: 12, border: 'none', outline: 'none', padding: 0, background: 'transparent', color: '#111' }} />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff', minHeight: 40 }}>
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', flexShrink: 0, width: 52 }}>Reply-To</span>
-              <input value={replyTo} onChange={e => setReplyTo(e.target.value)}
-                placeholder="operations@trade-risksol.com"
                 style={{ flex: 1, fontSize: 12, border: 'none', outline: 'none', padding: 0, background: 'transparent', color: '#111' }} />
             </div>
             <EmailChipInput label="CC"  chips={ccList}  onChange={setCcList} />
@@ -1443,10 +1463,10 @@ function ThreadView({
   const [showReply,     setShowReply]     = useState(true)
   const [selectedMsgId, setSelectedMsgId] = useState<string | null>(null)
   const [panelTab,      setPanelTab]      = useState<'contact' | 'thread' | 'drafts'>('contact')
+  const [toAddress,     setToAddress]     = useState('')
   const [ccList,        setCcList]        = useState<string[]>([])
   const [bccList,       setBccList]       = useState<string[]>([])
   const [customSubject, setCustomSubject] = useState('')
-  const [replyTo,       setReplyTo]       = useState('operations@trade-risksol.com')
   const threadId        = thread?.id ?? null
   const latestSummary   = summaries[0] ?? null
   const latestMessageId = messages.at(-1)?.id ?? null
@@ -1455,24 +1475,22 @@ function ThreadView({
   // Reset per-lead state when switching leads
   useEffect(() => { setSelectedMsgId(null); setPanelTab('contact') }, [lead.id])
 
-  // Initialize compose headers from thread + messages (lifted from AIDraftPanel)
+  // Initialize compose headers from thread + messages
   useEffect(() => {
     setBccList([])
-    setReplyTo('operations@trade-risksol.com')
     const s = thread?.subject ?? ''
     setCustomSubject(s ? (s.startsWith('Re:') ? s : `Re: ${s}`) : 'Re: Your enquiry — Trade Risk Solutions')
-    const seen = new Set<string>()
-    const ccs: string[] = []
-    for (const m of messages) {
-      for (const addr of m.cc) {
-        const a = addr.toLowerCase()
-        if (!seen.has(a) && !a.endsWith('@trade-risksol.com') &&
-            !a.includes('noreply') && !a.includes('no-reply') && !a.includes('mailer-daemon')) {
-          seen.add(a); ccs.push(a)
-        }
-      }
-    }
-    setCcList(ccs)
+
+    // TO: from_address of the last inbound message; fall back to lead email
+    const lastInbound = [...messages].reverse().find(m => m.direction === 'inbound')
+    setToAddress(lastInbound?.from_address ?? lead.email ?? '')
+
+    // CC: only from the latest inbound message (not a union of all)
+    const inboundCcs = lastInbound?.cc ?? []
+    const ccs = inboundCcs
+      .map(a => a.toLowerCase())
+      .filter(a => !a.endsWith('@trade-risksol.com') && !a.includes('noreply') && !a.includes('no-reply') && !a.includes('mailer-daemon'))
+    setCcList(Array.from(new Set(ccs)))
   }, [lead.id, messages.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Default to the most recent message; update when user expands a specific one
@@ -1652,13 +1670,13 @@ function ThreadView({
             <ChevronDown size={14} style={{ color: 'var(--text-muted)', transform: showReply ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
           </div>
           {showReply && (
-            <AIDraftPanel lead={lead} thread={thread} messages={messages} storedDraft={latestSummary?.draft_reply} storedRagDraft={ragDraft?.content ?? null} storedRagSources={ragDraft?.sources ?? []} onRagRefresh={refreshRagDraft} onThreadRefresh={onThreadRefresh} pendingRestore={pendingRestore} ccList={ccList} bccList={bccList} customSubject={customSubject} replyTo={replyTo} />
+            <AIDraftPanel lead={lead} thread={thread} messages={messages} storedDraft={latestSummary?.draft_reply} storedRagDraft={ragDraft?.content ?? null} storedRagSources={ragDraft?.sources ?? []} onRagRefresh={refreshRagDraft} onThreadRefresh={onThreadRefresh} pendingRestore={pendingRestore} toAddress={toAddress} ccList={ccList} bccList={bccList} customSubject={customSubject} />
           )}
         </div>
       </div>
 
       <div className="contact-panel-wrapper">
-        <ContactPanel lead={lead} messages={messages} onStatus={onStatus} threadId={threadId} selectedMsg={selectedMsg} onRestoreDraft={(body, generatedBy) => setPendingRestore({ body, generatedBy, stamp: Date.now() })} panelTab={panelTab} setPanelTab={setPanelTab} ccList={ccList} setCcList={setCcList} bccList={bccList} setBccList={setBccList} customSubject={customSubject} setCustomSubject={setCustomSubject} replyTo={replyTo} setReplyTo={setReplyTo} />
+        <ContactPanel lead={lead} messages={messages} onStatus={onStatus} threadId={threadId} selectedMsg={selectedMsg} onRestoreDraft={(body, generatedBy) => setPendingRestore({ body, generatedBy, stamp: Date.now() })} panelTab={panelTab} setPanelTab={setPanelTab} toAddress={toAddress} setToAddress={setToAddress} ccList={ccList} setCcList={setCcList} bccList={bccList} setBccList={setBccList} customSubject={customSubject} setCustomSubject={setCustomSubject} />
       </div>
     </div>
   )

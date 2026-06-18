@@ -8,66 +8,136 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input }   from '@/components/ui/input'
 import { Button }  from '@/components/ui/button'
 
-function ReplyFromSection() {
-  const [value,   setValue]   = useState('')
-  const [saved,   setSaved]   = useState(false)
-  const [saving,  setSaving]  = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [error,   setError]   = useState<string | null>(null)
+// ── Shared sender email list ───────────────────────────────────────────────────
+
+type SharedEntry = { email: string; verified: boolean }
+
+const ALLOWED_DOMAINS = ['trade-risksol.com']
+
+function isAllowedEmail(email: string): boolean {
+  const domain = email.trim().toLowerCase().split('@')[1] ?? ''
+  return ALLOWED_DOMAINS.some(d => domain === d)
+}
+
+function SharedSendersSection() {
+  const [entries,  setEntries]  = useState<SharedEntry[]>([])
+  const [loading,  setLoading]  = useState(true)
+  const [saving,   setSaving]   = useState(false)
+  const [newEmail, setNewEmail] = useState('')
+  const [addError, setAddError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/settings?key=reply_from_email')
+    fetch('/api/settings?key=shared_email_senders', { cache: 'no-store' })
       .then(r => r.json())
-      .then(data => { if (data?.value) setValue(data.value) })
+      .then(data => {
+        if (typeof data?.value === 'string') {
+          try { setEntries(JSON.parse(data.value)) } catch { /* leave empty */ }
+        }
+      })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
 
-  async function save() {
-    if (!value.trim()) { setError('Email address is required'); return }
-    setSaving(true); setSaved(false); setError(null)
+  async function persist(next: SharedEntry[]) {
+    setSaving(true)
     try {
       await fetch('/api/settings', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'reply_from_email', value: value.trim() }),
+        body: JSON.stringify({ key: 'shared_email_senders', value: JSON.stringify(next) }),
       })
-      setSaved(true)
-      setTimeout(() => setSaved(false), 3000)
-    } catch { setError('Save failed') }
+      setEntries(next)
+    } catch { /* non-fatal */ }
     finally { setSaving(false) }
+  }
+
+  function handleAdd() {
+    const email = newEmail.trim().toLowerCase()
+    setAddError(null)
+    if (!email) { setAddError('Enter an email address'); return }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setAddError('Invalid email address'); return }
+    if (!isAllowedEmail(email)) { setAddError(`Only ${ALLOWED_DOMAINS.join(', ')} addresses allowed`); return }
+    if (entries.some(e => e.email.toLowerCase() === email)) { setAddError('Already in the list'); return }
+    const next = [...entries, { email, verified: false }]
+    persist(next)
+    setNewEmail('')
+  }
+
+  function handleRemove(email: string) {
+    persist(entries.filter(e => e.email !== email))
+  }
+
+  function handleToggleVerified(email: string) {
+    persist(entries.map(e => e.email === email ? { ...e, verified: !e.verified } : e))
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Shared Send-From Address</CardTitle>
+        <CardTitle>Shared Send-From Addresses</CardTitle>
         <CardDescription>
-          The shared operations address emails go out from when no personal Gmail is selected.
-          Must be set up as a &quot;Send as&quot; alias on the connected Gmail account.
+          Email addresses employees can send from in the Engagement panel.
+          Each must be set up as a &ldquo;Send as&rdquo; alias in the connected Gmail account — mark
+          it as <strong>Verified</strong> once confirmed. Only <code>@trade-risksol.com</code> addresses are allowed.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-col gap-4">
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : (
-          <div className="flex gap-3 items-start max-w-lg">
-            <div className="flex-1">
-              <Input
-                type="email"
-                value={value}
-                onChange={e => { setValue(e.target.value); setSaved(false) }}
-                placeholder="e.g. operations@trade-risksol.com"
-              />
-              {error && <p className="text-xs text-destructive mt-1.5">{error}</p>}
+          <>
+            {/* List */}
+            {entries.length === 0 ? (
+              <p className="text-sm text-muted-foreground italic">No shared addresses yet. Add one below.</p>
+            ) : (
+              <div className="flex flex-col gap-2 max-w-lg">
+                {entries.map(e => (
+                  <div key={e.email} className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2">
+                    <span className="flex-1 text-sm text-foreground">{e.email}</span>
+                    <button
+                      onClick={() => handleToggleVerified(e.email)}
+                      disabled={saving}
+                      title={e.verified ? 'Mark as not verified' : 'Mark as verified (alias confirmed in Gmail)'}
+                      className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border cursor-pointer transition-colors ${
+                        e.verified
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                          : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                      }`}
+                    >
+                      {e.verified ? '✓ Verified' : '⚠ Not verified'}
+                    </button>
+                    <button
+                      onClick={() => handleRemove(e.email)}
+                      disabled={saving}
+                      className="text-[11px] text-muted-foreground hover:text-destructive transition-colors px-1"
+                      title="Remove"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add new */}
+            <div className="flex gap-3 items-start max-w-lg">
+              <div className="flex-1">
+                <Input
+                  type="email"
+                  value={newEmail}
+                  onChange={e => { setNewEmail(e.target.value); setAddError(null) }}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAdd() } }}
+                  placeholder="e.g. sales@trade-risksol.com"
+                />
+                {addError && <p className="text-xs text-destructive mt-1.5">{addError}</p>}
+                <p className="text-[11px] text-muted-foreground mt-1.5">
+                  After adding, set up a &ldquo;Send as&rdquo; alias in Gmail Settings → Accounts, then click &ldquo;Not verified&rdquo; to mark it ready.
+                </p>
+              </div>
+              <Button onClick={handleAdd} disabled={saving}>
+                {saving ? 'Saving…' : 'Add'}
+              </Button>
             </div>
-            <Button
-              onClick={save}
-              disabled={saving}
-              className={saved ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
-            >
-              {saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save'}
-            </Button>
-          </div>
+          </>
         )}
       </CardContent>
     </Card>
@@ -101,7 +171,7 @@ function GmailSection() {
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [gmailConnected]) // re-fetch after successful connect redirect
+  }, [gmailConnected])
 
   async function disconnect() {
     setDisconnecting(true)
@@ -178,7 +248,7 @@ export default function SettingsPage() {
         <Suspense>
           <GmailSection />
         </Suspense>
-        <ReplyFromSection />
+        <SharedSendersSection />
         <SignaturePanel />
       </div>
     </div>

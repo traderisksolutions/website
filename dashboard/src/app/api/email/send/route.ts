@@ -190,8 +190,8 @@ function buildSignatureText(sig: Signature): string {
 // their own Gmail and fromEmail matches, their token is used. Otherwise falls back to ops@.
 export async function POST(req: NextRequest) {
   try {
-    const { draftId, htmlBody, signatureId, cc, bcc, customSubject, replyTo, fromEmail: requestedFrom, originalAiBody } =
-      await req.json() as { draftId: string; htmlBody?: string; signatureId?: string; cc?: string[]; bcc?: string[]; customSubject?: string; replyTo?: string; fromEmail?: string; originalAiBody?: string }
+    const { draftId, htmlBody, signatureId, toEmail, cc, bcc, customSubject, fromEmail: requestedFrom, originalAiBody } =
+      await req.json() as { draftId: string; htmlBody?: string; signatureId?: string; toEmail?: string; cc?: string[]; bcc?: string[]; customSubject?: string; fromEmail?: string; originalAiBody?: string }
     if (!draftId) return NextResponse.json({ error: 'draftId required' }, { status: 400 })
 
     // Identify the logged-in employee so we can use their Gmail token if they've connected one
@@ -221,6 +221,9 @@ export async function POST(req: NextRequest) {
     const contacts = contactRes.ok ? await contactRes.json() : []
     const contact  = Array.isArray(contacts) ? contacts[0] : null
     if (!contact?.email) return NextResponse.json({ error: 'Contact has no email' }, { status: 400 })
+
+    // Use the overridden TO address if provided, otherwise fall back to the contact's email
+    const recipientEmail = (toEmail && toEmail.includes('@')) ? toEmail.trim().toLowerCase() : contact.email as string
 
     // 3. Load thread subject (for reply subject line)
     let subject = 'Re: Your enquiry — Trade Risk Solutions'
@@ -256,7 +259,7 @@ export async function POST(req: NextRequest) {
     // 5. Send via Gmail API — use the employee's personal token if they've connected their Gmail,
     //    otherwise fall back to the shared ops@ token.
     const token    = await getTokenForSender(FROM_EMAIL, userId)
-    const rawEmail = buildRawEmail(contact.email, subject, finalPlain, finalHtml, cc, bcc, replyTo, FROM_EMAIL)
+    const rawEmail = buildRawEmail(recipientEmail, subject, finalPlain, finalHtml, cc, bcc, undefined, FROM_EMAIL)
 
     const sendPayload: Record<string, unknown> = { raw: rawEmail }
     if (gmailThreadId) sendPayload.threadId = gmailThreadId
@@ -310,14 +313,36 @@ export async function POST(req: NextRequest) {
       })
     }
 
+    // If TO was overridden to a different external email, ensure it exists as a contact
+    const contactEmail = contact.email as string
+    if (recipientEmail !== contactEmail.toLowerCase() && !recipientEmail.endsWith('@trade-risksol.com')) {
+      const encoded = encodeURIComponent(recipientEmail)
+      const existsRes = await fetch(
+        `${SB_URL}/rest/v1/contacts?email=eq.${encoded}&select=id&limit=1`,
+        { headers: sbHeaders(), cache: 'no-store' }
+      )
+      const existing = existsRes.ok ? await existsRes.json() : []
+      if (!Array.isArray(existing) || existing.length === 0) {
+        await fetch(`${SB_URL}/rest/v1/contacts`, {
+          method:  'POST',
+          headers: sbHeaders('return=minimal'),
+          body: JSON.stringify({
+            email:  recipientEmail,
+            source: 'inbound_lead',
+            stage:  'engaged',
+          }),
+        })
+      }
+    }
+
     // Log email send server-side — more reliable than client-side logging
     void logActivity({
       action:        'email.sent',
       resource_type: 'thread',
       resource_id:   draft.thread_id ?? undefined,
-      lead_email:    contact.email,
+      lead_email:    recipientEmail,
       new_value: {
-        recipient:    contact.email,
+        recipient:    recipientEmail,
         subject,
         from_address: FROM_EMAIL,
         gmail_message_id: sent.id,
