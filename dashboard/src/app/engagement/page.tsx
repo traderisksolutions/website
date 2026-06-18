@@ -294,9 +294,9 @@ function EmailCard({ msg, defaultOpen, onOpen }: { msg: RealMsg; index?: number;
         ...(isOut ? { marginLeft: 'auto' } : { marginRight: 'auto' }),
       }}
     >
-      {/* Header — click to collapse */}
+      {/* Header — click to collapse; also selects this message in the right panel */}
       <div
-        onClick={() => setOpen(false)}
+        onClick={() => { onOpen?.(msg.id); setOpen(false) }}
         style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px 8px', cursor: 'pointer', userSelect: 'none' }}
       >
         <div style={{
@@ -1432,37 +1432,44 @@ function ContactPanel({
 
           </div>
 
-          {/* Selected message quick-view (collapsible, secondary) */}
+          {/* Selected message details — always visible, updates when clicking any bubble */}
           {selectedMsg && (
-            <details open style={{ margin: '12px 16px 0', borderRadius: 8, border: '1px solid #e8eaed', overflow: 'hidden' }}>
-              <summary style={{
-                padding: '8px 12px', fontSize: 11, fontWeight: 600, color: 'var(--text-muted)',
-                cursor: 'pointer', background: '#fafbfc', listStyle: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            <div style={{ margin: '12px 16px 0', borderRadius: 8, border: '1px solid #e8eaed', overflow: 'hidden' }}>
+              <div style={{
+                padding: '7px 12px', fontSize: 11, fontWeight: 600, color: 'var(--text-muted)',
+                background: '#fafbfc', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                borderBottom: '1px solid #f0f0f0',
               }}>
                 <span>Selected message</span>
                 <span style={{ fontSize: 10, color: '#aaa' }}>{selectedMsg.direction === 'outbound' ? 'Sent' : 'Received'} · {fmtDateTime(selectedMsg.sent_at)}</span>
-              </summary>
-              <div style={{ padding: '10px 12px', background: '#fff', borderTop: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              </div>
+              <div style={{ padding: '10px 12px', background: '#fff', display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {selectedMsg.from_address && (
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', width: 38, flexShrink: 0, paddingTop: 1 }}>FROM</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', width: 44, flexShrink: 0, paddingTop: 1 }}>FROM</span>
                     <span style={{ fontSize: 11, color: '#444', wordBreak: 'break-all' }}>{selectedMsg.from_address}</span>
                   </div>
                 )}
                 {selectedMsg.to.length > 0 && (
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', width: 38, flexShrink: 0, paddingTop: 1 }}>TO</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', width: 44, flexShrink: 0, paddingTop: 1 }}>TO</span>
                     <span style={{ fontSize: 11, color: '#444', wordBreak: 'break-all' }}>{selectedMsg.to.join(', ')}</span>
                   </div>
                 )}
                 {selectedMsg.cc.length > 0 && (
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', width: 38, flexShrink: 0, paddingTop: 1 }}>CC</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', width: 44, flexShrink: 0, paddingTop: 1 }}>CC</span>
                     <span style={{ fontSize: 11, color: '#444', wordBreak: 'break-all' }}>{selectedMsg.cc.join(', ')}</span>
                   </div>
                 )}
+                {selectedMsg.subject && (
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', width: 44, flexShrink: 0, paddingTop: 1 }}>SUBJECT</span>
+                    <span style={{ fontSize: 11, color: '#444', wordBreak: 'break-word' }}>{selectedMsg.subject}</span>
+                  </div>
+                )}
               </div>
-            </details>
+            </div>
           )}
         </div>
       )}
