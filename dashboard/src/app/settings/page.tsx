@@ -41,12 +41,13 @@ function SharedSendersSection() {
   async function persist(next: SharedEntry[]) {
     setSaving(true)
     try {
-      await fetch('/api/settings', {
+      const res = await fetch('/api/settings', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: 'shared_email_senders', value: JSON.stringify(next) }),
       })
-      setEntries(next)
-    } catch { /* non-fatal */ }
+      if (res.ok) setEntries(next)
+      else setAddError('Failed to save — please try again')
+    } catch { setAddError('Network error — please try again') }
     finally { setSaving(false) }
   }
 

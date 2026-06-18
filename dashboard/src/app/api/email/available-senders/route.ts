@@ -56,12 +56,14 @@ export async function GET() {
     return local.split(/[._-]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
   }
 
-  const senders: Sender[] = sharedEntries.map(e => ({
-    email:    e.email,
-    label:    deriveLabel(e.email),
-    type:     'shared' as const,
-    verified: e.verified ?? false,
-  }))
+  const senders: Sender[] = sharedEntries
+    .filter(e => typeof e.email === 'string' && e.email.includes('@'))
+    .map(e => ({
+      email:    e.email,
+      label:    deriveLabel(e.email),
+      type:     'shared' as const,
+      verified: e.verified ?? false,
+    }))
 
   const profile = Array.isArray(profiles) ? profiles[0] : null
   const sharedEmails = new Set(senders.map(s => s.email.toLowerCase()))

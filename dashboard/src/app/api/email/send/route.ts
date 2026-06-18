@@ -93,6 +93,12 @@ function encodeSubject(subject: string): string {
   return `=?UTF-8?B?${Buffer.from(subject, 'utf-8').toString('base64')}?=`
 }
 
+// Derives a display name from an email local-part: "jarod.hong" → "Jarod Hong"
+function nameFromEmail(email: string): string {
+  const local = email.split('@')[0] ?? ''
+  return local.split(/[._-]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || email
+}
+
 function htmlToText(html: string): string {
   return html
     .replace(/<\/p>/gi, '\n\n')
@@ -318,7 +324,7 @@ export async function POST(req: NextRequest) {
     if (recipientEmail !== contactEmail.toLowerCase() && !recipientEmail.endsWith('@trade-risksol.com')) {
       const encoded = encodeURIComponent(recipientEmail)
       const existsRes = await fetch(
-        `${SB_URL}/rest/v1/contacts?email=eq.${encoded}&select=id&limit=1`,
+        `${SB_URL}/rest/v1/contacts?email=ilike.${encoded}&select=id&limit=1`,
         { headers: sbHeaders(), cache: 'no-store' }
       )
       const existing = existsRes.ok ? await existsRes.json() : []
@@ -327,9 +333,10 @@ export async function POST(req: NextRequest) {
           method:  'POST',
           headers: sbHeaders('return=minimal'),
           body: JSON.stringify({
-            email:  recipientEmail,
-            source: 'inbound_lead',
-            stage:  'engaged',
+            full_name: nameFromEmail(recipientEmail),
+            email:     recipientEmail,
+            source:    'inbound_lead',
+            stage:     'engaged',
           }),
         })
       }

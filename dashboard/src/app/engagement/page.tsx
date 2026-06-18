@@ -79,6 +79,13 @@ const ALL_STATUSES = ['contacted', 'engaged', 'qualified', 'proposal', 'converte
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+// Extracts the bare email from "Display Name <email@example.com>" or plain "email@example.com"
+function extractEmail(addr: string): string {
+  if (!addr) return ''
+  const match = addr.match(/<([^>]+)>/)
+  return (match ? match[1] : addr).trim().toLowerCase()
+}
+
 function stripQuotedContent(body: string): string {
   const lines = body.split('\n')
   const clean: string[] = []
@@ -941,7 +948,7 @@ function AIDraftPanel({
   const hasDraftContent    = draftHtml.replace(/<[^>]+>/g, '').trim().length > 0
   const hasRagDraftContent = ragHtml.replace(/<[^>]+>/g, '').trim().length > 0
   const activeHtml         = activeTab === 'gdrive' ? draftHtml : activeTab === 'rag' ? ragHtml : composeHtml
-  const canSend            = htmlToPlain(activeHtml).trim().length > 0
+  const canSend            = htmlToPlain(activeHtml).trim().length > 0 && !!toAddress.trim()
 
   function tabBtn(tab: ActiveTab): React.CSSProperties {
     const active = activeTab === tab
@@ -1427,7 +1434,7 @@ function ContactPanel({
 
           {/* Selected message quick-view (collapsible, secondary) */}
           {selectedMsg && (
-            <details style={{ margin: '12px 16px 0', borderRadius: 8, border: '1px solid #e8eaed', overflow: 'hidden' }}>
+            <details open style={{ margin: '12px 16px 0', borderRadius: 8, border: '1px solid #e8eaed', overflow: 'hidden' }}>
               <summary style={{
                 padding: '8px 12px', fontSize: 11, fontWeight: 600, color: 'var(--text-muted)',
                 cursor: 'pointer', background: '#fafbfc', listStyle: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -1599,31 +1606,49 @@ function ThreadView({
   const [ccList,        setCcList]        = useState<string[]>([])
   const [bccList,       setBccList]       = useState<string[]>([])
   const [customSubject, setCustomSubject] = useState('')
+  // Tracks whether TO/CC have been initialised for the current lead — prevents
+  // background-poll message additions from overwriting user edits mid-compose.
+  const toInitialised = useRef(false)
   const threadId        = thread?.id ?? null
   const latestSummary   = summaries[0] ?? null
   const latestMessageId = messages.at(-1)?.id ?? null
   const log             = useAuditLog()
 
   // Reset per-lead state when switching leads
-  useEffect(() => { setSelectedMsgId(null); setPanelTab('contact') }, [lead.id])
-
-  // Initialize compose headers from thread + messages
   useEffect(() => {
-    setBccList([])
+    setSelectedMsgId(null)
+    setPanelTab('contact')
+    // Reset compose headers to safe defaults immediately on lead switch
     const s = thread?.subject ?? ''
     setCustomSubject(s ? (s.startsWith('Re:') ? s : `Re: ${s}`) : 'Re: Your enquiry — Trade Risk Solutions')
+    setToAddress(lead.email ?? '')
+    setCcList([])
+    setBccList([])
+    toInitialised.current = false
+  }, [lead.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-    // TO: from_address of the last inbound message; fall back to lead email
+  // Once per lead: initialise TO/CC from the first batch of loaded messages.
+  // Does NOT re-run when messages.length increases (new poll messages), so user
+  // edits to TO/CC are never silently overwritten.
+  useEffect(() => {
+    if (toInitialised.current || messages.length === 0) return
+    toInitialised.current = true
+
     const lastInbound = [...messages].reverse().find(m => m.direction === 'inbound')
-    setToAddress(lastInbound?.from_address ?? lead.email ?? '')
-
-    // CC: only from the latest inbound message (not a union of all)
+    if (lastInbound?.from_address) {
+      setToAddress(extractEmail(lastInbound.from_address))
+    }
+    // Also refresh subject from loaded thread
+    if (thread?.subject) {
+      const s = thread.subject
+      setCustomSubject(s.startsWith('Re:') ? s : `Re: ${s}`)
+    }
     const inboundCcs = lastInbound?.cc ?? []
     const ccs = inboundCcs
-      .map(a => a.toLowerCase())
-      .filter(a => !a.endsWith('@trade-risksol.com') && !a.includes('noreply') && !a.includes('no-reply') && !a.includes('mailer-daemon'))
-    setCcList(Array.from(new Set(ccs)))
-  }, [lead.id, messages.length]) // eslint-disable-line react-hooks/exhaustive-deps
+      .map(a => extractEmail(a))
+      .filter(a => a && !a.endsWith('@trade-risksol.com') && !a.includes('noreply') && !a.includes('no-reply') && !a.includes('mailer-daemon'))
+    if (ccs.length > 0) setCcList(Array.from(new Set(ccs)))
+  }, [messages.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Default to the most recent message; update when user expands a specific one
   const selectedMsg = (selectedMsgId ? messages.find(m => m.id === selectedMsgId) : null) ?? messages.at(-1) ?? null
