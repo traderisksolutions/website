@@ -19,7 +19,7 @@ function isAllowedEmail(email: string): boolean {
   return ALLOWED_DOMAINS.some(d => domain === d)
 }
 
-function SharedSendersSection() {
+function SharedSendersSection({ isAdmin }: { isAdmin: boolean }) {
   const [entries,  setEntries]  = useState<SharedEntry[]>([])
   const [loading,  setLoading]  = useState(true)
   const [saving,   setSaving]   = useState(false)
@@ -58,8 +58,7 @@ function SharedSendersSection() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setAddError('Invalid email address'); return }
     if (!isAllowedEmail(email)) { setAddError(`Only ${ALLOWED_DOMAINS.join(', ')} addresses allowed`); return }
     if (entries.some(e => e.email.toLowerCase() === email)) { setAddError('Already in the list'); return }
-    const next = [...entries, { email, verified: false }]
-    persist(next)
+    persist([...entries, { email, verified: false }])
     setNewEmail('')
   }
 
@@ -76,9 +75,9 @@ function SharedSendersSection() {
       <CardHeader>
         <CardTitle>Shared Send-From Addresses</CardTitle>
         <CardDescription>
-          Email addresses employees can send from in the Engagement panel.
-          Each must be set up as a &ldquo;Send as&rdquo; alias in the connected Gmail account — mark
-          it as <strong>Verified</strong> once confirmed. Only <code>@trade-risksol.com</code> addresses are allowed.
+          {isAdmin
+            ? <>Email addresses all employees can send from. Each must be set up as a &ldquo;Send as&rdquo; alias in the shared Gmail account — mark it as <strong>Verified</strong> once confirmed. Only <code>@trade-risksol.com</code> addresses are allowed.</>
+            : 'Shared email addresses available to send from in the Engagement panel. Contact your admin to add or remove addresses.'}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -86,58 +85,72 @@ function SharedSendersSection() {
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : (
           <>
-            {/* List */}
+            {/* Address list */}
             {entries.length === 0 ? (
-              <p className="text-sm text-muted-foreground italic">No shared addresses yet. Add one below.</p>
+              <p className="text-sm text-muted-foreground italic">No shared addresses configured.</p>
             ) : (
               <div className="flex flex-col gap-2 max-w-lg">
                 {entries.map(e => (
                   <div key={e.email} className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2">
                     <span className="flex-1 text-sm text-foreground">{e.email}</span>
-                    <button
-                      onClick={() => handleToggleVerified(e.email)}
-                      disabled={saving}
-                      title={e.verified ? 'Mark as not verified' : 'Mark as verified (alias confirmed in Gmail)'}
-                      className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border cursor-pointer transition-colors ${
+                    {isAdmin ? (
+                      <>
+                        <button
+                          onClick={() => handleToggleVerified(e.email)}
+                          disabled={saving}
+                          title={e.verified ? 'Mark as not verified' : 'Mark as verified (alias confirmed in Gmail)'}
+                          className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border cursor-pointer transition-colors ${
+                            e.verified
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                              : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                          }`}
+                        >
+                          {e.verified ? '✓ Verified' : '⚠ Not verified'}
+                        </button>
+                        <button
+                          onClick={() => handleRemove(e.email)}
+                          disabled={saving}
+                          className="text-[11px] text-muted-foreground hover:text-destructive transition-colors px-1"
+                          title="Remove"
+                        >
+                          ✕
+                        </button>
+                      </>
+                    ) : (
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
                         e.verified
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                          : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
-                      }`}
-                    >
-                      {e.verified ? '✓ Verified' : '⚠ Not verified'}
-                    </button>
-                    <button
-                      onClick={() => handleRemove(e.email)}
-                      disabled={saving}
-                      className="text-[11px] text-muted-foreground hover:text-destructive transition-colors px-1"
-                      title="Remove"
-                    >
-                      ✕
-                    </button>
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-amber-50 text-amber-700 border-amber-200'
+                      }`}>
+                        {e.verified ? '✓ Verified' : '⚠ Not verified'}
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Add new */}
-            <div className="flex gap-3 items-start max-w-lg">
-              <div className="flex-1">
-                <Input
-                  type="email"
-                  value={newEmail}
-                  onChange={e => { setNewEmail(e.target.value); setAddError(null) }}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAdd() } }}
-                  placeholder="e.g. sales@trade-risksol.com"
-                />
-                {addError && <p className="text-xs text-destructive mt-1.5">{addError}</p>}
-                <p className="text-[11px] text-muted-foreground mt-1.5">
-                  After adding, set up a &ldquo;Send as&rdquo; alias in Gmail Settings → Accounts, then click &ldquo;Not verified&rdquo; to mark it ready.
-                </p>
+            {/* Add new — admin only */}
+            {isAdmin && (
+              <div className="flex gap-3 items-start max-w-lg">
+                <div className="flex-1">
+                  <Input
+                    type="email"
+                    value={newEmail}
+                    onChange={e => { setNewEmail(e.target.value); setAddError(null) }}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAdd() } }}
+                    placeholder="e.g. sales@trade-risksol.com"
+                  />
+                  {addError && <p className="text-xs text-destructive mt-1.5">{addError}</p>}
+                  <p className="text-[11px] text-muted-foreground mt-1.5">
+                    After adding, set up a &ldquo;Send as&rdquo; alias in Gmail Settings → Accounts, then click &ldquo;Not verified&rdquo; to mark it ready.
+                  </p>
+                </div>
+                <Button onClick={handleAdd} disabled={saving}>
+                  {saving ? 'Saving…' : 'Add'}
+                </Button>
               </div>
-              <Button onClick={handleAdd} disabled={saving}>
-                {saving ? 'Saving…' : 'Add'}
-              </Button>
-            </div>
+            )}
           </>
         )}
       </CardContent>
@@ -238,7 +251,18 @@ function GmailSection() {
   )
 }
 
+// ── Page ──────────────────────────────────────────────────────────────────────
+
 export default function SettingsPage() {
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/auth/profile', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : {})
+      .then(data => { if (data?.is_admin) setIsAdmin(true) })
+      .catch(() => {})
+  }, [])
+
   return (
     <div className="p-8 max-w-3xl mx-auto">
       <div className="mb-7">
@@ -249,7 +273,7 @@ export default function SettingsPage() {
         <Suspense>
           <GmailSection />
         </Suspense>
-        <SharedSendersSection />
+        <SharedSendersSection isAdmin={isAdmin} />
         <SignaturePanel />
       </div>
     </div>
