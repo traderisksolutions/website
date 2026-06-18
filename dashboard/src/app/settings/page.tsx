@@ -259,7 +259,7 @@ export default function SettingsPage() {
   useEffect(() => {
     fetch('/api/auth/profile', { cache: 'no-store' })
       .then(r => r.ok ? r.json() : {})
-      .then(data => { if (data?.is_admin) setIsAdmin(true) })
+      .then((data: { is_admin?: boolean }) => { if (data?.is_admin) setIsAdmin(true) })
       .catch(() => {})
   }, [])
 
