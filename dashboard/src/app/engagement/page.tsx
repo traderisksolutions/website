@@ -582,6 +582,77 @@ function EmailChipInput({ label, chips, onChange }: {
   )
 }
 
+// ── Compose row (Gmail-style: label | content, separated by dividers) ─────────
+
+function ComposeRow({ label, children, top }: { label: string; children: React.ReactNode; top?: boolean }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'flex-start', gap: 0,
+      borderTop: top ? 'none' : '1px solid #f0f2f5', minHeight: 44,
+    }}>
+      <span style={{
+        fontSize: 11, fontWeight: 600, color: 'var(--text-muted)',
+        width: 60, flexShrink: 0, paddingTop: 13, paddingLeft: 16, letterSpacing: '0.01em',
+      }}>{label}</span>
+      <div style={{ flex: 1, paddingRight: 14, paddingTop: 10, paddingBottom: 10, minWidth: 0 }}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function ComposeChipRow({ label, chips, onChange, top }: {
+  label:    string
+  chips:    string[]
+  onChange: (chips: string[]) => void
+  top?:     boolean
+}) {
+  const [input, setInput] = useState('')
+
+  function tryAdd(raw: string) {
+    const val = raw.trim().toLowerCase().replace(/,$/, '')
+    if (!val || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) return
+    if (!chips.includes(val)) onChange([...chips, val])
+    setInput('')
+  }
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'flex-start', gap: 0,
+      borderTop: top ? 'none' : '1px solid #f0f2f5', minHeight: 44,
+    }}>
+      <span style={{
+        fontSize: 11, fontWeight: 600, color: 'var(--text-muted)',
+        width: 60, flexShrink: 0, paddingTop: 13, paddingLeft: 16,
+      }}>{label}</span>
+      <div style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center', paddingRight: 14, paddingTop: 9, paddingBottom: 9 }}>
+        {chips.map(email => (
+          <span key={email} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 3,
+            fontSize: 11.5, background: '#eff6ff', color: 'var(--primary-hex)',
+            padding: '3px 8px 3px 10px', borderRadius: 20, border: '1px solid #bfdbfe', fontWeight: 500,
+          }}>
+            {email}
+            <button type="button" onClick={() => onChange(chips.filter(c => c !== email))}
+              style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', padding: '0 1px', cursor: 'pointer', color: '#93c5fd', fontSize: 15, lineHeight: 1 }}>×</button>
+          </span>
+        ))}
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); tryAdd(input) }
+            if (e.key === 'Backspace' && !input && chips.length) onChange(chips.slice(0, -1))
+          }}
+          onBlur={() => tryAdd(input)}
+          placeholder={chips.length === 0 ? 'Add…' : ''}
+          style={{ minWidth: 80, fontSize: 12, border: 'none', outline: 'none', padding: '3px 0', background: 'transparent', color: '#111' }}
+        />
+      </div>
+    </div>
+  )
+}
+
 // ── AI Draft panel ────────────────────────────────────────────────────────────
 
 function AIDraftPanel({
@@ -1302,29 +1373,90 @@ function ContactPanel({
         <DraftHistoryPanel threadId={threadId} onRestore={onRestoreDraft} />
       )}
 
-      {/* Thread tab: message info + reply headers */}
+      {/* Reply tab: clean Gmail-style compose header */}
       {panelTab === 'thread' && (
         <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', flex: 1 }}>
-          <ThreadMetaPanel msg={selectedMsg} />
-          <div style={{ borderTop: '1px solid #f0f0f0', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>Compose to</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px', border: '1px solid #bfdbfe', borderRadius: 6, background: '#eff6ff', minHeight: 40 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary-hex)', flexShrink: 0, width: 52 }}>TO</span>
+
+          {/* Context header */}
+          <div style={{ padding: '14px 16px 12px', background: '#fafbfc', borderBottom: '1px solid #e8eaed' }}>
+            <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 14, color: 'var(--primary-hex)' }}>↩</span> Reply
+            </p>
+            {(lead.subject ?? lead.topic) && (
+              <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {lead.subject ?? lead.topic}
+              </p>
+            )}
+          </div>
+
+          {/* Compose rows */}
+          <div style={{ background: '#fff' }}>
+
+            {/* TO */}
+            <ComposeRow label="To" top>
               <input
                 value={toAddress}
                 onChange={e => setToAddress(e.target.value)}
                 placeholder="recipient@example.com"
-                style={{ flex: 1, fontSize: 12, border: 'none', outline: 'none', padding: 0, background: 'transparent', color: '#111' }}
+                style={{
+                  width: '100%', fontSize: 13, fontWeight: 500, border: 'none', outline: 'none',
+                  padding: 0, background: 'transparent', color: '#111',
+                }}
               />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff', minHeight: 40 }}>
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', flexShrink: 0, width: 52 }}>Subject</span>
-              <input value={customSubject} onChange={e => setCustomSubject(e.target.value)}
-                style={{ flex: 1, fontSize: 12, border: 'none', outline: 'none', padding: 0, background: 'transparent', color: '#111' }} />
-            </div>
-            <EmailChipInput label="CC"  chips={ccList}  onChange={setCcList} />
-            <EmailChipInput label="BCC" chips={bccList} onChange={setBccList} />
+            </ComposeRow>
+
+            {/* Subject */}
+            <ComposeRow label="Subject">
+              <input
+                value={customSubject}
+                onChange={e => setCustomSubject(e.target.value)}
+                style={{
+                  width: '100%', fontSize: 12.5, border: 'none', outline: 'none',
+                  padding: 0, background: 'transparent', color: '#555',
+                }}
+              />
+            </ComposeRow>
+
+            {/* CC */}
+            <ComposeChipRow label="CC" chips={ccList} onChange={setCcList} />
+
+            {/* BCC */}
+            <ComposeChipRow label="BCC" chips={bccList} onChange={setBccList} />
+
           </div>
+
+          {/* Selected message quick-view (collapsible, secondary) */}
+          {selectedMsg && (
+            <details style={{ margin: '12px 16px 0', borderRadius: 8, border: '1px solid #e8eaed', overflow: 'hidden' }}>
+              <summary style={{
+                padding: '8px 12px', fontSize: 11, fontWeight: 600, color: 'var(--text-muted)',
+                cursor: 'pointer', background: '#fafbfc', listStyle: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              }}>
+                <span>Selected message</span>
+                <span style={{ fontSize: 10, color: '#aaa' }}>{selectedMsg.direction === 'outbound' ? 'Sent' : 'Received'} · {fmtDateTime(selectedMsg.sent_at)}</span>
+              </summary>
+              <div style={{ padding: '10px 12px', background: '#fff', borderTop: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {selectedMsg.from_address && (
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', width: 38, flexShrink: 0, paddingTop: 1 }}>FROM</span>
+                    <span style={{ fontSize: 11, color: '#444', wordBreak: 'break-all' }}>{selectedMsg.from_address}</span>
+                  </div>
+                )}
+                {selectedMsg.to.length > 0 && (
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', width: 38, flexShrink: 0, paddingTop: 1 }}>TO</span>
+                    <span style={{ fontSize: 11, color: '#444', wordBreak: 'break-all' }}>{selectedMsg.to.join(', ')}</span>
+                  </div>
+                )}
+                {selectedMsg.cc.length > 0 && (
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', width: 38, flexShrink: 0, paddingTop: 1 }}>CC</span>
+                    <span style={{ fontSize: 11, color: '#444', wordBreak: 'break-all' }}>{selectedMsg.cc.join(', ')}</span>
+                  </div>
+                )}
+              </div>
+            </details>
+          )}
         </div>
       )}
 
