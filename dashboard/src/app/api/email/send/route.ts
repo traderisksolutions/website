@@ -42,8 +42,8 @@ function makeServiceAccountJWT(clientEmail: string, privateKey: string, subject:
 }
 
 async function getTokenViaServiceAccount(fromEmail: string): Promise<string> {
-  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_KEY
-  if (!raw) throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY not configured')
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON
+  if (!raw) throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON not configured')
   const sa: { client_email: string; private_key: string } = JSON.parse(raw)
   // Env vars sometimes escape newlines — normalise them
   const privateKey = sa.private_key.replace(/\\n/g, '\n')
@@ -61,7 +61,7 @@ async function getTokenViaServiceAccount(fromEmail: string): Promise<string> {
   return data.access_token as string
 }
 
-// Legacy fallback — used only if GOOGLE_SERVICE_ACCOUNT_KEY is not set
+// Legacy fallback — used only if GOOGLE_SERVICE_ACCOUNT_JSON is not set
 async function getAccessToken(): Promise<string> {
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -112,7 +112,7 @@ async function getTokenForSender(fromEmail: string, userId: string | null): Prom
     } catch { /* fall through */ }
   }
   // 2. Service account (preferred for shared senders)
-  if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
+  if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
     return getTokenViaServiceAccount(fromEmail)
   }
   // 3. Legacy shared token

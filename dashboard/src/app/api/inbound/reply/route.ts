@@ -17,8 +17,8 @@ function sbHeaders(prefer = 'return=representation') {
 }
 
 async function getAccessToken(sendAs = OPS_EMAIL): Promise<string> {
-  if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
-    const sa: { client_email: string; private_key: string } = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY)
+  if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+    const sa: { client_email: string; private_key: string } = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON)
     const privateKey = sa.private_key.replace(/\\n/g, '\n')
     const now    = Math.floor(Date.now() / 1000)
     const header  = { alg: 'RS256', typ: 'JWT' }
