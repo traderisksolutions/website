@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createSign }                 from 'node:crypto'
 
 const SB_URL    = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me'
@@ -15,7 +16,26 @@ function sbHeaders(prefer = 'return=representation') {
   }
 }
 
-async function getAccessToken(): Promise<string> {
+async function getAccessToken(sendAs = OPS_EMAIL): Promise<string> {
+  if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
+    const sa: { client_email: string; private_key: string } = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY)
+    const privateKey = sa.private_key.replace(/\\n/g, '\n')
+    const now    = Math.floor(Date.now() / 1000)
+    const header  = { alg: 'RS256', typ: 'JWT' }
+    const payload = { iss: sa.client_email, sub: sendAs, scope: 'https://www.googleapis.com/auth/gmail.send', aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3600 }
+    const enc   = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url')
+    const input = `${enc(header)}.${enc(payload)}`
+    const sign  = createSign('RSA-SHA256')
+    sign.update(input)
+    const jwt = `${input}.${sign.sign(privateKey, 'base64url')}`
+    const res = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: jwt }),
+    })
+    const data = await res.json()
+    if (data.access_token) return data.access_token as string
+  }
+  // Legacy fallback
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method:  'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

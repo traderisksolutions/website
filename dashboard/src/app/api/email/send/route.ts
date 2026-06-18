@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { waitUntil }                  from '@vercel/functions'
+import { createSign }                 from 'node:crypto'
 import { runDraftEvaluation }         from '@/lib/run-draft-evaluation'
 import { logActivity }                from '@/lib/log-activity'
 import { createClient }               from '@/lib/supabase/server'
@@ -7,25 +8,6 @@ import { createClient }               from '@/lib/supabase/server'
 const SB_URL    = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me'
 const DEFAULT_OPS_EMAIL = 'operations@trade-risksol.com'
-
-// Reads the send-from email from app_settings (key: reply_from_email).
-// Falls back to DEFAULT_OPS_EMAIL if not configured.
-// Note: the Gmail OAuth account must have this address set up as a "Send as" alias for it to work.
-async function getOpsEmail(): Promise<string> {
-  try {
-    const k = process.env.SUPABASE_SERVICE_KEY
-    if (!k) return DEFAULT_OPS_EMAIL
-    const res = await fetch(
-      `${SB_URL}/rest/v1/app_settings?key=eq.reply_from_email&select=value&limit=1`,
-      { headers: { apikey: k, Authorization: `Bearer ${k}` }, cache: 'no-store' }
-    )
-    const rows = res.ok ? await res.json() : []
-    const val  = Array.isArray(rows) ? rows[0]?.value : null
-    return (typeof val === 'string' && val.includes('@')) ? val : DEFAULT_OPS_EMAIL
-  } catch {
-    return DEFAULT_OPS_EMAIL
-  }
-}
 
 function sbHeaders(prefer = 'return=representation') {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -38,6 +20,48 @@ function sbHeaders(prefer = 'return=representation') {
   }
 }
 
+// ── Service-account impersonation (shared mailboxes) ──────────────────────────
+// Signs a JWT and exchanges it for a short-lived access token that lets the
+// service account send as any @trade-risksol.com address (domain-wide delegation).
+function makeServiceAccountJWT(clientEmail: string, privateKey: string, subject: string): string {
+  const now    = Math.floor(Date.now() / 1000)
+  const header  = { alg: 'RS256', typ: 'JWT' }
+  const payload = {
+    iss:   clientEmail,
+    sub:   subject,
+    scope: 'https://www.googleapis.com/auth/gmail.send',
+    aud:   'https://oauth2.googleapis.com/token',
+    iat:   now,
+    exp:   now + 3600,
+  }
+  const enc   = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url')
+  const input = `${enc(header)}.${enc(payload)}`
+  const sign  = createSign('RSA-SHA256')
+  sign.update(input)
+  return `${input}.${sign.sign(privateKey, 'base64url')}`
+}
+
+async function getTokenViaServiceAccount(fromEmail: string): Promise<string> {
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_KEY
+  if (!raw) throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY not configured')
+  const sa: { client_email: string; private_key: string } = JSON.parse(raw)
+  // Env vars sometimes escape newlines — normalise them
+  const privateKey = sa.private_key.replace(/\\n/g, '\n')
+  const jwt = makeServiceAccountJWT(sa.client_email, privateKey, fromEmail)
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion:  jwt,
+    }),
+  })
+  const data = await res.json()
+  if (!data.access_token) throw new Error(`Service account token failed: ${JSON.stringify(data)}`)
+  return data.access_token as string
+}
+
+// Legacy fallback — used only if GOOGLE_SERVICE_ACCOUNT_KEY is not set
 async function getAccessToken(): Promise<string> {
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -54,10 +78,12 @@ async function getAccessToken(): Promise<string> {
   return data.access_token
 }
 
-// Returns a Gmail access token for the given fromEmail.
-// If the employee has connected their personal Gmail and fromEmail matches,
-// use their stored refresh token. Otherwise fall back to the shared ops@ token.
+// Returns a Gmail access token for the given fromEmail:
+// 1. Employee's personal Gmail (token in employee_profiles) → use their refresh token
+// 2. Shared/generic address → use service account impersonation
+// 3. Fallback → legacy shared GMAIL_REFRESH_TOKEN
 async function getTokenForSender(fromEmail: string, userId: string | null): Promise<string> {
+  // 1. Personal Gmail
   if (userId) {
     try {
       const k = process.env.SUPABASE_SERVICE_KEY
@@ -83,8 +109,13 @@ async function getTokenForSender(fromEmail: string, userId: string | null): Prom
           if (tokenData.access_token) return tokenData.access_token as string
         }
       }
-    } catch { /* fall through to shared token */ }
+    } catch { /* fall through */ }
   }
+  // 2. Service account (preferred for shared senders)
+  if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
+    return getTokenViaServiceAccount(fromEmail)
+  }
+  // 3. Legacy shared token
   return getAccessToken()
 }
 
@@ -205,8 +236,7 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     const userId = user?.id ?? null
 
-    const OPS_EMAIL  = await getOpsEmail()
-    const FROM_EMAIL = (requestedFrom && requestedFrom.includes('@')) ? requestedFrom : OPS_EMAIL
+    const FROM_EMAIL = (requestedFrom && requestedFrom.includes('@')) ? requestedFrom : DEFAULT_OPS_EMAIL
 
     // 1. Load the draft + contact email
     const draftRes = await fetch(
