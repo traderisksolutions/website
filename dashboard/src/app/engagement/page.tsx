@@ -167,9 +167,12 @@ async function fetchLeads(): Promise<Lead[]> {
   const convRaw: Lead[] = convRes.ok ? await convRes.json() : []
   const conversations = Array.isArray(convRaw) ? convRaw : []
 
-  // All FWD/CC threads → Existing Clients, even when the same email also has a lead record.
-  // The two entries are independent: prospects show their reply thread, clients show the FWD thread.
+  // Dedup by thread_id: if a lead already references a thread directly, don't show that
+  // thread again in Existing Clients (it's covered by the lead in New Prospects).
+  // FWD/CC threads (different UUID, not referenced by any lead) pass through and go to Existing Clients.
+  const leadThreadIds = new Set(engagedLeads.flatMap(l => l.thread_id ? [l.thread_id] : []))
   const newConversations = conversations
+    .filter(c => !leadThreadIds.has(c.id))
     .map(c => ({ ...c, source: 'thread' as const }))
 
   return [...engagedLeads, ...newConversations]
@@ -2072,7 +2075,7 @@ function EngagementPageInner() {
               </button>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f4f4f5', borderRadius: 8, padding: '0 10px', height: 34, marginBottom: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--muted))', borderRadius: 8, padding: '0 10px', height: 34, marginBottom: 8 }}>
               <Search size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} strokeWidth={2} />
               <input
                 type="text" placeholder="Search name, email, company, topic…" value={search}
@@ -2156,14 +2159,14 @@ function EngagementPageInner() {
                   <Fragment key={key}>
                     <div style={{
                       padding: '5px 14px 4px',
-                      background: '#f5f6f8',
-                      borderBottom: '1px solid #eaecef',
+                      background: 'hsl(var(--muted))',
+                      borderBottom: '1px solid hsl(var(--border))',
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: '#777', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
                         {companyLabel(key)}
                       </span>
-                      <span style={{ fontSize: 10, color: '#bbb', fontVariantNumeric: 'tabular-nums' }}>
+                      <span style={{ fontSize: 10, color: 'hsl(var(--border))', fontVariantNumeric: 'tabular-nums' }}>
                         {group.length > 1 ? `${group.length} contacts` : key === '__personal__' || key === '__none__' ? '' : key}
                       </span>
                     </div>
