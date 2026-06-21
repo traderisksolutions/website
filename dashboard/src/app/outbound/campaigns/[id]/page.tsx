@@ -10,6 +10,13 @@ import {
 } from 'lucide-react'
 import { Tip } from '@/components/Tip'
 import { RichEditor, plainToHtml } from '@/components/RichEditor'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
+import { StatusBadge } from '@/components/status-badge'
+import type { AppStatus } from '@/components/status-badge'
+import { StatCard } from '@/components/stat-card'
+import { AppScrollPage } from '@/components/app-shell'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -84,36 +91,12 @@ interface CampaignBrief {
   created_at: string
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-
-const card: React.CSSProperties = {
-  background: '#fff', border: '1px solid #e8e8e8', borderRadius: 12, padding: '20px 24px',
-}
-
-const btnPrimary = (disabled = false, bg = '#111'): React.CSSProperties => ({
-  display: 'inline-flex', alignItems: 'center', gap: 6,
-  padding: '8px 16px', borderRadius: 8, border: 'none',
-  background: bg, color: '#fff', fontSize: 13, fontWeight: 600,
-  cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.45 : 1,
-  whiteSpace: 'nowrap',
-})
-
-const btnSecondary: React.CSSProperties = {
-  display: 'inline-flex', alignItems: 'center', gap: 5,
-  padding: '6px 12px', borderRadius: 7, border: '1px solid #e5e5e5',
-  background: '#fff', color: '#333', fontSize: 12, fontWeight: 500,
-  cursor: 'pointer', whiteSpace: 'nowrap',
-}
-
-const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
-  draft:     { color: '#92400e', bg: '#fef3c7' },
-  review:    { color: '#1e40af', bg: '#dbeafe' },
-  active:    { color: '#166534', bg: '#f0fdf4' },
-  paused:    { color: '#7c3aed', bg: '#ede9fe' },
-  completed: { color: '#555',    bg: '#f4f4f5' },
-}
-
 type Tab = 'sequence' | 'leads' | 'brief' | 'variants' | 'analytics'
+
+// ── Shared input class ─────────────────────────────────────────────────────────
+
+const INPUT_CLS = 'w-full h-9 px-3 text-[13px] text-foreground bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-ring disabled:bg-muted/30'
+const FIELD_LABEL_CLS = 'text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.04em]'
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
@@ -183,7 +166,6 @@ export default function CampaignDetailPage() {
 
   useEffect(() => { load() }, [load])
 
-  // Load signatures once on mount
   useEffect(() => {
     fetch('/api/signatures')
       .then(r => r.ok ? r.json() : [])
@@ -191,7 +173,6 @@ export default function CampaignDetailPage() {
       .catch(() => {})
   }, [])
 
-  // Load campaign leads + segments when switching to leads tab
   useEffect(() => {
     if (tab !== 'leads') return
     setFetchingLeads(true)
@@ -207,7 +188,6 @@ export default function CampaignDetailPage() {
       .finally(() => setFetchingLeads(false))
   }, [tab, id])
 
-  // Load variants when switching to variants tab
   useEffect(() => {
     if (tab !== 'variants') return
     setFetchingVariants(true)
@@ -218,7 +198,6 @@ export default function CampaignDetailPage() {
       .finally(() => setFetchingVariants(false))
   }, [tab, id])
 
-  // Load analytics when switching to analytics tab
   useEffect(() => {
     if (tab !== 'analytics') return
     setFetchingAnalytics(true)
@@ -238,7 +217,6 @@ export default function CampaignDetailPage() {
       .finally(() => setFetchingAnalytics(false))
   }, [tab, id])
 
-  // Load brief when switching to brief tab
   useEffect(() => {
     if (tab !== 'brief') return
     setFetchingBrief(true)
@@ -532,246 +510,293 @@ export default function CampaignDetailPage() {
   const briefApproved = brief?.status === 'approved'
   const needsBrief    = campaign?.brief_required && !briefApproved
 
+  // ── Early returns ─────────────────────────────────────────────────────────
+
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <Loader2 size={20} style={{ animation: 'spin 1s linear infinite', color: '#ccc' }} />
+      <div className="flex items-center justify-center h-[50vh]">
+        <Loader2 size={20} className="animate-spin text-muted-foreground/40" />
       </div>
     )
   }
 
   if (!campaign) {
     return (
-      <div style={{ padding: '28px 32px' }}>
-        <p style={{ color: '#991b1b', fontSize: 14 }}>Campaign not found.</p>
-        <Link href="/outbound/campaigns" style={{ color: '#1d4ed8', fontSize: 13 }}>← Back to Campaigns</Link>
+      <div className="px-8 py-7">
+        <p className="text-[14px] text-destructive mb-2">Campaign not found.</p>
+        <Link href="/outbound/campaigns" className="text-[13px] text-primary hover:underline">← Back to Campaigns</Link>
       </div>
     )
   }
 
-  const sc = STATUS_COLORS[campaign.status] ?? STATUS_COLORS.draft
+  const replyRate = campaign.sent_count > 0
+    ? Math.round((campaign.reply_count / campaign.sent_count) * 100)
+    : 0
 
   return (
-    <div className="px-4 py-5 sm:px-8 sm:py-7" style={{ maxWidth: 1000, margin: '0 auto' }}>
+    <AppScrollPage maxWidth="1000px">
 
-      {/* Header */}
-      <div style={{ marginBottom: 20 }}>
-        <Link href="/outbound/campaigns" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#888', fontSize: 12, textDecoration: 'none', marginBottom: 10 }}>
-          <ArrowLeft size={12} /> Campaigns
-        </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#111', letterSpacing: '-0.02em', flex: 1, minWidth: 0 }}>
-            {campaign.name}
-          </h1>
-          <span style={{
-            padding: '3px 10px', borderRadius: 5, fontSize: 12, fontWeight: 600,
-            color: sc.color, background: sc.bg, flexShrink: 0,
-          }}>
-            {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
-          </span>
-          {(isActive || isPaused) && (
-            <>
-              <button
-                onClick={togglePause}
-                disabled={pausing}
-                style={btnPrimary(pausing, isPaused ? '#166534' : '#7c3aed')}
-              >
-                {pausing
-                  ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
-                  : isPaused ? <Play size={13} /> : <Pause size={13} />
-                }
-                {isPaused ? 'Resume' : 'Pause'}
-              </button>
-              <button
-                onClick={sendNow}
-                disabled={sendingNow}
-                style={btnPrimary(sendingNow, '#1d4ed8')}
-              >
-                {sendingNow
-                  ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Sending…</>
-                  : <><Send size={13} /> Send Now</>
-                }
-              </button>
-            </>
-          )}
-        </div>
+      {/* ── Breadcrumb ── */}
+      <Link
+        href="/outbound/campaigns"
+        className="inline-flex items-center gap-1 text-[12px] text-muted-foreground/60 hover:text-muted-foreground no-underline mb-3"
+      >
+        <ArrowLeft size={12} /> Campaigns
+      </Link>
 
-        {campaign.news_headline && (
-          <div style={{
-            display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 10,
-            padding: '10px 14px', borderRadius: 8, background: '#f0fdf4', border: '1px solid #bbf7d0',
-          }}>
-            <Newspaper size={13} style={{ color: '#166534', flexShrink: 0, marginTop: 1 }} />
-            <div>
-              <p style={{ margin: '0 0 2px', fontSize: 12, fontWeight: 600, color: '#166534', display: 'flex', alignItems: 'center', gap: 4 }}>
-                News Hook <Tip text="The AI uses this article as the opening line in Email 1." />
-              </p>
-              <p style={{ margin: '0 0 2px', fontSize: 12, color: '#166534' }}>{campaign.news_headline}</p>
-              {campaign.news_summary && <p style={{ margin: 0, fontSize: 11, color: '#4ade80', lineHeight: 1.5 }}>{campaign.news_summary}</p>}
-            </div>
-          </div>
-        )}
-
-        {needsBrief && tab !== 'brief' && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 8, marginTop: 10,
-            padding: '10px 14px', borderRadius: 8, background: '#fef3c7', border: '1px solid #fcd34d',
-          }}>
-            <AlertCircle size={13} style={{ color: '#92400e', flexShrink: 0 }} />
-            <p style={{ margin: 0, fontSize: 12, color: '#92400e', flex: 1 }}>
-              Brief approval required before you can generate AI drafts.
-            </p>
-            <button onClick={() => setTab('brief')} style={{ ...btnSecondary, fontSize: 12 }}>
-              Go to Brief →
-            </button>
-          </div>
+      {/* ── Campaign header ── */}
+      <div className="flex items-center gap-3 flex-wrap mb-4">
+        <h1 className="text-[20px] font-bold tracking-tight text-foreground flex-1 min-w-0 m-0">
+          {campaign.name}
+        </h1>
+        <StatusBadge status={campaign.status as AppStatus} />
+        {(isActive || isPaused) && (
+          <>
+            <Button
+              size="compact"
+              onClick={togglePause}
+              disabled={pausing}
+              className={cn(
+                'gap-1.5',
+                isPaused
+                  ? 'bg-emerald-700 hover:bg-emerald-800 text-white border-0'
+                  : 'border-violet-300 text-violet-700 hover:bg-violet-50'
+              )}
+              variant={isPaused ? 'default' : 'outline'}
+            >
+              {pausing
+                ? <Loader2 size={12} className="animate-spin" />
+                : isPaused ? <Play size={12} /> : <Pause size={12} />
+              }
+              {isPaused ? 'Resume' : 'Pause'}
+            </Button>
+            <Button
+              size="compact"
+              onClick={sendNow}
+              disabled={sendingNow}
+              className="gap-1.5 bg-blue-700 hover:bg-blue-800 text-white border-0"
+            >
+              {sendingNow
+                ? <Loader2 size={12} className="animate-spin" />
+                : <Send size={12} />
+              }
+              {sendingNow ? 'Sending…' : 'Send Now'}
+            </Button>
+          </>
         )}
       </div>
 
-      {/* Error / Success */}
-      {error && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', marginBottom: 16, borderRadius: 8, background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', fontSize: 13 }}>
-          <AlertCircle size={14} style={{ flexShrink: 0 }} />
-          <span style={{ flex: 1 }}>{error}</span>
-          <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#991b1b', fontSize: 16 }}>×</button>
-        </div>
-      )}
-      {successMsg && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', marginBottom: 16, borderRadius: 8, background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', fontSize: 13 }}>
-          <CheckCircle size={14} style={{ flexShrink: 0 }} />
-          <span style={{ flex: 1 }}>{successMsg}</span>
-          <button onClick={() => setSuccessMsg(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#166534', fontSize: 16 }}>×</button>
+      {/* ── Compact performance strip ── */}
+      {(campaign.sent_count > 0 || campaign.lead_count > 0) && (
+        <div className="flex items-center gap-6 px-4 py-3 mb-4 rounded-lg bg-muted/30 border border-border/50 flex-wrap">
+          {[
+            { label: 'Leads',      value: campaign.lead_count,  highlight: false },
+            { label: 'Sent',       value: campaign.sent_count,  highlight: false },
+            { label: 'Replies',    value: campaign.reply_count, highlight: campaign.reply_count > 0 },
+            ...(campaign.sent_count > 0
+              ? [{ label: 'Reply Rate', value: `${replyRate}%`, highlight: replyRate > 0 }]
+              : []
+            ),
+          ].map(m => (
+            <div key={m.label} className="flex items-baseline gap-2">
+              <span className={cn(
+                'text-[22px] font-bold tabular-nums tracking-tight',
+                m.highlight ? 'text-emerald-700' : 'text-foreground'
+              )}>
+                {m.value}
+              </span>
+              <span className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                {m.label}
+              </span>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '1px solid #f0f0f0', marginBottom: 20, gap: 0, overflowX: 'auto' }}>
+      {/* ── News hook ── */}
+      {campaign.news_headline && (
+        <div className="flex items-start gap-2.5 mt-1 mb-3 px-3.5 py-2.5 rounded-lg bg-emerald-50 border border-emerald-200">
+          <Newspaper size={13} className="text-emerald-700 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-[11.5px] font-semibold text-emerald-700 mb-0.5 flex items-center gap-1">
+              News Hook <Tip text="The AI uses this article as the opening line in Email 1." />
+            </p>
+            <p className="text-[12px] text-emerald-700">{campaign.news_headline}</p>
+            {campaign.news_summary && (
+              <p className="text-[11px] text-emerald-600/70 mt-0.5 leading-relaxed">{campaign.news_summary}</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Brief required warning ── */}
+      {needsBrief && tab !== 'brief' && (
+        <div className="flex items-center gap-2.5 mb-3 px-3.5 py-2.5 rounded-lg bg-amber-50 border border-amber-200">
+          <AlertCircle size={13} className="text-amber-700 flex-shrink-0" />
+          <p className="text-[12px] text-amber-800 flex-1 m-0">
+            Brief approval required before you can generate AI drafts.
+          </p>
+          <button
+            onClick={() => setTab('brief')}
+            className="text-[12px] font-medium text-amber-800 border border-amber-300 rounded-md px-2.5 py-1 bg-transparent cursor-pointer hover:bg-amber-100 transition-colors whitespace-nowrap"
+          >
+            Go to Brief →
+          </button>
+        </div>
+      )}
+
+      {/* ── Error / Success banners ── */}
+      {error && (
+        <div className="flex items-center gap-2 px-3.5 py-2.5 mb-4 rounded-lg bg-destructive/[0.06] border border-destructive/20 text-destructive text-[13px]">
+          <AlertCircle size={14} className="flex-shrink-0" />
+          <span className="flex-1">{error}</span>
+          <button onClick={() => setError(null)} className="bg-transparent border-0 cursor-pointer text-destructive text-[16px] leading-none px-1">×</button>
+        </div>
+      )}
+      {successMsg && (
+        <div className="flex items-center gap-2 px-3.5 py-2.5 mb-4 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-[13px]">
+          <CheckCircle size={14} className="flex-shrink-0" />
+          <span className="flex-1">{successMsg}</span>
+          <button onClick={() => setSuccessMsg(null)} className="bg-transparent border-0 cursor-pointer text-emerald-700 text-[16px] leading-none px-1">×</button>
+        </div>
+      )}
+
+      {/* ── Tab bar ── */}
+      <div className="flex border-b border-border mb-5 overflow-x-auto">
         {([
-          { key: 'brief',     label: 'Brief',     icon: <FileText size={13} />, badge: needsBrief },
-          { key: 'leads',     label: 'Leads',     icon: <Users size={13} /> },
           { key: 'sequence',  label: 'Sequence',  icon: <Mail size={13} /> },
-          ...(campaign.variant_mode ? [{ key: 'variants' as Tab, label: 'Variants', icon: <GitBranch size={13} /> }] : []),
+          { key: 'leads',     label: 'Leads',     icon: <Users size={13} /> },
+          { key: 'brief',     label: 'Brief',     icon: <FileText size={13} />, badge: needsBrief },
+          ...(campaign.variant_mode
+            ? [{ key: 'variants' as Tab, label: 'Variants', icon: <GitBranch size={13} /> }]
+            : []
+          ),
           { key: 'analytics', label: 'Analytics', icon: <BarChart2 size={13} /> },
         ] as { key: Tab; label: string; icon: React.ReactNode; badge?: boolean }[]).map(t => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0, whiteSpace: 'nowrap',
-              padding: '8px 16px', border: 'none', borderBottom: `2px solid ${tab === t.key ? '#111' : 'transparent'}`,
-              background: 'none', fontSize: 13, fontWeight: tab === t.key ? 600 : 400,
-              color: tab === t.key ? '#111' : '#888', cursor: 'pointer', position: 'relative',
-            }}
+            className={cn(
+              'inline-flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap relative',
+              'px-4 py-2.5 border-0 bg-transparent cursor-pointer',
+              'text-[13px] transition-colors border-b-2 -mb-px',
+              tab === t.key
+                ? 'border-primary text-foreground font-semibold'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            )}
           >
             {t.icon} {t.label}
             {t.badge && (
-              <span style={{
-                width: 6, height: 6, borderRadius: '50%', background: '#f59e0b',
-                position: 'absolute', top: 6, right: 6,
-              }} />
+              <span className="absolute top-1.5 right-1 w-1.5 h-1.5 rounded-full bg-amber-400" />
             )}
           </button>
         ))}
       </div>
 
-      {/* ══ SEQUENCE TAB ══ */}
+      {/* ══════════════════════════════════════════════════════════════
+          SEQUENCE TAB
+      ══════════════════════════════════════════════════════════════ */}
       {tab === 'sequence' && (
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-            <div style={{ flex: 1 }}>
-              <p style={{ margin: 0, fontSize: 13, color: '#888' }}>
-                {hasDraft
-                  ? 'Review and edit each step. Approve all steps before launching.'
-                  : 'Generate AI drafts to get started.'}
-              </p>
-            </div>
+          {/* Sequence toolbar */}
+          <div className="flex items-center gap-2 mb-4 flex-wrap">
+            <p className="flex-1 min-w-0 text-[13px] text-muted-foreground m-0">
+              {hasDraft
+                ? 'Review and edit each step. Approve all steps before launching.'
+                : 'Generate AI drafts to get started.'}
+            </p>
             <Tip text="The AI writes all 3 email steps using the news hook and lead details. Review and edit each draft before approving — nothing is sent until you click Launch." />
-            <button
+            <Button
+              size="compact"
               onClick={draftSequences}
               disabled={drafting || isActive}
-              style={btnPrimary(drafting || isActive, '#7c3aed')}
+              className="gap-1.5 bg-violet-600 hover:bg-violet-700 text-white border-0"
             >
               {drafting
-                ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Drafting…</>
-                : hasDraft
-                ? <><RefreshCw size={13} /> Redraft All</>
-                : <><Sparkles size={13} /> Generate AI Drafts</>
+                ? <Loader2 size={12} className="animate-spin" />
+                : hasDraft ? <RefreshCw size={12} /> : <Sparkles size={12} />
               }
-            </button>
+              {drafting ? 'Drafting…' : hasDraft ? 'Redraft All' : 'Generate AI Drafts'}
+            </Button>
             {hasDraft && !isActive && (
-              <button onClick={saveSequences} disabled={savingSeqs} style={btnSecondary}>
-                {savingSeqs ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> : null}
+              <Button variant="outline" size="compact" onClick={saveSequences} disabled={savingSeqs} className="gap-1.5">
+                {savingSeqs && <Loader2 size={12} className="animate-spin" />}
                 {savingSeqs ? 'Saving…' : 'Save Changes'}
-              </button>
+              </Button>
             )}
             {allApproved && !isActive && (
               <>
                 <Tip text="Queues all approved leads for Gmail delivery. Emails send at ~30/hour with follow-up steps handled automatically." />
-                <button onClick={() => setLaunchConfirm(true)} disabled={launching} style={btnPrimary(launching, '#166534')}>
-                  {launching
-                    ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Launching…</>
-                    : <><Rocket size={13} /> Launch Campaign</>
-                  }
-                </button>
+                <Button
+                  size="compact"
+                  onClick={() => setLaunchConfirm(true)}
+                  disabled={launching}
+                  className="gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white border-0"
+                >
+                  {launching ? <Loader2 size={12} className="animate-spin" /> : <Rocket size={12} />}
+                  {launching ? 'Launching…' : 'Launch Campaign'}
+                </Button>
               </>
             )}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* Step cards */}
+          <div className="flex flex-col gap-3">
             {localSeqs.map((seq, i) => {
               const isExpanded = expandedStep === seq.step_number
               const approved   = seq.status === 'approved'
+              const stepLabel  = seq.step_number === 1
+                ? 'Email 1 — Initial outreach'
+                : seq.step_number === 2
+                ? 'Email 2 — Follow-up'
+                : 'Email 3 — Final touch'
               return (
-                <div key={seq.id} style={{
-                  ...card, padding: 0, overflow: 'hidden',
-                  border: `1px solid ${approved ? '#bbf7d0' : '#e8e8e8'}`,
-                }}>
+                <Card key={seq.id} className={cn('overflow-hidden', approved && 'border-emerald-200')}>
                   <button
                     onClick={() => setExpandedStep(isExpanded ? null : seq.step_number)}
-                    style={{
-                      width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-                      padding: '14px 20px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
-                    }}
+                    className="w-full flex items-center gap-3 px-5 py-3.5 bg-transparent border-0 cursor-pointer text-left"
                   >
-                    <span style={{
-                      width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700,
-                      background: approved ? '#f0fdf4' : '#f4f4f5',
-                      color: approved ? '#166534' : '#888',
-                      border: `1px solid ${approved ? '#bbf7d0' : '#e5e5e5'}`,
-                    }}>
+                    <span className={cn(
+                      'w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[11px] font-bold',
+                      approved
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'bg-muted text-muted-foreground border border-border'
+                    )}>
                       {approved ? <CheckCircle size={13} /> : i + 1}
                     </span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#111' }}>
-                        {seq.step_number === 1 ? 'Email 1 — Initial outreach' : seq.step_number === 2 ? 'Email 2 — Follow-up' : 'Email 3 — Final touch'}
+                    <div className="flex-1 min-w-0">
+                      <p className="m-0 text-[13px] font-semibold text-foreground flex items-center gap-2 flex-wrap">
+                        {stepLabel}
                         {seq.step_number > 1 && (
-                          <span style={{ fontSize: 11, fontWeight: 400, color: '#aaa', marginLeft: 8 }}>
-                            {seq.delay_days === 0 ? 'Same day' : `+${seq.delay_days} days`}
+                          <span className="text-[11px] font-normal text-muted-foreground/60">
+                            {seq.delay_days === 0 ? 'Same day' : `+${seq.delay_days}d`}
                           </span>
                         )}
                       </p>
                       {seq.subject && (
-                        <p style={{ margin: '2px 0 0', fontSize: 12, color: '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <p className="m-0 mt-0.5 text-[12px] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                           Subject: {seq.subject}
                         </p>
                       )}
                     </div>
-                    <span style={{
-                      padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600,
-                      color: approved ? '#166534' : '#92400e',
-                      background: approved ? '#f0fdf4' : '#fef3c7', flexShrink: 0,
-                    }}>
+                    <span className={cn(
+                      'text-[10px] font-semibold px-2 py-0.5 rounded flex-shrink-0',
+                      approved ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                    )}>
                       {approved ? 'Approved' : 'Draft'}
                     </span>
-                    {isExpanded ? <ChevronUp size={14} style={{ color: '#ccc' }} /> : <ChevronDown size={14} style={{ color: '#ccc' }} />}
+                    {isExpanded
+                      ? <ChevronUp size={14} className="text-muted-foreground/30 flex-shrink-0" />
+                      : <ChevronDown size={14} className="text-muted-foreground/30 flex-shrink-0" />
+                    }
                   </button>
 
                   {isExpanded && (
-                    <div style={{ padding: '0 20px 20px', borderTop: '1px solid #f4f4f5' }}>
+                    <div className="px-5 pb-5 pt-4 border-t border-border/50">
+                      {/* Timing */}
                       {seq.step_number > 1 && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, marginBottom: 14 }}>
-                          <label style={{ fontSize: 11, fontWeight: 600, color: '#666', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+                        <div className="flex items-center gap-3 mb-4">
+                          <label className={cn(FIELD_LABEL_CLS, 'whitespace-nowrap')}>
                             Send after
                           </label>
                           <input
@@ -779,18 +804,19 @@ export default function CampaignDetailPage() {
                             value={seq.delay_days}
                             disabled={isActive}
                             onChange={e => updateLocalSeq(seq.id, 'delay_days', parseInt(e.target.value) || 1)}
-                            style={{ width: 60, padding: '4px 8px', fontSize: 13, borderRadius: 6, border: '1px solid #e5e5e5', background: '#fafafa', textAlign: 'center' }}
+                            className="w-14 h-8 px-2 text-center text-[13px] text-foreground border border-input rounded-md bg-background outline-none focus:ring-1 focus:ring-ring disabled:bg-muted/30"
                           />
-                          <span style={{ fontSize: 12, color: '#888' }}>days</span>
+                          <span className="text-[12px] text-muted-foreground">days</span>
                         </div>
                       )}
 
-                      <div style={{ marginTop: seq.step_number === 1 ? 14 : 0, marginBottom: 10 }}>
-                        <label style={{ fontSize: 11, fontWeight: 600, color: '#666', display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      {/* Subject */}
+                      <div className="mb-4">
+                        <label className={cn(FIELD_LABEL_CLS, 'block mb-1.5')}>
                           Subject Line
                         </label>
                         <input
-                          style={{ width: '100%', padding: '8px 10px', fontSize: 13, borderRadius: 7, border: '1px solid #e5e5e5', background: isActive ? '#fafafa' : '#fff', color: '#111', outline: 'none', boxSizing: 'border-box' }}
+                          className={INPUT_CLS}
                           placeholder="Subject line…"
                           value={seq.subject}
                           disabled={isActive}
@@ -798,18 +824,19 @@ export default function CampaignDetailPage() {
                         />
                       </div>
 
-                      <div style={{ marginBottom: 14 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-                          <label style={{ fontSize: 11, fontWeight: 600, color: '#666', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                            Email Body
-                          </label>
-                          <span style={{ fontSize: 10, color: '#f59e0b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
-                            ⚠ Images &amp; HTML reduce cold-email deliverability — use sparingly
+                      {/* Body */}
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className={FIELD_LABEL_CLS}>Email Body</label>
+                          <span className="text-[10px] text-amber-600 font-semibold">
+                            ⚠ Images &amp; HTML reduce cold-email deliverability
                           </span>
                         </div>
                         {isActive ? (
-                          <div style={{ padding: '10px 12px', fontSize: 13, borderRadius: 7, border: '1px solid #e5e5e5', background: '#fafafa', minHeight: 120, color: '#111', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}
-                            dangerouslySetInnerHTML={{ __html: seq.body }} />
+                          <div
+                            className="px-3 py-2.5 text-[13px] border border-border rounded-md bg-muted/30 min-h-[120px] text-foreground leading-relaxed whitespace-pre-wrap"
+                            dangerouslySetInnerHTML={{ __html: seq.body }}
+                          />
                         ) : (
                           <RichEditor
                             key={seq.id}
@@ -819,479 +846,591 @@ export default function CampaignDetailPage() {
                             minHeight={160}
                           />
                         )}
-                        <p style={{ margin: '4px 0 0', fontSize: 11, color: '#bbb', display: 'flex', alignItems: 'center', gap: 4 }}>
-                          Tokens: {'{{first_name}}'} · {'{{company}}'} <Tip text="Gmail replaces these with each lead's first name and company before sending." />
+                        <p className="text-[11px] text-muted-foreground/40 mt-1.5 flex items-center gap-1 m-0">
+                          Tokens: {'{{first_name}}'} · {'{{company}}'}{' '}
+                          <Tip text="Gmail replaces these with each lead's first name and company before sending." />
                         </p>
                         {/* Signature preview */}
                         {signatureId && (() => {
                           const sig = signatures.find(s => s.id === signatureId)
                           return sig ? (
-                            <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 7, background: '#f8f8f8', border: '1px dashed #e0e0e0', fontSize: 12, color: '#888', lineHeight: 1.7 }}>
-                              <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 600, color: '#ccc', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Signature appended at send</p>
+                            <div className="mt-2 px-3 py-2.5 rounded-lg bg-muted/30 border border-dashed border-border text-[12px] text-muted-foreground leading-relaxed">
+                              <p className="text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground/40 mb-1">
+                                Signature appended at send
+                              </p>
                               Best regards,<br />
-                              <strong style={{ color: '#555' }}>{sig.name}</strong><br />
-                              {[sig.title, sig.phone].filter(Boolean).join(' · ')}{(sig.title || sig.phone) ? <br /> : null}
+                              <strong className="text-foreground/70">{sig.name}</strong><br />
+                              {[sig.title, sig.phone].filter(Boolean).join(' · ')}
+                              {(sig.title || sig.phone) ? <br /> : null}
                               {sig.email && <>{sig.email}<br /></>}
-                              {sig.company_tagline && <span style={{ color: '#bbb' }}>{sig.company_tagline}</span>}
+                              {sig.company_tagline && (
+                                <span className="text-muted-foreground/40">{sig.company_tagline}</span>
+                              )}
                             </div>
                           ) : null
                         })()}
                       </div>
 
+                      {/* Step actions */}
                       {!isActive && !approved && seq.subject && seq.body && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <button onClick={() => approveStep(seq.id)} style={btnPrimary(false, '#166534')}>
-                            <CheckCircle size={13} /> Approve Step {seq.step_number}
-                          </button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="compact"
+                            onClick={() => approveStep(seq.id)}
+                            className="gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white border-0"
+                          >
+                            <CheckCircle size={12} /> Approve Step {seq.step_number}
+                          </Button>
                           <Tip text="Marks this email as ready to send. All 3 steps must be approved before the Launch Campaign button appears." />
                         </div>
                       )}
                       {!isActive && approved && (
-                        <button onClick={() => updateLocalSeq(seq.id, 'status', 'draft')} style={btnSecondary}>
+                        <Button
+                          variant="outline"
+                          size="compact"
+                          onClick={() => updateLocalSeq(seq.id, 'status', 'draft')}
+                        >
                           Unapprove
-                        </button>
+                        </Button>
                       )}
                     </div>
                   )}
-                </div>
+                </Card>
               )
             })}
           </div>
 
-          {localSeqs.length === 0 && !hasDraft && (
-            <div style={{ textAlign: 'center', padding: '32px 0' }}>
-              <p style={{ fontSize: 13, color: '#ccc' }}>No sequences yet — click &ldquo;Generate AI Drafts&rdquo; to start</p>
+          {localSeqs.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-[13px] text-muted-foreground/50">
+                No sequences yet — click &ldquo;Generate AI Drafts&rdquo; to start
+              </p>
             </div>
           )}
         </div>
       )}
 
-      {/* ══ LEADS TAB ══ */}
+      {/* ══════════════════════════════════════════════════════════════
+          LEADS TAB
+      ══════════════════════════════════════════════════════════════ */}
       {tab === 'leads' && (
-        <div style={card}>
-          {/* Segment management */}
-          <div style={{ marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid #f0f0f0' }}>
-            <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 600, color: '#555' }}>Segments</p>
-            <div style={{ display: 'flex', gap: 6, marginBottom: segments.length > 0 ? 8 : 0, flexWrap: 'wrap' }}>
-              {segments.map(seg => (
-                <div key={seg.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px 2px 10px', borderRadius: 20, background: '#f4f4f5', border: '1px solid #e5e5e5' }}>
-                  <span style={{ fontSize: 11, color: '#444' }}>{seg.name}</span>
-                  <button onClick={() => deleteSegment(seg.id)} disabled={deletingSegment === seg.id}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ccc', padding: 0, display: 'flex' }}>
-                    {deletingSegment === seg.id ? <Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} /> : <X size={10} />}
-                  </button>
+        <Card>
+          <CardContent className="p-5">
+            {/* Segment management */}
+            <div className="mb-4 pb-4 border-b border-border/50">
+              <p className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider mb-2">
+                Segments
+              </p>
+              {segments.length > 0 && (
+                <div className="flex gap-1.5 mb-2.5 flex-wrap">
+                  {segments.map(seg => (
+                    <div key={seg.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted border border-border">
+                      <span className="text-[11px] text-foreground">{seg.name}</span>
+                      <button
+                        onClick={() => deleteSegment(seg.id)}
+                        disabled={deletingSegment === seg.id}
+                        className="text-muted-foreground/40 hover:text-muted-foreground bg-transparent border-0 cursor-pointer p-0 flex"
+                      >
+                        {deletingSegment === seg.id
+                          ? <Loader2 size={10} className="animate-spin" />
+                          : <X size={10} />
+                        }
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <input
-                style={{ flex: 1, padding: '5px 9px', fontSize: 12, borderRadius: 6, border: '1px solid #e5e5e5', outline: 'none', color: '#111' }}
-                placeholder="New segment name…"
-                value={newSegmentName}
-                onChange={e => setNewSegmentName(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && addSegment()}
-              />
-              <button onClick={addSegment} disabled={addingSegment || !newSegmentName.trim()} style={btnPrimary(addingSegment || !newSegmentName.trim(), '#555')}>
-                {addingSegment ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> : '+ Add'}
-              </button>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#111' }}>
-              Campaign leads
-              {campaignLeads.length > 0 && (
-                <span style={{ fontWeight: 400, color: '#aaa', marginLeft: 6 }}>
-                  ({campaignLeads.filter(cl => cl.approval_status !== 'excluded').length} active)
-                </span>
               )}
-            </p>
-            <Link
-              href="/outbound/leads"
-              style={{ ...btnSecondary, textDecoration: 'none', fontSize: 12 }}
-            >
-              + Add from Lead Database
-            </Link>
-          </div>
+              <div className="flex gap-2">
+                <input
+                  className="flex-1 h-8 px-3 text-[12px] text-foreground border border-input rounded-md bg-background outline-none focus:ring-1 focus:ring-ring"
+                  placeholder="New segment name…"
+                  value={newSegmentName}
+                  onChange={e => setNewSegmentName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && addSegment()}
+                />
+                <Button
+                  size="compact"
+                  onClick={addSegment}
+                  disabled={addingSegment || !newSegmentName.trim()}
+                  className="gap-1"
+                >
+                  {addingSegment ? <Loader2 size={11} className="animate-spin" /> : null}
+                  + Add
+                </Button>
+              </div>
+            </div>
 
-          {fetchingLeads ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '32px 0' }}>
-              <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: '#ccc' }} />
+            {/* Leads header */}
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[13px] font-semibold text-foreground m-0">
+                Campaign leads
+                {campaignLeads.length > 0 && (
+                  <span className="ml-1.5 font-normal text-muted-foreground/60">
+                    ({campaignLeads.filter(cl => cl.approval_status !== 'excluded').length} active)
+                  </span>
+                )}
+              </p>
+              <Link
+                href="/outbound/leads"
+                className="inline-flex items-center gap-1 text-[12px] font-medium text-foreground border border-input rounded-md px-2.5 py-1.5 bg-background hover:bg-muted transition-colors no-underline"
+              >
+                + Add from Lead Database
+              </Link>
             </div>
-          ) : campaignLeads.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px 0' }}>
-              <p style={{ fontSize: 13, color: '#aaa', marginBottom: 12 }}>No leads assigned to this campaign yet.</p>
-              <Link href="/outbound/leads" style={{ color: '#1d4ed8', fontSize: 13 }}>Add leads from Lead Database →</Link>
-            </div>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr>
-                    {['Include', 'Name', 'Email', 'Title / Company', 'Status'].map(h => (
-                      <th key={h} style={{ padding: '7px 10px', textAlign: 'left', color: '#aaa', fontWeight: 600, fontSize: 11, borderBottom: '1px solid #f0f0f0', whiteSpace: 'nowrap' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {campaignLeads.map(cl => {
-                    const lead     = cl.outbound_leads
-                    const excluded = cl.approval_status === 'excluded'
-                    const toggling = togglingLeads.includes(cl.lead_id)
-                    return (
-                      <tr key={cl.id} style={{ opacity: excluded ? 0.45 : 1 }}>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #f8f8f8' }}>
-                          {toggling
-                            ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite', color: '#ccc' }} />
-                            : <input
-                                type="checkbox"
-                                checked={!excluded}
-                                disabled={isActive}
-                                onChange={() => toggleLeadInclusion(cl.lead_id, cl.approval_status)}
-                                style={{ cursor: isActive ? 'default' : 'pointer', width: 15, height: 15 }}
-                                title={excluded ? 'Include in campaign' : 'Exclude from campaign'}
-                              />
-                          }
-                        </td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #f8f8f8', fontSize: 13, fontWeight: 500, color: '#111', whiteSpace: 'nowrap' }}>
-                          {lead?.full_name || '—'}
-                        </td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #f8f8f8', fontSize: 12, color: lead?.email ? '#166534' : '#ccc' }}>
-                          {lead?.email || '—'}
-                        </td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #f8f8f8', fontSize: 12, color: '#888', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          <span style={{ color: '#555' }}>{lead?.current_title || '—'}</span>
-                          {lead?.current_company && (
-                            <span style={{ color: '#aaa' }}> · {lead.current_company}</span>
-                          )}
-                        </td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #f8f8f8' }}>
-                          {!excluded && (
-                            <span style={{
-                              fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 4,
-                              color: cl.send_status === 'sent' || cl.send_status === 'replied' ? '#166534' : '#92400e',
-                              background: cl.send_status === 'sent' || cl.send_status === 'replied' ? '#f0fdf4' : '#fef3c7',
-                            }}>
-                              {cl.send_status}
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+
+            {/* Leads list */}
+            {fetchingLeads ? (
+              <div className="flex justify-center py-8">
+                <Loader2 size={18} className="animate-spin text-muted-foreground/40" />
+              </div>
+            ) : campaignLeads.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-[13px] text-muted-foreground/60 mb-3">No leads assigned to this campaign yet.</p>
+                <Link href="/outbound/leads" className="text-[13px] text-primary hover:underline">
+                  Add leads from Lead Database →
+                </Link>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr>
+                      {['Include', 'Name', 'Email', 'Title / Company', 'Status'].map(h => (
+                        <th key={h} className="h-9 px-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/30 border-b border-border whitespace-nowrap first:pl-4">
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {campaignLeads.map(cl => {
+                      const lead     = cl.outbound_leads
+                      const excluded = cl.approval_status === 'excluded'
+                      const toggling = togglingLeads.includes(cl.lead_id)
+                      return (
+                        <tr key={cl.id} className={cn(
+                          'border-b border-border/50',
+                          excluded ? 'opacity-45' : 'hover:bg-muted/20 transition-colors'
+                        )}>
+                          <td className="px-3 py-2.5 pl-4 w-10">
+                            {toggling
+                              ? <Loader2 size={13} className="animate-spin text-muted-foreground/40" />
+                              : <input
+                                  type="checkbox"
+                                  checked={!excluded}
+                                  disabled={isActive}
+                                  onChange={() => toggleLeadInclusion(cl.lead_id, cl.approval_status)}
+                                  className={cn('w-4 h-4', !isActive && 'cursor-pointer')}
+                                  title={excluded ? 'Include in campaign' : 'Exclude from campaign'}
+                                />
+                            }
+                          </td>
+                          <td className="px-3 py-2.5 text-[13px] font-medium text-foreground whitespace-nowrap">
+                            {lead?.full_name || '—'}
+                          </td>
+                          <td className={cn(
+                            'px-3 py-2.5 text-[12px]',
+                            lead?.email ? 'text-emerald-700' : 'text-muted-foreground/40'
+                          )}>
+                            {lead?.email || '—'}
+                          </td>
+                          <td className="px-3 py-2.5 text-[12px] max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap">
+                            <span className="text-foreground/70">{lead?.current_title || '—'}</span>
+                            {lead?.current_company && (
+                              <span className="text-muted-foreground/60"> · {lead.current_company}</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2.5">
+                            {!excluded && (
+                              <span className={cn(
+                                'text-[10px] font-semibold px-2 py-0.5 rounded',
+                                (cl.send_status === 'sent' || cl.send_status === 'replied')
+                                  ? 'bg-emerald-50 text-emerald-700'
+                                  : 'bg-amber-50 text-amber-700'
+                              )}>
+                                {cl.send_status}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
-      {/* ══ BRIEF TAB ══ */}
+      {/* ══════════════════════════════════════════════════════════════
+          BRIEF TAB
+      ══════════════════════════════════════════════════════════════ */}
       {tab === 'brief' && (
         <div>
           {fetchingBrief ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
-              <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: '#ccc' }} />
+            <div className="flex justify-center py-12">
+              <Loader2 size={18} className="animate-spin text-muted-foreground/40" />
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {/* Status banner */}
+            <div className="flex flex-col gap-4">
+              {/* Brief status banner */}
               {brief ? (
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
-                  borderRadius: 10, border: `1px solid ${briefApproved ? '#bbf7d0' : '#fcd34d'}`,
-                  background: briefApproved ? '#f0fdf4' : '#fef3c7',
-                }}>
+                <div className={cn(
+                  'flex items-center gap-3 px-4 py-3 rounded-lg border',
+                  briefApproved
+                    ? 'bg-emerald-50 border-emerald-200'
+                    : 'bg-amber-50 border-amber-200'
+                )}>
                   {briefApproved
-                    ? <CheckCircle size={14} style={{ color: '#166534', flexShrink: 0 }} />
-                    : <AlertCircle size={14} style={{ color: '#92400e', flexShrink: 0 }} />
+                    ? <CheckCircle size={14} className="text-emerald-700 flex-shrink-0" />
+                    : <AlertCircle size={14} className="text-amber-700 flex-shrink-0" />
                   }
-                  <p style={{ margin: 0, fontSize: 13, color: briefApproved ? '#166534' : '#92400e', flex: 1 }}>
+                  <p className={cn(
+                    'text-[13px] flex-1 m-0',
+                    briefApproved ? 'text-emerald-700' : 'text-amber-800'
+                  )}>
                     {briefApproved
                       ? `Brief v${brief.version_number} approved — AI drafts can be generated.`
                       : `Brief v${brief.version_number} is in draft. Approve it to enable AI draft generation.`
                     }
                   </p>
                   {!briefApproved && (
-                    <button
+                    <Button
+                      size="compact"
                       onClick={approveBrief}
                       disabled={briefApproving}
-                      style={btnPrimary(briefApproving, '#166534')}
+                      className="gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white border-0 flex-shrink-0"
                     >
-                      {briefApproving
-                        ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Approving…</>
-                        : <><CheckCircle size={13} /> Approve Brief</>
-                      }
-                    </button>
+                      {briefApproving ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle size={12} />}
+                      {briefApproving ? 'Approving…' : 'Approve Brief'}
+                    </Button>
                   )}
                 </div>
               ) : (
-                <div style={{ ...card, textAlign: 'center', padding: '32px 24px' }}>
-                  <FileText size={28} style={{ color: '#e5e5e5', marginBottom: 12 }} />
-                  <p style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 600, color: '#555' }}>No brief yet</p>
-                  <p style={{ margin: 0, fontSize: 13, color: '#aaa' }}>Create a brief to define messaging goals before AI draft generation.</p>
-                </div>
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <FileText size={28} className="text-muted-foreground/20 mx-auto mb-3" />
+                    <p className="text-[15px] font-semibold text-foreground/70 mb-1">No brief yet</p>
+                    <p className="text-[13px] text-muted-foreground/60">
+                      Create a brief to define messaging goals before AI draft generation.
+                    </p>
+                  </CardContent>
+                </Card>
               )}
 
               {/* Products & Segments context */}
               {(briefProducts.length > 0 || briefSegments.length > 0) && (
-                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <div className="flex gap-3 flex-wrap">
                   {briefProducts.length > 0 && (
-                    <div style={{ ...card, flex: 1, minWidth: 200, padding: '14px 18px' }}>
-                      <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Products</p>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                        {briefProducts.map(p => (
-                          <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                            <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 4, color: '#7c3aed', background: '#ede9fe', whiteSpace: 'nowrap' }}>
-                              {p.product_code}
-                            </span>
-                            <span style={{ fontSize: 13, color: '#333' }}>{p.product_name}</span>
-                            {p.priority === 1 && (
-                              <span style={{ fontSize: 10, color: '#aaa', marginLeft: 'auto' }}>primary</span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <Card className="flex-1 min-w-[200px]">
+                      <CardContent className="p-4">
+                        <p className="text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground/55 mb-2.5">
+                          Products
+                        </p>
+                        <div className="flex flex-col gap-1.5">
+                          {briefProducts.map(p => (
+                            <div key={p.id} className="flex items-center gap-2">
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-violet-50 text-violet-700 whitespace-nowrap">
+                                {p.product_code}
+                              </span>
+                              <span className="text-[13px] text-foreground">{p.product_name}</span>
+                              {p.priority === 1 && (
+                                <span className="text-[10px] text-muted-foreground/50 ml-auto">primary</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
                   )}
                   {briefSegments.length > 0 && (
-                    <div style={{ ...card, flex: 1, minWidth: 200, padding: '14px 18px' }}>
-                      <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Segments</p>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                        {briefSegments.map(s => (
-                          <div key={s.id}>
-                            <span style={{ fontSize: 13, color: '#333', fontWeight: 500 }}>{s.name}</span>
-                            {s.description && (
-                              <p style={{ margin: '1px 0 0', fontSize: 11, color: '#aaa' }}>{s.description}</p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <Card className="flex-1 min-w-[200px]">
+                      <CardContent className="p-4">
+                        <p className="text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground/55 mb-2.5">
+                          Segments
+                        </p>
+                        <div className="flex flex-col gap-1.5">
+                          {briefSegments.map(s => (
+                            <div key={s.id}>
+                              <span className="text-[13px] text-foreground font-medium">{s.name}</span>
+                              {s.description && (
+                                <p className="text-[11px] text-muted-foreground/60 mt-0.5">{s.description}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
                   )}
                 </div>
               )}
 
               {/* Brief form */}
-              <div style={card}>
-                <p style={{ margin: '0 0 14px', fontSize: 13, fontWeight: 600, color: '#111' }}>
-                  {brief ? `${briefApproved ? 'Approved brief' : 'Edit draft brief'} v${brief.version_number}` : 'New brief'}
-                </p>
+              <Card>
+                <CardContent className="p-5">
+                  <p className="text-[13px] font-semibold text-foreground mb-4">
+                    {brief
+                      ? `${briefApproved ? 'Approved brief' : 'Edit draft brief'} v${brief.version_number}`
+                      : 'New brief'
+                    }
+                  </p>
+                  <div className="flex flex-col gap-4 mb-5">
+                    {([
+                      {
+                        label: 'Campaign Goal',
+                        tip: 'What do you want recipients to do? e.g. Book a 15-min call to discuss cyber insurance.',
+                        placeholder: 'e.g. Book a 15-min discovery call to discuss cyber insurance coverage',
+                        value: briefGoal, set: setBriefGoal,
+                      },
+                      {
+                        label: 'Target Audience',
+                        tip: 'Who are we targeting? Be specific — industry, seniority, geography.',
+                        placeholder: 'e.g. SME founders and business owners in Singapore',
+                        value: briefAudience, set: setBriefAudience,
+                      },
+                      {
+                        label: 'Tone',
+                        tip: 'How should the emails sound?',
+                        placeholder: 'e.g. Professional, direct, not salesy',
+                        value: briefTone, set: setBriefTone,
+                      },
+                      {
+                        label: 'Topics to Avoid',
+                        tip: 'Anything the AI should steer clear of — pricing, competitor names, regulatory details.',
+                        placeholder: 'e.g. Pricing discussion, competitor names',
+                        value: briefAvoid, set: setBriefAvoid,
+                      },
+                    ] as { label: string; tip: string; placeholder: string; value: string; set: (v: string) => void }[]).map(f => (
+                      <div key={f.label}>
+                        <label className={cn(FIELD_LABEL_CLS, 'flex items-center gap-1.5 mb-1.5')}>
+                          {f.label} <Tip text={f.tip} />
+                        </label>
+                        <input
+                          type="text"
+                          className={INPUT_CLS}
+                          placeholder={f.placeholder}
+                          value={f.value}
+                          disabled={briefApproved}
+                          onChange={e => f.set(e.target.value)}
+                        />
+                      </div>
+                    ))}
+                  </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 16 }}>
-                  {([
-                    { label: 'Campaign Goal',     tip: 'What do you want recipients to do? e.g. Book a 15-min call to discuss cyber insurance.', placeholder: 'e.g. Book a 15-min discovery call to discuss cyber insurance coverage', value: briefGoal,     set: setBriefGoal },
-                    { label: 'Target Audience',   tip: 'Who are we targeting? Be specific — industry, seniority, geography.',                      placeholder: 'e.g. SME founders and business owners in Singapore',                  value: briefAudience, set: setBriefAudience },
-                    { label: 'Tone',              tip: 'How should the emails sound?',                                                              placeholder: 'e.g. Professional, direct, not salesy',                             value: briefTone,     set: setBriefTone },
-                    { label: 'Topics to Avoid',   tip: 'Anything the AI should steer clear of — pricing, competitor names, regulatory details.',   placeholder: 'e.g. Pricing discussion, competitor names',                         value: briefAvoid,    set: setBriefAvoid },
-                  ] as { label: string; tip: string; placeholder: string; value: string; set: (v: string) => void }[]).map(f => (
-                    <div key={f.label}>
-                      <label style={{ fontSize: 11, fontWeight: 600, color: '#666', display: 'flex', alignItems: 'center', gap: 4, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                        {f.label} <Tip text={f.tip} />
-                      </label>
-                      <input
-                        type="text"
-                        style={{ width: '100%', padding: '8px 10px', fontSize: 13, borderRadius: 7, border: '1px solid #e5e5e5', background: briefApproved ? '#fafafa' : '#fff', color: '#111', outline: 'none', boxSizing: 'border-box' }}
-                        placeholder={f.placeholder}
-                        value={f.value}
-                        disabled={briefApproved}
-                        onChange={e => f.set(e.target.value)}
-                      />
+                  {!briefApproved && (
+                    <div className="flex gap-2.5">
+                      <Button size="compact" onClick={createBrief} disabled={briefSaving} className="gap-1.5">
+                        {briefSaving && <Loader2 size={12} className="animate-spin" />}
+                        {briefSaving ? 'Saving…' : brief ? 'Create New Version' : 'Create Brief'}
+                      </Button>
+                      {brief && !briefApproved && (
+                        <Button
+                          size="compact"
+                          onClick={approveBrief}
+                          disabled={briefApproving}
+                          className="gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white border-0"
+                        >
+                          {briefApproving ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle size={12} />}
+                          {briefApproving ? 'Approving…' : 'Approve'}
+                        </Button>
+                      )}
                     </div>
-                  ))}
-                </div>
-
-                {!briefApproved && (
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    <button
+                  )}
+                  {briefApproved && (
+                    <Button
+                      variant="outline"
+                      size="compact"
                       onClick={createBrief}
                       disabled={briefSaving}
-                      style={btnPrimary(briefSaving, '#111')}
+                      className="gap-1.5"
                     >
-                      {briefSaving
-                        ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Saving…</>
-                        : brief ? 'Create New Version' : 'Create Brief'
-                      }
-                    </button>
-                    {brief && !briefApproved && (
-                      <button
-                        onClick={approveBrief}
-                        disabled={briefApproving}
-                        style={btnPrimary(briefApproving, '#166534')}
-                      >
-                        {briefApproving
-                          ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Approving…</>
-                          : <><CheckCircle size={13} /> Approve</>
-                        }
-                      </button>
-                    )}
-                  </div>
-                )}
+                      {briefSaving ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                      {briefSaving ? 'Creating…' : 'Create New Version'}
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
 
-                {briefApproved && (
-                  <button
-                    onClick={createBrief}
-                    disabled={briefSaving}
-                    style={btnSecondary}
+              {/* Sender signature */}
+              <Card>
+                <CardContent className="p-5">
+                  <p className="text-[13px] font-semibold text-foreground mb-3">Sender Signature</p>
+                  <select
+                    value={signatureId}
+                    onChange={e => saveSignature(e.target.value)}
+                    className="w-full h-9 px-3 text-[13px] text-foreground bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-ring"
                   >
-                    {briefSaving ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <RefreshCw size={12} />}
-                    {briefSaving ? 'Creating…' : 'Create New Version'}
-                  </button>
-                )}
-              </div>
+                    <option value="">No signature</option>
+                    {signatures.map(s => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}{s.title ? ` — ${s.title}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {savingSig && (
+                    <p className="text-[11px] text-muted-foreground/50 mt-1.5">Saving…</p>
+                  )}
+                  {signatureId && (() => {
+                    const sig = signatures.find(s => s.id === signatureId)
+                    return sig ? (
+                      <div className="mt-3 px-3.5 py-3 rounded-lg bg-muted/30 border border-border text-[12px] text-muted-foreground leading-relaxed">
+                        Best regards,<br />
+                        <strong className="text-foreground/80">{sig.name}</strong><br />
+                        {[sig.title, sig.phone].filter(Boolean).join(' · ')}
+                        {(sig.title || sig.phone) && <br />}
+                        {sig.email && <>{sig.email}<br /></>}
+                        {sig.company_tagline && (
+                          <span className="text-muted-foreground/50">{sig.company_tagline}</span>
+                        )}
+                      </div>
+                    ) : null
+                  })()}
+                  <p className="text-[11px] text-muted-foreground/40 mt-2.5">
+                    Appended to all emails sent from this campaign. Manage signatures in{' '}
+                    <Link href="/settings" className="text-muted-foreground/70 underline hover:text-foreground">
+                      Settings
+                    </Link>.
+                  </p>
+                </CardContent>
+              </Card>
             </div>
           )}
-
-          {/* Sender signature */}
-          <div style={card}>
-            <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 600, color: '#111' }}>Sender Signature</p>
-            <select
-              value={signatureId}
-              onChange={e => saveSignature(e.target.value)}
-              style={{ width: '100%', height: 36, padding: '0 10px', fontSize: 13, color: '#111', background: '#fff', border: '1px solid #e5e5e5', borderRadius: 7, outline: 'none' }}
-            >
-              <option value="">No signature</option>
-              {signatures.map(s => (
-                <option key={s.id} value={s.id}>
-                  {s.name}{s.title ? ` — ${s.title}` : ''}
-                </option>
-              ))}
-            </select>
-            {savingSig && <p style={{ margin: '6px 0 0', fontSize: 11, color: '#aaa' }}>Saving…</p>}
-            {signatureId && (() => {
-              const sig = signatures.find(s => s.id === signatureId)
-              return sig ? (
-                <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, background: '#f8f8f8', border: '1px solid #f0f0f0', fontSize: 12, color: '#555', lineHeight: 1.7 }}>
-                  Best regards,<br />
-                  <strong>{sig.name}</strong><br />
-                  {[sig.title, sig.phone].filter(Boolean).join(' · ')}{(sig.title || sig.phone) && <br />}
-                  {sig.email && <>{sig.email}<br /></>}
-                  {sig.company_tagline && <span style={{ color: '#aaa' }}>{sig.company_tagline}</span>}
-                </div>
-              ) : null
-            })()}
-            <p style={{ margin: '8px 0 0', fontSize: 11, color: '#bbb' }}>
-              Appended to all emails sent from this campaign. Manage signatures in{' '}
-              <Link href="/settings" style={{ color: '#888', textDecoration: 'underline' }}>Settings</Link>.
-            </p>
-          </div>
         </div>
       )}
 
-      {/* ══ VARIANTS TAB ══ */}
+      {/* ══════════════════════════════════════════════════════════════
+          VARIANTS TAB
+      ══════════════════════════════════════════════════════════════ */}
       {tab === 'variants' && (
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
-            <p style={{ margin: 0, fontSize: 13, color: '#888' }}>
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <p className="text-[13px] text-muted-foreground m-0">
               AI-generated sequence variants. Approve one to use it in the campaign.
             </p>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
+            <div className="flex gap-2">
+              <Button
+                size="compact"
                 onClick={() => generateVariants()}
                 disabled={generatingVariants}
-                style={btnPrimary(generatingVariants, '#7c3aed')}
+                className="gap-1.5 bg-violet-600 hover:bg-violet-700 text-white border-0"
               >
-                {generatingVariants
-                  ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Generating…</>
-                  : <><Sparkles size={13} /> Generate</>}
-              </button>
-              <button
+                {generatingVariants ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                {generatingVariants ? 'Generating…' : 'Generate'}
+              </Button>
+              <Button
+                variant="outline"
+                size="compact"
                 onClick={() => generateVariants('subject_line')}
                 disabled={generatingVariants}
-                style={btnSecondary}
               >
                 A/B Subject Lines
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="outline"
+                size="compact"
                 onClick={() => generateVariants('opening_hook')}
                 disabled={generatingVariants}
-                style={btnSecondary}
               >
                 A/B Opening Hooks
-              </button>
+              </Button>
             </div>
           </div>
 
           {fetchingVariants ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
-              <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: '#ccc' }} />
+            <div className="flex justify-center py-12">
+              <Loader2 size={18} className="animate-spin text-muted-foreground/40" />
             </div>
           ) : variants.length === 0 ? (
-            <div style={{ ...card, textAlign: 'center', padding: '48px 24px' }}>
-              <GitBranch size={28} style={{ color: '#e5e5e5', marginBottom: 12 }} />
-              <p style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 600, color: '#555' }}>No variants yet</p>
-              <p style={{ margin: 0, fontSize: 13, color: '#aaa' }}>Generate a standard variant or an A/B test to get started.</p>
-            </div>
+            <Card>
+              <CardContent className="p-12 text-center">
+                <GitBranch size={28} className="text-muted-foreground/20 mx-auto mb-3" />
+                <p className="text-[15px] font-semibold text-foreground/70 mb-1">No variants yet</p>
+                <p className="text-[13px] text-muted-foreground/60">
+                  Generate a standard variant or an A/B test to get started.
+                </p>
+              </CardContent>
+            </Card>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="flex flex-col gap-3">
               {variants.map(v => {
                 const isExpanded = expandedVariant === v.id
                 const approved   = v.status === 'approved'
                 return (
-                  <div key={v.id} style={{
-                    ...card, padding: 0, overflow: 'hidden',
-                    border: `1px solid ${approved ? '#bbf7d0' : '#e8e8e8'}`,
-                  }}>
+                  <Card key={v.id} className={cn('overflow-hidden', approved && 'border-emerald-200')}>
                     <button
                       onClick={() => setExpandedVariant(isExpanded ? null : v.id)}
-                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                      className="w-full flex items-center gap-3 px-5 py-3.5 bg-transparent border-0 cursor-pointer text-left"
                     >
-                      <span style={{
-                        width: 28, height: 28, borderRadius: 6, flexShrink: 0, display: 'flex',
-                        alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700,
-                        background: approved ? '#f0fdf4' : '#f4f4f5',
-                        color: approved ? '#166534' : '#555',
-                        border: `1px solid ${approved ? '#bbf7d0' : '#e5e5e5'}`,
-                      }}>
+                      <span className={cn(
+                        'w-7 h-7 rounded-md flex-shrink-0 flex items-center justify-center text-[13px] font-bold',
+                        approved
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-muted text-muted-foreground border border-border'
+                      )}>
                         {v.variant_label}
                       </span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>Variant {v.variant_label}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[13px] font-semibold text-foreground">
+                            Variant {v.variant_label}
+                          </span>
                           {v.ab_dimension && (
-                            <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 4, color: '#7c3aed', background: '#ede9fe' }}>
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-violet-50 text-violet-700">
                               A/B: {v.ab_dimension.replace('_', ' ')}
                             </span>
                           )}
                           {v.ab_group && (
-                            <span style={{ fontSize: 10, color: '#aaa' }}>{v.ab_group}</span>
+                            <span className="text-[10px] text-muted-foreground/60">{v.ab_group}</span>
                           )}
                           {v.audience_split_pct != null && v.audience_split_pct < 100 && (
-                            <span style={{ fontSize: 10, color: '#aaa' }}>{v.audience_split_pct}% audience</span>
+                            <span className="text-[10px] text-muted-foreground/60">
+                              {v.audience_split_pct}% audience
+                            </span>
                           )}
                         </div>
-                        <p style={{ margin: '2px 0 0', fontSize: 11, color: '#aaa' }}>{v.steps.length} steps</p>
+                        <p className="text-[11px] text-muted-foreground/60 mt-0.5 m-0">{v.steps.length} steps</p>
                       </div>
-                      <span style={{
-                        fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 4, flexShrink: 0,
-                        color: approved ? '#166534' : '#92400e',
-                        background: approved ? '#f0fdf4' : '#fef3c7',
-                      }}>
+                      <span className={cn(
+                        'text-[10px] font-semibold px-2 py-0.5 rounded flex-shrink-0',
+                        approved ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                      )}>
                         {approved ? 'Approved' : 'Draft'}
                       </span>
-                      {isExpanded ? <ChevronUp size={14} style={{ color: '#ccc' }} /> : <ChevronDown size={14} style={{ color: '#ccc' }} />}
+                      {isExpanded
+                        ? <ChevronUp size={14} className="text-muted-foreground/30 flex-shrink-0" />
+                        : <ChevronDown size={14} className="text-muted-foreground/30 flex-shrink-0" />
+                      }
                     </button>
 
                     {isExpanded && (
-                      <div style={{ borderTop: '1px solid #f4f4f5', padding: '16px 20px' }}>
+                      <div className="border-t border-border/50 px-5 py-4">
                         {v.steps.map(step => (
-                          <div key={step.id} style={{ marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid #f8f8f8' }}>
-                            <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          <div key={step.id} className="mb-4 pb-4 border-b border-border/40 last:border-b-0 last:mb-0 last:pb-0">
+                            <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-muted-foreground/50 mb-1.5">
                               Step {step.step_number}
-                              {step.delay_days > 0 && <span style={{ fontWeight: 400 }}> · +{step.delay_days}d</span>}
+                              {step.delay_days > 0 && (
+                                <span className="font-normal"> · +{step.delay_days}d</span>
+                              )}
                             </p>
-                            <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 600, color: '#111' }}>{step.subject}</p>
-                            <p style={{ margin: 0, fontSize: 12, color: '#555', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{step.body}</p>
+                            <p className="text-[13px] font-semibold text-foreground mb-1">{step.subject}</p>
+                            <p className="text-[12px] text-foreground/70 leading-relaxed whitespace-pre-wrap m-0">
+                              {step.body}
+                            </p>
                           </div>
                         ))}
                         {!approved && (
-                          <button onClick={() => approveVariant(v.id)} style={btnPrimary(false, '#166534')}>
-                            <CheckCircle size={13} /> Approve Variant {v.variant_label}
-                          </button>
+                          <Button
+                            size="compact"
+                            onClick={() => approveVariant(v.id)}
+                            className="mt-3 gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white border-0"
+                          >
+                            <CheckCircle size={12} /> Approve Variant {v.variant_label}
+                          </Button>
                         )}
                       </div>
                     )}
-                  </div>
+                  </Card>
                 )
               })}
             </div>
@@ -1299,161 +1438,226 @@ export default function CampaignDetailPage() {
         </div>
       )}
 
-      {/* ══ ANALYTICS TAB ══ */}
+      {/* ══════════════════════════════════════════════════════════════
+          ANALYTICS TAB
+      ══════════════════════════════════════════════════════════════ */}
       {tab === 'analytics' && (
         <div>
           {fetchingAnalytics ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
-              <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: '#ccc' }} />
+            <div className="flex justify-center py-12">
+              <Loader2 size={18} className="animate-spin text-muted-foreground/40" />
             </div>
           ) : analytics ? (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 16 }} className="sm:grid-cols-4">
-                {[
-                  { label: 'Active Leads',    value: analytics.total_active },
-                  { label: 'Sent',            value: analytics.total_sent },
-                  { label: 'Replies',         value: analytics.total_replied,    highlight: analytics.total_replied > 0 },
-                  { label: 'Reply Rate',      value: `${analytics.reply_rate_pct}%` },
-                  { label: 'Positive Replies',value: analytics.positive_replies, highlight: analytics.positive_replies > 0 },
-                  { label: 'Positive Rate',   value: `${analytics.positive_rate_pct}%`, highlight: analytics.positive_rate_pct > 0 },
-                  { label: 'Bounced',         value: analytics.total_bounced },
-                ].map(s => (
-                  <div key={s.label} style={{ ...card, textAlign: 'center', padding: '14px 16px' }}>
-                    <p style={{ margin: '0 0 3px', fontSize: 20, fontWeight: 700, color: s.highlight ? '#166534' : '#111' }}>{s.value}</p>
-                    <p style={{ margin: 0, fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>{s.label}</p>
-                  </div>
-                ))}
+              {/* Metrics grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                <StatCard label="Active Leads"     value={analytics.total_active} accent="blue" />
+                <StatCard label="Sent"             value={analytics.total_sent} />
+                <StatCard
+                  label="Replies"
+                  value={analytics.total_replied}
+                  accent={analytics.total_replied > 0 ? 'green' : undefined}
+                />
+                <StatCard
+                  label="Reply Rate"
+                  value={`${analytics.reply_rate_pct}%`}
+                  accent={analytics.reply_rate_pct > 0 ? 'green' : undefined}
+                />
+                <StatCard
+                  label="Positive Replies"
+                  value={analytics.positive_replies}
+                  accent={analytics.positive_replies > 0 ? 'green' : undefined}
+                />
+                <StatCard
+                  label="Positive Rate"
+                  value={`${analytics.positive_rate_pct}%`}
+                  accent={analytics.positive_rate_pct > 0 ? 'green' : undefined}
+                />
+                <StatCard
+                  label="Bounced"
+                  value={analytics.total_bounced}
+                  accent={analytics.total_bounced > 0 ? 'red' : undefined}
+                />
               </div>
+
+              {/* Segment breakdown */}
               {analyticsSegments.length > 0 && (
-                <div style={{ ...card, marginBottom: 12 }}>
-                  <p style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 600, color: '#111' }}>Segment breakdown</p>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr>
-                        {['Segment', 'Leads', 'Sent', 'Replied', 'Reply rate'].map(h => (
-                          <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#aaa', borderBottom: '1px solid #f0f0f0' }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {analyticsSegments.map(seg => (
-                        <tr key={seg.segment_id}>
-                          <td style={{ padding: '8px 10px', fontSize: 13, color: '#111', borderBottom: '1px solid #f8f8f8' }}>{seg.name}</td>
-                          <td style={{ padding: '8px 10px', fontSize: 13, color: '#555', borderBottom: '1px solid #f8f8f8' }}>{seg.total}</td>
-                          <td style={{ padding: '8px 10px', fontSize: 13, color: '#555', borderBottom: '1px solid #f8f8f8' }}>{seg.sent}</td>
-                          <td style={{ padding: '8px 10px', fontSize: 13, color: seg.replied > 0 ? '#166534' : '#555', fontWeight: seg.replied > 0 ? 600 : 400, borderBottom: '1px solid #f8f8f8' }}>{seg.replied}</td>
-                          <td style={{ padding: '8px 10px', fontSize: 13, color: '#555', borderBottom: '1px solid #f8f8f8' }}>
-                            {seg.sent > 0 ? `${Math.round((seg.replied / seg.sent) * 100)}%` : '—'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <Card className="mb-3">
+                  <CardContent className="p-5">
+                    <p className="text-[13px] font-semibold text-foreground mb-3">Segment breakdown</p>
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr>
+                            {['Segment', 'Leads', 'Sent', 'Replied', 'Reply rate'].map(h => (
+                              <th key={h} className="h-9 px-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/30 border-b border-border first:pl-4 whitespace-nowrap">
+                                {h}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {analyticsSegments.map(seg => (
+                            <tr key={seg.segment_id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                              <td className="px-3 py-2.5 pl-4 text-[13px] text-foreground">{seg.name}</td>
+                              <td className="px-3 py-2.5 text-[13px] text-muted-foreground">{seg.total}</td>
+                              <td className="px-3 py-2.5 text-[13px] text-muted-foreground">{seg.sent}</td>
+                              <td className={cn(
+                                'px-3 py-2.5 text-[13px]',
+                                seg.replied > 0 ? 'text-emerald-700 font-semibold' : 'text-muted-foreground'
+                              )}>
+                                {seg.replied}
+                              </td>
+                              <td className="px-3 py-2.5 text-[13px] text-muted-foreground">
+                                {seg.sent > 0 ? `${Math.round((seg.replied / seg.sent) * 100)}%` : '—'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
-              {/* AI usage for this campaign */}
+
+              {/* AI usage */}
               {aiUsage && (
-                <div style={{ ...card, marginBottom: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
-                    <Sparkles size={13} style={{ color: '#7c3aed' }} />
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#111' }}>AI Usage</p>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                    {[
-                      { label: 'Draft Calls',    value: aiUsage.calls },
-                      { label: 'Total Tokens',   value: aiUsage.total_tokens >= 1000 ? `${(aiUsage.total_tokens / 1000).toFixed(1)}k` : String(aiUsage.total_tokens) },
-                      { label: 'Output Tokens',  value: aiUsage.output_tokens >= 1000 ? `${(aiUsage.output_tokens / 1000).toFixed(1)}k` : String(aiUsage.output_tokens) },
-                    ].map(s => (
-                      <div key={s.label} style={{ textAlign: 'center', padding: '10px', borderRadius: 8, background: '#faf5ff', border: '1px solid #e9d5ff' }}>
-                        <p style={{ margin: '0 0 2px', fontSize: 16, fontWeight: 700, color: '#7c3aed' }}>{s.value}</p>
-                        <p style={{ margin: 0, fontSize: 10, color: '#9333ea', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>{s.label}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <p style={{ margin: '10px 0 0', fontSize: 11, color: '#bbb', textAlign: 'right' }}>
-                    <Link href="/outbound/ai-usage" style={{ color: '#9333ea', textDecoration: 'none' }}>View full AI usage →</Link>
-                  </p>
-                </div>
+                <Card className="mb-3">
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-1.5 mb-3">
+                      <Sparkles size={13} className="text-violet-600" />
+                      <p className="text-[13px] font-semibold text-foreground m-0">AI Usage</p>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { label: 'Draft Calls',   value: aiUsage.calls },
+                        { label: 'Total Tokens',  value: aiUsage.total_tokens >= 1000 ? `${(aiUsage.total_tokens / 1000).toFixed(1)}k` : String(aiUsage.total_tokens) },
+                        { label: 'Output Tokens', value: aiUsage.output_tokens >= 1000 ? `${(aiUsage.output_tokens / 1000).toFixed(1)}k` : String(aiUsage.output_tokens) },
+                      ].map(s => (
+                        <div key={s.label} className="text-center px-3 py-2.5 rounded-lg bg-violet-50 border border-violet-100">
+                          <p className="text-[18px] font-bold text-violet-700 m-0 mb-0.5">{s.value}</p>
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-600/60 m-0">{s.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground/40 mt-3 text-right m-0">
+                      <Link href="/outbound/ai-usage" className="text-violet-600 hover:text-violet-700 no-underline">
+                        View full AI usage →
+                      </Link>
+                    </p>
+                  </CardContent>
+                </Card>
               )}
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginBottom: 8 }}>
-                <Link href={`/outbound/replies?campaign_id=${id}`} style={{ ...btnSecondary, textDecoration: 'none', fontSize: 12 }}>
+
+              <div className="flex gap-2 justify-end mb-2">
+                <Link
+                  href={`/outbound/replies?campaign_id=${id}`}
+                  className="inline-flex items-center gap-1 text-[12px] font-medium text-foreground border border-input rounded-md px-2.5 py-1.5 bg-background hover:bg-muted transition-colors no-underline"
+                >
                   Review Replies →
                 </Link>
               </div>
             </>
           ) : (
-            <div style={{ ...card, textAlign: 'center', padding: '48px 24px' }}>
-              <BarChart2 size={32} style={{ color: '#e5e5e5', marginBottom: 12 }} />
-              <p style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 600, color: '#555' }}>Analytics available after launch</p>
-              <p style={{ margin: 0, fontSize: 13, color: '#aaa' }}>Approve all sequence steps and launch the campaign to see reply tracking here.</p>
-            </div>
+            <Card>
+              <CardContent className="p-12 text-center">
+                <BarChart2 size={32} className="text-muted-foreground/20 mx-auto mb-3" />
+                <p className="text-[15px] font-semibold text-foreground/70 mb-1">Analytics available after launch</p>
+                <p className="text-[13px] text-muted-foreground/60">
+                  Approve all sequence steps and launch the campaign to see reply tracking here.
+                </p>
+              </CardContent>
+            </Card>
           )}
         </div>
       )}
 
-      {/* Launch confirm modal */}
+      {/* ── Launch confirm modal ── */}
       {launchConfirm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: '#fff', borderRadius: 14, padding: '28px 32px', maxWidth: 460, width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
-            <p style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: '#111' }}>Launch Campaign</p>
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.45)' }}
+        >
+          <div className="bg-background rounded-[14px] p-7 max-w-[460px] w-[90%] shadow-[0_20px_60px_rgba(0,0,0,0.2)]">
+            <p className="text-[16px] font-bold text-foreground mb-4">Launch Campaign</p>
 
-            {/* Send mode picker */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-              <label style={{
-                display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer',
-                padding: '10px 14px', borderRadius: 8,
-                border: `1px solid ${sendMode === 'all' ? '#166534' : '#e5e5e5'}`,
-                background: sendMode === 'all' ? '#f0fdf4' : '#fafafa',
-              }}>
-                <input type="radio" checked={sendMode === 'all'} onChange={() => setSendMode('all')} style={{ marginTop: 3 }} />
+            <div className="flex flex-col gap-2 mb-4">
+              <label className={cn(
+                'flex gap-3 items-start cursor-pointer px-3.5 py-3 rounded-lg border',
+                sendMode === 'all'
+                  ? 'border-emerald-500 bg-emerald-50'
+                  : 'border-border bg-muted/20'
+              )}>
+                <input
+                  type="radio"
+                  checked={sendMode === 'all'}
+                  onChange={() => setSendMode('all')}
+                  className="mt-0.5"
+                />
                 <div>
-                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#111' }}>Send all now</p>
-                  <p style={{ margin: '2px 0 0', fontSize: 12, color: '#888' }}>All leads get emailed immediately after launch</p>
+                  <p className="text-[13px] font-semibold text-foreground m-0">Send all now</p>
+                  <p className="text-[12px] text-muted-foreground mt-0.5 m-0">
+                    All leads get emailed immediately after launch
+                  </p>
                 </div>
               </label>
-              <label style={{
-                display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer',
-                padding: '10px 14px', borderRadius: 8,
-                border: `1px solid ${sendMode === 'batch' ? '#1d4ed8' : '#e5e5e5'}`,
-                background: sendMode === 'batch' ? '#eff6ff' : '#fafafa',
-              }}>
-                <input type="radio" checked={sendMode === 'batch'} onChange={() => setSendMode('batch')} style={{ marginTop: 3 }} />
-                <div style={{ flex: 1 }}>
-                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#111' }}>Send in batches</p>
-                  <p style={{ margin: '2px 0 0', fontSize: 12, color: '#888' }}>Queue all leads, use "Send Now" to send a batch at a time</p>
+              <label className={cn(
+                'flex gap-3 items-start cursor-pointer px-3.5 py-3 rounded-lg border',
+                sendMode === 'batch'
+                  ? 'border-blue-500 bg-blue-50'
+                  : 'border-border bg-muted/20'
+              )}>
+                <input
+                  type="radio"
+                  checked={sendMode === 'batch'}
+                  onChange={() => setSendMode('batch')}
+                  className="mt-0.5"
+                />
+                <div className="flex-1">
+                  <p className="text-[13px] font-semibold text-foreground m-0">Send in batches</p>
+                  <p className="text-[12px] text-muted-foreground mt-0.5 m-0">
+                    Queue all leads, use &ldquo;Send Now&rdquo; to send a batch at a time
+                  </p>
                   {sendMode === 'batch' && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
-                      <span style={{ fontSize: 12, color: '#666' }}>Batch size:</span>
+                    <div className="flex items-center gap-2 mt-3">
+                      <span className="text-[12px] text-muted-foreground">Batch size:</span>
                       <input
                         type="number" min={1} max={500}
                         value={batchSize}
                         onChange={e => setBatchSize(Math.max(1, parseInt(e.target.value) || 1))}
-                        style={{ width: 70, padding: '4px 8px', fontSize: 13, borderRadius: 6, border: '1px solid #e5e5e5', textAlign: 'center' }}
+                        className="w-[70px] h-8 px-2 text-center text-[13px] text-foreground border border-input rounded-md bg-background outline-none focus:ring-1 focus:ring-ring"
                       />
-                      <span style={{ fontSize: 12, color: '#888' }}>emails per "Send Now"</span>
+                      <span className="text-[12px] text-muted-foreground">emails per &ldquo;Send Now&rdquo;</span>
                     </div>
                   )}
                 </div>
               </label>
             </div>
 
-            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 14px', marginBottom: 20 }}>
-              <p style={{ margin: 0, fontSize: 12, color: '#166534', lineHeight: 1.5 }}>
+            <div className="px-3.5 py-2.5 rounded-lg bg-emerald-50 border border-emerald-200 mb-5">
+              <p className="text-[12px] text-emerald-700 leading-relaxed m-0">
                 Sends from your configured ops email. Opt-outs are excluded. Pause the campaign from the header if needed.
               </p>
             </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button onClick={() => setLaunchConfirm(false)} style={btnSecondary}>Cancel</button>
-              <button onClick={launch} style={btnPrimary(launching, '#166534')}>
-                {launching ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Rocket size={13} />}
+
+            <div className="flex gap-2.5 justify-end">
+              <Button variant="outline" size="compact" onClick={() => setLaunchConfirm(false)}>
+                Cancel
+              </Button>
+              <Button
+                size="compact"
+                onClick={launch}
+                disabled={launching}
+                className="gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white border-0"
+              >
+                {launching ? <Loader2 size={12} className="animate-spin" /> : <Rocket size={12} />}
                 {launching ? 'Launching…' : 'Confirm Launch'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
       )}
 
-      <style>{`@keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }`}</style>
-    </div>
+    </AppScrollPage>
   )
 }

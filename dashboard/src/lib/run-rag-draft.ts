@@ -44,7 +44,7 @@ async function embedText(text: string, apiKey: string): Promise<number[]> {
   return data.embedding?.values ?? []
 }
 
-async function searchChunks(embedding: number[]): Promise<RagSource[]> {
+async function searchChunks(embedding: number[], sourceFolder = 'engagement_ai_agent'): Promise<RagSource[]> {
   const res = await fetch(`${SB_URL}/rest/v1/rpc/match_knowledge_chunks`, {
     method:  'POST',
     headers: { ...sbHeaders('return=representation'), Prefer: 'return=representation' },
@@ -52,6 +52,7 @@ async function searchChunks(embedding: number[]): Promise<RagSource[]> {
       query_embedding:      `[${embedding.join(',')}]`,
       match_count:          6,
       similarity_threshold: 0.4,
+      p_source_folder:      sourceFolder,
     }),
   })
   if (!res.ok) {
@@ -148,8 +149,8 @@ Reply with one word only.`
     campaignCtxStr = `\nCAMPAIGN CONTEXT: This contact replied to a TRS cold outreach campaign "${ctx.campaign_name}" (${ctx.product_type} focus${ctx.step_replied_to ? `, step ${ctx.step_replied_to}` : ''}). This is their first real engagement — acknowledge their interest warmly and continue naturally. Do NOT explicitly reference the campaign or that this was a cold email.`
   }
 
-  // 5. Few-shots + anti-patterns + lead profile — parallel
-  const [fewShotRows, apRows, leadRows] = await Promise.all([
+  // 5. Few-shots + anti-patterns + lead profile + synthesised override — parallel
+  const [fewShotRows, apRows, leadRows, overrideRows] = await Promise.all([
     fetch(
       `${SB_URL}/rest/v1/prompt_examples?email_type=eq.${emailType}&order=score.desc,created_at.desc&limit=2&select=context_summary,ideal_reply`,
       { headers: sbHeaders(), cache: 'no-store' }
@@ -164,6 +165,10 @@ Reply with one word only.`
           { headers: sbHeaders(), cache: 'no-store' }
         ).then(r => r.ok ? r.json() : []).catch(() => [])
       : Promise.resolve([]),
+    fetch(
+      `${SB_URL}/rest/v1/prompt_overrides?email_type=eq.${emailType}&order=synthesized_at.desc&limit=1&select=override_text`,
+      { headers: sbHeaders(), cache: 'no-store' }
+    ).then(r => r.ok ? r.json() : []).catch(() => []),
   ])
 
   // Few-shot section
@@ -176,18 +181,6 @@ Reply with one word only.`
       fewShots.map((ex, i) =>
         `[Example ${i + 1}]${ex.context_summary ? `\nContext: ${ex.context_summary}` : ''}\nReply:\n${ex.ideal_reply.slice(0, 1200)}`
       ).join('\n\n') + '\n'
-  }
-
-  // Anti-pattern section
-  let antiPatternSection = ''
-  const learnings = (Array.isArray(apRows) ? apRows as { eval_json: { key_learning?: string } | null }[] : [])
-    .map(r => r.eval_json?.key_learning)
-    .filter((l): l is string => typeof l === 'string' && l.length > 15)
-    .filter((l, i, arr) => arr.indexOf(l) === i)
-    .slice(0, 4)
-  if (learnings.length > 0) {
-    antiPatternSection = `\n━━ AVOID THESE PATTERNS (learned from heavily-edited or rejected ${emailType} drafts — do NOT repeat these mistakes) ━━\n` +
-      learnings.map((l, i) => `${i + 1}. ${l}`).join('\n') + '\n'
   }
 
   // Lead profile
@@ -208,56 +201,86 @@ Reply with one word only.`
     }
   }
 
-  // 6. Type-specific instructions (knowledge chunks are always present here)
+  // 6. Type-specific instructions — use synthesised override if available (replaces hardcoded block entirely),
+  //    otherwise use hardcoded baseline + inject raw learnings as anti-patterns.
+  //    Override = clean, no accumulation. Baseline + raw = fallback until first synthesis run.
+  const synthesisedOverride = Array.isArray(overrideRows) && (overrideRows as { override_text?: string }[])[0]?.override_text
+    ? (overrideRows as { override_text: string }[])[0].override_text
+    : null
+
   const chunkSources = Array.from(new Set(sources.map(s => s.file_name))).join(', ')
-  const typeInstructions = (() => {
+
+  let typeInstructions: string
+  let antiPatternSection = ''
+
+  if (synthesisedOverride) {
+    // Synthesised override replaces both type instructions AND raw learnings — single clean block
+    typeInstructions = synthesisedOverride
+  } else {
+    // Hardcoded baseline
     switch (emailType) {
       case 'PRICING':
-        return `━━ PRICING ENQUIRY ━━
+        typeInstructions = `━━ PRICING ENQUIRY ━━
 The retrieved knowledge passages may contain premium figures, coverage limits, or deductibles.
 If pricing figures are present, structure as bullet points:
   • [Insurer] — SGD [premium] premium | SGD [sum insured] covered | SGD [deductible] deductible
 After the bullets, recommend the best option and why.
 If no pricing data in the retrieved knowledge: "We will revert with indicative pricing within 2 business days."
 Ask for any missing details needed to obtain a quote (coverage amount, specific risk details, etc.).`
+        break
 
       case 'COVERAGE':
-        return `━━ COVERAGE QUESTION ━━
+        typeInstructions = `━━ COVERAGE QUESTION ━━
 Answer directly in the first sentence. Quote the relevant passage from the retrieved knowledge and name the source.
 If no passage answers the question: "We will check your policy wording and revert within 2 business days."
 2–3 sentences unless the client asked multiple distinct questions.`
+        break
 
       case 'RENEWAL':
-        return `━━ RENEWAL ━━
+        typeInstructions = `━━ RENEWAL ━━
 Retrieved knowledge: ${chunkSources} — reference product specs or coverage details if relevant to this renewal.
 - Ask for: current insurer, sum insured, expiry date, any changes to the risk (new locations, headcount changes, fleet additions, etc.)
 - If renewal terms are already in the thread: confirm next steps clearly
 - 2–3 short sentences`
+        break
 
       case 'DOCUMENT':
-        return `━━ DOCUMENT REQUEST ━━
+        typeInstructions = `━━ DOCUMENT REQUEST ━━
 Retrieved knowledge: ${chunkSources} — if the retrieved passages describe the document being requested (policy wording, COI format, endorsement terms), reference that knowledge.
 - Confirm what they need and when TRS will provide it: "We will send your [document type] by [end of day / within 24 hours]."
 - If you cannot identify the specific document from the thread: ask one focused clarifying question
 - 2–3 sentences maximum — do not over-explain`
+        break
 
       case 'CLAIMS':
-        return `━━ CLAIMS ━━
+        typeInstructions = `━━ CLAIMS ━━
 Retrieved knowledge: ${chunkSources} — reference claims procedures or notification requirements only if clearly stated in the retrieved passages. Do not infer or fabricate.
 - One sentence acknowledging the situation (brief, calm, no drama)
 - Ask for: date of incident, policy number (if known), brief description of what happened, estimated amount of loss/damage
 - Do NOT promise or imply anything about coverage, liability, or outcome
 - 2–3 sentences`
+        break
 
       default: // CONVERSATION
-        return `━━ CONVERSATION / FOLLOW-UP ━━
+        typeInstructions = `━━ CONVERSATION / FOLLOW-UP ━━
 Retrieved knowledge: ${chunkSources} — reference if the conversation touches on a specific product or coverage detail naturally.
 - Continue the thread naturally — respond to what was actually asked or said
 - Match the tone and length of the client's latest message. If they wrote 2 sentences, write 2–3 back.
 - 1–3 sentences is usually enough
 - If they asked a direct question, answer it in the first sentence`
     }
-  })()
+
+    // Inject raw learnings as anti-patterns (only when no synthesised override exists)
+    const learnings = (Array.isArray(apRows) ? apRows as { eval_json: { key_learning?: string } | null }[] : [])
+      .map(r => r.eval_json?.key_learning)
+      .filter((l): l is string => typeof l === 'string' && l.length > 15)
+      .filter((l, i, arr) => arr.indexOf(l) === i)
+      .slice(0, 4)
+    if (learnings.length > 0) {
+      antiPatternSection = `\n━━ AVOID THESE PATTERNS (learned from heavily-edited or rejected ${emailType} drafts — do NOT repeat these mistakes) ━━\n` +
+        learnings.map((l, i) => `${i + 1}. ${l}`).join('\n') + '\n'
+    }
+  }
 
   // 7. Build knowledge chunks block
   const chunksText = sources

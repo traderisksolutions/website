@@ -6,6 +6,8 @@ import { RefreshCw, ChevronDown, ChevronUp, Copy, Check, X, Search, MessageCircl
 import { useAuditLog } from '@/hooks/useAuditLog'
 import { Tip } from '@/components/Tip'
 import { cn } from '@/lib/utils'
+import { StatusBadge } from '@/components/status-badge'
+import type { AppStatus } from '@/components/status-badge'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -153,7 +155,6 @@ function DetailPanel({ lead, onStatus, onClose, onNotesSave }: { lead: Lead; onS
 
   const ch  = channelOf(lead)
   const msg = messagePreview(lead)
-  const st  = STATUS_MAP[lead.status] ?? STATUS_MAP.new
 
   function copy(text: string, key: string) {
     navigator.clipboard.writeText(text)
@@ -168,12 +169,13 @@ function DetailPanel({ lead, onStatus, onClose, onNotesSave }: { lead: Lead; onS
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
             <ChannelBadge source={lead.source} />
-            <span className="st-badge" style={{ background: st.bg, color: st.color }}>{st.label}</span>
+            <StatusBadge status={lead.status as AppStatus} />
           </div>
           <p className="text-[14px] font-semibold text-foreground m-0 leading-tight">{displayName(lead)}</p>
           {lead.company && <p className="text-[12px] text-muted-foreground mt-0.5 mb-0">{lead.company}</p>}
         </div>
         <button onClick={onClose}
+          aria-label="Close"
           className="p-1 rounded-md hover:bg-muted transition-colors text-muted-foreground/50 hover:text-muted-foreground flex-shrink-0"
           style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
           <X size={14} />

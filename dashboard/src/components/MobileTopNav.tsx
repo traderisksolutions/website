@@ -3,26 +3,29 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
-  BookOpen, Mail, MessageCircle, Users,
+  LayoutDashboard, BookOpen, Mail, MessageCircle, Users,
   Bot, Table2, Settings, LogOut,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 const NAV = [
-  { label: 'Overview',   href: '/documentation',   icon: BookOpen },
-  { label: 'Email',      href: '/inbound/email',    icon: Mail },
-  { label: 'WhatsApp',   href: '/inbound/whatsapp', icon: MessageCircle },
-  { label: 'Contacts',   href: '/contacts',         icon: Users },
-  { label: 'Engagement', href: '/engagement',       icon: Bot },
-  { label: 'Leads',      href: '/outbound/leads',   icon: Table2 },
-  { label: 'Settings',   href: '/settings',         icon: Settings },
+  { label: 'Home',       href: '/',                 icon: LayoutDashboard },
+  { label: 'Overview',   href: '/overview',          icon: BookOpen },
+  { label: 'Email',      href: '/inbound/email',     icon: Mail },
+  { label: 'WhatsApp',   href: '/inbound/whatsapp',  icon: MessageCircle },
+  { label: 'Contacts',   href: '/contacts',          icon: Users },
+  { label: 'Engagement', href: '/engagement',        icon: Bot },
+  { label: 'Leads',      href: '/outbound/leads',    icon: Table2 },
+  { label: 'Settings',   href: '/settings',          icon: Settings },
 ]
 
 export default function MobileTopNav() {
   const pathname = usePathname()
   const router   = useRouter()
 
+  // Home uses exact match — active('/') would match every route
   function active(href: string) {
+    if (href === '/') return pathname === '/'
     return pathname === href || pathname.startsWith(href + '/')
   }
 
@@ -57,6 +60,7 @@ export default function MobileTopNav() {
         <button
           onClick={signOut}
           title="Sign out"
+          aria-label="Sign out"
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'hsl(var(--sidebar-fg))', display: 'flex', alignItems: 'center', borderRadius: 6 }}
         >
           <LogOut size={15} strokeWidth={1.8} />
@@ -66,6 +70,7 @@ export default function MobileTopNav() {
       {/* Nav row — horizontally scrollable */}
       <nav
         className="glass-sidebar"
+        aria-label="Mobile navigation"
         style={{
           display: 'flex', overflowX: 'auto', padding: '4px 8px 6px', gap: 2,
           scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch',
@@ -77,6 +82,7 @@ export default function MobileTopNav() {
             <Link
               key={href}
               href={href}
+              aria-current={isActive ? 'page' : undefined}
               style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center',
                 gap: 3, padding: '5px 11px', borderRadius: 8, textDecoration: 'none', flexShrink: 0,

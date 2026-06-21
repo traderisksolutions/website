@@ -14,6 +14,9 @@ interface ExampleRow {
   id: string; email_type: string; context_summary: string; ideal_reply: string; score: number; created_at: string
 }
 interface Stat { email_type: string; count: number; avg_score: number }
+interface OverrideRow {
+  id: string; email_type: string; override_text: string; synthesized_at: string; source_eval_count: number
+}
 
 const TYPE_COLOR: Record<string, string> = {
   PRICING: '#2563eb', COVERAGE: '#7c3aed', RENEWAL: '#d97706',
@@ -50,6 +53,33 @@ export default function EvalPage() {
   const [debugging,  setDebugging]  = useState(false)
   const [debugTrace, setDebugTrace] = useState<string[] | null>(null)
   const [debugError, setDebugError] = useState<string | null>(null)
+  const [overrides,    setOverrides]    = useState<OverrideRow[]>([])
+  const [synthesising, setSynthesising] = useState(false)
+  const [synthResult,  setSynthResult]  = useState<string | null>(null)
+  const [synthError,   setSynthError]   = useState<string | null>(null)
+
+  async function loadOverrides() {
+    fetch('/api/engagement/improve-prompt', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : [])
+      .then((d: OverrideRow[]) => setOverrides(Array.isArray(d) ? d : []))
+      .catch(() => {})
+  }
+
+  async function runSynthesis() {
+    setSynthesising(true); setSynthResult(null); setSynthError(null)
+    try {
+      const res  = await fetch('/api/engagement/improve-prompt', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok || !data.ok) {
+        setSynthError(data.error ?? 'Synthesis failed')
+      } else {
+        setSynthResult(`Synthesised rules for ${data.synthesised} email type${data.synthesised !== 1 ? 's' : ''} — now live in the prompt.`)
+        await loadOverrides()
+      }
+    } catch (e) {
+      setSynthError(e instanceof Error ? e.message : 'Request failed')
+    } finally { setSynthesising(false) }
+  }
 
   async function runDebug() {
     setDebugging(true); setDebugTrace(null); setDebugError(null)
@@ -83,6 +113,8 @@ export default function EvalPage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false))
+    loadOverrides()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const avgAll = evals.length
@@ -329,6 +361,72 @@ export default function EvalPage() {
               </Card>
             </TabsContent>
           </Tabs>
+
+          {/* ── Auto-prompt Improvement ──────────────────────────────────── */}
+          <div className="mt-8 border-t border-border pt-6">
+            <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
+              <div>
+                <h2 className="text-[15px] font-semibold text-foreground">Auto-Prompt Improvement</h2>
+                <p className="text-[12px] text-muted-foreground mt-0.5">
+                  Reads all evaluations, synthesises them into refined rules via AI, and writes them live into the engagement agent prompt.
+                </p>
+              </div>
+              <button
+                onClick={runSynthesis}
+                disabled={synthesising || evals.length === 0}
+                className="text-[12px] font-semibold px-4 py-2 rounded-md border border-border bg-background hover:bg-muted transition-colors disabled:opacity-40 whitespace-nowrap flex items-center gap-2"
+              >
+                {synthesising ? (
+                  <>
+                    <span className="inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    Synthesising…
+                  </>
+                ) : '✦ Synthesise Prompt Improvements'}
+              </button>
+            </div>
+
+            {synthResult && (
+              <div className="mb-4 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-[12px] text-emerald-700 font-medium">
+                ✓ {synthResult}
+              </div>
+            )}
+            {synthError && (
+              <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-[12px] text-red-700">
+                ✗ {synthError}
+              </div>
+            )}
+
+            {overrides.length === 0 ? (
+              <div className="border border-dashed border-border rounded-xl p-5 bg-muted/20">
+                <p className="text-[12px] text-muted-foreground leading-relaxed">
+                  No synthesised rules yet. Once you have several evaluations, click <strong>Synthesise Prompt Improvements</strong> to generate a refined ruleset.
+                  The agent will use these instead of raw learnings — more precise and consistent.
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {overrides.map(o => (
+                  <Card key={o.id}>
+                    <CardHeader className="pb-2 flex-row items-center gap-2 flex-wrap">
+                      <TypePill type={o.email_type} />
+                      <span className="text-[11px] text-muted-foreground">{o.source_eval_count} eval{o.source_eval_count !== 1 ? 's' : ''} used</span>
+                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                        ✦ live in prompt
+                      </span>
+                      <span className="ml-auto text-[11px] text-muted-foreground">
+                        {new Date(o.synthesized_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </CardHeader>
+                    <CardContent>
+                      <pre className="text-[12px] text-foreground whitespace-pre-wrap leading-relaxed font-sans">
+                        {o.override_text}
+                      </pre>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
         </>
       )}
     </div>

@@ -127,7 +127,7 @@ function RepliesInner() {
     <div className="px-4 py-5 sm:px-8 sm:py-7" style={{ maxWidth: 900, margin: '0 auto' }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#111', letterSpacing: '-0.02em' }}>
             Reply Review
@@ -152,6 +152,24 @@ function RepliesInner() {
             )}
           </label>
         </div>
+      </div>
+
+      {/* Info banner */}
+      <div style={{
+        background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10,
+        padding: '14px 18px', marginBottom: 16,
+      }}>
+        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#1e40af' }}>What is Reply Review?</p>
+        <p style={{ margin: '6px 0 0', fontSize: 12, color: '#374151', lineHeight: 1.65 }}>
+          When leads reply to your outbound campaigns via Instantly, those replies arrive here automatically via webhook.
+          The AI reads each reply and classifies it as <strong>Positive</strong>, <strong>Meeting Intent</strong>, <strong>Question</strong>,{' '}
+          <strong>Neutral</strong>, <strong>Not Interested</strong>, <strong>Unsubscribe</strong>, <strong>Out of Office</strong>, or <strong>Wrong Person</strong>.
+        </p>
+        <p style={{ margin: '6px 0 0', fontSize: 12, color: '#374151', lineHeight: 1.65 }}>
+          <strong>Your job:</strong> Confirm the AI label (click it to tick it) or select a different one if the AI got it wrong.
+          Reviewed labels keep your pipeline data accurate and help train the classification over time.
+          Replies highlighted in <span style={{ background: '#fef3c7', padding: '0 4px', borderRadius: 3, fontWeight: 600, color: '#92400e' }}>amber</span> have not been reviewed yet.
+        </p>
       </div>
 
       {/* Label filter */}

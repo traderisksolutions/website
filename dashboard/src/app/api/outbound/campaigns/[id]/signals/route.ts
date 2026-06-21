@@ -12,6 +12,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     const res = await fetch(
       `${SB_URL}/rest/v1/ob_campaign_signals` +
       `?campaign_id=eq.${id}` +
+      `&deleted_at=is.null` +
       `&select=*,ob_signal_library(id,signal_name,signal_type,scope,sector,corroboration_count,status,source_url,source_summary)` +
       `&order=created_at.asc`,
       { headers: sbHeaders() }
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
 // DELETE /api/outbound/campaigns/[id]/signals
 // Body: { signal_id: string }
-// Detaches a signal from this campaign
+// Soft-detaches a signal from this campaign (sets deleted_at)
 export async function DELETE(req: NextRequest, { params }: Params) {
   try {
     const { id } = await params
@@ -73,7 +74,11 @@ export async function DELETE(req: NextRequest, { params }: Params) {
 
     const res = await fetch(
       `${SB_URL}/rest/v1/ob_campaign_signals?campaign_id=eq.${id}&signal_id=eq.${signal_id}`,
-      { method: 'DELETE', headers: sbHeaders() }
+      {
+        method:  'PATCH',
+        headers: sbHeaders(),
+        body:    JSON.stringify({ deleted_at: new Date().toISOString() }),
+      }
     )
 
     if (!res.ok) return NextResponse.json({ error: 'Delete failed' }, { status: 502 })

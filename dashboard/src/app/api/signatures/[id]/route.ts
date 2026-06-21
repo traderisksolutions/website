@@ -43,8 +43,9 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   try {
     const { id } = await params
     await fetch(`${SB_URL}/rest/v1/user_signatures?id=eq.${id}`, {
-      method:  'DELETE',
+      method:  'PATCH',
       headers: sbHeaders('return=minimal'),
+      body:    JSON.stringify({ deleted_at: new Date().toISOString() }),
     })
     return NextResponse.json({ ok: true })
   } catch (e) {

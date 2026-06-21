@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 // DELETE /api/engagement/thread?thread_id=X
-// Deletes a single thread and all dependent rows in safe order.
+// Soft-deletes a thread and all dependent rows by setting deleted_at.
 export async function DELETE(req: NextRequest) {
   const threadId = new URL(req.url).searchParams.get('thread_id')
   if (!threadId) return NextResponse.json({ error: 'thread_id required' }, { status: 400 })
 
   const k = process.env.SUPABASE_SERVICE_KEY
   if (!k) return NextResponse.json({ error: 'SUPABASE_SERVICE_KEY not set' }, { status: 500 })
-  const h = { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json' }
+  const h = { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' }
   const id = encodeURIComponent(threadId)
+  const now = new Date().toISOString()
 
   const steps = [
     `${SB_URL}/rest/v1/thread_summaries?thread_id=eq.${id}`,
@@ -20,7 +21,7 @@ export async function DELETE(req: NextRequest) {
   ]
 
   for (const url of steps) {
-    const res = await fetch(url, { method: 'DELETE', headers: h })
+    const res = await fetch(url, { method: 'PATCH', headers: h, body: JSON.stringify({ deleted_at: now }) })
     if (!res.ok && res.status !== 404) {
       const body = await res.text()
       return NextResponse.json({ error: body }, { status: res.status })
@@ -56,7 +57,7 @@ export async function GET(req: NextRequest) {
     if (threadId) {
       // Direct lookup by thread UUID
       const threadRes = await fetch(
-        `${SB_URL}/rest/v1/email_threads?id=eq.${encodeURIComponent(threadId)}&select=*&limit=1`,
+        `${SB_URL}/rest/v1/email_threads?id=eq.${encodeURIComponent(threadId)}&deleted_at=is.null&select=*&limit=1`,
         { headers: sbHeaders() }
       )
       const rows = threadRes.ok ? await threadRes.json() : []
@@ -72,7 +73,7 @@ export async function GET(req: NextRequest) {
 
       const threadIds = Array.from(new Set(parts.map(p => p.thread_id)))
       const threadRes = await fetch(
-        `${SB_URL}/rest/v1/email_threads?id=in.(${threadIds.join(',')})&order=last_message_at.desc&limit=1&select=*`,
+        `${SB_URL}/rest/v1/email_threads?id=in.(${threadIds.join(',')})&deleted_at=is.null&order=last_message_at.desc&limit=1&select=*`,
         { headers: sbHeaders() }
       )
       const threads = threadRes.ok ? await threadRes.json() : []

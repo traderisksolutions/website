@@ -49,9 +49,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   try {
-    const body  = await req.json().catch(() => ({}))
-    const force = body?.force === true
-    const result = await runRagIndex(force)
+    const body   = await req.json().catch(() => ({}))
+    const force  = body?.force === true
+    const folder = typeof body?.folder === 'string' ? body.folder : undefined
+    const result = await runRagIndex(force, folder)
     return NextResponse.json({ ok: true, ...result })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })

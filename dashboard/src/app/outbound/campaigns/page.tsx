@@ -8,21 +8,16 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { AppScrollPage } from '@/components/app-shell'
+import { PageHeader } from '@/components/page-header'
+import { StatusBadge } from '@/components/status-badge'
+import type { AppStatus } from '@/components/status-badge'
 
 interface Campaign {
   id: string; name: string; status: string
   lead_count: number; sent_count: number; reply_count: number
   news_headline: string | null; instantly_campaign_id: string | null
   created_at: string
-}
-
-const STATUS_COLORS: Record<string, { color: string; bg: string }> = {
-  draft:     { color: '#92400e', bg: '#fef3c7' },
-  review:    { color: '#1e40af', bg: '#dbeafe' },
-  active:    { color: '#166534', bg: '#f0fdf4' },
-  paused:    { color: '#7c3aed', bg: '#ede9fe' },
-  completed: { color: '#555',    bg: '#f4f4f5' },
-  archived:  { color: '#aaa',    bg: '#f9f9f9' },
 }
 
 function Stat({ label, value, highlight = false }: { label: string; value: string | number; highlight?: boolean }) {
@@ -80,18 +75,18 @@ export default function CampaignsPage() {
   function closeModal() { setShowModal(false); setCampName(''); setCampPt('General'); setNewsUrl(''); setVariantMode(false) }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-[1100px] mx-auto">
+    <AppScrollPage maxWidth="1100px">
 
-      {/* Header */}
-      <div className="flex items-start justify-between mb-6 gap-4">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">Campaigns</h1>
-          <p className="text-sm text-muted-foreground mt-1">AI-drafted email sequences → human review → send via Instantly</p>
-        </div>
-        <Button size="sm" onClick={() => setShowModal(true)} className="gap-1.5">
-          <Plus size={13} strokeWidth={2.5} /> New Campaign
-        </Button>
-      </div>
+      <PageHeader
+        title="Campaigns"
+        description="AI-drafted email sequences → human review → send via Instantly"
+        actions={
+          <Button size="sm" onClick={() => setShowModal(true)} className="gap-1.5">
+            <Plus size={13} strokeWidth={2.5} /> New Campaign
+          </Button>
+        }
+        className="mb-6"
+      />
 
       {/* Error */}
       {error && (
@@ -120,10 +115,9 @@ export default function CampaignsPage() {
       ) : (
         <div className="flex flex-col gap-2.5">
           {campaigns.map(c => {
-            const sc = STATUS_COLORS[c.status] ?? STATUS_COLORS.draft
             const replyRate = c.sent_count > 0 ? Math.round((c.reply_count / c.sent_count) * 100) : 0
             return (
-              <Link key={c.id} href={`/outbound/campaigns/${c.id}`} className="no-underline block">
+              <Link key={c.id} href={`/outbound/campaigns/${c.id}`} className="no-underline block rounded-md">
                 <Card className="hover:border-border/80 transition-colors">
                   <CardContent className="p-4 flex items-center gap-4">
                     <div className="w-9 h-9 rounded-[9px] bg-muted flex items-center justify-center flex-shrink-0">
@@ -132,10 +126,7 @@ export default function CampaignsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <p className="text-[14px] font-semibold text-foreground tracking-tight overflow-hidden text-ellipsis whitespace-nowrap">{c.name}</p>
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded flex-shrink-0"
-                          style={{ color: sc.color, background: sc.bg }}>
-                          {c.status.charAt(0).toUpperCase() + c.status.slice(1)}
-                        </span>
+                        <StatusBadge status={c.status as AppStatus} />
                       </div>
                       {c.news_headline && (
                         <p className="text-[11px] text-muted-foreground flex items-center gap-1 overflow-hidden text-ellipsis whitespace-nowrap">
@@ -207,6 +198,6 @@ export default function CampaignsPage() {
           </div>
         </div>
       )}
-    </div>
+    </AppScrollPage>
   )
 }

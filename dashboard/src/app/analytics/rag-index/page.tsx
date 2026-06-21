@@ -1,32 +1,81 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { RefreshCw, CheckCircle, AlertTriangle, RotateCcw, Megaphone, Bot, FileText } from 'lucide-react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 
-type IndexedFile = {
-  file_id:      string
-  file_name:    string
-  chunk_count:  number
-  last_indexed: string
-}
-type Status = { files: IndexedFile[]; totalChunks: number }
-type IndexResult = { indexed: string[]; skipped: string[]; deleted: string[]; errors: string[]; totalChunks: number }
+// ── Types ──────────────────────────────────────────────────────────────────
+type IndexedFile  = { file_id: string; file_name: string; source_folder: string; chunk_count: number; last_indexed: string }
+type Status       = { files: IndexedFile[]; totalChunks: number }
+type IndexResult  = { indexed: string[]; skipped: string[]; deleted: string[]; errors: string[]; totalChunks: number }
 
 async function safeJson(res: Response): Promise<unknown> {
   const text = await res.text()
   try { return JSON.parse(text) } catch { throw new Error(text.slice(0, 300)) }
 }
 
+// ── Design tokens ──────────────────────────────────────────────────────────
+// Switch TAB_VARIANT to 'pill' for a filled-background style
+const TAB_VARIANT: 'line' | 'pill' = 'line'
+
+const TOKENS = {
+  line: {
+    activeColor:    (color: string) => color,
+    activeBorder:   (color: string) => color,
+    hoverBg:        'transparent',
+    activeBg:       'transparent',
+    inactiveBg:     'transparent',
+    panelPaddingTop: 20,
+  },
+  pill: {
+    activeColor:    (color: string) => color,
+    activeBorder:   (_: string) => 'transparent',
+    hoverBg:        'var(--muted)',
+    activeBg:       'var(--muted)',
+    inactiveBg:     'transparent',
+    panelPaddingTop: 20,
+  },
+}
+
+// ── Tab definitions ────────────────────────────────────────────────────────
+type TabDef = { id: string; label: string; icon: React.ElementType; color: string; folder: string; purpose: string }
+
+const TABS: TabDef[] = [
+  { id: 'outbound',   label: 'Outbound AI',   icon: Megaphone, color: '#2563eb', folder: 'ai-outbound',         purpose: 'Cold campaign emails — prospects via Instantly' },
+  { id: 'engagement', label: 'Engagement AI',  icon: Bot,       color: '#10b981', folder: 'engagement_ai_agent', purpose: 'Inbound lead reply drafting — Agent 2' },
+]
+
+// ── Naming examples ────────────────────────────────────────────────────────
+type NamingExample = { filename: string; description: string }
+
+const OUTBOUND_EXAMPLES: NamingExample[] = [
+  { filename: 'marine-pricing-may-2026.pdf',              description: 'Marine cargo indicative premiums' },
+  { filename: 'benefits-underwriting-jan-2026.pdf',       description: 'Employee benefits underwriting criteria' },
+  { filename: 'construction-policy-wording-mar-2026.pdf', description: 'Construction coverage and exclusions' },
+  { filename: 'motor-guide-apr-2026.pdf',                 description: 'Plain-language motor explainer' },
+  { filename: 'liability-case-study-jun-2026.pdf',        description: 'Client outcome for social proof' },
+  { filename: 'company-credentials-jan-2026.pdf',         description: 'TRS licences, awards, track record' },
+]
+
+const ENGAGEMENT_EXAMPLES: NamingExample[] = [
+  { filename: 'general-faq-jun-2026.pdf',        description: 'Common coverage FAQs for inbound replies' },
+  { filename: 'claims-process-mar-2026.pdf',     description: 'Step-by-step claims procedure' },
+  { filename: 'company-credentials-jan-2026.pdf', description: 'TRS background and licences' },
+  { filename: 'liability-objection-may-2026.pdf', description: 'How to handle pricing pushback' },
+  { filename: 'motor-coverage-apr-2026.pdf',     description: 'What motor insurance covers and excludes' },
+  { filename: 'benefits-pricing-feb-2026.pdf',   description: 'Employee benefits indicative pricing' },
+  { filename: 'marine-guide-jun-2026.pdf',       description: 'Plain-language marine guide for clients' },
+]
+
+// ── Sub-components ─────────────────────────────────────────────────────────
 function LegendRow({ label, color, description }: { label: string; color: string; description: string }) {
   return (
     <div className="flex gap-2.5 items-start">
       <span className="flex-shrink-0 mt-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap"
-        style={{ background: `${color}18`, color, border: `1px solid ${color}30` }}
-      >
+        style={{ background: `${color}18`, color, border: `1px solid ${color}30` }}>
         {label}
       </span>
       <p className="text-[12px] text-muted-foreground leading-relaxed">{description}</p>
@@ -34,76 +83,47 @@ function LegendRow({ label, color, description }: { label: string; color: string
   )
 }
 
-type NamingExample = { filename: string; description: string }
-
-function NamingGuide({
-  folder, color, icon: Icon, purpose, examples,
-}: {
-  folder: string
-  color: string
-  icon: React.ElementType
-  purpose: string
-  examples: NamingExample[]
+function NamingGuide({ folder, color, icon: Icon, examples }: {
+  folder: string; color: string; icon: React.ElementType; examples: NamingExample[]
 }) {
   return (
-    <Card>
-      <CardContent className="p-5">
-        <div className="flex items-center gap-2.5 mb-3">
-          <div className="flex items-center justify-center rounded-lg flex-shrink-0"
-            style={{ width: 32, height: 32, background: `${color}18`, border: `1px solid ${color}30` }}>
-            <Icon size={16} style={{ color }} strokeWidth={1.8} />
-          </div>
-          <div>
-            <p className="text-[13px] font-semibold text-foreground font-mono">{folder}</p>
-            <p className="text-[11px] text-muted-foreground">{purpose}</p>
-          </div>
+    <div className="mb-4 rounded-lg border p-4" style={{ borderColor: `${color}20`, background: `${color}06` }}>
+      <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center justify-center rounded-lg flex-shrink-0"
+          style={{ width: 28, height: 28, background: `${color}18`, border: `1px solid ${color}30` }}>
+          <Icon size={14} style={{ color }} strokeWidth={1.8} />
         </div>
-
-        <div className="mb-3 p-3 rounded-md" style={{ background: `${color}08`, border: `1px solid ${color}20` }}>
-          <p className="text-[11px] font-semibold uppercase tracking-widest mb-1.5" style={{ color }}>Naming format</p>
-          <code className="text-[12px] font-mono text-foreground">[category]_[short-description].pdf</code>
-          <p className="text-[11px] text-muted-foreground mt-1">Lowercase · hyphens within words · underscores between parts · no spaces</p>
+        <div>
+          <p className="text-[12px] font-semibold text-foreground font-mono">{folder}/</p>
+          <p className="text-[11px] text-muted-foreground">
+            Format: <code className="font-mono text-[11px]">[topic]-[type]-[mmm-yyyy].pdf</code>
+          </p>
         </div>
-
-        <div className="space-y-1.5">
-          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Examples</p>
-          {examples.map(ex => (
-            <div key={ex.filename} className="flex items-start gap-2.5">
-              <FileText size={12} className="flex-shrink-0 mt-0.5" style={{ color }} strokeWidth={2} />
-              <div>
-                <code className="text-[12px] font-mono text-foreground">{ex.filename}</code>
-                <span className="text-[11px] text-muted-foreground ml-2">— {ex.description}</span>
-              </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+        {examples.map(ex => (
+          <div key={ex.filename} className="flex items-start gap-2">
+            <FileText size={11} className="flex-shrink-0 mt-0.5" style={{ color }} strokeWidth={2} />
+            <div>
+              <code className="text-[12px] font-mono text-foreground">{ex.filename}</code>
+              <span className="text-[11px] text-muted-foreground ml-1.5">— {ex.description}</span>
             </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 
-const OUTBOUND_EXAMPLES: NamingExample[] = [
-  { filename: 'product_cyber-insurance-overview.pdf',    description: 'Main product sheet for cyber coverage' },
-  { filename: 'product_marine-cargo-summary.pdf',        description: 'Marine cargo product one-pager' },
-  { filename: 'pricing_sme-package-rates-2025.pdf',      description: 'SME bundle pricing guide' },
-  { filename: 'case-study_logistics-firm-renewal.pdf',   description: 'Customer story for outbound context' },
-  { filename: 'company_trs-about-us.pdf',                description: 'TRS company introduction' },
-]
-
-const ENGAGEMENT_EXAMPLES: NamingExample[] = [
-  { filename: 'faq_coverage-types.pdf',                  description: 'Common coverage questions and answers' },
-  { filename: 'faq_claims-process.pdf',                  description: 'How to make a claim' },
-  { filename: 'response_pricing-objections.pdf',         description: 'How to handle pricing pushback' },
-  { filename: 'response_competitor-comparison.pdf',      description: 'Handling competitor comparison questions' },
-  { filename: 'company_trs-credentials.pdf',             description: 'TRS licences, awards, track record' },
-]
-
+// ── Main Page ──────────────────────────────────────────────────────────────
 export default function RagIndexPage() {
-  const [status,   setStatus]   = useState<Status | null>(null)
-  const [loading,  setLoading]  = useState(true)
-  const [indexing, setIndexing] = useState(false)
-  const [lastRun,  setLastRun]  = useState<IndexResult | null>(null)
-  const [error,    setError]    = useState<string | null>(null)
+  const [status,           setStatus]          = useState<Status | null>(null)
+  const [loading,          setLoading]          = useState(true)
+  const [error,            setError]            = useState<string | null>(null)
+  const [activeTab,        setActiveTab]        = useState<string>(TABS[0].id)
+  const [indexingFolder,   setIndexingFolder]   = useState<string | null>(null)
+  const [lastRunByFolder,  setLastRunByFolder]  = useState<Record<string, IndexResult>>({})
+  const tablistRef = useRef<HTMLDivElement>(null)
 
   const loadStatus = useCallback(async () => {
     setLoading(true); setError(null)
@@ -119,23 +139,39 @@ export default function RagIndexPage() {
 
   useEffect(() => { loadStatus() }, [loadStatus])
 
-  async function runReindex(force = false) {
-    setIndexing(true); setError(null); setLastRun(null)
+  async function runReindex(folder: string, force = false) {
+    setIndexingFolder(folder); setError(null)
     try {
       const res  = await fetch('/api/knowledge/index', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ force }),
+        body: JSON.stringify({ force, folder }),
       })
       const data = await safeJson(res) as IndexResult & { error?: string }
       if (!res.ok) throw new Error(data.error ?? 'Re-index failed')
-      setLastRun(data); await loadStatus()
+      setLastRunByFolder(prev => ({ ...prev, [folder]: data }))
+      await loadStatus()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Re-index failed')
-    } finally { setIndexing(false) }
+    } finally { setIndexingFolder(null) }
   }
 
-  const fileCount = status?.files.length ?? 0
-  const overLimit = fileCount > 15
+  // Roving tabindex keyboard navigation
+  function handleTabKey(e: React.KeyboardEvent<HTMLButtonElement>, idx: number) {
+    const len = TABS.length
+    let next = -1
+    if      (e.key === 'ArrowRight') next = (idx + 1) % len
+    else if (e.key === 'ArrowLeft')  next = (idx - 1 + len) % len
+    else if (e.key === 'Home')       next = 0
+    else if (e.key === 'End')        next = len - 1
+    if (next >= 0) {
+      e.preventDefault()
+      setActiveTab(TABS[next].id)
+      const btns = tablistRef.current?.querySelectorAll<HTMLElement>('[role="tab"]')
+      btns?.[next]?.focus()
+    }
+  }
+
+  const tokens = TOKENS[TAB_VARIANT]
 
   return (
     <div className="p-8 max-w-[900px] mx-auto">
@@ -146,81 +182,11 @@ export default function RagIndexPage() {
           <h1 className="text-xl font-bold tracking-tight text-foreground">RAG Knowledge Index</h1>
           <p className="text-sm text-muted-foreground mt-1">Google Drive PDFs → vector chunks → AI retrieval</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={loadStatus} disabled={loading} className="gap-1.5">
-            <RefreshCw size={13} strokeWidth={2} className={loading ? 'animate-spin' : ''} />
-            Refresh
-          </Button>
-          <Button size="sm" onClick={() => runReindex(false)} disabled={indexing} className="gap-1.5">
-            <CheckCircle size={13} strokeWidth={2} />
-            Re-index New Files
-          </Button>
-          <Button variant="destructive" size="sm" onClick={() => runReindex(true)} disabled={indexing} className="gap-1.5"
-            title="Forces all files to be re-indexed, even if unchanged">
-            <RotateCcw size={13} strokeWidth={2} />
-            Force Re-index All
-          </Button>
-        </div>
+        <Button variant="outline" size="sm" onClick={loadStatus} disabled={loading} className="gap-1.5">
+          <RefreshCw size={13} strokeWidth={2} className={loading ? 'animate-spin' : ''} />
+          Refresh
+        </Button>
       </div>
-
-      {/* Two knowledge bases */}
-      <div className="mb-5">
-        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Two Knowledge Bases</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-          <div className="rounded-lg border p-4" style={{ borderColor: '#2563eb30', background: '#2563eb08' }}>
-            <div className="flex items-center gap-2 mb-2">
-              <Megaphone size={14} style={{ color: '#2563eb' }} strokeWidth={2} />
-              <span className="text-[12px] font-semibold text-foreground font-mono">ai-outbound</span>
-            </div>
-            <p className="text-[12px] text-muted-foreground leading-relaxed">
-              Used by the <strong>outbound campaign AI</strong> when drafting cold emails. Upload product sheets, pricing guides, TRS credentials, and case studies here.
-            </p>
-          </div>
-          <div className="rounded-lg border p-4" style={{ borderColor: '#10b98130', background: '#10b98108' }}>
-            <div className="flex items-center gap-2 mb-2">
-              <Bot size={14} style={{ color: '#10b981' }} strokeWidth={2} />
-              <span className="text-[12px] font-semibold text-foreground font-mono">engagement_ai_agent</span>
-            </div>
-            <p className="text-[12px] text-muted-foreground leading-relaxed">
-              Used by the <strong>engagement AI agent</strong> when replying to inbound leads. Upload FAQ docs, objection-handling guides, and TRS company information here.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* File naming guide */}
-      <div className="mb-5">
-        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">File Naming Guide</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <NamingGuide
-            folder="ai-outbound/"
-            color="#2563eb"
-            icon={Megaphone}
-            purpose="Outbound campaign knowledge"
-            examples={OUTBOUND_EXAMPLES}
-          />
-          <NamingGuide
-            folder="engagement_ai_agent/"
-            color="#10b981"
-            icon={Bot}
-            purpose="Engagement AI reply knowledge"
-            examples={ENGAGEMENT_EXAMPLES}
-          />
-        </div>
-      </div>
-
-      {/* How it works */}
-      <Card className="mb-5">
-        <CardContent className="p-4">
-          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">How indexing works</p>
-          <div className="flex flex-col gap-2.5">
-            <LegendRow label="Re-index New Files" color="#2563eb" description="Scans your Google Drive folder. Only processes PDFs that have never been indexed before. Files already in the index are skipped. Use this after uploading new documents." />
-            <LegendRow label="Force Re-index All" color="#dc2626" description="Deletes all existing chunks and rebuilds the entire index from scratch. Use this if a file was updated or replaced in Drive, or if results seem stale. Slower — re-processes every PDF." />
-            <LegendRow label="Auto-sync (Nightly 2am SGT)" color="#10b981" description="Runs automatically every night at 2am Singapore time. Same as Re-index New Files — only picks up PDFs added since the last run. No action needed from you." />
-            <LegendRow label="Chunks" color="#8b5cf6" description="Each PDF is split into ~1,500-character passages (chunks) with 150-character overlaps. When an email arrives, the AI finds the 6 most relevant chunks and uses them to write the reply." />
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Error banner */}
       {error && (
@@ -230,101 +196,254 @@ export default function RagIndexPage() {
         </div>
       )}
 
-      {/* Last run result */}
-      {lastRun && (
-        <div className={cn(
-          'flex items-start gap-2.5 p-3.5 border rounded-lg mb-4',
-          lastRun.errors.length > 0 ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'
-        )}>
-          {lastRun.errors.length > 0
-            ? <AlertTriangle size={14} className="text-amber-600 flex-shrink-0 mt-0.5" strokeWidth={2} />
-            : <CheckCircle size={14} className="text-emerald-600 flex-shrink-0 mt-0.5" strokeWidth={2} />}
-          <div>
-            <p className="text-[12px] font-semibold text-foreground">
-              Re-index complete — {lastRun.indexed.length} indexed, {lastRun.skipped.length} skipped, {lastRun.deleted.length} deleted
-            </p>
-            <p className="text-[12px] text-muted-foreground mt-0.5">
-              {lastRun.errors.length > 0
-                ? `Errors: ${lastRun.errors.join(' · ')}`
-                : lastRun.indexed.length > 0
-                  ? `Indexed: ${lastRun.indexed.join(', ')}`
-                  : 'No changes detected — all files already up to date.'}
-            </p>
-          </div>
-        </div>
-      )}
+      {/* ── Tablist ── */}
+      <div
+        role="tablist"
+        aria-label="Knowledge base folders"
+        ref={tablistRef}
+        className={cn(
+          'flex',
+          TAB_VARIANT === 'line' ? 'border-b border-border gap-0' : 'gap-1 p-1 rounded-lg bg-muted mb-4'
+        )}
+      >
+        {TABS.map((t, idx) => {
+          const isActive   = t.id === activeTab
+          const folderCount = status?.files.filter(f => f.source_folder === t.folder).length ?? 0
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Indexed Files</p>
-            <p className="text-[26px] font-bold tracking-tight text-foreground">{loading ? '—' : fileCount}</p>
-            <p className={cn('text-[11px] mt-1', overLimit ? 'text-destructive' : 'text-muted-foreground')}>
-              {overLimit ? '⚠ Over recommended 15-file limit' : 'Target: ≤ 15 files per folder'}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Total Chunks</p>
-            <p className="text-[26px] font-bold tracking-tight text-foreground">{loading ? '—' : (status?.totalChunks ?? 0)}</p>
-            <p className="text-[11px] text-muted-foreground mt-1">Searchable text passages</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Auto-sync</p>
-            <p className="text-[20px] font-bold tracking-tight text-emerald-600">Nightly 2am SGT</p>
-            <p className="text-[11px] text-muted-foreground mt-1">New files only · use Re-index for immediate</p>
-          </CardContent>
-        </Card>
+          return (
+            <button
+              key={t.id}
+              id={`tab-${t.id}`}
+              role="tab"
+              aria-selected={isActive}
+              aria-controls={`panel-${t.id}`}
+              tabIndex={isActive ? 0 : -1}
+              onClick={() => setActiveTab(t.id)}
+              onKeyDown={(e) => handleTabKey(e, idx)}
+              className={cn(
+                'relative flex items-center gap-2 px-4 py-2.5 text-[13px] font-medium transition-all duration-150 outline-none select-none',
+                'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded-t-md',
+                TAB_VARIANT === 'line'
+                  ? cn(
+                      'border-b-2 -mb-px',
+                      isActive
+                        ? 'text-foreground'
+                        : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                    )
+                  : cn(
+                      'rounded-md flex-1 justify-center',
+                      isActive
+                        ? 'text-foreground bg-background shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )
+              )}
+              style={
+                TAB_VARIANT === 'line' && isActive
+                  ? { color: tokens.activeColor(t.color), borderColor: tokens.activeBorder(t.color) }
+                  : undefined
+              }
+            >
+              <t.icon size={14} strokeWidth={2} />
+              {t.label}
+              {!loading && (
+                <span
+                  className="text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-0.5 transition-colors"
+                  style={{
+                    background: isActive ? `${t.color}15` : 'transparent',
+                    color:      isActive ? t.color         : 'var(--muted-foreground)',
+                    border:     `1px solid ${isActive ? `${t.color}30` : 'transparent'}`,
+                  }}
+                >
+                  {folderCount}
+                </span>
+              )}
+            </button>
+          )
+        })}
       </div>
 
-      {/* File table */}
-      <Card>
-        <CardHeader className="py-3 px-5 border-b border-border">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">Indexed Files</p>
-            {overLimit && (
-              <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
-                <AlertTriangle size={11} strokeWidth={2} />
-                {fileCount} / 15 recommended limit
-              </span>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>
-          ) : !status?.files.length ? (
-            <div className="py-8 text-center text-sm text-muted-foreground italic">
-              No files indexed yet — click &quot;Re-index New Files&quot; to start
+      {/* ── Tab Panels ── */}
+      {TABS.map(t => {
+        const isActive     = t.id === activeTab
+        const folderFiles  = status?.files.filter(f => f.source_folder === t.folder) ?? []
+        const folderChunks = folderFiles.reduce((s, f) => s + f.chunk_count, 0)
+        const overLimit    = folderFiles.length > 15
+        const isIndexing   = indexingFolder === t.folder
+        const lastRun      = lastRunByFolder[t.folder] ?? null
+
+        return (
+          <div
+            key={t.id}
+            id={`panel-${t.id}`}
+            role="tabpanel"
+            aria-labelledby={`tab-${t.id}`}
+            hidden={!isActive}
+            style={{ paddingTop: tokens.panelPaddingTop }}
+          >
+            {/* Folder header + action buttons */}
+            <div className="flex items-start justify-between gap-4 rounded-lg border p-4 mb-4"
+              style={{ borderColor: `${t.color}25`, background: `${t.color}07` }}>
+              <div className="flex items-start gap-3">
+                <div className="flex items-center justify-center rounded-lg flex-shrink-0 mt-0.5"
+                  style={{ width: 32, height: 32, background: `${t.color}18`, border: `1px solid ${t.color}30` }}>
+                  <t.icon size={15} style={{ color: t.color }} strokeWidth={1.8} />
+                </div>
+                <div>
+                  <code className="text-[13px] font-semibold text-foreground">{t.folder}/</code>
+                  <p className="text-[12px] text-muted-foreground mt-0.5">{t.purpose}</p>
+                </div>
+              </div>
+              <div className="flex gap-2 flex-shrink-0">
+                <Button
+                  size="sm"
+                  onClick={() => runReindex(t.folder, false)}
+                  disabled={isIndexing}
+                  className="gap-1.5 h-8 text-[12px]"
+                >
+                  <CheckCircle size={12} strokeWidth={2} />
+                  {isIndexing ? 'Indexing…' : 'Re-index New'}
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => runReindex(t.folder, true)}
+                  disabled={isIndexing}
+                  className="gap-1.5 h-8 text-[12px]"
+                  title={`Re-process all files in ${t.folder}/ from scratch`}
+                >
+                  <RotateCcw size={12} strokeWidth={2} />
+                  Force All
+                </Button>
+              </div>
             </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {['File', 'Chunks', 'Last Indexed'].map(h => (
-                    <TableHead key={h}>{h}</TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {status.files.map((f) => (
-                  <TableRow key={f.file_id}>
-                    <TableCell className="text-[13px] text-foreground">{f.file_name}</TableCell>
-                    <TableCell>
-                      <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-primary/10 text-primary">{f.chunk_count}</span>
-                    </TableCell>
-                    <TableCell className="text-[12px] text-muted-foreground">
-                      {new Date(f.last_indexed).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+
+            {/* Last run result (per folder) */}
+            {lastRun && (
+              <div className={cn(
+                'flex items-start gap-2.5 p-3.5 border rounded-lg mb-4',
+                lastRun.errors.length > 0 ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'
+              )}>
+                {lastRun.errors.length > 0
+                  ? <AlertTriangle size={14} className="text-amber-600 flex-shrink-0 mt-0.5" strokeWidth={2} />
+                  : <CheckCircle   size={14} className="text-emerald-600 flex-shrink-0 mt-0.5" strokeWidth={2} />}
+                <div>
+                  <p className="text-[12px] font-semibold text-foreground">
+                    Re-index complete — {lastRun.indexed.length} indexed, {lastRun.skipped.length} skipped, {lastRun.deleted.length} deleted
+                  </p>
+                  <p className="text-[12px] text-muted-foreground mt-0.5">
+                    {lastRun.errors.length > 0
+                      ? `Errors: ${lastRun.errors.join(' · ')}`
+                      : lastRun.indexed.length > 0
+                        ? `Indexed: ${lastRun.indexed.join(', ')}`
+                        : 'No changes — all files already up to date.'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Stat cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+              <Card>
+                <CardContent className="pt-4 pb-4">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Indexed Files</p>
+                  <p className="text-[26px] font-bold tracking-tight text-foreground">{loading ? '—' : folderFiles.length}</p>
+                  <p className={cn('text-[11px] mt-1', overLimit ? 'text-destructive' : 'text-muted-foreground')}>
+                    {overLimit ? '⚠ Over recommended 15-file limit' : 'Target: ≤ 15 files per folder'}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4 pb-4">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Total Chunks</p>
+                  <p className="text-[26px] font-bold tracking-tight text-foreground">{loading ? '—' : folderChunks}</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">Searchable text passages</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4 pb-4">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Auto-sync</p>
+                  <p className="text-[20px] font-bold tracking-tight text-emerald-600">Nightly 2am SGT</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">New files only · use Re-index for immediate</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Naming guide */}
+            <NamingGuide
+              folder={t.folder}
+              color={t.color}
+              icon={t.icon}
+              examples={t.id === 'outbound' ? OUTBOUND_EXAMPLES : ENGAGEMENT_EXAMPLES}
+            />
+
+            {/* File table */}
+            <Card>
+              <CardHeader className="py-3 px-5 border-b border-border">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
+                    Indexed Files — <span className="font-mono">{t.folder}/</span>
+                  </p>
+                  {overLimit && (
+                    <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
+                      <AlertTriangle size={11} strokeWidth={2} />
+                      {folderFiles.length} / 15 limit
+                    </span>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                {loading ? (
+                  <div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>
+                ) : folderFiles.length === 0 ? (
+                  <div className="py-8 text-center text-sm text-muted-foreground italic">
+                    No files indexed in <code className="font-mono">{t.folder}/</code> yet — click &quot;Re-index New&quot; to start
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        {['File', 'Chunks', 'Last Indexed'].map(h => (
+                          <TableHead key={h}>{h}</TableHead>
+                        ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {folderFiles.map(f => (
+                        <TableRow key={f.file_id}>
+                          <TableCell className="text-[13px] text-foreground">{f.file_name}</TableCell>
+                          <TableCell>
+                            <span className="text-[11px] font-bold px-2 py-0.5 rounded"
+                              style={{ background: `${t.color}15`, color: t.color }}>
+                              {f.chunk_count}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-[12px] text-muted-foreground">
+                            {new Date(f.last_indexed).toLocaleDateString('en-SG', {
+                              day: 'numeric', month: 'short', year: 'numeric',
+                              hour: '2-digit', minute: '2-digit',
+                            })}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )
+      })}
+
+      {/* How it works — shared reference card */}
+      <Card className="mt-5">
+        <CardContent className="p-4">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">How indexing works</p>
+          <div className="flex flex-col gap-2.5">
+            <LegendRow label="Re-index New" color="#2563eb" description="Scans only the selected folder. Processes new files that haven't been indexed yet — skips existing ones. Use after uploading new documents." />
+            <LegendRow label="Force All" color="#dc2626" description="Deletes all chunks for the selected folder and rebuilds from scratch. Use if you replaced or updated a file in Drive. Re-processes every file in the folder." />
+            <LegendRow label="Auto-sync (Nightly 2am SGT)" color="#10b981" description="Scans both folders automatically every night at 2am Singapore time. Picks up new files only. No action needed from you." />
+            <LegendRow label="Chunks" color="#8b5cf6" description="Each PDF is split into ~1,500-character passages with 150-character overlaps. The AI retrieves the 6 most relevant chunks per email query." />
+          </div>
         </CardContent>
       </Card>
 

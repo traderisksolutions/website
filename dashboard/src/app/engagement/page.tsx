@@ -6,6 +6,7 @@ import { Search, RefreshCw, ChevronDown, Copy, Check, X, Calendar, ArrowUpDown, 
 import { useAuditLog } from '@/hooks/useAuditLog'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
 import { Tip } from '@/components/Tip'
+import { cn } from '@/lib/utils'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -495,7 +496,7 @@ function StoredSummaryStrip({
               disabled={regenerating || loading}
               style={{ fontSize: 11, color: regenerating ? '#93c5fd' : '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4, opacity: (regenerating || loading) ? 0.6 : 1 }}
             >
-              <RefreshCw size={11} style={{ animation: regenerating ? 'spin 1s linear infinite' : undefined }} />
+              <RefreshCw size={11} className={cn(regenerating && 'animate-spin')} />
               {regenerating ? 'Generating…' : latest ? 'Regenerate' : 'Generate Now'}
             </button>
           )}
@@ -992,7 +993,7 @@ function AIDraftPanel({
               <Tip text="Reads the full email thread and your knowledge documents to draft a contextual reply. Always review the draft before clicking Approve & Send — you have final say." />
               <button onClick={generate} disabled={!!loading}
                 style={{ fontSize: 11, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
-                <RefreshCw size={11} style={{ animation: loading === 'gen' ? 'spin 1s linear infinite' : undefined }} />
+                <RefreshCw size={11} className={cn(loading === 'gen' && 'animate-spin')} />
                 {loading === 'gen' ? 'Generating…' : hasDraftContent ? 'Regenerate' : 'Generate AI reply'}
               </button>
             </>
@@ -1000,7 +1001,7 @@ function AIDraftPanel({
           {activeTab === 'rag' && (
             <button onClick={generateRag} disabled={ragGenerating}
               style={{ fontSize: 11, color: 'var(--primary-hex)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
-              <RefreshCw size={11} style={{ animation: ragGenerating ? 'spin 1s linear infinite' : undefined }} />
+              <RefreshCw size={11} className={cn(ragGenerating && 'animate-spin')} />
               {ragGenerating ? 'Generating…' : hasRagDraftContent ? 'Regenerate (RAG)' : 'Generate RAG reply'}
             </button>
           )}
@@ -1775,7 +1776,7 @@ function ThreadView({
                   </button>
                 </div>
               ) : (
-                <button onClick={handleDelete} title="Delete thread" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#d1d5db', display: 'flex', alignItems: 'center', borderRadius: 6 }}>
+                <button onClick={handleDelete} title="Delete thread" aria-label="Delete thread" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#d1d5db', display: 'flex', alignItems: 'center', borderRadius: 6 }}>
                   <Trash2 size={13} strokeWidth={2} />
                 </button>
               )}
@@ -2090,8 +2091,8 @@ function EngagementPageInner() {
                   </span>
                 )}
               </div>
-              <button onClick={() => load(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
-                <RefreshCw size={13} strokeWidth={2} style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }} />
+              <button onClick={() => load(true)} aria-label="Refresh" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
+                <RefreshCw size={13} strokeWidth={2} className={cn(refreshing && 'animate-spin')} />
               </button>
             </div>
 
@@ -2099,6 +2100,7 @@ function EngagementPageInner() {
               <Search size={13} style={{ color: '#aaa', flexShrink: 0 }} strokeWidth={2} />
               <input
                 type="text" placeholder="Search name, email, company, topic…" value={search}
+                aria-label="Search conversations"
                 onChange={e => setSearch(e.target.value)}
                 style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 12, color: '#333', fontFamily: 'inherit' }}
               />
@@ -2256,7 +2258,6 @@ function EngagementPageInner() {
         </div>
       </div>
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }

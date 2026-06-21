@@ -4,7 +4,7 @@ import { SB_URL, sbHeaders } from '@/lib/sb'
 // GET — list all schedules
 export async function GET() {
   const res = await fetch(
-    `${SB_URL}/rest/v1/outbound_schedules?select=*&order=created_at.desc`,
+    `${SB_URL}/rest/v1/outbound_schedules?select=*&deleted_at=is.null&order=created_at.desc`,
     { headers: sbHeaders(), cache: 'no-store' }
   )
   return NextResponse.json(await res.json())
@@ -44,11 +44,12 @@ export async function PATCH(req: NextRequest) {
   return NextResponse.json({ ok: true })
 }
 
-// DELETE — remove a schedule
+// DELETE — soft-delete a schedule
 export async function DELETE(req: NextRequest) {
   const { id } = await req.json()
   await fetch(`${SB_URL}/rest/v1/outbound_schedules?id=eq.${id}`, {
-    method: 'DELETE', headers: sbHeaders(),
+    method: 'PATCH', headers: sbHeaders(),
+    body:   JSON.stringify({ deleted_at: new Date().toISOString() }),
   })
   return NextResponse.json({ ok: true })
 }

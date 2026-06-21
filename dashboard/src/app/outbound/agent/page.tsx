@@ -11,6 +11,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { AppScrollPage } from '@/components/app-shell'
+import { PageHeader } from '@/components/page-header'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -70,7 +72,7 @@ function TBadge({ label, color, bg }: { label: string; color: string; bg: string
 
 function Th({ children, w }: { children?: React.ReactNode; w?: number }) {
   return (
-    <th className="h-10 px-3 text-left align-middle text-muted-foreground font-medium text-[12px] whitespace-nowrap border-b border-border" style={{ width: w }}>
+    <th className="h-9 px-3 text-left align-middle text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/30 whitespace-nowrap border-b border-border" style={{ width: w }}>
       {children}
     </th>
   )
@@ -327,12 +329,13 @@ export default function OutboundAgentPage() {
   const pagedPeople = people.slice((peoplePage - 1) * PEOPLE_PAGE_SIZE, peoplePage * PEOPLE_PAGE_SIZE)
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-[1140px] mx-auto">
+    <AppScrollPage maxWidth="1140px">
 
-      <div className="mb-5">
-        <h1 className="text-xl font-bold tracking-tight text-foreground">Lead Discovery</h1>
-        <p className="text-sm text-muted-foreground mt-1">AI finds real companies in any sector → Apollo finds decision-makers → verified emails</p>
-      </div>
+      <PageHeader
+        title="Lead Discovery"
+        description="AI finds real companies in any sector → Apollo finds decision-makers → verified emails"
+        className="mb-6"
+      />
 
       <Breadcrumb step={step} onNav={setStep} canGo={canGo} />
 
@@ -666,6 +669,6 @@ export default function OutboundAgentPage() {
           </Card>
         </div>
       )}
-    </div>
+    </AppScrollPage>
   )
 }

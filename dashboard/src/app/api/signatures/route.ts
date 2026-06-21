@@ -17,7 +17,7 @@ function sbHeaders(prefer = 'return=representation') {
 export async function GET() {
   try {
     const res  = await fetch(
-      `${SB_URL}/rest/v1/user_signatures?select=id,name,title,phone,email,company_tagline,is_active&order=created_at.asc`,
+      `${SB_URL}/rest/v1/user_signatures?select=id,name,title,phone,email,company_tagline,is_active&deleted_at=is.null&order=created_at.asc`,
       { headers: sbHeaders(), cache: 'no-store' }
     )
     const rows = res.ok ? await res.json() : []

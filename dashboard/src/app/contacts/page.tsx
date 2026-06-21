@@ -1,11 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Search, X, ChevronRight, ChevronDown, Users, Copy, Check } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { X, ChevronRight, ChevronDown, Users, Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { statusMeta } from '@/lib/status'
+import { AppSplitLayout, AppMainPanel, AppPageHeader } from '@/components/app-shell'
+import { DataTableToolbar, DataTableSearch } from '@/components/data-table/toolbar'
+import { StatusBadge } from '@/components/status-badge'
+import type { AppStatus } from '@/components/status-badge'
+import { DetailSection, DetailField } from '@/components/detail-section'
 
 interface Contact {
   id: string; first_name: string | null; last_name: string | null
@@ -22,6 +24,11 @@ const SOURCE_LABEL: Record<string, string> = {
 }
 
 const STATUS_OPTIONS = ['all', 'new', 'contacted', 'engaged', 'qualified', 'proposal', 'converted', 'dropped', 'cc']
+const STATUS_LABELS: Record<string, string> = {
+  all: 'All', new: 'New', contacted: 'Contacted', engaged: 'Engaged',
+  qualified: 'Qualified', proposal: 'Proposal', converted: 'Converted',
+  dropped: 'Dropped', cc: 'CC',
+}
 
 const PERSONAL_DOMAINS = new Set([
   'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com',
@@ -66,15 +73,6 @@ function groupByCompany(contacts: Contact[]): CompanyGroup[] {
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const m = statusMeta(status)
-  return (
-    <span className="st-badge" style={{ color: m.color, background: m.bg }}>
-      {m.label}
-    </span>
-  )
 }
 
 function SkeletonRows() {
@@ -140,51 +138,40 @@ export default function ContactsPage() {
   const primaryCount = contacts.length - ccCount
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <AppSplitLayout>
 
       {/* ── Main table area ── */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <AppMainPanel>
 
-        {/* Page header */}
-        <div className="page-header bg-background">
-          <div>
-            <h1 className="page-title">Contacts</h1>
-            <p className="page-subtitle">
-              {loading
-                ? 'Loading contacts…'
-                : `${primaryCount} contact${primaryCount !== 1 ? 's' : ''}${ccCount > 0 ? ` · ${ccCount} CC` : ''}`}
-            </p>
-          </div>
-        </div>
+        <AppPageHeader
+          title="Contacts"
+          description={loading
+            ? 'Loading contacts…'
+            : `${primaryCount} contact${primaryCount !== 1 ? 's' : ''}${ccCount > 0 ? ` · ${ccCount} CC` : ''}`}
+        />
 
         {/* Table card */}
         <div className="flex-1 overflow-hidden px-6 pb-6">
           <div className="h-full flex flex-col rounded-xl border border-border bg-card shadow-sm overflow-hidden">
 
-            {/* Filter bar */}
-            <div className="filter-bar">
+            {/* Filter / Search toolbar */}
+            <DataTableToolbar>
               <div className="flex flex-wrap gap-1 flex-1 min-w-0">
                 {STATUS_OPTIONS.map(s => (
                   <button key={s} onClick={() => setFilter(s)}
-                    className={cn('filter-pill capitalize', filter === s && 'active')}>
-                    {s}
+                    aria-pressed={filter === s}
+                    className={cn('filter-pill', filter === s && 'active')}>
+                    {STATUS_LABELS[s] ?? s}
                   </button>
                 ))}
               </div>
-              <div className="filter-search flex-shrink-0">
-                <Search size={12} className="text-muted-foreground/60 flex-shrink-0" />
-                <input
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  placeholder="Search contacts…"
-                />
-                {search && (
-                  <button onClick={() => setSearch('')} className="flex-shrink-0 text-muted-foreground hover:text-foreground">
-                    <X size={12} />
-                  </button>
-                )}
-              </div>
-            </div>
+              <DataTableSearch
+                value={search}
+                onChange={setSearch}
+                placeholder="Search contacts…"
+                className="flex-shrink-0"
+              />
+            </DataTableToolbar>
 
             {/* Table */}
             <div className="flex-1 overflow-auto">
@@ -230,18 +217,22 @@ export default function ContactsPage() {
                             className="group-row cursor-pointer select-none">
                             <td colSpan={5} className="pl-3">
                               <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground/50 flex-shrink-0">
+                                <span className="text-muted-foreground/40 flex-shrink-0">
                                   {isCollapsed
-                                    ? <ChevronRight size={12} strokeWidth={2.5} />
-                                    : <ChevronDown  size={12} strokeWidth={2.5} />}
+                                    ? <ChevronRight size={11} strokeWidth={2.5} />
+                                    : <ChevronDown  size={11} strokeWidth={2.5} />}
                                 </span>
-                                <span className="text-[12px] font-semibold text-foreground">
-                                  {group.company ?? <span className="text-muted-foreground/40 font-normal italic">No company</span>}
+                                <span className="text-[12.5px] font-semibold text-foreground tracking-tight">
+                                  {group.company ?? <span className="text-muted-foreground/35 font-normal italic text-[12px]">No company</span>}
                                 </span>
-                                <span className="text-[11px] text-muted-foreground/60">
-                                  {group.contacts.length} contact{group.contacts.length !== 1 ? 's' : ''}
-                                  {ccInGroup > 0 && ` · ${ccInGroup} CC`}
+                                <span className="inline-flex items-center text-[10.5px] font-semibold text-muted-foreground/55 bg-muted/70 rounded px-1.5 py-px leading-none">
+                                  {group.contacts.length}
                                 </span>
+                                {ccInGroup > 0 && (
+                                  <span className="text-[10px] font-semibold text-muted-foreground/40 uppercase tracking-widest">
+                                    {ccInGroup} CC
+                                  </span>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -262,7 +253,7 @@ export default function ContactsPage() {
                                     {fullName(contact)}
                                   </span>
                                   {contact.isCC && (
-                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground uppercase tracking-wide">
+                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-muted/80 text-muted-foreground/50 uppercase tracking-widest leading-none">
                                       CC
                                     </span>
                                   )}
@@ -279,7 +270,7 @@ export default function ContactsPage() {
                                 </span>
                               </td>
                               <td className="pr-3">
-                                <StatusBadge status={contact.status} />
+                                <StatusBadge status={contact.status as AppStatus} />
                               </td>
                               <td className="text-[11px] text-muted-foreground/60 whitespace-nowrap text-right pr-4">
                                 {fmtDate(contact.created_at)}
@@ -305,98 +296,91 @@ export default function ContactsPage() {
             )}
           </div>
         </div>
-      </div>
+      </AppMainPanel>
 
       {/* ── Detail panel ── */}
       {selected && (
         <div className="w-[300px] flex-shrink-0 border-l border-border bg-card overflow-y-auto flex flex-col">
 
           {/* Panel header */}
-          <div className="detail-section flex items-center justify-between">
-            <span className="detail-section-label" style={{ margin: 0 }}>Contact Details</span>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
+            <span className="text-[10px] font-bold uppercase tracking-[0.07em] text-muted-foreground/55">
+              Contact Details
+            </span>
             <button
               onClick={() => setSelected(null)}
-              className="p-1 rounded-md hover:bg-muted transition-colors text-muted-foreground"
-              style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-              <X size={14} />
+              aria-label="Close"
+              className="p-1 rounded-md hover:bg-muted transition-colors text-muted-foreground/60 hover:text-foreground bg-transparent border-0 cursor-pointer">
+              <X size={13} />
             </button>
           </div>
 
           {/* Identity */}
-          <div className="detail-section">
+          <DetailSection>
             <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0 text-[13px] font-bold text-muted-foreground">
+              <div className="w-9 h-9 rounded-full bg-primary/[0.07] flex items-center justify-center flex-shrink-0 text-[13px] font-bold text-primary/70">
                 {(selected.first_name?.[0] ?? selected.email?.[0] ?? '?').toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <p className="text-[14px] font-semibold text-foreground m-0 leading-tight">{fullName(selected)}</p>
+                <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                  <p className="text-[13.5px] font-semibold text-foreground m-0 leading-tight">{fullName(selected)}</p>
                   {selected.isCC && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground uppercase tracking-wide">CC</span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-muted/80 text-muted-foreground/50 uppercase tracking-widest leading-none">CC</span>
                   )}
                 </div>
                 {resolvedCompany(selected) && (
-                  <p className="text-[12px] text-muted-foreground mt-0.5 mb-1.5">{resolvedCompany(selected)}</p>
+                  <p className="text-[12px] text-muted-foreground mb-1.5">{resolvedCompany(selected)}</p>
                 )}
-                <StatusBadge status={selected.isCC ? 'cc' : selected.status} />
+                <StatusBadge status={(selected.isCC ? 'cc' : selected.status) as AppStatus} />
               </div>
             </div>
-          </div>
+          </DetailSection>
 
           {/* Contact details */}
-          <div className="detail-section">
-            <p className="detail-section-label">Contact</p>
-            <div className="flex flex-col gap-3">
-              {selected.email && (
-                <div className="detail-field">
-                  <p className="detail-field-label">Email</p>
-                  <button
-                    onClick={() => copy(selected.email!, 'email')}
-                    className="flex items-center gap-1.5 max-w-full bg-transparent border-0 p-0 cursor-pointer text-left">
-                    <span className="detail-field-value overflow-hidden text-ellipsis whitespace-nowrap max-w-[200px] block">
-                      {selected.email}
-                    </span>
-                    {copied === 'email'
-                      ? <Check size={11} className="text-emerald-500 flex-shrink-0" />
-                      : <Copy size={10} className="text-muted-foreground/30 flex-shrink-0 hover:text-muted-foreground" />}
-                  </button>
-                </div>
-              )}
-              {selected.phone && (
-                <div className="detail-field">
-                  <p className="detail-field-label">Phone</p>
-                  <button
-                    onClick={() => copy(selected.phone!, 'phone')}
-                    className="flex items-center gap-1.5 bg-transparent border-0 p-0 cursor-pointer">
-                    <span className="detail-field-value">{selected.phone}</span>
-                    {copied === 'phone'
-                      ? <Check size={11} className="text-emerald-500 flex-shrink-0" />
-                      : <Copy size={10} className="text-muted-foreground/30 flex-shrink-0" />}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+          <DetailSection label="Contact">
+            {selected.email && (
+              <DetailField label="Email">
+                <button
+                  onClick={() => copy(selected.email!, 'email')}
+                  className="flex items-center gap-1.5 max-w-full bg-transparent border-0 p-0 cursor-pointer text-left">
+                  <span className="text-[12px] text-foreground/85 overflow-hidden text-ellipsis whitespace-nowrap max-w-[200px] block leading-[1.5]">
+                    {selected.email}
+                  </span>
+                  {copied === 'email'
+                    ? <Check size={11} className="text-emerald-500 flex-shrink-0" />
+                    : <Copy size={10} className="text-muted-foreground/30 flex-shrink-0 hover:text-muted-foreground" />}
+                </button>
+              </DetailField>
+            )}
+            {selected.phone && (
+              <DetailField label="Phone">
+                <button
+                  onClick={() => copy(selected.phone!, 'phone')}
+                  className="flex items-center gap-1.5 bg-transparent border-0 p-0 cursor-pointer">
+                  <span className="text-[12px] text-foreground/85 leading-[1.5]">{selected.phone}</span>
+                  {copied === 'phone'
+                    ? <Check size={11} className="text-emerald-500 flex-shrink-0" />
+                    : <Copy size={10} className="text-muted-foreground/30 flex-shrink-0" />}
+                </button>
+              </DetailField>
+            )}
+          </DetailSection>
 
           {/* Lead info */}
-          <div className="detail-section flex-1">
-            <p className="detail-section-label">Lead Info</p>
-            <div className="flex flex-col gap-3">
-              {[
-                { label: 'Source',     value: SOURCE_LABEL[selected.source] ?? selected.source },
-                { label: 'Department', value: selected.department },
-                { label: 'Message',    value: selected.message },
-                { label: 'Created',    value: new Date(selected.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }) },
-              ].filter(f => f.value).map(f => (
-                <div key={f.label} className="detail-field">
-                  <p className="detail-field-label">{f.label}</p>
-                  <p className="detail-field-value">{f.value}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+          <DetailSection label="Lead Info" className="flex-1">
+            {[
+              { label: 'Source',     value: SOURCE_LABEL[selected.source] ?? selected.source },
+              { label: 'Department', value: selected.department },
+              { label: 'Message',    value: selected.message },
+              { label: 'Created',    value: new Date(selected.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }) },
+            ].filter(f => f.value).map(f => (
+              <DetailField key={f.label} label={f.label}>
+                {f.value}
+              </DetailField>
+            ))}
+          </DetailSection>
         </div>
       )}
-    </div>
+    </AppSplitLayout>
   )
 }

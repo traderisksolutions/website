@@ -21,8 +21,8 @@ function b64url(input: string | Buffer): string {
   return b64.replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
 }
 
-async function getDriveToken(): Promise<string> {
-  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON
+async function getDriveToken(serviceAccountJson?: string): Promise<string> {
+  const raw = serviceAccountJson ?? process.env.GOOGLE_SERVICE_ACCOUNT_JSON
   if (!raw) throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON not set')
   const creds = JSON.parse(raw)
   const now   = Math.floor(Date.now() / 1000)
@@ -45,15 +45,37 @@ async function getDriveToken(): Promise<string> {
 }
 
 type DriveFileMeta = { id: string; name: string; mimeType: string; modifiedTime: string }
+// driveToken is carried per-file so each file is downloaded with the correct service account
+type DriveFileWithFolder = DriveFileMeta & { source_folder: string; driveToken: string }
 
 async function listDriveFiles(token: string, folderId: string): Promise<DriveFileMeta[]> {
   const q   = encodeURIComponent(`'${folderId}' in parents and trashed = false`)
   const res = await fetch(
-    `${DRIVE_API}/files?q=${q}&fields=files(id,name,mimeType,modifiedTime)&pageSize=100&orderBy=name`,
+    `${DRIVE_API}/files?q=${q}&fields=files(id,name,mimeType,modifiedTime)&pageSize=100&orderBy=name&supportsAllDrives=true&includeItemsFromAllDrives=true`,
     { headers: { Authorization: `Bearer ${token}` } }
   )
-  const data = await res.json()
+  const data = await res.json() as { files?: DriveFileMeta[]; error?: { message?: string } }
+  if (!res.ok) {
+    throw new Error(`Drive API ${res.status} (folder: ${folderId}): ${data.error?.message ?? JSON.stringify(data).slice(0, 200)}`)
+  }
   return Array.isArray(data.files) ? data.files : []
+}
+
+// Recurse one level into subfolders. Files in root get source_folder='root'.
+// Files in a subfolder get source_folder=<subfolder name> (e.g. 'ai-outbound', 'engagement_ai_agent').
+async function listDriveFilesWithFolders(token: string, rootFolderId: string): Promise<DriveFileWithFolder[]> {
+  const rootItems = await listDriveFiles(token, rootFolderId)
+  const subfolders = rootItems.filter(f => f.mimeType === 'application/vnd.google-apps.folder')
+  const rootFiles  = rootItems.filter(f => f.mimeType !== 'application/vnd.google-apps.folder')
+
+  const result: DriveFileWithFolder[] = rootFiles.map(f => ({ ...f, source_folder: 'root', driveToken: token }))
+
+  for (const sub of subfolders) {
+    const subFiles = await listDriveFiles(token, sub.id)
+    result.push(...subFiles.map(f => ({ ...f, source_folder: sub.name, driveToken: token })))
+  }
+
+  return result
 }
 
 async function downloadFile(token: string, fileId: string): Promise<Buffer> {
@@ -142,16 +164,17 @@ async function deleteChunksForFile(fileId: string) {
 }
 
 async function storeChunks(
-  fileId: string, fileName: string,
+  fileId: string, fileName: string, sourceFolder: string,
   chunks: string[], embeddings: number[][]
 ) {
   const rows = chunks.map((content, i) => ({
-    file_id:     fileId,
-    file_name:   fileName,
-    chunk_index: i,
+    file_id:       fileId,
+    file_name:     fileName,
+    source_folder: sourceFolder,
+    chunk_index:   i,
     content,
-    embedding:   `[${embeddings[i].join(',')}]`,
-    char_count:  content.length,
+    embedding:     `[${embeddings[i].join(',')}]`,
+    char_count:    content.length,
   }))
   const res = await fetch(
     `${SB_URL}/rest/v1/knowledge_chunks?on_conflict=file_id,chunk_index`,
@@ -172,28 +195,89 @@ export type IndexResult = {
   totalChunks: number
 }
 
-export async function runRagIndex(force = false): Promise<IndexResult> {
+export async function runRagIndex(force = false, folderFilter?: string): Promise<IndexResult> {
   const apiKey   = process.env.GEMINI_API_KEY_DRAFT_EMAIL
-  const embedKey = process.env.GEMINI_VECTOR_UPLOAD ?? apiKey   // dedicated embedding key, falls back to draft key
-  const folderId = process.env.GOOGLE_DRIVE_KNOWLEDGE_FOLDER_ID
+  const embedKey = process.env.GEMINI_VECTOR_UPLOAD ?? apiKey
   if (!apiKey)   throw new Error('GEMINI_API_KEY_DRAFT_EMAIL not set')
   if (!embedKey) throw new Error('GEMINI_VECTOR_UPLOAD not set')
-  if (!folderId) throw new Error('GOOGLE_DRIVE_KNOWLEDGE_FOLDER_ID not set')
 
   const result: IndexResult = { indexed: [], skipped: [], deleted: [], errors: [], totalChunks: 0 }
   let totalCharsEmbedded = 0
-  const driveToken = await getDriveToken()
-  const driveFiles = await listDriveFiles(driveToken, folderId)
 
+  // Two separate service accounts:
+  //   GOOGLE_SERVICE_ACCOUNT_JSON      → ai-outbound/ folder
+  //   GOOGLE_SERVICE_ACC_OUTBOUND_JSON → engagement_ai_agent/ folder
+  const engagementToken = await getDriveToken(process.env.GOOGLE_SERVICE_ACCOUNT_JSON)
+  const outboundToken   = process.env.GOOGLE_SERVICE_ACC_OUTBOUND_JSON
+    ? await getDriveToken(process.env.GOOGLE_SERVICE_ACC_OUTBOUND_JSON)
+    : engagementToken
+
+  // When specific folder IDs are configured, skip the legacy root scan entirely.
+  // The root scan causes a dedup collision when GOOGLE_DRIVE_KNOWLEDGE_FOLDER_ID
+  // happens to be the same as one of the specific folders.
+  const allDriveFiles: DriveFileWithFolder[] = []
+  const rootFolderId = process.env.GOOGLE_DRIVE_KNOWLEDGE_FOLDER_ID
+  const hasSpecificFolders = !!(
+    process.env.GOOGLE_DRIVE_OUTBOUND_FOLDER_ID ||
+    process.env.GOOGLE_DRIVE_ENGAGEMENT_FOLDER_ID
+  )
+  if (rootFolderId && !hasSpecificFolders) {
+    const rootFiles = await listDriveFilesWithFolders(engagementToken, rootFolderId)
+    allDriveFiles.push(...rootFiles)
+  }
+
+  // Scan each configured folder with its own service account — explicit tag always wins
+  const extraFolders: [string | undefined, string, string][] = [
+    [process.env.GOOGLE_DRIVE_OUTBOUND_FOLDER_ID,   'ai-outbound',         outboundToken],
+    [process.env.GOOGLE_DRIVE_ENGAGEMENT_FOLDER_ID, 'engagement_ai_agent', engagementToken],
+  ]
+  const failedFolderTags = new Set<string>()
+  for (const [extraId, tag, token] of extraFolders) {
+    if (!extraId) continue
+    try {
+      const extraFiles = await listDriveFiles(token, extraId)
+      for (const f of extraFiles) {
+        // Always apply the explicit tag — overrides any 'root' entry from root scan
+        const existing = allDriveFiles.findIndex(x => x.id === f.id)
+        if (existing >= 0) {
+          allDriveFiles[existing] = { ...allDriveFiles[existing], source_folder: tag, driveToken: token }
+        } else {
+          allDriveFiles.push({ ...f, source_folder: tag, driveToken: token })
+        }
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      result.errors.push(`[${tag}] Drive scan failed: ${msg}`)
+      failedFolderTags.add(tag)
+    }
+  }
+
+  const driveFiles = folderFilter
+    ? allDriveFiles.filter(f => f.source_folder === folderFilter)
+    : allDriveFiles
   const driveIds = new Set(driveFiles.map(f => f.id))
 
-  // Delete chunks for files that no longer exist in Drive
+  // Scope deletion check to the same folder so we don't touch the other folder's chunks
+  const folderParam = folderFilter ? `&source_folder=eq.${encodeURIComponent(folderFilter)}` : ''
   const existingRes = await fetch(
-    `${SB_URL}/rest/v1/knowledge_chunks?select=file_id,file_name&order=file_id.asc`,
+    `${SB_URL}/rest/v1/knowledge_chunks?select=file_id,file_name&order=file_id.asc${folderParam}`,
     { headers: sbHeaders() }
   )
   const existingRows: { file_id: string; file_name: string }[] = existingRes.ok ? await existingRes.json() : []
   const existingFileIds = new Set((existingRows as { file_id: string }[]).map(r => r.file_id))
+
+  // Safety guard: if Drive scan returned 0 files but DB has indexed entries, the scan likely
+  // failed silently. Abort rather than delete valid data.
+  if (driveFiles.length === 0 && existingFileIds.size > 0) {
+    if (result.errors.length === 0) {
+      result.errors.push(
+        `Drive scan returned 0 files but DB has ${existingFileIds.size} indexed. ` +
+        `Aborting to prevent data loss — verify Drive folder access and sharing permissions.`
+      )
+    }
+    return result
+  }
+
   for (const id of Array.from(existingFileIds)) {
     if (!driveIds.has(id)) {
       const name = (existingRows as { file_id: string; file_name: string }[]).find(r => r.file_id === id)?.file_name ?? id
@@ -202,7 +286,7 @@ export async function runRagIndex(force = false): Promise<IndexResult> {
     }
   }
 
-  // Index each supported Drive file (PDF, TXT, MD, Google Docs)
+  // Index each supported Drive file (PDF, TXT, MD, Google Docs) — preserving source_folder
   const supported = driveFiles.filter(isSupportedFile)
   for (const file of supported) {
     try {
@@ -211,7 +295,7 @@ export async function runRagIndex(force = false): Promise<IndexResult> {
         continue
       }
 
-      const text = await extractText(driveToken, file)
+      const text = await extractText(file.driveToken, file)
       if (text.length < 50) {
         result.errors.push(`${file.name}: extracted text too short`)
         continue
@@ -232,11 +316,11 @@ export async function runRagIndex(force = false): Promise<IndexResult> {
 
       // Delete old chunks for this file then store new ones
       if (existingFileIds.has(file.id)) await deleteChunksForFile(file.id)
-      await storeChunks(file.id, file.name, chunks, embeddings)
+      await storeChunks(file.id, file.name, file.source_folder, chunks, embeddings)
 
-      result.indexed.push(file.name)
+      result.indexed.push(file.source_folder !== 'root' ? `${file.source_folder}/${file.name}` : file.name)
       result.totalChunks += chunks.length
-      console.log(`[rag-index] indexed ${file.name}: ${chunks.length} chunks`)
+      console.log(`[rag-index] indexed ${file.source_folder}/${file.name}: ${chunks.length} chunks`)
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
       result.errors.push(`${file.name}: ${msg}`)
@@ -253,20 +337,20 @@ export async function runRagIndex(force = false): Promise<IndexResult> {
 
 // Returns current index status (for the analytics page)
 export async function getRagIndexStatus(): Promise<{
-  files: { file_id: string; file_name: string; chunk_count: number; last_indexed: string }[]
+  files: { file_id: string; file_name: string; source_folder: string; chunk_count: number; last_indexed: string }[]
   totalChunks: number
 }> {
   const res = await fetch(
-    `${SB_URL}/rest/v1/knowledge_chunks?select=file_id,file_name,created_at&order=file_id.asc`,
+    `${SB_URL}/rest/v1/knowledge_chunks?select=file_id,file_name,source_folder,created_at&order=file_id.asc`,
     { headers: sbHeaders() }
   )
-  const rows: { file_id: string; file_name: string; created_at: string }[] = res.ok ? await res.json() : []
+  const rows: { file_id: string; file_name: string; source_folder: string | null; created_at: string }[] = res.ok ? await res.json() : []
 
-  const map = new Map<string, { file_name: string; count: number; last: string }>()
+  const map = new Map<string, { file_name: string; source_folder: string; count: number; last: string }>()
   for (const r of (Array.isArray(rows) ? rows : [])) {
     const existing = map.get(r.file_id)
     if (!existing) {
-      map.set(r.file_id, { file_name: r.file_name, count: 1, last: r.created_at })
+      map.set(r.file_id, { file_name: r.file_name, source_folder: r.source_folder ?? 'root', count: 1, last: r.created_at })
     } else {
       existing.count++
       if (r.created_at > existing.last) existing.last = r.created_at
@@ -275,9 +359,10 @@ export async function getRagIndexStatus(): Promise<{
 
   const files = Array.from(map.entries()).map(([file_id, v]) => ({
     file_id,
-    file_name:   v.file_name,
-    chunk_count: v.count,
-    last_indexed: v.last,
+    file_name:     v.file_name,
+    source_folder: v.source_folder,
+    chunk_count:   v.count,
+    last_indexed:  v.last,
   }))
 
   return { files, totalChunks: rows.length }

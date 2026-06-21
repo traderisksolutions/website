@@ -58,7 +58,7 @@
     --sidebar-ring:          219 81% 31%;    /* primary blue active indicator */
 
     /* ── Layout dimensions ── */
-    --sidebar-width:         240px;
+    --sidebar-width:         256px;
     --topnav-height:         52px;
     --mobile-nav-h:          0px;
     --content-bg:            hsl(216 18% 97%);
@@ -118,6 +118,29 @@
     --glass-shadow-sm:       1px 0 0 rgba(20,30,50,0.04), 4px 0 20px rgba(20,30,50,0.05);
     --glass-shadow-md:       0 8px 32px rgba(20,30,50,0.06), 0 2px 8px rgba(20,30,50,0.04);
     --glass-shadow-lg:       0 0 0 1px rgba(20,30,50,0.05), 0 28px 72px rgba(20,30,50,0.10), 0 8px 20px rgba(20,30,50,0.05);
+
+    /* Panel shadow — right-side detail panels, sheets, drawers */
+    --shadow-panel:          0 4px 24px rgba(20,30,50,0.08), 0 1px 4px rgba(20,30,50,0.04);
+
+    /* ── Content padding tokens ──
+       Use --content-px for operational screens (inbound, contacts, campaigns).
+       Use --content-px-editorial for docs/overview pages.
+       Use --content-pb to ensure last card clears the viewport bottom. */
+    --content-px:            1.5rem;    /* 24px */
+    --content-px-editorial:  2.5rem;    /* 40px */
+    --content-pb:            4rem;      /* 64px */
+
+    /* ── Stat card tonal accents ──
+       Color-code KPI / stat cards by metric type.
+       Apply as background with matching foreground for the value text. */
+    --stat-blue-bg:          rgba(15,61,145,0.05);
+    --stat-blue-fg:          #0F3D91;
+    --stat-green-bg:         rgba(15,138,95,0.06);
+    --stat-green-fg:         #0F8A5F;
+    --stat-amber-bg:         rgba(194,122,7,0.06);
+    --stat-amber-fg:         #C27A07;
+    --stat-red-bg:           rgba(194,65,77,0.06);
+    --stat-red-fg:           #C2414D;
   }
 }
 
@@ -201,11 +224,7 @@
   }
 }
 
-/* ── Sidebar nav item hover ── */
-.sb-row:hover {
-  background-color: hsl(var(--sidebar-accent)) !important;
-  color: hsl(var(--sidebar-accent-fg)) !important;
-}
+/* Sidebar nav item hover is now handled via Tailwind hover:bg-accent in Sidebar.tsx */
 
 /* ── Sidebar submenu animation ── */
 .sidebar-sub {
@@ -324,7 +343,7 @@
   gap: 16px;
   padding: 20px 24px 16px;
 }
-.page-title   { font-size: 18px; font-weight: 700; letter-spacing: -0.025em; color: hsl(var(--foreground)); margin: 0; }
+.page-title   { font-size: 20px; font-weight: 700; letter-spacing: -0.025em; color: hsl(var(--foreground)); margin: 0; }
 .page-subtitle { font-size: 12px; color: hsl(var(--muted-foreground)); margin: 3px 0 0; }
 
 /* ════════════════════════════════════════════════════════════════

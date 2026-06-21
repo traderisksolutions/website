@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import React from 'react'
-import { Search, Loader2, Table2 } from 'lucide-react'
+import { Loader2, Table2 } from 'lucide-react'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { statusMeta } from '@/lib/status'
+import { AppPageHeader } from '@/components/app-shell'
+import { DataTableToolbar, DataTableSearch, DataTableSpacer } from '@/components/data-table/toolbar'
 
 type Status     = 'new' | 'contacted' | 'replied' | 'qualified' | 'disqualified'
 type RecordType = 'person' | 'company'
@@ -180,41 +182,33 @@ export default function OutboundLeadsPage() {
   })
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-screen overflow-hidden bg-background">
 
-      {/* Page header */}
-      <div className="page-header bg-background border-b border-border flex-shrink-0">
-        <div>
-          <h1 className="page-title">Outbound Leads</h1>
-          <p className="page-subtitle">{leads.length} total · {leads.filter(l => l.status === 'new').length} new</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Search */}
-          <div className="filter-search">
-            <Search size={12} className="text-muted-foreground/60 flex-shrink-0" />
-            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search leads…" />
-          </div>
+      <AppPageHeader
+        title="Outbound Leads"
+        description={loading ? 'Loading…' : `${leads.length} total · ${leads.filter(l => l.status === 'new').length} new`}
+      />
 
-          {/* Status filter */}
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as Status | 'all')}
-            className="h-8 px-2.5 rounded-md border border-border text-[12px] text-foreground bg-background cursor-pointer">
-            <option value="all">All Statuses</option>
-            <option value="new">New</option>
-            <option value="contacted">Contacted</option>
-            <option value="replied">Replied</option>
-            <option value="qualified">Qualified</option>
-            <option value="disqualified">Disqualified</option>
-          </select>
-
-          {/* Type filter */}
-          <select value={typeFilter} onChange={e => setTypeFilter(e.target.value as RecordType | 'all')}
-            className="h-8 px-2.5 rounded-md border border-border text-[12px] text-foreground bg-background cursor-pointer">
-            <option value="all">All Types</option>
-            <option value="person">People</option>
-            <option value="company">Companies</option>
-          </select>
-        </div>
-      </div>
+      {/* Toolbar */}
+      <DataTableToolbar>
+        <DataTableSearch value={q} onChange={setQ} placeholder="Search leads…" />
+        <DataTableSpacer />
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as Status | 'all')}
+          className="h-8 px-2.5 rounded-md border border-input text-[12px] text-foreground bg-background cursor-pointer outline-none focus:ring-1 focus:ring-ring">
+          <option value="all">All Statuses</option>
+          <option value="new">New</option>
+          <option value="contacted">Contacted</option>
+          <option value="replied">Replied</option>
+          <option value="qualified">Qualified</option>
+          <option value="disqualified">Disqualified</option>
+        </select>
+        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value as RecordType | 'all')}
+          className="h-8 px-2.5 rounded-md border border-input text-[12px] text-foreground bg-background cursor-pointer outline-none focus:ring-1 focus:ring-ring">
+          <option value="all">All Types</option>
+          <option value="person">People</option>
+          <option value="company">Companies</option>
+        </select>
+      </DataTableToolbar>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
