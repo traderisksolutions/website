@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef, useMemo, Suspense, Fragment } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Search, RefreshCw, ChevronDown, Copy, Check, X, Trash2, ArrowLeft, Building2 } from 'lucide-react'
+import { Search, RefreshCw, ChevronDown, Copy, Check, X, Trash2, ArrowLeft, Building2, ArrowRightLeft } from 'lucide-react'
 import { useAuditLog } from '@/hooks/useAuditLog'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
 import { Tip } from '@/components/Tip'
@@ -19,6 +19,8 @@ type Lead = {
   page_url: string | null; status: string; notes?: string | null
   subject?: string | null
   thread_id?: string | null
+  segment?: string | null
+  segment_note?: string | null
   campaign_context?: {
     campaign_id: string
     campaign_name: string
@@ -1298,7 +1300,7 @@ function ThreadMetaPanel({ msg }: { msg: RealMsg | null }) {
 // ── Contact panel ─────────────────────────────────────────────────────────────
 
 function ContactPanel({
-  lead, messages, onStatus, threadId, selectedMsg, onRestoreDraft,
+  lead, messages, onStatus, onTransfer, threadId, selectedMsg, onRestoreDraft,
   panelTab, setPanelTab,
   toAddress, setToAddress,
   ccList, setCcList, bccList, setBccList, customSubject, setCustomSubject,
@@ -1306,6 +1308,7 @@ function ContactPanel({
   lead:             Lead
   messages:         RealMsg[]
   onStatus:         (id: string, s: string) => void
+  onTransfer:       (id: string, note: string) => Promise<void>
   threadId:         string | null
   selectedMsg:      RealMsg | null
   onRestoreDraft:   (body: string, generatedBy: string) => void
@@ -1320,13 +1323,29 @@ function ContactPanel({
   customSubject:    string
   setCustomSubject: (s: string) => void
 }) {
-  const [menuOpen,     setMenuOpen]     = useState(false)
-  const [copied,       setCopied]       = useState<string | null>(null)
-  const [notesText,    setNotesText]    = useState(lead.notes ?? '')
-  const [notesSaving,  setNotesSaving]  = useState(false)
-  const [notesSaved,   setNotesSaved]   = useState(false)
+  const [menuOpen,        setMenuOpen]        = useState(false)
+  const [copied,          setCopied]          = useState<string | null>(null)
+  const [notesText,       setNotesText]       = useState(lead.notes ?? '')
+  const [notesSaving,     setNotesSaving]     = useState(false)
+  const [notesSaved,      setNotesSaved]      = useState(false)
+  const [transferOpen,    setTransferOpen]    = useState(false)
+  const [transferNote,    setTransferNote]    = useState('')
+  const [transferSaving,  setTransferSaving]  = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const log     = useAuditLog()
+
+  // Close transfer form when switching leads
+  useEffect(() => { setTransferOpen(false); setTransferNote('') }, [lead.id])
+
+  async function confirmTransfer() {
+    if (transferSaving) return
+    setTransferSaving(true)
+    try {
+      await onTransfer(lead.id, transferNote.trim())
+      setTransferOpen(false)
+      setTransferNote('')
+    } finally { setTransferSaving(false) }
+  }
 
   // Reset notes when switching leads
   useEffect(() => { setNotesText(lead.notes ?? ''); setNotesSaved(false) }, [lead.id, lead.notes])
@@ -1536,6 +1555,59 @@ function ContactPanel({
         </div>
       </div>
 
+      {/* Transfer to Existing Client — only shown for prospects not yet transferred */}
+      {lead.segment !== 'existing_client' && EMAIL_SOURCES.has(lead.source) && (
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid hsl(var(--border))' }}>
+          {!transferOpen ? (
+            <button
+              onClick={() => setTransferOpen(true)}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '6px 10px', borderRadius: 8, border: '1px solid hsl(var(--border))', background: 'hsl(var(--muted))', color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}
+            >
+              <ArrowRightLeft size={12} strokeWidth={2} />
+              Move to Existing Client
+            </button>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <p style={lbl}>Reason for transfer</p>
+              <input
+                autoFocus
+                value={transferNote}
+                onChange={e => setTransferNote(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') confirmTransfer(); if (e.key === 'Escape') { setTransferOpen(false); setTransferNote('') } }}
+                placeholder="e.g. Existing marine policy"
+                style={{ width: '100%', boxSizing: 'border-box', fontSize: 12, color: 'var(--text-secondary)', border: '1px solid hsl(var(--border))', borderRadius: 8, padding: '6px 10px', background: 'hsl(var(--background))', outline: 'none', fontFamily: 'inherit' }}
+              />
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  onClick={confirmTransfer}
+                  disabled={transferSaving}
+                  style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', background: 'var(--primary-hex)', color: '#fff', fontSize: 12, fontWeight: 600, cursor: transferSaving ? 'default' : 'pointer', opacity: transferSaving ? 0.7 : 1 }}
+                >
+                  {transferSaving ? 'Moving…' : 'Confirm'}
+                </button>
+                <button
+                  onClick={() => { setTransferOpen(false); setTransferNote('') }}
+                  style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid hsl(var(--border))', background: 'none', color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Existing client badge — shown after transfer */}
+      {lead.segment === 'existing_client' && (
+        <div style={{ padding: '10px 16px', borderBottom: '1px solid hsl(var(--border))', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <ArrowRightLeft size={11} strokeWidth={2} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+          <div>
+            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>Existing Client</span>
+            {lead.segment_note && <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '1px 0 0' }}>{lead.segment_note}</p>}
+          </div>
+        </div>
+      )}
+
       <div style={{ padding: '12px 16px', borderBottom: '1px solid hsl(var(--border))' }}>
         <p style={lbl}>Contact</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -1598,11 +1670,12 @@ function ContactPanel({
 // ── Thread view ───────────────────────────────────────────────────────────────
 
 function ThreadView({
-  lead, threadState, onStatus, onDelete, onThreadRefresh, onBack,
+  lead, threadState, onStatus, onTransfer, onDelete, onThreadRefresh, onBack,
 }: {
   lead:             Lead
   threadState:      ThreadState
   onStatus:         (id: string, s: string) => void
+  onTransfer:       (id: string, note: string) => Promise<void>
   onDelete:         (id: string) => void
   onThreadRefresh:  () => void
   onBack?:          () => void
@@ -1852,7 +1925,7 @@ function ThreadView({
       </div>
 
       <div className="contact-panel-wrapper">
-        <ContactPanel lead={lead} messages={messages} onStatus={onStatus} threadId={threadId} selectedMsg={selectedMsg} onRestoreDraft={(body, generatedBy) => setPendingRestore({ body, generatedBy, stamp: Date.now() })} panelTab={panelTab} setPanelTab={setPanelTab} toAddress={toAddress} setToAddress={setToAddress} ccList={ccList} setCcList={setCcList} bccList={bccList} setBccList={setBccList} customSubject={customSubject} setCustomSubject={setCustomSubject} />
+        <ContactPanel lead={lead} messages={messages} onStatus={onStatus} onTransfer={onTransfer} threadId={threadId} selectedMsg={selectedMsg} onRestoreDraft={(body, generatedBy) => setPendingRestore({ body, generatedBy, stamp: Date.now() })} panelTab={panelTab} setPanelTab={setPanelTab} toAddress={toAddress} setToAddress={setToAddress} ccList={ccList} setCcList={setCcList} bccList={bccList} setBccList={setBccList} customSubject={customSubject} setCustomSubject={setCustomSubject} />
       </div>
     </div>
   )
@@ -2012,6 +2085,22 @@ function EngagementPageInner() {
     })
   }
 
+  async function handleTransfer(id: string, note: string) {
+    const lead = leads.find(l => l.id === id)
+    setLeads(prev => prev.map(l => l.id === id ? { ...l, segment: 'existing_client', segment_note: note || null } : l))
+    await fetch('/api/leads', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, segment: 'existing_client', segment_note: note || null }),
+    })
+    log({
+      action:        'lead.transferred',
+      resource_type: 'lead',
+      resource_id:   id,
+      lead_email:    lead?.email ?? undefined,
+      new_value:     { segment: 'existing_client', segment_note: note },
+    })
+  }
+
   function handleDelete(id: string) {
     setLeads(prev => prev.filter(l => l.id !== id))
     setThreadMap(prev => { const next = { ...prev }; delete next[id]; return next })
@@ -2033,15 +2122,17 @@ function EngagementPageInner() {
   function clearFilters() { setSearch('') }
   const hasFilters = search
 
-  // Prospect = inbound channel (EMAIL_SOURCES) OR replied to campaign
-  // Existing Client = CC'd/FWD'd into an email thread (not in EMAIL_SOURCES and no campaign reply)
-  const prospectsCount = useMemo(() => leads.filter(l => EMAIL_SOURCES.has(l.source) || !!l.campaign_context).length, [leads])
-  const clientsCount   = useMemo(() => leads.filter(l => !EMAIL_SOURCES.has(l.source) && !l.campaign_context).length, [leads])
+  // Prospect = inbound channel (EMAIL_SOURCES) OR replied to campaign, AND not manually transferred
+  // Existing Client = FWD/CC thread, OR manually transferred via segment flag
+  const isProspect = (l: Lead) => (EMAIL_SOURCES.has(l.source) || !!l.campaign_context) && l.segment !== 'existing_client'
+  const isClient   = (l: Lead) => (!EMAIL_SOURCES.has(l.source) && !l.campaign_context) || l.segment === 'existing_client'
+  const prospectsCount = useMemo(() => leads.filter(isProspect).length, [leads]) // eslint-disable-line react-hooks/exhaustive-deps
+  const clientsCount   = useMemo(() => leads.filter(isClient).length,   [leads]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const visible = useMemo(() => {
     let list = leads.filter(l => {
-      if (activeTab === 'prospects') return EMAIL_SOURCES.has(l.source) || !!l.campaign_context
-      if (activeTab === 'clients')   return !EMAIL_SOURCES.has(l.source) && !l.campaign_context
+      if (activeTab === 'prospects') return isProspect(l)
+      if (activeTab === 'clients')   return isClient(l)
       return true
     }).filter(l => matchesSearch(l, search))
     list = [...list].sort((a, b) => {
@@ -2213,6 +2304,7 @@ function EngagementPageInner() {
               lead={selectedLead}
               threadState={selectedThread ?? { loading: true, thread: null, messages: [], error: null }}
               onStatus={handleStatus}
+              onTransfer={handleTransfer}
               onDelete={handleDelete}
               onThreadRefresh={refreshSelectedThread}
               onBack={() => setMobilePanelView('list')}
