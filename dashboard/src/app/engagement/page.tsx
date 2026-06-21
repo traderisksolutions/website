@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef, useMemo, Suspense } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo, Suspense, Fragment } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Search, RefreshCw, ChevronDown, Copy, Check, X, Calendar, ArrowUpDown, SlidersHorizontal, Trash2, ArrowLeft } from 'lucide-react'
 import { useAuditLog } from '@/hooks/useAuditLog'
@@ -66,6 +66,22 @@ type SortKey = 'last_activity' | 'newest' | 'oldest'
 
 const ENGAGED_STATUSES = new Set(['contacted', 'engaged', 'qualified', 'proposal', 'converted'])
 const EMAIL_SOURCES    = new Set(['website_form', 'email', 'manual'])
+
+const PERSONAL_DOMAINS = new Set([
+  'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com',
+  'live.com', 'me.com', 'msn.com', 'protonmail.com', 'aol.com', 'googlemail.com',
+])
+
+function domainOf(email: string | null | undefined): string {
+  if (!email) return '__none__'
+  return email.split('@')[1]?.toLowerCase() ?? '__none__'
+}
+
+function companyLabel(domainKey: string): string {
+  if (domainKey === '__personal__' || domainKey === '__none__') return 'Individual'
+  const base = domainKey.split('.')[0]
+  return base.charAt(0).toUpperCase() + base.slice(1)
+}
 
 const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
   contacted: { label: 'Contacted', color: '#b45309', bg: 'rgba(245,158,11,0.10)'  },
@@ -2177,17 +2193,42 @@ function EngagementPageInner() {
                   <button onClick={clearFilters} style={{ fontSize: 11, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer' }}>Clear filters</button>
                 )}
               </div>
-            ) : (
-              visible.map(lead => (
-                <LeadListItem
-                  key={lead.id}
-                  lead={lead}
-                  isActive={lead.id === selectedId}
-                  threadState={threadMap[lead.id]}
-                  onClick={() => { setSelectedId(lead.id); setMobilePanelView('thread') }}
-                />
+            ) : (() => {
+              // Group by company domain — preserves sort order within each group
+              const groups = new Map<string, Lead[]>()
+              for (const lead of visible) {
+                const d   = domainOf(lead.email)
+                const key = PERSONAL_DOMAINS.has(d) ? '__personal__' : d
+                if (!groups.has(key)) groups.set(key, [])
+                groups.get(key)!.push(lead)
+              }
+              return Array.from(groups.entries()).map(([key, group]) => (
+                <Fragment key={key}>
+                  <div style={{
+                    padding: '5px 14px 4px',
+                    background: '#f5f6f8',
+                    borderBottom: '1px solid #eaecef',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#777', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                      {companyLabel(key)}
+                    </span>
+                    <span style={{ fontSize: 10, color: '#bbb', fontVariantNumeric: 'tabular-nums' }}>
+                      {group.length > 1 ? `${group.length} contacts` : key === '__personal__' || key === '__none__' ? '' : key}
+                    </span>
+                  </div>
+                  {group.map(lead => (
+                    <LeadListItem
+                      key={lead.id}
+                      lead={lead}
+                      isActive={lead.id === selectedId}
+                      threadState={threadMap[lead.id]}
+                      onClick={() => { setSelectedId(lead.id); setMobilePanelView('thread') }}
+                    />
+                  ))}
+                </Fragment>
               ))
-            )}
+            })()}
           </div>
         </div>
 

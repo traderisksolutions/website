@@ -248,6 +248,21 @@ async function tagThreadWithCampaignContext(email: string, threadId: string): Pr
       body:    JSON.stringify({ send_status: 'replied' }),
     })
 
+    // Promote contact to 'engaged' (outbound reply = active conversation)
+    const cRes = await fetch(
+      `${SB_URL}/rest/v1/contacts?email=eq.${encodeURIComponent(email)}&select=id,engagement_stage&limit=1`,
+      { headers: h, cache: 'no-store' }
+    ).catch(() => null)
+    const cRows: { id: string; engagement_stage: string | null }[] = cRes?.ok ? await cRes.json() : []
+    const cRow = cRows[0]
+    if (cRow && (!cRow.engagement_stage || cRow.engagement_stage === 'prospect')) {
+      await fetch(`${SB_URL}/rest/v1/contacts?id=eq.${cRow.id}`, {
+        method:  'PATCH',
+        headers: h,
+        body:    JSON.stringify({ engagement_stage: 'engaged' }),
+      }).catch(() => {})
+    }
+
     // Tag the thread with campaign context
     const campRes = await fetch(
       `${SB_URL}/rest/v1/ob_campaigns?id=eq.${obLeads[0].campaign_id}&select=name,product_type&limit=1`,
@@ -387,12 +402,24 @@ async function ingestMessage(token: string, gmailMsgId: string) {
     })
     if (!contactUpsert.ok) console.error('[ingest] contact upsert failed:', await contactUpsert.text())
     const contactFetch = await fetch(
-      `${SB_URL}/rest/v1/contacts?email=eq.${encodeURIComponent(resolvedParty.email)}&select=id,company&limit=1`,
+      `${SB_URL}/rest/v1/contacts?email=eq.${encodeURIComponent(resolvedParty.email)}&select=id,company,engagement_stage&limit=1`,
       { headers: sbHeaders() }
     )
     const contactFetchRows = contactFetch.ok ? await contactFetch.json() : []
     const existingContact  = Array.isArray(contactFetchRows) ? contactFetchRows[0] : null
     contactId = existingContact?.id ?? null
+
+    // Promote to 'engaged' if contact is new or still at prospect stage
+    if (contactId) {
+      const stage = existingContact?.engagement_stage
+      if (!stage || stage === 'prospect') {
+        await fetch(`${SB_URL}/rest/v1/contacts?id=eq.${contactId}`, {
+          method:  'PATCH',
+          headers: sbHeaders('return=minimal'),
+          body:    JSON.stringify({ engagement_stage: 'engaged' }),
+        }).catch(() => {})
+      }
+    }
 
     if (contactId && !existingContact?.company) {
       const inferred = inferCompanyFromEmail(resolvedParty.email)
