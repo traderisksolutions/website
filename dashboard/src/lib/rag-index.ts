@@ -230,6 +230,7 @@ export async function runRagIndex(force = false, folderFilter?: string): Promise
   const extraFolders: [string | undefined, string, string][] = [
     [process.env.GOOGLE_DRIVE_OUTBOUND_FOLDER_ID,   'ai-outbound',         outboundToken],
     [process.env.GOOGLE_DRIVE_ENGAGEMENT_FOLDER_ID, 'engagement_ai_agent', engagementToken],
+    [process.env.GOOGLE_DRIVE_INBOUND_FOLDER_ID,    'inbound_ai_agent',    engagementToken],
   ]
   const failedFolderTags = new Set<string>()
   for (const [extraId, tag, token] of extraFolders) {
@@ -336,9 +337,14 @@ export async function runRagIndex(force = false, folderFilter?: string): Promise
 }
 
 // Returns current index status (for the analytics page)
+function driveUrl(folderId: string | undefined): string | null {
+  return folderId ? `https://drive.google.com/drive/folders/${folderId}` : null
+}
+
 export async function getRagIndexStatus(): Promise<{
-  files: { file_id: string; file_name: string; source_folder: string; chunk_count: number; last_indexed: string }[]
+  files:      { file_id: string; file_name: string; source_folder: string; chunk_count: number; last_indexed: string }[]
   totalChunks: number
+  folderUrls:  Record<string, string>
 }> {
   const res = await fetch(
     `${SB_URL}/rest/v1/knowledge_chunks?select=file_id,file_name,source_folder,created_at&order=file_id.asc`,
@@ -365,5 +371,18 @@ export async function getRagIndexStatus(): Promise<{
     last_indexed:  v.last,
   }))
 
-  return { files, totalChunks: rows.length }
+  // Build Drive URLs from server-side env vars — keyed by source_folder name
+  const folderUrls: Record<string, string> = {}
+  const pairs: [string | undefined, string][] = [
+    [process.env.GOOGLE_DRIVE_OUTBOUND_FOLDER_ID,   'ai-outbound'],
+    [process.env.GOOGLE_DRIVE_ENGAGEMENT_FOLDER_ID, 'engagement_ai_agent'],
+    [process.env.GOOGLE_DRIVE_INBOUND_FOLDER_ID,    'inbound_ai_agent'],
+    [process.env.GOOGLE_DRIVE_KNOWLEDGE_FOLDER_ID,  'root'],
+  ]
+  for (const [id, key] of pairs) {
+    const url = driveUrl(id)
+    if (url) folderUrls[key] = url
+  }
+
+  return { files, totalChunks: rows.length, folderUrls }
 }

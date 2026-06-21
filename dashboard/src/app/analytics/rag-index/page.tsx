@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { RefreshCw, CheckCircle, AlertTriangle, RotateCcw, Megaphone, Bot, FileText, Inbox } from 'lucide-react'
+import { RefreshCw, CheckCircle, AlertTriangle, RotateCcw, Megaphone, Bot, FileText, Inbox, ExternalLink } from 'lucide-react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type IndexedFile  = { file_id: string; file_name: string; source_folder: string; chunk_count: number; last_indexed: string }
-type Status       = { files: IndexedFile[]; totalChunks: number }
+type Status       = { files: IndexedFile[]; totalChunks: number; folderUrls: Record<string, string> }
 type IndexResult  = { indexed: string[]; skipped: string[]; deleted: string[]; errors: string[]; totalChunks: number }
 
 async function safeJson(res: Response): Promise<unknown> {
@@ -303,7 +303,21 @@ export default function RagIndexPage() {
                   <p className="text-[12px] text-muted-foreground mt-0.5">{t.purpose}</p>
                 </div>
               </div>
-              <div className="flex gap-2 flex-shrink-0">
+              <div className="flex gap-2 flex-shrink-0 flex-wrap">
+                {status?.folderUrls?.[t.folder] && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="gap-1.5 h-8 text-[12px]"
+                    title="Open this folder in Google Drive"
+                  >
+                    <a href={status.folderUrls[t.folder]} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink size={12} strokeWidth={2} />
+                      Open in Drive
+                    </a>
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   onClick={() => runReindex(t.folder, false)}
