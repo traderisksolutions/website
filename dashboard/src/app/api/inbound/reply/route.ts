@@ -211,9 +211,10 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // 5. Update lead: status → contacted, link contact
+    // 5. Update lead: status → contacted, link contact + thread
     const patchBody: Record<string, unknown> = { status: 'contacted' }
     if (contactId) patchBody.contact_id = contactId
+    if (threadId)  patchBody.thread_id  = threadId
 
     await fetch(`${SB_URL}/rest/v1/inbound_leads?id=eq.${leadId}`, {
       method:  'PATCH',

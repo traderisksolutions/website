@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef, useMemo, Suspense, Fragment } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Search, RefreshCw, ChevronDown, Copy, Check, X, ArrowUpDown, SlidersHorizontal, Trash2, ArrowLeft, Building2 } from 'lucide-react'
+import { Search, RefreshCw, ChevronDown, Copy, Check, X, Trash2, ArrowLeft, Building2 } from 'lucide-react'
 import { useAuditLog } from '@/hooks/useAuditLog'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
 import { Tip } from '@/components/Tip'
@@ -60,8 +60,6 @@ type RagSource = {
   similarity:  number
   content:     string
 }
-
-type SortKey = 'last_activity' | 'newest' | 'oldest'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -1949,16 +1947,12 @@ function EngagementPageInner() {
   const [refreshing,      setRefreshing]      = useState(false)
   const [selectedId,      setSelectedId]      = useState<string | null>(null)
   const [search,          setSearch]          = useState('')
-  const [sortKey,         setSortKey]         = useState<SortKey>('last_activity')
-  const [filterOpen,      setFilterOpen]      = useState(false)
   const [groupByCompany,  setGroupByCompany]  = useState(false)
   const [threadMap,       setThreadMap]       = useState<Record<string, ThreadState>>({})
   const [mobilePanelView, setMobilePanelView] = useState<'list' | 'thread'>('list')
   const [activeTab,       setActiveTab]       = useState<EngagementTab>('all')
 
   const log = useAuditLog()
-
-  const filterRef = useRef<HTMLDivElement>(null)
 
   const load = useCallback(async (spinner = false) => {
     if (spinner) setRefreshing(true)
@@ -1978,13 +1972,6 @@ function EngagementPageInner() {
     const t = setInterval(() => load(), 30_000)
     return () => clearInterval(t)
   }, [load])
-
-  useEffect(() => {
-    if (!filterOpen) return
-    const h = (e: MouseEvent) => { if (filterRef.current && !filterRef.current.contains(e.target as Node)) setFilterOpen(false) }
-    document.addEventListener('mousedown', h)
-    return () => document.removeEventListener('mousedown', h)
-  }, [filterOpen])
 
   useEffect(() => {
     if (!selectedId) return
@@ -2047,27 +2034,17 @@ function EngagementPageInner() {
       if (activeTab === 'clients')   return !EMAIL_SOURCES.has(l.source) && !l.campaign_context
       return true
     }).filter(l => matchesSearch(l, search))
-    if (sortKey === 'newest') list = [...list].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    else if (sortKey === 'oldest') list = [...list].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-    else {
-      list = [...list].sort((a, b) => {
-        const ta = threadMap[a.id]?.messages.at(-1)?.sent_at ?? a.created_at
-        const tb = threadMap[b.id]?.messages.at(-1)?.sent_at ?? b.created_at
-        return new Date(tb).getTime() - new Date(ta).getTime()
-      })
-    }
+    list = [...list].sort((a, b) => {
+      const ta = threadMap[a.id]?.messages.at(-1)?.sent_at ?? a.created_at
+      const tb = threadMap[b.id]?.messages.at(-1)?.sent_at ?? b.created_at
+      return new Date(tb).getTime() - new Date(ta).getTime()
+    })
     return list
-  }, [leads, activeTab, search, sortKey, threadMap])
+  }, [leads, activeTab, search, threadMap])
 
   const selectedLead   = leads.find(l => l.id === selectedId) ?? null
   const selectedThread = selectedId ? threadMap[selectedId] : undefined
   const needsReplyCount = Object.values(threadMap).filter(t => t.messages.at(-1)?.direction === 'inbound').length
-
-  const SORT_LABELS: Record<SortKey, string> = {
-    last_activity: 'Last activity',
-    newest:        'Newest lead',
-    oldest:        'Oldest lead',
-  }
 
   return (
     <div style={{ display: 'flex', height: 'calc(100vh - var(--mobile-nav-h, 0px))', overflow: 'hidden', flexDirection: 'column' }}>
@@ -2119,32 +2096,6 @@ function EngagementPageInner() {
                 <Building2 size={11} strokeWidth={2} />
                 Group by company
               </button>
-              <div style={{ position: 'relative' }} ref={filterRef}>
-                <button
-                  onClick={() => setFilterOpen(v => !v)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: hasFilters ? 'var(--primary-hex)' : 'var(--text-secondary)', background: '#fff', border: `1px solid ${hasFilters ? 'var(--primary-light-border)' : 'hsl(var(--border))'}`, borderRadius: 7, padding: '5px 9px', cursor: 'pointer' }}
-                >
-                  <SlidersHorizontal size={11} strokeWidth={2} />
-                  {SORT_LABELS[sortKey]}
-                  <ChevronDown size={10} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />
-                </button>
-                {filterOpen && (
-                  <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, background: '#fff', border: '1px solid hsl(var(--border))', borderRadius: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.10)', zIndex: 50, padding: '12px', minWidth: 220 }}>
-                    <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sort</p>
-                    {(Object.entries(SORT_LABELS) as [SortKey, string][]).map(([k, lbl]) => (
-                      <button key={k} onClick={() => { setSortKey(k); setFilterOpen(false) }} style={{ width: '100%', textAlign: 'left', padding: '6px 8px', fontSize: 12, background: sortKey === k ? 'var(--primary-light-bg)' : 'none', border: 'none', borderRadius: 6, cursor: 'pointer', color: sortKey === k ? 'var(--primary-hex)' : 'var(--text-secondary)', fontWeight: sortKey === k ? 600 : 400, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <ArrowUpDown size={10} strokeWidth={2} style={{ color: sortKey === k ? 'var(--primary-hex)' : 'hsl(var(--border))' }} />
-                        {lbl}
-                      </button>
-                    ))}
-                    {hasFilters && (
-                      <button onClick={() => { clearFilters(); setFilterOpen(false) }} style={{ marginTop: 10, width: '100%', fontSize: 11, color: 'var(--error)', background: 'none', border: '1px solid var(--error-bg)', borderRadius: 6, padding: '5px 0', cursor: 'pointer' }}>
-                        Clear filters
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
             </div>
           </div>
 

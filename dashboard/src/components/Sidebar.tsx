@@ -215,7 +215,6 @@ export default function Sidebar() {
           label="Engagement"
           open={engageOpen}
           onToggle={() => setEngageOpen(o => !o)}
-          badge={totalEngaged || undefined}
         />
         {engageOpen && (
           <div className="space-y-px">
