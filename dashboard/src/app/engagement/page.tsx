@@ -170,9 +170,10 @@ async function fetchLeads(): Promise<Lead[]> {
   const conversations = Array.isArray(convRaw) ? convRaw : []
 
   const leadEmails = new Set(engagedLeads.map(l => l.email?.toLowerCase()).filter(Boolean))
-  const newConversations = conversations.filter(c =>
-    !c.email || !leadEmails.has(c.email.toLowerCase())
-  )
+  // Threads that have no matching lead record → Existing Clients (source='thread' ∉ EMAIL_SOURCES)
+  const newConversations = conversations
+    .filter(c => !c.email || !leadEmails.has(c.email.toLowerCase()))
+    .map(c => ({ ...c, source: 'thread' as const }))
 
   return [...engagedLeads, ...newConversations]
 }
