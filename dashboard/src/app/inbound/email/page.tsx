@@ -676,7 +676,7 @@ function InboundLeadsPage() {
                                 )}
                                 title={isExpanded ? 'Collapse' : 'Draft & send reply'}
                               >
-                                {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                {isExpanded ? <ChevronUp size={14} /> : <Send size={14} />}
                               </button>
                             )}
                           </td>
