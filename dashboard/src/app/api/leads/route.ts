@@ -109,10 +109,10 @@ export async function PATCH(req: NextRequest) {
                 first_name:       lead.first_name ?? null,
                 last_name:        lead.last_name  ?? null,
                 email:            lead.email,
+                company:          lead.company ?? null,
                 source:           'website',
                 engagement_stage: newStage,
                 inbound_lead_id:  id,
-                ...(lead.company ? { crm_data: { company: lead.company } } : {}),
               }),
             })
           }

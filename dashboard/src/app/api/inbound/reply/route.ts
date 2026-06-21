@@ -126,9 +126,9 @@ export async function POST(req: NextRequest) {
         first_name:      firstName,
         last_name:       lastName,
         email,
+        company:         company ?? null,
         source:          'website',
         inbound_lead_id: leadId,
-        ...(company ? { crm_data: { company } } : {}),
       }),
     })
     if (!upsertRes.ok) {
