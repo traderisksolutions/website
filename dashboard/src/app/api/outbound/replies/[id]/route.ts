@@ -123,10 +123,14 @@ export async function PATCH(req: NextRequest, { params }: Params) {
             await fetch(`${SB_URL}/rest/v1/contacts?id=eq.${existing.id}`, { method: 'PATCH', headers: sbHeaders(), body: JSON.stringify(patch) })
           }
         } else {
+          const nameParts   = (leadName ?? '').trim().split(/\s+/)
+          const firstName   = nameParts[0] || null
+          const lastName    = nameParts.length > 1 ? nameParts.slice(1).join(' ') : null
           await fetch(`${SB_URL}/rest/v1/contacts`, {
             method: 'POST', headers: sbHeaders('return=minimal'),
             body: JSON.stringify({
-              email: leadEmail, full_name: leadName, company: leadCompany,
+              first_name: firstName, last_name: lastName,
+              email: leadEmail, company: leadCompany,
               source: 'outbound_campaign', engagement_stage: 'engaged',
               outbound_lead_id: resolvedLeadId, campaign_id: resolvedCampaignId,
             }),

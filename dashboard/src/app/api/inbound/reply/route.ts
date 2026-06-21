@@ -115,16 +115,20 @@ export async function POST(req: NextRequest) {
     const gmailMsgId    = sent.id as string
     const gmailThreadId = sent.threadId as string
 
-    // 2. Upsert contact (contacts has no `company` column — stored in crm_data)
+    // 2. Upsert contact (contacts table uses first_name/last_name/company — not full_name)
+    const nameParts   = (name ?? '').trim().split(/\s+/)
+    const firstName   = nameParts[0] ?? null
+    const lastName    = nameParts.length > 1 ? nameParts.slice(1).join(' ') : null
     const upsertRes  = await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
       method:  'POST',
       headers: sbHeaders('return=representation,resolution=merge-duplicates'),
       body: JSON.stringify({
-        full_name:       name,
+        first_name:      firstName,
+        last_name:       lastName,
         email,
+        company:         company ?? null,
         source:          'website',
         inbound_lead_id: leadId,
-        ...(company ? { crm_data: { company } } : {}),
       }),
     })
     if (!upsertRes.ok) {

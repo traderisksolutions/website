@@ -283,8 +283,9 @@ Write only the email body.`
         method:  'POST',
         headers: sbH('return=representation'),
         body:    JSON.stringify({
+          first_name:      lead.first_name ?? null,
+          last_name:       lead.last_name  ?? null,
           email:           lead.email,
-          full_name:       fullName,
           source:          'website',
           inbound_lead_id: leadId,
         }),

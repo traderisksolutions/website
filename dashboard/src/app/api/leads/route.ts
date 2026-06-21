@@ -102,13 +102,13 @@ export async function PATCH(req: NextRequest) {
             }
           } else {
             // No contact yet — create one linked to this lead
-            const fullName = [lead.first_name, lead.last_name].filter(Boolean).join(' ') || null
             await fetch(`${SB_URL}/rest/v1/contacts`, {
               method:  'POST',
               headers: { ...headers(), Prefer: 'return=minimal' },
               body:    JSON.stringify({
+                first_name:       lead.first_name ?? null,
+                last_name:        lead.last_name  ?? null,
                 email:            lead.email,
-                full_name:        fullName,
                 company:          lead.company ?? null,
                 source:           'website',
                 engagement_stage: newStage,
