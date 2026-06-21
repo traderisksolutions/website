@@ -1979,7 +1979,15 @@ function EngagementPageInner() {
     if (!selectedId) return
     const lead = leads.find(l => l.id === selectedId)
     if (!lead?.thread_id && !lead?.email) return
-    if (threadMap[selectedId]) return
+
+    // If the lead now has a direct thread_id that differs from what's cached
+    // (e.g. after a resend stamps a new thread_id on the lead), invalidate and re-fetch.
+    const cached = threadMap[selectedId]
+    if (cached && !cached.loading && lead.thread_id && cached.thread?.id !== lead.thread_id) {
+      setThreadMap(prev => { const n = { ...prev }; delete n[selectedId]; return n })
+      return
+    }
+    if (cached) return
 
     setThreadMap(prev => ({ ...prev, [selectedId]: { loading: true, thread: null, messages: [], error: null } }))
     fetchThread(lead.thread_id ?? null, lead.email).then(({ thread, messages }) => {
