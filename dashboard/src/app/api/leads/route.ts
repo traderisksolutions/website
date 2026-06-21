@@ -110,7 +110,7 @@ export async function PATCH(req: NextRequest) {
                 email:            lead.email,
                 full_name:        fullName,
                 company:          lead.company ?? null,
-                source:           'inbound_lead',
+                source:           'website',
                 engagement_stage: newStage,
                 inbound_lead_id:  id,
               }),

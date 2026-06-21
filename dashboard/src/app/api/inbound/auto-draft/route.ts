@@ -184,19 +184,54 @@ export async function POST(req: NextRequest) {
     const message   = (lead.message || lead.details || '') as string
     const topic     = (lead.topic || '') as string
 
-    // Fetch FAQ docs from the ringfenced Drive folder
-    const { context: faqContext, docNames } = await fetchFaqContext([topic, message].join(' '))
+    // Fetch FAQ docs and eval feedback concurrently
+    const [{ context: faqContext, docNames }, examplesData, antiPatternData] = await Promise.all([
+      fetchFaqContext([topic, message].join(' ')),
+      // High-scoring human-approved examples — few-shot positives
+      fetch(
+        `${SB_URL}/rest/v1/prompt_examples?email_type=eq.CONVERSATION&order=score.desc,created_at.desc&limit=2&select=context_summary,ideal_reply`,
+        { headers: sbH(), cache: 'no-store' }
+      ).then(r => r.ok ? r.json() : []).catch(() => []),
+      // Low-scoring evaluations — anti-patterns to avoid
+      fetch(
+        `${SB_URL}/rest/v1/draft_evaluations?email_type=eq.CONVERSATION&score=lte.3&order=created_at.desc&limit=6&select=eval_json`,
+        { headers: sbH(), cache: 'no-store' }
+      ).then(r => r.ok ? r.json() : []).catch(() => []),
+    ])
 
     const knowledgeSection = faqContext
       ? `KNOWLEDGE BASE (approved FAQ documents — use to inform your reply, do not copy verbatim):\n${faqContext}`
       : 'No FAQ documents available — reply based on general TRS knowledge only.'
+
+    // Few-shot examples from past high-scoring first-contact replies
+    let fewShotSection = ''
+    const examples: { context_summary?: string; ideal_reply: string }[] = Array.isArray(examplesData) ? examplesData : []
+    if (examples.length > 0) {
+      fewShotSection = `\n━━ EXAMPLES OF EXCELLENT FIRST-CONTACT REPLIES — learn the tone and pattern ━━\n` +
+        examples.map((ex, i) =>
+          `[Example ${i + 1}]${ex.context_summary ? `\nContext: ${ex.context_summary}` : ''}\nReply:\n${ex.ideal_reply.slice(0, 800)}`
+        ).join('\n\n') + '\n'
+    }
+
+    // Anti-patterns from low-scoring drafts — avoid these
+    let antiPatternSection = ''
+    const apRows: { eval_json: { key_learning?: string } | null }[] = Array.isArray(antiPatternData) ? antiPatternData : []
+    const learnings = apRows
+      .map(r => r.eval_json?.key_learning)
+      .filter((l): l is string => typeof l === 'string' && l.length > 15)
+      .filter((l, i, arr) => arr.indexOf(l) === i)
+      .slice(0, 3)
+    if (learnings.length > 0) {
+      antiPatternSection = `\n━━ AVOID THESE PATTERNS (learned from edited or rejected drafts) ━━\n` +
+        learnings.map((l, i) => `${i + 1}. ${l}`).join('\n') + '\n'
+    }
 
     const prompt = `You are an AI email assistant for Trade Risk Solutions (TRS), a Singapore-based commercial insurance brokerage.
 
 A new website enquiry has just arrived. Write a warm, professional first-contact reply from TRS.
 
 ${knowledgeSection}
-
+${fewShotSection}${antiPatternSection}
 LEAD DETAILS:
 Name: ${fullName}
 Topic / Enquiry Type: ${topic || 'General insurance enquiry'}

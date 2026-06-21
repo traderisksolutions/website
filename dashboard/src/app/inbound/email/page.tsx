@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef, Suspense } from 'react'
+import { useEffect, useState, useCallback, useRef, Suspense, Fragment } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { RefreshCw, ChevronDown, ChevronUp, Copy, Check, X, Search, MessageCircle, Mail, Globe, Pencil, Sparkles, Send } from 'lucide-react'
 import { useAuditLog } from '@/hooks/useAuditLog'
@@ -263,13 +263,14 @@ function InlineReplyRow({ lead, onStatus, onCollapse }: {
   const log    = useAuditLog()
   const msg    = messagePreview(lead)
 
-  // If already contacted, start in sent state
+  // Any status beyond 'new' means a reply was already sent
+  const alreadySent = lead.status !== 'new' && lead.status !== 'dropped'
   const [draftText,  setDraftText]  = useState('')
   const [draftId,    setDraftId]    = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
   const [sending,    setSending]    = useState(false)
   const [sendError,  setSendError]  = useState<string | null>(null)
-  const [sent,       setSent]       = useState(lead.status === 'contacted')
+  const [sent,       setSent]       = useState(alreadySent)
   const hasLoadedRef = useRef(false)
 
   // Auto-load existing draft once on mount
@@ -608,8 +609,8 @@ function InboundLeadsPage() {
                     const isEmail    = channelOf(lead) === 'email' && !!lead.email
                     const msg        = messagePreview(lead)
                     return (
-                      <>
-                        <tr key={lead.id}
+                      <Fragment key={lead.id}>
+                        <tr
                           onClick={() => setSelectedId(lead.id === selectedId ? null : lead.id)}
                           className={cn('border-b transition-colors cursor-pointer', isActive ? 'bg-primary/5' : isExpanded ? 'bg-blue-50/40' : 'hover:bg-muted/50')}
                           style={{ borderLeft: `3px solid ${isActive ? 'hsl(var(--primary))' : isExpanded ? '#93c5fd' : 'transparent'}` }}
@@ -656,13 +657,12 @@ function InboundLeadsPage() {
                         </tr>
                         {isExpanded && isEmail && (
                           <InlineReplyRow
-                            key={`reply-${lead.id}`}
                             lead={lead}
                             onStatus={handleStatus}
                             onCollapse={() => setExpandedId(null)}
                           />
                         )}
-                      </>
+                      </Fragment>
                     )
                   })}
                 </tbody>
