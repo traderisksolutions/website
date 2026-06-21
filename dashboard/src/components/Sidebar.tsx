@@ -220,14 +220,6 @@ export default function Sidebar() {
         {engageOpen && (
           <div className="space-y-px">
             <NavItem label="Active Contacts" href="/contacts"   icon={Users} isActive={active('/contacts')} />
-            {totalEngaged > 0 && (
-              <div className="flex flex-wrap gap-1 pl-7 pb-1 pt-0.5">
-                {stages.engaged   > 0 && <StagePill label="Engaged"   count={stages.engaged}   color="#0F3D91" />}
-                {stages.qualified > 0 && <StagePill label="Qualified" count={stages.qualified} color="#0a6e4b" />}
-                {stages.proposal  > 0 && <StagePill label="Proposal"  count={stages.proposal}  color="#b45309" />}
-                {stages.converted > 0 && <StagePill label="Converted" count={stages.converted} color="#0F8A5F" />}
-              </div>
-            )}
             <NavItem label="Engagement Agent" href="/engagement" icon={Bot} isActive={active('/engagement')} />
           </div>
         )}
