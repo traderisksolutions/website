@@ -73,10 +73,15 @@ async function renewWatch(token: string): Promise<{ historyId: string; expiratio
 
 // ── Alert email via Gmail ─────────────────────────────────────────────────────
 
+function encodeSubject(subject: string): string {
+  if (!/[^\x20-\x7E]/.test(subject)) return subject
+  return `=?UTF-8?B?${Buffer.from(subject, 'utf-8').toString('base64')}?=`
+}
+
 async function sendAlert(token: string, subject: string, body: string): Promise<void> {
   const raw = [
     `To: ${ALERT_TO}`,
-    `Subject: ${subject}`,
+    `Subject: ${encodeSubject(subject)}`,
     'Content-Type: text/plain; charset=utf-8',
     'MIME-Version: 1.0',
     '',

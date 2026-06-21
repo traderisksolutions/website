@@ -53,11 +53,16 @@ async function getAccessToken(sendAs = OPS_EMAIL): Promise<string> {
   return data.access_token
 }
 
+function encodeSubject(subject: string): string {
+  if (!/[^\x20-\x7E]/.test(subject)) return subject
+  return `=?UTF-8?B?${Buffer.from(subject, 'utf-8').toString('base64')}?=`
+}
+
 function buildRawEmail(to: string, subject: string, body: string): string {
   const lines = [
     `From: Trade Risk Solutions <${OPS_EMAIL}>`,
     `To: ${to}`,
-    `Subject: ${subject}`,
+    `Subject: ${encodeSubject(subject)}`,
     'MIME-Version: 1.0',
     'Content-Type: text/plain; charset=utf-8',
     '',

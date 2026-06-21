@@ -224,6 +224,11 @@ function buildSignatureHtml(sig: {
   return `<br><p style="margin:16px 0 0;font-size:13px;color:#555;line-height:1.7">${lines.join('<br>')}</p>`
 }
 
+function encodeSubject(subject: string): string {
+  if (!/[^\x20-\x7E]/.test(subject)) return subject
+  return `=?UTF-8?B?${Buffer.from(subject, 'utf-8').toString('base64')}?=`
+}
+
 function buildRfc2822(from: string, to: string, subject: string, htmlBody: string): string {
   const textBody = htmlBody
     .replace(/<br\s*\/?>/gi, '\n')
@@ -239,7 +244,7 @@ function buildRfc2822(from: string, to: string, subject: string, htmlBody: strin
   return [
     `From: ${from}`,
     `To: ${to}`,
-    `Subject: ${subject}`,
+    `Subject: ${encodeSubject(subject)}`,
     'MIME-Version: 1.0',
     `Content-Type: multipart/alternative; boundary="${b}"`,
     '',
