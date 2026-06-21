@@ -167,10 +167,9 @@ async function fetchLeads(): Promise<Lead[]> {
   const convRaw: Lead[] = convRes.ok ? await convRes.json() : []
   const conversations = Array.isArray(convRaw) ? convRaw : []
 
-  const leadEmails = new Set(engagedLeads.map(l => l.email?.toLowerCase()).filter(Boolean))
-  // Threads that have no matching lead record → Existing Clients (source='thread' ∉ EMAIL_SOURCES)
+  // All FWD/CC threads → Existing Clients, even when the same email also has a lead record.
+  // The two entries are independent: prospects show their reply thread, clients show the FWD thread.
   const newConversations = conversations
-    .filter(c => !c.email || !leadEmails.has(c.email.toLowerCase()))
     .map(c => ({ ...c, source: 'thread' as const }))
 
   return [...engagedLeads, ...newConversations]
