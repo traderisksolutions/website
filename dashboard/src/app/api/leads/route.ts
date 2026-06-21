@@ -50,7 +50,7 @@ const STAGE_ORDER = ['engaged', 'qualified', 'proposal', 'converted']
 // PATCH /api/leads — update status and/or notes for one lead
 export async function PATCH(req: NextRequest) {
   try {
-    const { id, status, notes, segment, segment_note } = await req.json() as { id?: string; status?: string; notes?: string; segment?: string; segment_note?: string }
+    const { id, status, notes, segment, segment_note } = await req.json() as { id?: string; status?: string; notes?: string; segment?: string; segment_note?: string | null }
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
 
     const patch: Record<string, unknown> = {}

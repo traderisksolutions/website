@@ -1556,7 +1556,7 @@ function ContactPanel({
       </div>
 
       {/* Transfer to Existing Client — only shown for prospects not yet transferred */}
-      {lead.segment !== 'existing_client' && EMAIL_SOURCES.has(lead.source) && (
+      {lead.segment !== 'existing_client' && (EMAIL_SOURCES.has(lead.source) || !!lead.campaign_context) && (
         <div style={{ padding: '12px 16px', borderBottom: '1px solid hsl(var(--border))' }}>
           {!transferOpen ? (
             <button

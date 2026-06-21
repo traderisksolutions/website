@@ -219,7 +219,8 @@ export async function runRagIndex(force = false, folderFilter?: string): Promise
   const rootFolderId = process.env.GOOGLE_DRIVE_KNOWLEDGE_FOLDER_ID
   const hasSpecificFolders = !!(
     process.env.GOOGLE_DRIVE_OUTBOUND_FOLDER_ID ||
-    process.env.GOOGLE_DRIVE_ENGAGEMENT_FOLDER_ID
+    process.env.GOOGLE_DRIVE_ENGAGEMENT_FOLDER_ID ||
+    process.env.GDRIVE_FAQ_FOLDER_ID
   )
   if (rootFolderId && !hasSpecificFolders) {
     const rootFiles = await listDriveFilesWithFolders(engagementToken, rootFolderId)
@@ -230,7 +231,7 @@ export async function runRagIndex(force = false, folderFilter?: string): Promise
   const extraFolders: [string | undefined, string, string][] = [
     [process.env.GOOGLE_DRIVE_OUTBOUND_FOLDER_ID,   'ai-outbound',         outboundToken],
     [process.env.GOOGLE_DRIVE_ENGAGEMENT_FOLDER_ID, 'engagement_ai_agent', engagementToken],
-    [process.env.GOOGLE_DRIVE_INBOUND_FOLDER_ID,    'inbound_ai_agent',    engagementToken],
+    [process.env.GDRIVE_FAQ_FOLDER_ID,    'inbound_ai_agent',    engagementToken],
   ]
   const failedFolderTags = new Set<string>()
   for (const [extraId, tag, token] of extraFolders) {
@@ -376,7 +377,7 @@ export async function getRagIndexStatus(): Promise<{
   const pairs: [string | undefined, string][] = [
     [process.env.GOOGLE_DRIVE_OUTBOUND_FOLDER_ID,   'ai-outbound'],
     [process.env.GOOGLE_DRIVE_ENGAGEMENT_FOLDER_ID, 'engagement_ai_agent'],
-    [process.env.GOOGLE_DRIVE_INBOUND_FOLDER_ID,    'inbound_ai_agent'],
+    [process.env.GDRIVE_FAQ_FOLDER_ID,    'inbound_ai_agent'],
     [process.env.GOOGLE_DRIVE_KNOWLEDGE_FOLDER_ID,  'root'],
   ]
   for (const [id, key] of pairs) {
