@@ -130,9 +130,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
             method: 'POST', headers: sbHeaders('return=minimal'),
             body: JSON.stringify({
               first_name: firstName, last_name: lastName,
-              email: leadEmail, company: leadCompany,
+              email: leadEmail,
               source: 'outbound_campaign', engagement_stage: 'engaged',
               outbound_lead_id: resolvedLeadId, campaign_id: resolvedCampaignId,
+              ...(leadCompany ? { crm_data: { company: leadCompany } } : {}),
             }),
           })
         }
