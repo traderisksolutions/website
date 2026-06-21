@@ -291,6 +291,257 @@
   .glass          { background: hsl(var(--background)); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
 
+/* ════════════════════════════════════════════════════════════════
+   Page structure primitives
+   ════════════════════════════════════════════════════════════════ */
+
+/* Full-height flex column — wrap every page root in this */
+.pg-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: hsl(var(--background));
+}
+
+/* Sticky top section — header + filter toolbar */
+.pg-top {
+  flex-shrink: 0;
+}
+
+/* Scrollable content */
+.pg-content {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* Standard page header row */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px 16px;
+}
+.page-title   { font-size: 18px; font-weight: 700; letter-spacing: -0.025em; color: hsl(var(--foreground)); margin: 0; }
+.page-subtitle { font-size: 12px; color: hsl(var(--muted-foreground)); margin: 3px 0 0; }
+
+/* ════════════════════════════════════════════════════════════════
+   Skeleton / loading shimmer
+   ════════════════════════════════════════════════════════════════ */
+
+@keyframes sk-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted))       25%,
+    hsl(216 18% 98%)        50%,
+    hsl(var(--muted))       75%
+  );
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.5s ease-in-out infinite;
+  border-radius: 5px;
+}
+
+/* Convenience skeleton shapes */
+.sk-row  { height: 36px; margin: 0; border-radius: 0; }
+.sk-line { height: 10px; border-radius: 5px; }
+.sk-text { height: 8px;  border-radius: 4px; }
+.sk-cell { height: 12px; border-radius: 4px; display: inline-block; }
+
+/* ════════════════════════════════════════════════════════════════
+   Empty state
+   ════════════════════════════════════════════════════════════════ */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 32px;
+  text-align: center;
+}
+.empty-icon-wrap {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: hsl(var(--muted));
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px;
+  color: hsl(var(--muted-foreground));
+}
+.empty-title {
+  font-size: 13px; font-weight: 600;
+  color: hsl(var(--foreground)); margin: 0 0 4px;
+}
+.empty-desc {
+  font-size: 12px; color: hsl(var(--muted-foreground));
+  max-width: 300px; line-height: 1.55; margin: 0;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   Status badge — single source of truth for semantic status colors
+   ════════════════════════════════════════════════════════════════ */
+
+.st-badge {
+  display: inline-flex; align-items: center;
+  font-size: 11px; font-weight: 600;
+  padding: 2px 8px; border-radius: 9999px;
+  white-space: nowrap; letter-spacing: 0.01em;
+}
+.st-new       { background: rgba(15,61,145,0.07);  color: #0F3D91; }
+.st-contacted { background: rgba(194,122,7,0.09);  color: #a66300; }
+.st-engaged   { background: rgba(15,61,145,0.07);  color: #0F3D91; }
+.st-qualified { background: rgba(15,138,95,0.09);  color: #0a6e4b; }
+.st-proposal  { background: rgba(217,119,6,0.09);  color: #b45309; }
+.st-converted { background: rgba(15,138,95,0.12);  color: #0F8A5F; }
+.st-dropped   { background: rgba(20,30,50,0.05);   color: #667085; }
+.st-replied   { background: rgba(194,122,7,0.09);  color: #a66300; }
+.st-prospect  { background: rgba(20,30,50,0.05);   color: #667085; }
+.st-cc        { background: rgba(20,30,50,0.04);   color: #9ca3af; }
+
+/* ════════════════════════════════════════════════════════════════
+   Focus ring — consistent, accessible
+   ════════════════════════════════════════════════════════════════ */
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   Filter toolbar — shared across pages
+   ════════════════════════════════════════════════════════════════ */
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid hsl(var(--border));
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  background: hsl(var(--card));
+}
+
+/* Filter pill button */
+.filter-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 500;
+  padding: 4px 12px; border-radius: 9999px;
+  border: 1px solid hsl(var(--border));
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  cursor: pointer; white-space: nowrap;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+.filter-pill:hover { border-color: hsl(var(--muted-foreground)); color: hsl(var(--foreground)); }
+.filter-pill.active { background: hsl(var(--foreground)); color: hsl(var(--background)); border-color: hsl(var(--foreground)); }
+.filter-pill-count {
+  font-size: 10px; font-weight: 700;
+  padding: 0 5px; border-radius: 9999px;
+  background: rgba(20,30,50,0.07);
+  color: inherit;
+}
+.filter-pill.active .filter-pill-count { background: rgba(255,255,255,0.2); }
+
+/* Search box in filter bar */
+.filter-search {
+  display: flex; align-items: center; gap: 7px;
+  height: 32px; padding: 0 10px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 7px;
+  background: hsl(var(--background));
+  min-width: 200px;
+  transition: border-color 0.12s;
+}
+.filter-search:focus-within { border-color: hsl(var(--ring)); }
+.filter-search input {
+  flex: 1; background: transparent; border: none; outline: none;
+  font-size: 12px; color: hsl(var(--foreground));
+  min-width: 0;
+}
+.filter-search input::placeholder { color: hsl(var(--muted-foreground)); }
+
+/* ════════════════════════════════════════════════════════════════
+   Data table improvements
+   ════════════════════════════════════════════════════════════════ */
+
+/* Table header cell overrides for tighter density */
+.data-table thead th {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+  text-transform: uppercase; color: hsl(var(--muted-foreground));
+  padding: 0 12px; height: 36px; border-bottom: 1px solid hsl(var(--border));
+  background: hsl(var(--muted) / 0.3);
+  white-space: nowrap;
+}
+.data-table tbody td {
+  padding: 0 12px; height: 44px; vertical-align: middle;
+  border-bottom: 1px solid hsl(var(--border) / 0.6);
+}
+.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table tbody tr:hover td { background: hsl(var(--muted) / 0.4); }
+.data-table tbody tr.row-selected td { background: hsl(var(--primary) / 0.04); }
+.data-table tbody tr.row-selected:hover td { background: hsl(var(--primary) / 0.06); }
+
+/* Group header row in data tables */
+.data-table .group-row td {
+  background: hsl(var(--muted) / 0.35);
+  border-bottom: 1px solid hsl(var(--border));
+  padding: 0 12px; height: 34px;
+}
+.data-table .group-row:hover td { background: hsl(var(--muted) / 0.55); cursor: pointer; }
+
+/* ════════════════════════════════════════════════════════════════
+   KPI / stat cards
+   ════════════════════════════════════════════════════════════════ */
+
+.kpi-grid {
+  display: grid;
+  gap: 12px;
+}
+.kpi-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--card-radius);
+  padding: 16px 20px;
+  box-shadow: var(--card-shadow);
+}
+.kpi-label { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: hsl(var(--muted-foreground)); margin: 0 0 8px; }
+.kpi-value { font-size: 26px; font-weight: 700; letter-spacing: -0.03em; color: hsl(var(--foreground)); line-height: 1; margin: 0; }
+.kpi-sub   { font-size: 11px; color: hsl(var(--muted-foreground)); margin: 4px 0 0; }
+
+/* ════════════════════════════════════════════════════════════════
+   Detail panel — right-side metadata panels
+   ════════════════════════════════════════════════════════════════ */
+
+.detail-section {
+  padding: 14px 16px;
+  border-bottom: 1px solid hsl(var(--border));
+}
+.detail-section:last-child { border-bottom: none; }
+.detail-section-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase; color: hsl(var(--muted-foreground) / 0.65);
+  margin: 0 0 10px;
+}
+.detail-field { margin-bottom: 10px; }
+.detail-field:last-child { margin-bottom: 0; }
+.detail-field-label {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
+  text-transform: uppercase; color: hsl(var(--muted-foreground) / 0.6);
+  margin: 0 0 3px;
+}
+.detail-field-value { font-size: 12px; color: hsl(var(--foreground) / 0.85); line-height: 1.5; margin: 0; }
+
 /* ── Glass refraction button shimmer ── */
 @keyframes glass-shimmer {
   0%   { transform: translateX(-100%) skewX(-15deg); opacity: 0; }

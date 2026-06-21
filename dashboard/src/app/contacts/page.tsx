@@ -1,11 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Search, X } from 'lucide-react'
+import { Search, X, ChevronRight, ChevronDown, Users, Copy, Check } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
+import { statusMeta } from '@/lib/status'
 
 interface Contact {
   id: string; first_name: string | null; last_name: string | null
@@ -15,17 +15,6 @@ interface Contact {
 }
 
 type CompanyGroup = { company: string | null; contacts: Contact[] }
-
-const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  new:       { bg: 'rgba(15,61,145,0.07)',  text: '#0F3D91' },
-  contacted: { bg: 'rgba(194,122,7,0.08)',  text: '#C27A07' },
-  engaged:   { bg: 'rgba(15,61,145,0.07)',  text: '#0F3D91' },
-  qualified: { bg: 'rgba(15,138,95,0.08)',  text: '#0F8A5F' },
-  proposal:  { bg: 'rgba(194,122,7,0.08)',  text: '#C27A07' },
-  converted: { bg: 'rgba(15,138,95,0.08)',  text: '#0F8A5F' },
-  dropped:   { bg: 'rgba(20,30,50,0.05)',   text: '#667085' },
-  cc:        { bg: 'rgba(20,30,50,0.04)',   text: '#9ca3af' },
-}
 
 const SOURCE_LABEL: Record<string, string> = {
   website_form: 'Website', email: 'Email', manual: 'Manual',
@@ -54,13 +43,8 @@ function matchesSearch(c: Contact, q: string): boolean {
   const lower = q.toLowerCase()
   return [
     [c.first_name, c.last_name].filter(Boolean).join(' '),
-    c.email,
-    c.company,
-    c.phone,
-    c.department,
-    c.message,
-    SOURCE_LABEL[c.source] ?? c.source,
-    c.status,
+    c.email, c.company, c.phone, c.department, c.message,
+    SOURCE_LABEL[c.source] ?? c.source, c.status,
   ].some(v => v?.toLowerCase().includes(lower))
 }
 
@@ -80,6 +64,35 @@ function groupByCompany(contacts: Contact[]): CompanyGroup[] {
   })
 }
 
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const m = statusMeta(status)
+  return (
+    <span className="st-badge" style={{ color: m.color, background: m.bg }}>
+      {m.label}
+    </span>
+  )
+}
+
+function SkeletonRows() {
+  return (
+    <>
+      {Array.from({ length: 8 }).map((_, i) => (
+        <tr key={i} className="border-b border-border/60">
+          {[60, 45, 30, 20, 25].map((w, j) => (
+            <td key={j} className={cn('px-3 h-11', j === 0 && 'pl-8')}>
+              <div className="skeleton sk-cell" style={{ width: `${w}%`, height: 10 }} />
+            </td>
+          ))}
+        </tr>
+      ))}
+    </>
+  )
+}
+
 export default function ContactsPage() {
   const [contacts,  setContacts]  = useState<Contact[]>([])
   const [loading,   setLoading]   = useState(true)
@@ -87,6 +100,7 @@ export default function ContactsPage() {
   const [filter,    setFilter]    = useState('all')
   const [search,    setSearch]    = useState('')
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  const [copied,    setCopied]    = useState<string | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -111,185 +125,275 @@ export default function ContactsPage() {
   const statusFiltered = filter === 'all' ? contacts : contacts.filter(l => l.status === filter)
   const filtered       = statusFiltered.filter(c => matchesSearch(c, search))
   const groups         = groupByCompany(filtered)
-  // Auto-expand all groups while searching so results aren't hidden
   const effectiveCollapsed = search.trim() ? new Set<string>() : collapsed
 
   function toggleCollapse(company: string) {
     setCollapsed(prev => { const next = new Set(prev); next.has(company) ? next.delete(company) : next.add(company); return next })
   }
 
-  const ccCount = contacts.filter(c => c.isCC).length
+  function copy(text: string, key: string) {
+    navigator.clipboard.writeText(text)
+    setCopied(key); setTimeout(() => setCopied(null), 1500)
+  }
+
+  const ccCount      = contacts.filter(c => c.isCC).length
   const primaryCount = contacts.length - ccCount
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-background">
 
-      {/* ── Table area ── */}
-      <div className="flex-1 overflow-auto p-6 lg:p-8">
+      {/* ── Main table area ── */}
+      <div className="flex-1 flex flex-col overflow-hidden">
 
-        {/* Header */}
-        <div className="flex items-start justify-between mb-5 gap-4">
+        {/* Page header */}
+        <div className="page-header bg-background">
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground">Contacts</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {loading ? 'Loading…' : `${primaryCount} contact${primaryCount !== 1 ? 's' : ''} · ${ccCount} CC`}
+            <h1 className="page-title">Contacts</h1>
+            <p className="page-subtitle">
+              {loading
+                ? 'Loading contacts…'
+                : `${primaryCount} contact${primaryCount !== 1 ? 's' : ''}${ccCount > 0 ? ` · ${ccCount} CC` : ''}`}
             </p>
           </div>
         </div>
 
-        <div className="rounded-lg border bg-card overflow-hidden">
-          {/* Filter bar */}
-          <div className="border-b px-4 py-3 flex items-center gap-3">
-            <div className="flex flex-wrap gap-1.5 flex-1">
-              {STATUS_OPTIONS.map(s => (
-                <button key={s} onClick={() => setFilter(s)}
-                  className={cn(
-                    'px-3 py-1 text-[11px] font-semibold rounded-full border transition-colors capitalize',
-                    filter === s
-                      ? 'bg-foreground text-background border-foreground'
-                      : 'bg-background text-muted-foreground border-border hover:border-muted-foreground'
-                  )}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-2 bg-muted rounded-md px-3 h-8 w-52 flex-shrink-0">
-              <Search size={13} className="text-muted-foreground flex-shrink-0" />
-              <input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Search contacts…"
-                className="flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted-foreground min-w-0"
-              />
-              {search && (
-                <button onClick={() => setSearch('')} className="flex-shrink-0">
-                  <X size={12} className="text-muted-foreground" />
-                </button>
-              )}
-            </div>
-          </div>
+        {/* Table card */}
+        <div className="flex-1 overflow-hidden px-6 pb-6">
+          <div className="h-full flex flex-col rounded-xl border border-border bg-card shadow-sm overflow-hidden">
 
-          {loading ? (
-            <div className="flex items-center justify-center h-48 text-sm text-muted-foreground">Loading contacts…</div>
-          ) : groups.length === 0 ? (
-            <div className="text-center py-12 text-sm text-muted-foreground">
-              {search ? `No contacts matching "${search}"` : 'No contacts found'}
+            {/* Filter bar */}
+            <div className="filter-bar">
+              <div className="flex flex-wrap gap-1 flex-1 min-w-0">
+                {STATUS_OPTIONS.map(s => (
+                  <button key={s} onClick={() => setFilter(s)}
+                    className={cn('filter-pill capitalize', filter === s && 'active')}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+              <div className="filter-search flex-shrink-0">
+                <Search size={12} className="text-muted-foreground/60 flex-shrink-0" />
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search contacts…"
+                />
+                {search && (
+                  <button onClick={() => setSearch('')} className="flex-shrink-0 text-muted-foreground hover:text-foreground">
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
             </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {['Name', 'Email', 'Source', 'Status', 'Date'].map(h => (
-                    <TableHead key={h}>{h}</TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {groups.map(group => {
-                  const key = group.company ?? '—'
-                  const isCollapsed = effectiveCollapsed.has(key)
-                  const ccInGroup = group.contacts.filter(c => c.isCC).length
-                  return (
-                    <>
-                      {/* Company group header */}
-                      <tr key={`g-${key}`} onClick={() => toggleCollapse(key)} className="cursor-pointer bg-muted/40 hover:bg-muted/60 border-b transition-colors">
-                        <td colSpan={5} className="px-3 py-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] text-muted-foreground w-3">{isCollapsed ? '▶' : '▼'}</span>
-                            <span className="text-[12px] font-semibold text-foreground">
-                              {group.company ?? <span className="text-muted-foreground/50 italic">No company</span>}
-                            </span>
-                            <span className="text-[11px] text-muted-foreground">
-                              {group.contacts.length} contact{group.contacts.length !== 1 ? 's' : ''}
-                              {ccInGroup > 0 && ` · ${ccInGroup} CC`}
-                            </span>
+
+            {/* Table */}
+            <div className="flex-1 overflow-auto">
+              <table className="data-table w-full border-collapse text-[13px]">
+                <thead>
+                  <tr>
+                    <th className="pl-8 pr-3 text-left">Name</th>
+                    <th className="text-left">Email</th>
+                    <th className="text-left">Source</th>
+                    <th className="text-left">Status</th>
+                    <th className="text-right pr-4">Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <SkeletonRows />
+                  ) : groups.length === 0 ? (
+                    <tr>
+                      <td colSpan={5}>
+                        <div className="empty-state">
+                          <div className="empty-icon-wrap">
+                            <Users size={20} className="text-muted-foreground" />
                           </div>
-                        </td>
-                      </tr>
+                          <p className="empty-title">{search ? 'No contacts found' : 'No contacts yet'}</p>
+                          <p className="empty-desc">
+                            {search
+                              ? `No contacts match "${search}"`
+                              : 'Contacts will appear here once leads start coming in.'}
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    groups.map(group => {
+                      const key = group.company ?? '—'
+                      const isCollapsed = effectiveCollapsed.has(key)
+                      const ccInGroup = group.contacts.filter(c => c.isCC).length
+                      return (
+                        <>
+                          {/* Company group header */}
+                          <tr key={`g-${key}`}
+                            onClick={() => toggleCollapse(key)}
+                            className="group-row cursor-pointer select-none">
+                            <td colSpan={5} className="pl-3">
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground/50 flex-shrink-0">
+                                  {isCollapsed
+                                    ? <ChevronRight size={12} strokeWidth={2.5} />
+                                    : <ChevronDown  size={12} strokeWidth={2.5} />}
+                                </span>
+                                <span className="text-[12px] font-semibold text-foreground">
+                                  {group.company ?? <span className="text-muted-foreground/40 font-normal italic">No company</span>}
+                                </span>
+                                <span className="text-[11px] text-muted-foreground/60">
+                                  {group.contacts.length} contact{group.contacts.length !== 1 ? 's' : ''}
+                                  {ccInGroup > 0 && ` · ${ccInGroup} CC`}
+                                </span>
+                              </div>
+                            </td>
+                          </tr>
 
-                      {/* Contacts in group */}
-                      {!isCollapsed && group.contacts.map(contact => (
-                        <TableRow key={contact.id}
-                          onClick={() => setSelected(selected?.id === contact.id ? null : contact)}
-                          className={cn('cursor-pointer', selected?.id === contact.id && 'bg-primary/5 hover:bg-primary/5')}
-                        >
-                          <TableCell className="pl-8 pr-3">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[13px] font-medium text-foreground">{fullName(contact)}</span>
-                              {contact.isCC && (
-                                <Badge variant="secondary" className="text-[9px] px-1.5 py-0">CC</Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-[12px] text-muted-foreground">{contact.email ?? '—'}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="text-[10px] font-medium">
-                              {SOURCE_LABEL[contact.source] ?? contact.source}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded capitalize"
-                              style={{
-                                background: (STATUS_COLORS[contact.status] ?? STATUS_COLORS.cc).bg,
-                                color:      (STATUS_COLORS[contact.status] ?? STATUS_COLORS.cc).text,
-                              }}
-                            >
-                              {contact.status}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-[12px] text-muted-foreground whitespace-nowrap">
-                            {new Date(contact.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          )}
+                          {/* Contacts in group */}
+                          {!isCollapsed && group.contacts.map(contact => (
+                            <tr key={contact.id}
+                              onClick={() => setSelected(selected?.id === contact.id ? null : contact)}
+                              className={cn(
+                                'cursor-pointer border-b border-border/60 transition-colors',
+                                selected?.id === contact.id
+                                  ? 'row-selected'
+                                  : 'hover:bg-muted/40',
+                              )}>
+                              <td className="pl-8 pr-3 h-11">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[13px] font-medium text-foreground leading-none">
+                                    {fullName(contact)}
+                                  </span>
+                                  {contact.isCC && (
+                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground uppercase tracking-wide">
+                                      CC
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="text-[12px] text-muted-foreground pr-3 max-w-[200px]">
+                                <span className="block overflow-hidden text-ellipsis whitespace-nowrap">
+                                  {contact.email ?? '—'}
+                                </span>
+                              </td>
+                              <td className="pr-3">
+                                <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
+                                  {SOURCE_LABEL[contact.source] ?? contact.source}
+                                </span>
+                              </td>
+                              <td className="pr-3">
+                                <StatusBadge status={contact.status} />
+                              </td>
+                              <td className="text-[11px] text-muted-foreground/60 whitespace-nowrap text-right pr-4">
+                                {fmtDate(contact.created_at)}
+                              </td>
+                            </tr>
+                          ))}
+                        </>
+                      )
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Table footer */}
+            {!loading && groups.length > 0 && (
+              <div className="px-4 py-2.5 border-t border-border bg-muted/20 flex-shrink-0">
+                <span className="text-[11px] text-muted-foreground/60">
+                  {filtered.length} contact{filtered.length !== 1 ? 's' : ''}
+                  {filter !== 'all' && ` · filtered by ${filter}`}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* ── Detail panel ── */}
       {selected && (
-        <div className="w-80 flex-shrink-0 border-l border-border bg-card overflow-y-auto p-5">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Contact Details</p>
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setSelected(null)}>✕</Button>
+        <div className="w-[300px] flex-shrink-0 border-l border-border bg-card overflow-y-auto flex flex-col">
+
+          {/* Panel header */}
+          <div className="detail-section flex items-center justify-between">
+            <span className="detail-section-label" style={{ margin: 0 }}>Contact Details</span>
+            <button
+              onClick={() => setSelected(null)}
+              className="p-1 rounded-md hover:bg-muted transition-colors text-muted-foreground"
+              style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+              <X size={14} />
+            </button>
           </div>
 
-          <div className="mb-5">
-            <div className="flex items-center gap-2 mb-1">
-              <h2 className="text-base font-bold text-foreground tracking-tight">{fullName(selected)}</h2>
-              {selected.isCC && <Badge variant="secondary" className="text-[9px]">CC</Badge>}
-            </div>
-            <p className="text-sm text-muted-foreground mb-2">{resolvedCompany(selected) ?? 'No company'}</p>
-            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full capitalize"
-              style={{
-                background: (STATUS_COLORS[selected.status] ?? STATUS_COLORS.cc).bg,
-                color:      (STATUS_COLORS[selected.status] ?? STATUS_COLORS.cc).text,
-              }}
-            >
-              {selected.isCC ? "CC'd on thread" : selected.status}
-            </span>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            {([
-              { label: 'Email',      value: selected.email },
-              { label: 'Phone',      value: selected.phone },
-              { label: 'Source',     value: SOURCE_LABEL[selected.source] ?? selected.source },
-              { label: 'Department', value: selected.department },
-              { label: 'Message',    value: selected.message },
-              { label: 'Created',    value: new Date(selected.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }) },
-            ] as { label: string; value: string | null | undefined }[]).filter(f => f.value).map(f => (
-              <div key={f.label} className="p-3 bg-muted/50 rounded-lg">
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">{f.label}</p>
-                <p className="text-[13px] text-foreground leading-relaxed">{f.value}</p>
+          {/* Identity */}
+          <div className="detail-section">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0 text-[13px] font-bold text-muted-foreground">
+                {(selected.first_name?.[0] ?? selected.email?.[0] ?? '?').toUpperCase()}
               </div>
-            ))}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <p className="text-[14px] font-semibold text-foreground m-0 leading-tight">{fullName(selected)}</p>
+                  {selected.isCC && (
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground uppercase tracking-wide">CC</span>
+                  )}
+                </div>
+                {resolvedCompany(selected) && (
+                  <p className="text-[12px] text-muted-foreground mt-0.5 mb-1.5">{resolvedCompany(selected)}</p>
+                )}
+                <StatusBadge status={selected.isCC ? 'cc' : selected.status} />
+              </div>
+            </div>
+          </div>
+
+          {/* Contact details */}
+          <div className="detail-section">
+            <p className="detail-section-label">Contact</p>
+            <div className="flex flex-col gap-3">
+              {selected.email && (
+                <div className="detail-field">
+                  <p className="detail-field-label">Email</p>
+                  <button
+                    onClick={() => copy(selected.email!, 'email')}
+                    className="flex items-center gap-1.5 max-w-full bg-transparent border-0 p-0 cursor-pointer text-left">
+                    <span className="detail-field-value overflow-hidden text-ellipsis whitespace-nowrap max-w-[200px] block">
+                      {selected.email}
+                    </span>
+                    {copied === 'email'
+                      ? <Check size={11} className="text-emerald-500 flex-shrink-0" />
+                      : <Copy size={10} className="text-muted-foreground/30 flex-shrink-0 hover:text-muted-foreground" />}
+                  </button>
+                </div>
+              )}
+              {selected.phone && (
+                <div className="detail-field">
+                  <p className="detail-field-label">Phone</p>
+                  <button
+                    onClick={() => copy(selected.phone!, 'phone')}
+                    className="flex items-center gap-1.5 bg-transparent border-0 p-0 cursor-pointer">
+                    <span className="detail-field-value">{selected.phone}</span>
+                    {copied === 'phone'
+                      ? <Check size={11} className="text-emerald-500 flex-shrink-0" />
+                      : <Copy size={10} className="text-muted-foreground/30 flex-shrink-0" />}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Lead info */}
+          <div className="detail-section flex-1">
+            <p className="detail-section-label">Lead Info</p>
+            <div className="flex flex-col gap-3">
+              {[
+                { label: 'Source',     value: SOURCE_LABEL[selected.source] ?? selected.source },
+                { label: 'Department', value: selected.department },
+                { label: 'Message',    value: selected.message },
+                { label: 'Created',    value: new Date(selected.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }) },
+              ].filter(f => f.value).map(f => (
+                <div key={f.label} className="detail-field">
+                  <p className="detail-field-label">{f.label}</p>
+                  <p className="detail-field-value">{f.value}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

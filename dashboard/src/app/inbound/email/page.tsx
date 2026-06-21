@@ -164,78 +164,84 @@ function DetailPanel({ lead, onStatus, onClose, onNotesSave }: { lead: Lead; onS
     <div className="flex flex-col h-full">
 
       {/* Header */}
-      <div className="px-4 py-3 border-b border-border flex items-start justify-between gap-2 flex-shrink-0">
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+      <div className="detail-section flex items-start justify-between gap-2 flex-shrink-0">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
             <ChannelBadge source={lead.source} />
-            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: st.bg, color: st.color }}>{st.label}</span>
+            <span className="st-badge" style={{ background: st.bg, color: st.color }}>{st.label}</span>
           </div>
-          <p className="text-[14px] font-semibold text-foreground m-0">{displayName(lead)}</p>
+          <p className="text-[14px] font-semibold text-foreground m-0 leading-tight">{displayName(lead)}</p>
           {lead.company && <p className="text-[12px] text-muted-foreground mt-0.5 mb-0">{lead.company}</p>}
         </div>
-        <button onClick={onClose} className="bg-transparent border-0 cursor-pointer text-muted-foreground/50 flex-shrink-0 p-0.5 hover:text-muted-foreground">
+        <button onClick={onClose}
+          className="p-1 rounded-md hover:bg-muted transition-colors text-muted-foreground/50 hover:text-muted-foreground flex-shrink-0"
+          style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
           <X size={14} />
         </button>
       </div>
 
       {/* Status */}
-      <div className="px-4 py-3 border-b border-border">
-        <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60 mb-1.5">
+      <div className="detail-section">
+        <p className="detail-section-label">
           Status <Tip placement="right" text="Update this as the conversation progresses — from New to Contacted once you've replied, through to Converted when a policy is placed." />
         </p>
         <StatusDropdown lead={lead} onChange={onStatus} />
       </div>
 
       {/* Contact info */}
-      <div className="px-4 py-3 border-b border-border flex flex-col gap-2.5">
-        <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60 mb-1">Contact</p>
-        {(lead.first_name || lead.last_name) && (
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60 mb-0.5">Name</p>
-            <p className="text-[12px] text-foreground/80 m-0">{fullName(lead)}</p>
-          </div>
-        )}
-        {lead.email && (
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60 mb-0.5">Email</p>
-            <button onClick={() => copy(lead.email!, 'email')} className="bg-transparent border-0 p-0 cursor-pointer flex items-center gap-1.5 max-w-full">
-              <span className="text-[12px] text-foreground/80 flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{lead.email}</span>
-              {copied === 'email' ? <Check size={11} className="text-emerald-500 flex-shrink-0" /> : <Copy size={10} className="text-muted-foreground/30 flex-shrink-0" />}
-            </button>
-          </div>
-        )}
-        {lead.phone && (
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60 mb-0.5">Phone / WhatsApp</p>
-            <button onClick={() => copy(lead.phone!, 'phone')} className="bg-transparent border-0 p-0 cursor-pointer flex items-center gap-1.5">
-              <span className="text-[12px] text-foreground/80">{lead.phone}</span>
-              {copied === 'phone' ? <Check size={11} className="text-emerald-500 flex-shrink-0" /> : <Copy size={10} className="text-muted-foreground/30 flex-shrink-0" />}
-            </button>
-          </div>
-        )}
-        {ch === 'whatsapp' && lead.phone && (
-          <a href={`https://wa.me/${lead.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-500/8 border border-emerald-500/20 rounded-lg px-2.5 py-1.5 no-underline w-fit">
-            <MessageCircle size={12} /> Open in WhatsApp
-          </a>
-        )}
+      <div className="detail-section">
+        <p className="detail-section-label">Contact</p>
+        <div className="flex flex-col gap-2.5">
+          {(lead.first_name || lead.last_name) && (
+            <div className="detail-field">
+              <p className="detail-field-label">Name</p>
+              <p className="detail-field-value">{fullName(lead)}</p>
+            </div>
+          )}
+          {lead.email && (
+            <div className="detail-field">
+              <p className="detail-field-label">Email</p>
+              <button onClick={() => copy(lead.email!, 'email')} className="flex items-center gap-1.5 max-w-full bg-transparent border-0 p-0 cursor-pointer text-left">
+                <span className="detail-field-value overflow-hidden text-ellipsis whitespace-nowrap max-w-[180px] block">{lead.email}</span>
+                {copied === 'email' ? <Check size={11} className="text-emerald-500 flex-shrink-0" /> : <Copy size={10} className="text-muted-foreground/30 flex-shrink-0" />}
+              </button>
+            </div>
+          )}
+          {lead.phone && (
+            <div className="detail-field">
+              <p className="detail-field-label">Phone / WhatsApp</p>
+              <button onClick={() => copy(lead.phone!, 'phone')} className="flex items-center gap-1.5 bg-transparent border-0 p-0 cursor-pointer">
+                <span className="detail-field-value">{lead.phone}</span>
+                {copied === 'phone' ? <Check size={11} className="text-emerald-500 flex-shrink-0" /> : <Copy size={10} className="text-muted-foreground/30 flex-shrink-0" />}
+              </button>
+            </div>
+          )}
+          {ch === 'whatsapp' && lead.phone && (
+            <a href={`https://wa.me/${lead.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-500/8 border border-emerald-500/20 rounded-lg px-2.5 py-1.5 no-underline w-fit">
+              <MessageCircle size={12} /> Open in WhatsApp
+            </a>
+          )}
+        </div>
       </div>
 
       {/* Lead info */}
-      <div className="px-4 py-3 border-b border-border flex flex-col gap-2.5">
-        <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60 mb-1">Lead Info</p>
-        {lead.topic        && <Field label="Topic"      value={lead.topic} />}
-        {lead.department   && <Field label="Department" value={lead.department} />}
-        {lead.contact_type && <Field label="Type"       value={lead.contact_type} />}
-        <Field label="Source"   value={lead.source.replace(/_/g, ' ')} />
-        <Field label="Received" value={fmtDate(lead.created_at)} />
-        {lead.page_url && <Field label="Page" value={lead.page_url} small />}
+      <div className="detail-section">
+        <p className="detail-section-label">Lead Info</p>
+        <div className="flex flex-col gap-2.5">
+          {lead.topic        && <DetailField label="Topic"      value={lead.topic} />}
+          {lead.department   && <DetailField label="Department" value={lead.department} />}
+          {lead.contact_type && <DetailField label="Type"       value={lead.contact_type} />}
+          <DetailField label="Source"   value={lead.source.replace(/_/g, ' ')} />
+          <DetailField label="Received" value={fmtDate(lead.created_at)} />
+          {lead.page_url && <DetailField label="Page" value={lead.page_url} small />}
+        </div>
       </div>
 
       {/* Message */}
       {msg && (
-        <div className="px-4 py-3 border-b border-border">
-          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60 mb-1.5">Original Message</p>
+        <div className="detail-section">
+          <p className="detail-section-label">Original Message</p>
           <p className="text-[12px] text-foreground/80 whitespace-pre-wrap leading-[1.65] bg-muted/40 border border-border rounded-lg px-3 py-2.5 m-0">
             {msg}
           </p>
@@ -243,8 +249,8 @@ function DetailPanel({ lead, onStatus, onClose, onNotesSave }: { lead: Lead; onS
       )}
 
       {/* Notes */}
-      <div className="px-4 py-3 flex-1">
-        <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60 mb-1.5">
+      <div className="detail-section flex-1">
+        <p className="detail-section-label">
           Internal Notes <Tip placement="right" text="Only visible to your TRS team — the contact never sees these. Use this to record context like which insurer to quote, a follow-up date, or notes from a call." />
         </p>
         <textarea
@@ -427,11 +433,11 @@ function InlineReplyRow({ lead, onStatus, onCollapse }: {
 
 // ── Field helper ──────────────────────────────────────────────────────────────
 
-function Field({ label, value, small }: { label: string; value: string; small?: boolean }) {
+function DetailField({ label, value, small }: { label: string; value: string; small?: boolean }) {
   return (
-    <div>
-      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60 mb-0.5">{label}</p>
-      <p className={cn('text-foreground/80 break-all leading-relaxed m-0', small ? 'text-[11px]' : 'text-[12px]')}>{value}</p>
+    <div className="detail-field">
+      <p className="detail-field-label">{label}</p>
+      <p className={cn('detail-field-value break-all m-0', small && 'text-[11px]')}>{value}</p>
     </div>
   )
 }
@@ -531,18 +537,20 @@ function InboundLeadsPage() {
       <div className="px-4 sm:px-6 pt-5 pb-0 bg-background flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-[20px] font-semibold tracking-tight text-foreground m-0">Inbound Leads</h1>
-            <p className="text-[13px] text-muted-foreground mt-0.5 mb-0">Enquiries from website forms and email</p>
+            <h1 className="page-title">Inbound Leads</h1>
+            <p className="page-subtitle">Enquiries from website forms and email</p>
           </div>
-          <button onClick={() => load(true)} className="bg-card border border-border rounded-md cursor-pointer text-muted-foreground flex items-center gap-1.5 px-3 py-1.5 text-[12px] hover:bg-muted/50">
-            <RefreshCw size={13} strokeWidth={2} className={refreshing ? 'animate-spin' : ''} />
+          <button onClick={() => load(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border bg-card text-[12px] font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors cursor-pointer"
+            style={{ outline: 'none' }}>
+            <RefreshCw size={12} strokeWidth={2} className={refreshing ? 'animate-spin' : ''} />
             Refresh
           </button>
         </div>
 
         {/* Stat cards */}
         {!loading && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+          <div className="kpi-grid grid-cols-2 sm:grid-cols-4 mb-4">
             <StatCard label="Total Leads"  value={leads.length} color="#2563eb" />
             <StatCard label="New"          value={totalNew}     color="#2563eb" highlight />
             <StatCard label="Email / Form" value={emCount}      sub={emNew > 0 ? `${emNew} new` : undefined} color="#7c3aed" />
@@ -552,34 +560,29 @@ function InboundLeadsPage() {
       </div>
 
       {/* Filter + search bar */}
-      <div className="px-4 sm:px-6 pb-3 flex items-center gap-2.5 bg-background flex-shrink-0 flex-wrap">
+      <div className="px-4 sm:px-6 pb-3 flex items-center gap-2 bg-background flex-shrink-0 flex-wrap">
         <div className="flex gap-1 flex-wrap">
           {FILTERS.map(f => (
             <button key={f.key} onClick={() => setFilter(f.key)}
-              className={cn(
-                'flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-md cursor-pointer border transition-all',
-                filter === f.key ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:bg-muted/50'
-              )}
+              className={cn('filter-pill', filter === f.key && 'active')}
             >
               {f.label}
-              <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded', filter === f.key ? 'bg-white/25 text-white' : 'bg-muted text-muted-foreground/70')}>
-                {f.count}
-              </span>
+              <span className="filter-pill-count">{f.count}</span>
               {f.newCount > 0 && (
-                <span className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', filter === f.key ? 'bg-white' : 'bg-primary')} />
+                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-primary opacity-70" />
               )}
             </button>
           ))}
         </div>
 
-        <div className="flex items-center gap-1.5 bg-card border border-border rounded-md px-2.5 h-[34px] flex-1 max-w-[320px]">
+        <div className="filter-search flex-1 max-w-[300px]">
           <Search size={12} className="text-muted-foreground/50 flex-shrink-0" />
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search name, email, phone, topic…"
-            className="flex-1 bg-transparent border-0 outline-none text-[12px] text-foreground font-sans" />
+            placeholder="Search name, email, phone, topic…" />
           {search && (
-            <button onClick={() => setSearch('')} className="bg-transparent border-0 p-0 cursor-pointer">
-              <X size={11} className="text-muted-foreground/50" />
+            <button onClick={() => setSearch('')} className="text-muted-foreground/50 hover:text-muted-foreground"
+              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+              <X size={11} />
             </button>
           )}
         </div>
@@ -761,7 +764,11 @@ export default function InboundLeadsPageWrapper() {
 
 function Th({ children, w, right }: { children?: React.ReactNode; w?: number | string; right?: boolean }) {
   return (
-    <th className={cn('h-10 px-3 align-middle text-[12px] font-medium text-muted-foreground whitespace-nowrap', right ? 'text-right' : 'text-left')}
+    <th className={cn(
+      'h-9 px-3 align-middle text-[10.5px] font-semibold uppercase tracking-[0.05em] text-muted-foreground whitespace-nowrap',
+      'bg-muted/30 border-b border-border',
+      right ? 'text-right' : 'text-left',
+    )}
       style={{ width: w }}>
       {children}
     </th>
@@ -774,14 +781,17 @@ function StatCard({ label, value, sub, color, highlight }: {
   label: string; value: number; sub?: string; color: string; highlight?: boolean
 }) {
   return (
-    <div className="rounded-lg px-5 py-4 border shadow-sm"
-      style={{ background: highlight ? color : 'hsl(var(--card))', border: `1px solid ${highlight ? color : 'hsl(var(--border))'}` }}>
-      <p className="text-[12px] font-medium mb-1.5 m-0" style={{ color: highlight ? 'rgba(255,255,255,0.85)' : 'hsl(var(--muted-foreground))' }}>{label}</p>
+    <div className="kpi-card"
+      style={highlight ? { background: color, borderColor: color, boxShadow: `0 2px 8px ${color}30` } : undefined}>
+      <p className="kpi-label" style={highlight ? { color: 'rgba(255,255,255,0.80)' } : undefined}>{label}</p>
       <div className="flex items-baseline gap-2">
-        <span className="text-[28px] font-bold leading-none tracking-tight" style={{ color: highlight ? '#fff' : 'hsl(var(--foreground))' }}>{value}</span>
+        <span className="kpi-value" style={highlight ? { color: '#fff' } : undefined}>{value}</span>
         {sub && (
           <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded"
-            style={{ color: highlight ? 'rgba(255,255,255,0.75)' : color, background: highlight ? 'rgba(255,255,255,0.2)' : `${color}18` }}>
+            style={{
+              color:      highlight ? 'rgba(255,255,255,0.75)' : color,
+              background: highlight ? 'rgba(255,255,255,0.20)' : `${color}18`,
+            }}>
             {sub}
           </span>
         )}

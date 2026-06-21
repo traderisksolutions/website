@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import React from 'react'
-import { Search, Loader2 } from 'lucide-react'
+import { Search, Loader2, Table2 } from 'lucide-react'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
+import { statusMeta } from '@/lib/status'
 
 type Status     = 'new' | 'contacted' | 'replied' | 'qualified' | 'disqualified'
 type RecordType = 'person' | 'company'
@@ -34,13 +35,7 @@ interface OutboundLead {
   notes:              string | null
 }
 
-const STATUS_STYLE: Record<Status, { bg: string; color: string }> = {
-  new:          { bg: 'rgba(20,30,50,0.05)',  color: '#667085' },
-  contacted:    { bg: 'rgba(15,61,145,0.07)', color: '#0F3D91' },
-  replied:      { bg: 'rgba(194,122,7,0.08)', color: '#C27A07' },
-  qualified:    { bg: 'rgba(15,138,95,0.08)', color: '#0F8A5F' },
-  disqualified: { bg: 'rgba(194,65,77,0.08)', color: '#C2414D' },
-}
+// Use statusMeta() from shared lib for badge colors
 
 const SOURCE_LABEL: Record<Source, string> = {
   url_lookup:     'URL Lookup',
@@ -187,49 +182,66 @@ export default function OutboundLeadsPage() {
   return (
     <div className="flex flex-col h-screen overflow-hidden">
 
-      {/* Top bar */}
-      <div className="flex items-center gap-3 px-5 py-3 border-b border-border bg-background flex-shrink-0 flex-wrap">
+      {/* Page header */}
+      <div className="page-header bg-background border-b border-border flex-shrink-0">
         <div>
-          <h1 className="text-[15px] font-semibold tracking-tight text-foreground">Outbound Leads</h1>
-          <p className="text-[12px] text-muted-foreground">{leads.length} total · {leads.filter(l => l.status === 'new').length} new</p>
+          <h1 className="page-title">Outbound Leads</h1>
+          <p className="page-subtitle">{leads.length} total · {leads.filter(l => l.status === 'new').length} new</p>
         </div>
-        <div className="flex-1" />
+        <div className="flex items-center gap-2">
+          {/* Search */}
+          <div className="filter-search">
+            <Search size={12} className="text-muted-foreground/60 flex-shrink-0" />
+            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search leads…" />
+          </div>
 
-        {/* Search */}
-        <div className="flex items-center gap-2 bg-muted rounded-md px-3 h-[34px] w-52">
-          <Search size={13} className="text-muted-foreground flex-shrink-0" />
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search leads…"
-            className="flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted-foreground" />
+          {/* Status filter */}
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as Status | 'all')}
+            className="h-8 px-2.5 rounded-md border border-border text-[12px] text-foreground bg-background cursor-pointer">
+            <option value="all">All Statuses</option>
+            <option value="new">New</option>
+            <option value="contacted">Contacted</option>
+            <option value="replied">Replied</option>
+            <option value="qualified">Qualified</option>
+            <option value="disqualified">Disqualified</option>
+          </select>
+
+          {/* Type filter */}
+          <select value={typeFilter} onChange={e => setTypeFilter(e.target.value as RecordType | 'all')}
+            className="h-8 px-2.5 rounded-md border border-border text-[12px] text-foreground bg-background cursor-pointer">
+            <option value="all">All Types</option>
+            <option value="person">People</option>
+            <option value="company">Companies</option>
+          </select>
         </div>
-
-        {/* Status filter */}
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as Status | 'all')}
-          className="h-[34px] px-2.5 rounded-md border border-border text-[12px] text-foreground bg-background cursor-pointer">
-          <option value="all">All Statuses</option>
-          <option value="new">New</option>
-          <option value="contacted">Contacted</option>
-          <option value="replied">Replied</option>
-          <option value="qualified">Qualified</option>
-          <option value="disqualified">Disqualified</option>
-        </select>
-
-        {/* Type filter */}
-        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value as RecordType | 'all')}
-          className="h-[34px] px-2.5 rounded-md border border-border text-[12px] text-foreground bg-background cursor-pointer">
-          <option value="all">All Types</option>
-          <option value="person">People</option>
-          <option value="company">Companies</option>
-        </select>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         {loading ? (
-          <div className="py-10 text-center text-sm text-muted-foreground">Loading…</div>
+          <div className="flex flex-col">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div key={i} className="flex gap-4 px-4 h-14 items-center border-b border-border/50">
+                <div className="skeleton sk-cell" style={{ width: 28, height: 28, borderRadius: '50%' }} />
+                <div className="flex-1 flex flex-col gap-1.5">
+                  <div className="skeleton sk-line" style={{ width: '35%' }} />
+                  <div className="skeleton sk-text" style={{ width: '55%' }} />
+                </div>
+                <div className="skeleton sk-cell" style={{ width: 60 }} />
+              </div>
+            ))}
+          </div>
         ) : filtered.length === 0 ? (
-          <div className="py-14 text-center text-sm text-muted-foreground">
-            No leads yet.{' '}
-            <a href="/outbound/search" className="text-foreground font-medium no-underline">Search for prospects →</a>
+          <div className="empty-state">
+            <div className="empty-icon-wrap">
+              <Table2 size={20} className="text-muted-foreground" />
+            </div>
+            <p className="empty-title">{q || statusFilter !== 'all' ? 'No leads match your filters' : 'No leads yet'}</p>
+            <p className="empty-desc">
+              {q || statusFilter !== 'all'
+                ? 'Try adjusting your search or filter.'
+                : 'Use Lead Discovery to find prospects with Apollo.'}
+            </p>
           </div>
         ) : (
           <>
@@ -288,7 +300,7 @@ export default function OutboundLeadsPage() {
                 <TableBody>
                   {filtered.map(lead => {
                     const expanded = expandedId === lead.id
-                    const s        = STATUS_STYLE[lead.status]
+                    const s        = statusMeta(lead.status)
                     const avatar   = lead.profile_picture ?? lead.logo_url
                     const date     = new Date(lead.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
                     return (
@@ -434,7 +446,7 @@ export default function OutboundLeadsPage() {
             <div className="sm:hidden divide-y divide-border">
               {filtered.map(lead => {
                 const expanded = expandedId === lead.id
-                const s        = STATUS_STYLE[lead.status]
+                const s        = statusMeta(lead.status)
                 const avatar   = lead.profile_picture ?? lead.logo_url
                 const date     = new Date(lead.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
                 return (

@@ -71,12 +71,10 @@ export default function Sidebar() {
     createClient().auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null))
   }, [])
 
-  // Restore collapsed state from localStorage on mount
   useEffect(() => {
     if (localStorage.getItem('sidebar-collapsed') === 'true') setCollapsed(true)
   }, [])
 
-  // Sync CSS variable and localStorage whenever collapsed changes
   useEffect(() => {
     document.documentElement.style.setProperty('--sidebar-width', collapsed ? '52px' : '240px')
     localStorage.setItem('sidebar-collapsed', String(collapsed))
@@ -100,36 +98,36 @@ export default function Sidebar() {
         style={{ width: 52, overflowY: 'hidden' }}
       >
         {/* Logo */}
-        <div style={{ height: 52, borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'hsl(var(--sidebar-ring))', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 2px var(--primary-focus-ring)' }}>
-            <span style={{ fontSize: 10, fontWeight: 900, color: '#fff', letterSpacing: '-0.03em' }}>TRS</span>
+        <div className="h-[52px] flex items-center justify-center flex-shrink-0 border-b border-[--border-subtle]">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+            style={{ background: 'hsl(var(--sidebar-ring))', boxShadow: '0 0 0 2px var(--primary-focus-ring)' }}>
+            <span className="text-[10px] font-black text-white tracking-tight">TRS</span>
           </div>
         </div>
 
-        {/* Expand button — sits directly below logo */}
+        {/* Expand button */}
         <button
           onClick={() => setCollapsed(false)}
           title="Expand sidebar"
-          style={{ flexShrink: 0, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer', width: '100%', color: 'hsl(var(--sidebar-fg))' }}
-          onMouseEnter={e => (e.currentTarget.style.background = 'hsl(var(--sidebar-accent))')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+          className="flex-shrink-0 h-8 flex items-center justify-center border-b border-[--border-subtle] cursor-pointer text-[--sidebar-fg] transition-colors hover:bg-accent w-full"
+          style={{ background: 'none', border: 'none', borderBottom: '1px solid var(--border-subtle)' }}
         >
-          <ChevronRight size={13} strokeWidth={2} />
+          <ChevronRight size={13} strokeWidth={2} className="text-muted-foreground" />
         </button>
 
         {/* Icon-only nav */}
-        <nav style={{ flex: 1, overflowY: 'auto', padding: '8px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+        <nav className="flex-1 overflow-y-auto py-2 flex flex-col items-center gap-px">
           <CollapsedIcon icon={BookOpen} href="/documentation" isActive={active('/documentation')} label="Overview" />
           <IconDivider />
           <CollapsedIcon icon={Mail}          href="/inbound/email"    isActive={active('/inbound/email')}    label="Email"    hasBadge={inbound.emailNew > 0} />
           <CollapsedIcon icon={MessageCircle} href="/inbound/whatsapp" isActive={active('/inbound/whatsapp')} label="WhatsApp" hasBadge={inbound.waNew > 0} />
           <IconDivider />
-          <CollapsedIcon icon={Telescope}  href="/outbound/agent"     isActive={active('/outbound/agent')}     label="Lead Discovery" />
-          <CollapsedIcon icon={Table2}     href="/outbound/leads"     isActive={active('/outbound/leads')}     label="Lead Database" />
-          <CollapsedIcon icon={Megaphone}  href="/outbound/campaigns" isActive={active('/outbound/campaigns')} label="Campaigns" />
-          <CollapsedIcon icon={MessageCircle} href="/outbound/replies" isActive={active('/outbound/replies')} label="Reply Review" />
+          <CollapsedIcon icon={Telescope}     href="/outbound/agent"     isActive={active('/outbound/agent')}     label="Lead Discovery" />
+          <CollapsedIcon icon={Table2}        href="/outbound/leads"     isActive={active('/outbound/leads')}     label="Lead Database" />
+          <CollapsedIcon icon={Megaphone}     href="/outbound/campaigns" isActive={active('/outbound/campaigns')} label="Campaigns" />
+          <CollapsedIcon icon={MessageCircle} href="/outbound/replies"   isActive={active('/outbound/replies')}   label="Reply Review" />
           <IconDivider />
-          <CollapsedIcon icon={Users} href="/contacts"  isActive={active('/contacts')}  label="Active Contacts" hasBadge={totalEngaged > 0} />
+          <CollapsedIcon icon={Users} href="/contacts"   isActive={active('/contacts')}   label="Active Contacts" hasBadge={totalEngaged > 0} />
           <CollapsedIcon icon={Bot}   href="/engagement" isActive={active('/engagement')} label="Engagement AI Agent" />
           <IconDivider />
           <CollapsedIcon icon={Cpu}         href="/analytics/ai-usage"  isActive={active('/analytics/ai-usage')}  label="AI Usage" />
@@ -140,11 +138,15 @@ export default function Sidebar() {
         </nav>
 
         {/* Footer */}
-        <div style={{ borderTop: '1px solid var(--border-subtle)', padding: '10px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-          <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'hsl(var(--sidebar-primary))' }}>
+        <div className="border-t border-[--border-subtle] py-2.5 flex flex-col items-center gap-1.5 flex-shrink-0"
+          style={{ borderTop: '1px solid var(--border-subtle)' }}>
+          <div className="w-7 h-7 rounded-full bg-black/[0.06] flex items-center justify-center text-[11px] font-bold"
+            style={{ color: 'hsl(var(--sidebar-primary))' }}>
             {userEmail ? userEmail[0].toUpperCase() : '?'}
           </div>
-          <button onClick={signOut} title="Sign out" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'hsl(var(--sidebar-fg))', display: 'flex', alignItems: 'center' }}>
+          <button onClick={signOut} title="Sign out"
+            className="p-1 rounded-md hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+            style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
             <LogOut size={13} strokeWidth={2} />
           </button>
         </div>
@@ -168,11 +170,10 @@ export default function Sidebar() {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-[13px] font-semibold leading-tight tracking-tight"
-            style={{ color: 'hsl(var(--sidebar-primary))' }}
-          >
+            style={{ color: 'hsl(var(--sidebar-primary))' }}>
             Trade Risk Solutions
           </span>
-          <span className="text-[11px] leading-tight" style={{ color: 'hsl(var(--sidebar-fg))' }}>
+          <span className="text-[10px] leading-tight" style={{ color: 'hsl(var(--sidebar-fg))' }}>
             Internal Dashboard
           </span>
         </div>
@@ -180,23 +181,20 @@ export default function Sidebar() {
         <button
           onClick={() => setCollapsed(true)}
           title="Collapse sidebar"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'hsl(var(--sidebar-fg))', display: 'flex', alignItems: 'center', flexShrink: 0, borderRadius: 6, opacity: 0.6 }}
-          onMouseEnter={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.background = 'hsl(var(--sidebar-accent))' }}
-          onMouseLeave={e => { e.currentTarget.style.opacity = '0.6'; e.currentTarget.style.background = 'none' }}
+          className="p-1 rounded-md opacity-50 hover:opacity-100 hover:bg-accent transition-all flex-shrink-0 text-muted-foreground"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
         >
           <ChevronLeft size={14} strokeWidth={2} />
         </button>
       </div>
 
       {/* ── Nav ── */}
-      <nav className="flex-1 px-2 py-2 space-y-0.5">
+      <nav className="flex-1 px-2 py-2.5 space-y-px">
 
-        {/* Overview */}
         <NavItem label="Overview" href="/documentation" icon={BookOpen} isActive={active('/documentation')} />
 
         <SectionDivider />
 
-        {/* Inbound Leads */}
         <SectionHeader
           label="Inbound Leads"
           open={captureOpen}
@@ -204,7 +202,7 @@ export default function Sidebar() {
           badge={(inbound.emailNew + inbound.waNew) || undefined}
         />
         {captureOpen && (
-          <div className="space-y-0.5">
+          <div className="space-y-px">
             <NavItem label="Email"    href="/inbound/email"    icon={Mail}          badge={inbound.emailNew} isActive={active('/inbound/email')} />
             <NavItem label="WhatsApp" href="/inbound/whatsapp" icon={MessageCircle} badge={inbound.waNew}    isActive={active('/inbound/whatsapp')} />
           </div>
@@ -212,20 +210,18 @@ export default function Sidebar() {
 
         <SectionDivider />
 
-        {/* Outbound Leads */}
         <SectionHeader label="Outbound Leads" open={outboundOpen} onToggle={() => setOutboundOpen(o => !o)} />
         {outboundOpen && (
-          <div className="space-y-0.5">
-            <NavItem label="Lead Discovery"    href="/outbound/agent"     icon={Telescope}  isActive={active('/outbound/agent')} />
-            <NavItem label="Lead Database"     href="/outbound/leads"     icon={Table2}     isActive={active('/outbound/leads')} />
-            <NavItem label="Campaigns"         href="/outbound/campaigns" icon={Megaphone}  isActive={active('/outbound/campaigns')} />
-            <NavItem label="Reply Review" href="/outbound/replies" icon={MessageCircle} isActive={active('/outbound/replies')} />
+          <div className="space-y-px">
+            <NavItem label="Lead Discovery" href="/outbound/agent"     icon={Telescope}     isActive={active('/outbound/agent')} />
+            <NavItem label="Lead Database"  href="/outbound/leads"     icon={Table2}        isActive={active('/outbound/leads')} />
+            <NavItem label="Campaigns"      href="/outbound/campaigns" icon={Megaphone}     isActive={active('/outbound/campaigns')} />
+            <NavItem label="Reply Review"   href="/outbound/replies"   icon={MessageCircle} isActive={active('/outbound/replies')} />
           </div>
         )}
 
         <SectionDivider />
 
-        {/* Engagement */}
         <SectionHeader
           label="Engagement"
           open={engageOpen}
@@ -233,13 +229,13 @@ export default function Sidebar() {
           badge={totalEngaged || undefined}
         />
         {engageOpen && (
-          <div className="space-y-0.5">
+          <div className="space-y-px">
             <NavItem label="Active Contacts"      href="/contacts"   icon={Users} badge={totalEngaged || undefined} isActive={active('/contacts')} />
             {totalEngaged > 0 && (
-              <div className="flex flex-wrap gap-1 pl-7 pb-1">
+              <div className="flex flex-wrap gap-1 pl-7 pb-1 pt-0.5">
                 {stages.engaged   > 0 && <StagePill label="Engaged"   count={stages.engaged}   color="#0F3D91" />}
-                {stages.qualified > 0 && <StagePill label="Qualified" count={stages.qualified} color="#475467" />}
-                {stages.proposal  > 0 && <StagePill label="Proposal"  count={stages.proposal}  color="#C27A07" />}
+                {stages.qualified > 0 && <StagePill label="Qualified" count={stages.qualified} color="#0a6e4b" />}
+                {stages.proposal  > 0 && <StagePill label="Proposal"  count={stages.proposal}  color="#b45309" />}
                 {stages.converted > 0 && <StagePill label="Converted" count={stages.converted} color="#0F8A5F" />}
               </div>
             )}
@@ -249,10 +245,9 @@ export default function Sidebar() {
 
         <SectionDivider />
 
-        {/* Analytics — now collapsible */}
         <SectionHeader label="Analytics" open={analyticsOpen} onToggle={() => setAnalyticsOpen(o => !o)} />
         {analyticsOpen && (
-          <div className="space-y-0.5">
+          <div className="space-y-px">
             <NavItem label="Funnel"           href="/analytics"           icon={BarChart2}    isActive={active('/analytics') && !active('/analytics/ai-usage') && !active('/analytics/activity') && !active('/analytics/eval') && !active('/analytics/rag-index')} disabled />
             <NavItem label="Activity Log"     href="/analytics/activity"  icon={UsersRound}   isActive={active('/analytics/activity')} disabled />
             <NavItem label="AI Usage"         href="/analytics/ai-usage"  icon={Cpu}          isActive={active('/analytics/ai-usage')} />
@@ -263,7 +258,6 @@ export default function Sidebar() {
 
         <SectionDivider />
 
-        {/* Claims / Settings */}
         <NavItem label="Claims"   href="/claims"   icon={AlertCircle} isActive={active('/claims')}   disabled />
         <NavItem label="Settings" href="/settings" icon={Settings}    isActive={active('/settings')} />
 
@@ -279,17 +273,14 @@ export default function Sidebar() {
           {userEmail ? userEmail[0].toUpperCase() : '?'}
         </div>
         <span className="text-[11px] flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
-          style={{ color: 'hsl(var(--sidebar-fg))' }}
-        >
+          style={{ color: 'hsl(var(--sidebar-fg))' }}>
           {userEmail ?? '—'}
         </span>
         <button
           onClick={signOut}
           title="Sign out"
-          className="p-1.5 rounded-md transition-colors flex-shrink-0"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(var(--sidebar-fg))' }}
-          onMouseEnter={e => (e.currentTarget.style.background = 'hsl(var(--sidebar-accent))')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+          className="p-1.5 rounded-md hover:bg-accent hover:text-foreground transition-colors text-muted-foreground flex-shrink-0"
+          style={{ background: 'none', border: 'none', cursor: 'pointer' }}
         >
           <LogOut size={13} strokeWidth={2} />
         </button>
@@ -301,9 +292,7 @@ export default function Sidebar() {
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
 function SectionDivider() {
-  return (
-    <div className="my-2 mx-2 h-px" style={{ background: 'var(--border-subtle)' }} />
-  )
+  return <div className="my-2 mx-2 h-px bg-[--border-subtle]" style={{ background: 'var(--border-subtle)' }} />
 }
 
 function SectionHeader({
@@ -314,18 +303,17 @@ function SectionHeader({
   return (
     <button
       onClick={onToggle}
-      className="flex items-center gap-2 w-full h-8 px-2.5 rounded-md text-left transition-colors"
+      className="flex items-center gap-2 w-full h-7 px-2.5 rounded-md text-left hover:bg-accent transition-colors"
       style={{ background: 'none', border: 'none', cursor: 'pointer' }}
     >
-      <span className="text-[10px] font-semibold uppercase tracking-widest flex-1"
-        style={{ color: 'hsl(var(--sidebar-fg))' }}
-      >
+      <span className="text-[10px] font-semibold uppercase tracking-[0.07em] flex-1"
+        style={{ color: 'hsl(var(--sidebar-fg))' }}>
         {label}
       </span>
       {badge !== undefined && badge > 0 && <NavBadge count={badge} />}
       {open
-        ? <ChevronDown  size={12} strokeWidth={2} style={{ color: 'hsl(var(--sidebar-fg))', flexShrink: 0 }} />
-        : <ChevronRight size={12} strokeWidth={2} style={{ color: 'hsl(var(--sidebar-fg))', flexShrink: 0 }} />
+        ? <ChevronDown  size={11} strokeWidth={2.5} style={{ color: 'hsl(var(--sidebar-fg))', flexShrink: 0 }} />
+        : <ChevronRight size={11} strokeWidth={2.5} style={{ color: 'hsl(var(--sidebar-fg))', flexShrink: 0 }} />
       }
     </button>
   )
@@ -340,42 +328,33 @@ function NavItem({
   const row = (
     <span
       className={cn(
-        'sb-row flex items-center gap-2.5 px-2.5 h-8 rounded-md w-full transition-all duration-150',
+        'sb-row flex items-center gap-2.5 px-2.5 h-8 rounded-md w-full transition-all duration-100',
         isActive && 'font-medium',
         disabled && 'pointer-events-none',
       )}
       style={{
-        background: isActive ? 'hsl(var(--sidebar-accent))' : 'transparent',
-        color: disabled
-          ? 'hsl(var(--sidebar-fg) / 0.35)'
-          : isActive
-          ? 'hsl(var(--sidebar-ring))'
-          : 'hsl(var(--sidebar-fg))',
+        background:  isActive ? 'hsl(var(--sidebar-accent))' : 'transparent',
+        color:       disabled ? 'hsl(var(--sidebar-fg) / 0.35)' : isActive ? 'hsl(var(--sidebar-ring))' : 'hsl(var(--sidebar-fg))',
         textDecoration: 'none',
-        borderLeft: isActive ? '2px solid hsl(var(--sidebar-ring))' : '2px solid transparent',
+        borderLeft:  isActive ? '2px solid hsl(var(--sidebar-ring))' : '2px solid transparent',
         paddingLeft: isActive ? '8px' : '10px',
       }}
     >
       <Icon
         size={14}
-        strokeWidth={isActive ? 2.2 : 1.8}
+        strokeWidth={isActive ? 2.2 : 1.7}
         style={{
           flexShrink: 0,
           color: disabled
             ? 'hsl(var(--sidebar-fg) / 0.25)'
-            : isActive
-            ? 'hsl(var(--sidebar-ring))'
-            : 'hsl(var(--sidebar-fg))',
+            : isActive ? 'hsl(var(--sidebar-ring))' : 'hsl(var(--sidebar-fg))',
         }}
       />
-      <span className="text-[12.5px] flex-1 tracking-tight leading-none">
-        {label}
-      </span>
+      <span className="text-[12.5px] flex-1 tracking-tight leading-none">{label}</span>
       {badge !== undefined && badge > 0 && <NavBadge count={badge} />}
       {disabled && (
         <span className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded"
-          style={{ background: 'hsl(var(--sidebar-border))', color: 'hsl(var(--sidebar-fg) / 0.5)' }}
-        >
+          style={{ background: 'hsl(var(--sidebar-border))', color: 'hsl(var(--sidebar-fg) / 0.5)' }}>
           Soon
         </span>
       )}
@@ -392,8 +371,7 @@ function NavItem({
 function NavBadge({ count }: { count: number }) {
   return (
     <span className="flex items-center justify-center text-[10px] font-bold rounded-full px-1.5 min-w-[18px] h-[18px] flex-shrink-0"
-      style={{ background: 'hsl(var(--sidebar-ring))', color: '#fff' }}
-    >
+      style={{ background: 'hsl(var(--sidebar-ring))', color: '#fff' }}>
       {count > 99 ? '99+' : count}
     </span>
   )
@@ -402,9 +380,9 @@ function NavBadge({ count }: { count: number }) {
 function StagePill({ label, count, color }: { label: string; count: number; color: string }) {
   return (
     <span className="inline-flex items-center gap-1 text-[10px] font-medium rounded-full px-2 py-0.5 border"
-      style={{ color, background: `${color}18`, borderColor: `${color}30`, letterSpacing: '0.01em' }}
-    >
-      {label} {count}
+      style={{ color, background: `${color}14`, borderColor: `${color}28`, letterSpacing: '0.01em' }}>
+      <span className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: color }} />
+      {label} <span className="font-bold">{count}</span>
     </span>
   )
 }
@@ -419,15 +397,12 @@ function CollapsedIcon({
   const inner = (
     <span
       title={label}
-      style={{
-        width: 36, height: 36, borderRadius: 8,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: isActive ? 'hsl(var(--sidebar-accent))' : 'transparent',
-        cursor: disabled ? 'default' : 'pointer',
-        opacity: disabled ? 0.35 : 1,
-        position: 'relative',
-        transition: 'background 0.1s',
-      }}
+      className={cn(
+        'relative flex items-center justify-center rounded-lg transition-colors',
+        isActive ? 'bg-accent' : 'hover:bg-accent',
+        disabled && 'opacity-35 pointer-events-none',
+      )}
+      style={{ width: 36, height: 36 }}
     >
       <Icon
         size={16}
@@ -435,12 +410,8 @@ function CollapsedIcon({
         style={{ color: isActive ? 'hsl(var(--sidebar-ring))' : 'hsl(var(--sidebar-fg))' }}
       />
       {hasBadge && (
-        <span style={{
-          position: 'absolute', top: 7, right: 7,
-          width: 6, height: 6, borderRadius: '50%',
-          background: 'hsl(var(--sidebar-ring))',
-          border: '1px solid #fff',
-        }} />
+        <span className="absolute top-[7px] right-[7px] w-1.5 h-1.5 rounded-full border border-white"
+          style={{ background: 'hsl(var(--sidebar-ring))' }} />
       )}
     </span>
   )
@@ -451,5 +422,5 @@ function CollapsedIcon({
 }
 
 function IconDivider() {
-  return <div style={{ width: 28, height: 1, background: 'var(--border-subtle)', margin: '3px 0' }} />
+  return <div className="w-7 h-px my-0.5" style={{ background: 'var(--border-subtle)' }} />
 }
