@@ -332,7 +332,7 @@ function EmailCard({ msg, defaultOpen, onOpen }: { msg: RealMsg; index?: number;
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           <span style={{ fontSize: 11, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{fmtDateTime(msg.sent_at)}</span>
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ color: '#d1d5db', flexShrink: 0 }}>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ color: 'hsl(var(--border))', flexShrink: 0 }}>
             <path d="M2 8l4-4 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </div>
@@ -1459,25 +1459,25 @@ function ContactPanel({
                 {selectedMsg.from_address && (
                   <div style={{ display: 'flex', gap: 8 }}>
                     <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', width: 44, flexShrink: 0, paddingTop: 1 }}>FROM</span>
-                    <span style={{ fontSize: 11, color: '#444', wordBreak: 'break-all' }}>{selectedMsg.from_address}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-secondary)', wordBreak: 'break-all' }}>{selectedMsg.from_address}</span>
                   </div>
                 )}
                 {selectedMsg.to.length > 0 && (
                   <div style={{ display: 'flex', gap: 8 }}>
                     <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', width: 44, flexShrink: 0, paddingTop: 1 }}>TO</span>
-                    <span style={{ fontSize: 11, color: '#444', wordBreak: 'break-all' }}>{selectedMsg.to.join(', ')}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-secondary)', wordBreak: 'break-all' }}>{selectedMsg.to.join(', ')}</span>
                   </div>
                 )}
                 {selectedMsg.cc.length > 0 && (
                   <div style={{ display: 'flex', gap: 8 }}>
                     <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', width: 44, flexShrink: 0, paddingTop: 1 }}>CC</span>
-                    <span style={{ fontSize: 11, color: '#444', wordBreak: 'break-all' }}>{selectedMsg.cc.join(', ')}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-secondary)', wordBreak: 'break-all' }}>{selectedMsg.cc.join(', ')}</span>
                   </div>
                 )}
                 {selectedMsg.subject && (
                   <div style={{ display: 'flex', gap: 8 }}>
                     <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', width: 44, flexShrink: 0, paddingTop: 1 }}>SUBJECT</span>
-                    <span style={{ fontSize: 11, color: '#444', wordBreak: 'break-word' }}>{selectedMsg.subject}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-secondary)', wordBreak: 'break-word' }}>{selectedMsg.subject}</span>
                   </div>
                 )}
               </div>
@@ -1751,7 +1751,7 @@ function ThreadView({
                   {fullName(lead)}{lead.email ? ` · ${lead.email}` : ''}{lead.company ? ` · ${lead.company}` : ''}
                 </span>
                 {messages.length > 0 && (
-                  <span style={{ fontSize: 10.5, color: 'var(--text-muted)', background: '#f3f4f6', padding: '1px 7px', borderRadius: 20 }}>
+                  <span style={{ fontSize: 10.5, color: 'var(--text-muted)', background: 'hsl(var(--muted))', padding: '1px 7px', borderRadius: 20 }}>
                     {messages.length} email{messages.length !== 1 ? 's' : ''}
                   </span>
                 )}
@@ -1770,7 +1770,7 @@ function ThreadView({
                   </button>
                 </div>
               ) : (
-                <button onClick={handleDelete} title="Delete thread" aria-label="Delete thread" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#d1d5db', display: 'flex', alignItems: 'center', borderRadius: 6 }}>
+                <button onClick={handleDelete} title="Delete thread" aria-label="Delete thread" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'hsl(var(--border))', display: 'flex', alignItems: 'center', borderRadius: 6 }}>
                   <Trash2 size={13} strokeWidth={2} />
                 </button>
               )}
@@ -1892,7 +1892,7 @@ function LeadListItem({
           width: 28, height: 28, borderRadius: '50%', flexShrink: 0, marginTop: 1,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 12, fontWeight: 700,
-          background: isActive ? 'var(--primary-selected-bg)' : '#f3f4f6',
+          background: isActive ? 'var(--primary-selected-bg)' : 'hsl(var(--muted))',
           color: isActive ? 'var(--primary-hex)' : 'var(--text-muted)',
         }}>
           {initial}

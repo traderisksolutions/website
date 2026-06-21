@@ -372,21 +372,22 @@ function InlineReplyRow({ lead, onStatus, onCollapse }: {
 
   return (
     <tr>
-      <td colSpan={9} className="px-4 py-4 bg-blue-50/60 border-b border-blue-100">
+      <td colSpan={9} className="px-4 py-4 border-b" style={{ background: 'var(--primary-light-bg)' }}>
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-blue-600 flex items-center gap-1.5">
+            <span className="text-[11px] font-bold uppercase tracking-[0.06em] flex items-center gap-1.5" style={{ color: 'var(--primary-hex)' }}>
               <Sparkles size={11} /> AI Reply Draft
               <Tip text="Draft generated from TRS FAQ docs only — no pricing included. Review and edit before sending." />
             </span>
             <div className="flex items-center gap-2">
               {draftText && (
                 <button onClick={generateDraft} disabled={generating}
-                  className="bg-transparent border-0 cursor-pointer text-[11px] text-blue-400 p-0 hover:text-blue-600">
+                  className="bg-transparent border-0 cursor-pointer text-[11px] p-0"
+                  style={{ color: 'var(--text-muted)' }}>
                   {generating ? 'Regenerating…' : 'Regenerate'}
                 </button>
               )}
-              <button onClick={onCollapse} className="bg-transparent border-0 p-0 cursor-pointer text-blue-300 hover:text-blue-500">
+              <button onClick={onCollapse} className="bg-transparent border-0 p-0 cursor-pointer" style={{ color: 'var(--text-muted)' }}>
                 <ChevronUp size={14} />
               </button>
             </div>
@@ -396,7 +397,7 @@ function InlineReplyRow({ lead, onStatus, onCollapse }: {
             <div className="flex items-center gap-3">
               <button onClick={generateDraft} disabled={generating}
                 className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-md border-0 cursor-pointer"
-                style={{ background: generating ? '#dbeafe' : '#1d4ed8', color: generating ? '#93c5fd' : '#fff' }}
+                style={{ background: generating ? 'var(--primary-light-bg)' : 'var(--primary-hex)', color: generating ? 'var(--primary-hex)' : '#fff' }}
               >
                 <Sparkles size={12} /> {generating ? 'Generating…' : 'Generate Reply'}
               </button>
@@ -408,10 +409,11 @@ function InlineReplyRow({ lead, onStatus, onCollapse }: {
                 value={draftText}
                 onChange={e => setDraftText(e.target.value)}
                 rows={7}
-                className="w-full box-border text-[12px] text-blue-900 leading-[1.7] border border-blue-200 rounded-lg px-3 py-2.5 resize-y bg-white outline-none font-sans focus:ring-1 focus:ring-blue-300"
+                className="w-full box-border text-[12px] leading-[1.7] rounded-lg px-3 py-2.5 resize-y bg-white outline-none font-sans"
+                style={{ color: 'var(--text-primary)', border: '1px solid var(--primary-light-border)' }}
               />
               <div className="flex items-center justify-between">
-                <span className="text-[11px] text-blue-400 flex items-center gap-1">
+                <span className="text-[11px] flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
                   To: {lead.email}
                   <Tip text="Sent from TRS operations email. The lead sees a normal email — no AI mention." />
                 </span>
@@ -419,7 +421,7 @@ function InlineReplyRow({ lead, onStatus, onCollapse }: {
                   {sendError && <span className="text-[11px] text-destructive">{sendError}</span>}
                   <button onClick={sendReply} disabled={sending || !draftText.trim()}
                     className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-md border-0 cursor-pointer disabled:opacity-50"
-                    style={{ background: sending ? '#dbeafe' : '#1d4ed8', color: sending ? '#93c5fd' : '#fff' }}
+                    style={{ background: sending ? 'var(--primary-light-bg)' : 'var(--primary-hex)', color: sending ? 'var(--primary-hex)' : '#fff' }}
                   >
                     <Send size={12} /> {sending ? 'Sending…' : 'Send Reply'}
                   </button>
@@ -633,8 +635,8 @@ function InboundLeadsPage() {
                       <Fragment key={lead.id}>
                         <tr
                           onClick={() => setSelectedId(lead.id === selectedId ? null : lead.id)}
-                          className={cn('border-b transition-colors cursor-pointer', isActive ? 'bg-primary/5' : isExpanded ? 'bg-blue-50/40' : 'hover:bg-muted/50')}
-                          style={{ borderLeft: `3px solid ${isActive ? 'hsl(var(--primary))' : isExpanded ? '#93c5fd' : 'transparent'}` }}
+                          className={cn('border-b transition-colors cursor-pointer', isActive ? 'bg-primary/5' : isExpanded ? '' : 'hover:bg-muted/50')}
+                          style={{ background: isExpanded && !isActive ? 'var(--primary-light-bg)' : undefined, borderLeft: `3px solid ${isActive ? 'hsl(var(--primary))' : isExpanded ? 'var(--primary-hex)' : 'transparent'}` }}
                         >
                           <td className="px-3.5 py-2.5 align-middle">
                             <div className="flex items-center gap-1.5 flex-wrap">
@@ -671,7 +673,7 @@ function InboundLeadsPage() {
                                 className={cn(
                                   'inline-flex items-center justify-center cursor-pointer p-1 rounded transition-colors',
                                   isExpanded
-                                    ? 'bg-blue-50 border border-blue-200 text-blue-500 hover:bg-blue-100'
+                                    ? 'border border-border text-primary hover:bg-muted/50'
                                     : 'bg-muted/50 border border-border text-muted-foreground hover:bg-muted hover:text-foreground'
                                 )}
                                 title={isExpanded ? 'Collapse' : 'Draft & send reply'}

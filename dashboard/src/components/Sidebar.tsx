@@ -352,17 +352,6 @@ function NavBadge({ count }: { count: number }) {
   )
 }
 
-function StagePill({ label, count, color }: { label: string; count: number; color: string }) {
-  return (
-    <span
-      className="inline-flex items-center gap-1 text-[10px] font-medium rounded-full px-2 py-0.5 border"
-      style={{ color, background: `${color}14`, borderColor: `${color}28`, letterSpacing: '0.01em' }}
-    >
-      <span className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: color }} />
-      {label} <span className="font-bold">{count}</span>
-    </span>
-  )
-}
 
 // ── Collapsed-mode icon components ─────────────────────────────────────────────
 
