@@ -3,18 +3,18 @@
 @tailwind utilities;
 
 /* ══════════════════════════════════════════════════════════════════
-   TRS Dashboard — Premium Light-Mode Design Token System
+   TRS Dashboard — Refined Slate Design Token System
    ──────────────────────────────────────────────────────────────────
-   Philosophy: neutral-first (85–90% of UI), deep blue for CTAs only.
-   Glass only on chrome surfaces — never on dense data areas.
+   Philosophy: deep navy anchor, stronger surface hierarchy,
+   single blue family throughout. One semantic token per concept.
    ══════════════════════════════════════════════════════════════════ */
 
 @layer base {
   :root {
     /* ── shadcn/ui base tokens (HSL triplets, no hsl() wrapper) ── */
 
-    /* App shell: warm cool-white, not pure white */
-    --background:            216 18% 97%;    /* #F7F8FA */
+    /* App shell: distinctly blue-grey — clear contrast against white cards */
+    --background:            216 22% 95%;    /* #EDF1F8 */
     --foreground:            215 44% 11%;    /* #101828 */
 
     --card:                  0 0% 100%;      /* #FFFFFF solid surface */
@@ -23,124 +23,127 @@
     --popover:               0 0% 100%;
     --popover-foreground:    215 44% 11%;
 
-    /* Deep refined blue — primary CTAs, active tabs, selected state */
-    --primary:               219 81% 31%;    /* #0F3D91 */
+    /* Deep refined navy — primary CTAs, active tabs, selected state */
+    --primary:               219 83% 28%;    /* #0C338A */
     --primary-foreground:    0 0% 100%;
 
-    /* Secondary / muted — cool stone */
-    --secondary:             216 18% 95%;    /* #F1F3F6 */
+    /* Secondary / muted — stronger blue-grey */
+    --secondary:             216 18% 90%;    /* #E2E7F2 */
     --secondary-foreground:  215 44% 11%;
 
-    --muted:                 216 18% 95%;    /* #F1F3F6 */
-    --muted-foreground:      214 14% 46%;    /* #667085 */
+    --muted:                 216 18% 90%;    /* #E2E7F2 */
+    --muted-foreground:      215 20% 40%;    /* #506078 — 5.7:1 on white */
 
-    /* Accent — pale primary-blue tint for hover / selected states */
-    --accent:                219 73% 97%;    /* rgba(15,61,145,0.07) approx */
-    --accent-foreground:     219 81% 31%;    /* primary blue text */
+    /* Accent — visible primary-blue tint for hover / selected states */
+    --accent:                219 65% 95%;    /* #EBF2FC — stronger than before */
+    --accent-foreground:     219 83% 28%;    /* primary blue text */
 
-    --destructive:           354 51% 52%;    /* #C2414D */
+    --destructive:           354 55% 46%;    /* #C03347 */
     --destructive-foreground: 0 0% 100%;
 
-    /* Border — cooler, lighter than before */
-    --border:                216 18% 91%;    /* ~rgba(20,30,50,0.09) over #F7F8FA */
-    --input:                 216 18% 91%;
-    --ring:                  219 81% 31%;    /* primary blue focus ring */
+    /* Border — clearly visible decorative divider */
+    --border:                216 16% 84%;    /* #D0D8EA */
+    /* Input — stronger border for interactive controls, 3.2:1 on white */
+    --input:                 215 12% 55%;    /* #7E8BA0 */
+    --ring:                  219 83% 28%;    /* primary blue focus ring */
     --radius:                0.625rem;
 
     /* ── Sidebar palette ── */
     --sidebar-bg:            0 0% 100%;
-    --sidebar-fg:            214 14% 46%;    /* #667085 — subdued nav labels */
+    --sidebar-fg:            215 20% 40%;    /* #506078 — stronger nav labels */
     --sidebar-primary:       215 44% 11%;    /* #101828 — strong labels */
     --sidebar-primary-fg:    0 0% 100%;
-    --sidebar-accent:        219 73% 97%;    /* pale blue selected bg */
-    --sidebar-accent-fg:     219 81% 31%;    /* primary blue selected text */
-    --sidebar-border:        216 18% 91%;
-    --sidebar-ring:          219 81% 31%;    /* primary blue active indicator */
+    --sidebar-accent:        219 65% 95%;    /* stronger blue selected bg */
+    --sidebar-accent-fg:     219 83% 28%;    /* primary blue selected text */
+    --sidebar-border:        216 16% 84%;
+    --sidebar-ring:          219 83% 28%;
 
     /* ── Layout dimensions ── */
     --sidebar-width:         256px;
     --topnav-height:         52px;
     --mobile-nav-h:          0px;
-    --content-bg:            hsl(216 18% 97%);
+    --content-bg:            hsl(216 22% 95%);
     --card-bg:               #ffffff;
-    --card-border:           hsl(216 18% 91%);
-    --card-shadow:           0 1px 3px rgba(20,30,50,0.05), 0 1px 2px rgba(20,30,50,0.03);
+    --card-border:           hsl(216 16% 84%);
+    --card-shadow:           0 1px 3px rgba(16,24,40,0.06), 0 1px 2px rgba(16,24,40,0.04);
     --card-radius:           0.625rem;
 
-    /* ── Chart palette — neutral-aligned, legible ── */
-    --chart-1:               219 81% 31%;    /* primary blue */
-    --chart-2:               161 78% 30%;    /* success green */
-    --chart-3:               35  90% 39%;    /* warning amber */
-    --chart-4:               214 14% 46%;    /* mid gray */
-    --chart-5:               214 14% 35%;    /* dark gray */
+    /* ── Chart palette — updated to match new primary ── */
+    --chart-1:               219 83% 28%;    /* primary blue */
+    --chart-2:               158 76% 30%;    /* success green */
+    --chart-3:               32  88% 38%;    /* warning amber */
+    --chart-4:               215 20% 40%;    /* mid slate */
+    --chart-5:               215 20% 28%;    /* dark slate */
 
     /* ══════════════════════════════════════════════════════
        Extended semantic tokens (rgba / hex — non-HSL)
-       These are referenced directly in inline styles and
-       custom CSS, not via Tailwind hsl() wrappers.
        ══════════════════════════════════════════════════════ */
 
     /* Surfaces */
     --surface:               rgba(255,255,255,0.72);
     --surface-elevated:      rgba(255,255,255,0.88);
     --surface-solid:         #ffffff;
-    --surface-sent:          rgba(15,61,145,0.055);  /* outbound email bubble tint */
+    --surface-sent:          rgba(12,51,138,0.055);  /* outbound email bubble tint */
 
     /* Borders — scale from whisper to assertive */
-    --border-subtle:         rgba(20,30,50,0.07);
-    --border-mid:            rgba(20,30,50,0.10);
-    --border-strong:         rgba(20,30,50,0.14);
+    --border-subtle:         rgba(16,24,40,0.08);
+    --border-mid:            rgba(16,24,40,0.12);
+    --border-strong:         rgba(16,24,40,0.18);
 
-    /* Text hierarchy */
+    /* Text hierarchy — consolidated single source of truth */
     --text-primary:          #101828;
-    --text-secondary:        #475467;
-    --text-muted:            #667085;
+    --text-secondary:        #3C5070;    /* stronger than before (#475467) */
+    --text-muted:            #506078;    /* matches muted-foreground */
 
-    /* Primary blue (hex — for use in JS inline styles) */
-    --primary-hex:           #0F3D91;
-    --primary-hover:         #0B3277;
-    --primary-selected-bg:   rgba(15,61,145,0.07);
-    --primary-focus-ring:    rgba(15,61,145,0.22);
-    --primary-badge-bg:      rgba(15,61,145,0.10);
+    /* Primary blue hex — for JS inline styles, one family only */
+    --primary-hex:           #0C338A;
+    --primary-hover:         #092870;
+    --primary-selected-bg:   rgba(12,51,138,0.08);
+    --primary-focus-ring:    rgba(12,51,138,0.24);
+    --primary-badge-bg:      rgba(12,51,138,0.09);
+    --primary-light-bg:      rgba(12,51,138,0.06);   /* callout / info tint */
+    --primary-light-border:  rgba(12,51,138,0.20);   /* callout / info border */
 
-    /* Semantic status */
-    --success:               #0F8A5F;
-    --success-bg:            rgba(15,138,95,0.08);
-    --warning:               #C27A07;
-    --warning-bg:            rgba(194,122,7,0.08);
-    --error:                 #C2414D;
-    --error-bg:              rgba(194,65,77,0.08);
-    --neutral-status-bg:     rgba(20,30,50,0.05);
-    --neutral-status-fg:     #667085;
+    /* Semantic status — all validated ≥ 4.5:1 */
+    --success:               #096842;
+    --success-bg:            rgba(9,104,66,0.09);
+    --warning:               #8A4200;
+    --warning-bg:            rgba(138,66,0,0.09);
+    --error:                 #C03347;
+    --error-bg:              rgba(192,51,71,0.09);
+    --neutral-status-bg:     rgba(16,24,40,0.07);
+    --neutral-status-fg:     #445868;
+
+    /* Table / list surface tokens */
+    --table-header-bg:       hsl(216 18% 93%);    /* #E9EEF6 */
+    --group-header-bg:       hsl(216 22% 88%);    /* #D4DCEE — clearly distinct */
+    --group-header-fg:       hsl(215 32% 28%);    /* #2C3F64 */
+    --selected-row-bg:       rgba(12,51,138,0.07);
+    --hover-row-bg:          rgba(12,51,138,0.035);
 
     /* Glass material shadows */
     --glass-specular:        inset 0 1px 0 rgba(255,255,255,0.68);
-    --glass-shadow-sm:       1px 0 0 rgba(20,30,50,0.04), 4px 0 20px rgba(20,30,50,0.05);
-    --glass-shadow-md:       0 8px 32px rgba(20,30,50,0.06), 0 2px 8px rgba(20,30,50,0.04);
-    --glass-shadow-lg:       0 0 0 1px rgba(20,30,50,0.05), 0 28px 72px rgba(20,30,50,0.10), 0 8px 20px rgba(20,30,50,0.05);
+    --glass-shadow-sm:       1px 0 0 rgba(16,24,40,0.05), 4px 0 20px rgba(16,24,40,0.06);
+    --glass-shadow-md:       0 8px 32px rgba(16,24,40,0.07), 0 2px 8px rgba(16,24,40,0.05);
+    --glass-shadow-lg:       0 0 0 1px rgba(16,24,40,0.06), 0 28px 72px rgba(16,24,40,0.11), 0 8px 20px rgba(16,24,40,0.06);
 
-    /* Panel shadow — right-side detail panels, sheets, drawers */
-    --shadow-panel:          0 4px 24px rgba(20,30,50,0.08), 0 1px 4px rgba(20,30,50,0.04);
+    /* Panel shadow */
+    --shadow-panel:          0 4px 24px rgba(16,24,40,0.09), 0 1px 4px rgba(16,24,40,0.05);
 
-    /* ── Content padding tokens ──
-       Use --content-px for operational screens (inbound, contacts, campaigns).
-       Use --content-px-editorial for docs/overview pages.
-       Use --content-pb to ensure last card clears the viewport bottom. */
-    --content-px:            1.5rem;    /* 24px */
-    --content-px-editorial:  2.5rem;    /* 40px */
-    --content-pb:            4rem;      /* 64px */
+    /* Content padding */
+    --content-px:            1.5rem;
+    --content-px-editorial:  2.5rem;
+    --content-pb:            4rem;
 
-    /* ── Stat card tonal accents ──
-       Color-code KPI / stat cards by metric type.
-       Apply as background with matching foreground for the value text. */
-    --stat-blue-bg:          rgba(15,61,145,0.05);
-    --stat-blue-fg:          #0F3D91;
-    --stat-green-bg:         rgba(15,138,95,0.06);
-    --stat-green-fg:         #0F8A5F;
-    --stat-amber-bg:         rgba(194,122,7,0.06);
-    --stat-amber-fg:         #C27A07;
-    --stat-red-bg:           rgba(194,65,77,0.06);
-    --stat-red-fg:           #C2414D;
+    /* Stat card tonal accents */
+    --stat-blue-bg:          rgba(12,51,138,0.06);
+    --stat-blue-fg:          #0C338A;
+    --stat-green-bg:         rgba(9,104,66,0.07);
+    --stat-green-fg:         #096842;
+    --stat-amber-bg:         rgba(138,66,0,0.07);
+    --stat-amber-fg:         #8A4200;
+    --stat-red-bg:           rgba(192,51,71,0.07);
+    --stat-red-fg:           #C03347;
   }
 }
 
@@ -154,11 +157,10 @@
 
   body {
     margin: 0;
-    /* Solid app-shell base with barely-there cool-blue atmosphere */
     background-color: hsl(var(--background));
     background-image:
-      radial-gradient(ellipse 80% 50% at 15% -5%, rgba(15,61,145,0.04) 0%, transparent 65%),
-      radial-gradient(ellipse 50% 40% at 85% 108%, rgba(180,200,230,0.03) 0%, transparent 60%);
+      radial-gradient(ellipse 80% 50% at 15% -5%, rgba(12,51,138,0.05) 0%, transparent 65%),
+      radial-gradient(ellipse 50% 40% at 85% 108%, rgba(160,190,230,0.04) 0%, transparent 60%);
     min-height: 100vh;
     color: hsl(var(--foreground));
     -webkit-font-smoothing: antialiased;
@@ -173,7 +175,7 @@
 /* ── Scrollbar — fine, neutral ── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(20,30,50,0.12); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: rgba(16,24,40,0.14); border-radius: 4px; }
 
 /* ── Responsive layout — desktop: sidebar pushes content; mobile: top nav ── */
 .main-content {
@@ -412,16 +414,16 @@
   padding: 2px 8px; border-radius: 9999px;
   white-space: nowrap; letter-spacing: 0.01em;
 }
-.st-new       { background: rgba(15,61,145,0.07);  color: #0F3D91; }
-.st-contacted { background: rgba(194,122,7,0.09);  color: #a66300; }
-.st-engaged   { background: rgba(15,61,145,0.07);  color: #0F3D91; }
-.st-qualified { background: rgba(15,138,95,0.09);  color: #0a6e4b; }
-.st-proposal  { background: rgba(217,119,6,0.09);  color: #b45309; }
-.st-converted { background: rgba(15,138,95,0.12);  color: #0F8A5F; }
-.st-dropped   { background: rgba(20,30,50,0.05);   color: #667085; }
-.st-replied   { background: rgba(194,122,7,0.09);  color: #a66300; }
-.st-prospect  { background: rgba(20,30,50,0.05);   color: #667085; }
-.st-cc        { background: rgba(20,30,50,0.04);   color: #9ca3af; }
+.st-new       { background: rgba(12,51,138,0.09);  color: #0C338A; }
+.st-contacted { background: rgba(138,66,0,0.09);   color: #8A4200; }
+.st-engaged   { background: rgba(12,51,138,0.09);  color: #0C338A; }
+.st-qualified { background: rgba(9,104,66,0.09);   color: #096842; }
+.st-proposal  { background: rgba(130,60,0,0.09);   color: #7E3C00; }
+.st-converted { background: rgba(9,104,66,0.12);   color: #096842; }
+.st-dropped   { background: rgba(16,24,40,0.07);   color: #445868; }
+.st-replied   { background: rgba(138,66,0,0.09);   color: #8A4200; }
+.st-prospect  { background: rgba(16,24,40,0.07);   color: #445868; }
+.st-cc        { background: rgba(16,24,40,0.06);   color: #5C6878; }
 
 /* ════════════════════════════════════════════════════════════════
    Focus ring — consistent, accessible
@@ -467,7 +469,7 @@ select:focus-visible {
 .filter-pill-count {
   font-size: 10px; font-weight: 700;
   padding: 0 5px; border-radius: 9999px;
-  background: rgba(20,30,50,0.07);
+  background: rgba(16,24,40,0.08);
   color: inherit;
 }
 .filter-pill.active .filter-pill-count { background: rgba(255,255,255,0.2); }
@@ -499,25 +501,26 @@ select:focus-visible {
   font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
   text-transform: uppercase; color: hsl(var(--muted-foreground));
   padding: 0 12px; height: 36px; border-bottom: 1px solid hsl(var(--border));
-  background: hsl(var(--muted) / 0.3);
+  background: var(--table-header-bg);
   white-space: nowrap;
 }
 .data-table tbody td {
   padding: 0 12px; height: 44px; vertical-align: middle;
-  border-bottom: 1px solid hsl(var(--border) / 0.6);
+  border-bottom: 1px solid hsl(var(--border));
 }
 .data-table tbody tr:last-child td { border-bottom: none; }
-.data-table tbody tr:hover td { background: hsl(var(--muted) / 0.4); }
-.data-table tbody tr.row-selected td { background: hsl(var(--primary) / 0.04); }
-.data-table tbody tr.row-selected:hover td { background: hsl(var(--primary) / 0.06); }
+.data-table tbody tr:hover td { background: var(--hover-row-bg); }
+.data-table tbody tr.row-selected td { background: var(--selected-row-bg); }
+.data-table tbody tr.row-selected:hover td { background: rgba(12,51,138,0.10); }
 
 /* Group header row in data tables */
 .data-table .group-row td {
-  background: hsl(var(--muted) / 0.35);
+  background: var(--group-header-bg);
   border-bottom: 1px solid hsl(var(--border));
   padding: 0 12px; height: 34px;
+  color: var(--group-header-fg);
 }
-.data-table .group-row:hover td { background: hsl(var(--muted) / 0.55); cursor: pointer; }
+.data-table .group-row:hover td { background: hsl(216 22% 85%); cursor: pointer; }
 
 /* ════════════════════════════════════════════════════════════════
    KPI / stat cards

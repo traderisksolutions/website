@@ -1,0 +1,77 @@
+TRS AI Knowledge Base — Outbound Campaign File Naming Convention
+Updated: Jun 2026
+
+────────────────────────────────────────────────────────────────
+WHAT THIS FOLDER IS FOR (READ THIS FIRST — FOR THE AI AGENT)
+────────────────────────────────────────────────────────────────
+You are the TRS Outbound Campaign AI.
+This folder contains your knowledge base. When drafting cold outreach emails
+for a campaign, you retrieve the most relevant documents from this folder to
+write accurate, compelling, product-specific emails on behalf of TRS.
+
+This folder is for COLD OUTREACH only — prospect-facing campaign emails
+sent via Instantly. It is NOT for replying to inbound enquiries (that is
+the engagement_ai_agent folder).
+
+Use these documents to:
+  - Describe TRS's insurance products clearly and accurately
+  - Quote indicative pricing or coverage limits when relevant
+  - Reference case studies or client outcomes as social proof
+  - Establish TRS's credentials and why a prospect should respond
+  - Match the email angle to the product focus of the campaign
+
+Do NOT fabricate coverage terms, premiums, or statistics. Only cite what
+is in the retrieved passages. If the documents do not support a specific
+claim, omit it.
+
+────────────────────────────────────────────────────────────────
+FILE NAMING CONVENTION (FOR HUMANS UPLOADING DOCUMENTS)
+────────────────────────────────────────────────────────────────
+
+FORMAT
+  [topic]-[type]-[mmm-yyyy].pdf
+
+FIELDS
+  topic   → the insurance line (see list below)
+  type    → what the document is (see list below)
+  mmm     → 3-letter month abbreviation, lowercase (jan feb mar apr may jun
+             jul aug sep oct nov dec)
+  yyyy    → 4-digit year
+
+TOPIC LIST
+  marine        construction    cargo         property
+  fire          liability       motor         travel
+  engineering   hull            benefits      employee
+  general       company
+
+TYPE LIST
+  pricing          → indicative premiums, rates, coverage limits
+  policy-wording   → what is and isn't covered, key exclusions
+  underwriting     → underwriting criteria, risk appetite
+  guide            → plain-language explanation of the product
+  schedule         → policy schedule or coverage summary table
+  endorsement      → additional covers or riders available
+  case-study       → client story, outcome, sector relevance
+  credentials      → TRS licences, awards, track record, about us
+
+EXAMPLES
+  marine-pricing-may-2026.pdf
+  benefits-underwriting-jan-2026.pdf
+  construction-policy-wording-mar-2026.pdf
+  property-schedule-feb-2026.pdf
+  motor-guide-apr-2026.pdf
+  liability-case-study-jun-2026.pdf
+  company-credentials-jan-2026.pdf
+
+RULES
+  - Lowercase only, hyphens between all words, no spaces
+  - Always end with .pdf
+  - One document per file — do not bundle multiple products
+  - When a document is updated, upload the new version with the current
+    month-year (do not overwrite the old file — the AI retrieves the most
+    relevant version based on the campaign context)
+  - .txt files in this folder ARE read by the AI — use them to provide
+    instructions or context (like this file)
+  - Keep each file under 20 pages for best retrieval accuracy
+  - The AI retrieves up to 6 passages per campaign email — keep documents
+    focused so the right passage ranks highest

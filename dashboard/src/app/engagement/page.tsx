@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef, useMemo, Suspense, Fragment } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Search, RefreshCw, ChevronDown, Copy, Check, X, Calendar, ArrowUpDown, SlidersHorizontal, Trash2, ArrowLeft } from 'lucide-react'
+import { Search, RefreshCw, ChevronDown, Copy, Check, X, ArrowUpDown, SlidersHorizontal, Trash2, ArrowLeft, Building2 } from 'lucide-react'
 import { useAuditLog } from '@/hooks/useAuditLog'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
 import { Tip } from '@/components/Tip'
@@ -85,12 +85,12 @@ function companyLabel(domainKey: string): string {
 }
 
 const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
-  contacted: { label: 'Contacted', color: '#b45309', bg: 'rgba(245,158,11,0.10)'  },
-  engaged:   { label: 'Engaged',   color: 'var(--primary-hex)', bg: 'var(--primary-badge-bg)'   },
-  qualified: { label: 'Qualified', color: 'var(--primary-hex)', bg: 'var(--primary-badge-bg)'  },
-  proposal:  { label: 'Proposal',  color: '#d97706', bg: 'rgba(217,119,6,0.10)'   },
-  converted: { label: 'Converted', color: 'var(--success)', bg: 'var(--success-bg)'   },
-  dropped:   { label: 'Dropped',   color: '#4b5563', bg: 'rgba(107,114,128,0.10)' },
+  contacted: { label: 'Contacted', color: '#8A4200', bg: 'rgba(138,66,0,0.09)'  },
+  engaged:   { label: 'Engaged',   color: 'var(--primary-hex)', bg: 'var(--primary-badge-bg)' },
+  qualified: { label: 'Qualified', color: '#096842', bg: 'rgba(9,104,66,0.09)'  },
+  proposal:  { label: 'Proposal',  color: '#7E3C00', bg: 'rgba(130,60,0,0.09)'  },
+  converted: { label: 'Converted', color: 'var(--success)', bg: 'var(--success-bg)' },
+  dropped:   { label: 'Dropped',   color: '#445868', bg: 'rgba(16,24,40,0.07)'  },
 }
 const ALL_STATUSES = ['contacted', 'engaged', 'qualified', 'proposal', 'converted', 'dropped']
 
@@ -153,13 +153,6 @@ function matchesSearch(lead: Lead, q: string): boolean {
     .some(v => v?.toLowerCase().includes(lower))
 }
 
-function inDateRange(iso: string, from: string, to: string): boolean {
-  if (!from && !to) return true
-  const d  = new Date(iso).getTime()
-  const lo = from ? new Date(from).getTime()           : -Infinity
-  const hi = to   ? new Date(to).getTime() + 86399999 :  Infinity
-  return d >= lo && d <= hi
-}
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 
@@ -390,40 +383,40 @@ function CampaignContextPanel({ ctx }: { ctx: CampaignCtx }) {
   }
 
   return (
-    <div style={{ borderBottom: '1px solid #fde68a', background: '#fffbeb', flexShrink: 0 }}>
+    <div style={{ borderBottom: '1px solid var(--warning-bg)', background: 'rgba(138,66,0,0.04)', flexShrink: 0 }}>
       <button onClick={toggle} style={{
         width: '100%', display: 'flex', alignItems: 'center', gap: 8,
         padding: '8px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
       }}>
-        <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 10, background: '#f59e0b', color: '#fff', flexShrink: 0 }}>
+        <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 10, background: 'var(--warning)', color: '#fff', flexShrink: 0 }}>
           CAMPAIGN
         </span>
-        <span style={{ fontSize: 12, color: '#92400e', fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 12, color: 'var(--warning)', fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {ctx.campaign_name}
           {ctx.product_type !== 'General' ? ` · ${ctx.product_type}` : ''}
           {ctx.step_replied_to ? ` · step ${ctx.step_replied_to} replied` : ''}
         </span>
-        <span style={{ fontSize: 10, color: '#b45309', flexShrink: 0 }}>
+        <span style={{ fontSize: 10, color: 'var(--warning)', flexShrink: 0 }}>
           {open ? '▲ hide' : '▽ emails sent'}
         </span>
       </button>
 
       {open && (
         <div style={{ padding: '0 16px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {seqsLoading && <p style={{ margin: 0, fontSize: 12, color: '#aaa' }}>Loading…</p>}
+          {seqsLoading && <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>Loading…</p>}
           {!seqsLoading && seqsLoaded && seqs.length === 0 && (
             <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>No sequence steps found.</p>
           )}
           {!seqsLoading && seqs.map(seq => (
-            <div key={seq.step_number} style={{ padding: '8px 12px', background: '#fff', borderRadius: 8, border: '1px solid #fde68a' }}>
-              <p style={{ margin: '0 0 3px', fontSize: 11, fontWeight: 700, color: '#92400e', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div key={seq.step_number} style={{ padding: '8px 12px', background: '#fff', borderRadius: 8, border: '1px solid hsl(var(--border))' }}>
+              <p style={{ margin: '0 0 3px', fontSize: 11, fontWeight: 700, color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: 6 }}>
                 Step {seq.step_number}{seq.subject ? `: ${seq.subject}` : ''}
                 {ctx.step_replied_to === seq.step_number && (
-                  <span style={{ fontSize: 10, background: '#f59e0b', color: '#fff', padding: '1px 6px', borderRadius: 8 }}>replied here</span>
+                  <span style={{ fontSize: 10, background: 'var(--warning)', color: '#fff', padding: '1px 6px', borderRadius: 8 }}>replied here</span>
                 )}
               </p>
               <p style={{
-                margin: 0, fontSize: 11, color: '#666', lineHeight: 1.55,
+                margin: 0, fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.55,
                 overflow: 'hidden', display: '-webkit-box',
                 WebkitLineClamp: 3, WebkitBoxOrient: 'vertical',
               }}>
@@ -476,25 +469,25 @@ function StoredSummaryStrip({
   }
 
   return (
-    <div style={{ borderBottom: '1px solid #e8e8e8', flexShrink: 0, background: 'hsl(var(--background))' }}>
+    <div style={{ borderBottom: '1px solid hsl(var(--border))', flexShrink: 0, background: 'hsl(var(--background))' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px' }}>
         <button
           onClick={() => setOpen(v => !v)}
           style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
         >
-          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#3b82f6' }}>AI Analysis</span>
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--primary-hex)' }}>AI Analysis</span>
           {latest && <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>· {timeAgo(latest.created_at)}</span>}
           {summaries.length > 1 && <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>· {summaries.length} updates</span>}
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{open ? '▲' : '▽'}</span>
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Tip text="Generated automatically each time the contact sends a new email — no action needed. Summarises the thread and suggests a next step so you can reply without re-reading everything." />
-          {regenErr && <span style={{ fontSize: 10, color: '#ef4444' }}>{regenErr}</span>}
+          {regenErr && <span style={{ fontSize: 10, color: 'var(--error)' }}>{regenErr}</span>}
           {threadId && latestMessageId && (
             <button
               onClick={handleRegenerate}
               disabled={regenerating || loading}
-              style={{ fontSize: 11, color: regenerating ? '#93c5fd' : '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4, opacity: (regenerating || loading) ? 0.6 : 1 }}
+              style={{ fontSize: 11, color: 'var(--primary-hex)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4, opacity: (regenerating || loading) ? 0.6 : 1 }}
             >
               <RefreshCw size={11} className={cn(regenerating && 'animate-spin')} />
               {regenerating ? 'Generating…' : latest ? 'Regenerate' : 'Generate Now'}
@@ -505,7 +498,7 @@ function StoredSummaryStrip({
 
       {open && (
         <div style={{ padding: '0 16px 12px' }}>
-          {(loading || regenerating) && <p style={{ margin: 0, fontSize: 12, color: '#aaa' }}>Analysing thread…</p>}
+          {(loading || regenerating) && <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>Analysing thread…</p>}
 
           {!loading && !regenerating && !latest && (
             <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
@@ -515,11 +508,11 @@ function StoredSummaryStrip({
 
           {latest && (
             <>
-              <p style={{ margin: '0 0 8px', fontSize: 12, color: '#444', lineHeight: 1.65 }}>{latest.summary}</p>
+              <p style={{ margin: '0 0 8px', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.65 }}>{latest.summary}</p>
 
               {latest.next_action && (
-                <div style={{ marginBottom: 8, padding: '7px 10px', background: 'rgba(59,130,246,0.06)', borderRadius: 7, borderLeft: '3px solid #3b82f6' }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Next action · </span>
+                <div style={{ marginBottom: 8, padding: '7px 10px', background: 'var(--primary-light-bg)', borderRadius: 7, borderLeft: '3px solid var(--primary-hex)' }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary-hex)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Next action · </span>
                   <Tip text="AI-suggested next step based on the conversation so far — a prompt to help you decide what to do before replying. You are always in control; treat this as a starting point." />
                   <span style={{ fontSize: 12, color: 'var(--primary-hex)' }}>{latest.next_action}</span>
                 </div>
@@ -537,11 +530,11 @@ function StoredSummaryStrip({
               {historyOpen && (
                 <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {older.map(s => (
-                    <div key={s.id} style={{ padding: '8px 10px', background: '#f0f0f0', borderRadius: 7 }}>
-                      <p style={{ margin: '0 0 4px', fontSize: 10, color: '#aaa' }}>{fmtDateTime(s.created_at)}</p>
-                      <p style={{ margin: 0, fontSize: 11, color: '#666', lineHeight: 1.55 }}>{s.summary}</p>
+                    <div key={s.id} style={{ padding: '8px 10px', background: 'hsl(var(--muted))', borderRadius: 7 }}>
+                      <p style={{ margin: '0 0 4px', fontSize: 10, color: 'var(--text-muted)' }}>{fmtDateTime(s.created_at)}</p>
+                      <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.55 }}>{s.summary}</p>
                       {s.next_action && (
-                        <p style={{ margin: '4px 0 0', fontSize: 11, color: '#888', fontStyle: 'italic' }}>→ {s.next_action}</p>
+                        <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>→ {s.next_action}</p>
                       )}
                     </div>
                   ))}
@@ -1874,22 +1867,17 @@ function LeadListItem({
   threadState: ThreadState | undefined
   onClick:     () => void
 }) {
-  const msgs        = threadState?.messages ?? []
-  const lastMsg     = msgs.at(-1)
-  const needsReply  = lastMsg?.direction === 'inbound'
-
-  const previewText = lastMsg
-    ? `${lastMsg.direction === 'outbound' ? 'You: ' : ''}${(lastMsg.body_text ?? '').split('\n').find(l => l.trim()) ?? ''}`
-    : (lead.details || lead.message || lead.topic || '—')
-
-  const name    = fullName(lead)
-  const initial = (name[0] ?? lead.email?.[0] ?? '?').toUpperCase()
+  const msgs       = threadState?.messages ?? []
+  const lastMsg    = msgs.at(-1)
+  const needsReply = lastMsg?.direction === 'inbound'
+  const name       = fullName(lead)
+  const initial    = (name[0] ?? lead.email?.[0] ?? '?').toUpperCase()
 
   return (
     <button
       onClick={onClick}
       style={{
-        width: '100%', textAlign: 'left', padding: '10px 14px',
+        width: '100%', textAlign: 'left', padding: '7px 12px',
         borderBottom: '1px solid #f0f0f0',
         background: isActive ? '#f0f6ff' : '#fff',
         border: 'none', borderLeft: 'none', cursor: 'pointer', display: 'block',
@@ -1898,31 +1886,28 @@ function LeadListItem({
         transition: 'background 0.1s',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-        {/* Avatar */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
         <div style={{
-          width: 34, height: 34, borderRadius: '50%', flexShrink: 0, marginTop: 1,
+          width: 28, height: 28, borderRadius: '50%', flexShrink: 0, marginTop: 1,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 13, fontWeight: 700,
+          fontSize: 12, fontWeight: 700,
           background: isActive ? 'var(--primary-selected-bg)' : '#f3f4f6',
           color: isActive ? 'var(--primary-hex)' : 'var(--text-muted)',
         }}>
           {initial}
         </div>
-
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 2 }}>
-            <p style={{ margin: 0, fontSize: 12.5, fontWeight: 600, color: '#111', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
+            <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: '#111', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
               {name || (lead.email?.split('@')[0] ?? '—')}
             </p>
-            <span style={{ fontSize: 10.5, color: 'var(--text-muted)', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{timeAgo(lastMsg?.sent_at ?? lead.created_at)}</span>
+            <span style={{ fontSize: 10.5, color: 'var(--text-muted)', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
+              {timeAgo(lastMsg?.sent_at ?? lead.created_at)}
+            </span>
           </div>
-          <p style={{ margin: '0 0 3px', fontSize: 11, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {lead.subject ?? lead.topic ?? lead.company ?? lead.email ?? '—'}
-          </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <p style={{ margin: 0, flex: 1, fontSize: 11, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {previewText}
+              {lead.subject ?? lead.topic ?? lead.company ?? lead.email ?? '—'}
             </p>
             {needsReply && (
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} />
@@ -1951,9 +1936,8 @@ function EngagementPageInner() {
   const [selectedId,      setSelectedId]      = useState<string | null>(null)
   const [search,          setSearch]          = useState('')
   const [sortKey,         setSortKey]         = useState<SortKey>('last_activity')
-  const [dateFrom,        setDateFrom]        = useState('')
-  const [dateTo,          setDateTo]          = useState('')
   const [filterOpen,      setFilterOpen]      = useState(false)
+  const [groupByCompany,  setGroupByCompany]  = useState(false)
   const [threadMap,       setThreadMap]       = useState<Record<string, ThreadState>>({})
   const [mobilePanelView, setMobilePanelView] = useState<'list' | 'thread'>('list')
   const [activeTab,       setActiveTab]       = useState<EngagementTab>('all')
@@ -2035,18 +2019,20 @@ function EngagementPageInner() {
     })
   }
 
-  function clearFilters() { setSearch(''); setDateFrom(''); setDateTo('') }
-  const hasFilters = search || dateFrom || dateTo
+  function clearFilters() { setSearch('') }
+  const hasFilters = search
 
-  const prospectsCount = useMemo(() => leads.filter(l => !l.campaign_context).length, [leads])
-  const clientsCount   = useMemo(() => leads.filter(l => !!l.campaign_context).length, [leads])
+  // Prospect = inbound channel (EMAIL_SOURCES) OR replied to campaign
+  // Existing Client = CC'd/FWD'd into an email thread (not in EMAIL_SOURCES and no campaign reply)
+  const prospectsCount = useMemo(() => leads.filter(l => EMAIL_SOURCES.has(l.source) || !!l.campaign_context).length, [leads])
+  const clientsCount   = useMemo(() => leads.filter(l => !EMAIL_SOURCES.has(l.source) && !l.campaign_context).length, [leads])
 
   const visible = useMemo(() => {
     let list = leads.filter(l => {
-      if (activeTab === 'prospects') return !l.campaign_context
-      if (activeTab === 'clients')   return !!l.campaign_context
+      if (activeTab === 'prospects') return EMAIL_SOURCES.has(l.source) || !!l.campaign_context
+      if (activeTab === 'clients')   return !EMAIL_SOURCES.has(l.source) && !l.campaign_context
       return true
-    }).filter(l => matchesSearch(l, search) && inDateRange(l.created_at, dateFrom, dateTo))
+    }).filter(l => matchesSearch(l, search))
     if (sortKey === 'newest') list = [...list].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     else if (sortKey === 'oldest') list = [...list].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
     else {
@@ -2057,7 +2043,7 @@ function EngagementPageInner() {
       })
     }
     return list
-  }, [leads, activeTab, search, dateFrom, dateTo, sortKey, threadMap])
+  }, [leads, activeTab, search, sortKey, threadMap])
 
   const selectedLead   = leads.find(l => l.id === selectedId) ?? null
   const selectedThread = selectedId ? threadMap[selectedId] : undefined
@@ -2112,6 +2098,13 @@ function EngagementPageInner() {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button
+                onClick={() => setGroupByCompany(v => !v)}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: groupByCompany ? '#3b82f6' : '#555', background: groupByCompany ? 'rgba(59,130,246,0.06)' : '#fff', border: `1px solid ${groupByCompany ? '#93c5fd' : 'var(--border-subtle)'}`, borderRadius: 7, padding: '5px 9px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >
+                <Building2 size={11} strokeWidth={2} />
+                Group by company
+              </button>
               <div style={{ position: 'relative' }} ref={filterRef}>
                 <button
                   onClick={() => setFilterOpen(v => !v)}
@@ -2125,20 +2118,11 @@ function EngagementPageInner() {
                   <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, background: '#fff', border: '1px solid #e8e8e8', borderRadius: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.10)', zIndex: 50, padding: '12px', minWidth: 220 }}>
                     <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 600, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sort</p>
                     {(Object.entries(SORT_LABELS) as [SortKey, string][]).map(([k, lbl]) => (
-                      <button key={k} onClick={() => setSortKey(k)} style={{ width: '100%', textAlign: 'left', padding: '6px 8px', fontSize: 12, background: sortKey === k ? 'rgba(59,130,246,0.06)' : 'none', border: 'none', borderRadius: 6, cursor: 'pointer', color: sortKey === k ? '#3b82f6' : '#333', fontWeight: sortKey === k ? 600 : 400, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <button key={k} onClick={() => { setSortKey(k); setFilterOpen(false) }} style={{ width: '100%', textAlign: 'left', padding: '6px 8px', fontSize: 12, background: sortKey === k ? 'rgba(59,130,246,0.06)' : 'none', border: 'none', borderRadius: 6, cursor: 'pointer', color: sortKey === k ? '#3b82f6' : '#333', fontWeight: sortKey === k ? 600 : 400, display: 'flex', alignItems: 'center', gap: 6 }}>
                         <ArrowUpDown size={10} strokeWidth={2} style={{ color: sortKey === k ? '#3b82f6' : '#ccc' }} />
                         {lbl}
                       </button>
                     ))}
-                    <p style={{ margin: '12px 0 6px', fontSize: 10, fontWeight: 600, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date range</p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Calendar size={10} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                      <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-                        style={{ flex: 1, fontSize: 11, border: '1px solid #e8e8e8', borderRadius: 6, padding: '4px 6px', color: '#555', background: '#fff', outline: 'none', fontFamily: 'inherit', minWidth: 0 }} />
-                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>–</span>
-                      <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-                        style={{ flex: 1, fontSize: 11, border: '1px solid #e8e8e8', borderRadius: 6, padding: '4px 6px', color: '#555', background: '#fff', outline: 'none', fontFamily: 'inherit', minWidth: 0 }} />
-                    </div>
                     {hasFilters && (
                       <button onClick={() => { clearFilters(); setFilterOpen(false) }} style={{ marginTop: 10, width: '100%', fontSize: 11, color: '#ef4444', background: 'none', border: '1px solid #fecaca', borderRadius: 6, padding: '5px 0', cursor: 'pointer' }}>
                         Clear filters
@@ -2195,42 +2179,53 @@ function EngagementPageInner() {
                   <button onClick={clearFilters} style={{ fontSize: 11, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer' }}>Clear filters</button>
                 )}
               </div>
-            ) : (() => {
-              // Group by company domain — preserves sort order within each group
-              const groups = new Map<string, Lead[]>()
-              for (const lead of visible) {
-                const d   = domainOf(lead.email)
-                const key = PERSONAL_DOMAINS.has(d) ? '__personal__' : d
-                if (!groups.has(key)) groups.set(key, [])
-                groups.get(key)!.push(lead)
-              }
-              return Array.from(groups.entries()).map(([key, group]) => (
-                <Fragment key={key}>
-                  <div style={{
-                    padding: '5px 14px 4px',
-                    background: '#f5f6f8',
-                    borderBottom: '1px solid #eaecef',
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: '#777', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                      {companyLabel(key)}
-                    </span>
-                    <span style={{ fontSize: 10, color: '#bbb', fontVariantNumeric: 'tabular-nums' }}>
-                      {group.length > 1 ? `${group.length} contacts` : key === '__personal__' || key === '__none__' ? '' : key}
-                    </span>
-                  </div>
-                  {group.map(lead => (
-                    <LeadListItem
-                      key={lead.id}
-                      lead={lead}
-                      isActive={lead.id === selectedId}
-                      threadState={threadMap[lead.id]}
-                      onClick={() => { setSelectedId(lead.id); setMobilePanelView('thread') }}
-                    />
-                  ))}
-                </Fragment>
+            ) : groupByCompany ? (
+              (() => {
+                const groups = new Map<string, Lead[]>()
+                for (const lead of visible) {
+                  const d   = domainOf(lead.email)
+                  const key = PERSONAL_DOMAINS.has(d) ? '__personal__' : d
+                  if (!groups.has(key)) groups.set(key, [])
+                  groups.get(key)!.push(lead)
+                }
+                return Array.from(groups.entries()).map(([key, group]) => (
+                  <Fragment key={key}>
+                    <div style={{
+                      padding: '5px 14px 4px',
+                      background: '#f5f6f8',
+                      borderBottom: '1px solid #eaecef',
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: '#777', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                        {companyLabel(key)}
+                      </span>
+                      <span style={{ fontSize: 10, color: '#bbb', fontVariantNumeric: 'tabular-nums' }}>
+                        {group.length > 1 ? `${group.length} contacts` : key === '__personal__' || key === '__none__' ? '' : key}
+                      </span>
+                    </div>
+                    {group.map(lead => (
+                      <LeadListItem
+                        key={lead.id}
+                        lead={lead}
+                        isActive={lead.id === selectedId}
+                        threadState={threadMap[lead.id]}
+                        onClick={() => { setSelectedId(lead.id); setMobilePanelView('thread') }}
+                      />
+                    ))}
+                  </Fragment>
+                ))
+              })()
+            ) : (
+              visible.map(lead => (
+                <LeadListItem
+                  key={lead.id}
+                  lead={lead}
+                  isActive={lead.id === selectedId}
+                  threadState={threadMap[lead.id]}
+                  onClick={() => { setSelectedId(lead.id); setMobilePanelView('thread') }}
+                />
               ))
-            })()}
+            )}
           </div>
         </div>
 

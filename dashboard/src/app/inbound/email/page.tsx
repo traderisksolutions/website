@@ -668,7 +668,12 @@ function InboundLeadsPage() {
                             {isEmail && (
                               <button
                                 onClick={e => { e.stopPropagation(); setExpandedId(isExpanded ? null : lead.id) }}
-                                className={cn('bg-transparent border-0 cursor-pointer p-1 rounded hover:bg-muted/60', isExpanded ? 'text-blue-500' : 'text-muted-foreground/40 hover:text-muted-foreground')}
+                                className={cn(
+                                  'inline-flex items-center justify-center cursor-pointer p-1 rounded transition-colors',
+                                  isExpanded
+                                    ? 'bg-blue-50 border border-blue-200 text-blue-500 hover:bg-blue-100'
+                                    : 'bg-muted/50 border border-border text-muted-foreground hover:bg-muted hover:text-foreground'
+                                )}
                                 title={isExpanded ? 'Collapse' : 'Draft & send reply'}
                               >
                                 {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}

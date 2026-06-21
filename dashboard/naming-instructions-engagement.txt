@@ -1,0 +1,72 @@
+TRS AI Knowledge Base — Engagement Agent File Naming Convention
+Updated: Jun 2026
+
+────────────────────────────────────────────────────────────────
+WHAT THIS FOLDER IS FOR (READ THIS FIRST — FOR THE AI AGENT)
+────────────────────────────────────────────────────────────────
+You are Agent 2 — the TRS Engagement AI.
+This folder contains your knowledge base. When a lead replies to an email,
+you retrieve the most relevant documents from this folder and use them to
+draft accurate, on-brand replies on behalf of TRS Account Executives.
+
+Use these documents to:
+  - Answer questions about coverage, policy terms, and what TRS offers
+  - Handle objections and pricing pushback professionally
+  - Explain the claims process clearly and without alarming the client
+  - Provide TRS company credentials when the lead asks about who we are
+  - Match responses to the client's specific insurance need
+
+Do NOT fabricate terms, figures, or procedures. Only cite what is in the
+retrieved passages. If the documents do not answer the client's question,
+say TRS will revert within 2 business days.
+
+────────────────────────────────────────────────────────────────
+FILE NAMING CONVENTION (FOR HUMANS UPLOADING DOCUMENTS)
+────────────────────────────────────────────────────────────────
+
+FORMAT
+  [topic]-[type]-[mmm-yyyy].pdf
+
+FIELDS
+  topic   → the insurance line or subject area (see list below)
+  type    → what the document is (see list below)
+  mmm     → 3-letter month abbreviation, lowercase (jan feb mar apr may jun
+             jul aug sep oct nov dec)
+  yyyy    → 4-digit year
+
+TOPIC LIST
+  marine        construction    cargo         property
+  fire          liability       motor         travel
+  engineering   hull            benefits      employee
+  claims        general         company
+
+TYPE LIST
+  faq            → frequently asked questions about coverage or process
+  objection      → how to handle pushback (pricing, competitor, delay)
+  process        → step-by-step procedures (claims, renewal, onboarding)
+  credentials    → TRS company background, licences, awards, track record
+  coverage       → what a specific policy covers and excludes
+  pricing        → indicative rates, premium ranges, discount conditions
+  guide          → general explanations for the client (plain-language)
+
+EXAMPLES
+  general-faq-jun-2026.pdf
+  claims-process-mar-2026.pdf
+  company-credentials-jan-2026.pdf
+  liability-objection-may-2026.pdf
+  motor-coverage-apr-2026.pdf
+  benefits-pricing-feb-2026.pdf
+  marine-guide-jun-2026.pdf
+
+RULES
+  - Lowercase only, hyphens between all words, no spaces
+  - Always end with .pdf
+  - One document per file — do not bundle multiple products or topics
+  - When a document is updated, upload the new version with the current
+    month-year (do not overwrite the old file — the AI loads the most
+    relevant version based on the client's query)
+  - .txt files in this folder ARE read by the AI — use them to provide
+    instructions or context (like this file)
+  - Keep each file under 20 pages for best retrieval accuracy
+  - The AI retrieves up to 6 passages per query — keep documents focused
+    so the right passage ranks highest

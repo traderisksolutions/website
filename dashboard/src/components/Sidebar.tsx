@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
-  Mail, MessageCircle, AlertCircle,
+  Inbox, MessageCircle, AlertCircle,
   Users, BarChart2,
   ChevronRight, ChevronDown, ChevronLeft,
   Bot, Table2, UsersRound,
@@ -15,21 +15,17 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
-type InboundCounts = { emailNew: number; waNew: number }
+type InboundCounts = { totalNew: number }
 type StageCounts   = { engaged: number; qualified: number; proposal: number; converted: number }
 
 async function fetchInboundCounts(): Promise<InboundCounts> {
   try {
     const res = await fetch('/api/leads', { cache: 'no-store' })
-    if (!res.ok) return { emailNew: 0, waNew: 0 }
+    if (!res.ok) return { totalNew: 0 }
     const raw = await res.json()
-    const data: { status: string; source: string }[] = Array.isArray(raw) ? raw : []
-    const emailSrc = new Set(['website_form', 'email', 'manual'])
-    return {
-      emailNew: data.filter(l => l.status === 'new' && emailSrc.has(l.source)).length,
-      waNew:    data.filter(l => l.status === 'new' && l.source === 'whatsapp_click').length,
-    }
-  } catch { return { emailNew: 0, waNew: 0 } }
+    const data: { status: string }[] = Array.isArray(raw) ? raw : []
+    return { totalNew: data.filter(l => l.status === 'new').length }
+  } catch { return { totalNew: 0 } }
 }
 
 async function fetchStageCounts(): Promise<StageCounts> {
@@ -49,9 +45,8 @@ async function fetchStageCounts(): Promise<StageCounts> {
 export default function Sidebar() {
   const pathname = usePathname()
   const router   = useRouter()
-  const [inbound,       setInbound]       = useState<InboundCounts>({ emailNew: 0, waNew: 0 })
+  const [inbound,       setInbound]       = useState<InboundCounts>({ totalNew: 0 })
   const [stages,        setStages]        = useState<StageCounts>({ engaged: 0, qualified: 0, proposal: 0, converted: 0 })
-  const [captureOpen,   setCaptureOpen]   = useState(true)
   const [outboundOpen,  setOutboundOpen]  = useState(true)
   const [engageOpen,    setEngageOpen]    = useState(true)
   const [analyticsOpen, setAnalyticsOpen] = useState(true)
@@ -124,8 +119,7 @@ export default function Sidebar() {
           <CollapsedIcon icon={LayoutDashboard} href="/" isActive={pathname === '/'}       label="Home" />
           <CollapsedIcon icon={BookOpen}        href="/overview" isActive={active('/overview')} label="Overview" />
           <IconDivider />
-          <CollapsedIcon icon={Mail}          href="/inbound/email"    isActive={active('/inbound/email')}    label="Email"    hasBadge={inbound.emailNew > 0} />
-          <CollapsedIcon icon={MessageCircle} href="/inbound/whatsapp" isActive={active('/inbound/whatsapp')} label="WhatsApp" hasBadge={inbound.waNew > 0} />
+          <CollapsedIcon icon={Inbox} href="/inbound/email" isActive={active('/inbound/email') || active('/inbound/whatsapp')} label="Inbound Leads" hasBadge={inbound.totalNew > 0} />
           <IconDivider />
           <CollapsedIcon icon={Telescope}     href="/outbound/agent"     isActive={active('/outbound/agent')}     label="Lead Discovery" />
           <CollapsedIcon icon={Table2}        href="/outbound/leads"     isActive={active('/outbound/leads')}     label="Lead Database" />
@@ -201,18 +195,7 @@ export default function Sidebar() {
 
         <SectionDivider />
 
-        <SectionHeader
-          label="Inbound Leads"
-          open={captureOpen}
-          onToggle={() => setCaptureOpen(o => !o)}
-          badge={(inbound.emailNew + inbound.waNew) || undefined}
-        />
-        {captureOpen && (
-          <div className="space-y-px">
-            <NavItem label="Email"    href="/inbound/email"    icon={Mail}          badge={inbound.emailNew} isActive={active('/inbound/email')} />
-            <NavItem label="WhatsApp" href="/inbound/whatsapp" icon={MessageCircle} badge={inbound.waNew}    isActive={active('/inbound/whatsapp')} />
-          </div>
-        )}
+        <NavItem label="Inbound Leads" href="/inbound/email" icon={Inbox} badge={inbound.totalNew || undefined} isActive={active('/inbound/email') || active('/inbound/whatsapp')} />
 
         <SectionDivider />
 
@@ -236,7 +219,7 @@ export default function Sidebar() {
         />
         {engageOpen && (
           <div className="space-y-px">
-            <NavItem label="Active Contacts" href="/contacts"   icon={Users} badge={totalEngaged || undefined} isActive={active('/contacts')} />
+            <NavItem label="Active Contacts" href="/contacts"   icon={Users} isActive={active('/contacts')} />
             {totalEngaged > 0 && (
               <div className="flex flex-wrap gap-1 pl-7 pb-1 pt-0.5">
                 {stages.engaged   > 0 && <StagePill label="Engaged"   count={stages.engaged}   color="#0F3D91" />}
