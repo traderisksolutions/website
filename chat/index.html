@@ -108,12 +108,12 @@
       display: block;
     }
 
-    /* ── Topic chips 2×2 ── */
+    /* ── Topic chips ── */
     .cw-chips {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 8px;
-      margin-bottom: 24px;
+      margin-bottom: 8px;
     }
     .cw-chip {
       display: flex;
@@ -134,6 +134,11 @@
     }
     .cw-chip:hover { border-color: #9ca3af; background: #fafafa; }
     .cw-chip.selected { border-color: #111; background: #f3f4f6; color: #111; font-weight: 600; }
+    .cw-chip.chip-error { border-color: #ef4444; background: #fef2f2; }
+    .cw-chip-error-msg { font-size: 11.5px; color: #ef4444; margin: 0 0 16px; display: none; }
+    .cw-chip-error-msg.visible { display: block; }
+    /* 5th chip spans both columns so it's centred on the last row */
+    .cw-chips .cw-chip:last-child:nth-child(odd) { grid-column: 1 / -1; justify-self: center; max-width: calc(50% - 4px); }
 
     /* ── Form ── */
     .cw-form { display: flex; flex-direction: column; gap: 14px; }
@@ -271,13 +276,15 @@
         <p class="cw-label">Tell me more about</p>
         <div class="cw-dots"><span></span><span></span><span></span></div>
 
-        <!-- Topic chips 2×2 -->
+        <!-- Topic chips -->
         <div class="cw-chips" id="cw-chips" role="group" aria-label="Topic">
-          <button class="cw-chip" data-topic="Business Insurance" onclick="toggleChip(this)">🏢 Business Insurance</button>
-          <button class="cw-chip" data-topic="Personal Insurance" onclick="toggleChip(this)">🏠 Personal Insurance</button>
-          <button class="cw-chip" data-topic="Workforce Benefits" onclick="toggleChip(this)">👥 Workforce Benefits</button>
-          <button class="cw-chip" data-topic="Claims Support" onclick="toggleChip(this)">🛡️ Claims Support</button>
+          <button class="cw-chip" data-topic="Cyber Insurance"       onclick="toggleChip(this)">🛡️ Cyber Insurance</button>
+          <button class="cw-chip" data-topic="Directors &amp; Officers" onclick="toggleChip(this)">⚖️ Directors &amp; Officers</button>
+          <button class="cw-chip" data-topic="Commercial Property"   onclick="toggleChip(this)">🏢 Commercial Property</button>
+          <button class="cw-chip" data-topic="Employee Benefits"     onclick="toggleChip(this)">👥 Employee Benefits</button>
+          <button class="cw-chip" data-topic="Work Injury (WICA)"    onclick="toggleChip(this)">🏗️ Work Injury (WICA)</button>
         </div>
+        <p class="cw-chip-error-msg" id="cw-chip-error">Please select a topic before sending.</p>
 
         <form class="cw-form" id="cw-form" novalidate>
           <div class="cw-row">
@@ -353,7 +360,8 @@
 
     function toggleChip(btn) {
       var isSelected = btn.classList.contains('selected');
-      document.querySelectorAll('.cw-chip').forEach(function(c) { c.classList.remove('selected'); });
+      document.querySelectorAll('.cw-chip').forEach(function(c) { c.classList.remove('selected', 'chip-error'); });
+      document.getElementById('cw-chip-error').classList.remove('visible');
       if (!isSelected) {
         btn.classList.add('selected');
         selectedTopic = btn.dataset.topic;
@@ -379,6 +387,13 @@
       var first = document.getElementById('cf-first').value.trim();
       var last  = document.getElementById('cf-last').value.trim();
       var details = document.getElementById('cf-details').value.trim();
+      var hasError = false;
+
+      if (!selectedTopic) {
+        document.querySelectorAll('.cw-chip').forEach(function(c) { c.classList.add('chip-error'); });
+        document.getElementById('cw-chip-error').classList.add('visible');
+        hasError = true;
+      }
 
       if (!first || !last) {
         [['cf-first', first], ['cf-last', last]].forEach(function(p) {
@@ -388,8 +403,10 @@
             el.addEventListener('input', function() { el.style.borderColor = ''; }, { once: true });
           }
         });
-        return;
+        hasError = true;
       }
+
+      if (hasError) return;
 
       if (currentMethod === 'wa') {
         var parts = [];

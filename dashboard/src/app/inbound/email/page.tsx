@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { RefreshCw, ChevronDown, Copy, Check, X, Search, MessageCircle, Mail, Globe, Pencil, Sparkles, Send } from 'lucide-react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { RefreshCw, ChevronDown, ChevronUp, Copy, Check, X, Search, MessageCircle, Mail, Globe, Pencil, Sparkles, Send } from 'lucide-react'
 import { useAuditLog } from '@/hooks/useAuditLog'
 import { Tip } from '@/components/Tip'
 import { cn } from '@/lib/utils'
@@ -146,90 +146,15 @@ function StatusDropdown({ lead, onChange }: { lead: Lead; onChange: (id: string,
 // ── Detail panel ──────────────────────────────────────────────────────────────
 
 function DetailPanel({ lead, onStatus, onClose }: { lead: Lead; onStatus: (id: string, s: string) => void; onClose: () => void }) {
-  const [copied,     setCopied]     = useState<string | null>(null)
-  const [draftText,  setDraftText]  = useState('')
-  const [draftId,    setDraftId]    = useState<string | null>(null)
-  const [generating, setGenerating] = useState(false)
-  const [sending,    setSending]    = useState(false)
-  const [sendError,  setSendError]  = useState<string | null>(null)
-  const [sent,       setSent]       = useState(false)
-  const [sentThread, setSentThread] = useState<string | null>(null)
-  // Tracks whether we've already auto-loaded the draft for this lead.
-  // Guards against 30s polling re-triggering the effect and overwriting user edits.
-  const hasLoadedDraftRef = useRef(false)
-  const log = useAuditLog()
+  const [copied, setCopied] = useState<string | null>(null)
 
   const ch  = channelOf(lead)
   const msg = messagePreview(lead)
   const st  = STATUS_MAP[lead.status] ?? STATUS_MAP.new
 
-  // Reset state when the selected lead changes
-  useEffect(() => {
-    setDraftText(''); setDraftId(null); setGenerating(false); setSending(false); setSendError(null); setSent(false); setSentThread(null)
-    hasLoadedDraftRef.current = false
-  }, [lead.id])
-
-  // Auto-load existing AI draft once — guarded so polling re-renders don't overwrite edits
-  useEffect(() => {
-    if (hasLoadedDraftRef.current) return
-    if (!lead.ai_draft_id || channelOf(lead) !== 'email' || !lead.email) return
-    hasLoadedDraftRef.current = true
-    setGenerating(true)
-    fetch(`/api/inbound/auto-draft?leadId=${lead.id}`)
-      .then(r => r.ok ? r.json() : null)
-      .then((d: { content: string | null; draftId: string | null } | null) => {
-        if (d?.content) { setDraftText(d.content); setDraftId(d.draftId) }
-      })
-      .catch(() => {})
-      .finally(() => setGenerating(false))
-  }, [lead.id, lead.ai_draft_id, lead.email])
-
   function copy(text: string, key: string) {
     navigator.clipboard.writeText(text)
     setCopied(key); setTimeout(() => setCopied(null), 1500)
-  }
-
-  async function generateDraft() {
-    setGenerating(true); setSendError(null)
-    try {
-      const res  = await fetch('/api/inbound/auto-draft', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leadId: lead.id, force: true }),
-      })
-      const data = await res.json()
-      if (data.content) {
-        setDraftText(data.content)
-        setDraftId(data.draftId ?? null)
-        log({ action: 'draft.generated', resource_type: 'inbound_lead', resource_id: lead.id, metadata: { contact: displayName(lead) } })
-      } else {
-        setSendError(data.error ?? 'Failed to generate draft')
-      }
-    } catch { setSendError('Network error') }
-    finally { setGenerating(false) }
-  }
-
-  async function sendReply() {
-    if (!lead.email || !draftText.trim()) return
-    setSending(true); setSendError(null)
-    try {
-      const res  = await fetch('/api/inbound/reply', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          leadId: lead.id, name: displayName(lead), email: lead.email,
-          company: lead.company, topic: lead.topic,
-          originalMessage: msg, draft: draftText.trim(),
-          draftId: draftId ?? null,
-        }),
-      })
-      const data = await res.json()
-      if (data.ok) {
-        setSent(true); setSentThread(data.threadId ?? null); onStatus(lead.id, 'contacted')
-        log({ action: 'draft.approved', resource_type: 'inbound_lead', resource_id: lead.id, metadata: { contact: displayName(lead), chars: draftText.length } })
-      } else {
-        setSendError(data.error ?? 'Send failed')
-      }
-    } catch { setSendError('Network error') }
-    finally { setSending(false) }
   }
 
   return (
@@ -314,69 +239,6 @@ function DetailPanel({ lead, onStatus, onClose }: { lead: Lead; onStatus: (id: s
         </div>
       )}
 
-      {/* AI Reply */}
-      {lead.email && (
-        <div className={cn('px-4 py-3 border-b border-border', sent ? 'bg-emerald-50 border-t-2 border-t-emerald-300' : 'bg-blue-50 border-t-2 border-t-blue-300')}>
-          <div className="flex items-center justify-between mb-2">
-            <p className={cn('text-[10px] font-bold uppercase tracking-[0.08em] m-0 flex items-center', sent ? 'text-emerald-700' : 'text-blue-700')}>
-              {sent ? 'Reply Sent' : 'AI Reply'}
-              {!sent && <Tip text="Drafts a personalised first-contact email using AI — it reads the lead's name, topic, and original message. Review and edit the draft before clicking Send Reply." />}
-            </p>
-            {!sent && !draftText && (
-              <button onClick={generateDraft} disabled={generating}
-                className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md border-0 cursor-pointer"
-                style={{ background: generating ? '#dbeafe' : '#1d4ed8', color: generating ? '#93c5fd' : '#fff' }}
-              >
-                <Sparkles size={11} /> {generating ? 'Generating…' : 'Generate Reply'}
-              </button>
-            )}
-            {!sent && draftText && (
-              <button onClick={generateDraft} disabled={generating}
-                className="bg-transparent border-0 cursor-pointer text-[11px] text-blue-300 p-0 hover:text-blue-500"
-              >
-                {generating ? 'Regenerating…' : 'Regenerate'}
-              </button>
-            )}
-          </div>
-
-          {sent ? (
-            <div className="flex flex-col gap-2">
-              <p className="text-[12px] text-emerald-700 font-medium m-0">
-                Reply sent to {lead.email}. Lead routed to Engagement Agent.
-              </p>
-              <a
-                href={sentThread ? `/engagement?thread=${sentThread}` : '/engagement'}
-                className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-2.5 py-1.5 no-underline w-fit hover:bg-emerald-500/15"
-              >
-                View in Engagement Agent →
-              </a>
-            </div>
-          ) : draftText ? (
-            <>
-              <textarea value={draftText} onChange={e => setDraftText(e.target.value)} rows={8}
-                className="w-full box-border text-[12px] text-blue-900 leading-[1.65] border border-blue-200 rounded-lg px-2.5 py-2 resize-y bg-white outline-none font-sans focus:ring-1 focus:ring-blue-300"
-              />
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-[11px] text-blue-300 flex items-center gap-1">
-                  To: {lead.email}
-                  <Tip text="This reply is sent from your connected TRS email address. The lead will see it as a normal email — no mention of AI." />
-                </span>
-                <button onClick={sendReply} disabled={sending || !draftText.trim()}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 rounded-md border-0 cursor-pointer disabled:opacity-50"
-                  style={{ background: sending ? '#dbeafe' : '#1d4ed8', color: sending ? '#93c5fd' : '#fff' }}
-                >
-                  <Send size={11} /> {sending ? 'Sending…' : 'Send Reply'}
-                </button>
-              </div>
-            </>
-          ) : (
-            <p className="text-[12px] text-blue-300 m-0">Click Generate Reply to draft a first-contact email.</p>
-          )}
-
-          {sendError && <p className="text-[11px] text-destructive mt-1.5 mb-0">{sendError}</p>}
-        </div>
-      )}
-
       {/* Notes */}
       <div className="px-4 py-3 flex-1">
         <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60 mb-1.5">
@@ -387,6 +249,170 @@ function DetailPanel({ lead, onStatus, onClose }: { lead: Lead; onStatus: (id: s
         />
       </div>
     </div>
+  )
+}
+
+// ── Inline AI Reply row ───────────────────────────────────────────────────────
+
+function InlineReplyRow({ lead, onStatus, onCollapse }: {
+  lead:       Lead
+  onStatus:   (id: string, s: string) => void
+  onCollapse: () => void
+}) {
+  const router = useRouter()
+  const log    = useAuditLog()
+  const msg    = messagePreview(lead)
+
+  // If already contacted, start in sent state
+  const [draftText,  setDraftText]  = useState('')
+  const [draftId,    setDraftId]    = useState<string | null>(null)
+  const [generating, setGenerating] = useState(false)
+  const [sending,    setSending]    = useState(false)
+  const [sendError,  setSendError]  = useState<string | null>(null)
+  const [sent,       setSent]       = useState(lead.status === 'contacted')
+  const hasLoadedRef = useRef(false)
+
+  // Auto-load existing draft once on mount
+  useEffect(() => {
+    if (hasLoadedRef.current || sent) return
+    if (!lead.ai_draft_id || !lead.email) return
+    hasLoadedRef.current = true
+    setGenerating(true)
+    fetch(`/api/inbound/auto-draft?leadId=${lead.id}`)
+      .then(r => r.ok ? r.json() : null)
+      .then((d: { content: string | null; draftId: string | null } | null) => {
+        if (d?.content) { setDraftText(d.content); setDraftId(d.draftId) }
+      })
+      .catch(() => {})
+      .finally(() => setGenerating(false))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function generateDraft() {
+    setGenerating(true); setSendError(null)
+    try {
+      const res  = await fetch('/api/inbound/auto-draft', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId: lead.id, force: true }),
+      })
+      const data = await res.json()
+      if (data.content) {
+        setDraftText(data.content); setDraftId(data.draftId ?? null)
+        log({ action: 'draft.generated', resource_type: 'inbound_lead', resource_id: lead.id, metadata: { contact: displayName(lead) } })
+      } else {
+        setSendError(data.error ?? 'Failed to generate draft')
+      }
+    } catch { setSendError('Network error') }
+    finally { setGenerating(false) }
+  }
+
+  async function sendReply() {
+    if (!lead.email || !draftText.trim()) return
+    setSending(true); setSendError(null)
+    try {
+      const res  = await fetch('/api/inbound/reply', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadId: lead.id, name: displayName(lead), email: lead.email,
+          company: lead.company, topic: lead.topic,
+          originalMessage: msg, draft: draftText.trim(),
+          draftId: draftId ?? null,
+        }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        onStatus(lead.id, 'contacted')
+        log({ action: 'draft.approved', resource_type: 'inbound_lead', resource_id: lead.id, metadata: { contact: displayName(lead), chars: draftText.length } })
+        // Navigate immediately to engagement, pre-selecting this lead
+        router.push(`/engagement?lead=${lead.id}`)
+      } else {
+        setSendError(data.error ?? 'Send failed')
+      }
+    } catch { setSendError('Network error') }
+    finally { setSending(false) }
+  }
+
+  if (sent) {
+    return (
+      <tr>
+        <td colSpan={8} className="px-4 py-3 bg-emerald-50 border-b border-emerald-100">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Check size={14} className="text-emerald-600 flex-shrink-0" />
+              <span className="text-[12px] text-emerald-700 font-medium">Reply sent to {lead.email}</span>
+              <a href={`/engagement?lead=${lead.id}`}
+                className="text-[11px] font-semibold text-emerald-700 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-2 py-1 no-underline hover:bg-emerald-500/15">
+                View in Engagement Agent →
+              </a>
+            </div>
+            <button onClick={onCollapse} className="bg-transparent border-0 p-0 cursor-pointer text-emerald-400 hover:text-emerald-600">
+              <ChevronUp size={14} />
+            </button>
+          </div>
+        </td>
+      </tr>
+    )
+  }
+
+  return (
+    <tr>
+      <td colSpan={8} className="px-4 py-4 bg-blue-50/60 border-b border-blue-100">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-blue-600 flex items-center gap-1.5">
+              <Sparkles size={11} /> AI Reply Draft
+              <Tip text="Draft generated from TRS FAQ docs only — no pricing included. Review and edit before sending." />
+            </span>
+            <div className="flex items-center gap-2">
+              {draftText && (
+                <button onClick={generateDraft} disabled={generating}
+                  className="bg-transparent border-0 cursor-pointer text-[11px] text-blue-400 p-0 hover:text-blue-600">
+                  {generating ? 'Regenerating…' : 'Regenerate'}
+                </button>
+              )}
+              <button onClick={onCollapse} className="bg-transparent border-0 p-0 cursor-pointer text-blue-300 hover:text-blue-500">
+                <ChevronUp size={14} />
+              </button>
+            </div>
+          </div>
+
+          {!draftText ? (
+            <div className="flex items-center gap-3">
+              <button onClick={generateDraft} disabled={generating}
+                className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-md border-0 cursor-pointer"
+                style={{ background: generating ? '#dbeafe' : '#1d4ed8', color: generating ? '#93c5fd' : '#fff' }}
+              >
+                <Sparkles size={12} /> {generating ? 'Generating…' : 'Generate Reply'}
+              </button>
+              {sendError && <span className="text-[11px] text-destructive">{sendError}</span>}
+            </div>
+          ) : (
+            <>
+              <textarea
+                value={draftText}
+                onChange={e => setDraftText(e.target.value)}
+                rows={7}
+                className="w-full box-border text-[12px] text-blue-900 leading-[1.7] border border-blue-200 rounded-lg px-3 py-2.5 resize-y bg-white outline-none font-sans focus:ring-1 focus:ring-blue-300"
+              />
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-blue-400 flex items-center gap-1">
+                  To: {lead.email}
+                  <Tip text="Sent from TRS operations email. The lead sees a normal email — no AI mention." />
+                </span>
+                <div className="flex items-center gap-2">
+                  {sendError && <span className="text-[11px] text-destructive">{sendError}</span>}
+                  <button onClick={sendReply} disabled={sending || !draftText.trim()}
+                    className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-md border-0 cursor-pointer disabled:opacity-50"
+                    style={{ background: sending ? '#dbeafe' : '#1d4ed8', color: sending ? '#93c5fd' : '#fff' }}
+                  >
+                    <Send size={12} /> {sending ? 'Sending…' : 'Send Reply'}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </td>
+    </tr>
   )
 }
 
@@ -432,6 +458,7 @@ function InboundLeadsPage() {
   const [filter,     setFilter]     = useState<Filter>(initFilter)
   const [search,     setSearch]     = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const load = useCallback(async (spinner = false) => {
     if (spinner) setRefreshing(true)
@@ -571,47 +598,71 @@ function InboundLeadsPage() {
                     <Th>Message</Th>
                     <Th w={130}>Status <Tip text="Tracks where this lead sits in your pipeline, from New (not yet replied) to Converted (policy placed). Update this as conversations progress." /></Th>
                     <Th w={90} right>Time</Th>
+                    <Th w={40} right><Tip text="Click to expand and draft a reply email inline." /></Th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map(lead => {
-                    const isActive = lead.id === selectedId
-                    const msg      = messagePreview(lead)
+                    const isActive   = lead.id === selectedId
+                    const isExpanded = lead.id === expandedId
+                    const isEmail    = channelOf(lead) === 'email' && !!lead.email
+                    const msg        = messagePreview(lead)
                     return (
-                      <tr key={lead.id}
-                        onClick={() => setSelectedId(lead.id === selectedId ? null : lead.id)}
-                        className={cn('border-b transition-colors cursor-pointer', isActive ? 'bg-primary/5' : 'hover:bg-muted/50')}
-                        style={{ borderLeft: `3px solid ${isActive ? 'hsl(var(--primary))' : 'transparent'}` }}
-                      >
-                        <td className="px-3.5 py-2.5 align-middle">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {lead.status === 'new' && <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />}
-                            <ChannelBadge source={lead.source} />
-                            {lead.ai_draft_id && (
-                              <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 whitespace-nowrap">
-                                <Sparkles size={8} />AI
-                              </span>
+                      <>
+                        <tr key={lead.id}
+                          onClick={() => setSelectedId(lead.id === selectedId ? null : lead.id)}
+                          className={cn('border-b transition-colors cursor-pointer', isActive ? 'bg-primary/5' : isExpanded ? 'bg-blue-50/40' : 'hover:bg-muted/50')}
+                          style={{ borderLeft: `3px solid ${isActive ? 'hsl(var(--primary))' : isExpanded ? '#93c5fd' : 'transparent'}` }}
+                        >
+                          <td className="px-3.5 py-2.5 align-middle">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {lead.status === 'new' && <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />}
+                              <ChannelBadge source={lead.source} />
+                              {lead.ai_draft_id && (
+                                <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 whitespace-nowrap">
+                                  <Sparkles size={8} />AI
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5 align-middle">
+                            <span className={cn('text-foreground', lead.status === 'new' ? 'font-semibold' : 'font-normal')}>{lead.first_name || '—'}</span>
+                          </td>
+                          <td className="px-3 py-2.5 align-middle">
+                            <span className={cn('text-foreground', lead.status === 'new' ? 'font-semibold' : 'font-normal')}>{lead.last_name || '—'}</span>
+                          </td>
+                          <td className="px-3 py-2.5 align-middle text-muted-foreground max-w-0">
+                            <span className="block overflow-hidden text-ellipsis whitespace-nowrap">{lead.company || '—'}</span>
+                          </td>
+                          <td className="px-3 py-2.5 align-middle text-muted-foreground max-w-0">
+                            <span className="block overflow-hidden text-ellipsis whitespace-nowrap">{lead.topic || lead.department || '—'}</span>
+                          </td>
+                          <td className="px-3 py-2.5 align-middle text-muted-foreground/60 max-w-0 text-[12px]">
+                            <span className="block overflow-hidden text-ellipsis whitespace-nowrap">{msg || '—'}</span>
+                          </td>
+                          <td className="px-3 py-2.5 align-middle"><StatusDropdown lead={lead} onChange={handleStatus} /></td>
+                          <td className="px-3.5 py-2.5 align-middle text-right text-muted-foreground/50 text-[11px] whitespace-nowrap">{timeAgo(lead.created_at)}</td>
+                          <td className="px-2 py-2.5 align-middle text-right">
+                            {isEmail && (
+                              <button
+                                onClick={e => { e.stopPropagation(); setExpandedId(isExpanded ? null : lead.id) }}
+                                className={cn('bg-transparent border-0 cursor-pointer p-1 rounded hover:bg-muted/60', isExpanded ? 'text-blue-500' : 'text-muted-foreground/40 hover:text-muted-foreground')}
+                                title={isExpanded ? 'Collapse' : 'Draft & send reply'}
+                              >
+                                {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                              </button>
                             )}
-                          </div>
-                        </td>
-                        <td className="px-3 py-2.5 align-middle">
-                          <span className={cn('text-foreground', lead.status === 'new' ? 'font-semibold' : 'font-normal')}>{lead.first_name || '—'}</span>
-                        </td>
-                        <td className="px-3 py-2.5 align-middle">
-                          <span className={cn('text-foreground', lead.status === 'new' ? 'font-semibold' : 'font-normal')}>{lead.last_name || '—'}</span>
-                        </td>
-                        <td className="px-3 py-2.5 align-middle text-muted-foreground max-w-0">
-                          <span className="block overflow-hidden text-ellipsis whitespace-nowrap">{lead.company || '—'}</span>
-                        </td>
-                        <td className="px-3 py-2.5 align-middle text-muted-foreground max-w-0">
-                          <span className="block overflow-hidden text-ellipsis whitespace-nowrap">{lead.topic || lead.department || '—'}</span>
-                        </td>
-                        <td className="px-3 py-2.5 align-middle text-muted-foreground/60 max-w-0 text-[12px]">
-                          <span className="block overflow-hidden text-ellipsis whitespace-nowrap">{msg || '—'}</span>
-                        </td>
-                        <td className="px-3 py-2.5 align-middle"><StatusDropdown lead={lead} onChange={handleStatus} /></td>
-                        <td className="px-3.5 py-2.5 align-middle text-right text-muted-foreground/50 text-[11px] whitespace-nowrap">{timeAgo(lead.created_at)}</td>
-                      </tr>
+                          </td>
+                        </tr>
+                        {isExpanded && isEmail && (
+                          <InlineReplyRow
+                            key={`reply-${lead.id}`}
+                            lead={lead}
+                            onStatus={handleStatus}
+                            onCollapse={() => setExpandedId(null)}
+                          />
+                        )}
+                      </>
                     )
                   })}
                 </tbody>

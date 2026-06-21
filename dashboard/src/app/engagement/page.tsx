@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Search, RefreshCw, ChevronDown, Copy, Check, X, Calendar, ArrowUpDown, SlidersHorizontal, Trash2, ArrowLeft } from 'lucide-react'
 import { useAuditLog } from '@/hooks/useAuditLog'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
@@ -1921,7 +1922,12 @@ function LeadListItem({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default function EngagementPage() {
+type EngagementTab = 'all' | 'prospects' | 'clients'
+
+function EngagementPageInner() {
+  const searchParams  = useSearchParams()
+  const initLeadId    = searchParams.get('lead')
+
   const [leads,           setLeads]           = useState<Lead[]>([])
   const [loading,         setLoading]         = useState(true)
   const [refreshing,      setRefreshing]      = useState(false)
@@ -1933,6 +1939,7 @@ export default function EngagementPage() {
   const [filterOpen,      setFilterOpen]      = useState(false)
   const [threadMap,       setThreadMap]       = useState<Record<string, ThreadState>>({})
   const [mobilePanelView, setMobilePanelView] = useState<'list' | 'thread'>('list')
+  const [activeTab,       setActiveTab]       = useState<EngagementTab>('all')
 
   const log = useAuditLog()
 
@@ -1943,9 +1950,13 @@ export default function EngagementPage() {
     try {
       const data = await fetchLeads()
       setLeads(data)
-      setSelectedId(prev => prev ?? (data[0]?.id ?? null))
+      setSelectedId(prev => {
+        // If a ?lead= param was provided and exists in the loaded data, prefer it
+        if (!prev && initLeadId && data.some(l => l.id === initLeadId)) return initLeadId
+        return prev ?? (data[0]?.id ?? null)
+      })
     } finally { setLoading(false); setRefreshing(false) }
-  }, [])
+  }, [initLeadId])
 
   useEffect(() => {
     load()
@@ -2010,8 +2021,15 @@ export default function EngagementPage() {
   function clearFilters() { setSearch(''); setDateFrom(''); setDateTo('') }
   const hasFilters = search || dateFrom || dateTo
 
+  const prospectsCount = useMemo(() => leads.filter(l => !l.campaign_context).length, [leads])
+  const clientsCount   = useMemo(() => leads.filter(l => !!l.campaign_context).length, [leads])
+
   const visible = useMemo(() => {
-    let list = leads.filter(l => matchesSearch(l, search) && inDateRange(l.created_at, dateFrom, dateTo))
+    let list = leads.filter(l => {
+      if (activeTab === 'prospects') return !l.campaign_context
+      if (activeTab === 'clients')   return !!l.campaign_context
+      return true
+    }).filter(l => matchesSearch(l, search) && inDateRange(l.created_at, dateFrom, dateTo))
     if (sortKey === 'newest') list = [...list].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     else if (sortKey === 'oldest') list = [...list].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
     else {
@@ -2022,7 +2040,7 @@ export default function EngagementPage() {
       })
     }
     return list
-  }, [leads, search, dateFrom, dateTo, sortKey, threadMap])
+  }, [leads, activeTab, search, dateFrom, dateTo, sortKey, threadMap])
 
   const selectedLead   = leads.find(l => l.id === selectedId) ?? null
   const selectedThread = selectedId ? threadMap[selectedId] : undefined
@@ -2114,6 +2132,33 @@ export default function EngagementPage() {
             </div>
           </div>
 
+          {/* Prospect / Client tabs */}
+          <div style={{ display: 'flex', borderBottom: '1px solid #e8eaed', flexShrink: 0 }}>
+            {([
+              { key: 'all',       label: 'All',        count: leads.length },
+              { key: 'prospects', label: 'New Prospects', count: prospectsCount },
+              { key: 'clients',   label: 'Existing Clients', count: clientsCount },
+            ] as { key: EngagementTab; label: string; count: number }[]).map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                style={{
+                  flex: 1, padding: '8px 4px', fontSize: 11, fontWeight: activeTab === tab.key ? 600 : 400,
+                  color: activeTab === tab.key ? '#3b82f6' : '#888',
+                  background: 'none', border: 'none', borderBottom: activeTab === tab.key ? '2px solid #3b82f6' : '2px solid transparent',
+                  cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                }}
+              >
+                {tab.label}
+                <span style={{
+                  fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 10,
+                  background: activeTab === tab.key ? 'rgba(59,130,246,0.10)' : '#f4f4f5',
+                  color: activeTab === tab.key ? '#3b82f6' : '#aaa',
+                }}>{tab.count}</span>
+              </button>
+            ))}
+          </div>
+
           <div style={{ padding: '6px 14px', borderBottom: '1px solid #f0f0f0', flexShrink: 0, background: 'hsl(var(--background))' }}>
             <span style={{ fontSize: 11, color: '#aaa' }}>
               {loading ? 'Loading…' : `${visible.length} conversation${visible.length !== 1 ? 's' : ''}${hasFilters ? ' matching' : ''}`}
@@ -2172,5 +2217,13 @@ export default function EngagementPage() {
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
+  )
+}
+
+export default function EngagementPage() {
+  return (
+    <Suspense>
+      <EngagementPageInner />
+    </Suspense>
   )
 }
