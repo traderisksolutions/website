@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { RefreshCw, CheckCircle, AlertTriangle, RotateCcw, Megaphone, Bot, FileText } from 'lucide-react'
+import { RefreshCw, CheckCircle, AlertTriangle, RotateCcw, Megaphone, Bot, FileText, Inbox } from 'lucide-react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
@@ -45,7 +45,8 @@ type TabDef = { id: string; label: string; icon: React.ElementType; color: strin
 
 const TABS: TabDef[] = [
   { id: 'outbound',   label: 'Outbound AI',   icon: Megaphone, color: '#2563eb', folder: 'ai-outbound',         purpose: 'Cold campaign emails — prospects via Instantly' },
-  { id: 'engagement', label: 'Engagement AI',  icon: Bot,       color: '#10b981', folder: 'engagement_ai_agent', purpose: 'Inbound lead reply drafting — Agent 2' },
+  { id: 'engagement', label: 'Engagement AI',  icon: Bot,       color: '#10b981', folder: 'engagement_ai_agent', purpose: 'Inbound lead reply drafting — Engagement Agent' },
+  { id: 'inbound',    label: 'Inbound AI',     icon: Inbox,     color: '#7c3aed', folder: 'inbound_ai_agent',   purpose: 'Auto-draft replies for new inbound leads — Inbound Agent' },
 ]
 
 // ── Naming examples ────────────────────────────────────────────────────────
@@ -68,6 +69,15 @@ const ENGAGEMENT_EXAMPLES: NamingExample[] = [
   { filename: 'motor-coverage-apr-2026.pdf',     description: 'What motor insurance covers and excludes' },
   { filename: 'benefits-pricing-feb-2026.pdf',   description: 'Employee benefits indicative pricing' },
   { filename: 'marine-guide-jun-2026.pdf',       description: 'Plain-language marine guide for clients' },
+]
+
+const INBOUND_EXAMPLES: NamingExample[] = [
+  { filename: 'general-faq-jun-2026.pdf',           description: 'Answers to common coverage questions from new leads' },
+  { filename: 'product-overview-jun-2026.pdf',      description: 'What TRS offers — product lines and key features' },
+  { filename: 'claims-process-jun-2026.pdf',        description: 'Step-by-step claims procedure for new clients' },
+  { filename: 'company-credentials-jan-2026.pdf',   description: 'TRS background, licences, and track record' },
+  { filename: 'pricing-guide-jun-2026.pdf',         description: 'Indicative premiums across product lines' },
+  { filename: 'objection-handling-may-2026.pdf',    description: 'How to respond to pricing or coverage pushback' },
 ]
 
 // ── Sub-components ─────────────────────────────────────────────────────────
@@ -373,7 +383,7 @@ export default function RagIndexPage() {
               folder={t.folder}
               color={t.color}
               icon={t.icon}
-              examples={t.id === 'outbound' ? OUTBOUND_EXAMPLES : ENGAGEMENT_EXAMPLES}
+              examples={t.id === 'outbound' ? OUTBOUND_EXAMPLES : t.id === 'inbound' ? INBOUND_EXAMPLES : ENGAGEMENT_EXAMPLES}
             />
 
             {/* File table */}

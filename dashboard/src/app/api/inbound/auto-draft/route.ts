@@ -1,17 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSign }               from 'node:crypto'
 import { logGeminiUsage }           from '@/lib/gemini-usage'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
-const DRIVE_API  = 'https://www.googleapis.com/drive/v3'
-
-const TOPIC_KEYWORDS = [
-  'construction', 'marine', 'cargo', 'benefits', 'employee',
-  'fire', 'property', 'liability', 'motor', 'travel',
-  'engineering', 'hull', 'general', 'professional', 'cyber',
-  'directors', 'officers', 'trade', 'credit', 'product',
-]
+const EMBED_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent'
 
 function sbH(prefer = 'return=representation') {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -19,98 +11,38 @@ function sbH(prefer = 'return=representation') {
   return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: prefer }
 }
 
-function b64url(input: string | Buffer): string {
-  const b = Buffer.isBuffer(input) ? input.toString('base64') : Buffer.from(input).toString('base64')
-  return b.replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
-}
+type Chunk = { file_name: string; content: string; similarity: number }
 
-async function getDriveToken(): Promise<string> {
-  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON
-  if (!raw) throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON not set')
-  const creds = JSON.parse(raw)
-  const now   = Math.floor(Date.now() / 1000)
-  const hdr   = b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))
-  const pay   = b64url(JSON.stringify({
-    iss: creds.client_email,
-    scope: 'https://www.googleapis.com/auth/drive.readonly',
-    aud: 'https://oauth2.googleapis.com/token',
-    iat: now, exp: now + 3600,
-  }))
-  const unsigned = `${hdr}.${pay}`
-  const signer   = createSign('RSA-SHA256')
-  signer.update(unsigned)
-  const jwt = `${unsigned}.${b64url(signer.sign(creds.private_key))}`
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: jwt }),
-  })
-  const data = await res.json()
-  if (!data.access_token) throw new Error(`Drive auth failed: ${JSON.stringify(data)}`)
-  return data.access_token
-}
-
-type DriveFile = { id: string; name: string; mimeType: string }
-
-async function listFaqFiles(token: string): Promise<DriveFile[]> {
-  const folderId = process.env.GDRIVE_FAQ_FOLDER_ID ?? ''
-  if (!folderId) return []
-  const mimes = [
-    'application/vnd.google-apps.document',
-    'text/plain',
-    'application/pdf',
-  ].map(m => `mimeType='${m}'`).join(' or ')
-  const q   = encodeURIComponent(`'${folderId}' in parents and (${mimes}) and trashed=false`)
-  const res = await fetch(`${DRIVE_API}/files?q=${q}&fields=files(id,name,mimeType)&pageSize=50`, {
-    headers: { Authorization: `Bearer ${token}` },
-  })
-  const data = await res.json()
-  return Array.isArray(data.files) ? data.files : []
-}
-
-async function exportFileAsText(token: string, file: DriveFile): Promise<string> {
-  const h = { Authorization: `Bearer ${token}` }
-  if (file.mimeType === 'text/plain') {
-    const r = await fetch(`${DRIVE_API}/files/${file.id}?alt=media`, { headers: h })
-    return r.ok ? r.text() : ''
-  }
-  // Google Docs and PDFs: export as plain text via Drive export API
-  const r = await fetch(`${DRIVE_API}/files/${file.id}/export?mimeType=text/plain`, { headers: h })
-  return r.ok ? r.text() : ''
-}
-
-function scoreFile(filename: string, text: string): number {
-  const n = filename.toLowerCase()
-  const t = text.toLowerCase()
-  return TOPIC_KEYWORDS.filter(k => n.includes(k) || t.includes(k)).length
-}
-
-async function fetchFaqContext(leadText: string): Promise<{ context: string; docNames: string[] }> {
-  const folderId = process.env.GDRIVE_FAQ_FOLDER_ID ?? ''
-  if (!folderId || !process.env.GOOGLE_SERVICE_ACCOUNT_JSON) return { context: '', docNames: [] }
+async function searchInboundChunks(queryText: string, apiKey: string): Promise<Chunk[]> {
   try {
-    const token = await getDriveToken()
-    const files = await listFaqFiles(token)
-    if (files.length === 0) return { context: '', docNames: [] }
+    const embedRes = await fetch(`${EMBED_URL}?key=${apiKey}`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model:                'models/gemini-embedding-001',
+        content:              { parts: [{ text: queryText.slice(0, 8000) }] },
+        outputDimensionality: 768,
+      }),
+    })
+    const embedData = await embedRes.json()
+    const embedding: number[] = embedData.embedding?.values ?? []
+    if (embedding.length === 0) return []
 
-    const scored   = files
-      .map(f => ({ ...f, score: scoreFile(f.name, leadText) }))
-      .sort((a, b) => b.score - a.score)
-    const selected = scored.slice(0, 3)
-
-    const parts:    string[] = []
-    const docNames: string[] = []
-    for (const file of selected) {
-      const text = await exportFileAsText(token, file)
-      if (text.trim()) {
-        parts.push(`--- ${file.name} ---\n${text.trim().slice(0, 3000)}`)
-        docNames.push(file.name)
-      }
-    }
-    return { context: parts.join('\n\n'), docNames }
-  } catch (e) {
-    console.error('[inbound-auto-draft] FAQ fetch failed (non-fatal):', e)
-    return { context: '', docNames: [] }
+    const res = await fetch(`${SB_URL}/rest/v1/rpc/match_knowledge_chunks`, {
+      method:  'POST',
+      headers: { ...sbH('return=representation'), Prefer: 'return=representation' },
+      body: JSON.stringify({
+        query_embedding:      `[${embedding.join(',')}]`,
+        match_count:          5,
+        similarity_threshold: 0.35,
+        p_source_folder:      'inbound_ai_agent',
+      }),
+    })
+    if (!res.ok) return []
+    const rows = await res.json()
+    return Array.isArray(rows) ? rows : []
+  } catch {
+    return []
   }
 }
 
@@ -183,27 +115,31 @@ export async function POST(req: NextRequest) {
     const fullName  = [lead.first_name, lead.last_name].filter(Boolean).join(' ') || firstName
     const message   = (lead.message || lead.details || '') as string
     const topic     = (lead.topic || '') as string
+    const queryText = [topic, message].filter(Boolean).join('\n')
 
-    // Fetch FAQ docs and eval feedback concurrently
-    const [{ context: faqContext, docNames }, examplesData, antiPatternData] = await Promise.all([
-      fetchFaqContext([topic, message].join(' ')),
-      // High-scoring human-approved examples — few-shot positives
+    // Vector RAG + few-shots + anti-patterns — all in parallel
+    const [chunks, examplesData, antiPatternData] = await Promise.all([
+      searchInboundChunks(queryText, geminiKey),
       fetch(
         `${SB_URL}/rest/v1/prompt_examples?email_type=eq.CONVERSATION&order=score.desc,created_at.desc&limit=2&select=context_summary,ideal_reply`,
         { headers: sbH(), cache: 'no-store' }
       ).then(r => r.ok ? r.json() : []).catch(() => []),
-      // Low-scoring evaluations — anti-patterns to avoid
       fetch(
         `${SB_URL}/rest/v1/draft_evaluations?email_type=eq.CONVERSATION&score=lte.3&order=created_at.desc&limit=6&select=eval_json`,
         { headers: sbH(), cache: 'no-store' }
       ).then(r => r.ok ? r.json() : []).catch(() => []),
     ])
 
-    const knowledgeSection = faqContext
-      ? `KNOWLEDGE BASE (approved FAQ documents — use to inform your reply, do not copy verbatim):\n${faqContext}`
-      : 'No FAQ documents available — reply based on general TRS knowledge only.'
+    // Build knowledge section from vector chunks
+    const chunkSources = Array.from(new Set((chunks as Chunk[]).map(c => c.file_name))).join(', ')
+    const knowledgeSection = chunks.length > 0
+      ? `KNOWLEDGE BASE (retrieved from TRS documents — use to inform your reply, do not copy verbatim):\n` +
+        (chunks as Chunk[]).map((c, i) =>
+          `[Source ${i + 1}: ${c.file_name} (${Math.round(c.similarity * 100)}% match)]\n${c.content}`
+        ).join('\n\n---\n\n')
+      : 'No knowledge base documents available — reply based on general TRS knowledge only.'
 
-    // Few-shot examples from past high-scoring first-contact replies
+    // Few-shot examples
     let fewShotSection = ''
     const examples: { context_summary?: string; ideal_reply: string }[] = Array.isArray(examplesData) ? examplesData : []
     if (examples.length > 0) {
@@ -213,7 +149,7 @@ export async function POST(req: NextRequest) {
         ).join('\n\n') + '\n'
     }
 
-    // Anti-patterns from low-scoring drafts — avoid these
+    // Anti-patterns from low-scoring drafts
     let antiPatternSection = ''
     const apRows: { eval_json: { key_learning?: string } | null }[] = Array.isArray(antiPatternData) ? antiPatternData : []
     const learnings = apRows
@@ -229,6 +165,7 @@ export async function POST(req: NextRequest) {
     const prompt = `You are an AI email assistant for Trade Risk Solutions (TRS), a Singapore-based commercial insurance brokerage.
 
 A new website enquiry has just arrived. Write a warm, professional first-contact reply from TRS.
+${chunks.length > 0 ? `\nKnowledge retrieved from: ${chunkSources}` : ''}
 
 ${knowledgeSection}
 ${fewShotSection}${antiPatternSection}
@@ -296,31 +233,31 @@ Write only the email body.`
     }
 
     // Supersede any existing pending drafts for this lead
-    await fetch(
-      `${SB_URL}/rest/v1/ai_drafts?inbound_lead_id=eq.${leadId}&status=eq.pending`,
-      { method: 'PATCH', headers: sbH('return=minimal'), body: JSON.stringify({ status: 'superseded' }) }
-    )
+    await fetch(`${SB_URL}/rest/v1/ai_drafts?inbound_lead_id=eq.${leadId}&status=eq.pending`, {
+      method:  'PATCH',
+      headers: sbH('return=minimal'),
+      body:    JSON.stringify({ status: 'superseded' }),
+    })
 
-    // Insert into ai_drafts — thread_id is null until reply is sent and thread is created
-    const savedRes = await fetch(`${SB_URL}/rest/v1/ai_drafts`, {
+    // Save new draft
+    const draftBody: Record<string, unknown> = {
+      channel:         'email',
+      body:            content,
+      status:          'pending',
+      generated_by:    'gemini',
+      inbound_lead_id: leadId,
+    }
+    if (contactId) draftBody.contact_id = contactId
+
+    const draftRes = await fetch(`${SB_URL}/rest/v1/ai_drafts`, {
       method:  'POST',
       headers: sbH('return=representation'),
-      body: JSON.stringify({
-        inbound_lead_id: leadId,
-        contact_id:      contactId,
-        channel:         'email',
-        body:            content,
-        status:          'pending',
-        generated_by:    'faq',
-        email_type:      'CONVERSATION',
-        knowledge_docs:  docNames.length > 0 ? docNames : null,
-      }),
+      body:    JSON.stringify(draftBody),
     })
-    const saved    = savedRes.ok ? await savedRes.json() : null
-    const draftRow = Array.isArray(saved) ? saved[0] : saved
-    const draftId  = (draftRow?.id ?? null) as string | null
+    const draftRows = draftRes.ok ? await draftRes.json() : null
+    const draft     = Array.isArray(draftRows) ? draftRows[0] : draftRows
+    const draftId   = (draft?.id ?? null) as string | null
 
-    // Link draft back to the lead row
     if (draftId) {
       await fetch(`${SB_URL}/rest/v1/inbound_leads?id=eq.${leadId}`, {
         method:  'PATCH',
