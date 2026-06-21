@@ -116,7 +116,6 @@ export async function POST(req: NextRequest) {
     const gmailThreadId = sent.threadId as string
 
     // 2. Upsert contact
-    const encoded    = encodeURIComponent(email)
     const upsertRes  = await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
       method:  'POST',
       headers: sbHeaders('return=representation,resolution=merge-duplicates'),
@@ -128,6 +127,10 @@ export async function POST(req: NextRequest) {
         inbound_lead_id: leadId,
       }),
     })
+    if (!upsertRes.ok) {
+      const errText = await upsertRes.text()
+      console.error('[inbound/reply] contact upsert failed:', upsertRes.status, errText)
+    }
     const upserted   = upsertRes.ok ? await upsertRes.json() : null
     const contactRow = Array.isArray(upserted) ? upserted[0] : upserted
     const contactId  = contactRow?.id ?? null
@@ -149,20 +152,30 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. Create email thread in Supabase
+    // 3. Upsert email thread in Supabase.
+    // Use on_conflict=gmail_thread_id so that if Gmail assigns the same thread ID
+    // as a previous send (same subject/participants), we update the existing record
+    // instead of failing silently with a unique constraint violation.
     let threadId: string | null = null
     if (contactId) {
-      const threadRes = await fetch(`${SB_URL}/rest/v1/email_threads`, {
-        method:  'POST',
-        headers: sbHeaders('return=representation'),
-        body: JSON.stringify({
-          contact_id:       contactId,
-          gmail_thread_id:  gmailThreadId,
-          subject:          `Enquiry: ${topic || 'General Insurance'}`,
-          status:           'active',
-          last_message_at:  sentAt,
-        }),
-      })
+      const threadRes = await fetch(
+        `${SB_URL}/rest/v1/email_threads?on_conflict=gmail_thread_id`,
+        {
+          method:  'POST',
+          headers: sbHeaders('return=representation,resolution=merge-duplicates'),
+          body: JSON.stringify({
+            contact_id:       contactId,
+            gmail_thread_id:  gmailThreadId,
+            subject:          `Enquiry: ${topic || 'General Insurance'}`,
+            status:           'active',
+            last_message_at:  sentAt,
+          }),
+        }
+      )
+      if (!threadRes.ok) {
+        const errText = await threadRes.text()
+        console.error('[inbound/reply] email_thread upsert failed:', threadRes.status, errText)
+      }
       const threads = threadRes.ok ? await threadRes.json() : null
       const thread  = Array.isArray(threads) ? threads[0] : threads
       threadId = thread?.id ?? null
