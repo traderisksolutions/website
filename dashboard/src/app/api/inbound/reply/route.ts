@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSign }                 from 'node:crypto'
+import { waitUntil }                  from '@vercel/functions'
+import { runDraftEvaluation }         from '@/lib/run-draft-evaluation'
 
 const SB_URL    = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me'
@@ -65,19 +67,21 @@ function buildRawEmail(to: string, subject: string, body: string): string {
 }
 
 // POST /api/inbound/reply
-// Body: { leadId, name, email, company, topic, originalMessage, draft }
+// Body: { leadId, name, email, company, topic, originalMessage, draft, draftId? }
 // Sends reply via Gmail, creates contact + thread, updates lead status to 'contacted'.
+// If draftId is provided, updates ai_drafts and triggers an eval so the system learns from edits.
 export async function POST(req: NextRequest) {
   try {
-    const { leadId, name, email, company, topic, originalMessage, draft } =
+    const { leadId, name, email, company, topic, originalMessage, draft, draftId } =
       await req.json() as {
-        leadId:          string
-        name:            string
-        email:           string
-        company?:        string | null
-        topic?:          string | null
+        leadId:           string
+        name:             string
+        email:            string
+        company?:         string | null
+        topic?:           string | null
         originalMessage?: string | null
-        draft:           string
+        draft:            string
+        draftId?:         string | null
       }
 
     if (!leadId || !email || !draft) {
@@ -203,7 +207,19 @@ export async function POST(req: NextRequest) {
       body:    JSON.stringify(patchBody),
     })
 
-    // 6. Trigger auto-summarize (fire-and-forget — non-blocking)
+    // 6. If an AI draft was used, back-fill contact_id + thread_id and mark as sent so Evals can run
+    if (draftId) {
+      const draftPatch: Record<string, unknown> = { status: 'sent', sent_at: sentAt }
+      if (contactId) draftPatch.contact_id = contactId
+      if (threadId)  draftPatch.thread_id  = threadId
+      await fetch(`${SB_URL}/rest/v1/ai_drafts?id=eq.${draftId}`, {
+        method:  'PATCH',
+        headers: sbHeaders('return=minimal'),
+        body:    JSON.stringify(draftPatch),
+      })
+    }
+
+    // 7. Trigger auto-summarize (fire-and-forget — non-blocking)
     if (threadId) {
       const origin = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
       fetch(`${origin}/api/engagement/auto-summarize`, {
@@ -214,6 +230,12 @@ export async function POST(req: NextRequest) {
         },
         body: JSON.stringify({ thread_id: threadId, message_id: gmailMsgId }),
       }).catch(() => {})
+    }
+
+    // 8. Run draft evaluation after response — compares original AI draft vs what was sent
+    // humanBodyOverride = the final sent text (avoids race condition on email_messages insert)
+    if (draftId) {
+      waitUntil(runDraftEvaluation(draftId, threadId, draft))
     }
 
     return NextResponse.json({ ok: true, contactId, threadId })

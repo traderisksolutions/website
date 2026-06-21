@@ -16,6 +16,7 @@ type Lead = {
   department: string | null; contact_type: string | null
   topic: string | null; details: string | null; message: string | null
   page_url: string | null; status: string
+  ai_draft_id: string | null; ai_draft_at: string | null
 }
 
 type Filter = 'all' | 'new' | 'email' | 'whatsapp'
@@ -147,19 +148,41 @@ function StatusDropdown({ lead, onChange }: { lead: Lead; onChange: (id: string,
 function DetailPanel({ lead, onStatus, onClose }: { lead: Lead; onStatus: (id: string, s: string) => void; onClose: () => void }) {
   const [copied,     setCopied]     = useState<string | null>(null)
   const [draftText,  setDraftText]  = useState('')
+  const [draftId,    setDraftId]    = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
   const [sending,    setSending]    = useState(false)
   const [sendError,  setSendError]  = useState<string | null>(null)
   const [sent,       setSent]       = useState(false)
+  const [sentThread, setSentThread] = useState<string | null>(null)
+  // Tracks whether we've already auto-loaded the draft for this lead.
+  // Guards against 30s polling re-triggering the effect and overwriting user edits.
+  const hasLoadedDraftRef = useRef(false)
   const log = useAuditLog()
 
   const ch  = channelOf(lead)
   const msg = messagePreview(lead)
   const st  = STATUS_MAP[lead.status] ?? STATUS_MAP.new
 
+  // Reset state when the selected lead changes
   useEffect(() => {
-    setDraftText(''); setGenerating(false); setSending(false); setSendError(null); setSent(false)
+    setDraftText(''); setDraftId(null); setGenerating(false); setSending(false); setSendError(null); setSent(false); setSentThread(null)
+    hasLoadedDraftRef.current = false
   }, [lead.id])
+
+  // Auto-load existing AI draft once — guarded so polling re-renders don't overwrite edits
+  useEffect(() => {
+    if (hasLoadedDraftRef.current) return
+    if (!lead.ai_draft_id || channelOf(lead) !== 'email' || !lead.email) return
+    hasLoadedDraftRef.current = true
+    setGenerating(true)
+    fetch(`/api/inbound/auto-draft?leadId=${lead.id}`)
+      .then(r => r.ok ? r.json() : null)
+      .then((d: { content: string | null; draftId: string | null } | null) => {
+        if (d?.content) { setDraftText(d.content); setDraftId(d.draftId) }
+      })
+      .catch(() => {})
+      .finally(() => setGenerating(false))
+  }, [lead.id, lead.ai_draft_id, lead.email])
 
   function copy(text: string, key: string) {
     navigator.clipboard.writeText(text)
@@ -169,13 +192,14 @@ function DetailPanel({ lead, onStatus, onClose }: { lead: Lead; onStatus: (id: s
   async function generateDraft() {
     setGenerating(true); setSendError(null)
     try {
-      const res  = await fetch('/api/inbound/draft', {
+      const res  = await fetch('/api/inbound/auto-draft', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: displayName(lead), topic: lead.topic, message: msg }),
+        body: JSON.stringify({ leadId: lead.id, force: true }),
       })
       const data = await res.json()
       if (data.content) {
         setDraftText(data.content)
+        setDraftId(data.draftId ?? null)
         log({ action: 'draft.generated', resource_type: 'inbound_lead', resource_id: lead.id, metadata: { contact: displayName(lead) } })
       } else {
         setSendError(data.error ?? 'Failed to generate draft')
@@ -194,11 +218,12 @@ function DetailPanel({ lead, onStatus, onClose }: { lead: Lead; onStatus: (id: s
           leadId: lead.id, name: displayName(lead), email: lead.email,
           company: lead.company, topic: lead.topic,
           originalMessage: msg, draft: draftText.trim(),
+          draftId: draftId ?? null,
         }),
       })
       const data = await res.json()
       if (data.ok) {
-        setSent(true); onStatus(lead.id, 'contacted')
+        setSent(true); setSentThread(data.threadId ?? null); onStatus(lead.id, 'contacted')
         log({ action: 'draft.approved', resource_type: 'inbound_lead', resource_id: lead.id, metadata: { contact: displayName(lead), chars: draftText.length } })
       } else {
         setSendError(data.error ?? 'Send failed')
@@ -315,9 +340,17 @@ function DetailPanel({ lead, onStatus, onClose }: { lead: Lead; onStatus: (id: s
           </div>
 
           {sent ? (
-            <p className="text-[12px] text-emerald-700 font-medium m-0">
-              Reply sent to {lead.email}. Lead routed to Engagement Agent.
-            </p>
+            <div className="flex flex-col gap-2">
+              <p className="text-[12px] text-emerald-700 font-medium m-0">
+                Reply sent to {lead.email}. Lead routed to Engagement Agent.
+              </p>
+              <a
+                href={sentThread ? `/engagement?thread=${sentThread}` : '/engagement'}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-2.5 py-1.5 no-underline w-fit hover:bg-emerald-500/15"
+              >
+                View in Engagement Agent →
+              </a>
+            </div>
           ) : draftText ? (
             <>
               <textarea value={draftText} onChange={e => setDraftText(e.target.value)} rows={8}
@@ -551,9 +584,14 @@ function InboundLeadsPage() {
                         style={{ borderLeft: `3px solid ${isActive ? 'hsl(var(--primary))' : 'transparent'}` }}
                       >
                         <td className="px-3.5 py-2.5 align-middle">
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             {lead.status === 'new' && <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />}
                             <ChannelBadge source={lead.source} />
+                            {lead.ai_draft_id && (
+                              <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 whitespace-nowrap">
+                                <Sparkles size={8} />AI
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className="px-3 py-2.5 align-middle">

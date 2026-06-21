@@ -18,6 +18,8 @@ export type GeminiFeature =
   | 'summarize'
   | 'rag_index'
   | 'rag_draft_reply'
+  | 'draft_email'
+  | 'inbound_auto_draft'
 
 export interface GeminiUsageMeta {
   promptTokenCount?:     number
