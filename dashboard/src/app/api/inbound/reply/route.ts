@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'leadId, email, and draft are required' }, { status: 400 })
     }
 
-    const subject = `Re: Your enquiry — Trade Risk Solutions`
+    const subject = `Re: Your enquiry | Trade Risk Solutions`
     const sentAt  = new Date().toISOString()
 
     // 1. Send via Gmail

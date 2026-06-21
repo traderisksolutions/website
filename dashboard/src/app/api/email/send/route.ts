@@ -262,7 +262,7 @@ export async function POST(req: NextRequest) {
     const recipientEmail = (toEmail && toEmail.includes('@')) ? toEmail.trim().toLowerCase() : contact.email as string
 
     // 3. Load thread subject (for reply subject line)
-    let subject = 'Re: Your enquiry — Trade Risk Solutions'
+    let subject = 'Re: Your enquiry | Trade Risk Solutions'
     let gmailThreadId: string | null = null
     if (draft.thread_id) {
       const threadRes = await fetch(

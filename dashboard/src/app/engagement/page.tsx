@@ -1639,7 +1639,7 @@ function ThreadView({
     setPanelTab('contact')
     // Reset compose headers to safe defaults immediately on lead switch
     const s = thread?.subject ?? ''
-    setCustomSubject(s ? (s.startsWith('Re:') ? s : `Re: ${s}`) : 'Re: Your enquiry — Trade Risk Solutions')
+    setCustomSubject(s ? (s.startsWith('Re:') ? s : `Re: ${s}`) : 'Re: Your enquiry | Trade Risk Solutions')
     setToAddress(lead.email ?? '')
     setCcList([])
     setBccList([])
@@ -1860,6 +1860,15 @@ function ThreadView({
 
 // ── Lead list item ─────────────────────────────────────────────────────────────
 
+function sourceChip(lead: Lead) {
+  if (lead.campaign_context) return null // campaign badge already shown
+  if (lead.source === 'website_form') return { label: 'Form',   bg: 'var(--primary-light-bg)', color: 'var(--primary-hex)' }
+  if (lead.source === 'email')        return { label: 'Email',  bg: 'var(--primary-light-bg)', color: 'var(--primary-hex)' }
+  if (lead.source === 'manual')       return { label: 'Manual', bg: 'hsl(var(--muted))',        color: 'var(--text-muted)'  }
+  if (lead.source === 'thread')       return { label: 'FWD/CC', bg: 'hsl(var(--muted))',        color: 'var(--text-muted)'  }
+  return null
+}
+
 function LeadListItem({
   lead, isActive, threadState, onClick,
 }: {
@@ -1873,6 +1882,7 @@ function LeadListItem({
   const needsReply = lastMsg?.direction === 'inbound'
   const name       = fullName(lead)
   const initial    = (name[0] ?? lead.email?.[0] ?? '?').toUpperCase()
+  const chip       = sourceChip(lead)
 
   return (
     <button
@@ -1912,6 +1922,9 @@ function LeadListItem({
             </p>
             {needsReply && (
               <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--warning)', flexShrink: 0 }} />
+            )}
+            {chip && (
+              <span style={{ fontSize: 9, fontWeight: 600, padding: '1px 5px', borderRadius: 8, background: chip.bg, color: chip.color, flexShrink: 0 }}>{chip.label}</span>
             )}
             {lead.campaign_context && (
               <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 8, background: 'var(--warning-bg)', color: 'var(--warning)', flexShrink: 0 }}>C</span>

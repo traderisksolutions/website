@@ -63,21 +63,43 @@ export async function GET(req: NextRequest) {
       const rows = threadRes.ok ? await threadRes.json() : []
       thread = Array.isArray(rows) && rows.length > 0 ? rows[0] : null
     } else {
-      // Email-based lookup: find most recent thread this address appears in
-      const partRes = await fetch(
-        `${SB_URL}/rest/v1/email_participants?email=eq.${encodeURIComponent(email!)}&select=thread_id`,
+      // Email-based lookup: prefer thread linked via the contact record (inbound lead flow),
+      // then fall back to most recent thread from email_participants.
+      const contactRes = await fetch(
+        `${SB_URL}/rest/v1/contacts?email=eq.${encodeURIComponent(email!)}&select=id,inbound_lead_id&limit=1`,
         { headers: sbHeaders() }
       )
-      const parts: { thread_id: string }[] = partRes.ok ? await partRes.json() : []
-      if (!Array.isArray(parts) || parts.length === 0) return NextResponse.json({ thread: null, messages: [] })
+      const contacts: { id: string; inbound_lead_id: string | null }[] =
+        contactRes.ok ? await contactRes.json() : []
+      const contact = Array.isArray(contacts) ? contacts[0] : null
 
-      const threadIds = Array.from(new Set(parts.map(p => p.thread_id)))
-      const threadRes = await fetch(
-        `${SB_URL}/rest/v1/email_threads?id=in.(${threadIds.join(',')})&deleted_at=is.null&order=last_message_at.desc&limit=1&select=*`,
-        { headers: sbHeaders() }
-      )
-      const threads = threadRes.ok ? await threadRes.json() : []
-      thread = Array.isArray(threads) && threads.length > 0 ? threads[0] : null
+      // If this contact came from an inbound lead, prefer the thread linked to them directly
+      if (contact?.inbound_lead_id && contact.id) {
+        const ctRes = await fetch(
+          `${SB_URL}/rest/v1/email_threads?contact_id=eq.${contact.id}&deleted_at=is.null&order=created_at.asc&limit=1&select=*`,
+          { headers: sbHeaders() }
+        )
+        const ctThreads = ctRes.ok ? await ctRes.json() : []
+        if (Array.isArray(ctThreads) && ctThreads.length > 0) thread = ctThreads[0]
+      }
+
+      // Fallback: find most recent thread this address appears in as participant
+      if (!thread) {
+        const partRes = await fetch(
+          `${SB_URL}/rest/v1/email_participants?email=eq.${encodeURIComponent(email!)}&select=thread_id`,
+          { headers: sbHeaders() }
+        )
+        const parts: { thread_id: string }[] = partRes.ok ? await partRes.json() : []
+        if (Array.isArray(parts) && parts.length > 0) {
+          const threadIds = Array.from(new Set(parts.map(p => p.thread_id)))
+          const threadRes = await fetch(
+            `${SB_URL}/rest/v1/email_threads?id=in.(${threadIds.join(',')})&deleted_at=is.null&order=last_message_at.desc&limit=1&select=*`,
+            { headers: sbHeaders() }
+          )
+          const threads = threadRes.ok ? await threadRes.json() : []
+          thread = Array.isArray(threads) && threads.length > 0 ? threads[0] : null
+        }
+      }
     }
 
     if (!thread) return NextResponse.json({ thread: null, messages: [] })
