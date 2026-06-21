@@ -15,7 +15,7 @@ type Lead = {
   email: string | null; phone: string | null; company: string | null
   department: string | null; contact_type: string | null
   topic: string | null; details: string | null; message: string | null
-  page_url: string | null; status: string
+  page_url: string | null; status: string; notes?: string | null
   ai_draft_id: string | null; ai_draft_at: string | null
 }
 
@@ -145,8 +145,11 @@ function StatusDropdown({ lead, onChange }: { lead: Lead; onChange: (id: string,
 
 // ── Detail panel ──────────────────────────────────────────────────────────────
 
-function DetailPanel({ lead, onStatus, onClose }: { lead: Lead; onStatus: (id: string, s: string) => void; onClose: () => void }) {
-  const [copied, setCopied] = useState<string | null>(null)
+function DetailPanel({ lead, onStatus, onClose, onNotesSave }: { lead: Lead; onStatus: (id: string, s: string) => void; onClose: () => void; onNotesSave: (id: string, notes: string) => void }) {
+  const [copied,    setCopied]    = useState<string | null>(null)
+  const [notesText, setNotesText] = useState(lead.notes ?? '')
+
+  useEffect(() => { setNotesText(lead.notes ?? '') }, [lead.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const ch  = channelOf(lead)
   const msg = messagePreview(lead)
@@ -244,7 +247,11 @@ function DetailPanel({ lead, onStatus, onClose }: { lead: Lead; onStatus: (id: s
         <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60 mb-1.5">
           Internal Notes <Tip placement="right" text="Only visible to your TRS team — the contact never sees these. Use this to record context like which insurer to quote, a follow-up date, or notes from a call." />
         </p>
-        <textarea placeholder="Add notes…" rows={4}
+        <textarea
+          value={notesText}
+          onChange={e => setNotesText(e.target.value)}
+          onBlur={() => onNotesSave(lead.id, notesText)}
+          placeholder="Add notes…" rows={4}
           className="w-full box-border text-[12px] text-foreground leading-[1.6] border border-border rounded-lg px-2.5 py-2 resize-none bg-muted/30 outline-none font-sans focus:ring-1 focus:ring-ring"
         />
       </div>
@@ -321,6 +328,7 @@ function InlineReplyRow({ lead, onStatus, onCollapse }: {
       })
       const data = await res.json()
       if (data.ok) {
+        setSent(true)
         onStatus(lead.id, 'contacted')
         log({ action: 'draft.approved', resource_type: 'inbound_lead', resource_id: lead.id, metadata: { contact: displayName(lead), chars: draftText.length } })
         // Navigate immediately to engagement, pre-selecting this lead
@@ -335,7 +343,7 @@ function InlineReplyRow({ lead, onStatus, onCollapse }: {
   if (sent) {
     return (
       <tr>
-        <td colSpan={8} className="px-4 py-3 bg-emerald-50 border-b border-emerald-100">
+        <td colSpan={9} className="px-4 py-3 bg-emerald-50 border-b border-emerald-100">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <Check size={14} className="text-emerald-600 flex-shrink-0" />
@@ -356,7 +364,7 @@ function InlineReplyRow({ lead, onStatus, onCollapse }: {
 
   return (
     <tr>
-      <td colSpan={8} className="px-4 py-4 bg-blue-50/60 border-b border-blue-100">
+      <td colSpan={9} className="px-4 py-4 bg-blue-50/60 border-b border-blue-100">
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-blue-600 flex items-center gap-1.5">
@@ -443,6 +451,14 @@ async function patchStatus(id: string, status: string) {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id, status }),
+  })
+}
+
+async function patchNotes(id: string, notes: string) {
+  await fetch('/api/leads', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, notes }),
   })
 }
 
@@ -723,7 +739,7 @@ function InboundLeadsPage() {
             >
               ← Back to list
             </button>
-            <DetailPanel lead={selectedLead} onStatus={handleStatus} onClose={() => setSelectedId(null)} />
+            <DetailPanel lead={selectedLead} onStatus={handleStatus} onClose={() => setSelectedId(null)} onNotesSave={patchNotes} />
           </div>
         )}
       </div>

@@ -115,30 +115,39 @@ export async function POST(req: NextRequest) {
     const gmailMsgId    = sent.id as string
     const gmailThreadId = sent.threadId as string
 
-    // 2. Upsert contact — find first to avoid downgrading pipeline stage
-    const encoded       = encodeURIComponent(email)
-    const findContactRes = await fetch(`${SB_URL}/rest/v1/contacts?email=eq.${encoded}&select=id,engagement_stage&limit=1`, {
-      headers: sbHeaders('return=representation'),
-    })
-    const foundContacts = findContactRes.ok ? await findContactRes.json() : []
-    const foundContact  = Array.isArray(foundContacts) ? foundContacts[0] : null
-
-    const upsertRes = await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
+    // 2. Upsert contact
+    const encoded    = encodeURIComponent(email)
+    const upsertRes  = await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
       method:  'POST',
       headers: sbHeaders('return=representation,resolution=merge-duplicates'),
       body: JSON.stringify({
-        full_name:        name,
+        full_name:       name,
         email,
-        company:          company ?? null,
-        source:           'inbound_lead',
-        stage:            'engaged',
-        engagement_stage: foundContact?.engagement_stage ?? 'engaged',
-        inbound_lead_id:  leadId,
+        company:         company ?? null,
+        source:          'website',
+        inbound_lead_id: leadId,
       }),
     })
-    const upserted  = upsertRes.ok ? await upsertRes.json() : null
+    const upserted   = upsertRes.ok ? await upsertRes.json() : null
     const contactRow = Array.isArray(upserted) ? upserted[0] : upserted
     const contactId  = contactRow?.id ?? null
+
+    // Promote contact to 'engaged' if not already at a higher stage
+    if (contactId) {
+      const stageRes = await fetch(`${SB_URL}/rest/v1/contacts?id=eq.${contactId}&select=engagement_stage&limit=1`, {
+        headers: sbHeaders('return=representation'),
+      })
+      const stageRows = stageRes.ok ? await stageRes.json() : []
+      const currentStage = Array.isArray(stageRows) ? stageRows[0]?.engagement_stage : null
+      const STAGE_ORDER  = ['prospect', 'engaged', 'qualified', 'proposal', 'converted']
+      if (!currentStage || STAGE_ORDER.indexOf(currentStage) < STAGE_ORDER.indexOf('engaged')) {
+        await fetch(`${SB_URL}/rest/v1/contacts?id=eq.${contactId}`, {
+          method:  'PATCH',
+          headers: sbHeaders('return=minimal'),
+          body:    JSON.stringify({ engagement_stage: 'engaged' }),
+        })
+      }
+    }
 
     // 3. Create email thread in Supabase
     let threadId: string | null = null
