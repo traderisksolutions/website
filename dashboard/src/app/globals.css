@@ -109,6 +109,8 @@
     --success-bg:            rgba(9,104,66,0.09);
     --warning:               #8A4200;
     --warning-bg:            rgba(138,66,0,0.09);
+    --warning-border:        rgba(138,66,0,0.22);
+    --success-border:        rgba(9,104,66,0.22);
     --error:                 #C03347;
     --error-bg:              rgba(192,51,71,0.09);
     --neutral-status-bg:     rgba(16,24,40,0.07);

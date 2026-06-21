@@ -347,7 +347,7 @@ function EmailCard({ msg, defaultOpen, onOpen }: { msg: RealMsg; index?: number;
         {hasMore && (
           <button
             onClick={() => setShowFull(v => !v)}
-            style={{ marginTop: 10, fontSize: 11, color: 'var(--text-muted)', background: 'none', border: '1px solid #e5e7eb', borderRadius: 6, cursor: 'pointer', padding: '3px 10px' }}
+            style={{ marginTop: 10, fontSize: 11, color: 'var(--text-muted)', background: 'none', border: '1px solid hsl(var(--border))', borderRadius: 6, cursor: 'pointer', padding: '3px 10px' }}
           >
             {showFull ? '↑ Hide quoted content' : '↓ Show full email'}
           </button>
@@ -567,21 +567,21 @@ function EmailChipInput({ label, chips, onChange }: {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4,
-      padding: '6px 10px', border: '1px solid #e5e7eb', borderRadius: 6,
+      padding: '6px 10px', border: '1px solid hsl(var(--border))', borderRadius: 6,
       background: '#fff', minHeight: 40, cursor: 'text',
     }}>
       <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', flexShrink: 0, width: 28 }}>{label}</span>
       {chips.map(email => (
         <span key={email} style={{
           display: 'inline-flex', alignItems: 'center', gap: 3,
-          fontSize: 11, background: '#eff6ff', color: 'var(--primary-hex)',
-          padding: '2px 6px 2px 7px', borderRadius: 4, border: '1px solid #bfdbfe',
+          fontSize: 11, background: 'var(--primary-light-bg)', color: 'var(--primary-hex)',
+          padding: '2px 6px 2px 7px', borderRadius: 4, border: '1px solid var(--primary-light-border)',
         }}>
           {email}
           <button
             type="button"
             onClick={() => onChange(chips.filter(c => c !== email))}
-            style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', padding: '0 1px', cursor: 'pointer', color: '#60a5fa', fontSize: 13, lineHeight: 1 }}
+            style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', padding: '0 1px', cursor: 'pointer', color: 'var(--primary-hex)', fontSize: 13, lineHeight: 1 }}
           >×</button>
         </span>
       ))}
@@ -594,7 +594,7 @@ function EmailChipInput({ label, chips, onChange }: {
         }}
         onBlur={() => tryAdd(input)}
         placeholder={chips.length === 0 ? 'Type email, press Enter' : ''}
-        style={{ flex: 1, minWidth: 140, fontSize: 12, border: 'none', outline: 'none', padding: '2px 0', background: 'transparent', color: '#111' }}
+        style={{ flex: 1, minWidth: 140, fontSize: 12, border: 'none', outline: 'none', padding: '2px 0', background: 'transparent', color: 'var(--text-primary)' }}
       />
     </div>
   )
@@ -606,7 +606,7 @@ function ComposeRow({ label, children, top }: { label: string; children: React.R
   return (
     <div style={{
       display: 'flex', alignItems: 'flex-start', gap: 0,
-      borderTop: top ? 'none' : '1px solid #f0f2f5', minHeight: 44,
+      borderTop: top ? 'none' : '1px solid hsl(var(--border))', minHeight: 44,
     }}>
       <span style={{
         fontSize: 11, fontWeight: 600, color: 'var(--text-muted)',
@@ -637,7 +637,7 @@ function ComposeChipRow({ label, chips, onChange, top }: {
   return (
     <div style={{
       display: 'flex', alignItems: 'flex-start', gap: 0,
-      borderTop: top ? 'none' : '1px solid #f0f2f5', minHeight: 44,
+      borderTop: top ? 'none' : '1px solid hsl(var(--border))', minHeight: 44,
     }}>
       <span style={{
         fontSize: 11, fontWeight: 600, color: 'var(--text-muted)',
@@ -647,12 +647,12 @@ function ComposeChipRow({ label, chips, onChange, top }: {
         {chips.map(email => (
           <span key={email} style={{
             display: 'inline-flex', alignItems: 'center', gap: 3,
-            fontSize: 11.5, background: '#eff6ff', color: 'var(--primary-hex)',
-            padding: '3px 8px 3px 10px', borderRadius: 20, border: '1px solid #bfdbfe', fontWeight: 500,
+            fontSize: 11.5, background: 'var(--primary-light-bg)', color: 'var(--primary-hex)',
+            padding: '3px 8px 3px 10px', borderRadius: 20, border: '1px solid var(--primary-light-border)', fontWeight: 500,
           }}>
             {email}
             <button type="button" onClick={() => onChange(chips.filter(c => c !== email))}
-              style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', padding: '0 1px', cursor: 'pointer', color: '#93c5fd', fontSize: 15, lineHeight: 1 }}>×</button>
+              style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', padding: '0 1px', cursor: 'pointer', color: 'var(--primary-hex)', fontSize: 15, lineHeight: 1 }}>×</button>
           </span>
         ))}
         <input
@@ -664,7 +664,7 @@ function ComposeChipRow({ label, chips, onChange, top }: {
           }}
           onBlur={() => tryAdd(input)}
           placeholder={chips.length === 0 ? 'Add…' : ''}
-          style={{ minWidth: 80, fontSize: 12, border: 'none', outline: 'none', padding: '3px 0', background: 'transparent', color: '#111' }}
+          style={{ minWidth: 80, fontSize: 12, border: 'none', outline: 'none', padding: '3px 0', background: 'transparent', color: 'var(--text-primary)' }}
         />
       </div>
     </div>
@@ -944,11 +944,11 @@ function AIDraftPanel({
     } finally { setLoading(null) }
   }
 
-  const base: React.CSSProperties = { borderTop: '2px solid #93c5fd', background: '#fff', flexShrink: 0, maxHeight: '50vh', overflowY: 'auto' }
+  const base: React.CSSProperties = { borderTop: '2px solid var(--primary-hex)', background: '#fff', flexShrink: 0, maxHeight: '50vh', overflowY: 'auto' }
 
   if (sent) return (
     <div style={{ ...base, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-      <span style={{ fontSize: 12, color: '#15803d' }}>✓ Reply sent</span>
+      <span style={{ fontSize: 12, color: 'var(--success)' }}>✓ Reply sent</span>
       <button onClick={() => { setSent(false); setDraftHtml(''); setRagHtml(''); setComposeHtml(''); setDraftId(null) }}
         style={{ fontSize: 11, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
         New reply
@@ -965,7 +965,7 @@ function AIDraftPanel({
     const active = activeTab === tab
     return {
       padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-      background: 'none', border: 'none', borderBottom: active ? '2px solid #2563eb' : '2px solid transparent',
+      background: 'none', border: 'none', borderBottom: active ? `2px solid var(--primary-hex)` : '2px solid transparent',
       color: active ? 'var(--primary-hex)' : 'var(--text-muted)', transition: 'color 0.15s', whiteSpace: 'nowrap',
     }
   }
@@ -973,14 +973,14 @@ function AIDraftPanel({
   return (
     <div style={base}>
       {/* ── Tab navigation ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #dbeafe', padding: '0 12px', flexWrap: 'wrap', minHeight: 38 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid hsl(var(--border))', padding: '0 12px', flexWrap: 'wrap', minHeight: 38 }}>
         <div style={{ display: 'flex', flexShrink: 0 }}>
           <button onClick={() => setActiveTab('gdrive')} style={tabBtn('gdrive')}>Draft (GDrive)</button>
           <button onClick={() => setActiveTab('rag')}    style={tabBtn('rag')}>Draft (RAG)</button>
           <button onClick={() => setActiveTab('compose')} style={tabBtn('compose')}>Compose</button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          {error && <span style={{ fontSize: 11, color: '#ef4444' }}>{error}</span>}
+          {error && <span style={{ fontSize: 11, color: 'var(--error)' }}>{error}</span>}
           {activeTab === 'gdrive' && (
             <>
               <Tip text="Reads the full email thread and your knowledge documents to draft a contextual reply. Always review the draft before clicking Approve & Send — you have final say." />
@@ -1003,9 +1003,9 @@ function AIDraftPanel({
 
       {/* ── Replying-to context strip ── */}
       {needsReply && lastMsg && (
-        <div style={{ margin: '4px 12px 0', padding: '5px 10px', background: 'rgba(219,234,254,0.5)', borderRadius: 6, borderLeft: '3px solid #93c5fd' }}>
+        <div style={{ margin: '4px 12px 0', padding: '5px 10px', background: 'var(--primary-light-bg)', borderRadius: 6, borderLeft: '3px solid var(--primary-light-border)' }}>
           <p style={{ margin: 0, fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-            <strong style={{ color: '#3b82f6' }}>Replying to</strong> {lastMsg.from_address} · {timeAgo(lastMsg.sent_at)}
+            <strong style={{ color: 'var(--primary-hex)' }}>Replying to</strong> {lastMsg.from_address} · {timeAgo(lastMsg.sent_at)}
           </p>
         </div>
       )}
@@ -1061,7 +1061,7 @@ function AIDraftPanel({
                 <select
                   value={selectedFromEmail}
                   onChange={e => setSelectedFromEmail(e.target.value)}
-                  style={{ flex: 1, fontSize: 12, padding: '5px 8px', border: `1px solid ${unverified ? '#fbbf24' : '#e5e7eb'}`, borderRadius: 6, background: '#fff', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                  style={{ flex: 1, fontSize: 12, padding: '5px 8px', border: `1px solid ${unverified ? 'var(--warning-border)' : 'hsl(var(--border))'}`, borderRadius: 6, background: '#fff', color: 'var(--text-secondary)', cursor: 'pointer' }}
                 >
                   {senders.map(s => (
                     <option key={s.email} value={s.email}>
@@ -1071,7 +1071,7 @@ function AIDraftPanel({
                 </select>
               </div>
               {unverified && (
-                <p style={{ margin: 0, fontSize: 10.5, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 5, padding: '3px 8px' }}>
+                <p style={{ margin: 0, fontSize: 10.5, color: 'var(--warning)', background: 'var(--warning-bg)', border: '1px solid var(--warning-border)', borderRadius: 5, padding: '3px 8px' }}>
                   ⚠ Alias not verified — set up &ldquo;Send as&rdquo; in Gmail Settings, then mark as Verified in Settings.
                 </p>
               )}
@@ -1084,7 +1084,7 @@ function AIDraftPanel({
             <select
               value={selectedSigId}
               onChange={e => setSelectedSigId(e.target.value)}
-              style={{ flex: 1, fontSize: 12, padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff', color: 'var(--text-secondary)', cursor: 'pointer' }}
+              style={{ flex: 1, fontSize: 12, padding: '5px 8px', border: '1px solid hsl(var(--border))', borderRadius: 6, background: '#fff', color: 'var(--text-secondary)', cursor: 'pointer' }}
             >
               <option value="">— No signature —</option>
               {signatures.map(s => (
@@ -1094,7 +1094,7 @@ function AIDraftPanel({
           </div>
         )}
         {toAddress && (
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '5px 10px', background: '#f0f6ff', borderRadius: 6, border: '1px solid #bfdbfe' }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '5px 10px', background: 'var(--primary-light-bg)', borderRadius: 6, border: '1px solid var(--primary-light-border)' }}>
             Sending to: <strong style={{ color: 'var(--primary-hex)' }}>{toAddress}</strong>
           </div>
         )}
@@ -1177,7 +1177,7 @@ function DraftHistoryPanel({ threadId, onRestore }: { threadId: string | null; o
 
         return (
           <div key={item.id} style={{
-            borderBottom: '1px solid #f0f0f0',
+            borderBottom: '1px solid hsl(var(--border))',
             background: isCurrent ? '#f9fffe' : '#fff',
           }}>
             <div style={{ padding: '10px 12px' }}>
@@ -1187,10 +1187,10 @@ function DraftHistoryPanel({ threadId, onRestore }: { threadId: string | null; o
                   {srcLabel}
                 </span>
                 <span style={{ fontSize: 10, color: statusColor, fontWeight: 600 }}>· {statusLabel}</span>
-                <span style={{ fontSize: 10, color: '#ccc', marginLeft: 'auto' }}>{timeAgo(item.created_at)}</span>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 'auto' }}>{timeAgo(item.created_at)}</span>
               </div>
 
-              <p style={{ margin: '0 0 7px', fontSize: 11, color: '#555', lineHeight: 1.55 }}>
+              <p style={{ margin: '0 0 7px', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
                 {bodyPreview}{item.body.length > 100 ? '…' : ''}
               </p>
 
@@ -1210,7 +1210,7 @@ function DraftHistoryPanel({ threadId, onRestore }: { threadId: string | null; o
               </div>
 
               {expanded && (
-                <div style={{ marginTop: 8, padding: '8px 10px', background: '#f8f9fa', borderRadius: 6, border: '1px solid #e5e7eb', maxHeight: 200, overflowY: 'auto' }}>
+                <div style={{ marginTop: 8, padding: '8px 10px', background: 'hsl(var(--muted))', borderRadius: 6, border: '1px solid hsl(var(--border))', maxHeight: 200, overflowY: 'auto' }}>
                   <pre style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.6, fontFamily: 'inherit' }}>
                     {item.body}
                   </pre>
@@ -1253,14 +1253,14 @@ function ThreadMetaPanel({ msg }: { msg: RealMsg | null }) {
       {msg.subject && (
         <div>
           <p style={lbl}>Subject</p>
-          <p style={{ margin: 0, fontSize: 12.5, color: '#111', fontWeight: 500, lineHeight: 1.5 }}>{msg.subject}</p>
+          <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-primary)', fontWeight: 500, lineHeight: 1.5 }}>{msg.subject}</p>
         </div>
       )}
 
       {/* From */}
       <div>
         <p style={lbl}>From</p>
-        <p style={{ margin: 0, fontSize: 12, color: '#333', wordBreak: 'break-all' }}>{msg.from_address ?? '—'}</p>
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', wordBreak: 'break-all' }}>{msg.from_address ?? '—'}</p>
       </div>
 
       {/* To */}
@@ -1269,7 +1269,7 @@ function ThreadMetaPanel({ msg }: { msg: RealMsg | null }) {
           <p style={lbl}>To</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {msg.to.map(a => (
-              <span key={a} style={{ fontSize: 11.5, color: '#333', wordBreak: 'break-all' }}>{a}</span>
+              <span key={a} style={{ fontSize: 11.5, color: 'var(--text-secondary)', wordBreak: 'break-all' }}>{a}</span>
             ))}
           </div>
         </div>
@@ -1367,18 +1367,18 @@ function ContactPanel({
   }, [menuOpen])
 
   const lbl: React.CSSProperties = { fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', margin: '0 0 4px' }
-  const val: React.CSSProperties = { fontSize: 12, color: '#333', margin: 0, wordBreak: 'break-all' }
+  const val: React.CSSProperties = { fontSize: 12, color: 'var(--text-secondary)', margin: 0, wordBreak: 'break-all' }
 
   return (
-    <div style={{ width: 248, flexShrink: 0, borderLeft: '1px solid #e8e8e8', background: '#fff', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ width: 248, flexShrink: 0, borderLeft: '1px solid hsl(var(--border))', background: '#fff', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
 
       {/* Tab switcher */}
-      <div style={{ display: 'flex', borderBottom: '1px solid #e8e8e8', flexShrink: 0 }}>
+      <div style={{ display: 'flex', borderBottom: '1px solid hsl(var(--border))', flexShrink: 0 }}>
         {(['contact', 'thread', 'drafts'] as const).map(t => (
           <button key={t} onClick={() => setPanelTab(t)} style={{
             flex: 1, padding: '8px 0', fontSize: 10.5, fontWeight: panelTab === t ? 600 : 400,
             color: panelTab === t ? 'var(--primary-hex)' : 'var(--text-muted)', background: 'none', border: 'none',
-            borderBottom: panelTab === t ? '2px solid #1677FF' : '2px solid transparent',
+            borderBottom: panelTab === t ? '2px solid var(--primary-hex)' : '2px solid transparent',
             cursor: 'pointer', letterSpacing: '0.01em',
           }}>
             {t === 'drafts' ? 'History' : t === 'thread' ? 'Reply' : 'Contact'}
@@ -1396,7 +1396,7 @@ function ContactPanel({
         <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', flex: 1 }}>
 
           {/* Context header */}
-          <div style={{ padding: '14px 16px 12px', background: '#fafbfc', borderBottom: '1px solid #e8eaed' }}>
+          <div style={{ padding: '14px 16px 12px', background: 'hsl(var(--muted))', borderBottom: '1px solid hsl(var(--border))' }}>
             <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ fontSize: 14, color: 'var(--primary-hex)' }}>↩</span> Reply
             </p>
@@ -1418,7 +1418,7 @@ function ContactPanel({
                 placeholder="recipient@example.com"
                 style={{
                   width: '100%', fontSize: 13, fontWeight: 500, border: 'none', outline: 'none',
-                  padding: 0, background: 'transparent', color: '#111',
+                  padding: 0, background: 'transparent', color: 'var(--text-primary)',
                 }}
               />
             </ComposeRow>
@@ -1430,7 +1430,7 @@ function ContactPanel({
                 onChange={e => setCustomSubject(e.target.value)}
                 style={{
                   width: '100%', fontSize: 12.5, border: 'none', outline: 'none',
-                  padding: 0, background: 'transparent', color: '#555',
+                  padding: 0, background: 'transparent', color: 'var(--text-secondary)',
                 }}
               />
             </ComposeRow>
@@ -1445,14 +1445,14 @@ function ContactPanel({
 
           {/* Selected message details — always visible, updates when clicking any bubble */}
           {selectedMsg && (
-            <div style={{ margin: '12px 16px 0', borderRadius: 8, border: '1px solid #e8eaed', overflow: 'hidden' }}>
+            <div style={{ margin: '12px 16px 0', borderRadius: 8, border: '1px solid hsl(var(--border))', overflow: 'hidden' }}>
               <div style={{
                 padding: '7px 12px', fontSize: 11, fontWeight: 600, color: 'var(--text-muted)',
-                background: '#fafbfc', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                borderBottom: '1px solid #f0f0f0',
+                background: 'hsl(var(--muted))', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                borderBottom: '1px solid hsl(var(--border))',
               }}>
                 <span>Selected message</span>
-                <span style={{ fontSize: 10, color: '#aaa' }}>{selectedMsg.direction === 'outbound' ? 'Sent' : 'Received'} · {fmtDateTime(selectedMsg.sent_at)}</span>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{selectedMsg.direction === 'outbound' ? 'Sent' : 'Received'} · {fmtDateTime(selectedMsg.sent_at)}</span>
               </div>
               <div style={{ padding: '10px 12px', background: '#fff', display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {selectedMsg.from_address && (
@@ -1487,21 +1487,21 @@ function ContactPanel({
 
       {/* Contact tab */}
       {panelTab === 'contact' && <>
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', background: needsReply ? '#fffbeb' : '#fff' }}>
+      <div style={{ padding: '12px 16px', borderBottom: '1px solid hsl(var(--border))', background: needsReply ? 'var(--warning-bg)' : '#fff' }}>
         {needsReply ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} />
-            <span style={{ fontSize: 11, fontWeight: 600, color: '#b45309' }}>Awaiting your reply</span>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--warning)', flexShrink: 0 }} />
+            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--warning)' }}>Awaiting your reply</span>
           </div>
         ) : messages.length > 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} />
-            <span style={{ fontSize: 11, fontWeight: 600, color: '#15803d' }}>We replied last</span>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--success)', flexShrink: 0 }} />
+            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--success)' }}>We replied last</span>
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#e5e7eb', flexShrink: 0 }} />
-            <span style={{ fontSize: 11, color: '#aaa' }}>No emails yet</span>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'hsl(var(--border))', flexShrink: 0 }} />
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>No emails yet</span>
           </div>
         )}
         {messages.length > 0 && (
@@ -1513,18 +1513,18 @@ function ContactPanel({
         )}
       </div>
 
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0' }}>
+      <div style={{ padding: '12px 16px', borderBottom: '1px solid hsl(var(--border))' }}>
         <p style={lbl}>Lead Status</p>
         <div style={{ position: 'relative' }} ref={menuRef}>
-          <button onClick={() => setMenuOpen(v => !v)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: 8, border: '1px solid #e8e8e8', background: st.bg, color: st.color, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => setMenuOpen(v => !v)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: 8, border: '1px solid hsl(var(--border))', background: st.bg, color: st.color, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
             {st.label} <ChevronDown size={12} strokeWidth={2.5} />
           </button>
           {menuOpen && (
-            <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: '#fff', border: '1px solid #e8e8e8', borderRadius: 10, boxShadow: '0 4px 24px rgba(0,0,0,0.10)', zIndex: 50, padding: '4px 0' }}>
+            <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: '#fff', border: '1px solid hsl(var(--border))', borderRadius: 10, boxShadow: '0 4px 24px rgba(0,0,0,0.10)', zIndex: 50, padding: '4px 0' }}>
               {ALL_STATUSES.map(s => {
                 const sc = STATUS_MAP[s]
                 return (
-                  <button key={s} onClick={() => { onStatus(lead.id, s); setMenuOpen(false) }} style={{ width: '100%', textAlign: 'left', padding: '7px 12px', fontSize: 12, fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: lead.status === s ? sc.color : '#555' }}>
+                  <button key={s} onClick={() => { onStatus(lead.id, s); setMenuOpen(false) }} style={{ width: '100%', textAlign: 'left', padding: '7px 12px', fontSize: 12, fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: lead.status === s ? sc.color : 'var(--text-secondary)' }}>
                     <span style={{ width: 6, height: 6, borderRadius: 3, background: sc.color, flexShrink: 0 }} />
                     {sc.label}
                   </button>
@@ -1535,23 +1535,23 @@ function ContactPanel({
         </div>
       </div>
 
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0' }}>
+      <div style={{ padding: '12px 16px', borderBottom: '1px solid hsl(var(--border))' }}>
         <p style={lbl}>Contact</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {(lead.first_name || lead.last_name) && <div><p style={lbl}>Name</p><p style={val}>{fullName(lead)}</p></div>}
           {lead.email && (
             <div><p style={lbl}>Email</p>
               <button onClick={() => copy(lead.email!, 'email')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ fontSize: 12, color: '#333', wordBreak: 'break-all', textAlign: 'left' }}>{lead.email}</span>
-                {copied === 'email' ? <Check size={10} style={{ color: '#22c55e', flexShrink: 0 }} /> : <Copy size={9} style={{ color: '#ccc', flexShrink: 0 }} />}
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', wordBreak: 'break-all', textAlign: 'left' }}>{lead.email}</span>
+                {copied === 'email' ? <Check size={10} style={{ color: 'var(--success)', flexShrink: 0 }} /> : <Copy size={9} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />}
               </button>
             </div>
           )}
           {lead.phone && (
             <div><p style={lbl}>Phone</p>
               <button onClick={() => copy(lead.phone!, 'phone')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ fontSize: 12, color: '#333' }}>{lead.phone}</span>
-                {copied === 'phone' ? <Check size={10} style={{ color: '#22c55e', flexShrink: 0 }} /> : <Copy size={9} style={{ color: '#ccc', flexShrink: 0 }} />}
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{lead.phone}</span>
+                {copied === 'phone' ? <Check size={10} style={{ color: 'var(--success)', flexShrink: 0 }} /> : <Copy size={9} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />}
               </button>
             </div>
           )}
@@ -1559,7 +1559,7 @@ function ContactPanel({
         </div>
       </div>
 
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0' }}>
+      <div style={{ padding: '12px 16px', borderBottom: '1px solid hsl(var(--border))' }}>
         <p style={lbl}>Lead Info</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {lead.department   && <div><p style={lbl}>Department</p><p style={val}>{lead.department}</p></div>}
@@ -1573,10 +1573,10 @@ function ContactPanel({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
           <p style={lbl}>Internal Notes</p>
           {notesSaved
-            ? <span style={{ fontSize: 10, color: '#15803d' }}>Saved ✓</span>
+            ? <span style={{ fontSize: 10, color: 'var(--success)' }}>Saved ✓</span>
             : notesSaving
-              ? <span style={{ fontSize: 10, color: '#888' }}>Saving…</span>
-              : notesText !== (lead.notes ?? '') && <span style={{ fontSize: 10, color: '#f59e0b' }}>Unsaved</span>
+              ? <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Saving…</span>
+              : notesText !== (lead.notes ?? '') && <span style={{ fontSize: 10, color: 'var(--warning)' }}>Unsaved</span>
           }
         </div>
         <textarea
@@ -1586,7 +1586,7 @@ function ContactPanel({
           onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); saveNotes() } }}
           placeholder="Add notes… (auto-saves on blur, or Ctrl+Enter)"
           rows={5}
-          style={{ width: '100%', boxSizing: 'border-box', fontSize: 12, color: '#333', lineHeight: 1.6, border: '1px solid #e8e8e8', borderRadius: 8, padding: '8px 10px', resize: 'vertical', background: 'hsl(var(--background))', outline: 'none', fontFamily: 'inherit' }}
+          style={{ width: '100%', boxSizing: 'border-box', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, border: '1px solid hsl(var(--border))', borderRadius: 8, padding: '8px 10px', resize: 'vertical', background: 'hsl(var(--background))', outline: 'none', fontFamily: 'inherit' }}
         />
       </div>
       </>}
@@ -1721,7 +1721,7 @@ function ThreadView({
   return (
     <div className="flex-1 flex min-w-0 overflow-hidden">
       <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
-        <div className="shrink-0" style={{ padding: '14px 18px 12px', borderBottom: '1px solid #e8eaed', background: '#fff' }}>
+        <div className="shrink-0" style={{ padding: '14px 18px 12px', borderBottom: '1px solid hsl(var(--border))', background: '#fff' }}>
           {onBack && (
             <button
               className="lg:hidden"
@@ -1740,7 +1740,7 @@ function ThreadView({
                 </span>
                 {needsReply && (
                   <>
-                    <span style={{ fontSize: 10.5, fontWeight: 600, padding: '2px 9px', borderRadius: 20, background: 'rgba(245,158,11,0.10)', color: '#b45309', border: '1px solid rgba(245,158,11,0.20)' }}>⚡ Needs reply</span>
+                    <span style={{ fontSize: 10.5, fontWeight: 600, padding: '2px 9px', borderRadius: 20, background: 'var(--warning-bg)', color: 'var(--warning)', border: '1px solid var(--warning-border)' }}>⚡ Needs reply</span>
                     <Tip text="The last email in this thread was from the contact — they are waiting on your response. Use the reply panel below to draft and send a reply." />
                   </>
                 )}
@@ -1760,11 +1760,11 @@ function ThreadView({
               <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: st.bg, color: st.color }}>{st.label}</span>
               {confirmDelete ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 11, color: '#ef4444' }}>Delete?</span>
-                  <button onClick={handleDelete} disabled={deleting} style={{ fontSize: 11, fontWeight: 600, color: '#fff', background: '#ef4444', border: 'none', borderRadius: 6, padding: '3px 10px', cursor: 'pointer', opacity: deleting ? 0.5 : 1 }}>
+                  <span style={{ fontSize: 11, color: 'var(--error)' }}>Delete?</span>
+                  <button onClick={handleDelete} disabled={deleting} style={{ fontSize: 11, fontWeight: 600, color: '#fff', background: 'var(--error)', border: 'none', borderRadius: 6, padding: '3px 10px', cursor: 'pointer', opacity: deleting ? 0.5 : 1 }}>
                     {deleting ? 'Deleting…' : 'Confirm'}
                   </button>
-                  <button onClick={() => setConfirmDelete(false)} style={{ fontSize: 11, color: '#888', background: 'none', border: 'none', cursor: 'pointer' }}>
+                  <button onClick={() => setConfirmDelete(false)} style={{ fontSize: 11, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
                     Cancel
                   </button>
                 </div>
@@ -1794,16 +1794,16 @@ function ThreadView({
           {/* Email cards */}
           <div className="flex flex-col gap-5 p-5">
           {loading && <div style={{ textAlign: 'center', padding: '48px 0', fontSize: 12, color: 'var(--text-muted)' }}>Loading email thread…</div>}
-          {!loading && error && <div style={{ textAlign: 'center', padding: '32px 0', fontSize: 12, color: '#ef4444' }}>{error}</div>}
+          {!loading && error && <div style={{ textAlign: 'center', padding: '32px 0', fontSize: 12, color: 'var(--error)' }}>{error}</div>}
           {!loading && !error && messages.length === 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '24px 18px' }}>
               <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-muted)' }}>
                 No email thread found for {lead.email ?? 'this contact'}.
               </div>
               {initialMsg && (
-                <div style={{ border: '1px solid #e8e8e8', borderRadius: 10, padding: 14, background: '#fff' }}>
-                  <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 600, color: '#aaa' }}>Original message from lead form</p>
-                  <p style={{ margin: 0, fontSize: 13, color: '#333', whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{initialMsg}</p>
+                <div style={{ border: '1px solid hsl(var(--border))', borderRadius: 10, padding: 14, background: '#fff' }}>
+                  <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>Original message from lead form</p>
+                  <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{initialMsg}</p>
                 </div>
               )}
             </div>
@@ -1830,7 +1830,7 @@ function ThreadView({
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '0 16px', height: 38, cursor: 'pointer', userSelect: 'none',
-              borderTop: '1px solid #e8eaed',
+              borderTop: '1px solid hsl(var(--border))',
               background: showReply ? 'var(--surface-solid)' : 'hsl(var(--background))',
             }}
           >
@@ -1878,11 +1878,11 @@ function LeadListItem({
       onClick={onClick}
       style={{
         width: '100%', textAlign: 'left', padding: '7px 12px',
-        borderBottom: '1px solid #f0f0f0',
-        background: isActive ? '#f0f6ff' : '#fff',
+        borderBottom: '1px solid hsl(var(--border))',
+        background: isActive ? 'var(--primary-light-bg)' : '#fff',
         border: 'none', borderLeft: 'none', cursor: 'pointer', display: 'block',
         borderLeftWidth: 3, borderLeftStyle: 'solid',
-        borderLeftColor: isActive ? 'var(--primary-hex)' : needsReply ? '#f59e0b' : 'transparent',
+        borderLeftColor: isActive ? 'var(--primary-hex)' : needsReply ? 'var(--warning)' : 'transparent',
         transition: 'background 0.1s',
       }}
     >
@@ -1898,7 +1898,7 @@ function LeadListItem({
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 2 }}>
-            <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: '#111', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
+            <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
               {name || (lead.email?.split('@')[0] ?? '—')}
             </p>
             <span style={{ fontSize: 10.5, color: 'var(--text-muted)', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
@@ -1910,10 +1910,10 @@ function LeadListItem({
               {lead.subject ?? lead.topic ?? lead.company ?? lead.email ?? '—'}
             </p>
             {needsReply && (
-              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} />
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--warning)', flexShrink: 0 }} />
             )}
             {lead.campaign_context && (
-              <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 8, background: '#fef3c7', color: '#b45309', flexShrink: 0 }}>C</span>
+              <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 8, background: 'var(--warning-bg)', color: 'var(--warning)', flexShrink: 0 }}>C</span>
             )}
           </div>
         </div>
@@ -2063,16 +2063,16 @@ function EngagementPageInner() {
         <div
           className={`engagement-list-panel${mobilePanelView === 'thread' ? ' mobile-thread' : ''}`}
           style={{
-            width: 320, flexShrink: 0, borderRight: '1px solid #e8eaed', background: '#fff',
+            width: 320, flexShrink: 0, borderRight: '1px solid hsl(var(--border))', background: '#fff',
             display: 'flex', flexDirection: 'column', overflow: 'hidden',
           }}
         >
-          <div style={{ padding: '12px 14px 10px', borderBottom: '1px solid #e8eaed', flexShrink: 0 }}>
+          <div style={{ padding: '12px 14px 10px', borderBottom: '1px solid hsl(var(--border))', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>Engagement Agent</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Engagement Agent</span>
                 {!loading && needsReplyCount > 0 && (
-                  <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, background: 'rgba(245,158,11,0.12)', color: '#b45309' }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, background: 'var(--warning-bg)', color: 'var(--warning)' }}>
                     {needsReplyCount} need reply
                   </span>
                 )}
@@ -2083,16 +2083,16 @@ function EngagementPageInner() {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f4f4f5', borderRadius: 8, padding: '0 10px', height: 34, marginBottom: 8 }}>
-              <Search size={13} style={{ color: '#aaa', flexShrink: 0 }} strokeWidth={2} />
+              <Search size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} strokeWidth={2} />
               <input
                 type="text" placeholder="Search name, email, company, topic…" value={search}
                 aria-label="Search conversations"
                 onChange={e => setSearch(e.target.value)}
-                style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 12, color: '#333', fontFamily: 'inherit' }}
+                style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'inherit' }}
               />
               {search && (
                 <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
-                  <X size={12} style={{ color: '#aaa' }} />
+                  <X size={12} style={{ color: 'var(--text-muted)' }} />
                 </button>
               )}
             </div>
@@ -2100,7 +2100,7 @@ function EngagementPageInner() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <button
                 onClick={() => setGroupByCompany(v => !v)}
-                style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: groupByCompany ? '#3b82f6' : '#555', background: groupByCompany ? 'rgba(59,130,246,0.06)' : '#fff', border: `1px solid ${groupByCompany ? '#93c5fd' : 'var(--border-subtle)'}`, borderRadius: 7, padding: '5px 9px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: groupByCompany ? 'var(--primary-hex)' : 'var(--text-secondary)', background: groupByCompany ? 'var(--primary-light-bg)' : '#fff', border: `1px solid ${groupByCompany ? 'var(--primary-light-border)' : 'hsl(var(--border))'}`, borderRadius: 7, padding: '5px 9px', cursor: 'pointer', whiteSpace: 'nowrap' }}
               >
                 <Building2 size={11} strokeWidth={2} />
                 Group by company
@@ -2108,23 +2108,23 @@ function EngagementPageInner() {
               <div style={{ position: 'relative' }} ref={filterRef}>
                 <button
                   onClick={() => setFilterOpen(v => !v)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: hasFilters ? '#3b82f6' : '#555', background: '#fff', border: `1px solid ${hasFilters ? '#93c5fd' : 'var(--border-subtle)'}`, borderRadius: 7, padding: '5px 9px', cursor: 'pointer' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: hasFilters ? 'var(--primary-hex)' : 'var(--text-secondary)', background: '#fff', border: `1px solid ${hasFilters ? 'var(--primary-light-border)' : 'hsl(var(--border))'}`, borderRadius: 7, padding: '5px 9px', cursor: 'pointer' }}
                 >
                   <SlidersHorizontal size={11} strokeWidth={2} />
                   {SORT_LABELS[sortKey]}
                   <ChevronDown size={10} strokeWidth={2} style={{ color: 'var(--text-muted)' }} />
                 </button>
                 {filterOpen && (
-                  <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, background: '#fff', border: '1px solid #e8e8e8', borderRadius: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.10)', zIndex: 50, padding: '12px', minWidth: 220 }}>
-                    <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 600, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sort</p>
+                  <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, background: '#fff', border: '1px solid hsl(var(--border))', borderRadius: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.10)', zIndex: 50, padding: '12px', minWidth: 220 }}>
+                    <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sort</p>
                     {(Object.entries(SORT_LABELS) as [SortKey, string][]).map(([k, lbl]) => (
-                      <button key={k} onClick={() => { setSortKey(k); setFilterOpen(false) }} style={{ width: '100%', textAlign: 'left', padding: '6px 8px', fontSize: 12, background: sortKey === k ? 'rgba(59,130,246,0.06)' : 'none', border: 'none', borderRadius: 6, cursor: 'pointer', color: sortKey === k ? '#3b82f6' : '#333', fontWeight: sortKey === k ? 600 : 400, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <ArrowUpDown size={10} strokeWidth={2} style={{ color: sortKey === k ? '#3b82f6' : '#ccc' }} />
+                      <button key={k} onClick={() => { setSortKey(k); setFilterOpen(false) }} style={{ width: '100%', textAlign: 'left', padding: '6px 8px', fontSize: 12, background: sortKey === k ? 'var(--primary-light-bg)' : 'none', border: 'none', borderRadius: 6, cursor: 'pointer', color: sortKey === k ? 'var(--primary-hex)' : 'var(--text-secondary)', fontWeight: sortKey === k ? 600 : 400, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <ArrowUpDown size={10} strokeWidth={2} style={{ color: sortKey === k ? 'var(--primary-hex)' : 'hsl(var(--border))' }} />
                         {lbl}
                       </button>
                     ))}
                     {hasFilters && (
-                      <button onClick={() => { clearFilters(); setFilterOpen(false) }} style={{ marginTop: 10, width: '100%', fontSize: 11, color: '#ef4444', background: 'none', border: '1px solid #fecaca', borderRadius: 6, padding: '5px 0', cursor: 'pointer' }}>
+                      <button onClick={() => { clearFilters(); setFilterOpen(false) }} style={{ marginTop: 10, width: '100%', fontSize: 11, color: 'var(--error)', background: 'none', border: '1px solid var(--error-bg)', borderRadius: 6, padding: '5px 0', cursor: 'pointer' }}>
                         Clear filters
                       </button>
                     )}
@@ -2135,7 +2135,7 @@ function EngagementPageInner() {
           </div>
 
           {/* Prospect / Client tabs */}
-          <div style={{ display: 'flex', borderBottom: '1px solid #e8eaed', flexShrink: 0 }}>
+          <div style={{ display: 'flex', borderBottom: '1px solid hsl(var(--border))', flexShrink: 0 }}>
             {([
               { key: 'all',       label: 'All',        count: leads.length },
               { key: 'prospects', label: 'New Prospects', count: prospectsCount },
@@ -2146,23 +2146,23 @@ function EngagementPageInner() {
                 onClick={() => setActiveTab(tab.key)}
                 style={{
                   flex: 1, padding: '8px 4px', fontSize: 11, fontWeight: activeTab === tab.key ? 600 : 400,
-                  color: activeTab === tab.key ? '#3b82f6' : '#888',
-                  background: 'none', border: 'none', borderBottom: activeTab === tab.key ? '2px solid #3b82f6' : '2px solid transparent',
+                  color: activeTab === tab.key ? 'var(--primary-hex)' : 'var(--text-muted)',
+                  background: 'none', border: 'none', borderBottom: activeTab === tab.key ? '2px solid var(--primary-hex)' : '2px solid transparent',
                   cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
                 }}
               >
                 {tab.label}
                 <span style={{
                   fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 10,
-                  background: activeTab === tab.key ? 'rgba(59,130,246,0.10)' : '#f4f4f5',
-                  color: activeTab === tab.key ? '#3b82f6' : '#aaa',
+                  background: activeTab === tab.key ? 'var(--primary-light-bg)' : 'hsl(var(--muted))',
+                  color: activeTab === tab.key ? 'var(--primary-hex)' : 'var(--text-muted)',
                 }}>{tab.count}</span>
               </button>
             ))}
           </div>
 
-          <div style={{ padding: '6px 14px', borderBottom: '1px solid #f0f0f0', flexShrink: 0, background: 'hsl(var(--background))' }}>
-            <span style={{ fontSize: 11, color: '#aaa' }}>
+          <div style={{ padding: '6px 14px', borderBottom: '1px solid hsl(var(--border))', flexShrink: 0, background: 'hsl(var(--background))' }}>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
               {loading ? 'Loading…' : `${visible.length} conversation${visible.length !== 1 ? 's' : ''}${hasFilters ? ' matching' : ''}`}
             </span>
           </div>
@@ -2176,7 +2176,7 @@ function EngagementPageInner() {
                   {hasFilters ? 'No conversations match your search.' : 'No engaged conversations yet.'}
                 </p>
                 {hasFilters && (
-                  <button onClick={clearFilters} style={{ fontSize: 11, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer' }}>Clear filters</button>
+                  <button onClick={clearFilters} style={{ fontSize: 11, color: 'var(--primary-hex)', background: 'none', border: 'none', cursor: 'pointer' }}>Clear filters</button>
                 )}
               </div>
             ) : groupByCompany ? (
@@ -2244,7 +2244,7 @@ function EngagementPageInner() {
             />
           ) : (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', gap: 8 }}>
-              <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: '#888' }}>Select a conversation</p>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: 'var(--text-muted)' }}>Select a conversation</p>
               <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
                 {loading ? 'Loading…' : leads.length === 0 ? 'No engaged leads yet. Change a lead status to Contacted or above.' : 'Choose from the list on the left.'}
               </p>
