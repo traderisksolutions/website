@@ -134,7 +134,7 @@ export default function InboundAutoDraftPage() {
       </AgentSection>
 
       {/* Footer nav */}
-      <div className="pt-5 border-t border-border flex items-center justify-between flex-wrap gap-3">
+      <div className="pt-5 border-t border-[--border-subtle] flex items-center justify-between flex-wrap gap-3">
         <Link href="/overview/agents" className="text-[12px] text-muted-foreground no-underline hover:text-foreground transition-colors">
           ← AI Agents
         </Link>
@@ -162,7 +162,7 @@ function PlatformLink({ href, label, desc }: { href: string; label: string; desc
   return (
     <Link
       href={href}
-      className="flex items-start gap-3 px-3.5 py-2.5 rounded-lg border border-border bg-card no-underline hover:border-muted-foreground/30 transition-colors"
+      className="flex items-start gap-3 px-3.5 py-2.5 rounded-lg bg-card no-underline hover:bg-accent/60 transition-colors"
       style={{ boxShadow: 'var(--card-shadow)' }}
     >
       <div>

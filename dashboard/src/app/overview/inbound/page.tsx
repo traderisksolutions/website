@@ -99,7 +99,7 @@ export default function InboundPage() {
         </p>
       </CollapsibleSection>
 
-      <div className="mt-8 pt-6 border-t border-border">
+      <div className="mt-8 pt-6 border-t border-[--border-subtle]">
         <Link href="/overview" className="text-[12px] text-muted-foreground no-underline hover:text-foreground transition-colors">
           ← Back to Overview
         </Link>

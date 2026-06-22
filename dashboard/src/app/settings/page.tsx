@@ -51,12 +51,12 @@ function GmailSection({ profile, onProfileChange }: { profile: Profile | null; o
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {gmailError && (
-          <div className="text-xs text-destructive bg-destructive/8 border border-destructive/20 rounded-md px-3 py-2">
+          <div className="text-xs text-destructive bg-destructive/[0.08] border-l-[3px] border-destructive/40 rounded-r-sm px-3 py-2">
             {ERROR_MSGS[gmailError] ?? 'Connection failed. Please try again.'}
           </div>
         )}
         {gmailConnected && !gmailError && (
-          <div className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">
+          <div className="text-xs text-emerald-700 bg-emerald-50 border-l-[3px] border-emerald-400/60 rounded-r-sm px-3 py-2">
             Gmail connected successfully — add your signature below.
           </div>
         )}

@@ -54,7 +54,7 @@ function TypeBadge({ type }: { type: 'personal' | 'shared' }) {
       fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, flexShrink: 0,
       background: type === 'personal' ? 'var(--primary-light-bg, rgba(15,61,145,0.08))' : 'hsl(var(--muted))',
       color:      type === 'personal' ? 'var(--primary-hex, #1d4ed8)' : 'var(--text-secondary, #6b7280)',
-      border:     `1px solid ${type === 'personal' ? 'var(--primary-light-border, rgba(15,61,145,0.18))' : 'hsl(var(--border))'}`,
+      border:     `1px solid ${type === 'personal' ? 'var(--primary-light-border, rgba(15,61,145,0.18))' : 'var(--border-subtle)'}`,
     }}>
       {type === 'personal' ? 'You · Gmail' : 'Shared'}
     </span>
@@ -113,7 +113,7 @@ function InlineForm({
   const lbl: React.CSSProperties = { display: 'block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginBottom: 4 }
 
   return (
-    <div style={{ padding: '14px 20px', background: 'hsl(var(--muted) / 0.5)', borderTop: '1px solid hsl(var(--border))' }}>
+    <div style={{ padding: '14px 20px', background: 'hsl(var(--muted) / 0.5)', borderTop: '1px solid var(--border-subtle)' }}>
       <p style={{ margin: '0 0 12px', fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>
         Signature for <strong style={{ color: 'var(--text-secondary)' }}>{sendingEmail}</strong>
       </p>
@@ -349,14 +349,14 @@ export default function SignaturePanel({ profile }: { profile: Profile | null })
   const thStyle: React.CSSProperties = {
     fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',
     color: 'var(--text-muted)', padding: '8px 20px', textAlign: 'left', background: 'hsl(var(--muted) / 0.5)',
-    borderBottom: '1px solid hsl(var(--border))',
+    borderBottom: '1px solid var(--border-subtle)',
   }
 
   return (
-    <div style={{ border: '1px solid hsl(var(--border))', borderRadius: 12, overflow: 'hidden', background: '#fff' }}>
+    <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 12, overflow: 'hidden', background: '#fff' }}>
 
       {/* Header */}
-      <div style={{ padding: '14px 20px', borderBottom: '1px solid hsl(var(--border))', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+      <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #111)' }}>Email Signatures</h2>
           <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted, #9ca3af)' }}>
@@ -364,7 +364,7 @@ export default function SignaturePanel({ profile }: { profile: Profile | null })
           </p>
         </div>
         {isAdmin && (
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', background: 'hsl(var(--muted))', borderRadius: 20, padding: '3px 10px', border: '1px solid hsl(var(--border))' }}>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', background: 'hsl(var(--muted))', borderRadius: 6, padding: '3px 10px', border: '1px solid var(--border-subtle)' }}>
             {sharedCount}/{MAX_SHARED} shared slots
           </span>
         )}
@@ -395,7 +395,7 @@ export default function SignaturePanel({ profile }: { profile: Profile | null })
                 {/* Main row */}
                 <div style={{
                   display: 'grid', gridTemplateColumns: '1fr 1.6fr auto',
-                  borderBottom: `1px solid hsl(var(--border))`,
+                  borderBottom: `1px solid var(--border-subtle)`,
                   background: isExpanded ? 'hsl(var(--primary) / 0.04)' : '#fff',
                   transition: 'background 0.1s',
                 }}>
@@ -406,7 +406,7 @@ export default function SignaturePanel({ profile }: { profile: Profile | null })
                   </div>
 
                   {/* Signature preview */}
-                  <div style={{ padding: '12px 20px', borderLeft: '1px solid hsl(var(--border))', display: 'flex', alignItems: 'center' }}>
+                  <div style={{ padding: '12px 20px', borderLeft: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center' }}>
                     {row.sig
                       ? <SigPreview sig={row.sig} />
                       : <span style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>— No signature —</span>
@@ -414,7 +414,7 @@ export default function SignaturePanel({ profile }: { profile: Profile | null })
                   </div>
 
                   {/* Actions */}
-                  <div style={{ padding: '12px 16px', borderLeft: '1px solid hsl(var(--border))', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
+                  <div style={{ padding: '12px 16px', borderLeft: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
                     {canEditRow && !isExpanded && (
                       <>
                         <Button
@@ -472,7 +472,7 @@ export default function SignaturePanel({ profile }: { profile: Profile | null })
 
                 {/* Inline edit form */}
                 {isExpanded && (
-                  <div style={{ borderBottom: '1px solid hsl(var(--border))' }}>
+                  <div style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                     <InlineForm
                       sendingEmail={row.email}
                       initial={formState}
@@ -492,7 +492,7 @@ export default function SignaturePanel({ profile }: { profile: Profile | null })
 
       {/* Add shared alias — admin only */}
       {isAdmin && (
-        <div style={{ padding: '14px 20px', borderTop: addressRows.length > 0 ? '1px solid hsl(var(--border))' : 'none', background: 'hsl(var(--muted) / 0.3)' }}>
+        <div style={{ padding: '14px 20px', borderTop: addressRows.length > 0 ? '1px solid var(--border-subtle)' : 'none', background: 'hsl(var(--muted) / 0.3)' }}>
           <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)' }}>
             Add Shared Address
           </p>

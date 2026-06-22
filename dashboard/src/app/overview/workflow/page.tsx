@@ -16,7 +16,7 @@ export default function WorkflowPage() {
     <div className="h-full flex flex-col">
 
       {/* ── Header strip ── */}
-      <div className="flex-shrink-0 px-6 py-4 border-b border-border bg-card">
+      <div className="flex-shrink-0 px-6 py-4 border-b border-[--border-subtle] bg-card">
         {/* Breadcrumb */}
         <div className="flex items-center gap-1.5 mb-2 text-[11.5px] text-muted-foreground">
           <Link href="/overview" className="no-underline hover:text-foreground transition-colors">

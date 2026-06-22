@@ -110,7 +110,7 @@ export default function WorkflowCanvas() {
       <div
         className={[
           'flex-shrink-0 overflow-y-auto bg-card',
-          'border-t border-border sm:border-t-0 sm:border-l',
+          'border-t border-[--border-subtle] sm:border-t-0 sm:border-l border-[--border-subtle]',
           // Desktop: fixed 288px column, fills flex row height automatically
           'sm:w-72',
           // Mobile: full width, collapses to 56px when nothing selected
@@ -136,7 +136,7 @@ function DetailPanel({ node, onClose }: { node: WFNode; onClose: () => void }) {
   return (
     <div className="flex flex-col h-full">
       {/* Sticky header */}
-      <div className="flex items-start justify-between gap-2 px-4 py-4 border-b border-border bg-card sticky top-0 z-10 flex-shrink-0">
+      <div className="flex items-start justify-between gap-2 px-4 py-4 border-b border-[--border-subtle] bg-card sticky top-0 z-10 flex-shrink-0">
         <div className="min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/55 mb-1 m-0">
             {d.stage}

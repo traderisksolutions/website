@@ -70,7 +70,7 @@ export function Badge({ label, color }: { label: string; color: string }) {
   }
   const c = map[color] ?? map.blue
   return (
-    <span className="inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full mr-1.5 mb-1"
+    <span className="inline-block text-[11px] font-semibold px-2 py-0.5 rounded-[5px] mr-1.5 mb-1"
       style={{ background: c.bg, color: c.text }}>
       {label}
     </span>

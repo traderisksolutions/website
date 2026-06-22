@@ -21,7 +21,7 @@ export function EmptyState({
       )}
     >
       <div
-        className="flex items-center justify-center rounded-full border-2 border-border bg-muted/30 mb-4 flex-shrink-0"
+        className="flex items-center justify-center rounded-full bg-muted/50 mb-4 flex-shrink-0"
         style={{ width: compact ? 44 : 56, height: compact ? 44 : 56 }}
       >
         <Icon

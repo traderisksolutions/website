@@ -99,9 +99,9 @@ export default function OverviewNav() {
   }
 
   return (
-    <div className="w-[196px] flex-shrink-0 bg-card border-r border-border flex flex-col overflow-y-auto">
+    <div className="w-[196px] flex-shrink-0 bg-card border-r border-[--border-subtle] flex flex-col overflow-y-auto">
       {/* Header */}
-      <div className="px-4 pt-5 pb-3 border-b border-border">
+      <div className="px-4 pt-5 pb-3 border-b border-[--border-subtle]">
         <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-0">
           Overview
         </p>
@@ -114,21 +114,21 @@ export default function OverviewNav() {
       <nav className="p-2 flex-1">
         {NAV.map(n => <NavItem key={n.href} {...n} />)}
 
-        <div className="h-px bg-border my-2" />
+        <div className="h-px bg-[--border-subtle] my-2" />
 
         <p className="text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground/50 px-2.5 mb-1.5 mt-0.5">
           Platform areas
         </p>
         {SECTION_NAV.map(n => <NavItem key={n.href} {...n} />)}
 
-        <div className="h-px bg-border my-2" />
+        <div className="h-px bg-[--border-subtle] my-2" />
 
         <AgentParentItem />
         {AGENT_PAGES.map(n => <AgentSubItem key={n.href} {...n} />)}
       </nav>
 
       {/* Footer */}
-      <div className="px-4 py-3 border-t border-border">
+      <div className="px-4 py-3 border-t border-[--border-subtle]">
         <p className="text-[11px] text-muted-foreground/40 leading-relaxed">
           TRS Internal Dashboard
         </p>

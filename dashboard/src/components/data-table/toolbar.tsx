@@ -15,7 +15,7 @@ export function DataTableToolbar({ children, className }: DataTableToolbarProps)
   return (
     <div
       className={cn(
-        'flex items-center gap-2 px-4 py-2.5 border-b border-border bg-card flex-shrink-0 flex-wrap',
+        'flex items-center gap-2 px-4 py-2.5 border-b border-[--border-subtle] bg-card flex-shrink-0 flex-wrap',
         className,
       )}
     >

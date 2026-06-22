@@ -40,7 +40,7 @@ export default function EvalsExplainerPage() {
 
       {/* Score scale */}
       <Section label="What the scores mean">
-        <div className="flex flex-col gap-0 rounded-xl overflow-hidden border border-border" style={{ boxShadow: 'var(--card-shadow)' }}>
+        <div className="flex flex-col gap-0 rounded-xl overflow-hidden" style={{ boxShadow: 'var(--card-shadow)' }}>
           {[
             { score: '5',  bg: '#dcfce7', fg: '#15803d', label: 'Sent almost as written',   body: 'The draft was accurate and appropriate. You sent it with minimal changes. The AI got it right.' },
             { score: '4',  bg: '#dcfce7', fg: '#15803d', label: 'Small but useful edits',   body: 'The draft was good but you improved it with meaningful tweaks. Still treated as a positive result.' },
@@ -51,7 +51,7 @@ export default function EvalsExplainerPage() {
             <div
               key={s.score}
               className="flex items-start gap-3 px-4 py-3"
-              style={{ borderBottom: i < arr.length - 1 ? '1px solid hsl(var(--border))' : 'none' }}
+              style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}
             >
               <span
                 className="flex-shrink-0 text-[13px] font-bold w-7 h-7 rounded-full flex items-center justify-center mt-0.5"
@@ -163,7 +163,7 @@ export default function EvalsExplainerPage() {
       </Section>
 
       {/* Footer */}
-      <div className="pt-5 border-t border-border flex items-center justify-between flex-wrap gap-3">
+      <div className="pt-5 border-t border-[--border-subtle] flex items-center justify-between flex-wrap gap-3">
         <Link href="/overview/agents/evaluation-agent" className="text-[12px] text-muted-foreground no-underline hover:text-foreground transition-colors">
           ← Evaluation Agent
         </Link>

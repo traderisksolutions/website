@@ -37,7 +37,7 @@ export default function AnalyticsOverviewPage() {
       <div className="flex flex-col gap-4">
         {SECTIONS.map(s => (
           <div key={s.href}
-            className="bg-card border border-border rounded-xl p-5 flex items-start justify-between gap-4"
+            className="bg-card rounded-xl p-5 flex items-start justify-between gap-4"
             style={{ boxShadow: 'var(--card-shadow)' }}>
             <div>
               <p className="text-[13.5px] font-semibold text-foreground mb-1">{s.title}</p>
@@ -45,7 +45,7 @@ export default function AnalyticsOverviewPage() {
             </div>
             <Link
               href={s.href}
-              className="flex-shrink-0 text-[12px] font-medium px-3 py-1.5 rounded-md border border-border bg-background no-underline text-muted-foreground hover:text-foreground hover:border-muted-foreground/40 transition-colors whitespace-nowrap"
+              className="flex-shrink-0 text-[12px] font-medium px-3 py-1.5 rounded-md bg-muted/60 no-underline text-muted-foreground hover:text-foreground hover:bg-muted transition-colors whitespace-nowrap"
             >
               Open →
             </Link>
@@ -53,7 +53,7 @@ export default function AnalyticsOverviewPage() {
         ))}
       </div>
 
-      <div className="mt-8 pt-6 border-t border-border">
+      <div className="mt-8 pt-6 border-t border-[--border-subtle]">
         <Link href="/overview" className="text-[12px] text-muted-foreground no-underline hover:text-foreground transition-colors">
           ← Back to Overview
         </Link>

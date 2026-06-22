@@ -214,7 +214,7 @@ export default function SignalLibraryPage() {
           >
             {s.charAt(0).toUpperCase() + s.slice(1)}
             {s === 'pending' && pendingCount > 0 && (
-              <span className="ml-1.5 bg-amber-500 text-white rounded-full text-[10px] px-1.5 py-px font-bold leading-none">
+              <span className="ml-1.5 bg-amber-500 text-white rounded-[5px] text-[10px] px-1.5 py-px font-bold leading-none">
                 {pendingCount}
               </span>
             )}
@@ -224,7 +224,7 @@ export default function SignalLibraryPage() {
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-2 px-3.5 py-2.5 mb-4 rounded-lg bg-destructive/[0.08] border border-destructive/20 text-[13px] text-destructive">
+        <div className="flex items-center gap-2 px-3.5 py-2.5 mb-4 rounded-lg bg-destructive/[0.08] border-l-[3px] border-destructive/40 text-[13px] text-destructive">
           <AlertCircle size={14} className="flex-shrink-0" strokeWidth={2} />
           <span className="flex-1">{error}</span>
           <button onClick={() => setError(null)} className="bg-transparent border-0 cursor-pointer text-destructive text-base leading-none">×</button>
@@ -233,7 +233,7 @@ export default function SignalLibraryPage() {
 
       {/* Success */}
       {successMsg && (
-        <div className="flex items-center gap-2 px-3.5 py-2.5 mb-4 rounded-lg bg-[rgba(15,138,95,0.08)] border border-[rgba(15,138,95,0.2)] text-[13px] text-emerald-700">
+        <div className="flex items-center gap-2 px-3.5 py-2.5 mb-4 rounded-lg bg-[rgba(15,138,95,0.08)] border-l-[3px] border-[rgba(15,138,95,0.5)] text-[13px] text-emerald-700">
           <CheckCircle size={14} className="flex-shrink-0" strokeWidth={2} />
           <span className="flex-1">{successMsg}</span>
           <button onClick={() => setSuccessMsg(null)} className="bg-transparent border-0 cursor-pointer text-emerald-700 text-base leading-none">×</button>
@@ -242,7 +242,7 @@ export default function SignalLibraryPage() {
 
       {/* Corroboration notice */}
       {corroborated.length > 0 && (
-        <div className="mb-4 px-3.5 py-2.5 rounded-lg bg-violet-50 border border-violet-200 text-[12.5px] text-violet-700">
+        <div className="mb-4 px-3.5 py-2.5 rounded-lg bg-violet-50 border-l-[3px] border-violet-300 text-[12.5px] text-violet-700">
           {corroborated.length} signal{corroborated.length !== 1 ? 's' : ''} have 2+ corroborating sources — strong candidates for campaign use.
         </div>
       )}
@@ -404,7 +404,7 @@ export default function SignalLibraryPage() {
                       {/* Header badges */}
                       <div className="flex items-center gap-2 flex-wrap mb-2">
                         <span
-                          className="text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                          className="text-[11px] font-semibold px-2 py-0.5 rounded-[5px] whitespace-nowrap"
                           style={{ color: sm.color, background: sm.bg }}
                         >
                           {sm.label}
@@ -416,7 +416,7 @@ export default function SignalLibraryPage() {
                           <span className="text-[11px] text-muted-foreground/60">{sig.sector}</span>
                         )}
                         {sig.corroboration_count >= 2 && (
-                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full text-violet-700 bg-violet-50 whitespace-nowrap">
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-[5px] text-violet-700 bg-violet-50 whitespace-nowrap">
                             {sig.corroboration_count} sources
                           </span>
                         )}
