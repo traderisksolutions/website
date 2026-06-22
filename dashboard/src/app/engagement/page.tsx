@@ -1228,7 +1228,7 @@ function DraftHistoryPanel({ threadId, onRestore }: { threadId: string | null; o
               </div>
 
               {expanded && (
-                <div style={{ marginTop: 8, padding: '8px 10px', background: 'hsl(var(--muted))', borderRadius: 6, border: '1px solid hsl(var(--border))', maxHeight: 200, overflowY: 'auto' }}>
+                <div style={{ marginTop: 8, padding: '8px 10px', background: 'hsl(var(--muted))', borderRadius: 6, border: '1px solid var(--border-subtle)', maxHeight: 200, overflowY: 'auto' }}>
                   <pre style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.6, fontFamily: 'inherit' }}>
                     {item.body}
                   </pre>

@@ -155,7 +155,7 @@ export default function AgentsLandingPage() {
       </div>
 
       {/* Workflow cross-link */}
-      <div className="pt-5 border-t border-border flex items-center justify-between">
+      <div className="pt-5 border-t border-[--border-subtle] flex items-center justify-between">
         <Link
           href="/overview"
           className="text-[12px] text-muted-foreground no-underline hover:text-foreground transition-colors"

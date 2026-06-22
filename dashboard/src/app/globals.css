@@ -461,19 +461,19 @@ select:focus-visible {
 .filter-pill {
   display: inline-flex; align-items: center; gap: 5px;
   font-size: 12px; font-weight: 500;
-  padding: 4px 12px; border-radius: 9999px;
-  border: 1px solid hsl(var(--border));
-  background: transparent;
+  padding: 4px 12px; border-radius: 6px;
+  border: none;
+  background: hsl(var(--muted));
   color: hsl(var(--muted-foreground));
   cursor: pointer; white-space: nowrap;
-  transition: border-color 0.12s, background 0.12s, color 0.12s;
+  transition: background 0.12s, color 0.12s;
 }
-.filter-pill:hover { border-color: hsl(var(--muted-foreground)); color: hsl(var(--foreground)); }
-.filter-pill.active { background: hsl(var(--foreground)); color: hsl(var(--background)); border-color: hsl(var(--foreground)); }
+.filter-pill:hover { background: hsl(var(--muted) / 0.8); color: hsl(var(--foreground)); }
+.filter-pill.active { background: hsl(var(--foreground)); color: hsl(var(--background)); }
 .filter-pill-count {
   font-size: 10px; font-weight: 700;
-  padding: 0 5px; border-radius: 9999px;
-  background: rgba(16,24,40,0.08);
+  padding: 0 5px; border-radius: 4px;
+  background: rgba(16,24,40,0.10);
   color: inherit;
 }
 .filter-pill.active .filter-pill-count { background: rgba(255,255,255,0.2); }

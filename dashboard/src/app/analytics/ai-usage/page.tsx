@@ -144,7 +144,7 @@ export default function AIUsagePage() {
           </div>
 
           {/* Metric + range toggles */}
-          <div className="flex flex-wrap items-center justify-end gap-2 mb-5 pt-3 border-t border-border">
+          <div className="flex flex-wrap items-center justify-end gap-2 mb-5 pt-3 border-t border-[--border-subtle]">
             <div className="flex rounded-md overflow-hidden border border-border">
               {(['tokens', 'cost'] as const).map(m => (
                 <button key={m} onClick={() => setMetric(m)}

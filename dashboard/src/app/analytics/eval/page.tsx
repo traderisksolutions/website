@@ -363,7 +363,7 @@ export default function EvalPage() {
           </Tabs>
 
           {/* ── Auto-prompt Improvement ──────────────────────────────────── */}
-          <div className="mt-8 border-t border-border pt-6">
+          <div className="mt-8 border-t border-[--border-subtle] pt-6">
             <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
               <div>
                 <h2 className="text-[15px] font-semibold text-foreground">Auto-Prompt Improvement</h2>

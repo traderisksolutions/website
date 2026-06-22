@@ -709,7 +709,7 @@ function InboundLeadsPage() {
               {/* ── Desktop table (≥640px) ── */}
               <table className="hidden sm:table w-full border-collapse text-[13px] min-w-[760px]">
                 <thead>
-                  <tr className="border-b border-border sticky top-0 z-[1] bg-card">
+                  <tr className="border-b border-[--border-subtle] sticky top-0 z-[1] bg-card">
                     <Th w={110}>Channel <Tip text="Shows where this lead came from — Website = contact form, Email = direct email, WhatsApp = click-to-chat button. Manual means a team member added them." /></Th>
                     <Th w={120}>First Name</Th>
                     <Th w={120}>Last Name</Th>
@@ -871,7 +871,7 @@ function Th({ children, w, right }: { children?: React.ReactNode; w?: number | s
   return (
     <th className={cn(
       'h-9 px-3 align-middle text-[10.5px] font-semibold uppercase tracking-[0.05em] text-muted-foreground whitespace-nowrap',
-      'bg-muted/30 border-b border-border',
+      'bg-muted/30 border-b border-[--border-subtle]',
       right ? 'text-right' : 'text-left',
     )}
       style={{ width: w }}>

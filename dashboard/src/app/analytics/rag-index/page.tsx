@@ -200,7 +200,7 @@ export default function RagIndexPage() {
 
       {/* Error banner */}
       {error && (
-        <div className="flex items-start gap-2.5 p-3.5 bg-destructive/8 border border-destructive/20 rounded-lg mb-4">
+        <div className="flex items-start gap-2.5 p-3.5 bg-destructive/[0.08] border-l-[3px] border-destructive/40 rounded-r-sm mb-4">
           <AlertTriangle size={14} className="text-destructive flex-shrink-0 mt-0.5" strokeWidth={2} />
           <p className="text-[12px] text-destructive leading-relaxed">{error}</p>
         </div>
@@ -213,7 +213,7 @@ export default function RagIndexPage() {
         ref={tablistRef}
         className={cn(
           'flex',
-          TAB_VARIANT === 'line' ? 'border-b border-border gap-0' : 'gap-1 p-1 rounded-lg bg-muted mb-4'
+          TAB_VARIANT === 'line' ? 'border-b border-[--border-subtle] gap-0' : 'gap-1 p-1 rounded-lg bg-muted mb-4'
         )}
       >
         {TABS.map((t, idx) => {
@@ -403,7 +403,7 @@ export default function RagIndexPage() {
 
             {/* File table */}
             <Card>
-              <CardHeader className="py-3 px-5 border-b border-border">
+              <CardHeader className="py-3 px-5 border-b border-[--border-subtle]">
                 <div className="flex items-center justify-between">
                   <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
                     Indexed Files — <span className="font-mono">{t.folder}/</span>

@@ -662,7 +662,7 @@ export default function CampaignDetailPage() {
       )}
 
       {/* ── Tab bar ── */}
-      <div className="flex border-b border-border mb-5 overflow-x-auto">
+      <div className="flex border-b border-[--border-subtle] mb-5 overflow-x-auto">
         {([
           { key: 'sequence',  label: 'Sequence',  icon: <Mail size={13} /> },
           { key: 'leads',     label: 'Leads',     icon: <Users size={13} /> },
@@ -996,7 +996,7 @@ export default function CampaignDetailPage() {
                   <thead>
                     <tr>
                       {['Include', 'Name', 'Email', 'Title / Company', 'Status'].map(h => (
-                        <th key={h} className="h-9 px-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/30 border-b border-border whitespace-nowrap first:pl-4">
+                        <th key={h} className="h-9 px-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/30 border-b border-[--border-subtle] whitespace-nowrap first:pl-4">
                           {h}
                         </th>
                       ))}
@@ -1490,7 +1490,7 @@ export default function CampaignDetailPage() {
                         <thead>
                           <tr>
                             {['Segment', 'Leads', 'Sent', 'Replied', 'Reply rate'].map(h => (
-                              <th key={h} className="h-9 px-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/30 border-b border-border first:pl-4 whitespace-nowrap">
+                              <th key={h} className="h-9 px-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/30 border-b border-[--border-subtle] first:pl-4 whitespace-nowrap">
                                 {h}
                               </th>
                             ))}
