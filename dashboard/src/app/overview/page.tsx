@@ -86,7 +86,7 @@ export default function OverviewPage() {
           {AREAS.map(area => (
             <div
               key={area.title}
-              className="bg-card border border-border rounded-xl p-4 flex flex-col gap-3"
+              className="bg-card rounded-xl p-4 flex flex-col gap-3"
               style={{ boxShadow: 'var(--card-shadow)' }}
             >
               <div>
@@ -100,7 +100,7 @@ export default function OverviewPage() {
                     <Link
                       key={l.href}
                       href={l.href}
-                      className="inline-flex items-center text-[11.5px] font-medium px-2.5 py-1 rounded-md border border-border bg-background text-muted-foreground no-underline hover:text-foreground hover:border-muted-foreground/40 transition-colors"
+                      className="inline-flex items-center text-[11.5px] font-medium px-2.5 py-1 rounded-md bg-muted/50 text-muted-foreground no-underline hover:bg-muted hover:text-foreground transition-colors"
                     >
                       {l.label}
                     </Link>
@@ -127,7 +127,7 @@ export default function OverviewPage() {
         <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground mb-3">
           How it works
         </p>
-        <div className="bg-card border border-border rounded-xl p-5 flex items-start justify-between gap-4"
+        <div className="bg-card rounded-xl p-5 flex items-start justify-between gap-4"
           style={{ boxShadow: 'var(--card-shadow)' }}>
           <div>
             <p className="text-[13.5px] font-semibold text-foreground mb-1">Platform Workflow</p>
@@ -137,7 +137,7 @@ export default function OverviewPage() {
           </div>
           <Link
             href="/overview/workflow"
-            className="flex-shrink-0 inline-flex items-center gap-1.5 text-[12px] font-semibold px-3.5 py-2 rounded-lg border border-border bg-background no-underline text-foreground hover:border-muted-foreground/40 transition-colors whitespace-nowrap"
+            className="flex-shrink-0 inline-flex items-center gap-1.5 text-[12px] font-semibold px-3.5 py-2 rounded-lg bg-muted/50 no-underline text-foreground hover:bg-muted transition-colors whitespace-nowrap"
           >
             View workflow <ArrowRight size={12} strokeWidth={2} />
           </Link>
@@ -149,7 +149,7 @@ export default function OverviewPage() {
         <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground mb-3">
           AI agents and evals
         </p>
-        <div className="bg-card border border-border rounded-xl p-5 flex flex-col gap-4"
+        <div className="bg-card rounded-xl p-5 flex flex-col gap-4"
           style={{ boxShadow: 'var(--card-shadow)' }}>
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -160,13 +160,13 @@ export default function OverviewPage() {
             </div>
             <Link
               href="/overview/agents"
-              className="flex-shrink-0 inline-flex items-center gap-1.5 text-[12px] font-semibold px-3.5 py-2 rounded-lg border border-border bg-background no-underline text-foreground hover:border-muted-foreground/40 transition-colors whitespace-nowrap"
+              className="flex-shrink-0 inline-flex items-center gap-1.5 text-[12px] font-semibold px-3.5 py-2 rounded-lg bg-muted/50 no-underline text-foreground hover:bg-muted transition-colors whitespace-nowrap"
             >
               View agents <ArrowRight size={12} strokeWidth={2} />
             </Link>
           </div>
 
-          <div className="pt-3 border-t border-border">
+          <div className="pt-3 border-t border-[--border-subtle]">
             <p className="text-[12px] font-semibold text-foreground mb-1">How evals work</p>
             <p className="text-[12px] text-muted-foreground leading-relaxed">
               Every time you edit an AI draft before sending, the system compares what the AI wrote to what you actually sent. If they match closely, the draft scores a 5/5. If you rewrote most of it, the AI scores lower and learns from the difference — extracting a specific rule it will apply to the next reply of the same type. High-scoring replies become future examples; low scores become training signal. View results at{' '}

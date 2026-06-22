@@ -152,7 +152,7 @@ export default function ContactsPage() {
 
         {/* Table card */}
         <div className="flex-1 overflow-hidden px-6 pb-6">
-          <div className="h-full flex flex-col rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+          <div className="h-full flex flex-col rounded-xl bg-card overflow-hidden" style={{ boxShadow: 'var(--card-shadow)' }}>
 
             {/* Filter / Search toolbar */}
             <DataTableToolbar>
@@ -242,7 +242,7 @@ export default function ContactsPage() {
                             <tr key={contact.id}
                               onClick={() => setSelected(selected?.id === contact.id ? null : contact)}
                               className={cn(
-                                'cursor-pointer border-b border-border/60 transition-colors',
+                                'cursor-pointer border-b border-[--border-subtle] transition-colors',
                                 selected?.id === contact.id
                                   ? 'row-selected'
                                   : 'hover:bg-muted/40',
@@ -287,7 +287,7 @@ export default function ContactsPage() {
 
             {/* Table footer */}
             {!loading && groups.length > 0 && (
-              <div className="px-4 py-2.5 border-t border-border bg-muted/20 flex-shrink-0">
+              <div className="px-4 py-2.5 border-t border-[--border-subtle] bg-muted/20 flex-shrink-0">
                 <span className="text-[11px] text-muted-foreground/60">
                   {filtered.length} contact{filtered.length !== 1 ? 's' : ''}
                   {filter !== 'all' && ` · filtered by ${filter}`}
@@ -300,10 +300,10 @@ export default function ContactsPage() {
 
       {/* ── Detail panel ── */}
       {selected && (
-        <div className="w-[300px] flex-shrink-0 border-l border-border bg-card overflow-y-auto flex flex-col">
+        <div className="w-[300px] flex-shrink-0 border-l border-[--border-subtle] bg-card overflow-y-auto flex flex-col">
 
           {/* Panel header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[--border-subtle] flex-shrink-0">
             <span className="text-[10px] font-bold uppercase tracking-[0.07em] text-muted-foreground/55">
               Contact Details
             </span>
@@ -325,7 +325,7 @@ export default function ContactsPage() {
                 <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
                   <p className="text-[13.5px] font-semibold text-foreground m-0 leading-tight">{fullName(selected)}</p>
                   {selected.isCC && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-muted/80 text-muted-foreground/50 uppercase tracking-widest leading-none">CC</span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-[4px] bg-muted/80 text-muted-foreground/50 uppercase tracking-widest leading-none">CC</span>
                   )}
                 </div>
                 {resolvedCompany(selected) && (

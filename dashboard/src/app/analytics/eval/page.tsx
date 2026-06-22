@@ -26,7 +26,7 @@ const SCORE_COLOR = (s: number) => s >= 4 ? '#16a34a' : s === 3 ? '#d97706' : '#
 
 function ScoreBadge({ score }: { score: number }) {
   return (
-    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap"
+    <span className="text-[11px] font-bold px-2 py-0.5 rounded-[5px] whitespace-nowrap"
       style={{ background: SCORE_COLOR(score) + '18', color: SCORE_COLOR(score) }}
     >
       {'★'.repeat(score)}{'☆'.repeat(5 - score)} {score}/5

@@ -84,8 +84,8 @@ const INBOUND_EXAMPLES: NamingExample[] = [
 function LegendRow({ label, color, description }: { label: string; color: string; description: string }) {
   return (
     <div className="flex gap-2.5 items-start">
-      <span className="flex-shrink-0 mt-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap"
-        style={{ background: `${color}18`, color, border: `1px solid ${color}30` }}>
+      <span className="flex-shrink-0 mt-0.5 text-[10px] font-bold px-2 py-0.5 rounded-[5px] whitespace-nowrap"
+        style={{ background: `${color}18`, color }}>
         {label}
       </span>
       <p className="text-[12px] text-muted-foreground leading-relaxed">{description}</p>
@@ -257,7 +257,7 @@ export default function RagIndexPage() {
               {t.label}
               {!loading && (
                 <span
-                  className="text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-0.5 transition-colors"
+                  className="text-[10px] font-bold px-1.5 py-0.5 rounded-[5px] ml-0.5 transition-colors"
                   style={{
                     background: isActive ? `${t.color}15` : 'transparent',
                     color:      isActive ? t.color         : 'var(--muted-foreground)',

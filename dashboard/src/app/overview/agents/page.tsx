@@ -103,7 +103,7 @@ export default function AgentsLandingPage() {
               className="no-underline group"
             >
               <div
-                className="bg-card border border-border rounded-xl p-4 flex items-start justify-between gap-3 transition-shadow hover:shadow-md"
+                className="bg-card rounded-xl p-4 flex items-start justify-between gap-3 transition-shadow hover:shadow-[var(--shadow-panel)]"
                 style={{ boxShadow: 'var(--card-shadow)' }}
               >
                 <div className="flex gap-3 items-start">
@@ -136,7 +136,7 @@ export default function AgentsLandingPage() {
         </p>
         <Link href="/overview/agents/evals" className="no-underline group">
           <div
-            className="bg-card border border-border rounded-xl p-4 flex items-start justify-between gap-3 transition-shadow hover:shadow-md"
+            className="bg-card rounded-xl p-4 flex items-start justify-between gap-3 transition-shadow hover:shadow-[var(--shadow-panel)]"
             style={{ boxShadow: 'var(--card-shadow)' }}
           >
             <div>

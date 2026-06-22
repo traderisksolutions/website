@@ -615,7 +615,7 @@ export default function CampaignDetailPage() {
 
       {/* ── News hook ── */}
       {campaign.news_headline && (
-        <div className="flex items-start gap-2.5 mt-1 mb-3 px-3.5 py-2.5 rounded-lg bg-emerald-50 border border-emerald-200">
+        <div className="flex items-start gap-2.5 mt-1 mb-3 px-3.5 py-2.5 rounded-lg bg-emerald-50" style={{ borderLeft: '3px solid rgba(15,138,95,0.45)' }}>
           <Newspaper size={13} className="text-emerald-700 flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-[11.5px] font-semibold text-emerald-700 mb-0.5 flex items-center gap-1">
@@ -631,14 +631,14 @@ export default function CampaignDetailPage() {
 
       {/* ── Brief required warning ── */}
       {needsBrief && tab !== 'brief' && (
-        <div className="flex items-center gap-2.5 mb-3 px-3.5 py-2.5 rounded-lg bg-amber-50 border border-amber-200">
+        <div className="flex items-center gap-2.5 mb-3 px-3.5 py-2.5 rounded-lg bg-amber-50" style={{ borderLeft: '3px solid rgba(194,122,7,0.50)' }}>
           <AlertCircle size={13} className="text-amber-700 flex-shrink-0" />
           <p className="text-[12px] text-amber-800 flex-1 m-0">
             Brief approval required before you can generate AI drafts.
           </p>
           <button
             onClick={() => setTab('brief')}
-            className="text-[12px] font-medium text-amber-800 border border-amber-300 rounded-md px-2.5 py-1 bg-transparent cursor-pointer hover:bg-amber-100 transition-colors whitespace-nowrap"
+            className="text-[12px] font-medium text-amber-800 rounded-md px-2.5 py-1 bg-amber-100/60 cursor-pointer hover:bg-amber-100 transition-colors whitespace-nowrap"
           >
             Go to Brief →
           </button>
@@ -924,7 +924,7 @@ export default function CampaignDetailPage() {
               {segments.length > 0 && (
                 <div className="flex gap-1.5 mb-2.5 flex-wrap">
                   {segments.map(seg => (
-                    <div key={seg.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted border border-border">
+                    <div key={seg.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-muted/70">
                       <span className="text-[11px] text-foreground">{seg.name}</span>
                       <button
                         onClick={() => deleteSegment(seg.id)}

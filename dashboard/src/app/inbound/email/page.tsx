@@ -77,27 +77,27 @@ function fmtDate(iso: string) {
 function ChannelBadge({ source }: { source: string }) {
   if (WA_SOURCES.has(source)) {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 whitespace-nowrap">
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-[5px] bg-emerald-500/10 text-emerald-700 whitespace-nowrap">
         <MessageCircle size={10} />WhatsApp
       </span>
     )
   }
   if (source === 'website_form') {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-700 whitespace-nowrap">
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-[5px] bg-blue-500/10 text-blue-700 whitespace-nowrap">
         <Globe size={10} />Website
       </span>
     )
   }
   if (source === 'manual') {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground whitespace-nowrap">
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-[5px] bg-muted text-muted-foreground whitespace-nowrap">
         <Pencil size={10} />Manual
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-700 whitespace-nowrap">
+    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-[5px] bg-blue-500/10 text-blue-700 whitespace-nowrap">
       <Mail size={10} />Email
     </span>
   )
@@ -121,13 +121,13 @@ function StatusDropdown({ lead, onChange }: { lead: Lead; onChange: (id: string,
     <div className="relative" ref={ref}>
       <button
         onClick={e => { e.stopPropagation(); setOpen(v => !v) }}
-        className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border-0 cursor-pointer whitespace-nowrap"
+        className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-[6px] border-0 cursor-pointer whitespace-nowrap"
         style={{ background: st.bg, color: st.color }}
       >
         {st.label} <ChevronDown size={10} strokeWidth={2.5} />
       </button>
       {open && (
-        <div className="absolute top-[calc(100%+4px)] left-0 bg-card border border-border rounded-[10px] shadow-lg z-[100] py-1 min-w-[140px]">
+        <div className="absolute top-[calc(100%+4px)] left-0 bg-card rounded-[10px] z-[100] py-1 min-w-[140px]" style={{ boxShadow: 'var(--shadow-panel)', border: '1px solid var(--border-subtle)' }}>
           {ALL_STATUSES.map(s => {
             const sc = STATUS_MAP[s]
             return (
@@ -245,7 +245,7 @@ function DetailPanel({ lead, onStatus, onClose, onNotesSave }: { lead: Lead; onS
       {msg && (
         <div className="detail-section">
           <p className="detail-section-label">Original Message</p>
-          <p className="text-[12px] text-foreground/80 whitespace-pre-wrap leading-[1.65] bg-muted/40 border border-border rounded-lg px-3 py-2.5 m-0">
+          <p className="text-[12px] text-foreground/80 whitespace-pre-wrap leading-[1.65] bg-muted/40 rounded-lg px-3 py-2.5 m-0">
             {msg}
           </p>
         </div>
@@ -693,7 +693,7 @@ function InboundLeadsPage() {
 
         {/* Table / card list — hidden on mobile when detail panel is open */}
         <div className={cn(
-          'flex-1 overflow-y-auto bg-card border border-border rounded-lg shadow-sm',
+          'flex-1 overflow-y-auto bg-card rounded-lg',
           selectedId ? 'hidden sm:flex sm:flex-col overflow-x-auto' : 'overflow-x-auto'
         )}>
           {loading ? (
@@ -840,7 +840,7 @@ function InboundLeadsPage() {
 
         {/* Detail panel — full-width on mobile, w-80 sidebar on desktop */}
         {selectedLead && (
-          <div className="w-full sm:w-80 sm:flex-shrink-0 bg-card border border-border rounded-lg shadow-sm overflow-y-auto">
+          <div className="w-full sm:w-80 sm:flex-shrink-0 bg-card rounded-lg overflow-y-auto border border-[--border-subtle]">
             <button
               onClick={() => setSelectedId(null)}
               className="sm:hidden flex items-center gap-1.5 px-4 pt-3 pb-1 text-[12px] text-muted-foreground bg-transparent border-0 cursor-pointer"

@@ -129,12 +129,11 @@ export default function AIUsagePage() {
               return (
                 <button key={f.key} title={f.desc} onClick={() => toggleFeature(f.key)}
                   className={cn(
-                    'text-[11px] font-semibold px-3 py-1 rounded-full border transition-all duration-150',
+                    'text-[11px] font-semibold px-3 py-1 rounded-[6px] transition-all duration-150',
                     active ? 'opacity-100' : 'opacity-50'
                   )}
                   style={{
-                    border: `1px solid ${active ? f.color : 'hsl(var(--border))'}`,
-                    background: active ? `${f.color}18` : 'transparent',
+                    background: active ? `${f.color}18` : 'hsl(var(--muted))',
                     color: active ? f.color : 'hsl(var(--muted-foreground))',
                   }}
                 >

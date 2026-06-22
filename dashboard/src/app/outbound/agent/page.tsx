@@ -72,7 +72,7 @@ function TBadge({ label, color, bg }: { label: string; color: string; bg: string
 
 function Th({ children, w }: { children?: React.ReactNode; w?: number }) {
   return (
-    <th className="h-9 px-3 text-left align-middle text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/30 whitespace-nowrap border-b border-border" style={{ width: w }}>
+    <th className="h-9 px-3 text-left align-middle text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/30 whitespace-nowrap" style={{ width: w }}>
       {children}
     </th>
   )
@@ -104,8 +104,8 @@ function ChipSelect({ options, selected, onChange, label }: {
           return (
             <button key={o.value} type="button" onClick={() => toggle(o.value)}
               className={cn(
-                'px-3 py-1 rounded-full text-[12px] font-medium border cursor-pointer transition-all',
-                active ? 'bg-foreground text-background border-foreground' : 'bg-muted/50 text-muted-foreground border-border hover:border-muted-foreground'
+                'px-3 py-1 rounded-[6px] text-[12px] font-medium cursor-pointer transition-all',
+                active ? 'bg-foreground text-background' : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
               )}
             >
               {o.label}
@@ -583,7 +583,7 @@ export default function OutboundAgentPage() {
               </table>
 
               {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-3.5 pt-3 border-t border-border px-4 pb-3">
+                <div className="flex items-center justify-between mt-3.5 pt-3 border-t border-[--border-subtle] px-4 pb-3">
                   <span className="text-[12px] text-muted-foreground">
                     {(peoplePage - 1) * PEOPLE_PAGE_SIZE + 1}–{Math.min(peoplePage * PEOPLE_PAGE_SIZE, people.length)} of {people.length}
                   </span>

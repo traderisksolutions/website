@@ -98,7 +98,7 @@ export default function HomePage() {
           <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-muted-foreground mb-2.5">
             Where to go next
           </p>
-          <div className="bg-card border border-border rounded-xl overflow-hidden"
+          <div className="bg-card rounded-xl overflow-hidden"
             style={{ boxShadow: 'var(--card-shadow)' }}>
             <ActionRow
               icon={Inbox}
@@ -143,7 +143,7 @@ export default function HomePage() {
         </div>
 
         {/* ── Orientation strip ── */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-5 border-t border-border">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-5 border-t border-[--border-subtle]">
           <p className="text-[11.5px] text-muted-foreground">
             TRS AI Platform — end-to-end sales automation from inbound capture to pipeline conversion.
           </p>
@@ -174,7 +174,8 @@ function QuickLink({
   return (
     <Link
       href={href}
-      className="group flex items-start gap-3 px-3.5 py-3 rounded-lg border border-border bg-card no-underline hover:border-muted-foreground/30 hover:bg-accent/40 transition-all"
+      className="group flex items-start gap-3 px-3.5 py-3 rounded-lg bg-card no-underline hover:bg-accent/50 transition-all"
+      style={{ boxShadow: 'var(--card-shadow)' }}
     >
       <span
         className="flex-shrink-0 w-7 h-7 rounded-md flex items-center justify-center mt-px"
@@ -201,7 +202,7 @@ function ActionRow({
       href={href}
       className={cn(
         'flex items-center gap-3 px-4 py-3 no-underline hover:bg-accent/50 transition-colors group',
-        divider && 'border-t border-border',
+        divider && 'border-t border-[--border-subtle]',
       )}
     >
       <Icon size={14} strokeWidth={1.8} className="flex-shrink-0 text-muted-foreground" />
@@ -212,7 +213,7 @@ function ActionRow({
         <span className="skeleton" style={{ width: 24, height: 18, borderRadius: 9999, display: 'inline-block' }} />
       ) : count > 0 ? (
         <span
-          className="text-[11px] font-bold px-2 py-px rounded-full min-w-[22px] text-center"
+          className="text-[11px] font-bold px-2 py-px rounded-[5px] min-w-[22px] text-center"
           style={urgent
             ? { background: 'rgba(15,61,145,0.08)', color: '#0F3D91' }
             : { background: 'hsl(var(--muted))',    color: 'hsl(var(--muted-foreground))' }

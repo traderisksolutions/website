@@ -118,7 +118,7 @@ export default function CampaignsPage() {
             const replyRate = c.sent_count > 0 ? Math.round((c.reply_count / c.sent_count) * 100) : 0
             return (
               <Link key={c.id} href={`/outbound/campaigns/${c.id}`} className="no-underline block rounded-md">
-                <Card className="hover:border-border/80 transition-colors">
+                <Card className="transition-shadow hover:shadow-[var(--shadow-panel)]">
                   <CardContent className="p-4 flex items-center gap-4">
                     <div className="w-9 h-9 rounded-[9px] bg-muted flex items-center justify-center flex-shrink-0">
                       <Megaphone size={16} className="text-muted-foreground" />

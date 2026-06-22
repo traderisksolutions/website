@@ -377,7 +377,7 @@ export default function OutboundLeadsPage() {
                         </TableRow>
 
                         {expanded && (
-                          <tr className="bg-muted/20 border-b border-border">
+                          <tr className="bg-muted/20 border-b border-[--border-subtle]">
                             <td colSpan={10} className="px-3.5 pb-4 pt-3 pl-14">
                               <div className="flex gap-8 flex-wrap">
                                 {(lead.headline || lead.company_tagline || lead.current_industry) && (
@@ -522,7 +522,7 @@ export default function OutboundLeadsPage() {
 
                     {/* Expanded notes + campaign */}
                     {expanded && (
-                      <div className="mt-3 pt-3 border-t border-border">
+                      <div className="mt-3 pt-3 border-t border-[--border-subtle]">
                         {(lead.headline || lead.current_industry || lead.employee_count) && (
                           <div className="mb-3">
                             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Details</p>
@@ -539,7 +539,7 @@ export default function OutboundLeadsPage() {
                           className="mt-1.5 px-3.5 py-1.5 text-[12px] font-medium text-foreground bg-background border border-border rounded-md cursor-pointer disabled:opacity-50">
                           {saving === lead.id ? 'Saving…' : 'Save Notes'}
                         </button>
-                        <div className="mt-3 pt-3 border-t border-border">
+                        <div className="mt-3 pt-3 border-t border-[--border-subtle]">
                           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Add to Campaign</p>
                           {addSuccess[lead.id] ? (
                             <p className="text-[12px] text-emerald-600 font-medium">{addSuccess[lead.id]}</p>
