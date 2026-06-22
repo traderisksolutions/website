@@ -489,15 +489,31 @@ function InlineReplyRow({ lead, onStatus, onCollapse }: {
                     </select>
                   </div>
                 )}
-                {selectedSig && (
+                {signatures.length > 0 && (
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] w-[46px] flex-shrink-0" style={{ color: 'var(--text-muted)' }}>Sig</span>
-                    <span className="text-[11px] rounded-md px-2 py-1 overflow-hidden text-ellipsis whitespace-nowrap max-w-[220px]"
-                      style={{ background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))', color: 'var(--text-secondary)' }}>
-                      {selectedSig.name}{selectedSig.title ? ` · ${selectedSig.title}` : ''}
-                    </span>
-                    <button onClick={() => setSelectedSigId('')} title="Remove signature"
-                      style={{ fontSize: 10, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>✕</button>
+                    {selectedSig ? (
+                      <>
+                        <span className="text-[11px] rounded-md px-2 py-1 overflow-hidden text-ellipsis whitespace-nowrap max-w-[220px]"
+                          style={{ background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))', color: 'var(--text-secondary)' }}>
+                          {selectedSig.name}{selectedSig.title ? ` · ${selectedSig.title}` : ''}
+                        </span>
+                        <button onClick={() => setSelectedSigId('')} title="Remove signature"
+                          style={{ fontSize: 10, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>✕</button>
+                      </>
+                    ) : (
+                      <select
+                        value={selectedSigId}
+                        onChange={e => setSelectedSigId(e.target.value)}
+                        className="flex-1 text-[12px] rounded-md cursor-pointer"
+                        style={{ padding: '4px 8px', border: '1px solid hsl(var(--border))', background: '#fff', color: 'var(--text-secondary)' }}
+                      >
+                        <option value="">— No signature —</option>
+                        {signatures.map(s => (
+                          <option key={s.id} value={s.id}>{s.name}{s.title ? ` · ${s.title}` : ''}</option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                 )}
               </div>

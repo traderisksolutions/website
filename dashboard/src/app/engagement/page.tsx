@@ -2184,7 +2184,7 @@ function EngagementPageInner() {
                   </span>
                 )}
               </div>
-              <button onClick={() => load(true)} aria-label="Refresh" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
+              <button onClick={() => { load(true); refreshSelectedThread() }} aria-label="Refresh" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
                 <RefreshCw size={13} strokeWidth={2} className={cn(refreshing && 'animate-spin')} />
               </button>
             </div>
