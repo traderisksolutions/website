@@ -41,12 +41,12 @@ const TOKENS = {
 }
 
 // ── Tab definitions ────────────────────────────────────────────────────────
-type TabDef = { id: string; label: string; icon: React.ElementType; color: string; folder: string; purpose: string }
+type TabDef = { id: string; label: string; icon: React.ElementType; color: string; folder: string; purpose: string; fileFormat: string }
 
 const TABS: TabDef[] = [
-  { id: 'outbound',   label: 'Outbound AI',   icon: Megaphone, color: '#2563eb', folder: 'ai-outbound',         purpose: 'Cold campaign emails — prospects via Instantly' },
-  { id: 'engagement', label: 'Engagement AI',  icon: Bot,       color: '#10b981', folder: 'engagement_ai_agent', purpose: 'Inbound lead reply drafting — Engagement Agent' },
-  { id: 'inbound',    label: 'Inbound AI',     icon: Inbox,     color: '#7c3aed', folder: 'inbound_ai_agent',   purpose: 'Auto-draft replies for new inbound leads — Inbound Agent' },
+  { id: 'outbound',   label: 'Outbound AI',   icon: Megaphone, color: '#2563eb', folder: 'ai-outbound',         purpose: 'Cold campaign emails — prospects via Instantly',                     fileFormat: '[topic]-[type]-[mmm-yyyy].pdf' },
+  { id: 'engagement', label: 'Engagement AI',  icon: Bot,       color: '#10b981', folder: 'engagement_ai_agent', purpose: 'Inbound lead reply drafting — Engagement Agent',                    fileFormat: '[topic]-[type]-[mmm-yyyy].pdf' },
+  { id: 'inbound',    label: 'Inbound AI',     icon: Inbox,     color: '#7c3aed', folder: 'inbound_ai_agent',   purpose: 'Auto-draft replies for new inbound leads — Inbound Agent',          fileFormat: 'faq-[product]-[mmm-yyyy].txt' },
 ]
 
 // ── Naming examples ────────────────────────────────────────────────────────
@@ -72,12 +72,12 @@ const ENGAGEMENT_EXAMPLES: NamingExample[] = [
 ]
 
 const INBOUND_EXAMPLES: NamingExample[] = [
-  { filename: 'general-faq-jun-2026.pdf',           description: 'Answers to common coverage questions from new leads' },
-  { filename: 'product-overview-jun-2026.pdf',      description: 'What TRS offers — product lines and key features' },
-  { filename: 'claims-process-jun-2026.pdf',        description: 'Step-by-step claims procedure for new clients' },
-  { filename: 'company-credentials-jan-2026.pdf',   description: 'TRS background, licences, and track record' },
-  { filename: 'pricing-guide-jun-2026.pdf',         description: 'Indicative premiums across product lines' },
-  { filename: 'objection-handling-may-2026.pdf',    description: 'How to respond to pricing or coverage pushback' },
+  { filename: 'faq-marine-cargo-jun-2026.txt',        description: 'Marine cargo FAQs for new leads (use FAQ builder)' },
+  { filename: 'faq-group-medical-jun-2026.txt',       description: 'Group medical common questions' },
+  { filename: 'product-overview-jun-2026.txt',        description: 'All TRS products at a glance' },
+  { filename: 'process-claims-steps-jun-2026.txt',    description: 'Step-by-step claims guide' },
+  { filename: 'objections-pricing-jun-2026.txt',      description: 'Handling pricing or coverage pushback' },
+  { filename: 'company-credentials-jun-2026.txt',     description: 'TRS background, licences, track record' },
 ]
 
 // ── Sub-components ─────────────────────────────────────────────────────────
@@ -93,8 +93,8 @@ function LegendRow({ label, color, description }: { label: string; color: string
   )
 }
 
-function NamingGuide({ folder, color, icon: Icon, examples }: {
-  folder: string; color: string; icon: React.ElementType; examples: NamingExample[]
+function NamingGuide({ folder, color, icon: Icon, examples, fileFormat }: {
+  folder: string; color: string; icon: React.ElementType; examples: NamingExample[]; fileFormat: string
 }) {
   return (
     <div className="mb-4 rounded-lg border p-4" style={{ borderColor: `${color}20`, background: `${color}06` }}>
@@ -106,7 +106,7 @@ function NamingGuide({ folder, color, icon: Icon, examples }: {
         <div>
           <p className="text-[12px] font-semibold text-foreground font-mono">{folder}/</p>
           <p className="text-[11px] text-muted-foreground">
-            Format: <code className="font-mono text-[11px]">[topic]-[type]-[mmm-yyyy].pdf</code>
+            Format: <code className="font-mono text-[11px]">{fileFormat}</code>
           </p>
         </div>
       </div>
@@ -397,6 +397,7 @@ export default function RagIndexPage() {
               folder={t.folder}
               color={t.color}
               icon={t.icon}
+              fileFormat={t.fileFormat}
               examples={t.id === 'outbound' ? OUTBOUND_EXAMPLES : t.id === 'inbound' ? INBOUND_EXAMPLES : ENGAGEMENT_EXAMPLES}
             />
 

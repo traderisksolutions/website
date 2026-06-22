@@ -1,0 +1,110 @@
+TRS AI-INBOUND FOLDER — FILE NAMING CONVENTION
+================================================
+Drive Folder:     ai-inbound (ID: 1-dkx_ilyPQ_ABsR7ZRhPv_AH9-PHSoSw)
+Service Account:  ai-inbound@trs-ai-project.iam.gserviceaccount.com
+Indexed as:       inbound_ai_agent (used by auto-draft AI for new leads)
+
+PURPOSE
+-------
+Files in this folder power the AI that auto-drafts replies to new inbound
+enquiries. Keep files focused, factual, and free of binding commitments.
+The AI reads these files — clear, plain English works best.
+
+
+FORMAT
+------
+[category]-[product-or-topic]-[mmm-yyyy].txt
+
+Rules:
+  - Lowercase letters, hyphens and numbers only — no spaces, no underscores
+  - Always end with the month-year the file was last updated (e.g. jun-2026)
+  - Max 60 characters total
+  - Use .txt format (plain text, UTF-8)
+  - One topic per file — do not combine unrelated products in one file
+
+
+CATEGORIES
+----------
+faq-          Frequently asked questions about a product or topic
+product-      Product overview: what it covers, who it's for, key features
+process-      Step-by-step procedures: how to get a quote, claims steps
+pricing-      Indicative premiums and rating factors (never binding quotes)
+objections-   How to respond to common concerns or pushback
+support-      Renewals, endorsements, post-sale service information
+company-      TRS background, credentials, licences, team, track record
+
+
+PRODUCT TAGS
+------------
+Use these tags in the topic part of the filename:
+
+  marine-cargo           Marine Cargo Insurance
+  commercial-motor       Commercial Motor / Fleet
+  business-property      Business Property Insurance
+  equipment-breakdown    Equipment Breakdown
+  general-liability      General Liability / Employers Liability
+  professional-indemnity Professional Indemnity (PI)
+  directors-officers     Directors & Officers (D&O)
+  cyber                  Cyber Insurance
+  group-medical          Group Medical / Employee Benefits
+  wica                   Work Injury Compensation (WICA)
+  group-life             Group Term Life Insurance
+  personal-accident      Personal Accident (individual or group)
+  home-contents          Home Contents Insurance
+  fire                   Fire Insurance
+  travel                 Travel Insurance
+  embedded               Embedded / API Insurance
+  general                Cross-product or company-level content
+
+
+EXAMPLES
+--------
+  faq-marine-cargo-jun-2026.txt          → Marine cargo FAQs for new leads
+  faq-group-medical-jun-2026.txt         → Group medical common questions
+  product-overview-jun-2026.txt          → All TRS products at a glance
+  product-cyber-jun-2026.txt             → Cyber insurance product detail
+  process-claims-steps-jun-2026.txt      → Claims step-by-step guide
+  pricing-indicative-jun-2026.txt        → Premium ranges across products
+  objections-pricing-jun-2026.txt        → Handling "it's too expensive"
+  support-renewal-jun-2026.txt           → How renewals work
+  company-credentials-jan-2026.txt       → TRS licences, awards, history
+
+
+WHAT TO INCLUDE
+---------------
+  - Plain-language answers to questions a new lead would ask
+  - What the product covers (and key exclusions)
+  - What information TRS needs to produce a quote
+  - Indicative premium ranges (with clear "subject to underwriting" caveat)
+  - How claims work (high level, 3–5 steps)
+  - Why use TRS over alternatives
+  - Company background and MAS licence confirmation
+
+
+WHAT NOT TO INCLUDE
+-------------------
+  - Client names, claim amounts, or case-specific details
+  - Binding premium quotes or guaranteed rates
+  - Underwriter-confidential policy wordings (without compliance sign-off)
+  - Internal pricing grids or commission structures
+  - Personal opinions or off-the-cuff promises
+
+
+VERSIONING
+----------
+When updating an existing file, update the month-year suffix and delete
+the old file from Drive (the AI will automatically de-index the removed file
+on the next index run).
+
+  Old:  faq-marine-cargo-mar-2026.txt
+  New:  faq-marine-cargo-jun-2026.txt   ← upload new, delete old
+
+
+GETTING FILES INDEXED
+---------------------
+After uploading a new file to this folder:
+1. Go to the TRS dashboard → Analytics → RAG Index → Inbound AI tab
+2. Click "Re-index New" to pick up the new file
+3. Confirm the filename appears in the indexed files list
+
+The AI will use the new file immediately for the next auto-draft.
