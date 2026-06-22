@@ -197,7 +197,7 @@ export default function TeamPage() {
         </>
       )}
 
-      <SignaturePanel />
+      <SignaturePanel profile={null} />
     </div>
   )
 }

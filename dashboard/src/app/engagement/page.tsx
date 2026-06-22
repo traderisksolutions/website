@@ -720,7 +720,7 @@ function AIDraftPanel({
   // Signature state
   type SigOption = {
     id: string; name: string; title: string | null; phone: string | null
-    email: string | null; company_tagline: string | null
+    email: string | null; company_tagline: string | null; sending_email: string | null
   }
   const [signatures,    setSignatures]    = useState<SigOption[]>([])
   const [selectedSigId, setSelectedSigId] = useState<string>('')
@@ -753,8 +753,7 @@ function AIDraftPanel({
     if (sigsLoaded) return
     setSigsLoaded(true)
     fetch('/api/signatures').then(r => r.ok ? r.json() : []).then((rows: SigOption[]) => {
-      const active = (Array.isArray(rows) ? rows : []).filter(s => (s as unknown as { is_active: boolean }).is_active !== false)
-      setSignatures(active)
+      setSignatures(Array.isArray(rows) ? rows : [])
     }).catch(() => {})
     fetch('/api/email/available-senders').then(r => r.ok ? r.json() : []).then((rows: Sender[]) => {
       if (Array.isArray(rows) && rows.length > 0) {
@@ -763,6 +762,13 @@ function AIDraftPanel({
       }
     }).catch(() => {})
   }, [sigsLoaded])
+
+  // Auto-select the signature tied to the chosen FROM address
+  useEffect(() => {
+    if (!selectedFromEmail) return
+    const matched = signatures.find(s => s.sending_email?.toLowerCase() === selectedFromEmail.toLowerCase())
+    setSelectedSigId(matched?.id ?? '')
+  }, [selectedFromEmail, signatures])
 
   // Reset when switching threads
   useEffect(() => {
@@ -1081,21 +1087,41 @@ function AIDraftPanel({
             </div>
           )
         })()}
-        {signatures.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Sign as</span>
-            <select
-              value={selectedSigId}
-              onChange={e => setSelectedSigId(e.target.value)}
-              style={{ flex: 1, fontSize: 12, padding: '5px 8px', border: '1px solid hsl(var(--border))', borderRadius: 6, background: '#fff', color: 'var(--text-secondary)', cursor: 'pointer' }}
-            >
-              <option value="">— No signature —</option>
-              {signatures.map(s => (
-                <option key={s.id} value={s.id}>{s.name}{s.title ? ` · ${s.title}` : ''}</option>
-              ))}
-            </select>
-          </div>
-        )}
+        {signatures.length > 0 && (() => {
+          const activeSig = signatures.find(s => s.id === selectedSigId)
+          // Signatures with a sending_email are auto-matched to the FROM address.
+          // Show an editable dropdown only for legacy sigs without sending_email.
+          const hasLegacy = signatures.some(s => !s.sending_email)
+          if (activeSig) {
+            return (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Signature</span>
+                <span style={{ fontSize: 11, color: 'var(--text-secondary)', background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))', borderRadius: 6, padding: '3px 8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 }}>
+                  {activeSig.name}{activeSig.title ? ` · ${activeSig.title}` : ''}
+                </span>
+                <button onClick={() => setSelectedSigId('')} style={{ fontSize: 10, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} title="Remove signature">✕</button>
+              </div>
+            )
+          }
+          if (hasLegacy) {
+            return (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Sign as</span>
+                <select
+                  value={selectedSigId}
+                  onChange={e => setSelectedSigId(e.target.value)}
+                  style={{ flex: 1, fontSize: 12, padding: '5px 8px', border: '1px solid hsl(var(--border))', borderRadius: 6, background: '#fff', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                >
+                  <option value="">— No signature —</option>
+                  {signatures.filter(s => !s.sending_email).map(s => (
+                    <option key={s.id} value={s.id}>{s.name}{s.title ? ` · ${s.title}` : ''}</option>
+                  ))}
+                </select>
+              </div>
+            )
+          }
+          return null
+        })()}
         {toAddress && (
           <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '5px 10px', background: 'var(--primary-light-bg)', borderRadius: 6, border: '1px solid var(--primary-light-border)' }}>
             Sending to: <strong style={{ color: 'var(--primary-hex)' }}>{toAddress}</strong>
