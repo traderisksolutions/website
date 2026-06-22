@@ -18,14 +18,14 @@ export function DetailPanel({
   return (
     <aside
       className={cn(
-        'flex flex-col bg-card border-l border-border overflow-hidden flex-shrink-0',
+        'flex flex-col bg-card border-l border-[--border-subtle] overflow-hidden flex-shrink-0',
         width,
         className,
       )}
       style={{ boxShadow: 'var(--shadow-panel)' }}
     >
       {/* Sticky header */}
-      <div className="flex items-start justify-between gap-2 px-4 py-3.5 border-b border-border bg-card sticky top-0 z-10 flex-shrink-0">
+      <div className="flex items-start justify-between gap-2 px-4 py-3.5 border-b border-[--border-subtle] bg-card sticky top-0 z-10 flex-shrink-0">
         <div className="min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-[0.07em] text-muted-foreground/55 mb-0.5">
             Details
@@ -51,7 +51,7 @@ export function DetailPanel({
       </div>
 
       {header && (
-        <div className="flex-shrink-0 border-b border-border">
+        <div className="flex-shrink-0 border-b border-[--border-subtle]">
           {header}
         </div>
       )}

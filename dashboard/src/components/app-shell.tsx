@@ -34,7 +34,7 @@ export function AppPageHeader({ title, description, actions, className }: AppPag
     <div
       className={cn(
         'flex items-start justify-between gap-4 px-6 py-5 flex-shrink-0',
-        'border-b border-border bg-background',
+        'border-b border-[--border-subtle] bg-background',
         className,
       )}
     >
@@ -110,7 +110,7 @@ export function AppListPanel({ children, width = 'w-[340px]', className }: AppLi
   return (
     <div
       className={cn(
-        'flex-shrink-0 flex flex-col border-r border-border bg-card overflow-hidden',
+        'flex-shrink-0 flex flex-col border-r border-[--border-subtle] bg-card overflow-hidden',
         width,
         className,
       )}

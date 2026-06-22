@@ -8,7 +8,7 @@ interface DetailSectionProps {
 
 export function DetailSection({ label, children, className }: DetailSectionProps) {
   return (
-    <div className={cn('px-4 py-3.5 border-b border-border last:border-b-0', className)}>
+    <div className={cn('px-4 pt-5 pb-3', className)}>
       {label && (
         <p className="text-[10px] font-bold uppercase tracking-[0.07em] text-muted-foreground/55 mb-2.5">
           {label}
