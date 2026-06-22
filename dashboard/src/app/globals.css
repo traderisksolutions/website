@@ -468,7 +468,7 @@ select:focus-visible {
   cursor: pointer; white-space: nowrap;
   transition: background 0.12s, color 0.12s;
 }
-.filter-pill:hover { background: hsl(var(--muted) / 0.8); color: hsl(var(--foreground)); }
+.filter-pill:hover { background: hsl(var(--muted-foreground) / 0.15); color: hsl(var(--foreground)); }
 .filter-pill.active { background: hsl(var(--foreground)); color: hsl(var(--background)); }
 .filter-pill-count {
   font-size: 10px; font-weight: 700;

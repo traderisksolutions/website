@@ -588,7 +588,7 @@ export default function CampaignDetailPage() {
 
       {/* ── Compact performance strip ── */}
       {(campaign.sent_count > 0 || campaign.lead_count > 0) && (
-        <div className="flex items-center gap-6 px-4 py-3 mb-4 rounded-lg bg-muted/30 border border-border/50 flex-wrap">
+        <div className="flex items-center gap-6 px-4 py-3 mb-4 rounded-lg bg-muted/30 border border-[--border-subtle] flex-wrap">
           {[
             { label: 'Leads',      value: campaign.lead_count,  highlight: false },
             { label: 'Sent',       value: campaign.sent_count,  highlight: false },
@@ -760,7 +760,7 @@ export default function CampaignDetailPage() {
                       'w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[11px] font-bold',
                       approved
                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        : 'bg-muted text-muted-foreground border border-border'
+                        : 'bg-muted text-muted-foreground'
                     )}>
                       {approved ? <CheckCircle size={13} /> : i + 1}
                     </span>
@@ -792,7 +792,7 @@ export default function CampaignDetailPage() {
                   </button>
 
                   {isExpanded && (
-                    <div className="px-5 pb-5 pt-4 border-t border-border/50">
+                    <div className="px-5 pb-5 pt-4 border-t border-[--border-subtle]">
                       {/* Timing */}
                       {seq.step_number > 1 && (
                         <div className="flex items-center gap-3 mb-4">
@@ -834,7 +834,7 @@ export default function CampaignDetailPage() {
                         </div>
                         {isActive ? (
                           <div
-                            className="px-3 py-2.5 text-[13px] border border-border rounded-md bg-muted/30 min-h-[120px] text-foreground leading-relaxed whitespace-pre-wrap"
+                            className="px-3 py-2.5 text-[13px] border border-[--border-subtle] rounded-md bg-muted/30 min-h-[120px] text-foreground leading-relaxed whitespace-pre-wrap"
                             dangerouslySetInnerHTML={{ __html: seq.body }}
                           />
                         ) : (
@@ -917,7 +917,7 @@ export default function CampaignDetailPage() {
         <Card>
           <CardContent className="p-5">
             {/* Segment management */}
-            <div className="mb-4 pb-4 border-b border-border/50">
+            <div className="mb-4 pb-4 border-b border-[--border-subtle]">
               <p className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider mb-2">
                 Segments
               </p>
@@ -1009,7 +1009,7 @@ export default function CampaignDetailPage() {
                       const toggling = togglingLeads.includes(cl.lead_id)
                       return (
                         <tr key={cl.id} className={cn(
-                          'border-b border-border/50',
+                          'border-b border-[--border-subtle]',
                           excluded ? 'opacity-45' : 'hover:bg-muted/20 transition-colors'
                         )}>
                           <td className="px-3 py-2.5 pl-4 w-10">
@@ -1274,7 +1274,7 @@ export default function CampaignDetailPage() {
                   {signatureId && (() => {
                     const sig = signatures.find(s => s.id === signatureId)
                     return sig ? (
-                      <div className="mt-3 px-3.5 py-3 rounded-lg bg-muted/30 border border-border text-[12px] text-muted-foreground leading-relaxed">
+                      <div className="mt-3 px-3.5 py-3 rounded-lg bg-muted/30 border border-[--border-subtle] text-[12px] text-muted-foreground leading-relaxed">
                         Best regards,<br />
                         <strong className="text-foreground/80">{sig.name}</strong><br />
                         {[sig.title, sig.phone].filter(Boolean).join(' · ')}
@@ -1366,7 +1366,7 @@ export default function CampaignDetailPage() {
                         'w-7 h-7 rounded-md flex-shrink-0 flex items-center justify-center text-[13px] font-bold',
                         approved
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-muted text-muted-foreground border border-border'
+                          : 'bg-muted text-muted-foreground'
                       )}>
                         {v.variant_label}
                       </span>
@@ -1404,9 +1404,9 @@ export default function CampaignDetailPage() {
                     </button>
 
                     {isExpanded && (
-                      <div className="border-t border-border/50 px-5 py-4">
+                      <div className="border-t border-[--border-subtle] px-5 py-4">
                         {v.steps.map(step => (
-                          <div key={step.id} className="mb-4 pb-4 border-b border-border/40 last:border-b-0 last:mb-0 last:pb-0">
+                          <div key={step.id} className="mb-4 pb-4 border-b border-[--border-subtle] last:border-b-0 last:mb-0 last:pb-0">
                             <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-muted-foreground/50 mb-1.5">
                               Step {step.step_number}
                               {step.delay_days > 0 && (
@@ -1498,7 +1498,7 @@ export default function CampaignDetailPage() {
                         </thead>
                         <tbody>
                           {analyticsSegments.map(seg => (
-                            <tr key={seg.segment_id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                            <tr key={seg.segment_id} className="border-b border-[--border-subtle] hover:bg-muted/20 transition-colors">
                               <td className="px-3 py-2.5 pl-4 text-[13px] text-foreground">{seg.name}</td>
                               <td className="px-3 py-2.5 text-[13px] text-muted-foreground">{seg.total}</td>
                               <td className="px-3 py-2.5 text-[13px] text-muted-foreground">{seg.sent}</td>

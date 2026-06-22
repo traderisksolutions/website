@@ -79,7 +79,7 @@ function SkeletonRows() {
   return (
     <>
       {Array.from({ length: 8 }).map((_, i) => (
-        <tr key={i} className="border-b border-border/60">
+        <tr key={i} className="border-b border-[--border-subtle]">
           {[60, 45, 30, 20, 25].map((w, j) => (
             <td key={j} className={cn('px-3 h-11', j === 0 && 'pl-8')}>
               <div className="skeleton sk-cell" style={{ width: `${w}%`, height: 10 }} />

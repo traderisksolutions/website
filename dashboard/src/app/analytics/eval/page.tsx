@@ -199,7 +199,7 @@ export default function EvalPage() {
               </CardHeader>
               <CardContent className="flex flex-wrap gap-3 pt-0">
                 {stats.map(s => (
-                  <div key={s.email_type} className="border border-border rounded-lg px-4 py-3 min-w-[110px] bg-muted/30">
+                  <div key={s.email_type} className="border border-[--border-subtle] rounded-lg px-4 py-3 min-w-[110px] bg-muted/30">
                     <TypePill type={s.email_type} />
                     <p className="mt-2 text-[20px] font-bold tracking-tight" style={{ color: SCORE_COLOR(s.avg_score) }}>
                       {s.avg_score}<span className="text-[11px] text-muted-foreground font-normal ml-0.5">/5</span>
@@ -229,7 +229,7 @@ export default function EvalPage() {
                 ) : (
                   <CardContent className="p-0">
                     {evals.map((e, i) => (
-                      <div key={e.id} className={cn(i < evals.length - 1 && 'border-b border-border/50')}>
+                      <div key={e.id} className={cn(i < evals.length - 1 && 'border-b border-[--border-subtle]')}>
                         <button
                           onClick={() => setExpanded(expanded === e.id ? null : e.id)}
                           className="w-full flex items-center gap-2.5 px-4 py-2.5 hover:bg-muted/30 transition-colors text-left"
@@ -330,7 +330,7 @@ export default function EvalPage() {
                 ) : (
                   <CardContent className="p-0">
                     {examples.map((ex, i) => (
-                      <div key={ex.id} className={cn(i < examples.length - 1 && 'border-b border-border/50')}>
+                      <div key={ex.id} className={cn(i < examples.length - 1 && 'border-b border-[--border-subtle]')}>
                         <button
                           onClick={() => setExpanded(expanded === ex.id ? null : ex.id)}
                           className="w-full flex items-center gap-2.5 px-4 py-2.5 hover:bg-muted/30 transition-colors text-left"
@@ -349,7 +349,7 @@ export default function EvalPage() {
                             {ex.context_summary && (
                               <p className="text-[11px] text-muted-foreground mb-2">{ex.context_summary}</p>
                             )}
-                            <pre className="text-[12px] text-foreground bg-muted/50 border border-border rounded-lg p-3 whitespace-pre-wrap leading-relaxed font-sans max-h-72 overflow-y-auto">
+                            <pre className="text-[12px] text-foreground bg-muted/50 border border-[--border-subtle] rounded-lg p-3 whitespace-pre-wrap leading-relaxed font-sans max-h-72 overflow-y-auto">
                               {ex.ideal_reply}
                             </pre>
                           </div>

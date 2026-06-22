@@ -215,7 +215,7 @@ export default function OutboundLeadsPage() {
         {loading ? (
           <div className="flex flex-col">
             {Array.from({ length: 10 }).map((_, i) => (
-              <div key={i} className="flex gap-4 px-4 h-14 items-center border-b border-border/50">
+              <div key={i} className="flex gap-4 px-4 h-14 items-center border-b border-[--border-subtle]">
                 <div className="skeleton sk-cell" style={{ width: 28, height: 28, borderRadius: '50%' }} />
                 <div className="flex-1 flex flex-col gap-1.5">
                   <div className="skeleton sk-line" style={{ width: '35%' }} />

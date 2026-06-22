@@ -80,7 +80,7 @@ function Th({ children, w }: { children?: React.ReactNode; w?: number }) {
 
 function Td({ children, className }: { children?: React.ReactNode; className?: string }) {
   return (
-    <td className={cn('px-3 py-2.5 align-middle border-b border-border/40 text-[13px]', className)}>
+    <td className={cn('px-3 py-2.5 align-middle border-b border-[--border-subtle] text-[13px]', className)}>
       {children}
     </td>
   )
