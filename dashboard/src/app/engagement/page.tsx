@@ -1060,33 +1060,22 @@ function AIDraftPanel({
 
       {/* ── Signature selector + Actions ── */}
       <div style={{ padding: '4px 12px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {senders.length > 0 && (() => {
-          const selectedSender = senders.find(s => s.email === selectedFromEmail)
-          const unverified = selectedSender && !selectedSender.verified && selectedSender.type === 'shared'
-          return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>From</span>
-                <select
-                  value={selectedFromEmail}
-                  onChange={e => setSelectedFromEmail(e.target.value)}
-                  style={{ flex: 1, fontSize: 12, padding: '5px 8px', border: `1px solid ${unverified ? 'var(--warning-border)' : 'hsl(var(--border))'}`, borderRadius: 6, background: '#fff', color: 'var(--text-secondary)', cursor: 'pointer' }}
-                >
-                  {senders.map(s => (
-                    <option key={s.email} value={s.email}>
-                      {s.label} &lt;{s.email}&gt;{!s.verified && s.type === 'shared' ? ' ⚠' : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {unverified && (
-                <p style={{ margin: 0, fontSize: 10.5, color: 'var(--warning)', background: 'var(--warning-bg)', border: '1px solid var(--warning-border)', borderRadius: 5, padding: '3px 8px' }}>
-                  ⚠ Alias not verified — set up &ldquo;Send as&rdquo; in Gmail Settings, then mark as Verified in Settings.
-                </p>
-              )}
-            </div>
-          )
-        })()}
+        {senders.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>From</span>
+            <select
+              value={selectedFromEmail}
+              onChange={e => setSelectedFromEmail(e.target.value)}
+              style={{ flex: 1, fontSize: 12, padding: '5px 8px', border: '1px solid hsl(var(--border))', borderRadius: 6, background: '#fff', color: 'var(--text-secondary)', cursor: 'pointer' }}
+            >
+              {senders.map(s => (
+                <option key={s.email} value={s.email}>
+                  {s.label} &lt;{s.email}&gt;
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         {signatures.length > 0 && (() => {
           const activeSig = signatures.find(s => s.id === selectedSigId)
           // Signatures with a sending_email are auto-matched to the FROM address.

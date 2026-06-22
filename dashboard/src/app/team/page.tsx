@@ -41,11 +41,21 @@ function Avatar({ initials, color, size = 36 }: { initials: string; color: strin
   )
 }
 
+interface Profile { id: string; is_admin: boolean; gmail_email: string | null }
+
 export default function TeamPage() {
   const [members,  setMembers]  = useState<TeamMember[]>([])
   const [activity, setActivity] = useState<ActivityEntry[]>([])
   const [active,   setActive]   = useState<string | null>(null)
   const [loading,  setLoading]  = useState(true)
+  const [profile,  setProfile]  = useState<Profile | null>(null)
+
+  useEffect(() => {
+    fetch('/api/auth/profile', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then((p: Profile | null) => { if (p) setProfile(p) })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     fetch('/api/team', { cache: 'no-store' })
@@ -197,7 +207,7 @@ export default function TeamPage() {
         </>
       )}
 
-      <SignaturePanel profile={null} />
+      <SignaturePanel profile={profile} />
     </div>
   )
 }

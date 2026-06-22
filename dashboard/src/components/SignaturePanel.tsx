@@ -93,9 +93,9 @@ function InlineForm({
   onCancel: () => void
   onChange: (f: FormState) => void
 }) {
+  // No reset effect needed — this component is always unmounted when isExpanded toggles,
+  // so it always receives a fresh initial from openEdit().
   const [form, setForm] = useState<FormState>(initial)
-
-  useEffect(() => { setForm(initial) }, [initial.name]) // reset when target address changes
 
   function update(key: keyof FormState, val: string) {
     const next = { ...form, [key]: val }
@@ -427,7 +427,7 @@ export default function SignaturePanel({ profile }: { profile: Profile | null })
                         {row.sig && !confirmDel && (
                           <Button
                             size="sm" variant="ghost"
-                            onClick={() => { setConfirmDel(row.sig!.id); setEditEmail(row.email) }}
+                            onClick={() => setConfirmDel(row.sig!.id)}
                             style={{ fontSize: 11, height: 28, padding: '0 8px', color: '#ef4444' }}
                           >
                             Delete
