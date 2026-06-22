@@ -204,12 +204,16 @@ export async function runRagIndex(force = false, folderFilter?: string): Promise
   const result: IndexResult = { indexed: [], skipped: [], deleted: [], errors: [], totalChunks: 0 }
   let totalCharsEmbedded = 0
 
-  // Two separate service accounts:
-  //   GOOGLE_SERVICE_ACCOUNT_JSON      → ai-outbound/ folder
-  //   GOOGLE_SERVICE_ACC_OUTBOUND_JSON → engagement_ai_agent/ folder
+  // Three separate service accounts:
+  //   GOOGLE_SERVICE_ACCOUNT_JSON      → engagement_ai_agent/ folder
+  //   GOOGLE_SERVICE_ACC_OUTBOUND_JSON → ai-outbound/ folder
+  //   GOOGLE_SERVICE_ACC_INBOUND_JSON  → inbound_ai_agent/ folder
   const engagementToken = await getDriveToken(process.env.GOOGLE_SERVICE_ACCOUNT_JSON)
   const outboundToken   = process.env.GOOGLE_SERVICE_ACC_OUTBOUND_JSON
     ? await getDriveToken(process.env.GOOGLE_SERVICE_ACC_OUTBOUND_JSON)
+    : engagementToken
+  const inboundToken    = process.env.GOOGLE_SERVICE_ACC_INBOUND_JSON
+    ? await getDriveToken(process.env.GOOGLE_SERVICE_ACC_INBOUND_JSON)
     : engagementToken
 
   // When specific folder IDs are configured, skip the legacy root scan entirely.
@@ -231,7 +235,7 @@ export async function runRagIndex(force = false, folderFilter?: string): Promise
   const extraFolders: [string | undefined, string, string][] = [
     [process.env.GOOGLE_DRIVE_OUTBOUND_FOLDER_ID,   'ai-outbound',         outboundToken],
     [process.env.GOOGLE_DRIVE_ENGAGEMENT_FOLDER_ID, 'engagement_ai_agent', engagementToken],
-    [process.env.GDRIVE_FAQ_FOLDER_ID,    'inbound_ai_agent',    engagementToken],
+    [process.env.GDRIVE_FAQ_FOLDER_ID,    'inbound_ai_agent',    inboundToken],
   ]
   const failedFolderTags = new Set<string>()
   for (const [extraId, tag, token] of extraFolders) {

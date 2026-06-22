@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createSign }                 from 'node:crypto'
 import { waitUntil }                  from '@vercel/functions'
 import { runDraftEvaluation }         from '@/lib/run-draft-evaluation'
+import { createClient }               from '@/lib/supabase/server'
 
-const SB_URL    = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me'
-const OPS_EMAIL = 'operations@trade-risksol.com'
+const SB_URL       = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const GMAIL_API    = 'https://gmail.googleapis.com/gmail/v1/users/me'
+const DEFAULT_FROM = 'operations@trade-risksol.com'
 
 function sbHeaders(prefer = 'return=representation') {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -18,26 +19,66 @@ function sbHeaders(prefer = 'return=representation') {
   }
 }
 
-async function getAccessToken(sendAs = OPS_EMAIL): Promise<string> {
-  if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
-    const sa: { client_email: string; private_key: string } = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON)
-    const privateKey = sa.private_key.replace(/\\n/g, '\n')
-    const now    = Math.floor(Date.now() / 1000)
-    const header  = { alg: 'RS256', typ: 'JWT' }
-    const payload = { iss: sa.client_email, sub: sendAs, scope: 'https://www.googleapis.com/auth/gmail.send', aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3600 }
-    const enc   = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url')
-    const input = `${enc(header)}.${enc(payload)}`
-    const sign  = createSign('RSA-SHA256')
-    sign.update(input)
-    const jwt = `${input}.${sign.sign(privateKey, 'base64url')}`
-    const res = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: jwt }),
-    })
-    const data = await res.json()
-    if (data.access_token) return data.access_token as string
+// ── Token helpers ─────────────────────────────────────────────────────────────
+
+async function getTokenViaServiceAccount(fromEmail: string): Promise<string> {
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON
+  if (!raw) throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON not configured')
+  const sa: { client_email: string; private_key: string } = JSON.parse(raw)
+  const privateKey = sa.private_key.replace(/\\n/g, '\n')
+  const now    = Math.floor(Date.now() / 1000)
+  const header  = { alg: 'RS256', typ: 'JWT' }
+  const payload = {
+    iss: sa.client_email, sub: fromEmail,
+    scope: 'https://www.googleapis.com/auth/gmail.send',
+    aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3600,
   }
-  // Legacy fallback
+  const enc   = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url')
+  const input = `${enc(header)}.${enc(payload)}`
+  const sign  = createSign('RSA-SHA256')
+  sign.update(input)
+  const jwt = `${input}.${sign.sign(privateKey, 'base64url')}`
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: jwt }),
+  })
+  const data = await res.json()
+  if (!data.access_token) throw new Error(`Service account token failed: ${JSON.stringify(data)}`)
+  return data.access_token as string
+}
+
+// 1. Personal Gmail (employee refresh token) → 2. Service account → 3. Legacy refresh token
+async function getTokenForSender(fromEmail: string, userId: string | null): Promise<string> {
+  if (userId) {
+    try {
+      const k = process.env.SUPABASE_SERVICE_KEY
+      if (k) {
+        const profileRes = await fetch(
+          `${SB_URL}/rest/v1/employee_profiles?user_id=eq.${userId}&select=gmail_email,gmail_refresh_token&limit=1`,
+          { headers: { apikey: k, Authorization: `Bearer ${k}` }, cache: 'no-store' }
+        )
+        const profiles = profileRes.ok ? await profileRes.json() : []
+        const profile  = Array.isArray(profiles) ? profiles[0] : null
+        if (profile?.gmail_refresh_token && profile?.gmail_email === fromEmail) {
+          const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              client_id:     process.env.GMAIL_CLIENT_ID!,
+              client_secret: process.env.GMAIL_CLIENT_SECRET!,
+              refresh_token: profile.gmail_refresh_token as string,
+              grant_type:    'refresh_token',
+            }),
+          })
+          const tokenData = await tokenRes.json()
+          if (tokenData.access_token) return tokenData.access_token as string
+        }
+      }
+    } catch { /* fall through */ }
+  }
+  if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+    return getTokenViaServiceAccount(fromEmail)
+  }
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method:  'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -53,31 +94,79 @@ async function getAccessToken(sendAs = OPS_EMAIL): Promise<string> {
   return data.access_token
 }
 
+// ── Email builders ────────────────────────────────────────────────────────────
+
 function encodeSubject(subject: string): string {
   if (!/[^\x20-\x7E]/.test(subject)) return subject
   return `=?UTF-8?B?${Buffer.from(subject, 'utf-8').toString('base64')}?=`
 }
 
-function buildRawEmail(to: string, subject: string, body: string): string {
+function htmlToText(html: string): string {
+  return html
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/h[1-6]>/gi, '\n\n')
+    .replace(/<li>/gi, '• ')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<\/ul>|<\/ol>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+function wrapBase64Lines(b64: string): string {
+  return b64.match(/.{1,76}/g)?.join('\r\n') ?? b64
+}
+
+function buildRawEmail(to: string, subject: string, htmlBody: string, fromEmail: string): string {
+  const boundary  = `trs_${Date.now()}`
+  const plainText = htmlToText(htmlBody)
+  const emailCss  = `<style>body{margin:0;padding:0}p{margin:0 0 10px 0;padding:0}p:last-child{margin-bottom:0}ul,ol{margin:0 0 10px 0;padding-left:22px}li{margin-bottom:3px}strong{font-weight:600}a{color:#1d4ed8}</style>`
+  const bodyStyle = `font-family:Arial,sans-serif;font-size:14px;line-height:1.65;color:#333`
+  const fullHtml  = `<!DOCTYPE html><html><head><meta charset="utf-8">${emailCss}</head><body style="${bodyStyle}">${htmlBody}</body></html>`
+  const plainB64  = wrapBase64Lines(Buffer.from(plainText, 'utf-8').toString('base64'))
+  const htmlB64   = wrapBase64Lines(Buffer.from(fullHtml,  'utf-8').toString('base64'))
   const lines = [
-    `From: Trade Risk Solutions <${OPS_EMAIL}>`,
+    `From: Trade Risk Solutions <${fromEmail}>`,
     `To: ${to}`,
     `Subject: ${encodeSubject(subject)}`,
     'MIME-Version: 1.0',
-    'Content-Type: text/plain; charset=utf-8',
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
     '',
-    body,
+    `--${boundary}`,
+    'Content-Type: text/plain; charset=utf-8',
+    'Content-Transfer-Encoding: base64',
+    '',
+    plainB64,
+    '',
+    `--${boundary}`,
+    'Content-Type: text/html; charset=utf-8',
+    'Content-Transfer-Encoding: base64',
+    '',
+    htmlB64,
+    '',
+    `--${boundary}--`,
   ]
   return Buffer.from(lines.join('\r\n')).toString('base64url')
 }
 
 // POST /api/inbound/reply
-// Body: { leadId, name, email, company, topic, originalMessage, draft, draftId? }
+// Body: { leadId, name, email, company, topic, originalMessage, htmlBody, fromEmail?, draftId? }
 // Sends reply via Gmail, creates contact + thread, updates lead status to 'contacted'.
 // If draftId is provided, updates ai_drafts and triggers an eval so the system learns from edits.
 export async function POST(req: NextRequest) {
   try {
-    const { leadId, name, email, company, topic, originalMessage, draft, draftId } =
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    const userId = user?.id ?? null
+
+    const { leadId, name, email, company, topic, originalMessage, htmlBody, fromEmail: requestedFrom, draftId } =
       await req.json() as {
         leadId:           string
         name:             string
@@ -85,20 +174,23 @@ export async function POST(req: NextRequest) {
         company?:         string | null
         topic?:           string | null
         originalMessage?: string | null
-        draft:            string
+        htmlBody:         string
+        fromEmail?:       string
         draftId?:         string | null
       }
 
-    if (!leadId || !email || !draft) {
-      return NextResponse.json({ error: 'leadId, email, and draft are required' }, { status: 400 })
+    if (!leadId || !email || !htmlBody) {
+      return NextResponse.json({ error: 'leadId, email, and htmlBody are required' }, { status: 400 })
     }
 
-    const subject = `Re: Your enquiry | Trade Risk Solutions`
-    const sentAt  = new Date().toISOString()
+    const FROM_EMAIL = (requestedFrom && requestedFrom.includes('@')) ? requestedFrom : DEFAULT_FROM
+    const plainText  = htmlToText(htmlBody)
+    const subject    = `Re: Your enquiry | Trade Risk Solutions`
+    const sentAt     = new Date().toISOString()
 
     // 1. Send via Gmail
-    const token    = await getAccessToken()
-    const rawEmail = buildRawEmail(email, subject, draft)
+    const token    = await getTokenForSender(FROM_EMAIL, userId)
+    const rawEmail = buildRawEmail(email, subject, htmlBody, FROM_EMAIL)
 
     const sendRes = await fetch(`${GMAIL_API}/messages/send`, {
       method:  'POST',
@@ -115,10 +207,10 @@ export async function POST(req: NextRequest) {
     const gmailMsgId    = sent.id as string
     const gmailThreadId = sent.threadId as string
 
-    // 2. Upsert contact (contacts table uses first_name/last_name/company — not full_name)
-    const nameParts   = (name ?? '').trim().split(/\s+/)
-    const firstName   = nameParts[0] ?? null
-    const lastName    = nameParts.length > 1 ? nameParts.slice(1).join(' ') : null
+    // 2. Upsert contact
+    const nameParts  = (name ?? '').trim().split(/\s+/)
+    const firstName  = nameParts[0] ?? null
+    const lastName   = nameParts.length > 1 ? nameParts.slice(1).join(' ') : null
     const upsertRes  = await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
       method:  'POST',
       headers: sbHeaders('return=representation,resolution=merge-duplicates'),
@@ -144,7 +236,7 @@ export async function POST(req: NextRequest) {
       const stageRes = await fetch(`${SB_URL}/rest/v1/contacts?id=eq.${contactId}&select=engagement_stage&limit=1`, {
         headers: sbHeaders('return=representation'),
       })
-      const stageRows = stageRes.ok ? await stageRes.json() : []
+      const stageRows    = stageRes.ok ? await stageRes.json() : []
       const currentStage = Array.isArray(stageRows) ? stageRows[0]?.engagement_stage : null
       const STAGE_ORDER  = ['prospect', 'engaged', 'qualified', 'proposal', 'converted']
       if (!currentStage || STAGE_ORDER.indexOf(currentStage) < STAGE_ORDER.indexOf('engaged')) {
@@ -156,10 +248,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. Upsert email thread in Supabase.
-    // Use on_conflict=gmail_thread_id so that if Gmail assigns the same thread ID
-    // as a previous send (same subject/participants), we update the existing record
-    // instead of failing silently with a unique constraint violation.
+    // 3. Upsert email thread
     let threadId: string | null = null
     if (contactId) {
       const threadRes = await fetch(
@@ -168,11 +257,11 @@ export async function POST(req: NextRequest) {
           method:  'POST',
           headers: sbHeaders('return=representation,resolution=merge-duplicates'),
           body: JSON.stringify({
-            contact_id:       contactId,
-            gmail_thread_id:  gmailThreadId,
-            subject:          `Enquiry: ${topic || 'General Insurance'}`,
-            status:           'active',
-            last_message_at:  sentAt,
+            contact_id:      contactId,
+            gmail_thread_id: gmailThreadId,
+            subject:         `Enquiry: ${topic || 'General Insurance'}`,
+            status:          'active',
+            last_message_at: sentAt,
           }),
         }
       )
@@ -188,12 +277,11 @@ export async function POST(req: NextRequest) {
     // 4. Record messages in email_messages (original enquiry + our reply)
     if (threadId) {
       const enquiryBody = [
-        topic            ? `Topic: ${topic}`           : null,
-        company          ? `Company: ${company}`        : null,
-        originalMessage  ? `\n${originalMessage}`       : null,
+        topic           ? `Topic: ${topic}`          : null,
+        company         ? `Company: ${company}`       : null,
+        originalMessage ? `\n${originalMessage}`      : null,
       ].filter(Boolean).join('\n')
 
-      // Original inbound enquiry
       if (enquiryBody) {
         await fetch(`${SB_URL}/rest/v1/email_messages`, {
           method:  'POST',
@@ -211,7 +299,6 @@ export async function POST(req: NextRequest) {
         })
       }
 
-      // Our reply
       await fetch(`${SB_URL}/rest/v1/email_messages`, {
         method:  'POST',
         headers: sbHeaders('return=minimal'),
@@ -219,9 +306,9 @@ export async function POST(req: NextRequest) {
           thread_id:        threadId,
           gmail_message_id: gmailMsgId,
           direction:        'outbound',
-          from_address:     OPS_EMAIL,
+          from_address:     FROM_EMAIL,
           subject,
-          body_text:        draft,
+          body_text:        plainText,
           sent_at:          sentAt,
           has_attachments:  false,
         }),
@@ -239,7 +326,7 @@ export async function POST(req: NextRequest) {
       body:    JSON.stringify(patchBody),
     })
 
-    // 6. If an AI draft was used, back-fill contact_id + thread_id and mark as sent so Evals can run
+    // 6. Back-fill ai_drafts and mark as sent
     if (draftId) {
       const draftPatch: Record<string, unknown> = { status: 'sent', sent_at: sentAt }
       if (contactId) draftPatch.contact_id = contactId
@@ -251,7 +338,7 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // 7. Trigger auto-summarize (fire-and-forget — non-blocking)
+    // 7. Trigger auto-summarize (fire-and-forget)
     if (threadId) {
       const origin = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
       fetch(`${origin}/api/engagement/auto-summarize`, {
@@ -264,10 +351,9 @@ export async function POST(req: NextRequest) {
       }).catch(() => {})
     }
 
-    // 8. Run draft evaluation after response — compares original AI draft vs what was sent
-    // humanBodyOverride = the final sent text (avoids race condition on email_messages insert)
+    // 8. Run draft evaluation (plain text passed so eval never races on DB insert)
     if (draftId) {
-      waitUntil(runDraftEvaluation(draftId, threadId, draft))
+      waitUntil(runDraftEvaluation(draftId, threadId, plainText))
     }
 
     return NextResponse.json({ ok: true, contactId, threadId })
