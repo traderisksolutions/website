@@ -506,7 +506,12 @@ function InlineReplyRow({ lead, onStatus, onCollapse }: {
               <div className="flex items-center justify-between">
                 <span className="text-[11px] flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
                   To: {lead.email}
-                  <Tip text="Sent via Gmail. The lead sees a normal email — no AI mention." />
+                  {selectedFromEmail && selectedFromEmail !== 'operations@trade-risksol.com' && (
+                    <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'hsl(var(--muted))', color: 'var(--text-muted)' }}>
+                      CC: operations@
+                    </span>
+                  )}
+                  <Tip text="Sent via Gmail. When sending from a personal address, operations@ is auto-CC'd so lead replies stay in the shared thread." />
                 </span>
                 <div className="flex items-center gap-2">
                   {sendError && <span className="text-[11px] text-destructive">{sendError}</span>}

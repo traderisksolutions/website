@@ -124,7 +124,10 @@ function wrapBase64Lines(b64: string): string {
   return b64.match(/.{1,76}/g)?.join('\r\n') ?? b64
 }
 
-function buildRawEmail(to: string, subject: string, htmlBody: string, fromEmail: string): string {
+function buildRawEmail(
+  to: string, subject: string, htmlBody: string, fromEmail: string,
+  cc?: string[], replyTo?: string,
+): string {
   const boundary  = `trs_${Date.now()}`
   const plainText = htmlToText(htmlBody)
   const emailCss  = `<style>body{margin:0;padding:0}p{margin:0 0 10px 0;padding:0}p:last-child{margin-bottom:0}ul,ol{margin:0 0 10px 0;padding-left:22px}li{margin-bottom:3px}strong{font-weight:600}a{color:#1d4ed8}</style>`
@@ -135,6 +138,8 @@ function buildRawEmail(to: string, subject: string, htmlBody: string, fromEmail:
   const lines = [
     `From: Trade Risk Solutions <${fromEmail}>`,
     `To: ${to}`,
+    ...(replyTo && replyTo !== fromEmail ? [`Reply-To: ${replyTo}`] : []),
+    ...(cc?.length ? [`Cc: ${cc.join(', ')}`] : []),
     `Subject: ${encodeSubject(subject)}`,
     'MIME-Version: 1.0',
     `Content-Type: multipart/alternative; boundary="${boundary}"`,
@@ -188,9 +193,14 @@ export async function POST(req: NextRequest) {
     const subject    = `Re: Your enquiry | Trade Risk Solutions`
     const sentAt     = new Date().toISOString()
 
+    // When sending from a personal address, auto-CC and Reply-To operations@ so
+    // the Gmail watch picks up lead replies and keeps the thread synced.
+    const autoCC    = FROM_EMAIL !== DEFAULT_FROM ? [DEFAULT_FROM] : []
+    const replyTo   = FROM_EMAIL !== DEFAULT_FROM ? DEFAULT_FROM  : undefined
+
     // 1. Send via Gmail
     const token    = await getTokenForSender(FROM_EMAIL, userId)
-    const rawEmail = buildRawEmail(email, subject, htmlBody, FROM_EMAIL)
+    const rawEmail = buildRawEmail(email, subject, htmlBody, FROM_EMAIL, autoCC, replyTo)
 
     const sendRes = await fetch(`${GMAIL_API}/messages/send`, {
       method:  'POST',
