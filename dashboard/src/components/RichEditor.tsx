@@ -166,7 +166,6 @@ export function RichEditor({
       {/* ── Toolbar ── */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 2,
-        padding: '5px 8px',
         padding: borderless ? '5px 0' : '5px 8px',
         borderBottom: borderless ? 'none' : '1px solid #e5e7eb',
         background: borderless ? 'transparent' : '#f8fafc',
