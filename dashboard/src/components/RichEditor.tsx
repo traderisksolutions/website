@@ -59,14 +59,17 @@ export function RichEditor({
         formats: ['bold', 'italic', 'underline', 'align', 'list', 'link', 'image'],
       })
 
-      // Strip Quill snow's inner border/margin — our outer wrapper handles the border
-      const containerEl = mountRef.current.querySelector<HTMLElement>('.ql-container')
-      if (containerEl) containerEl.style.cssText += ';border:none !important;font-size:inherit'
+      // mountRef.current IS the .ql-container element after Quill initialises
+      if (borderless) {
+        mountRef.current.style.cssText += ';border:none !important;margin:0'
+      } else {
+        mountRef.current.style.cssText += ';border:none !important;font-size:inherit'
+      }
 
       // Apply editor content styles
       const editorEl = mountRef.current.querySelector<HTMLElement>('.ql-editor')
       if (editorEl) {
-        const editorPadding = borderless ? '8px 0' : '10px 12px'
+        const editorPadding = borderless ? '8px 0 4px' : '10px 12px'
         editorEl.style.cssText +=
           `;font-size:13px;line-height:1.65;color:#1e3a5f;font-family:inherit;min-height:${minHeight}px;padding:${editorPadding};outline:none`
         // Inject responsive image style so inserted images don't overflow the editor
@@ -262,7 +265,7 @@ export function RichEditor({
       {/* ── Signature preview (non-editable) ── */}
       {sigHtml && (
         <div
-          style={{ borderTop: borderless ? 'none' : '1px solid #e5e7eb', padding: '0 12px 10px', pointerEvents: 'none', userSelect: 'none', opacity: 0.7 }}
+          style={{ borderTop: borderless ? 'none' : '1px solid #e5e7eb', padding: borderless ? '2px 0 8px' : '0 12px 10px', pointerEvents: 'none', userSelect: 'none', opacity: 0.7 }}
           dangerouslySetInnerHTML={{ __html: sigHtml }}
         />
       )}
