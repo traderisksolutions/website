@@ -313,10 +313,10 @@ export function EngagementComposePanel({
       {open && (
         <>
           {/* ── Addressing fields ── */}
-          <div className="border-b border-[--border-subtle]">
+          <div className="pb-1">
 
             {/* TO */}
-            <div className="flex items-center min-h-[38px] border-b border-[--border-subtle]">
+            <div className="flex items-center min-h-[36px]">
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/55 w-[52px] flex-shrink-0 pl-5">
                 To
               </span>
@@ -347,8 +347,8 @@ export function EngagementComposePanel({
 
             {/* CC — toggleable, appears directly below To */}
             {showCc && (
-              <div className="flex items-start min-h-[36px] border-b border-[--border-subtle]">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/55 w-[52px] flex-shrink-0 pl-5 pt-2.5">
+              <div className="flex items-start min-h-[34px]">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/55 w-[52px] flex-shrink-0 pl-5 pt-2">
                   CC
                 </span>
                 <ChipInput chips={ccList} onChange={setCcList} placeholder="Add CC…" />
@@ -357,8 +357,8 @@ export function EngagementComposePanel({
 
             {/* BCC — toggleable, appears below CC */}
             {showBcc && (
-              <div className="flex items-start min-h-[36px] border-b border-[--border-subtle]">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/55 w-[52px] flex-shrink-0 pl-5 pt-2.5">
+              <div className="flex items-start min-h-[34px]">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/55 w-[52px] flex-shrink-0 pl-5 pt-2">
                   BCC
                 </span>
                 <ChipInput chips={bccList} onChange={setBccList} placeholder="Add BCC…" />
@@ -366,7 +366,7 @@ export function EngagementComposePanel({
             )}
 
             {/* Subject */}
-            <div className="flex items-center min-h-[36px] border-b border-[--border-subtle]">
+            <div className="flex items-center min-h-[34px]">
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/55 w-[52px] flex-shrink-0 pl-5">
                 Subj
               </span>
@@ -435,7 +435,7 @@ export function EngagementComposePanel({
           )}
 
           {/* ── Footer: from/sig | generate | send ── */}
-          <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-[--border-subtle]">
+          <div className="flex items-center justify-between gap-3 px-4 py-3">
 
             {/* Left: from selector + sig indicator */}
             <div className="flex items-center gap-3 flex-1 min-w-0">
