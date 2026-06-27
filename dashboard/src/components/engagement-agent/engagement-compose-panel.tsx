@@ -386,6 +386,7 @@ export function EngagementComposePanel({
               initialHtml={draftHtml}
               onChange={setDraftHtml}
               sigHtml={sigHtml}
+              borderless
               placeholder={
                 loading === 'gen'
                   ? 'Generating AI draft…'

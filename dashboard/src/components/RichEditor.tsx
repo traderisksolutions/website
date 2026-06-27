@@ -15,6 +15,7 @@ interface RichEditorProps {
   placeholder?: string
   minHeight?:   number
   sigHtml?:     string
+  borderless?:  boolean
 }
 
 export function RichEditor({
@@ -23,6 +24,7 @@ export function RichEditor({
   placeholder = 'Write your message…',
   minHeight = 180,
   sigHtml,
+  borderless = false,
 }: RichEditorProps) {
   const mountRef    = useRef<HTMLDivElement>(null)
   const quillRef    = useRef<import('quill').default | null>(null)
@@ -134,7 +136,13 @@ export function RichEditor({
   }
 
   function s(active: boolean): React.CSSProperties {
-    return {
+    return borderless ? {
+      padding: '4px 6px', border: '1px solid',
+      borderColor: active ? '#2563eb' : 'transparent',
+      borderRadius: 5, background: active ? '#eff6ff' : 'transparent',
+      color: active ? '#2563eb' : '#888', cursor: 'pointer',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
+    } : {
       padding: '4px 6px', border: '1px solid',
       borderColor: active ? '#2563eb' : '#e5e7eb',
       borderRadius: 5, background: active ? '#eff6ff' : '#fff',
@@ -143,16 +151,21 @@ export function RichEditor({
     }
   }
 
-  const Sep = () => <div style={{ width: 1, height: 16, background: '#e5e7eb', margin: '0 3px' }} />
+  const Sep = () => <div style={{ width: 1, height: 16, background: borderless ? 'transparent' : '#e5e7eb', margin: '0 3px' }} />
 
   return (
-    <div style={{ border: '1px solid #bfdbfe', borderRadius: 8, background: '#fff', overflow: 'hidden' }}>
+    <div style={borderless
+      ? { overflow: 'hidden' }
+      : { border: '1px solid #bfdbfe', borderRadius: 8, background: '#fff', overflow: 'hidden' }
+    }>
 
       {/* ── Toolbar ── */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 2,
-        padding: '5px 8px', borderBottom: '1px solid #e5e7eb',
-        background: '#f8fafc', flexWrap: 'wrap',
+        padding: '5px 8px',
+        borderBottom: borderless ? 'none' : '1px solid #e5e7eb',
+        background: borderless ? 'transparent' : '#f8fafc',
+        flexWrap: 'wrap',
       }}>
 
         <button type="button" title="Bold" style={s(!!fmt.bold)}
@@ -247,7 +260,7 @@ export function RichEditor({
       {/* ── Signature preview (non-editable) ── */}
       {sigHtml && (
         <div
-          style={{ borderTop: '1px solid #e5e7eb', padding: '0 12px 10px', pointerEvents: 'none', userSelect: 'none', opacity: 0.7 }}
+          style={{ borderTop: borderless ? 'none' : '1px solid #e5e7eb', padding: '0 12px 10px', pointerEvents: 'none', userSelect: 'none', opacity: 0.7 }}
           dangerouslySetInnerHTML={{ __html: sigHtml }}
         />
       )}
