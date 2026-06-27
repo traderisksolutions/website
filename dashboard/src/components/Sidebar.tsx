@@ -50,6 +50,7 @@ export default function Sidebar() {
   const [outboundOpen,  setOutboundOpen]  = useState(true)
   const [engageOpen,    setEngageOpen]    = useState(true)
   const [analyticsOpen, setAnalyticsOpen] = useState(true)
+  const [vendorOpen,    setVendorOpen]    = useState(true)
   const [collapsed,     setCollapsed]     = useState(false)
   const [userEmail,     setUserEmail]     = useState<string | null>(null)
 
@@ -241,8 +242,13 @@ export default function Sidebar() {
 
         <SectionDivider />
 
-        <NavItem label="Kyn ROI"  href="/kyn-roi"     icon={TrendingUp} isActive={active('/kyn-roi') && !active('/kyn-roi-log')} />
-        <NavItem label="Dev Logs" href="/kyn-roi-log" icon={ScrollText} isActive={active('/kyn-roi-log')} />
+        <SectionHeader label="Vendor Analytics" open={vendorOpen} onToggle={() => setVendorOpen(o => !o)} />
+        {vendorOpen && (
+          <div className="space-y-px">
+            <NavItem label="Kyn ROI"  href="/kyn-roi"     icon={TrendingUp} isActive={active('/kyn-roi') && !active('/kyn-roi-log')} />
+            <NavItem label="Dev Logs" href="/kyn-roi-log" icon={ScrollText} isActive={active('/kyn-roi-log')} />
+          </div>
+        )}
 
         <SectionDivider />
 
