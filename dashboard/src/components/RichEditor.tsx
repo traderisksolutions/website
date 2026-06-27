@@ -66,8 +66,9 @@ export function RichEditor({
       // Apply editor content styles
       const editorEl = mountRef.current.querySelector<HTMLElement>('.ql-editor')
       if (editorEl) {
+        const editorPadding = borderless ? '8px 0' : '10px 12px'
         editorEl.style.cssText +=
-          `;font-size:13px;line-height:1.65;color:#1e3a5f;font-family:inherit;min-height:${minHeight}px;padding:10px 12px;outline:none`
+          `;font-size:13px;line-height:1.65;color:#1e3a5f;font-family:inherit;min-height:${minHeight}px;padding:${editorPadding};outline:none`
         // Inject responsive image style so inserted images don't overflow the editor
         const styleEl = document.createElement('style')
         styleEl.textContent = '.ql-editor img{max-width:100%;height:auto;display:block;margin:8px 0;border-radius:4px}'
@@ -163,6 +164,7 @@ export function RichEditor({
       <div style={{
         display: 'flex', alignItems: 'center', gap: 2,
         padding: '5px 8px',
+        padding: borderless ? '5px 0' : '5px 8px',
         borderBottom: borderless ? 'none' : '1px solid #e5e7eb',
         background: borderless ? 'transparent' : '#f8fafc',
         flexWrap: 'wrap',

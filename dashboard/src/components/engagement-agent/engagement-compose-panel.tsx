@@ -380,7 +380,7 @@ export function EngagementComposePanel({
           </div>
 
           {/* ── Editor ── */}
-          <div className="px-0">
+          <div className="px-5 pt-1 pb-2">
             <RichEditor
               key={draftEditorKey}
               initialHtml={draftHtml}
