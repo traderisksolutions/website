@@ -288,9 +288,9 @@ const TAG_COLORS: Record<string, string> = {
 }
 
 function LogsTab() {
-  const [logs,    setLogs]    = useState<DevLogEntry[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error,   setError]   = useState<string | null>(null)
+  const [logs,     setLogs]     = useState<DevLogEntry[]>([])
+  const [loading,  setLoading]  = useState(true)
+  const [error,    setError]    = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
   useEffect(() => {
@@ -315,49 +315,50 @@ function LogsTab() {
     })
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20 text-[13px] text-muted-foreground">
-        Loading logs…
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="px-4 py-3 rounded-lg bg-destructive/6 border border-destructive/20 text-[13px] text-destructive">
-        Failed to load logs: {error}
-      </div>
-    )
-  }
-
-  if (logs.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground">
-        <ChevronRight size={28} strokeWidth={1.5} className="opacity-25" />
-        <p className="text-[13px]">No log entries yet. Ask Claude to add one at the end of a session.</p>
-      </div>
-    )
-  }
-
   return (
     <Card>
       {/* Column headers */}
-      <div className="flex items-center gap-4 px-5 py-2.5 border-b border-[--border-subtle]">
-        <div className="w-24 flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <div className="flex items-center gap-4 px-5 py-3 border-b border-[--border-subtle] bg-muted/20 rounded-t-lg">
+        <div className="w-28 flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Date
         </div>
-        <div className="w-20 flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="w-24 flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Project
         </div>
         <div className="flex-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Session
         </div>
-        <div className="w-32 flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="w-36 flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hidden sm:block">
           Tags
         </div>
         <div className="w-5 flex-shrink-0" />
       </div>
+
+      {/* Loading */}
+      {loading && (
+        <div className="flex items-center justify-center py-16 text-[13px] text-muted-foreground gap-2">
+          <RefreshCw size={14} strokeWidth={2} className="animate-spin opacity-50" />
+          Loading logs…
+        </div>
+      )}
+
+      {/* Error */}
+      {!loading && error && (
+        <div className="mx-5 my-4 px-4 py-3 rounded-lg bg-destructive/6 border border-destructive/20 text-[12.5px] text-destructive">
+          Could not load logs — {error}
+        </div>
+      )}
+
+      {/* Empty */}
+      {!loading && !error && logs.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
+          <Info size={24} strokeWidth={1.5} className="opacity-30" />
+          <div className="text-center">
+            <p className="text-[13px] font-medium">No log entries yet</p>
+            <p className="text-[12px] text-muted-foreground/70 mt-1">Say "add to logs" at the end of a session and Claude will write one.</p>
+          </div>
+        </div>
+      )}
 
       {/* Rows */}
       {logs.map((log, idx) => {
@@ -369,21 +370,21 @@ function LogsTab() {
               onClick={() => toggle(log.id)}
               aria-expanded={open}
               className={cn(
-                'w-full text-left flex items-center gap-4 px-5 py-3.5 transition-colors group',
+                'w-full text-left flex items-center gap-4 px-5 py-4 transition-colors',
                 !isLast && 'border-b border-[--border-subtle]',
                 open ? 'bg-muted/30' : 'hover:bg-muted/20',
               )}
             >
               {/* Date */}
-              <div className="w-24 flex-shrink-0">
-                <p className="text-[12px] font-medium text-foreground tabular-nums">
+              <div className="w-28 flex-shrink-0">
+                <p className="text-[12px] font-semibold text-foreground tabular-nums">
                   {fmtDate(log.session_date)}
                 </p>
               </div>
 
               {/* Project */}
-              <div className="w-20 flex-shrink-0">
-                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/8 text-primary">
+              <div className="w-24 flex-shrink-0">
+                <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-md bg-primary/8 text-primary">
                   {PROJECT_LABELS[log.project] ?? log.project}
                 </span>
               </div>
@@ -391,15 +392,13 @@ function LogsTab() {
               {/* Title */}
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-semibold text-foreground truncate">{log.title}</p>
-                {!open && (
-                  <p className="text-[11px] text-muted-foreground/70 truncate mt-0.5">
-                    {log.changes.length} change{log.changes.length !== 1 ? 's' : ''}
-                  </p>
-                )}
+                <p className="text-[11px] text-muted-foreground/60 mt-0.5">
+                  {log.changes.length} change{log.changes.length !== 1 ? 's' : ''}
+                </p>
               </div>
 
               {/* Tags */}
-              <div className="w-32 flex-shrink-0 flex flex-wrap gap-1">
+              <div className="w-36 flex-shrink-0 flex flex-wrap gap-1 hidden sm:flex">
                 {(log.tags ?? []).slice(0, 3).map(tag => (
                   <span
                     key={tag}
