@@ -10,7 +10,7 @@ import {
   Bot, Table2, UsersRound,
   LogOut, BookOpen, Cpu, FolderOpen,
   Telescope, Megaphone, Settings, FlaskConical,
-  LayoutDashboard,
+  LayoutDashboard, TrendingUp,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -133,6 +133,8 @@ export default function Sidebar() {
           <CollapsedIcon icon={FolderOpen}   href="/analytics/rag-index" isActive={active('/analytics/rag-index')} label="RAG Index" />
           <CollapsedIcon icon={FlaskConical} href="/analytics/eval"      isActive={active('/analytics/eval')}      label="Email Evaluation" />
           <IconDivider />
+          <CollapsedIcon icon={TrendingUp} href="/kyn-roi" isActive={active('/kyn-roi')} label="Kyn ROI" />
+          <IconDivider />
           <CollapsedIcon icon={Settings} href="/settings" isActive={active('/settings')} label="Settings" />
         </nav>
 
@@ -235,6 +237,10 @@ export default function Sidebar() {
             <NavItem label="Email Evaluation" href="/analytics/eval"      icon={FlaskConical} isActive={active('/analytics/eval')} />
           </div>
         )}
+
+        <SectionDivider />
+
+        <NavItem label="Kyn ROI" href="/kyn-roi" icon={TrendingUp} isActive={active('/kyn-roi')} />
 
         <SectionDivider />
 

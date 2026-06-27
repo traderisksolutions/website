@@ -3,12 +3,13 @@
 import { useEffect, useState, useCallback, useMemo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useAuditLog } from '@/hooks/useAuditLog'
-import { cn } from '@/lib/utils'
 import type { Lead, ThreadState } from '@/components/engagement/types'
 import { EMAIL_SOURCES, ENGAGED_STATUSES } from '@/components/engagement/types'
 import { matchesSearch } from '@/components/engagement/helpers'
 import { ConversationList } from '@/components/engagement/ConversationList'
 import { ThreadView } from '@/components/engagement/ThreadView'
+import { EngagementShell } from '@/components/engagement/shell'
+import { EaListPanel, EaWorkspaceArea, EaWorkspaceEmptyState } from '@/components/engagement/EaLayout'
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 
@@ -222,15 +223,11 @@ function EngagementPageInner() {
   const selectedThread = selectedId ? threadMap[selectedId] : undefined
 
   return (
-    <div className="flex h-[calc(100vh-var(--mobile-nav-h,0px))] overflow-hidden flex-col">
+    <EngagementShell>
       <div className="flex flex-1 overflow-hidden">
 
         {/* ── Left panel ── */}
-        <div className={cn(
-          'w-80 flex-shrink-0 border-r border-[--border-subtle] bg-card flex flex-col overflow-hidden',
-          // Mobile: hide when viewing thread
-          mobilePanelView === 'thread' && 'max-lg:hidden',
-        )}>
+        <EaListPanel mobileHidden={mobilePanelView === 'thread'}>
           <ConversationList
             leads={leads}
             visible={visible}
@@ -249,13 +246,10 @@ function EngagementPageInner() {
             onGroupToggle={() => setGroupByCompany(v => !v)}
             onRefresh={() => { load(true); refreshSelectedThread() }}
           />
-        </div>
+        </EaListPanel>
 
-        {/* ── Right: thread area ── */}
-        <div className={cn(
-          'flex-1 flex min-w-0 overflow-hidden',
-          mobilePanelView === 'list' && 'max-lg:hidden',
-        )}>
+        {/* ── Thread workspace ── */}
+        <EaWorkspaceArea mobileHidden={mobilePanelView === 'list'}>
           {selectedLead ? (
             <ThreadView
               lead={selectedLead}
@@ -267,20 +261,20 @@ function EngagementPageInner() {
               onBack={() => setMobilePanelView('list')}
             />
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center gap-2 text-muted-foreground">
-              <p className="text-[13px] font-medium">Select a conversation</p>
-              <p className="text-[12px]">
-                {loading
+            <EaWorkspaceEmptyState
+              title="Select a conversation"
+              body={
+                loading
                   ? 'Loading…'
                   : leads.length === 0
                     ? 'No engaged leads yet. Change a lead status to Contacted or above.'
-                    : 'Choose from the list on the left.'}
-              </p>
-            </div>
+                    : 'Choose from the list on the left.'
+              }
+            />
           )}
-        </div>
+        </EaWorkspaceArea>
       </div>
-    </div>
+    </EngagementShell>
   )
 }
 

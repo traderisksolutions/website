@@ -5,7 +5,7 @@ import { Search, RefreshCw, X, Building2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Lead, ThreadState } from './types'
 import { EMAIL_SOURCES, PERSONAL_DOMAINS } from './types'
-import { ConversationRow } from './ConversationRow'
+import { EngagementThreadRow } from '@/components/engagement-agent/engagement-thread-row'
 import { domainOf, companyLabel, needsReply as calcNeedsReply } from './helpers'
 
 type EngagementTab = 'all' | 'prospects' | 'clients'
@@ -168,7 +168,7 @@ export function ConversationList({
           groupByCompany
             ? <GroupedList visible={visible} threadMap={threadMap} selectedId={selectedId} onSelect={onSelect} />
             : visible.map(lead => (
-                <ConversationRow
+                <EngagementThreadRow
                   key={lead.id}
                   lead={lead}
                   isActive={lead.id === selectedId}
@@ -211,7 +211,7 @@ function GroupedList({ visible, threadMap, selectedId, onSelect }: {
             )}
           </div>
           {group.map(lead => (
-            <ConversationRow
+            <EngagementThreadRow
               key={lead.id}
               lead={lead}
               isActive={lead.id === selectedId}

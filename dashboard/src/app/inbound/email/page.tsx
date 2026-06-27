@@ -1,562 +1,18 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef, Suspense, Fragment } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
-import { RefreshCw, ChevronDown, ChevronUp, Copy, Check, X, Search, MessageCircle, Mail, Globe, Pencil, Sparkles, Send } from 'lucide-react'
-import { useAuditLog } from '@/hooks/useAuditLog'
+import { useSearchParams } from 'next/navigation'
+import { RefreshCw, Search, X, Sparkles } from 'lucide-react'
 import { Tip } from '@/components/Tip'
 import { cn } from '@/lib/utils'
-import { StatusBadge } from '@/components/status-badge'
-import type { AppStatus } from '@/components/status-badge'
-import { RichEditor, plainToHtml } from '@/components/RichEditor'
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-type Lead = {
-  id: string; created_at: string; source: string
-  first_name: string | null; last_name: string | null
-  email: string | null; phone: string | null; company: string | null
-  department: string | null; contact_type: string | null
-  topic: string | null; details: string | null; message: string | null
-  page_url: string | null; status: string; notes?: string | null
-  ai_draft_id: string | null; ai_draft_at: string | null
-}
-
-type Filter = 'all' | 'new' | 'email' | 'whatsapp'
-
-// ── Constants ─────────────────────────────────────────────────────────────────
-
-const WA_SOURCES    = new Set(['whatsapp_click'])
-const EMAIL_SOURCES = new Set(['website_form', 'email', 'manual'])
-const ALL_SOURCES   = new Set([...Array.from(WA_SOURCES), ...Array.from(EMAIL_SOURCES)])
-
-const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
-  new:       { label: 'New',       color: '#1d4ed8', bg: 'rgba(59,130,246,0.10)'  },
-  contacted: { label: 'Contacted', color: '#b45309', bg: 'rgba(245,158,11,0.10)'  },
-  engaged:   { label: 'Engaged',   color: '#2563eb', bg: 'rgba(37,99,235,0.10)'   },
-  qualified: { label: 'Qualified', color: '#15803d', bg: 'rgba(34,197,94,0.10)'   },
-  proposal:  { label: 'Proposal',  color: '#d97706', bg: 'rgba(217,119,6,0.10)'   },
-  converted: { label: 'Converted', color: '#7e22ce', bg: 'rgba(168,85,247,0.10)'  },
-  dropped:   { label: 'Dropped',   color: '#4b5563', bg: 'rgba(107,114,128,0.10)' },
-}
-const ALL_STATUSES = ['new', 'contacted', 'engaged', 'qualified', 'proposal', 'converted', 'dropped']
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function fullName(l: Lead) {
-  return [l.first_name, l.last_name].filter(Boolean).join(' ') || '—'
-}
-function displayName(l: Lead) {
-  const n = fullName(l)
-  return n !== '—' ? n : l.email ?? l.phone ?? '—'
-}
-function channelOf(l: Lead): 'whatsapp' | 'email' | 'manual' {
-  if (WA_SOURCES.has(l.source)) return 'whatsapp'
-  if (l.source === 'manual') return 'manual'
-  return 'email'
-}
-function messagePreview(l: Lead) { return l.details || l.message || '' }
-function timeAgo(iso: string) {
-  const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
-  if (m < 1)  return 'just now'
-  if (m < 60) return `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h ago`
-  const d = Math.floor(h / 24)
-  if (d < 30) return `${d}d ago`
-  return new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleString('en-SG', {
-    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-  })
-}
-
-// ── Channel badge ─────────────────────────────────────────────────────────────
-
-function ChannelBadge({ source }: { source: string }) {
-  if (WA_SOURCES.has(source)) {
-    return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-[5px] bg-emerald-500/10 text-emerald-700 whitespace-nowrap">
-        <MessageCircle size={10} />WhatsApp
-      </span>
-    )
-  }
-  if (source === 'website_form') {
-    return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-[5px] bg-blue-500/10 text-blue-700 whitespace-nowrap">
-        <Globe size={10} />Website
-      </span>
-    )
-  }
-  if (source === 'manual') {
-    return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-[5px] bg-muted text-muted-foreground whitespace-nowrap">
-        <Pencil size={10} />Manual
-      </span>
-    )
-  }
-  return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-[5px] bg-blue-500/10 text-blue-700 whitespace-nowrap">
-      <Mail size={10} />Email
-    </span>
-  )
-}
-
-// ── Status dropdown ───────────────────────────────────────────────────────────
-
-function StatusDropdown({ lead, onChange }: { lead: Lead; onChange: (id: string, s: string) => void }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  const st  = STATUS_MAP[lead.status] ?? STATUS_MAP.new
-
-  useEffect(() => {
-    if (!open) return
-    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
-    document.addEventListener('mousedown', h)
-    return () => document.removeEventListener('mousedown', h)
-  }, [open])
-
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        onClick={e => { e.stopPropagation(); setOpen(v => !v) }}
-        className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-[6px] border-0 cursor-pointer whitespace-nowrap"
-        style={{ background: st.bg, color: st.color }}
-      >
-        {st.label} <ChevronDown size={10} strokeWidth={2.5} />
-      </button>
-      {open && (
-        <div className="absolute top-[calc(100%+4px)] left-0 bg-card rounded-[10px] z-[100] py-1 min-w-[140px]" style={{ boxShadow: 'var(--shadow-panel)', border: '1px solid var(--border-subtle)' }}>
-          {ALL_STATUSES.map(s => {
-            const sc = STATUS_MAP[s]
-            return (
-              <button key={s} onClick={e => { e.stopPropagation(); onChange(lead.id, s); setOpen(false) }}
-                className="w-full text-left px-3 py-1.5 text-[12px] bg-transparent border-0 cursor-pointer flex items-center gap-2 hover:bg-muted/50"
-                style={{ fontWeight: lead.status === s ? 600 : 400, color: lead.status === s ? sc.color : 'hsl(var(--muted-foreground))' }}
-              >
-                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: sc.color }} />
-                {sc.label}
-              </button>
-            )
-          })}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ── Detail panel ──────────────────────────────────────────────────────────────
-
-function DetailPanel({ lead, onStatus, onClose, onNotesSave }: { lead: Lead; onStatus: (id: string, s: string) => void; onClose: () => void; onNotesSave: (id: string, notes: string) => void }) {
-  const [copied,    setCopied]    = useState<string | null>(null)
-  const [notesText, setNotesText] = useState(lead.notes ?? '')
-
-  useEffect(() => { setNotesText(lead.notes ?? '') }, [lead.id]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const ch  = channelOf(lead)
-  const msg = messagePreview(lead)
-
-  function copy(text: string, key: string) {
-    navigator.clipboard.writeText(text)
-    setCopied(key); setTimeout(() => setCopied(null), 1500)
-  }
-
-  return (
-    <div className="flex flex-col h-full">
-
-      {/* Header */}
-      <div className="detail-section flex items-start justify-between gap-2 flex-shrink-0">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-            <ChannelBadge source={lead.source} />
-            <StatusBadge status={lead.status as AppStatus} />
-          </div>
-          <p className="text-[14px] font-semibold text-foreground m-0 leading-tight">{displayName(lead)}</p>
-          {lead.company && <p className="text-[12px] text-muted-foreground mt-0.5 mb-0">{lead.company}</p>}
-        </div>
-        <button onClick={onClose}
-          aria-label="Close"
-          className="p-1 rounded-md hover:bg-muted transition-colors text-muted-foreground/50 hover:text-muted-foreground flex-shrink-0"
-          style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-          <X size={14} />
-        </button>
-      </div>
-
-      {/* Status */}
-      <div className="detail-section">
-        <p className="detail-section-label">
-          Status <Tip placement="right" text="Update this as the conversation progresses — from New to Contacted once you've replied, through to Converted when a policy is placed." />
-        </p>
-        <StatusDropdown lead={lead} onChange={onStatus} />
-      </div>
-
-      {/* Contact info */}
-      <div className="detail-section">
-        <p className="detail-section-label">Contact</p>
-        <div className="flex flex-col gap-2.5">
-          {(lead.first_name || lead.last_name) && (
-            <div className="detail-field">
-              <p className="detail-field-label">Name</p>
-              <p className="detail-field-value">{fullName(lead)}</p>
-            </div>
-          )}
-          {lead.email && (
-            <div className="detail-field">
-              <p className="detail-field-label">Email</p>
-              <button onClick={() => copy(lead.email!, 'email')} className="flex items-center gap-1.5 max-w-full bg-transparent border-0 p-0 cursor-pointer text-left">
-                <span className="detail-field-value overflow-hidden text-ellipsis whitespace-nowrap max-w-[180px] block">{lead.email}</span>
-                {copied === 'email' ? <Check size={11} className="text-emerald-500 flex-shrink-0" /> : <Copy size={10} className="text-muted-foreground/30 flex-shrink-0" />}
-              </button>
-            </div>
-          )}
-          {lead.phone && (
-            <div className="detail-field">
-              <p className="detail-field-label">Phone / WhatsApp</p>
-              <button onClick={() => copy(lead.phone!, 'phone')} className="flex items-center gap-1.5 bg-transparent border-0 p-0 cursor-pointer">
-                <span className="detail-field-value">{lead.phone}</span>
-                {copied === 'phone' ? <Check size={11} className="text-emerald-500 flex-shrink-0" /> : <Copy size={10} className="text-muted-foreground/30 flex-shrink-0" />}
-              </button>
-            </div>
-          )}
-          {ch === 'whatsapp' && lead.phone && (
-            <a href={`https://wa.me/${lead.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-500/8 border border-emerald-500/20 rounded-lg px-2.5 py-1.5 no-underline w-fit">
-              <MessageCircle size={12} /> Open in WhatsApp
-            </a>
-          )}
-        </div>
-      </div>
-
-      {/* Lead info */}
-      <div className="detail-section">
-        <p className="detail-section-label">Lead Info</p>
-        <div className="flex flex-col gap-2.5">
-          {lead.topic        && <DetailField label="Topic"      value={lead.topic} />}
-          {lead.department   && <DetailField label="Department" value={lead.department} />}
-          {lead.contact_type && <DetailField label="Type"       value={lead.contact_type} />}
-          <DetailField label="Source"   value={lead.source.replace(/_/g, ' ')} />
-          <DetailField label="Received" value={fmtDate(lead.created_at)} />
-          {lead.page_url && <DetailField label="Page" value={lead.page_url} small />}
-        </div>
-      </div>
-
-      {/* Message */}
-      {msg && (
-        <div className="detail-section">
-          <p className="detail-section-label">Original Message</p>
-          <p className="text-[12px] text-foreground/80 whitespace-pre-wrap leading-[1.65] bg-muted/40 rounded-lg px-3 py-2.5 m-0">
-            {msg}
-          </p>
-        </div>
-      )}
-
-      {/* Notes */}
-      <div className="detail-section flex-1">
-        <p className="detail-section-label">
-          Internal Notes <Tip placement="right" text="Only visible to your TRS team — the contact never sees these. Use this to record context like which insurer to quote, a follow-up date, or notes from a call." />
-        </p>
-        <textarea
-          value={notesText}
-          onChange={e => setNotesText(e.target.value)}
-          onBlur={() => onNotesSave(lead.id, notesText)}
-          placeholder="Add notes…" rows={4}
-          className="w-full box-border text-[12px] text-foreground leading-[1.6] border border-border rounded-lg px-2.5 py-2 resize-none bg-muted/30 outline-none font-sans focus:ring-1 focus:ring-ring"
-        />
-      </div>
-    </div>
-  )
-}
-
-// ── Inline AI Reply row ───────────────────────────────────────────────────────
-
-type InboundSender    = { email: string; label: string; type: 'shared' | 'personal'; verified: boolean }
-type InboundSigOption = {
-  id: string; name: string; title: string | null; phone: string | null
-  email: string | null; company_tagline: string | null; sending_email: string | null
-}
-
-function buildSigHtml(sig: InboundSigOption): string {
-  return [
-    '<br>',
-    '<hr style="margin:16px 0;border:none;border-top:1px solid #e5e7eb">',
-    `<p style="margin:0;font-size:13px;color:#1e3a5f;font-weight:600">${sig.name}</p>`,
-    sig.title           ? `<p style="margin:4px 0 0;font-size:12px;color:#666">${sig.title}</p>` : '',
-    sig.phone           ? `<p style="margin:4px 0 0;font-size:12px;color:#666">${sig.phone}</p>` : '',
-    sig.email           ? `<p style="margin:4px 0 0;font-size:12px;color:#666"><a href="mailto:${sig.email}" style="color:#1d4ed8;text-decoration:none">${sig.email}</a></p>` : '',
-    sig.company_tagline ? `<p style="margin:4px 0 0;font-size:12px;color:#999">${sig.company_tagline}</p>` : '<p style="margin:4px 0 0;font-size:12px;color:#999">Trade Risk Solutions</p>',
-  ].filter(Boolean).join('\n')
-}
-
-function InlineReplyRow({ lead, onStatus, onCollapse }: {
-  lead:       Lead
-  onStatus:   (id: string, s: string) => void
-  onCollapse: () => void
-}) {
-  const router = useRouter()
-  const log    = useAuditLog()
-  const msg    = messagePreview(lead)
-
-  const alreadySent = lead.status !== 'new' && lead.status !== 'dropped'
-  const [draftHtml,      setDraftHtml]      = useState('')
-  const [draftEditorKey, setDraftEditorKey] = useState(0)
-  const [draftId,        setDraftId]        = useState<string | null>(null)
-  const [generating,     setGenerating]     = useState(false)
-  const [sending,        setSending]        = useState(false)
-  const [sendError,      setSendError]      = useState<string | null>(null)
-  const [sent,           setSent]           = useState(alreadySent)
-  const hasLoadedRef = useRef(false)
-
-  // Sender + signature state
-  const [senders,           setSenders]           = useState<InboundSender[]>([])
-  const [selectedFromEmail, setSelectedFromEmail] = useState<string>('')
-  const [signatures,        setSignatures]        = useState<InboundSigOption[]>([])
-  const [selectedSigId,     setSelectedSigId]     = useState<string>('')
-
-  const selectedSig = signatures.find(s => s.id === selectedSigId) ?? null
-  const sigHtml     = selectedSig ? buildSigHtml(selectedSig) : ''
-
-  // Load senders + signatures once on mount
-  useEffect(() => {
-    Promise.all([
-      fetch('/api/email/available-senders').then(r => r.ok ? r.json() : []),
-      fetch('/api/signatures').then(r => r.ok ? r.json() : []),
-    ]).then(([senderRows, sigRows]: [InboundSender[], InboundSigOption[]]) => {
-      const ss = Array.isArray(senderRows) ? senderRows : []
-      if (ss.length > 0) { setSenders(ss); setSelectedFromEmail(ss[0].email) }
-      setSignatures(Array.isArray(sigRows) ? sigRows : [])
-    }).catch(() => {})
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Auto-select signature tied to the chosen FROM address
-  useEffect(() => {
-    if (!selectedFromEmail) return
-    const matched = signatures.find(s => s.sending_email?.toLowerCase() === selectedFromEmail.toLowerCase())
-    setSelectedSigId(matched?.id ?? '')
-  }, [selectedFromEmail, signatures])
-
-  // Auto-load existing draft once on mount
-  useEffect(() => {
-    if (hasLoadedRef.current || sent) return
-    if (!lead.ai_draft_id || !lead.email) return
-    hasLoadedRef.current = true
-    setGenerating(true)
-    fetch(`/api/inbound/auto-draft?leadId=${lead.id}`)
-      .then(r => r.ok ? r.json() : null)
-      .then((d: { content: string | null; draftId: string | null } | null) => {
-        if (d?.content) {
-          setDraftHtml(plainToHtml(d.content))
-          setDraftId(d.draftId)
-          setDraftEditorKey(k => k + 1)
-        }
-      })
-      .catch(() => {})
-      .finally(() => setGenerating(false))
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function generateDraft() {
-    setGenerating(true); setSendError(null)
-    try {
-      const res  = await fetch('/api/inbound/auto-draft', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leadId: lead.id, force: true }),
-      })
-      const data = await res.json()
-      if (data.content) {
-        setDraftHtml(plainToHtml(data.content))
-        setDraftId(data.draftId ?? null)
-        setDraftEditorKey(k => k + 1)
-        log({ action: 'draft.generated', resource_type: 'inbound_lead', resource_id: lead.id, metadata: { contact: displayName(lead) } })
-      } else {
-        setSendError(data.error ?? 'Failed to generate draft')
-      }
-    } catch { setSendError('Network error') }
-    finally { setGenerating(false) }
-  }
-
-  async function sendReply() {
-    const finalHtml = sigHtml ? draftHtml + sigHtml : draftHtml
-    if (!lead.email || !finalHtml.replace(/<[^>]+>/g, '').trim()) return
-    setSending(true); setSendError(null)
-    try {
-      const res  = await fetch('/api/inbound/reply', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          leadId: lead.id, name: displayName(lead), email: lead.email,
-          company: lead.company, topic: lead.topic,
-          originalMessage: msg,
-          htmlBody:  finalHtml,
-          fromEmail: selectedFromEmail || undefined,
-          draftId:   draftId ?? null,
-        }),
-      })
-      const data = await res.json()
-      if (data.ok) {
-        setSent(true)
-        onStatus(lead.id, 'contacted')
-        log({ action: 'draft.approved', resource_type: 'inbound_lead', resource_id: lead.id, metadata: { contact: displayName(lead), chars: finalHtml.length } })
-        router.push(`/engagement?lead=${lead.id}`)
-      } else {
-        setSendError(data.error ?? 'Send failed')
-      }
-    } catch { setSendError('Network error') }
-    finally { setSending(false) }
-  }
-
-  const hasDraft = draftHtml.replace(/<[^>]+>/g, '').trim().length > 0
-
-  if (sent) {
-    return (
-      <tr>
-        <td colSpan={9} className="px-4 py-3 bg-emerald-50 border-b border-emerald-100">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <Check size={14} className="text-emerald-600 flex-shrink-0" />
-              <span className="text-[12px] text-emerald-700 font-medium">Reply sent to {lead.email}</span>
-              <a href={`/engagement?lead=${lead.id}`}
-                className="text-[11px] font-semibold text-emerald-700 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-2 py-1 no-underline hover:bg-emerald-500/15">
-                View in Engagement Agent →
-              </a>
-            </div>
-            <button onClick={onCollapse} className="bg-transparent border-0 p-0 cursor-pointer text-emerald-400 hover:text-emerald-600">
-              <ChevronUp size={14} />
-            </button>
-          </div>
-        </td>
-      </tr>
-    )
-  }
-
-  return (
-    <tr>
-      <td colSpan={9} className="px-4 py-4 border-b" style={{ background: 'var(--primary-light-bg)' }}>
-        <div className="flex flex-col gap-3">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-[0.06em] flex items-center gap-1.5" style={{ color: 'var(--primary-hex)' }}>
-              <Sparkles size={11} /> AI Reply Draft
-              <Tip text="Draft generated from TRS FAQ docs only — no pricing included. Review and edit before sending." />
-            </span>
-            <div className="flex items-center gap-2">
-              {hasDraft && (
-                <button onClick={generateDraft} disabled={generating}
-                  className="bg-transparent border-0 cursor-pointer text-[11px] p-0"
-                  style={{ color: 'var(--text-muted)' }}>
-                  {generating ? 'Regenerating…' : 'Regenerate'}
-                </button>
-              )}
-              <button onClick={onCollapse} className="bg-transparent border-0 p-0 cursor-pointer" style={{ color: 'var(--text-muted)' }}>
-                <ChevronUp size={14} />
-              </button>
-            </div>
-          </div>
-
-          {!hasDraft && !generating ? (
-            <div className="flex items-center gap-3">
-              <button onClick={generateDraft} disabled={generating}
-                className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-md border-0 cursor-pointer"
-                style={{ background: 'var(--primary-hex)', color: '#fff' }}
-              >
-                <Sparkles size={12} /> Generate Reply
-              </button>
-              {sendError && <span className="text-[11px] text-destructive">{sendError}</span>}
-            </div>
-          ) : generating && !hasDraft ? (
-            <div className="text-[12px] flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
-              <Sparkles size={12} /> Generating…
-            </div>
-          ) : (
-            <>
-              {/* Rich editor */}
-              <div style={{ border: '1px solid var(--primary-light-border)', borderRadius: 8, overflow: 'hidden', background: '#fff' }}>
-                <RichEditor key={draftEditorKey} initialHtml={draftHtml} onChange={setDraftHtml} sigHtml={sigHtml} minHeight={160} />
-              </div>
-
-              {/* FROM + Signature row */}
-              <div className="flex flex-col gap-1.5">
-                {senders.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] w-[46px] flex-shrink-0" style={{ color: 'var(--text-muted)' }}>From</span>
-                    <select
-                      value={selectedFromEmail}
-                      onChange={e => setSelectedFromEmail(e.target.value)}
-                      className="flex-1 text-[12px] rounded-md cursor-pointer"
-                      style={{ padding: '4px 8px', border: '1px solid hsl(var(--border))', background: '#fff', color: 'var(--text-secondary)' }}
-                    >
-                      {senders.map(s => (
-                        <option key={s.email} value={s.email}>{s.label} &lt;{s.email}&gt;</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-                {signatures.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] w-[46px] flex-shrink-0" style={{ color: 'var(--text-muted)' }}>Sig</span>
-                    {selectedSig ? (
-                      <>
-                        <span className="text-[11px] rounded-md px-2 py-1 overflow-hidden text-ellipsis whitespace-nowrap max-w-[220px]"
-                          style={{ background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))', color: 'var(--text-secondary)' }}>
-                          {selectedSig.name}{selectedSig.title ? ` · ${selectedSig.title}` : ''}
-                        </span>
-                        <button onClick={() => setSelectedSigId('')} title="Remove signature"
-                          style={{ fontSize: 10, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>✕</button>
-                      </>
-                    ) : (
-                      <select
-                        value={selectedSigId}
-                        onChange={e => setSelectedSigId(e.target.value)}
-                        className="flex-1 text-[12px] rounded-md cursor-pointer"
-                        style={{ padding: '4px 8px', border: '1px solid hsl(var(--border))', background: '#fff', color: 'var(--text-secondary)' }}
-                      >
-                        <option value="">— No signature —</option>
-                        {signatures.map(s => (
-                          <option key={s.id} value={s.id}>{s.name}{s.title ? ` · ${s.title}` : ''}</option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* To + Send row */}
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
-                  To: {lead.email}
-                  {selectedFromEmail && selectedFromEmail !== 'operations@trade-risksol.com' && (
-                    <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'hsl(var(--muted))', color: 'var(--text-muted)' }}>
-                      CC: operations@
-                    </span>
-                  )}
-                  <Tip text="Sent via Gmail. When sending from a personal address, operations@ is auto-CC'd so lead replies stay in the shared thread." />
-                </span>
-                <div className="flex items-center gap-2">
-                  {sendError && <span className="text-[11px] text-destructive">{sendError}</span>}
-                  <button onClick={sendReply} disabled={sending || !hasDraft}
-                    className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-md border-0 cursor-pointer disabled:opacity-50"
-                    style={{ background: sending ? 'var(--primary-light-bg)' : 'var(--primary-hex)', color: sending ? 'var(--primary-hex)' : '#fff' }}
-                  >
-                    <Send size={12} /> {sending ? 'Sending…' : 'Send Reply'}
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      </td>
-    </tr>
-  )
-}
-
-// ── Field helper ──────────────────────────────────────────────────────────────
-
-function DetailField({ label, value, small }: { label: string; value: string; small?: boolean }) {
-  return (
-    <div className="detail-field">
-      <p className="detail-field-label">{label}</p>
-      <p className={cn('detail-field-value break-all m-0', small && 'text-[11px]')}>{value}</p>
-    </div>
-  )
-}
+import { AppPageHeader } from '@/components/app-shell'
+import { ChannelBadge }     from '@/components/inbound/channel-badge'
+import { StatusDropdown }   from '@/components/inbound/status-dropdown'
+import { LeadDetailPanel }  from '@/components/inbound/lead-detail-panel'
+import { InlineReplyRow, ReplyExpandButton } from '@/components/inbound/inline-reply-row'
+import type { Lead, Filter } from '@/components/inbound/types'
+import { WA_SOURCES, EMAIL_SOURCES, ALL_SOURCES } from '@/components/inbound/constants'
+import { channelOf, displayName, messagePreview, timeAgo } from '@/components/inbound/helpers'
 
 // ── API ───────────────────────────────────────────────────────────────────────
 
@@ -602,10 +58,13 @@ function InboundLeadsPage() {
   const load = useCallback(async (spinner = false) => {
     if (spinner) setRefreshing(true)
     try {
-      const data = await fetchLeads(); setLeads(data); setError(null)
+      const data = await fetchLeads()
+      setLeads(data); setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load')
-    } finally { setLoading(false); setRefreshing(false) }
+    } finally {
+      setLoading(false); setRefreshing(false)
+    }
   }, [])
 
   useEffect(() => {
@@ -626,10 +85,10 @@ function InboundLeadsPage() {
   const emNew    = leads.filter(l => EMAIL_SOURCES.has(l.source) && l.status === 'new').length
 
   const FILTERS: { key: Filter; label: string; count: number; newCount: number }[] = [
-    { key: 'all',      label: 'All Leads',   count: leads.length, newCount: totalNew },
-    { key: 'new',      label: 'New',         count: totalNew,     newCount: 0 },
+    { key: 'all',      label: 'All Leads',    count: leads.length, newCount: totalNew },
+    { key: 'new',      label: 'New',          count: totalNew,     newCount: 0 },
     { key: 'email',    label: 'Email / Form', count: emCount,      newCount: emNew },
-    { key: 'whatsapp', label: 'WhatsApp',    count: waCount,      newCount: waNew },
+    { key: 'whatsapp', label: 'WhatsApp',     count: waCount,      newCount: waNew },
   ]
 
   const filtered = leads.filter(l => {
@@ -649,37 +108,47 @@ function InboundLeadsPage() {
   return (
     <div className="flex flex-col h-screen overflow-hidden">
 
-      {/* Top bar */}
-      <div className="px-4 sm:px-6 pt-5 pb-0 bg-background flex-shrink-0">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="page-title">Inbound Leads</h1>
-            <p className="page-subtitle">Enquiries from website forms and email</p>
-          </div>
-          <button onClick={() => load(true)}
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <AppPageHeader
+        title="Inbound Leads"
+        description="Enquiries from website forms and email"
+        actions={
+          <button
+            onClick={() => load(true)}
+            aria-label="Refresh leads"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border bg-card text-[12px] font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors cursor-pointer"
-            style={{ outline: 'none' }}>
-            <RefreshCw size={12} strokeWidth={2} className={refreshing ? 'animate-spin' : ''} />
+            style={{ outline: 'none' }}
+          >
+            <RefreshCw
+              size={12}
+              strokeWidth={2}
+              className={refreshing ? 'animate-spin' : ''}
+            />
             Refresh
           </button>
-        </div>
+        }
+      />
 
-        {/* Stat cards */}
-        {!loading && (
-          <div className="kpi-grid grid-cols-2 sm:grid-cols-4 mb-4">
-            <StatCard label="Total Leads"  value={leads.length} color="#2563eb" />
-            <StatCard label="New"          value={totalNew}     color="#2563eb" highlight />
-            <StatCard label="Email / Form" value={emCount}      sub={emNew > 0 ? `${emNew} new` : undefined} color="#7c3aed" />
-            <StatCard label="WhatsApp"     value={waCount}      sub={waNew > 0 ? `${waNew} new` : undefined} color="#0891b2" />
+      {/* ── KPI cards ──────────────────────────────────────────────────────── */}
+      {!loading && (
+        <div className="px-4 sm:px-6 py-3 bg-background flex-shrink-0 border-b border-[--border-subtle]">
+          <div className="kpi-grid grid-cols-2 sm:grid-cols-4">
+            <InboundStatCard label="Total Leads"  value={leads.length} color="#2563eb" />
+            <InboundStatCard label="New"          value={totalNew}     color="#2563eb" highlight />
+            <InboundStatCard label="Email / Form" value={emCount}      sub={emNew > 0 ? `${emNew} new` : undefined} color="#7c3aed" />
+            <InboundStatCard label="WhatsApp"     value={waCount}      sub={waNew > 0 ? `${waNew} new` : undefined} color="#0891b2" />
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Filter + search bar */}
-      <div className="px-4 sm:px-6 pb-3 flex items-center gap-2 bg-background flex-shrink-0 flex-wrap">
-        <div className="flex gap-1 flex-wrap">
+      {/* ── Filter + search bar ─────────────────────────────────────────────── */}
+      <div className="px-4 sm:px-6 py-2 bg-background flex-shrink-0 border-b border-[--border-subtle] flex items-center gap-2 flex-wrap">
+        <div className="flex gap-1 flex-wrap" role="group" aria-label="Filter leads">
           {FILTERS.map(f => (
-            <button key={f.key} onClick={() => setFilter(f.key)}
+            <button
+              key={f.key}
+              onClick={() => setFilter(f.key)}
+              aria-pressed={filter === f.key}
               className={cn('filter-pill', filter === f.key && 'active')}
             >
               {f.label}
@@ -692,26 +161,36 @@ function InboundLeadsPage() {
         </div>
 
         <div className="filter-search flex-1 max-w-[300px]">
-          <Search size={12} className="text-muted-foreground/50 flex-shrink-0" />
-          <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search name, email, phone, topic…" />
+          <Search size={12} className="text-muted-foreground/50 flex-shrink-0" aria-hidden />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search name, email, phone, topic…"
+            aria-label="Search leads"
+          />
           {search && (
-            <button onClick={() => setSearch('')} className="text-muted-foreground/50 hover:text-muted-foreground"
-              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+            <button
+              onClick={() => setSearch('')}
+              aria-label="Clear search"
+              className="text-muted-foreground/50 hover:text-muted-foreground"
+              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+            >
               <X size={11} />
             </button>
           )}
         </div>
       </div>
 
-      {/* Content */}
+      {/* ── Content ────────────────────────────────────────────────────────── */}
       <div className="flex-1 flex overflow-hidden px-4 sm:px-6 pb-6 gap-4 bg-background">
 
-        {/* Table / card list — hidden on mobile when detail panel is open */}
-        <div className={cn(
-          'flex-1 overflow-y-auto bg-card rounded-lg',
-          selectedId ? 'hidden sm:flex sm:flex-col overflow-x-auto' : 'overflow-x-auto'
-        )}>
+        {/* Table / card list */}
+        <div
+          className={cn(
+            'flex-1 overflow-y-auto bg-card rounded-lg',
+            selectedId ? 'hidden sm:flex sm:flex-col overflow-x-auto' : 'overflow-x-auto',
+          )}
+        >
           {loading ? (
             <div className="py-16 text-center text-[13px] text-muted-foreground/50">Loading…</div>
           ) : error ? (
@@ -726,15 +205,23 @@ function InboundLeadsPage() {
               <table className="hidden sm:table w-full border-collapse text-[13px] min-w-[760px]">
                 <thead>
                   <tr className="border-b border-[--border-subtle] sticky top-0 z-[1] bg-card">
-                    <Th w={110}>Channel <Tip text="Shows where this lead came from — Website = contact form, Email = direct email, WhatsApp = click-to-chat button. Manual means a team member added them." /></Th>
+                    <Th w={110}>
+                      Channel{' '}
+                      <Tip text="Shows where this lead came from — Website = contact form, Email = direct email, WhatsApp = click-to-chat button. Manual means a team member added them." />
+                    </Th>
                     <Th w={120}>First Name</Th>
                     <Th w={120}>Last Name</Th>
                     <Th w={150}>Company</Th>
                     <Th w={160}>Topic</Th>
                     <Th>Message</Th>
-                    <Th w={130}>Status <Tip text="Tracks where this lead sits in your pipeline, from New (not yet replied) to Converted (policy placed). Update this as conversations progress." /></Th>
+                    <Th w={130}>
+                      Status{' '}
+                      <Tip text="Tracks where this lead sits in your pipeline, from New (not yet replied) to Converted (policy placed). Update this as conversations progress." />
+                    </Th>
                     <Th w={90} right>Time</Th>
-                    <Th w={40} right><Tip text="Click to expand and draft a reply email inline." /></Th>
+                    <Th w={40} right>
+                      <Tip text="Click to expand and draft a reply email inline." />
+                    </Th>
                   </tr>
                 </thead>
                 <tbody>
@@ -747,25 +234,37 @@ function InboundLeadsPage() {
                       <Fragment key={lead.id}>
                         <tr
                           onClick={() => setSelectedId(lead.id === selectedId ? null : lead.id)}
-                          className={cn('border-b transition-colors cursor-pointer', isActive ? 'bg-primary/5' : isExpanded ? '' : 'hover:bg-muted/50')}
-                          style={{ background: isExpanded && !isActive ? 'var(--primary-light-bg)' : undefined, borderLeft: `3px solid ${isActive ? 'hsl(var(--primary))' : isExpanded ? 'var(--primary-hex)' : 'transparent'}` }}
+                          className={cn(
+                            'border-b transition-colors cursor-pointer',
+                            isActive ? 'bg-primary/5' : isExpanded ? '' : 'hover:bg-muted/50',
+                          )}
+                          style={{
+                            background:  isExpanded && !isActive ? 'var(--primary-light-bg)' : undefined,
+                            borderLeft: `3px solid ${isActive ? 'hsl(var(--primary))' : isExpanded ? 'var(--primary-hex)' : 'transparent'}`,
+                          }}
                         >
                           <td className="px-3.5 py-2.5 align-middle">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              {lead.status === 'new' && <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />}
+                              {lead.status === 'new' && (
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" aria-label="New lead" />
+                              )}
                               <ChannelBadge source={lead.source} />
                               {lead.ai_draft_id && (
                                 <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 whitespace-nowrap">
-                                  <Sparkles size={8} />AI
+                                  <Sparkles size={8} aria-hidden />AI
                                 </span>
                               )}
                             </div>
                           </td>
                           <td className="px-3 py-2.5 align-middle">
-                            <span className={cn('text-foreground', lead.status === 'new' ? 'font-semibold' : 'font-normal')}>{lead.first_name || '—'}</span>
+                            <span className={cn('text-foreground', lead.status === 'new' ? 'font-semibold' : 'font-normal')}>
+                              {lead.first_name || '—'}
+                            </span>
                           </td>
                           <td className="px-3 py-2.5 align-middle">
-                            <span className={cn('text-foreground', lead.status === 'new' ? 'font-semibold' : 'font-normal')}>{lead.last_name || '—'}</span>
+                            <span className={cn('text-foreground', lead.status === 'new' ? 'font-semibold' : 'font-normal')}>
+                              {lead.last_name || '—'}
+                            </span>
                           </td>
                           <td className="px-3 py-2.5 align-middle text-muted-foreground max-w-0">
                             <span className="block overflow-hidden text-ellipsis whitespace-nowrap">{lead.company || '—'}</span>
@@ -776,25 +275,22 @@ function InboundLeadsPage() {
                           <td className="px-3 py-2.5 align-middle text-muted-foreground/60 max-w-0 text-[12px]">
                             <span className="block overflow-hidden text-ellipsis whitespace-nowrap">{msg || '—'}</span>
                           </td>
-                          <td className="px-3 py-2.5 align-middle"><StatusDropdown lead={lead} onChange={handleStatus} /></td>
-                          <td className="px-3.5 py-2.5 align-middle text-right text-muted-foreground/50 text-[11px] whitespace-nowrap">{timeAgo(lead.created_at)}</td>
-                          <td className="px-2 py-2.5 align-middle text-right">
+                          <td className="px-3 py-2.5 align-middle" onClick={e => e.stopPropagation()}>
+                            <StatusDropdown lead={lead} onChange={handleStatus} />
+                          </td>
+                          <td className="px-3.5 py-2.5 align-middle text-right text-muted-foreground/50 text-[11px] whitespace-nowrap">
+                            {timeAgo(lead.created_at)}
+                          </td>
+                          <td className="px-2 py-2.5 align-middle text-right" onClick={e => e.stopPropagation()}>
                             {isEmail && (
-                              <button
+                              <ReplyExpandButton
+                                isExpanded={isExpanded}
                                 onClick={e => { e.stopPropagation(); setExpandedId(isExpanded ? null : lead.id) }}
-                                className={cn(
-                                  'inline-flex items-center justify-center cursor-pointer p-1 rounded transition-colors',
-                                  isExpanded
-                                    ? 'border border-border text-primary hover:bg-muted/50'
-                                    : 'bg-muted/50 border border-border text-muted-foreground hover:bg-muted hover:text-foreground'
-                                )}
-                                title={isExpanded ? 'Collapse' : 'Draft & send reply'}
-                              >
-                                {isExpanded ? <ChevronUp size={14} /> : <Send size={14} />}
-                              </button>
+                              />
                             )}
                           </td>
                         </tr>
+
                         {isExpanded && isEmail && (
                           <InlineReplyRow
                             lead={lead}
@@ -814,29 +310,33 @@ function InboundLeadsPage() {
                   const isActive = lead.id === selectedId
                   const msg      = messagePreview(lead)
                   return (
-                    <div key={lead.id}
+                    <div
+                      key={lead.id}
                       onClick={() => setSelectedId(lead.id === selectedId ? null : lead.id)}
                       className={cn('px-4 py-3 cursor-pointer', isActive ? 'bg-primary/5' : '')}
                       style={{ borderLeft: `3px solid ${isActive ? 'hsl(var(--primary))' : 'transparent'}` }}
                     >
-                      {/* Top row: channel + name + time */}
                       <div className="flex items-center gap-2 mb-1">
-                        {lead.status === 'new' && <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />}
+                        {lead.status === 'new' && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" aria-label="New lead" />
+                        )}
                         <ChannelBadge source={lead.source} />
-                        <span className={cn('flex-1 text-[13px] truncate', lead.status === 'new' ? 'font-semibold text-foreground' : 'text-foreground')}>
+                        <span className={cn(
+                          'flex-1 text-[13px] truncate',
+                          lead.status === 'new' ? 'font-semibold text-foreground' : 'text-foreground',
+                        )}>
                           {[lead.first_name, lead.last_name].filter(Boolean).join(' ') || '—'}
                         </span>
-                        <span className="text-[11px] text-muted-foreground/50 flex-shrink-0">{timeAgo(lead.created_at)}</span>
+                        <span className="text-[11px] text-muted-foreground/50 flex-shrink-0">
+                          {timeAgo(lead.created_at)}
+                        </span>
                       </div>
-                      {/* Company + topic */}
                       {(lead.company || lead.topic || lead.department) && (
                         <p className="text-[12px] text-muted-foreground truncate mb-1">
                           {[lead.company, lead.topic ?? lead.department].filter(Boolean).join(' · ')}
                         </p>
                       )}
-                      {/* Message preview */}
                       {msg && <p className="text-[12px] text-muted-foreground/60 truncate mb-1.5">{msg}</p>}
-                      {/* Status */}
                       <div onClick={e => e.stopPropagation()}>
                         <StatusDropdown lead={lead} onChange={handleStatus} />
                       </div>
@@ -854,16 +354,22 @@ function InboundLeadsPage() {
           )}
         </div>
 
-        {/* Detail panel — full-width on mobile, w-80 sidebar on desktop */}
+        {/* ── Detail panel ───────────────────────────────────────────────────── */}
         {selectedLead && (
           <div className="w-full sm:w-80 sm:flex-shrink-0 bg-card rounded-lg overflow-y-auto border border-[--border-subtle]">
             <button
               onClick={() => setSelectedId(null)}
+              aria-label="Back to leads list"
               className="sm:hidden flex items-center gap-1.5 px-4 pt-3 pb-1 text-[12px] text-muted-foreground bg-transparent border-0 cursor-pointer"
             >
               ← Back to list
             </button>
-            <DetailPanel lead={selectedLead} onStatus={handleStatus} onClose={() => setSelectedId(null)} onNotesSave={patchNotes} />
+            <LeadDetailPanel
+              lead={selectedLead}
+              onStatus={handleStatus}
+              onClose={() => setSelectedId(null)}
+              onNotesSave={patchNotes}
+            />
           </div>
         )}
       </div>
@@ -885,34 +391,49 @@ export default function InboundLeadsPageWrapper() {
 
 function Th({ children, w, right }: { children?: React.ReactNode; w?: number | string; right?: boolean }) {
   return (
-    <th className={cn(
-      'h-9 px-3 align-middle text-[10.5px] font-semibold uppercase tracking-[0.05em] text-muted-foreground whitespace-nowrap',
-      'bg-muted/30 border-b border-[--border-subtle]',
-      right ? 'text-right' : 'text-left',
-    )}
-      style={{ width: w }}>
+    <th
+      scope="col"
+      className={cn(
+        'h-9 px-3 align-middle text-[10.5px] font-semibold uppercase tracking-[0.05em] text-muted-foreground whitespace-nowrap',
+        'bg-muted/30 border-b border-[--border-subtle]',
+        right ? 'text-right' : 'text-left',
+      )}
+      style={{ width: w }}
+    >
       {children}
     </th>
   )
 }
 
-// ── Stat card ─────────────────────────────────────────────────────────────────
+// ── Inbound KPI card ──────────────────────────────────────────────────────────
+// Uses the .kpi-* global classes from globals.css — intentional design system usage.
+// The `highlight` variant creates a solid colour card for the "New" hero metric.
 
-function StatCard({ label, value, sub, color, highlight }: {
+function InboundStatCard({
+  label, value, sub, color, highlight,
+}: {
   label: string; value: number; sub?: string; color: string; highlight?: boolean
 }) {
   return (
-    <div className="kpi-card"
-      style={highlight ? { background: color, borderColor: color, boxShadow: `0 2px 8px ${color}30` } : undefined}>
-      <p className="kpi-label" style={highlight ? { color: 'rgba(255,255,255,0.80)' } : undefined}>{label}</p>
+    <div
+      className="kpi-card"
+      style={highlight ? { background: color, borderColor: color, boxShadow: `0 2px 8px ${color}30` } : undefined}
+    >
+      <p className="kpi-label" style={highlight ? { color: 'rgba(255,255,255,0.80)' } : undefined}>
+        {label}
+      </p>
       <div className="flex items-baseline gap-2">
-        <span className="kpi-value" style={highlight ? { color: '#fff' } : undefined}>{value}</span>
+        <span className="kpi-value" style={highlight ? { color: '#fff' } : undefined}>
+          {value}
+        </span>
         {sub && (
-          <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded"
+          <span
+            className="text-[11px] font-semibold px-1.5 py-0.5 rounded"
             style={{
               color:      highlight ? 'rgba(255,255,255,0.75)' : color,
               background: highlight ? 'rgba(255,255,255,0.20)' : `${color}18`,
-            }}>
+            }}
+          >
             {sub}
           </span>
         )}

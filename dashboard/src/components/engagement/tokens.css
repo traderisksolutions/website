@@ -1,0 +1,129 @@
+/* ── Engagement Agent — Scoped Design Tokens ────────────────────────────────
+   Scope:   [data-ea] attribute on the EngagementShell root element.
+   Purpose: Extend (never override) the global design system with
+            engagement-specific sizing, spacing, shadow, and type values.
+
+   These custom properties activate ONLY inside [data-ea].
+   Even if this CSS is bundled into the shared chunk by Next.js, it has zero
+   effect on any other page because no other page renders [data-ea].
+   ─────────────────────────────────────────────────────────────────────────── */
+
+[data-ea] {
+
+  /* ── Pane layout ─────────────────────────────────────────────────────────── */
+
+  /* List panel — slightly narrower than the previous w-80 (320px) */
+  --ea-list-w:    300px;
+  /* Right context/detail panel */
+  --ea-context-w: 244px;
+
+
+  /* ── Row & field sizing ──────────────────────────────────────────────────── */
+
+  /* Conversation list row height */
+  --ea-row-h:   64px;
+  /* Compose header field rows (To, CC, Subject) — Gmail-style */
+  --ea-field-h: 38px;
+
+
+  /* ── Avatar ──────────────────────────────────────────────────────────────── */
+
+  --ea-avatar-lg: 36px;
+  --ea-avatar-md: 32px;
+  --ea-avatar-sm: 24px;
+  --ea-avatar-xs: 20px;
+
+
+  /* ── Message card surfaces ───────────────────────────────────────────────── */
+
+  /* More generous rounding than the global --radius (10px) */
+  --ea-card-radius: 12px;
+  --ea-card-px:     20px;
+  --ea-card-py:     16px;
+  /* Gap between successive message cards */
+  --ea-card-gap:    16px;
+
+  /* Inbound card (received email) — neutral, calm elevation */
+  --ea-shadow-card-in:
+    0 1px 2px rgba(20, 30, 50, 0.04),
+    0 3px 10px rgba(20, 30, 50, 0.05);
+  --ea-border-card-in: rgba(16, 24, 40, 0.08);
+
+  /* Outbound card (sent email) — primary-blue tinted elevation */
+  --ea-shadow-card-out:
+    0 1px 3px rgba(12, 51, 138, 0.06),
+    0 4px 12px rgba(12, 51, 138, 0.07);
+  --ea-border-card-out: rgba(12, 51, 138, 0.12);
+
+
+  /* ── Message body typography ─────────────────────────────────────────────── */
+
+  /* Slightly larger and airier than UI text — optimised for reading emails */
+  --ea-body-size:    13.5px;
+  --ea-body-leading: 1.85;
+
+
+  /* ── Thread header bar ───────────────────────────────────────────────────── */
+
+  --ea-header-title: 14.5px;
+  --ea-header-meta:  11.5px;
+
+
+  /* ── Conversation list row typography ────────────────────────────────────── */
+
+  --ea-row-name:    12.5px;
+  --ea-row-preview: 11px;
+  --ea-row-time:    10.5px;
+
+
+  /* ── Compose panel ───────────────────────────────────────────────────────── */
+
+  /* Top accent border that separates compose from message scroll area */
+  --ea-compose-accent-border: 2px solid rgba(12, 51, 138, 0.18);
+  /* Field label (To / Subject / CC) */
+  --ea-compose-label: 10.5px;
+
+
+  /* ── Context (right) panel ───────────────────────────────────────────────── */
+
+  --ea-ctx-px:    14px;
+  --ea-ctx-py:    12px;
+  /* Uppercase micro-labels for sections and form fields */
+  --ea-ctx-label: 9.5px;
+  /* Field values, notes text, contact details */
+  --ea-ctx-value: 11.5px;
+
+
+  /* ── AI Analysis section ─────────────────────────────────────────────────── */
+
+  /* AI summary body text — slightly smaller than message body, still readable */
+  --ea-ai-body: 12px;
+  /* "Next action" callout — restrained primary tint, not a loud alert box */
+  --ea-ai-next-bg:     rgba(12, 51, 138, 0.04);
+  --ea-ai-next-border: rgba(12, 51, 138, 0.25);
+
+
+  /* ── Pill / source chip ──────────────────────────────────────────────────── */
+
+  --ea-pill-h:      18px;
+  --ea-pill-px:     7px;
+  --ea-pill-radius: 20px;
+  --ea-pill-size:   10px;
+  --ea-pill-weight: 600;
+
+
+  /* ── Section label ───────────────────────────────────────────────────────── */
+
+  --ea-section-label-size:    9.5px;
+  --ea-section-label-weight:  700;
+  --ea-section-label-spacing: 0.07em;
+
+
+  /* ── Interaction states ──────────────────────────────────────────────────── */
+
+  /* Conversation row active background — stronger than generic accent/30 */
+  --ea-row-active-bg: hsl(var(--accent));
+  /* Needs-reply indicator — reuse semantic warning token */
+  --ea-needs-reply-color: var(--warning);
+  --ea-needs-reply-bg:    var(--warning-bg);
+}

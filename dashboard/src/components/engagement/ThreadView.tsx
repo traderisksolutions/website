@@ -1,16 +1,14 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { RefreshCw, Trash2, ArrowLeft } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { Tip } from '@/components/Tip'
 import { useAuditLog } from '@/hooks/useAuditLog'
 import type { Lead, RealMsg, ThreadState, StoredSummary, RagSource } from './types'
-import { STATUS_MAP } from './types'
-import { fullName, timeAgo, extractEmail } from './helpers'
-import { MessageCard } from './MessageCard'
-import { ComposePanel } from './ComposePanel'
-import { ContextPanel } from './ContextPanel'
+import { fullName, extractEmail } from './helpers'
+import { EaWorkspaceColumn, EaMessageArea } from './EaLayout'
+import { EngagementThreadHeader } from '@/components/engagement-agent/engagement-thread-header'
+import { EngagementMessageCard } from '@/components/engagement-agent/engagement-message-card'
+import { EngagementComposePanel } from '@/components/engagement-agent/engagement-compose-panel'
+import { EngagementContextPanel } from '@/components/engagement-agent/engagement-context-panel'
 
 interface ThreadViewProps {
   lead:            Lead
@@ -26,7 +24,6 @@ export function ThreadView({
   lead, threadState, onStatus, onTransfer, onDelete, onThreadRefresh, onBack,
 }: ThreadViewProps) {
   const { thread, messages, loading, error } = threadState
-  const st         = STATUS_MAP[lead.status] ?? STATUS_MAP.contacted
   const needsReply = messages.at(-1)?.direction === 'inbound'
   const initialMsg = lead.details || lead.message
 
@@ -139,85 +136,24 @@ export function ThreadView({
     <div className="flex-1 flex min-w-0 overflow-hidden">
 
       {/* ── Center pane ── */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
+      <EaWorkspaceColumn>
 
         {/* Thread header */}
-        <div className="flex-shrink-0 px-4 py-3 border-b border-[--border-subtle] bg-card">
-          {onBack && (
-            <button
-              onClick={onBack}
-              className="lg:hidden flex items-center gap-1.5 text-[11px] text-muted-foreground mb-2.5"
-            >
-              <ArrowLeft size={12} strokeWidth={2} />
-              All conversations
-            </button>
-          )}
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                <h1 className="text-[14.5px] font-bold text-foreground tracking-tight leading-snug m-0">
-                  {thread?.subject ?? lead.subject ?? lead.topic ?? fullName(lead)}
-                </h1>
-                {needsReply && (
-                  <>
-                    <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-[--warning-bg] text-[--warning] border border-[--warning-border]">
-                      Needs reply
-                    </span>
-                    <Tip text="The last email was from the contact — they are waiting for your response." />
-                  </>
-                )}
-              </div>
-              <p className="text-[11.5px] text-muted-foreground m-0">
-                {fullName(lead)}
-                {lead.email && ` · ${lead.email}`}
-                {lead.company && ` · ${lead.company}`}
-                {messages.length > 0 && (
-                  <span className="ml-1.5 text-[10.5px] bg-muted px-1.5 py-0.5 rounded-full tabular-nums">
-                    {messages.length} email{messages.length !== 1 ? 's' : ''}
-                  </span>
-                )}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <span
-                className="text-[10.5px] font-semibold px-2.5 py-1 rounded-full"
-                style={{ background: st.bg, color: st.color }}
-              >
-                {st.label}
-              </span>
-              {confirmDelete ? (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] text-[--error]">Delete?</span>
-                  <button
-                    onClick={handleDelete}
-                    disabled={deleting}
-                    className="text-[11px] font-semibold text-white bg-[--error] rounded-md px-2.5 py-1 disabled:opacity-50"
-                  >
-                    {deleting ? 'Deleting…' : 'Confirm'}
-                  </button>
-                  <button
-                    onClick={() => setConfirmDelete(false)}
-                    className="text-[11px] text-muted-foreground"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={handleDelete}
-                  title="Delete thread"
-                  className="p-1.5 text-muted-foreground/40 hover:text-[--error] rounded-md transition-colors"
-                >
-                  <Trash2 size={13} strokeWidth={2} />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+        <EngagementThreadHeader
+          subject={thread?.subject ?? lead.subject ?? lead.topic ?? null}
+          lead={lead}
+          messageCount={messages.length}
+          needsReply={needsReply}
+          statusKey={lead.status}
+          confirmDelete={confirmDelete}
+          deleting={deleting}
+          onBack={onBack}
+          onDelete={handleDelete}
+          onCancelDelete={() => setConfirmDelete(false)}
+        />
 
         {/* ── Messages scroll region ── */}
-        <div className="flex-1 min-h-0 overflow-y-auto bg-background">
+        <EaMessageArea>
 
           {/* Campaign banner */}
           {lead.campaign_context && (
@@ -253,17 +189,17 @@ export function ThreadView({
               </div>
             )}
             {!loading && messages.map((msg, i) => (
-              <MessageCard
+              <EngagementMessageCard
                 key={msg.id}
                 msg={msg}
                 defaultOpen={i === messages.length - 1 || i === lastInboundIdx}
               />
             ))}
           </div>
-        </div>
+        </EaMessageArea>
 
-        {/* ── Compose panel (fixed at bottom) ── */}
-        <ComposePanel
+        {/* ── Compose panel ── */}
+        <EngagementComposePanel
           lead={lead}
           thread={thread}
           messages={messages}
@@ -281,16 +217,17 @@ export function ThreadView({
           onThreadRefresh={onThreadRefresh}
           pendingRestore={pendingRestore}
         />
-      </div>
+      </EaWorkspaceColumn>
 
       {/* ── Right context panel ── */}
-      <ContextPanel
+      <EngagementContextPanel
         lead={lead}
         messages={messages}
         threadId={threadId}
         summaries={summaries}
         summariesLoading={summariesLoading}
         latestMessageId={latestMessageId}
+        ragSources={ragDraft?.sources ?? []}
         onStatus={onStatus}
         onTransfer={onTransfer}
         onRefreshSummary={refreshSummaries}
