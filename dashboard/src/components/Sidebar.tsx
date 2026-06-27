@@ -10,7 +10,7 @@ import {
   Bot, Table2, UsersRound,
   LogOut, BookOpen, Cpu, FolderOpen,
   Telescope, Megaphone, Settings, FlaskConical,
-  LayoutDashboard, TrendingUp,
+  LayoutDashboard, TrendingUp, ScrollText,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -133,7 +133,8 @@ export default function Sidebar() {
           <CollapsedIcon icon={FolderOpen}   href="/analytics/rag-index" isActive={active('/analytics/rag-index')} label="RAG Index" />
           <CollapsedIcon icon={FlaskConical} href="/analytics/eval"      isActive={active('/analytics/eval')}      label="Email Evaluation" />
           <IconDivider />
-          <CollapsedIcon icon={TrendingUp} href="/kyn-roi" isActive={active('/kyn-roi')} label="Kyn ROI" />
+          <CollapsedIcon icon={TrendingUp} href="/kyn-roi"     isActive={active('/kyn-roi') && !active('/kyn-roi-log')} label="Kyn ROI" />
+          <CollapsedIcon icon={ScrollText} href="/kyn-roi-log" isActive={active('/kyn-roi-log')} label="Dev Logs" />
           <IconDivider />
           <CollapsedIcon icon={Settings} href="/settings" isActive={active('/settings')} label="Settings" />
         </nav>
@@ -240,7 +241,8 @@ export default function Sidebar() {
 
         <SectionDivider />
 
-        <NavItem label="Kyn ROI" href="/kyn-roi" icon={TrendingUp} isActive={active('/kyn-roi')} />
+        <NavItem label="Kyn ROI"  href="/kyn-roi"     icon={TrendingUp} isActive={active('/kyn-roi') && !active('/kyn-roi-log')} />
+        <NavItem label="Dev Logs" href="/kyn-roi-log" icon={ScrollText} isActive={active('/kyn-roi-log')} />
 
         <SectionDivider />
 
