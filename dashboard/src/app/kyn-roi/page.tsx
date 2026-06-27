@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { StatCard } from '@/components/stat-card'
+import { Tip } from '@/components/Tip'
 import {
   GEMINI_FEATURE_CONFIG, CAMPAIGN_ACTION_CONFIG, HOURLY_RATE_SGD,
 } from '@/lib/kyn-roi/estimation-config'
@@ -380,6 +381,7 @@ export default function KynRoiPage() {
           accent="blue"
           icon={Clock}
           loading={loading}
+          tooltip="Total manual work time recovered. Each AI event is credited a conservative time estimate: drafting a reply = 15 min, summarising a thread = 3–5 min, analysing an email = 5 min, and so on. Expand any workflow row to see the per-action breakdown."
         />
         <StatCard
           label="Automations Run"
@@ -388,6 +390,7 @@ export default function KynRoiPage() {
           accent="green"
           icon={Zap}
           loading={loading}
+          tooltip="Total automation events counted from the Gemini AI log — every draft generation, thread summary, lead analysis, outbound research action, and campaign draft across all active workflows."
         />
         <StatCard
           label="Est. Value Created"
@@ -396,6 +399,7 @@ export default function KynRoiPage() {
           accent="amber"
           icon={TrendingUp}
           loading={loading}
+          tooltip={`Hours saved × S$${HOURLY_RATE_SGD}/hr — a conservative professional services rate for Singapore. No revenue is attributed directly; no pipeline or deal data is tracked.`}
         />
         <StatCard
           label="Workflows Active"
@@ -404,6 +408,7 @@ export default function KynRoiPage() {
           accent="blue"
           icon={Layers}
           loading={loading}
+          tooltip="Distinct workflow categories with at least one automation event in the selected time period. Workflows with no activity are excluded from this count."
         />
       </div>
 
@@ -490,8 +495,9 @@ export default function KynRoiPage() {
             <div className="w-20 flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right">
               Runs
             </div>
-            <div className="w-24 flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right">
+            <div className="w-24 flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right flex items-center justify-end gap-1">
               Hours Saved
+              <Tip text="Time saved per workflow, based on conservative per-action benchmarks. Expand any row to see the count and minutes saved for each individual action type." />
             </div>
             <div className="w-24 flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right">
               Est. Value

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { Tip } from '@/components/Tip'
 
 type AccentColor = 'blue' | 'green' | 'amber' | 'red'
 
@@ -12,6 +13,7 @@ interface StatCardProps {
   loading?: boolean
   accent?: AccentColor
   icon?: React.ElementType
+  tooltip?: string
   className?: string
 }
 
@@ -23,7 +25,7 @@ const ACCENT: Record<AccentColor, { bg: string; valueColor: string }> = {
 }
 
 export function StatCard({
-  label, value, sublabel, href, urgent, loading, accent, icon: Icon, className,
+  label, value, sublabel, href, urgent, loading, accent, icon: Icon, tooltip, className,
 }: StatCardProps) {
   const ac = accent ? ACCENT[accent] : null
   const valueColor = ac ? ac.valueColor : (urgent ? '#0F3D91' : undefined)
@@ -42,9 +44,12 @@ export function StatCard({
     >
       {/* Label + icon */}
       <div className="flex items-center justify-between mb-2">
-        <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">
-          {label}
-        </p>
+        <div className="flex items-center gap-1">
+          <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">
+            {label}
+          </p>
+          {tooltip && <Tip text={tooltip} />}
+        </div>
         {Icon && (
           <Icon
             className="h-4 w-4 text-muted-foreground/50 flex-shrink-0"

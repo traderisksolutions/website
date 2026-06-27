@@ -40,7 +40,7 @@ export function EngagementContextPanel({
   return (
     <aside
       aria-label="Thread context and AI analysis"
-      className="flex-shrink-0 border-l border-[--border-subtle] bg-card flex flex-col min-h-0 overflow-y-auto"
+      className="flex-shrink-0 bg-card flex flex-col min-h-0 overflow-y-auto"
       style={{ width: 'var(--ea-context-w, 244px)' }}
     >
       {/* ── Reply state + stats ── */}
@@ -111,61 +111,62 @@ export function EngagementContextPanel({
 // ── Status picker ─────────────────────────────────────────────────────────────
 
 function StatusSection({ lead, onStatus }: { lead: Lead; onStatus: (id: string, s: string) => void }) {
-  const [open, setOpen] = useState(false)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const st = STATUS_MAP[lead.status] ?? STATUS_MAP.contacted
 
   useEffect(() => {
-    if (!open) return
+    if (!dropdownOpen) return
     const h = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpen(false)
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setDropdownOpen(false)
     }
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
-  }, [open])
+  }, [dropdownOpen])
 
   return (
-    <div className="px-4 py-3 border-b border-[--border-subtle]">
-      <CtxLabel>Status</CtxLabel>
-      <div className="relative" ref={menuRef}>
-        <button
-          onClick={() => setOpen(v => !v)}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-lg border text-[11.5px] font-semibold cursor-pointer transition-opacity hover:opacity-90"
-          style={{ background: st.bg, color: st.color, borderColor: `${st.color}28` }}
-        >
-          {st.label}
-          <ChevronDown
-            size={11}
-            strokeWidth={2.5}
-            className={cn('transition-transform opacity-60', open && 'rotate-180')}
-          />
-        </button>
-        {open && (
-          <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-card border border-[--border-subtle] rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] z-50 py-1 overflow-hidden">
-            {ALL_STATUSES.map(s => {
-              const sc = STATUS_MAP[s]
-              return (
-                <button
-                  key={s}
-                  onClick={() => { onStatus(lead.id, s); setOpen(false) }}
-                  className={cn(
-                    'w-full text-left px-3 py-2 text-[11.5px] flex items-center gap-2.5 transition-colors',
-                    'hover:bg-accent',
-                    lead.status === s ? 'font-semibold text-foreground' : 'text-foreground/70',
-                  )}
-                >
-                  <span
-                    className="w-[7px] h-[7px] rounded-full flex-shrink-0"
-                    style={{ background: sc.color }}
-                  />
-                  {sc.label}
-                </button>
-              )
-            })}
-          </div>
-        )}
+    <AccordionSection title="Status">
+      <div className="px-4 pb-3">
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setDropdownOpen(v => !v)}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-lg border text-[11.5px] font-semibold cursor-pointer transition-opacity hover:opacity-90"
+            style={{ background: st.bg, color: st.color, borderColor: `${st.color}28` }}
+          >
+            {st.label}
+            <ChevronDown
+              size={11}
+              strokeWidth={2.5}
+              className={cn('transition-transform opacity-60', dropdownOpen && 'rotate-180')}
+            />
+          </button>
+          {dropdownOpen && (
+            <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-card border border-[--border-subtle] rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] z-50 py-1 overflow-hidden">
+              {ALL_STATUSES.map(s => {
+                const sc = STATUS_MAP[s]
+                return (
+                  <button
+                    key={s}
+                    onClick={() => { onStatus(lead.id, s); setDropdownOpen(false) }}
+                    className={cn(
+                      'w-full text-left px-3 py-2 text-[11.5px] flex items-center gap-2.5 transition-colors',
+                      'hover:bg-accent',
+                      lead.status === s ? 'font-semibold text-foreground' : 'text-foreground/70',
+                    )}
+                  >
+                    <span
+                      className="w-[7px] h-[7px] rounded-full flex-shrink-0"
+                      style={{ background: sc.color }}
+                    />
+                    {sc.label}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </AccordionSection>
   )
 }
 
@@ -189,7 +190,7 @@ function TransferSection({
 
   if (lead.segment === 'existing_client') {
     return (
-      <div className="px-4 py-2.5 border-b border-[--border-subtle] flex items-center gap-2">
+      <div className="px-4 py-2.5 border-b border-[--border-subtle]/40 flex items-center gap-2">
         <ArrowRightLeft size={11} strokeWidth={2} className="text-muted-foreground/50 flex-shrink-0" />
         <div className="min-w-0">
           <span className="text-[11px] font-semibold text-foreground/70 block">Existing Client</span>
@@ -204,7 +205,7 @@ function TransferSection({
   if (!(EMAIL_SOURCES.has(lead.source) || !!lead.campaign_context)) return null
 
   return (
-    <div className="px-4 py-2.5 border-b border-[--border-subtle]">
+    <div className="px-4 py-2.5 border-b border-[--border-subtle]/40">
       {!open ? (
         <button
           onClick={() => setOpen(true)}
@@ -260,51 +261,51 @@ function ContactSection({ lead }: { lead: Lead }) {
   }
 
   return (
-    <div className="px-4 py-3 border-b border-[--border-subtle] flex flex-col gap-2.5">
-      <CtxLabel>Contact</CtxLabel>
+    <AccordionSection title="Contact">
+      <div className="px-4 pb-3 flex flex-col gap-2.5">
+        {(lead.first_name || lead.last_name) && (
+          <CtxField label="Name" value={fullName(lead)} />
+        )}
 
-      {(lead.first_name || lead.last_name) && (
-        <CtxField label="Name" value={fullName(lead)} />
-      )}
+        {lead.email && (
+          <div>
+            <CtxFieldLabel>Email</CtxFieldLabel>
+            <button
+              onClick={() => copy(lead.email!, 'email')}
+              className="flex items-start gap-1.5 text-left w-full group mt-0.5"
+            >
+              <span className="text-[11.5px] text-foreground/70 break-all leading-snug">
+                {lead.email}
+              </span>
+              <span className="flex-shrink-0 mt-[1px]">
+                {copied === 'email'
+                  ? <Check size={10} className="text-[--success]" />
+                  : <Copy size={9} className="text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors" />
+                }
+              </span>
+            </button>
+          </div>
+        )}
 
-      {lead.email && (
-        <div>
-          <CtxFieldLabel>Email</CtxFieldLabel>
-          <button
-            onClick={() => copy(lead.email!, 'email')}
-            className="flex items-start gap-1.5 text-left w-full group mt-0.5"
-          >
-            <span className="text-[11.5px] text-foreground/70 break-all leading-snug">
-              {lead.email}
-            </span>
-            <span className="flex-shrink-0 mt-[1px]">
-              {copied === 'email'
-                ? <Check size={10} className="text-[--success]" />
-                : <Copy size={9} className="text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors" />
+        {lead.phone && (
+          <div>
+            <CtxFieldLabel>Phone</CtxFieldLabel>
+            <button
+              onClick={() => copy(lead.phone!, 'phone')}
+              className="flex items-center gap-1.5 text-left w-full group mt-0.5"
+            >
+              <span className="text-[11.5px] text-foreground/70">{lead.phone}</span>
+              {copied === 'phone'
+                ? <Check size={10} className="text-[--success] flex-shrink-0" />
+                : <Copy size={9} className="text-muted-foreground/30 group-hover:text-muted-foreground/60 flex-shrink-0 transition-colors" />
               }
-            </span>
-          </button>
-        </div>
-      )}
+            </button>
+          </div>
+        )}
 
-      {lead.phone && (
-        <div>
-          <CtxFieldLabel>Phone</CtxFieldLabel>
-          <button
-            onClick={() => copy(lead.phone!, 'phone')}
-            className="flex items-center gap-1.5 text-left w-full group mt-0.5"
-          >
-            <span className="text-[11.5px] text-foreground/70">{lead.phone}</span>
-            {copied === 'phone'
-              ? <Check size={10} className="text-[--success] flex-shrink-0" />
-              : <Copy size={9} className="text-muted-foreground/30 group-hover:text-muted-foreground/60 flex-shrink-0 transition-colors" />
-            }
-          </button>
-        </div>
-      )}
-
-      {lead.company && <CtxField label="Company" value={lead.company} />}
-    </div>
+        {lead.company && <CtxField label="Company" value={lead.company} />}
+      </div>
+    </AccordionSection>
   )
 }
 
@@ -312,18 +313,19 @@ function ContactSection({ lead }: { lead: Lead }) {
 
 function EnquirySection({ lead }: { lead: Lead }) {
   return (
-    <div className="px-4 py-3 border-b border-[--border-subtle] flex flex-col gap-2.5">
-      <CtxLabel>Enquiry</CtxLabel>
-      {lead.department   && <CtxField label="Department" value={lead.department} />}
-      {lead.topic        && <CtxField label="Topic"      value={lead.topic} />}
-      {lead.contact_type && <CtxField label="Type"       value={lead.contact_type} />}
-      <CtxField
-        label="Lead since"
-        value={new Date(lead.created_at).toLocaleDateString('en-SG', {
-          day: 'numeric', month: 'short', year: 'numeric',
-        })}
-      />
-    </div>
+    <AccordionSection title="Enquiry">
+      <div className="px-4 pb-3 flex flex-col gap-2.5">
+        {lead.department   && <CtxField label="Department" value={lead.department} />}
+        {lead.topic        && <CtxField label="Topic"      value={lead.topic} />}
+        {lead.contact_type && <CtxField label="Type"       value={lead.contact_type} />}
+        <CtxField
+          label="Lead since"
+          value={new Date(lead.created_at).toLocaleDateString('en-SG', {
+            day: 'numeric', month: 'short', year: 'numeric',
+          })}
+        />
+      </div>
+    </AccordionSection>
   )
 }
 
@@ -358,35 +360,36 @@ function NotesSection({ lead }: { lead: Lead }) {
   }
 
   return (
-    <div className="px-4 py-3 border-b border-[--border-subtle]">
-      <div className="flex items-center justify-between mb-2">
-        <CtxLabel noMargin>Notes</CtxLabel>
-        <span className={cn(
-          'text-[10px] transition-colors',
-          saved ? 'text-[--success]'
-               : saving ? 'text-muted-foreground/60'
-               : dirty ? 'text-[--warning]'
-               : 'text-transparent',
-        )}>
-          {saved ? 'Saved' : saving ? 'Saving…' : dirty ? 'Unsaved' : '·'}
-        </span>
+    <AccordionSection title="Notes">
+      <div className="px-4 pb-3">
+        <div className="flex items-center justify-end mb-1.5">
+          <span className={cn(
+            'text-[10px] transition-colors',
+            saved ? 'text-[--success]'
+                 : saving ? 'text-muted-foreground/60'
+                 : dirty ? 'text-[--warning]'
+                 : 'text-transparent',
+          )}>
+            {saved ? 'Saved' : saving ? 'Saving…' : dirty ? 'Unsaved' : '·'}
+          </span>
+        </div>
+        <textarea
+          value={text}
+          onChange={e => { setText(e.target.value); setSaved(false) }}
+          onBlur={save}
+          onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); save() } }}
+          aria-label="Internal notes"
+          placeholder="Internal notes… (auto-saves on blur)"
+          rows={4}
+          className={cn(
+            'w-full text-[11.5px] text-foreground/70 leading-[1.65] resize-y',
+            'border border-[--border-subtle] rounded-lg px-3 py-2 bg-background',
+            'outline-none focus:ring-1 focus:ring-primary/25 focus:border-primary/30',
+            'placeholder:text-muted-foreground/35 transition-colors',
+          )}
+        />
       </div>
-      <textarea
-        value={text}
-        onChange={e => { setText(e.target.value); setSaved(false) }}
-        onBlur={save}
-        onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); save() } }}
-        aria-label="Internal notes"
-        placeholder="Internal notes… (auto-saves on blur)"
-        rows={4}
-        className={cn(
-          'w-full text-[11.5px] text-foreground/70 leading-[1.65] resize-y',
-          'border border-[--border-subtle] rounded-lg px-3 py-2 bg-background',
-          'outline-none focus:ring-1 focus:ring-primary/25 focus:border-primary/30',
-          'placeholder:text-muted-foreground/35 transition-colors',
-        )}
-      />
-    </div>
+    </AccordionSection>
   )
 }
 
@@ -532,6 +535,36 @@ function DraftHistorySection({
           })}
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Accordion section wrapper ─────────────────────────────────────────────────
+
+function AccordionSection({
+  title, children,
+}: {
+  title: string
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="border-b border-[--border-subtle]">
+      <button
+        onClick={() => setOpen(v => !v)}
+        aria-expanded={open}
+        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-accent/20 transition-colors text-left"
+      >
+        <span className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground/70">
+          {title}
+        </span>
+        <ChevronDown
+          size={11}
+          strokeWidth={2}
+          className={cn('text-muted-foreground/50 transition-transform', open && 'rotate-180')}
+        />
+      </button>
+      {open && children}
     </div>
   )
 }

@@ -95,7 +95,7 @@ export default function Sidebar() {
         style={{ width: 52, overflowY: 'hidden' }}
       >
         {/* Logo */}
-        <div className="h-14 flex items-center justify-center flex-shrink-0 border-b border-[--border-subtle]">
+        <div className="h-14 flex items-center justify-center flex-shrink-0">
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center"
             style={{ background: 'hsl(var(--sidebar-ring))', boxShadow: '0 0 0 2px var(--primary-focus-ring)' }}
@@ -109,7 +109,7 @@ export default function Sidebar() {
           onClick={() => setCollapsed(false)}
           title="Expand sidebar"
           aria-label="Expand sidebar"
-          className="flex-shrink-0 h-8 w-full flex items-center justify-center cursor-pointer text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors border-b border-[--border-subtle]"
+          className="flex-shrink-0 h-8 w-full flex items-center justify-center cursor-pointer text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
         >
           <ChevronRight size={13} strokeWidth={2} />
         </button>
@@ -139,7 +139,7 @@ export default function Sidebar() {
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-[--border-subtle] py-3 flex flex-col items-center gap-2 flex-shrink-0">
+        <div className="py-3 flex flex-col items-center gap-2 flex-shrink-0">
           <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-[11px] font-bold text-accent-foreground">
             {userEmail ? userEmail[0].toUpperCase() : '?'}
           </div>
@@ -163,7 +163,7 @@ export default function Sidebar() {
       style={{ width: 'var(--sidebar-width)' }}
     >
       {/* ── Logo / Brand ── */}
-      <div className="flex items-center gap-3 px-4 h-14 flex-shrink-0 border-b border-[--border-subtle]">
+      <div className="flex items-center gap-3 px-4 h-14 flex-shrink-0">
         <div
           className="flex items-center justify-center rounded-lg flex-shrink-0"
           style={{ width: 32, height: 32, background: 'hsl(var(--sidebar-ring))', boxShadow: '0 0 0 2px var(--primary-focus-ring)' }}
@@ -250,7 +250,7 @@ export default function Sidebar() {
       </nav>
 
       {/* ── Footer ── */}
-      <div className="flex items-center gap-2.5 px-3 py-3 flex-shrink-0 border-t border-[--border-subtle]">
+      <div className="flex items-center gap-2.5 px-3 py-3 flex-shrink-0">
         <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-[11px] font-bold text-accent-foreground flex-shrink-0">
           {userEmail ? userEmail[0].toUpperCase() : '?'}
         </div>

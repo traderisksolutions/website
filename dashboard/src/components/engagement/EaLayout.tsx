@@ -42,7 +42,7 @@ export function EaListPanel({ children, mobileHidden, className }: EaListPanelPr
         // Layout
         'flex-shrink-0 flex flex-col overflow-hidden',
         // Chrome — white left pane, single subtle divider on the right
-        'bg-card border-r border-[--border-subtle]',
+        'bg-card',
         // Mobile: full width when visible, hidden when thread is active
         'max-lg:w-full',
         mobileHidden && 'max-lg:hidden',

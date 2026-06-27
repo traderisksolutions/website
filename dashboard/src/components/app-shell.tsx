@@ -110,7 +110,7 @@ export function AppListPanel({ children, width = 'w-[340px]', className }: AppLi
   return (
     <div
       className={cn(
-        'flex-shrink-0 flex flex-col border-r border-[--border-subtle] bg-card overflow-hidden',
+        'flex-shrink-0 flex flex-col bg-card overflow-hidden',
         width,
         className,
       )}
