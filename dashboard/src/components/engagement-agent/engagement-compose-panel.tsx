@@ -56,6 +56,7 @@ export function EngagementComposePanel({
   const [error,           setError]           = useState<string | null>(null)
   const [aiDraftChecked,  setAiDraftChecked]  = useState(false)
   const [showCc,          setShowCc]          = useState(ccList.length > 0)
+  const [showBcc,         setShowBcc]         = useState(bccList.length > 0)
   const [ragSources,      setRagSources]      = useState<RagSource[]>(storedRagSources ?? [])
   const [showSources,     setShowSources]     = useState(false)
 
@@ -330,9 +331,17 @@ export function EngagementComposePanel({
                 onClick={() => setShowCc(v => !v)}
                 aria-label={showCc ? 'Hide CC field' : 'Show CC field'}
                 aria-expanded={showCc}
-                className="text-[10px] font-semibold text-muted-foreground/50 hover:text-muted-foreground px-3 flex-shrink-0 transition-colors"
+                className="text-[10px] font-semibold text-muted-foreground/50 hover:text-muted-foreground px-2 flex-shrink-0 transition-colors"
               >
                 CC
+              </button>
+              <button
+                onClick={() => setShowBcc(v => !v)}
+                aria-label={showBcc ? 'Hide BCC field' : 'Show BCC field'}
+                aria-expanded={showBcc}
+                className="text-[10px] font-semibold text-muted-foreground/50 hover:text-muted-foreground pr-3 pl-1 flex-shrink-0 transition-colors"
+              >
+                BCC
               </button>
             </div>
 
@@ -343,6 +352,16 @@ export function EngagementComposePanel({
                   CC
                 </span>
                 <ChipInput chips={ccList} onChange={setCcList} placeholder="Add CC…" />
+              </div>
+            )}
+
+            {/* BCC — toggleable, appears below CC */}
+            {showBcc && (
+              <div className="flex items-start min-h-[36px] border-b border-[--border-subtle]">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/55 w-[52px] flex-shrink-0 pl-5 pt-2.5">
+                  BCC
+                </span>
+                <ChipInput chips={bccList} onChange={setBccList} placeholder="Add BCC…" />
               </div>
             )}
 
