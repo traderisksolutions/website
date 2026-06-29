@@ -30,6 +30,7 @@ export function ThreadView({
   // Summaries
   const [summaries,        setSummaries]        = useState<StoredSummary[]>([])
   const [summariesLoading, setSummariesLoading] = useState(false)
+  const [analyzing,        setAnalyzing]        = useState(false)
 
   // RAG draft
   const [ragDraft,         setRagDraft]         = useState<{ content: string; sources: RagSource[] } | null>(null)
@@ -48,13 +49,24 @@ export function ThreadView({
   const [deleting,       setDeleting]      = useState(false)
   const [confirmDelete,  setConfirmDelete]  = useState(false)
 
+  // Refs for detecting new inbound messages and polling for summaries
+  const prevLatestMsgIdRef = useRef<string | null>(null)
+  const isFirstMsgLoadRef  = useRef(true)
+  const analyzeTimerRef    = useRef<ReturnType<typeof setInterval> | null>(null)
+  const analyzeTimeoutRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const threadId        = thread?.id ?? null
   const latestMessageId = messages.at(-1)?.id ?? null
   const log             = useAuditLog()
 
   // Reset per-lead state when switching leads
   useEffect(() => {
-    toInitialised.current = false
+    toInitialised.current    = false
+    prevLatestMsgIdRef.current = null
+    isFirstMsgLoadRef.current  = true
+    if (analyzeTimerRef.current)   { clearInterval(analyzeTimerRef.current);  analyzeTimerRef.current  = null }
+    if (analyzeTimeoutRef.current) { clearTimeout(analyzeTimeoutRef.current); analyzeTimeoutRef.current = null }
+    setAnalyzing(false)
     const s = thread?.subject ?? ''
     setCustomSubject(s ? (s.startsWith('Re:') ? s : `Re: ${s}`) : 'Re: Your enquiry | Trade Risk Solutions')
     setToAddress(lead.email ?? '')
@@ -107,6 +119,79 @@ export function ThreadView({
       metadata: { contact: lead.email, subject: lead.subject },
     })
   }, [threadId, lead.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // When a new inbound message arrives while the thread is already open, start polling
+  // thread_summaries so the AI Analysis panel shows "Analysing thread…" until auto-summarize
+  // finishes writing the new summary row to Supabase.
+  useEffect(() => {
+    const prev = prevLatestMsgIdRef.current
+    prevLatestMsgIdRef.current = latestMessageId
+
+    // First time messages arrive for this thread — record the baseline, don't analyze.
+    if (isFirstMsgLoadRef.current) {
+      if (latestMessageId !== null) isFirstMsgLoadRef.current = false
+      return
+    }
+
+    // No actual change in the latest message
+    if (!latestMessageId || latestMessageId === prev) return
+
+    // Only react to new INBOUND messages
+    const latestMsg = messages.at(-1)
+    if (!latestMsg || latestMsg.direction !== 'inbound') return
+
+    // Stop any existing polling
+    if (analyzeTimerRef.current)   { clearInterval(analyzeTimerRef.current);  analyzeTimerRef.current  = null }
+    if (analyzeTimeoutRef.current) { clearTimeout(analyzeTimeoutRef.current); analyzeTimeoutRef.current = null }
+
+    if (!threadId) return
+
+    // Capture the baseline so we know when a truly NEW summary appears
+    const baselineFirstId = summaries[0]?.id ?? null
+
+    const checkForNewSummary = () => {
+      fetch(`/api/engagement/thread-summaries?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' })
+        .then(r => r.json())
+        .then((data: StoredSummary[]) => {
+          if (!Array.isArray(data)) return
+          if (data[0]?.id !== baselineFirstId) {
+            setSummaries(data)
+            setAnalyzing(false)
+            if (analyzeTimerRef.current)   { clearInterval(analyzeTimerRef.current);  analyzeTimerRef.current  = null }
+            if (analyzeTimeoutRef.current) { clearTimeout(analyzeTimeoutRef.current); analyzeTimeoutRef.current = null }
+          }
+        })
+        .catch(() => {})
+    }
+
+    // Check immediately — if auto-summarize already finished, don't show the spinner
+    fetch(`/api/engagement/thread-summaries?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' })
+      .then(r => r.json())
+      .then((data: StoredSummary[]) => {
+        if (Array.isArray(data) && data[0]?.id !== baselineFirstId) {
+          // Summary already there — update silently, no spinner
+          setSummaries(data)
+          return
+        }
+        // No new summary yet — show spinner and poll every 5 s
+        setAnalyzing(true)
+        analyzeTimerRef.current = setInterval(checkForNewSummary, 5_000)
+        // Give up after 3 minutes
+        analyzeTimeoutRef.current = setTimeout(() => {
+          setAnalyzing(false)
+          if (analyzeTimerRef.current) { clearInterval(analyzeTimerRef.current); analyzeTimerRef.current = null }
+        }, 3 * 60_000)
+      })
+      .catch(() => {
+        // On fetch error, still show spinner and retry
+        setAnalyzing(true)
+        analyzeTimerRef.current = setInterval(checkForNewSummary, 5_000)
+        analyzeTimeoutRef.current = setTimeout(() => {
+          setAnalyzing(false)
+          if (analyzeTimerRef.current) { clearInterval(analyzeTimerRef.current); analyzeTimerRef.current = null }
+        }, 3 * 60_000)
+      })
+  }, [latestMessageId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleDelete() {
     if (!confirmDelete) { setConfirmDelete(true); return }
@@ -225,7 +310,7 @@ export function ThreadView({
         messages={messages}
         threadId={threadId}
         summaries={summaries}
-        summariesLoading={summariesLoading}
+        summariesLoading={summariesLoading || analyzing}
         latestMessageId={latestMessageId}
         ragSources={ragDraft?.sources ?? []}
         onStatus={onStatus}

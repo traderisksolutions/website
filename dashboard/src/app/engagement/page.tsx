@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useAuditLog } from '@/hooks/useAuditLog'
+import { createClient } from '@/lib/supabase/client'
 import type { Lead, ThreadState } from '@/components/engagement/types'
 import { EMAIL_SOURCES, ENGAGED_STATUSES } from '@/components/engagement/types'
 import { matchesSearch } from '@/components/engagement/helpers'
@@ -142,6 +143,31 @@ function EngagementPageInner() {
     }, 3 * 60_000)
     return () => clearInterval(t)
   }, [])
+
+  // Supabase Realtime — subscribe to new email_messages rows for the currently open thread.
+  // When Pub/Sub fires and ingest inserts a new row, the UI updates instantly rather than
+  // waiting for the next 30 s poll cycle.
+  useEffect(() => {
+    if (!selectedId) return
+    const lead = leads.find(l => l.id === selectedId)
+    const threadId = lead?.thread_id
+    if (!threadId) return
+
+    const supabase = createClient()
+    const channel  = supabase
+      .channel(`ea-messages-${threadId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'email_messages', filter: `thread_id=eq.${threadId}` },
+        () => {
+          refreshSelectedThreadRef.current()
+          load()
+        },
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [selectedId, leads]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load thread on selection
   useEffect(() => {
