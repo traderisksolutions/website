@@ -68,10 +68,11 @@ export function ConversationList({
           </div>
           <button
             onClick={onRefresh}
-            aria-label="Refresh"
-            className="p-1.5 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+            disabled={refreshing}
+            className="flex items-center gap-1 px-2 py-1 text-[10.5px] font-medium rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50"
           >
-            <RefreshCw size={12} strokeWidth={2} className={cn(refreshing && 'animate-spin')} />
+            <RefreshCw size={10} strokeWidth={2} className={cn(refreshing && 'animate-spin')} />
+            {refreshing ? 'Syncing…' : 'Refresh'}
           </button>
         </div>
 

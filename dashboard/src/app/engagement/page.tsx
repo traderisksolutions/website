@@ -244,7 +244,12 @@ function EngagementPageInner() {
             onSearch={setSearch}
             onTab={setActiveTab}
             onGroupToggle={() => setGroupByCompany(v => !v)}
-            onRefresh={() => { load(true); refreshSelectedThread() }}
+            onRefresh={() => {
+              // Fire Gmail sync in background (non-blocking — new emails appear on next auto-refresh)
+              fetch('/api/email/ingest-trigger', { method: 'POST' }).catch(() => {})
+              load(true)
+              refreshSelectedThread()
+            }}
           />
         </EaListPanel>
 
