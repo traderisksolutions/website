@@ -346,7 +346,7 @@ async function tagThreadWithCampaignContext(email: string, threadId: string): Pr
 }
 
 // Core: ingest a single Gmail message into the database
-async function ingestMessage(token: string, gmailMsgId: string) {
+async function ingestMessage(token: string, gmailMsgId: string, origin: string) {
   const msg = await fetchGmailMessage(token, gmailMsgId)
   if (!msg) return
 
@@ -570,8 +570,6 @@ async function ingestMessage(token: string, gmailMsgId: string) {
     }
     // Call auto-summarize as a separate serverless function so it gets its own
     // independent maxDuration (300s) rather than sharing this function's budget.
-    const origin = process.env.NEXT_PUBLIC_APP_URL
-      ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
     waitUntil(
       fetch(`${origin}/api/engagement/auto-summarize`, {
         method:  'POST',
@@ -594,13 +592,15 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   const windowMinutes = parseInt(req.nextUrl.searchParams.get('window') ?? '0', 10)
+  const host   = req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? 'localhost:3000'
+  const origin = host.startsWith('localhost') ? `http://${host}` : `https://${host}`
   try {
     const token      = await getAccessToken()
     const messageIds = windowMinutes > 0
       ? await getRecentMessageIds(token, windowMinutes)
       : await getNewMessageIds(token)
     console.log('[ingest:manual] processing', messageIds.length, 'message(s)')
-    const results = await Promise.allSettled(messageIds.map(id => ingestMessage(token, id)))
+    const results = await Promise.allSettled(messageIds.map(id => ingestMessage(token, id, origin)))
     const ok  = results.filter(r => r.status === 'fulfilled').length
     const err = results.filter(r => r.status === 'rejected').length
     return NextResponse.json({ ok: true, processed: messageIds.length, succeeded: ok, failed: err })
@@ -631,13 +631,16 @@ export async function POST(req: NextRequest) {
   const { historyId } = notification
   if (!historyId) return NextResponse.json({ ok: true })
 
+  const host   = req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? 'localhost:3000'
+  const origin = host.startsWith('localhost') ? `http://${host}` : `https://${host}`
+
   try {
     const token      = await getAccessToken()
     const messageIds = await getNewMessageIds(token)
     console.log('[ingest] processing', messageIds.length, 'message(s)')
 
     // Process each new message
-    await Promise.allSettled(messageIds.map(id => ingestMessage(token, id)))
+    await Promise.allSettled(messageIds.map(id => ingestMessage(token, id, origin)))
 
     // Persist new historyId so next webhook only fetches newer messages
     await saveHistoryId(historyId)
