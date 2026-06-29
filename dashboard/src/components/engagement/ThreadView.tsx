@@ -51,7 +51,6 @@ export function ThreadView({
 
   // Refs for detecting new inbound messages and polling for summaries
   const prevLatestMsgIdRef = useRef<string | null>(null)
-  const isFirstMsgLoadRef  = useRef(true)
   const analyzeTimerRef    = useRef<ReturnType<typeof setInterval> | null>(null)
   const analyzeTimeoutRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -61,9 +60,8 @@ export function ThreadView({
 
   // Reset per-lead state when switching leads
   useEffect(() => {
-    toInitialised.current    = false
+    toInitialised.current      = false
     prevLatestMsgIdRef.current = null
-    isFirstMsgLoadRef.current  = true
     if (analyzeTimerRef.current)   { clearInterval(analyzeTimerRef.current);  analyzeTimerRef.current  = null }
     if (analyzeTimeoutRef.current) { clearTimeout(analyzeTimeoutRef.current); analyzeTimeoutRef.current = null }
     setAnalyzing(false)
@@ -120,25 +118,25 @@ export function ThreadView({
     })
   }, [threadId, lead.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // When a new inbound message arrives while the thread is already open, start polling
-  // thread_summaries so the AI Analysis panel shows "Analysing thread…" until auto-summarize
-  // finishes writing the new summary row to Supabase.
+  // Whenever latestMessageId changes (new message arriving OR first load of a thread):
+  // if the latest message is inbound and has no summary yet, show "Analysing thread…"
+  // and poll until auto-summarize writes the result to Supabase.
   useEffect(() => {
     const prev = prevLatestMsgIdRef.current
     prevLatestMsgIdRef.current = latestMessageId
 
-    // First time messages arrive for this thread — record the baseline, don't analyze.
-    if (isFirstMsgLoadRef.current) {
-      if (latestMessageId !== null) isFirstMsgLoadRef.current = false
-      return
-    }
-
-    // No actual change in the latest message
     if (!latestMessageId || latestMessageId === prev) return
 
-    // Only react to new INBOUND messages
+    // Only react to inbound messages
     const latestMsg = messages.at(-1)
     if (!latestMsg || latestMsg.direction !== 'inbound') return
+
+    // On the initial thread load (prev === null), skip if the message is older than
+    // 10 minutes — auto-summarize won't still be running for those.
+    if (prev === null && latestMsg.sent_at) {
+      const ageMs = Date.now() - new Date(latestMsg.sent_at).getTime()
+      if (ageMs > 10 * 60_000) return
+    }
 
     // Stop any existing polling
     if (analyzeTimerRef.current)   { clearInterval(analyzeTimerRef.current);  analyzeTimerRef.current  = null }
