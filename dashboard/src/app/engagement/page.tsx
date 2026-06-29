@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo, Suspense } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useAuditLog } from '@/hooks/useAuditLog'
 import type { Lead, ThreadState } from '@/components/engagement/types'
@@ -119,9 +119,18 @@ function EngagementPageInner() {
     } finally { setLoading(false); setRefreshing(false) }
   }, [initLeadId])
 
+  // Keep a ref to refreshSelectedThread so the interval can call the latest
+  // version without a stale closure (it captures selectedId + leads).
+  const refreshSelectedThreadRef = useRef<() => void>(() => {})
+
   useEffect(() => {
     load()
-    const t = setInterval(() => load(), 30_000)
+    // Poll Supabase every 30s for new leads + re-fetch the open thread so AI
+    // Analysis appears automatically once auto-summarize writes to Supabase.
+    const t = setInterval(() => {
+      load()
+      refreshSelectedThreadRef.current()
+    }, 30_000)
     return () => clearInterval(t)
   }, [load])
 
@@ -227,6 +236,8 @@ function EngagementPageInner() {
         }))
       })
   }
+  // Update ref on every render so the interval always sees fresh selectedId + leads
+  refreshSelectedThreadRef.current = refreshSelectedThread
 
   const selectedLead   = leads.find(l => l.id === selectedId) ?? null
   const selectedThread = selectedId ? threadMap[selectedId] : undefined
