@@ -245,10 +245,12 @@ function EngagementPageInner() {
             onTab={setActiveTab}
             onGroupToggle={() => setGroupByCompany(v => !v)}
             onRefresh={() => {
-              // Fire Gmail sync in background (non-blocking — new emails appear on next auto-refresh)
-              fetch('/api/email/ingest-trigger', { method: 'POST' }).catch(() => {})
-              load(true)
-              refreshSelectedThread()
+              // Show spinner immediately, wait for Gmail sync to finish, THEN reload so
+              // newly ingested emails are already in Supabase when the list re-reads.
+              setRefreshing(true)
+              fetch('/api/email/ingest-trigger', { method: 'POST' })
+                .catch(() => {})
+                .finally(() => { load(); refreshSelectedThread() })
             }}
           />
         </EaListPanel>
