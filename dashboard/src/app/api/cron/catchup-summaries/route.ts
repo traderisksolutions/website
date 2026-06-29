@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { runAutoSummarize }          from '@/lib/run-auto-summarize'
+import { waitUntil }                 from '@vercel/functions'
 
-// Runs hourly. Finds inbound threads from the last 48h that have no
-// thread_summary and generates one. Catches cases where the inline
-// waitUntil in /api/email/ingest was killed before completing.
+// Runs hourly. Finds inbound threads from the last 7 days that have no
+// thread_summary and fires /api/engagement/auto-summarize for each.
+// Each auto-summarize call runs as its own serverless function with its
+// own 300s budget, so this cron returns quickly after firing them all.
 
-export const maxDuration = 300
+export const maxDuration = 60
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
 function sbHeaders() {
   const k = process.env.SUPABASE_SERVICE_KEY
   if (!k) throw new Error('SUPABASE_SERVICE_KEY not set')
-  return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: 'return=representation' }
+  return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json' }
 }
 
 export async function GET(req: NextRequest) {
@@ -22,11 +23,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const since = new Date(Date.now() - 48 * 3_600_000).toISOString()
+  const since = new Date(Date.now() - 7 * 24 * 3_600_000).toISOString()
 
-  // 1. Recent inbound messages — most recent per thread
+  // 1. Recent inbound messages — most recent per thread (last 7 days)
   const msgsRes = await fetch(
-    `${SB_URL}/rest/v1/email_messages?direction=eq.inbound&sent_at=gt.${encodeURIComponent(since)}&select=thread_id,id&order=sent_at.desc&limit=100`,
+    `${SB_URL}/rest/v1/email_messages?direction=eq.inbound&sent_at=gt.${encodeURIComponent(since)}&select=thread_id,id&order=sent_at.desc&limit=200`,
     { headers: sbHeaders(), cache: 'no-store' }
   )
   if (!msgsRes.ok) {
@@ -34,7 +35,7 @@ export async function GET(req: NextRequest) {
   }
   const msgs: { thread_id: string; id: string }[] = await msgsRes.json()
   if (!Array.isArray(msgs) || msgs.length === 0) {
-    return NextResponse.json({ ok: true, skipped: 0, generated: 0 })
+    return NextResponse.json({ ok: true, triggered: 0 })
   }
 
   // Keep only the most recent message per thread
@@ -52,24 +53,32 @@ export async function GET(req: NextRequest) {
   const existing: { thread_id: string }[] = summRes.ok ? await summRes.json() : []
   const done = new Set(Array.isArray(existing) ? existing.map(r => r.thread_id) : [])
 
-  // 3. Pending = no summary yet
-  const pending = threadIds.filter(id => !done.has(id))
-  console.log(`[catchup-summaries] ${pending.length} pending of ${threadIds.length} recent threads`)
+  // 3. Pending = no summary yet (cap at 10 per run to avoid overloading)
+  const pending = threadIds.filter(id => !done.has(id)).slice(0, 10)
+  console.log(`[catchup-summaries] ${pending.length} pending of ${threadIds.length} recent threads (${done.size} already done)`)
 
-  let generated = 0
-  let failed    = 0
-
-  for (const threadId of pending) {
-    const messageId = threadMap.get(threadId)!
-    try {
-      await runAutoSummarize(threadId, messageId)
-      generated++
-      console.log(`[catchup-summaries] ✓ generated for thread ${threadId}`)
-    } catch (e) {
-      failed++
-      console.error(`[catchup-summaries] ✗ failed for ${threadId}:`, e instanceof Error ? e.message : e)
-    }
+  if (pending.length === 0) {
+    return NextResponse.json({ ok: true, triggered: 0 })
   }
 
-  return NextResponse.json({ ok: true, skipped: done.size, generated, failed })
+  // 4. Fire auto-summarize for each via HTTP — each runs as its own function
+  //    with an independent 300s budget. Don't await: return immediately after
+  //    queuing via waitUntil so this cron finishes fast.
+  const origin     = process.env.NEXT_PUBLIC_APP_URL
+    ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+  const cronSecret = process.env.CRON_SECRET ?? ''
+
+  waitUntil(
+    Promise.allSettled(pending.map(threadId =>
+      fetch(`${origin}/api/engagement/auto-summarize`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'x-internal-secret': cronSecret },
+        body:    JSON.stringify({ thread_id: threadId, message_id: threadMap.get(threadId) }),
+      })
+        .then(r => { if (!r.ok) console.warn(`[catchup] auto-summarize ${r.status} for thread ${threadId}`) })
+        .catch(e => console.error(`[catchup] trigger failed for ${threadId}:`, e instanceof Error ? e.message : e))
+    ))
+  )
+
+  return NextResponse.json({ ok: true, triggered: pending.length, skipped: done.size })
 }

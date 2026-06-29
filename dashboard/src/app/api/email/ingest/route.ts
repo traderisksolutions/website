@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { waitUntil }        from '@vercel/functions'
-import { runAutoSummarize } from '@/lib/run-auto-summarize'
 
 export const maxDuration = 300
 
@@ -554,9 +553,18 @@ async function ingestMessage(token: string, gmailMsgId: string) {
     if (resolvedParty && !isInternal(fromEmail)) {
       tagThreadWithCampaignContext(fromEmail, thread.id).catch(() => {})
     }
+    // Call auto-summarize as a separate serverless function so it gets its own
+    // independent maxDuration (300s) rather than sharing this function's budget.
+    const origin = process.env.NEXT_PUBLIC_APP_URL
+      ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
     waitUntil(
-      runAutoSummarize(thread.id, dbMsg.id)
-        .catch(e => console.error('[ingest] auto-summarize failed:', e instanceof Error ? e.message : e))
+      fetch(`${origin}/api/engagement/auto-summarize`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.CRON_SECRET ?? '' },
+        body:    JSON.stringify({ thread_id: thread.id, message_id: dbMsg.id }),
+      })
+        .then(r => { if (!r.ok) console.warn('[ingest] auto-summarize returned', r.status, 'for thread', thread.id) })
+        .catch(e => console.error('[ingest] auto-summarize trigger failed:', e instanceof Error ? e.message : e))
     )
   }
 }

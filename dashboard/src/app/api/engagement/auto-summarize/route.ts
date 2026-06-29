@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runAutoSummarize }          from '@/lib/run-auto-summarize'
 
+export const maxDuration = 300
+
 export async function POST(req: NextRequest) {
   if (req.headers.get('x-internal-secret') !== (process.env.CRON_SECRET ?? '')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
