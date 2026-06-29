@@ -13,7 +13,7 @@
       "schedule": "0 0 */6 * *"
     },
     {
-      "path": "/api/email/ingest",
+      "path": "/api/email/ingest?window=1440",
       "schedule": "0 1 * * *"
     },
     {

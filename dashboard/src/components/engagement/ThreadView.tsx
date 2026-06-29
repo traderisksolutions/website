@@ -50,9 +50,10 @@ export function ThreadView({
   const [confirmDelete,  setConfirmDelete]  = useState(false)
 
   // Refs for detecting new inbound messages and polling for summaries
-  const prevLatestMsgIdRef = useRef<string | null>(null)
-  const analyzeTimerRef    = useRef<ReturnType<typeof setInterval> | null>(null)
-  const analyzeTimeoutRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const prevLatestMsgIdRef  = useRef<string | null>(null)
+  const analyzeTimerRef     = useRef<ReturnType<typeof setInterval> | null>(null)
+  const analyzeTimeoutRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const analyzeBackupRef    = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const threadId        = thread?.id ?? null
   const latestMessageId = messages.at(-1)?.id ?? null
@@ -64,6 +65,7 @@ export function ThreadView({
     prevLatestMsgIdRef.current = null
     if (analyzeTimerRef.current)   { clearInterval(analyzeTimerRef.current);  analyzeTimerRef.current  = null }
     if (analyzeTimeoutRef.current) { clearTimeout(analyzeTimeoutRef.current); analyzeTimeoutRef.current = null }
+    if (analyzeBackupRef.current)  { clearTimeout(analyzeBackupRef.current);  analyzeBackupRef.current  = null }
     setAnalyzing(false)
     const s = thread?.subject ?? ''
     setCustomSubject(s ? (s.startsWith('Re:') ? s : `Re: ${s}`) : 'Re: Your enquiry | Trade Risk Solutions')
@@ -138,57 +140,72 @@ export function ThreadView({
       if (ageMs > 10 * 60_000) return
     }
 
-    // Stop any existing polling
+    // Stop any existing polling / backup timers
     if (analyzeTimerRef.current)   { clearInterval(analyzeTimerRef.current);  analyzeTimerRef.current  = null }
     if (analyzeTimeoutRef.current) { clearTimeout(analyzeTimeoutRef.current); analyzeTimeoutRef.current = null }
+    if (analyzeBackupRef.current)  { clearTimeout(analyzeBackupRef.current);  analyzeBackupRef.current  = null }
 
     if (!threadId) return
 
     // Capture the baseline so we know when a truly NEW summary appears
-    const baselineFirstId = summaries[0]?.id ?? null
+    const baselineFirstId    = summaries[0]?.id ?? null
+    const capturedThreadId   = threadId
+    const capturedMessageId  = latestMessageId
+
+    const stopPolling = () => {
+      if (analyzeTimerRef.current)   { clearInterval(analyzeTimerRef.current);  analyzeTimerRef.current  = null }
+      if (analyzeTimeoutRef.current) { clearTimeout(analyzeTimeoutRef.current); analyzeTimeoutRef.current = null }
+      if (analyzeBackupRef.current)  { clearTimeout(analyzeBackupRef.current);  analyzeBackupRef.current  = null }
+    }
 
     const checkForNewSummary = () => {
-      fetch(`/api/engagement/thread-summaries?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' })
+      fetch(`/api/engagement/thread-summaries?thread_id=${encodeURIComponent(capturedThreadId)}`, { cache: 'no-store' })
         .then(r => r.json())
         .then((data: StoredSummary[]) => {
           if (!Array.isArray(data)) return
           if (data[0]?.id !== baselineFirstId) {
             setSummaries(data)
             setAnalyzing(false)
-            if (analyzeTimerRef.current)   { clearInterval(analyzeTimerRef.current);  analyzeTimerRef.current  = null }
-            if (analyzeTimeoutRef.current) { clearTimeout(analyzeTimeoutRef.current); analyzeTimeoutRef.current = null }
+            stopPolling()
           }
         })
         .catch(() => {})
     }
 
+    const startPolling = () => {
+      setAnalyzing(true)
+      analyzeTimerRef.current = setInterval(checkForNewSummary, 5_000)
+
+      // Give up after 3 minutes
+      analyzeTimeoutRef.current = setTimeout(() => {
+        setAnalyzing(false)
+        stopPolling()
+      }, 3 * 60_000)
+
+      // After 30 s — if waitUntil(auto-summarize) didn't fire on the server (Vercel Hobby plan
+      // limitation), call refresh-summary directly from the client as a guaranteed fallback.
+      analyzeBackupRef.current = setTimeout(() => {
+        fetch('/api/engagement/refresh-summary', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ thread_id: capturedThreadId, message_id: capturedMessageId }),
+        })
+          .then(() => checkForNewSummary())
+          .catch(() => {})
+      }, 30_000)
+    }
+
     // Check immediately — if auto-summarize already finished, don't show the spinner
-    fetch(`/api/engagement/thread-summaries?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' })
+    fetch(`/api/engagement/thread-summaries?thread_id=${encodeURIComponent(capturedThreadId)}`, { cache: 'no-store' })
       .then(r => r.json())
       .then((data: StoredSummary[]) => {
         if (Array.isArray(data) && data[0]?.id !== baselineFirstId) {
-          // Summary already there — update silently, no spinner
-          setSummaries(data)
-          return
+          setSummaries(data)   // already there — silent update, no spinner
+        } else {
+          startPolling()
         }
-        // No new summary yet — show spinner and poll every 5 s
-        setAnalyzing(true)
-        analyzeTimerRef.current = setInterval(checkForNewSummary, 5_000)
-        // Give up after 3 minutes
-        analyzeTimeoutRef.current = setTimeout(() => {
-          setAnalyzing(false)
-          if (analyzeTimerRef.current) { clearInterval(analyzeTimerRef.current); analyzeTimerRef.current = null }
-        }, 3 * 60_000)
       })
-      .catch(() => {
-        // On fetch error, still show spinner and retry
-        setAnalyzing(true)
-        analyzeTimerRef.current = setInterval(checkForNewSummary, 5_000)
-        analyzeTimeoutRef.current = setTimeout(() => {
-          setAnalyzing(false)
-          if (analyzeTimerRef.current) { clearInterval(analyzeTimerRef.current); analyzeTimerRef.current = null }
-        }, 3 * 60_000)
-      })
+      .catch(() => startPolling())
   }, [latestMessageId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleDelete() {

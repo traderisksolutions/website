@@ -135,12 +135,12 @@ function EngagementPageInner() {
     return () => clearInterval(t)
   }, [load])
 
-  // Silent background Gmail sync every 3 minutes — fallback when Pub/Sub is delayed or watch is stale.
-  // Does not show a spinner; the 30s Supabase poll above picks up any newly ingested emails.
+  // Background Gmail sync — fires immediately on mount (catches any emails missed while page was
+  // closed) then repeats every 90 s as a fallback when Pub/Sub is delayed or watch is stale.
   useEffect(() => {
-    const t = setInterval(() => {
-      fetch('/api/email/ingest-trigger', { method: 'POST' }).catch(() => {})
-    }, 3 * 60_000)
+    const sync = () => fetch('/api/email/ingest-trigger', { method: 'POST' }).catch(() => {})
+    sync()
+    const t = setInterval(sync, 90_000)
     return () => clearInterval(t)
   }, [])
 
