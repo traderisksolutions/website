@@ -186,6 +186,21 @@ async function saveHistoryId(historyId: string) {
   })
 }
 
+// Fetch all INBOX message IDs received in the last N minutes using Gmail search.
+// Used by the manual Refresh button — does not depend on historyId being valid.
+async function getRecentMessageIds(token: string, sinceMinutes: number): Promise<string[]> {
+  const afterEpoch = Math.floor((Date.now() - sinceMinutes * 60_000) / 1000)
+  console.log('[ingest] pulling INBOX emails since', sinceMinutes, 'minutes ago')
+  const res  = await fetch(
+    `${GMAIL_API}/messages?labelIds=INBOX&q=after:${afterEpoch}&maxResults=50`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  )
+  const data = res.ok ? await res.json() : {}
+  const ids: string[] = (data.messages ?? []).map((m: { id: string }) => m.id)
+  console.log('[ingest] recent pull found', ids.length, 'message(s)')
+  return ids
+}
+
 // Use Gmail History API to get only new message IDs since the last historyId.
 // Falls back to fetching the 25 most recent INBOX messages if history is unavailable.
 async function getNewMessageIds(token: string): Promise<string[]> {
@@ -569,17 +584,21 @@ async function ingestMessage(token: string, gmailMsgId: string) {
   }
 }
 
-// GET /api/email/ingest?token=... — manual trigger / Vercel cron polling fallback
-// Accepts either ?token=GMAIL_PUBSUB_VERIFICATION_TOKEN or Authorization: Bearer CRON_SECRET
+// GET /api/email/ingest — manual trigger / Vercel cron polling fallback
+// Auth: ?token=GMAIL_PUBSUB_VERIFICATION_TOKEN  OR  Authorization: Bearer CRON_SECRET
+// Optional: ?window=60 → pull last N minutes instead of History API (used by Refresh button)
 export async function GET(req: NextRequest) {
   const tokenParam  = req.nextUrl.searchParams.get('token')
   const bearerMatch = req.headers.get('authorization') === `Bearer ${process.env.CRON_SECRET ?? ''}`
   if (tokenParam !== process.env.GMAIL_PUBSUB_VERIFICATION_TOKEN && !bearerMatch) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  const windowMinutes = parseInt(req.nextUrl.searchParams.get('window') ?? '0', 10)
   try {
     const token      = await getAccessToken()
-    const messageIds = await getNewMessageIds(token)
+    const messageIds = windowMinutes > 0
+      ? await getRecentMessageIds(token, windowMinutes)
+      : await getNewMessageIds(token)
     console.log('[ingest:manual] processing', messageIds.length, 'message(s)')
     const results = await Promise.allSettled(messageIds.map(id => ingestMessage(token, id)))
     const ok  = results.filter(r => r.status === 'fulfilled').length
