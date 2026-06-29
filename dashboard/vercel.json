@@ -17,6 +17,10 @@
       "schedule": "0 1 * * *"
     },
     {
+      "path": "/api/cron/catchup-summaries",
+      "schedule": "0 * * * *"
+    },
+    {
       "path": "/api/knowledge/index?reindex=1",
       "schedule": "0 18 * * *"
     }
