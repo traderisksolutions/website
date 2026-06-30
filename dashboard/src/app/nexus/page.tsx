@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Plus, RefreshCw, ChevronDown, X, Search, Link2, Sparkles,
   AlertCircle, Clock, CheckCircle2, Zap, BookOpen, ArrowRight,
-  MailOpen, FileText, Scale, Users, Send, Loader2, Trash2,
+  MailOpen, FileText, Scale, Users, Send, Loader2, Trash2, Paperclip,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
@@ -41,13 +41,15 @@ type CaseThreadMsg = {
 }
 
 type CaseThread = {
-  id:          string
-  case_id:     string
-  thread_id:   string
-  party_type:  string
-  party_label: string | null
-  thread:      { id: string; subject: string | null; last_message_at: string | null; contact_id: string | null; contact: Contact | null } | null
-  messages:    CaseThreadMsg[]
+  id:                    string
+  case_id:               string
+  thread_id:             string
+  party_type:            string
+  party_label:           string | null
+  thread:                { id: string; subject: string | null; last_message_at: string | null; contact_id: string | null; contact: Contact | null } | null
+  messages:              CaseThreadMsg[]
+  attachments_extracted: number
+  attachments_pending:   boolean
 }
 
 type TimelineEvent = {
@@ -134,6 +136,17 @@ function timeAgo(iso: string | null | undefined): string {
 }
 
 const PARTY_TYPES = ['client', 'insurer', 'lawyer', 'regulator', 'other'] as const
+
+// Suggest party type from contact email domain
+function autoSuggestParty(contact: Contact | null): string {
+  const domain = (contact?.email ?? '').split('@')[1]?.toLowerCase() ?? ''
+  const ins = ['qbe', 'berkley', 'allianz', 'aig.', 'zurich', 'chubb', 'tokio', 'sompo', 'ntuc', 'aviva', 'great-eastern', 'manulife', 'prudential', 'generali', 'liberty', 'rsagroup', 'ergo', 'markel', 'beazley', 'hiscox', 'munichre', 'swissre', 'hannover', 'aspen', 'brit.', 'convex', 'amtrust', 'travelers', 'axa.', 'msig', 'aia.']
+  const law = ['rajah', 'wongpartnership', 'allengledhill', 'drewnapier', 'shooklin', 'rodyk', 'clifford', 'dentons', 'baker', 'advocates', 'solicitor', '.law', 'legal.sg', 'llp.sg']
+  if (domain.endsWith('.gov.sg') || domain.includes('mas.gov')) return 'regulator'
+  if (ins.some(k => domain.includes(k))) return 'insurer'
+  if (law.some(k => domain.includes(k))) return 'lawyer'
+  return 'client'
+}
 
 // ── Nexus Page ────────────────────────────────────────────────────────────────
 
@@ -452,6 +465,19 @@ function CaseDetailPanel({
               >
                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: pc.dot }} />
                 {label}
+                {/* Attachment extraction status indicator */}
+                {ct.attachments_extracted > 0 && (
+                  <span className="flex items-center gap-0.5 text-[9px] text-green-600 font-medium" title={`${ct.attachments_extracted} attachment(s) extracted`}>
+                    <Paperclip size={8} strokeWidth={2} />
+                    {ct.attachments_extracted}
+                  </span>
+                )}
+                {ct.attachments_pending && ct.attachments_extracted === 0 && (
+                  <span className="flex items-center gap-0.5 text-[9px] text-amber-500 font-medium" title="Attachments pending extraction">
+                    <Paperclip size={8} strokeWidth={2} />
+                    <Clock size={7} strokeWidth={2} />
+                  </span>
+                )}
                 <button
                   onClick={() => unlinkThread(ct.thread_id)}
                   className="ml-0.5 opacity-50 hover:opacity-100 transition-opacity"
@@ -885,21 +911,39 @@ function NexusStepCompose({
     if (!toList.trim()) return
     setSending(true); setError(null)
     try {
-      const sig    = signatures.find(s => s.id === selectedSigId)
-      const sigHtml = sig ? buildSigHtml(sig) : ''
+      const sig      = signatures.find(s => s.id === selectedSigId)
+      const sigHtml  = sig ? buildSigHtml(sig) : ''
       const bodyHtml = draftHtml + sigHtml
+      const toFirst  = toList.split(',')[0]?.trim() ?? ''
 
+      // Step 1 — create ai_drafts record (original AI draft, before any edits)
+      //          This is what the eval engine compares against what was actually sent.
+      const draftRes = await fetch('/api/nexus/draft-create', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          thread_id:  threadId,
+          body:       step.draft,
+          email_type: `NEXUS_${step.party_type.toUpperCase()}`,
+          to_email:   toFirst,
+        }),
+      })
+      const draftData = await draftRes.json()
+      if (!draftRes.ok || !draftData.draftId) throw new Error(draftData.error || 'Could not prepare draft for sending')
+
+      // Step 2 — send via the shared route (fires eval automatically on success)
       const res = await fetch('/api/email/send', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          to:           toList.split(',').map(e => e.trim()).filter(Boolean).join(', '),
-          cc:           ccList.split(',').map(e => e.trim()).filter(Boolean),
-          subject:      subject,
-          bodyHtml,
-          thread_id:    threadId,
-          signature_id: selectedSigId || null,
-          from_email:   fromEmail || null,
+          draftId:        draftData.draftId,
+          htmlBody:       bodyHtml,
+          originalAiBody: step.draft,   // eval captures diff: AI draft vs what was sent
+          toEmail:        toFirst,
+          cc:             ccList.split(',').map(e => e.trim()).filter(Boolean),
+          customSubject:  subject,
+          fromEmail:      fromEmail || null,
+          signatureId:    selectedSigId || null,
         }),
       })
       const data = await res.json()
@@ -1103,13 +1147,14 @@ function LegalTab({
 function ThreadLinkerModal({
   caseId, linkedThreadIds, onLink, onClose,
 }: { caseId: string; linkedThreadIds: string[]; onLink: () => void; onClose: () => void }) {
-  const [search,      setSearch]      = useState('')
-  const [suggestions, setSuggestions] = useState<ThreadSuggestion[]>([])
-  const [allThreads,  setAllThreads]  = useState<ThreadSuggestion[]>([])
-  const [loading,     setLoading]     = useState(true)
-  const [linking,     setLinking]     = useState<string | null>(null)
-  const [partyTypes,  setPartyTypes]  = useState<Record<string, string>>({})
-  const [labels,      setLabels]      = useState<Record<string, string>>({})
+  const [search,       setSearch]       = useState('')
+  const [suggestions,  setSuggestions]  = useState<ThreadSuggestion[]>([])
+  const [allThreads,   setAllThreads]   = useState<ThreadSuggestion[]>([])
+  const [loading,      setLoading]      = useState(true)
+  const [linking,      setLinking]      = useState(false)
+  const [partyTypes,   setPartyTypes]   = useState<Record<string, string>>({})
+  const [labels,       setLabels]       = useState<Record<string, string>>({})
+  const [selected,     setSelected]     = useState<Set<string>>(new Set())
 
   useEffect(() => {
     setLoading(true)
@@ -1119,147 +1164,230 @@ function ThreadLinkerModal({
       fetch(`/api/nexus/cases/${caseId}/suggest?all=1`, { cache: 'no-store' })
         .then(r => r.ok ? r.json() : []).catch(() => []),
     ]).then(([sugg, all]) => {
-      setSuggestions(Array.isArray(sugg) ? sugg : [])
-      setAllThreads(Array.isArray(all) ? all : [])
-    }).finally(() => setLoading(false))
-  }, [caseId])
-
-  async function linkThread(threadId: string) {
-    setLinking(threadId)
-    try {
-      await fetch(`/api/nexus/cases/${caseId}/threads`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          thread_id:   threadId,
-          party_type:  partyTypes[threadId] ?? 'client',
-          party_label: labels[threadId]?.trim() || null,
-        }),
+      const suggestions = Array.isArray(sugg) ? sugg : []
+      const allT = Array.isArray(all) ? all : []
+      setSuggestions(suggestions)
+      setAllThreads(allT)
+      // Auto-suggest party types for all threads
+      const types: Record<string, string> = {}
+      ;[...suggestions, ...allT].forEach((t: ThreadSuggestion) => {
+        types[t.id] = autoSuggestParty(t.contact)
       })
+      setPartyTypes(types)
+      // Pre-select AI suggestions that aren't already linked
+      const preSelected = new Set(suggestions.filter((t: ThreadSuggestion) => !linkedThreadIds.includes(t.id)).map((t: ThreadSuggestion) => t.id))
+      setSelected(preSelected)
+    }).finally(() => setLoading(false))
+  }, [caseId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function linkSelected() {
+    const toLink = Array.from(selected).filter(id => !linkedThreadIds.includes(id))
+    if (toLink.length === 0) return
+    setLinking(true)
+    try {
+      await Promise.all(toLink.map(threadId =>
+        fetch(`/api/nexus/cases/${caseId}/threads`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({
+            thread_id:   threadId,
+            party_type:  partyTypes[threadId] ?? 'client',
+            party_label: labels[threadId]?.trim() || null,
+          }),
+        })
+      ))
       onLink()
-    } finally { setLinking(null) }
+    } finally { setLinking(false) }
   }
 
-  const suggestionIds = new Set(suggestions.map(s => s.id))
-  const filteredAll = allThreads.filter(t =>
-    !linkedThreadIds.includes(t.id) &&
-    (!search || (t.subject ?? '').toLowerCase().includes(search.toLowerCase()) ||
-      (t.contact?.email ?? '').toLowerCase().includes(search.toLowerCase()))
-  )
+  function toggleSelect(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
 
-  const ThreadRow = ({ thread, isSuggested }: { thread: ThreadSuggestion; isSuggested: boolean }) => {
+  const suggestionIds  = new Set(suggestions.map(s => s.id))
+  const selectable     = (t: ThreadSuggestion) => !linkedThreadIds.includes(t.id)
+  const filtered       = allThreads.filter(t => selectable(t) && (
+    !search ||
+    (t.subject ?? '').toLowerCase().includes(search.toLowerCase()) ||
+    (t.contact?.email ?? '').toLowerCase().includes(search.toLowerCase()) ||
+    (t.contact?.company ?? '').toLowerCase().includes(search.toLowerCase())
+  ))
+  const suggestedRows  = suggestions.filter(selectable)
+  const restRows       = filtered.filter(t => !suggestionIds.has(t.id) || !!search)
+  const addCount       = Array.from(selected).filter(id => !linkedThreadIds.includes(id)).length
+
+  const ThreadTableRow = ({ thread, isSuggested }: { thread: ThreadSuggestion; isSuggested: boolean }) => {
     const alreadyLinked = linkedThreadIds.includes(thread.id)
-    const pty = partyTypes[thread.id] ?? 'client'
-    const pc  = partyColor(pty)
+    const isSelected    = selected.has(thread.id)
+    const pty           = partyTypes[thread.id] ?? 'client'
+    const pc            = partyColor(pty)
 
     return (
-      <div className={cn('px-3 py-2.5 rounded-lg border mb-2 transition-colors', alreadyLinked ? 'opacity-40' : 'border-[--border-subtle]')}>
-        <div className="flex items-start justify-between gap-2 mb-1.5">
-          <div className="flex-1 min-w-0">
-            <p className="text-[11.5px] font-semibold text-foreground truncate">{thread.subject ?? '(no subject)'}</p>
-            {thread.contact && (
-              <p className="text-[10.5px] text-muted-foreground/60 truncate">
-                {contactName(thread.contact)}{thread.contact.company ? ` · ${thread.contact.company}` : ''}
-              </p>
-            )}
-            <p className="text-[9.5px] text-muted-foreground/40 mt-0.5">{fmtDate(thread.last_message_at)}</p>
-            {isSuggested && (
-              <p className="text-[9.5px] text-primary/60 italic mt-0.5">{thread.match_reason}</p>
-            )}
-          </div>
-          <button
-            onClick={() => !alreadyLinked && linkThread(thread.id)}
-            disabled={alreadyLinked || linking === thread.id}
-            className={cn(
-              'flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold flex-shrink-0 transition-colors',
-              alreadyLinked
-                ? 'bg-muted text-muted-foreground cursor-default'
-                : 'bg-primary text-primary-foreground hover:opacity-90',
-            )}
-          >
-            {linking === thread.id ? <Loader2 size={10} className="animate-spin" /> : <Link2 size={10} strokeWidth={2} />}
-            {alreadyLinked ? 'Linked' : 'Link'}
-          </button>
-        </div>
-        {!alreadyLinked && (
-          <div className="flex gap-2 items-center">
-            <select
-              value={pty}
-              onChange={e => setPartyTypes(prev => ({ ...prev, [thread.id]: e.target.value }))}
-              className="text-[10.5px] border border-[--border-subtle] rounded-md px-2 py-1 bg-background outline-none"
-              style={{ color: pc.text }}
-            >
-              {PARTY_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
-            </select>
-            <input
-              value={labels[thread.id] ?? ''}
-              onChange={e => setLabels(prev => ({ ...prev, [thread.id]: e.target.value }))}
-              placeholder="Label e.g. QBE Marine (optional)"
-              className="flex-1 text-[10.5px] border border-[--border-subtle] rounded-md px-2 py-1 bg-background outline-none min-w-0"
-            />
-          </div>
+      <tr
+        className={cn(
+          'border-b border-[--border-subtle] transition-colors cursor-pointer',
+          alreadyLinked ? 'opacity-40 cursor-default' : isSelected ? 'bg-primary/5' : 'hover:bg-muted/40',
         )}
-      </div>
+        onClick={() => !alreadyLinked && toggleSelect(thread.id)}
+      >
+        {/* Checkbox */}
+        <td className="px-3 py-2.5 w-8">
+          {alreadyLinked ? (
+            <CheckCircle2 size={13} className="text-green-500" strokeWidth={2} />
+          ) : (
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={() => toggleSelect(thread.id)}
+              onClick={e => e.stopPropagation()}
+              className="w-3.5 h-3.5 rounded accent-primary cursor-pointer"
+            />
+          )}
+        </td>
+
+        {/* Contact */}
+        <td className="py-2.5 pr-3 min-w-0 max-w-[140px]">
+          <p className="text-[11.5px] font-semibold text-foreground truncate">
+            {thread.contact ? contactName(thread.contact) : '—'}
+          </p>
+          {thread.contact?.company && (
+            <p className="text-[10px] text-muted-foreground/60 truncate">{thread.contact.company}</p>
+          )}
+        </td>
+
+        {/* Subject */}
+        <td className="py-2.5 pr-3 min-w-0">
+          <p className="text-[11.5px] text-foreground truncate">{thread.subject ?? '(no subject)'}</p>
+          {isSuggested && (
+            <p className="text-[9.5px] text-primary/60 italic truncate">{thread.match_reason}</p>
+          )}
+        </td>
+
+        {/* Date */}
+        <td className="py-2.5 pr-3 text-[10.5px] text-muted-foreground/60 whitespace-nowrap">
+          {fmtDate(thread.last_message_at)}
+        </td>
+
+        {/* Party type */}
+        <td className="py-2 pr-3 w-[130px]" onClick={e => e.stopPropagation()}>
+          {alreadyLinked ? (
+            <span className="text-[10px] text-muted-foreground">Already linked</span>
+          ) : (
+            <div className="flex flex-col gap-1">
+              <select
+                value={pty}
+                onChange={e => setPartyTypes(prev => ({ ...prev, [thread.id]: e.target.value }))}
+                className="text-[10.5px] border border-[--border-subtle] rounded-md px-1.5 py-0.5 bg-background outline-none w-full font-semibold"
+                style={{ color: pc.text }}
+              >
+                {PARTY_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+              </select>
+              <input
+                value={labels[thread.id] ?? ''}
+                onChange={e => setLabels(prev => ({ ...prev, [thread.id]: e.target.value }))}
+                placeholder="e.g. QBE Marine"
+                className="text-[10px] border border-[--border-subtle] rounded-md px-1.5 py-0.5 bg-background outline-none w-full text-muted-foreground"
+              />
+            </div>
+          )}
+        </td>
+      </tr>
     )
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="bg-card rounded-2xl shadow-2xl w-full max-w-[520px] flex flex-col overflow-hidden max-h-[80vh]"
+        className="bg-card rounded-2xl shadow-2xl w-full max-w-[760px] flex flex-col overflow-hidden max-h-[85vh]"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[--border-subtle]">
-          <h3 className="text-[13.5px] font-bold text-foreground">Link Email Thread</h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X size={14} /></button>
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[--border-subtle] flex-shrink-0">
+          <div>
+            <h3 className="text-[13.5px] font-bold text-foreground">Add Email Threads to Case</h3>
+            <p className="text-[10.5px] text-muted-foreground/60 mt-0.5">
+              Select conversations and assign each party. Party types are auto-suggested from contact email.
+            </p>
+          </div>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground ml-4"><X size={14} /></button>
         </div>
 
-        {/* Search */}
-        <div className="px-4 py-3 border-b border-[--border-subtle]">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-lg">
-            <Search size={12} className="text-muted-foreground/50" />
+        {/* Search + bulk action bar */}
+        <div className="flex items-center gap-3 px-4 py-2.5 border-b border-[--border-subtle] flex-shrink-0 bg-muted/30">
+          <div className="flex items-center gap-2 flex-1 px-3 py-1.5 bg-background rounded-lg border border-[--border-subtle]">
+            <Search size={12} className="text-muted-foreground/50 flex-shrink-0" />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search by subject or contact…"
+              placeholder="Search by subject, contact name, or company…"
               autoFocus
               className="flex-1 text-[12px] bg-transparent outline-none placeholder:text-muted-foreground/40"
             />
           </div>
+          <button
+            onClick={linkSelected}
+            disabled={addCount === 0 || linking}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[12px] font-semibold bg-primary text-primary-foreground disabled:opacity-40 hover:opacity-90 transition-opacity flex-shrink-0 whitespace-nowrap"
+          >
+            {linking ? <Loader2 size={12} className="animate-spin" /> : <Link2 size={12} strokeWidth={2} />}
+            {addCount > 0 ? `Add ${addCount} thread${addCount > 1 ? 's' : ''} to Case` : 'Select threads'}
+          </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-3">
+        {/* Thread table */}
+        <div className="flex-1 overflow-y-auto">
           {loading ? (
-            <p className="text-[12px] text-muted-foreground text-center py-8">Loading threads…</p>
+            <p className="text-[12px] text-muted-foreground text-center py-10">Loading conversations…</p>
           ) : (
-            <>
-              {suggestions.length > 0 && !search && (
-                <div className="mb-4">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-primary/70 mb-2">
-                    AI Suggestions
-                  </p>
-                  {suggestions.filter(t => !linkedThreadIds.includes(t.id)).map(t => (
-                    <ThreadRow key={t.id} thread={t} isSuggested />
-                  ))}
-                </div>
-              )}
-
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-2">
-                  {search ? 'Search Results' : 'All Recent Threads'}
-                </p>
-                {filteredAll.filter(t => !suggestionIds.has(t.id) || search).map(t => (
-                  <ThreadRow key={t.id} thread={t} isSuggested={false} />
-                ))}
-                {filteredAll.length === 0 && (
-                  <p className="text-[11.5px] text-muted-foreground/50 text-center py-6 italic">
-                    {search ? 'No matching threads found.' : 'No more threads to suggest.'}
-                  </p>
+            <table className="w-full">
+              <thead className="sticky top-0 bg-muted/60 backdrop-blur-sm border-b border-[--border-subtle]">
+                <tr>
+                  <th className="px-3 py-2 text-left w-8"></th>
+                  <th className="py-2 pr-3 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Contact</th>
+                  <th className="py-2 pr-3 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Subject</th>
+                  <th className="py-2 pr-3 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Date</th>
+                  <th className="py-2 pr-3 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Party</th>
+                </tr>
+              </thead>
+              <tbody>
+                {suggestedRows.length > 0 && !search && (
+                  <>
+                    <tr className="bg-primary/5">
+                      <td colSpan={5} className="px-3 py-1.5">
+                        <span className="text-[9.5px] font-bold uppercase tracking-wider text-primary/70 flex items-center gap-1.5">
+                          <Sparkles size={9} strokeWidth={2} /> AI Suggestions
+                        </span>
+                      </td>
+                    </tr>
+                    {suggestedRows.map(t => <ThreadTableRow key={t.id} thread={t} isSuggested />)}
+                    <tr className="bg-muted/30">
+                      <td colSpan={5} className="px-3 py-1.5">
+                        <span className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground/50">All Recent Threads</span>
+                      </td>
+                    </tr>
+                  </>
                 )}
-              </div>
-            </>
+                {restRows.map(t => <ThreadTableRow key={t.id} thread={t} isSuggested={false} />)}
+                {restRows.length === 0 && suggestedRows.length === 0 && (
+                  <tr><td colSpan={5} className="text-center py-10 text-[11.5px] text-muted-foreground/50 italic">
+                    {search ? 'No matching threads found.' : 'No threads available.'}
+                  </td></tr>
+                )}
+              </tbody>
+            </table>
           )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between px-5 py-3 border-t border-[--border-subtle] bg-muted/20 flex-shrink-0">
+          <p className="text-[10.5px] text-muted-foreground/60">
+            {addCount > 0 ? `${addCount} thread${addCount > 1 ? 's' : ''} selected` : 'Click rows to select · Auto-selects AI suggestions'}
+          </p>
+          <button onClick={onClose} className="text-[11px] text-muted-foreground hover:text-foreground">Cancel</button>
         </div>
       </div>
     </div>

@@ -29,10 +29,12 @@
     "@supabase/supabase-js": "^2.106.0",
     "@types/pdf-parse": "^1.1.5",
     "@vercel/functions": "^3.6.0",
+    "adm-zip": "^0.5.18",
     "antd": "^6.4.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.396.0",
+    "mammoth": "^1.12.0",
     "next": "14.2.5",
     "pdf-parse": "^2.4.5",
     "quill": "^2.0.3",
@@ -41,11 +43,13 @@
     "reactflow": "^11.11.4",
     "recharts": "^3.8.1",
     "tailwind-merge": "^3.6.0",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
+    "@types/adm-zip": "^0.5.8",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

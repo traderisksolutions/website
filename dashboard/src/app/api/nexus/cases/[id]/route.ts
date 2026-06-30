@@ -35,7 +35,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     // Fetch email thread details + messages for each linked thread in parallel
     const threadIds = Array.isArray(caseThreads) ? caseThreads.map(ct => ct.thread_id) : []
 
-    const [threadDetails, allMessages] = await Promise.all([
+    const [threadDetails, allMessages, extractedAttachments] = await Promise.all([
       threadIds.length > 0
         ? fetch(
             `${SB_URL}/rest/v1/email_threads?id=in.(${threadIds.join(',')})&deleted_at=is.null&select=id,subject,last_message_at,contact_id`,
@@ -46,6 +46,14 @@ export async function GET(_req: NextRequest, { params }: Params) {
       threadIds.length > 0
         ? fetch(
             `${SB_URL}/rest/v1/email_messages?thread_id=in.(${threadIds.join(',')})&deleted_at=is.null&order=sent_at.asc&select=id,thread_id,direction,from_address,subject,body_text,sent_at,has_attachments`,
+            { headers: sbHeaders() }
+          ).then(r => r.ok ? r.json() : []).catch(() => [])
+        : Promise.resolve([]),
+
+      // Attachment extraction status per thread
+      threadIds.length > 0
+        ? fetch(
+            `${SB_URL}/rest/v1/email_attachments?thread_id=in.(${threadIds.join(',')})&select=thread_id,parsed_at`,
             { headers: sbHeaders() }
           ).then(r => r.ok ? r.json() : []).catch(() => [])
         : Promise.resolve([]),
@@ -82,12 +90,25 @@ export async function GET(_req: NextRequest, { params }: Params) {
       messagesByThread[m.thread_id].push(msg)
     }
 
+    // Attachment counts per thread (extracted = has parsed_at, pending = has_attachments but not extracted)
+    const attRows: { thread_id: string; parsed_at: string | null }[] = Array.isArray(extractedAttachments) ? extractedAttachments : []
+    const extractedCountByThread: Record<string, number> = {}
+    for (const row of attRows) {
+      extractedCountByThread[row.thread_id] = (extractedCountByThread[row.thread_id] ?? 0) + 1
+    }
+
     // Build enriched case_threads
-    const enrichedThreads = (Array.isArray(caseThreads) ? caseThreads : []).map(ct => ({
-      ...ct,
-      thread:   threadMap[ct.thread_id] ?? null,
-      messages: messagesByThread[ct.thread_id] ?? [],
-    }))
+    const enrichedThreads = (Array.isArray(caseThreads) ? caseThreads : []).map(ct => {
+      const msgs = (messagesByThread[ct.thread_id] ?? []) as { has_attachments: boolean }[]
+      return {
+        ...ct,
+        thread:             threadMap[ct.thread_id] ?? null,
+        messages:           messagesByThread[ct.thread_id] ?? [],
+        attachments_extracted: extractedCountByThread[ct.thread_id] ?? 0,
+        attachments_pending: msgs.filter(m => m.has_attachments).length > 0
+                              && (extractedCountByThread[ct.thread_id] ?? 0) === 0,
+      }
+    })
 
     // Fetch latest analysis
     const analysisRes = await fetch(

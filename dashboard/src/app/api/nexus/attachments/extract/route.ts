@@ -266,7 +266,86 @@ async function processAttachment(
     console.log(`[nexus/extract] XLSX extracted: ${filename}`)
   }
 
-  // ── Other types: store binary if small enough, skip otherwise ────────────
+  // ── CSV / plain text: read directly ─────────────────────────────────────
+  else if (mime === 'text/csv' || mime === 'text/plain' || filename.endsWith('.csv') || filename.endsWith('.txt')) {
+    parsedText = data.toString('utf-8').slice(0, 30000)
+    console.log(`[nexus/extract] CSV/text extracted: ${filename} (${parsedText.length} chars)`)
+  }
+
+  // ── PPTX: unzip XML, extract <a:t> slide text ────────────────────────────
+  else if (mime.includes('presentationml') || filename.endsWith('.pptx')) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const AdmZip = require('adm-zip') as new (buf: Buffer) => {
+        getEntries: () => { entryName: string; getData: () => Buffer; isDirectory: boolean }[]
+      }
+      const zip     = new AdmZip(data)
+      const slides  = zip.getEntries()
+        .filter(e => !e.isDirectory && /ppt\/slides\/slide\d+\.xml/.test(e.entryName))
+        .sort((a, b) => a.entryName.localeCompare(b.entryName))
+      const texts   = slides.map(s => {
+        const xml    = s.getData().toString('utf-8')
+        const tokens = xml.match(/<a:t[^>]*>([^<]*)<\/a:t>/g) ?? []
+        return tokens.map(t => t.replace(/<[^>]+>/g, '')).join(' ')
+      }).filter(Boolean)
+      parsedText = texts.join('\n\n').slice(0, 30000) || null
+    } catch {
+      parsedText = '[PPTX extraction failed]'
+    }
+    console.log(`[nexus/extract] PPTX extracted: ${filename} (${parsedText?.length ?? 0} chars)`)
+  }
+
+  // ── ZIP: unzip + recursively extract text from known file types ──────────
+  else if (mime === 'application/zip' || mime === 'application/x-zip-compressed' || filename.endsWith('.zip')) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const AdmZip = require('adm-zip') as new (buf: Buffer) => {
+        getEntries: () => { entryName: string; getData: () => Buffer; isDirectory: boolean }[]
+      }
+      const zip       = new AdmZip(data)
+      const entries   = zip.getEntries().filter(e => !e.isDirectory && e.getData().length < 15_000_000)
+      const textParts: string[] = []
+
+      for (const entry of entries.slice(0, 20)) {
+        const ext  = entry.entryName.split('.').pop()?.toLowerCase() ?? ''
+        const buf  = entry.getData()
+        if (['pdf'].includes(ext)) {
+          const nested = `${threadId}/${messageId}/zip_${sanitise(entry.entryName)}`
+          await uploadToStorage(nested, buf, 'application/pdf')
+          textParts.push(`[${entry.entryName}: PDF stored for Gemini analysis]`)
+        } else if (['jpg', 'jpeg', 'png', 'webp', 'tiff'].includes(ext)) {
+          const nested = `${threadId}/${messageId}/zip_${sanitise(entry.entryName)}`
+          await uploadToStorage(nested, buf, `image/${ext === 'jpg' ? 'jpeg' : ext}`)
+          const desc = apiKey ? await describeImage(buf, `image/${ext}`, apiKey) : ''
+          textParts.push(`[${entry.entryName}: image${desc ? ` — ${desc.slice(0, 500)}` : ' stored'}]`)
+        } else if (['csv', 'txt'].includes(ext)) {
+          textParts.push(`${entry.entryName}:\n${buf.toString('utf-8').slice(0, 5000)}`)
+        } else if (['docx'].includes(ext)) {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            const m = require('mammoth') as { extractRawText: (o: { buffer: Buffer }) => Promise<{ value: string }> }
+            const r = await m.extractRawText({ buffer: buf })
+            textParts.push(`${entry.entryName}:\n${r.value.slice(0, 5000)}`)
+          } catch { textParts.push(`[${entry.entryName}: DOCX extraction failed]`) }
+        } else if (['xlsx', 'xls'].includes(ext)) {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            const xl = require('xlsx') as { read: (d: Buffer, o: { type: string }) => { SheetNames: string[]; Sheets: Record<string, unknown> }; utils: { sheet_to_csv: (s: unknown) => string } }
+            const wb = xl.read(buf, { type: 'buffer' })
+            textParts.push(`${entry.entryName}:\n${wb.SheetNames.map((n: string) => xl.utils.sheet_to_csv(wb.Sheets[n]).slice(0, 3000)).join('\n')}`)
+          } catch { textParts.push(`[${entry.entryName}: XLSX extraction failed]`) }
+        } else {
+          textParts.push(`[${entry.entryName}: ${ext.toUpperCase() || 'unknown'} file, ${buf.length} bytes — not extracted]`)
+        }
+      }
+      parsedText = textParts.join('\n\n').slice(0, 30000)
+    } catch {
+      parsedText = '[ZIP extraction failed]'
+    }
+    console.log(`[nexus/extract] ZIP extracted: ${filename}`)
+  }
+
+  // ── Other types: skip ────────────────────────────────────────────────────
   else {
     console.log(`[nexus/extract] skipping unsupported type: ${mimeType} (${filename})`)
     return
