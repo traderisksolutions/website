@@ -10,7 +10,7 @@ import {
   Bot, Table2, UsersRound,
   LogOut, BookOpen, Cpu, FolderOpen,
   Telescope, Megaphone, Settings, FlaskConical,
-  LayoutDashboard, TrendingUp, ScrollText,
+  LayoutDashboard, TrendingUp, ScrollText, Network,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -127,8 +127,9 @@ export default function Sidebar() {
           <CollapsedIcon icon={Megaphone}     href="/outbound/campaigns" isActive={active('/outbound/campaigns')} label="Campaigns" />
           <CollapsedIcon icon={MessageCircle} href="/outbound/replies"   isActive={active('/outbound/replies')}   label="Reply Review" />
           <IconDivider />
-          <CollapsedIcon icon={Users} href="/contacts"   isActive={active('/contacts')}   label="Active Contacts"  hasBadge={totalEngaged > 0} />
-          <CollapsedIcon icon={Bot}   href="/engagement" isActive={active('/engagement')} label="Engagement Agent" />
+          <CollapsedIcon icon={Users}   href="/contacts"   isActive={active('/contacts')}   label="Active Contacts"  hasBadge={totalEngaged > 0} />
+          <CollapsedIcon icon={Bot}    href="/engagement" isActive={active('/engagement')} label="Engagement Agent" />
+          <CollapsedIcon icon={Network} href="/nexus"      isActive={active('/nexus')}      label="Nexus" />
           <IconDivider />
           <CollapsedIcon icon={Cpu}          href="/analytics/ai-usage"  isActive={active('/analytics/ai-usage')}  label="AI Usage" />
           <CollapsedIcon icon={FolderOpen}   href="/analytics/rag-index" isActive={active('/analytics/rag-index')} label="RAG Index" />
@@ -224,6 +225,7 @@ export default function Sidebar() {
           <div className="space-y-px">
             <NavItem label="Active Contacts" href="/contacts"   icon={Users} isActive={active('/contacts')} />
             <NavItem label="Engagement Agent" href="/engagement" icon={Bot} isActive={active('/engagement')} />
+            <NavItem label="Nexus" href="/nexus" icon={Network} isActive={active('/nexus')} />
           </div>
         )}
 

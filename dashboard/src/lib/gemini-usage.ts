@@ -20,6 +20,7 @@ export type GeminiFeature =
   | 'rag_draft_reply'
   | 'draft_email'
   | 'inbound_auto_draft'
+  | 'nexus_synthesis'
 
 export interface GeminiUsageMeta {
   promptTokenCount?:     number
