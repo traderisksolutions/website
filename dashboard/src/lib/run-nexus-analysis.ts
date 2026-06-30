@@ -11,13 +11,15 @@
  * Set ANTHROPIC_API_KEY in env to enable Claude. Falls back to Gemini-only if not set.
  */
 
-import { logGeminiUsage } from '@/lib/gemini-usage'
+import { logGeminiUsage }   from '@/lib/gemini-usage'
+import { fetchKnowledgeDocs } from '@/lib/gdrive-knowledge'
 
-const SB_URL       = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-const GEMINI_URL   = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent'
-const GEMINI_FLASH = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
-const GEMINI_UPLOAD = 'https://generativelanguage.googleapis.com/upload/v1beta/files'
-const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
+const SB_URL          = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const STORAGE_BUCKET  = 'email-attachments'
+const GEMINI_URL      = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent'
+const GEMINI_FLASH    = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
+const GEMINI_UPLOAD   = 'https://generativelanguage.googleapis.com/upload/v1beta/files'
+const ANTHROPIC_URL   = 'https://api.anthropic.com/v1/messages'
 
 const GMAIL_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const GMAIL_API       = 'https://gmail.googleapis.com/gmail/v1/users/me'
@@ -124,6 +126,79 @@ async function uploadToGemini(data: Buffer, filename: string, mimeType: string, 
     const json = await res.json()
     return json?.file?.uri ?? null
   } catch { return null }
+}
+
+// Download a binary from Supabase Storage and re-upload to Gemini Files API (fresh URI)
+async function downloadFromStorageAndUploadToGemini(
+  storagePath: string,
+  filename:    string,
+  mimeType:    string,
+  apiKey:      string,
+): Promise<string | null> {
+  try {
+    const k = process.env.SUPABASE_SERVICE_KEY
+    if (!k) return null
+    const res = await fetch(
+      `${SB_URL}/storage/v1/object/${STORAGE_BUCKET}/${storagePath}`,
+      { headers: { apikey: k, Authorization: `Bearer ${k}` } }
+    )
+    if (!res.ok) return null
+    const buf = Buffer.from(await res.arrayBuffer())
+    return await uploadToGemini(buf, filename, mimeType, apiKey)
+  } catch { return null }
+}
+
+type StoredAttachmentRow = {
+  filename:    string
+  mime_type:   string | null
+  parsed_text: string | null
+  storage_url: string | null
+}
+
+// Load pre-extracted attachments from email_attachments table.
+// PDFs/images: re-upload from Supabase Storage to Gemini Files API (fresh URI each analysis).
+// DOCX/XLSX/image descriptions: inject as text directly.
+async function loadStoredAttachments(
+  threadIds: string[],
+  apiKey:    string,
+): Promise<{
+  textChunks: string[]
+  fileParts:  { file_data: { mime_type: string; file_uri: string } }[]
+  summary:    string[]
+}> {
+  const textChunks: string[] = []
+  const fileParts:  { file_data: { mime_type: string; file_uri: string } }[] = []
+  const summary:    string[] = []
+
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/email_attachments?thread_id=in.(${threadIds.join(',')})&select=filename,mime_type,parsed_text,storage_url&order=created_at.asc`,
+      { headers: sbHeaders() }
+    )
+    const rows: StoredAttachmentRow[] = res.ok ? await res.json() : []
+    if (!Array.isArray(rows) || rows.length === 0) return { textChunks, fileParts, summary }
+
+    for (const row of rows) {
+      const { filename, mime_type, parsed_text, storage_url } = row
+
+      if (parsed_text) {
+        textChunks.push(`\n[Attachment: ${filename}]\n${parsed_text}`)
+        summary.push(`${filename} (pre-extracted, ${parsed_text.length} chars)`)
+      }
+
+      if (storage_url && mime_type) {
+        const uri = await downloadFromStorageAndUploadToGemini(storage_url, filename, mime_type, apiKey)
+        if (uri) {
+          fileParts.push({ file_data: { mime_type, file_uri: uri } })
+          summary.push(`${filename} (PDF/image re-uploaded to Gemini)`)
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[nexus] loadStoredAttachments non-fatal:', e instanceof Error ? e.message : e)
+  }
+
+  return { textChunks, fileParts, summary }
 }
 
 // Fetch attachments for messages that have them, upload to Gemini, return file parts
@@ -288,12 +363,39 @@ export async function runNexusAnalysis(caseId: string): Promise<NexusAnalysis> {
     })
   )
 
-  // 5. Fetch and upload attachments
-  const allMsgsWithAttachments = (Array.isArray(allMessages) ? allMessages : []) as {
-    gmail_message_id: string | null; has_attachments: boolean
-  }[]
-  const { text: attachmentText, fileParts, attachmentSummary } =
-    await fetchAndUploadAttachments(allMsgsWithAttachments, geminiKey)
+  // 5. Load attachments (stored-first) + GDrive knowledge docs
+  // Primary: read from email_attachments table (pre-extracted by ingest pipeline).
+  // Fallback: fetch live from Gmail API only if nothing has been extracted yet.
+  const allMsgsRaw = Array.isArray(allMessages) ? allMessages : []
+
+  const { textChunks: storedTexts, fileParts: storedParts, summary: storedSummary } =
+    await loadStoredAttachments(threadIds, geminiKey)
+
+  let attachmentText    = storedTexts.join('\n')
+  let fileParts         = [...storedParts]
+  let attachmentSummary = [...storedSummary]
+
+  if (storedSummary.length === 0) {
+    // Nothing pre-extracted — fall back to live Gmail API fetch
+    const msgsWithAtts = allMsgsRaw as { gmail_message_id: string | null; has_attachments: boolean }[]
+    const gmail        = await fetchAndUploadAttachments(msgsWithAtts, geminiKey)
+    attachmentText    += gmail.text
+    fileParts          = [...fileParts, ...gmail.fileParts]
+    attachmentSummary  = [...attachmentSummary, ...gmail.attachmentSummary]
+  }
+
+  // GDrive knowledge: match policy docs to this case's content
+  const topicHint = allMsgsRaw
+    .map((m: { body_text: string | null }) => m.body_text ?? '')
+    .join(' ')
+    .slice(0, 3000)
+  const gdriveDocs = await fetchKnowledgeDocs(topicHint, geminiKey, 'nexus-gdrive').catch(() => [])
+  const gdriveFileParts = gdriveDocs.map(d => ({
+    file_data: { mime_type: 'application/pdf' as const, file_uri: d.uri },
+  }))
+  if (gdriveDocs.length > 0) {
+    console.log(`[nexus] GDrive: attached ${gdriveDocs.length} knowledge doc(s): ${gdriveDocs.map(d => d.name).join(', ')}`)
+  }
 
   // 6. Build the unified thread corpus
   type MsgRow = {
@@ -351,10 +453,13 @@ ${threadMsgs || '(no messages yet)'}`
 
   const partyContactsJson = JSON.stringify(partyContacts, null, 2)
 
-  // 8. Attachments summary
+  // 8. Attachments + knowledge base summary for prompt context
+  const gdriveNote = gdriveDocs.length > 0
+    ? `\nKNOWLEDGE BASE DOCS ATTACHED (GDrive — policy wordings, product guides):\n${gdriveDocs.map(d => `  • ${d.name}`).join('\n')}\nReference these for coverage interpretation and policy wording analysis.\n`
+    : ''
   const attachmentNote = attachmentSummary.length > 0
-    ? `\nATTACHMENTS FOUND:\n${attachmentSummary.map(a => `  • ${a}`).join('\n')}\n`
-    : '\nNo email attachments found.\n'
+    ? `\nATTACHMENTS FOUND:\n${attachmentSummary.map(a => `  • ${a}`).join('\n')}\n${gdriveNote}`
+    : `\nNo email attachments found.\n${gdriveNote}`
 
   // ── PASS 1: Gemini 2.5 Pro — Read everything, synthesise ─────────────────
 
@@ -440,8 +545,9 @@ Rules for draft emails:
 
 Produce as many playbook steps as necessary. Cover ALL parties that need to be contacted. Order by urgency.`
 
-  const synthParts: unknown[] = fileParts.length > 0
-    ? [...fileParts, { text: synthesisPrompt }]
+  const allFileParts = [...fileParts, ...gdriveFileParts]
+  const synthParts: unknown[] = allFileParts.length > 0
+    ? [...allFileParts, { text: synthesisPrompt }]
     : [{ text: synthesisPrompt }]
 
   const synthRes = await fetch(`${GEMINI_URL}?key=${geminiKey}`, {

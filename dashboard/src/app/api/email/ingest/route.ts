@@ -580,6 +580,23 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
         .catch(e => console.error('[ingest] auto-summarize trigger failed:', e instanceof Error ? e.message : e))
     )
   }
+
+  // ── NEXUS: Siloed attachment extraction ───────────────────────────────────
+  // Completely independent of the engagement AI flow above.
+  // Fires for ALL directions (inbound + outbound) with attachments.
+  // Any failure here is caught and logged — ingest is never affected.
+  const hasAtts = (msg.payload?.parts ?? []).some(
+    (p: { filename?: string }) => p.filename && p.filename.length > 0
+  )
+  if (hasAtts && dbMsg?.id) {
+    waitUntil(
+      fetch(`${origin}/api/nexus/attachments/extract`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.CRON_SECRET ?? '' },
+        body:    JSON.stringify({ message_id: dbMsg.id, thread_id: thread.id, gmail_message_id: gmailMsgId }),
+      }).catch(e => console.warn('[ingest] attachment extract trigger (non-fatal):', e instanceof Error ? e.message : e))
+    )
+  }
 }
 
 // GET /api/email/ingest — manual trigger / Vercel cron polling fallback
