@@ -599,8 +599,14 @@ function CaseDetailPanel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ triggered_by: userEmail }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Analysis failed')
+      const data = await res.json().catch(() => ({ error: '' }))
+      if (!res.ok) {
+        const msg = data?.error ?? ''
+        const timedOut = res.status === 504 ||
+          msg.toLowerCase().includes('timeout') ||
+          msg.toLowerCase().includes('function_invocation')
+        throw new Error(timedOut ? '__TIMEOUT__' : (msg || 'Analysis failed'))
+      }
       setDetail(prev => prev ? { ...prev, analysis: data.analysis } : prev)
       setView('mission')
       onRefresh()
@@ -826,6 +832,17 @@ function MissionHeader({
         </div>
       </div>
 
+      {/* Vercel timeout warning — sits between buttons and tabs for maximum visibility */}
+      {analyzeError === '__TIMEOUT__' && (
+        <div className="flex items-start gap-2 px-5 py-2.5 bg-amber-50 border-t border-amber-100">
+          <AlertCircle size={11} className="text-amber-500 flex-shrink-0 mt-0.5" />
+          <p className="text-[10.5px] text-amber-700 leading-relaxed">
+            Analysis timed out — this case likely has too many threads or attachments for the 60-second function limit.{' '}
+            <span className="font-semibold">Upgrade to Vercel Pro</span> for a 300-second limit, or unlink some threads and re-run.
+          </p>
+        </div>
+      )}
+
       {/* View tabs + meta row */}
       <div className="flex items-center justify-between px-5 border-t border-[--border-subtle]/40">
         <div className="flex">
@@ -856,7 +873,7 @@ function MissionHeader({
         </div>
       </div>
 
-      {analyzeError && (
+      {analyzeError && analyzeError !== '__TIMEOUT__' && (
         <div className="mx-5 mb-3 px-3 py-2 bg-red-50 border border-red-100 rounded-lg">
           <p className="text-[10.5px] text-red-600 leading-relaxed">{analyzeError}</p>
         </div>
