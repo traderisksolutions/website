@@ -6,7 +6,7 @@ import {
   AlertCircle, Clock, CheckCircle2, Zap, BookOpen, ArrowRight,
   MailOpen, FileText, Scale, Users, Send, Loader2, Trash2, Paperclip,
   FolderOpen, Network, HelpCircle, ShieldAlert, TrendingUp, ListChecks,
-  BadgeDollarSign, Database, Eye, Pin, PinOff,
+  BadgeDollarSign, Database, Eye, Pin, PinOff, Minus, Maximize2, Minimize2,
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -223,6 +223,43 @@ function autoSuggestParty(contact: Contact | null): string {
   if (ins.some(k => domain.includes(k))) return 'insurer'
   if (law.some(k => domain.includes(k))) return 'lawyer'
   return 'client'
+}
+
+// ── Compose state ─────────────────────────────────────────────────────────────
+
+type ComposeState = {
+  draftId:  string
+  to:       string
+  cc:       string
+  subject:  string
+  body:     string
+  threadId: string | null
+}
+
+// ── Analysis progress ──────────────────────────────────────────────────────────
+
+const ANALYSIS_STAGES = [
+  { model: null,             label: 'Fetching threads & messages',               from: 0,  to: 8,  duration: 2500  },
+  { model: 'Gemini Files',   label: 'Uploading & processing attachments',        from: 8,  to: 22, duration: 7000  },
+  { model: 'Gemini 2.5 Pro', label: 'Synthesising evidence & building brief',   from: 22, to: 72, duration: 32000 },
+  { model: 'Claude Opus',    label: 'Generating strategy & next steps',          from: 72, to: 93, duration: 18000 },
+  { model: null,             label: 'Saving analysis',                           from: 93, to: 99, duration: 2000  },
+] as const
+
+type AnalysisProgress = { pct: number; stageIdx: number }
+
+function getAnalysisProgress(elapsed: number): AnalysisProgress {
+  let remaining = elapsed
+  for (let i = 0; i < ANALYSIS_STAGES.length; i++) {
+    const stage = ANALYSIS_STAGES[i]
+    if (remaining <= stage.duration || i === ANALYSIS_STAGES.length - 1) {
+      const t   = Math.min(remaining / stage.duration, 1)
+      const pct = Math.round(stage.from + (stage.to - stage.from) * t)
+      return { pct, stageIdx: i }
+    }
+    remaining -= stage.duration
+  }
+  return { pct: 99, stageIdx: ANALYSIS_STAGES.length - 1 }
 }
 
 // ── Nexus Page ────────────────────────────────────────────────────────────────
@@ -471,6 +508,9 @@ function CaseDetailPanel({
   const [runs,          setRuns]          = useState<RunSummary[]>([])
   const [runsLoading,   setRunsLoading]   = useState(false)
   const [userEmail,     setUserEmail]     = useState<string | null>(null)
+  const [analyzeProgress, setAnalyzeProgress] = useState<AnalysisProgress | null>(null)
+  const analyzeStartRef   = useRef<number | null>(null)
+  const [composeState,  setComposeState]  = useState<ComposeState | null>(null)
 
   useEffect(() => {
     createClient().auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null))
@@ -515,6 +555,7 @@ function CaseDetailPanel({
     const startedAt = Number(localStorage.getItem(LS_KEY) ?? '0')
     if (!startedAt || Date.now() - startedAt >= 5 * 60 * 1000) return
 
+    analyzeStartRef.current = startedAt
     setAnalyzing(true)
     const poll = setInterval(async () => {
       try {
@@ -524,7 +565,6 @@ function CaseDetailPanel({
         if (!Array.isArray(runs) || runs.length === 0) return
         const latest = runs[0]
         if (new Date(latest.created_at).getTime() > startedAt) {
-          // New run appeared — analysis finished (completed or failed)
           clearInterval(poll)
           localStorage.removeItem(LS_KEY)
           setAnalyzing(false)
@@ -539,8 +579,19 @@ function CaseDetailPanel({
     }
   }, [caseData.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Tick progress every 200 ms while analysis is running
+  useEffect(() => {
+    if (!analyzing) { setAnalyzeProgress(null); return }
+    const tick = setInterval(() => {
+      const start = analyzeStartRef.current ?? Date.now()
+      setAnalyzeProgress(getAnalysisProgress(Date.now() - start))
+    }, 200)
+    return () => clearInterval(tick)
+  }, [analyzing])
+
   async function runAnalysis() {
     setAnalyzing(true); setAnalyzeError(null)
+    analyzeStartRef.current = Date.now()
     localStorage.setItem(LS_KEY, Date.now().toString())
     try {
       const res  = await fetch(`/api/nexus/cases/${caseData.id}/analyze`, {
@@ -575,6 +626,8 @@ function CaseDetailPanel({
     await fetch(`/api/nexus/cases/${caseData.id}/runs?keep=15`, { method: 'DELETE' })
     loadRuns()
   }
+
+  function openCompose(state: ComposeState) { setComposeState(state) }
 
   async function unlinkThread(threadId: string) {
     await fetch(`/api/nexus/cases/${caseData.id}/threads?thread_id=${threadId}`, { method: 'DELETE' })
@@ -613,6 +666,7 @@ function CaseDetailPanel({
         threads={threads}
         analysis={analysis}
         analyzing={analyzing}
+        analyzeProgress={analyzeProgress}
         analyzeError={analyzeError}
         confirmDelete={confirmDelete}
         view={view}
@@ -642,6 +696,7 @@ function CaseDetailPanel({
             analysis={analysis}
             loading={loading}
             analyzing={analyzing}
+            analyzeProgress={analyzeProgress}
             attachmentRecords={allAttachmentRecords}
             currentRun={currentRun}
             previousRun={previousRun}
@@ -649,6 +704,7 @@ function CaseDetailPanel({
             onUnlink={unlinkThread}
             onUpdatePartyType={updatePartyType}
             onRunAnalysis={runAnalysis}
+            onOpenCompose={openCompose}
           />
         ) : (
           <MessagesView
@@ -658,6 +714,12 @@ function CaseDetailPanel({
           />
         )}
       </div>
+      {composeState && (
+        <NexusComposeWindow
+          state={composeState}
+          onClose={() => setComposeState(null)}
+        />
+      )}
       {linkOpen && (
         <ThreadLinkerModal
           caseId={caseData.id}
@@ -673,13 +735,14 @@ function CaseDetailPanel({
 // ── Mission Header ────────────────────────────────────────────────────────────
 
 function MissionHeader({
-  caseData, threads, analysis, analyzing, analyzeError, confirmDelete, view, totalMsgCount, runsCount,
+  caseData, threads, analysis, analyzing, analyzeProgress, analyzeError, confirmDelete, view, totalMsgCount, runsCount,
   onSetView, onRunAnalysis, onLinkThreads, onDelete, onConfirmDelete, onCancelDelete,
 }: {
   caseData:        Case
   threads:         CaseThread[]
   analysis:        CaseAnalysis | null
   analyzing:       boolean
+  analyzeProgress: AnalysisProgress | null
   analyzeError:    string | null
   confirmDelete:   boolean
   view:            'mission' | 'messages' | 'history'
@@ -696,7 +759,15 @@ function MissionHeader({
   const modelLabel = analysis?.strategy_model?.includes('claude') ? 'Claude + Gemini' : analysis?.strategy_model ? 'Gemini' : null
 
   return (
-    <div className="flex-shrink-0 border-b border-[--border-subtle] bg-card">
+    <div className="relative flex-shrink-0 border-b border-[--border-subtle] bg-card">
+      {analyzing && analyzeProgress && (
+        <div className="absolute bottom-0 left-0 right-0 h-[2px] overflow-hidden z-10">
+          <div
+            className="h-full bg-primary/60 transition-[width] duration-300 ease-linear"
+            style={{ width: `${analyzeProgress.pct}%` }}
+          />
+        </div>
+      )}
       {/* Top row: name + actions */}
       <div className="flex items-start justify-between px-5 pt-3.5 pb-2.5">
         <div className="min-w-0 flex-1 pr-4">
@@ -741,7 +812,7 @@ function MissionHeader({
                 )}
               >
                 {analyzing
-                  ? <><Loader2 size={11} className="animate-spin" /> Analysing…</>
+                  ? <><Loader2 size={11} className="animate-spin" /> {analyzeProgress ? `${analyzeProgress.pct}%` : 'Analysing…'}</>
                   : <><Sparkles size={11} strokeWidth={2} /> {analysis ? 'Re-run' : 'Run'} Analysis</>}
               </button>
               <button
@@ -797,14 +868,15 @@ function MissionHeader({
 // ── Mission Control Body ──────────────────────────────────────────────────────
 
 function MissionControlBody({
-  caseData, threads, analysis, loading, analyzing, attachmentRecords, currentRun, previousRun,
-  onLinkThreads, onUnlink, onUpdatePartyType, onRunAnalysis,
+  caseData, threads, analysis, loading, analyzing, analyzeProgress, attachmentRecords, currentRun, previousRun,
+  onLinkThreads, onUnlink, onUpdatePartyType, onRunAnalysis, onOpenCompose,
 }: {
   caseData:          Case
   threads:           CaseThread[]
   analysis:          CaseAnalysis | null
   loading:           boolean
   analyzing:         boolean
+  analyzeProgress:   AnalysisProgress | null
   attachmentRecords: AttachmentRecord[]
   currentRun:        RunSummary | null
   previousRun:       RunSummary | null
@@ -812,6 +884,7 @@ function MissionControlBody({
   onUnlink:          (t: string) => void
   onUpdatePartyType: (t: string, p: string) => void
   onRunAnalysis:     () => void
+  onOpenCompose:     (s: ComposeState) => void
 }) {
   if (loading && threads.length === 0) {
     return (
@@ -833,6 +906,7 @@ function MissionControlBody({
         onUnlink={onUnlink}
         onUpdatePartyType={onUpdatePartyType}
         analyzing={analyzing}
+        analyzeProgress={analyzeProgress}
       />
     )
   }
@@ -841,7 +915,7 @@ function MissionControlBody({
 
   return (
     <div className="px-6 py-6 flex flex-col gap-8 pb-12">
-      {analyzing && <AnalyzingBanner />}
+      {analyzing && <AnalyzingBanner progress={analyzeProgress} />}
 
       {/* Executive context first */}
       <ExecBriefCard analysis={analysis} sa={sa} />
@@ -863,6 +937,7 @@ function MissionControlBody({
         drafts={sa?.draft_artifacts ?? []}
         caseId={caseData.id}
         threads={threads}
+        onOpenCompose={onOpenCompose}
       />
 
       {/* Supporting intelligence */}
@@ -929,7 +1004,7 @@ function NoThreadsState({ onAdd }: { onAdd: () => void }) {
 // ── Pre-Analysis State ────────────────────────────────────────────────────────
 
 function PreAnalysisState({
-  threads, attachmentRecords, onAdd, onRunAnalysis, onUnlink, onUpdatePartyType, analyzing,
+  threads, attachmentRecords, onAdd, onRunAnalysis, onUnlink, onUpdatePartyType, analyzing, analyzeProgress,
 }: {
   threads:           CaseThread[]
   attachmentRecords: AttachmentRecord[]
@@ -938,10 +1013,11 @@ function PreAnalysisState({
   onUnlink:          (t: string) => void
   onUpdatePartyType: (t: string, p: string) => void
   analyzing:         boolean
+  analyzeProgress:   AnalysisProgress | null
 }) {
   return (
     <div className="px-6 py-6 flex flex-col gap-6">
-      {analyzing && <AnalyzingBanner />}
+      {analyzing && <AnalyzingBanner progress={analyzeProgress} />}
 
       {!analyzing && (
         <div className="rounded-xl border border-primary/20 bg-primary/[0.04] px-5 py-6 flex flex-col items-center gap-4 text-center">
@@ -991,13 +1067,37 @@ function PreAnalysisState({
 
 // ── Analyzing Banner ──────────────────────────────────────────────────────────
 
-function AnalyzingBanner() {
+function AnalyzingBanner({ progress }: { progress: AnalysisProgress | null }) {
+  const stage = progress ? ANALYSIS_STAGES[progress.stageIdx] : null
   return (
-    <div className="flex items-center gap-3 px-4 py-3 bg-primary/5 border border-primary/15 rounded-xl">
-      <Loader2 size={14} className="animate-spin text-primary flex-shrink-0" />
-      <div>
-        <p className="text-[12px] font-semibold text-primary/90">Grand analysis in progress</p>
-        <p className="text-[10.5px] text-primary/60">Reading all threads and attachments — this typically takes 30–60 seconds.</p>
+    <div className="flex flex-col gap-3 px-4 py-4 bg-primary/5 border border-primary/15 rounded-xl">
+      <div className="flex items-start gap-3">
+        <Loader2 size={14} className="animate-spin text-primary flex-shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[12px] font-semibold text-primary/90">Grand analysis in progress</p>
+            {progress && (
+              <span className="text-[12px] font-bold text-primary tabular-nums">{progress.pct}%</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {stage && <p className="text-[10.5px] text-primary/60">{stage.label}</p>}
+            {stage?.model && (
+              <span className="text-[9px] font-bold bg-primary/10 text-primary/70 px-1.5 py-0.5 rounded flex-shrink-0">
+                {stage.model}
+              </span>
+            )}
+            {!stage && (
+              <p className="text-[10.5px] text-primary/60">Reading threads and attachments…</p>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="h-[3px] bg-primary/10 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-primary/50 rounded-full transition-[width] duration-300 ease-linear"
+          style={{ width: `${progress?.pct ?? 0}%` }}
+        />
       </div>
     </div>
   )
@@ -1476,13 +1576,14 @@ type StepDraftState = {
 }
 
 function NextStepsSection({
-  v1Steps, missingItems, drafts, caseId, threads,
+  v1Steps, missingItems, drafts, caseId, threads, onOpenCompose,
 }: {
-  v1Steps:      V1NextStep[]
-  missingItems: V1Missing[]
-  drafts:       V1Draft[]
-  caseId:       string
-  threads:      CaseThread[]
+  v1Steps:        V1NextStep[]
+  missingItems:   V1Missing[]
+  drafts:         V1Draft[]
+  caseId:         string
+  threads:        CaseThread[]
+  onOpenCompose:  (s: ComposeState) => void
 }) {
   const [stepDraftState, setStepDraftState] = useState<Record<number, StepDraftState>>({})
   const [copiedStep,     setCopiedStep]     = useState<number | null>(null)
@@ -1516,6 +1617,15 @@ function NextStepsSection({
         ...prev,
         [key]: { status: 'done', draftId: data.draftId, threadId: threadId ?? undefined },
       }))
+      // Open the Gmail-style compose window pre-filled with the draft content
+      onOpenCompose({
+        draftId:  data.draftId,
+        to:       artifact.to_emails?.[0] ?? '',
+        cc:       artifact.cc_emails?.join(', ') ?? '',
+        subject:  artifact.subject ?? '',
+        body:     artifact.body ?? '',
+        threadId,
+      })
     } catch (e) {
       setStepDraftState(prev => ({
         ...prev,
@@ -1620,14 +1730,20 @@ function NextStepsSection({
                 {/* ── Step action bar ── */}
                 <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-[--border-subtle]/60">
                   {ds.status === 'done' ? (
-                    <a
-                      href={ds.threadId ? `/engagement?lead=${ds.threadId}` : '/engagement'}
+                    <button
+                      onClick={() => onOpenCompose({
+                        draftId:  ds.draftId!,
+                        to:       artifact?.to_emails?.[0] ?? '',
+                        cc:       artifact?.cc_emails?.join(', ') ?? '',
+                        subject:  artifact?.subject ?? '',
+                        body:     artifact?.body ?? '',
+                        threadId: ds.threadId ?? null,
+                      })}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-[10.5px] font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors"
                     >
                       <CheckCircle2 size={11} strokeWidth={2.5} />
-                      Draft created · Open in Engagement
-                      <ArrowRight size={10} strokeWidth={2.5} />
-                    </a>
+                      Draft ready · Open compose
+                    </button>
                   ) : artifact ? (
                     <button
                       onClick={() => createDraft(step, artifact)}
@@ -2826,6 +2942,250 @@ function NexusStepCompose({
           >
             {sending ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} strokeWidth={2} />}
             {sending ? 'Sending…' : 'Send'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Nexus Compose Window (Gmail-style floating) ───────────────────────────────
+
+type UserSignature = {
+  id:              string
+  name:            string
+  title:           string | null
+  phone:           string | null
+  email:           string | null
+  company_tagline: string | null
+  sending_email:   string | null
+}
+
+function NexusComposeWindow({
+  state, onClose,
+}: {
+  state:   ComposeState
+  onClose: () => void
+}) {
+  const [to,         setTo]         = useState(state.to)
+  const [cc,         setCc]         = useState(state.cc)
+  const [subject,    setSubject]    = useState(state.subject)
+  const [bodyHtml,   setBodyHtml]   = useState(plainToHtml(state.body))
+  const [minimized,  setMinimized]  = useState(false)
+  const [expanded,   setExpanded]   = useState(false)
+  const [signatures, setSignatures] = useState<UserSignature[]>([])
+  const [sigId,      setSigId]      = useState<string | null>(null)
+  const [sending,    setSending]    = useState(false)
+  const [sent,       setSent]       = useState(false)
+  const [sendError,  setSendError]  = useState<string | null>(null)
+  const [showCc,     setShowCc]     = useState(!!state.cc)
+
+  useEffect(() => {
+    fetch('/api/signatures').then(r => r.ok ? r.json() : []).then((sigs: UserSignature[]) => {
+      setSignatures(sigs)
+    }).catch(() => {})
+  }, [])
+
+  async function handleSend() {
+    if (!to.trim()) return
+    setSending(true); setSendError(null)
+    try {
+      const ccList = cc.split(',').map(s => s.trim()).filter(Boolean)
+      const res = await fetch('/api/email/send', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          draftId:       state.draftId,
+          htmlBody:      bodyHtml,
+          toEmail:       to.trim(),
+          cc:            ccList.length ? ccList : undefined,
+          customSubject: subject.trim() || undefined,
+          signatureId:   sigId ?? undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Send failed')
+      setSent(true)
+      setTimeout(() => onClose(), 2000)
+    } catch (e) {
+      setSendError(e instanceof Error ? e.message : 'Send failed')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  // Minimised tab bar
+  if (minimized) {
+    return (
+      <div className="fixed bottom-0 right-6 z-50 flex items-center gap-3 px-4 py-2.5 bg-foreground text-background rounded-t-xl shadow-2xl cursor-pointer select-none">
+        <span
+          className="text-[11.5px] font-semibold truncate max-w-[200px]"
+          onClick={() => setMinimized(false)}
+        >
+          {subject || 'New Message'}
+        </span>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setMinimized(false)}
+            className="text-background/60 hover:text-background transition-colors"
+          >
+            <Maximize2 size={11} />
+          </button>
+          <button
+            onClick={onClose}
+            className="text-background/60 hover:text-background transition-colors"
+          >
+            <X size={11} />
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const panelW = expanded ? 'w-[680px]' : 'w-[520px]'
+  const panelH = expanded ? 'h-[600px]' : 'h-[460px]'
+
+  return (
+    <div className={cn(
+      'fixed bottom-0 right-6 z-50 flex flex-col bg-card shadow-2xl rounded-t-xl overflow-hidden',
+      panelW, panelH,
+    )}>
+      {/* Title bar */}
+      <div
+        className="flex items-center justify-between px-4 py-2.5 bg-foreground flex-shrink-0 select-none"
+        onDoubleClick={() => setMinimized(true)}
+      >
+        <span className="text-[11.5px] font-semibold text-background truncate flex-1 mr-3">
+          {subject || 'New Message'}
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setMinimized(true)}
+            className="text-background/55 hover:text-background transition-colors"
+            title="Minimise"
+          >
+            <Minus size={11} />
+          </button>
+          <button
+            onClick={() => setExpanded(v => !v)}
+            className="text-background/55 hover:text-background transition-colors"
+            title={expanded ? 'Restore' : 'Expand'}
+          >
+            {expanded ? <Minimize2 size={11} /> : <Maximize2 size={11} />}
+          </button>
+          <button
+            onClick={onClose}
+            className="text-background/55 hover:text-background transition-colors"
+            title="Close"
+          >
+            <X size={11} />
+          </button>
+        </div>
+      </div>
+
+      {/* Field rows — dividers only, no outer border */}
+      <div className="flex flex-col flex-shrink-0 bg-card">
+        {/* To */}
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-[--border-subtle]/50">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/40 w-7 flex-shrink-0">To</span>
+          <input
+            value={to}
+            onChange={e => setTo(e.target.value)}
+            className="flex-1 text-[12px] bg-transparent outline-none text-foreground placeholder:text-muted-foreground/30"
+            placeholder="recipient@example.com"
+          />
+          {!showCc && (
+            <button
+              onClick={() => setShowCc(true)}
+              className="text-[10px] text-muted-foreground/40 hover:text-muted-foreground/70 flex-shrink-0"
+            >
+              CC
+            </button>
+          )}
+        </div>
+
+        {/* CC (toggle) */}
+        {showCc && (
+          <div className="flex items-center gap-2 px-4 py-2 border-b border-[--border-subtle]/50">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/40 w-7 flex-shrink-0">CC</span>
+            <input
+              value={cc}
+              onChange={e => setCc(e.target.value)}
+              className="flex-1 text-[12px] bg-transparent outline-none text-foreground placeholder:text-muted-foreground/30"
+              placeholder="cc@example.com, ..."
+            />
+          </div>
+        )}
+
+        {/* Subject */}
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-[--border-subtle]/50">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/40 w-7 flex-shrink-0">Subj</span>
+          <input
+            value={subject}
+            onChange={e => setSubject(e.target.value)}
+            className="flex-1 text-[12px] bg-transparent outline-none text-foreground placeholder:text-muted-foreground/30"
+            placeholder="Subject"
+          />
+        </div>
+      </div>
+
+      {/* Body — RichEditor */}
+      <div className="flex-1 overflow-hidden px-4 py-3 bg-card min-h-0">
+        <RichEditor
+          initialHtml={bodyHtml}
+          onChange={setBodyHtml}
+          borderless
+          minHeight={140}
+        />
+      </div>
+
+      {/* Send error */}
+      {sendError && (
+        <div className="px-4 py-2 bg-red-50 flex-shrink-0">
+          <p className="text-[10.5px] text-red-600">{sendError}</p>
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className="flex items-center justify-between px-4 py-3 border-t border-[--border-subtle]/50 bg-card flex-shrink-0">
+        <div className="flex items-center gap-2">
+          {signatures.length > 0 && (
+            <select
+              value={sigId ?? ''}
+              onChange={e => setSigId(e.target.value || null)}
+              className="text-[10.5px] text-muted-foreground/55 bg-transparent border-0 outline-none cursor-pointer"
+            >
+              <option value="">No signature</option>
+              {signatures.map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onClose}
+            className="text-[11px] text-muted-foreground/50 hover:text-foreground px-3 py-1.5 transition-colors"
+          >
+            Discard
+          </button>
+          <button
+            onClick={handleSend}
+            disabled={sending || sent || !to.trim()}
+            className={cn(
+              'flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11.5px] font-semibold transition-colors',
+              sent
+                ? 'bg-emerald-50 text-emerald-700'
+                : 'bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed',
+            )}
+          >
+            {sent ? (
+              <><CheckCircle2 size={11} /> Sent</>
+            ) : sending ? (
+              <><Loader2 size={11} className="animate-spin" /> Sending…</>
+            ) : (
+              <><Send size={11} /> Send</>
+            )}
           </button>
         </div>
       </div>
