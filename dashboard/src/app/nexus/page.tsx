@@ -495,6 +495,12 @@ function CaseDetailPanel({
     } finally { setLoading(false) }
   }, [caseData.id, loadRuns])
 
+  // Keep a stable ref to load() so polling effects can call it without stale closure
+  const loadRef = useRef(load)
+  useEffect(() => { loadRef.current = load }, [load])
+
+  const LS_KEY = `nexus_analyzing_${caseData.id}`
+
   useEffect(() => {
     setDetail(null)
     setAnalyzeError(null)
@@ -502,8 +508,40 @@ function CaseDetailPanel({
     load()
   }, [caseData.id, load])
 
+  // Resume in-progress analysis after navigation away: if localStorage shows an
+  // analysis was started for this case within the last 5 minutes, show the
+  // spinner and poll runs until a completed/failed row appears.
+  useEffect(() => {
+    const startedAt = Number(localStorage.getItem(LS_KEY) ?? '0')
+    if (!startedAt || Date.now() - startedAt >= 5 * 60 * 1000) return
+
+    setAnalyzing(true)
+    const poll = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/nexus/cases/${caseData.id}/runs`, { cache: 'no-store' })
+        if (!res.ok) return
+        const runs: RunSummary[] = await res.json()
+        if (!Array.isArray(runs) || runs.length === 0) return
+        const latest = runs[0]
+        if (new Date(latest.created_at).getTime() > startedAt) {
+          // New run appeared — analysis finished (completed or failed)
+          clearInterval(poll)
+          localStorage.removeItem(LS_KEY)
+          setAnalyzing(false)
+          loadRef.current()
+        }
+      } catch { /* ignore transient poll errors */ }
+    }, 3000)
+
+    return () => {
+      clearInterval(poll)
+      setAnalyzing(false)
+    }
+  }, [caseData.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
   async function runAnalysis() {
     setAnalyzing(true); setAnalyzeError(null)
+    localStorage.setItem(LS_KEY, Date.now().toString())
     try {
       const res  = await fetch(`/api/nexus/cases/${caseData.id}/analyze`, {
         method: 'POST',
@@ -518,7 +556,10 @@ function CaseDetailPanel({
       loadRuns()
     } catch (e) {
       setAnalyzeError(e instanceof Error ? e.message : 'Analysis failed')
-    } finally { setAnalyzing(false) }
+    } finally {
+      setAnalyzing(false)
+      localStorage.removeItem(LS_KEY)
+    }
   }
 
   async function pinRun(runId: string, pinned: boolean) {
