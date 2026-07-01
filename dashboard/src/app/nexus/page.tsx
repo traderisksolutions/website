@@ -5,7 +5,8 @@ import {
   Plus, ChevronDown, X, Search, Link2, Sparkles,
   AlertCircle, Clock, CheckCircle2, Zap, BookOpen, ArrowRight,
   MailOpen, FileText, Scale, Users, Send, Loader2, Trash2, Paperclip,
-  FolderOpen, Network,
+  FolderOpen, Network, HelpCircle, ShieldAlert, TrendingUp, ListChecks,
+  BadgeDollarSign, Database, Eye,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
@@ -83,16 +84,44 @@ type PlaybookStep = {
   draft:       string
 }
 
+// V1 analysis types (mirrors NexusAnalysisV1 from run-nexus-analysis)
+type V1Citation    = { id: string; label: string; type: string; date?: string; excerpt?: string }
+type V1Stakeholder = { id: string; name: string; party_type: string; email?: string; company?: string; role_summary: string; stance?: string }
+type V1TimelineEvt = { date: string; party: string; event: string; significance: string; citation_ids?: string[] }
+type V1Evidence    = { id: string; filename_or_label: string; source_type: string; key_facts: string[]; coverage_relevant: boolean; citation_id?: string }
+type V1Question    = { question: string; priority: string; directed_at?: string; citation_ids?: string[] }
+type V1Missing     = { item: string; required_from: string; urgency: string; impact: string }
+type V1Scenario    = { name: string; probability: string; outcome: string; trs_action: string; citation_ids?: string[] }
+type V1NextStep    = { step: number; action: string; owner: string; deadline?: string; priority: string; rationale: string }
+type V1Draft       = { artifact_type: string; to_party: string; party_type: string; to_emails: string[]; cc_emails: string[]; subject: string; body: string; intent: string; priority: string; citation_ids?: string[] }
+type V1Reserve     = { recommended_reserve?: string; basis: string; confidence: string; risk_factors: string[]; citation_ids?: string[] }
+type NexusAnalysisV1 = {
+  schema_version:         string
+  case_brief:             { summary: string; incident_date?: string; claim_amount?: string; policy_reference?: string; coverage_type?: string; current_stage: string; blocking_issues: string[]; pending_from: Record<string, string> }
+  stakeholder_map:        V1Stakeholder[]
+  timeline:               V1TimelineEvt[]
+  evidence_ledger:        V1Evidence[]
+  open_questions:         V1Question[]
+  missing_items:          V1Missing[]
+  scenario_analysis:      V1Scenario[]
+  recommended_next_steps: V1NextStep[]
+  draft_artifacts:        V1Draft[]
+  reserve_guidance:       V1Reserve | null
+  citations:              V1Citation[]
+}
+
 type CaseAnalysis = {
-  id:                 string
-  case_id:            string
+  id:                  string
+  case_id:             string
   historical_timeline: TimelineEvent[]
-  current_status:     { summary: string; blocking_issues: string[]; pending_from: Record<string, string> }
-  playbook:           PlaybookStep[]
-  outreach_strategy:  Record<string, { tone: string; key_message: string; timing: string }>
-  legal_research:     { singapore_relevance: string; applicable_regulations: string[]; precedents_or_guidance: string[]; sources: string[] } | null
-  strategy_model:     string | null
-  created_at:         string
+  current_status:      { summary: string; blocking_issues: string[]; pending_from: Record<string, string> }
+  playbook:            PlaybookStep[]
+  outreach_strategy:   Record<string, { tone: string; key_message: string; timing: string }>
+  legal_research:      { singapore_relevance: string; applicable_regulations: string[]; precedents_or_guidance: string[]; sources: string[] } | null
+  strategy_model:      string | null
+  created_at:          string
+  structured_analysis?: NexusAnalysisV1
+  schema_version?:     string
 }
 
 type ThreadSuggestion = {
@@ -399,7 +428,7 @@ function CaseDetailPanel({
   const [analyzing,      setAnalyzing]      = useState(false)
   const [analyzeError,   setAnalyzeError]   = useState<string | null>(null)
   const [activeTab,      setActiveTab]      = useState<'timeline' | 'status' | 'playbook' | 'legal'>('playbook')
-  const [centerTab,      setCenterTab]      = useState<'overview' | 'messages'>('overview')
+  const [centerTab,      setCenterTab]      = useState<'overview' | 'messages' | 'analysis'>('overview')
   const [linkOpen,       setLinkOpen]       = useState(false)
   const [confirmDelete,  setConfirmDelete]  = useState(false)
 
@@ -428,7 +457,7 @@ function CaseDetailPanel({
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Analysis failed')
       setDetail(prev => prev ? { ...prev, analysis: data.analysis } : prev)
-      setActiveTab('playbook')
+      setCenterTab('analysis')
       onRefresh()
     } catch (e) {
       setAnalyzeError(e instanceof Error ? e.message : 'Analysis failed')
@@ -513,9 +542,10 @@ function CaseDetailPanel({
         {/* Center tab bar */}
         <div className="flex items-center border-b border-[--border-subtle] flex-shrink-0 px-1 bg-card">
           {([
-            { key: 'overview', label: 'Overview' },
-            { key: 'messages', label: `Messages${totalMsgCount > 0 ? ` (${totalMsgCount})` : ''}` },
-          ] as const).map(({ key, label }) => (
+            { key: 'overview',  label: 'Overview' },
+            { key: 'messages',  label: `Messages${totalMsgCount > 0 ? ` (${totalMsgCount})` : ''}` },
+            ...(analysis?.structured_analysis ? [{ key: 'analysis', label: 'Analysis' }] : []),
+          ] as { key: 'overview' | 'messages' | 'analysis'; label: string }[]).map(({ key, label }) => (
             <button
               key={key}
               onClick={() => setCenterTab(key)}
@@ -524,9 +554,13 @@ function CaseDetailPanel({
                 centerTab === key
                   ? 'text-primary border-primary'
                   : 'text-muted-foreground/60 border-transparent hover:text-foreground',
+                key === 'analysis' && 'relative',
               )}
             >
               {label}
+              {key === 'analysis' && (
+                <span className="ml-1.5 inline-flex items-center px-1 py-0 text-[9px] font-bold rounded bg-primary/10 text-primary">V1</span>
+              )}
             </button>
           ))}
         </div>
@@ -547,6 +581,11 @@ function CaseDetailPanel({
                 <AttachmentCoverageCard threads={threads} attachmentRecords={allAttachmentRecords} />
               )}
             </div>
+          )}
+
+          {/* ── Analysis tab ── */}
+          {centerTab === 'analysis' && analysis?.structured_analysis && (
+            <AnalysisV1Panel v1={analysis.structured_analysis} threads={threads} />
           )}
 
           {/* ── Messages tab ── */}
@@ -1741,6 +1780,578 @@ function ThreadLinkerModal({
           </button>
         </div>
       </div>
+    </div>
+  )
+}
+
+// ── Analysis V1 Panel ─────────────────────────────────────────────────────────
+
+const V1_SECTIONS = [
+  { key: 'brief',     label: 'Brief',      icon: FileText },
+  { key: 'stk',       label: 'Parties',    icon: Users },
+  { key: 'timeline',  label: 'Timeline',   icon: BookOpen },
+  { key: 'evidence',  label: 'Evidence',   icon: Database },
+  { key: 'questions', label: 'Questions',  icon: HelpCircle },
+  { key: 'missing',   label: 'Missing',    icon: ShieldAlert },
+  { key: 'scenarios', label: 'Scenarios',  icon: TrendingUp },
+  { key: 'steps',     label: 'Next Steps', icon: ListChecks },
+  { key: 'drafts',    label: 'Drafts',     icon: MailOpen },
+  { key: 'reserve',   label: 'Reserve',    icon: BadgeDollarSign },
+] as const
+
+type V1SectionKey = typeof V1_SECTIONS[number]['key']
+
+function AnalysisV1Panel({ v1, threads }: { v1: NexusAnalysisV1; threads: CaseThread[] }) {
+  const [section, setSection] = useState<V1SectionKey>('brief')
+  const [expandedDraft, setExpandedDraft] = useState<number | null>(null)
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Section nav */}
+      <div className="flex gap-1 px-4 py-2 border-b border-[--border-subtle] flex-shrink-0 overflow-x-auto scrollbar-none">
+        {V1_SECTIONS.map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            onClick={() => setSection(key)}
+            className={cn(
+              'flex items-center gap-1 px-2.5 py-1 rounded-md text-[10.5px] font-semibold whitespace-nowrap transition-colors flex-shrink-0',
+              section === key
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground/60 hover:bg-muted hover:text-foreground',
+            )}
+          >
+            <Icon size={10} strokeWidth={2} />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Section content */}
+      <div className="flex-1 overflow-y-auto px-5 py-4">
+        {section === 'brief'     && <V1BriefSection     brief={v1.case_brief} citations={v1.citations} />}
+        {section === 'stk'       && <V1StakeholderSection stakeholders={v1.stakeholder_map} />}
+        {section === 'timeline'  && <V1TimelineSection  events={v1.timeline} citations={v1.citations} />}
+        {section === 'evidence'  && <V1EvidenceSection  items={v1.evidence_ledger} citations={v1.citations} />}
+        {section === 'questions' && <V1QuestionsSection questions={v1.open_questions} citations={v1.citations} />}
+        {section === 'missing'   && <V1MissingSection   items={v1.missing_items} />}
+        {section === 'scenarios' && <V1ScenarioSection  scenarios={v1.scenario_analysis} citations={v1.citations} />}
+        {section === 'steps'     && <V1StepsSection     steps={v1.recommended_next_steps} />}
+        {section === 'drafts'    && (
+          <V1DraftsSection
+            drafts={v1.draft_artifacts}
+            threads={threads}
+            expandedDraft={expandedDraft}
+            setExpandedDraft={setExpandedDraft}
+          />
+        )}
+        {section === 'reserve'   && <V1ReserveSection   reserve={v1.reserve_guidance} citations={v1.citations} />}
+      </div>
+    </div>
+  )
+}
+
+// ── V1 Citation chip ──────────────────────────────────────────────────────────
+
+function CitationChip({ id, citations }: { id: string; citations: V1Citation[] }) {
+  const cit = citations.find(c => c.id === id)
+  if (!cit) return null
+  return (
+    <span
+      title={cit.excerpt ?? cit.label}
+      className="inline-flex items-center gap-0.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/8 text-primary/70 border border-primary/10 cursor-help"
+    >
+      <Eye size={7} strokeWidth={2} />{cit.label.slice(0, 18)}{cit.label.length > 18 ? '…' : ''}
+    </span>
+  )
+}
+
+function V1EmptyState({ label }: { label: string }) {
+  return <p className="text-[11.5px] text-muted-foreground/45 italic text-center py-10">{label}</p>
+}
+
+// ── V1 Brief Section ──────────────────────────────────────────────────────────
+
+function V1BriefSection({ brief, citations }: { brief: NexusAnalysisV1['case_brief']; citations: V1Citation[] }) {
+  if (!brief) return <V1EmptyState label="No case brief yet." />
+  const facts: { label: string; value: string | undefined }[] = [
+    { label: 'Incident',  value: brief.incident_date },
+    { label: 'Claim',     value: brief.claim_amount },
+    { label: 'Policy',    value: brief.policy_reference },
+    { label: 'Coverage',  value: brief.coverage_type },
+    { label: 'Stage',     value: brief.current_stage },
+  ]
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Summary */}
+      <div className="px-4 py-3.5 bg-primary/5 rounded-xl border border-primary/10">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-primary/60 mb-2">Summary</p>
+        <p className="text-[12.5px] text-foreground/85 leading-[1.7]">{brief.summary}</p>
+      </div>
+
+      {/* Key facts grid */}
+      <div className="grid grid-cols-2 gap-2">
+        {facts.filter(f => f.value).map(f => (
+          <div key={f.label} className="px-3 py-2 rounded-lg border border-[--border-subtle] bg-card">
+            <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/55 mb-0.5">{f.label}</p>
+            <p className="text-[12px] font-semibold text-foreground/85 truncate">{f.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Blocking issues */}
+      {brief.blocking_issues?.length > 0 && (
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-red-600/70 mb-2">Blocking Issues</p>
+          <div className="flex flex-col gap-1.5">
+            {brief.blocking_issues.map((issue, i) => (
+              <div key={i} className="flex gap-2 px-3 py-2 bg-red-50 rounded-lg border border-red-100">
+                <AlertCircle size={11} className="text-red-500 flex-shrink-0 mt-0.5" strokeWidth={2} />
+                <p className="text-[11.5px] text-foreground/80 leading-[1.5]">{issue}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Pending from */}
+      {brief.pending_from && Object.entries(brief.pending_from).filter(([, v]) => v).length > 0 && (
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-2">Pending From</p>
+          <div className="flex flex-col gap-1.5">
+            {Object.entries(brief.pending_from).filter(([, v]) => v).map(([party, item]) => {
+              const pc = partyColor(party)
+              return (
+                <div key={party} className="flex gap-2 px-3 py-2 rounded-lg border" style={{ background: pc.bg, borderColor: pc.border }}>
+                  <span className="text-[9.5px] font-bold uppercase tracking-wider flex-shrink-0 mt-0.5" style={{ color: pc.text }}>{party}</span>
+                  <p className="text-[11.5px] text-foreground/70 leading-[1.5]">{item}</p>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Citations */}
+      {citations?.length > 0 && (
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50 mb-2">Source Citations</p>
+          <div className="flex flex-wrap gap-1.5">
+            {citations.map(c => <CitationChip key={c.id} id={c.id} citations={citations} />)}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── V1 Stakeholder Section ────────────────────────────────────────────────────
+
+function V1StakeholderSection({ stakeholders }: { stakeholders: V1Stakeholder[] }) {
+  if (!stakeholders?.length) return <V1EmptyState label="No stakeholders identified." />
+  return (
+    <div className="flex flex-col gap-2.5">
+      {stakeholders.map((s, i) => {
+        const pc = partyColor(s.party_type)
+        return (
+          <div key={s.id ?? i} className="px-4 py-3 rounded-xl border border-[--border-subtle] bg-card">
+            <div className="flex items-start gap-3">
+              <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ background: pc.dot }} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline gap-2 flex-wrap mb-0.5">
+                  <span className="text-[12px] font-semibold text-foreground">{s.name}</span>
+                  {s.company && <span className="text-[10.5px] text-muted-foreground/55">· {s.company}</span>}
+                  <span className="text-[9.5px] font-bold px-2 py-0.5 rounded-full ml-auto" style={{ background: pc.bg, color: pc.text }}>
+                    {s.party_type.toUpperCase()}
+                  </span>
+                </div>
+                {s.email && <p className="text-[10.5px] text-muted-foreground/55 mb-1">{s.email}</p>}
+                <p className="text-[11.5px] text-foreground/75 leading-[1.5]">{s.role_summary}</p>
+                {s.stance && (
+                  <p className="text-[10.5px] text-muted-foreground/60 italic mt-1">Stance: {s.stance}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── V1 Timeline Section ───────────────────────────────────────────────────────
+
+function V1TimelineSection({ events, citations }: { events: V1TimelineEvt[]; citations: V1Citation[] }) {
+  if (!events?.length) return <V1EmptyState label="No timeline events." />
+  return (
+    <div className="flex flex-col gap-0">
+      {events.map((e, i) => {
+        const pc = partyColor(e.party)
+        return (
+          <div key={i} className="flex gap-3">
+            <div className="flex flex-col items-center">
+              <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ background: pc.dot }} />
+              {i < events.length - 1 && <div className="w-px flex-1 bg-[--border-subtle]/60 mt-1" />}
+            </div>
+            <div className="pb-4 min-w-0 flex-1">
+              <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                <span className="text-[9.5px] font-bold uppercase tracking-wider" style={{ color: pc.text }}>{e.party}</span>
+                <span className="text-[9.5px] text-muted-foreground/50">{fmtDate(e.date)}</span>
+                {e.citation_ids?.map(cid => <CitationChip key={cid} id={cid} citations={citations} />)}
+              </div>
+              <p className="text-[12px] text-foreground/80 leading-[1.55] mb-0.5">{e.event}</p>
+              <p className="text-[10.5px] text-muted-foreground/60 italic leading-[1.45]">{e.significance}</p>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── V1 Evidence Section ───────────────────────────────────────────────────────
+
+function V1EvidenceSection({ items, citations }: { items: V1Evidence[]; citations: V1Citation[] }) {
+  if (!items?.length) return <V1EmptyState label="No evidence items found." />
+  const [open, setOpen] = useState<number | null>(null)
+  return (
+    <div className="flex flex-col gap-2">
+      {items.map((item, i) => {
+        const isOpen = open === i
+        const icon   = item.source_type === 'attachment' ? Paperclip : item.source_type === 'knowledge_doc' ? BookOpen : MailOpen
+        const IconEl = icon
+        return (
+          <div key={item.id ?? i} className="rounded-xl border border-[--border-subtle] bg-card overflow-hidden">
+            <button
+              onClick={() => setOpen(isOpen ? null : i)}
+              className="w-full text-left px-3.5 py-3 flex items-start gap-2.5 hover:bg-muted/30 transition-colors"
+            >
+              <IconEl size={12} strokeWidth={1.8} className="text-muted-foreground/50 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 justify-between">
+                  <span className="text-[12px] font-semibold text-foreground truncate">{item.filename_or_label}</span>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    {item.coverage_relevant && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">Coverage</span>
+                    )}
+                    {item.citation_id && <CitationChip id={item.citation_id} citations={citations} />}
+                  </div>
+                </div>
+                {!isOpen && item.key_facts?.[0] && (
+                  <p className="text-[10.5px] text-muted-foreground/60 mt-0.5 line-clamp-1">{item.key_facts[0]}</p>
+                )}
+              </div>
+              <ChevronDown size={11} strokeWidth={2} className={cn('text-muted-foreground/30 flex-shrink-0 transition-transform', isOpen && 'rotate-180')} />
+            </button>
+            {isOpen && (
+              <div className="px-3.5 pb-3 border-t border-[--border-subtle]/50">
+                <ul className="mt-2.5 flex flex-col gap-1">
+                  {(item.key_facts ?? []).map((f, fi) => (
+                    <li key={fi} className="flex gap-2 text-[11.5px] text-foreground/75 leading-[1.55]">
+                      <span className="text-muted-foreground/40 flex-shrink-0">•</span>{f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── V1 Questions Section ──────────────────────────────────────────────────────
+
+const Q_PRIORITY: Record<string, { color: string; bg: string; border: string }> = {
+  critical: { color: '#dc2626', bg: 'rgba(220,38,38,0.06)',   border: 'rgba(220,38,38,0.15)' },
+  high:     { color: '#b45309', bg: 'rgba(180,83,9,0.06)',    border: 'rgba(180,83,9,0.15)' },
+  medium:   { color: '#0369a1', bg: 'rgba(3,105,161,0.06)',   border: 'rgba(3,105,161,0.15)' },
+  low:      { color: '#6b7280', bg: 'rgba(107,114,128,0.06)', border: 'rgba(107,114,128,0.15)' },
+}
+const qPriority = (p: string) => Q_PRIORITY[p.toLowerCase()] ?? Q_PRIORITY.low
+
+function V1QuestionsSection({ questions, citations }: { questions: V1Question[]; citations: V1Citation[] }) {
+  if (!questions?.length) return <V1EmptyState label="No open questions identified." />
+  const sorted = [...questions].sort((a, b) => {
+    const order = { critical: 0, high: 1, medium: 2, low: 3 }
+    return (order[a.priority as keyof typeof order] ?? 4) - (order[b.priority as keyof typeof order] ?? 4)
+  })
+  return (
+    <div className="flex flex-col gap-2">
+      {sorted.map((q, i) => {
+        const qp = qPriority(q.priority)
+        return (
+          <div key={i} className="px-3.5 py-3 rounded-xl border" style={{ background: qp.bg, borderColor: qp.border }}>
+            <div className="flex items-start gap-2">
+              <HelpCircle size={12} strokeWidth={2} className="flex-shrink-0 mt-0.5" style={{ color: qp.color }} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <span className="text-[9.5px] font-bold uppercase tracking-wider" style={{ color: qp.color }}>{q.priority}</span>
+                  {q.directed_at && <span className="text-[9.5px] text-muted-foreground/55">→ {q.directed_at}</span>}
+                </div>
+                <p className="text-[12px] text-foreground/85 leading-[1.55]">{q.question}</p>
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── V1 Missing Items Section ──────────────────────────────────────────────────
+
+const URGENCY_META: Record<string, { label: string; color: string; bg: string }> = {
+  urgent: { label: 'Urgent', color: '#dc2626', bg: 'rgba(220,38,38,0.08)' },
+  normal: { label: 'Normal', color: '#b45309', bg: 'rgba(180,83,9,0.08)' },
+  low:    { label: 'Low',    color: '#6b7280', bg: 'rgba(107,114,128,0.08)' },
+}
+const urgencyMeta = (u: string) => URGENCY_META[u.toLowerCase()] ?? URGENCY_META.low
+
+function V1MissingSection({ items }: { items: V1Missing[] }) {
+  if (!items?.length) return <V1EmptyState label="No missing items identified." />
+  return (
+    <div className="flex flex-col gap-2">
+      {items.map((item, i) => {
+        const um = urgencyMeta(item.urgency)
+        return (
+          <div key={i} className="px-3.5 py-3 rounded-xl border border-[--border-subtle] bg-card">
+            <div className="flex items-start gap-2 mb-1.5">
+              <ShieldAlert size={12} strokeWidth={2} className="flex-shrink-0 mt-0.5 text-amber-500" />
+              <p className="text-[12px] font-semibold text-foreground/85 leading-[1.45]">{item.item}</p>
+              <span className="ml-auto flex-shrink-0 text-[9.5px] font-bold px-2 py-0.5 rounded-full" style={{ background: um.bg, color: um.color }}>
+                {um.label}
+              </span>
+            </div>
+            <div className="flex items-start gap-2 flex-wrap pl-5">
+              <span className="text-[10px] font-semibold text-muted-foreground/55">From: <span className="text-foreground/70">{item.required_from}</span></span>
+              <span className="text-[10.5px] text-muted-foreground/60 italic leading-[1.45]">{item.impact}</span>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── V1 Scenario Section ───────────────────────────────────────────────────────
+
+const PROB_META: Record<string, { color: string; bg: string; width: string }> = {
+  high:   { color: '#059669', bg: 'rgba(5,150,105,0.08)',  width: '80%' },
+  medium: { color: '#b45309', bg: 'rgba(180,83,9,0.08)',   width: '50%' },
+  low:    { color: '#6b7280', bg: 'rgba(107,114,128,0.08)', width: '25%' },
+}
+const probMeta = (p: string) => PROB_META[p.toLowerCase()] ?? PROB_META.low
+
+function V1ScenarioSection({ scenarios, citations }: { scenarios: V1Scenario[]; citations: V1Citation[] }) {
+  if (!scenarios?.length) return <V1EmptyState label="No scenario analysis yet." />
+  return (
+    <div className="flex flex-col gap-3">
+      {scenarios.map((s, i) => {
+        const pm = probMeta(s.probability)
+        return (
+          <div key={i} className="px-4 py-3.5 rounded-xl border border-[--border-subtle] bg-card">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[12px] font-bold text-foreground">{s.name}</span>
+              <span className="text-[9.5px] font-bold px-2 py-0.5 rounded-full" style={{ background: pm.bg, color: pm.color }}>
+                {s.probability.toUpperCase()}
+              </span>
+            </div>
+            {/* probability bar */}
+            <div className="h-1 rounded-full bg-muted mb-3 overflow-hidden">
+              <div className="h-full rounded-full transition-all" style={{ width: pm.width, background: pm.color }} />
+            </div>
+            <p className="text-[11.5px] text-foreground/75 leading-[1.55] mb-2">{s.outcome}</p>
+            <div className="flex gap-1.5 items-start">
+              <ArrowRight size={10} strokeWidth={2.5} className="text-primary/60 flex-shrink-0 mt-0.5" />
+              <p className="text-[11px] font-semibold text-primary/80 leading-[1.5]">{s.trs_action}</p>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── V1 Next Steps Section ─────────────────────────────────────────────────────
+
+const STEP_PRIORITY: Record<string, { color: string; bg: string }> = {
+  urgent: { color: '#dc2626', bg: 'rgba(220,38,38,0.08)' },
+  high:   { color: '#b45309', bg: 'rgba(180,83,9,0.08)' },
+  normal: { color: '#6b7280', bg: 'rgba(107,114,128,0.08)' },
+}
+const stepPriority = (p: string) => STEP_PRIORITY[p.toLowerCase()] ?? STEP_PRIORITY.normal
+
+function V1StepsSection({ steps }: { steps: V1NextStep[] }) {
+  if (!steps?.length) return <V1EmptyState label="No next steps generated." />
+  return (
+    <div className="flex flex-col gap-2">
+      {steps.map((step, i) => {
+        const sp = stepPriority(step.priority)
+        const pc = partyColor(step.owner)
+        return (
+          <div key={i} className="flex gap-3 px-3.5 py-3 rounded-xl border border-[--border-subtle] bg-card">
+            <span className="text-[11px] font-black text-muted-foreground/35 flex-shrink-0 mt-0.5 w-5 text-right">
+              {String(step.step).padStart(2, '0')}
+            </span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <span className="text-[12px] font-semibold text-foreground">{step.action}</span>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full ml-auto" style={{ background: sp.bg, color: sp.color }}>
+                  {step.priority.toUpperCase()}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: pc.bg, color: pc.text }}>
+                  {step.owner.toUpperCase()}
+                </span>
+                {step.deadline && (
+                  <span className="text-[10px] text-muted-foreground/55 flex items-center gap-0.5">
+                    <Clock size={9} strokeWidth={2} /> {step.deadline}
+                  </span>
+                )}
+              </div>
+              <p className="text-[10.5px] text-muted-foreground/60 italic leading-[1.45]">{step.rationale}</p>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── V1 Drafts Section ─────────────────────────────────────────────────────────
+
+function V1DraftsSection({
+  drafts, threads, expandedDraft, setExpandedDraft,
+}: {
+  drafts:           V1Draft[]
+  threads:          CaseThread[]
+  expandedDraft:    number | null
+  setExpandedDraft: (i: number | null) => void
+}) {
+  if (!drafts?.length) return <V1EmptyState label="No draft communications generated." />
+  return (
+    <div className="flex flex-col gap-3">
+      {drafts.map((d, i) => {
+        const isOpen = expandedDraft === i
+        const pc = partyColor(d.party_type)
+        const sp = stepPriority(d.priority)
+        const matchingThread = threads.find(ct => ct.party_type === d.party_type) ?? null
+        return (
+          <div key={i} className="rounded-xl border border-[--border-subtle] bg-card overflow-hidden">
+            <button
+              onClick={() => setExpandedDraft(isOpen ? null : i)}
+              className="w-full text-left px-3.5 pt-3 pb-2.5 hover:bg-muted/20 transition-colors"
+            >
+              <div className="flex items-start justify-between gap-2 mb-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: pc.bg, color: pc.text }}>
+                    {d.party_type.toUpperCase()}
+                  </span>
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: sp.bg, color: sp.color }}>
+                    {d.priority.toUpperCase()}
+                  </span>
+                </div>
+                <ChevronDown size={11} strokeWidth={2} className={cn('text-muted-foreground/30 flex-shrink-0 transition-transform mt-0.5', isOpen && 'rotate-180')} />
+              </div>
+              <p className="text-[12px] font-semibold text-foreground truncate">{d.subject}</p>
+              <p className="text-[10.5px] text-muted-foreground/55">{d.to_party}</p>
+              {!isOpen && (
+                <p className="text-[10.5px] text-muted-foreground/50 mt-1 line-clamp-2 italic">{d.intent}</p>
+              )}
+            </button>
+            {isOpen && (
+              <div className="border-t border-[--border-subtle]/50">
+                <div className="px-3.5 pt-2.5 pb-2">
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/50 mb-1">Intent</p>
+                  <p className="text-[11px] text-foreground/70 italic mb-3">{d.intent}</p>
+                  {(d.to_emails?.length > 0 || d.cc_emails?.length > 0) && (
+                    <div className="mb-3 flex flex-col gap-0.5">
+                      {d.to_emails?.length > 0 && (
+                        <p className="text-[9.5px] text-muted-foreground/55"><span className="font-semibold">To:</span> {d.to_emails.join(', ')}</p>
+                      )}
+                      {d.cc_emails?.length > 0 && (
+                        <p className="text-[9.5px] text-muted-foreground/55"><span className="font-semibold">CC:</span> {d.cc_emails.join(', ')}</p>
+                      )}
+                    </div>
+                  )}
+                  <div className="bg-muted/30 rounded-lg p-3 border border-[--border-subtle]/50 mb-2">
+                    <p className="text-[11.5px] text-foreground/80 leading-[1.7] whitespace-pre-wrap">{d.body}</p>
+                  </div>
+                  {matchingThread && (
+                    <p className="text-[10px] text-muted-foreground/45 text-center">
+                      Use the <span className="font-semibold">Playbook</span> tab → to compose and send this email
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── V1 Reserve Section ────────────────────────────────────────────────────────
+
+function V1ReserveSection({ reserve, citations }: { reserve: V1Reserve | null; citations: V1Citation[] }) {
+  if (!reserve) return (
+    <div className="flex flex-col items-center gap-3 py-16 text-center">
+      <BadgeDollarSign size={32} strokeWidth={1.2} className="text-muted-foreground/25" />
+      <div className="max-w-[260px]">
+        <p className="text-[12.5px] font-semibold text-foreground/55 mb-1.5">No reserve guidance</p>
+        <p className="text-[11px] text-muted-foreground/45 leading-[1.6]">Insufficient evidence to estimate a reserve. Gather claim documentation and surveyor reports first.</p>
+      </div>
+    </div>
+  )
+  const confMeta: Record<string, { color: string; bg: string }> = {
+    high:   { color: '#059669', bg: 'rgba(5,150,105,0.08)' },
+    medium: { color: '#b45309', bg: 'rgba(180,83,9,0.08)' },
+    low:    { color: '#6b7280', bg: 'rgba(107,114,128,0.08)' },
+  }
+  const cm = confMeta[reserve.confidence?.toLowerCase()] ?? confMeta.low
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Reserve figure */}
+      {reserve.recommended_reserve && (
+        <div className="px-4 py-4 bg-primary/5 rounded-xl border border-primary/10 text-center">
+          <p className="text-[9.5px] font-bold uppercase tracking-wider text-primary/60 mb-1">Recommended Reserve</p>
+          <p className="text-[26px] font-black text-foreground/90 tabular-nums">{reserve.recommended_reserve}</p>
+          <span className="text-[9.5px] font-bold px-2 py-0.5 rounded-full" style={{ background: cm.bg, color: cm.color }}>
+            {reserve.confidence?.toUpperCase()} CONFIDENCE
+          </span>
+        </div>
+      )}
+
+      {/* Basis */}
+      <div className="px-3.5 py-3 rounded-xl border border-[--border-subtle] bg-card">
+        <p className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground/55 mb-1.5">Basis</p>
+        <p className="text-[12px] text-foreground/80 leading-[1.6]">{reserve.basis}</p>
+      </div>
+
+      {/* Risk factors */}
+      {reserve.risk_factors?.length > 0 && (
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/55 mb-2">Risk Factors</p>
+          <div className="flex flex-col gap-1.5">
+            {reserve.risk_factors.map((rf, i) => (
+              <div key={i} className="flex gap-2 items-start px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
+                <AlertCircle size={10} strokeWidth={2} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                <p className="text-[11.5px] text-foreground/75 leading-[1.45]">{rf}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Citations */}
+      {(reserve.citation_ids?.length ?? 0) > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {(reserve.citation_ids ?? []).map(cid => <CitationChip key={cid} id={cid} citations={citations} />)}
+        </div>
+      )}
     </div>
   )
 }

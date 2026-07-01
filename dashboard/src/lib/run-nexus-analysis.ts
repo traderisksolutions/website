@@ -70,6 +70,120 @@ export type NexusAnalysis = {
   } | null
 }
 
+// ── V1 Analysis contract (stored in structured_analysis jsonb column) ─────────
+
+export type Citation = {
+  id:       string
+  label:    string
+  type:     'email' | 'attachment' | 'knowledge_doc' | 'web'
+  date?:    string
+  excerpt?: string
+}
+
+export type StakeholderV1 = {
+  id:           string
+  name:         string
+  party_type:   string
+  email?:       string
+  company?:     string
+  role_summary: string
+  stance?:      string
+  thread_id?:   string
+}
+
+export type TimelineEventV1 = {
+  date:          string
+  party:         string
+  event:         string
+  significance:  string
+  citation_ids?: string[]
+}
+
+export type EvidenceItem = {
+  id:                string
+  filename_or_label: string
+  source_type:       'email' | 'attachment' | 'knowledge_doc'
+  key_facts:         string[]
+  coverage_relevant: boolean
+  citation_id?:      string
+}
+
+export type OpenQuestion = {
+  question:      string
+  priority:      'critical' | 'high' | 'medium' | 'low'
+  directed_at?:  string
+  citation_ids?: string[]
+}
+
+export type MissingItem = {
+  item:          string
+  required_from: string
+  urgency:       'urgent' | 'normal' | 'low'
+  impact:        string
+}
+
+export type Scenario = {
+  name:          string
+  probability:   'high' | 'medium' | 'low'
+  outcome:       string
+  trs_action:    string
+  citation_ids?: string[]
+}
+
+export type NextStepV1 = {
+  step:       number
+  action:     string
+  owner:      string
+  deadline?:  string
+  priority:   'urgent' | 'high' | 'normal'
+  rationale:  string
+}
+
+export type DraftArtifact = {
+  artifact_type: 'email' | 'letter' | 'memo'
+  to_party:      string
+  party_type:    string
+  to_emails:     string[]
+  cc_emails:     string[]
+  subject:       string
+  body:          string
+  intent:        string
+  priority:      'urgent' | 'high' | 'normal'
+  citation_ids?: string[]
+}
+
+export type ReserveGuidance = {
+  recommended_reserve?: string
+  basis:                string
+  confidence:           'high' | 'medium' | 'low'
+  risk_factors:         string[]
+  citation_ids?:        string[]
+}
+
+export type NexusAnalysisV1 = {
+  schema_version:         '1.0'
+  case_brief: {
+    summary:           string
+    incident_date?:    string
+    claim_amount?:     string
+    policy_reference?: string
+    coverage_type?:    string
+    current_stage:     string
+    blocking_issues:   string[]
+    pending_from:      Record<string, string>
+  }
+  stakeholder_map:        StakeholderV1[]
+  timeline:               TimelineEventV1[]
+  evidence_ledger:        EvidenceItem[]
+  open_questions:         OpenQuestion[]
+  missing_items:          MissingItem[]
+  scenario_analysis:      Scenario[]
+  recommended_next_steps: NextStepV1[]
+  draft_artifacts:        DraftArtifact[]
+  reserve_guidance:       ReserveGuidance | null
+  citations:              Citation[]
+}
+
 // ── Gmail attachment fetcher ──────────────────────────────────────────────────
 
 async function getGmailToken(): Promise<string | null> {
@@ -297,6 +411,17 @@ async function fetchAndUploadAttachments(
   return { text: textChunks.join('\n'), fileParts, attachmentSummary }
 }
 
+// ── JSON parser (strips fences, regex fallback) ───────────────────────────────
+
+function parseJsonSafe(text: string): unknown {
+  let s = text.trim()
+  s = s.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '')
+  try { return JSON.parse(s) } catch { /* fall through */ }
+  const m = s.match(/\{[\s\S]*\}/)
+  if (m) { try { return JSON.parse(m[0]) } catch { /* fall through */ } }
+  throw new Error(`JSON parse failed: ${s.slice(0, 200)}`)
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export async function runNexusAnalysis(caseId: string): Promise<NexusAnalysis> {
@@ -461,13 +586,13 @@ ${threadMsgs || '(no messages yet)'}`
     ? `\nATTACHMENTS FOUND:\n${attachmentSummary.map(a => `  • ${a}`).join('\n')}\n${gdriveNote}`
     : `\nNo email attachments found.\n${gdriveNote}`
 
-  // ── PASS 1: Gemini 2.5 Pro — Read everything, synthesise ─────────────────
+  // ── PASS 1: Gemini 2.5 Pro — Evidence synthesis (7 sections) ────────────────
 
   const synthesisPrompt = `You are a senior insurance analyst at Trade Risk Solutions (TRS), a Singapore insurance brokerage.
 
 You are reading ALL email threads linked to a single case simultaneously. Each thread is a conversation between TRS and a different party (client, insurer, lawyers, etc.).
 
-Your job is to synthesise everything and return a structured JSON analysis.
+Your task: produce a structured evidence synthesis — evidence-first, extract what is actually documented.
 ${attachmentNote}
 
 ━━ ALL EMAIL THREADS ━━
@@ -475,75 +600,90 @@ ${threadSections}
 
 ${attachmentText ? `━━ EXTRACTED ATTACHMENT TEXT ━━\n${attachmentText}\n` : ''}
 
-━━ PARTY CONTACTS (use for To/CC in draft emails) ━━
+━━ PARTY CONTACTS ━━
 ${partyContactsJson}
 
-━━ YOUR TASK ━━
+━━ OUTPUT ━━
 
-Return ONLY valid JSON with this exact structure:
+Return ONLY valid JSON (no markdown fences) with this exact structure:
 
 {
-  "historical_timeline": [
+  "case_brief": {
+    "summary": "2-3 sentences: what happened, where the case stands, what is blocking resolution",
+    "incident_date": "YYYY-MM-DD or null",
+    "claim_amount": "SGD X,XXX or null if unknown",
+    "policy_reference": "Policy number or null",
+    "coverage_type": "e.g. Marine Cargo, Property, D&O, or null",
+    "current_stage": "e.g. Claim submitted, Awaiting assessment, Negotiation, Disputed",
+    "blocking_issues": ["Issue preventing progress"],
+    "pending_from": {
+      "insurer": "What TRS is waiting for from the insurer, or null",
+      "client": "What TRS is waiting for from the client, or null"
+    }
+  },
+  "stakeholder_map": [
+    {
+      "id": "s1",
+      "name": "Full name or company",
+      "party_type": "client|insurer|lawyer|regulator|trs|other",
+      "email": "email@example.com or null",
+      "company": "Company name or null",
+      "role_summary": "One sentence describing their role in this case",
+      "stance": "e.g. cooperative, unresponsive, disputing liability, or null",
+      "thread_id": "thread_id from party contacts or null"
+    }
+  ],
+  "timeline": [
     {
       "date": "YYYY-MM-DD",
       "party": "client|insurer|lawyer|trs|other",
-      "event": "One sentence describing what happened",
-      "significance": "Why this matters to the case"
+      "event": "One sentence: what happened",
+      "significance": "Why this matters to the case outcome",
+      "citation_ids": ["c1"]
     }
   ],
-  "current_status": {
-    "summary": "2-3 sentence summary of where the case stands right now",
-    "blocking_issues": ["Issue 1", "Issue 2"],
-    "pending_from": {
-      "insurer": "What TRS is waiting for from the insurer",
-      "client": "What TRS is waiting for from the client"
-    }
-  },
-  "key_facts": {
-    "claim_amount": "SGD X or null",
-    "policy_reference": "Policy # or null",
-    "incident_date": "YYYY-MM-DD or null",
-    "coverage_type": "Marine Cargo | Property | etc or null",
-    "parties_involved": ["Party 1", "Party 2"]
-  },
-  "suggested_playbook_steps": [
+  "evidence_ledger": [
     {
-      "step": 1,
-      "action": "Email Client",
-      "party_type": "client",
-      "party_label": "John Tan (FlyORO)",
-      "to_emails": ["john@flyoro.com"],
-      "cc_emails": [],
-      "subject": "Re: [original subject]",
-      "priority": "URGENT",
-      "intent": "What this email must achieve — specific and concrete",
-      "reasoning": "Why this is the next step and why now",
-      "draft": "Full professional email body starting with Dear [Name], — no subject line, no signature"
+      "id": "e1",
+      "filename_or_label": "Document name or 'Email: subject line'",
+      "source_type": "email|attachment|knowledge_doc",
+      "key_facts": ["Fact extracted from this document"],
+      "coverage_relevant": true,
+      "citation_id": "c1"
     }
   ],
-  "outreach_strategy": {
-    "client": {
-      "tone": "reassuring|assertive|collaborative|informational",
-      "key_message": "The one thing TRS must communicate to the client",
-      "timing": "When to send — e.g. immediately, within 24h, this week"
-    },
-    "insurer": {
-      "tone": "...",
-      "key_message": "...",
-      "timing": "..."
+  "open_questions": [
+    {
+      "question": "Specific unanswered question that affects case outcome",
+      "priority": "critical|high|medium|low",
+      "directed_at": "insurer|client|lawyer|trs or null",
+      "citation_ids": ["c1"]
     }
-  }
+  ],
+  "missing_items": [
+    {
+      "item": "Specific document or information that is missing",
+      "required_from": "insurer|client|lawyer|surveyor etc",
+      "urgency": "urgent|normal|low",
+      "impact": "What cannot proceed without this item"
+    }
+  ],
+  "citations": [
+    {
+      "id": "c1",
+      "label": "Document or email label",
+      "type": "email|attachment|knowledge_doc|web",
+      "date": "YYYY-MM-DD or null",
+      "excerpt": "Key 1-2 sentence quote or null"
+    }
+  ]
 }
 
-Rules for draft emails:
-- Singapore business English, professional but warm
-- BANNED: "Thank you for reaching out", "We hope this email finds you well", "Please do not hesitate", "Kindly note"
-- Lead with the most important point immediately
-- End body text only — no "Best regards" or signature (appended separately)
-- Draft must reflect the actual case facts from the threads above
+Rules:
 - Be specific — name amounts, dates, policy references where known
-
-Produce as many playbook steps as necessary. Cover ALL parties that need to be contacted. Order by urgency.`
+- Only include what is actually documented — do not fabricate
+- citation_ids must reference ids from the citations array
+- Return [] for sections with no items; never omit a section`
 
   const allFileParts = [...fileParts, ...gdriveFileParts]
   const synthParts: unknown[] = allFileParts.length > 0
@@ -575,15 +715,19 @@ Produce as many playbook steps as necessary. Cover ALL parties that need to be c
                    ?? synthParts2.find(p => p.text)?.text
   if (!synthText) throw new Error('Gemini returned empty synthesis')
 
-  let synthesis: {
-    historical_timeline:     TimelineEvent[]
-    current_status:          NexusAnalysis['current_status']
-    key_facts:               Record<string, unknown>
-    suggested_playbook_steps: PlaybookStep[]
-    outreach_strategy:       NexusAnalysis['outreach_strategy']
+  type SynthesisV1 = {
+    case_brief:      NexusAnalysisV1['case_brief']
+    stakeholder_map: NexusAnalysisV1['stakeholder_map']
+    timeline:        NexusAnalysisV1['timeline']
+    evidence_ledger: NexusAnalysisV1['evidence_ledger']
+    open_questions:  NexusAnalysisV1['open_questions']
+    missing_items:   NexusAnalysisV1['missing_items']
+    citations:       NexusAnalysisV1['citations']
   }
+
+  let synthesis: SynthesisV1
   try {
-    synthesis = JSON.parse(synthText)
+    synthesis = parseJsonSafe(synthText) as SynthesisV1
   } catch {
     throw new Error(`Synthesis JSON parse failed: ${synthText.slice(0, 300)}`)
   }
@@ -591,63 +735,90 @@ Produce as many playbook steps as necessary. Cover ALL parties that need to be c
   // ── PASS 2: Strategic layer (Claude Opus or Gemini fallback) ──────────────
 
   const anthropicKey = process.env.ANTHROPIC_API_KEY
-  let playbook:         PlaybookStep[]    = synthesis.suggested_playbook_steps ?? []
-  let legalResearch:    NexusAnalysis['legal_research'] = null
-  let outreach:         NexusAnalysis['outreach_strategy'] = synthesis.outreach_strategy ?? {}
+  let scenarioAnalysis:     NexusAnalysisV1['scenario_analysis']      = []
+  let recommendedNextSteps: NexusAnalysisV1['recommended_next_steps'] = []
+  let draftArtifacts:       NexusAnalysisV1['draft_artifacts']        = []
+  let reserveGuidance:      NexusAnalysisV1['reserve_guidance']       = null
   let strategyTokens = 0
 
   const strategyInput = `You are a senior insurance strategy consultant advising Trade Risk Solutions (TRS), a Singapore insurance brokerage.
 
-Gemini has synthesised the following from ALL case email threads:
+Gemini has synthesised the following evidence analysis from all case email threads:
 
-CURRENT STATUS:
-${JSON.stringify(synthesis.current_status, null, 2)}
+CASE BRIEF:
+${JSON.stringify(synthesis.case_brief, null, 2)}
 
-KEY FACTS:
-${JSON.stringify(synthesis.key_facts ?? {}, null, 2)}
+STAKEHOLDERS:
+${JSON.stringify(synthesis.stakeholder_map, null, 2)}
 
-SUGGESTED PLAYBOOK (from Gemini synthesis):
-${JSON.stringify(synthesis.suggested_playbook_steps, null, 2)}
+TIMELINE (first 10 events):
+${JSON.stringify((synthesis.timeline ?? []).slice(0, 10), null, 2)}
 
-PARTY CONTACTS:
+OPEN QUESTIONS:
+${JSON.stringify(synthesis.open_questions, null, 2)}
+
+MISSING ITEMS:
+${JSON.stringify(synthesis.missing_items, null, 2)}
+
+PARTY CONTACTS (use for To/CC):
 ${partyContactsJson}
 
-Your task is to:
-1. Critically evaluate and improve the playbook steps — ensure they are in the right order, correctly prioritised, and complete
-2. Add any missing steps Gemini may have missed (escalation paths, regulatory notifications, documentation requests)
-3. Provide Singapore-specific legal/regulatory guidance relevant to this case
-4. Return the enhanced analysis as JSON
+CITATIONS:
+${JSON.stringify(synthesis.citations, null, 2)}
 
-Return ONLY valid JSON:
+━━ YOUR TASK ━━
+
+Produce four strategic sections. Return ONLY valid JSON (no markdown fences):
+
 {
-  "playbook": [
+  "scenario_analysis": [
     {
-      "step": 1,
-      "action": "Email Client",
-      "party_type": "client",
-      "party_name": "John Tan (FlyORO)",
-      "to_emails": ["john@flyoro.com"],
-      "cc_emails": [],
-      "subject": "Re: ...",
-      "priority": "URGENT",
-      "intent": "...",
-      "reasoning": "...",
-      "draft": "Full email body starting with Dear [Name],"
+      "name": "Scenario name (e.g. Full settlement, Partial recovery, Repudiation)",
+      "probability": "high|medium|low",
+      "outcome": "What happens in this scenario — specific to this case",
+      "trs_action": "What TRS must do now to influence or prepare for this scenario",
+      "citation_ids": ["c1"]
     }
   ],
-  "outreach_strategy": {
-    "client": { "tone": "...", "key_message": "...", "timing": "..." }
-  },
-  "legal_research": {
-    "singapore_relevance": "Overview of Singapore law/regulation relevant to this case type",
-    "applicable_regulations": ["MAS Notice X", "Insurance Act s.XX", "..."],
-    "precedents_or_guidance": ["FIDReC precedent: ...", "Court of Appeal: ..."],
-    "sources": ["MAS.gov.sg", "FIDReC.com.sg", "..."]
+  "recommended_next_steps": [
+    {
+      "step": 1,
+      "action": "Specific action",
+      "owner": "trs|client|insurer|lawyer|other",
+      "deadline": "e.g. Within 48h, 2026-07-05, or null",
+      "priority": "urgent|high|normal",
+      "rationale": "Why this step, why now"
+    }
+  ],
+  "draft_artifacts": [
+    {
+      "artifact_type": "email|letter|memo",
+      "to_party": "Display name of party",
+      "party_type": "client|insurer|lawyer|regulator|other",
+      "to_emails": ["email@example.com"],
+      "cc_emails": [],
+      "subject": "Email subject line",
+      "body": "Full professional email body. Start with Dear [Name],. Singapore business English. Lead with most important point. No banned phrases (Thank you for reaching out / Please do not hesitate / Kindly note). No sign-off.",
+      "intent": "What this communication must achieve",
+      "priority": "urgent|high|normal",
+      "citation_ids": ["c1"]
+    }
+  ],
+  "reserve_guidance": {
+    "recommended_reserve": "SGD X,XXX or a range, or null if cannot estimate",
+    "basis": "Evidence-based reasoning for the reserve figure",
+    "confidence": "high|medium|low",
+    "risk_factors": ["Factor that could change the reserve"],
+    "citation_ids": ["c1"]
   }
-}`
+}
+
+Rules:
+- Be specific — name amounts, dates, policy references from the case brief
+- One draft per party that needs to be contacted; order by priority
+- reserve_guidance can be null if there is insufficient evidence to estimate`
 
   if (anthropicKey) {
-    // Claude Opus — the strategic brain
     try {
       const claudeRes = await fetch(ANTHROPIC_URL, {
         method:  'POST',
@@ -666,83 +837,144 @@ Return ONLY valid JSON:
         const claudeData = await claudeRes.json()
         strategyTokens = (claudeData.usage?.input_tokens ?? 0) + (claudeData.usage?.output_tokens ?? 0)
         const claudeText = claudeData?.content?.[0]?.text ?? ''
-        const jsonMatch = claudeText.match(/\{[\s\S]*\}/)
-        if (jsonMatch) {
-          const strategy = JSON.parse(jsonMatch[0])
-          if (strategy.playbook)          playbook       = strategy.playbook
-          if (strategy.legal_research)    legalResearch  = strategy.legal_research
-          if (strategy.outreach_strategy) outreach       = strategy.outreach_strategy
-        }
+        try {
+          type StrategyV1 = Partial<{
+            scenario_analysis:      NexusAnalysisV1['scenario_analysis']
+            recommended_next_steps: NexusAnalysisV1['recommended_next_steps']
+            draft_artifacts:        NexusAnalysisV1['draft_artifacts']
+            reserve_guidance:       NexusAnalysisV1['reserve_guidance']
+          }>
+          const strategy = parseJsonSafe(claudeText) as StrategyV1
+          if (strategy.scenario_analysis)      scenarioAnalysis     = strategy.scenario_analysis
+          if (strategy.recommended_next_steps) recommendedNextSteps = strategy.recommended_next_steps
+          if (strategy.draft_artifacts)        draftArtifacts       = strategy.draft_artifacts
+          if ('reserve_guidance' in strategy)  reserveGuidance      = strategy.reserve_guidance ?? null
+        } catch { /* non-fatal: keep empty defaults */ }
         console.log('[nexus] Claude Opus strategy pass complete, tokens:', strategyTokens)
       } else {
-        console.warn('[nexus] Claude strategy pass failed:', claudeRes.status, '— using Gemini synthesis playbook')
+        console.warn('[nexus] Claude strategy pass failed:', claudeRes.status, '— skipping')
       }
     } catch (e) {
       console.warn('[nexus] Claude strategy pass error (non-fatal):', e instanceof Error ? e.message : e)
     }
   } else {
-    // No Claude key — enhance with a second Gemini pass for legal research only
-    console.log('[nexus] No ANTHROPIC_API_KEY — skipping Claude strategy pass, using Gemini synthesis directly')
-
-    // Still attempt legal research via Gemini with search grounding
+    // No Claude key — Gemini Flash fallback for strategy pass
+    console.log('[nexus] No ANTHROPIC_API_KEY — using Gemini Flash for strategy pass')
     try {
-      const legalPrompt = `You are a Singapore insurance law expert. Based on these case facts:
-${JSON.stringify(synthesis.key_facts ?? {}, null, 2)}
-${synthesis.current_status.summary}
-
-Provide Singapore-specific legal and regulatory guidance. Use Google Search to find current MAS regulations, FIDReC guidance, and relevant precedents.
-
-Return ONLY JSON:
-{
-  "singapore_relevance": "...",
-  "applicable_regulations": ["..."],
-  "precedents_or_guidance": ["..."],
-  "sources": ["..."]
-}`
-      const legalRes = await fetch(`${GEMINI_FLASH}?key=${geminiKey}`, {
+      const geminiStratRes = await fetch(`${GEMINI_FLASH}?key=${geminiKey}`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents:         [{ parts: [{ text: legalPrompt }] }],
+          contents:         [{ parts: [{ text: strategyInput }] }],
           tools:            [{ googleSearch: {} }],
-          generationConfig: { temperature: 0.1, maxOutputTokens: 2048 },
+          generationConfig: { temperature: 0.2, maxOutputTokens: 8192 },
         }),
       })
-      if (legalRes.ok) {
-        const legalData = await legalRes.json()
-        const legalParts = (legalData?.candidates?.[0]?.content?.parts ?? []) as { text?: string }[]
-        const legalText  = legalParts.find(p => p.text?.trim().startsWith('{'))?.text
-                        ?? legalParts.find(p => p.text)?.text
-        if (legalText) {
-          try { legalResearch = JSON.parse(legalText) }
-          catch { /* non-fatal */ }
+      if (geminiStratRes.ok) {
+        const gsd = await geminiStratRes.json()
+        const gsParts = (gsd?.candidates?.[0]?.content?.parts ?? []) as { text?: string }[]
+        const gsText  = gsParts.find(p => p.text?.trim().startsWith('{'))?.text
+                     ?? gsParts.find(p => p.text)?.text
+        if (gsText) {
+          try {
+            type StrategyV1 = Partial<{
+              scenario_analysis:      NexusAnalysisV1['scenario_analysis']
+              recommended_next_steps: NexusAnalysisV1['recommended_next_steps']
+              draft_artifacts:        NexusAnalysisV1['draft_artifacts']
+              reserve_guidance:       NexusAnalysisV1['reserve_guidance']
+            }>
+            const strategy = parseJsonSafe(gsText) as StrategyV1
+            if (strategy.scenario_analysis)      scenarioAnalysis     = strategy.scenario_analysis
+            if (strategy.recommended_next_steps) recommendedNextSteps = strategy.recommended_next_steps
+            if (strategy.draft_artifacts)        draftArtifacts       = strategy.draft_artifacts
+            if ('reserve_guidance' in strategy)  reserveGuidance      = strategy.reserve_guidance ?? null
+          } catch { /* non-fatal */ }
         }
       }
     } catch { /* non-fatal */ }
   }
 
-  // ── Save to case_analyses ────────────────────────────────────────────────────
+  // ── Build V1 structured analysis ─────────────────────────────────────────────
+
+  const structuredAnalysis: NexusAnalysisV1 = {
+    schema_version:         '1.0',
+    case_brief:             synthesis.case_brief,
+    stakeholder_map:        synthesis.stakeholder_map  ?? [],
+    timeline:               synthesis.timeline         ?? [],
+    evidence_ledger:        synthesis.evidence_ledger  ?? [],
+    open_questions:         synthesis.open_questions   ?? [],
+    missing_items:          synthesis.missing_items    ?? [],
+    scenario_analysis:      scenarioAnalysis,
+    recommended_next_steps: recommendedNextSteps,
+    draft_artifacts:        draftArtifacts,
+    reserve_guidance:       reserveGuidance,
+    citations:              synthesis.citations        ?? [],
+  }
+
+  // ── Derive legacy columns from V1 for backwards compat ───────────────────────
+
+  const legacyTimeline: TimelineEvent[] = (structuredAnalysis.timeline ?? []).map(e => ({
+    date:         e.date,
+    party:        e.party,
+    event:        e.event,
+    significance: e.significance,
+  }))
+
+  const legacyStatus: NexusAnalysis['current_status'] = {
+    summary:         synthesis.case_brief.summary,
+    blocking_issues: synthesis.case_brief.blocking_issues ?? [],
+    pending_from:    synthesis.case_brief.pending_from    ?? {},
+  }
+
+  const legacyPlaybook: PlaybookStep[] = (draftArtifacts ?? []).map((a, i) => ({
+    step:       i + 1,
+    action:     a.artifact_type === 'email' ? `Email ${a.to_party}` : `${a.artifact_type} to ${a.to_party}`,
+    party_type: a.party_type,
+    party_name: a.to_party,
+    to_emails:  a.to_emails ?? [],
+    cc_emails:  a.cc_emails ?? [],
+    subject:    a.subject,
+    priority:   a.priority === 'urgent' ? 'URGENT' : a.priority === 'high' ? 'HIGH' : 'THIS_WEEK',
+    intent:     a.intent,
+    reasoning:  (recommendedNextSteps ?? []).find(s => s.owner === a.party_type)?.rationale ?? '',
+    draft:      a.body,
+  }))
+
+  const legacyOutreach: NexusAnalysis['outreach_strategy'] = {}
+  for (const step of (recommendedNextSteps ?? [])) {
+    if (step.owner !== 'trs' && !legacyOutreach[step.owner]) {
+      legacyOutreach[step.owner] = {
+        tone:        'collaborative',
+        key_message: step.action,
+        timing:      step.deadline ?? 'As soon as possible',
+      }
+    }
+  }
 
   const analysis: NexusAnalysis = {
-    historical_timeline: synthesis.historical_timeline ?? [],
-    current_status:      synthesis.current_status,
-    playbook,
-    outreach_strategy:   outreach,
-    legal_research:      legalResearch,
+    historical_timeline: legacyTimeline,
+    current_status:      legacyStatus,
+    playbook:            legacyPlaybook,
+    outreach_strategy:   legacyOutreach,
+    legal_research:      null,
   }
+
+  // ── Save to case_analyses ────────────────────────────────────────────────────
 
   await fetch(`${SB_URL}/rest/v1/case_analyses`, {
     method:  'POST',
     headers: sbHeaders('return=minimal'),
     body: JSON.stringify({
       case_id:             caseId,
+      structured_analysis: structuredAnalysis,
+      schema_version:      'v1',
       historical_timeline: analysis.historical_timeline,
       current_status:      analysis.current_status,
       playbook:            analysis.playbook,
       outreach_strategy:   analysis.outreach_strategy,
-      legal_research:      analysis.legal_research,
+      legal_research:      null,
       synthesis_model:     'gemini-2.5-pro',
-      strategy_model:      anthropicKey ? 'claude-opus-4-8' : 'gemini-2.5-pro',
+      strategy_model:      anthropicKey ? 'claude-opus-4-8' : 'gemini-2.5-flash',
       gemini_tokens:       synthData.usageMetadata?.totalTokenCount ?? null,
       claude_tokens:       strategyTokens || null,
     }),
