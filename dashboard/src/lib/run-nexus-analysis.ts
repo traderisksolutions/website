@@ -555,11 +555,10 @@ Produce as many playbook steps as necessary. Cover ALL parties that need to be c
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents:         [{ parts: synthParts }],
-      tools:            [{ googleSearch: {} }], // Enable web search for legal research
+      tools:            [{ googleSearch: {} }],
       generationConfig: {
-        temperature:      0.2,
-        maxOutputTokens:  16384,
-        responseMimeType: 'application/json',
+        temperature:     0.2,
+        maxOutputTokens: 16384,
       },
     }),
   })
@@ -571,7 +570,9 @@ Produce as many playbook steps as necessary. Cover ALL parties that need to be c
   const synthData = await synthRes.json()
   void logGeminiUsage('nexus_synthesis', synthData.usageMetadata ?? {}, caseId)
 
-  const synthText = synthData?.candidates?.[0]?.content?.parts?.[0]?.text
+  const synthParts2 = (synthData?.candidates?.[0]?.content?.parts ?? []) as { text?: string }[]
+  const synthText   = synthParts2.find(p => p.text?.trim().startsWith('{'))?.text
+                   ?? synthParts2.find(p => p.text)?.text
   if (!synthText) throw new Error('Gemini returned empty synthesis')
 
   let synthesis: {
@@ -704,12 +705,14 @@ Return ONLY JSON:
         body: JSON.stringify({
           contents:         [{ parts: [{ text: legalPrompt }] }],
           tools:            [{ googleSearch: {} }],
-          generationConfig: { temperature: 0.1, maxOutputTokens: 2048, responseMimeType: 'application/json' },
+          generationConfig: { temperature: 0.1, maxOutputTokens: 2048 },
         }),
       })
       if (legalRes.ok) {
         const legalData = await legalRes.json()
-        const legalText = legalData?.candidates?.[0]?.content?.parts?.[0]?.text
+        const legalParts = (legalData?.candidates?.[0]?.content?.parts ?? []) as { text?: string }[]
+        const legalText  = legalParts.find(p => p.text?.trim().startsWith('{'))?.text
+                        ?? legalParts.find(p => p.text)?.text
         if (legalText) {
           try { legalResearch = JSON.parse(legalText) }
           catch { /* non-fatal */ }
