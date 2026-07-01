@@ -6,10 +6,12 @@ import {
   AlertCircle, Clock, CheckCircle2, Zap, BookOpen, ArrowRight,
   MailOpen, FileText, Scale, Users, Send, Loader2, Trash2, Paperclip,
   FolderOpen, Network, HelpCircle, ShieldAlert, TrendingUp, ListChecks,
-  BadgeDollarSign, Database, Eye,
+  BadgeDollarSign, Database, Eye, Pin, PinOff,
+  type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
+import { createClient } from '@/lib/supabase/client'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -91,10 +93,22 @@ type V1TimelineEvt = { date: string; party: string; event: string; significance:
 type V1Evidence    = { id: string; filename_or_label: string; source_type: string; key_facts: string[]; coverage_relevant: boolean; citation_id?: string }
 type V1Question    = { question: string; priority: string; directed_at?: string; citation_ids?: string[] }
 type V1Missing     = { item: string; required_from: string; urgency: string; impact: string }
-type V1Scenario    = { name: string; probability: string; outcome: string; trs_action: string; citation_ids?: string[] }
-type V1NextStep    = { step: number; action: string; owner: string; deadline?: string; priority: string; rationale: string }
+type V1Scenario    = { name: string; probability: string; outcome: string; trs_action: string; assumptions?: string[]; trigger_conditions?: string[]; strategic_implication?: string; citation_ids?: string[] }
+type V1NextStep    = { step: number; action: string; owner: string; deadline?: string; priority: string; rationale: string; citation_ids?: string[]; depends_on?: number[] }
 type V1Draft       = { artifact_type: string; to_party: string; party_type: string; to_emails: string[]; cc_emails: string[]; subject: string; body: string; intent: string; priority: string; citation_ids?: string[] }
 type V1Reserve     = { recommended_reserve?: string; basis: string; confidence: string; risk_factors: string[]; citation_ids?: string[] }
+type AnalysisMetadata = {
+  analysis_ts:          string
+  synthesis_model:      string
+  strategy_model:       string
+  synthesis_tokens:     number | null
+  strategy_tokens:      number | null
+  threads_included:     number
+  messages_included:    number
+  attachments_included: { filename: string; method: string }[]
+  gdrive_docs:          string[]
+  truncation_flags:     string[]
+}
 type NexusAnalysisV1 = {
   schema_version:         string
   case_brief:             { summary: string; incident_date?: string; claim_amount?: string; policy_reference?: string; coverage_type?: string; current_stage: string; blocking_issues: string[]; pending_from: Record<string, string> }
@@ -108,6 +122,7 @@ type NexusAnalysisV1 = {
   draft_artifacts:        V1Draft[]
   reserve_guidance:       V1Reserve | null
   citations:              V1Citation[]
+  analysis_metadata?:     AnalysisMetadata
 }
 
 type CaseAnalysis = {
@@ -122,6 +137,30 @@ type CaseAnalysis = {
   created_at:          string
   structured_analysis?: NexusAnalysisV1
   schema_version?:     string
+}
+
+type RunSummary = {
+  id:                  string
+  created_at:          string
+  run_status:          string
+  run_duration_ms:     number | null
+  triggered_by:        string | null
+  schema_version:      string | null
+  synthesis_model:     string | null
+  strategy_model:      string | null
+  gemini_tokens:       number | null
+  claude_tokens:       number | null
+  threads_included:    number
+  messages_included:   number
+  attachments_count:   number
+  gdrive_docs_count:   number
+  steps_count:         number
+  citations_count:     number
+  missing_items_count: number
+  evidence_count:      number
+  truncation_flags:    string[]
+  pinned:              boolean
+  error_message:       string | null
 }
 
 type ThreadSuggestion = {
@@ -176,7 +215,6 @@ function timeAgo(iso: string | null | undefined): string {
 
 const PARTY_TYPES = ['client', 'insurer', 'lawyer', 'regulator', 'other'] as const
 
-// Suggest party type from contact email domain
 function autoSuggestParty(contact: Contact | null): string {
   const domain = (contact?.email ?? '').split('@')[1]?.toLowerCase() ?? ''
   const ins = ['qbe', 'berkley', 'allianz', 'aig.', 'zurich', 'chubb', 'tokio', 'sompo', 'ntuc', 'aviva', 'great-eastern', 'manulife', 'prudential', 'generali', 'liberty', 'rsagroup', 'ergo', 'markel', 'beazley', 'hiscox', 'munichre', 'swissre', 'hannover', 'aspen', 'brit.', 'convex', 'amtrust', 'travelers', 'axa.', 'msig', 'aia.']
@@ -418,50 +456,83 @@ function CreateCaseModal({ onCreate, onClose }: { onCreate: (name: string, desc:
   )
 }
 
-// ── Case Detail Panel ─────────────────────────────────────────────────────────
+// ── Case Detail Panel (Mission Control shell) ─────────────────────────────────
 
 function CaseDetailPanel({
   caseData, onRefresh, onDelete,
 }: { caseData: Case; onRefresh: () => void; onDelete: () => void }) {
-  const [detail,         setDetail]         = useState<{ threads: CaseThread[]; analysis: CaseAnalysis | null } | null>(null)
-  const [loading,        setLoading]        = useState(false)
-  const [analyzing,      setAnalyzing]      = useState(false)
-  const [analyzeError,   setAnalyzeError]   = useState<string | null>(null)
-  const [activeTab,      setActiveTab]      = useState<'timeline' | 'status' | 'playbook' | 'legal'>('playbook')
-  const [centerTab,      setCenterTab]      = useState<'overview' | 'messages' | 'analysis'>('overview')
-  const [linkOpen,       setLinkOpen]       = useState(false)
-  const [confirmDelete,  setConfirmDelete]  = useState(false)
+  const [detail,        setDetail]        = useState<{ threads: CaseThread[]; analysis: CaseAnalysis | null } | null>(null)
+  const [loading,       setLoading]       = useState(false)
+  const [analyzing,     setAnalyzing]     = useState(false)
+  const [analyzeError,  setAnalyzeError]  = useState<string | null>(null)
+  const [view,          setView]          = useState<'mission' | 'messages' | 'history'>('mission')
+  const [linkOpen,      setLinkOpen]      = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [runs,          setRuns]          = useState<RunSummary[]>([])
+  const [runsLoading,   setRunsLoading]   = useState(false)
+  const [userEmail,     setUserEmail]     = useState<string | null>(null)
+
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null))
+  }, [])
+
+  const loadRuns = useCallback(async () => {
+    setRunsLoading(true)
+    try {
+      const res = await fetch(`/api/nexus/cases/${caseData.id}/runs`, { cache: 'no-store' })
+      if (res.ok) setRuns(await res.json())
+    } finally { setRunsLoading(false) }
+  }, [caseData.id])
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/nexus/cases/${caseData.id}`, { cache: 'no-store' })
-      if (res.ok) setDetail(await res.json())
+      const [detailRes] = await Promise.all([
+        fetch(`/api/nexus/cases/${caseData.id}`, { cache: 'no-store' }),
+        loadRuns(),
+      ])
+      if (detailRes.ok) setDetail(await detailRes.json())
     } finally { setLoading(false) }
-  }, [caseData.id])
+  }, [caseData.id, loadRuns])
 
   useEffect(() => {
     setDetail(null)
     setAnalyzeError(null)
-    setCenterTab('overview')
+    setView('mission')
     load()
   }, [caseData.id, load])
 
   async function runAnalysis() {
-    setAnalyzing(true)
-    setAnalyzeError(null)
+    setAnalyzing(true); setAnalyzeError(null)
     try {
-      const res = await fetch(`/api/nexus/cases/${caseData.id}/analyze`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const res  = await fetch(`/api/nexus/cases/${caseData.id}/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ triggered_by: userEmail }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Analysis failed')
       setDetail(prev => prev ? { ...prev, analysis: data.analysis } : prev)
-      setCenterTab('analysis')
+      setView('mission')
       onRefresh()
+      loadRuns()
     } catch (e) {
       setAnalyzeError(e instanceof Error ? e.message : 'Analysis failed')
     } finally { setAnalyzing(false) }
+  }
+
+  async function pinRun(runId: string, pinned: boolean) {
+    setRuns(prev => prev.map(r => r.id === runId ? { ...r, pinned } : r))
+    await fetch(`/api/nexus/cases/${caseData.id}/runs`, {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ runId, pinned }),
+    })
+  }
+
+  async function pruneRuns() {
+    await fetch(`/api/nexus/cases/${caseData.id}/runs?keep=15`, { method: 'DELETE' })
+    loadRuns()
   }
 
   async function unlinkThread(threadId: string) {
@@ -478,251 +549,74 @@ function CaseDetailPanel({
     load()
   }
 
-  const threads  = detail?.threads ?? []
-  const analysis = detail?.analysis ?? null
-
-  const totalMsgCount       = threads.reduce((sum, ct) => sum + ct.messages.length, 0)
+  const threads              = detail?.threads ?? []
+  const analysis             = detail?.analysis ?? null
+  const totalMsgCount        = threads.reduce((s, ct) => s + ct.messages.length, 0)
   const allAttachmentRecords = threads.flatMap(ct => ct.attachment_records ?? [])
-
-  // Build unified timeline of all messages sorted by date (used in Messages tab)
-  const unifiedMessages = threads.flatMap(ct =>
-    ct.messages.map(m => ({
+  const unifiedMessages      = threads
+    .flatMap(ct => ct.messages.map(m => ({
       ...m,
       party_type:  ct.party_type,
       party_label: ct.party_label ?? ct.party_type,
       subject:     ct.thread?.subject ?? '',
-    }))
-  ).sort((a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime())
+    })))
+    .sort((a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime())
+
+  const currentRun  = runs.length >= 1 ? runs[0] : null
+  const previousRun = runs.length >= 2 ? runs[1] : null
 
   return (
-    <div className="flex flex-1 overflow-hidden min-w-0">
-
-      {/* ── Center: Unified Timeline ── */}
-      <div className="flex-1 flex flex-col overflow-hidden border-r border-[--border-subtle]">
-        {/* Case header */}
-        <div className="flex items-start justify-between px-5 py-3.5 border-b border-[--border-subtle] flex-shrink-0 bg-card">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 mb-0.5">
-              <h2 className="text-[14px] font-bold text-foreground truncate">{caseData.name}</h2>
-              <span className={cn(
-                'text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full flex-shrink-0',
-                caseData.status === 'open' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
-              )}>
-                {caseData.status}
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              {caseData.description && (
-                <p className="text-[11px] text-muted-foreground/55 truncate">{caseData.description}</p>
-              )}
-              <span className="text-[10px] text-muted-foreground/35">
-                Created {fmtDate(caseData.created_at)}
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5 flex-shrink-0 ml-4 mt-0.5">
-            {confirmDelete ? (
-              <>
-                <span className="text-[11px] text-[--error] mr-1">Delete this case?</span>
-                <button onClick={() => { onDelete(); setConfirmDelete(false) }} className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors">
-                  Delete
-                </button>
-                <button onClick={() => setConfirmDelete(false)} className="px-2.5 py-1 rounded-md text-[11px] border border-[--border-subtle] text-muted-foreground hover:bg-accent">
-                  Cancel
-                </button>
-              </>
-            ) : (
-              <button onClick={() => setConfirmDelete(true)} className="p-1.5 rounded-md text-muted-foreground/30 hover:text-red-500 hover:bg-red-50 transition-colors">
-                <Trash2 size={13} strokeWidth={1.8} />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Center tab bar */}
-        <div className="flex items-center border-b border-[--border-subtle] flex-shrink-0 px-1 bg-card">
-          {([
-            { key: 'overview',  label: 'Overview' },
-            { key: 'messages',  label: `Messages${totalMsgCount > 0 ? ` (${totalMsgCount})` : ''}` },
-            ...(analysis?.structured_analysis ? [{ key: 'analysis', label: 'Analysis' }] : []),
-          ] as { key: 'overview' | 'messages' | 'analysis'; label: string }[]).map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setCenterTab(key)}
-              className={cn(
-                'px-4 py-2.5 text-[11.5px] font-semibold border-b-2 transition-colors',
-                centerTab === key
-                  ? 'text-primary border-primary'
-                  : 'text-muted-foreground/60 border-transparent hover:text-foreground',
-                key === 'analysis' && 'relative',
-              )}
-            >
-              {label}
-              {key === 'analysis' && (
-                <span className="ml-1.5 inline-flex items-center px-1 py-0 text-[9px] font-bold rounded bg-primary/10 text-primary">V1</span>
-              )}
-            </button>
-          ))}
-        </div>
-
-        {/* Tab content */}
-        <div className="flex-1 overflow-y-auto">
-          {/* ── Overview tab ── */}
-          {centerTab === 'overview' && (
-            <div className="px-5 py-5 flex flex-col gap-5">
-              <LinkedThreadsSection
-                threads={threads}
-                loading={loading}
-                onAddThread={() => setLinkOpen(true)}
-                onUnlink={unlinkThread}
-                onUpdatePartyType={updatePartyType}
-              />
-              {(allAttachmentRecords.length > 0 || threads.some(ct => ct.attachments_pending)) && (
-                <AttachmentCoverageCard threads={threads} attachmentRecords={allAttachmentRecords} />
-              )}
-            </div>
-          )}
-
-          {/* ── Analysis tab ── */}
-          {centerTab === 'analysis' && analysis?.structured_analysis && (
-            <AnalysisV1Panel v1={analysis.structured_analysis} threads={threads} />
-          )}
-
-          {/* ── Messages tab ── */}
-          {centerTab === 'messages' && (
-            <div className="px-5 py-4 flex flex-col gap-3">
-              {loading ? (
-                <div className="flex items-center justify-center py-16">
-                  <Loader2 size={18} className="animate-spin text-muted-foreground/30" />
-                </div>
-              ) : unifiedMessages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-4">
-                  <div className="w-16 h-16 rounded-2xl bg-muted/60 flex items-center justify-center border border-[--border-subtle]">
-                    <Network size={28} strokeWidth={1.2} className="text-muted-foreground/30" />
-                  </div>
-                  <div className="text-center max-w-[260px]">
-                    <p className="text-[13px] font-semibold text-foreground/60 mb-1.5">No messages yet</p>
-                    <p className="text-[11.5px] text-muted-foreground/45 leading-[1.6]">
-                      Link email threads on the Overview tab to see the unified conversation timeline.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setCenterTab('overview')}
-                    className="text-[12px] text-primary font-semibold hover:opacity-80 transition-opacity"
-                  >
-                    ← Back to Overview
-                  </button>
-                </div>
-              ) : (
-                unifiedMessages.map(msg => <TimelineMessageCard key={msg.id} msg={msg} />)
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── Right: AI Analysis ── */}
-      <div className="w-[360px] flex-shrink-0 flex flex-col overflow-hidden bg-card">
-        {/* Analysis header + run button */}
-        <div className="px-4 pt-4 pb-3 border-b border-[--border-subtle] flex-shrink-0">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-1.5">
-              <Sparkles size={12} className="text-primary/70" strokeWidth={2} />
-              <span className="text-[11px] font-bold text-foreground/80 tracking-tight">AI Analysis</span>
-            </div>
-            {analysis && (
-              <span className="text-[9.5px] text-muted-foreground/50 bg-muted/60 px-2 py-0.5 rounded-full">
-                {timeAgo(analysis.created_at)}
-              </span>
-            )}
-          </div>
-          <button
-            onClick={runAnalysis}
-            disabled={analyzing || threads.length === 0}
-            className={cn(
-              'w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[12px] font-semibold transition-all shadow-sm',
-              analyzing
-                ? 'bg-primary/10 text-primary cursor-not-allowed'
-                : threads.length === 0
-                  ? 'bg-muted text-muted-foreground/60 cursor-not-allowed'
-                  : 'bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98]',
-            )}
-          >
-            {analyzing ? (
-              <><Loader2 size={13} className="animate-spin" /> Analysing all threads…</>
-            ) : (
-              <><Sparkles size={13} strokeWidth={2} /> {analysis ? 'Re-run Grand Analysis' : 'Run Grand Analysis'}</>
-            )}
-          </button>
-          {analyzeError && (
-            <div className="mt-2 px-3 py-2 bg-red-50 border border-red-100 rounded-lg">
-              <p className="text-[10.5px] text-red-600 leading-relaxed">{analyzeError}</p>
-            </div>
-          )}
-          {threads.length === 0 && !analyzeError && (
-            <p className="text-[10px] text-muted-foreground/45 mt-2 text-center">Link at least one thread to run analysis</p>
-          )}
-          {analysis?.strategy_model && (
-            <p className="text-[9px] text-muted-foreground/35 mt-2 text-center font-medium tracking-wide uppercase">
-              Gemini 2.5 Pro + {analysis.strategy_model.includes('claude') ? 'Claude Opus 4' : 'Gemini'}
-            </p>
-          )}
-        </div>
-
-        {/* Analysis summary card */}
-        {analysis && <AnalysisSummaryCard analysis={analysis} />}
-
-        {/* Tabs */}
-        {analysis && (
-          <>
-            <div className="flex border-b border-[--border-subtle] flex-shrink-0">
-              {([
-                { key: 'playbook',  label: 'Playbook',  icon: ArrowRight },
-                { key: 'timeline',  label: 'Timeline',  icon: BookOpen },
-                { key: 'status',    label: 'Status',    icon: AlertCircle },
-                { key: 'legal',     label: 'Legal',     icon: Scale },
-              ] as const).map(({ key, label, icon: Icon }) => (
-                <button
-                  key={key}
-                  onClick={() => setActiveTab(key)}
-                  className={cn(
-                    'flex-1 flex items-center justify-center gap-1 py-2 text-[10.5px] font-semibold transition-colors border-b-2',
-                    activeTab === key
-                      ? 'text-primary border-primary'
-                      : 'text-muted-foreground/60 border-transparent hover:text-foreground',
-                  )}
-                >
-                  <Icon size={10} strokeWidth={2} />
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex-1 overflow-y-auto">
-              {activeTab === 'timeline'  && <TimelineTab  events={analysis.historical_timeline} />}
-              {activeTab === 'status'    && <StatusTab    status={analysis.current_status} />}
-              {activeTab === 'playbook'  && <PlaybookTab  steps={analysis.playbook} caseId={caseData.id} threads={threads} />}
-              {activeTab === 'legal'     && <LegalTab     legal={analysis.legal_research} outreach={analysis.outreach_strategy} />}
-            </div>
-          </>
-        )}
-
-        {!analysis && !analyzing && (
-          <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6 py-10 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-center">
-              <Sparkles size={24} strokeWidth={1.2} className="text-primary/40" />
-            </div>
-            <div className="max-w-[220px]">
-              <p className="text-[12.5px] font-semibold text-foreground/60 mb-1.5">No analysis yet</p>
-              <p className="text-[11px] text-muted-foreground/45 leading-[1.6]">
-                Run the grand analysis to get a unified timeline, case status, strategic playbook, and AI-drafted emails for every party.
-              </p>
-            </div>
-          </div>
+    <div className="flex flex-col flex-1 overflow-hidden min-w-0">
+      <MissionHeader
+        caseData={caseData}
+        threads={threads}
+        analysis={analysis}
+        analyzing={analyzing}
+        analyzeError={analyzeError}
+        confirmDelete={confirmDelete}
+        view={view}
+        totalMsgCount={totalMsgCount}
+        runsCount={runs.length}
+        onSetView={setView}
+        onRunAnalysis={runAnalysis}
+        onLinkThreads={() => setLinkOpen(true)}
+        onDelete={() => { onDelete(); setConfirmDelete(false) }}
+        onConfirmDelete={() => setConfirmDelete(true)}
+        onCancelDelete={() => setConfirmDelete(false)}
+      />
+      <div className="flex-1 overflow-y-auto bg-background">
+        {view === 'history' ? (
+          <RunHistoryView
+            caseId={caseData.id}
+            runs={runs}
+            loading={runsLoading}
+            onGoToMission={() => setView('mission')}
+            onPinToggle={pinRun}
+            onPrune={pruneRuns}
+          />
+        ) : view === 'mission' ? (
+          <MissionControlBody
+            caseData={caseData}
+            threads={threads}
+            analysis={analysis}
+            loading={loading}
+            analyzing={analyzing}
+            attachmentRecords={allAttachmentRecords}
+            currentRun={currentRun}
+            previousRun={previousRun}
+            onLinkThreads={() => setLinkOpen(true)}
+            onUnlink={unlinkThread}
+            onUpdatePartyType={updatePartyType}
+            onRunAnalysis={runAnalysis}
+          />
+        ) : (
+          <MessagesView
+            messages={unifiedMessages}
+            loading={loading}
+            onGoToMission={() => setView('mission')}
+          />
         )}
       </div>
-
-      {/* ── Thread Linker Modal ── */}
       {linkOpen && (
         <ThreadLinkerModal
           caseId={caseData.id}
@@ -735,130 +629,1689 @@ function CaseDetailPanel({
   )
 }
 
-// ── Analysis Summary Card ─────────────────────────────────────────────────────
+// ── Mission Header ────────────────────────────────────────────────────────────
 
-function AnalysisSummaryCard({ analysis }: { analysis: CaseAnalysis }) {
-  const status        = analysis.current_status
-  const blockingCount = status?.blocking_issues?.length ?? 0
-  const stepCount     = analysis.playbook?.length ?? 0
-  const modelLabel    = analysis.strategy_model?.includes('claude') ? 'Claude Opus 4' : 'Gemini 2.5 Pro'
+function MissionHeader({
+  caseData, threads, analysis, analyzing, analyzeError, confirmDelete, view, totalMsgCount, runsCount,
+  onSetView, onRunAnalysis, onLinkThreads, onDelete, onConfirmDelete, onCancelDelete,
+}: {
+  caseData:        Case
+  threads:         CaseThread[]
+  analysis:        CaseAnalysis | null
+  analyzing:       boolean
+  analyzeError:    string | null
+  confirmDelete:   boolean
+  view:            'mission' | 'messages' | 'history'
+  totalMsgCount:   number
+  runsCount:       number
+  onSetView:       (v: 'mission' | 'messages' | 'history') => void
+  onRunAnalysis:   () => void
+  onLinkThreads:   () => void
+  onDelete:        () => void
+  onConfirmDelete: () => void
+  onCancelDelete:  () => void
+}) {
+  const attCount   = threads.flatMap(ct => ct.attachment_records ?? []).filter(a => a.parsed_at !== null).length
+  const modelLabel = analysis?.strategy_model?.includes('claude') ? 'Claude + Gemini' : analysis?.strategy_model ? 'Gemini' : null
 
   return (
-    <div className="mx-4 mt-1 mb-1 px-3.5 py-3 rounded-xl border border-[--border-subtle] bg-muted/30 flex-shrink-0">
-      {/* Meta row */}
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground/55 flex items-center gap-1">
-          <CheckCircle2 size={9} strokeWidth={2.5} className="text-emerald-500" />
-          Last Analysis
-        </span>
-        <div className="flex items-center gap-1.5">
-          <span className="text-[9px] text-muted-foreground/35 font-medium">{modelLabel}</span>
-          <span className="text-[9px] text-muted-foreground/35">·</span>
-          <span className="text-[9.5px] text-muted-foreground/45">{timeAgo(analysis.created_at)}</span>
+    <div className="flex-shrink-0 border-b border-[--border-subtle] bg-card">
+      {/* Top row: name + actions */}
+      <div className="flex items-start justify-between px-5 pt-3.5 pb-2.5">
+        <div className="min-w-0 flex-1 pr-4">
+          <div className="flex items-center gap-2.5 mb-0.5">
+            <h2 className="text-[14px] font-bold text-foreground truncate">{caseData.name}</h2>
+            <span className={cn(
+              'text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full flex-shrink-0',
+              caseData.status === 'open' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
+            )}>
+              {caseData.status}
+            </span>
+          </div>
+          {caseData.description && (
+            <p className="text-[11px] text-muted-foreground/55 truncate">{caseData.description}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {confirmDelete ? (
+            <>
+              <span className="text-[11px] text-red-600 mr-1">Delete this case?</span>
+              <button onClick={onDelete} className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors">Delete</button>
+              <button onClick={onCancelDelete} className="px-2.5 py-1 rounded-md text-[11px] border border-[--border-subtle] text-muted-foreground hover:bg-accent">Cancel</button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={onLinkThreads}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-semibold border border-[--border-subtle] text-foreground/70 hover:bg-accent transition-colors"
+              >
+                <Link2 size={11} strokeWidth={2} /> Link threads
+              </button>
+              <button
+                onClick={onRunAnalysis}
+                disabled={analyzing || threads.length === 0}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-semibold transition-all shadow-sm',
+                  analyzing
+                    ? 'bg-primary/10 text-primary cursor-not-allowed'
+                    : threads.length === 0
+                      ? 'bg-muted text-muted-foreground/50 cursor-not-allowed'
+                      : 'bg-primary text-primary-foreground hover:opacity-90',
+                )}
+              >
+                {analyzing
+                  ? <><Loader2 size={11} className="animate-spin" /> Analysing…</>
+                  : <><Sparkles size={11} strokeWidth={2} /> {analysis ? 'Re-run' : 'Run'} Analysis</>}
+              </button>
+              <button
+                onClick={onConfirmDelete}
+                className="p-1.5 rounded-md text-muted-foreground/30 hover:text-red-500 hover:bg-red-50 transition-colors"
+              >
+                <Trash2 size={13} strokeWidth={1.8} />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Status summary */}
-      {status?.summary && (
-        <p className="text-[11.5px] text-foreground/75 leading-[1.55] mb-2.5 line-clamp-3">
-          {status.summary}
-        </p>
-      )}
-
-      {/* Key numbers */}
-      <div className="flex items-center gap-3 flex-wrap">
-        {blockingCount > 0 && (
-          <div className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
-            <span className="text-[10.5px] font-semibold text-red-600">{blockingCount} blocking</span>
-          </div>
-        )}
-        {blockingCount === 0 && (
-          <div className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />
-            <span className="text-[10.5px] text-emerald-700 font-medium">No blockers</span>
-          </div>
-        )}
-        {stepCount > 0 && (
-          <div className="flex items-center gap-1">
-            <ArrowRight size={9} strokeWidth={2.5} className="text-primary/50" />
-            <span className="text-[10.5px] text-muted-foreground/60">{stepCount} action{stepCount !== 1 ? 's' : ''}</span>
-          </div>
-        )}
+      {/* View tabs + meta row */}
+      <div className="flex items-center justify-between px-5 border-t border-[--border-subtle]/40">
+        <div className="flex">
+          {([
+            { key: 'mission',  label: 'Mission Control' },
+            { key: 'messages', label: `Messages${totalMsgCount > 0 ? ` (${totalMsgCount})` : ''}` },
+            { key: 'history',  label: `History${runsCount > 0 ? ` (${runsCount})` : ''}` },
+          ] as const).map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => onSetView(key)}
+              className={cn(
+                'px-4 py-2.5 text-[11.5px] font-semibold border-b-2 transition-colors',
+                view === key
+                  ? 'text-primary border-primary'
+                  : 'text-muted-foreground/60 border-transparent hover:text-foreground',
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-3 text-[10px] text-muted-foreground/40 pb-2.5">
+          <span>{threads.length} thread{threads.length !== 1 ? 's' : ''}</span>
+          {attCount > 0 && <span>{attCount} attachment{attCount !== 1 ? 's' : ''}</span>}
+          {analysis && <span>Analysed {timeAgo(analysis.created_at)}</span>}
+          {modelLabel && <span className="bg-muted/70 px-1.5 py-0.5 rounded text-[9.5px] font-medium">{modelLabel}</span>}
+        </div>
       </div>
+
+      {analyzeError && (
+        <div className="mx-5 mb-3 px-3 py-2 bg-red-50 border border-red-100 rounded-lg">
+          <p className="text-[10.5px] text-red-600 leading-relaxed">{analyzeError}</p>
+        </div>
+      )}
     </div>
   )
 }
 
-// ── Linked Threads Section ────────────────────────────────────────────────────
+// ── Mission Control Body ──────────────────────────────────────────────────────
 
-function LinkedThreadsSection({
-  threads, loading, onAddThread, onUnlink, onUpdatePartyType,
+function MissionControlBody({
+  caseData, threads, analysis, loading, analyzing, attachmentRecords, currentRun, previousRun,
+  onLinkThreads, onUnlink, onUpdatePartyType, onRunAnalysis,
 }: {
+  caseData:          Case
   threads:           CaseThread[]
+  analysis:          CaseAnalysis | null
   loading:           boolean
-  onAddThread:       () => void
-  onUnlink:          (threadId: string) => void
-  onUpdatePartyType: (threadId: string, partyType: string) => void
+  analyzing:         boolean
+  attachmentRecords: AttachmentRecord[]
+  currentRun:        RunSummary | null
+  previousRun:       RunSummary | null
+  onLinkThreads:     () => void
+  onUnlink:          (t: string) => void
+  onUpdatePartyType: (t: string, p: string) => void
+  onRunAnalysis:     () => void
 }) {
+  if (loading && threads.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-32">
+        <Loader2 size={20} className="animate-spin text-muted-foreground/30" />
+      </div>
+    )
+  }
+
+  if (threads.length === 0) return <NoThreadsState onAdd={onLinkThreads} />
+
+  if (!analysis) {
+    return (
+      <PreAnalysisState
+        threads={threads}
+        attachmentRecords={attachmentRecords}
+        onAdd={onLinkThreads}
+        onRunAnalysis={onRunAnalysis}
+        onUnlink={onUnlink}
+        onUpdatePartyType={onUpdatePartyType}
+        analyzing={analyzing}
+      />
+    )
+  }
+
+  const sa = analysis.structured_analysis ?? null
+
   return (
-    <div>
-      {/* Section header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-[10.5px] font-bold uppercase tracking-wider text-foreground/60">Conversations</span>
-          {threads.length > 0 && (
-            <span className="text-[10px] font-bold text-muted-foreground/50 bg-muted/80 px-1.5 py-0.5 rounded-full tabular-nums">
-              {threads.length}
-            </span>
-          )}
-        </div>
-        <button
-          onClick={onAddThread}
-          className="flex items-center gap-1 text-[11px] text-primary font-semibold hover:opacity-80 transition-opacity"
-        >
-          <Plus size={11} strokeWidth={2.5} /> Add thread
-        </button>
+    <div className="px-6 py-6 flex flex-col gap-8 pb-12">
+      {analyzing && <AnalyzingBanner />}
+
+      {/* Executive context first */}
+      <ExecBriefCard analysis={analysis} sa={sa} />
+
+      {/* Delta banner — supplementary, below the brief so it doesn't displace primary content */}
+      {!analyzing && currentRun && previousRun && (
+        <RunComparisonBanner
+          caseId={caseData.id}
+          currentRun={currentRun}
+          previousRun={previousRun}
+          currentSteps={sa?.recommended_next_steps ?? []}
+        />
+      )}
+
+      {/* Action plan surfaces immediately after context */}
+      <NextStepsSection
+        v1Steps={sa?.recommended_next_steps ?? []}
+        missingItems={sa?.missing_items ?? []}
+        drafts={sa?.draft_artifacts ?? []}
+        caseId={caseData.id}
+        threads={threads}
+      />
+
+      {/* Supporting intelligence */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start">
+        <StakeholderMapSection stakeholders={sa?.stakeholder_map ?? []} />
+        <ScenarioSection scenarios={sa?.scenario_analysis ?? []} />
       </div>
 
-      {/* Thread cards */}
-      {loading ? (
-        <div className="flex justify-center py-8">
-          <Loader2 size={16} className="animate-spin text-muted-foreground/30" />
-        </div>
-      ) : threads.length === 0 ? (
-        <div className="flex flex-col items-center gap-4 py-12 rounded-xl border border-dashed border-[--border-subtle]">
-          <div className="w-12 h-12 rounded-xl bg-muted/60 flex items-center justify-center">
-            <Network size={20} strokeWidth={1.3} className="text-muted-foreground/40" />
+      <MissionTimelineSection
+        v1Timeline={sa?.timeline ?? []}
+        legacyTimeline={analysis.historical_timeline ?? []}
+        citations={sa?.citations ?? []}
+      />
+
+      {(sa?.evidence_ledger?.length ?? 0) > 0 && (
+        <EvidencePanelSection items={sa!.evidence_ledger} citations={sa!.citations ?? []} />
+      )}
+
+      <DraftOutputsSection
+        drafts={sa?.draft_artifacts ?? []}
+        legacyPlaybook={analysis.playbook ?? []}
+        threads={threads}
+      />
+
+      <ThreadsOverviewCard
+        threads={threads}
+        attachmentRecords={attachmentRecords}
+        onAddThread={onLinkThreads}
+        onUnlink={onUnlink}
+        onUpdatePartyType={onUpdatePartyType}
+      />
+
+      {sa?.analysis_metadata && (
+        <AnalysisMetadataCard meta={sa.analysis_metadata} />
+      )}
+    </div>
+  )
+}
+
+// ── No Threads State ──────────────────────────────────────────────────────────
+
+function NoThreadsState({ onAdd }: { onAdd: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-5 py-28 px-8 text-center">
+      <div className="w-16 h-16 rounded-2xl bg-muted/60 border border-[--border-subtle] flex items-center justify-center">
+        <Network size={28} strokeWidth={1.2} className="text-muted-foreground/30" />
+      </div>
+      <div className="max-w-[300px]">
+        <p className="text-[14px] font-bold text-foreground/60 mb-2">No threads linked</p>
+        <p className="text-[12px] text-muted-foreground/45 leading-[1.7]">
+          Link email threads to build this case. Each thread represents a conversation with a party — client, insurer, lawyer, or regulator.
+        </p>
+      </div>
+      <button
+        onClick={onAdd}
+        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-[12.5px] font-semibold hover:opacity-90 transition-opacity shadow-sm"
+      >
+        <Link2 size={12} strokeWidth={2} /> Link first thread
+      </button>
+    </div>
+  )
+}
+
+// ── Pre-Analysis State ────────────────────────────────────────────────────────
+
+function PreAnalysisState({
+  threads, attachmentRecords, onAdd, onRunAnalysis, onUnlink, onUpdatePartyType, analyzing,
+}: {
+  threads:           CaseThread[]
+  attachmentRecords: AttachmentRecord[]
+  onAdd:             () => void
+  onRunAnalysis:     () => void
+  onUnlink:          (t: string) => void
+  onUpdatePartyType: (t: string, p: string) => void
+  analyzing:         boolean
+}) {
+  return (
+    <div className="px-6 py-6 flex flex-col gap-6">
+      {analyzing && <AnalyzingBanner />}
+
+      {!analyzing && (
+        <div className="rounded-xl border border-primary/20 bg-primary/[0.04] px-5 py-6 flex flex-col items-center gap-4 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/15 flex items-center justify-center">
+            <Sparkles size={24} strokeWidth={1.4} className="text-primary/60" />
           </div>
-          <div className="text-center max-w-[220px]">
-            <p className="text-[12px] font-semibold text-foreground/60 mb-1">No threads linked</p>
-            <p className="text-[11px] text-muted-foreground/45 leading-[1.6]">
-              Add email threads to build a case — each thread is assigned a party role.
+          <div className="max-w-[340px]">
+            <p className="text-[13.5px] font-bold text-foreground/80 mb-1.5">Ready for grand analysis</p>
+            <p className="text-[11.5px] text-muted-foreground/55 leading-[1.7]">
+              {threads.length} thread{threads.length !== 1 ? 's' : ''} linked. Run the analysis to get a full mission brief, stakeholder map, timeline, evidence ledger, and draft communications.
             </p>
           </div>
           <button
-            onClick={onAddThread}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-[12px] font-semibold hover:opacity-90 shadow-sm transition-opacity"
+            onClick={onRunAnalysis}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-[12.5px] font-semibold hover:opacity-90 transition-opacity shadow-sm"
           >
-            <Link2 size={12} strokeWidth={2} /> Link first thread
+            <Sparkles size={13} strokeWidth={2} /> Run Grand Analysis
           </button>
         </div>
-      ) : (
+      )}
+
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-foreground/45">Linked Threads</span>
+            <span className="text-[9.5px] font-bold text-muted-foreground/40 bg-muted/70 px-1.5 py-0.5 rounded-full">
+              {threads.length}
+            </span>
+          </div>
+          <button onClick={onAdd} className="text-[11px] text-primary font-semibold hover:opacity-80 transition-opacity">
+            + Add
+          </button>
+        </div>
         <div className="flex flex-col gap-2">
           {threads.map(ct => (
-            <LinkedThreadCard
-              key={ct.id}
-              ct={ct}
-              onUnlink={onUnlink}
-              onUpdatePartyType={onUpdatePartyType}
-            />
+            <LinkedThreadCard key={ct.id} ct={ct} onUnlink={onUnlink} onUpdatePartyType={onUpdatePartyType} />
           ))}
+        </div>
+      </div>
+
+      {(attachmentRecords.length > 0 || threads.some(ct => ct.attachments_pending)) && (
+        <AttachmentCoverageCard threads={threads} attachmentRecords={attachmentRecords} />
+      )}
+    </div>
+  )
+}
+
+// ── Analyzing Banner ──────────────────────────────────────────────────────────
+
+function AnalyzingBanner() {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 bg-primary/5 border border-primary/15 rounded-xl">
+      <Loader2 size={14} className="animate-spin text-primary flex-shrink-0" />
+      <div>
+        <p className="text-[12px] font-semibold text-primary/90">Grand analysis in progress</p>
+        <p className="text-[10.5px] text-primary/60">Reading all threads and attachments — this typically takes 30–60 seconds.</p>
+      </div>
+    </div>
+  )
+}
+
+// ── Shared Primitives ─────────────────────────────────────────────────────────
+
+function SectionLabel({
+  title, count, children,
+}: {
+  title:     string
+  count?:    number
+  children?: React.ReactNode
+}) {
+  return (
+    <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-foreground/45">{title}</span>
+        {count !== undefined && (
+          <span className="text-[9.5px] font-bold text-muted-foreground/40 bg-muted/70 px-1.5 py-0.5 rounded-full">
+            {count}
+          </span>
+        )}
+      </div>
+      {children && <div className="flex items-center gap-2">{children}</div>}
+    </div>
+  )
+}
+
+function NoDataState({
+  icon: Icon, message,
+}: {
+  icon:    LucideIcon
+  message: string
+}) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-5 rounded-xl border border-dashed border-[--border-subtle] text-muted-foreground/45">
+      <Icon size={16} strokeWidth={1.4} />
+      <p className="text-[11.5px] italic">{message}</p>
+    </div>
+  )
+}
+
+function KFact({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-muted/50 rounded-lg border border-[--border-subtle]">
+      <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/50">{label}</span>
+      <span className="text-[11.5px] font-semibold text-foreground/85">{value}</span>
+    </div>
+  )
+}
+
+// ── Citation Chip ─────────────────────────────────────────────────────────────
+
+function CitationChip({ id, citations }: { id: string; citations: V1Citation[] }) {
+  const c = citations.find(x => x.id === id)
+  if (!c) return null
+  return (
+    <span
+      title={c.excerpt ?? c.label}
+      className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/8 text-primary/70 border border-primary/15 cursor-help align-middle"
+    >
+      [{c.label.length > 18 ? c.label.slice(0, 18) + '…' : c.label}]
+    </span>
+  )
+}
+
+// ── Executive Brief Card ──────────────────────────────────────────────────────
+
+function ExecBriefCard({ analysis, sa }: { analysis: CaseAnalysis; sa: NexusAnalysisV1 | null }) {
+  const brief       = sa?.case_brief
+  const status      = analysis.current_status
+  const summary     = brief?.summary         ?? status?.summary         ?? ''
+  const blocking    = brief?.blocking_issues  ?? status?.blocking_issues  ?? []
+  const pendingFrom = brief?.pending_from     ?? status?.pending_from     ?? {}
+  const stage       = brief?.current_stage
+  const claim       = brief?.claim_amount
+  const coverage    = brief?.coverage_type
+  const policy      = brief?.policy_reference
+  const questions   = sa?.open_questions ?? []
+  const missing     = sa?.missing_items  ?? []
+
+  return (
+    <div>
+      <SectionLabel title="Executive Brief" />
+      <div className="rounded-xl border border-[--border-subtle] bg-card px-5 py-4 flex flex-col gap-4">
+        {(stage || coverage || claim || policy) && (
+          <div className="flex flex-wrap gap-2">
+            {stage    && <KFact label="Stage"    value={stage} />}
+            {coverage && <KFact label="Coverage" value={coverage} />}
+            {claim    && <KFact label="Claim"    value={claim} />}
+            {policy   && <KFact label="Policy"   value={policy} />}
+          </div>
+        )}
+
+        {summary && <p className="text-[12.5px] text-foreground/80 leading-[1.7]">{summary}</p>}
+
+        {blocking.length > 0 && (
+          <div>
+            <div className="flex items-center gap-1.5 mb-2">
+              <AlertCircle size={10} strokeWidth={2} className="text-red-500" />
+              <span className="text-[9.5px] font-bold uppercase tracking-wider text-red-600/80">
+                Blocking ({blocking.length})
+              </span>
+            </div>
+            <div className="flex flex-col gap-1">
+              {blocking.map((b, i) => (
+                <div key={i} className="flex gap-2 text-[11.5px] text-foreground/75 leading-[1.5]">
+                  <span className="text-red-400 flex-shrink-0">•</span>{b}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {Object.entries(pendingFrom).filter(([, v]) => v).length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(pendingFrom).filter(([, v]) => v).map(([party, item]) => {
+              const pc = partyColor(party)
+              return (
+                <div
+                  key={party}
+                  className="flex items-start gap-2 px-3 py-2 rounded-lg border flex-1 min-w-[180px]"
+                  style={{ background: pc.bg, borderColor: pc.border }}
+                >
+                  <span className="text-[9.5px] font-bold uppercase tracking-wider flex-shrink-0 mt-0.5" style={{ color: pc.text }}>
+                    {party}
+                  </span>
+                  <p className="text-[11.5px] text-foreground/70 leading-[1.45]">{item as string}</p>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {(questions.length > 0 || missing.length > 0) && (
+          <div className="flex gap-5 pt-1 border-t border-[--border-subtle]/50 flex-wrap">
+            {questions.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <HelpCircle size={10} strokeWidth={2} className="text-amber-500" />
+                <span className="text-[10.5px] text-muted-foreground/70">
+                  <span className="font-semibold text-amber-600">
+                    {questions.filter(q => q.priority === 'critical' || q.priority === 'high').length}
+                  </span>{' '}critical question{questions.filter(q => q.priority === 'critical' || q.priority === 'high').length !== 1 ? 's' : ''}
+                </span>
+              </div>
+            )}
+            {missing.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <ShieldAlert size={10} strokeWidth={2} className="text-muted-foreground/50" />
+                <span className="text-[10.5px] text-muted-foreground/70">
+                  <span className="font-semibold text-foreground/70">
+                    {missing.filter(m => m.urgency === 'urgent').length}
+                  </span>{' '}urgent item{missing.filter(m => m.urgency === 'urgent').length !== 1 ? 's' : ''} missing
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Stakeholder Map Section ───────────────────────────────────────────────────
+
+function StakeholderMapSection({ stakeholders }: { stakeholders: V1Stakeholder[] }) {
+  if (!stakeholders?.length) return (
+    <div>
+      <SectionLabel title="Stakeholders" />
+      <NoDataState icon={Users} message="No stakeholders identified in this analysis." />
+    </div>
+  )
+
+  return (
+    <div>
+      <SectionLabel title="Stakeholders" count={stakeholders.length} />
+      <div className="flex flex-col gap-2">
+        {stakeholders.map((s, i) => {
+          const pc = partyColor(s.party_type)
+          return (
+            <div key={s.id ?? i} className="flex items-start gap-3 px-4 py-3 rounded-xl border border-[--border-subtle] bg-card">
+              <div className="flex flex-col items-center gap-1.5 flex-shrink-0 pt-0.5">
+                <span className="w-2 h-2 rounded-full" style={{ background: pc.dot }} />
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ color: pc.text, background: pc.bg }}>
+                  {s.party_type.slice(0, 3).toUpperCase()}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline gap-1.5 flex-wrap mb-0.5">
+                  <span className="text-[12px] font-semibold text-foreground">{s.name}</span>
+                  {s.company && <span className="text-[10.5px] text-muted-foreground/50">· {s.company}</span>}
+                </div>
+                {s.email && <p className="text-[10px] text-muted-foreground/45 mb-1">{s.email}</p>}
+                <p className="text-[11.5px] text-foreground/70 leading-[1.5]">{s.role_summary}</p>
+                {s.stance && <p className="text-[10.5px] text-muted-foreground/50 italic mt-0.5">Stance: {s.stance}</p>}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ── Scenario Section ──────────────────────────────────────────────────────────
+
+const SCENARIO_PROB: Record<string, { color: string; bg: string; border: string; barW: string }> = {
+  high:   { color: '#059669', bg: 'rgba(5,150,105,0.05)',   border: 'rgba(5,150,105,0.18)',   barW: '78%' },
+  medium: { color: '#d97706', bg: 'rgba(217,119,6,0.05)',   border: 'rgba(217,119,6,0.18)',   barW: '48%' },
+  low:    { color: '#6b7280', bg: 'rgba(107,114,128,0.05)', border: 'rgba(107,114,128,0.18)', barW: '22%' },
+}
+
+function ScenarioSection({ scenarios }: { scenarios: V1Scenario[] }) {
+  if (!scenarios?.length) return (
+    <div>
+      <SectionLabel title="Scenarios" />
+      <NoDataState icon={TrendingUp} message="Run analysis to see scenario projections." />
+    </div>
+  )
+
+  return (
+    <div>
+      <SectionLabel title="Scenarios" count={scenarios.length} />
+      <div className="flex flex-col gap-2.5">
+        {scenarios.map((s, i) => {
+          const pm = SCENARIO_PROB[s.probability?.toLowerCase()] ?? SCENARIO_PROB.low
+          const assumptions       = s.assumptions?.filter(Boolean)       ?? []
+          const triggerConditions = s.trigger_conditions?.filter(Boolean) ?? []
+          return (
+            <div key={i} className="px-4 py-3.5 rounded-xl border" style={{ background: pm.bg, borderColor: pm.border }}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[12px] font-bold text-foreground">{s.name}</span>
+                <span className="text-[9.5px] font-bold uppercase tracking-wider" style={{ color: pm.color }}>
+                  {s.probability?.toUpperCase()}
+                </span>
+              </div>
+              <div className="h-[3px] rounded-full bg-black/[0.06] mb-3 overflow-hidden">
+                <div className="h-full rounded-full" style={{ width: pm.barW, background: pm.color }} />
+              </div>
+              <p className="text-[11.5px] text-foreground/75 leading-[1.55] mb-2.5">{s.outcome}</p>
+
+              {assumptions.length > 0 && (
+                <div className="mb-2.5">
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-foreground/35 mb-1">Assumes</p>
+                  <ul className="flex flex-col gap-0.5">
+                    {assumptions.map((a, ai) => (
+                      <li key={ai} className="flex items-start gap-1.5">
+                        <span className="text-[9px] text-foreground/30 flex-shrink-0 mt-[3px]">•</span>
+                        <span className="text-[11px] text-foreground/60 leading-[1.5]">{a}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {triggerConditions.length > 0 && (
+                <div className="mb-2.5">
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-foreground/35 mb-1">Watch for</p>
+                  <ul className="flex flex-col gap-0.5">
+                    {triggerConditions.map((t, ti) => (
+                      <li key={ti} className="flex items-start gap-1.5">
+                        <Zap size={8} strokeWidth={2} className="flex-shrink-0 mt-[3px] text-foreground/30" />
+                        <span className="text-[11px] text-foreground/60 leading-[1.5]">{t}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {s.strategic_implication && (
+                <p className="text-[10.5px] italic text-foreground/50 leading-[1.5] mb-2.5 border-t border-black/[0.05] pt-2">
+                  {s.strategic_implication}
+                </p>
+              )}
+
+              <div className="flex gap-1.5 items-start border-t border-black/[0.06] pt-2.5">
+                <ArrowRight size={10} strokeWidth={2.5} className="flex-shrink-0 mt-0.5" style={{ color: pm.color }} />
+                <p className="text-[11px] font-medium leading-[1.5]" style={{ color: pm.color }}>{s.trs_action}</p>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ── Mission Timeline Section ──────────────────────────────────────────────────
+
+function MissionTimelineSection({
+  v1Timeline, legacyTimeline, citations,
+}: {
+  v1Timeline:     V1TimelineEvt[]
+  legacyTimeline: TimelineEvent[]
+  citations:      V1Citation[]
+}) {
+  const [showAll, setShowAll] = useState(false)
+
+  const events = v1Timeline?.length > 0
+    ? v1Timeline.map(e => ({ date: e.date, party: e.party, event: e.event, significance: e.significance, citation_ids: e.citation_ids ?? [] }))
+    : legacyTimeline.map(e => ({ date: e.date, party: e.party, event: e.event, significance: e.significance, citation_ids: [] as string[] }))
+
+  if (!events.length) return (
+    <div>
+      <SectionLabel title="Timeline" />
+      <NoDataState icon={Clock} message="No timeline events in this analysis." />
+    </div>
+  )
+
+  const PREVIEW = 6
+  const shown   = showAll ? events : events.slice(0, PREVIEW)
+
+  return (
+    <div>
+      <SectionLabel title="Timeline" count={events.length}>
+        {events.length > PREVIEW && (
+          <button
+            onClick={() => setShowAll(v => !v)}
+            className="text-[10.5px] text-primary font-semibold hover:opacity-80 transition-opacity"
+          >
+            {showAll ? 'Show less' : `View all (${events.length})`}
+          </button>
+        )}
+      </SectionLabel>
+      <div className="rounded-xl border border-[--border-subtle] bg-card px-5 py-4">
+        {shown.map((e, i) => {
+          const pc = partyColor(e.party)
+          return (
+            <div key={i} className="flex gap-4">
+              <div className="flex flex-col items-center">
+                <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ background: pc.dot }} />
+                {i < shown.length - 1 && <div className="w-px flex-1 bg-[--border-subtle]/70 mt-1.5 mb-1" />}
+              </div>
+              <div className="pb-4 min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: pc.text }}>
+                    {e.party}
+                  </span>
+                  <span className="text-[9.5px] text-muted-foreground/50">{fmtDate(e.date)}</span>
+                  {e.citation_ids.map(cid => <CitationChip key={cid} id={cid} citations={citations} />)}
+                </div>
+                <p className="text-[12px] text-foreground/80 leading-[1.55] mb-0.5">{e.event}</p>
+                <p className="text-[10.5px] text-muted-foreground/55 italic leading-[1.45]">{e.significance}</p>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ── Evidence Panel Section ────────────────────────────────────────────────────
+
+type EvidenceTab = 'email' | 'attachment' | 'knowledge_doc'
+
+function EvidencePanelSection({ items, citations }: { items: V1Evidence[]; citations: V1Citation[] }) {
+  const [tab,        setTab]        = useState<EvidenceTab>('email')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+
+  const groups: Record<EvidenceTab, V1Evidence[]> = {
+    email:         items.filter(e => e.source_type === 'email'),
+    attachment:    items.filter(e => e.source_type === 'attachment'),
+    knowledge_doc: items.filter(e => e.source_type === 'knowledge_doc'),
+  }
+
+  const TAB_META: { key: EvidenceTab; label: string }[] = [
+    { key: 'email',         label: 'Email' },
+    { key: 'attachment',    label: 'Attachments' },
+    { key: 'knowledge_doc', label: 'Knowledge' },
+  ]
+
+  const shown = groups[tab] ?? []
+
+  return (
+    <div>
+      <SectionLabel title="Evidence" count={items.length} />
+      <div className="rounded-xl border border-[--border-subtle] bg-card overflow-hidden">
+        <div className="flex border-b border-[--border-subtle] bg-muted/20">
+          {TAB_META.map(({ key, label }) => {
+            const count = groups[key]?.length ?? 0
+            return (
+              <button
+                key={key}
+                onClick={() => setTab(key)}
+                className={cn(
+                  'flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-semibold border-b-2 transition-colors',
+                  tab === key
+                    ? 'border-primary text-primary bg-card'
+                    : 'border-transparent text-muted-foreground/60 hover:text-foreground',
+                )}
+              >
+                {label}
+                {count > 0 && (
+                  <span className="text-[9px] font-bold bg-muted/80 rounded-full px-1.5 py-0.5 text-muted-foreground/55">
+                    {count}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+
+        {shown.length === 0 ? (
+          <p className="text-[11.5px] text-muted-foreground/40 italic text-center py-8">
+            No {tab === 'email' ? 'email' : tab === 'attachment' ? 'attachment' : 'knowledge'} evidence in this analysis.
+          </p>
+        ) : (
+          <div className="divide-y divide-[--border-subtle]">
+            {shown.map((item, i) => {
+              const itemKey = item.id ?? String(i)
+              const isOpen  = expandedId === itemKey
+              return (
+                <div key={itemKey}>
+                  <button
+                    onClick={() => setExpandedId(isOpen ? null : itemKey)}
+                    className="w-full text-left px-5 py-3.5 flex items-start gap-3 hover:bg-muted/20 transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="text-[12px] font-semibold text-foreground truncate">
+                          {item.filename_or_label}
+                        </span>
+                        {item.coverage_relevant && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 flex-shrink-0">
+                            Coverage
+                          </span>
+                        )}
+                        {item.citation_id && <CitationChip id={item.citation_id} citations={citations} />}
+                      </div>
+                      {!isOpen && item.key_facts?.[0] && (
+                        <p className="text-[10.5px] text-muted-foreground/60 line-clamp-1">{item.key_facts[0]}</p>
+                      )}
+                    </div>
+                    <ChevronDown
+                      size={11}
+                      strokeWidth={2}
+                      className={cn('text-muted-foreground/30 flex-shrink-0 mt-0.5 transition-transform', isOpen && 'rotate-180')}
+                    />
+                  </button>
+                  {isOpen && (
+                    <div className="px-5 pb-4 bg-muted/[0.07]">
+                      <ul className="flex flex-col gap-1">
+                        {(item.key_facts ?? []).map((f, fi) => (
+                          <li key={fi} className="flex gap-2 text-[11.5px] text-foreground/75 leading-[1.55]">
+                            <span className="text-muted-foreground/40 flex-shrink-0">•</span>{f}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Next Steps Section ────────────────────────────────────────────────────────
+
+const STEP_PRIORITY: Record<string, { color: string; bg: string }> = {
+  urgent: { color: '#dc2626', bg: 'rgba(220,38,38,0.08)' },
+  high:   { color: '#d97706', bg: 'rgba(217,119,6,0.08)' },
+  normal: { color: '#6b7280', bg: 'rgba(107,114,128,0.08)' },
+}
+
+type StepDraftState = {
+  status:    'idle' | 'creating' | 'done' | 'error'
+  draftId?:  string
+  threadId?: string
+  errorMsg?: string
+}
+
+function NextStepsSection({
+  v1Steps, missingItems, drafts, caseId, threads,
+}: {
+  v1Steps:      V1NextStep[]
+  missingItems: V1Missing[]
+  drafts:       V1Draft[]
+  caseId:       string
+  threads:      CaseThread[]
+}) {
+  const [stepDraftState, setStepDraftState] = useState<Record<number, StepDraftState>>({})
+  const [copiedStep,     setCopiedStep]     = useState<number | null>(null)
+
+  async function createDraft(step: V1NextStep, artifact: V1Draft) {
+    const key      = step.step
+    const threadId = threads[0]?.thread_id ?? null
+    setStepDraftState(prev => ({ ...prev, [key]: { status: 'creating' } }))
+    try {
+      const res = await fetch('/api/nexus/draft-create', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          thread_id:        threadId,
+          body:             artifact.body,
+          email_type:       'NEXUS',
+          to_email:         artifact.to_emails?.[0] ?? '',
+          nexus_case_id:    caseId,
+          nexus_step_index: step.step,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.draftId) {
+        setStepDraftState(prev => ({
+          ...prev,
+          [key]: { status: 'error', errorMsg: data.error ?? 'Draft creation failed' },
+        }))
+        return
+      }
+      setStepDraftState(prev => ({
+        ...prev,
+        [key]: { status: 'done', draftId: data.draftId, threadId: threadId ?? undefined },
+      }))
+    } catch (e) {
+      setStepDraftState(prev => ({
+        ...prev,
+        [key]: { status: 'error', errorMsg: String(e) },
+      }))
+    }
+  }
+
+  function copyStep(step: V1NextStep) {
+    const parts = [
+      step.action,
+      '',
+      `Owner: ${step.owner}`,
+      step.deadline ? `Deadline: ${step.deadline}` : null,
+      `Priority: ${step.priority}`,
+      '',
+      step.rationale,
+    ].filter(l => l !== null).join('\n')
+    navigator.clipboard.writeText(parts).catch(() => {})
+    setCopiedStep(step.step)
+    setTimeout(() => setCopiedStep(s => s === step.step ? null : s), 1500)
+  }
+
+  if (!v1Steps?.length && !missingItems?.length) return (
+    <div>
+      <SectionLabel title="Next Steps" />
+      <NoDataState icon={CheckCircle2} message="Next steps will appear here after analysis." />
+    </div>
+  )
+
+  const urgentMissing = (missingItems ?? []).filter(m => m.urgency === 'urgent')
+
+  const draftableCount = (v1Steps ?? []).filter((step) => !!drafts[step.step - 1]).length
+
+  return (
+    <div>
+      <SectionLabel title="Next Steps" count={v1Steps?.length ?? 0}>
+        {draftableCount > 0 && (
+          <span className="text-[10px] text-muted-foreground/45 flex items-center gap-1">
+            <MailOpen size={9} strokeWidth={2} />
+            {draftableCount} with draft
+          </span>
+        )}
+      </SectionLabel>
+      <div className="flex flex-col gap-2">
+        {urgentMissing.length > 0 && (
+          <div className="px-4 py-3 rounded-xl border border-amber-200 bg-amber-50">
+            <p className="text-[9.5px] font-bold uppercase tracking-wider text-amber-700 mb-2">Prerequisites Required</p>
+            <div className="flex flex-col gap-1.5">
+              {urgentMissing.map((m, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <ShieldAlert size={10} strokeWidth={2} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="text-[11.5px] font-medium text-amber-800">{m.item}</span>
+                    <span className="text-[10.5px] text-amber-600"> · from {m.required_from}</span>
+                    {m.impact && <p className="text-[10.5px] text-amber-600/80 mt-0.5">{m.impact}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {(v1Steps ?? []).map((step, i) => {
+          const pc       = partyColor(step.owner)
+          const ps       = STEP_PRIORITY[step.priority?.toLowerCase()] ?? STEP_PRIORITY.normal
+          const artifact = drafts[step.step - 1] ?? null
+          const ds       = stepDraftState[step.step] ?? { status: 'idle' }
+
+          return (
+            <div key={i} className="flex gap-4 px-4 py-3.5 rounded-xl border border-[--border-subtle] bg-card">
+              <span className="text-[13px] font-black text-muted-foreground/20 flex-shrink-0 w-6 text-right pt-0.5">
+                {step.step}
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2 mb-1.5">
+                  <span className="text-[12.5px] font-semibold text-foreground leading-[1.4]">{step.action}</span>
+                  <span
+                    className="text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                    style={{ background: ps.bg, color: ps.color }}
+                  >
+                    {step.priority?.toUpperCase()}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md" style={{ background: pc.bg, color: pc.text }}>
+                    {step.owner?.toUpperCase()}
+                  </span>
+                  {step.deadline && (
+                    <span className="text-[10px] text-muted-foreground/55 flex items-center gap-1">
+                      <Clock size={9} strokeWidth={2} /> {step.deadline}
+                    </span>
+                  )}
+                  {(step.depends_on?.length ?? 0) > 0 && (
+                    <span className="text-[9.5px] text-muted-foreground/45 flex items-center gap-1 border border-dashed border-[--border-subtle] rounded px-1.5 py-0.5">
+                      Requires step{step.depends_on!.length > 1 ? 's' : ''} {step.depends_on!.join(', ')}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11.5px] text-muted-foreground/60 italic leading-[1.5] mb-3">{step.rationale}</p>
+
+                {/* ── Step action bar ── */}
+                <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-[--border-subtle]/60">
+                  {ds.status === 'done' ? (
+                    <a
+                      href={ds.threadId ? `/engagement?lead=${ds.threadId}` : '/engagement'}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-[10.5px] font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors"
+                    >
+                      <CheckCircle2 size={11} strokeWidth={2.5} />
+                      Draft created · Open in Engagement
+                      <ArrowRight size={10} strokeWidth={2.5} />
+                    </a>
+                  ) : artifact ? (
+                    <button
+                      onClick={() => createDraft(step, artifact)}
+                      disabled={ds.status === 'creating'}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[--border-subtle] bg-background text-[10.5px] font-semibold text-foreground/70 hover:bg-muted/60 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {ds.status === 'creating' ? (
+                        <Loader2 size={10} strokeWidth={2} className="animate-spin" />
+                      ) : (
+                        <MailOpen size={10} strokeWidth={2} />
+                      )}
+                      {ds.status === 'creating' ? 'Creating…' : 'Create draft email'}
+                    </button>
+                  ) : null}
+                  <button
+                    onClick={() => copyStep(step)}
+                    className={cn(
+                      'flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10.5px] font-medium transition-colors',
+                      copiedStep === step.step
+                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                        : 'border-[--border-subtle] bg-background text-muted-foreground/60 hover:bg-muted/60 hover:text-foreground/70',
+                    )}
+                  >
+                    {copiedStep === step.step ? (
+                      <><CheckCircle2 size={10} strokeWidth={2.5} /> Copied!</>
+                    ) : (
+                      <><FileText size={10} strokeWidth={2} /> Copy</>
+                    )}
+                  </button>
+                  {ds.status === 'error' && (
+                    <span className="text-[10px] text-red-500">{ds.errorMsg}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ── Draft Outputs Section ─────────────────────────────────────────────────────
+
+function DraftOutputsSection({
+  drafts, legacyPlaybook, threads,
+}: {
+  drafts:         V1Draft[]
+  legacyPlaybook: PlaybookStep[]
+  threads:        CaseThread[]
+}) {
+  const hasDrafts = drafts?.length > 0
+  const hasLegacy = legacyPlaybook?.length > 0
+
+  if (!hasDrafts && !hasLegacy) return (
+    <div>
+      <SectionLabel title="Draft Outputs" />
+      <NoDataState icon={MailOpen} message="No draft communications. Run analysis to generate drafts for each party." />
+    </div>
+  )
+
+  const steps: PlaybookStep[] = hasDrafts
+    ? drafts.map((d, i) => ({
+        step:       i + 1,
+        action:     d.artifact_type === 'email' ? `Email ${d.to_party}` : `${d.artifact_type} to ${d.to_party}`,
+        party_type: d.party_type,
+        party_name: d.to_party,
+        to_emails:  d.to_emails ?? [],
+        cc_emails:  d.cc_emails ?? [],
+        subject:    d.subject ?? '',
+        priority:   (d.priority === 'urgent' ? 'URGENT' : d.priority === 'high' ? 'HIGH' : 'THIS_WEEK') as PlaybookStep['priority'],
+        intent:     d.intent ?? '',
+        reasoning:  '',
+        draft:      d.body ?? '',
+      }))
+    : legacyPlaybook
+
+  return (
+    <div>
+      <SectionLabel title="Draft Outputs" count={steps.length}>
+        {!hasDrafts && hasLegacy && (
+          <span className="text-[10px] text-muted-foreground/40 italic">Legacy format</span>
+        )}
+      </SectionLabel>
+      <div className="flex flex-col gap-3">
+        {steps.map(step => (
+          <PlaybookStepCard key={step.step} step={step} threads={threads} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Run comparison helpers ────────────────────────────────────────────────────
+
+function computeRunDiff(current: RunSummary, prev: RunSummary): string[] {
+  if (current.run_status === 'failed') return ['run failed']
+  if (prev.run_status === 'failed') return ['previous run had failed']
+  const out: string[] = []
+  const d = (n: number, label: string, labelP?: string) => {
+    if (n === 0) return
+    const sign = n > 0 ? `+${n}` : String(n)
+    out.push(`${sign} ${Math.abs(n) === 1 ? label : (labelP ?? label + 's')}`)
+  }
+  d(current.threads_included  - prev.threads_included,  'thread')
+  d(current.messages_included - prev.messages_included, 'message')
+  d(current.attachments_count - prev.attachments_count, 'attachment')
+  const citeDelta = current.citations_count - prev.citations_count
+  if (citeDelta !== 0) d(citeDelta, 'citation')
+  if (current.steps_count !== prev.steps_count)
+    out.push(`steps ${prev.steps_count}→${current.steps_count}`)
+  const missDelta = current.missing_items_count - prev.missing_items_count
+  if (missDelta > 0)       d(missDelta, 'new blocker')
+  else if (missDelta < 0)  out.push(`${Math.abs(missDelta)} blocker${Math.abs(missDelta) !== 1 ? 's' : ''} resolved`)
+  if (current.synthesis_model !== prev.synthesis_model || current.strategy_model !== prev.strategy_model)
+    out.push('model updated')
+  return out
+}
+
+type StepDiffItem = {
+  type:        'added' | 'removed' | 'changed'
+  step:        number
+  action:      string
+  prevAction?: string
+}
+
+function diffStepActions(
+  currentSteps:  V1NextStep[],
+  previousSteps: V1NextStep[],
+): StepDiffItem[] {
+  const prevMap = new Map(previousSteps.map(s => [s.step, s.action]))
+  const curMap  = new Map(currentSteps.map(s  => [s.step, s.action]))
+  const allNums = Array.from(new Set([...Array.from(prevMap.keys()), ...Array.from(curMap.keys())])).sort((a, b) => a - b)
+  const result: StepDiffItem[] = []
+  for (const step of allNums) {
+    const cur  = curMap.get(step)
+    const prev = prevMap.get(step)
+    if (!prev && cur)          result.push({ type: 'added',   step, action: cur })
+    else if (prev && !cur)     result.push({ type: 'removed', step, action: prev })
+    else if (cur && prev && cur !== prev)
+      result.push({ type: 'changed', step, action: cur, prevAction: prev })
+  }
+  return result
+}
+
+// ── Run Comparison Banner ─────────────────────────────────────────────────────
+
+function RunComparisonBanner({
+  caseId, currentRun, previousRun, currentSteps,
+}: {
+  caseId:        string
+  currentRun:    RunSummary
+  previousRun:   RunSummary
+  currentSteps:  V1NextStep[]
+}) {
+  const [open,            setOpen]            = useState(false)
+  const [prevSteps,       setPrevSteps]       = useState<V1NextStep[] | null>(null)
+  const [prevStepsLoaded, setPrevStepsLoaded] = useState(false)
+
+  async function loadPrevSteps() {
+    if (prevStepsLoaded) return
+    setPrevStepsLoaded(true)
+    try {
+      const res = await fetch(`/api/nexus/cases/${caseId}/runs/${previousRun.id}`, { cache: 'no-store' })
+      if (res.ok) {
+        const sa = await res.json()
+        setPrevSteps(Array.isArray(sa?.recommended_next_steps) ? sa.recommended_next_steps : [])
+      }
+    } catch { /* non-critical */ }
+  }
+
+  function handleToggle() {
+    setOpen(v => !v)
+    if (!prevStepsLoaded) loadPrevSteps()
+  }
+
+  const diffs    = computeRunDiff(currentRun, previousRun)
+  const stepDiff = prevSteps !== null ? diffStepActions(currentSteps, prevSteps) : []
+
+  if (diffs.length === 0 && currentRun.run_status !== 'failed') return null
+
+  const prevAgo = timeAgo(previousRun.created_at)
+
+  const STEP_DIFF_COLOR: Record<StepDiffItem['type'], string> = {
+    added:   'bg-green-50 text-green-700 border-green-200',
+    removed: 'bg-red-50   text-red-600   border-red-200',
+    changed: 'bg-amber-50 text-amber-700 border-amber-200',
+  }
+  const STEP_DIFF_LABEL: Record<StepDiffItem['type'], string> = {
+    added:   '+ added',
+    removed: '− removed',
+    changed: '~ changed',
+  }
+
+  return (
+    <div className="rounded-xl border border-[--border-subtle] bg-muted/30">
+      <button
+        onClick={handleToggle}
+        className="w-full flex items-center justify-between px-4 py-2.5 text-left"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <TrendingUp size={11} strokeWidth={2} className="text-primary/50 flex-shrink-0" />
+          <span className="text-[10.5px] font-semibold text-foreground/60">vs. {prevAgo}</span>
+          <span className="text-[10px] text-muted-foreground/50 truncate hidden sm:block">
+            {diffs.slice(0, 3).join(' · ')}{diffs.length > 3 ? ` · +${diffs.length - 3} more` : ''}
+          </span>
+        </div>
+        <ChevronDown size={12} strokeWidth={2} className={cn('text-muted-foreground/30 flex-shrink-0 transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <div className="px-4 pb-4 border-t border-[--border-subtle]/40 pt-3 flex flex-col gap-3">
+          {/* Metadata diffs */}
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/40 mb-2">Changes since previous run</p>
+            {diffs.length === 0 ? (
+              <p className="text-[10.5px] text-muted-foreground/40 italic">No metadata changes</p>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {diffs.map((d, i) => (
+                  <span key={i} className="text-[10.5px] px-2 py-0.5 rounded-full bg-primary/[0.06] text-primary/70 border border-primary/10 font-medium">
+                    {d}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Step-level diffs */}
+          {prevSteps !== null && stepDiff.length > 0 && (
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/40 mb-2">Step changes</p>
+              <div className="flex flex-col gap-1.5">
+                {stepDiff.map((d, i) => (
+                  <div key={i} className={cn('rounded-lg border px-2.5 py-1.5', STEP_DIFF_COLOR[d.type])}>
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="text-[8.5px] font-bold uppercase tracking-wider opacity-70">
+                        {STEP_DIFF_LABEL[d.type]} · step {d.step}
+                      </span>
+                    </div>
+                    <p className="text-[10.5px] font-medium leading-[1.4]">{d.action}</p>
+                    {d.prevAction && (
+                      <p className="text-[10px] opacity-60 line-through leading-[1.3] mt-0.5">{d.prevAction}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {prevSteps !== null && stepDiff.length === 0 && (
+            <p className="text-[10px] text-muted-foreground/40 italic">Step actions unchanged</p>
+          )}
+
+          <p className="text-[10px] text-muted-foreground/40">
+            Previous run: {new Date(previousRun.created_at).toLocaleString('en-SG', { dateStyle: 'medium', timeStyle: 'short' })}
+            {previousRun.run_duration_ms ? ` · ${Math.round(previousRun.run_duration_ms / 1000)}s` : ''}
+          </p>
         </div>
       )}
     </div>
   )
 }
+
+// ── Run History View ──────────────────────────────────────────────────────────
+
+function RunHistoryView({
+  caseId, runs, loading, onGoToMission, onPinToggle, onPrune,
+}: {
+  caseId:        string
+  runs:          RunSummary[]
+  loading:       boolean
+  onGoToMission: () => void
+  onPinToggle:   (runId: string, pinned: boolean) => Promise<void>
+  onPrune:       () => Promise<void>
+}) {
+  const [pruning, setPruning] = useState(false)
+  const [expandedId,   setExpandedId]   = useState<string | null>(null)
+  const [rawJson,      setRawJson]      = useState<Record<string, string>>({})
+  const [rawLoading,   setRawLoading]   = useState<string | null>(null)
+
+  async function loadRaw(runId: string) {
+    if (rawJson[runId]) { setExpandedId(prev => prev === runId ? null : runId); return }
+    setRawLoading(runId)
+    try {
+      const res = await fetch(`/api/nexus/cases/${caseId}/runs/${runId}`, { cache: 'no-store' })
+      if (res.ok) {
+        const data = await res.json()
+        setRawJson(prev => ({ ...prev, [runId]: JSON.stringify(data, null, 2) }))
+      }
+    } finally {
+      setRawLoading(null)
+      setExpandedId(runId)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-32">
+        <Loader2 size={20} className="animate-spin text-muted-foreground/30" />
+      </div>
+    )
+  }
+
+  if (runs.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-4 py-28 px-8 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-muted/60 border border-[--border-subtle] flex items-center justify-center">
+          <Database size={24} strokeWidth={1.2} className="text-muted-foreground/30" />
+        </div>
+        <p className="text-[12.5px] font-bold text-foreground/50">No analysis runs yet</p>
+        <button onClick={onGoToMission} className="text-[11px] text-primary font-semibold hover:opacity-80">
+          Go to Mission Control →
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="px-6 py-6 flex flex-col gap-4 pb-12">
+      <div className="flex items-center justify-between">
+        <SectionLabel title="Analysis Run History" count={runs.length} />
+        <div className="flex items-center gap-2">
+          {runs.filter(r => !r.pinned).length > 15 && (
+            <button
+              onClick={async () => { setPruning(true); try { await onPrune() } finally { setPruning(false) } }}
+              disabled={pruning}
+              title="Delete unpinned runs beyond the 15 most recent. Pinned runs are always kept."
+              className="flex items-center gap-1 text-[10px] text-muted-foreground/50 hover:text-red-500 transition-colors disabled:opacity-40"
+            >
+              {pruning ? <Loader2 size={9} strokeWidth={2} className="animate-spin" /> : <Trash2 size={9} strokeWidth={2} />}
+              Prune old runs
+            </button>
+          )}
+          {runs.length >= 2 && (
+            <span className="text-[10px] text-muted-foreground/40">Newest first</span>
+          )}
+        </div>
+      </div>
+
+      {runs.map((run, i) => {
+        const isCurrent   = i === 0
+        const hasPrev     = i < runs.length - 1
+        const diffs       = hasPrev ? computeRunDiff(run, runs[i + 1]) : []
+        const isExpanded  = expandedId === run.id
+        const isLoadingRaw = rawLoading === run.id
+        const modelLabel  = run.strategy_model?.includes('claude') ? 'Claude + Gemini'
+                          : run.synthesis_model ? 'Gemini only' : null
+        const durationS   = run.run_duration_ms ? `${Math.round(run.run_duration_ms / 1000)}s` : null
+        const ts = (() => {
+          try { return new Date(run.created_at).toLocaleString('en-SG', { dateStyle: 'medium', timeStyle: 'short' }) }
+          catch { return run.created_at }
+        })()
+
+        return (
+          <div
+            key={run.id}
+            className={cn(
+              'rounded-xl border bg-card transition-colors overflow-hidden',
+              isCurrent ? 'border-primary/20 bg-primary/[0.02]'
+              : run.pinned ? 'border-primary/15 ring-1 ring-primary/8'
+              : 'border-[--border-subtle]',
+            )}
+          >
+            {/* Run header */}
+            <div className="px-4 py-3.5">
+              <div className="flex items-start justify-between gap-3 mb-2.5">
+                <div className="flex items-center gap-2 min-w-0">
+                  {isCurrent && (
+                    <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-primary/10 text-primary flex-shrink-0">
+                      Current
+                    </span>
+                  )}
+                  {run.pinned && !isCurrent && (
+                    <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-primary/8 text-primary/70 flex-shrink-0 flex items-center gap-0.5">
+                      <Pin size={7} strokeWidth={2.5} /> Pinned
+                    </span>
+                  )}
+                  <span className="text-[11.5px] font-semibold text-foreground/80">{ts}</span>
+                  {run.triggered_by && (
+                    <span className="text-[10px] text-muted-foreground/45 truncate">by {run.triggered_by}</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {run.run_status === 'failed' && (
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-50 text-red-500 border border-red-200">failed</span>
+                  )}
+                  {run.run_status === 'partial' && (
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-500 border border-amber-200">partial</span>
+                  )}
+                  {durationS && (
+                    <span className="text-[10px] text-muted-foreground/40">{durationS}</span>
+                  )}
+                  {modelLabel && (
+                    <span className="text-[9px] font-medium text-muted-foreground/40 bg-muted/70 px-1.5 py-0.5 rounded">{modelLabel}</span>
+                  )}
+                  <button
+                    onClick={() => onPinToggle(run.id, !run.pinned)}
+                    title={run.pinned ? 'Unpin run (will be eligible for pruning)' : 'Pin run (exempt from auto-prune)'}
+                    className={cn(
+                      'flex items-center justify-center w-5 h-5 rounded transition-colors',
+                      run.pinned
+                        ? 'text-primary bg-primary/10 hover:bg-primary/20'
+                        : 'text-muted-foreground/30 hover:text-muted-foreground/60 hover:bg-muted/60',
+                    )}
+                  >
+                    {run.pinned ? <Pin size={9} strokeWidth={2.5} /> : <PinOff size={9} strokeWidth={2} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Stats grid */}
+              <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-2.5">
+                {[
+                  { v: run.threads_included,    l: 'threads'     },
+                  { v: run.messages_included,   l: 'messages'    },
+                  { v: run.attachments_count,   l: 'attachments' },
+                  { v: run.steps_count,         l: 'steps'       },
+                  { v: run.citations_count,     l: 'citations'   },
+                  { v: run.missing_items_count, l: 'blockers'    },
+                  { v: run.evidence_count,      l: 'evidence'    },
+                ].map(({ v, l }) => (
+                  <span key={l} className="text-[10.5px] text-muted-foreground/55">
+                    <span className="font-semibold text-foreground/70">{v}</span> {l}
+                  </span>
+                ))}
+                {run.gdrive_docs_count > 0 && (
+                  <span className="text-[10.5px] text-muted-foreground/55">
+                    <span className="font-semibold text-foreground/70">{run.gdrive_docs_count}</span> GDrive docs
+                  </span>
+                )}
+                {(run.gemini_tokens ?? 0) > 0 && (
+                  <span className="text-[10.5px] text-muted-foreground/40">
+                    {((run.gemini_tokens ?? 0) + (run.claude_tokens ?? 0)).toLocaleString()} tokens
+                  </span>
+                )}
+              </div>
+
+              {/* Diff vs. previous */}
+              {diffs.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2.5">
+                  {diffs.map((d, di) => (
+                    <span key={di} className="text-[9.5px] px-1.5 py-0.5 rounded-full bg-muted/60 text-muted-foreground/60 border border-[--border-subtle]">
+                      {d}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Truncation flags */}
+              {run.truncation_flags?.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2.5">
+                  {run.truncation_flags.map((f, fi) => (
+                    <span key={fi} className="text-[9.5px] text-amber-600 flex items-center gap-1">
+                      <AlertCircle size={9} strokeWidth={2} /> {f}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Error message for failed runs */}
+              {run.run_status === 'failed' && run.error_message && (
+                <div className="mb-2.5 px-2.5 py-2 rounded-lg bg-red-50 border border-red-200">
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-red-400 mb-0.5">Error</p>
+                  <p className="text-[10.5px] text-red-700 font-mono leading-[1.4] break-all">
+                    {run.error_message}
+                  </p>
+                </div>
+              )}
+
+              {/* Raw section viewer toggle — not available for failed runs */}
+              {run.run_status !== 'failed' ? (
+                <button
+                  onClick={() => loadRaw(run.id)}
+                  disabled={isLoadingRaw}
+                  className="flex items-center gap-1.5 text-[10px] text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors"
+                >
+                  {isLoadingRaw ? (
+                    <Loader2 size={9} strokeWidth={2} className="animate-spin" />
+                  ) : (
+                    <Eye size={9} strokeWidth={2} />
+                  )}
+                  {isExpanded ? 'Hide raw sections' : 'View raw sections'}
+                  <ChevronDown size={9} strokeWidth={2} className={cn('transition-transform', isExpanded && 'rotate-180')} />
+                </button>
+              ) : (
+                <span className="text-[10px] text-muted-foreground/30 italic">No analysis data — run failed before completion</span>
+              )}
+            </div>
+
+            {/* Raw JSON viewer */}
+            {isExpanded && rawJson[run.id] && (
+              <div className="border-t border-[--border-subtle]/60 bg-muted/20 rounded-b-xl overflow-hidden">
+                <pre className="px-4 py-3 text-[9.5px] text-muted-foreground/60 leading-relaxed overflow-x-auto max-h-96 font-mono">
+                  {rawJson[run.id]}
+                </pre>
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── Analysis Metadata Card (operator debug) ───────────────────────────────────
+
+function AnalysisMetadataCard({ meta }: { meta: AnalysisMetadata }) {
+  const [open, setOpen] = useState(false)
+
+  const ts = (() => {
+    try { return new Date(meta.analysis_ts).toLocaleString('en-SG', { dateStyle: 'medium', timeStyle: 'short' }) }
+    catch { return meta.analysis_ts }
+  })()
+
+  const METHOD_LABEL: Record<string, string> = {
+    'pre-extracted-text': 'text extract',
+    'gemini-vision':      'vision',
+    'gemini-pdf':         'PDF read',
+    'gdrive':             'GDrive',
+    'gmail-live':         'Gmail live',
+  }
+
+  return (
+    <div className="rounded-xl border border-dashed border-[--border-subtle]/60 bg-muted/20">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left"
+      >
+        <div className="flex items-center gap-2">
+          <Database size={11} strokeWidth={2} className="text-muted-foreground/40" />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40">Analysis Metadata</span>
+          {(meta.truncation_flags?.length ?? 0) > 0 && (
+            <span className="text-[9px] font-bold text-amber-500 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
+              {meta.truncation_flags.length} flag{meta.truncation_flags.length > 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+        <ChevronDown size={12} strokeWidth={2} className={cn('text-muted-foreground/30 transition-transform', open && 'rotate-180')} />
+      </button>
+
+      {open && (
+        <div className="px-4 pb-4 flex flex-col gap-3 border-t border-[--border-subtle]/40">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-3">
+            <MetaStat label="Run at" value={ts} />
+            <MetaStat label="Synthesis" value={meta.synthesis_model} />
+            <MetaStat label="Strategy" value={meta.strategy_model} />
+            <MetaStat label="Threads" value={String(meta.threads_included)} />
+            <MetaStat label="Messages" value={String(meta.messages_included)} />
+            <MetaStat label="Synth tokens" value={meta.synthesis_tokens ? meta.synthesis_tokens.toLocaleString() : '—'} />
+            {meta.strategy_tokens && <MetaStat label="Strategy tokens" value={meta.strategy_tokens.toLocaleString()} />}
+          </div>
+
+          {meta.attachments_included?.length > 0 && (
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/35 mb-1.5">Attachments processed</p>
+              <div className="flex flex-col gap-1">
+                {meta.attachments_included.map((a, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <Paperclip size={9} strokeWidth={2} className="text-muted-foreground/30 flex-shrink-0" />
+                    <span className="text-[10.5px] text-muted-foreground/60 flex-1 min-w-0 truncate">{a.filename}</span>
+                    <span className="text-[9px] text-muted-foreground/35 flex-shrink-0">{METHOD_LABEL[a.method] ?? a.method}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {meta.gdrive_docs?.length > 0 && (
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/35 mb-1.5">Knowledge base docs</p>
+              <div className="flex flex-col gap-1">
+                {meta.gdrive_docs.map((d, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <BookOpen size={9} strokeWidth={2} className="text-muted-foreground/30 flex-shrink-0" />
+                    <span className="text-[10.5px] text-muted-foreground/60">{d}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {meta.truncation_flags?.length > 0 && (
+            <div className="px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-200">
+              <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600 mb-1.5">Quality flags</p>
+              <div className="flex flex-col gap-1">
+                {meta.truncation_flags.map((f, i) => (
+                  <div key={i} className="flex items-start gap-1.5">
+                    <AlertCircle size={9} strokeWidth={2} className="text-amber-500 flex-shrink-0 mt-[2px]" />
+                    <span className="text-[10.5px] text-amber-700">{f}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function MetaStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/35 mb-0.5">{label}</p>
+      <p className="text-[11px] text-muted-foreground/65 font-medium">{value}</p>
+    </div>
+  )
+}
+
+// ── Threads Overview Card ─────────────────────────────────────────────────────
+
+function ThreadsOverviewCard({
+  threads, attachmentRecords, onAddThread, onUnlink, onUpdatePartyType,
+}: {
+  threads:           CaseThread[]
+  attachmentRecords: AttachmentRecord[]
+  onAddThread:       () => void
+  onUnlink:          (t: string) => void
+  onUpdatePartyType: (t: string, p: string) => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const extracted = attachmentRecords.filter(a => a.parsed_at !== null).length
+  const pending   = threads.filter(ct => ct.attachments_pending && ct.attachments_extracted === 0).length
+
+  if (threads.length === 0) return null
+
+  return (
+    <div>
+      <SectionLabel title="Linked Threads" count={threads.length}>
+        <div className="flex items-center gap-3">
+          {extracted > 0 && <span className="text-[10px] text-muted-foreground/50">{extracted} att. extracted</span>}
+          {pending > 0 && <span className="text-[10px] text-amber-600 font-medium">{pending} pending</span>}
+          <button onClick={onAddThread} className="text-[11px] text-primary font-semibold hover:opacity-80 transition-opacity">
+            + Add
+          </button>
+        </div>
+      </SectionLabel>
+
+      <div className="rounded-xl border border-[--border-subtle] bg-card overflow-hidden">
+        <button
+          onClick={() => setExpanded(v => !v)}
+          className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/20 transition-colors"
+        >
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {threads.slice(0, 5).map(ct => {
+              const pc   = partyColor(ct.party_type)
+              const name = ct.thread?.contact ? contactName(ct.thread.contact) : ct.party_label ?? ct.party_type
+              return (
+                <span key={ct.id} className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: pc.bg, color: pc.text }}>
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: pc.dot }} />
+                  {name.length > 16 ? name.slice(0, 16) + '…' : name}
+                </span>
+              )
+            })}
+            {threads.length > 5 && <span className="text-[10px] text-muted-foreground/50">+{threads.length - 5} more</span>}
+          </div>
+          <ChevronDown size={11} strokeWidth={2} className={cn('text-muted-foreground/30 flex-shrink-0 ml-3 transition-transform', expanded && 'rotate-180')} />
+        </button>
+
+        {expanded && (
+          <div className="border-t border-[--border-subtle] divide-y divide-[--border-subtle]">
+            {threads.map(ct => (
+              <div key={ct.id} className="px-4">
+                <LinkedThreadCard ct={ct} onUnlink={onUnlink} onUpdatePartyType={onUpdatePartyType} />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {(attachmentRecords.length > 0 || threads.some(ct => ct.attachments_pending)) && (
+        <div className="mt-3">
+          <AttachmentCoverageCard threads={threads} attachmentRecords={attachmentRecords} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Messages View ─────────────────────────────────────────────────────────────
+
+function MessagesView({
+  messages, loading, onGoToMission,
+}: {
+  messages:      (CaseThreadMsg & { party_type: string; party_label: string; subject: string })[]
+  loading:       boolean
+  onGoToMission: () => void
+}) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 size={18} className="animate-spin text-muted-foreground/30" />
+      </div>
+    )
+  }
+
+  if (messages.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-5 py-24 px-8 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-muted/60 border border-[--border-subtle] flex items-center justify-center">
+          <Network size={28} strokeWidth={1.2} className="text-muted-foreground/30" />
+        </div>
+        <div className="max-w-[260px]">
+          <p className="text-[13px] font-semibold text-foreground/60 mb-1.5">No messages yet</p>
+          <p className="text-[11.5px] text-muted-foreground/45 leading-[1.6]">
+            Link email threads on Mission Control to see all communications here.
+          </p>
+        </div>
+        <button
+          onClick={onGoToMission}
+          className="text-[12px] text-primary font-semibold hover:opacity-80 transition-opacity"
+        >
+          ← Mission Control
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="px-5 py-4 flex flex-col gap-3">
+      {messages.map(msg => <TimelineMessageCard key={msg.id} msg={msg} />)}
+    </div>
+  )
+}
+
+// ── Linked Thread Card ────────────────────────────────────────────────────────
 
 function LinkedThreadCard({
   ct, onUnlink, onUpdatePartyType,
@@ -1048,104 +2501,6 @@ function TimelineMessageCard({
   )
 }
 
-// ── Timeline Tab ──────────────────────────────────────────────────────────────
-
-function TimelineTab({ events }: { events: TimelineEvent[] }) {
-  if (!events?.length) return (
-    <p className="text-[11.5px] text-muted-foreground/50 italic text-center py-10">No timeline events yet.</p>
-  )
-  return (
-    <div className="px-4 py-4 flex flex-col gap-3">
-      {events.map((e, i) => {
-        const pc = partyColor(e.party)
-        return (
-          <div key={i} className="flex gap-2.5">
-            <div className="flex flex-col items-center">
-              <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1" style={{ background: pc.dot }} />
-              {i < events.length - 1 && <div className="w-px flex-1 bg-[--border-subtle]/60 mt-1" />}
-            </div>
-            <div className="pb-3 min-w-0">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="text-[9.5px] font-bold uppercase tracking-wider" style={{ color: pc.text }}>{e.party}</span>
-                <span className="text-[9.5px] text-muted-foreground/50">{fmtDate(e.date)}</span>
-              </div>
-              <p className="text-[11.5px] text-foreground/80 leading-[1.55] mb-0.5">{e.event}</p>
-              <p className="text-[10.5px] text-muted-foreground/60 italic leading-[1.45]">{e.significance}</p>
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ── Status Tab ────────────────────────────────────────────────────────────────
-
-function StatusTab({ status }: { status: CaseAnalysis['current_status'] }) {
-  if (!status) return (
-    <p className="text-[11.5px] text-muted-foreground/50 italic text-center py-10">No status yet.</p>
-  )
-  return (
-    <div className="px-4 py-4 flex flex-col gap-4">
-      <div className="px-3 py-3 bg-primary/5 rounded-xl border border-primary/10">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-primary/70 mb-1.5">Current Status</p>
-        <p className="text-[12px] text-foreground/80 leading-[1.65]">{status.summary}</p>
-      </div>
-
-      {status.blocking_issues?.length > 0 && (
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[--error]/70 mb-2">Blocking Issues</p>
-          <div className="flex flex-col gap-1.5">
-            {status.blocking_issues.map((issue, i) => (
-              <div key={i} className="flex gap-2 px-2.5 py-2 bg-[--error]/5 rounded-lg border border-[--error]/10">
-                <AlertCircle size={11} className="text-[--error] flex-shrink-0 mt-0.5" strokeWidth={2} />
-                <p className="text-[11.5px] text-foreground/75 leading-[1.5]">{issue}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {status.pending_from && Object.entries(status.pending_from).filter(([, v]) => v).length > 0 && (
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-2">Pending From</p>
-          <div className="flex flex-col gap-1.5">
-            {Object.entries(status.pending_from).filter(([, v]) => v).map(([party, item]) => {
-              const pc = partyColor(party)
-              return (
-                <div key={party} className="flex gap-2 px-2.5 py-2 rounded-lg border" style={{ background: pc.bg, borderColor: pc.border }}>
-                  <span className="text-[10px] font-bold uppercase tracking-wider flex-shrink-0" style={{ color: pc.text }}>{party}</span>
-                  <p className="text-[11.5px] text-foreground/70 leading-[1.5]">{item}</p>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ── Playbook Tab ──────────────────────────────────────────────────────────────
-
-function PlaybookTab({
-  steps, caseId, threads,
-}: { steps: PlaybookStep[]; caseId: string; threads: CaseThread[] }) {
-  if (!steps?.length) return (
-    <p className="text-[11.5px] text-muted-foreground/50 italic text-center py-10 px-4">
-      No playbook steps — run the analysis to generate your action plan.
-    </p>
-  )
-
-  return (
-    <div className="px-3 py-4 flex flex-col gap-3">
-      {steps.map(step => (
-        <PlaybookStepCard key={step.step} step={step} threads={threads} />
-      ))}
-    </div>
-  )
-}
-
 // ── Playbook Step Card (with inline compose) ──────────────────────────────────
 
 function PlaybookStepCard({ step, threads }: { step: PlaybookStep; threads: CaseThread[] }) {
@@ -1192,7 +2547,9 @@ function PlaybookStepCard({ step, threads }: { step: PlaybookStep; threads: Case
         <p className="text-[11px] text-foreground/70 leading-[1.55] mb-1.5">{step.intent}</p>
 
         {/* Reasoning */}
-        <p className="text-[10.5px] text-muted-foreground/55 italic leading-[1.45]">{step.reasoning}</p>
+        {step.reasoning && (
+          <p className="text-[10.5px] text-muted-foreground/55 italic leading-[1.45]">{step.reasoning}</p>
+        )}
 
         {/* To/CC preview */}
         {(step.to_emails?.length > 0 || step.cc_emails?.length > 0) && (
@@ -1293,8 +2650,6 @@ function NexusStepCompose({
       const bodyHtml = draftHtml + sigHtml
       const toFirst  = toList.split(',')[0]?.trim() ?? ''
 
-      // Step 1 — create ai_drafts record (original AI draft, before any edits)
-      //          This is what the eval engine compares against what was actually sent.
       const draftRes = await fetch('/api/nexus/draft-create', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1308,14 +2663,13 @@ function NexusStepCompose({
       const draftData = await draftRes.json()
       if (!draftRes.ok || !draftData.draftId) throw new Error(draftData.error || 'Could not prepare draft for sending')
 
-      // Step 2 — send via the shared route (fires eval automatically on success)
       const res = await fetch('/api/email/send', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           draftId:        draftData.draftId,
           htmlBody:       bodyHtml,
-          originalAiBody: step.draft,   // eval captures diff: AI draft vs what was sent
+          originalAiBody: step.draft,
           toEmail:        toFirst,
           cc:             ccList.split(',').map(e => e.trim()).filter(Boolean),
           customSubject:  subject,
@@ -1438,87 +2792,6 @@ function NexusStepCompose({
   )
 }
 
-// ── Legal + Outreach Tab ──────────────────────────────────────────────────────
-
-function LegalTab({
-  legal, outreach,
-}: { legal: CaseAnalysis['legal_research']; outreach: CaseAnalysis['outreach_strategy'] }) {
-  return (
-    <div className="px-4 py-4 flex flex-col gap-5">
-      {/* Outreach strategy */}
-      {outreach && Object.keys(outreach).length > 0 && (
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-2">Outreach Strategy</p>
-          <div className="flex flex-col gap-2">
-            {Object.entries(outreach).map(([party, info]) => {
-              const pc = partyColor(party)
-              return (
-                <div key={party} className="px-3 py-2.5 rounded-lg border" style={{ background: pc.bg, borderColor: pc.border }}>
-                  <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: pc.text }}>{party}</p>
-                  <p className="text-[11px] font-semibold text-foreground/80 mb-0.5">Tone: {info.tone}</p>
-                  <p className="text-[11px] text-foreground/70 mb-0.5 leading-[1.5]">{info.key_message}</p>
-                  <p className="text-[10.5px] text-muted-foreground/55 italic">{info.timing}</p>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Legal research */}
-      {legal ? (
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-2">Singapore Legal Research</p>
-          <div className="flex flex-col gap-2.5">
-            <div className="px-3 py-2.5 bg-card rounded-lg border border-[--border-subtle]">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-1">Relevance</p>
-              <p className="text-[11.5px] text-foreground/75 leading-[1.6]">{legal.singapore_relevance}</p>
-            </div>
-
-            {legal.applicable_regulations?.length > 0 && (
-              <div className="px-3 py-2.5 bg-card rounded-lg border border-[--border-subtle]">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-1.5">Applicable Regulations</p>
-                <ul className="flex flex-col gap-1">
-                  {legal.applicable_regulations.map((r, i) => (
-                    <li key={i} className="text-[11.5px] text-foreground/75 leading-[1.5] flex gap-1.5">
-                      <span className="text-muted-foreground/40 flex-shrink-0">•</span>{r}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {legal.precedents_or_guidance?.length > 0 && (
-              <div className="px-3 py-2.5 bg-card rounded-lg border border-[--border-subtle]">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-1.5">Precedents & Guidance</p>
-                <ul className="flex flex-col gap-1">
-                  {legal.precedents_or_guidance.map((p, i) => (
-                    <li key={i} className="text-[11.5px] text-foreground/75 leading-[1.5] flex gap-1.5">
-                      <span className="text-muted-foreground/40 flex-shrink-0">•</span>{p}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {legal.sources?.length > 0 && (
-              <p className="text-[10px] text-muted-foreground/45 leading-[1.5]">
-                Sources: {legal.sources.join(' · ')}
-              </p>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div className="px-3 py-3 rounded-lg border border-dashed border-[--border-subtle] text-center">
-          <p className="text-[11.5px] text-muted-foreground/50 italic">
-            Add <code className="text-[10.5px] bg-muted px-1 py-0.5 rounded">ANTHROPIC_API_KEY</code> to unlock full Singapore legal research via Claude Opus.
-          </p>
-        </div>
-      )}
-    </div>
-  )
-}
-
 // ── Thread Linker Modal ───────────────────────────────────────────────────────
 
 function ThreadLinkerModal({
@@ -1545,13 +2818,11 @@ function ThreadLinkerModal({
       const allT = Array.isArray(all) ? all : []
       setSuggestions(suggestions)
       setAllThreads(allT)
-      // Auto-suggest party types for all threads
       const types: Record<string, string> = {}
       ;[...suggestions, ...allT].forEach((t: ThreadSuggestion) => {
         types[t.id] = autoSuggestParty(t.contact)
       })
       setPartyTypes(types)
-      // Default: nothing selected — user picks manually
       setSelected(new Set())
     }).finally(() => setLoading(false))
   }, [caseId]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -1780,578 +3051,6 @@ function ThreadLinkerModal({
           </button>
         </div>
       </div>
-    </div>
-  )
-}
-
-// ── Analysis V1 Panel ─────────────────────────────────────────────────────────
-
-const V1_SECTIONS = [
-  { key: 'brief',     label: 'Brief',      icon: FileText },
-  { key: 'stk',       label: 'Parties',    icon: Users },
-  { key: 'timeline',  label: 'Timeline',   icon: BookOpen },
-  { key: 'evidence',  label: 'Evidence',   icon: Database },
-  { key: 'questions', label: 'Questions',  icon: HelpCircle },
-  { key: 'missing',   label: 'Missing',    icon: ShieldAlert },
-  { key: 'scenarios', label: 'Scenarios',  icon: TrendingUp },
-  { key: 'steps',     label: 'Next Steps', icon: ListChecks },
-  { key: 'drafts',    label: 'Drafts',     icon: MailOpen },
-  { key: 'reserve',   label: 'Reserve',    icon: BadgeDollarSign },
-] as const
-
-type V1SectionKey = typeof V1_SECTIONS[number]['key']
-
-function AnalysisV1Panel({ v1, threads }: { v1: NexusAnalysisV1; threads: CaseThread[] }) {
-  const [section, setSection] = useState<V1SectionKey>('brief')
-  const [expandedDraft, setExpandedDraft] = useState<number | null>(null)
-
-  return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Section nav */}
-      <div className="flex gap-1 px-4 py-2 border-b border-[--border-subtle] flex-shrink-0 overflow-x-auto scrollbar-none">
-        {V1_SECTIONS.map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            onClick={() => setSection(key)}
-            className={cn(
-              'flex items-center gap-1 px-2.5 py-1 rounded-md text-[10.5px] font-semibold whitespace-nowrap transition-colors flex-shrink-0',
-              section === key
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground/60 hover:bg-muted hover:text-foreground',
-            )}
-          >
-            <Icon size={10} strokeWidth={2} />
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* Section content */}
-      <div className="flex-1 overflow-y-auto px-5 py-4">
-        {section === 'brief'     && <V1BriefSection     brief={v1.case_brief} citations={v1.citations} />}
-        {section === 'stk'       && <V1StakeholderSection stakeholders={v1.stakeholder_map} />}
-        {section === 'timeline'  && <V1TimelineSection  events={v1.timeline} citations={v1.citations} />}
-        {section === 'evidence'  && <V1EvidenceSection  items={v1.evidence_ledger} citations={v1.citations} />}
-        {section === 'questions' && <V1QuestionsSection questions={v1.open_questions} citations={v1.citations} />}
-        {section === 'missing'   && <V1MissingSection   items={v1.missing_items} />}
-        {section === 'scenarios' && <V1ScenarioSection  scenarios={v1.scenario_analysis} citations={v1.citations} />}
-        {section === 'steps'     && <V1StepsSection     steps={v1.recommended_next_steps} />}
-        {section === 'drafts'    && (
-          <V1DraftsSection
-            drafts={v1.draft_artifacts}
-            threads={threads}
-            expandedDraft={expandedDraft}
-            setExpandedDraft={setExpandedDraft}
-          />
-        )}
-        {section === 'reserve'   && <V1ReserveSection   reserve={v1.reserve_guidance} citations={v1.citations} />}
-      </div>
-    </div>
-  )
-}
-
-// ── V1 Citation chip ──────────────────────────────────────────────────────────
-
-function CitationChip({ id, citations }: { id: string; citations: V1Citation[] }) {
-  const cit = citations.find(c => c.id === id)
-  if (!cit) return null
-  return (
-    <span
-      title={cit.excerpt ?? cit.label}
-      className="inline-flex items-center gap-0.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/8 text-primary/70 border border-primary/10 cursor-help"
-    >
-      <Eye size={7} strokeWidth={2} />{cit.label.slice(0, 18)}{cit.label.length > 18 ? '…' : ''}
-    </span>
-  )
-}
-
-function V1EmptyState({ label }: { label: string }) {
-  return <p className="text-[11.5px] text-muted-foreground/45 italic text-center py-10">{label}</p>
-}
-
-// ── V1 Brief Section ──────────────────────────────────────────────────────────
-
-function V1BriefSection({ brief, citations }: { brief: NexusAnalysisV1['case_brief']; citations: V1Citation[] }) {
-  if (!brief) return <V1EmptyState label="No case brief yet." />
-  const facts: { label: string; value: string | undefined }[] = [
-    { label: 'Incident',  value: brief.incident_date },
-    { label: 'Claim',     value: brief.claim_amount },
-    { label: 'Policy',    value: brief.policy_reference },
-    { label: 'Coverage',  value: brief.coverage_type },
-    { label: 'Stage',     value: brief.current_stage },
-  ]
-  return (
-    <div className="flex flex-col gap-4">
-      {/* Summary */}
-      <div className="px-4 py-3.5 bg-primary/5 rounded-xl border border-primary/10">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-primary/60 mb-2">Summary</p>
-        <p className="text-[12.5px] text-foreground/85 leading-[1.7]">{brief.summary}</p>
-      </div>
-
-      {/* Key facts grid */}
-      <div className="grid grid-cols-2 gap-2">
-        {facts.filter(f => f.value).map(f => (
-          <div key={f.label} className="px-3 py-2 rounded-lg border border-[--border-subtle] bg-card">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/55 mb-0.5">{f.label}</p>
-            <p className="text-[12px] font-semibold text-foreground/85 truncate">{f.value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Blocking issues */}
-      {brief.blocking_issues?.length > 0 && (
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-red-600/70 mb-2">Blocking Issues</p>
-          <div className="flex flex-col gap-1.5">
-            {brief.blocking_issues.map((issue, i) => (
-              <div key={i} className="flex gap-2 px-3 py-2 bg-red-50 rounded-lg border border-red-100">
-                <AlertCircle size={11} className="text-red-500 flex-shrink-0 mt-0.5" strokeWidth={2} />
-                <p className="text-[11.5px] text-foreground/80 leading-[1.5]">{issue}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Pending from */}
-      {brief.pending_from && Object.entries(brief.pending_from).filter(([, v]) => v).length > 0 && (
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-2">Pending From</p>
-          <div className="flex flex-col gap-1.5">
-            {Object.entries(brief.pending_from).filter(([, v]) => v).map(([party, item]) => {
-              const pc = partyColor(party)
-              return (
-                <div key={party} className="flex gap-2 px-3 py-2 rounded-lg border" style={{ background: pc.bg, borderColor: pc.border }}>
-                  <span className="text-[9.5px] font-bold uppercase tracking-wider flex-shrink-0 mt-0.5" style={{ color: pc.text }}>{party}</span>
-                  <p className="text-[11.5px] text-foreground/70 leading-[1.5]">{item}</p>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Citations */}
-      {citations?.length > 0 && (
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50 mb-2">Source Citations</p>
-          <div className="flex flex-wrap gap-1.5">
-            {citations.map(c => <CitationChip key={c.id} id={c.id} citations={citations} />)}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ── V1 Stakeholder Section ────────────────────────────────────────────────────
-
-function V1StakeholderSection({ stakeholders }: { stakeholders: V1Stakeholder[] }) {
-  if (!stakeholders?.length) return <V1EmptyState label="No stakeholders identified." />
-  return (
-    <div className="flex flex-col gap-2.5">
-      {stakeholders.map((s, i) => {
-        const pc = partyColor(s.party_type)
-        return (
-          <div key={s.id ?? i} className="px-4 py-3 rounded-xl border border-[--border-subtle] bg-card">
-            <div className="flex items-start gap-3">
-              <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ background: pc.dot }} />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-2 flex-wrap mb-0.5">
-                  <span className="text-[12px] font-semibold text-foreground">{s.name}</span>
-                  {s.company && <span className="text-[10.5px] text-muted-foreground/55">· {s.company}</span>}
-                  <span className="text-[9.5px] font-bold px-2 py-0.5 rounded-full ml-auto" style={{ background: pc.bg, color: pc.text }}>
-                    {s.party_type.toUpperCase()}
-                  </span>
-                </div>
-                {s.email && <p className="text-[10.5px] text-muted-foreground/55 mb-1">{s.email}</p>}
-                <p className="text-[11.5px] text-foreground/75 leading-[1.5]">{s.role_summary}</p>
-                {s.stance && (
-                  <p className="text-[10.5px] text-muted-foreground/60 italic mt-1">Stance: {s.stance}</p>
-                )}
-              </div>
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ── V1 Timeline Section ───────────────────────────────────────────────────────
-
-function V1TimelineSection({ events, citations }: { events: V1TimelineEvt[]; citations: V1Citation[] }) {
-  if (!events?.length) return <V1EmptyState label="No timeline events." />
-  return (
-    <div className="flex flex-col gap-0">
-      {events.map((e, i) => {
-        const pc = partyColor(e.party)
-        return (
-          <div key={i} className="flex gap-3">
-            <div className="flex flex-col items-center">
-              <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ background: pc.dot }} />
-              {i < events.length - 1 && <div className="w-px flex-1 bg-[--border-subtle]/60 mt-1" />}
-            </div>
-            <div className="pb-4 min-w-0 flex-1">
-              <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                <span className="text-[9.5px] font-bold uppercase tracking-wider" style={{ color: pc.text }}>{e.party}</span>
-                <span className="text-[9.5px] text-muted-foreground/50">{fmtDate(e.date)}</span>
-                {e.citation_ids?.map(cid => <CitationChip key={cid} id={cid} citations={citations} />)}
-              </div>
-              <p className="text-[12px] text-foreground/80 leading-[1.55] mb-0.5">{e.event}</p>
-              <p className="text-[10.5px] text-muted-foreground/60 italic leading-[1.45]">{e.significance}</p>
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ── V1 Evidence Section ───────────────────────────────────────────────────────
-
-function V1EvidenceSection({ items, citations }: { items: V1Evidence[]; citations: V1Citation[] }) {
-  if (!items?.length) return <V1EmptyState label="No evidence items found." />
-  const [open, setOpen] = useState<number | null>(null)
-  return (
-    <div className="flex flex-col gap-2">
-      {items.map((item, i) => {
-        const isOpen = open === i
-        const icon   = item.source_type === 'attachment' ? Paperclip : item.source_type === 'knowledge_doc' ? BookOpen : MailOpen
-        const IconEl = icon
-        return (
-          <div key={item.id ?? i} className="rounded-xl border border-[--border-subtle] bg-card overflow-hidden">
-            <button
-              onClick={() => setOpen(isOpen ? null : i)}
-              className="w-full text-left px-3.5 py-3 flex items-start gap-2.5 hover:bg-muted/30 transition-colors"
-            >
-              <IconEl size={12} strokeWidth={1.8} className="text-muted-foreground/50 flex-shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 justify-between">
-                  <span className="text-[12px] font-semibold text-foreground truncate">{item.filename_or_label}</span>
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    {item.coverage_relevant && (
-                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">Coverage</span>
-                    )}
-                    {item.citation_id && <CitationChip id={item.citation_id} citations={citations} />}
-                  </div>
-                </div>
-                {!isOpen && item.key_facts?.[0] && (
-                  <p className="text-[10.5px] text-muted-foreground/60 mt-0.5 line-clamp-1">{item.key_facts[0]}</p>
-                )}
-              </div>
-              <ChevronDown size={11} strokeWidth={2} className={cn('text-muted-foreground/30 flex-shrink-0 transition-transform', isOpen && 'rotate-180')} />
-            </button>
-            {isOpen && (
-              <div className="px-3.5 pb-3 border-t border-[--border-subtle]/50">
-                <ul className="mt-2.5 flex flex-col gap-1">
-                  {(item.key_facts ?? []).map((f, fi) => (
-                    <li key={fi} className="flex gap-2 text-[11.5px] text-foreground/75 leading-[1.55]">
-                      <span className="text-muted-foreground/40 flex-shrink-0">•</span>{f}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ── V1 Questions Section ──────────────────────────────────────────────────────
-
-const Q_PRIORITY: Record<string, { color: string; bg: string; border: string }> = {
-  critical: { color: '#dc2626', bg: 'rgba(220,38,38,0.06)',   border: 'rgba(220,38,38,0.15)' },
-  high:     { color: '#b45309', bg: 'rgba(180,83,9,0.06)',    border: 'rgba(180,83,9,0.15)' },
-  medium:   { color: '#0369a1', bg: 'rgba(3,105,161,0.06)',   border: 'rgba(3,105,161,0.15)' },
-  low:      { color: '#6b7280', bg: 'rgba(107,114,128,0.06)', border: 'rgba(107,114,128,0.15)' },
-}
-const qPriority = (p: string) => Q_PRIORITY[p.toLowerCase()] ?? Q_PRIORITY.low
-
-function V1QuestionsSection({ questions, citations }: { questions: V1Question[]; citations: V1Citation[] }) {
-  if (!questions?.length) return <V1EmptyState label="No open questions identified." />
-  const sorted = [...questions].sort((a, b) => {
-    const order = { critical: 0, high: 1, medium: 2, low: 3 }
-    return (order[a.priority as keyof typeof order] ?? 4) - (order[b.priority as keyof typeof order] ?? 4)
-  })
-  return (
-    <div className="flex flex-col gap-2">
-      {sorted.map((q, i) => {
-        const qp = qPriority(q.priority)
-        return (
-          <div key={i} className="px-3.5 py-3 rounded-xl border" style={{ background: qp.bg, borderColor: qp.border }}>
-            <div className="flex items-start gap-2">
-              <HelpCircle size={12} strokeWidth={2} className="flex-shrink-0 mt-0.5" style={{ color: qp.color }} />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <span className="text-[9.5px] font-bold uppercase tracking-wider" style={{ color: qp.color }}>{q.priority}</span>
-                  {q.directed_at && <span className="text-[9.5px] text-muted-foreground/55">→ {q.directed_at}</span>}
-                </div>
-                <p className="text-[12px] text-foreground/85 leading-[1.55]">{q.question}</p>
-              </div>
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ── V1 Missing Items Section ──────────────────────────────────────────────────
-
-const URGENCY_META: Record<string, { label: string; color: string; bg: string }> = {
-  urgent: { label: 'Urgent', color: '#dc2626', bg: 'rgba(220,38,38,0.08)' },
-  normal: { label: 'Normal', color: '#b45309', bg: 'rgba(180,83,9,0.08)' },
-  low:    { label: 'Low',    color: '#6b7280', bg: 'rgba(107,114,128,0.08)' },
-}
-const urgencyMeta = (u: string) => URGENCY_META[u.toLowerCase()] ?? URGENCY_META.low
-
-function V1MissingSection({ items }: { items: V1Missing[] }) {
-  if (!items?.length) return <V1EmptyState label="No missing items identified." />
-  return (
-    <div className="flex flex-col gap-2">
-      {items.map((item, i) => {
-        const um = urgencyMeta(item.urgency)
-        return (
-          <div key={i} className="px-3.5 py-3 rounded-xl border border-[--border-subtle] bg-card">
-            <div className="flex items-start gap-2 mb-1.5">
-              <ShieldAlert size={12} strokeWidth={2} className="flex-shrink-0 mt-0.5 text-amber-500" />
-              <p className="text-[12px] font-semibold text-foreground/85 leading-[1.45]">{item.item}</p>
-              <span className="ml-auto flex-shrink-0 text-[9.5px] font-bold px-2 py-0.5 rounded-full" style={{ background: um.bg, color: um.color }}>
-                {um.label}
-              </span>
-            </div>
-            <div className="flex items-start gap-2 flex-wrap pl-5">
-              <span className="text-[10px] font-semibold text-muted-foreground/55">From: <span className="text-foreground/70">{item.required_from}</span></span>
-              <span className="text-[10.5px] text-muted-foreground/60 italic leading-[1.45]">{item.impact}</span>
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ── V1 Scenario Section ───────────────────────────────────────────────────────
-
-const PROB_META: Record<string, { color: string; bg: string; width: string }> = {
-  high:   { color: '#059669', bg: 'rgba(5,150,105,0.08)',  width: '80%' },
-  medium: { color: '#b45309', bg: 'rgba(180,83,9,0.08)',   width: '50%' },
-  low:    { color: '#6b7280', bg: 'rgba(107,114,128,0.08)', width: '25%' },
-}
-const probMeta = (p: string) => PROB_META[p.toLowerCase()] ?? PROB_META.low
-
-function V1ScenarioSection({ scenarios, citations }: { scenarios: V1Scenario[]; citations: V1Citation[] }) {
-  if (!scenarios?.length) return <V1EmptyState label="No scenario analysis yet." />
-  return (
-    <div className="flex flex-col gap-3">
-      {scenarios.map((s, i) => {
-        const pm = probMeta(s.probability)
-        return (
-          <div key={i} className="px-4 py-3.5 rounded-xl border border-[--border-subtle] bg-card">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[12px] font-bold text-foreground">{s.name}</span>
-              <span className="text-[9.5px] font-bold px-2 py-0.5 rounded-full" style={{ background: pm.bg, color: pm.color }}>
-                {s.probability.toUpperCase()}
-              </span>
-            </div>
-            {/* probability bar */}
-            <div className="h-1 rounded-full bg-muted mb-3 overflow-hidden">
-              <div className="h-full rounded-full transition-all" style={{ width: pm.width, background: pm.color }} />
-            </div>
-            <p className="text-[11.5px] text-foreground/75 leading-[1.55] mb-2">{s.outcome}</p>
-            <div className="flex gap-1.5 items-start">
-              <ArrowRight size={10} strokeWidth={2.5} className="text-primary/60 flex-shrink-0 mt-0.5" />
-              <p className="text-[11px] font-semibold text-primary/80 leading-[1.5]">{s.trs_action}</p>
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ── V1 Next Steps Section ─────────────────────────────────────────────────────
-
-const STEP_PRIORITY: Record<string, { color: string; bg: string }> = {
-  urgent: { color: '#dc2626', bg: 'rgba(220,38,38,0.08)' },
-  high:   { color: '#b45309', bg: 'rgba(180,83,9,0.08)' },
-  normal: { color: '#6b7280', bg: 'rgba(107,114,128,0.08)' },
-}
-const stepPriority = (p: string) => STEP_PRIORITY[p.toLowerCase()] ?? STEP_PRIORITY.normal
-
-function V1StepsSection({ steps }: { steps: V1NextStep[] }) {
-  if (!steps?.length) return <V1EmptyState label="No next steps generated." />
-  return (
-    <div className="flex flex-col gap-2">
-      {steps.map((step, i) => {
-        const sp = stepPriority(step.priority)
-        const pc = partyColor(step.owner)
-        return (
-          <div key={i} className="flex gap-3 px-3.5 py-3 rounded-xl border border-[--border-subtle] bg-card">
-            <span className="text-[11px] font-black text-muted-foreground/35 flex-shrink-0 mt-0.5 w-5 text-right">
-              {String(step.step).padStart(2, '0')}
-            </span>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <span className="text-[12px] font-semibold text-foreground">{step.action}</span>
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full ml-auto" style={{ background: sp.bg, color: sp.color }}>
-                  {step.priority.toUpperCase()}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: pc.bg, color: pc.text }}>
-                  {step.owner.toUpperCase()}
-                </span>
-                {step.deadline && (
-                  <span className="text-[10px] text-muted-foreground/55 flex items-center gap-0.5">
-                    <Clock size={9} strokeWidth={2} /> {step.deadline}
-                  </span>
-                )}
-              </div>
-              <p className="text-[10.5px] text-muted-foreground/60 italic leading-[1.45]">{step.rationale}</p>
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ── V1 Drafts Section ─────────────────────────────────────────────────────────
-
-function V1DraftsSection({
-  drafts, threads, expandedDraft, setExpandedDraft,
-}: {
-  drafts:           V1Draft[]
-  threads:          CaseThread[]
-  expandedDraft:    number | null
-  setExpandedDraft: (i: number | null) => void
-}) {
-  if (!drafts?.length) return <V1EmptyState label="No draft communications generated." />
-  return (
-    <div className="flex flex-col gap-3">
-      {drafts.map((d, i) => {
-        const isOpen = expandedDraft === i
-        const pc = partyColor(d.party_type)
-        const sp = stepPriority(d.priority)
-        const matchingThread = threads.find(ct => ct.party_type === d.party_type) ?? null
-        return (
-          <div key={i} className="rounded-xl border border-[--border-subtle] bg-card overflow-hidden">
-            <button
-              onClick={() => setExpandedDraft(isOpen ? null : i)}
-              className="w-full text-left px-3.5 pt-3 pb-2.5 hover:bg-muted/20 transition-colors"
-            >
-              <div className="flex items-start justify-between gap-2 mb-1.5">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: pc.bg, color: pc.text }}>
-                    {d.party_type.toUpperCase()}
-                  </span>
-                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: sp.bg, color: sp.color }}>
-                    {d.priority.toUpperCase()}
-                  </span>
-                </div>
-                <ChevronDown size={11} strokeWidth={2} className={cn('text-muted-foreground/30 flex-shrink-0 transition-transform mt-0.5', isOpen && 'rotate-180')} />
-              </div>
-              <p className="text-[12px] font-semibold text-foreground truncate">{d.subject}</p>
-              <p className="text-[10.5px] text-muted-foreground/55">{d.to_party}</p>
-              {!isOpen && (
-                <p className="text-[10.5px] text-muted-foreground/50 mt-1 line-clamp-2 italic">{d.intent}</p>
-              )}
-            </button>
-            {isOpen && (
-              <div className="border-t border-[--border-subtle]/50">
-                <div className="px-3.5 pt-2.5 pb-2">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/50 mb-1">Intent</p>
-                  <p className="text-[11px] text-foreground/70 italic mb-3">{d.intent}</p>
-                  {(d.to_emails?.length > 0 || d.cc_emails?.length > 0) && (
-                    <div className="mb-3 flex flex-col gap-0.5">
-                      {d.to_emails?.length > 0 && (
-                        <p className="text-[9.5px] text-muted-foreground/55"><span className="font-semibold">To:</span> {d.to_emails.join(', ')}</p>
-                      )}
-                      {d.cc_emails?.length > 0 && (
-                        <p className="text-[9.5px] text-muted-foreground/55"><span className="font-semibold">CC:</span> {d.cc_emails.join(', ')}</p>
-                      )}
-                    </div>
-                  )}
-                  <div className="bg-muted/30 rounded-lg p-3 border border-[--border-subtle]/50 mb-2">
-                    <p className="text-[11.5px] text-foreground/80 leading-[1.7] whitespace-pre-wrap">{d.body}</p>
-                  </div>
-                  {matchingThread && (
-                    <p className="text-[10px] text-muted-foreground/45 text-center">
-                      Use the <span className="font-semibold">Playbook</span> tab → to compose and send this email
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ── V1 Reserve Section ────────────────────────────────────────────────────────
-
-function V1ReserveSection({ reserve, citations }: { reserve: V1Reserve | null; citations: V1Citation[] }) {
-  if (!reserve) return (
-    <div className="flex flex-col items-center gap-3 py-16 text-center">
-      <BadgeDollarSign size={32} strokeWidth={1.2} className="text-muted-foreground/25" />
-      <div className="max-w-[260px]">
-        <p className="text-[12.5px] font-semibold text-foreground/55 mb-1.5">No reserve guidance</p>
-        <p className="text-[11px] text-muted-foreground/45 leading-[1.6]">Insufficient evidence to estimate a reserve. Gather claim documentation and surveyor reports first.</p>
-      </div>
-    </div>
-  )
-  const confMeta: Record<string, { color: string; bg: string }> = {
-    high:   { color: '#059669', bg: 'rgba(5,150,105,0.08)' },
-    medium: { color: '#b45309', bg: 'rgba(180,83,9,0.08)' },
-    low:    { color: '#6b7280', bg: 'rgba(107,114,128,0.08)' },
-  }
-  const cm = confMeta[reserve.confidence?.toLowerCase()] ?? confMeta.low
-  return (
-    <div className="flex flex-col gap-4">
-      {/* Reserve figure */}
-      {reserve.recommended_reserve && (
-        <div className="px-4 py-4 bg-primary/5 rounded-xl border border-primary/10 text-center">
-          <p className="text-[9.5px] font-bold uppercase tracking-wider text-primary/60 mb-1">Recommended Reserve</p>
-          <p className="text-[26px] font-black text-foreground/90 tabular-nums">{reserve.recommended_reserve}</p>
-          <span className="text-[9.5px] font-bold px-2 py-0.5 rounded-full" style={{ background: cm.bg, color: cm.color }}>
-            {reserve.confidence?.toUpperCase()} CONFIDENCE
-          </span>
-        </div>
-      )}
-
-      {/* Basis */}
-      <div className="px-3.5 py-3 rounded-xl border border-[--border-subtle] bg-card">
-        <p className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground/55 mb-1.5">Basis</p>
-        <p className="text-[12px] text-foreground/80 leading-[1.6]">{reserve.basis}</p>
-      </div>
-
-      {/* Risk factors */}
-      {reserve.risk_factors?.length > 0 && (
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/55 mb-2">Risk Factors</p>
-          <div className="flex flex-col gap-1.5">
-            {reserve.risk_factors.map((rf, i) => (
-              <div key={i} className="flex gap-2 items-start px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
-                <AlertCircle size={10} strokeWidth={2} className="text-amber-500 flex-shrink-0 mt-0.5" />
-                <p className="text-[11.5px] text-foreground/75 leading-[1.45]">{rf}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Citations */}
-      {(reserve.citation_ids?.length ?? 0) > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {(reserve.citation_ids ?? []).map(cid => <CitationChip key={cid} id={cid} citations={citations} />)}
-        </div>
-      )}
     </div>
   )
 }

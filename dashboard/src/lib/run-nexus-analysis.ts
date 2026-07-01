@@ -123,20 +123,25 @@ export type MissingItem = {
 }
 
 export type Scenario = {
-  name:          string
-  probability:   'high' | 'medium' | 'low'
-  outcome:       string
-  trs_action:    string
-  citation_ids?: string[]
+  name:                  string
+  probability:           'high' | 'medium' | 'low'
+  outcome:               string
+  trs_action:            string
+  assumptions:           string[]
+  trigger_conditions:    string[]
+  strategic_implication: string
+  citation_ids?:         string[]
 }
 
 export type NextStepV1 = {
-  step:       number
-  action:     string
-  owner:      string
-  deadline?:  string
-  priority:   'urgent' | 'high' | 'normal'
-  rationale:  string
+  step:          number
+  action:        string
+  owner:         string
+  deadline?:     string
+  priority:      'urgent' | 'high' | 'normal'
+  rationale:     string
+  citation_ids?: string[]
+  depends_on?:   number[]
 }
 
 export type DraftArtifact = {
@@ -158,6 +163,19 @@ export type ReserveGuidance = {
   confidence:           'high' | 'medium' | 'low'
   risk_factors:         string[]
   citation_ids?:        string[]
+}
+
+export type AnalysisMetadata = {
+  analysis_ts:          string
+  synthesis_model:      string
+  strategy_model:       string
+  synthesis_tokens:     number | null
+  strategy_tokens:      number | null
+  threads_included:     number
+  messages_included:    number
+  attachments_included: { filename: string; method: string }[]
+  gdrive_docs:          string[]
+  truncation_flags:     string[]
 }
 
 export type NexusAnalysisV1 = {
@@ -182,6 +200,7 @@ export type NexusAnalysisV1 = {
   draft_artifacts:        DraftArtifact[]
   reserve_guidance:       ReserveGuidance | null
   citations:              Citation[]
+  analysis_metadata:      AnalysisMetadata
 }
 
 // ── Gmail attachment fetcher ──────────────────────────────────────────────────
@@ -279,10 +298,12 @@ async function loadStoredAttachments(
   textChunks: string[]
   fileParts:  { file_data: { mime_type: string; file_uri: string } }[]
   summary:    string[]
+  metaItems:  { filename: string; method: string }[]
 }> {
   const textChunks: string[] = []
   const fileParts:  { file_data: { mime_type: string; file_uri: string } }[] = []
   const summary:    string[] = []
+  const metaItems:  { filename: string; method: string }[] = []
 
   try {
     const res = await fetch(
@@ -290,21 +311,24 @@ async function loadStoredAttachments(
       { headers: sbHeaders() }
     )
     const rows: StoredAttachmentRow[] = res.ok ? await res.json() : []
-    if (!Array.isArray(rows) || rows.length === 0) return { textChunks, fileParts, summary }
+    if (!Array.isArray(rows) || rows.length === 0) return { textChunks, fileParts, summary, metaItems }
 
     for (const row of rows) {
       const { filename, mime_type, parsed_text, storage_url } = row
 
       if (parsed_text) {
-        textChunks.push(`\n[Attachment: ${filename}]\n${parsed_text}`)
-        summary.push(`${filename} (pre-extracted, ${parsed_text.length} chars)`)
+        textChunks.push(`\n[Attachment: ${filename} — pre-extracted text]\n${parsed_text}`)
+        summary.push(`${filename} (pre-extracted text, ${parsed_text.length} chars)`)
+        metaItems.push({ filename, method: 'pre-extracted-text' })
       }
 
       if (storage_url && mime_type) {
         const uri = await downloadFromStorageAndUploadToGemini(storage_url, filename, mime_type, apiKey)
         if (uri) {
           fileParts.push({ file_data: { mime_type, file_uri: uri } })
-          summary.push(`${filename} (PDF/image re-uploaded to Gemini)`)
+          const isImage = mime_type.startsWith('image/')
+          summary.push(`${filename} (${isImage ? 'image' : 'PDF'} uploaded to Gemini for multimodal reading)`)
+          metaItems.push({ filename, method: isImage ? 'gemini-vision' : 'gemini-pdf' })
         }
       }
     }
@@ -312,7 +336,7 @@ async function loadStoredAttachments(
     console.warn('[nexus] loadStoredAttachments non-fatal:', e instanceof Error ? e.message : e)
   }
 
-  return { textChunks, fileParts, summary }
+  return { textChunks, fileParts, summary, metaItems }
 }
 
 // Fetch attachments for messages that have them, upload to Gemini, return file parts
@@ -411,6 +435,74 @@ async function fetchAndUploadAttachments(
   return { text: textChunks.join('\n'), fileParts, attachmentSummary }
 }
 
+// ── Post-processing guards ────────────────────────────────────────────────────
+
+// Strip citation_ids that don't exist in the citations array — prevents phantom refs.
+function purgeDanglingCitations(
+  items: ({ citation_ids?: string[] } | null | undefined)[],
+  validIds: Set<string>,
+): void {
+  for (const item of items) {
+    if (!item || !Array.isArray(item.citation_ids)) continue
+    item.citation_ids = item.citation_ids.filter(id => validIds.has(id))
+  }
+}
+
+// Renumber steps 1..N after any deduplication, preserving relative order.
+function renumberSteps(steps: NextStepV1[]): NextStepV1[] {
+  const oldToNew = new Map<number, number>()
+  const renumbered = steps.map((s, i) => {
+    oldToNew.set(s.step, i + 1)
+    return { ...s, step: i + 1 }
+  })
+  // Remap depends_on to new step numbers; drop refs that pointed to removed steps.
+  return renumbered.map(s => ({
+    ...s,
+    depends_on: (s.depends_on ?? []).map(n => oldToNew.get(n)).filter((n): n is number => n !== undefined),
+  }))
+}
+
+// Light deduplication: remove steps whose action string is a near-duplicate of an earlier step.
+function deduplicateSteps(steps: NextStepV1[]): NextStepV1[] {
+  const seen: string[] = []
+  return steps.filter(s => {
+    const key = s.action.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim().slice(0, 60)
+    if (seen.some(k => stringSimilarity(k, key) > 0.72)) return false
+    seen.push(key)
+    return true
+  })
+}
+
+// Simple Dice coefficient for near-duplicate detection (no external deps).
+function stringSimilarity(a: string, b: string): number {
+  if (a === b) return 1
+  if (a.length < 2 || b.length < 2) return 0
+  const bigrams = (s: string) => {
+    const m = new Map<string, number>()
+    for (let i = 0; i < s.length - 1; i++) {
+      const bg = s.slice(i, i + 2)
+      m.set(bg, (m.get(bg) ?? 0) + 1)
+    }
+    return m
+  }
+  const aMap = bigrams(a)
+  const bMap = bigrams(b)
+  let intersection = 0
+  for (const bg of Array.from(aMap.keys())) intersection += Math.min(aMap.get(bg)!, bMap.get(bg) ?? 0)
+  return (2 * intersection) / (a.length + b.length - 2)
+}
+
+// Cap scenarios at 3; ensure each has required arrays even if model skipped them.
+function normalizeScenarios(scenarios: Scenario[]): Scenario[] {
+  return scenarios.slice(0, 3).map(s => ({
+    ...s,
+    assumptions:           Array.isArray(s.assumptions)        ? s.assumptions        : [],
+    trigger_conditions:    Array.isArray(s.trigger_conditions)  ? s.trigger_conditions : [],
+    strategic_implication: s.strategic_implication ?? s.trs_action ?? '',
+    citation_ids:          Array.isArray(s.citation_ids)        ? s.citation_ids       : [],
+  }))
+}
+
 // ── JSON parser (strips fences, regex fallback) ───────────────────────────────
 
 function parseJsonSafe(text: string): unknown {
@@ -422,11 +514,35 @@ function parseJsonSafe(text: string): unknown {
   throw new Error(`JSON parse failed: ${s.slice(0, 200)}`)
 }
 
+// ── Auto-prune: keep last N unpinned runs ─────────────────────────────────────
+
+const KEEP_RUNS_LIMIT = 15
+
+async function pruneOldRuns(caseId: string): Promise<void> {
+  const listRes = await fetch(
+    `${SB_URL}/rest/v1/case_analyses?case_id=eq.${caseId}&pinned=eq.false&order=created_at.desc&select=id`,
+    { headers: sbHeaders() },
+  )
+  const rows: { id: string }[] = listRes.ok ? await listRes.json() : []
+  if (!Array.isArray(rows) || rows.length <= KEEP_RUNS_LIMIT) return
+
+  const toDelete = rows.slice(KEEP_RUNS_LIMIT).map(r => r.id)
+  if (toDelete.length === 0) return
+
+  await fetch(
+    `${SB_URL}/rest/v1/case_analyses?id=in.(${toDelete.join(',')})&case_id=eq.${caseId}`,
+    { method: 'DELETE', headers: sbHeaders('return=minimal') },
+  )
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export async function runNexusAnalysis(caseId: string): Promise<NexusAnalysis> {
+export async function runNexusAnalysis(caseId: string, triggeredBy?: string | null): Promise<NexusAnalysis> {
+  const runStart  = Date.now()
   const geminiKey = process.env.GEMINI_API_KEY_DRAFT_EMAIL
   if (!geminiKey) throw new Error('GEMINI_API_KEY_DRAFT_EMAIL not set')
+
+  try {
 
   // 1. Fetch all case_threads with messages
   const ctRes = await fetch(
@@ -493,12 +609,13 @@ export async function runNexusAnalysis(caseId: string): Promise<NexusAnalysis> {
   // Fallback: fetch live from Gmail API only if nothing has been extracted yet.
   const allMsgsRaw = Array.isArray(allMessages) ? allMessages : []
 
-  const { textChunks: storedTexts, fileParts: storedParts, summary: storedSummary } =
+  const { textChunks: storedTexts, fileParts: storedParts, summary: storedSummary, metaItems: storedMeta } =
     await loadStoredAttachments(threadIds, geminiKey)
 
   let attachmentText    = storedTexts.join('\n')
   let fileParts         = [...storedParts]
   let attachmentSummary = [...storedSummary]
+  let attachmentMeta:   { filename: string; method: string }[] = [...storedMeta]
 
   if (storedSummary.length === 0) {
     // Nothing pre-extracted — fall back to live Gmail API fetch
@@ -507,6 +624,7 @@ export async function runNexusAnalysis(caseId: string): Promise<NexusAnalysis> {
     attachmentText    += gmail.text
     fileParts          = [...fileParts, ...gmail.fileParts]
     attachmentSummary  = [...attachmentSummary, ...gmail.attachmentSummary]
+    attachmentMeta     = [...attachmentMeta, ...gmail.attachmentSummary.map(s => ({ filename: s.split(' (')[0], method: 'gmail-live' }))]
   }
 
   // GDrive knowledge: match policy docs to this case's content
@@ -592,8 +710,19 @@ ${threadMsgs || '(no messages yet)'}`
 
 You are reading ALL email threads linked to a single case simultaneously. Each thread is a conversation between TRS and a different party (client, insurer, lawyers, etc.).
 
-Your task: produce a structured evidence synthesis — evidence-first, extract what is actually documented.
+Your task: produce a structured evidence synthesis — extract only what is actually documented. No inference, no fabrication.
+
+━━ EVIDENCE SOURCES IN THIS ANALYSIS ━━
 ${attachmentNote}
+${attachmentText ? `(Extracted text from attachments is included below the email threads.)` : '(No pre-extracted attachment text available.)'}
+
+━━ MULTIMODAL INSTRUCTION ━━
+If PDF files or images are attached to this prompt, read them directly and thoroughly:
+- Damage photos: describe visible damage, equipment, location, condition
+- PDF documents: extract policy numbers, dates, amounts, endorsements, exclusions, signatures
+- Scanned forms/letters: transcribe key fields and handwritten notes
+- Spreadsheets/tables: identify amounts, dates, items, totals
+For each file you read, create an evidence_ledger entry with specific key_facts you extracted directly.
 
 ━━ ALL EMAIL THREADS ━━
 ${threadSections}
@@ -615,10 +744,10 @@ Return ONLY valid JSON (no markdown fences) with this exact structure:
     "policy_reference": "Policy number or null",
     "coverage_type": "e.g. Marine Cargo, Property, D&O, or null",
     "current_stage": "e.g. Claim submitted, Awaiting assessment, Negotiation, Disputed",
-    "blocking_issues": ["Issue preventing progress"],
+    "blocking_issues": ["Specific issue preventing progress — name the party responsible"],
     "pending_from": {
-      "insurer": "What TRS is waiting for from the insurer, or null",
-      "client": "What TRS is waiting for from the client, or null"
+      "insurer": "Specific item TRS is waiting for from the insurer, or null",
+      "client": "Specific item TRS is waiting for from the client, or null"
     }
   },
   "stakeholder_map": [
@@ -629,7 +758,7 @@ Return ONLY valid JSON (no markdown fences) with this exact structure:
       "email": "email@example.com or null",
       "company": "Company name or null",
       "role_summary": "One sentence describing their role in this case",
-      "stance": "e.g. cooperative, unresponsive, disputing liability, or null",
+      "stance": "cooperative|unresponsive|disputing liability|awaiting instruction|engaged — be specific",
       "thread_id": "thread_id from party contacts or null"
     }
   ],
@@ -637,24 +766,24 @@ Return ONLY valid JSON (no markdown fences) with this exact structure:
     {
       "date": "YYYY-MM-DD",
       "party": "client|insurer|lawyer|trs|other",
-      "event": "One sentence: what happened",
-      "significance": "Why this matters to the case outcome",
+      "event": "One sentence: what happened — specific, not generic",
+      "significance": "Why this event matters to the case outcome or liability position",
       "citation_ids": ["c1"]
     }
   ],
   "evidence_ledger": [
     {
       "id": "e1",
-      "filename_or_label": "Document name or 'Email: subject line'",
+      "filename_or_label": "Document name or 'Email: [subject line] ([date])'",
       "source_type": "email|attachment|knowledge_doc",
-      "key_facts": ["Fact extracted from this document"],
+      "key_facts": ["Specific factual claim from this source — include amounts, dates, names"],
       "coverage_relevant": true,
       "citation_id": "c1"
     }
   ],
   "open_questions": [
     {
-      "question": "Specific unanswered question that affects case outcome",
+      "question": "Specific unanswered question that affects case outcome or liability",
       "priority": "critical|high|medium|low",
       "directed_at": "insurer|client|lawyer|trs or null",
       "citation_ids": ["c1"]
@@ -662,28 +791,50 @@ Return ONLY valid JSON (no markdown fences) with this exact structure:
   ],
   "missing_items": [
     {
-      "item": "Specific document or information that is missing",
-      "required_from": "insurer|client|lawyer|surveyor etc",
+      "item": "Specific document or information that is absent",
+      "required_from": "insurer|client|lawyer|surveyor|other",
       "urgency": "urgent|normal|low",
-      "impact": "What cannot proceed without this item"
+      "impact": "What decision or action is blocked without this item"
     }
   ],
   "citations": [
     {
       "id": "c1",
-      "label": "Document or email label",
+      "label": "Short descriptive label for this source",
       "type": "email|attachment|knowledge_doc|web",
       "date": "YYYY-MM-DD or null",
-      "excerpt": "Key 1-2 sentence quote or null"
+      "excerpt": "Direct quote or key fact from the source (1-2 sentences)"
     }
   ]
 }
 
-Rules:
-- Be specific — name amounts, dates, policy references where known
-- Only include what is actually documented — do not fabricate
-- citation_ids must reference ids from the citations array
-- Return [] for sections with no items; never omit a section`
+━━ EVIDENCE QUALITY RULES ━━
+
+CITATION DISCIPLINE:
+- Every citation_id used in timeline, evidence_ledger, or open_questions MUST match an id defined in citations[]
+- Every evidence_ledger item MUST have a citation_id
+- Every timeline event MUST have at least one citation_id
+- Only cite what you have actually read in the threads or attached files
+
+CONTRADICTION DETECTION — examine all threads for conflicting claims:
+- If two parties give different accounts of the same event (date, amount, cause, responsibility), add a missing_items entry:
+  item = "Contradiction: [Party A] states [X]; [Party B] states [Y] — requires resolution"
+  urgency = "urgent", required_from = the party whose version is unsubstantiated
+
+UNANSWERED QUESTIONS — scan each thread:
+- Find questions TRS asked that the other party did not answer
+- Find requests for documents that were acknowledged but never fulfilled
+- Add each as an open_questions entry with priority = "critical" if case-blocking
+
+DOCUMENTS MENTIONED BUT NOT RECEIVED:
+- If any email references a document (survey report, claim form, policy schedule, loss adjustor report) that was not subsequently received, add it to missing_items
+
+SPECIFICITY RULES:
+- key_facts in evidence_ledger must be specific facts, not summaries: "Claim amount SGD 45,000 per email dated 3 Jun" not "Claim submitted"
+- timeline events must be specific: "Insurer QBE acknowledged claim by email" not "Insurer responded"
+- stance in stakeholder_map must be specific: "Disputing quantum — arguing contributory negligence" not just "disputed"
+
+Return [] for sections with no items; never omit a section`
 
   const allFileParts = [...fileParts, ...gdriveFileParts]
   const synthParts: unknown[] = allFileParts.length > 0
@@ -741,53 +892,67 @@ Rules:
   let reserveGuidance:      NexusAnalysisV1['reserve_guidance']       = null
   let strategyTokens = 0
 
+  // Build a "recently completed actions" summary to feed into the hygiene rules
+  const recentEvents = (synthesis.timeline ?? []).slice(-6).map(e => `${e.date}: ${e.event}`).join('\n')
+
   const strategyInput = `You are a senior insurance strategy consultant advising Trade Risk Solutions (TRS), a Singapore insurance brokerage.
 
-Gemini has synthesised the following evidence analysis from all case email threads:
+An evidence synthesis pass has produced the following structured analysis from all case email threads and attachments:
 
-CASE BRIEF:
+━━ CASE BRIEF ━━
 ${JSON.stringify(synthesis.case_brief, null, 2)}
 
-STAKEHOLDERS:
+━━ STAKEHOLDERS ━━
 ${JSON.stringify(synthesis.stakeholder_map, null, 2)}
 
-TIMELINE (first 10 events):
-${JSON.stringify((synthesis.timeline ?? []).slice(0, 10), null, 2)}
+━━ FULL TIMELINE (all events, chronological) ━━
+${JSON.stringify(synthesis.timeline ?? [], null, 2)}
 
-OPEN QUESTIONS:
+━━ EVIDENCE LEDGER ━━
+${JSON.stringify(synthesis.evidence_ledger, null, 2)}
+
+━━ OPEN QUESTIONS ━━
 ${JSON.stringify(synthesis.open_questions, null, 2)}
 
-MISSING ITEMS:
+━━ MISSING ITEMS ━━
 ${JSON.stringify(synthesis.missing_items, null, 2)}
 
-PARTY CONTACTS (use for To/CC):
+━━ PARTY CONTACTS (use for To/CC fields) ━━
 ${partyContactsJson}
 
-CITATIONS:
+━━ CITATIONS (cite these ids in your output) ━━
 ${JSON.stringify(synthesis.citations, null, 2)}
+
+━━ RECENTLY COMPLETED ACTIONS (last 6 timeline events) ━━
+${recentEvents || '(none)'}
 
 ━━ YOUR TASK ━━
 
-Produce four strategic sections. Return ONLY valid JSON (no markdown fences):
+Produce four strategic sections grounded in the evidence above. Return ONLY valid JSON (no markdown fences):
 
 {
   "scenario_analysis": [
     {
-      "name": "Scenario name (e.g. Full settlement, Partial recovery, Repudiation)",
+      "name": "Scenario name — specific to this case (e.g. 'Full indemnity settlement', 'Partial payout after survey dispute', 'Policy repudiation — exclusion applied')",
       "probability": "high|medium|low",
-      "outcome": "What happens in this scenario — specific to this case",
-      "trs_action": "What TRS must do now to influence or prepare for this scenario",
+      "outcome": "What specifically happens in this scenario — name parties, amounts, deadlines",
+      "trs_action": "Concrete action TRS must take NOW to advance the favourable scenario or mitigate the adverse one",
+      "assumptions": ["Key assumption that must hold for this scenario to materialise — be specific"],
+      "trigger_conditions": ["Observable event or decision that would lock in this scenario"],
+      "strategic_implication": "One sentence: what this scenario means for TRS's negotiating position and reserve requirement",
       "citation_ids": ["c1"]
     }
   ],
   "recommended_next_steps": [
     {
       "step": 1,
-      "action": "Specific action",
+      "action": "Specific action — who does what, to whom, by when",
       "owner": "trs|client|insurer|lawyer|other",
       "deadline": "e.g. Within 48h, 2026-07-05, or null",
       "priority": "urgent|high|normal",
-      "rationale": "Why this step, why now"
+      "rationale": "Why this step is required now — cite the evidence item or open question that makes it necessary",
+      "citation_ids": ["c1"],
+      "depends_on": []
     }
   ],
   "draft_artifacts": [
@@ -798,25 +963,52 @@ Produce four strategic sections. Return ONLY valid JSON (no markdown fences):
       "to_emails": ["email@example.com"],
       "cc_emails": [],
       "subject": "Email subject line",
-      "body": "Full professional email body. Start with Dear [Name],. Singapore business English. Lead with most important point. No banned phrases (Thank you for reaching out / Please do not hesitate / Kindly note). No sign-off.",
-      "intent": "What this communication must achieve",
+      "body": "Full professional email body. Start with Dear [Name],. Singapore business English. Lead with the most important point. Concrete and specific — name amounts, dates, policy references. No generic filler phrases (Thank you for reaching out / Please do not hesitate / Kindly note / I hope this email finds you well). No sign-off line.",
+      "intent": "Specific outcome this communication must achieve",
       "priority": "urgent|high|normal",
       "citation_ids": ["c1"]
     }
   ],
   "reserve_guidance": {
     "recommended_reserve": "SGD X,XXX or a range, or null if cannot estimate",
-    "basis": "Evidence-based reasoning for the reserve figure",
+    "basis": "Evidence-based reasoning citing specific amounts, survey findings, or comparable precedents from the case",
     "confidence": "high|medium|low",
-    "risk_factors": ["Factor that could change the reserve"],
+    "risk_factors": ["Specific factor that could change the reserve estimate"],
     "citation_ids": ["c1"]
   }
 }
 
-Rules:
-- Be specific — name amounts, dates, policy references from the case brief
-- One draft per party that needs to be contacted; order by priority
-- reserve_guidance can be null if there is insufficient evidence to estimate`
+━━ STRATEGIC QUALITY RULES ━━
+
+EVIDENCE GROUNDING:
+- Every recommended_next_steps entry MUST include citation_ids referencing the evidence or open question driving that step
+- Every scenario MUST include citation_ids showing what evidence supports its probability assessment
+- Every draft_artifact MUST cite the evidence or question it is responding to
+- If a recommendation cannot be grounded in a citation, remove it
+
+STEP SEQUENCING AND DEPENDENCIES:
+- Order recommended_next_steps by dependency first, then priority within the same dependency tier
+- If step B requires output from step A (e.g. "Send demand letter" requires "Obtain survey report"), set B.depends_on = [A.step]
+- Steps owned by external parties (client, insurer) come after TRS steps that prompt those actions
+- Do NOT number steps until you have ordered them correctly
+
+HYGIENE — AVOID REDUNDANT STEPS:
+- Review RECENTLY COMPLETED ACTIONS above before writing recommended_next_steps
+- Do NOT recommend an action that already appears in the timeline as completed, unless a follow-up is explicitly needed (e.g. "No response received after 14 days")
+- Do NOT generate two draft_artifacts to the same party for the same purpose
+- If TRS has already sent a chaser email visible in the threads, do not recommend sending the same chaser again
+
+SCENARIO COMPLETENESS:
+- Produce exactly 3 scenarios: best case, base case, and worst case — label them clearly in the name field
+- assumptions[] must list the specific conditions that must hold (e.g. "Survey confirms full loss", "Insurer does not invoke exclusion clause 4.3")
+- trigger_conditions[] must list observable signals (e.g. "Insurer issues reservation of rights letter", "Client provides signed proof of loss")
+- strategic_implication must address TRS's reserve position and negotiating posture
+
+DRAFT QUALITY:
+- One draft per party that requires contact — ordered by priority
+- Body must be substantive — reference actual amounts, dates, and positions from the case
+- No generic templates — each draft must be specific to this case
+- reserve_guidance must be null only if there is genuinely insufficient financial data in the threads`
 
   if (anthropicKey) {
     try {
@@ -894,6 +1086,49 @@ Rules:
     } catch { /* non-fatal */ }
   }
 
+  // ── Post-processing ───────────────────────────────────────────────────────────
+
+  const validCitationIds = new Set((synthesis.citations ?? []).map(c => c.id))
+
+  // Purge dangling citation refs from all sections that the strategy model produced.
+  purgeDanglingCitations(
+    [
+      ...(scenarioAnalysis ?? []),
+      ...(recommendedNextSteps ?? []),
+      ...(draftArtifacts ?? []),
+      reserveGuidance,
+    ],
+    validCitationIds,
+  )
+
+  const cleanedSteps = renumberSteps(deduplicateSteps(recommendedNextSteps ?? []))
+  const cleanedScenarios = normalizeScenarios(scenarioAnalysis ?? [])
+
+  const truncationFlags: string[] = []
+  const allMsgsTotal = Array.isArray(allMessages) ? allMessages.length : 0
+  if (allMsgsTotal > 200) truncationFlags.push(`messages: ${allMsgsTotal} total — body truncated at 15k chars each`)
+  if ((synthesis.citations ?? []).length === 0) truncationFlags.push('synthesis returned no citations — evidence grounding may be weak')
+  if (cleanedSteps.length === 0) truncationFlags.push('strategy pass returned no recommended steps')
+
+  // ── Assemble analysis metadata for operator debug ──────────────────────────
+
+  const strategyModelName = process.env.ANTHROPIC_API_KEY ? 'claude-opus-4-8' : 'gemini-2.5-flash'
+  const analysisMetadata: AnalysisMetadata = {
+    analysis_ts:          new Date().toISOString(),
+    synthesis_model:      'gemini-2.5-pro',
+    strategy_model:       strategyModelName,
+    synthesis_tokens:     synthData.usageMetadata?.totalTokenCount ?? null,
+    strategy_tokens:      strategyTokens || null,
+    threads_included:     caseThreads.length,
+    messages_included:    allMsgsTotal,
+    attachments_included: [
+      ...attachmentMeta,
+      ...gdriveDocs.map(d => ({ filename: d.name, method: 'gdrive' })),
+    ],
+    gdrive_docs:          gdriveDocs.map(d => d.name),
+    truncation_flags:     truncationFlags,
+  }
+
   // ── Build V1 structured analysis ─────────────────────────────────────────────
 
   const structuredAnalysis: NexusAnalysisV1 = {
@@ -904,11 +1139,12 @@ Rules:
     evidence_ledger:        synthesis.evidence_ledger  ?? [],
     open_questions:         synthesis.open_questions   ?? [],
     missing_items:          synthesis.missing_items    ?? [],
-    scenario_analysis:      scenarioAnalysis,
-    recommended_next_steps: recommendedNextSteps,
-    draft_artifacts:        draftArtifacts,
+    scenario_analysis:      cleanedScenarios,
+    recommended_next_steps: cleanedSteps,
+    draft_artifacts:        draftArtifacts             ?? [],
     reserve_guidance:       reserveGuidance,
     citations:              synthesis.citations        ?? [],
+    analysis_metadata:      analysisMetadata,
   }
 
   // ── Derive legacy columns from V1 for backwards compat ───────────────────────
@@ -961,6 +1197,8 @@ Rules:
 
   // ── Save to case_analyses ────────────────────────────────────────────────────
 
+  const runDurationMs = Date.now() - runStart
+
   await fetch(`${SB_URL}/rest/v1/case_analyses`, {
     method:  'POST',
     headers: sbHeaders('return=minimal'),
@@ -974,11 +1212,17 @@ Rules:
       outreach_strategy:   analysis.outreach_strategy,
       legal_research:      null,
       synthesis_model:     'gemini-2.5-pro',
-      strategy_model:      anthropicKey ? 'claude-opus-4-8' : 'gemini-2.5-flash',
+      strategy_model:      strategyModelName,
       gemini_tokens:       synthData.usageMetadata?.totalTokenCount ?? null,
       claude_tokens:       strategyTokens || null,
+      run_status:          'completed',
+      run_duration_ms:     runDurationMs,
+      triggered_by:        triggeredBy ?? null,
     }),
   }).catch(e => console.error('[nexus] analysis save failed (non-fatal):', e))
+
+  // Prune old unpinned runs (best effort — silent on error)
+  await pruneOldRuns(caseId).catch(() => {})
 
   // Bump case updated_at
   await fetch(`${SB_URL}/rest/v1/cases?id=eq.${caseId}`, {
@@ -988,4 +1232,23 @@ Rules:
   }).catch(() => {})
 
   return analysis
+
+  } catch (e) {
+    // Record the failure so operators can see it in the History tab
+    const runDurationMs = Date.now() - runStart
+    const errMsg = e instanceof Error ? e.message : String(e)
+    await fetch(`${SB_URL}/rest/v1/case_analyses`, {
+      method:  'POST',
+      headers: sbHeaders('return=minimal'),
+      body: JSON.stringify({
+        case_id:        caseId,
+        schema_version: 'v1',
+        run_status:     'failed',
+        run_duration_ms: runDurationMs,
+        triggered_by:   triggeredBy ?? null,
+        error_message:  errMsg.slice(0, 2000),
+      }),
+    }).catch(() => {})
+    throw e
+  }
 }

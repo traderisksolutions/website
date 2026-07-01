@@ -23,11 +23,13 @@ function sbHeaders(prefer = 'return=representation') {
 
 export async function POST(req: NextRequest) {
   try {
-    const { thread_id, body, email_type, to_email } = await req.json() as {
-      thread_id?: string | null
-      body:       string
-      email_type: string
-      to_email:   string
+    const { thread_id, body, email_type, to_email, nexus_case_id, nexus_step_index } = await req.json() as {
+      thread_id?:       string | null
+      body:             string
+      email_type:       string
+      to_email:         string
+      nexus_case_id?:   string | null
+      nexus_step_index?: number | null
     }
 
     if (!body?.trim())    return NextResponse.json({ error: 'body required' }, { status: 400 })
@@ -81,12 +83,14 @@ export async function POST(req: NextRequest) {
       method:  'POST',
       headers: sbHeaders('return=representation'),
       body: JSON.stringify({
-        contact_id: contactId,
-        thread_id:  thread_id ?? null,
-        body:       body.trim(),
-        email_type: email_type ?? 'NEXUS',
-        channel:    'email',
-        status:     'pending',
+        contact_id:       contactId,
+        thread_id:        thread_id ?? null,
+        body:             body.trim(),
+        email_type:       email_type ?? 'NEXUS',
+        channel:          'email',
+        status:           'pending',
+        ...(nexus_case_id    ? { nexus_case_id }    : {}),
+        ...(nexus_step_index != null ? { nexus_step_index } : {}),
       }),
     })
 

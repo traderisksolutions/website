@@ -6,9 +6,15 @@ export const maxDuration = 300
 type Params = { params: { id: string } }
 
 // POST /api/nexus/cases/[id]/analyze — run grand analysis for a case
-export async function POST(_req: NextRequest, { params }: Params) {
+export async function POST(req: NextRequest, { params }: Params) {
   try {
-    const analysis = await runNexusAnalysis(params.id)
+    let triggeredBy: string | null = null
+    try {
+      const body = await req.json().catch(() => ({}))
+      if (body?.triggered_by) triggeredBy = String(body.triggered_by)
+    } catch { /* no body is fine */ }
+
+    const analysis = await runNexusAnalysis(params.id, triggeredBy)
     return NextResponse.json({ ok: true, analysis })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
