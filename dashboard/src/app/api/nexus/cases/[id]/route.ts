@@ -50,10 +50,10 @@ export async function GET(_req: NextRequest, { params }: Params) {
           ).then(r => r.ok ? r.json() : []).catch(() => [])
         : Promise.resolve([]),
 
-      // Attachment extraction status per thread
+      // Attachment extraction status + file metadata per thread
       threadIds.length > 0
         ? fetch(
-            `${SB_URL}/rest/v1/email_attachments?thread_id=in.(${threadIds.join(',')})&select=thread_id,parsed_at`,
+            `${SB_URL}/rest/v1/email_attachments?thread_id=in.(${threadIds.join(',')})&select=thread_id,filename,mime_type,storage_url,parsed_at&order=created_at.asc`,
             { headers: sbHeaders() }
           ).then(r => r.ok ? r.json() : []).catch(() => [])
         : Promise.resolve([]),
@@ -90,23 +90,27 @@ export async function GET(_req: NextRequest, { params }: Params) {
       messagesByThread[m.thread_id].push(msg)
     }
 
-    // Attachment counts per thread (extracted = has parsed_at, pending = has_attachments but not extracted)
-    const attRows: { thread_id: string; parsed_at: string | null }[] = Array.isArray(extractedAttachments) ? extractedAttachments : []
-    const extractedCountByThread: Record<string, number> = {}
+    // Attachment records per thread
+    type AttRow = { thread_id: string; filename: string; mime_type: string | null; storage_url: string | null; parsed_at: string | null }
+    const attRows: AttRow[] = Array.isArray(extractedAttachments) ? extractedAttachments : []
+    const attByThread: Record<string, AttRow[]> = {}
     for (const row of attRows) {
-      extractedCountByThread[row.thread_id] = (extractedCountByThread[row.thread_id] ?? 0) + 1
+      if (!attByThread[row.thread_id]) attByThread[row.thread_id] = []
+      attByThread[row.thread_id].push(row)
     }
 
     // Build enriched case_threads
     const enrichedThreads = (Array.isArray(caseThreads) ? caseThreads : []).map(ct => {
-      const msgs = (messagesByThread[ct.thread_id] ?? []) as { has_attachments: boolean }[]
+      const msgs        = (messagesByThread[ct.thread_id] ?? []) as { has_attachments: boolean }[]
+      const threadAtts  = attByThread[ct.thread_id] ?? []
+      const extracted   = threadAtts.filter(a => a.parsed_at !== null).length
       return {
         ...ct,
-        thread:             threadMap[ct.thread_id] ?? null,
-        messages:           messagesByThread[ct.thread_id] ?? [],
-        attachments_extracted: extractedCountByThread[ct.thread_id] ?? 0,
-        attachments_pending: msgs.filter(m => m.has_attachments).length > 0
-                              && (extractedCountByThread[ct.thread_id] ?? 0) === 0,
+        thread:                threadMap[ct.thread_id] ?? null,
+        messages:              messagesByThread[ct.thread_id] ?? [],
+        attachments_extracted: extracted,
+        attachments_pending:   msgs.some(m => m.has_attachments) && extracted === 0,
+        attachment_records:    threadAtts,
       }
     })
 

@@ -41,6 +41,14 @@ type CaseThreadMsg = {
   has_attachments: boolean
 }
 
+type AttachmentRecord = {
+  thread_id:   string
+  filename:    string
+  mime_type:   string | null
+  storage_url: string | null
+  parsed_at:   string | null
+}
+
 type CaseThread = {
   id:                    string
   case_id:               string
@@ -51,6 +59,7 @@ type CaseThread = {
   messages:              CaseThreadMsg[]
   attachments_extracted: number
   attachments_pending:   boolean
+  attachment_records:    AttachmentRecord[]
 }
 
 type TimelineEvent = {
@@ -390,6 +399,7 @@ function CaseDetailPanel({
   const [analyzing,      setAnalyzing]      = useState(false)
   const [analyzeError,   setAnalyzeError]   = useState<string | null>(null)
   const [activeTab,      setActiveTab]      = useState<'timeline' | 'status' | 'playbook' | 'legal'>('playbook')
+  const [centerTab,      setCenterTab]      = useState<'overview' | 'messages'>('overview')
   const [linkOpen,       setLinkOpen]       = useState(false)
   const [confirmDelete,  setConfirmDelete]  = useState(false)
 
@@ -404,6 +414,7 @@ function CaseDetailPanel({
   useEffect(() => {
     setDetail(null)
     setAnalyzeError(null)
+    setCenterTab('overview')
     load()
   }, [caseData.id, load])
 
@@ -429,10 +440,22 @@ function CaseDetailPanel({
     load()
   }
 
+  async function updatePartyType(threadId: string, partyType: string) {
+    await fetch(`/api/nexus/cases/${caseData.id}/threads`, {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ thread_id: threadId, party_type: partyType }),
+    })
+    load()
+  }
+
   const threads  = detail?.threads ?? []
   const analysis = detail?.analysis ?? null
 
-  // Build unified timeline of all messages sorted by date
+  const totalMsgCount       = threads.reduce((sum, ct) => sum + ct.messages.length, 0)
+  const allAttachmentRecords = threads.flatMap(ct => ct.attachment_records ?? [])
+
+  // Build unified timeline of all messages sorted by date (used in Messages tab)
   const unifiedMessages = threads.flatMap(ct =>
     ct.messages.map(m => ({
       ...m,
@@ -487,75 +510,74 @@ function CaseDetailPanel({
           </div>
         </div>
 
-        {/* Party thread chips */}
-        <div className="flex items-center gap-1.5 px-4 py-2 border-b border-[--border-subtle] flex-shrink-0 bg-muted/20 flex-wrap min-h-[40px]">
-          {threads.length === 0 ? (
-            <span className="text-[11px] text-muted-foreground/40 italic">No threads linked yet</span>
-          ) : threads.map(ct => {
-            const pc = partyColor(ct.party_type)
-            const label = ct.party_label || (ct.thread?.contact ? contactName(ct.thread.contact) : ct.party_type)
-            return (
-              <span
-                key={ct.id}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border"
-                style={{ background: pc.bg, color: pc.text, borderColor: pc.border }}
-              >
-                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: pc.dot }} />
-                {label}
-                {ct.attachments_extracted > 0 && (
-                  <span className="flex items-center gap-0.5 text-[9px] text-green-600 font-medium" title={`${ct.attachments_extracted} attachment(s) extracted`}>
-                    <Paperclip size={8} strokeWidth={2} />
-                    {ct.attachments_extracted}
-                  </span>
-                )}
-                {ct.attachments_pending && ct.attachments_extracted === 0 && (
-                  <span className="flex items-center gap-0.5 text-[9px] text-amber-500 font-medium" title="Attachments pending extraction">
-                    <Paperclip size={8} strokeWidth={2} /><Clock size={7} strokeWidth={2} />
-                  </span>
-                )}
-                <button onClick={() => unlinkThread(ct.thread_id)} className="ml-0.5 opacity-40 hover:opacity-90 transition-opacity">
-                  <X size={9} strokeWidth={2.5} />
-                </button>
-              </span>
-            )
-          })}
-          <button
-            onClick={() => setLinkOpen(true)}
-            className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] border border-dashed border-primary/30 text-primary/60 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all"
-          >
-            <Plus size={9} strokeWidth={2.5} />
-            Add thread
-          </button>
+        {/* Center tab bar */}
+        <div className="flex items-center border-b border-[--border-subtle] flex-shrink-0 px-1 bg-card">
+          {([
+            { key: 'overview', label: 'Overview' },
+            { key: 'messages', label: `Messages${totalMsgCount > 0 ? ` (${totalMsgCount})` : ''}` },
+          ] as const).map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setCenterTab(key)}
+              className={cn(
+                'px-4 py-2.5 text-[11.5px] font-semibold border-b-2 transition-colors',
+                centerTab === key
+                  ? 'text-primary border-primary'
+                  : 'text-muted-foreground/60 border-transparent hover:text-foreground',
+              )}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
-        {/* Unified message timeline */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3">
-          {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 size={18} className="animate-spin text-muted-foreground/30" />
+        {/* Tab content */}
+        <div className="flex-1 overflow-y-auto">
+          {/* ── Overview tab ── */}
+          {centerTab === 'overview' && (
+            <div className="px-5 py-5 flex flex-col gap-5">
+              <LinkedThreadsSection
+                threads={threads}
+                loading={loading}
+                onAddThread={() => setLinkOpen(true)}
+                onUnlink={unlinkThread}
+                onUpdatePartyType={updatePartyType}
+              />
+              {(allAttachmentRecords.length > 0 || threads.some(ct => ct.attachments_pending)) && (
+                <AttachmentCoverageCard threads={threads} attachmentRecords={allAttachmentRecords} />
+              )}
             </div>
-          ) : unifiedMessages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-muted/60 flex items-center justify-center border border-[--border-subtle]">
-                <Network size={28} strokeWidth={1.2} className="text-muted-foreground/30" />
-              </div>
-              <div className="text-center max-w-[260px]">
-                <p className="text-[13px] font-semibold text-foreground/60 mb-1.5">No conversations linked</p>
-                <p className="text-[11.5px] text-muted-foreground/45 leading-[1.6]">
-                  Link email threads to build a unified timeline and unlock AI grand analysis.
-                </p>
-              </div>
-              <button
-                onClick={() => setLinkOpen(true)}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-[12px] font-semibold hover:opacity-90 transition-opacity shadow-sm"
-              >
-                <Link2 size={12} strokeWidth={2} /> Link first thread
-              </button>
+          )}
+
+          {/* ── Messages tab ── */}
+          {centerTab === 'messages' && (
+            <div className="px-5 py-4 flex flex-col gap-3">
+              {loading ? (
+                <div className="flex items-center justify-center py-16">
+                  <Loader2 size={18} className="animate-spin text-muted-foreground/30" />
+                </div>
+              ) : unifiedMessages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-4">
+                  <div className="w-16 h-16 rounded-2xl bg-muted/60 flex items-center justify-center border border-[--border-subtle]">
+                    <Network size={28} strokeWidth={1.2} className="text-muted-foreground/30" />
+                  </div>
+                  <div className="text-center max-w-[260px]">
+                    <p className="text-[13px] font-semibold text-foreground/60 mb-1.5">No messages yet</p>
+                    <p className="text-[11.5px] text-muted-foreground/45 leading-[1.6]">
+                      Link email threads on the Overview tab to see the unified conversation timeline.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setCenterTab('overview')}
+                    className="text-[12px] text-primary font-semibold hover:opacity-80 transition-opacity"
+                  >
+                    ← Back to Overview
+                  </button>
+                </div>
+              ) : (
+                unifiedMessages.map(msg => <TimelineMessageCard key={msg.id} msg={msg} />)
+              )}
             </div>
-          ) : (
-            unifiedMessages.map(msg => (
-              <TimelineMessageCard key={msg.id} msg={msg} />
-            ))
           )}
         </div>
       </div>
@@ -607,6 +629,9 @@ function CaseDetailPanel({
             </p>
           )}
         </div>
+
+        {/* Analysis summary card */}
+        {analysis && <AnalysisSummaryCard analysis={analysis} />}
 
         {/* Tabs */}
         {analysis && (
@@ -666,6 +691,267 @@ function CaseDetailPanel({
           onLink={() => { load(); onRefresh() }}
           onClose={() => setLinkOpen(false)}
         />
+      )}
+    </div>
+  )
+}
+
+// ── Analysis Summary Card ─────────────────────────────────────────────────────
+
+function AnalysisSummaryCard({ analysis }: { analysis: CaseAnalysis }) {
+  const status        = analysis.current_status
+  const blockingCount = status?.blocking_issues?.length ?? 0
+  const stepCount     = analysis.playbook?.length ?? 0
+  const modelLabel    = analysis.strategy_model?.includes('claude') ? 'Claude Opus 4' : 'Gemini 2.5 Pro'
+
+  return (
+    <div className="mx-4 mt-1 mb-1 px-3.5 py-3 rounded-xl border border-[--border-subtle] bg-muted/30 flex-shrink-0">
+      {/* Meta row */}
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground/55 flex items-center gap-1">
+          <CheckCircle2 size={9} strokeWidth={2.5} className="text-emerald-500" />
+          Last Analysis
+        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[9px] text-muted-foreground/35 font-medium">{modelLabel}</span>
+          <span className="text-[9px] text-muted-foreground/35">·</span>
+          <span className="text-[9.5px] text-muted-foreground/45">{timeAgo(analysis.created_at)}</span>
+        </div>
+      </div>
+
+      {/* Status summary */}
+      {status?.summary && (
+        <p className="text-[11.5px] text-foreground/75 leading-[1.55] mb-2.5 line-clamp-3">
+          {status.summary}
+        </p>
+      )}
+
+      {/* Key numbers */}
+      <div className="flex items-center gap-3 flex-wrap">
+        {blockingCount > 0 && (
+          <div className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
+            <span className="text-[10.5px] font-semibold text-red-600">{blockingCount} blocking</span>
+          </div>
+        )}
+        {blockingCount === 0 && (
+          <div className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />
+            <span className="text-[10.5px] text-emerald-700 font-medium">No blockers</span>
+          </div>
+        )}
+        {stepCount > 0 && (
+          <div className="flex items-center gap-1">
+            <ArrowRight size={9} strokeWidth={2.5} className="text-primary/50" />
+            <span className="text-[10.5px] text-muted-foreground/60">{stepCount} action{stepCount !== 1 ? 's' : ''}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Linked Threads Section ────────────────────────────────────────────────────
+
+function LinkedThreadsSection({
+  threads, loading, onAddThread, onUnlink, onUpdatePartyType,
+}: {
+  threads:           CaseThread[]
+  loading:           boolean
+  onAddThread:       () => void
+  onUnlink:          (threadId: string) => void
+  onUpdatePartyType: (threadId: string, partyType: string) => void
+}) {
+  return (
+    <div>
+      {/* Section header */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-[10.5px] font-bold uppercase tracking-wider text-foreground/60">Conversations</span>
+          {threads.length > 0 && (
+            <span className="text-[10px] font-bold text-muted-foreground/50 bg-muted/80 px-1.5 py-0.5 rounded-full tabular-nums">
+              {threads.length}
+            </span>
+          )}
+        </div>
+        <button
+          onClick={onAddThread}
+          className="flex items-center gap-1 text-[11px] text-primary font-semibold hover:opacity-80 transition-opacity"
+        >
+          <Plus size={11} strokeWidth={2.5} /> Add thread
+        </button>
+      </div>
+
+      {/* Thread cards */}
+      {loading ? (
+        <div className="flex justify-center py-8">
+          <Loader2 size={16} className="animate-spin text-muted-foreground/30" />
+        </div>
+      ) : threads.length === 0 ? (
+        <div className="flex flex-col items-center gap-4 py-12 rounded-xl border border-dashed border-[--border-subtle]">
+          <div className="w-12 h-12 rounded-xl bg-muted/60 flex items-center justify-center">
+            <Network size={20} strokeWidth={1.3} className="text-muted-foreground/40" />
+          </div>
+          <div className="text-center max-w-[220px]">
+            <p className="text-[12px] font-semibold text-foreground/60 mb-1">No threads linked</p>
+            <p className="text-[11px] text-muted-foreground/45 leading-[1.6]">
+              Add email threads to build a case — each thread is assigned a party role.
+            </p>
+          </div>
+          <button
+            onClick={onAddThread}
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-[12px] font-semibold hover:opacity-90 shadow-sm transition-opacity"
+          >
+            <Link2 size={12} strokeWidth={2} /> Link first thread
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {threads.map(ct => (
+            <LinkedThreadCard
+              key={ct.id}
+              ct={ct}
+              onUnlink={onUnlink}
+              onUpdatePartyType={onUpdatePartyType}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function LinkedThreadCard({
+  ct, onUnlink, onUpdatePartyType,
+}: {
+  ct:                CaseThread
+  onUnlink:          (threadId: string) => void
+  onUpdatePartyType: (threadId: string, partyType: string) => void
+}) {
+  const pc      = partyColor(ct.party_type)
+  const contact = ct.thread?.contact ?? null
+  const msgCount = ct.messages.length
+
+  return (
+    <div className="flex items-start gap-3 px-3.5 py-3 rounded-xl border border-[--border-subtle] bg-card hover:bg-muted/20 transition-colors group">
+      {/* Party dot */}
+      <span className="w-2 h-2 rounded-full flex-shrink-0 mt-2" style={{ background: pc.dot }} />
+
+      {/* Main content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-1.5 mb-0.5">
+          <span className="text-[12px] font-semibold text-foreground truncate">
+            {contact ? contactName(contact) : '—'}
+          </span>
+          {contact?.company && (
+            <span className="text-[10.5px] text-muted-foreground/50 truncate">· {contact.company}</span>
+          )}
+        </div>
+        <p className="text-[11px] text-muted-foreground/60 truncate mb-2">
+          {ct.thread?.subject ?? '(no subject)'}
+        </p>
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-[10.5px] text-muted-foreground/50">
+            {msgCount} msg{msgCount !== 1 ? 's' : ''}
+          </span>
+          {ct.attachments_extracted > 0 && (
+            <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-600 font-medium">
+              <Paperclip size={9} strokeWidth={2} /> {ct.attachments_extracted} extracted
+            </span>
+          )}
+          {ct.attachments_pending && ct.attachments_extracted === 0 && (
+            <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-500 font-medium">
+              <Paperclip size={9} strokeWidth={2} /><Clock size={8} strokeWidth={2} /> pending
+            </span>
+          )}
+          <span className="text-[10px] text-muted-foreground/35 ml-auto">
+            {fmtDate(ct.thread?.last_message_at)}
+          </span>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-1.5 flex-shrink-0 ml-1">
+        <select
+          value={ct.party_type}
+          onChange={e => onUpdatePartyType(ct.thread_id, e.target.value)}
+          onClick={e => e.stopPropagation()}
+          className="text-[10.5px] border border-[--border-subtle] rounded-md px-1.5 py-0.5 bg-background outline-none font-semibold focus:ring-1 focus:ring-primary/20"
+          style={{ color: pc.text }}
+        >
+          {PARTY_TYPES.map(t => (
+            <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+          ))}
+        </select>
+        <button
+          onClick={() => onUnlink(ct.thread_id)}
+          className="p-1 rounded-md text-muted-foreground/25 hover:text-red-500 hover:bg-red-50 transition-colors"
+          title="Remove from case"
+        >
+          <X size={11} strokeWidth={2} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Attachment Coverage Card ───────────────────────────────────────────────────
+
+function AttachmentCoverageCard({
+  threads, attachmentRecords,
+}: {
+  threads:           CaseThread[]
+  attachmentRecords: AttachmentRecord[]
+}) {
+  const extracted      = attachmentRecords.filter(a => a.parsed_at !== null)
+  const pendingThreads = threads.filter(ct => ct.attachments_pending && ct.attachments_extracted === 0)
+
+  const ext = extracted.length
+  const byType = {
+    pdf:   extracted.filter(a => a.mime_type?.includes('pdf') || a.filename.toLowerCase().endsWith('.pdf')).length,
+    image: extracted.filter(a => a.mime_type?.startsWith('image/')).length,
+    docx:  extracted.filter(a => a.mime_type?.includes('word') || a.filename.toLowerCase().endsWith('.docx')).length,
+    xlsx:  extracted.filter(a => a.mime_type?.includes('sheet') || a.filename.toLowerCase().match(/\.(xlsx?|csv)$/)).length,
+  }
+  const other = Math.max(0, ext - byType.pdf - byType.image - byType.docx - byType.xlsx)
+
+  return (
+    <div className="rounded-xl border border-[--border-subtle] bg-card px-4 py-3.5">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[10.5px] font-bold uppercase tracking-wider text-foreground/60 flex items-center gap-1.5">
+          <Paperclip size={10} strokeWidth={2} /> Attachment Coverage
+        </span>
+        {pendingThreads.length > 0 && (
+          <span className="text-[9.5px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full font-medium">
+            {pendingThreads.length} thread{pendingThreads.length > 1 ? 's' : ''} pending extraction
+          </span>
+        )}
+      </div>
+
+      {ext === 0 && pendingThreads.length === 0 ? (
+        <p className="text-[11px] text-muted-foreground/40 italic">No attachments found in linked threads.</p>
+      ) : (
+        <div className="flex items-center gap-5 flex-wrap">
+          <div>
+            <p className="text-[22px] font-bold text-foreground tabular-nums leading-none">{ext}</p>
+            <p className="text-[9.5px] text-muted-foreground/50 uppercase tracking-wide mt-0.5">Extracted</p>
+          </div>
+          {pendingThreads.length > 0 && (
+            <div>
+              <p className="text-[22px] font-bold text-amber-600 tabular-nums leading-none">{pendingThreads.length}</p>
+              <p className="text-[9.5px] text-muted-foreground/50 uppercase tracking-wide mt-0.5">Pending</p>
+            </div>
+          )}
+          {ext > 0 && (
+            <div className="flex flex-wrap gap-1.5 ml-auto">
+              {byType.pdf   > 0 && <span className="text-[10px] px-2 py-0.5 bg-red-50 text-red-700 rounded-full border border-red-100 font-medium">PDF ×{byType.pdf}</span>}
+              {byType.docx  > 0 && <span className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full border border-blue-100 font-medium">DOCX ×{byType.docx}</span>}
+              {byType.xlsx  > 0 && <span className="text-[10px] px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-100 font-medium">XLSX ×{byType.xlsx}</span>}
+              {byType.image > 0 && <span className="text-[10px] px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full border border-purple-100 font-medium">Image ×{byType.image}</span>}
+              {other        > 0 && <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-full border border-[--border-subtle] font-medium">Other ×{other}</span>}
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
