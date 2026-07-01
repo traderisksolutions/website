@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
-  Plus, RefreshCw, ChevronDown, X, Search, Link2, Sparkles,
+  Plus, ChevronDown, X, Search, Link2, Sparkles,
   AlertCircle, Clock, CheckCircle2, Zap, BookOpen, ArrowRight,
   MailOpen, FileText, Scale, Users, Send, Loader2, Trash2, Paperclip,
+  FolderOpen, Network,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
@@ -198,16 +199,18 @@ export default function NexusPage() {
   const selectedCase = cases.find(c => c.id === selectedId) ?? null
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col overflow-hidden h-[calc(100vh-var(--mobile-nav-h,0px))]">
       {/* ── Header ── */}
       <div className="flex items-center justify-between px-5 h-[52px] border-b border-[--border-subtle] flex-shrink-0 bg-card">
-        <div className="flex items-center gap-2.5">
-          <span className="text-[13px] font-bold text-foreground tracking-tight">Nexus</span>
-          <span className="text-[10px] text-muted-foreground/50 font-medium uppercase tracking-wider">Grand Analysis & Strategy</span>
+        <div className="flex items-center gap-3">
+          <div>
+            <span className="text-[13.5px] font-bold text-foreground tracking-tight">Nexus</span>
+            <span className="ml-2 text-[10px] text-muted-foreground/50 font-medium uppercase tracking-wider">Grand Analysis & Strategy</span>
+          </div>
         </div>
         <button
           onClick={() => setCreateOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-[12px] font-semibold hover:opacity-90 transition-opacity"
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-primary text-primary-foreground text-[12px] font-semibold hover:opacity-90 transition-opacity shadow-sm"
         >
           <Plus size={12} strokeWidth={2.5} />
           New Case
@@ -219,8 +222,8 @@ export default function NexusPage() {
         {/* ── Left: Case List ── */}
         <aside className="w-[240px] flex-shrink-0 border-r border-[--border-subtle] flex flex-col overflow-hidden bg-card">
           <div className="px-3 py-2.5 border-b border-[--border-subtle]">
-            <div className="flex items-center gap-2 px-2.5 py-1.5 bg-muted rounded-lg">
-              <Search size={11} className="text-muted-foreground/50 flex-shrink-0" />
+            <div className="flex items-center gap-2 px-2.5 py-1.5 bg-muted/70 rounded-lg border border-[--border-subtle]/60">
+              <Search size={11} className="text-muted-foreground/40 flex-shrink-0" />
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
@@ -230,44 +233,63 @@ export default function NexusPage() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto py-1.5">
+          <div className="flex-1 overflow-y-auto">
             {loading ? (
-              <p className="text-[11.5px] text-muted-foreground text-center py-8">Loading…</p>
+              <div className="flex items-center justify-center py-12">
+                <Loader2 size={16} className="animate-spin text-muted-foreground/40" />
+              </div>
             ) : visible.length === 0 ? (
-              <div className="px-4 py-8 text-center">
-                <p className="text-[11.5px] text-muted-foreground/60 mb-3">No cases yet</p>
-                <button onClick={() => setCreateOpen(true)} className="text-[11px] text-primary font-medium hover:opacity-80">
+              <div className="px-5 py-10 text-center flex flex-col items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-muted/80 flex items-center justify-center">
+                  <FolderOpen size={18} strokeWidth={1.4} className="text-muted-foreground/40" />
+                </div>
+                <div>
+                  <p className="text-[12px] font-medium text-foreground/60 mb-1">No cases yet</p>
+                  <p className="text-[10.5px] text-muted-foreground/45">Group related threads into a case to begin grand analysis.</p>
+                </div>
+                <button onClick={() => setCreateOpen(true)} className="text-[11.5px] text-primary font-semibold hover:opacity-80 transition-opacity">
                   + Create first case
                 </button>
               </div>
-            ) : visible.map(c => (
-              <button
-                key={c.id}
-                onClick={() => setSelectedId(c.id)}
-                className={cn(
-                  'w-full text-left px-3 py-2.5 flex flex-col gap-0.5 transition-colors border-l-2',
-                  selectedId === c.id
-                    ? 'bg-accent border-primary'
-                    : 'border-transparent hover:bg-accent/50',
-                )}
-              >
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className={cn(
-                    'w-1.5 h-1.5 rounded-full flex-shrink-0',
-                    c.status === 'open' ? 'bg-primary' : 'bg-muted-foreground/40',
-                  )} />
-                  <span className="text-[12px] font-medium text-foreground truncate">{c.name}</span>
-                </div>
-                <div className="flex items-center gap-2 pl-3">
-                  <span className="text-[10.5px] text-muted-foreground/60">
-                    {c.thread_count} thread{c.thread_count !== 1 ? 's' : ''}
-                  </span>
-                  {c.last_activity && (
-                    <span className="text-[10px] text-muted-foreground/40">{timeAgo(c.last_activity)}</span>
-                  )}
-                </div>
-              </button>
-            ))}
+            ) : (
+              <div className="py-1">
+                {visible.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => setSelectedId(c.id)}
+                    className={cn(
+                      'w-full text-left px-3 py-2.5 flex flex-col gap-1 transition-all border-l-[3px] group',
+                      selectedId === c.id
+                        ? 'bg-primary/5 border-primary'
+                        : 'border-transparent hover:bg-muted/50 hover:border-muted-foreground/20',
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-1.5 min-w-0">
+                      <span className="text-[12px] font-semibold text-foreground truncate flex-1">{c.name}</span>
+                      <span className={cn(
+                        'text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full flex-shrink-0',
+                        c.status === 'open'
+                          ? 'bg-primary/10 text-primary'
+                          : 'bg-muted text-muted-foreground',
+                      )}>
+                        {c.status}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10.5px] text-muted-foreground/60">
+                        {c.thread_count} thread{c.thread_count !== 1 ? 's' : ''}
+                      </span>
+                      {c.last_activity && (
+                        <span className="text-[10px] text-muted-foreground/40">{timeAgo(c.last_activity)}</span>
+                      )}
+                    </div>
+                    {c.description && (
+                      <p className="text-[10.5px] text-muted-foreground/50 truncate leading-[1.3]">{c.description}</p>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </aside>
 
@@ -426,26 +448,39 @@ function CaseDetailPanel({
       {/* ── Center: Unified Timeline ── */}
       <div className="flex-1 flex flex-col overflow-hidden border-r border-[--border-subtle]">
         {/* Case header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-[--border-subtle] flex-shrink-0 bg-card">
+        <div className="flex items-start justify-between px-5 py-3.5 border-b border-[--border-subtle] flex-shrink-0 bg-card">
           <div className="min-w-0 flex-1">
-            <h2 className="text-[13.5px] font-bold text-foreground truncate">{caseData.name}</h2>
-            {caseData.description && (
-              <p className="text-[11px] text-muted-foreground/60 mt-0.5 truncate">{caseData.description}</p>
-            )}
+            <div className="flex items-center gap-2 mb-0.5">
+              <h2 className="text-[14px] font-bold text-foreground truncate">{caseData.name}</h2>
+              <span className={cn(
+                'text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full flex-shrink-0',
+                caseData.status === 'open' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
+              )}>
+                {caseData.status}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              {caseData.description && (
+                <p className="text-[11px] text-muted-foreground/55 truncate">{caseData.description}</p>
+              )}
+              <span className="text-[10px] text-muted-foreground/35">
+                Created {fmtDate(caseData.created_at)}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+          <div className="flex items-center gap-1.5 flex-shrink-0 ml-4 mt-0.5">
             {confirmDelete ? (
               <>
-                <span className="text-[11px] text-[--error]">Delete this case?</span>
-                <button onClick={() => { onDelete(); setConfirmDelete(false) }} className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-[--error]/90 text-white hover:opacity-80">
-                  Confirm
+                <span className="text-[11px] text-[--error] mr-1">Delete this case?</span>
+                <button onClick={() => { onDelete(); setConfirmDelete(false) }} className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors">
+                  Delete
                 </button>
                 <button onClick={() => setConfirmDelete(false)} className="px-2.5 py-1 rounded-md text-[11px] border border-[--border-subtle] text-muted-foreground hover:bg-accent">
                   Cancel
                 </button>
               </>
             ) : (
-              <button onClick={() => setConfirmDelete(true)} className="p-1.5 rounded-md text-muted-foreground/40 hover:text-[--error] hover:bg-[--error]/10 transition-colors">
+              <button onClick={() => setConfirmDelete(true)} className="p-1.5 rounded-md text-muted-foreground/30 hover:text-red-500 hover:bg-red-50 transition-colors">
                 <Trash2 size={13} strokeWidth={1.8} />
               </button>
             )}
@@ -453,8 +488,10 @@ function CaseDetailPanel({
         </div>
 
         {/* Party thread chips */}
-        <div className="flex items-center gap-2 px-5 py-2.5 border-b border-[--border-subtle] flex-shrink-0 bg-muted/30 flex-wrap">
-          {threads.map(ct => {
+        <div className="flex items-center gap-1.5 px-4 py-2 border-b border-[--border-subtle] flex-shrink-0 bg-muted/20 flex-wrap min-h-[40px]">
+          {threads.length === 0 ? (
+            <span className="text-[11px] text-muted-foreground/40 italic">No threads linked yet</span>
+          ) : threads.map(ct => {
             const pc = partyColor(ct.party_type)
             const label = ct.party_label || (ct.thread?.contact ? contactName(ct.thread.contact) : ct.party_type)
             return (
@@ -463,9 +500,8 @@ function CaseDetailPanel({
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border"
                 style={{ background: pc.bg, color: pc.text, borderColor: pc.border }}
               >
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: pc.dot }} />
+                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: pc.dot }} />
                 {label}
-                {/* Attachment extraction status indicator */}
                 {ct.attachments_extracted > 0 && (
                   <span className="flex items-center gap-0.5 text-[9px] text-green-600 font-medium" title={`${ct.attachments_extracted} attachment(s) extracted`}>
                     <Paperclip size={8} strokeWidth={2} />
@@ -474,14 +510,10 @@ function CaseDetailPanel({
                 )}
                 {ct.attachments_pending && ct.attachments_extracted === 0 && (
                   <span className="flex items-center gap-0.5 text-[9px] text-amber-500 font-medium" title="Attachments pending extraction">
-                    <Paperclip size={8} strokeWidth={2} />
-                    <Clock size={7} strokeWidth={2} />
+                    <Paperclip size={8} strokeWidth={2} /><Clock size={7} strokeWidth={2} />
                   </span>
                 )}
-                <button
-                  onClick={() => unlinkThread(ct.thread_id)}
-                  className="ml-0.5 opacity-50 hover:opacity-100 transition-opacity"
-                >
+                <button onClick={() => unlinkThread(ct.thread_id)} className="ml-0.5 opacity-40 hover:opacity-90 transition-opacity">
                   <X size={9} strokeWidth={2.5} />
                 </button>
               </span>
@@ -489,24 +521,34 @@ function CaseDetailPanel({
           })}
           <button
             onClick={() => setLinkOpen(true)}
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] border border-dashed border-muted-foreground/30 text-muted-foreground/60 hover:border-primary/40 hover:text-primary transition-colors"
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] border border-dashed border-primary/30 text-primary/60 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all"
           >
-            <Link2 size={9} strokeWidth={2} />
-            Link thread
+            <Plus size={9} strokeWidth={2.5} />
+            Add thread
           </button>
         </div>
 
         {/* Unified message timeline */}
         <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3">
           {loading ? (
-            <p className="text-[12px] text-muted-foreground text-center py-12">Loading…</p>
+            <div className="flex items-center justify-center py-16">
+              <Loader2 size={18} className="animate-spin text-muted-foreground/30" />
+            </div>
           ) : unifiedMessages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <Users size={28} strokeWidth={1.2} className="text-muted-foreground/30" />
-              <p className="text-[12.5px] text-muted-foreground/50 text-center max-w-[280px]">
-                Link email threads to this case to see the unified conversation timeline.
-              </p>
-              <button onClick={() => setLinkOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-[12px] font-medium hover:bg-primary/15 transition-colors">
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-muted/60 flex items-center justify-center border border-[--border-subtle]">
+                <Network size={28} strokeWidth={1.2} className="text-muted-foreground/30" />
+              </div>
+              <div className="text-center max-w-[260px]">
+                <p className="text-[13px] font-semibold text-foreground/60 mb-1.5">No conversations linked</p>
+                <p className="text-[11.5px] text-muted-foreground/45 leading-[1.6]">
+                  Link email threads to build a unified timeline and unlock AI grand analysis.
+                </p>
+              </div>
+              <button
+                onClick={() => setLinkOpen(true)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-[12px] font-semibold hover:opacity-90 transition-opacity shadow-sm"
+              >
                 <Link2 size={12} strokeWidth={2} /> Link first thread
               </button>
             </div>
@@ -519,44 +561,49 @@ function CaseDetailPanel({
       </div>
 
       {/* ── Right: AI Analysis ── */}
-      <div className="w-[360px] flex-shrink-0 flex flex-col overflow-hidden">
+      <div className="w-[360px] flex-shrink-0 flex flex-col overflow-hidden bg-card">
         {/* Analysis header + run button */}
-        <div className="px-4 py-3 border-b border-[--border-subtle] flex-shrink-0">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10.5px] font-bold uppercase tracking-wider text-muted-foreground/60">
-              AI Analysis
-            </span>
+        <div className="px-4 pt-4 pb-3 border-b border-[--border-subtle] flex-shrink-0">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-1.5">
+              <Sparkles size={12} className="text-primary/70" strokeWidth={2} />
+              <span className="text-[11px] font-bold text-foreground/80 tracking-tight">AI Analysis</span>
+            </div>
             {analysis && (
-              <span className="text-[9.5px] text-muted-foreground/50">{timeAgo(analysis.created_at)}</span>
+              <span className="text-[9.5px] text-muted-foreground/50 bg-muted/60 px-2 py-0.5 rounded-full">
+                {timeAgo(analysis.created_at)}
+              </span>
             )}
           </div>
           <button
             onClick={runAnalysis}
             disabled={analyzing || threads.length === 0}
             className={cn(
-              'w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[12px] font-semibold transition-all',
+              'w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[12px] font-semibold transition-all shadow-sm',
               analyzing
                 ? 'bg-primary/10 text-primary cursor-not-allowed'
                 : threads.length === 0
-                  ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                  : 'bg-primary text-primary-foreground hover:opacity-90',
+                  ? 'bg-muted text-muted-foreground/60 cursor-not-allowed'
+                  : 'bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98]',
             )}
           >
             {analyzing ? (
               <><Loader2 size={13} className="animate-spin" /> Analysing all threads…</>
             ) : (
-              <><Sparkles size={13} strokeWidth={2} /> {analysis ? 'Re-run Analysis' : 'Run Grand Analysis'}</>
+              <><Sparkles size={13} strokeWidth={2} /> {analysis ? 'Re-run Grand Analysis' : 'Run Grand Analysis'}</>
             )}
           </button>
           {analyzeError && (
-            <p className="text-[10.5px] text-[--error] mt-1.5 leading-relaxed">{analyzeError}</p>
+            <div className="mt-2 px-3 py-2 bg-red-50 border border-red-100 rounded-lg">
+              <p className="text-[10.5px] text-red-600 leading-relaxed">{analyzeError}</p>
+            </div>
           )}
           {threads.length === 0 && !analyzeError && (
-            <p className="text-[10.5px] text-muted-foreground/50 mt-1.5 text-center">Link threads first</p>
+            <p className="text-[10px] text-muted-foreground/45 mt-2 text-center">Link at least one thread to run analysis</p>
           )}
           {analysis?.strategy_model && (
-            <p className="text-[9.5px] text-muted-foreground/40 mt-1.5 text-center">
-              Synthesis: Gemini 2.5 Pro · Strategy: {analysis.strategy_model.includes('claude') ? 'Claude Opus' : 'Gemini'}
+            <p className="text-[9px] text-muted-foreground/35 mt-2 text-center font-medium tracking-wide uppercase">
+              Gemini 2.5 Pro + {analysis.strategy_model.includes('claude') ? 'Claude Opus 4' : 'Gemini'}
             </p>
           )}
         </div>
@@ -597,11 +644,16 @@ function CaseDetailPanel({
         )}
 
         {!analysis && !analyzing && (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 py-10 text-center">
-            <Sparkles size={28} strokeWidth={1.2} className="text-muted-foreground/30" />
-            <p className="text-[12px] text-muted-foreground/50 leading-relaxed">
-              Run the grand analysis to get a unified timeline, current case status, strategic playbook, and AI-drafted emails for every party.
-            </p>
+          <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6 py-10 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-center">
+              <Sparkles size={24} strokeWidth={1.2} className="text-primary/40" />
+            </div>
+            <div className="max-w-[220px]">
+              <p className="text-[12.5px] font-semibold text-foreground/60 mb-1.5">No analysis yet</p>
+              <p className="text-[11px] text-muted-foreground/45 leading-[1.6]">
+                Run the grand analysis to get a unified timeline, case status, strategic playbook, and AI-drafted emails for every party.
+              </p>
+            </div>
           </div>
         )}
       </div>
@@ -1174,9 +1226,8 @@ function ThreadLinkerModal({
         types[t.id] = autoSuggestParty(t.contact)
       })
       setPartyTypes(types)
-      // Pre-select AI suggestions that aren't already linked
-      const preSelected = new Set(suggestions.filter((t: ThreadSuggestion) => !linkedThreadIds.includes(t.id)).map((t: ThreadSuggestion) => t.id))
-      setSelected(preSelected)
+      // Default: nothing selected — user picks manually
+      setSelected(new Set())
     }).finally(() => setLoading(false))
   }, [caseId]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1317,7 +1368,7 @@ function ThreadLinkerModal({
         </div>
 
         {/* Search + bulk action bar */}
-        <div className="flex items-center gap-3 px-4 py-2.5 border-b border-[--border-subtle] flex-shrink-0 bg-muted/30">
+        <div className="flex items-center gap-2.5 px-4 py-2.5 border-b border-[--border-subtle] flex-shrink-0 bg-muted/20">
           <div className="flex items-center gap-2 flex-1 px-3 py-1.5 bg-background rounded-lg border border-[--border-subtle]">
             <Search size={12} className="text-muted-foreground/50 flex-shrink-0" />
             <input
@@ -1327,14 +1378,19 @@ function ThreadLinkerModal({
               autoFocus
               className="flex-1 text-[12px] bg-transparent outline-none placeholder:text-muted-foreground/40"
             />
+            {search && (
+              <button onClick={() => setSearch('')} className="text-muted-foreground/40 hover:text-muted-foreground">
+                <X size={11} />
+              </button>
+            )}
           </div>
           <button
             onClick={linkSelected}
             disabled={addCount === 0 || linking}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[12px] font-semibold bg-primary text-primary-foreground disabled:opacity-40 hover:opacity-90 transition-opacity flex-shrink-0 whitespace-nowrap"
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[12px] font-semibold bg-primary text-primary-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity flex-shrink-0 whitespace-nowrap shadow-sm"
           >
             {linking ? <Loader2 size={12} className="animate-spin" /> : <Link2 size={12} strokeWidth={2} />}
-            {addCount > 0 ? `Add ${addCount} thread${addCount > 1 ? 's' : ''} to Case` : 'Select threads'}
+            {addCount > 0 ? `Add ${addCount} to Case` : 'Select threads'}
           </button>
         </div>
 
@@ -1356,17 +1412,17 @@ function ThreadLinkerModal({
               <tbody>
                 {suggestedRows.length > 0 && !search && (
                   <>
-                    <tr className="bg-primary/5">
-                      <td colSpan={5} className="px-3 py-1.5">
-                        <span className="text-[9.5px] font-bold uppercase tracking-wider text-primary/70 flex items-center gap-1.5">
-                          <Sparkles size={9} strokeWidth={2} /> AI Suggestions
+                    <tr className="bg-primary/[0.04]">
+                      <td colSpan={5} className="px-3 py-2 border-b border-primary/10">
+                        <span className="text-[9.5px] font-bold uppercase tracking-wider text-primary/60 flex items-center gap-1.5">
+                          <Sparkles size={9} strokeWidth={2.5} /> AI Suggestions — review for relevance
                         </span>
                       </td>
                     </tr>
                     {suggestedRows.map(t => <ThreadTableRow key={t.id} thread={t} isSuggested />)}
-                    <tr className="bg-muted/30">
-                      <td colSpan={5} className="px-3 py-1.5">
-                        <span className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground/50">All Recent Threads</span>
+                    <tr className="bg-muted/40">
+                      <td colSpan={5} className="px-3 py-2 border-b border-[--border-subtle]">
+                        <span className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground/50">All Recent Conversations</span>
                       </td>
                     </tr>
                   </>
@@ -1383,11 +1439,20 @@ function ThreadLinkerModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-5 py-3 border-t border-[--border-subtle] bg-muted/20 flex-shrink-0">
-          <p className="text-[10.5px] text-muted-foreground/60">
-            {addCount > 0 ? `${addCount} thread${addCount > 1 ? 's' : ''} selected` : 'Click rows to select · Auto-selects AI suggestions'}
-          </p>
-          <button onClick={onClose} className="text-[11px] text-muted-foreground hover:text-foreground">Cancel</button>
+        <div className="flex items-center justify-between px-5 py-2.5 border-t border-[--border-subtle] bg-muted/10 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <p className="text-[10.5px] text-muted-foreground/60">
+              {addCount > 0 ? `${addCount} thread${addCount > 1 ? 's' : ''} selected` : 'Click rows to select'}
+            </p>
+            {addCount > 0 && (
+              <button onClick={() => setSelected(new Set())} className="text-[10.5px] text-muted-foreground/50 hover:text-muted-foreground underline-offset-2 hover:underline">
+                Clear all
+              </button>
+            )}
+          </div>
+          <button onClick={onClose} className="text-[11.5px] font-medium text-muted-foreground hover:text-foreground transition-colors">
+            Cancel
+          </button>
         </div>
       </div>
     </div>
