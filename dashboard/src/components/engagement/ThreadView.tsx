@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { ChevronLeft } from 'lucide-react'
 import { useAuditLog } from '@/hooks/useAuditLog'
 import type { Lead, RealMsg, ThreadState, StoredSummary, RagSource } from './types'
 import { fullName, extractEmail } from './helpers'
@@ -9,6 +10,9 @@ import { EngagementThreadHeader } from '@/components/engagement-agent/engagement
 import { EngagementMessageCard } from '@/components/engagement-agent/engagement-message-card'
 import { EngagementComposePanel } from '@/components/engagement-agent/engagement-compose-panel'
 import { EngagementContextPanel } from '@/components/engagement-agent/engagement-context-panel'
+import { AiAnalysisPanel } from '@/components/engagement-agent/ai-analysis-panel'
+import { EngagementDock } from './EngagementDock'
+import ThreadRfqWorkflow from './ThreadRfqWorkflow'
 
 interface ThreadViewProps {
   lead:            Lead
@@ -35,6 +39,15 @@ export function ThreadView({
   // RAG draft
   const [ragDraft,         setRagDraft]         = useState<{ content: string; sources: RagSource[] } | null>(null)
 
+  // Right context sidebar collapse
+  const [contextOpen,      setContextOpen]      = useState(true)
+
+  // RFQ context — is this thread an insurer's quotation conversation?
+  const [rfqContext, setRfqContext] = useState<{ is_insurer_rfq: boolean; case_id?: string | null; insurer_name?: string | null; insured?: string | null } | null>(null)
+
+  // Dock imperative open (e.g. a draft arriving from a Nexus roadmap step)
+  const [dockSignal, setDockSignal] = useState<{ tab: 'reply' | 'analysis' | 'rfq'; stamp: number } | undefined>(undefined)
+
   // Compose headers
   const [toAddress,     setToAddress]     = useState('')
   const [ccList,        setCcList]        = useState<string[]>([])
@@ -49,12 +62,6 @@ export function ThreadView({
   const [deleting,       setDeleting]      = useState(false)
   const [confirmDelete,  setConfirmDelete]  = useState(false)
 
-  // Refs for detecting new inbound messages and polling for summaries
-  const prevLatestMsgIdRef  = useRef<string | null>(null)
-  const analyzeTimerRef     = useRef<ReturnType<typeof setInterval> | null>(null)
-  const analyzeTimeoutRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const analyzeBackupRef    = useRef<ReturnType<typeof setTimeout> | null>(null)
-
   const threadId        = thread?.id ?? null
   const latestMessageId = messages.at(-1)?.id ?? null
   const log             = useAuditLog()
@@ -62,10 +69,6 @@ export function ThreadView({
   // Reset per-lead state when switching leads
   useEffect(() => {
     toInitialised.current      = false
-    prevLatestMsgIdRef.current = null
-    if (analyzeTimerRef.current)   { clearInterval(analyzeTimerRef.current);  analyzeTimerRef.current  = null }
-    if (analyzeTimeoutRef.current) { clearTimeout(analyzeTimeoutRef.current); analyzeTimeoutRef.current = null }
-    if (analyzeBackupRef.current)  { clearTimeout(analyzeBackupRef.current);  analyzeBackupRef.current  = null }
     setAnalyzing(false)
     const s = thread?.subject ?? ''
     setCustomSubject(s ? (s.startsWith('Re:') ? s : `Re: ${s}`) : 'Re: Your enquiry | Trade Risk Solutions')
@@ -96,7 +99,8 @@ export function ThreadView({
     if (ccs.length > 0) setCcList(Array.from(new Set(ccs)))
   }, [messages.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load summaries + RAG draft when thread changes
+  // Read any existing summary when the thread changes (display only — never generates).
+  // The reply draft is NOT auto-loaded; it appears only when the employee clicks Generate.
   useEffect(() => {
     setSummaries([])
     setRagDraft(null)
@@ -109,104 +113,42 @@ export function ThreadView({
       .catch(() => setSummaries([]))
       .finally(() => setSummariesLoading(false))
 
-    fetch(`/api/engagement/draft-rag?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' })
-      .then(r => r.json())
-      .then(data => { if (data?.content) setRagDraft({ content: data.content, sources: data.sources ?? [] }) })
-      .catch(() => {})
-
     log({
       action: 'thread.viewed', resource_type: 'thread', resource_id: threadId,
       metadata: { contact: lead.email, subject: lead.subject },
     })
   }, [threadId, lead.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Whenever latestMessageId changes (new message arriving OR first load of a thread):
-  // if the latest message is inbound and has no summary yet, show "Analysing thread…"
-  // and poll until auto-summarize writes the result to Supabase.
+  // Is this thread an insurer's RFQ conversation? → show a context banner.
   useEffect(() => {
-    const prev = prevLatestMsgIdRef.current
-    prevLatestMsgIdRef.current = latestMessageId
-
-    if (!latestMessageId || latestMessageId === prev) return
-
-    // Only react to inbound messages
-    const latestMsg = messages.at(-1)
-    if (!latestMsg || latestMsg.direction !== 'inbound') return
-
-    // On the initial thread load (prev === null), skip if the message is older than
-    // 10 minutes — auto-summarize won't still be running for those.
-    if (prev === null && latestMsg.sent_at) {
-      const ageMs = Date.now() - new Date(latestMsg.sent_at).getTime()
-      if (ageMs > 10 * 60_000) return
-    }
-
-    // Stop any existing polling / backup timers
-    if (analyzeTimerRef.current)   { clearInterval(analyzeTimerRef.current);  analyzeTimerRef.current  = null }
-    if (analyzeTimeoutRef.current) { clearTimeout(analyzeTimeoutRef.current); analyzeTimeoutRef.current = null }
-    if (analyzeBackupRef.current)  { clearTimeout(analyzeBackupRef.current);  analyzeBackupRef.current  = null }
-
+    setRfqContext(null)
     if (!threadId) return
+    fetch(`/api/nexus/rfq/thread-context?thread_id=${threadId}`, { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setRfqContext(d))
+      .catch(() => {})
+  }, [threadId])
 
-    // Capture the baseline so we know when a truly NEW summary appears
-    const baselineFirstId    = summaries[0]?.id ?? null
-    const capturedThreadId   = threadId
-    const capturedMessageId  = latestMessageId
+  // Pending reply handed over from a Nexus roadmap step (via sessionStorage) →
+  // load it into Reply and open the dock's Reply tab.
+  useEffect(() => {
+    if (!threadId || typeof window === 'undefined') return
+    const raw = window.sessionStorage.getItem('trs_pending_reply')
+    if (!raw) return
+    try {
+      const p = JSON.parse(raw) as { threadId?: string; toEmail?: string; subject?: string; body?: string }
+      if (p.threadId && p.threadId !== threadId) return
+      window.sessionStorage.removeItem('trs_pending_reply')
+      if (p.subject) setCustomSubject(p.subject)
+      if (p.toEmail) setToAddress(p.toEmail)
+      if (p.body) setPendingRestore({ body: p.body, generatedBy: 'nexus-step', stamp: Date.now() })
+      setDockSignal({ tab: 'reply', stamp: Date.now() })
+    } catch { /* ignore */ }
+  }, [threadId])
 
-    const stopPolling = () => {
-      if (analyzeTimerRef.current)   { clearInterval(analyzeTimerRef.current);  analyzeTimerRef.current  = null }
-      if (analyzeTimeoutRef.current) { clearTimeout(analyzeTimeoutRef.current); analyzeTimeoutRef.current = null }
-      if (analyzeBackupRef.current)  { clearTimeout(analyzeBackupRef.current);  analyzeBackupRef.current  = null }
-    }
-
-    const checkForNewSummary = () => {
-      fetch(`/api/engagement/thread-summaries?thread_id=${encodeURIComponent(capturedThreadId)}`, { cache: 'no-store' })
-        .then(r => r.json())
-        .then((data: StoredSummary[]) => {
-          if (!Array.isArray(data)) return
-          if (data[0]?.id !== baselineFirstId) {
-            setSummaries(data)
-            setAnalyzing(false)
-            stopPolling()
-          }
-        })
-        .catch(() => {})
-    }
-
-    const startPolling = () => {
-      setAnalyzing(true)
-      analyzeTimerRef.current = setInterval(checkForNewSummary, 5_000)
-
-      // Give up after 3 minutes
-      analyzeTimeoutRef.current = setTimeout(() => {
-        setAnalyzing(false)
-        stopPolling()
-      }, 3 * 60_000)
-
-      // After 30 s — if waitUntil(auto-summarize) didn't fire on the server (Vercel Hobby plan
-      // limitation), call refresh-summary directly from the client as a guaranteed fallback.
-      analyzeBackupRef.current = setTimeout(() => {
-        fetch('/api/engagement/refresh-summary', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ thread_id: capturedThreadId, message_id: capturedMessageId }),
-        })
-          .then(() => checkForNewSummary())
-          .catch(() => {})
-      }, 30_000)
-    }
-
-    // Check immediately — if auto-summarize already finished, don't show the spinner
-    fetch(`/api/engagement/thread-summaries?thread_id=${encodeURIComponent(capturedThreadId)}`, { cache: 'no-store' })
-      .then(r => r.json())
-      .then((data: StoredSummary[]) => {
-        if (Array.isArray(data) && data[0]?.id !== baselineFirstId) {
-          setSummaries(data)   // already there — silent update, no spinner
-        } else {
-          startPolling()
-        }
-      })
-      .catch(() => startPolling())
-  }, [latestMessageId]) // eslint-disable-line react-hooks/exhaustive-deps
+  // NOTE: AI Analysis is generated ON DEMAND only (the Refresh button →
+  // refreshSummaries below). It no longer auto-polls or auto-generates when a new
+  // email arrives — matching the rewired "button press only" behaviour.
 
   async function handleDelete() {
     if (!confirmDelete) { setConfirmDelete(true); return }
@@ -219,14 +161,24 @@ export function ThreadView({
     } finally { setDeleting(false); setConfirmDelete(false) }
   }
 
+  // The Refresh button GENERATES the analysis on demand (server auto-summarize on
+  // inbound was removed), then reloads the stored summary.
   function refreshSummaries() {
     if (!threadId) return
-    setSummariesLoading(true)
-    fetch(`/api/engagement/thread-summaries?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' })
-      .then(r => r.json())
-      .then(data => setSummaries(Array.isArray(data) ? data : []))
-      .catch(() => setSummaries([]))
-      .finally(() => setSummariesLoading(false))
+    setAnalyzing(true)
+    fetch('/api/engagement/refresh-summary', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ thread_id: threadId, message_id: latestMessageId }),
+    })
+      .catch(() => {})
+      .finally(() => {
+        fetch(`/api/engagement/thread-summaries?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' })
+          .then(r => r.json())
+          .then(data => setSummaries(Array.isArray(data) ? data : []))
+          .catch(() => setSummaries([]))
+          .finally(() => setAnalyzing(false))
+      })
   }
 
   // Auto-expand: last message + last inbound message
@@ -258,6 +210,20 @@ export function ThreadView({
           {/* Campaign banner */}
           {lead.campaign_context && (
             <CampaignBanner ctx={lead.campaign_context} />
+          )}
+
+          {/* Insurer RFQ context banner */}
+          {rfqContext?.is_insurer_rfq && (
+            <div className="border-b border-[--border-subtle] bg-indigo-50/70 px-4 py-2.5 flex items-center justify-between flex-shrink-0">
+              <span className="text-[11px] font-semibold text-indigo-700 truncate">
+                🏷 Insurer quote · {rfqContext.insurer_name ?? 'Insurer'}{rfqContext.insured ? ` · ${rfqContext.insured} RFQ` : ' RFQ'}
+              </span>
+              {rfqContext.case_id && (
+                <a href={`/nexus?case=${rfqContext.case_id}`} className="text-[10.5px] font-semibold text-indigo-700 hover:underline flex-shrink-0 ml-2">
+                  open file →
+                </a>
+              )}
+            </div>
           )}
 
           <div className="flex flex-col gap-4 p-5">
@@ -298,41 +264,67 @@ export function ThreadView({
           </div>
         </EaMessageArea>
 
-        {/* ── Compose panel ── */}
-        <EngagementComposePanel
-          lead={lead}
-          thread={thread}
-          messages={messages}
-          toAddress={toAddress}
-          ccList={ccList}
-          bccList={bccList}
-          customSubject={customSubject}
-          setToAddress={setToAddress}
-          setCcList={setCcList}
-          setBccList={setBccList}
-          setCustomSubject={setCustomSubject}
-          storedDraft={summaries[0]?.draft_reply ?? null}
-          storedRagDraft={ragDraft?.content ?? null}
-          storedRagSources={ragDraft?.sources ?? []}
-          onThreadRefresh={onThreadRefresh}
-          pendingRestore={pendingRestore}
+        {/* ── Bottom dock: Reply · AI Analysis · RFQ ── */}
+        <EngagementDock
+          reply={
+            <EngagementComposePanel
+              lead={lead}
+              thread={thread}
+              messages={messages}
+              toAddress={toAddress}
+              ccList={ccList}
+              bccList={bccList}
+              customSubject={customSubject}
+              setToAddress={setToAddress}
+              setCcList={setCcList}
+              setBccList={setBccList}
+              setCustomSubject={setCustomSubject}
+              storedDraft={summaries[0]?.draft_reply ?? null}
+              storedRagDraft={ragDraft?.content ?? null}
+              storedRagSources={ragDraft?.sources ?? []}
+              onThreadRefresh={onThreadRefresh}
+              pendingRestore={pendingRestore}
+            />
+          }
+          analysis={
+            <AiAnalysisPanel
+              summaries={summaries}
+              loading={summariesLoading || analyzing}
+              threadId={threadId}
+              latestMessageId={latestMessageId}
+              ragSources={ragDraft?.sources ?? []}
+              onRefresh={refreshSummaries}
+            />
+          }
+          rfq={
+            threadId
+              ? <ThreadRfqWorkflow threadId={threadId} messageId={latestMessageId} defaultInsured={lead.company ?? fullName(lead) ?? ''} />
+              : <div className="p-5 text-[12px] text-muted-foreground/60">Open an email thread to start an RFQ.</div>
+          }
+          openSignal={dockSignal}
         />
       </EaWorkspaceColumn>
 
-      {/* ── Right context panel ── */}
-      <EngagementContextPanel
-        lead={lead}
-        messages={messages}
-        threadId={threadId}
-        summaries={summaries}
-        summariesLoading={summariesLoading || analyzing}
-        latestMessageId={latestMessageId}
-        ragSources={ragDraft?.sources ?? []}
-        onStatus={onStatus}
-        onTransfer={onTransfer}
-        onRefreshSummary={refreshSummaries}
-        onRestoreDraft={(body, generatedBy) => setPendingRestore({ body, generatedBy, stamp: Date.now() })}
-      />
+      {/* ── Right context panel (collapsible) ── */}
+      {contextOpen ? (
+        <EngagementContextPanel
+          lead={lead}
+          messages={messages}
+          threadId={threadId}
+          onStatus={onStatus}
+          onTransfer={onTransfer}
+          onRestoreDraft={(body, generatedBy) => setPendingRestore({ body, generatedBy, stamp: Date.now() })}
+          onCollapse={() => setContextOpen(false)}
+        />
+      ) : (
+        <button
+          onClick={() => setContextOpen(true)}
+          title="Show details"
+          className="flex-shrink-0 w-7 border-l border-[--border-subtle] bg-card flex items-start justify-center pt-3 text-muted-foreground/50 hover:text-foreground transition-colors"
+        >
+          <ChevronLeft size={15} />
+        </button>
+      )}
     </div>
   )
 }

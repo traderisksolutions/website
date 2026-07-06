@@ -141,7 +141,9 @@ export type NextStepV1 = {
   priority:      'urgent' | 'high' | 'normal'
   rationale:     string
   citation_ids?: string[]
-  depends_on?:   number[]
+  party_type?:   string
+  to_emails?:    string[]
+  depends_on?:   number[]   // deprecated — steps are now independent; kept for back-compat
 }
 
 export type DraftArtifact = {
@@ -165,10 +167,25 @@ export type ReserveGuidance = {
   citation_ids?:        string[]
 }
 
+// Opus produces one brief per email it wants sent; Gemini expands each into a
+// full DraftArtifact. Opus never writes the body/subject itself.
+export type CommunicationBrief = {
+  to_party:      string
+  party_type:    string
+  to_emails:     string[]
+  cc_emails:     string[]
+  intent:        string
+  key_points:    string[]
+  tone:          string
+  priority:      'urgent' | 'high' | 'normal'
+  citation_ids?: string[]
+}
+
 export type AnalysisMetadata = {
   analysis_ts:          string
   synthesis_model:      string
   strategy_model:       string
+  draft_model:          string | null
   synthesis_tokens:     number | null
   strategy_tokens:      number | null
   threads_included:     number
@@ -535,6 +552,59 @@ async function pruneOldRuns(caseId: string): Promise<void> {
   )
 }
 
+// ── Drafting pass (Gemini) — expand Opus communication briefs into full emails ──
+// The clean handoff: Opus decides WHAT to send and WHY (briefs); Gemini writes the
+// prose. One batched call preserving brief order.
+async function draftEmailsFromBriefs(
+  briefs: CommunicationBrief[],
+  caseBrief: unknown,
+  partyContactsJson: string,
+  apiKey: string,
+): Promise<DraftArtifact[]> {
+  const prompt = `You are a drafting assistant at Trade Risk Solutions (TRS), a Singapore insurance brokerage. A senior strategist has produced communication briefs. Write the full email for each brief. Do not invent facts beyond the brief and the case context below.
+
+━━ CASE BRIEF (context only) ━━
+${JSON.stringify(caseBrief, null, 2)}
+
+━━ PARTY CONTACTS (use for To/CC) ━━
+${partyContactsJson}
+
+━━ COMMUNICATION BRIEFS ━━
+${JSON.stringify(briefs, null, 2)}
+
+Return ONLY a JSON array (no markdown fences), one object per brief IN THE SAME ORDER:
+[
+  {
+    "artifact_type": "email",
+    "to_party": "<copy from brief>",
+    "party_type": "<copy from brief>",
+    "to_emails": ["<copy from brief>"],
+    "cc_emails": [],
+    "subject": "Concise, specific subject line",
+    "body": "Full professional email body. Start with 'Dear [Name],'. Singapore business English. Lead with the most important point. Cover every key_point from the brief — name amounts, dates, policy references, deadlines. No generic filler (Thank you for reaching out / Please do not hesitate / Kindly note / I hope this email finds you well). No sign-off block.",
+    "intent": "<copy the brief intent>",
+    "priority": "<copy from brief>",
+    "citation_ids": ["<copy from brief>"]
+  }
+]`
+
+  const res = await fetch(`${GEMINI_FLASH}?key=${apiKey}`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents:         [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.3, maxOutputTokens: 8192, responseMimeType: 'application/json' },
+    }),
+  })
+  if (!res.ok) throw new Error(`Gemini drafting failed ${res.status}`)
+  const data = await res.json()
+  void logGeminiUsage('draft_email', data.usageMetadata ?? {})
+  const text = ((data?.candidates?.[0]?.content?.parts ?? []) as { text?: string }[])
+    .map(p => p.text).filter(Boolean).join('')
+  const parsed = parseJsonSafe(text)
+  return Array.isArray(parsed) ? (parsed as DraftArtifact[]) : []
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export async function runNexusAnalysis(caseId: string, triggeredBy?: string | null): Promise<NexusAnalysis> {
@@ -890,7 +960,10 @@ Return [] for sections with no items; never omit a section`
   let recommendedNextSteps: NexusAnalysisV1['recommended_next_steps'] = []
   let draftArtifacts:       NexusAnalysisV1['draft_artifacts']        = []
   let reserveGuidance:      NexusAnalysisV1['reserve_guidance']       = null
+  let communicationBriefs:  CommunicationBrief[]                      = []
   let strategyTokens = 0
+  let strategySkippedReason: string | null = null
+  let draftModelName:        string | null = null
 
   // Build a "recently completed actions" summary to feed into the hygiene rules
   const recentEvents = (synthesis.timeline ?? []).slice(-6).map(e => `${e.date}: ${e.event}`).join('\n')
@@ -952,19 +1025,19 @@ Produce four strategic sections grounded in the evidence above. Return ONLY vali
       "priority": "urgent|high|normal",
       "rationale": "Why this step is required now — cite the evidence item or open question that makes it necessary",
       "citation_ids": ["c1"],
-      "depends_on": []
+      "party_type": "client|insurer|lawyer|regulator|other, or null if this step is not an email",
+      "to_emails": ["email@example.com — ONLY if this step is an email TRS should send; otherwise []"]
     }
   ],
-  "draft_artifacts": [
+  "communication_briefs": [
     {
-      "artifact_type": "email|letter|memo",
       "to_party": "Display name of party",
       "party_type": "client|insurer|lawyer|regulator|other",
       "to_emails": ["email@example.com"],
       "cc_emails": [],
-      "subject": "Email subject line",
-      "body": "Full professional email body. Start with Dear [Name],. Singapore business English. Lead with the most important point. Concrete and specific — name amounts, dates, policy references. No generic filler phrases (Thank you for reaching out / Please do not hesitate / Kindly note / I hope this email finds you well). No sign-off line.",
-      "intent": "Specific outcome this communication must achieve",
+      "intent": "The specific outcome this communication must achieve",
+      "key_points": ["Each concrete point the email must make — name amounts, dates, policy references, deadlines. One fact per item."],
+      "tone": "e.g. firm but courteous | urgent | conciliatory",
       "priority": "urgent|high|normal",
       "citation_ids": ["c1"]
     }
@@ -986,11 +1059,10 @@ EVIDENCE GROUNDING:
 - Every draft_artifact MUST cite the evidence or question it is responding to
 - If a recommendation cannot be grounded in a citation, remove it
 
-STEP SEQUENCING AND DEPENDENCIES:
-- Order recommended_next_steps by dependency first, then priority within the same dependency tier
-- If step B requires output from step A (e.g. "Send demand letter" requires "Obtain survey report"), set B.depends_on = [A.step]
-- Steps owned by external parties (client, insurer) come after TRS steps that prompt those actions
-- Do NOT number steps until you have ordered them correctly
+STEPS ARE INDEPENDENT (no dependencies):
+- Every step must stand on its own and be actionable NOW — do NOT gate one step on another
+- Order by priority only (urgent → high → normal); number them in that order
+- If a step is an email TRS should send, fill party_type + to_emails so it can be drafted directly; otherwise leave to_emails empty
 
 HYGIENE — AVOID REDUNDANT STEPS:
 - Review RECENTLY COMPLETED ACTIONS above before writing recommended_next_steps
@@ -1004,12 +1076,14 @@ SCENARIO COMPLETENESS:
 - trigger_conditions[] must list observable signals (e.g. "Insurer issues reservation of rights letter", "Client provides signed proof of loss")
 - strategic_implication must address TRS's reserve position and negotiating posture
 
-DRAFT QUALITY:
-- One draft per party that requires contact — ordered by priority
-- Body must be substantive — reference actual amounts, dates, and positions from the case
-- No generic templates — each draft must be specific to this case
+COMMUNICATION BRIEFS (you plan the emails; a separate drafting model writes them):
+- One brief per party that requires contact — ordered by priority
+- Do NOT write the email body or subject. Provide intent, key_points, tone, and recipients only.
+- key_points must be substantive and specific — reference actual amounts, dates, and positions from the case; one fact per point
+- Every brief must cite the evidence or open question it responds to
 - reserve_guidance must be null only if there is genuinely insufficient financial data in the threads`
 
+  // ── PASS 2: Grand Analysis — Claude Opus ONLY (no Gemini fallback by design) ──
   if (anthropicKey) {
     try {
       const claudeRes = await fetch(ANTHROPIC_URL, {
@@ -1021,69 +1095,56 @@ DRAFT QUALITY:
         },
         body: JSON.stringify({
           model:      'claude-opus-4-8',
-          max_tokens: 8192,
+          max_tokens: 16000,
+          // Opus 4.8: adaptive thinking is the only on-mode; budget_tokens/temperature would 400.
+          thinking:   { type: 'adaptive' },
           messages:   [{ role: 'user', content: strategyInput }],
         }),
       })
       if (claudeRes.ok) {
         const claudeData = await claudeRes.json()
         strategyTokens = (claudeData.usage?.input_tokens ?? 0) + (claudeData.usage?.output_tokens ?? 0)
-        const claudeText = claudeData?.content?.[0]?.text ?? ''
+        // With adaptive thinking, content[] leads with thinking block(s) — read the text block.
+        const claudeText = ((claudeData?.content ?? []) as { type?: string; text?: string }[])
+          .find(b => b.type === 'text')?.text ?? ''
         try {
           type StrategyV1 = Partial<{
             scenario_analysis:      NexusAnalysisV1['scenario_analysis']
             recommended_next_steps: NexusAnalysisV1['recommended_next_steps']
-            draft_artifacts:        NexusAnalysisV1['draft_artifacts']
+            communication_briefs:   CommunicationBrief[]
             reserve_guidance:       NexusAnalysisV1['reserve_guidance']
           }>
           const strategy = parseJsonSafe(claudeText) as StrategyV1
           if (strategy.scenario_analysis)      scenarioAnalysis     = strategy.scenario_analysis
           if (strategy.recommended_next_steps) recommendedNextSteps = strategy.recommended_next_steps
-          if (strategy.draft_artifacts)        draftArtifacts       = strategy.draft_artifacts
+          if (strategy.communication_briefs)   communicationBriefs  = strategy.communication_briefs
           if ('reserve_guidance' in strategy)  reserveGuidance      = strategy.reserve_guidance ?? null
         } catch { /* non-fatal: keep empty defaults */ }
-        console.log('[nexus] Claude Opus strategy pass complete, tokens:', strategyTokens)
+        console.log('[nexus] Opus grand-analysis complete, tokens:', strategyTokens, '— briefs:', communicationBriefs.length)
       } else {
-        console.warn('[nexus] Claude strategy pass failed:', claudeRes.status, '— skipping')
+        const err = await claudeRes.text().catch(() => '')
+        strategySkippedReason = `Opus call failed (${claudeRes.status})`
+        console.warn('[nexus]', strategySkippedReason, err.slice(0, 300))
       }
     } catch (e) {
-      console.warn('[nexus] Claude strategy pass error (non-fatal):', e instanceof Error ? e.message : e)
+      strategySkippedReason = 'Opus call error'
+      console.warn('[nexus] Opus grand-analysis error (non-fatal):', e instanceof Error ? e.message : e)
     }
   } else {
-    // No Claude key — Gemini Flash fallback for strategy pass
-    console.log('[nexus] No ANTHROPIC_API_KEY — using Gemini Flash for strategy pass')
+    // Grand Analysis is Opus-only. No silent Gemini fallback — surfaced to the operator.
+    strategySkippedReason = 'Opus not connected — set ANTHROPIC_API_KEY to run strategy'
+    console.log('[nexus]', strategySkippedReason, '— skipping strategy + drafting')
+  }
+
+  // ── PASS 3: Drafting — Gemini expands Opus briefs into full emails ───────────
+  if (communicationBriefs.length > 0) {
     try {
-      const geminiStratRes = await fetch(`${GEMINI_FLASH}?key=${geminiKey}`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents:         [{ parts: [{ text: strategyInput }] }],
-          tools:            [{ googleSearch: {} }],
-          generationConfig: { temperature: 0.2, maxOutputTokens: 8192 },
-        }),
-      })
-      if (geminiStratRes.ok) {
-        const gsd = await geminiStratRes.json()
-        const gsParts = (gsd?.candidates?.[0]?.content?.parts ?? []) as { text?: string }[]
-        const gsText  = gsParts.find(p => p.text?.trim().startsWith('{'))?.text
-                     ?? gsParts.find(p => p.text)?.text
-        if (gsText) {
-          try {
-            type StrategyV1 = Partial<{
-              scenario_analysis:      NexusAnalysisV1['scenario_analysis']
-              recommended_next_steps: NexusAnalysisV1['recommended_next_steps']
-              draft_artifacts:        NexusAnalysisV1['draft_artifacts']
-              reserve_guidance:       NexusAnalysisV1['reserve_guidance']
-            }>
-            const strategy = parseJsonSafe(gsText) as StrategyV1
-            if (strategy.scenario_analysis)      scenarioAnalysis     = strategy.scenario_analysis
-            if (strategy.recommended_next_steps) recommendedNextSteps = strategy.recommended_next_steps
-            if (strategy.draft_artifacts)        draftArtifacts       = strategy.draft_artifacts
-            if ('reserve_guidance' in strategy)  reserveGuidance      = strategy.reserve_guidance ?? null
-          } catch { /* non-fatal */ }
-        }
-      }
-    } catch { /* non-fatal */ }
+      draftArtifacts  = await draftEmailsFromBriefs(communicationBriefs, synthesis.case_brief, partyContactsJson, geminiKey)
+      draftModelName  = 'gemini-2.5-flash'
+      console.log('[nexus] Gemini drafting complete —', draftArtifacts.length, 'drafts from', communicationBriefs.length, 'briefs')
+    } catch (e) {
+      console.warn('[nexus] Gemini drafting error (non-fatal):', e instanceof Error ? e.message : e)
+    }
   }
 
   // ── Post-processing ───────────────────────────────────────────────────────────
@@ -1112,11 +1173,14 @@ DRAFT QUALITY:
 
   // ── Assemble analysis metadata for operator debug ──────────────────────────
 
-  const strategyModelName = process.env.ANTHROPIC_API_KEY ? 'claude-opus-4-8' : 'gemini-2.5-flash'
+  if (strategySkippedReason) truncationFlags.push(strategySkippedReason)
+
+  const strategyModelName = anthropicKey ? 'claude-opus-4-8' : 'not_configured'
   const analysisMetadata: AnalysisMetadata = {
     analysis_ts:          new Date().toISOString(),
     synthesis_model:      'gemini-2.5-pro',
     strategy_model:       strategyModelName,
+    draft_model:          draftModelName,
     synthesis_tokens:     synthData.usageMetadata?.totalTokenCount ?? null,
     strategy_tokens:      strategyTokens || null,
     threads_included:     caseThreads.length,

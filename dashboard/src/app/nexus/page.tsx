@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
+import RfqPanel from '@/components/nexus/RfqPanel'
 import { createClient } from '@/lib/supabase/client'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -94,7 +95,7 @@ type V1Evidence    = { id: string; filename_or_label: string; source_type: strin
 type V1Question    = { question: string; priority: string; directed_at?: string; citation_ids?: string[] }
 type V1Missing     = { item: string; required_from: string; urgency: string; impact: string }
 type V1Scenario    = { name: string; probability: string; outcome: string; trs_action: string; assumptions?: string[]; trigger_conditions?: string[]; strategic_implication?: string; citation_ids?: string[] }
-type V1NextStep    = { step: number; action: string; owner: string; deadline?: string; priority: string; rationale: string; citation_ids?: string[]; depends_on?: number[] }
+type V1NextStep    = { step: number; action: string; owner: string; deadline?: string; priority: string; rationale: string; citation_ids?: string[]; depends_on?: number[]; party_type?: string; to_emails?: string[] }
 type V1Draft       = { artifact_type: string; to_party: string; party_type: string; to_emails: string[]; cc_emails: string[]; subject: string; body: string; intent: string; priority: string; citation_ids?: string[] }
 type V1Reserve     = { recommended_reserve?: string; basis: string; confidence: string; risk_factors: string[]; citation_ids?: string[] }
 type AnalysisMetadata = {
@@ -284,6 +285,13 @@ export default function NexusPage() {
   }, [selectedId])
 
   useEffect(() => { loadCases() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Deep-link: /nexus?case=<id> (e.g. after the manual "Start RFQ" flow) selects
+  // that case. Runs before the default first-case selection can claim it.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('case')
+    if (id) setSelectedId(id)
+  }, [])
 
   const visible = cases.filter(c =>
     !search || c.name.toLowerCase().includes(search.toLowerCase()) || (c.description ?? '').toLowerCase().includes(search.toLowerCase())
@@ -502,7 +510,8 @@ function CaseDetailPanel({
   const [loading,       setLoading]       = useState(false)
   const [analyzing,     setAnalyzing]     = useState(false)
   const [analyzeError,  setAnalyzeError]  = useState<string | null>(null)
-  const [view,          setView]          = useState<'mission' | 'messages' | 'history'>('mission')
+  const [view,          setView]          = useState<'mission' | 'messages' | 'history' | 'rfq'>('mission')
+  const [rfqCount,      setRfqCount]      = useState(0)
   const [linkOpen,      setLinkOpen]      = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [runs,          setRuns]          = useState<RunSummary[]>([])
@@ -534,6 +543,16 @@ function CaseDetailPanel({
       if (detailRes.ok) setDetail(await detailRes.json())
     } finally { setLoading(false) }
   }, [caseData.id, loadRuns])
+
+  // RFQ request count — drives whether the RFQ tab shows.
+  useEffect(() => {
+    let cancelled = false
+    fetch(`/api/nexus/rfq/requests?case_id=${caseData.id}`, { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : [])
+      .then(rows => { if (!cancelled) setRfqCount(Array.isArray(rows) ? rows.length : 0) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [caseData.id])
 
   // Keep a stable ref to load() so polling effects can call it without stale closure
   const loadRef = useRef(load)
@@ -678,6 +697,7 @@ function CaseDetailPanel({
         view={view}
         totalMsgCount={totalMsgCount}
         runsCount={runs.length}
+        rfqCount={rfqCount}
         onSetView={setView}
         onRunAnalysis={runAnalysis}
         onLinkThreads={() => setLinkOpen(true)}
@@ -712,12 +732,14 @@ function CaseDetailPanel({
             onRunAnalysis={runAnalysis}
             onOpenCompose={openCompose}
           />
-        ) : (
+        ) : view === 'messages' ? (
           <MessagesView
             messages={unifiedMessages}
             loading={loading}
             onGoToMission={() => setView('mission')}
           />
+        ) : (
+          <RfqPanel caseId={caseData.id} />
         )}
       </div>
       {composeState && (
@@ -741,7 +763,7 @@ function CaseDetailPanel({
 // ── Mission Header ────────────────────────────────────────────────────────────
 
 function MissionHeader({
-  caseData, threads, analysis, analyzing, analyzeProgress, analyzeError, confirmDelete, view, totalMsgCount, runsCount,
+  caseData, threads, analysis, analyzing, analyzeProgress, analyzeError, confirmDelete, view, totalMsgCount, runsCount, rfqCount,
   onSetView, onRunAnalysis, onLinkThreads, onDelete, onConfirmDelete, onCancelDelete,
 }: {
   caseData:        Case
@@ -751,10 +773,11 @@ function MissionHeader({
   analyzeProgress: AnalysisProgress | null
   analyzeError:    string | null
   confirmDelete:   boolean
-  view:            'mission' | 'messages' | 'history'
+  view:            'mission' | 'messages' | 'history' | 'rfq'
   totalMsgCount:   number
   runsCount:       number
-  onSetView:       (v: 'mission' | 'messages' | 'history') => void
+  rfqCount:        number
+  onSetView:       (v: 'mission' | 'messages' | 'history' | 'rfq') => void
   onRunAnalysis:   () => void
   onLinkThreads:   () => void
   onDelete:        () => void
@@ -849,8 +872,9 @@ function MissionHeader({
           {([
             { key: 'mission',  label: 'Mission Control' },
             { key: 'messages', label: `Messages${totalMsgCount > 0 ? ` (${totalMsgCount})` : ''}` },
+            ...(rfqCount > 0 ? [{ key: 'rfq', label: `RFQ (${rfqCount})` }] : []),
             { key: 'history',  label: `History${runsCount > 0 ? ` (${runsCount})` : ''}` },
-          ] as const).map(({ key, label }) => (
+          ] as { key: 'mission' | 'messages' | 'history' | 'rfq'; label: string }[]).map(({ key, label }) => (
             <button
               key={key}
               onClick={() => onSetView(key)}
@@ -1605,49 +1629,33 @@ function NextStepsSection({
   const [stepDraftState, setStepDraftState] = useState<Record<number, StepDraftState>>({})
   const [copiedStep,     setCopiedStep]     = useState<number | null>(null)
 
-  async function createDraft(step: V1NextStep, artifact: V1Draft) {
-    const key      = step.step
-    const threadId = threads[0]?.thread_id ?? null
+  // Nexus decides; Engagement acts. Fresh-draft the step (Gemini from Opus's
+  // action) and hand it to the recipient's Engagement thread. Nexus never sends.
+  async function draftInEngagement(step: V1NextStep, artifact: V1Draft | null) {
+    const key     = step.step
+    const toEmail = step.to_emails?.[0] || artifact?.to_emails?.[0] || ''
+    if (!toEmail) return
     setStepDraftState(prev => ({ ...prev, [key]: { status: 'creating' } }))
     try {
-      const res = await fetch('/api/nexus/draft-create', {
+      const res = await fetch('/api/nexus/step-draft', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          thread_id:        threadId,
-          body:             artifact.body,
-          email_type:       'NEXUS',
-          to_email:         artifact.to_emails?.[0] ?? '',
-          nexus_case_id:    caseId,
-          nexus_step_index: step.step,
-        }),
+        body: JSON.stringify({ case_id: caseId, action: step.action, rationale: step.rationale, party_type: step.party_type ?? step.owner, to_email: toEmail }),
       })
       const data = await res.json()
-      if (!res.ok || !data.draftId) {
-        setStepDraftState(prev => ({
-          ...prev,
-          [key]: { status: 'error', errorMsg: data.error ?? 'Draft creation failed' },
-        }))
-        return
+      if (!res.ok) { setStepDraftState(prev => ({ ...prev, [key]: { status: 'error', errorMsg: data.error ?? 'Draft failed' } })); return }
+
+      if (data.thread_id) {
+        // Hand the draft to Engagement and open that conversation there.
+        window.sessionStorage.setItem('trs_pending_reply', JSON.stringify({ threadId: data.thread_id, toEmail: data.to_email, subject: data.subject, body: data.body }))
+        window.location.href = `/engagement?lead=${data.thread_id}`
+      } else {
+        // No existing conversation yet — hand off the draft to start a fresh one.
+        await navigator.clipboard.writeText(data.body ?? '').catch(() => {})
+        setStepDraftState(prev => ({ ...prev, [key]: { status: 'done', errorMsg: `No thread with ${toEmail} yet — draft copied; start the email in Engagement.` } }))
       }
-      setStepDraftState(prev => ({
-        ...prev,
-        [key]: { status: 'done', draftId: data.draftId, threadId: threadId ?? undefined },
-      }))
-      // Open the Gmail-style compose window pre-filled with the draft content
-      onOpenCompose({
-        draftId:  data.draftId,
-        to:       artifact.to_emails?.[0] ?? '',
-        cc:       artifact.cc_emails?.join(', ') ?? '',
-        subject:  artifact.subject ?? '',
-        body:     artifact.body ?? '',
-        threadId,
-      })
     } catch (e) {
-      setStepDraftState(prev => ({
-        ...prev,
-        [key]: { status: 'error', errorMsg: String(e) },
-      }))
+      setStepDraftState(prev => ({ ...prev, [key]: { status: 'error', errorMsg: String(e) } }))
     }
   }
 
@@ -1736,43 +1744,24 @@ function NextStepsSection({
                       <Clock size={9} strokeWidth={2} /> {step.deadline}
                     </span>
                   )}
-                  {(step.depends_on?.length ?? 0) > 0 && (
-                    <span className="text-[9.5px] text-muted-foreground/45 flex items-center gap-1 border border-dashed border-[--border-subtle] rounded px-1.5 py-0.5">
-                      Requires step{step.depends_on!.length > 1 ? 's' : ''} {step.depends_on!.join(', ')}
-                    </span>
-                  )}
                 </div>
                 <p className="text-[11.5px] text-muted-foreground/60 italic leading-[1.5] mb-3">{step.rationale}</p>
 
                 {/* ── Step action bar ── */}
                 <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-[--border-subtle]/60">
-                  {ds.status === 'done' ? (
+                  {(step.to_emails?.[0] || artifact?.to_emails?.[0]) ? (
                     <button
-                      onClick={() => onOpenCompose({
-                        draftId:  ds.draftId!,
-                        to:       artifact?.to_emails?.[0] ?? '',
-                        cc:       artifact?.cc_emails?.join(', ') ?? '',
-                        subject:  artifact?.subject ?? '',
-                        body:     artifact?.body ?? '',
-                        threadId: ds.threadId ?? null,
-                      })}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-[10.5px] font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors"
-                    >
-                      <CheckCircle2 size={11} strokeWidth={2.5} />
-                      Draft ready · Open compose
-                    </button>
-                  ) : artifact ? (
-                    <button
-                      onClick={() => createDraft(step, artifact)}
+                      onClick={() => draftInEngagement(step, artifact)}
                       disabled={ds.status === 'creating'}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[--border-subtle] bg-background text-[10.5px] font-semibold text-foreground/70 hover:bg-muted/60 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/[0.06] text-[10.5px] font-semibold text-primary hover:bg-primary/[0.12] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      title="Draft this in Engagement and open the conversation"
                     >
                       {ds.status === 'creating' ? (
                         <Loader2 size={10} strokeWidth={2} className="animate-spin" />
                       ) : (
-                        <MailOpen size={10} strokeWidth={2} />
+                        <ArrowRight size={11} strokeWidth={2.5} />
                       )}
-                      {ds.status === 'creating' ? 'Creating…' : 'Create draft email'}
+                      {ds.status === 'creating' ? 'Drafting…' : 'Draft in Engagement'}
                     </button>
                   ) : null}
                   <button
@@ -1790,8 +1779,8 @@ function NextStepsSection({
                       <><FileText size={10} strokeWidth={2} /> Copy</>
                     )}
                   </button>
-                  {ds.status === 'error' && (
-                    <span className="text-[10px] text-red-500">{ds.errorMsg}</span>
+                  {ds.errorMsg && (
+                    <span className={cn('text-[10px]', ds.status === 'error' ? 'text-red-500' : 'text-muted-foreground/70')}>{ds.errorMsg}</span>
                   )}
                 </div>
               </div>
@@ -2549,6 +2538,14 @@ function LinkedThreadCard({
             <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
           ))}
         </select>
+        <a
+          href={`/engagement?lead=${ct.thread_id}`}
+          onClick={e => e.stopPropagation()}
+          className="p-1 rounded-md text-muted-foreground/40 hover:text-primary hover:bg-primary/5 transition-colors"
+          title="Open this conversation in Engagement"
+        >
+          <Link2 size={11} strokeWidth={2} />
+        </a>
         <button
           onClick={() => onUnlink(ct.thread_id)}
           className="p-1 rounded-md text-muted-foreground/25 hover:text-red-500 hover:bg-red-50 transition-colors"
