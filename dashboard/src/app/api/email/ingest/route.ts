@@ -624,19 +624,11 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
     if (resolvedParty && !isInternal(fromEmail)) {
       tagThreadWithCampaignContext(fromEmail, thread.id).catch(() => {})
     }
-    // NOTE: AI Analysis (auto-summarize) is intentionally NOT triggered here.
-    // Engagement analysis is generated on demand only, via the Refresh button in the UI.
-    // RFQ detection — independent serverless call; opens a Nexus case on a hit.
-    // Never blocks or fails ingest.
-    waitUntil(
-      fetch(`${origin}/api/nexus/rfq/detect`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.CRON_SECRET ?? '' },
-        body:    JSON.stringify({ thread_id: thread.id, message_id: dbMsg.id }),
-      })
-        .then(r => { if (!r.ok) console.warn('[ingest] rfq-detect returned', r.status, 'for thread', thread.id) })
-        .catch(e => console.error('[ingest] rfq-detect trigger failed:', e instanceof Error ? e.message : e))
-    )
+    // NOTE: No auto-generation on inbound by design.
+    //  • AI Analysis — generated on demand via the Refresh button.
+    //  • RFQ detection — no longer opens a Nexus case here. The client thread's RFQ
+    //    tab suggests lines live when opened; the Nexus file is created only on the
+    //    first insurer send. Keeps Nexus clean.
   }
 
   // ── NEXUS: Siloed attachment extraction ───────────────────────────────────

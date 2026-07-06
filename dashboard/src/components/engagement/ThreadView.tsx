@@ -13,7 +13,6 @@ import { EngagementContextPanel } from '@/components/engagement-agent/engagement
 import { AiAnalysisPanel } from '@/components/engagement-agent/ai-analysis-panel'
 import { EngagementDock } from './EngagementDock'
 import ThreadRfqWorkflow from './ThreadRfqWorkflow'
-import StartRfqModal from '@/components/nexus/StartRfqModal'
 
 interface ThreadViewProps {
   lead:            Lead
@@ -40,11 +39,11 @@ export function ThreadView({
   // RAG draft
   const [ragDraft,         setRagDraft]         = useState<{ content: string; sources: RagSource[] } | null>(null)
 
-  // Manual "Start RFQ" workflow
-  const [startRfqOpen,     setStartRfqOpen]     = useState(false)
-
   // Right context sidebar collapse
   const [contextOpen,      setContextOpen]      = useState(true)
+
+  // RFQ context — is this thread an insurer's quotation conversation?
+  const [rfqContext, setRfqContext] = useState<{ is_insurer_rfq: boolean; case_id?: string | null; insurer_name?: string | null; insured?: string | null } | null>(null)
 
   // Compose headers
   const [toAddress,     setToAddress]     = useState('')
@@ -117,6 +116,16 @@ export function ThreadView({
     })
   }, [threadId, lead.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Is this thread an insurer's RFQ conversation? → show a context banner.
+  useEffect(() => {
+    setRfqContext(null)
+    if (!threadId) return
+    fetch(`/api/nexus/rfq/thread-context?thread_id=${threadId}`, { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setRfqContext(d))
+      .catch(() => {})
+  }, [threadId])
+
   // NOTE: AI Analysis is generated ON DEMAND only (the Refresh button →
   // refreshSummaries below). It no longer auto-polls or auto-generates when a new
   // email arrives — matching the rewired "button press only" behaviour.
@@ -173,17 +182,7 @@ export function ThreadView({
           onBack={onBack}
           onDelete={handleDelete}
           onCancelDelete={() => setConfirmDelete(false)}
-          onStartRfq={threadId ? () => setStartRfqOpen(true) : undefined}
         />
-
-        {startRfqOpen && threadId && (
-          <StartRfqModal
-            threadId={threadId}
-            messageId={latestMessageId}
-            defaultInsured={lead.company ?? fullName(lead) ?? ''}
-            onClose={() => setStartRfqOpen(false)}
-          />
-        )}
 
         {/* ── Messages scroll region ── */}
         <EaMessageArea>
@@ -191,6 +190,20 @@ export function ThreadView({
           {/* Campaign banner */}
           {lead.campaign_context && (
             <CampaignBanner ctx={lead.campaign_context} />
+          )}
+
+          {/* Insurer RFQ context banner */}
+          {rfqContext?.is_insurer_rfq && (
+            <div className="border-b border-[--border-subtle] bg-indigo-50/70 px-4 py-2.5 flex items-center justify-between flex-shrink-0">
+              <span className="text-[11px] font-semibold text-indigo-700 truncate">
+                🏷 Insurer quote · {rfqContext.insurer_name ?? 'Insurer'}{rfqContext.insured ? ` · ${rfqContext.insured} RFQ` : ' RFQ'}
+              </span>
+              {rfqContext.case_id && (
+                <a href={`/nexus?case=${rfqContext.case_id}`} className="text-[10.5px] font-semibold text-indigo-700 hover:underline flex-shrink-0 ml-2">
+                  open file →
+                </a>
+              )}
+            </div>
           )}
 
           <div className="flex flex-col gap-4 p-5">

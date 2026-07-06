@@ -22,19 +22,32 @@ function sbH() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { rfq_request_id, contact_id } = await req.json() as { rfq_request_id?: string; contact_id?: string }
-    if (!rfq_request_id || !contact_id) return NextResponse.json({ error: 'rfq_request_id and contact_id required' }, { status: 400 })
+    // Accept EITHER a persisted request (rfq_request_id) OR a staged line
+    // (product_line + insured_name) so drafting works before a case exists.
+    const { rfq_request_id, contact_id, product_line, insured_name, client_message_id } =
+      await req.json() as {
+        rfq_request_id?: string; contact_id?: string
+        product_line?: string; insured_name?: string; client_message_id?: string
+      }
+    if (!contact_id) return NextResponse.json({ error: 'contact_id required' }, { status: 400 })
+    if (!rfq_request_id && !product_line) return NextResponse.json({ error: 'rfq_request_id or product_line required' }, { status: 400 })
 
     const apiKey = process.env.GEMINI_API_KEY_DRAFT_EMAIL
     if (!apiKey) return NextResponse.json({ error: 'GEMINI_API_KEY_DRAFT_EMAIL not set' }, { status: 500 })
 
-    // Load the request line.
-    const rRes = await fetch(
-      `${SB_URL}/rest/v1/rfq_requests?id=eq.${rfq_request_id}&select=product_line,insured_name,summary,key_details,client_message_id&limit=1`,
-      { headers: sbH(), cache: 'no-store' }
-    )
-    const rfq = rRes.ok ? (await rRes.json())[0] : null
-    if (!rfq) return NextResponse.json({ error: 'request not found' }, { status: 404 })
+    // Resolve the request line — from the persisted row, or from the staged fields.
+    let rfq: { product_line: string; insured_name: string | null; summary: string | null; key_details: string | null; client_message_id: string | null }
+    if (rfq_request_id) {
+      const rRes = await fetch(
+        `${SB_URL}/rest/v1/rfq_requests?id=eq.${rfq_request_id}&select=product_line,insured_name,summary,key_details,client_message_id&limit=1`,
+        { headers: sbH(), cache: 'no-store' }
+      )
+      const row = rRes.ok ? (await rRes.json())[0] : null
+      if (!row) return NextResponse.json({ error: 'request not found' }, { status: 404 })
+      rfq = row
+    } else {
+      rfq = { product_line: product_line!, insured_name: insured_name ?? null, summary: null, key_details: null, client_message_id: client_message_id ?? null }
+    }
 
     // Load the insurer contact.
     const cRes = await fetch(
