@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { ChevronLeft } from 'lucide-react'
 import { useAuditLog } from '@/hooks/useAuditLog'
 import type { Lead, RealMsg, ThreadState, StoredSummary, RagSource } from './types'
 import { fullName, extractEmail } from './helpers'
@@ -9,6 +10,9 @@ import { EngagementThreadHeader } from '@/components/engagement-agent/engagement
 import { EngagementMessageCard } from '@/components/engagement-agent/engagement-message-card'
 import { EngagementComposePanel } from '@/components/engagement-agent/engagement-compose-panel'
 import { EngagementContextPanel } from '@/components/engagement-agent/engagement-context-panel'
+import { AiAnalysisPanel } from '@/components/engagement-agent/ai-analysis-panel'
+import { EngagementDock } from './EngagementDock'
+import ThreadRfqWorkflow from './ThreadRfqWorkflow'
 import StartRfqModal from '@/components/nexus/StartRfqModal'
 
 interface ThreadViewProps {
@@ -38,6 +42,9 @@ export function ThreadView({
 
   // Manual "Start RFQ" workflow
   const [startRfqOpen,     setStartRfqOpen]     = useState(false)
+
+  // Right context sidebar collapse
+  const [contextOpen,      setContextOpen]      = useState(true)
 
   // Compose headers
   const [toAddress,     setToAddress]     = useState('')
@@ -224,41 +231,66 @@ export function ThreadView({
           </div>
         </EaMessageArea>
 
-        {/* ── Compose panel ── */}
-        <EngagementComposePanel
-          lead={lead}
-          thread={thread}
-          messages={messages}
-          toAddress={toAddress}
-          ccList={ccList}
-          bccList={bccList}
-          customSubject={customSubject}
-          setToAddress={setToAddress}
-          setCcList={setCcList}
-          setBccList={setBccList}
-          setCustomSubject={setCustomSubject}
-          storedDraft={summaries[0]?.draft_reply ?? null}
-          storedRagDraft={ragDraft?.content ?? null}
-          storedRagSources={ragDraft?.sources ?? []}
-          onThreadRefresh={onThreadRefresh}
-          pendingRestore={pendingRestore}
+        {/* ── Bottom dock: Reply · AI Analysis · RFQ ── */}
+        <EngagementDock
+          reply={
+            <EngagementComposePanel
+              lead={lead}
+              thread={thread}
+              messages={messages}
+              toAddress={toAddress}
+              ccList={ccList}
+              bccList={bccList}
+              customSubject={customSubject}
+              setToAddress={setToAddress}
+              setCcList={setCcList}
+              setBccList={setBccList}
+              setCustomSubject={setCustomSubject}
+              storedDraft={summaries[0]?.draft_reply ?? null}
+              storedRagDraft={ragDraft?.content ?? null}
+              storedRagSources={ragDraft?.sources ?? []}
+              onThreadRefresh={onThreadRefresh}
+              pendingRestore={pendingRestore}
+            />
+          }
+          analysis={
+            <AiAnalysisPanel
+              summaries={summaries}
+              loading={summariesLoading || analyzing}
+              threadId={threadId}
+              latestMessageId={latestMessageId}
+              ragSources={ragDraft?.sources ?? []}
+              onRefresh={refreshSummaries}
+            />
+          }
+          rfq={
+            threadId
+              ? <ThreadRfqWorkflow threadId={threadId} messageId={latestMessageId} defaultInsured={lead.company ?? fullName(lead) ?? ''} />
+              : <div className="p-5 text-[12px] text-muted-foreground/60">Open an email thread to start an RFQ.</div>
+          }
         />
       </EaWorkspaceColumn>
 
-      {/* ── Right context panel ── */}
-      <EngagementContextPanel
-        lead={lead}
-        messages={messages}
-        threadId={threadId}
-        summaries={summaries}
-        summariesLoading={summariesLoading || analyzing}
-        latestMessageId={latestMessageId}
-        ragSources={ragDraft?.sources ?? []}
-        onStatus={onStatus}
-        onTransfer={onTransfer}
-        onRefreshSummary={refreshSummaries}
-        onRestoreDraft={(body, generatedBy) => setPendingRestore({ body, generatedBy, stamp: Date.now() })}
-      />
+      {/* ── Right context panel (collapsible) ── */}
+      {contextOpen ? (
+        <EngagementContextPanel
+          lead={lead}
+          messages={messages}
+          threadId={threadId}
+          onStatus={onStatus}
+          onTransfer={onTransfer}
+          onRestoreDraft={(body, generatedBy) => setPendingRestore({ body, generatedBy, stamp: Date.now() })}
+          onCollapse={() => setContextOpen(false)}
+        />
+      ) : (
+        <button
+          onClick={() => setContextOpen(true)}
+          title="Show details"
+          className="flex-shrink-0 w-7 border-l border-[--border-subtle] bg-card flex items-start justify-center pt-3 text-muted-foreground/50 hover:text-foreground transition-colors"
+        >
+          <ChevronLeft size={15} />
+        </button>
+      )}
     </div>
   )
 }

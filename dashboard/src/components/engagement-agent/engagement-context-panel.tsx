@@ -7,32 +7,26 @@
 // All other sections (status, contact, notes, draft history) are unchanged from Phase 3.
 
 import { useState, useEffect, useRef } from 'react'
-import { Copy, Check, ChevronDown, ArrowRightLeft, X } from 'lucide-react'
+import { Copy, Check, ChevronDown, ChevronRight, ArrowRightLeft, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuditLog } from '@/hooks/useAuditLog'
-import type { Lead, RealMsg, StoredSummary, DraftHistoryItem, RagSource } from '@/components/engagement/types'
+import type { Lead, RealMsg, DraftHistoryItem } from '@/components/engagement/types'
 import { STATUS_MAP, ALL_STATUSES, EMAIL_SOURCES } from '@/components/engagement/types'
 import { fullName, timeAgo, daysSince } from '@/components/engagement/helpers'
-import { AiAnalysisPanel } from './ai-analysis-panel'
 
 interface EngagementContextPanelProps {
   lead:             Lead
   messages:         RealMsg[]
   threadId:         string | null
-  summaries:        StoredSummary[]
-  summariesLoading: boolean
-  latestMessageId:  string | null
-  ragSources:       RagSource[]
   onStatus:         (id: string, s: string) => void
   onTransfer:       (id: string, note: string) => Promise<void>
-  onRefreshSummary: () => void
   onRestoreDraft:   (body: string, generatedBy: string) => void
+  onCollapse?:      () => void
 }
 
 export function EngagementContextPanel({
   lead, messages, threadId,
-  summaries, summariesLoading, latestMessageId, ragSources,
-  onStatus, onTransfer, onRefreshSummary, onRestoreDraft,
+  onStatus, onTransfer, onRestoreDraft, onCollapse,
 }: EngagementContextPanelProps) {
   const needsReply  = messages.at(-1)?.direction === 'inbound'
   const lastInbound = [...messages].reverse().find(m => m.direction === 'inbound')
@@ -43,6 +37,20 @@ export function EngagementContextPanel({
       className="flex-shrink-0 bg-card flex flex-col min-h-0 overflow-y-auto"
       style={{ width: 'var(--ea-context-w, 244px)' }}
     >
+      {/* ── Collapse toggle ── */}
+      {onCollapse && (
+        <div className="flex-shrink-0 flex items-center justify-between px-3 py-1.5 border-b border-[--border-subtle]/60">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">Details</span>
+          <button
+            onClick={onCollapse}
+            title="Collapse panel"
+            className="text-muted-foreground/50 hover:text-foreground transition-colors"
+          >
+            <ChevronRight size={15} />
+          </button>
+        </div>
+      )}
+
       {/* ── Reply state + stats ── */}
       <div className={cn(
         'flex-shrink-0 px-4 py-3 border-b border-[--border-subtle]',
@@ -75,15 +83,7 @@ export function EngagementContextPanel({
         )}
       </div>
 
-      {/* ── AI Analysis — Phase 4: email classification, provenance, examples, watch-outs ── */}
-      <AiAnalysisPanel
-        summaries={summaries}
-        loading={summariesLoading}
-        threadId={threadId}
-        latestMessageId={latestMessageId}
-        ragSources={ragSources}
-        onRefresh={onRefreshSummary}
-      />
+      {/* AI Analysis now lives in the bottom dock (moved out of this sidebar). */}
 
       {/* ── Status ── */}
       <StatusSection lead={lead} onStatus={onStatus} />
