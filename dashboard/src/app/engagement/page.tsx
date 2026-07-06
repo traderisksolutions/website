@@ -113,9 +113,14 @@ function EngagementPageInner() {
     try {
       const data = await fetchLeads()
       setLeads(data)
+      // Default selection = the most recently active conversation (matches the top of
+      // the sorted list), NOT data[0] which is in raw API order. `created_at` carries
+      // last_message_at for conversation rows, so this is the genuine latest.
+      const latestId = [...data]
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.id ?? null
       setSelectedId(prev => {
         if (!prev && initLeadId && data.some(l => l.id === initLeadId)) return initLeadId
-        return prev ?? (data[0]?.id ?? null)
+        return prev ?? latestId
       })
     } finally { setLoading(false); setRefreshing(false) }
   }, [initLeadId])
@@ -124,15 +129,10 @@ function EngagementPageInner() {
   // version without a stale closure (it captures selectedId + leads).
   const refreshSelectedThreadRef = useRef<() => void>(() => {})
 
+  // Initial load only — no periodic auto-refresh. New emails appear on manual
+  // Refresh (or the background Gmail sync below keeping the DB current).
   useEffect(() => {
     load()
-    // Poll Supabase every 30s for new leads + re-fetch the open thread so AI
-    // Analysis appears automatically once auto-summarize writes to Supabase.
-    const t = setInterval(() => {
-      load()
-      refreshSelectedThreadRef.current()
-    }, 30_000)
-    return () => clearInterval(t)
   }, [load])
 
   // Background Gmail sync — fires immediately on mount (catches any emails missed while page was
@@ -144,30 +144,6 @@ function EngagementPageInner() {
     return () => clearInterval(t)
   }, [])
 
-  // Supabase Realtime — subscribe to new email_messages rows for the currently open thread.
-  // When Pub/Sub fires and ingest inserts a new row, the UI updates instantly rather than
-  // waiting for the next 30 s poll cycle.
-  useEffect(() => {
-    if (!selectedId) return
-    const lead = leads.find(l => l.id === selectedId)
-    const threadId = lead?.thread_id
-    if (!threadId) return
-
-    const supabase = createClient()
-    const channel  = supabase
-      .channel(`ea-messages-${threadId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'email_messages', filter: `thread_id=eq.${threadId}` },
-        () => {
-          refreshSelectedThreadRef.current()
-          load()
-        },
-      )
-      .subscribe()
-
-    return () => { supabase.removeChannel(channel) }
-  }, [selectedId, leads]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load thread on selection
   useEffect(() => {
