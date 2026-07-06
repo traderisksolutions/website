@@ -141,7 +141,9 @@ export type NextStepV1 = {
   priority:      'urgent' | 'high' | 'normal'
   rationale:     string
   citation_ids?: string[]
-  depends_on?:   number[]
+  party_type?:   string
+  to_emails?:    string[]
+  depends_on?:   number[]   // deprecated — steps are now independent; kept for back-compat
 }
 
 export type DraftArtifact = {
@@ -1023,7 +1025,8 @@ Produce four strategic sections grounded in the evidence above. Return ONLY vali
       "priority": "urgent|high|normal",
       "rationale": "Why this step is required now — cite the evidence item or open question that makes it necessary",
       "citation_ids": ["c1"],
-      "depends_on": []
+      "party_type": "client|insurer|lawyer|regulator|other, or null if this step is not an email",
+      "to_emails": ["email@example.com — ONLY if this step is an email TRS should send; otherwise []"]
     }
   ],
   "communication_briefs": [
@@ -1056,11 +1059,10 @@ EVIDENCE GROUNDING:
 - Every draft_artifact MUST cite the evidence or question it is responding to
 - If a recommendation cannot be grounded in a citation, remove it
 
-STEP SEQUENCING AND DEPENDENCIES:
-- Order recommended_next_steps by dependency first, then priority within the same dependency tier
-- If step B requires output from step A (e.g. "Send demand letter" requires "Obtain survey report"), set B.depends_on = [A.step]
-- Steps owned by external parties (client, insurer) come after TRS steps that prompt those actions
-- Do NOT number steps until you have ordered them correctly
+STEPS ARE INDEPENDENT (no dependencies):
+- Every step must stand on its own and be actionable NOW — do NOT gate one step on another
+- Order by priority only (urgent → high → normal); number them in that order
+- If a step is an email TRS should send, fill party_type + to_emails so it can be drafted directly; otherwise leave to_emails empty
 
 HYGIENE — AVOID REDUNDANT STEPS:
 - Review RECENTLY COMPLETED ACTIONS above before writing recommended_next_steps

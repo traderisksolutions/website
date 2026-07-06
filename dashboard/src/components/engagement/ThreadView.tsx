@@ -45,6 +45,9 @@ export function ThreadView({
   // RFQ context — is this thread an insurer's quotation conversation?
   const [rfqContext, setRfqContext] = useState<{ is_insurer_rfq: boolean; case_id?: string | null; insurer_name?: string | null; insured?: string | null } | null>(null)
 
+  // Dock imperative open (e.g. a draft arriving from a Nexus roadmap step)
+  const [dockSignal, setDockSignal] = useState<{ tab: 'reply' | 'analysis' | 'rfq'; stamp: number } | undefined>(undefined)
+
   // Compose headers
   const [toAddress,     setToAddress]     = useState('')
   const [ccList,        setCcList]        = useState<string[]>([])
@@ -124,6 +127,23 @@ export function ThreadView({
       .then(r => r.ok ? r.json() : null)
       .then(d => setRfqContext(d))
       .catch(() => {})
+  }, [threadId])
+
+  // Pending reply handed over from a Nexus roadmap step (via sessionStorage) →
+  // load it into Reply and open the dock's Reply tab.
+  useEffect(() => {
+    if (!threadId || typeof window === 'undefined') return
+    const raw = window.sessionStorage.getItem('trs_pending_reply')
+    if (!raw) return
+    try {
+      const p = JSON.parse(raw) as { threadId?: string; toEmail?: string; subject?: string; body?: string }
+      if (p.threadId && p.threadId !== threadId) return
+      window.sessionStorage.removeItem('trs_pending_reply')
+      if (p.subject) setCustomSubject(p.subject)
+      if (p.toEmail) setToAddress(p.toEmail)
+      if (p.body) setPendingRestore({ body: p.body, generatedBy: 'nexus-step', stamp: Date.now() })
+      setDockSignal({ tab: 'reply', stamp: Date.now() })
+    } catch { /* ignore */ }
   }, [threadId])
 
   // NOTE: AI Analysis is generated ON DEMAND only (the Refresh button →
@@ -281,6 +301,7 @@ export function ThreadView({
               ? <ThreadRfqWorkflow threadId={threadId} messageId={latestMessageId} defaultInsured={lead.company ?? fullName(lead) ?? ''} />
               : <div className="p-5 text-[12px] text-muted-foreground/60">Open an email thread to start an RFQ.</div>
           }
+          openSignal={dockSignal}
         />
       </EaWorkspaceColumn>
 

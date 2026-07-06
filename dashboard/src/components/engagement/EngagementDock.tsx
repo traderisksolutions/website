@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Reply, Sparkles, FileText, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -12,11 +12,13 @@ type Tab = 'reply' | 'analysis' | 'rfq'
  * opened, so a half-written reply / in-progress RFQ survives tab switches.
  */
 export function EngagementDock({
-  reply, analysis, rfq,
+  reply, analysis, rfq, openSignal,
 }: {
   reply:    React.ReactNode
   analysis: React.ReactNode
   rfq:      React.ReactNode
+  /** Imperatively open a tab (e.g. a draft arriving from a Nexus roadmap step). */
+  openSignal?: { tab: Tab; stamp: number }
 }) {
   const [active, setActive] = useState<Tab | null>(null)
   const [opened, setOpened] = useState<Set<Tab>>(new Set())
@@ -25,6 +27,12 @@ export function EngagementDock({
     setActive(prev => (prev === tab ? null : tab))
     setOpened(prev => (prev.has(tab) ? prev : new Set(prev).add(tab)))
   }
+
+  useEffect(() => {
+    if (!openSignal) return
+    setActive(openSignal.tab)
+    setOpened(prev => (prev.has(openSignal.tab) ? prev : new Set(prev).add(openSignal.tab)))
+  }, [openSignal?.stamp]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: 'reply',    label: 'Reply',       icon: <Reply size={13} strokeWidth={2} /> },
