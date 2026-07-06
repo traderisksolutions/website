@@ -113,9 +113,14 @@ function EngagementPageInner() {
     try {
       const data = await fetchLeads()
       setLeads(data)
+      // Default selection = the most recently active conversation (matches the top of
+      // the sorted list), NOT data[0] which is in raw API order. `created_at` carries
+      // last_message_at for conversation rows, so this is the genuine latest.
+      const latestId = [...data]
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.id ?? null
       setSelectedId(prev => {
         if (!prev && initLeadId && data.some(l => l.id === initLeadId)) return initLeadId
-        return prev ?? (data[0]?.id ?? null)
+        return prev ?? latestId
       })
     } finally { setLoading(false); setRefreshing(false) }
   }, [initLeadId])
