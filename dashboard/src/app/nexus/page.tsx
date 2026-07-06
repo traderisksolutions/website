@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
+import RfqPanel from '@/components/nexus/RfqPanel'
 import { createClient } from '@/lib/supabase/client'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -285,6 +286,13 @@ export default function NexusPage() {
 
   useEffect(() => { loadCases() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Deep-link: /nexus?case=<id> (e.g. after the manual "Start RFQ" flow) selects
+  // that case. Runs before the default first-case selection can claim it.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('case')
+    if (id) setSelectedId(id)
+  }, [])
+
   const visible = cases.filter(c =>
     !search || c.name.toLowerCase().includes(search.toLowerCase()) || (c.description ?? '').toLowerCase().includes(search.toLowerCase())
   )
@@ -502,7 +510,8 @@ function CaseDetailPanel({
   const [loading,       setLoading]       = useState(false)
   const [analyzing,     setAnalyzing]     = useState(false)
   const [analyzeError,  setAnalyzeError]  = useState<string | null>(null)
-  const [view,          setView]          = useState<'mission' | 'messages' | 'history'>('mission')
+  const [view,          setView]          = useState<'mission' | 'messages' | 'history' | 'rfq'>('mission')
+  const [rfqCount,      setRfqCount]      = useState(0)
   const [linkOpen,      setLinkOpen]      = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [runs,          setRuns]          = useState<RunSummary[]>([])
@@ -534,6 +543,16 @@ function CaseDetailPanel({
       if (detailRes.ok) setDetail(await detailRes.json())
     } finally { setLoading(false) }
   }, [caseData.id, loadRuns])
+
+  // RFQ request count — drives whether the RFQ tab shows.
+  useEffect(() => {
+    let cancelled = false
+    fetch(`/api/nexus/rfq/requests?case_id=${caseData.id}`, { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : [])
+      .then(rows => { if (!cancelled) setRfqCount(Array.isArray(rows) ? rows.length : 0) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [caseData.id])
 
   // Keep a stable ref to load() so polling effects can call it without stale closure
   const loadRef = useRef(load)
@@ -678,6 +697,7 @@ function CaseDetailPanel({
         view={view}
         totalMsgCount={totalMsgCount}
         runsCount={runs.length}
+        rfqCount={rfqCount}
         onSetView={setView}
         onRunAnalysis={runAnalysis}
         onLinkThreads={() => setLinkOpen(true)}
@@ -712,12 +732,14 @@ function CaseDetailPanel({
             onRunAnalysis={runAnalysis}
             onOpenCompose={openCompose}
           />
-        ) : (
+        ) : view === 'messages' ? (
           <MessagesView
             messages={unifiedMessages}
             loading={loading}
             onGoToMission={() => setView('mission')}
           />
+        ) : (
+          <RfqPanel caseId={caseData.id} />
         )}
       </div>
       {composeState && (
@@ -741,7 +763,7 @@ function CaseDetailPanel({
 // ── Mission Header ────────────────────────────────────────────────────────────
 
 function MissionHeader({
-  caseData, threads, analysis, analyzing, analyzeProgress, analyzeError, confirmDelete, view, totalMsgCount, runsCount,
+  caseData, threads, analysis, analyzing, analyzeProgress, analyzeError, confirmDelete, view, totalMsgCount, runsCount, rfqCount,
   onSetView, onRunAnalysis, onLinkThreads, onDelete, onConfirmDelete, onCancelDelete,
 }: {
   caseData:        Case
@@ -751,10 +773,11 @@ function MissionHeader({
   analyzeProgress: AnalysisProgress | null
   analyzeError:    string | null
   confirmDelete:   boolean
-  view:            'mission' | 'messages' | 'history'
+  view:            'mission' | 'messages' | 'history' | 'rfq'
   totalMsgCount:   number
   runsCount:       number
-  onSetView:       (v: 'mission' | 'messages' | 'history') => void
+  rfqCount:        number
+  onSetView:       (v: 'mission' | 'messages' | 'history' | 'rfq') => void
   onRunAnalysis:   () => void
   onLinkThreads:   () => void
   onDelete:        () => void
@@ -849,8 +872,9 @@ function MissionHeader({
           {([
             { key: 'mission',  label: 'Mission Control' },
             { key: 'messages', label: `Messages${totalMsgCount > 0 ? ` (${totalMsgCount})` : ''}` },
+            ...(rfqCount > 0 ? [{ key: 'rfq', label: `RFQ (${rfqCount})` }] : []),
             { key: 'history',  label: `History${runsCount > 0 ? ` (${runsCount})` : ''}` },
-          ] as const).map(({ key, label }) => (
+          ] as { key: 'mission' | 'messages' | 'history' | 'rfq'; label: string }[]).map(({ key, label }) => (
             <button
               key={key}
               onClick={() => onSetView(key)}

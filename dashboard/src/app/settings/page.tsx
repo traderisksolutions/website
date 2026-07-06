@@ -3,6 +3,7 @@
 import React, { useEffect, useState, Suspense } from 'react'
 import { useSearchParams }   from 'next/navigation'
 import SignaturePanel        from '@/components/SignaturePanel'
+import InsurerDirectoryPanel from '@/components/InsurerDirectoryPanel'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
@@ -111,6 +112,7 @@ function SettingsContent() {
     <div className="flex flex-col gap-6">
       <GmailSection profile={profile} onProfileChange={loadProfile} />
       <SignaturePanel profile={profile} />
+      <InsurerDirectoryPanel />
     </div>
   )
 }
@@ -120,7 +122,7 @@ export default function SettingsPage() {
     <div className="p-8 max-w-3xl mx-auto">
       <div className="mb-7">
         <h1 className="text-xl font-bold tracking-tight text-foreground">Settings</h1>
-        <p className="text-sm text-muted-foreground mt-1">Gmail accounts, signatures, and sending addresses</p>
+        <p className="text-sm text-muted-foreground mt-1">Gmail accounts, signatures, sending addresses, and the insurer directory</p>
       </div>
       <Suspense>
         <SettingsContent />

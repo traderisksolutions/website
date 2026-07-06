@@ -1521,7 +1521,10 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: url('/lilac_trs_1.png') center center / cover no-repeat;
+  background: image-set(
+    url('/lilac_trs_1.webp') type('image/webp'),
+    url('/lilac_trs_1.png') type('image/png')
+  ) center center / cover no-repeat;
   padding: 120px 24px 80px;
 }
 
@@ -3758,7 +3761,10 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   position: relative;
   background:
     linear-gradient(rgba(20,16,40,0.62), rgba(12,10,30,0.72)),
-    url('/lilac_trs_2.png') center center / cover no-repeat;
+    image-set(
+      url('/lilac_trs_2.webp') type('image/webp'),
+      url('/lilac_trs_2.png') type('image/png')
+    ) center center / cover no-repeat;
   display: flex;
   flex-direction: column;
 }

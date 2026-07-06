@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { waitUntil }        from '@vercel/functions'
+import { productLineLabel } from '@/lib/product-lines'
 
 export const maxDuration = 300
 
@@ -345,6 +346,54 @@ async function tagThreadWithCampaignContext(email: string, threadId: string): Pr
   console.log('[ingest] outbound reply (email match) on thread', threadId, '→', camps[0].name)
 }
 
+// ── RFQ pipeline (Phase C) ────────────────────────────────────────────────────
+// If this Gmail thread was created by an RFQ dispatch to an insurer, link the
+// email_threads row to the case as an 'insurer' party and backfill the dispatch.
+// On an inbound reply, flag the dispatch (and its request) as replied.
+// Correlates on gmail_thread_id — works whether the sent copy or the reply is
+// ingested first. Fire-and-forget; never throws.
+async function linkRfqDispatch(gmailThreadId: string, threadDbId: string, direction: 'inbound' | 'outbound'): Promise<void> {
+  const h = sbHeaders('return=minimal')
+
+  const dRes = await fetch(
+    `${SB_URL}/rest/v1/rfq_dispatches?gmail_thread_id=eq.${encodeURIComponent(gmailThreadId)}&select=id,rfq_request_id,insurer_name,product_line,thread_id,status`,
+    { headers: sbHeaders(), cache: 'no-store' }
+  )
+  const dispatches: { id: string; rfq_request_id: string; insurer_name: string | null; product_line: string | null; thread_id: string | null; status: string }[] =
+    dRes.ok ? await dRes.json() : []
+  if (!Array.isArray(dispatches) || dispatches.length === 0) return
+
+  for (const d of dispatches) {
+    // Resolve the case this dispatch belongs to.
+    const rRes = await fetch(
+      `${SB_URL}/rest/v1/rfq_requests?id=eq.${d.rfq_request_id}&select=case_id,product_line&limit=1`,
+      { headers: sbHeaders(), cache: 'no-store' }
+    )
+    const rfq = rRes.ok ? (await rRes.json())[0] : null
+    if (!rfq?.case_id) continue
+
+    const label = `${d.insurer_name ?? 'Insurer'} · ${productLineLabel(d.product_line ?? rfq.product_line ?? '')}`
+
+    // Link the insurer thread to the case (idempotent on case_id,thread_id).
+    await fetch(`${SB_URL}/rest/v1/case_threads?on_conflict=case_id,thread_id`, {
+      method:  'POST',
+      headers: sbHeaders('return=minimal,resolution=merge-duplicates'),
+      body:    JSON.stringify({ case_id: rfq.case_id, thread_id: threadDbId, party_type: 'insurer', party_label: label }),
+    }).catch(() => {})
+
+    // Backfill the dispatch: attach the thread; on an inbound reply, mark replied.
+    const patch: Record<string, unknown> = { thread_id: threadDbId, updated_at: new Date().toISOString() }
+    if (direction === 'inbound' && d.status !== 'replied') patch.status = 'replied'
+    await fetch(`${SB_URL}/rest/v1/rfq_dispatches?id=eq.${d.id}`, {
+      method:  'PATCH',
+      headers: h,
+      body:    JSON.stringify(patch),
+    }).catch(() => {})
+
+    console.log('[ingest] rfq dispatch linked on thread', threadDbId, '→ case', rfq.case_id, `(${direction})`)
+  }
+}
+
 // Core: ingest a single Gmail message into the database
 async function ingestMessage(token: string, gmailMsgId: string, origin: string) {
   const msg = await fetchGmailMessage(token, gmailMsgId)
@@ -562,22 +611,31 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
     }
   }
 
-  // 6. Trigger AI analysis + draft reply for inbound messages only
+  // RFQ pipeline (Phase C): if this thread belongs to an insurer RFQ dispatch, link it
+  // to the case and flag replies. Runs for both the sent copy and the reply. Non-blocking.
+  if (gmailThreadId && thread.id) {
+    linkRfqDispatch(gmailThreadId, thread.id, direction).catch(e =>
+      console.error('[ingest] rfq dispatch link failed:', e instanceof Error ? e.message : e))
+  }
+
+  // 6. Trigger downstream flows for inbound messages only
   if (direction === 'inbound') {
     // Tag thread with campaign context if sender is an outbound campaign lead (non-blocking)
     if (resolvedParty && !isInternal(fromEmail)) {
       tagThreadWithCampaignContext(fromEmail, thread.id).catch(() => {})
     }
-    // Call auto-summarize as a separate serverless function so it gets its own
-    // independent maxDuration (300s) rather than sharing this function's budget.
+    // NOTE: AI Analysis (auto-summarize) is intentionally NOT triggered here.
+    // Engagement analysis is generated on demand only, via the Refresh button in the UI.
+    // RFQ detection — independent serverless call; opens a Nexus case on a hit.
+    // Never blocks or fails ingest.
     waitUntil(
-      fetch(`${origin}/api/engagement/auto-summarize`, {
+      fetch(`${origin}/api/nexus/rfq/detect`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.CRON_SECRET ?? '' },
         body:    JSON.stringify({ thread_id: thread.id, message_id: dbMsg.id }),
       })
-        .then(r => { if (!r.ok) console.warn('[ingest] auto-summarize returned', r.status, 'for thread', thread.id) })
-        .catch(e => console.error('[ingest] auto-summarize trigger failed:', e instanceof Error ? e.message : e))
+        .then(r => { if (!r.ok) console.warn('[ingest] rfq-detect returned', r.status, 'for thread', thread.id) })
+        .catch(e => console.error('[ingest] rfq-detect trigger failed:', e instanceof Error ? e.message : e))
     )
   }
 

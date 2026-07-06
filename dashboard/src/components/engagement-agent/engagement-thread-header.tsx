@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeft, Trash2 } from 'lucide-react'
+import { ArrowLeft, Trash2, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Lead } from '@/components/engagement/types'
 import { fullName } from '@/components/engagement/helpers'
@@ -18,12 +18,14 @@ interface EngagementThreadHeaderProps {
   /** Handles both first press (enter confirm mode) and confirm press */
   onDelete:       () => void
   onCancelDelete: () => void
+  /** Manually launch the RFQ workflow when auto-detection missed it. */
+  onStartRfq?:    () => void
 }
 
 export function EngagementThreadHeader({
   subject, lead, messageCount, needsReply,
   statusKey, confirmDelete, deleting,
-  onBack, onDelete, onCancelDelete,
+  onBack, onDelete, onCancelDelete, onStartRfq,
 }: EngagementThreadHeaderProps) {
   const contactName    = fullName(lead)
   const displaySubject = subject ?? contactName
@@ -76,6 +78,16 @@ export function EngagementThreadHeader({
 
         {/* Right: status + delete */}
         <div className="flex items-center gap-2 flex-shrink-0 mt-0.5">
+          {onStartRfq && !confirmDelete && (
+            <button
+              onClick={onStartRfq}
+              className="flex items-center gap-1.5 text-[11px] font-semibold text-primary bg-primary/[0.08] hover:bg-primary/[0.14] rounded-lg px-2.5 py-1.5 transition-colors"
+              title="Manually turn this email into a quotation request"
+            >
+              <FileText size={12} strokeWidth={2.2} />
+              Start RFQ
+            </button>
+          )}
           <EngagementStatusBadge status={statusKey} />
 
           {confirmDelete ? (

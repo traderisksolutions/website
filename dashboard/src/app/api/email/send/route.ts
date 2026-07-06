@@ -153,7 +153,9 @@ function wrapBase64Lines(b64: string): string {
   return b64.match(/.{1,76}/g)?.join('\r\n') ?? b64
 }
 
-function buildRawEmail(to: string, subject: string, body: string, htmlBody?: string | null, cc?: string[], bcc?: string[], replyTo?: string, fromEmail = DEFAULT_OPS_EMAIL): string {
+type EmailAttachment = { filename: string; mimeType: string; dataB64: string }
+
+function buildRawEmail(to: string, subject: string, body: string, htmlBody?: string | null, cc?: string[], bcc?: string[], replyTo?: string, fromEmail = DEFAULT_OPS_EMAIL, attachments?: EmailAttachment[]): string {
   const boundary    = `trs_${Date.now()}`
   const plainText   = htmlBody ? htmlToText(htmlBody) : body
   const emailCss = `<style>body{margin:0;padding:0}p{margin:0 0 10px 0;padding:0}p:last-child{margin-bottom:0}ul,ol{margin:0 0 10px 0;padding-left:22px}li{margin-bottom:3px}strong{font-weight:600}a{color:#1d4ed8}img{max-width:100%;height:auto;display:block;margin:8px 0}</style>`
@@ -165,7 +167,8 @@ function buildRawEmail(to: string, subject: string, body: string, htmlBody?: str
   const plainB64 = wrapBase64Lines(Buffer.from(plainText, 'utf-8').toString('base64'))
   const htmlB64  = wrapBase64Lines(Buffer.from(fullHtml,  'utf-8').toString('base64'))
 
-  const lines = [
+  // Address + subject headers are shared; the body layout differs when attachments are present.
+  const headers = [
     `From: Trade Risk Solutions <${fromEmail}>`,
     `To: ${to}`,
     ...(replyTo && replyTo !== fromEmail ? [`Reply-To: ${replyTo}`] : []),
@@ -173,8 +176,9 @@ function buildRawEmail(to: string, subject: string, body: string, htmlBody?: str
     ...(bcc?.length ? [`Bcc: ${bcc.join(', ')}`] : []),
     `Subject: ${encodeSubject(subject)}`,
     'MIME-Version: 1.0',
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    '',
+  ]
+
+  const altPart = [
     `--${boundary}`,
     'Content-Type: text/plain; charset=utf-8',
     'Content-Transfer-Encoding: base64',
@@ -188,6 +192,35 @@ function buildRawEmail(to: string, subject: string, body: string, htmlBody?: str
     htmlB64,
     '',
     `--${boundary}--`,
+  ]
+
+  const atts = attachments?.filter(a => a.dataB64) ?? []
+  if (atts.length === 0) {
+    const lines = [...headers, `Content-Type: multipart/alternative; boundary="${boundary}"`, '', ...altPart]
+    return Buffer.from(lines.join('\r\n')).toString('base64url')
+  }
+
+  // Wrap the alternative body + attachments in a multipart/mixed envelope.
+  const mixed = `mixed_${Date.now()}`
+  const lines = [
+    ...headers,
+    `Content-Type: multipart/mixed; boundary="${mixed}"`,
+    '',
+    `--${mixed}`,
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    '',
+    ...altPart,
+    '',
+    ...atts.flatMap(a => [
+      `--${mixed}`,
+      `Content-Type: ${a.mimeType || 'application/octet-stream'}; name="${a.filename}"`,
+      `Content-Disposition: attachment; filename="${a.filename}"`,
+      'Content-Transfer-Encoding: base64',
+      '',
+      wrapBase64Lines(a.dataB64),
+      '',
+    ]),
+    `--${mixed}--`,
   ]
   return Buffer.from(lines.join('\r\n')).toString('base64url')
 }
@@ -227,8 +260,8 @@ function buildSignatureText(sig: Signature): string {
 // their own Gmail and fromEmail matches, their token is used. Otherwise falls back to ops@.
 export async function POST(req: NextRequest) {
   try {
-    const { draftId, htmlBody, signatureId, toEmail, cc, bcc, customSubject, fromEmail: requestedFrom, originalAiBody } =
-      await req.json() as { draftId: string; htmlBody?: string; signatureId?: string; toEmail?: string; cc?: string[]; bcc?: string[]; customSubject?: string; fromEmail?: string; originalAiBody?: string }
+    const { draftId, htmlBody, signatureId, toEmail, cc, bcc, customSubject, fromEmail: requestedFrom, originalAiBody, attachments: attachmentRefs } =
+      await req.json() as { draftId: string; htmlBody?: string; signatureId?: string; toEmail?: string; cc?: string[]; bcc?: string[]; customSubject?: string; fromEmail?: string; originalAiBody?: string; attachments?: { filename: string; mime_type?: string; storage_url: string }[] }
     if (!draftId) return NextResponse.json({ error: 'draftId required' }, { status: 400 })
 
     // Identify the logged-in employee so we can use their Gmail token if they've connected one
@@ -295,7 +328,22 @@ export async function POST(req: NextRequest) {
     // 5. Send via Gmail API — use the employee's personal token if they've connected their Gmail,
     //    otherwise fall back to the shared ops@ token.
     const token    = await getTokenForSender(FROM_EMAIL, userId)
-    const rawEmail = buildRawEmail(recipientEmail, subject, finalPlain, finalHtml, cc, bcc, undefined, FROM_EMAIL)
+
+    // Download any selected attachments from Supabase Storage → base64 for the MIME envelope.
+    let emailAttachments: EmailAttachment[] = []
+    if (Array.isArray(attachmentRefs) && attachmentRefs.length > 0) {
+      emailAttachments = (await Promise.all(attachmentRefs.slice(0, 10).map(async ref => {
+        try {
+          if (!ref.storage_url) return null
+          const r = await fetch(ref.storage_url)
+          if (!r.ok) return null
+          const buf = Buffer.from(await r.arrayBuffer())
+          return { filename: ref.filename, mimeType: ref.mime_type || 'application/octet-stream', dataB64: buf.toString('base64') }
+        } catch { return null }
+      }))).filter((a): a is EmailAttachment => a !== null)
+    }
+
+    const rawEmail = buildRawEmail(recipientEmail, subject, finalPlain, finalHtml, cc, bcc, undefined, FROM_EMAIL, emailAttachments)
 
     const sendPayload: Record<string, unknown> = { raw: rawEmail }
     if (gmailThreadId) sendPayload.threadId = gmailThreadId
@@ -393,7 +441,7 @@ export async function POST(req: NextRequest) {
     // a race condition between the email_messages insert and the evaluation read.
     waitUntil(runDraftEvaluation(draftId, draft.thread_id ?? null, sentBodyPlain, originalAiBody))
 
-    return NextResponse.json({ ok: true, gmailMessageId: sent.id })
+    return NextResponse.json({ ok: true, gmailMessageId: sent.id, gmailThreadId: sent.threadId ?? null })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Server error'
     return NextResponse.json({ error: msg }, { status: 500 })

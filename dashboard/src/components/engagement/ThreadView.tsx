@@ -9,6 +9,7 @@ import { EngagementThreadHeader } from '@/components/engagement-agent/engagement
 import { EngagementMessageCard } from '@/components/engagement-agent/engagement-message-card'
 import { EngagementComposePanel } from '@/components/engagement-agent/engagement-compose-panel'
 import { EngagementContextPanel } from '@/components/engagement-agent/engagement-context-panel'
+import StartRfqModal from '@/components/nexus/StartRfqModal'
 
 interface ThreadViewProps {
   lead:            Lead
@@ -35,6 +36,9 @@ export function ThreadView({
   // RAG draft
   const [ragDraft,         setRagDraft]         = useState<{ content: string; sources: RagSource[] } | null>(null)
 
+  // Manual "Start RFQ" workflow
+  const [startRfqOpen,     setStartRfqOpen]     = useState(false)
+
   // Compose headers
   const [toAddress,     setToAddress]     = useState('')
   const [ccList,        setCcList]        = useState<string[]>([])
@@ -49,12 +53,6 @@ export function ThreadView({
   const [deleting,       setDeleting]      = useState(false)
   const [confirmDelete,  setConfirmDelete]  = useState(false)
 
-  // Refs for detecting new inbound messages and polling for summaries
-  const prevLatestMsgIdRef  = useRef<string | null>(null)
-  const analyzeTimerRef     = useRef<ReturnType<typeof setInterval> | null>(null)
-  const analyzeTimeoutRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const analyzeBackupRef    = useRef<ReturnType<typeof setTimeout> | null>(null)
-
   const threadId        = thread?.id ?? null
   const latestMessageId = messages.at(-1)?.id ?? null
   const log             = useAuditLog()
@@ -62,10 +60,6 @@ export function ThreadView({
   // Reset per-lead state when switching leads
   useEffect(() => {
     toInitialised.current      = false
-    prevLatestMsgIdRef.current = null
-    if (analyzeTimerRef.current)   { clearInterval(analyzeTimerRef.current);  analyzeTimerRef.current  = null }
-    if (analyzeTimeoutRef.current) { clearTimeout(analyzeTimeoutRef.current); analyzeTimeoutRef.current = null }
-    if (analyzeBackupRef.current)  { clearTimeout(analyzeBackupRef.current);  analyzeBackupRef.current  = null }
     setAnalyzing(false)
     const s = thread?.subject ?? ''
     setCustomSubject(s ? (s.startsWith('Re:') ? s : `Re: ${s}`) : 'Re: Your enquiry | Trade Risk Solutions')
@@ -96,7 +90,8 @@ export function ThreadView({
     if (ccs.length > 0) setCcList(Array.from(new Set(ccs)))
   }, [messages.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load summaries + RAG draft when thread changes
+  // Read any existing summary when the thread changes (display only — never generates).
+  // The reply draft is NOT auto-loaded; it appears only when the employee clicks Generate.
   useEffect(() => {
     setSummaries([])
     setRagDraft(null)
@@ -109,104 +104,15 @@ export function ThreadView({
       .catch(() => setSummaries([]))
       .finally(() => setSummariesLoading(false))
 
-    fetch(`/api/engagement/draft-rag?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' })
-      .then(r => r.json())
-      .then(data => { if (data?.content) setRagDraft({ content: data.content, sources: data.sources ?? [] }) })
-      .catch(() => {})
-
     log({
       action: 'thread.viewed', resource_type: 'thread', resource_id: threadId,
       metadata: { contact: lead.email, subject: lead.subject },
     })
   }, [threadId, lead.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Whenever latestMessageId changes (new message arriving OR first load of a thread):
-  // if the latest message is inbound and has no summary yet, show "Analysing thread…"
-  // and poll until auto-summarize writes the result to Supabase.
-  useEffect(() => {
-    const prev = prevLatestMsgIdRef.current
-    prevLatestMsgIdRef.current = latestMessageId
-
-    if (!latestMessageId || latestMessageId === prev) return
-
-    // Only react to inbound messages
-    const latestMsg = messages.at(-1)
-    if (!latestMsg || latestMsg.direction !== 'inbound') return
-
-    // On the initial thread load (prev === null), skip if the message is older than
-    // 10 minutes — auto-summarize won't still be running for those.
-    if (prev === null && latestMsg.sent_at) {
-      const ageMs = Date.now() - new Date(latestMsg.sent_at).getTime()
-      if (ageMs > 10 * 60_000) return
-    }
-
-    // Stop any existing polling / backup timers
-    if (analyzeTimerRef.current)   { clearInterval(analyzeTimerRef.current);  analyzeTimerRef.current  = null }
-    if (analyzeTimeoutRef.current) { clearTimeout(analyzeTimeoutRef.current); analyzeTimeoutRef.current = null }
-    if (analyzeBackupRef.current)  { clearTimeout(analyzeBackupRef.current);  analyzeBackupRef.current  = null }
-
-    if (!threadId) return
-
-    // Capture the baseline so we know when a truly NEW summary appears
-    const baselineFirstId    = summaries[0]?.id ?? null
-    const capturedThreadId   = threadId
-    const capturedMessageId  = latestMessageId
-
-    const stopPolling = () => {
-      if (analyzeTimerRef.current)   { clearInterval(analyzeTimerRef.current);  analyzeTimerRef.current  = null }
-      if (analyzeTimeoutRef.current) { clearTimeout(analyzeTimeoutRef.current); analyzeTimeoutRef.current = null }
-      if (analyzeBackupRef.current)  { clearTimeout(analyzeBackupRef.current);  analyzeBackupRef.current  = null }
-    }
-
-    const checkForNewSummary = () => {
-      fetch(`/api/engagement/thread-summaries?thread_id=${encodeURIComponent(capturedThreadId)}`, { cache: 'no-store' })
-        .then(r => r.json())
-        .then((data: StoredSummary[]) => {
-          if (!Array.isArray(data)) return
-          if (data[0]?.id !== baselineFirstId) {
-            setSummaries(data)
-            setAnalyzing(false)
-            stopPolling()
-          }
-        })
-        .catch(() => {})
-    }
-
-    const startPolling = () => {
-      setAnalyzing(true)
-      analyzeTimerRef.current = setInterval(checkForNewSummary, 5_000)
-
-      // Give up after 3 minutes
-      analyzeTimeoutRef.current = setTimeout(() => {
-        setAnalyzing(false)
-        stopPolling()
-      }, 3 * 60_000)
-
-      // After 30 s — if waitUntil(auto-summarize) didn't fire on the server (Vercel Hobby plan
-      // limitation), call refresh-summary directly from the client as a guaranteed fallback.
-      analyzeBackupRef.current = setTimeout(() => {
-        fetch('/api/engagement/refresh-summary', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ thread_id: capturedThreadId, message_id: capturedMessageId }),
-        })
-          .then(() => checkForNewSummary())
-          .catch(() => {})
-      }, 30_000)
-    }
-
-    // Check immediately — if auto-summarize already finished, don't show the spinner
-    fetch(`/api/engagement/thread-summaries?thread_id=${encodeURIComponent(capturedThreadId)}`, { cache: 'no-store' })
-      .then(r => r.json())
-      .then((data: StoredSummary[]) => {
-        if (Array.isArray(data) && data[0]?.id !== baselineFirstId) {
-          setSummaries(data)   // already there — silent update, no spinner
-        } else {
-          startPolling()
-        }
-      })
-      .catch(() => startPolling())
-  }, [latestMessageId]) // eslint-disable-line react-hooks/exhaustive-deps
+  // NOTE: AI Analysis is generated ON DEMAND only (the Refresh button →
+  // refreshSummaries below). It no longer auto-polls or auto-generates when a new
+  // email arrives — matching the rewired "button press only" behaviour.
 
   async function handleDelete() {
     if (!confirmDelete) { setConfirmDelete(true); return }
@@ -219,14 +125,24 @@ export function ThreadView({
     } finally { setDeleting(false); setConfirmDelete(false) }
   }
 
+  // The Refresh button GENERATES the analysis on demand (server auto-summarize on
+  // inbound was removed), then reloads the stored summary.
   function refreshSummaries() {
     if (!threadId) return
-    setSummariesLoading(true)
-    fetch(`/api/engagement/thread-summaries?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' })
-      .then(r => r.json())
-      .then(data => setSummaries(Array.isArray(data) ? data : []))
-      .catch(() => setSummaries([]))
-      .finally(() => setSummariesLoading(false))
+    setAnalyzing(true)
+    fetch('/api/engagement/refresh-summary', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ thread_id: threadId, message_id: latestMessageId }),
+    })
+      .catch(() => {})
+      .finally(() => {
+        fetch(`/api/engagement/thread-summaries?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' })
+          .then(r => r.json())
+          .then(data => setSummaries(Array.isArray(data) ? data : []))
+          .catch(() => setSummaries([]))
+          .finally(() => setAnalyzing(false))
+      })
   }
 
   // Auto-expand: last message + last inbound message
@@ -250,7 +166,17 @@ export function ThreadView({
           onBack={onBack}
           onDelete={handleDelete}
           onCancelDelete={() => setConfirmDelete(false)}
+          onStartRfq={threadId ? () => setStartRfqOpen(true) : undefined}
         />
+
+        {startRfqOpen && threadId && (
+          <StartRfqModal
+            threadId={threadId}
+            messageId={latestMessageId}
+            defaultInsured={lead.company ?? fullName(lead) ?? ''}
+            onClose={() => setStartRfqOpen(false)}
+          />
+        )}
 
         {/* ── Messages scroll region ── */}
         <EaMessageArea>
