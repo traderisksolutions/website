@@ -174,6 +174,43 @@ function EngagementPageInner() {
       })
   }, [selectedId, leads]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Smart Realtime — when a new message lands on the OPEN thread, APPEND it in place
+  // from the event payload (no refetch, no loading spinner → no blink). New mail on
+  // other threads / brand-new conversations still arrives via the 90s background sync.
+  useEffect(() => {
+    if (!selectedId) return
+    const threadId = leads.find(l => l.id === selectedId)?.thread_id
+    if (!threadId) return
+
+    const supabase = createClient()
+    const channel  = supabase
+      .channel(`ea-live-${threadId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'email_messages', filter: `thread_id=eq.${threadId}` },
+        payload => {
+          const r = payload.new as {
+            id: string; direction: 'inbound' | 'outbound'; from_address: string | null
+            subject: string | null; body_text: string | null; sent_at: string | null
+          }
+          setThreadMap(prev => {
+            const t = prev[selectedId]
+            // Only append to an already-loaded thread; skip if the initial fetch will cover it.
+            if (!t || t.loading || t.messages.some(m => m.id === r.id)) return prev
+            const msg = {
+              id: r.id, direction: r.direction, from_address: r.from_address,
+              subject: r.subject, body_text: r.body_text, sent_at: r.sent_at,
+              to: [] as string[], cc: [] as string[],
+            }
+            return { ...prev, [selectedId]: { ...t, messages: [...t.messages, msg] } }
+          })
+        },
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [selectedId, leads]) // eslint-disable-line react-hooks/exhaustive-deps
+
   function handleStatus(id: string, status: string) {
     const lead = leads.find(l => l.id === id)
     setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l))
