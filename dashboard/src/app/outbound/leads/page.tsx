@@ -182,7 +182,7 @@ export default function OutboundLeadsPage() {
   })
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-background">
+    <div className="flex flex-col h-[calc(100vh/var(--ui-zoom))] overflow-hidden bg-background">
 
       <AppPageHeader
         title="Outbound Leads"

@@ -320,7 +320,7 @@ export default function NexusPage() {
   const selectedCase = cases.find(c => c.id === selectedId) ?? null
 
   return (
-    <div className="flex flex-col overflow-hidden h-[calc(100vh-var(--mobile-nav-h,0px))]">
+    <div className="flex flex-col overflow-hidden h-[calc((100vh-var(--mobile-nav-h,0px))/var(--ui-zoom))]">
       {/* ── Header ── */}
       <div className="flex items-center justify-between px-5 h-[52px] border-b border-[--border-subtle] flex-shrink-0 bg-card">
         <div className="flex items-center gap-3">
@@ -3364,7 +3364,7 @@ function ThreadLinkerModal({
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="bg-card rounded-2xl shadow-2xl w-full max-w-[760px] flex flex-col overflow-hidden max-h-[85vh]"
+        className="bg-card rounded-2xl shadow-2xl w-full max-w-[760px] flex flex-col overflow-hidden max-h-[calc(85vh/var(--ui-zoom))]"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}

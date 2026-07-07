@@ -247,7 +247,7 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f9f9f9', padding: '28px 32px 48px' }}>
+    <div style={{ minHeight: 'calc(100vh / var(--ui-zoom))', background: '#f9f9f9', padding: '28px 32px 48px' }}>
 
       {/* ── Page header ── */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>

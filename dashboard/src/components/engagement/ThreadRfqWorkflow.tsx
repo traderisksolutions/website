@@ -6,7 +6,10 @@ import { cn } from '@/lib/utils'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog'
-import { PRODUCT_LINES, productLineLabel } from '@/lib/product-lines'
+import { RichTextEditor } from './RichTextEditor'
+import { groupedProductLines, productLineLabel } from '@/lib/product-lines'
+
+const OPS_EMAIL = 'operations@trade-risksol.com'
 
 /**
  * RFQ send desk for the engagement dock.
@@ -26,9 +29,11 @@ type Sender    = { email: string; label: string; type: string }
 type SigOption = { id: string; name: string; title: string | null; phone: string | null; email: string | null }
 type Attachment = { id: string; filename: string; mime_type: string | null; storage_url: string; size_bytes?: number | null }
 
-// One insurer being drafted to inside the wizard.
+// One insurer being drafted to inside the wizard. `body` is HTML (rich editor).
 type StagedInsurer = Insurer & {
   to: string; subject: string; body: string
+  cc: string; ccTouched: boolean
+  gen: number                      // bumps when body is (re)generated → re-seeds editor
   loadingDraft: boolean; draftError: string | null
   attach: string[]                 // manually-selected attachment ids
   sending: boolean; sendError: string | null; sent: boolean
@@ -37,6 +42,18 @@ type StagedLine = { line: string; insurers: StagedInsurer[] }
 
 function escapeHtml(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }
 function plainToHtml(t: string) { return t.split('\n').map(l => l.trim() === '' ? '<br>' : `<p style="margin:0 0 10px">${escapeHtml(l)}</p>`).join('') }
+function htmlToText(html: string) {
+  return html
+    .replace(/<br\s*\/?>(?=)/gi, '\n')
+    .replace(/<\/(p|div|h[1-6]|li)>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '• ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/\n{3,}/g, '\n\n').trim()
+}
+function parseEmails(s: string): string[] {
+  return s.split(/[,;\s]+/).map(e => e.trim()).filter(e => e.includes('@'))
+}
 function buildSigHtml(s: SigOption) {
   return ['<br><hr style="margin:16px 0;border:none;border-top:1px solid #e5e7eb">',
     `<p style="margin:0;font-size:13px;color:#1e3a5f;font-weight:600">${s.name}</p>`,
@@ -123,7 +140,7 @@ export default function ThreadRfqWorkflow({
       const d = await fetch('/api/nexus/rfq/draft', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ product_line: line, insured_name: insured, contact_id: ins.contact_id, client_message_id: messageId }) }).then(r => r.json())
       if (d?.error) { patchIns(line, ins.contact_id, { loadingDraft: false, draftError: d.error }); return }
-      patchIns(line, ins.contact_id, { loadingDraft: false, subject: d.subject ?? '', body: d.body ?? '', to: d.to_email || ins.contact_email })
+      patchIns(line, ins.contact_id, { loadingDraft: false, subject: d.subject ?? '', body: plainToHtml(d.body ?? ''), to: d.to_email || ins.contact_email, gen: Date.now() })
     } catch (e) {
       patchIns(line, ins.contact_id, { loadingDraft: false, draftError: String(e) })
     }
@@ -138,12 +155,25 @@ export default function ThreadRfqWorkflow({
     setLineInsurers(Array.isArray(rows) ? rows : [])
   }
 
+  // Which sender is active, and whether it's the employee's personal Gmail.
+  const personalSelected = senders.find(s => s.email === fromEmail)?.type === 'personal'
+
+  // Keep the CC in sync with the send-from choice until the user edits it:
+  // personal Gmail → auto-CC operations@; shared → clear. Touched cards are left alone.
+  useEffect(() => {
+    setStaged(prev => prev.map(l => ({ ...l, insurers: l.insurers.map(ins => {
+      if (ins.ccTouched || ins.sent) return ins
+      const want = personalSelected ? OPS_EMAIL : ''
+      return ins.cc === want ? ins : { ...ins, cc: want }
+    }) })))
+  }, [personalSelected])
+
   function confirmInsurers() {
     if (!activeLine || picked.length === 0) return
     const chosen = lineInsurers.filter(i => picked.includes(i.contact_id))
     setStaged(prev => {
       const existing = prev.find(l => l.line === activeLine)
-      const toStaged = (i: Insurer): StagedInsurer => ({ ...i, to: i.contact_email, subject: '', body: '', loadingDraft: true, draftError: null, attach: [], sending: false, sendError: null, sent: false })
+      const toStaged = (i: Insurer): StagedInsurer => ({ ...i, to: i.contact_email, subject: '', body: '', cc: personalSelected ? OPS_EMAIL : '', ccTouched: false, gen: 0, loadingDraft: true, draftError: null, attach: [], sending: false, sendError: null, sent: false })
       if (existing) {
         const have = new Set(existing.insurers.map(i => i.contact_id))
         const merged = { ...existing, insurers: [...existing.insurers, ...chosen.filter(i => !have.has(i.contact_id)).map(toStaged)] }
@@ -157,20 +187,22 @@ export default function ThreadRfqWorkflow({
   }
 
   async function sendInsurer(line: string, ins: StagedInsurer) {
-    if (!ins.to.trim() || !ins.body.trim()) return
+    const plain = htmlToText(ins.body)
+    if (!ins.to.trim() || !plain) return
     patchIns(line, ins.contact_id, { sending: true, sendError: null })
     try {
       const sig = signatures.find(s => s.id === sigId)
-      const bodyHtml = plainToHtml(ins.body) + (sig ? buildSigHtml(sig) : '')
+      const bodyHtml = ins.body + (sig ? buildSigHtml(sig) : '')
       const atts = attachments.filter(a => ins.attach.includes(a.id)).map(a => ({ filename: a.filename, mime_type: a.mime_type ?? undefined, storage_url: a.storage_url }))
+      const cc = parseEmails(ins.cc)
 
       const draftRes = await fetch('/api/nexus/draft-create', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ thread_id: null, body: ins.body, email_type: 'RFQ_INSURER', to_email: ins.to.trim() }) })
+        body: JSON.stringify({ thread_id: null, body: plain, email_type: 'RFQ_INSURER', to_email: ins.to.trim() }) })
       const draftData = await draftRes.json()
       if (!draftRes.ok || !draftData.draftId) throw new Error(draftData.error || 'Could not prepare draft')
 
       const sendRes = await fetch('/api/email/send', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ draftId: draftData.draftId, htmlBody: bodyHtml, originalAiBody: ins.body, toEmail: ins.to.trim(), customSubject: ins.subject, fromEmail: fromEmail || null, signatureId: sigId || null, attachments: atts }) })
+        body: JSON.stringify({ draftId: draftData.draftId, htmlBody: bodyHtml, originalAiBody: plain, toEmail: ins.to.trim(), cc, customSubject: ins.subject, fromEmail: fromEmail || null, signatureId: sigId || null, attachments: atts }) })
       const sendData = await sendRes.json()
       if (!sendRes.ok) throw new Error(sendData.error || 'Send failed')
 
@@ -187,7 +219,7 @@ export default function ThreadRfqWorkflow({
   async function sendAll() {
     for (const l of staged) {
       for (const ins of l.insurers) {
-        if (!ins.sent && !ins.loadingDraft && ins.body.trim()) await sendInsurer(l.line, ins)
+        if (!ins.sent && !ins.loadingDraft && htmlToText(ins.body)) await sendInsurer(l.line, ins)
       }
     }
   }
@@ -329,13 +361,12 @@ function RfqWizard(p: {
   sendInsurer: (line: string, ins: StagedInsurer) => void; sendAll: () => void; stagedCount: number
 }) {
   const stagedLines = new Set(p.staged.map(l => l.line))
-  const addableLines = PRODUCT_LINES.filter(pl => !stagedLines.has(pl.slug))
 
   function toggle(id: string) { p.setPicked(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]) }
 
   return (
     <Dialog open={p.open} onOpenChange={p.onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-[1000px] max-h-[calc(88vh/var(--ui-zoom))] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>
             {p.step === 'line' ? 'New quotation request' : p.step === 'insurers'
@@ -350,14 +381,31 @@ function RfqWizard(p: {
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto -mx-1 px-1">
-          {/* Step 1 — pick a line */}
+          {/* Step 1 — pick a line (grouped like the website navbar) */}
           {p.step === 'line' && (
-            <div className="grid grid-cols-2 gap-2">
-              {addableLines.map(pl => (
-                <button key={pl.slug} onClick={() => p.onPickLine(pl.slug)}
-                  className="text-left text-[12.5px] rounded-md border border-[--border-subtle] px-3 py-2.5 hover:border-primary/50 hover:bg-primary/5 transition-colors">
-                  {pl.label}
-                </button>
+            <div className="flex flex-col gap-4">
+              {groupedProductLines().map(g => (
+                <div key={g.key} className="flex flex-col gap-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">{g.label}</span>
+                  {g.sections.map(sec => (
+                    <div key={sec.section} className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/45">{sec.section}</span>
+                      <div className="grid grid-cols-2 gap-2">
+                        {sec.lines.map(pl => {
+                          const done = stagedLines.has(pl.slug)
+                          return (
+                            <button key={pl.slug} onClick={() => p.onPickLine(pl.slug)} disabled={done}
+                              className={cn('text-left text-[12.5px] rounded-md border px-3 py-2.5 transition-colors',
+                                done ? 'border-[--border-subtle] bg-muted/40 text-muted-foreground/60 cursor-default'
+                                     : 'border-[--border-subtle] hover:border-primary/50 hover:bg-primary/5')}>
+                              {pl.label}{done && ' ✓'}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ))}
             </div>
           )}
@@ -461,6 +509,7 @@ function DraftCard({
   onSend: () => void
 }) {
   const [showAttach, setShowAttach] = useState(false)
+  const [ccOpen, setCcOpen] = useState(!!ins.cc.trim())
   const set = (patch: Partial<StagedInsurer>) => patchIns(line, ins.contact_id, patch)
   const inp = 'w-full text-[12px] border border-[--border-subtle] rounded-md px-2.5 py-1.5 bg-background outline-none focus:ring-1 focus:ring-primary/20'
   const toggleAttach = (id: string) => set({ attach: ins.attach.includes(id) ? ins.attach.filter(x => x !== id) : [...ins.attach, id] })
@@ -488,12 +537,22 @@ function DraftCard({
         <p className="text-[11.5px] text-destructive">Draft failed: {ins.draftError}</p>
       ) : (
         <>
-          <label className="flex items-center gap-2"><span className="text-[9.5px] font-semibold uppercase tracking-wider text-muted-foreground/60 w-12 flex-shrink-0">To</span>
-            <input value={ins.to} onChange={e => set({ to: e.target.value })} className={inp} /></label>
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2 flex-1"><span className="text-[9.5px] font-semibold uppercase tracking-wider text-muted-foreground/60 w-12 flex-shrink-0">To</span>
+              <input value={ins.to} onChange={e => set({ to: e.target.value })} className={inp} /></label>
+            {!ccOpen && (
+              <button onClick={() => setCcOpen(true)} className="text-[10.5px] font-semibold text-muted-foreground hover:text-foreground flex-shrink-0">
+                Cc{ins.cc.trim() ? ` (${parseEmails(ins.cc).length})` : ''}
+              </button>
+            )}
+          </div>
+          {ccOpen && (
+            <label className="flex items-center gap-2"><span className="text-[9.5px] font-semibold uppercase tracking-wider text-muted-foreground/60 w-12 flex-shrink-0">Cc</span>
+              <input value={ins.cc} onChange={e => set({ cc: e.target.value, ccTouched: true })} placeholder="comma-separated emails" className={inp} /></label>
+          )}
           <label className="flex items-center gap-2"><span className="text-[9.5px] font-semibold uppercase tracking-wider text-muted-foreground/60 w-12 flex-shrink-0">Subject</span>
             <input value={ins.subject} onChange={e => set({ subject: e.target.value })} className={inp} /></label>
-          <textarea value={ins.body} onChange={e => set({ body: e.target.value })} rows={8}
-            className="w-full text-[12px] leading-relaxed border border-[--border-subtle] rounded-md px-2.5 py-2 bg-background outline-none focus:ring-1 focus:ring-primary/20 resize-y font-sans" />
+          <RichTextEditor html={ins.body} resetKey={ins.gen} onChange={html => set({ body: html })} />
 
           {/* Attachments — manual add */}
           {attachments.length > 0 && (
@@ -516,7 +575,7 @@ function DraftCard({
 
           {ins.sendError && <p className="text-[11px] text-destructive">{ins.sendError}</p>}
           <div className="flex justify-end">
-            <button onClick={onSend} disabled={ins.sending || !ins.to.trim() || !ins.body.trim()}
+            <button onClick={onSend} disabled={ins.sending || !ins.to.trim() || !htmlToText(ins.body)}
               className="text-[11px] font-semibold px-3.5 py-1.5 rounded-md bg-primary text-primary-foreground disabled:opacity-50">
               {ins.sending ? 'Sending…' : `Send to ${ins.insurer_name}`}
             </button>

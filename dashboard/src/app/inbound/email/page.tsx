@@ -106,7 +106,7 @@ function InboundLeadsPage() {
   const selectedLead = leads.find(l => l.id === selectedId) ?? null
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh/var(--ui-zoom))] overflow-hidden">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <AppPageHeader

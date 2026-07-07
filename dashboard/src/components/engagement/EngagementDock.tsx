@@ -45,7 +45,7 @@ export function EngagementDock({
       {/* Active panel — always in the DOM (height 0 when collapsed) so state is preserved */}
       <div
         className="overflow-hidden transition-[height] duration-150"
-        style={{ height: active ? 'min(46vh, 460px)' : 0 }}
+        style={{ height: active ? 'min(calc(46vh / var(--ui-zoom)), 460px)' : 0 }}
       >
         <div className="h-full overflow-y-auto">
           {opened.has('reply')    && <div className={cn(active !== 'reply'    && 'hidden')}>{reply}</div>}

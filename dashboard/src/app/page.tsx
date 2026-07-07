@@ -49,7 +49,7 @@ export default function HomePage() {
   const c = counts ?? ZERO
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-[calc(100vh/var(--ui-zoom))] bg-background">
       <div className="max-w-[900px] mx-auto px-6 py-8">
 
         {/* ── Header ── */}

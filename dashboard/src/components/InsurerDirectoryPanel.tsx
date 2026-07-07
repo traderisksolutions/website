@@ -8,7 +8,7 @@ import { Input }  from '@/components/ui/input'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog'
-import { PRODUCT_LINES, productLineLabel } from '@/lib/product-lines'
+import { groupedProductLines, productLineLabel } from '@/lib/product-lines'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -167,17 +167,22 @@ function AddPointPersonDialog({
             </div>
           )}
 
-          {/* Step 2 — tag product lines */}
-          <div className="flex flex-col gap-2">
+          {/* Step 2 — tag product lines (grouped like the website navbar) */}
+          <div className="flex flex-col gap-3">
             <span className="text-xs font-medium text-foreground/80">Product lines</span>
-            <div className="grid grid-cols-2 gap-1.5">
-              {PRODUCT_LINES.map(p => (
-                <label key={p.slug} className="flex items-center gap-2 text-sm cursor-pointer rounded-md px-2 py-1 hover:bg-muted/50">
-                  <input type="checkbox" checked={lines.has(p.slug)} onChange={() => toggleLine(p.slug)} className="accent-primary" />
-                  <span className="truncate">{p.label}</span>
-                </label>
-              ))}
-            </div>
+            {groupedProductLines().map(g => (
+              <div key={g.key} className="flex flex-col gap-1">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">{g.label}</span>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {g.sections.flatMap(s => s.lines).map(p => (
+                    <label key={p.slug} className="flex items-center gap-2 text-sm cursor-pointer rounded-md px-2 py-1 hover:bg-muted/50">
+                      <input type="checkbox" checked={lines.has(p.slug)} onChange={() => toggleLine(p.slug)} className="accent-primary" />
+                      <span className="truncate">{p.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Optional link details */}

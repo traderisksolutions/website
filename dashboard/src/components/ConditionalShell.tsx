@@ -15,7 +15,7 @@ export default function ConditionalShell({ children }: { children: React.ReactNo
       <Sidebar />
       <MobileTopNav />
       <div
-        className="main-content min-h-screen flex flex-col"
+        className="main-content min-h-[calc(100vh/var(--ui-zoom))] flex flex-col"
         style={{ background: 'hsl(var(--background))' }}
       >
         {children}

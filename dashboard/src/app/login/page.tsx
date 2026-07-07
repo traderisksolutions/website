@@ -30,7 +30,7 @@ function LoginCard() {
 
   return (
     <div style={{
-      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      minHeight: 'calc(100vh / var(--ui-zoom))', display: 'flex', alignItems: 'center', justifyContent: 'center',
       background: '#f7f7f7', fontFamily: 'var(--font-archivo, system-ui, sans-serif)',
     }}>
       <div style={{

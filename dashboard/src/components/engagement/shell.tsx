@@ -33,7 +33,7 @@ export function EngagementShell({ children, className }: EngagementShellProps) {
       data-ea
       className={cn(
         'flex overflow-hidden flex-col',
-        'h-[calc(100vh-var(--mobile-nav-h,0px))]',
+        'h-[calc((100vh-var(--mobile-nav-h,0px))/var(--ui-zoom))]',
         className,
       )}
     >

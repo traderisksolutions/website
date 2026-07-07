@@ -514,7 +514,7 @@ export default function CampaignDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[50vh]">
+      <div className="flex items-center justify-center h-[calc(50vh/var(--ui-zoom))]">
         <Loader2 size={20} className="animate-spin text-muted-foreground/40" />
       </div>
     )

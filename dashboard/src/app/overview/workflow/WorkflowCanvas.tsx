@@ -114,7 +114,7 @@ export default function WorkflowCanvas() {
           // Desktop: fixed 288px column, fills flex row height automatically
           'sm:w-72',
           // Mobile: full width, collapses to 56px when nothing selected
-          selectedNode ? 'h-[50vh] sm:h-auto' : 'h-0 sm:h-auto',
+          selectedNode ? 'h-[calc(50vh/var(--ui-zoom))] sm:h-auto' : 'h-0 sm:h-auto',
           'transition-[height] duration-200 ease-out',
         ].join(' ')}
       >
