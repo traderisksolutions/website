@@ -70,6 +70,26 @@ export async function POST(req: NextRequest) {
       if (m?.body_text) clientContext = String(m.body_text).slice(0, 4000)
     }
 
+    // House master template (Settings → RFQ Email Template) — the AI uses it as a
+    // style/structure reference, filling placeholders and adapting nuance.
+    let templateBlock = ''
+    try {
+      const tRes = await fetch(`${SB_URL}/rest/v1/app_settings?key=eq.rfq_email_template&limit=1`, { headers: sbH(), cache: 'no-store' })
+      const tRow = tRes.ok ? (await tRes.json())[0] : null
+      if (tRow?.value) {
+        const t = JSON.parse(tRow.value) as { subject?: string; body?: string }
+        if (t?.subject || t?.body) {
+          templateBlock = `\nHOUSE MASTER TEMPLATE — follow this closely for tone, structure and wording. Fill the {placeholders} from the facts below and adapt nuance for this specific insurer; omit any sentence whose information is missing (e.g. no deadline). Do NOT copy the sign-off/signature — that is appended automatically.
+Subject template: ${t.subject || '(none)'}
+Body template:
+"""
+${t.body || '(none)'}
+"""
+Placeholder map: {insured}=client name, {product_line}=line of insurance, {insurer_name}=insurer, {contact_name}=insurer contact, {key_details}=details captured, {deadline}=response deadline if any, {broker_name}=omit (signature appended).\n`
+        }
+      }
+    } catch { /* fall back to plain guidance if template missing/unparseable */ }
+
     const lineLabel = productLineLabel(rfq.product_line)
     const prompt = `You are a broker at Trade Risk Solutions (TRS), a corporate insurance broker in Singapore. Write a concise, professional email to ${contact.contact_name || insurerName} at ${insurerName} requesting a quotation on behalf of our client.
 
@@ -78,7 +98,7 @@ Client / insured: ${rfq.insured_name || 'our client'}
 Request summary: ${rfq.summary || '(see details)'}
 Key details provided: ${rfq.key_details || '(none captured — ask for what you need)'}
 
-${clientContext ? `For context, the client's original message:\n"""${clientContext}"""\n` : ''}
+${clientContext ? `For context, the client's original message:\n"""${clientContext}"""\n` : ''}${templateBlock}
 Guidance:
 - Address the insurer contact by name if given.
 - State clearly that we are seeking terms/a quotation for the line above for the named client.

@@ -17,65 +17,49 @@ async function requireUser() {
   return user
 }
 
-function normEmail(e: string) { return e.trim().toLowerCase() }
-
-// Single source of truth = the contacts table. Get the contact for this email,
-// creating one (fill-only — never overwrites an existing person) if it's new,
-// so the point person appears in Active Contacts immediately.
-async function getOrCreateContact(email: string, name?: string): Promise<string | null> {
-  const parts      = (name?.trim() || '').split(/\s+/).filter(Boolean)
-  const first_name = parts[0] ?? null
-  const last_name  = parts.length > 1 ? parts.slice(1).join(' ') : null
-  await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
-    method:  'POST',
-    headers: sbHeaders('return=minimal,resolution=ignore-duplicates'),
-    body:    JSON.stringify({ email, first_name, last_name, source: 'manual' }),
-  }).catch(() => {})
-  const r = await fetch(`${SB_URL}/rest/v1/contacts?email=eq.${encodeURIComponent(email)}&select=id&limit=1`, { headers: sbHeaders(), cache: 'no-store' })
-  const rows = r.ok ? await r.json() : []
-  return Array.isArray(rows) ? (rows[0]?.id ?? null) : null
-}
-
 // POST /api/settings/insurers/contacts
-// Body: { insurer_id, product_line, email, name?, role_title?, notes? }
-// Upserts the person into Active Contacts, then links them to the insurer × line.
+// Body: { insurer_id, contact_id, product_lines: string[], role_title?, notes? }
+// Links an EXISTING Active-Contacts person to an insurer across one or more lines.
+// People are created on the Active Contacts page — never here.
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser()
     if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
-    const { insurer_id, product_line, email, name, role_title, notes } =
+    const { insurer_id, contact_id, product_lines, role_title, notes } =
       await req.json() as {
-        insurer_id?: string; product_line?: string; email?: string
-        name?: string; role_title?: string; notes?: string
+        insurer_id?: string; contact_id?: string; product_lines?: string[]
+        role_title?: string; notes?: string
       }
 
-    if (!insurer_id)                       return NextResponse.json({ error: 'insurer_id required' }, { status: 400 })
-    if (!product_line || !isValidProductLine(product_line))
-                                           return NextResponse.json({ error: 'valid product_line required' }, { status: 400 })
-    if (!email?.includes('@'))             return NextResponse.json({ error: 'valid email required' }, { status: 400 })
+    if (!insurer_id) return NextResponse.json({ error: 'insurer_id required' }, { status: 400 })
+    if (!contact_id) return NextResponse.json({ error: 'contact_id required' }, { status: 400 })
+    const lines = (product_lines ?? []).filter(l => isValidProductLine(l))
+    if (lines.length === 0) return NextResponse.json({ error: 'at least one valid product_line required' }, { status: 400 })
 
-    const contactId = await getOrCreateContact(normEmail(email), name)
-    if (!contactId) return NextResponse.json({ error: 'could not resolve contact' }, { status: 500 })
+    // Confirm the contact exists (FK safety + clear error).
+    const cRes = await fetch(`${SB_URL}/rest/v1/contacts?id=eq.${contact_id}&select=id&limit=1`, { headers: sbHeaders(), cache: 'no-store' })
+    const found = cRes.ok ? (await cRes.json())[0] : null
+    if (!found) return NextResponse.json({ error: 'contact not found in Active Contacts' }, { status: 404 })
+
+    const now  = new Date().toISOString()
+    const body = lines.map(product_line => ({
+      insurer_id, product_line, contact_id,
+      role_title: role_title?.trim() || null,
+      notes:      notes?.trim() || null,
+      updated_by: user.id,
+      updated_at: now,
+    }))
 
     const res = await fetch(`${SB_URL}/rest/v1/insurer_contacts?on_conflict=insurer_id,product_line,contact_id`, {
       method:  'POST',
       headers: sbHeaders('return=representation,resolution=merge-duplicates'),
-      body: JSON.stringify({
-        insurer_id,
-        product_line,
-        contact_id: contactId,
-        role_title: role_title?.trim() || null,
-        notes:      notes?.trim() || null,
-        updated_by: user.id,
-        updated_at: new Date().toISOString(),
-      }),
+      body:    JSON.stringify(body),
     })
     if (!res.ok) return NextResponse.json({ error: await res.text() }, { status: 500 })
     const rows = await res.json()
-    const row  = Array.isArray(rows) ? rows[0] : rows
-    void logActivity({ action: 'insurer_contact.created', resource_type: 'insurer_contact', resource_id: row?.id, new_value: { insurer_id, product_line, contact_id: contactId, email: normEmail(email) } })
-    return NextResponse.json(row)
+    void logActivity({ action: 'insurer_contact.created', resource_type: 'insurer_contact', resource_id: insurer_id, new_value: { insurer_id, contact_id, product_lines: lines } })
+    return NextResponse.json(Array.isArray(rows) ? rows : [rows])
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }

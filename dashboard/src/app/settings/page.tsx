@@ -2,8 +2,9 @@
 
 import React, { useEffect, useState, Suspense } from 'react'
 import { useSearchParams }   from 'next/navigation'
-import SignaturePanel        from '@/components/SignaturePanel'
-import InsurerDirectoryPanel from '@/components/InsurerDirectoryPanel'
+import SignaturePanel          from '@/components/SignaturePanel'
+import InsurerDirectoryPanel   from '@/components/InsurerDirectoryPanel'
+import MasterEmailTemplatePanel from '@/components/MasterEmailTemplatePanel'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
@@ -113,6 +114,7 @@ function SettingsContent() {
       <GmailSection profile={profile} onProfileChange={loadProfile} />
       <SignaturePanel profile={profile} />
       <InsurerDirectoryPanel />
+      <MasterEmailTemplatePanel />
     </div>
   )
 }

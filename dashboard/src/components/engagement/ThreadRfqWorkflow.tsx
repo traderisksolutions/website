@@ -1,16 +1,22 @@
 'use client'
 
 import React, { useEffect, useState, useCallback } from 'react'
-import { Plus, ExternalLink } from 'lucide-react'
+import { Plus, ExternalLink, Sparkles, Paperclip, Check, ChevronLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from '@/components/ui/dialog'
 import { PRODUCT_LINES, productLineLabel } from '@/lib/product-lines'
 
 /**
- * Inline RFQ workflow for the engagement dock — the "doing" side.
- * Stage lines + insurers before any Nexus case exists; the FIRST insurer send
- * materialises the Nexus file (via /api/nexus/rfq/materialize). Later sends
- * attach. Sent insurers show status + a Chase button. Sense-making (quote
- * comparison, roadmap) lives in the Nexus file, reachable via the link.
+ * RFQ send desk for the engagement dock.
+ *
+ * The main panel shows what's already gone out (status + chase) plus Suggested
+ * lines (AI-detected) and manual "Add line" chips. Both open the SAME guided
+ * wizard: pick line → pick insurer(s) → review one draft per insurer (recipient,
+ * subject, body, attachments) → send all or individually. The first insurer send
+ * materialises the Nexus file. The wizard's staged drafts live here in the parent,
+ * so closing the modal parks the work — reopening resumes it.
  */
 
 type Insurer  = { contact_id: string; insurer_id: string | null; insurer_name: string; contact_name: string | null; contact_email: string }
@@ -18,6 +24,16 @@ type Dispatch = { id: string; insurer_name: string | null; to_email: string; sta
 type RfqRequest = { id: string; product_line: string; dispatches: Dispatch[]; matching_insurers: Insurer[] }
 type Sender    = { email: string; label: string; type: string }
 type SigOption = { id: string; name: string; title: string | null; phone: string | null; email: string | null }
+type Attachment = { id: string; filename: string; mime_type: string | null; storage_url: string; size_bytes?: number | null }
+
+// One insurer being drafted to inside the wizard.
+type StagedInsurer = Insurer & {
+  to: string; subject: string; body: string
+  loadingDraft: boolean; draftError: string | null
+  attach: string[]                 // manually-selected attachment ids
+  sending: boolean; sendError: string | null; sent: boolean
+}
+type StagedLine = { line: string; insurers: StagedInsurer[] }
 
 function escapeHtml(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }
 function plainToHtml(t: string) { return t.split('\n').map(l => l.trim() === '' ? '<br>' : `<p style="margin:0 0 10px">${escapeHtml(l)}</p>`).join('') }
@@ -36,12 +52,26 @@ export default function ThreadRfqWorkflow({
 }: {
   threadId: string; messageId: string | null; defaultInsured: string
 }) {
-  const [caseId,   setCaseId]   = useState<string | null>(null)
-  const [insured,  setInsured]  = useState(defaultInsured)
-  const [lines,    setLines]    = useState<string[]>([])
-  const [suggested, setSuggested] = useState<Set<string>>(new Set())
-  const [requests, setRequests] = useState<RfqRequest[]>([])
-  const [loading,  setLoading]  = useState(true)
+  const [caseId,    setCaseId]    = useState<string | null>(null)
+  const [insured,   setInsured]   = useState(defaultInsured)
+  const [suggested, setSuggested] = useState<string[]>([])
+  const [requests,  setRequests]  = useState<RfqRequest[]>([])
+  const [loading,   setLoading]   = useState(true)
+
+  // Shared send context (fetched once).
+  const [attachments, setAttachments] = useState<Attachment[]>([])
+  const [senders,     setSenders]     = useState<Sender[]>([])
+  const [signatures,  setSignatures]  = useState<SigOption[]>([])
+  const [fromEmail,   setFromEmail]   = useState('')
+  const [sigId,       setSigId]       = useState('')
+
+  // Wizard.
+  const [wizardOpen, setWizardOpen] = useState(false)
+  const [step,       setStep]       = useState<'line' | 'insurers' | 'review'>('line')
+  const [activeLine, setActiveLine] = useState<string | null>(null)   // line being configured in the 'insurers' step
+  const [lineInsurers, setLineInsurers] = useState<Insurer[]>([])
+  const [picked,     setPicked]     = useState<string[]>([])          // contact_ids checked in 'insurers' step
+  const [staged,     setStaged]     = useState<StagedLine[]>([])
 
   const refresh = useCallback(async () => {
     const fr = await fetch(`/api/nexus/rfq/for-thread?thread_id=${threadId}`, { cache: 'no-store' }).then(r => r.json()).catch(() => ({ case_id: null }))
@@ -49,9 +79,7 @@ export default function ThreadRfqWorkflow({
     setCaseId(cid)
     if (cid) {
       const reqs = await fetch(`/api/nexus/rfq/requests?case_id=${cid}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : []).catch(() => [])
-      const arr: RfqRequest[] = Array.isArray(reqs) ? reqs : []
-      setRequests(arr)
-      setLines(prev => Array.from(new Set([...prev, ...arr.map(r => r.product_line)])))
+      setRequests(Array.isArray(reqs) ? reqs : [])
     } else {
       setRequests([])
     }
@@ -61,24 +89,118 @@ export default function ThreadRfqWorkflow({
     let cancelled = false
     setLoading(true)
     ;(async () => {
-      const sug = await fetch('/api/nexus/rfq/start', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ thread_id: threadId, message_id: messageId, suggest: true }),
-      }).then(r => r.ok ? r.json() : null).catch(() => null)
-      if (!cancelled && sug) {
-        const slugs: string[] = (sug.suggested_lines ?? []).map((l: { product_line: string }) => l.product_line)
-        setSuggested(new Set(slugs))
-        setLines(prev => Array.from(new Set([...prev, ...slugs])))
+      const [sug, atts, sndrs, sigs] = await Promise.all([
+        fetch('/api/nexus/rfq/start', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ thread_id: threadId, message_id: messageId, suggest: true }) }).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(`/api/nexus/rfq/attachments?thread_id=${threadId}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : []).catch(() => []),
+        fetch('/api/email/available-senders', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).catch(() => []),
+        fetch('/api/signatures', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).catch(() => []),
+      ])
+      if (cancelled) return
+      if (sug) {
+        setSuggested((sug.suggested_lines ?? []).map((l: { product_line: string }) => l.product_line))
         if (sug.insured_name && !defaultInsured) setInsured(sug.insured_name)
       }
+      setAttachments(Array.isArray(atts) ? atts : [])
+      const sa = Array.isArray(sndrs) ? sndrs : []; setSenders(sa); if (sa.length) setFromEmail(sa[0].email)
+      const ga = Array.isArray(sigs) ? sigs : []; setSignatures(ga); if (ga.length) setSigId(ga[0].id)
       await refresh()
       if (!cancelled) setLoading(false)
     })()
     return () => { cancelled = true }
   }, [threadId, messageId, defaultInsured, refresh])
 
-  const reqByLine = new Map(requests.map(r => [r.product_line, r]))
-  const addable   = PRODUCT_LINES.filter(p => !lines.includes(p.slug))
+  // ── staged-insurer mutation helper ─────────────────────────────────────────
+  const patchIns = useCallback((line: string, contactId: string, patch: Partial<StagedInsurer>) => {
+    setStaged(prev => prev.map(l => l.line !== line ? l : {
+      ...l, insurers: l.insurers.map(ins => ins.contact_id !== contactId ? ins : { ...ins, ...patch }),
+    }))
+  }, [])
+
+  const generateDraft = useCallback(async (line: string, ins: Insurer) => {
+    patchIns(line, ins.contact_id, { loadingDraft: true, draftError: null })
+    try {
+      const d = await fetch('/api/nexus/rfq/draft', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_line: line, insured_name: insured, contact_id: ins.contact_id, client_message_id: messageId }) }).then(r => r.json())
+      if (d?.error) { patchIns(line, ins.contact_id, { loadingDraft: false, draftError: d.error }); return }
+      patchIns(line, ins.contact_id, { loadingDraft: false, subject: d.subject ?? '', body: d.body ?? '', to: d.to_email || ins.contact_email })
+    } catch (e) {
+      patchIns(line, ins.contact_id, { loadingDraft: false, draftError: String(e) })
+    }
+  }, [insured, messageId, patchIns])
+
+  // ── wizard navigation ───────────────────────────────────────────────────────
+  function openWizardBlank() { setStep('line'); setActiveLine(null); setPicked([]); setWizardOpen(true) }
+
+  async function openLineInsurers(line: string) {
+    setActiveLine(line); setPicked([]); setStep('insurers'); setWizardOpen(true)
+    const rows = await fetch(`/api/nexus/rfq/insurers?product_line=${line}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : []).catch(() => [])
+    setLineInsurers(Array.isArray(rows) ? rows : [])
+  }
+
+  function confirmInsurers() {
+    if (!activeLine || picked.length === 0) return
+    const chosen = lineInsurers.filter(i => picked.includes(i.contact_id))
+    setStaged(prev => {
+      const existing = prev.find(l => l.line === activeLine)
+      const toStaged = (i: Insurer): StagedInsurer => ({ ...i, to: i.contact_email, subject: '', body: '', loadingDraft: true, draftError: null, attach: [], sending: false, sendError: null, sent: false })
+      if (existing) {
+        const have = new Set(existing.insurers.map(i => i.contact_id))
+        const merged = { ...existing, insurers: [...existing.insurers, ...chosen.filter(i => !have.has(i.contact_id)).map(toStaged)] }
+        return prev.map(l => l.line === activeLine ? merged : l)
+      }
+      return [...prev, { line: activeLine, insurers: chosen.map(toStaged) }]
+    })
+    // Kick off drafts for the newly-picked insurers.
+    chosen.forEach(i => generateDraft(activeLine, i))
+    setStep('review')
+  }
+
+  async function sendInsurer(line: string, ins: StagedInsurer) {
+    if (!ins.to.trim() || !ins.body.trim()) return
+    patchIns(line, ins.contact_id, { sending: true, sendError: null })
+    try {
+      const sig = signatures.find(s => s.id === sigId)
+      const bodyHtml = plainToHtml(ins.body) + (sig ? buildSigHtml(sig) : '')
+      const atts = attachments.filter(a => ins.attach.includes(a.id)).map(a => ({ filename: a.filename, mime_type: a.mime_type ?? undefined, storage_url: a.storage_url }))
+
+      const draftRes = await fetch('/api/nexus/draft-create', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ thread_id: null, body: ins.body, email_type: 'RFQ_INSURER', to_email: ins.to.trim() }) })
+      const draftData = await draftRes.json()
+      if (!draftRes.ok || !draftData.draftId) throw new Error(draftData.error || 'Could not prepare draft')
+
+      const sendRes = await fetch('/api/email/send', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draftId: draftData.draftId, htmlBody: bodyHtml, originalAiBody: ins.body, toEmail: ins.to.trim(), customSubject: ins.subject, fromEmail: fromEmail || null, signatureId: sigId || null, attachments: atts }) })
+      const sendData = await sendRes.json()
+      if (!sendRes.ok) throw new Error(sendData.error || 'Send failed')
+
+      await fetch('/api/nexus/rfq/materialize', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ thread_id: threadId, insured_name: insured, product_line: line, contact_id: ins.contact_id, ai_draft_id: draftData.draftId, gmail_thread_id: sendData.gmailThreadId ?? null }) })
+
+      patchIns(line, ins.contact_id, { sending: false, sent: true })
+      refresh()
+    } catch (e) {
+      patchIns(line, ins.contact_id, { sending: false, sendError: e instanceof Error ? e.message : 'Send failed' })
+    }
+  }
+
+  async function sendAll() {
+    for (const l of staged) {
+      for (const ins of l.insurers) {
+        if (!ins.sent && !ins.loadingDraft && ins.body.trim()) await sendInsurer(l.line, ins)
+      }
+    }
+  }
+
+  // Prune fully-sent lines out of the staged tray once done.
+  useEffect(() => {
+    setStaged(prev => prev.filter(l => l.insurers.some(i => !i.sent)))
+  }, [requests]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const stagedCount = staged.reduce((n, l) => n + l.insurers.filter(i => !i.sent).length, 0)
+  const dispatchedLines = requests.filter(r => r.dispatches.length > 0)
+  const openLines = new Set(staged.map(l => l.line))
+  const suggestedOpen = suggested.filter(s => !openLines.has(s))
 
   if (loading) return <div className="p-5 text-[12px] text-muted-foreground">Loading RFQ…</div>
 
@@ -87,15 +209,10 @@ export default function ThreadRfqWorkflow({
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-[13px] font-semibold text-foreground">Request for Quotation</h3>
-          <p className="text-[11.5px] text-muted-foreground mt-0.5">
-            Pick lines &amp; insurers, then send. The Nexus file opens on your first send.
-          </p>
+          <p className="text-[11.5px] text-muted-foreground mt-0.5">Pick a line &amp; insurers, review each draft, then send. The Nexus file opens on your first send.</p>
         </div>
         {caseId && (
-          <a
-            href={`/nexus?case=${caseId}`}
-            className="flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline flex-shrink-0"
-          >
+          <a href={`/nexus?case=${caseId}`} className="flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline flex-shrink-0">
             Open file in Nexus <ExternalLink size={11} />
           </a>
         )}
@@ -103,231 +220,305 @@ export default function ThreadRfqWorkflow({
 
       <label className="flex flex-col gap-1.5 max-w-sm">
         <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Insured / client</span>
-        <input
-          value={insured}
-          onChange={e => setInsured(e.target.value)}
-          placeholder="Company or person seeking cover"
-          className="text-[12px] rounded-md border border-[--border-subtle] bg-background px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-primary/20"
-        />
+        <input value={insured} onChange={e => setInsured(e.target.value)} placeholder="Company or person seeking cover"
+          className="text-[12px] rounded-md border border-[--border-subtle] bg-background px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-primary/20" />
       </label>
 
-      {lines.length === 0 && <p className="text-[11.5px] text-muted-foreground/70">No lines yet — add one below.</p>}
+      {/* Resume banner */}
+      {stagedCount > 0 && !wizardOpen && (
+        <button onClick={() => { setStep('review'); setWizardOpen(true) }}
+          className="flex items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-left">
+          <span className="text-[12px] font-medium text-primary">RFQ in progress — {stagedCount} draft{stagedCount !== 1 ? 's' : ''} staged</span>
+          <span className="text-[11px] font-semibold text-primary">Resume →</span>
+        </button>
+      )}
 
-      {lines.map(line => (
-        <LineSection
-          key={line}
-          threadId={threadId}
-          messageId={messageId}
-          insured={insured}
-          line={line}
-          request={reqByLine.get(line)}
-          onChange={refresh}
-        />
-      ))}
-
-      {addable.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50 mr-1">Add line</span>
-          {addable.map(p => (
-            <button
-              key={p.slug}
-              onClick={() => setLines(prev => [...prev, p.slug])}
-              className="flex items-center gap-1 text-[11px] rounded-full border border-[--border-subtle] px-2 py-0.5 text-muted-foreground hover:bg-muted"
-            >
-              <Plus size={10} /> {productLineLabel(p.slug)}
-            </button>
-          ))}
+      {/* Already sent */}
+      {dispatchedLines.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">Sent so far</span>
+          {dispatchedLines.map(r => <SentLine key={r.id} request={r} onChange={refresh} />)}
         </div>
       )}
+
+      {/* Suggested lines */}
+      {suggestedOpen.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">
+            <Sparkles size={11} className="text-primary" /> Suggested from this email
+          </span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {suggestedOpen.map(line => (
+              <button key={line} onClick={() => openLineInsurers(line)}
+                className="flex items-center gap-1 text-[11px] rounded-full border border-primary/30 bg-primary/5 px-2.5 py-1 font-medium text-primary hover:bg-primary/10">
+                <Plus size={10} /> {productLineLabel(line)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Manual start */}
+      <button onClick={openWizardBlank}
+        className="self-start flex items-center gap-1.5 text-[11.5px] font-semibold rounded-md border border-[--border-subtle] px-3 py-1.5 text-foreground hover:bg-muted">
+        <Plus size={12} /> New quotation request
+      </button>
+
+      <RfqWizard
+        open={wizardOpen} onOpenChange={setWizardOpen}
+        step={step} setStep={setStep}
+        activeLine={activeLine} lineInsurers={lineInsurers}
+        picked={picked} setPicked={setPicked}
+        onPickLine={openLineInsurers} confirmInsurers={confirmInsurers}
+        staged={staged} patchIns={patchIns} regenerate={generateDraft}
+        attachments={attachments} senders={senders} signatures={signatures}
+        fromEmail={fromEmail} setFromEmail={setFromEmail} sigId={sigId} setSigId={setSigId}
+        sendInsurer={sendInsurer} sendAll={sendAll} stagedCount={stagedCount}
+      />
     </div>
   )
 }
 
-// ── One product line ──────────────────────────────────────────────────────────
+// ── Already-sent line (status + chase) ────────────────────────────────────────
 
-function LineSection({
-  threadId, messageId, insured, line, request, onChange,
-}: {
-  threadId: string; messageId: string | null; insured: string; line: string
-  request?: RfqRequest; onChange: () => void
-}) {
-  const [insurers, setInsurers] = useState<Insurer[]>(request?.matching_insurers ?? [])
-  const [activeContactId, setActiveContactId] = useState<string | null>(null)
+function SentLine({ request, onChange }: { request: RfqRequest; onChange: () => void }) {
   const [chasingId, setChasingId] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (request) { setInsurers(request.matching_insurers); return }
-    let cancelled = false
-    fetch(`/api/nexus/rfq/insurers?product_line=${line}`, { cache: 'no-store' })
-      .then(r => r.ok ? r.json() : [])
-      .then(rows => { if (!cancelled) setInsurers(Array.isArray(rows) ? rows : []) })
-      .catch(() => {})
-    return () => { cancelled = true }
-  }, [line, request])
-
   async function chase(id: string) {
     setChasingId(id)
     try { await fetch('/api/nexus/rfq/chase', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dispatch_id: id }) }); onChange() }
     finally { setChasingId(null) }
   }
-
-  const dispatches = request?.dispatches ?? []
-  const dispatchedIds = new Set(dispatches.map(d => d.insurer_contact_id))
-  const available = insurers.filter(i => !dispatchedIds.has(i.contact_id))
-
   return (
-    <div className="rounded-lg border border-[--border-subtle] bg-card p-3.5 flex flex-col gap-2.5">
-      <span className="text-[12.5px] font-semibold text-foreground">{productLineLabel(line)}</span>
-
-      {dispatches.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {dispatches.map(d => {
-            const replied = d.status === 'replied'
-            const waited  = daysSince(d.updated_at || d.created_at)
-            return (
-              <span key={d.id} className={cn('inline-flex items-center gap-1 text-[10.5px] rounded-full pl-2 pr-1 py-0.5 border',
-                replied ? 'text-indigo-700 bg-indigo-50 border-indigo-200 font-semibold' : 'text-emerald-700 bg-emerald-50 border-emerald-200')}>
-                {replied ? '↩ replied' : '✓ sent'} · {d.insurer_name || d.to_email}
-                {!replied && <span className="opacity-70">· ⏳{waited}d</span>}
-                {!replied && (
-                  <button onClick={() => chase(d.id)} disabled={chasingId === d.id}
-                    className="ml-0.5 rounded-full px-1.5 py-0.5 text-[9.5px] font-semibold bg-white/70 hover:bg-white border border-current/20 disabled:opacity-50">
-                    {chasingId === d.id ? '…' : 'Chase'}
-                  </button>
-                )}
-              </span>
-            )
-          })}
-        </div>
-      )}
-
-      <div className="flex flex-col gap-1.5">
-        {available.length === 0 ? (
-          <p className="text-[11px] text-muted-foreground/70">
-            {insurers.length === 0 ? <>No insurers cover this line — add them in <span className="font-medium">Settings → Insurer Directory</span>.</> : 'All matching insurers contacted.'}
-          </p>
-        ) : available.map(ins => (
-          <div key={ins.contact_id} className="flex flex-col">
-            <div className="flex items-center justify-between gap-3 rounded-md border border-[--border-subtle] px-3 py-2">
-              <div className="min-w-0">
-                <span className="text-[12px] font-medium text-foreground">{ins.insurer_name}</span>
-                <span className="text-[11px] text-muted-foreground ml-2">{ins.contact_name ? `${ins.contact_name} · ` : ''}{ins.contact_email}</span>
-              </div>
-              <button
-                onClick={() => setActiveContactId(activeContactId === ins.contact_id ? null : ins.contact_id)}
-                className={cn('text-[11px] font-semibold px-3 py-1.5 rounded-md border transition-colors flex-shrink-0',
-                  activeContactId === ins.contact_id ? 'border-primary text-primary bg-primary/5' : 'border-[--border-subtle] text-foreground hover:bg-muted')}
-              >
-                {activeContactId === ins.contact_id ? 'Close' : 'Draft & send'}
-              </button>
-            </div>
-            {activeContactId === ins.contact_id && (
-              <InsurerComposer
-                threadId={threadId} messageId={messageId} insured={insured} line={line} insurer={ins}
-                onClose={() => setActiveContactId(null)}
-                onSent={() => { setActiveContactId(null); onChange() }}
-              />
-            )}
-          </div>
-        ))}
+    <div className="rounded-lg border border-[--border-subtle] bg-card p-3 flex flex-col gap-1.5">
+      <span className="text-[12px] font-semibold text-foreground">{productLineLabel(request.product_line)}</span>
+      <div className="flex flex-wrap gap-1.5">
+        {request.dispatches.map(d => {
+          const replied = d.status === 'replied'
+          const waited  = daysSince(d.updated_at || d.created_at)
+          return (
+            <span key={d.id} className={cn('inline-flex items-center gap-1 text-[10.5px] rounded-full pl-2 pr-1 py-0.5 border',
+              replied ? 'text-indigo-700 bg-indigo-50 border-indigo-200 font-semibold' : 'text-emerald-700 bg-emerald-50 border-emerald-200')}>
+              {replied ? '↩ replied' : '✓ sent'} · {d.insurer_name || d.to_email}
+              {!replied && <span className="opacity-70">· ⏳{waited}d</span>}
+              {!replied && (
+                <button onClick={() => chase(d.id)} disabled={chasingId === d.id}
+                  className="ml-0.5 rounded-full px-1.5 py-0.5 text-[9.5px] font-semibold bg-white/70 hover:bg-white border border-current/20 disabled:opacity-50">
+                  {chasingId === d.id ? '…' : 'Chase'}
+                </button>
+              )}
+            </span>
+          )
+        })}
       </div>
     </div>
   )
 }
 
-// ── Draft + send + materialise (first send opens the Nexus file) ──────────────
+// ── Wizard modal ──────────────────────────────────────────────────────────────
 
-function InsurerComposer({
-  threadId, messageId, insured, line, insurer, onClose, onSent,
-}: {
-  threadId: string; messageId: string | null; insured: string; line: string
-  insurer: Insurer; onClose: () => void; onSent: () => void
+function RfqWizard(p: {
+  open: boolean; onOpenChange: (v: boolean) => void
+  step: 'line' | 'insurers' | 'review'; setStep: (s: 'line' | 'insurers' | 'review') => void
+  activeLine: string | null; lineInsurers: Insurer[]
+  picked: string[]; setPicked: React.Dispatch<React.SetStateAction<string[]>>
+  onPickLine: (line: string) => void; confirmInsurers: () => void
+  staged: StagedLine[]; patchIns: (line: string, contactId: string, patch: Partial<StagedInsurer>) => void
+  regenerate: (line: string, ins: Insurer) => void
+  attachments: Attachment[]; senders: Sender[]; signatures: SigOption[]
+  fromEmail: string; setFromEmail: (v: string) => void; sigId: string; setSigId: (v: string) => void
+  sendInsurer: (line: string, ins: StagedInsurer) => void; sendAll: () => void; stagedCount: number
 }) {
-  const [loading, setLoading]   = useState(true)
-  const [genError, setGenError] = useState<string | null>(null)
-  const [to, setTo]             = useState(insurer.contact_email)
-  const [subject, setSubject]   = useState('')
-  const [body, setBody]         = useState('')
-  const [sending, setSending]   = useState(false)
-  const [sendError, setSendError] = useState<string | null>(null)
-  const [senders, setSenders]   = useState<Sender[]>([])
-  const [fromEmail, setFromEmail] = useState('')
-  const [signatures, setSignatures] = useState<SigOption[]>([])
-  const [sigId, setSigId]       = useState('')
+  const stagedLines = new Set(p.staged.map(l => l.line))
+  const addableLines = PRODUCT_LINES.filter(pl => !stagedLines.has(pl.slug))
 
-  useEffect(() => {
-    let cancelled = false
-    Promise.all([
-      fetch('/api/nexus/rfq/draft', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product_line: line, insured_name: insured, contact_id: insurer.contact_id, client_message_id: messageId }) }).then(r => r.json()),
-      fetch('/api/email/available-senders', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).catch(() => []),
-      fetch('/api/signatures', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).catch(() => []),
-    ]).then(([draft, sndrs, sigs]) => {
-      if (cancelled) return
-      if (draft?.error) { setGenError(draft.error); setLoading(false); return }
-      setSubject(draft.subject ?? ''); setBody(draft.body ?? '')
-      if (draft.to_email) setTo(draft.to_email)
-      const sa = Array.isArray(sndrs) ? sndrs : []; setSenders(sa); if (sa.length) setFromEmail(sa[0].email)
-      const ga = Array.isArray(sigs) ? sigs : []; setSignatures(ga); if (ga.length) setSigId(ga[0].id)
-      setLoading(false)
-    }).catch(e => { if (!cancelled) { setGenError(String(e)); setLoading(false) } })
-    return () => { cancelled = true }
-  }, [line, insured, insurer.contact_id, messageId])
-
-  async function send() {
-    if (!to.trim() || !body.trim()) return
-    setSending(true); setSendError(null)
-    try {
-      const sig = signatures.find(s => s.id === sigId)
-      const bodyHtml = plainToHtml(body) + (sig ? buildSigHtml(sig) : '')
-
-      const draftRes = await fetch('/api/nexus/draft-create', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ thread_id: null, body, email_type: 'RFQ_INSURER', to_email: to.trim() }) })
-      const draftData = await draftRes.json()
-      if (!draftRes.ok || !draftData.draftId) throw new Error(draftData.error || 'Could not prepare draft')
-
-      const sendRes = await fetch('/api/email/send', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ draftId: draftData.draftId, htmlBody: bodyHtml, originalAiBody: body, toEmail: to.trim(), customSubject: subject, fromEmail: fromEmail || null, signatureId: sigId || null }) })
-      const sendData = await sendRes.json()
-      if (!sendRes.ok) throw new Error(sendData.error || 'Send failed')
-
-      // Materialise: opens the Nexus file on the first send; attaches on later ones.
-      await fetch('/api/nexus/rfq/materialize', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ thread_id: threadId, insured_name: insured, product_line: line, contact_id: insurer.contact_id, ai_draft_id: draftData.draftId, gmail_thread_id: sendData.gmailThreadId ?? null }) })
-
-      onSent()
-    } catch (e) {
-      setSendError(e instanceof Error ? e.message : 'Send failed')
-    } finally { setSending(false) }
-  }
-
-  const inp = 'w-full text-[12px] border border-[--border-subtle] rounded-md px-2.5 py-1.5 bg-background outline-none focus:ring-1 focus:ring-primary/20'
+  function toggle(id: string) { p.setPicked(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]) }
 
   return (
-    <div className="mt-2 rounded-md border border-[--border-subtle] bg-muted/30 p-3 flex flex-col gap-2">
-      {loading ? (
-        <p className="text-[12px] text-muted-foreground py-4 text-center">Drafting email to {insurer.insurer_name}…</p>
-      ) : genError ? (
-        <div className="flex items-center justify-between"><p className="text-[12px] text-destructive">Draft failed: {genError}</p><button onClick={onClose} className="text-[11px] text-muted-foreground hover:text-foreground">Close</button></div>
+    <Dialog open={p.open} onOpenChange={p.onOpenChange}>
+      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle>
+            {p.step === 'line' ? 'New quotation request' : p.step === 'insurers'
+              ? `Select insurers — ${p.activeLine ? productLineLabel(p.activeLine) : ''}`
+              : 'Review & send'}
+          </DialogTitle>
+          <DialogDescription>
+            {p.step === 'line' ? 'Which line of insurance is the client asking to quote?'
+              : p.step === 'insurers' ? 'Pick the insurers to request a quote from. One draft is prepared per insurer.'
+              : 'Check the recipient, content and attachments on each, then send all or individually.'}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-y-auto -mx-1 px-1">
+          {/* Step 1 — pick a line */}
+          {p.step === 'line' && (
+            <div className="grid grid-cols-2 gap-2">
+              {addableLines.map(pl => (
+                <button key={pl.slug} onClick={() => p.onPickLine(pl.slug)}
+                  className="text-left text-[12.5px] rounded-md border border-[--border-subtle] px-3 py-2.5 hover:border-primary/50 hover:bg-primary/5 transition-colors">
+                  {pl.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Step 2 — pick insurers */}
+          {p.step === 'insurers' && (
+            <div className="flex flex-col gap-2">
+              {p.lineInsurers.length === 0 ? (
+                <p className="text-[12px] text-muted-foreground py-6 text-center">
+                  No insurers cover this line yet — add them in <span className="font-medium">Settings → Insurer Directory</span>.
+                </p>
+              ) : p.lineInsurers.map(i => {
+                const on = p.picked.includes(i.contact_id)
+                return (
+                  <button key={i.contact_id} onClick={() => toggle(i.contact_id)}
+                    className={cn('flex items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left transition-colors',
+                      on ? 'border-primary bg-primary/5' : 'border-[--border-subtle] hover:bg-muted')}>
+                    <div className="min-w-0">
+                      <p className="text-[12.5px] font-medium text-foreground">{i.insurer_name}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{i.contact_name ? `${i.contact_name} · ` : ''}{i.contact_email}</p>
+                    </div>
+                    <span className={cn('h-4 w-4 rounded flex items-center justify-center border flex-shrink-0', on ? 'bg-primary border-primary text-white' : 'border-muted-foreground/40')}>
+                      {on && <Check size={12} />}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Step 3 — review drafts */}
+          {p.step === 'review' && (
+            <div className="flex flex-col gap-4">
+              {p.stagedCount === 0 && <p className="text-[12px] text-muted-foreground py-6 text-center">Nothing staged yet.</p>}
+              {p.staged.map(l => (
+                <div key={l.line} className="flex flex-col gap-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">{productLineLabel(l.line)}</span>
+                  {l.insurers.map(ins => (
+                    <DraftCard key={ins.contact_id} line={l.line} ins={ins}
+                      attachments={p.attachments}
+                      patchIns={p.patchIns} regenerate={p.regenerate} onSend={() => p.sendInsurer(l.line, ins)} />
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer nav */}
+        <div className="flex items-center justify-between gap-2 border-t border-[--border-subtle] pt-3 mt-1">
+          <div className="flex items-center gap-2">
+            {p.step === 'insurers' && (
+              <button onClick={() => p.setStep(p.staged.length ? 'review' : 'line')} className="flex items-center gap-1 text-[11.5px] text-muted-foreground hover:text-foreground">
+                <ChevronLeft size={13} /> Back
+              </button>
+            )}
+            {p.step === 'review' && (
+              <button onClick={() => p.setStep('line')} className="flex items-center gap-1 text-[11.5px] font-medium text-primary hover:underline">
+                <Plus size={12} /> Add another line
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Shared from/signature pickers on review */}
+            {p.step === 'review' && p.senders.length > 1 && (
+              <select value={p.fromEmail} onChange={e => p.setFromEmail(e.target.value)} className="text-[11px] rounded-md border border-[--border-subtle] bg-background px-2 py-1 max-w-[160px]">
+                {p.senders.map(s => <option key={s.email} value={s.email}>{s.label || s.email}</option>)}
+              </select>
+            )}
+            {p.step === 'review' && p.signatures.length > 0 && (
+              <select value={p.sigId} onChange={e => p.setSigId(e.target.value)} className="text-[11px] rounded-md border border-[--border-subtle] bg-background px-2 py-1 max-w-[150px]">
+                {p.signatures.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            )}
+            {p.step === 'insurers' && (
+              <button onClick={p.confirmInsurers} disabled={p.picked.length === 0}
+                className="text-[11.5px] font-semibold px-4 py-1.5 rounded-md bg-primary text-primary-foreground disabled:opacity-50">
+                Prepare {p.picked.length || ''} draft{p.picked.length === 1 ? '' : 's'}
+              </button>
+            )}
+            {p.step === 'review' && p.stagedCount > 0 && (
+              <button onClick={p.sendAll} className="text-[11.5px] font-semibold px-4 py-1.5 rounded-md bg-primary text-primary-foreground">
+                Send all ({p.stagedCount})
+              </button>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ── One insurer draft card ────────────────────────────────────────────────────
+
+function DraftCard({
+  line, ins, attachments, patchIns, regenerate, onSend,
+}: {
+  line: string; ins: StagedInsurer; attachments: Attachment[]
+  patchIns: (line: string, contactId: string, patch: Partial<StagedInsurer>) => void
+  regenerate: (line: string, ins: Insurer) => void
+  onSend: () => void
+}) {
+  const [showAttach, setShowAttach] = useState(false)
+  const set = (patch: Partial<StagedInsurer>) => patchIns(line, ins.contact_id, patch)
+  const inp = 'w-full text-[12px] border border-[--border-subtle] rounded-md px-2.5 py-1.5 bg-background outline-none focus:ring-1 focus:ring-primary/20'
+  const toggleAttach = (id: string) => set({ attach: ins.attach.includes(id) ? ins.attach.filter(x => x !== id) : [...ins.attach, id] })
+
+  if (ins.sent) {
+    return (
+      <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 flex items-center gap-2 text-[12px] text-emerald-700 font-medium">
+        <Check size={13} /> Sent to {ins.insurer_name} — {ins.to}
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-md border border-[--border-subtle] bg-card p-3 flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[12px] font-semibold text-foreground">{ins.insurer_name}{ins.contact_name ? <span className="text-muted-foreground font-normal"> · {ins.contact_name}</span> : null}</span>
+        {!ins.loadingDraft && (
+          <button onClick={() => regenerate(line, ins)} className="text-[10.5px] text-muted-foreground hover:text-foreground">Regenerate</button>
+        )}
+      </div>
+
+      {ins.loadingDraft ? (
+        <p className="text-[12px] text-muted-foreground py-3 text-center">Drafting…</p>
+      ) : ins.draftError ? (
+        <p className="text-[11.5px] text-destructive">Draft failed: {ins.draftError}</p>
       ) : (
         <>
-          {senders.length > 1 && (
-            <label className="flex items-center gap-2"><span className="text-[9.5px] font-semibold uppercase tracking-wider text-muted-foreground/60 w-12 flex-shrink-0">From</span>
-              <select value={fromEmail} onChange={e => setFromEmail(e.target.value)} className={inp}>{senders.map(s => <option key={s.email} value={s.email}>{s.label || s.email}</option>)}</select></label>
-          )}
-          <label className="flex items-center gap-2"><span className="text-[9.5px] font-semibold uppercase tracking-wider text-muted-foreground/60 w-12 flex-shrink-0">To</span><input value={to} onChange={e => setTo(e.target.value)} className={inp} /></label>
-          <label className="flex items-center gap-2"><span className="text-[9.5px] font-semibold uppercase tracking-wider text-muted-foreground/60 w-12 flex-shrink-0">Subject</span><input value={subject} onChange={e => setSubject(e.target.value)} className={inp} /></label>
-          <textarea value={body} onChange={e => setBody(e.target.value)} rows={9}
+          <label className="flex items-center gap-2"><span className="text-[9.5px] font-semibold uppercase tracking-wider text-muted-foreground/60 w-12 flex-shrink-0">To</span>
+            <input value={ins.to} onChange={e => set({ to: e.target.value })} className={inp} /></label>
+          <label className="flex items-center gap-2"><span className="text-[9.5px] font-semibold uppercase tracking-wider text-muted-foreground/60 w-12 flex-shrink-0">Subject</span>
+            <input value={ins.subject} onChange={e => set({ subject: e.target.value })} className={inp} /></label>
+          <textarea value={ins.body} onChange={e => set({ body: e.target.value })} rows={8}
             className="w-full text-[12px] leading-relaxed border border-[--border-subtle] rounded-md px-2.5 py-2 bg-background outline-none focus:ring-1 focus:ring-primary/20 resize-y font-sans" />
-          {signatures.length > 0 && (
-            <label className="flex items-center gap-2"><span className="text-[9.5px] font-semibold uppercase tracking-wider text-muted-foreground/60 w-12 flex-shrink-0">Sign</span>
-              <select value={sigId} onChange={e => setSigId(e.target.value)} className={inp}>{signatures.map(s => <option key={s.id} value={s.id}>{s.name}{s.title ? ` · ${s.title}` : ''}</option>)}</select></label>
+
+          {/* Attachments — manual add */}
+          {attachments.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <button onClick={() => setShowAttach(v => !v)} className="self-start flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">
+                <Paperclip size={11} /> Attachments{ins.attach.length > 0 ? ` (${ins.attach.length})` : ''}
+              </button>
+              {showAttach && (
+                <div className="flex flex-col gap-1 pl-1">
+                  {attachments.map(a => (
+                    <label key={a.id} className="flex items-center gap-2 text-[11.5px] cursor-pointer">
+                      <input type="checkbox" checked={ins.attach.includes(a.id)} onChange={() => toggleAttach(a.id)} className="accent-primary" />
+                      <span className="truncate">{a.filename}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
-          {sendError && <p className="text-[11px] text-destructive">{sendError}</p>}
-          <div className="flex items-center gap-2 justify-end">
-            <button onClick={onClose} className="text-[11px] px-3 py-1.5 rounded-md border border-[--border-subtle] text-muted-foreground hover:text-foreground">Cancel</button>
-            <button onClick={send} disabled={sending || !to.trim() || !body.trim()} className="text-[11px] font-semibold px-3.5 py-1.5 rounded-md bg-primary text-primary-foreground disabled:opacity-50">
-              {sending ? 'Sending…' : `Send to ${insurer.insurer_name}`}
+
+          {ins.sendError && <p className="text-[11px] text-destructive">{ins.sendError}</p>}
+          <div className="flex justify-end">
+            <button onClick={onSend} disabled={ins.sending || !ins.to.trim() || !ins.body.trim()}
+              className="text-[11px] font-semibold px-3.5 py-1.5 rounded-md bg-primary text-primary-foreground disabled:opacity-50">
+              {ins.sending ? 'Sending…' : `Send to ${ins.insurer_name}`}
             </button>
           </div>
         </>

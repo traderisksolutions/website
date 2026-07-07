@@ -1,13 +1,18 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { X, ChevronRight, ChevronDown, Users, Copy, Check } from 'lucide-react'
+import { useEffect, useState, useCallback } from 'react'
+import { X, ChevronRight, ChevronDown, Users, Copy, Check, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AppSplitLayout, AppMainPanel, AppPageHeader } from '@/components/app-shell'
 import { DataTableToolbar, DataTableSearch } from '@/components/data-table/toolbar'
 import { StatusBadge } from '@/components/status-badge'
 import type { AppStatus } from '@/components/status-badge'
 import { DetailSection, DetailField } from '@/components/detail-section'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from '@/components/ui/dialog'
 
 interface Contact {
   id: string; first_name: string | null; last_name: string | null
@@ -91,6 +96,66 @@ function SkeletonRows() {
   )
 }
 
+// ── Add-contact dialog ────────────────────────────────────────────────────────
+// Manually create a person in Active Contacts. All fields optional, but the
+// contacts table needs at least one of email / phone.
+
+const EMPTY_PERSON = { first_name: '', last_name: '', email: '', phone: '', company: '' }
+
+function AddContactDialog({ open, onOpenChange, onSaved }: {
+  open: boolean; onOpenChange: (v: boolean) => void; onSaved: () => void
+}) {
+  const [form,   setForm]   = useState(EMPTY_PERSON)
+  const [saving, setSaving] = useState(false)
+  const [error,  setError]  = useState<string | null>(null)
+  const set = (k: keyof typeof EMPTY_PERSON, v: string) => setForm(f => ({ ...f, [k]: v }))
+
+  useEffect(() => { if (open) { setForm(EMPTY_PERSON); setError(null) } }, [open])
+
+  const canSave = form.email.trim() !== '' || form.phone.trim() !== ''
+
+  async function save() {
+    setSaving(true); setError(null)
+    try {
+      const res = await fetch('/api/contacts', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(form),
+      })
+      if (!res.ok) { setError((await res.json()).error ?? 'Failed to save'); return }
+      onSaved()
+      onOpenChange(false)
+    } finally { setSaving(false) }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Add contact</DialogTitle>
+          <DialogDescription>Add a person to Active Contacts. Provide at least an email or phone.</DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-2">
+          <div className="grid grid-cols-2 gap-2">
+            <Input placeholder="First name" value={form.first_name} onChange={e => set('first_name', e.target.value)} />
+            <Input placeholder="Last name"  value={form.last_name}  onChange={e => set('last_name', e.target.value)} />
+          </div>
+          <Input placeholder="Email" value={form.email} onChange={e => set('email', e.target.value)} />
+          <Input placeholder="Phone" value={form.phone} onChange={e => set('phone', e.target.value)} />
+          <Input placeholder="Company" value={form.company} onChange={e => set('company', e.target.value)} />
+          {error && <p className="text-xs text-destructive">{error}</p>}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={save} disabled={saving || !canSave}>{saving ? 'Saving…' : 'Add contact'}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export default function ContactsPage() {
   const [contacts,  setContacts]  = useState<Contact[]>([])
   const [loading,   setLoading]   = useState(true)
@@ -99,18 +164,24 @@ export default function ContactsPage() {
   const [search,    setSearch]    = useState('')
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [copied,    setCopied]    = useState<string | null>(null)
+  const [addOpen,   setAddOpen]   = useState(false)
 
-  useEffect(() => {
+  const load = useCallback(() => {
     Promise.all([
       fetch('/api/leads', { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
       fetch('/api/engagement/conversations', { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
       fetch('/api/contacts/cc-participants', { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
-    ]).then(([inbound, conversations, ccList]: [Contact[], Contact[], Contact[]]) => {
+      fetch('/api/contacts', { cache: 'no-store' }).then(r => r.ok ? r.json() : []),
+    ]).then(([inbound, conversations, ccList, manual]: [Contact[], Contact[], Contact[], Contact[]]) => {
       const seen: string[] = []; const merged: Contact[] = []
       for (const l of (Array.isArray(inbound) ? inbound : [])) {
         merged.push(l); if (l.email) seen.push(l.email.toLowerCase())
       }
       for (const c of (Array.isArray(conversations) ? conversations : [])) {
+        if (c.email && !seen.includes(c.email.toLowerCase())) { merged.push(c); seen.push(c.email.toLowerCase()) }
+      }
+      // Manually-added contacts (Active Contacts "+ Add") that aren't already surfaced.
+      for (const c of (Array.isArray(manual) ? manual : [])) {
         if (c.email && !seen.includes(c.email.toLowerCase())) { merged.push(c); seen.push(c.email.toLowerCase()) }
       }
       for (const c of (Array.isArray(ccList) ? ccList : [])) {
@@ -119,6 +190,8 @@ export default function ContactsPage() {
       setContacts(merged); setLoading(false)
     }).catch(() => setLoading(false))
   }, [])
+
+  useEffect(() => { load() }, [load])
 
   const statusFiltered = filter === 'all' ? contacts : contacts.filter(l => l.status === filter)
   const filtered       = statusFiltered.filter(c => matchesSearch(c, search))
@@ -148,7 +221,14 @@ export default function ContactsPage() {
           description={loading
             ? 'Loading contacts…'
             : `${primaryCount} contact${primaryCount !== 1 ? 's' : ''}${ccCount > 0 ? ` · ${ccCount} CC` : ''}`}
+          actions={
+            <Button size="sm" onClick={() => setAddOpen(true)} className="gap-1.5">
+              <Plus size={14} /> Add contact
+            </Button>
+          }
         />
+
+        <AddContactDialog open={addOpen} onOpenChange={setAddOpen} onSaved={load} />
 
         {/* Table card */}
         <div className="flex-1 overflow-hidden px-6 pb-6">

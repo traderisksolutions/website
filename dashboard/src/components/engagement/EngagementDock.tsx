@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Reply, Sparkles, FileText, ChevronDown } from 'lucide-react'
+import { Reply, Sparkles, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type Tab = 'reply' | 'analysis' | 'rfq'
@@ -69,7 +69,6 @@ export function EngagementDock({
             >
               {t.icon}
               {t.label}
-              {on && <ChevronDown size={12} className="opacity-70" />}
             </button>
           )
         })}
