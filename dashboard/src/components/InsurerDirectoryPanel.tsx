@@ -11,8 +11,10 @@ import { PRODUCT_LINES, productLineLabel } from '@/lib/product-lines'
 interface Contact {
   id:            string
   product_line:  string
+  contact_id:    string | null
   contact_name:  string | null
   contact_email: string
+  role_title:    string | null
   notes:         string | null
   updated_at:    string
 }
@@ -26,7 +28,7 @@ interface Insurer {
 
 // ── Add-contact inline form ───────────────────────────────────────────────────
 
-const EMPTY_CONTACT = { product_line: PRODUCT_LINES[0].slug, contact_name: '', contact_email: '', notes: '' }
+const EMPTY_CONTACT = { product_line: PRODUCT_LINES[0].slug, name: '', email: '', role_title: '', notes: '' }
 
 function ContactForm({
   initial, saving, error, onSave, onCancel,
@@ -41,21 +43,28 @@ function ContactForm({
   const set = (k: keyof typeof EMPTY_CONTACT, v: string) => setForm(f => ({ ...f, [k]: v }))
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.4fr)_auto] gap-2 items-start bg-muted/40 rounded-md p-3">
-      <select
-        className="h-9 rounded-md border border-border bg-background px-2 text-sm"
-        value={form.product_line}
-        onChange={e => set('product_line', e.target.value)}
-      >
-        {PRODUCT_LINES.map(p => <option key={p.slug} value={p.slug}>{p.label}</option>)}
-      </select>
-      <Input placeholder="Contact name" value={form.contact_name} onChange={e => set('contact_name', e.target.value)} />
-      <Input placeholder="name@insurer.com" value={form.contact_email} onChange={e => set('contact_email', e.target.value)} />
-      <div className="flex gap-2">
-        <Button size="sm" onClick={() => onSave(form)} disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
-        <Button size="sm" variant="outline" onClick={onCancel}>Cancel</Button>
+    <div className="bg-muted/40 rounded-md p-3 flex flex-col gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.4fr)] gap-2 items-start">
+        <select
+          className="h-9 rounded-md border border-border bg-background px-2 text-sm"
+          value={form.product_line}
+          onChange={e => set('product_line', e.target.value)}
+        >
+          {PRODUCT_LINES.map(p => <option key={p.slug} value={p.slug}>{p.label}</option>)}
+        </select>
+        <Input placeholder="Contact name" value={form.name} onChange={e => set('name', e.target.value)} />
+        <Input placeholder="name@insurer.com" value={form.email} onChange={e => set('email', e.target.value)} />
       </div>
-      {error && <p className="text-xs text-destructive sm:col-span-4">{error}</p>}
+      <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto] gap-2 items-start">
+        <Input placeholder="Role / title (optional)" value={form.role_title} onChange={e => set('role_title', e.target.value)} />
+        <Input placeholder="Notes (optional)" value={form.notes} onChange={e => set('notes', e.target.value)} />
+        <div className="flex gap-2">
+          <Button size="sm" onClick={() => onSave(form)} disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
+          <Button size="sm" variant="outline" onClick={onCancel}>Cancel</Button>
+        </div>
+      </div>
+      <p className="text-[11px] text-muted-foreground">Saving links this person to the line and adds them to Active Contacts if they're new.</p>
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   )
 }
@@ -114,7 +123,9 @@ function InsurerRow({ insurer, onChange }: { insurer: Insurer; onChange: () => v
           {contacts.map(c => (
             <div key={c.id} className="flex items-center gap-3 py-2 text-sm">
               <span className="w-44 shrink-0 font-medium text-foreground/90">{productLineLabel(c.product_line)}</span>
-              <span className="w-40 shrink-0 text-muted-foreground truncate">{c.contact_name || '—'}</span>
+              <span className="w-40 shrink-0 text-muted-foreground truncate">
+                {c.contact_name || '—'}{c.role_title ? <span className="text-muted-foreground/60"> · {c.role_title}</span> : null}
+              </span>
               <span className="flex-1 text-muted-foreground truncate">{c.contact_email}</span>
               <button onClick={() => removeContact(c.id)} className="text-xs text-muted-foreground hover:text-destructive shrink-0">
                 Delete

@@ -24,11 +24,30 @@ export async function GET() {
     if (!await requireUser()) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
     const res = await fetch(
-      `${SB_URL}/rest/v1/insurers?select=id,name,status,insurer_contacts(id,product_line,contact_name,contact_email,notes,updated_at)&order=name.asc`,
+      `${SB_URL}/rest/v1/insurers?select=id,name,status,insurer_contacts(id,product_line,role_title,notes,updated_at,contacts(id,first_name,last_name,email))&order=name.asc`,
       { headers: sbHeaders(), cache: 'no-store' }
     )
     const rows = res.ok ? await res.json() : []
-    return NextResponse.json(Array.isArray(rows) ? rows : [])
+    // Flatten the linked contact onto each directory row so the UI keeps a stable
+    // shape (name/email now come from Active Contacts — the single source of truth).
+    const insurers = (Array.isArray(rows) ? rows : []).map((ins: Record<string, unknown>) => ({
+      ...ins,
+      insurer_contacts: ((ins.insurer_contacts as Record<string, unknown>[] | undefined) ?? []).map(c => {
+        const contact = c.contacts as { id?: string; first_name?: string | null; last_name?: string | null; email?: string | null } | null
+        const name = [contact?.first_name, contact?.last_name].filter(Boolean).join(' ') || null
+        return {
+          id:            c.id,
+          product_line:  c.product_line,
+          role_title:    c.role_title ?? null,
+          notes:         c.notes ?? null,
+          updated_at:    c.updated_at,
+          contact_id:    contact?.id ?? null,
+          contact_name:  name,
+          contact_email: contact?.email ?? null,
+        }
+      }),
+    }))
+    return NextResponse.json(insurers)
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }

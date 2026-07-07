@@ -19,59 +19,78 @@ async function requireUser() {
 
 function normEmail(e: string) { return e.trim().toLowerCase() }
 
+// Single source of truth = the contacts table. Get the contact for this email,
+// creating one (fill-only — never overwrites an existing person) if it's new,
+// so the point person appears in Active Contacts immediately.
+async function getOrCreateContact(email: string, name?: string): Promise<string | null> {
+  const parts      = (name?.trim() || '').split(/\s+/).filter(Boolean)
+  const first_name = parts[0] ?? null
+  const last_name  = parts.length > 1 ? parts.slice(1).join(' ') : null
+  await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
+    method:  'POST',
+    headers: sbHeaders('return=minimal,resolution=ignore-duplicates'),
+    body:    JSON.stringify({ email, first_name, last_name, source: 'manual' }),
+  }).catch(() => {})
+  const r = await fetch(`${SB_URL}/rest/v1/contacts?email=eq.${encodeURIComponent(email)}&select=id&limit=1`, { headers: sbHeaders(), cache: 'no-store' })
+  const rows = r.ok ? await r.json() : []
+  return Array.isArray(rows) ? (rows[0]?.id ?? null) : null
+}
+
 // POST /api/settings/insurers/contacts
-// Body: { insurer_id, product_line, contact_email, contact_name?, notes? }
+// Body: { insurer_id, product_line, email, name?, role_title?, notes? }
+// Upserts the person into Active Contacts, then links them to the insurer × line.
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser()
     if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
-    const { insurer_id, product_line, contact_email, contact_name, notes } =
+    const { insurer_id, product_line, email, name, role_title, notes } =
       await req.json() as {
-        insurer_id?: string; product_line?: string; contact_email?: string
-        contact_name?: string; notes?: string
+        insurer_id?: string; product_line?: string; email?: string
+        name?: string; role_title?: string; notes?: string
       }
 
     if (!insurer_id)                       return NextResponse.json({ error: 'insurer_id required' }, { status: 400 })
     if (!product_line || !isValidProductLine(product_line))
                                            return NextResponse.json({ error: 'valid product_line required' }, { status: 400 })
-    if (!contact_email?.includes('@'))     return NextResponse.json({ error: 'valid contact_email required' }, { status: 400 })
+    if (!email?.includes('@'))             return NextResponse.json({ error: 'valid email required' }, { status: 400 })
 
-    const res = await fetch(`${SB_URL}/rest/v1/insurer_contacts?on_conflict=insurer_id,product_line,contact_email`, {
+    const contactId = await getOrCreateContact(normEmail(email), name)
+    if (!contactId) return NextResponse.json({ error: 'could not resolve contact' }, { status: 500 })
+
+    const res = await fetch(`${SB_URL}/rest/v1/insurer_contacts?on_conflict=insurer_id,product_line,contact_id`, {
       method:  'POST',
       headers: sbHeaders('return=representation,resolution=merge-duplicates'),
       body: JSON.stringify({
         insurer_id,
         product_line,
-        contact_email: normEmail(contact_email),
-        contact_name:  contact_name?.trim() || null,
-        notes:         notes?.trim() || null,
-        updated_by:    user.id,
-        updated_at:    new Date().toISOString(),
+        contact_id: contactId,
+        role_title: role_title?.trim() || null,
+        notes:      notes?.trim() || null,
+        updated_by: user.id,
+        updated_at: new Date().toISOString(),
       }),
     })
     if (!res.ok) return NextResponse.json({ error: await res.text() }, { status: 500 })
     const rows = await res.json()
     const row  = Array.isArray(rows) ? rows[0] : rows
-    void logActivity({ action: 'insurer_contact.created', resource_type: 'insurer_contact', resource_id: row?.id, new_value: { insurer_id, product_line, contact_email: normEmail(contact_email) } })
+    void logActivity({ action: 'insurer_contact.created', resource_type: 'insurer_contact', resource_id: row?.id, new_value: { insurer_id, product_line, contact_id: contactId, email: normEmail(email) } })
     return NextResponse.json(row)
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
 }
 
-// PATCH /api/settings/insurers/contacts
-// Body: { id, product_line?, contact_email?, contact_name?, notes? }
+// PATCH /api/settings/insurers/contacts — edits the LINK only (role_title, notes,
+// product_line). The person's name/email live in Active Contacts.
+// Body: { id, product_line?, role_title?, notes? }
 export async function PATCH(req: NextRequest) {
   try {
     const user = await requireUser()
     if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
-    const { id, product_line, contact_email, contact_name, notes } =
-      await req.json() as {
-        id?: string; product_line?: string; contact_email?: string
-        contact_name?: string; notes?: string
-      }
+    const { id, product_line, role_title, notes } =
+      await req.json() as { id?: string; product_line?: string; role_title?: string; notes?: string }
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
 
     const patch: Record<string, unknown> = { updated_by: user.id, updated_at: new Date().toISOString() }
@@ -79,12 +98,8 @@ export async function PATCH(req: NextRequest) {
       if (!isValidProductLine(product_line)) return NextResponse.json({ error: 'invalid product_line' }, { status: 400 })
       patch.product_line = product_line
     }
-    if (contact_email !== undefined) {
-      if (!contact_email.includes('@')) return NextResponse.json({ error: 'invalid contact_email' }, { status: 400 })
-      patch.contact_email = normEmail(contact_email)
-    }
-    if (contact_name !== undefined) patch.contact_name = contact_name.trim() || null
-    if (notes        !== undefined) patch.notes        = notes.trim() || null
+    if (role_title !== undefined) patch.role_title = role_title.trim() || null
+    if (notes      !== undefined) patch.notes      = notes.trim() || null
 
     const res = await fetch(`${SB_URL}/rest/v1/insurer_contacts?id=eq.${id}`, {
       method:  'PATCH',

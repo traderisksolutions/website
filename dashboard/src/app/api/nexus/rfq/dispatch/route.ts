@@ -27,10 +27,11 @@ export async function POST(req: NextRequest) {
 
     // Snapshot insurer identity from the contact.
     const cRes = await fetch(
-      `${SB_URL}/rest/v1/insurer_contacts?id=eq.${contact_id}&select=product_line,contact_email,insurers(name)&limit=1`,
+      `${SB_URL}/rest/v1/insurer_contacts?id=eq.${contact_id}&select=product_line,contacts(email),insurers(name)&limit=1`,
       { headers: sbH(), cache: 'no-store' }
     )
-    const contact = cRes.ok ? (await cRes.json())[0] : null
+    const contactRow = cRes.ok ? (await cRes.json())[0] : null
+    const contact = contactRow ? { product_line: contactRow.product_line, contact_email: contactRow.contacts?.email ?? null, insurers: contactRow.insurers } : null
     if (!contact) return NextResponse.json({ error: 'contact not found' }, { status: 404 })
 
     const insRes = await fetch(`${SB_URL}/rest/v1/rfq_dispatches`, {

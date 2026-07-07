@@ -78,10 +78,11 @@ export async function POST(req: NextRequest) {
 
     // 3. record the dispatch (snapshot insurer identity).
     const cRes = await fetch(
-      `${SB_URL}/rest/v1/insurer_contacts?id=eq.${contact_id}&select=product_line,contact_email,insurers(name)&limit=1`,
+      `${SB_URL}/rest/v1/insurer_contacts?id=eq.${contact_id}&select=product_line,contacts(email),insurers(name)&limit=1`,
       { headers: sbH(), cache: 'no-store' }
     )
-    const contact = cRes.ok ? (await cRes.json())[0] : null
+    const contactRow = cRes.ok ? (await cRes.json())[0] : null
+    const contact = contactRow ? { insurers: contactRow.insurers, contact_email: contactRow.contacts?.email ?? null } : null
 
     const dRes = await fetch(`${SB_URL}/rest/v1/rfq_dispatches`, {
       method:  'POST',

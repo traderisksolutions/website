@@ -15,7 +15,8 @@ function sbH() {
 }
 
 type Contact = {
-  id: string; product_line: string; contact_name: string | null; contact_email: string
+  id: string; product_line: string
+  contacts?: { first_name: string | null; last_name: string | null; email: string } | null
   insurers?: { id: string; name: string; status: string } | null
 }
 
@@ -25,18 +26,18 @@ export async function GET(req: NextRequest) {
     if (!line) return NextResponse.json([])
 
     const res = await fetch(
-      `${SB_URL}/rest/v1/insurer_contacts?product_line=eq.${encodeURIComponent(line)}&select=id,product_line,contact_name,contact_email,insurers(id,name,status)`,
+      `${SB_URL}/rest/v1/insurer_contacts?product_line=eq.${encodeURIComponent(line)}&select=id,product_line,contacts(first_name,last_name,email),insurers(id,name,status)`,
       { headers: sbH(), cache: 'no-store' }
     )
     const rows: Contact[] = res.ok ? await res.json() : []
     const out = (Array.isArray(rows) ? rows : [])
-      .filter(c => c.insurers?.status !== 'inactive')
+      .filter(c => c.insurers?.status !== 'inactive' && c.contacts?.email)
       .map(c => ({
         contact_id:    c.id,
         insurer_id:    c.insurers?.id ?? null,
         insurer_name:  c.insurers?.name ?? '(unknown insurer)',
-        contact_name:  c.contact_name,
-        contact_email: c.contact_email,
+        contact_name:  [c.contacts?.first_name, c.contacts?.last_name].filter(Boolean).join(' ') || null,
+        contact_email: c.contacts!.email,
       }))
     return NextResponse.json(out)
   } catch (e) {
