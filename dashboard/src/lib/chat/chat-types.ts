@@ -46,6 +46,9 @@ export type ProposedAction =
 export interface ChatMessageMeta {
   action?: ProposedAction
   action_done?: boolean
+  action_undo?: unknown        // snapshot to restore (edit_analysis undo)
+  action_undone?: boolean
+  attachments?: string[]       // filenames attached to a user message
   model?: string
   [k: string]: unknown
 }

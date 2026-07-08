@@ -19,10 +19,11 @@ interface ChatDockContextValue {
   restore:       () => void
   close:         () => void
   setDraft:      (v: string) => void
-  send:          (text: string) => Promise<void>
+  send:          (text: string, attachments?: { filename: string; text: string }[]) => Promise<void>
   stop:          () => void
   regenerate:    () => Promise<void>
   confirmAction: (message: ChatMessage) => Promise<void>
+  undoAction:    (message: ChatMessage) => Promise<void>
   toggleHistory: () => void
   openThread:    (thread: ChatThread) => Promise<void>
   newThread:     () => Promise<void>
@@ -166,7 +167,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
   // ── Streaming assistant run (shared by send + regenerate) ───────────────────
   // Passes the last user message; the API dedups against history, so it never
   // double-inserts. Aborting (Stop) persists whatever streamed so far.
-  const runAssistant = useCallback(async (threadId: string, caseId: string | null, userContent: string) => {
+  const runAssistant = useCallback(async (threadId: string, caseId: string | null, userContent: string, attachments?: { filename: string; text: string }[]) => {
     dispatch({ type: 'SET_SENDING', sending: true })
     dispatch({ type: 'SET_ERROR', error: null })
     const ac = new AbortController()
@@ -176,7 +177,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await fetch('/api/chat', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ thread_id: threadId, case_id: caseId, message: userContent }),
+        body: JSON.stringify({ thread_id: threadId, case_id: caseId, message: userContent, attachments: attachments ?? [] }),
         signal: ac.signal,
       })
       if (!res.ok || !res.body) { const d = await res.json().catch(() => ({})); throw new Error(d.error ?? 'Assistant failed to respond') }
@@ -219,10 +220,12 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   // ── Send a message ──────────────────────────────────────────────────────────
-  const send = useCallback(async (text: string) => {
+  const send = useCallback(async (text: string, attachments?: { filename: string; text: string }[]) => {
     const content = text.trim()
     const cur = stateRef.current
-    if (!content || cur.sending) return
+    if ((!content && !(attachments?.length)) || cur.sending) return
+    const msgText = content || '(see attached)'
+    const files = (attachments ?? []).map(a => a.filename)
     let threadId = cur.activeThreadId
     let caseId   = cur.caseId
     try {
@@ -234,17 +237,17 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
         upsertChatUiState({ active_thread_id: threadId, is_open: true }).catch(() => {})
       }
       const firstMessage = cur.messages.length === 0
-      const userMsg = await appendUserMessage(threadId, content)
+      const userMsg = await appendUserMessage(threadId, msgText, files.length ? { attachments: files } : undefined)
       if (!userMsg) throw new Error('Message could not be saved — try again')
       dispatch({ type: 'ADD_MESSAGE', message: userMsg })
       dispatch({ type: 'SET_DRAFT', draft: '' })
       saveDraft(threadId, '').catch(() => {})
-      if (firstMessage) setThreadTitle(threadId, content.slice(0, 70)).catch(() => {})
+      if (firstMessage) setThreadTitle(threadId, msgText.slice(0, 70)).catch(() => {})
     } catch (e) {
       dispatch({ type: 'SET_ERROR', error: e instanceof Error ? e.message : 'Could not send' })
       return
     }
-    await runAssistant(threadId, caseId, content)
+    await runAssistant(threadId, caseId, msgText, attachments)
   }, [pathname, runAssistant])
 
   // Stop the in-flight streaming reply.
@@ -276,11 +279,17 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
         })
         notifyAnalysisUpdated(caseId)
       } else if (action.type === 'edit_analysis' && caseId) {
-        await fetch(`/api/nexus/cases/${caseId}/edit-analysis`, {
+        const res = await fetch(`/api/nexus/cases/${caseId}/edit-analysis`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ops: action.ops, summary: action.summary }),
         })
+        const data = await res.json().catch(() => ({}))
         notifyAnalysisUpdated(caseId)
+        // Keep the pre-edit snapshot on the message so it can be undone.
+        const meta = { ...message.metadata_json, action_done: true, ...(data.previous ? { action_undo: data.previous } : {}) }
+        dispatch({ type: 'UPDATE_MESSAGE', id: message.id, patch: { metadata_json: meta } })
+        updateMessageMeta(message.id, meta).catch(() => {})
+        return
       } else if (action.type === 'draft_email') {
         if (action.thread_id) {
           window.sessionStorage.setItem('trs_pending_reply', JSON.stringify({ threadId: action.thread_id, toEmail: action.to_email, subject: action.subject, body: action.body }))
@@ -300,6 +309,25 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
       updateMessageMeta(message.id, meta).catch(() => {})
     } catch {
       dispatch({ type: 'SET_ERROR', error: 'Action failed — please try from the case directly.' })
+    }
+  }, [])
+
+  // Undo an applied edit_analysis by restoring its captured snapshot.
+  const undoAction = useCallback(async (message: ChatMessage) => {
+    const snapshot = message.metadata_json?.action_undo
+    const caseId = stateRef.current.caseId
+    if (!snapshot || !caseId) return
+    try {
+      await fetch(`/api/nexus/cases/${caseId}/restore-analysis`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ snapshot }),
+      })
+      notifyAnalysisUpdated(caseId)
+      const meta = { ...message.metadata_json, action_undone: true }
+      dispatch({ type: 'UPDATE_MESSAGE', id: message.id, patch: { metadata_json: meta } })
+      updateMessageMeta(message.id, meta).catch(() => {})
+    } catch {
+      dispatch({ type: 'SET_ERROR', error: 'Could not undo — please check the case.' })
     }
   }, [])
 
@@ -345,7 +373,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <ChatDockContext.Provider value={{ state, caseIdInRoute, open, minimize, restore, close, setDraft, send, stop, regenerate, confirmAction, toggleHistory, openThread, newThread, archiveThread, renameThread }}>
+    <ChatDockContext.Provider value={{ state, caseIdInRoute, open, minimize, restore, close, setDraft, send, stop, regenerate, confirmAction, undoAction, toggleHistory, openThread, newThread, archiveThread, renameThread }}>
       {children}
     </ChatDockContext.Provider>
   )

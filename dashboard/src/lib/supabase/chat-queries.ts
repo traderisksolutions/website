@@ -65,11 +65,11 @@ export async function getThreadMessages(threadId: string): Promise<ChatMessage[]
   return (data ?? []) as ChatMessage[]
 }
 
-export async function appendUserMessage(threadId: string, content: string): Promise<ChatMessage | null> {
+export async function appendUserMessage(threadId: string, content: string, meta?: ChatMessageMeta): Promise<ChatMessage | null> {
   const uid = await currentUserId()
   const supabase = db()
   const { data, error } = await supabase.from('chat_messages')
-    .insert({ thread_id: threadId, user_id: uid, role: 'user', content, message_status: 'complete' })
+    .insert({ thread_id: threadId, user_id: uid, role: 'user', content, message_status: 'complete', metadata_json: meta ?? {} })
     .select('*').single()
   if (error) return null
   await touchThread(threadId)

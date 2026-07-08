@@ -7,13 +7,14 @@ import { ChatMessageItem } from './chat-message-item'
 import { ChatEmptyState } from './chat-empty-state'
 
 export function FloatingChatBody({
-  messages, sending, error, caseAware, onConfirm, onPickPrompt, onRegenerate,
+  messages, sending, error, caseAware, onConfirm, onUndo, onPickPrompt, onRegenerate,
 }: {
   messages: ChatMessage[]
   sending: boolean
   error: string | null
   caseAware: boolean
   onConfirm: (m: ChatMessage) => void
+  onUndo: (m: ChatMessage) => void
   onPickPrompt: (p: string) => void
   onRegenerate: () => void
 }) {
@@ -33,7 +34,7 @@ export function FloatingChatBody({
   return (
     <div className="flex-1 overflow-y-auto px-3.5 py-3 flex flex-col gap-3">
       {messages.map(m => (
-        <ChatMessageItem key={m.id} message={m} onConfirm={onConfirm} onRegenerate={m.id === regenId ? onRegenerate : undefined} />
+        <ChatMessageItem key={m.id} message={m} onConfirm={onConfirm} onUndo={onUndo} onRegenerate={m.id === regenId ? onRegenerate : undefined} />
       ))}
       {sending && !hasStreaming && (
         <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground/60">

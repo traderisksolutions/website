@@ -38,6 +38,7 @@ async function caseContext(caseId: string): Promise<string> {
     scenarios:  (sa.scenario_analysis ?? []).map((s: { name: string; probability: string }) => ({ name: s.name, probability: s.probability })),
     stakeholders: (sa.stakeholder_map ?? []).map((s: { name: string; party_type: string; stance?: string }) => ({ name: s.name, party_type: s.party_type, stance: s.stance })),
     missing:    sa.missing_items,
+    citations:  sa.citations,
   } : null
 
   return `━━ CURRENT CASE ━━
@@ -69,7 +70,13 @@ Valid action shapes:
 - { "type": "reanalyze", "instructions": "..." } — use ONLY when the change needs re-reasoning over the evidence (not a mechanical edit).
 - { "type": "draft_email", "to_email": "...", "subject": "...", "body": "...", "thread_id": "<from linked threads, or omit>" } — draft an email.
 - { "type": "edit_case", "patch": { "name"?: "...", "description"?: "...", "status"?: "open|closed" } } — edit case fields.
-Never include more than one action. Never fabricate figures or coverage. If no action is needed, do not include the block.`
+Never include more than one action. Never fabricate figures or coverage. If no action is needed, do not include the block.
+
+CITATIONS: when you reference specific evidence (an email thread, an attachment, or a point from the analysis), cite it. AFTER any action block, append a fenced block:
+\`\`\`citations
+[ { "label": "<short source label>", "ref": "<thread_id from the linked threads if it's an email/thread, else omit>", "kind": "email" | "attachment" | "analysis" } ]
+\`\`\`
+Only cite sources present in the context above. Keep to the few most relevant. Omit the block if you cited nothing.`
 
 export async function POST(req: NextRequest) {
   try {
@@ -77,8 +84,12 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
-    const { thread_id, case_id, message } = await req.json() as { thread_id?: string; case_id?: string; message?: string }
+    const { thread_id, case_id, message, attachments } = await req.json() as { thread_id?: string; case_id?: string; message?: string; attachments?: { filename: string; text: string }[] }
     if (!thread_id || !message?.trim()) return NextResponse.json({ error: 'thread_id and message required' }, { status: 400 })
+
+    // Inline any attached-file text with the user's message so Opus reads it.
+    const attachBlock = (attachments ?? []).filter(a => a.text?.trim()).map(a => `=== ATTACHED FILE: ${a.filename} ===\n${a.text.slice(0, 20_000)}`).join('\n\n')
+    const messageWithAtt = attachBlock ? `${message}\n\n${attachBlock}` : message
 
     // Ownership check.
     const tRes = await fetch(`${SB_URL}/rest/v1/chat_threads?id=eq.${thread_id}&select=user_id,case_id&limit=1`, { headers: sbH(), cache: 'no-store' })
@@ -91,7 +102,11 @@ export async function POST(req: NextRequest) {
     const msgs = history
       .filter(m => (m.role === 'user' || m.role === 'assistant') && m.content?.trim())
       .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
-    if (msgs.length === 0 || msgs[msgs.length - 1].content !== message) msgs.push({ role: 'user', content: message })
+    if (msgs.length && msgs[msgs.length - 1].role === 'user' && msgs[msgs.length - 1].content === message) {
+      msgs[msgs.length - 1].content = messageWithAtt   // inject attachment text into the persisted turn
+    } else {
+      msgs.push({ role: 'user', content: messageWithAtt })
+    }
 
     const ctx    = (case_id ?? thread.case_id) ? await caseContext((case_id ?? thread.case_id) as string) : ''
     const system = ctx ? `${SYSTEM}\n\n${ctx}` : SYSTEM
@@ -140,16 +155,18 @@ export async function POST(req: NextRequest) {
           // Client stopped mid-stream → discard; the client persists its partial.
           if (ac.signal.aborted) { controller.close(); return }
 
-          // Parse an optional ```action { ... } ``` block from the full text.
-          let text = full; let action: unknown = null
+          // Parse optional ```action and ```citations blocks from the full text.
+          let text = full; let action: unknown = null; let citations: unknown[] = []
           const m = text.match(/```action\s*([\s\S]*?)```/i)
           if (m) { try { action = JSON.parse(m[1].trim()) } catch { /* ignore */ } text = text.replace(m[0], '').trim() }
+          const c = text.match(/```citations\s*([\s\S]*?)```/i)
+          if (c) { try { const parsed = JSON.parse(c[1].trim()); if (Array.isArray(parsed)) citations = parsed } catch { /* ignore */ } text = text.replace(c[0], '').trim() }
           if (!text) text = 'Done.'
 
           const iRes = await fetch(`${SB_URL}/rest/v1/chat_messages`, {
             method:  'POST',
             headers: sbH('return=representation'),
-            body: JSON.stringify({ thread_id, role: 'assistant', content: text, message_status: 'complete', metadata_json: { model: 'claude-opus-4-8', ...(action ? { action } : {}) } }),
+            body: JSON.stringify({ thread_id, role: 'assistant', content: text, message_status: 'complete', citations_json: citations, metadata_json: { model: 'claude-opus-4-8', ...(action ? { action } : {}) } }),
           })
           const saved = iRes.ok ? (await iRes.json())[0] : null
           fetch(`${SB_URL}/rest/v1/chat_threads?id=eq.${thread_id}`, { method: 'PATCH', headers: sbH('return=minimal'), body: JSON.stringify({ last_message_at: new Date().toISOString() }) }).catch(() => {})

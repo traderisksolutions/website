@@ -88,7 +88,8 @@ export async function POST(req: NextRequest, { params }: Params) {
     const row  = aRes.ok ? (await aRes.json())[0] : null
     if (!row?.structured_analysis) return NextResponse.json({ error: 'No analysis to edit yet — run analysis first.' }, { status: 400 })
 
-    const sa = JSON.parse(JSON.stringify(row.structured_analysis)) as Rec
+    const previous = row.structured_analysis                       // snapshot for undo
+    const sa = JSON.parse(JSON.stringify(previous)) as Rec
     for (const op of ops) { try { applyOp(sa, op) } catch { /* skip a bad op, keep the rest */ } }
 
     const uRes = await fetch(`${SB_URL}/rest/v1/case_analyses?id=eq.${row.id}`, {
@@ -98,7 +99,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     if (!uRes.ok) return NextResponse.json({ error: await uRes.text() }, { status: 500 })
 
     void logActivity({ action: 'nexus.analysis_edited', resource_type: 'case_analysis', resource_id: row.id, new_value: { case_id: params.id, summary: summary ?? null, ops: ops.length } })
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true, previous })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }

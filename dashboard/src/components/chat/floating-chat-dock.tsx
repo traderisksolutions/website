@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { Sparkles } from 'lucide-react'
 import { useChatDock } from '@/providers/chat-dock-provider'
 import { FloatingChatHeader } from './floating-chat-header'
@@ -15,7 +15,25 @@ import { ChatThreadList } from './chat-thread-list'
  * minimized bar. Fixed bottom-right; never overlays/blocks the page.
  */
 export function FloatingChatDock() {
-  const { state, caseIdInRoute, open, minimize, restore, close, setDraft, send, stop, regenerate, confirmAction, toggleHistory, openThread, newThread, archiveThread, renameThread } = useChatDock()
+  const { state, caseIdInRoute, open, minimize, restore, close, setDraft, send, stop, regenerate, confirmAction, undoAction, toggleHistory, openThread, newThread, archiveThread, renameThread } = useChatDock()
+  const [attachments, setAttachments] = useState<{ filename: string; text: string }[]>([])
+  const [attaching, setAttaching] = useState(false)
+
+  async function attachFiles(files: FileList) {
+    setAttaching(true)
+    try {
+      for (const file of Array.from(files)) {
+        const fd = new FormData(); fd.append('file', file)
+        const res = await fetch('/api/chat/attach', { method: 'POST', body: fd })
+        const d = await res.json().catch(() => ({}))
+        if (res.ok && d.text) setAttachments(prev => [...prev, { filename: d.filename, text: d.text }])
+      }
+    } finally { setAttaching(false) }
+  }
+  function sendWithAttachments() {
+    send(state.draft, attachments.length ? attachments : undefined)
+    setAttachments([])
+  }
 
   if (!state.bootstrapped) return null
 
@@ -84,15 +102,20 @@ export function FloatingChatDock() {
             error={state.error}
             caseAware={caseAware}
             onConfirm={confirmAction}
+            onUndo={undoAction}
             onPickPrompt={(p) => { setDraft(p) }}
             onRegenerate={regenerate}
           />
           <FloatingChatComposer
             draft={state.draft}
             sending={state.sending}
+            attachments={attachments}
+            attaching={attaching}
             onChange={setDraft}
-            onSend={() => send(state.draft)}
+            onSend={sendWithAttachments}
             onStop={stop}
+            onAttachFiles={attachFiles}
+            onRemoveAttach={(i) => setAttachments(prev => prev.filter((_, idx) => idx !== i))}
           />
         </>
       )}
