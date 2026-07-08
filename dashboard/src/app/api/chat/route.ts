@@ -1,10 +1,12 @@
 /**
- * POST /api/chat   Body: { thread_id, case_id?, message }
+ * POST /api/chat   Body: { thread_id, case_id?, message, attachments? }
  *
- * The floating "consultant" chat. Loads the thread's history (+ the Nexus case
- * context when case-aware), asks Opus, and persists the assistant reply. Opus may
- * append a single ```action JSON block that becomes a confirm-to-act button — it
- * never executes here; the client runs it only when the employee confirms.
+ * The floating "consultant" chat. Streams Opus's reply as newline-delimited JSON.
+ * When case-aware it gives Opus live READ-TOOLS (fetch the full analysis, quotes,
+ * thread list, or a thread's messages) so answers reflect current data, and runs
+ * an agentic tool loop before the final answer. Opus may append a ```action block
+ * (confirm-to-act) and a ```citations block. A nightly job distils past chats into
+ * a CHAT_CONSULTANT prompt override that is appended here.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
@@ -30,53 +32,87 @@ async function caseContext(caseId: string): Promise<string> {
   const sa = aRes.ok ? (await aRes.json())[0]?.structured_analysis : null
   const threads = tRes.ok ? await tRes.json() : []
   if (!c) return ''
-
   const compact = sa ? {
     brief:      sa.case_brief,
-    blocking:   sa.case_brief?.blocking_issues,
     next_steps: (sa.recommended_next_steps ?? []).map((s: { step: number; action: string; owner: string }) => ({ step: s.step, action: s.action, owner: s.owner })),
     scenarios:  (sa.scenario_analysis ?? []).map((s: { name: string; probability: string }) => ({ name: s.name, probability: s.probability })),
     stakeholders: (sa.stakeholder_map ?? []).map((s: { name: string; party_type: string; stance?: string }) => ({ name: s.name, party_type: s.party_type, stance: s.stance })),
     missing:    sa.missing_items,
     citations:  sa.citations,
   } : null
-
   return `━━ CURRENT CASE ━━
 Name: ${c.name}
 Status: ${c.status}${c.description ? `\nDescription: ${c.description}` : ''}
-Linked threads (use thread_id for draft_email routing): ${JSON.stringify(threads)}
-Latest analysis (may be what the broker wants changed):
+Linked threads (use thread_id for draft_email routing and get_thread_messages): ${JSON.stringify(threads)}
+Latest analysis (summary — use get_case_analysis for the full JSON):
 ${compact ? JSON.stringify(compact, null, 2) : '(no analysis yet — the broker may want you to run one)'}\n`
+}
+
+// ── Live read-tools (case-scoped) ─────────────────────────────────────────────
+const TOOLS = [
+  { name: 'get_case_analysis',  description: 'Get the full latest structured analysis JSON for this case (fuller than the summary in context).', input_schema: { type: 'object', properties: {} } },
+  { name: 'get_case_quotes',    description: 'Get captured insurer quotes for this case (premium, excess, limit, validity, terms).',              input_schema: { type: 'object', properties: {} } },
+  { name: 'list_case_threads',  description: 'List this case\'s linked email threads with party labels and thread_id.',                          input_schema: { type: 'object', properties: {} } },
+  { name: 'get_thread_messages', description: 'Get recent messages (direction, from, date, body) for one thread on this case.',                  input_schema: { type: 'object', properties: { thread_id: { type: 'string' } }, required: ['thread_id'] } },
+] as const
+
+async function execTool(name: string, input: Record<string, unknown>, caseId: string): Promise<string> {
+  const cap = (s: string) => s.slice(0, 12_000)
+  try {
+    if (name === 'get_case_analysis') {
+      const r = await fetch(`${SB_URL}/rest/v1/case_analyses?case_id=eq.${caseId}&order=created_at.desc&limit=1&select=structured_analysis`, { headers: sbH(), cache: 'no-store' })
+      const sa = r.ok ? (await r.json())[0]?.structured_analysis : null
+      return cap(sa ? JSON.stringify(sa) : 'No analysis yet.')
+    }
+    if (name === 'get_case_quotes') {
+      const r = await fetch(`${SB_URL}/rest/v1/rfq_quotes?case_id=eq.${caseId}&select=insurer_name,product_line,premium,excess,limit_indemnity,validity,key_terms,exclusions,summary,status`, { headers: sbH(), cache: 'no-store' })
+      return cap(JSON.stringify(r.ok ? await r.json() : []))
+    }
+    if (name === 'list_case_threads') {
+      const r = await fetch(`${SB_URL}/rest/v1/case_threads?case_id=eq.${caseId}&select=thread_id,party_type,party_label`, { headers: sbH(), cache: 'no-store' })
+      return cap(JSON.stringify(r.ok ? await r.json() : []))
+    }
+    if (name === 'get_thread_messages') {
+      const tid = String(input.thread_id ?? '')
+      const own = await fetch(`${SB_URL}/rest/v1/case_threads?case_id=eq.${caseId}&thread_id=eq.${tid}&select=thread_id&limit=1`, { headers: sbH(), cache: 'no-store' })
+      if (!own.ok || (await own.json()).length === 0) return 'That thread is not linked to this case.'
+      const r = await fetch(`${SB_URL}/rest/v1/email_messages?thread_id=eq.${tid}&order=sent_at.desc&limit=15&select=direction,from_address,sent_at,body_text`, { headers: sbH(), cache: 'no-store' })
+      const rows = (r.ok ? await r.json() : []) as { direction: string; from_address: string; sent_at: string; body_text: string }[]
+      return cap(JSON.stringify(rows.reverse().map(m => ({ direction: m.direction, from: m.from_address, date: m.sent_at, body: (m.body_text ?? '').slice(0, 1500) }))))
+    }
+  } catch (e) { return `Tool error: ${String(e)}` }
+  return 'Unknown tool.'
 }
 
 const SYSTEM = `You are a sharp, candid insurance strategy consultant embedded in TRS (Trade Risk Solutions, a Singapore brokerage). A broker is chatting with you about a case's AI analysis. They may be unhappy with it, want clarifications, corrections, or changes.
 
-Be concise and practical. When you state a factual claim about the case, ground it in what the context shows.
+Be concise and practical. Ground factual claims in the context or in what your read-tools return — when case-aware you can call get_case_analysis, get_case_quotes, list_case_threads and get_thread_messages to check the live data before answering. Prefer looking things up over guessing.
 
-CONFIRM-TO-ACT: if — and only if — the broker's request implies a concrete change, END your reply with a single fenced block exactly like:
+CONFIRM-TO-ACT: if — and only if — the broker's request implies a concrete change, END your reply with a single fenced block:
 \`\`\`action
-{ "type": "reanalyze", "instructions": "<what to change/focus, phrased for a re-run>" }
+{ "type": "reanalyze", "instructions": "<what to change/focus>" }
 \`\`\`
 Valid action shapes:
-- { "type": "edit_analysis", "summary": "<one line>", "ops": [ ... ] } — SURGICAL edits to the stored analysis. Prefer this for specific, mechanical changes (reword/add/remove a next step, add a scenario, fix a stakeholder's stance, correct the stage, add/remove a blocking issue or missing item). Op shapes:
-    { "target": "brief", "set": { "summary"?: "...", "current_stage"?: "..." } }
-    { "target": "blocking_issues", "op": "add"|"remove", "value"?: "...", "at"?: <1-based>, "match"?: "<substring>" }
-    { "target": "next_steps", "op": "add", "value": { "action": "...", "owner"?: "...", "priority"?: "high|medium|low", "rationale"?: "...", "deadline"?: "..." } }
-    { "target": "next_steps", "op": "update"|"remove", "at"?: <1-based>, "match"?: "<substring of the action>", "value"?: { ...fields to change } }
-    { "target": "scenarios", "op": "add"|"update"|"remove", "at"?, "match"?, "value"? }   (fields: name, probability, outcome, trs_action)
-    { "target": "stakeholders", "op": "add"|"update"|"remove", "at"?, "match"?, "value"? } (fields: name, party_type, role_summary, stance)
-    { "target": "missing_items", "op": "add"|"remove", "at"?, "match"?, "value"? }         (fields: item, required_from, urgency, impact)
-  Use "at" (the number shown in the UI) when you know it, else "match".
-- { "type": "reanalyze", "instructions": "..." } — use ONLY when the change needs re-reasoning over the evidence (not a mechanical edit).
-- { "type": "draft_email", "to_email": "...", "subject": "...", "body": "...", "thread_id": "<from linked threads, or omit>" } — draft an email.
-- { "type": "edit_case", "patch": { "name"?: "...", "description"?: "...", "status"?: "open|closed" } } — edit case fields.
-Never include more than one action. Never fabricate figures or coverage. If no action is needed, do not include the block.
+- { "type": "edit_analysis", "summary": "<one line>", "ops": [ ... ] } — SURGICAL edits (reword/add/remove a next step, add a scenario, fix a stakeholder's stance, correct the stage, add/remove a blocking issue or missing item). Op shapes:
+    { "target": "brief", "set": { "summary"?, "current_stage"? } }
+    { "target": "blocking_issues", "op": "add"|"remove", "value"?, "at"?, "match"? }
+    { "target": "next_steps", "op": "add", "value": { "action", "owner"?, "priority"?, "rationale"?, "deadline"? } }
+    { "target": "next_steps", "op": "update"|"remove", "at"?, "match"?, "value"? }
+    { "target": "scenarios", "op": "add"|"update"|"remove", "at"?, "match"?, "value"? }
+    { "target": "stakeholders", "op": "add"|"update"|"remove", "at"?, "match"?, "value"? }
+    { "target": "missing_items", "op": "add"|"remove", "at"?, "match"?, "value"? }
+- { "type": "reanalyze", "instructions": "..." } — ONLY when the change needs re-reasoning over evidence.
+- { "type": "draft_email", "to_email"?, "subject"?, "body", "thread_id"? } — draft an email.
+- { "type": "edit_case", "patch": { "name"?, "description"?, "status"? } } — edit case fields.
+Never include more than one action. Never fabricate figures or coverage.
 
-CITATIONS: when you reference specific evidence (an email thread, an attachment, or a point from the analysis), cite it. AFTER any action block, append a fenced block:
+CITATIONS: when you reference specific evidence, append AFTER any action block:
 \`\`\`citations
-[ { "label": "<short source label>", "ref": "<thread_id from the linked threads if it's an email/thread, else omit>", "kind": "email" | "attachment" | "analysis" } ]
+[ { "label": "<short label>", "ref": "<thread_id if an email/thread, else omit>", "kind": "email"|"attachment"|"analysis" } ]
 \`\`\`
-Only cite sources present in the context above. Keep to the few most relevant. Omit the block if you cited nothing.`
+Only cite sources you actually used. Omit the block if none.`
+
+type Block = { type: string; text?: string; id?: string; name?: string; _json?: string; input?: unknown }
 
 export async function POST(req: NextRequest) {
   try {
@@ -87,75 +123,115 @@ export async function POST(req: NextRequest) {
     const { thread_id, case_id, message, attachments } = await req.json() as { thread_id?: string; case_id?: string; message?: string; attachments?: { filename: string; text: string }[] }
     if (!thread_id || !message?.trim()) return NextResponse.json({ error: 'thread_id and message required' }, { status: 400 })
 
-    // Inline any attached-file text with the user's message so Opus reads it.
     const attachBlock = (attachments ?? []).filter(a => a.text?.trim()).map(a => `=== ATTACHED FILE: ${a.filename} ===\n${a.text.slice(0, 20_000)}`).join('\n\n')
     const messageWithAtt = attachBlock ? `${message}\n\n${attachBlock}` : message
 
-    // Ownership check.
     const tRes = await fetch(`${SB_URL}/rest/v1/chat_threads?id=eq.${thread_id}&select=user_id,case_id&limit=1`, { headers: sbH(), cache: 'no-store' })
     const thread = tRes.ok ? (await tRes.json())[0] : null
     if (!thread || thread.user_id !== user.id) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    // History (last 20) → Anthropic messages.
     const hRes = await fetch(`${SB_URL}/rest/v1/chat_messages?thread_id=eq.${thread_id}&order=created_at.asc&select=role,content&limit=20`, { headers: sbH(), cache: 'no-store' })
     const history: { role: string; content: string }[] = hRes.ok ? await hRes.json() : []
-    const msgs = history
+    type Msg = { role: 'user' | 'assistant'; content: string | Block[] }
+    const msgs: Msg[] = history
       .filter(m => (m.role === 'user' || m.role === 'assistant') && m.content?.trim())
-      .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
+      .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content as string | Block[] }))
     if (msgs.length && msgs[msgs.length - 1].role === 'user' && msgs[msgs.length - 1].content === message) {
-      msgs[msgs.length - 1].content = messageWithAtt   // inject attachment text into the persisted turn
+      msgs[msgs.length - 1].content = messageWithAtt
     } else {
       msgs.push({ role: 'user', content: messageWithAtt })
     }
 
-    const ctx    = (case_id ?? thread.case_id) ? await caseContext((case_id ?? thread.case_id) as string) : ''
-    const system = ctx ? `${SYSTEM}\n\n${ctx}` : SYSTEM
+    const effCaseId = (case_id ?? thread.case_id) as string | null
+    const ctx = effCaseId ? await caseContext(effCaseId) : ''
+
+    // Learned improvements distilled nightly from past chats.
+    let learned = ''
+    try {
+      const oRes = await fetch(`${SB_URL}/rest/v1/prompt_overrides?email_type=eq.CHAT_CONSULTANT&order=synthesized_at.desc&limit=1&select=override_text`, { headers: sbH(), cache: 'no-store' })
+      const oTxt = oRes.ok ? (await oRes.json())[0]?.override_text : null
+      if (oTxt) learned = `LEARNED IMPROVEMENTS (from reviewing past chats — apply these):\n${oTxt}`
+    } catch { /* optional */ }
+
+    const system = [SYSTEM, ctx, learned].filter(Boolean).join('\n\n')
 
     const key = process.env.ANTHROPIC_API_KEY
     if (!key) return NextResponse.json({ error: 'Assistant is not configured (ANTHROPIC_API_KEY missing).' }, { status: 500 })
 
-    // Stream Anthropic's text deltas to the client as newline-delimited JSON, then
-    // persist the final assistant message (with any parsed action) and emit `done`.
     const enc = new TextEncoder()
-    const ac  = new AbortController()  // aborted when the client disconnects (Stop)
+    const ac  = new AbortController()
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
         const emit = (o: unknown) => controller.enqueue(enc.encode(JSON.stringify(o) + '\n'))
-        try {
-          const aRes = await fetch(ANTHROPIC_URL, {
-            method:  'POST',
-            headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-            body: JSON.stringify({ model: 'claude-opus-4-8', max_tokens: 2000, thinking: { type: 'adaptive' }, system, messages: msgs, stream: true }),
-            signal: ac.signal,
-          })
-          if (!aRes.ok || !aRes.body) { emit({ type: 'error', error: `Assistant error: ${await aRes.text().catch(() => aRes.status)}` }); controller.close(); return }
 
-          const reader = aRes.body.getReader()
-          const dec = new TextDecoder()
-          let buffer = '', full = ''
+        // One streaming turn → text (streamed to client) + any tool_use blocks.
+        async function runTurn(): Promise<{ full: string; blocks: Block[]; stopReason: string }> {
+          const body: Record<string, unknown> = { model: 'claude-opus-4-8', max_tokens: 2000, system, messages: msgs, stream: true }
+          if (effCaseId) body.tools = TOOLS           // read-tools when case-aware
+          else body.thinking = { type: 'adaptive' }   // deeper reasoning for general chat
+          const aRes = await fetch(ANTHROPIC_URL, {
+            method: 'POST',
+            headers: { 'x-api-key': key!, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+            body: JSON.stringify(body), signal: ac.signal,
+          })
+          if (!aRes.ok || !aRes.body) throw new Error(`Assistant error: ${await aRes.text().catch(() => aRes.status)}`)
+          const reader = aRes.body.getReader(); const dec = new TextDecoder()
+          let buf = '', full = '', stopReason = 'end_turn'
+          const blocks: Record<number, Block> = {}
           for (;;) {
             const { done, value } = await reader.read()
             if (done) break
-            buffer += dec.decode(value, { stream: true })
+            buf += dec.decode(value, { stream: true })
             let nl: number
-            while ((nl = buffer.indexOf('\n')) >= 0) {
-              const line = buffer.slice(0, nl).trim(); buffer = buffer.slice(nl + 1)
+            while ((nl = buf.indexOf('\n')) >= 0) {
+              const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1)
               if (!line.startsWith('data:')) continue
               const payload = line.slice(5).trim()
               if (!payload || payload === '[DONE]') continue
-              let ev: { type?: string; delta?: { type?: string; text?: string } }
+              let ev: { type?: string; index?: number; content_block?: { type: string; id?: string; name?: string }; delta?: { type?: string; text?: string; partial_json?: string; stop_reason?: string } }
               try { ev = JSON.parse(payload) } catch { continue }
-              if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta' && ev.delta.text) {
-                full += ev.delta.text
-                emit({ type: 'delta', text: ev.delta.text })
+              if (ev.type === 'content_block_start' && typeof ev.index === 'number' && ev.content_block) {
+                blocks[ev.index] = { type: ev.content_block.type, id: ev.content_block.id, name: ev.content_block.name, text: '', _json: '' }
+              } else if (ev.type === 'content_block_delta' && typeof ev.index === 'number') {
+                const b = blocks[ev.index]; if (!b) continue
+                if (ev.delta?.type === 'text_delta' && ev.delta.text) { b.text += ev.delta.text; full += ev.delta.text; emit({ type: 'delta', text: ev.delta.text }) }
+                else if (ev.delta?.type === 'input_json_delta' && ev.delta.partial_json) { b._json += ev.delta.partial_json }
+              } else if (ev.type === 'message_delta' && ev.delta?.stop_reason) {
+                stopReason = ev.delta.stop_reason
               }
             }
           }
+          // Finalise blocks (parse tool inputs).
+          const out: Block[] = Object.keys(blocks).map(Number).sort((a, b) => a - b).map(i => {
+            const b = blocks[i]
+            if (b.type === 'text') return { type: 'text', text: b.text ?? '' }
+            if (b.type === 'tool_use') { let input: unknown = {}; try { input = JSON.parse(b._json || '{}') } catch { /* keep {} */ } return { type: 'tool_use', id: b.id, name: b.name, input } }
+            return { type: b.type }
+          })
+          return { full, blocks: out, stopReason }
+        }
 
-          // Client stopped mid-stream → discard; the client persists its partial.
+        try {
+          let full = ''
+          for (let iter = 0; iter < 5; iter++) {
+            const turn = await runTurn()
+            full += turn.full
+            if (ac.signal.aborted) { controller.close(); return }
+            const toolUses = turn.blocks.filter(b => b.type === 'tool_use')
+            if (turn.stopReason === 'tool_use' && toolUses.length && effCaseId) {
+              // Record the assistant turn, run the tools, feed results back, loop.
+              msgs.push({ role: 'assistant', content: turn.blocks })
+              const results = await Promise.all(toolUses.map(async t => ({
+                type: 'tool_result', tool_use_id: t.id, content: await execTool(t.name!, (t.input ?? {}) as Record<string, unknown>, effCaseId),
+              })))
+              msgs.push({ role: 'user', content: results as unknown as Block[] })
+              continue
+            }
+            break
+          }
+
           if (ac.signal.aborted) { controller.close(); return }
 
-          // Parse optional ```action and ```citations blocks from the full text.
           let text = full; let action: unknown = null; let citations: unknown[] = []
           const m = text.match(/```action\s*([\s\S]*?)```/i)
           if (m) { try { action = JSON.parse(m[1].trim()) } catch { /* ignore */ } text = text.replace(m[0], '').trim() }
@@ -164,8 +240,7 @@ export async function POST(req: NextRequest) {
           if (!text) text = 'Done.'
 
           const iRes = await fetch(`${SB_URL}/rest/v1/chat_messages`, {
-            method:  'POST',
-            headers: sbH('return=representation'),
+            method: 'POST', headers: sbH('return=representation'),
             body: JSON.stringify({ thread_id, role: 'assistant', content: text, message_status: 'complete', citations_json: citations, metadata_json: { model: 'claude-opus-4-8', ...(action ? { action } : {}) } }),
           })
           const saved = iRes.ok ? (await iRes.json())[0] : null
