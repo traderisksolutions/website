@@ -9,6 +9,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 
+export const maxDuration = 300
+
 const SB_URL        = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
 
@@ -97,34 +99,65 @@ export async function POST(req: NextRequest) {
     const key = process.env.ANTHROPIC_API_KEY
     if (!key) return NextResponse.json({ error: 'Assistant is not configured (ANTHROPIC_API_KEY missing).' }, { status: 500 })
 
-    const aRes = await fetch(ANTHROPIC_URL, {
-      method:  'POST',
-      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-opus-4-8', max_tokens: 2000, thinking: { type: 'adaptive' }, system, messages: msgs }),
+    // Stream Anthropic's text deltas to the client as newline-delimited JSON, then
+    // persist the final assistant message (with any parsed action) and emit `done`.
+    const enc = new TextEncoder()
+    const stream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        const emit = (o: unknown) => controller.enqueue(enc.encode(JSON.stringify(o) + '\n'))
+        try {
+          const aRes = await fetch(ANTHROPIC_URL, {
+            method:  'POST',
+            headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+            body: JSON.stringify({ model: 'claude-opus-4-8', max_tokens: 2000, thinking: { type: 'adaptive' }, system, messages: msgs, stream: true }),
+          })
+          if (!aRes.ok || !aRes.body) { emit({ type: 'error', error: `Assistant error: ${await aRes.text().catch(() => aRes.status)}` }); controller.close(); return }
+
+          const reader = aRes.body.getReader()
+          const dec = new TextDecoder()
+          let buffer = '', full = ''
+          for (;;) {
+            const { done, value } = await reader.read()
+            if (done) break
+            buffer += dec.decode(value, { stream: true })
+            let nl: number
+            while ((nl = buffer.indexOf('\n')) >= 0) {
+              const line = buffer.slice(0, nl).trim(); buffer = buffer.slice(nl + 1)
+              if (!line.startsWith('data:')) continue
+              const payload = line.slice(5).trim()
+              if (!payload || payload === '[DONE]') continue
+              let ev: { type?: string; delta?: { type?: string; text?: string } }
+              try { ev = JSON.parse(payload) } catch { continue }
+              if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta' && ev.delta.text) {
+                full += ev.delta.text
+                emit({ type: 'delta', text: ev.delta.text })
+              }
+            }
+          }
+
+          // Parse an optional ```action { ... } ``` block from the full text.
+          let text = full; let action: unknown = null
+          const m = text.match(/```action\s*([\s\S]*?)```/i)
+          if (m) { try { action = JSON.parse(m[1].trim()) } catch { /* ignore */ } text = text.replace(m[0], '').trim() }
+          if (!text) text = 'Done.'
+
+          const iRes = await fetch(`${SB_URL}/rest/v1/chat_messages`, {
+            method:  'POST',
+            headers: sbH('return=representation'),
+            body: JSON.stringify({ thread_id, role: 'assistant', content: text, message_status: 'complete', metadata_json: { model: 'claude-opus-4-8', ...(action ? { action } : {}) } }),
+          })
+          const saved = iRes.ok ? (await iRes.json())[0] : null
+          fetch(`${SB_URL}/rest/v1/chat_threads?id=eq.${thread_id}`, { method: 'PATCH', headers: sbH('return=minimal'), body: JSON.stringify({ last_message_at: new Date().toISOString() }) }).catch(() => {})
+          emit({ type: 'done', message: saved })
+        } catch (e) {
+          emit({ type: 'error', error: String(e) })
+        } finally {
+          controller.close()
+        }
+      },
     })
-    if (!aRes.ok) return NextResponse.json({ error: `Assistant error: ${await aRes.text()}` }, { status: 502 })
-    const data = await aRes.json()
-    let text = ((data?.content ?? []) as { type?: string; text?: string }[]).find(b => b.type === 'text')?.text ?? ''
 
-    // Extract an optional ```action { ... } ``` block.
-    let action: unknown = null
-    const m = text.match(/```action\s*([\s\S]*?)```/i)
-    if (m) {
-      try { action = JSON.parse(m[1].trim()) } catch { /* ignore malformed */ }
-      text = text.replace(m[0], '').trim()
-    }
-    if (!text) text = 'Done.'
-
-    // Persist assistant message.
-    const iRes = await fetch(`${SB_URL}/rest/v1/chat_messages`, {
-      method:  'POST',
-      headers: sbH('return=representation'),
-      body: JSON.stringify({ thread_id, role: 'assistant', content: text, message_status: 'complete', metadata_json: { model: 'claude-opus-4-8', ...(action ? { action } : {}) } }),
-    })
-    const saved = iRes.ok ? (await iRes.json())[0] : null
-    await fetch(`${SB_URL}/rest/v1/chat_threads?id=eq.${thread_id}`, { method: 'PATCH', headers: sbH('return=minimal'), body: JSON.stringify({ last_message_at: new Date().toISOString() }) }).catch(() => {})
-
-    return NextResponse.json({ message: saved })
+    return new Response(stream, { headers: { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-cache, no-transform' } })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }

@@ -37,6 +37,7 @@ export type ChatDockAction =
   | { type: 'SET_DRAFT'; draft: string }
   | { type: 'ADD_MESSAGE'; message: ChatMessage }
   | { type: 'UPDATE_MESSAGE'; id: string; patch: Partial<ChatMessage> }
+  | { type: 'REPLACE_MESSAGE'; id: string; message: ChatMessage }
   | { type: 'SET_MESSAGES'; messages: ChatMessage[] }
   | { type: 'SET_SENDING'; sending: boolean }
   | { type: 'SET_ERROR'; error: string | null }
@@ -50,8 +51,9 @@ export function chatDockReducer(state: ChatDockState, action: ChatDockAction): C
     case 'CLOSE':      return { ...state, isOpen: false, isMinimized: false }
     case 'SET_THREAD': return { ...state, activeThreadId: action.threadId, caseId: action.caseId, messages: action.messages, draft: action.draft, error: null }
     case 'SET_DRAFT':  return { ...state, draft: action.draft }
-    case 'ADD_MESSAGE':    return { ...state, messages: [...state.messages, action.message] }
+    case 'ADD_MESSAGE':    return state.messages.some(m => m.id === action.message.id) ? state : { ...state, messages: [...state.messages, action.message] }
     case 'UPDATE_MESSAGE': return { ...state, messages: state.messages.map(m => m.id === action.id ? { ...m, ...action.patch } : m) }
+    case 'REPLACE_MESSAGE': return { ...state, messages: state.messages.map(m => m.id === action.id ? action.message : m) }
     case 'SET_MESSAGES':   return { ...state, messages: action.messages }
     case 'SET_SENDING':    return { ...state, sending: action.sending }
     case 'SET_ERROR':      return { ...state, error: action.error }

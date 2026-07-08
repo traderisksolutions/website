@@ -16,6 +16,7 @@ export function ChatMessageItem({ message, onConfirm }: { message: ChatMessage; 
   const action = message.metadata_json?.action
   const done   = message.metadata_json?.action_done
   const citations = message.citations_json ?? []
+  const streaming = message.message_status === 'streaming'
 
   return (
     <div className={cn('flex flex-col gap-1', isUser ? 'items-end' : 'items-start')}>
@@ -28,7 +29,18 @@ export function ChatMessageItem({ message, onConfirm }: { message: ChatMessage; 
         'max-w-[86%] rounded-2xl px-3 py-2 text-[12.5px] leading-[1.55] whitespace-pre-wrap break-words',
         isUser ? 'bg-primary text-primary-foreground rounded-br-sm' : 'bg-muted/60 text-foreground rounded-bl-sm',
       )}>
-        {message.content}
+        {streaming && !message.content ? (
+          <span className="inline-flex gap-1 py-0.5" aria-label="Assistant is thinking">
+            <span className="w-1.5 h-1.5 rounded-full bg-foreground/40 animate-bounce" style={{ animationDelay: '0ms' }} />
+            <span className="w-1.5 h-1.5 rounded-full bg-foreground/40 animate-bounce" style={{ animationDelay: '150ms' }} />
+            <span className="w-1.5 h-1.5 rounded-full bg-foreground/40 animate-bounce" style={{ animationDelay: '300ms' }} />
+          </span>
+        ) : (
+          <>
+            {message.content}
+            {streaming && <span className="inline-block w-[2px] h-3.5 ml-0.5 align-middle bg-foreground/60 animate-pulse" />}
+          </>
+        )}
       </div>
 
       {citations.length > 0 && (

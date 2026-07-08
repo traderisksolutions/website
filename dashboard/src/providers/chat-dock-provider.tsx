@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useReducer, useEffect, useRef, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
 import { chatDockReducer, initialChatDockState, type ChatDockState } from '@/stores/chat-dock-store'
+import { createClient } from '@/lib/supabase/client'
 import type { ChatMessage } from '@/lib/chat/chat-types'
 import {
   getChatBootstrapState, getOrCreateOpenThread, getThreadMessages,
@@ -76,6 +77,27 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
 
   const caseIdInRoute = caseIdFromLocation(pathname)
 
+  // ── Realtime: cross-tab sync for the active thread's messages ────────────────
+  useEffect(() => {
+    const threadId = state.activeThreadId
+    if (!threadId) return
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`chat-${threadId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `thread_id=eq.${threadId}` }, (payload) => {
+        const m = payload.new as ChatMessage
+        // While a local reply is streaming, ignore the echo — the stream owns it.
+        if (m.role === 'assistant' && stateRef.current.messages.some(x => x.message_status === 'streaming')) return
+        dispatch({ type: 'ADD_MESSAGE', message: m }) // ADD_MESSAGE dedups by id
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_messages', filter: `thread_id=eq.${threadId}` }, (payload) => {
+        const m = payload.new as ChatMessage
+        dispatch({ type: 'UPDATE_MESSAGE', id: m.id, patch: m })
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [state.activeThreadId])
+
   // ── Draft autosave (debounced) ──────────────────────────────────────────────
   const setDraft = useCallback((v: string) => {
     dispatch({ type: 'SET_DRAFT', draft: v })
@@ -131,6 +153,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
     if (!content || cur.sending) return
     dispatch({ type: 'SET_SENDING', sending: true })
     dispatch({ type: 'SET_ERROR', error: null })
+    let tempId: string | null = null
     try {
       let threadId = cur.activeThreadId
       let caseId   = cur.caseId
@@ -148,14 +171,42 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'SET_DRAFT', draft: '' })
       saveDraft(threadId, '').catch(() => {})
 
-      const res  = await fetch('/api/chat', {
+      const res = await fetch('/api/chat', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ thread_id: threadId, case_id: caseId, message: content }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Assistant failed to respond')
-      if (data.message) dispatch({ type: 'ADD_MESSAGE', message: data.message as ChatMessage })
+      if (!res.ok || !res.body) {
+        const d = await res.json().catch(() => ({}))
+        throw new Error(d.error ?? 'Assistant failed to respond')
+      }
+
+      // Stream tokens into a placeholder assistant message; swap for the persisted
+      // row on `done`.
+      const now = new Date().toISOString()
+      const streamId = `tmp-${Date.now()}`
+      tempId = streamId
+      dispatch({ type: 'ADD_MESSAGE', message: { id: streamId, thread_id: threadId, user_id: null, role: 'assistant', content: '', message_status: 'streaming', citations_json: [], metadata_json: {}, created_at: now, updated_at: now } })
+
+      const reader = res.body.getReader()
+      const dec = new TextDecoder()
+      let buf = '', acc = ''
+      for (;;) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buf += dec.decode(value, { stream: true })
+        let nl: number
+        while ((nl = buf.indexOf('\n')) >= 0) {
+          const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1)
+          if (!line) continue
+          let ev: { type?: string; text?: string; error?: string; message?: ChatMessage }
+          try { ev = JSON.parse(line) } catch { continue }
+          if (ev.type === 'delta' && ev.text) { acc += ev.text; dispatch({ type: 'UPDATE_MESSAGE', id: streamId, patch: { content: acc } }) }
+          else if (ev.type === 'done') { if (ev.message) dispatch({ type: 'REPLACE_MESSAGE', id: streamId, message: ev.message }); else dispatch({ type: 'UPDATE_MESSAGE', id: streamId, patch: { message_status: 'complete' } }); tempId = null }
+          else if (ev.type === 'error') throw new Error(ev.error ?? 'Assistant error')
+        }
+      }
     } catch (e) {
+      if (tempId) dispatch({ type: 'UPDATE_MESSAGE', id: tempId, patch: { message_status: 'error' } })
       dispatch({ type: 'SET_ERROR', error: e instanceof Error ? e.message : 'Something went wrong' })
     } finally {
       dispatch({ type: 'SET_SENDING', sending: false })
