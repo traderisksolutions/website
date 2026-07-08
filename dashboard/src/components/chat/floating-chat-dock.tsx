@@ -57,9 +57,11 @@ export function FloatingChatDock() {
       aria-label="AI consultant chat"
     >
       <FloatingChatHeader
-        title={state.showHistory ? 'Chats' : title}
-        subtitle={state.showHistory ? null : subtitle}
+        title={state.showHistory ? 'Chats' : (state.activeTitle || title)}
+        subtitle={state.showHistory ? null : (state.activeTitle ? title : subtitle)}
         historyActive={state.showHistory}
+        editable={!state.showHistory && !!state.activeThreadId}
+        onRename={(v) => { if (state.activeThreadId) renameThread(state.activeThreadId, v) }}
         onHistory={toggleHistory}
         onNewChat={newThread}
         onMinimize={minimize}

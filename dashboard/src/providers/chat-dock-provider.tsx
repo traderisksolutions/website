@@ -72,6 +72,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
             isOpen:         boot.uiState?.is_open ?? false,
             isMinimized:    boot.uiState?.is_minimized ?? false,
             activeThreadId: boot.thread?.id ?? null,
+            activeTitle:    boot.thread?.title ?? null,
             caseId:         boot.thread?.case_id ?? null,
             messages:       boot.messages,
             draft:          boot.draft,
@@ -95,9 +96,16 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
       .channel(`chat-${threadId}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `thread_id=eq.${threadId}` }, (payload) => {
         const m = payload.new as ChatMessage
-        // While a local reply is streaming, ignore the echo — the stream owns it.
-        if (m.role === 'assistant' && stateRef.current.messages.some(x => x.message_status === 'streaming')) return
-        dispatch({ type: 'ADD_MESSAGE', message: m }) // ADD_MESSAGE dedups by id
+        const cur = stateRef.current.messages
+        if (cur.some(x => x.id === m.id)) return                                   // already have this exact row
+        if (m.role === 'assistant') {
+          if (cur.some(x => x.message_status === 'streaming')) return              // a local reply is streaming — it owns this
+          // Stop-aware dedup: if a local (possibly stopped/partial) assistant reply
+          // is a prefix of this persisted one, upgrade it in place instead of adding.
+          const partial = cur.find(x => x.role === 'assistant' && x.content && m.content.startsWith(x.content))
+          if (partial) { dispatch({ type: 'REPLACE_MESSAGE', id: partial.id, message: m }); return }
+        }
+        dispatch({ type: 'ADD_MESSAGE', message: m })                             // ADD_MESSAGE also dedups by id
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_messages', filter: `thread_id=eq.${threadId}` }, (payload) => {
         const m = payload.new as ChatMessage
@@ -129,7 +137,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
       const thread = await getOrCreateOpenThread(routeCase)
       if (!thread) return
       const messages = await getThreadMessages(thread.id)
-      dispatch({ type: 'SET_THREAD', threadId: thread.id, caseId: thread.case_id, messages, draft: '' })
+      dispatch({ type: 'SET_THREAD', threadId: thread.id, caseId: thread.case_id, messages, draft: '', title: thread.title })
       upsertChatUiState({ active_thread_id: thread.id, is_open: true, is_minimized: false }).catch(() => {})
     } catch { /* keep dock open, empty */ }
   }, [pathname])
@@ -222,7 +230,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
         const thread = await getOrCreateOpenThread(caseIdFromLocation(pathname))
         if (!thread) throw new Error('Could not start a chat')
         threadId = thread.id; caseId = thread.case_id
-        dispatch({ type: 'SET_THREAD', threadId, caseId, messages: [], draft: '' })
+        dispatch({ type: 'SET_THREAD', threadId, caseId, messages: [], draft: '', title: thread.title })
         upsertChatUiState({ active_thread_id: threadId, is_open: true }).catch(() => {})
       }
       const firstMessage = cur.messages.length === 0
@@ -305,7 +313,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
   const openThread = useCallback(async (thread: ChatThread) => {
     dispatch({ type: 'SET_HISTORY', show: false })
     const messages = await getThreadMessages(thread.id)
-    dispatch({ type: 'SET_THREAD', threadId: thread.id, caseId: thread.case_id, messages, draft: '' })
+    dispatch({ type: 'SET_THREAD', threadId: thread.id, caseId: thread.case_id, messages, draft: '', title: thread.title })
     if (thread.status !== 'open') setThreadStatus(thread.id, 'open').catch(() => {})
     upsertChatUiState({ active_thread_id: thread.id, is_open: true, is_minimized: false }).catch(() => {})
   }, [])
@@ -314,7 +322,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'SET_HISTORY', show: false })
     const thread = await createThread(caseIdFromLocation(pathname))
     if (!thread) return
-    dispatch({ type: 'SET_THREAD', threadId: thread.id, caseId: thread.case_id, messages: [], draft: '' })
+    dispatch({ type: 'SET_THREAD', threadId: thread.id, caseId: thread.case_id, messages: [], draft: '', title: thread.title })
     upsertChatUiState({ active_thread_id: thread.id, is_open: true, is_minimized: false }).catch(() => {})
   }, [pathname])
 
@@ -332,6 +340,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
   const renameThread = useCallback(async (threadId: string, title: string) => {
     const clean = title.trim()
     dispatch({ type: 'SET_THREADS', threads: stateRef.current.threads.map(t => t.id === threadId ? { ...t, title: clean || null } : t) })
+    if (stateRef.current.activeThreadId === threadId) dispatch({ type: 'SET_ACTIVE_TITLE', title: clean || null })
     await renameThreadTitle(threadId, clean).catch(() => {})
   }, [])
 
