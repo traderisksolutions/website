@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import {
-  Plus, ChevronDown, X, Search, Link2, Sparkles,
+  Plus, ChevronDown, X, Search, Link2, Sparkles, BellRing,
   AlertCircle, Clock, CheckCircle2, Zap, BookOpen, ArrowRight,
   MailOpen, FileText, Scale, Users, Send, Loader2, Trash2, Paperclip,
   FolderOpen, Network, HelpCircle, ShieldAlert, TrendingUp, ListChecks,
@@ -568,6 +568,23 @@ function CaseDetailPanel({
     return () => window.removeEventListener('nexus:analysis-updated', onUpdated)
   }, [caseData.id])
 
+  // Live "new evidence" detection: an inbound reply landing on any linked thread
+  // after the last analysis makes the case stale (→ Update-now bell in the header).
+  const threadKey = (detail?.threads ?? []).map(t => t.thread_id).join(',')
+  useEffect(() => {
+    const ids = new Set((detail?.threads ?? []).map(t => t.thread_id))
+    if (ids.size === 0) return
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`nexus-live-${caseData.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'email_messages' }, payload => {
+        const r = payload.new as { thread_id?: string; direction?: string }
+        if (r.direction === 'inbound' && r.thread_id && ids.has(r.thread_id)) loadRef.current()
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [caseData.id, threadKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const LS_KEY = `nexus_analyzing_${caseData.id}`
 
   useEffect(() => {
@@ -694,10 +711,19 @@ function CaseDetailPanel({
   const currentRun  = runs.length >= 1 ? runs[0] : null
   const previousRun = runs.length >= 2 ? runs[1] : null
 
+  // Inbound replies that landed after the last analysis → the case is stale.
+  const newReplyCount = useMemo(() => {
+    const at = analysis?.created_at
+    if (!at) return 0
+    const cut = new Date(at).getTime()
+    return threads.reduce((n, ct) => n + ct.messages.filter(m => m.direction === 'inbound' && m.sent_at && new Date(m.sent_at).getTime() > cut).length, 0)
+  }, [threads, analysis?.created_at])
+
   return (
     <div className="flex flex-col flex-1 overflow-hidden min-w-0">
       <MissionHeader
         caseData={caseData}
+        newReplyCount={newReplyCount}
         threads={threads}
         analysis={analysis}
         analyzing={analyzing}
@@ -783,12 +809,13 @@ function CaseDetailPanel({
 // ── Mission Header ────────────────────────────────────────────────────────────
 
 function MissionHeader({
-  caseData, threads, analysis, analyzing, analyzeProgress, analyzeError, confirmDelete, view, totalMsgCount, runsCount, rfqCount,
+  caseData, threads, analysis, newReplyCount, analyzing, analyzeProgress, analyzeError, confirmDelete, view, totalMsgCount, runsCount, rfqCount,
   onSetView, onRunAnalysis, onLinkThreads, onDelete, onConfirmDelete, onCancelDelete,
 }: {
   caseData:        Case
   threads:         CaseThread[]
   analysis:        CaseAnalysis | null
+  newReplyCount:   number
   analyzing:       boolean
   analyzeProgress: AnalysisProgress | null
   analyzeError:    string | null
@@ -842,13 +869,23 @@ function MissionHeader({
             </>
           ) : (
             <>
+              {/* New inbound replies since the last analysis → the case is stale. */}
+              {analysis && !analyzing && newReplyCount > 0 && (
+                <button
+                  onClick={onRunAnalysis}
+                  title="New replies since the last analysis — re-analyse to include them"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors animate-pulse"
+                >
+                  <BellRing size={12} strokeWidth={2} /> {newReplyCount} new {newReplyCount === 1 ? 'reply' : 'replies'} · Re-analyse
+                </button>
+              )}
               <button
                 onClick={onLinkThreads}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-semibold border border-[--border-subtle] text-foreground/70 hover:bg-accent transition-colors"
               >
                 <Link2 size={11} strokeWidth={2} /> Link threads
               </button>
-              {/* First analysis only — re-analysis is now steered via the AI consultant chat. */}
+              {/* First analysis only — re-analysis is otherwise steered via the AI consultant chat. */}
               {(!analysis || analyzing) && (
                 <button
                   onClick={onRunAnalysis}
