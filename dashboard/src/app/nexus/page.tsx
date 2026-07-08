@@ -838,22 +838,25 @@ function MissionHeader({
               >
                 <Link2 size={11} strokeWidth={2} /> Link threads
               </button>
-              <button
-                onClick={onRunAnalysis}
-                disabled={analyzing || threads.length === 0}
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-semibold transition-all shadow-sm',
-                  analyzing
-                    ? 'bg-primary/10 text-primary cursor-not-allowed'
-                    : threads.length === 0
-                      ? 'bg-muted text-muted-foreground/50 cursor-not-allowed'
-                      : 'bg-primary text-primary-foreground hover:opacity-90',
-                )}
-              >
-                {analyzing
-                  ? <><Loader2 size={11} className="animate-spin" /> {analyzeProgress ? `${analyzeProgress.pct}%` : 'Analysing…'}</>
-                  : <><Sparkles size={11} strokeWidth={2} /> {analysis ? 'Re-run' : 'Run'} Analysis</>}
-              </button>
+              {/* First analysis only — re-analysis is now steered via the AI consultant chat. */}
+              {(!analysis || analyzing) && (
+                <button
+                  onClick={onRunAnalysis}
+                  disabled={analyzing || threads.length === 0}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-semibold transition-all shadow-sm',
+                    analyzing
+                      ? 'bg-primary/10 text-primary cursor-not-allowed'
+                      : threads.length === 0
+                        ? 'bg-muted text-muted-foreground/50 cursor-not-allowed'
+                        : 'bg-primary text-primary-foreground hover:opacity-90',
+                  )}
+                >
+                  {analyzing
+                    ? <><Loader2 size={11} className="animate-spin" /> {analyzeProgress ? `${analyzeProgress.pct}%` : 'Analysing…'}</>
+                    : <><Sparkles size={11} strokeWidth={2} /> Run Analysis</>}
+                </button>
+              )}
               <button
                 onClick={onConfirmDelete}
                 className="p-1.5 rounded-md text-muted-foreground/30 hover:text-red-500 hover:bg-red-50 transition-colors"

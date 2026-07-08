@@ -1,0 +1,60 @@
+// Lightweight client store for the floating chat (reducer — no external dep).
+// Holds instant UI state; the provider syncs the important bits to Supabase.
+
+import type { ChatMessage } from '@/lib/chat/chat-types'
+
+export interface ChatDockState {
+  bootstrapped:   boolean
+  isOpen:         boolean
+  isMinimized:    boolean
+  activeThreadId: string | null
+  caseId:         string | null
+  messages:       ChatMessage[]
+  draft:          string
+  sending:        boolean
+  error:          string | null
+}
+
+export const initialChatDockState: ChatDockState = {
+  bootstrapped:   false,
+  isOpen:         false,
+  isMinimized:    false,
+  activeThreadId: null,
+  caseId:         null,
+  messages:       [],
+  draft:          '',
+  sending:        false,
+  error:          null,
+}
+
+export type ChatDockAction =
+  | { type: 'HYDRATE'; payload: Partial<ChatDockState> & { bootstrapped: true } }
+  | { type: 'OPEN' }
+  | { type: 'MINIMIZE' }
+  | { type: 'RESTORE' }
+  | { type: 'CLOSE' }
+  | { type: 'SET_THREAD'; threadId: string | null; caseId: string | null; messages: ChatMessage[]; draft: string }
+  | { type: 'SET_DRAFT'; draft: string }
+  | { type: 'ADD_MESSAGE'; message: ChatMessage }
+  | { type: 'UPDATE_MESSAGE'; id: string; patch: Partial<ChatMessage> }
+  | { type: 'SET_MESSAGES'; messages: ChatMessage[] }
+  | { type: 'SET_SENDING'; sending: boolean }
+  | { type: 'SET_ERROR'; error: string | null }
+
+export function chatDockReducer(state: ChatDockState, action: ChatDockAction): ChatDockState {
+  switch (action.type) {
+    case 'HYDRATE':    return { ...state, ...action.payload }
+    case 'OPEN':       return { ...state, isOpen: true, isMinimized: false }
+    case 'MINIMIZE':   return { ...state, isMinimized: true }
+    case 'RESTORE':    return { ...state, isOpen: true, isMinimized: false }
+    case 'CLOSE':      return { ...state, isOpen: false, isMinimized: false }
+    case 'SET_THREAD': return { ...state, activeThreadId: action.threadId, caseId: action.caseId, messages: action.messages, draft: action.draft, error: null }
+    case 'SET_DRAFT':  return { ...state, draft: action.draft }
+    case 'ADD_MESSAGE':    return { ...state, messages: [...state.messages, action.message] }
+    case 'UPDATE_MESSAGE': return { ...state, messages: state.messages.map(m => m.id === action.id ? { ...m, ...action.patch } : m) }
+    case 'SET_MESSAGES':   return { ...state, messages: action.messages }
+    case 'SET_SENDING':    return { ...state, sending: action.sending }
+    case 'SET_ERROR':      return { ...state, error: action.error }
+    default:               return state
+  }
+}

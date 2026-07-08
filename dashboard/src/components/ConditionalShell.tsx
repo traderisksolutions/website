@@ -3,6 +3,8 @@
 import { usePathname } from 'next/navigation'
 import Sidebar from './Sidebar'
 import MobileTopNav from './MobileTopNav'
+import { ChatDockProvider } from '@/providers/chat-dock-provider'
+import { FloatingChatDock } from '@/components/chat/floating-chat-dock'
 
 export default function ConditionalShell({ children }: { children: React.ReactNode }) {
   const pathname   = usePathname()
@@ -10,8 +12,10 @@ export default function ConditionalShell({ children }: { children: React.ReactNo
 
   if (isAuthPage) return <>{children}</>
 
+  // The provider + dock live here (not in a page) so they stay mounted across
+  // route changes — only `children` swap on navigation.
   return (
-    <>
+    <ChatDockProvider>
       <Sidebar />
       <MobileTopNav />
       <div
@@ -20,6 +24,7 @@ export default function ConditionalShell({ children }: { children: React.ReactNo
       >
         {children}
       </div>
-    </>
+      <FloatingChatDock />
+    </ChatDockProvider>
   )
 }

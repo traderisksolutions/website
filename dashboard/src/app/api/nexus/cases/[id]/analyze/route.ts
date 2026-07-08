@@ -9,12 +9,14 @@ type Params = { params: { id: string } }
 export async function POST(req: NextRequest, { params }: Params) {
   try {
     let triggeredBy: string | null = null
+    let instructions: string | null = null
     try {
       const body = await req.json().catch(() => ({}))
       if (body?.triggered_by) triggeredBy = String(body.triggered_by)
+      if (body?.instructions) { instructions = String(body.instructions); triggeredBy = triggeredBy ?? 'chat' }
     } catch { /* no body is fine */ }
 
-    const analysis = await runNexusAnalysis(params.id, triggeredBy)
+    const analysis = await runNexusAnalysis(params.id, triggeredBy, instructions)
     return NextResponse.json({ ok: true, analysis })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)

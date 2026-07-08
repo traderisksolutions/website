@@ -607,7 +607,7 @@ Return ONLY a JSON array (no markdown fences), one object per brief IN THE SAME 
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export async function runNexusAnalysis(caseId: string, triggeredBy?: string | null): Promise<NexusAnalysis> {
+export async function runNexusAnalysis(caseId: string, triggeredBy?: string | null, instructions?: string | null): Promise<NexusAnalysis> {
   const runStart  = Date.now()
   const geminiKey = process.env.GEMINI_API_KEY_DRAFT_EMAIL
   if (!geminiKey) throw new Error('GEMINI_API_KEY_DRAFT_EMAIL not set')
@@ -969,7 +969,7 @@ Return [] for sections with no items; never omit a section`
   const recentEvents = (synthesis.timeline ?? []).slice(-6).map(e => `${e.date}: ${e.event}`).join('\n')
 
   const strategyInput = `You are a senior insurance strategy consultant advising Trade Risk Solutions (TRS), a Singapore insurance brokerage.
-
+${instructions ? `\n━━ BROKER STEERING (HIGHEST PRIORITY) ━━\nThe broker reviewed the last analysis and asked for these specific changes/corrections. Treat them as authoritative — apply them, correct anything they say is wrong, and focus your re-analysis accordingly:\n"""${instructions}"""\n` : ''}
 An evidence synthesis pass has produced the following structured analysis from all case email threads and attachments:
 
 ━━ CASE BRIEF ━━
