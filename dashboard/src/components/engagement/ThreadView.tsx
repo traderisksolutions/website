@@ -7,6 +7,7 @@ import type { Lead, RealMsg, ThreadState, StoredSummary, RagSource } from './typ
 import { fullName, extractEmail } from './helpers'
 import { EaWorkspaceColumn, EaMessageArea } from './EaLayout'
 import { EngagementThreadHeader } from '@/components/engagement-agent/engagement-thread-header'
+import { AddToCaseControl } from '@/components/engagement/AddToCaseControl'
 import { EngagementMessageCard } from '@/components/engagement-agent/engagement-message-card'
 import { EngagementComposePanel } from '@/components/engagement-agent/engagement-compose-panel'
 import { EngagementContextPanel } from '@/components/engagement-agent/engagement-context-panel'
@@ -203,6 +204,8 @@ export function ThreadView({
           onDelete={handleDelete}
           onCancelDelete={() => setConfirmDelete(false)}
         />
+
+        <AddToCaseControl threadId={threadId} />
 
         {/* ── Messages scroll region ── */}
         <EaMessageArea>

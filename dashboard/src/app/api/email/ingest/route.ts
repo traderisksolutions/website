@@ -353,41 +353,6 @@ async function tagThreadWithCampaignContext(email: string, threadId: string): Pr
 // On an inbound reply, flag the dispatch (and its request) as replied.
 // Correlates on gmail_thread_id — works whether the sent copy or the reply is
 // ingested first. Fire-and-forget; never throws.
-// Auto-link a NEW inbound thread to an open case when the sender is already a
-// party on exactly one open case (e.g. a stakeholder emailing about the matter on
-// a fresh thread). Kept conservative — only one unambiguous open case links.
-async function linkToRelatedCase(fromEmail: string, currentThreadDbId: string): Promise<void> {
-  try {
-    // If this thread is already categorised into a case, never auto-pull it into
-    // another one (prevents cross-linking + the insurer-reply race).
-    const exRes = await fetch(`${SB_URL}/rest/v1/case_threads?thread_id=eq.${currentThreadDbId}&select=case_id&limit=1`, { headers: sbHeaders(), cache: 'no-store' })
-    if (exRes.ok && ((await exRes.json()) as unknown[]).length > 0) return
-
-    const email = fromEmail.toLowerCase()
-    const pRes = await fetch(`${SB_URL}/rest/v1/email_participants?email=eq.${encodeURIComponent(email)}&select=thread_id`, { headers: sbHeaders(), cache: 'no-store' })
-    const tids = Array.from(new Set(((pRes.ok ? await pRes.json() : []) as { thread_id: string }[]).map(r => r.thread_id).filter(id => id && id !== currentThreadDbId)))
-    if (tids.length === 0) return
-
-    const ctRes = await fetch(`${SB_URL}/rest/v1/case_threads?thread_id=in.(${tids.join(',')})&select=case_id,party_type`, { headers: sbHeaders(), cache: 'no-store' })
-    const cts = (ctRes.ok ? await ctRes.json() : []) as { case_id: string; party_type: string }[]
-    if (cts.length === 0) return
-    const partyByCase = new Map(cts.map(c => [c.case_id, c.party_type]))
-    const caseIds = Array.from(partyByCase.keys())
-
-    const cRes = await fetch(`${SB_URL}/rest/v1/cases?id=in.(${caseIds.join(',')})&status=eq.open&select=id`, { headers: sbHeaders(), cache: 'no-store' })
-    const openIds = ((cRes.ok ? await cRes.json() : []) as { id: string }[]).map(c => c.id)
-    if (openIds.length !== 1) return   // none or ambiguous → leave for manual linking
-
-    const caseId = openIds[0]
-    await fetch(`${SB_URL}/rest/v1/case_threads?on_conflict=case_id,thread_id`, {
-      method: 'POST',
-      headers: sbHeaders('return=minimal,resolution=merge-duplicates'),
-      body: JSON.stringify({ case_id: caseId, thread_id: currentThreadDbId, party_type: partyByCase.get(caseId) ?? 'other', party_label: email }),
-    }).catch(() => {})
-    console.log('[ingest] auto-linked related thread', currentThreadDbId, '→ open case', caseId)
-  } catch { /* best-effort */ }
-}
-
 async function linkRfqDispatch(gmailThreadId: string, threadDbId: string, direction: 'inbound' | 'outbound'): Promise<void> {
   const h = sbHeaders('return=minimal')
 
@@ -670,9 +635,6 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
     //  • RFQ detection — no longer opens a Nexus case here. The client thread's RFQ
     //    tab suggests lines live when opened; the Nexus file is created only on the
     //    first insurer send. Keeps Nexus clean.
-
-    // Auto-attach a related new thread to its open case (so replies feed Nexus).
-    if (!isInternal(fromEmail)) waitUntil(linkToRelatedCase(fromEmail, thread.id))
 
     // Inbox triage classification — badge only, no action (Workstream 5).
     if (!isInternal(fromEmail)) {
