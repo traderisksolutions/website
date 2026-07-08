@@ -635,6 +635,17 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
     //  • RFQ detection — no longer opens a Nexus case here. The client thread's RFQ
     //    tab suggests lines live when opened; the Nexus file is created only on the
     //    first insurer send. Keeps Nexus clean.
+
+    // Inbox triage classification — badge only, no action (Workstream 5).
+    if (!isInternal(fromEmail)) {
+      waitUntil(
+        fetch(`${origin}/api/email/classify`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.CRON_SECRET ?? '' },
+          body:    JSON.stringify({ thread_id: thread.id, message_id: dbMsg?.id }),
+        }).catch(() => {})
+      )
+    }
   }
 
   // ── NEXUS: Siloed attachment extraction ───────────────────────────────────

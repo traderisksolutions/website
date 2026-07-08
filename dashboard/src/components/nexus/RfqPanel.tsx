@@ -183,6 +183,7 @@ function LinkToEngagement({ threadId }: { threadId: string | null }) {
 
 export default function RfqPanel({ caseId }: { caseId: string }) {
   const [requests, setRequests] = useState<RfqRequest[] | null>(null)
+  const [slaDays,  setSlaDays]  = useState(3)
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/nexus/rfq/requests?case_id=${caseId}`, { cache: 'no-store' })
@@ -190,6 +191,12 @@ export default function RfqPanel({ caseId }: { caseId: string }) {
   }, [caseId])
 
   useEffect(() => { load() }, [load])
+  useEffect(() => {
+    fetch('/api/settings?key=rfq_sla', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(row => { try { const v = row?.value ? JSON.parse(row.value) : null; if (v?.default_days) setSlaDays(v.default_days) } catch { /* default */ } })
+      .catch(() => {})
+  }, [])
 
   if (requests === null) return <div className="p-6 text-[12px] text-muted-foreground">Loading quotation requests…</div>
   if (requests.length === 0) return <div className="p-6 text-[12px] text-muted-foreground/60">No quotation lines on this file.</div>
@@ -219,7 +226,8 @@ export default function RfqPanel({ caseId }: { caseId: string }) {
             <div className="flex flex-col divide-y divide-border/50">
               {r.dispatches.map(d => {
                 const replied = d.status === 'replied'
-                const waited  = daysSince(d.updated_at || d.created_at)
+                const waited  = daysSince(d.created_at)
+                const overdue = !replied && waited >= slaDays
                 return (
                   <div key={d.id} className="flex items-center justify-between gap-3 py-2 text-[12px]">
                     <div className="flex items-center gap-2 min-w-0">
@@ -228,9 +236,15 @@ export default function RfqPanel({ caseId }: { caseId: string }) {
                         {replied ? 'replied' : 'sent'}
                       </span>
                       <span className="font-medium text-foreground truncate">{d.insurer_name || d.to_email}</span>
-                      {!replied && <span className="text-[10.5px] text-muted-foreground/60 flex-shrink-0">⏳ {waited}d</span>}
+                      {!replied && (
+                        overdue
+                          ? <span className="text-[10px] font-bold uppercase tracking-wide text-rose-600 bg-rose-50 border border-rose-200 rounded-full px-1.5 py-0.5 flex-shrink-0">overdue · {waited}d</span>
+                          : <span className="text-[10.5px] text-muted-foreground/60 flex-shrink-0">⏳ {waited}d</span>
+                      )}
                     </div>
-                    <LinkToEngagement threadId={d.thread_id} />
+                    {overdue && d.thread_id
+                      ? <a href={`/engagement?lead=${d.thread_id}`} className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-rose-600 hover:underline flex-shrink-0">Chase <ExternalLink size={10} /></a>
+                      : <LinkToEngagement threadId={d.thread_id} />}
                   </div>
                 )
               })}

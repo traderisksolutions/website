@@ -4,6 +4,13 @@ import { cn } from '@/lib/utils'
 import type { Lead, ThreadState } from '@/components/engagement/types'
 import { fullName, timeAgo, needsReply as calcNeedsReply } from '@/components/engagement/helpers'
 
+// Triage badge styles — only the actionable categories get a chip (not general/other).
+const CATEGORY_BADGE: Record<string, { label: string; bg: string; color: string }> = {
+  rfq:     { label: 'RFQ',     bg: 'rgba(79,70,229,0.12)',  color: '#4338ca' },
+  claim:   { label: 'CLAIM',   bg: 'rgba(190,18,60,0.12)',  color: '#be123c' },
+  renewal: { label: 'RENEWAL', bg: 'rgba(4,120,87,0.12)',   color: '#047857' },
+}
+
 interface EngagementThreadRowProps {
   lead:        Lead
   isActive:    boolean
@@ -87,6 +94,14 @@ export function EngagementThreadRow({
           {/* Needs-reply dot — visible when not active, helps scan */}
           {hasReply && !isActive && (
             <span className="flex-shrink-0 w-[5px] h-[5px] rounded-full bg-[--warning]" />
+          )}
+
+          {/* Triage category badge — rfq / claim / renewal only (badge, not action) */}
+          {lead.category && CATEGORY_BADGE[lead.category] && (
+            <span className="flex-shrink-0 text-[8.5px] font-bold uppercase tracking-wide px-1.5 py-[1px] rounded-sm"
+              style={{ background: CATEGORY_BADGE[lead.category].bg, color: CATEGORY_BADGE[lead.category].color }}>
+              {CATEGORY_BADGE[lead.category].label}
+            </span>
           )}
 
           {/* Campaign tag — present but minimal, not a loud chip */}

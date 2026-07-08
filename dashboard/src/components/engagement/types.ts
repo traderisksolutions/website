@@ -7,6 +7,7 @@ export type Lead = {
   page_url: string | null; status: string; notes?: string | null
   subject?: string | null
   thread_id?: string | null
+  category?: string | null
   segment?: string | null
   segment_note?: string | null
   campaign_context?: {
