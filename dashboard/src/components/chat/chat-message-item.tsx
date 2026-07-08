@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { cn } from '@/lib/utils'
-import { Sparkles, RefreshCw, Mail, PencilLine, Check } from 'lucide-react'
+import { Sparkles, RefreshCw, Mail, PencilLine, Check, RotateCcw } from 'lucide-react'
 import type { ChatMessage, ProposedAction } from '@/lib/chat/chat-types'
 
 function actionLabel(a: ProposedAction): { label: string; icon: React.ReactNode } {
@@ -11,7 +11,7 @@ function actionLabel(a: ProposedAction): { label: string; icon: React.ReactNode 
   return { label: a.label ?? 'Apply case change', icon: <PencilLine size={12} /> }
 }
 
-export function ChatMessageItem({ message, onConfirm }: { message: ChatMessage; onConfirm: (m: ChatMessage) => void }) {
+export function ChatMessageItem({ message, onConfirm, onRegenerate }: { message: ChatMessage; onConfirm: (m: ChatMessage) => void; onRegenerate?: () => void }) {
   const isUser = message.role === 'user'
   const action = message.metadata_json?.action
   const done   = message.metadata_json?.action_done
@@ -64,6 +64,13 @@ export function ChatMessageItem({ message, onConfirm }: { message: ChatMessage; 
             {actionLabel(action).icon} {actionLabel(action).label}
           </button>
         )
+      )}
+
+      {onRegenerate && (
+        <button onClick={onRegenerate}
+          className="flex items-center gap-1 text-[10.5px] text-muted-foreground/60 hover:text-foreground transition-colors">
+          <RotateCcw size={10} /> Regenerate
+        </button>
       )}
     </div>
   )

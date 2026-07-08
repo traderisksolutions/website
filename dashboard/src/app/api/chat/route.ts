@@ -102,6 +102,7 @@ export async function POST(req: NextRequest) {
     // Stream Anthropic's text deltas to the client as newline-delimited JSON, then
     // persist the final assistant message (with any parsed action) and emit `done`.
     const enc = new TextEncoder()
+    const ac  = new AbortController()  // aborted when the client disconnects (Stop)
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
         const emit = (o: unknown) => controller.enqueue(enc.encode(JSON.stringify(o) + '\n'))
@@ -110,6 +111,7 @@ export async function POST(req: NextRequest) {
             method:  'POST',
             headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
             body: JSON.stringify({ model: 'claude-opus-4-8', max_tokens: 2000, thinking: { type: 'adaptive' }, system, messages: msgs, stream: true }),
+            signal: ac.signal,
           })
           if (!aRes.ok || !aRes.body) { emit({ type: 'error', error: `Assistant error: ${await aRes.text().catch(() => aRes.status)}` }); controller.close(); return }
 
@@ -135,6 +137,9 @@ export async function POST(req: NextRequest) {
             }
           }
 
+          // Client stopped mid-stream → discard; the client persists its partial.
+          if (ac.signal.aborted) { controller.close(); return }
+
           // Parse an optional ```action { ... } ``` block from the full text.
           let text = full; let action: unknown = null
           const m = text.match(/```action\s*([\s\S]*?)```/i)
@@ -150,11 +155,12 @@ export async function POST(req: NextRequest) {
           fetch(`${SB_URL}/rest/v1/chat_threads?id=eq.${thread_id}`, { method: 'PATCH', headers: sbH('return=minimal'), body: JSON.stringify({ last_message_at: new Date().toISOString() }) }).catch(() => {})
           emit({ type: 'done', message: saved })
         } catch (e) {
-          emit({ type: 'error', error: String(e) })
+          if (!ac.signal.aborted) emit({ type: 'error', error: String(e) })
         } finally {
-          controller.close()
+          try { controller.close() } catch { /* already closed */ }
         }
       },
+      cancel() { ac.abort() },
     })
 
     return new Response(stream, { headers: { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-cache, no-transform' } })

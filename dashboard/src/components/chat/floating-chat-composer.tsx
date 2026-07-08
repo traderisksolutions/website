@@ -1,12 +1,12 @@
 'use client'
 
 import React, { useRef, useEffect } from 'react'
-import { ArrowUp } from 'lucide-react'
+import { ArrowUp, Square } from 'lucide-react'
 
 export function FloatingChatComposer({
-  draft, sending, onChange, onSend,
+  draft, sending, onChange, onSend, onStop,
 }: {
-  draft: string; sending: boolean; onChange: (v: string) => void; onSend: () => void
+  draft: string; sending: boolean; onChange: (v: string) => void; onSend: () => void; onStop: () => void
 }) {
   const ref = useRef<HTMLTextAreaElement>(null)
 
@@ -35,14 +35,24 @@ export function FloatingChatComposer({
           aria-label="Message the consultant"
           className="flex-1 resize-none bg-transparent text-[12.5px] leading-[1.5] outline-none placeholder:text-muted-foreground/50 max-h-[140px]"
         />
-        <button
-          onClick={onSend}
-          disabled={sending || !draft.trim()}
-          aria-label="Send message"
-          className="h-7 w-7 flex items-center justify-center rounded-lg bg-primary text-primary-foreground disabled:opacity-40 transition-opacity flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-        >
-          <ArrowUp size={15} />
-        </button>
+        {sending ? (
+          <button
+            onClick={onStop}
+            aria-label="Stop generating"
+            className="h-7 w-7 flex items-center justify-center rounded-lg bg-foreground/80 text-background flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          >
+            <Square size={12} fill="currentColor" />
+          </button>
+        ) : (
+          <button
+            onClick={onSend}
+            disabled={!draft.trim()}
+            aria-label="Send message"
+            className="h-7 w-7 flex items-center justify-center rounded-lg bg-primary text-primary-foreground disabled:opacity-40 transition-opacity flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          >
+            <ArrowUp size={15} />
+          </button>
+        )}
       </div>
     </div>
   )

@@ -7,7 +7,7 @@ import { ChatMessageItem } from './chat-message-item'
 import { ChatEmptyState } from './chat-empty-state'
 
 export function FloatingChatBody({
-  messages, sending, error, caseAware, onConfirm, onPickPrompt,
+  messages, sending, error, caseAware, onConfirm, onPickPrompt, onRegenerate,
 }: {
   messages: ChatMessage[]
   sending: boolean
@@ -15,6 +15,7 @@ export function FloatingChatBody({
   caseAware: boolean
   onConfirm: (m: ChatMessage) => void
   onPickPrompt: (p: string) => void
+  onRegenerate: () => void
 }) {
   const endRef = useRef<HTMLDivElement>(null)
   const lastLen = messages.length ? messages[messages.length - 1].content.length : 0
@@ -27,9 +28,13 @@ export function FloatingChatBody({
   }
 
   const hasStreaming = messages.some(m => m.message_status === 'streaming')
+  const lastMsg = messages[messages.length - 1]
+  const regenId = !sending && lastMsg?.role === 'assistant' && lastMsg.message_status === 'complete' ? lastMsg.id : null
   return (
     <div className="flex-1 overflow-y-auto px-3.5 py-3 flex flex-col gap-3">
-      {messages.map(m => <ChatMessageItem key={m.id} message={m} onConfirm={onConfirm} />)}
+      {messages.map(m => (
+        <ChatMessageItem key={m.id} message={m} onConfirm={onConfirm} onRegenerate={m.id === regenId ? onRegenerate : undefined} />
+      ))}
       {sending && !hasStreaming && (
         <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground/60">
           <Loader2 size={12} className="animate-spin" /> Thinking…

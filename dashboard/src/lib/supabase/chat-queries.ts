@@ -89,6 +89,15 @@ export async function updateMessageMeta(messageId: string, meta: ChatMessageMeta
   await db().from('chat_messages').update({ metadata_json: meta }).eq('id', messageId)
 }
 
+export async function deleteMessage(messageId: string): Promise<void> {
+  await db().from('chat_messages').delete().eq('id', messageId)
+}
+
+// Force-set a thread title (rename), unlike setThreadTitle which only fills nulls.
+export async function renameThreadTitle(threadId: string, title: string): Promise<void> {
+  await db().from('chat_threads').update({ title }).eq('id', threadId)
+}
+
 async function touchThread(threadId: string): Promise<void> {
   await db().from('chat_threads').update({ last_message_at: new Date().toISOString() }).eq('id', threadId)
 }

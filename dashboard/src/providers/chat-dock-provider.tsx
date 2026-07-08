@@ -7,8 +7,8 @@ import { createClient } from '@/lib/supabase/client'
 import type { ChatMessage, ChatThread } from '@/lib/chat/chat-types'
 import {
   getChatBootstrapState, getOrCreateOpenThread, getThreadMessages,
-  appendUserMessage, saveDraft, setThreadStatus, upsertChatUiState, updateMessageMeta,
-  listThreads, createThread, setThreadTitle,
+  appendUserMessage, appendAssistantMessage, saveDraft, setThreadStatus, upsertChatUiState, updateMessageMeta,
+  listThreads, createThread, setThreadTitle, deleteMessage, renameThreadTitle,
 } from '@/lib/supabase/chat-queries'
 
 interface ChatDockContextValue {
@@ -20,11 +20,14 @@ interface ChatDockContextValue {
   close:         () => void
   setDraft:      (v: string) => void
   send:          (text: string) => Promise<void>
+  stop:          () => void
+  regenerate:    () => Promise<void>
   confirmAction: (message: ChatMessage) => Promise<void>
   toggleHistory: () => void
   openThread:    (thread: ChatThread) => Promise<void>
   newThread:     () => Promise<void>
   archiveThread: (threadId: string) => Promise<void>
+  renameThread:  (threadId: string, title: string) => Promise<void>
 }
 
 const ChatDockContext = createContext<ChatDockContextValue | null>(null)
@@ -51,6 +54,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(chatDockReducer, initialChatDockState)
   const pathname = usePathname()
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
   const stateRef = useRef(state)
   stateRef.current = state
 
@@ -151,53 +155,31 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
     if (tid) setThreadStatus(tid, 'open').catch(() => {}) // keep the thread; just hide the dock
   }, [])
 
-  // ── Send a message ──────────────────────────────────────────────────────────
-  const send = useCallback(async (text: string) => {
-    const content = text.trim()
-    const cur = stateRef.current
-    if (!content || cur.sending) return
+  // ── Streaming assistant run (shared by send + regenerate) ───────────────────
+  // Passes the last user message; the API dedups against history, so it never
+  // double-inserts. Aborting (Stop) persists whatever streamed so far.
+  const runAssistant = useCallback(async (threadId: string, caseId: string | null, userContent: string) => {
     dispatch({ type: 'SET_SENDING', sending: true })
     dispatch({ type: 'SET_ERROR', error: null })
-    let tempId: string | null = null
+    const ac = new AbortController()
+    abortRef.current = ac
+    const streamId = `tmp-${Date.now()}`
+    let started = false, acc = '', settled = false
     try {
-      let threadId = cur.activeThreadId
-      let caseId   = cur.caseId
-      if (!threadId) {
-        const thread = await getOrCreateOpenThread(caseIdFromLocation(pathname))
-        if (!thread) throw new Error('Could not start a chat')
-        threadId = thread.id; caseId = thread.case_id
-        dispatch({ type: 'SET_THREAD', threadId, caseId, messages: [], draft: '' })
-        upsertChatUiState({ active_thread_id: threadId, is_open: true }).catch(() => {})
-      }
-
-      const firstMessage = cur.messages.length === 0
-      const userMsg = await appendUserMessage(threadId, content)
-      if (!userMsg) throw new Error('Message could not be saved — try again')
-      dispatch({ type: 'ADD_MESSAGE', message: userMsg })
-      dispatch({ type: 'SET_DRAFT', draft: '' })
-      saveDraft(threadId, '').catch(() => {})
-      // First message becomes the thread title (only if still untitled).
-      if (firstMessage) setThreadTitle(threadId, content.slice(0, 70)).catch(() => {})
-
       const res = await fetch('/api/chat', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ thread_id: threadId, case_id: caseId, message: content }),
+        body: JSON.stringify({ thread_id: threadId, case_id: caseId, message: userContent }),
+        signal: ac.signal,
       })
-      if (!res.ok || !res.body) {
-        const d = await res.json().catch(() => ({}))
-        throw new Error(d.error ?? 'Assistant failed to respond')
-      }
+      if (!res.ok || !res.body) { const d = await res.json().catch(() => ({})); throw new Error(d.error ?? 'Assistant failed to respond') }
 
-      // Stream tokens into a placeholder assistant message; swap for the persisted
-      // row on `done`.
       const now = new Date().toISOString()
-      const streamId = `tmp-${Date.now()}`
-      tempId = streamId
+      started = true
       dispatch({ type: 'ADD_MESSAGE', message: { id: streamId, thread_id: threadId, user_id: null, role: 'assistant', content: '', message_status: 'streaming', citations_json: [], metadata_json: {}, created_at: now, updated_at: now } })
 
       const reader = res.body.getReader()
       const dec = new TextDecoder()
-      let buf = '', acc = ''
+      let buf = ''
       for (;;) {
         const { done, value } = await reader.read()
         if (done) break
@@ -209,17 +191,69 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
           let ev: { type?: string; text?: string; error?: string; message?: ChatMessage }
           try { ev = JSON.parse(line) } catch { continue }
           if (ev.type === 'delta' && ev.text) { acc += ev.text; dispatch({ type: 'UPDATE_MESSAGE', id: streamId, patch: { content: acc } }) }
-          else if (ev.type === 'done') { if (ev.message) dispatch({ type: 'REPLACE_MESSAGE', id: streamId, message: ev.message }); else dispatch({ type: 'UPDATE_MESSAGE', id: streamId, patch: { message_status: 'complete' } }); tempId = null }
+          else if (ev.type === 'done') { settled = true; if (ev.message) dispatch({ type: 'REPLACE_MESSAGE', id: streamId, message: ev.message }); else dispatch({ type: 'UPDATE_MESSAGE', id: streamId, patch: { message_status: 'complete' } }) }
           else if (ev.type === 'error') throw new Error(ev.error ?? 'Assistant error')
         }
       }
     } catch (e) {
-      if (tempId) dispatch({ type: 'UPDATE_MESSAGE', id: tempId, patch: { message_status: 'error' } })
-      dispatch({ type: 'SET_ERROR', error: e instanceof Error ? e.message : 'Something went wrong' })
+      if ((e as Error)?.name === 'AbortError') {
+        // Stopped by the user — keep + persist the partial (server discarded its copy).
+        if (acc.trim()) { const saved = await appendAssistantMessage(threadId, acc).catch(() => null); if (saved) dispatch({ type: 'REPLACE_MESSAGE', id: streamId, message: saved }); else dispatch({ type: 'UPDATE_MESSAGE', id: streamId, patch: { message_status: 'complete' } }) }
+        else if (started) dispatch({ type: 'REMOVE_MESSAGE', id: streamId })
+      } else {
+        if (started && !settled) dispatch({ type: 'UPDATE_MESSAGE', id: streamId, patch: { message_status: 'error' } })
+        dispatch({ type: 'SET_ERROR', error: e instanceof Error ? e.message : 'Something went wrong' })
+      }
     } finally {
+      abortRef.current = null
       dispatch({ type: 'SET_SENDING', sending: false })
     }
-  }, [pathname])
+  }, [])
+
+  // ── Send a message ──────────────────────────────────────────────────────────
+  const send = useCallback(async (text: string) => {
+    const content = text.trim()
+    const cur = stateRef.current
+    if (!content || cur.sending) return
+    let threadId = cur.activeThreadId
+    let caseId   = cur.caseId
+    try {
+      if (!threadId) {
+        const thread = await getOrCreateOpenThread(caseIdFromLocation(pathname))
+        if (!thread) throw new Error('Could not start a chat')
+        threadId = thread.id; caseId = thread.case_id
+        dispatch({ type: 'SET_THREAD', threadId, caseId, messages: [], draft: '' })
+        upsertChatUiState({ active_thread_id: threadId, is_open: true }).catch(() => {})
+      }
+      const firstMessage = cur.messages.length === 0
+      const userMsg = await appendUserMessage(threadId, content)
+      if (!userMsg) throw new Error('Message could not be saved — try again')
+      dispatch({ type: 'ADD_MESSAGE', message: userMsg })
+      dispatch({ type: 'SET_DRAFT', draft: '' })
+      saveDraft(threadId, '').catch(() => {})
+      if (firstMessage) setThreadTitle(threadId, content.slice(0, 70)).catch(() => {})
+    } catch (e) {
+      dispatch({ type: 'SET_ERROR', error: e instanceof Error ? e.message : 'Could not send' })
+      return
+    }
+    await runAssistant(threadId, caseId, content)
+  }, [pathname, runAssistant])
+
+  // Stop the in-flight streaming reply.
+  const stop = useCallback(() => { abortRef.current?.abort() }, [])
+
+  // Re-run the assistant for the last user message (drops the last assistant reply).
+  const regenerate = useCallback(async () => {
+    const cur = stateRef.current
+    if (cur.sending || !cur.activeThreadId) return
+    const last = cur.messages[cur.messages.length - 1]
+    if (!last || last.role !== 'assistant') return
+    const lastUser = [...cur.messages].reverse().find(m => m.role === 'user')
+    if (!lastUser) return
+    if (!last.id.startsWith('tmp-')) deleteMessage(last.id).catch(() => {})
+    dispatch({ type: 'REMOVE_MESSAGE', id: last.id })
+    await runAssistant(cur.activeThreadId, cur.caseId, lastUser.content)
+  }, [runAssistant])
 
   // ── Confirm-to-act: run a proposed action ───────────────────────────────────
   const confirmAction = useCallback(async (message: ChatMessage) => {
@@ -295,8 +329,14 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  const renameThread = useCallback(async (threadId: string, title: string) => {
+    const clean = title.trim()
+    dispatch({ type: 'SET_THREADS', threads: stateRef.current.threads.map(t => t.id === threadId ? { ...t, title: clean || null } : t) })
+    await renameThreadTitle(threadId, clean).catch(() => {})
+  }, [])
+
   return (
-    <ChatDockContext.Provider value={{ state, caseIdInRoute, open, minimize, restore, close, setDraft, send, confirmAction, toggleHistory, openThread, newThread, archiveThread }}>
+    <ChatDockContext.Provider value={{ state, caseIdInRoute, open, minimize, restore, close, setDraft, send, stop, regenerate, confirmAction, toggleHistory, openThread, newThread, archiveThread, renameThread }}>
       {children}
     </ChatDockContext.Provider>
   )

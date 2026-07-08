@@ -15,7 +15,7 @@ import { ChatThreadList } from './chat-thread-list'
  * minimized bar. Fixed bottom-right; never overlays/blocks the page.
  */
 export function FloatingChatDock() {
-  const { state, caseIdInRoute, open, minimize, restore, close, setDraft, send, confirmAction, toggleHistory, openThread, newThread, archiveThread } = useChatDock()
+  const { state, caseIdInRoute, open, minimize, restore, close, setDraft, send, stop, regenerate, confirmAction, toggleHistory, openThread, newThread, archiveThread, renameThread } = useChatDock()
 
   if (!state.bootstrapped) return null
 
@@ -40,17 +40,19 @@ export function FloatingChatDock() {
   // ── Minimized → compact bar ─────────────────────────────────────────────────
   if (state.isMinimized) {
     return (
-      <div className="fixed bottom-5 right-5 z-40 w-[280px]">
+      <div className="fixed z-40 bottom-4 inset-x-4 sm:inset-x-auto sm:bottom-5 sm:right-5 sm:w-[280px]">
         <MinimizedChatBar title={title} onRestore={restore} onClose={close} />
       </div>
     )
   }
 
-  // ── Open → full window ──────────────────────────────────────────────────────
+  // ── Open → full window (desktop) / bottom-sheet (mobile) ────────────────────
   return (
     <div
-      className="fixed bottom-5 right-5 z-40 w-[380px] max-w-[calc(100vw-2rem)] flex flex-col rounded-xl border border-[--border-subtle] bg-card overflow-hidden"
-      style={{ height: 'min(560px, calc(100vh/var(--ui-zoom) - 2.5rem))', boxShadow: '0 16px 44px -16px rgba(16,24,40,0.34)' }}
+      className="fixed z-40 flex flex-col border border-[--border-subtle] bg-card overflow-hidden
+        inset-x-0 bottom-0 w-full rounded-t-2xl h-[min(85vh,calc(100vh/var(--ui-zoom)-1rem))]
+        sm:inset-x-auto sm:bottom-5 sm:right-5 sm:w-[380px] sm:max-w-[calc(100vw-2rem)] sm:rounded-xl sm:h-[min(560px,calc(100vh/var(--ui-zoom)-2.5rem))]"
+      style={{ boxShadow: '0 16px 44px -16px rgba(16,24,40,0.34)' }}
       role="dialog"
       aria-label="AI consultant chat"
     >
@@ -70,6 +72,7 @@ export function FloatingChatDock() {
           onOpen={openThread}
           onNew={newThread}
           onArchive={archiveThread}
+          onRename={renameThread}
         />
       ) : (
         <>
@@ -80,12 +83,14 @@ export function FloatingChatDock() {
             caseAware={caseAware}
             onConfirm={confirmAction}
             onPickPrompt={(p) => { setDraft(p) }}
+            onRegenerate={regenerate}
           />
           <FloatingChatComposer
             draft={state.draft}
             sending={state.sending}
             onChange={setDraft}
             onSend={() => send(state.draft)}
+            onStop={stop}
           />
         </>
       )}
