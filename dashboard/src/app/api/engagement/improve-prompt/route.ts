@@ -83,10 +83,11 @@ export async function POST() {
     const evals: EvalRow[] = evalsRes.ok ? await evalsRes.json() : []
     if (!evals.length) return NextResponse.json({ error: 'No evaluations found to learn from' }, { status: 400 })
 
-    // 2. Group by email type
+    // 2. Group by email type / surface. Any surface with signal is improved —
+    //    not just the 6 reply types — so RFQ, client-reco, etc. self-improve too.
     const byType: Record<string, { score: number; learning: string; why: string; what: string }[]> = {}
     for (const e of evals) {
-      const t = (e.email_type ?? 'CONVERSATION') as EmailType
+      const t = (e.email_type ?? 'CONVERSATION')
       const l = e.eval_json?.key_learning?.trim()
       if (!l || l.length < 10) continue
       if (!byType[t]) byType[t] = []
@@ -100,12 +101,14 @@ export async function POST() {
 
     const results: { email_type: string; override_text: string; count: number }[] = []
 
-    // 3. For each type with signal, rewrite the full instruction block
-    for (const emailType of VALID_TYPES) {
+    // 3. For each surface with signal, rewrite the full instruction block.
+    for (const emailType of Object.keys(byType)) {
       const items = byType[emailType] ?? []
       if (items.length === 0) continue
 
-      const baseInstruction = BASE_INSTRUCTIONS[emailType]
+      // Known reply types have a curated baseline; other surfaces start generic.
+      const baseInstruction = BASE_INSTRUCTIONS[emailType as EmailType]
+        ?? `━━ ${emailType} ━━\nGeneral guidance for ${emailType} emails: be accurate, concise and professional; follow TRS house style; never invent figures or coverage.`
       const learningsText = items
         .map(it =>
           `[Score ${it.score}/5] ${it.learning}` +

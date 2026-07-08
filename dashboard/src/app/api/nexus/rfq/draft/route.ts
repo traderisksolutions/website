@@ -90,6 +90,15 @@ Placeholder map: {insured}=client name, {product_line}=line of insurance, {insur
       }
     } catch { /* fall back to plain guidance if template missing/unparseable */ }
 
+    // Self-improvement loop: learned guidance synthesised from how employees edited
+    // past RFQ drafts (Settings → Evals feed prompt_overrides for RFQ_INSURER).
+    let overrideBlock = ''
+    try {
+      const oRes = await fetch(`${SB_URL}/rest/v1/prompt_overrides?email_type=eq.RFQ_INSURER&order=synthesized_at.desc&limit=1&select=override_text`, { headers: sbH(), cache: 'no-store' })
+      const oTxt = oRes.ok ? (await oRes.json())[0]?.override_text : null
+      if (oTxt) overrideBlock = `\nLEARNED IMPROVEMENTS (from how our brokers edited past RFQ drafts — apply these):\n${oTxt}\n`
+    } catch { /* optional */ }
+
     const lineLabel = productLineLabel(rfq.product_line)
     const prompt = `You are a broker at Trade Risk Solutions (TRS), a corporate insurance broker in Singapore. Write a concise, professional email to ${contact.contact_name || insurerName} at ${insurerName} requesting a quotation on behalf of our client.
 
@@ -98,7 +107,7 @@ Client / insured: ${rfq.insured_name || 'our client'}
 Request summary: ${rfq.summary || '(see details)'}
 Key details provided: ${rfq.key_details || '(none captured — ask for what you need)'}
 
-${clientContext ? `For context, the client's original message:\n"""${clientContext}"""\n` : ''}${templateBlock}
+${clientContext ? `For context, the client's original message:\n"""${clientContext}"""\n` : ''}${templateBlock}${overrideBlock}
 Guidance:
 - Address the insurer contact by name if given.
 - State clearly that we are seeking terms/a quotation for the line above for the named client.

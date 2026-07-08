@@ -23,6 +23,10 @@
     {
       "path": "/api/knowledge/index?reindex=1",
       "schedule": "0 18 * * *"
+    },
+    {
+      "path": "/api/cron/evals-improve",
+      "schedule": "0 19 * * 0"
     }
   ]
 }
