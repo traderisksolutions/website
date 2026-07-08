@@ -510,7 +510,7 @@ function CaseDetailPanel({
   const [loading,       setLoading]       = useState(false)
   const [analyzing,     setAnalyzing]     = useState(false)
   const [analyzeError,  setAnalyzeError]  = useState<string | null>(null)
-  const [view,          setView]          = useState<'mission' | 'messages' | 'history' | 'rfq'>('mission')
+  const [view,          setView]          = useState<'mission' | 'messages' | 'logs' | 'history' | 'rfq'>('mission')
   const [rfqCount,      setRfqCount]      = useState(0)
   const [linkOpen,      setLinkOpen]      = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -738,6 +738,16 @@ function CaseDetailPanel({
             loading={loading}
             onGoToMission={() => setView('mission')}
           />
+        ) : view === 'logs' ? (
+          <LogsView
+            analysis={analysis}
+            threads={threads}
+            attachmentRecords={allAttachmentRecords}
+            onLinkThreads={() => setLinkOpen(true)}
+            onUnlink={unlinkThread}
+            onUpdatePartyType={updatePartyType}
+            onGoToMission={() => setView('mission')}
+          />
         ) : (
           <RfqPanel caseId={caseData.id} />
         )}
@@ -773,11 +783,11 @@ function MissionHeader({
   analyzeProgress: AnalysisProgress | null
   analyzeError:    string | null
   confirmDelete:   boolean
-  view:            'mission' | 'messages' | 'history' | 'rfq'
+  view:            'mission' | 'messages' | 'logs' | 'history' | 'rfq'
   totalMsgCount:   number
   runsCount:       number
   rfqCount:        number
-  onSetView:       (v: 'mission' | 'messages' | 'history' | 'rfq') => void
+  onSetView:       (v: 'mission' | 'messages' | 'logs' | 'history' | 'rfq') => void
   onRunAnalysis:   () => void
   onLinkThreads:   () => void
   onDelete:        () => void
@@ -873,8 +883,9 @@ function MissionHeader({
             { key: 'mission',  label: 'Mission Control' },
             { key: 'messages', label: `Messages${totalMsgCount > 0 ? ` (${totalMsgCount})` : ''}` },
             ...(rfqCount > 0 ? [{ key: 'rfq', label: `RFQ (${rfqCount})` }] : []),
+            { key: 'logs',     label: 'Logs' },
             { key: 'history',  label: `History${runsCount > 0 ? ` (${runsCount})` : ''}` },
-          ] as { key: 'mission' | 'messages' | 'history' | 'rfq'; label: string }[]).map(({ key, label }) => (
+          ] as { key: 'mission' | 'messages' | 'logs' | 'history' | 'rfq'; label: string }[]).map(({ key, label }) => (
             <button
               key={key}
               onClick={() => onSetView(key)}
@@ -958,10 +969,10 @@ function MissionControlBody({
     <div className="px-6 py-6 flex flex-col gap-8 pb-12">
       {analyzing && <AnalyzingBanner progress={analyzeProgress} />}
 
-      {/* Executive context first */}
+      {/* 1 — Executive brief */}
       <ExecBriefCard analysis={analysis} sa={sa} />
 
-      {/* Delta banner — supplementary, below the brief so it doesn't displace primary content */}
+      {/* Delta banner — supplementary, right under the brief */}
       {!analyzing && currentRun && previousRun && (
         <RunComparisonBanner
           caseId={caseData.id}
@@ -971,7 +982,17 @@ function MissionControlBody({
         />
       )}
 
-      {/* Action plan surfaces immediately after context */}
+      {/* 2 — Timeline */}
+      <MissionTimelineSection
+        v1Timeline={sa?.timeline ?? []}
+        legacyTimeline={analysis.historical_timeline ?? []}
+        citations={sa?.citations ?? []}
+      />
+
+      {/* 3 — Scenarios (full width) */}
+      <ScenarioSection scenarios={sa?.scenario_analysis ?? []} />
+
+      {/* 4 — Next steps / action plan */}
       <NextStepsSection
         v1Steps={sa?.recommended_next_steps ?? []}
         missingItems={sa?.missing_items ?? []}
@@ -981,18 +1002,43 @@ function MissionControlBody({
         onOpenCompose={onOpenCompose}
       />
 
-      {/* Supporting intelligence */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start">
-        <StakeholderMapSection stakeholders={sa?.stakeholder_map ?? []} />
-        <ScenarioSection scenarios={sa?.scenario_analysis ?? []} />
-      </div>
-
-      <MissionTimelineSection
-        v1Timeline={sa?.timeline ?? []}
-        legacyTimeline={analysis.historical_timeline ?? []}
-        citations={sa?.citations ?? []}
+      {/* 5 — Stakeholders (actionable per-party view) */}
+      <StakeholderMapSection
+        stakeholders={sa?.stakeholder_map ?? []}
+        missingItems={sa?.missing_items ?? []}
+        pendingFrom={sa?.case_brief?.pending_from ?? analysis.current_status?.pending_from ?? {}}
+        threads={threads}
       />
+    </div>
+  )
+}
 
+// ── Logs View (evidence · draft outputs · linked threads · metadata) ───────────
+
+function LogsView({
+  analysis, threads, attachmentRecords, onLinkThreads, onUnlink, onUpdatePartyType, onGoToMission,
+}: {
+  analysis:          CaseAnalysis | null
+  threads:           CaseThread[]
+  attachmentRecords: AttachmentRecord[]
+  onLinkThreads:     () => void
+  onUnlink:          (t: string) => void
+  onUpdatePartyType: (t: string, p: string) => void
+  onGoToMission:     () => void
+}) {
+  const sa = analysis?.structured_analysis ?? null
+
+  if (!analysis) {
+    return (
+      <div className="px-6 py-16 flex flex-col items-center gap-3 text-center">
+        <p className="text-[12px] text-muted-foreground/60">Run analysis to populate the logs.</p>
+        <button onClick={onGoToMission} className="text-[11.5px] font-semibold text-primary hover:underline">Go to Mission Control →</button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="px-6 py-6 flex flex-col gap-8 pb-12">
       {(sa?.evidence_ledger?.length ?? 0) > 0 && (
         <EvidencePanelSection items={sa!.evidence_ledger} citations={sa!.citations ?? []} />
       )}
@@ -1305,7 +1351,49 @@ function ExecBriefCard({ analysis, sa }: { analysis: CaseAnalysis; sa: NexusAnal
 
 // ── Stakeholder Map Section ───────────────────────────────────────────────────
 
-function StakeholderMapSection({ stakeholders }: { stakeholders: V1Stakeholder[] }) {
+// Stance → colour. Fuzzy-matches the free-text stance from the model.
+function stanceStyle(stance?: string): { label: string; color: string; bg: string } | null {
+  if (!stance) return null
+  const s = stance.toLowerCase()
+  if (/(advers|hostile|oppos|against|dispute|litig)/.test(s)) return { label: stance, color: '#b91c1c', bg: 'rgba(185,28,28,0.08)' }
+  if (/(align|cooperat|support|favour|favor|friendly|collaborat|our client|client)/.test(s)) return { label: stance, color: '#047857', bg: 'rgba(4,120,87,0.08)' }
+  return { label: stance, color: '#b45309', bg: 'rgba(180,83,9,0.08)' } // neutral / cautious
+}
+
+// Does a free-text party token (from pending_from / missing_items.required_from)
+// refer to this stakeholder? Fuzzy on party type, first name, and company.
+function partyRefersTo(token: string, s: V1Stakeholder): boolean {
+  if (!token) return false
+  const t = token.toLowerCase()
+  const first = s.name?.toLowerCase().split(/\s+/)[0]
+  return (
+    (!!s.party_type && t.includes(s.party_type.toLowerCase())) ||
+    (!!first && first.length > 2 && t.includes(first)) ||
+    (!!s.company && t.includes(s.company.toLowerCase())) ||
+    (!!s.name && s.name.toLowerCase().includes(t))
+  )
+}
+
+function matchStakeholderThread(s: V1Stakeholder, threads: CaseThread[]): CaseThread | null {
+  const email = s.email?.toLowerCase()
+  if (email) {
+    const byEmail = threads.find(ct =>
+      ct.thread?.contact?.email?.toLowerCase() === email ||
+      ct.messages.some(m => m.from_address?.toLowerCase() === email))
+    if (byEmail) return byEmail
+  }
+  const byType = threads.filter(ct => ct.party_type?.toLowerCase() === s.party_type?.toLowerCase())
+  return byType.length === 1 ? byType[0] : null
+}
+
+function StakeholderMapSection({
+  stakeholders, missingItems, pendingFrom, threads,
+}: {
+  stakeholders: V1Stakeholder[]
+  missingItems: V1Missing[]
+  pendingFrom:  Record<string, string>
+  threads:      CaseThread[]
+}) {
   if (!stakeholders?.length) return (
     <div>
       <SectionLabel title="Stakeholders" />
@@ -1316,25 +1404,84 @@ function StakeholderMapSection({ stakeholders }: { stakeholders: V1Stakeholder[]
   return (
     <div>
       <SectionLabel title="Stakeholders" count={stakeholders.length} />
-      <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
         {stakeholders.map((s, i) => {
-          const pc = partyColor(s.party_type)
+          const pc  = partyColor(s.party_type)
+          const st  = stanceStyle(s.stance)
+          const thread = matchStakeholderThread(s, threads)
+
+          // Outstanding from this party — from pending_from + missing_items.
+          const outstanding = Array.from(new Set([
+            ...Object.entries(pendingFrom || {}).filter(([party]) => partyRefersTo(party, s)).map(([, what]) => what),
+            ...(missingItems || []).filter(m => partyRefersTo(m.required_from, s)).map(m => m.item),
+          ])).slice(0, 4)
+
+          // Last activity from the matched thread.
+          const last = thread && thread.messages.length
+            ? [...thread.messages].sort((a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime())[0]
+            : null
+          const awaiting = last?.direction === 'outbound'
+          const days     = last ? Math.floor((Date.now() - new Date(last.sent_at).getTime()) / 86_400_000) : 0
+          const isInsurer = s.party_type?.toLowerCase().includes('insur')
+          const overdue  = awaiting && (isInsurer ? days >= 3 : days >= 5)
+
           return (
-            <div key={s.id ?? i} className="flex items-start gap-3 px-4 py-3 rounded-xl border border-[--border-subtle] bg-card">
-              <div className="flex flex-col items-center gap-1.5 flex-shrink-0 pt-0.5">
-                <span className="w-2 h-2 rounded-full" style={{ background: pc.dot }} />
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ color: pc.text, background: pc.bg }}>
-                  {s.party_type.slice(0, 3).toUpperCase()}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-1.5 flex-wrap mb-0.5">
-                  <span className="text-[12px] font-semibold text-foreground">{s.name}</span>
-                  {s.company && <span className="text-[10.5px] text-muted-foreground/50">· {s.company}</span>}
+            <div key={s.id ?? i} className="flex flex-col rounded-xl border border-[--border-subtle] bg-card overflow-hidden">
+              <div className="flex items-start gap-3 px-4 py-3">
+                <div className="flex flex-col items-center gap-1.5 flex-shrink-0 pt-0.5">
+                  <span className="w-2 h-2 rounded-full" style={{ background: pc.dot }} />
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ color: pc.text, background: pc.bg }}>
+                    {s.party_type.slice(0, 3).toUpperCase()}
+                  </span>
                 </div>
-                {s.email && <p className="text-[10px] text-muted-foreground/45 mb-1">{s.email}</p>}
-                <p className="text-[11.5px] text-foreground/70 leading-[1.5]">{s.role_summary}</p>
-                {s.stance && <p className="text-[10.5px] text-muted-foreground/50 italic mt-0.5">Stance: {s.stance}</p>}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-1.5 flex-wrap mb-0.5">
+                    <span className="text-[12px] font-semibold text-foreground">{s.name}</span>
+                    {s.company && <span className="text-[10.5px] text-muted-foreground/50">· {s.company}</span>}
+                    {st && (
+                      <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full" style={{ color: st.color, background: st.bg }}>
+                        {st.label}
+                      </span>
+                    )}
+                  </div>
+                  {s.email && <p className="text-[10px] text-muted-foreground/45 mb-1">{s.email}</p>}
+                  <p className="text-[11.5px] text-foreground/70 leading-[1.5]">{s.role_summary}</p>
+                </div>
+              </div>
+
+              {/* Outstanding from them */}
+              {outstanding.length > 0 && (
+                <div className="px-4 pb-2.5 -mt-0.5">
+                  <p className="text-[8.5px] font-bold uppercase tracking-wider text-amber-600/80 mb-1">Waiting on them</p>
+                  <ul className="flex flex-col gap-0.5">
+                    {outstanding.map((o, oi) => (
+                      <li key={oi} className="flex items-start gap-1.5">
+                        <Clock size={9} strokeWidth={2} className="flex-shrink-0 mt-[3px] text-amber-500/70" />
+                        <span className="text-[10.5px] text-foreground/65 leading-[1.5]">{o}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Status + actions */}
+              <div className="flex items-center justify-between gap-2 px-4 py-2 border-t border-[--border-subtle] bg-muted/20">
+                <span className={cn('text-[10px] font-medium',
+                  !last ? 'text-muted-foreground/40'
+                  : overdue ? 'text-red-600'
+                  : awaiting ? 'text-amber-600'
+                  : 'text-emerald-600')}>
+                  {!last ? 'No linked thread'
+                    : awaiting ? `Awaiting reply · ${days}d`
+                    : `They replied · ${timeAgo(last.sent_at)}`}
+                </span>
+                {thread && (
+                  <a href={`/engagement?lead=${thread.thread_id}`}
+                    className={cn('inline-flex items-center gap-1 text-[10.5px] font-semibold hover:underline flex-shrink-0',
+                      overdue ? 'text-red-600' : 'text-primary')}>
+                    {overdue ? 'Chase' : 'Open in Engagement'} <ArrowRight size={10} />
+                  </a>
+                )}
               </div>
             </div>
           )
@@ -1360,68 +1507,88 @@ function ScenarioSection({ scenarios }: { scenarios: V1Scenario[] }) {
     </div>
   )
 
+  // Full-width comparison table — rows are scenarios, columns compare across them.
   return (
     <div>
       <SectionLabel title="Scenarios" count={scenarios.length} />
-      <div className="flex flex-col gap-2.5">
-        {scenarios.map((s, i) => {
-          const pm = SCENARIO_PROB[s.probability?.toLowerCase()] ?? SCENARIO_PROB.low
-          const assumptions       = s.assumptions?.filter(Boolean)       ?? []
-          const triggerConditions = s.trigger_conditions?.filter(Boolean) ?? []
-          return (
-            <div key={i} className="px-4 py-3.5 rounded-xl border" style={{ background: pm.bg, borderColor: pm.border }}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[12px] font-bold text-foreground">{s.name}</span>
-                <span className="text-[9.5px] font-bold uppercase tracking-wider" style={{ color: pm.color }}>
-                  {s.probability?.toUpperCase()}
-                </span>
-              </div>
-              <div className="h-[3px] rounded-full bg-black/[0.06] mb-3 overflow-hidden">
-                <div className="h-full rounded-full" style={{ width: pm.barW, background: pm.color }} />
-              </div>
-              <p className="text-[11.5px] text-foreground/75 leading-[1.55] mb-2.5">{s.outcome}</p>
+      <div className="rounded-xl border border-[--border-subtle] bg-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-left">
+            <thead>
+              <tr className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground/50 bg-muted/30">
+                <th className="py-2.5 px-4 font-bold w-[22%]">Scenario</th>
+                <th className="py-2.5 px-4 font-bold w-[13%]">Likelihood</th>
+                <th className="py-2.5 px-4 font-bold w-[32%]">Projected outcome</th>
+                <th className="py-2.5 px-4 font-bold w-[33%]">TRS action &amp; watch-fors</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[--border-subtle]">
+              {scenarios.map((s, i) => {
+                const pm = SCENARIO_PROB[s.probability?.toLowerCase()] ?? SCENARIO_PROB.low
+                const assumptions       = s.assumptions?.filter(Boolean)       ?? []
+                const triggerConditions = s.trigger_conditions?.filter(Boolean) ?? []
+                return (
+                  <tr key={i} className="align-top" style={{ background: pm.bg }}>
+                    {/* Scenario name + strategic implication */}
+                    <td className="py-3 px-4">
+                      <p className="text-[12px] font-bold text-foreground leading-snug">{s.name}</p>
+                      {s.strategic_implication && (
+                        <p className="text-[10px] italic text-foreground/50 leading-[1.5] mt-1">{s.strategic_implication}</p>
+                      )}
+                    </td>
 
-              {assumptions.length > 0 && (
-                <div className="mb-2.5">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-foreground/35 mb-1">Assumes</p>
-                  <ul className="flex flex-col gap-0.5">
-                    {assumptions.map((a, ai) => (
-                      <li key={ai} className="flex items-start gap-1.5">
-                        <span className="text-[9px] text-foreground/30 flex-shrink-0 mt-[3px]">•</span>
-                        <span className="text-[11px] text-foreground/60 leading-[1.5]">{a}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+                    {/* Likelihood badge + bar */}
+                    <td className="py-3 px-4">
+                      <span className="text-[9.5px] font-bold uppercase tracking-wider" style={{ color: pm.color }}>{s.probability?.toUpperCase()}</span>
+                      <div className="h-[3px] rounded-full bg-black/[0.06] mt-1.5 overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: pm.barW, background: pm.color }} />
+                      </div>
+                    </td>
 
-              {triggerConditions.length > 0 && (
-                <div className="mb-2.5">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-foreground/35 mb-1">Watch for</p>
-                  <ul className="flex flex-col gap-0.5">
-                    {triggerConditions.map((t, ti) => (
-                      <li key={ti} className="flex items-start gap-1.5">
-                        <Zap size={8} strokeWidth={2} className="flex-shrink-0 mt-[3px] text-foreground/30" />
-                        <span className="text-[11px] text-foreground/60 leading-[1.5]">{t}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+                    {/* Outcome + assumptions */}
+                    <td className="py-3 px-4">
+                      <p className="text-[11.5px] text-foreground/75 leading-[1.55]">{s.outcome}</p>
+                      {assumptions.length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-[8.5px] font-bold uppercase tracking-wider text-foreground/35 mb-0.5">Assumes</p>
+                          <ul className="flex flex-col gap-0.5">
+                            {assumptions.map((a, ai) => (
+                              <li key={ai} className="flex items-start gap-1.5">
+                                <span className="text-[9px] text-foreground/30 flex-shrink-0 mt-[3px]">•</span>
+                                <span className="text-[10.5px] text-foreground/60 leading-[1.5]">{a}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </td>
 
-              {s.strategic_implication && (
-                <p className="text-[10.5px] italic text-foreground/50 leading-[1.5] mb-2.5 border-t border-black/[0.05] pt-2">
-                  {s.strategic_implication}
-                </p>
-              )}
-
-              <div className="flex gap-1.5 items-start border-t border-black/[0.06] pt-2.5">
-                <ArrowRight size={10} strokeWidth={2.5} className="flex-shrink-0 mt-0.5" style={{ color: pm.color }} />
-                <p className="text-[11px] font-medium leading-[1.5]" style={{ color: pm.color }}>{s.trs_action}</p>
-              </div>
-            </div>
-          )
-        })}
+                    {/* TRS action + watch-fors */}
+                    <td className="py-3 px-4">
+                      <div className="flex gap-1.5 items-start">
+                        <ArrowRight size={10} strokeWidth={2.5} className="flex-shrink-0 mt-0.5" style={{ color: pm.color }} />
+                        <p className="text-[11px] font-medium leading-[1.5]" style={{ color: pm.color }}>{s.trs_action}</p>
+                      </div>
+                      {triggerConditions.length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-[8.5px] font-bold uppercase tracking-wider text-foreground/35 mb-0.5">Watch for</p>
+                          <ul className="flex flex-col gap-0.5">
+                            {triggerConditions.map((t, ti) => (
+                              <li key={ti} className="flex items-start gap-1.5">
+                                <Zap size={8} strokeWidth={2} className="flex-shrink-0 mt-[3px] text-foreground/30" />
+                                <span className="text-[10.5px] text-foreground/60 leading-[1.5]">{t}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )
