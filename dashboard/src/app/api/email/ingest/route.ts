@@ -358,6 +358,11 @@ async function tagThreadWithCampaignContext(email: string, threadId: string): Pr
 // a fresh thread). Kept conservative — only one unambiguous open case links.
 async function linkToRelatedCase(fromEmail: string, currentThreadDbId: string): Promise<void> {
   try {
+    // If this thread is already categorised into a case, never auto-pull it into
+    // another one (prevents cross-linking + the insurer-reply race).
+    const exRes = await fetch(`${SB_URL}/rest/v1/case_threads?thread_id=eq.${currentThreadDbId}&select=case_id&limit=1`, { headers: sbHeaders(), cache: 'no-store' })
+    if (exRes.ok && ((await exRes.json()) as unknown[]).length > 0) return
+
     const email = fromEmail.toLowerCase()
     const pRes = await fetch(`${SB_URL}/rest/v1/email_participants?email=eq.${encodeURIComponent(email)}&select=thread_id`, { headers: sbHeaders(), cache: 'no-store' })
     const tids = Array.from(new Set(((pRes.ok ? await pRes.json() : []) as { thread_id: string }[]).map(r => r.thread_id).filter(id => id && id !== currentThreadDbId)))
