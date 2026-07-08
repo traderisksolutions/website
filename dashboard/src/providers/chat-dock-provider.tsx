@@ -292,6 +292,11 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
         return
       } else if (action.type === 'draft_email') {
         if (action.thread_id) {
+          // Attach this conversation to the case so the reply flows back into Nexus.
+          if (caseId) await fetch(`/api/nexus/cases/${caseId}/threads`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ thread_id: action.thread_id, party_type: 'other' }),
+          }).catch(() => {})
           window.sessionStorage.setItem('trs_pending_reply', JSON.stringify({ threadId: action.thread_id, toEmail: action.to_email, subject: action.subject, body: action.body }))
           window.location.href = `/engagement?lead=${action.thread_id}`
           return

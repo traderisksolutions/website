@@ -445,8 +445,8 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json().catch(() => ({}))
-    const { message_id, thread_id, gmail_message_id } = body as {
-      message_id?: string; thread_id?: string; gmail_message_id?: string
+    const { message_id, thread_id, gmail_message_id, force } = body as {
+      message_id?: string; thread_id?: string; gmail_message_id?: string; force?: boolean
     }
 
     if (!message_id || !thread_id || !gmail_message_id) {
@@ -464,7 +464,7 @@ export async function POST(req: NextRequest) {
       { headers: sbHeaders() }
     ).then(r => r.ok ? r.json() : []).catch(() => [])
 
-    if (Array.isArray(existing) && existing.length > 0) {
+    if (!force && Array.isArray(existing) && existing.length > 0) {
       console.log(`[nexus/extract] already extracted for message ${message_id} — skipping`)
       return NextResponse.json({ ok: true, skipped: 'already_extracted' })
     }

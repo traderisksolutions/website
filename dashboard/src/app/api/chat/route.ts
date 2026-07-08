@@ -54,9 +54,10 @@ const TOOLS = [
   { name: 'get_case_quotes',    description: 'Get captured insurer quotes for this case (premium, excess, limit, validity, terms).',              input_schema: { type: 'object', properties: {} } },
   { name: 'list_case_threads',  description: 'List this case\'s linked email threads with party labels and thread_id.',                          input_schema: { type: 'object', properties: {} } },
   { name: 'get_thread_messages', description: 'Get recent messages (direction, from, date, body) for one thread on this case.',                  input_schema: { type: 'object', properties: { thread_id: { type: 'string' } }, required: ['thread_id'] } },
+  { name: 'rescan_attachment',  description: 'Re-run text extraction on a case attachment by (partial) filename — use when an attachment looks mis-read or was never read. After it succeeds, PROPOSE a reanalyze action so the refreshed text is used (the human confirms).', input_schema: { type: 'object', properties: { filename: { type: 'string' } }, required: ['filename'] } },
 ] as const
 
-async function execTool(name: string, input: Record<string, unknown>, caseId: string): Promise<string> {
+async function execTool(name: string, input: Record<string, unknown>, caseId: string, origin: string): Promise<string> {
   const cap = (s: string) => s.slice(0, 12_000)
   try {
     if (name === 'get_case_analysis') {
@@ -79,6 +80,25 @@ async function execTool(name: string, input: Record<string, unknown>, caseId: st
       const r = await fetch(`${SB_URL}/rest/v1/email_messages?thread_id=eq.${tid}&order=sent_at.desc&limit=15&select=direction,from_address,sent_at,body_text`, { headers: sbH(), cache: 'no-store' })
       const rows = (r.ok ? await r.json() : []) as { direction: string; from_address: string; sent_at: string; body_text: string }[]
       return cap(JSON.stringify(rows.reverse().map(m => ({ direction: m.direction, from: m.from_address, date: m.sent_at, body: (m.body_text ?? '').slice(0, 1500) }))))
+    }
+    if (name === 'rescan_attachment') {
+      const fname = String(input.filename ?? '').trim()
+      if (!fname) return 'Provide a filename to re-scan.'
+      const ctRes = await fetch(`${SB_URL}/rest/v1/case_threads?case_id=eq.${caseId}&select=thread_id`, { headers: sbH(), cache: 'no-store' })
+      const tids = ((ctRes.ok ? await ctRes.json() : []) as { thread_id: string }[]).map(t => t.thread_id)
+      if (tids.length === 0) return 'No linked threads on this case.'
+      const aRes = await fetch(`${SB_URL}/rest/v1/email_attachments?thread_id=in.(${tids.join(',')})&filename=ilike.*${encodeURIComponent(fname)}*&select=message_id,thread_id,filename&limit=1`, { headers: sbH(), cache: 'no-store' })
+      const att = aRes.ok ? (await aRes.json())[0] : null
+      if (!att) return `No attachment matching “${fname}” on this case.`
+      const mRes = await fetch(`${SB_URL}/rest/v1/email_messages?id=eq.${att.message_id}&select=gmail_message_id&limit=1`, { headers: sbH(), cache: 'no-store' })
+      const gmid = mRes.ok ? (await mRes.json())[0]?.gmail_message_id : null
+      if (!gmid) return `Could not resolve the source message for “${att.filename}”.`
+      const xRes = await fetch(`${origin}/api/nexus/attachments/extract`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.CRON_SECRET ?? '' },
+        body: JSON.stringify({ message_id: att.message_id, thread_id: att.thread_id, gmail_message_id: gmid, force: true }),
+      })
+      const xd = await xRes.json().catch(() => ({}))
+      return `Re-scanned “${att.filename}” (processed ${xd.processed ?? '?'} attachment(s)). Now propose a reanalyze action so the refreshed text is used.`
     }
   } catch (e) { return `Tool error: ${String(e)}` }
   return 'Unknown tool.'
@@ -143,6 +163,7 @@ export async function POST(req: NextRequest) {
     }
 
     const effCaseId = (case_id ?? thread.case_id) as string | null
+    const origin = new URL(req.url).origin
     const ctx = effCaseId ? await caseContext(effCaseId) : ''
 
     // Learned improvements distilled nightly from past chats.
@@ -222,7 +243,7 @@ export async function POST(req: NextRequest) {
               // Record the assistant turn, run the tools, feed results back, loop.
               msgs.push({ role: 'assistant', content: turn.blocks })
               const results = await Promise.all(toolUses.map(async t => ({
-                type: 'tool_result', tool_use_id: t.id, content: await execTool(t.name!, (t.input ?? {}) as Record<string, unknown>, effCaseId),
+                type: 'tool_result', tool_use_id: t.id, content: await execTool(t.name!, (t.input ?? {}) as Record<string, unknown>, effCaseId, origin),
               })))
               msgs.push({ role: 'user', content: results as unknown as Block[] })
               continue

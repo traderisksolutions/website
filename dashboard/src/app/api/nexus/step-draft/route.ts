@@ -48,6 +48,16 @@ export async function POST(req: NextRequest) {
     )
     threadId = pRes.ok ? ((await pRes.json())[0]?.thread_id ?? null) : null
 
+    // Close the round-trip: attach this party's thread to the case so their
+    // replies flow back into Nexus and the "new replies" bell fires for them too.
+    if (case_id && threadId) {
+      await fetch(`${SB_URL}/rest/v1/case_threads?on_conflict=case_id,thread_id`, {
+        method: 'POST',
+        headers: { ...sbH(), Prefer: 'return=minimal,resolution=merge-duplicates' },
+        body: JSON.stringify({ case_id, thread_id: threadId, party_type: party_type ?? 'other', party_label: to_email }),
+      }).catch(() => {})
+    }
+
     const prompt = `You are a broker at Trade Risk Solutions (TRS), a Singapore insurance broker. A senior strategist has decided on this next action; write the email that carries it out.
 
 Action to accomplish: ${action}
