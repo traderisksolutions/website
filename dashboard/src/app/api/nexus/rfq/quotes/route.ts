@@ -1,16 +1,15 @@
 /**
  * POST /api/nexus/rfq/quotes   Body: { case_id }
  *
- * For each insurer that has REPLIED to an RFQ on this case, reads their latest
- * inbound message and AI-extracts the quote (premium, excess, key terms) so the
- * broker can compare side by side. On-demand (button-triggered) — no writes.
+ * Quote comparison for a case. Reads persisted rfq_quotes; for any replied insurer
+ * that has no quote yet (or a race with attachment parsing), extracts + persists on
+ * the fly via the shared lib. Returns quotes with verbatim figures + evidence.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { logGeminiUsage }            from '@/lib/gemini-usage'
 import { productLineLabel }          from '@/lib/product-lines'
+import { extractAndStoreQuote }      from '@/lib/rfq-quote-extract'
 
-const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
+const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
 function sbH() {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -18,64 +17,48 @@ function sbH() {
   return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json' }
 }
 
-type Quote = {
-  insurer_name: string; product_line: string
-  premium: string | null; excess: string | null; key_terms: string[]; validity: string | null; summary: string | null
-}
-
-async function extractQuote(text: string, apiKey: string): Promise<Partial<Quote>> {
-  const prompt = `An insurer has replied to a request for quotation. Extract the quote details from their email. Return ONLY JSON:
-{ "premium": "<annual premium incl. currency, or null>", "excess": "<excess/deductible, or null>", "key_terms": ["<notable term, sub-limit, or exclusion>"], "validity": "<quote validity/expiry, or null>", "summary": "<one-line summary of the offer>" }
-
-Email:
-${text.slice(0, 8000)}`
-  const res = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.1, responseMimeType: 'application/json' } }),
-  })
-  if (!res.ok) return {}
-  const data = await res.json()
-  if (data?.usageMetadata) logGeminiUsage('email_analysis', data.usageMetadata).catch(() => {})
-  const raw = (data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim()
-  try { return JSON.parse(raw.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim()) } catch { return {} }
-}
-
 export async function POST(req: NextRequest) {
   try {
     const { case_id } = await req.json() as { case_id?: string }
     if (!case_id) return NextResponse.json({ error: 'case_id required' }, { status: 400 })
 
-    const apiKey = process.env.GEMINI_API_KEY_EMAIL_ANALYSIS
-    if (!apiKey) return NextResponse.json({ error: 'GEMINI_API_KEY_EMAIL_ANALYSIS not set' }, { status: 500 })
-
-    // Request ids for this case → replied dispatches with a linked thread.
+    // Replied dispatches on this case (via its request lines).
     const rRes = await fetch(`${SB_URL}/rest/v1/rfq_requests?case_id=eq.${case_id}&select=id`, { headers: sbH(), cache: 'no-store' })
     const reqIds = (rRes.ok ? await rRes.json() : []).map((r: { id: string }) => r.id)
     if (reqIds.length === 0) return NextResponse.json([])
 
     const dRes = await fetch(
-      `${SB_URL}/rest/v1/rfq_dispatches?rfq_request_id=in.(${reqIds.join(',')})&status=eq.replied&thread_id=not.is.null&select=insurer_name,product_line,thread_id`,
+      `${SB_URL}/rest/v1/rfq_dispatches?rfq_request_id=in.(${reqIds.join(',')})&status=eq.replied&thread_id=not.is.null&select=id,insurer_name,product_line`,
       { headers: sbH(), cache: 'no-store' }
     )
-    const dispatches: { insurer_name: string | null; product_line: string | null; thread_id: string }[] = dRes.ok ? await dRes.json() : []
+    const dispatches: { id: string; insurer_name: string | null; product_line: string | null }[] = dRes.ok ? await dRes.json() : []
+    if (dispatches.length === 0) return NextResponse.json([])
 
+    // Existing persisted quotes (fallback if a fresh extraction has nothing to read).
+    const qRes = await fetch(`${SB_URL}/rest/v1/rfq_quotes?case_id=eq.${case_id}&select=*`, { headers: sbH(), cache: 'no-store' })
+    const existing: Record<string, Record<string, unknown>> = {}
+    for (const q of (qRes.ok ? await qRes.json() : [])) existing[q.dispatch_id as string] = q
+
+    // "Compare" is a deliberate refresh: re-extract each replied insurer (upsert),
+    // so figures added in attachments parsed after ingest are picked up.
     const quotes = await Promise.all(dispatches.map(async d => {
-      const mRes = await fetch(
-        `${SB_URL}/rest/v1/email_messages?thread_id=eq.${d.thread_id}&direction=eq.inbound&order=sent_at.desc&select=body_text&limit=1`,
-        { headers: sbH(), cache: 'no-store' }
-      )
-      const body = mRes.ok ? (await mRes.json())[0]?.body_text : null
-      const extracted = body ? await extractQuote(String(body), apiKey) : {}
+      await extractAndStoreQuote(d.id).catch(() => null)
+      const rr = await fetch(`${SB_URL}/rest/v1/rfq_quotes?dispatch_id=eq.${d.id}&select=*&limit=1`, { headers: sbH(), cache: 'no-store' })
+      const q  = (rr.ok ? (await rr.json())[0] : undefined) ?? existing[d.id]
       return {
-        insurer_name: d.insurer_name ?? 'Insurer',
-        product_line: productLineLabel(d.product_line ?? ''),
-        premium:   extracted.premium   ?? null,
-        excess:    extracted.excess    ?? null,
-        key_terms: Array.isArray(extracted.key_terms) ? extracted.key_terms : [],
-        validity:  extracted.validity  ?? null,
-        summary:   extracted.summary   ?? null,
-      } as Quote
+        dispatch_id:     d.id,
+        insurer_name:    d.insurer_name ?? 'Insurer',
+        product_line:    productLineLabel(d.product_line ?? ''),
+        premium:         (q?.premium as string) ?? null,
+        excess:          (q?.excess as string) ?? null,
+        limit_indemnity: (q?.limit_indemnity as string) ?? null,
+        validity:        (q?.validity as string) ?? null,
+        key_terms:       (q?.key_terms as string[]) ?? [],
+        exclusions:      (q?.exclusions as string[]) ?? [],
+        summary:         (q?.summary as string) ?? null,
+        evidence:        (q?.evidence as Record<string, { excerpt: string | null; source: string | null }>) ?? {},
+        primary_source:  (q?.primary_source as string) ?? null,
+      }
     }))
 
     return NextResponse.json(quotes)

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { waitUntil }        from '@vercel/functions'
+import { extractAndStoreQuote } from '@/lib/rfq-quote-extract'
 import { productLineLabel } from '@/lib/product-lines'
 
 export const maxDuration = 300
@@ -383,12 +384,17 @@ async function linkRfqDispatch(gmailThreadId: string, threadDbId: string, direct
 
     // Backfill the dispatch: attach the thread; on an inbound reply, mark replied.
     const patch: Record<string, unknown> = { thread_id: threadDbId, updated_at: new Date().toISOString() }
-    if (direction === 'inbound' && d.status !== 'replied') patch.status = 'replied'
+    const nowReplied = direction === 'inbound' && d.status !== 'replied'
+    if (nowReplied) patch.status = 'replied'
     await fetch(`${SB_URL}/rest/v1/rfq_dispatches?id=eq.${d.id}`, {
       method:  'PATCH',
       headers: h,
       body:    JSON.stringify(patch),
     }).catch(() => {})
+
+    // Auto quote capture head-start (best-effort; "Compare quotes" re-extracts to
+    // pick up figures in attachments parsed after this point).
+    if (nowReplied) waitUntil(extractAndStoreQuote(d.id).catch(() => null).then(() => undefined))
 
     console.log('[ingest] rfq dispatch linked on thread', threadDbId, '→ case', rfq.case_id, `(${direction})`)
   }

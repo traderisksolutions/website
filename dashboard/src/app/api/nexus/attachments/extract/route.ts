@@ -174,6 +174,61 @@ Be specific. Use factual, professional language. Return plain text only.`,
   } catch { return '' }
 }
 
+// ── PDF text extraction ───────────────────────────────────────────────────────
+// Always produce parsed_text for PDFs (previously PDFs were stored binary-only and
+// left to a best-effort re-upload at analysis time — which is why some attachments
+// were never actually read). Fast path: pdf-parse. Scanned / image-only PDFs yield
+// little text → fall back to Gemini reading the PDF directly (thorough, faithful).
+async function extractPdfViaLib(data: Buffer): Promise<string> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require('pdf-parse') as unknown
+    const fn  = (typeof mod === 'function' ? mod : (mod as { default?: unknown; pdf?: unknown }).default ?? (mod as { pdf?: unknown }).pdf) as
+      ((d: Buffer) => Promise<{ text?: string }>) | undefined
+    if (!fn) return ''
+    const r = await fn(data)
+    return (r?.text ?? '').trim()
+  } catch { return '' }
+}
+
+async function analyzePdfViaGemini(data: Buffer, apiKey: string): Promise<string> {
+  if (!apiKey) return ''
+  try {
+    const res = await fetch(`${GEMINI_FLASH}?key=${apiKey}`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { inline_data: { mime_type: 'application/pdf', data: data.toString('base64') } },
+            { text: `You are transcribing a document for an insurance brokerage in Singapore (Trade Risk Solutions). Read this PDF CAREFULLY and COMPLETELY — do not skim or summarise away detail.
+
+Produce a faithful, structured transcription that a downstream AI analyst can rely on:
+1. Every heading, paragraph and clause of text.
+2. Every table reproduced with its rows/columns and ALL figures.
+3. Every monetary amount, premium, excess/deductible, limit, sub-limit, percentage, date, reference/policy number and party name — transcribed EXACTLY as written (word for word, including currency symbols and thousands separators). Do NOT round, convert, combine or infer numbers.
+4. Note any signatures, stamps, or handwritten annotations.
+
+Return plain text only. If a value is unclear, write it as best you can read it and add "[unclear]" — never invent a value.` },
+          ],
+        }],
+        generationConfig: { maxOutputTokens: 8192, temperature: 0 },
+      }),
+    })
+    const d = await res.json()
+    return d?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+  } catch { return '' }
+}
+
+async function extractPdfText(data: Buffer, apiKey: string): Promise<string | null> {
+  const libText = await extractPdfViaLib(data)
+  // Thin text ⇒ likely scanned/image PDF ⇒ let Gemini read it directly.
+  if (libText.length >= 200) return libText.slice(0, 60_000)
+  const aiText = await analyzePdfViaGemini(data, apiKey)
+  const combined = [libText, aiText].filter(Boolean).join('\n\n').trim()
+  return combined ? combined.slice(0, 60_000) : null
+}
+
 // ── Filename sanitiser ────────────────────────────────────────────────────────
 
 function sanitise(name: string): string {
@@ -217,10 +272,11 @@ async function processAttachment(
   let storageUrl:   string | null = null
   let parsedText:   string | null = null
 
-  // ── PDF: store binary + let Nexus re-upload to Gemini at analysis time ───
+  // ── PDF: store binary AND extract text now (so it is always read) ────────
   if (mime === 'application/pdf' || filename.toLowerCase().endsWith('.pdf')) {
     storageUrl = await uploadToStorage(storagePath, data, 'application/pdf')
-    console.log(`[nexus/extract] PDF stored: ${filename} → ${storageUrl ?? 'FAILED'}`)
+    parsedText = await extractPdfText(data, apiKey)
+    console.log(`[nexus/extract] PDF stored + read: ${filename} → ${storageUrl ?? 'FAILED'} (${parsedText?.length ?? 0} chars)`)
   }
 
   // ── Images: store binary + AI description ────────────────────────────────
@@ -312,7 +368,8 @@ async function processAttachment(
         if (['pdf'].includes(ext)) {
           const nested = `${threadId}/${messageId}/zip_${sanitise(entry.entryName)}`
           await uploadToStorage(nested, buf, 'application/pdf')
-          textParts.push(`[${entry.entryName}: PDF stored for Gemini analysis]`)
+          const pdfText = await extractPdfText(buf, apiKey)
+          textParts.push(`${entry.entryName} (PDF):\n${pdfText ? pdfText.slice(0, 8000) : '[no text extracted]'}`)
         } else if (['jpg', 'jpeg', 'png', 'webp', 'tiff'].includes(ext)) {
           const nested = `${threadId}/${messageId}/zip_${sanitise(entry.entryName)}`
           await uploadToStorage(nested, buf, `image/${ext === 'jpg' ? 'jpeg' : ext}`)

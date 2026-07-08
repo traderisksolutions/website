@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useCallback } from 'react'
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { productLineLabel } from '@/lib/product-lines'
 
@@ -34,9 +34,38 @@ function daysSince(iso: string): number {
 
 // ── Quote comparison (AI-extracted from insurer replies) ───────────────────────
 
+type FieldEvidence = { excerpt: string | null; source: string | null }
 type Quote = {
-  insurer_name: string; product_line: string
-  premium: string | null; excess: string | null; key_terms: string[]; validity: string | null; summary: string | null
+  dispatch_id: string; insurer_name: string; product_line: string
+  premium: string | null; excess: string | null; limit_indemnity: string | null
+  validity: string | null; key_terms: string[]; exclusions: string[]; summary: string | null
+  evidence: Record<string, FieldEvidence>; primary_source: string | null
+}
+
+// A figure cell with an evidence popover — click ⓘ to see the verbatim source
+// excerpt the number was pulled from (guards against a wrong / jumbled price).
+function FigureCell({ value, ev }: { value: string | null; ev?: FieldEvidence }) {
+  const [open, setOpen] = useState(false)
+  const hasEv = !!(ev?.excerpt || ev?.source)
+  return (
+    <span className="relative inline-flex items-start gap-1">
+      <span className={value ? 'font-semibold text-foreground' : 'text-muted-foreground/50'}>{value ?? '—'}</span>
+      {value && hasEv && (
+        <button onClick={() => setOpen(o => !o)} className="mt-[1px] text-indigo-500/70 hover:text-indigo-700" title="Show source evidence">
+          <Info size={11} />
+        </button>
+      )}
+      {open && hasEv && (
+        <span className="absolute z-20 top-5 left-0 w-64 rounded-md border border-indigo-200 bg-white shadow-lg p-2.5 text-left normal-case">
+          <span className="block text-[9px] font-bold uppercase tracking-wider text-indigo-600/70 mb-1">
+            Source{ev?.source ? ` · ${ev.source}` : ''}
+          </span>
+          <span className="block text-[10.5px] text-foreground/80 leading-[1.5] whitespace-pre-wrap">“{ev?.excerpt ?? 'No excerpt captured.'}”</span>
+          <button onClick={() => setOpen(false)} className="mt-1.5 text-[9.5px] text-muted-foreground hover:text-foreground">close</button>
+        </span>
+      )}
+    </span>
+  )
 }
 
 function QuotesComparison({ caseId }: { caseId: string }) {
@@ -56,8 +85,11 @@ function QuotesComparison({ caseId }: { caseId: string }) {
   return (
     <div className="rounded-lg border border-indigo-200 bg-indigo-50/40 p-4 flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <span className="text-[12px] font-semibold text-indigo-900">Quote comparison</span>
-        <button onClick={compare} disabled={loading} className="text-[11px] font-semibold px-3 py-1.5 rounded-md bg-indigo-600 text-white disabled:opacity-50">
+        <div className="flex flex-col">
+          <span className="text-[12px] font-semibold text-indigo-900">Quote comparison</span>
+          <span className="text-[10px] text-indigo-700/60">Figures are copied verbatim from the insurer reply / attachments — click ⓘ to verify the source.</span>
+        </div>
+        <button onClick={compare} disabled={loading} className="text-[11px] font-semibold px-3 py-1.5 rounded-md bg-indigo-600 text-white disabled:opacity-50 flex-shrink-0">
           {loading ? 'Reading replies…' : quotes ? 'Refresh' : 'Compare quotes'}
         </button>
       </div>
@@ -69,18 +101,23 @@ function QuotesComparison({ caseId }: { caseId: string }) {
               <tr className="text-left text-[10px] uppercase tracking-wider text-muted-foreground/70">
                 <th className="py-1.5 pr-3 font-semibold">Insurer</th><th className="py-1.5 pr-3 font-semibold">Line</th>
                 <th className="py-1.5 pr-3 font-semibold">Premium</th><th className="py-1.5 pr-3 font-semibold">Excess</th>
-                <th className="py-1.5 pr-3 font-semibold">Validity</th><th className="py-1.5 font-semibold">Key terms</th>
+                <th className="py-1.5 pr-3 font-semibold">Limit</th><th className="py-1.5 pr-3 font-semibold">Validity</th>
+                <th className="py-1.5 font-semibold">Key terms</th>
               </tr>
             </thead>
             <tbody>
               {quotes.map((q, i) => (
-                <tr key={i} className="border-t border-indigo-200/50 align-top">
+                <tr key={q.dispatch_id ?? i} className="border-t border-indigo-200/50 align-top">
                   <td className="py-2 pr-3 font-medium text-foreground">{q.insurer_name}</td>
                   <td className="py-2 pr-3 text-muted-foreground">{q.product_line}</td>
-                  <td className="py-2 pr-3 font-semibold text-foreground">{q.premium ?? '—'}</td>
-                  <td className="py-2 pr-3 text-muted-foreground">{q.excess ?? '—'}</td>
-                  <td className="py-2 pr-3 text-muted-foreground">{q.validity ?? '—'}</td>
-                  <td className="py-2 text-muted-foreground">{q.key_terms.length > 0 ? q.key_terms.join(' · ') : (q.summary ?? '—')}</td>
+                  <td className="py-2 pr-3"><FigureCell value={q.premium} ev={q.evidence?.premium} /></td>
+                  <td className="py-2 pr-3"><FigureCell value={q.excess} ev={q.evidence?.excess} /></td>
+                  <td className="py-2 pr-3"><FigureCell value={q.limit_indemnity} ev={q.evidence?.limit_indemnity} /></td>
+                  <td className="py-2 pr-3"><FigureCell value={q.validity} ev={q.evidence?.validity} /></td>
+                  <td className="py-2 text-muted-foreground">
+                    {q.key_terms.length > 0 ? q.key_terms.join(' · ') : (q.summary ?? '—')}
+                    {q.exclusions?.length > 0 && <span className="block text-[10px] text-rose-600/70 mt-0.5">Excl: {q.exclusions.join(' · ')}</span>}
+                  </td>
                 </tr>
               ))}
             </tbody>
