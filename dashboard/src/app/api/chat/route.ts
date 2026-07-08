@@ -55,7 +55,16 @@ CONFIRM-TO-ACT: if — and only if — the broker's request implies a concrete c
 { "type": "reanalyze", "instructions": "<what to change/focus, phrased for a re-run>" }
 \`\`\`
 Valid action shapes:
-- { "type": "reanalyze", "instructions": "..." }  — correct facts / focus / add context, then re-run the analysis.
+- { "type": "edit_analysis", "summary": "<one line>", "ops": [ ... ] } — SURGICAL edits to the stored analysis. Prefer this for specific, mechanical changes (reword/add/remove a next step, add a scenario, fix a stakeholder's stance, correct the stage, add/remove a blocking issue or missing item). Op shapes:
+    { "target": "brief", "set": { "summary"?: "...", "current_stage"?: "..." } }
+    { "target": "blocking_issues", "op": "add"|"remove", "value"?: "...", "at"?: <1-based>, "match"?: "<substring>" }
+    { "target": "next_steps", "op": "add", "value": { "action": "...", "owner"?: "...", "priority"?: "high|medium|low", "rationale"?: "...", "deadline"?: "..." } }
+    { "target": "next_steps", "op": "update"|"remove", "at"?: <1-based>, "match"?: "<substring of the action>", "value"?: { ...fields to change } }
+    { "target": "scenarios", "op": "add"|"update"|"remove", "at"?, "match"?, "value"? }   (fields: name, probability, outcome, trs_action)
+    { "target": "stakeholders", "op": "add"|"update"|"remove", "at"?, "match"?, "value"? } (fields: name, party_type, role_summary, stance)
+    { "target": "missing_items", "op": "add"|"remove", "at"?, "match"?, "value"? }         (fields: item, required_from, urgency, impact)
+  Use "at" (the number shown in the UI) when you know it, else "match".
+- { "type": "reanalyze", "instructions": "..." } — use ONLY when the change needs re-reasoning over the evidence (not a mechanical edit).
 - { "type": "draft_email", "to_email": "...", "subject": "...", "body": "...", "thread_id": "<from linked threads, or omit>" } — draft an email.
 - { "type": "edit_case", "patch": { "name"?: "...", "description"?: "...", "status"?: "open|closed" } } — edit case fields.
 Never include more than one action. Never fabricate figures or coverage. If no action is needed, do not include the block.`

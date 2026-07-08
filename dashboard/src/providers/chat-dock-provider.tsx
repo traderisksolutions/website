@@ -35,6 +35,12 @@ function caseIdFromLocation(pathname: string): string | null {
   return new URLSearchParams(window.location.search).get('case')
 }
 
+// Tell an open Nexus case view to re-fetch after the chat changed its analysis.
+export const NEXUS_ANALYSIS_UPDATED = 'nexus:analysis-updated'
+function notifyAnalysisUpdated(caseId: string) {
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(NEXUS_ANALYSIS_UPDATED, { detail: { caseId } }))
+}
+
 export function ChatDockProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(chatDockReducer, initialChatDockState)
   const pathname = usePathname()
@@ -167,6 +173,13 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ instructions: action.instructions }),
         })
+        notifyAnalysisUpdated(caseId)
+      } else if (action.type === 'edit_analysis' && caseId) {
+        await fetch(`/api/nexus/cases/${caseId}/edit-analysis`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ops: action.ops, summary: action.summary }),
+        })
+        notifyAnalysisUpdated(caseId)
       } else if (action.type === 'draft_email') {
         if (action.thread_id) {
           window.sessionStorage.setItem('trs_pending_reply', JSON.stringify({ threadId: action.thread_id, toEmail: action.to_email, subject: action.subject, body: action.body }))
@@ -179,6 +192,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
           method: 'PATCH', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(action.patch),
         })
+        notifyAnalysisUpdated(caseId)
       }
       const meta = { ...message.metadata_json, action_done: true }
       dispatch({ type: 'UPDATE_MESSAGE', id: message.id, patch: { metadata_json: meta } })

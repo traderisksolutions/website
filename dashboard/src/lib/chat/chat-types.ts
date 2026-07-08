@@ -20,12 +20,28 @@ export interface ChatThread {
 
 export interface Citation { label: string; ref?: string; kind?: string }
 
+// A single surgical edit to the stored analysis JSON. `at` is 1-based (as shown
+// in the UI); `match` is a substring on the item's primary text — either resolves
+// which item to update/remove.
+export type EditOp =
+  | { target: 'brief'; set: { summary?: string; current_stage?: string } }
+  | { target: 'blocking_issues'; op: 'add' | 'remove'; value?: string; at?: number; match?: string }
+  | { target: 'next_steps'; op: 'add'; value: { action: string; owner?: string; priority?: string; rationale?: string; deadline?: string } }
+  | { target: 'next_steps'; op: 'update' | 'remove'; at?: number; match?: string; value?: Record<string, unknown> }
+  | { target: 'scenarios'; op: 'add'; value: { name: string; probability?: string; outcome?: string; trs_action?: string } }
+  | { target: 'scenarios'; op: 'update' | 'remove'; at?: number; match?: string; value?: Record<string, unknown> }
+  | { target: 'stakeholders'; op: 'add'; value: { name: string; party_type?: string; role_summary?: string; stance?: string } }
+  | { target: 'stakeholders'; op: 'update' | 'remove'; at?: number; match?: string; value?: Record<string, unknown> }
+  | { target: 'missing_items'; op: 'add'; value: { item: string; required_from?: string; urgency?: string; impact?: string } }
+  | { target: 'missing_items'; op: 'remove'; at?: number; match?: string }
+
 // A confirm-to-act proposal the assistant can attach to a message. The employee
 // clicks to run it — nothing executes automatically. Extensible union.
 export type ProposedAction =
   | { type: 'reanalyze'; instructions: string; label?: string }
   | { type: 'draft_email'; to_email?: string; subject?: string; body: string; thread_id?: string | null; label?: string }
   | { type: 'edit_case'; patch: { name?: string; description?: string; status?: string }; label?: string }
+  | { type: 'edit_analysis'; summary: string; ops: EditOp[]; label?: string }
 
 export interface ChatMessageMeta {
   action?: ProposedAction

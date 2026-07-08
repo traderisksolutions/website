@@ -558,6 +558,16 @@ function CaseDetailPanel({
   const loadRef = useRef(load)
   useEffect(() => { loadRef.current = load }, [load])
 
+  // Re-fetch when the AI consultant chat edits/re-runs this case's analysis.
+  useEffect(() => {
+    function onUpdated(e: Event) {
+      const detail = (e as CustomEvent<{ caseId?: string }>).detail
+      if (!detail?.caseId || detail.caseId === caseData.id) loadRef.current()
+    }
+    window.addEventListener('nexus:analysis-updated', onUpdated)
+    return () => window.removeEventListener('nexus:analysis-updated', onUpdated)
+  }, [caseData.id])
+
   const LS_KEY = `nexus_analyzing_${caseData.id}`
 
   useEffect(() => {
