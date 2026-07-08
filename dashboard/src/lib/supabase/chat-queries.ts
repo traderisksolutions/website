@@ -33,6 +33,32 @@ export async function getOrCreateOpenThread(caseId?: string | null): Promise<Cha
   return created as ChatThread
 }
 
+// All of the user's non-archived threads, newest first — for the history drawer.
+export async function listThreads(): Promise<ChatThread[]> {
+  const uid = await currentUserId()
+  if (!uid) return []
+  const { data } = await db().from('chat_threads').select('*')
+    .eq('user_id', uid).neq('status', 'archived')
+    .order('updated_at', { ascending: false }).limit(50)
+  return (data ?? []) as ChatThread[]
+}
+
+// A brand-new thread (distinct from getOrCreateOpenThread, which reuses one).
+export async function createThread(caseId?: string | null): Promise<ChatThread | null> {
+  const uid = await currentUserId()
+  if (!uid) return null
+  const { data, error } = await db().from('chat_threads')
+    .insert({ user_id: uid, status: 'open', kind: 'assistant', case_id: caseId ?? null })
+    .select('*').single()
+  if (error) return null
+  return data as ChatThread
+}
+
+// Set the title only if it's still empty (first user message becomes the title).
+export async function setThreadTitle(threadId: string, title: string): Promise<void> {
+  await db().from('chat_threads').update({ title }).eq('id', threadId).is('title', null)
+}
+
 export async function getThreadMessages(threadId: string): Promise<ChatMessage[]> {
   const { data } = await db().from('chat_messages').select('*')
     .eq('thread_id', threadId).order('created_at', { ascending: true })

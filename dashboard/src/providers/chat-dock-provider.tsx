@@ -4,10 +4,11 @@ import React, { createContext, useContext, useReducer, useEffect, useRef, useCal
 import { usePathname } from 'next/navigation'
 import { chatDockReducer, initialChatDockState, type ChatDockState } from '@/stores/chat-dock-store'
 import { createClient } from '@/lib/supabase/client'
-import type { ChatMessage } from '@/lib/chat/chat-types'
+import type { ChatMessage, ChatThread } from '@/lib/chat/chat-types'
 import {
   getChatBootstrapState, getOrCreateOpenThread, getThreadMessages,
   appendUserMessage, saveDraft, setThreadStatus, upsertChatUiState, updateMessageMeta,
+  listThreads, createThread, setThreadTitle,
 } from '@/lib/supabase/chat-queries'
 
 interface ChatDockContextValue {
@@ -20,6 +21,10 @@ interface ChatDockContextValue {
   setDraft:      (v: string) => void
   send:          (text: string) => Promise<void>
   confirmAction: (message: ChatMessage) => Promise<void>
+  toggleHistory: () => void
+  openThread:    (thread: ChatThread) => Promise<void>
+  newThread:     () => Promise<void>
+  archiveThread: (threadId: string) => Promise<void>
 }
 
 const ChatDockContext = createContext<ChatDockContextValue | null>(null)
@@ -165,11 +170,14 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
         upsertChatUiState({ active_thread_id: threadId, is_open: true }).catch(() => {})
       }
 
+      const firstMessage = cur.messages.length === 0
       const userMsg = await appendUserMessage(threadId, content)
       if (!userMsg) throw new Error('Message could not be saved — try again')
       dispatch({ type: 'ADD_MESSAGE', message: userMsg })
       dispatch({ type: 'SET_DRAFT', draft: '' })
       saveDraft(threadId, '').catch(() => {})
+      // First message becomes the thread title (only if still untitled).
+      if (firstMessage) setThreadTitle(threadId, content.slice(0, 70)).catch(() => {})
 
       const res = await fetch('/api/chat', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -253,8 +261,42 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  // ── History drawer ──────────────────────────────────────────────────────────
+  const toggleHistory = useCallback(() => {
+    const next = !stateRef.current.showHistory
+    dispatch({ type: 'SET_HISTORY', show: next })
+    if (next) listThreads().then(threads => dispatch({ type: 'SET_THREADS', threads })).catch(() => {})
+  }, [])
+
+  const openThread = useCallback(async (thread: ChatThread) => {
+    dispatch({ type: 'SET_HISTORY', show: false })
+    const messages = await getThreadMessages(thread.id)
+    dispatch({ type: 'SET_THREAD', threadId: thread.id, caseId: thread.case_id, messages, draft: '' })
+    if (thread.status !== 'open') setThreadStatus(thread.id, 'open').catch(() => {})
+    upsertChatUiState({ active_thread_id: thread.id, is_open: true, is_minimized: false }).catch(() => {})
+  }, [])
+
+  const newThread = useCallback(async () => {
+    dispatch({ type: 'SET_HISTORY', show: false })
+    const thread = await createThread(caseIdFromLocation(pathname))
+    if (!thread) return
+    dispatch({ type: 'SET_THREAD', threadId: thread.id, caseId: thread.case_id, messages: [], draft: '' })
+    upsertChatUiState({ active_thread_id: thread.id, is_open: true, is_minimized: false }).catch(() => {})
+  }, [pathname])
+
+  const archiveThread = useCallback(async (threadId: string) => {
+    await setThreadStatus(threadId, 'archived').catch(() => {})
+    const threads = await listThreads()
+    dispatch({ type: 'SET_THREADS', threads })
+    // If we archived the active thread, drop into a fresh one.
+    if (stateRef.current.activeThreadId === threadId) {
+      dispatch({ type: 'SET_THREAD', threadId: null, caseId: null, messages: [], draft: '' })
+      upsertChatUiState({ active_thread_id: null }).catch(() => {})
+    }
+  }, [])
+
   return (
-    <ChatDockContext.Provider value={{ state, caseIdInRoute, open, minimize, restore, close, setDraft, send, confirmAction }}>
+    <ChatDockContext.Provider value={{ state, caseIdInRoute, open, minimize, restore, close, setDraft, send, confirmAction, toggleHistory, openThread, newThread, archiveThread }}>
       {children}
     </ChatDockContext.Provider>
   )

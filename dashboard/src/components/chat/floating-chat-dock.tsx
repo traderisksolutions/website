@@ -7,6 +7,7 @@ import { FloatingChatHeader } from './floating-chat-header'
 import { FloatingChatBody } from './floating-chat-body'
 import { FloatingChatComposer } from './floating-chat-composer'
 import { MinimizedChatBar } from './minimized-chat-bar'
+import { ChatThreadList } from './chat-thread-list'
 
 /**
  * Global, persistent floating chat dock. Mounted once in the dashboard shell so
@@ -14,7 +15,7 @@ import { MinimizedChatBar } from './minimized-chat-bar'
  * minimized bar. Fixed bottom-right; never overlays/blocks the page.
  */
 export function FloatingChatDock() {
-  const { state, caseIdInRoute, open, minimize, restore, close, setDraft, send, confirmAction } = useChatDock()
+  const { state, caseIdInRoute, open, minimize, restore, close, setDraft, send, confirmAction, toggleHistory, openThread, newThread, archiveThread } = useChatDock()
 
   if (!state.bootstrapped) return null
 
@@ -53,21 +54,41 @@ export function FloatingChatDock() {
       role="dialog"
       aria-label="AI consultant chat"
     >
-      <FloatingChatHeader title={title} subtitle={subtitle} onMinimize={minimize} onClose={close} />
-      <FloatingChatBody
-        messages={state.messages}
-        sending={state.sending}
-        error={state.error}
-        caseAware={caseAware}
-        onConfirm={confirmAction}
-        onPickPrompt={(p) => { setDraft(p) }}
+      <FloatingChatHeader
+        title={state.showHistory ? 'Chats' : title}
+        subtitle={state.showHistory ? null : subtitle}
+        historyActive={state.showHistory}
+        onHistory={toggleHistory}
+        onNewChat={newThread}
+        onMinimize={minimize}
+        onClose={close}
       />
-      <FloatingChatComposer
-        draft={state.draft}
-        sending={state.sending}
-        onChange={setDraft}
-        onSend={() => send(state.draft)}
-      />
+      {state.showHistory ? (
+        <ChatThreadList
+          threads={state.threads}
+          activeThreadId={state.activeThreadId}
+          onOpen={openThread}
+          onNew={newThread}
+          onArchive={archiveThread}
+        />
+      ) : (
+        <>
+          <FloatingChatBody
+            messages={state.messages}
+            sending={state.sending}
+            error={state.error}
+            caseAware={caseAware}
+            onConfirm={confirmAction}
+            onPickPrompt={(p) => { setDraft(p) }}
+          />
+          <FloatingChatComposer
+            draft={state.draft}
+            sending={state.sending}
+            onChange={setDraft}
+            onSend={() => send(state.draft)}
+          />
+        </>
+      )}
     </div>
   )
 }

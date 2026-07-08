@@ -1,15 +1,17 @@
 // Lightweight client store for the floating chat (reducer — no external dep).
 // Holds instant UI state; the provider syncs the important bits to Supabase.
 
-import type { ChatMessage } from '@/lib/chat/chat-types'
+import type { ChatMessage, ChatThread } from '@/lib/chat/chat-types'
 
 export interface ChatDockState {
   bootstrapped:   boolean
   isOpen:         boolean
   isMinimized:    boolean
+  showHistory:    boolean
   activeThreadId: string | null
   caseId:         string | null
   messages:       ChatMessage[]
+  threads:        ChatThread[]
   draft:          string
   sending:        boolean
   error:          string | null
@@ -19,9 +21,11 @@ export const initialChatDockState: ChatDockState = {
   bootstrapped:   false,
   isOpen:         false,
   isMinimized:    false,
+  showHistory:    false,
   activeThreadId: null,
   caseId:         null,
   messages:       [],
+  threads:        [],
   draft:          '',
   sending:        false,
   error:          null,
@@ -41,6 +45,8 @@ export type ChatDockAction =
   | { type: 'SET_MESSAGES'; messages: ChatMessage[] }
   | { type: 'SET_SENDING'; sending: boolean }
   | { type: 'SET_ERROR'; error: string | null }
+  | { type: 'SET_HISTORY'; show: boolean }
+  | { type: 'SET_THREADS'; threads: ChatThread[] }
 
 export function chatDockReducer(state: ChatDockState, action: ChatDockAction): ChatDockState {
   switch (action.type) {
@@ -57,6 +63,8 @@ export function chatDockReducer(state: ChatDockState, action: ChatDockAction): C
     case 'SET_MESSAGES':   return { ...state, messages: action.messages }
     case 'SET_SENDING':    return { ...state, sending: action.sending }
     case 'SET_ERROR':      return { ...state, error: action.error }
+    case 'SET_HISTORY':    return { ...state, showHistory: action.show }
+    case 'SET_THREADS':    return { ...state, threads: action.threads }
     default:               return state
   }
 }
