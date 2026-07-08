@@ -71,6 +71,9 @@ function FigureCell({ value, ev }: { value: string | null; ev?: FieldEvidence })
 function QuotesComparison({ caseId }: { caseId: string }) {
   const [quotes,  setQuotes]  = useState<Quote[] | null>(null)
   const [loading, setLoading] = useState(false)
+  const [pick,    setPick]    = useState<string | null>(null)
+  const [reccing, setReccing] = useState(false)
+  const [recErr,  setRecErr]  = useState<string | null>(null)
 
   async function compare() {
     setLoading(true)
@@ -80,6 +83,27 @@ function QuotesComparison({ caseId }: { caseId: string }) {
       })
       setQuotes(res.ok ? await res.json() : [])
     } finally { setLoading(false) }
+  }
+
+  // Draft the client recommendation and hand it to Engagement to review + send.
+  async function recommend() {
+    if (!pick || !quotes) return
+    setReccing(true); setRecErr(null)
+    try {
+      const res = await fetch('/api/nexus/rfq/recommend', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ case_id: caseId, recommended_dispatch_id: pick, shortlist_dispatch_ids: quotes.map(q => q.dispatch_id) }),
+      })
+      const d = await res.json()
+      if (!res.ok || !d.body) { setRecErr(d.error ?? 'Could not draft recommendation'); return }
+      if (d.thread_id) {
+        window.sessionStorage.setItem('trs_pending_reply', JSON.stringify({ threadId: d.thread_id, toEmail: d.to_email, subject: d.subject, body: d.body }))
+        window.location.href = `/engagement?lead=${d.thread_id}`
+      } else {
+        await navigator.clipboard.writeText(d.body).catch(() => {})
+        setRecErr('No client thread linked — recommendation copied to clipboard; start the email in Engagement.')
+      }
+    } finally { setReccing(false) }
   }
 
   return (
@@ -99,6 +123,7 @@ function QuotesComparison({ caseId }: { caseId: string }) {
           <table className="w-full text-[11.5px] border-collapse">
             <thead>
               <tr className="text-left text-[10px] uppercase tracking-wider text-muted-foreground/70">
+                <th className="py-1.5 pr-2 font-semibold">Pick</th>
                 <th className="py-1.5 pr-3 font-semibold">Insurer</th><th className="py-1.5 pr-3 font-semibold">Line</th>
                 <th className="py-1.5 pr-3 font-semibold">Premium</th><th className="py-1.5 pr-3 font-semibold">Excess</th>
                 <th className="py-1.5 pr-3 font-semibold">Limit</th><th className="py-1.5 pr-3 font-semibold">Validity</th>
@@ -108,6 +133,9 @@ function QuotesComparison({ caseId }: { caseId: string }) {
             <tbody>
               {quotes.map((q, i) => (
                 <tr key={q.dispatch_id ?? i} className="border-t border-indigo-200/50 align-top">
+                  <td className="py-2 pr-2">
+                    <input type="radio" name="reco-pick" checked={pick === q.dispatch_id} onChange={() => setPick(q.dispatch_id)} className="accent-indigo-600" />
+                  </td>
                   <td className="py-2 pr-3 font-medium text-foreground">{q.insurer_name}</td>
                   <td className="py-2 pr-3 text-muted-foreground">{q.product_line}</td>
                   <td className="py-2 pr-3"><FigureCell value={q.premium} ev={q.evidence?.premium} /></td>
@@ -124,6 +152,16 @@ function QuotesComparison({ caseId }: { caseId: string }) {
           </table>
         </div>
       )}
+      {quotes && quotes.length > 0 && (
+        <div className="flex items-center justify-between gap-3 border-t border-indigo-200/50 pt-2.5">
+          <span className="text-[10.5px] text-indigo-700/60">{pick ? 'Recommendation drafts in Engagement for your review — nothing is sent automatically.' : 'Pick the option to recommend to the client.'}</span>
+          <button onClick={recommend} disabled={!pick || reccing}
+            className="text-[11px] font-semibold px-3 py-1.5 rounded-md bg-indigo-600 text-white disabled:opacity-40 flex-shrink-0">
+            {reccing ? 'Drafting…' : 'Recommend to client →'}
+          </button>
+        </div>
+      )}
+      {recErr && <p className="text-[11px] text-rose-600">{recErr}</p>}
     </div>
   )
 }
