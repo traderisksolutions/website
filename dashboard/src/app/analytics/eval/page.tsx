@@ -38,8 +38,14 @@ const SURFACE_META: Record<string, SurfaceMeta> = {
   CHAT_CONSULTANT: { label: 'Ask-Opus chat',  area: 'Nexus',      color: '#a855f7' },
 }
 const AREA_ORDER = ['Engagement', 'RFQ', 'Nexus', 'Other']
+const titleCase = (s: string) => s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
 function surfaceMeta(type: string | null): SurfaceMeta {
-  return SURFACE_META[type ?? ''] ?? { label: (type ?? 'Unknown').replace(/_/g, ' '), area: 'Other', color: '#6b7280' }
+  const t = type ?? ''
+  if (SURFACE_META[t]) return SURFACE_META[t]
+  // Dynamic finer surfaces: NEXUS_<PARTY> (per recipient), RFQ_<X>.
+  if (t.startsWith('NEXUS_')) return { label: `Nexus → ${titleCase(t.slice(6))}`, area: 'Nexus', color: '#8b5cf6' }
+  if (t.startsWith('RFQ_'))   return { label: `RFQ → ${titleCase(t.slice(4))}`,   area: 'RFQ',   color: '#6366f1' }
+  return { label: titleCase(t.replace(/_/g, ' ')) || 'Unknown', area: 'Other', color: '#6b7280' }
 }
 
 const SCORE_COLOR = (s: number) => s >= 4 ? '#16a34a' : s === 3 ? '#d97706' : '#dc2626'

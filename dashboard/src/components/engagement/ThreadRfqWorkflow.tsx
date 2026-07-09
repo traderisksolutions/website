@@ -32,6 +32,7 @@ type Attachment = { id: string; filename: string; mime_type: string | null; stor
 // One insurer being drafted to inside the wizard. `body` is HTML (rich editor).
 type StagedInsurer = Insurer & {
   to: string; subject: string; body: string
+  aiBody: string                   // the ORIGINAL AI draft (plain) — eval baseline vs the edited send
   cc: string; ccTouched: boolean
   gen: number                      // bumps when body is (re)generated → re-seeds editor
   loadingDraft: boolean; draftError: string | null
@@ -151,7 +152,7 @@ export default function ThreadRfqWorkflow({
       const d = await fetch('/api/nexus/rfq/draft', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ product_line: line, insured_name: insured, contact_id: ins.contact_id, client_message_id: messageId }) }).then(r => r.json())
       if (d?.error) { patchIns(line, ins.contact_id, { loadingDraft: false, draftError: d.error }); return }
-      patchIns(line, ins.contact_id, { loadingDraft: false, subject: d.subject ?? '', body: plainToHtml(d.body ?? ''), to: d.to_email || ins.contact_email, gen: Date.now() })
+      patchIns(line, ins.contact_id, { loadingDraft: false, subject: d.subject ?? '', body: plainToHtml(d.body ?? ''), aiBody: (d.body ?? '').trim(), to: d.to_email || ins.contact_email, gen: Date.now() })
     } catch (e) {
       patchIns(line, ins.contact_id, { loadingDraft: false, draftError: String(e) })
     }
@@ -199,7 +200,7 @@ export default function ThreadRfqWorkflow({
     const chosen = lineInsurers.filter(i => picked.includes(i.contact_id))
     setStaged(prev => {
       const existing = prev.find(l => l.line === activeLine)
-      const toStaged = (i: Insurer): StagedInsurer => ({ ...i, to: i.contact_email, subject: '', body: '', cc: personalSelected ? OPS_EMAIL : '', ccTouched: false, gen: 0, loadingDraft: true, draftError: null, attach: [], sending: false, sendError: null, sent: false })
+      const toStaged = (i: Insurer): StagedInsurer => ({ ...i, to: i.contact_email, subject: '', body: '', aiBody: '', cc: personalSelected ? OPS_EMAIL : '', ccTouched: false, gen: 0, loadingDraft: true, draftError: null, attach: [], sending: false, sendError: null, sent: false })
       if (existing) {
         const have = new Set(existing.insurers.map(i => i.contact_id))
         const merged = { ...existing, insurers: [...existing.insurers, ...chosen.filter(i => !have.has(i.contact_id)).map(toStaged)] }
@@ -230,7 +231,8 @@ export default function ThreadRfqWorkflow({
       if (!draftRes.ok || !draftData.draftId) throw new Error(draftData.error || 'Could not prepare draft')
 
       const sendRes = await fetch('/api/email/send', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ draftId: draftData.draftId, htmlBody: bodyHtml, originalAiBody: plain, toEmail: ins.to.trim(), cc, customSubject: ins.subject, fromEmail: fromEmail || null, signatureId: null, attachments: atts }) })
+        // Eval baseline = the ORIGINAL AI draft; the sent (possibly-edited) body is the human version.
+        body: JSON.stringify({ draftId: draftData.draftId, htmlBody: bodyHtml, originalAiBody: ins.aiBody || plain, toEmail: ins.to.trim(), cc, customSubject: ins.subject, fromEmail: fromEmail || null, signatureId: null, attachments: atts }) })
       const sendData = await sendRes.json()
       if (!sendRes.ok) throw new Error(sendData.error || 'Send failed')
 
