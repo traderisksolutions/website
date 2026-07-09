@@ -31,12 +31,13 @@ export async function GET() {
 
     const quotedDispatch = new Set(quotes.filter(q => q.premium).map(q => q.dispatch_id))
     const recommendedDispatch = new Set(quotes.filter(q => q.status === 'recommended').map(q => q.dispatch_id))
+    const wonDispatch = new Set(quotes.filter(q => q.status === 'won').map(q => q.dispatch_id))
 
-    type Agg = { insurer: string; requested: number; replied: number; quoted: number; recommended: number; respDaysSum: number; respN: number }
+    type Agg = { insurer: string; requested: number; replied: number; quoted: number; recommended: number; won: number; respDaysSum: number; respN: number }
     const map = new Map<string, Agg>()
     for (const d of dispatches) {
       const key = d.insurer_name || '(unknown)'
-      if (!map.has(key)) map.set(key, { insurer: key, requested: 0, replied: 0, quoted: 0, recommended: 0, respDaysSum: 0, respN: 0 })
+      if (!map.has(key)) map.set(key, { insurer: key, requested: 0, replied: 0, quoted: 0, recommended: 0, won: 0, respDaysSum: 0, respN: 0 })
       const a = map.get(key)!
       a.requested++
       if (d.status === 'replied') {
@@ -45,6 +46,7 @@ export async function GET() {
       }
       if (quotedDispatch.has(d.id)) a.quoted++
       if (recommendedDispatch.has(d.id)) a.recommended++
+      if (wonDispatch.has(d.id)) a.won++
     }
 
     const stats = Array.from(map.values())
@@ -54,7 +56,10 @@ export async function GET() {
         replied:        a.replied,
         quoted:         a.quoted,
         recommended:    a.recommended,
+        won:            a.won,
         quote_rate:     a.requested ? Math.round((a.quoted / a.requested) * 100) : 0,
+        // Win rate = of the quotes this insurer gave, how many were bound.
+        win_rate:       a.quoted ? Math.round((a.won / a.quoted) * 100) : 0,
         avg_response_days: a.respN ? Math.round((a.respDaysSum / a.respN) * 10) / 10 : null,
       }))
       .sort((x, y) => y.requested - x.requested)
