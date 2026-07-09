@@ -18,10 +18,30 @@ interface OverrideRow {
   id: string; email_type: string; override_text: string; synthesized_at: string; source_eval_count: number
 }
 
-const TYPE_COLOR: Record<string, string> = {
-  PRICING: '#2563eb', COVERAGE: '#7c3aed', RENEWAL: '#d97706',
-  DOCUMENT: '#0891b2', CLAIMS: '#dc2626', CONVERSATION: '#059669',
+// Every eval surface — legacy Engagement reply types PLUS the RFQ and Nexus
+// surfaces added later — mapped to a product area, label and colour. The eval
+// loop already writes/learns across all of these; this just renders them.
+type SurfaceMeta = { label: string; area: string; color: string }
+const SURFACE_META: Record<string, SurfaceMeta> = {
+  // Engagement replies
+  PRICING:         { label: 'Pricing',        area: 'Engagement', color: '#2563eb' },
+  COVERAGE:        { label: 'Coverage',       area: 'Engagement', color: '#7c3aed' },
+  RENEWAL:         { label: 'Renewal',        area: 'Engagement', color: '#d97706' },
+  DOCUMENT:        { label: 'Document',       area: 'Engagement', color: '#0891b2' },
+  CLAIMS:          { label: 'Claims',         area: 'Engagement', color: '#dc2626' },
+  CONVERSATION:    { label: 'Conversation',   area: 'Engagement', color: '#059669' },
+  // RFQ
+  RFQ_INSURER:     { label: 'RFQ → Insurer',  area: 'RFQ',        color: '#6366f1' },
+  RFQ_CHASE:       { label: 'RFQ chase',      area: 'RFQ',        color: '#818cf8' },
+  // Nexus
+  NEXUS:           { label: 'Nexus draft',    area: 'Nexus',      color: '#8b5cf6' },
+  CHAT_CONSULTANT: { label: 'Ask-Opus chat',  area: 'Nexus',      color: '#a855f7' },
 }
+const AREA_ORDER = ['Engagement', 'RFQ', 'Nexus', 'Other']
+function surfaceMeta(type: string | null): SurfaceMeta {
+  return SURFACE_META[type ?? ''] ?? { label: (type ?? 'Unknown').replace(/_/g, ' '), area: 'Other', color: '#6b7280' }
+}
+
 const SCORE_COLOR = (s: number) => s >= 4 ? '#16a34a' : s === 3 ? '#d97706' : '#dc2626'
 
 function ScoreBadge({ score }: { score: number }) {
@@ -34,12 +54,12 @@ function ScoreBadge({ score }: { score: number }) {
   )
 }
 function TypePill({ type }: { type: string | null }) {
-  const c = TYPE_COLOR[type ?? ''] ?? '#6b7280'
+  const m = surfaceMeta(type)
   return (
-    <span className="text-[10px] font-semibold px-2 py-0.5 rounded uppercase tracking-wide"
-      style={{ background: c + '14', color: c }}
+    <span className="text-[10px] font-semibold px-2 py-0.5 rounded tracking-wide whitespace-nowrap"
+      style={{ background: m.color + '14', color: m.color }}
     >
-      {type ?? 'UNKNOWN'}
+      {m.label}
     </span>
   )
 }
@@ -134,9 +154,9 @@ export default function EvalPage() {
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-xl font-bold tracking-tight text-foreground">Email Evaluation</h1>
+        <h1 className="text-xl font-bold tracking-tight text-foreground">AI Evaluation</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          How closely AI drafts matched what was actually sent — and what the model is learning
+          How closely AI output matched what was actually sent — across Engagement replies, RFQ drafts and Nexus — and what each surface is learning
         </p>
       </div>
 
@@ -191,22 +211,33 @@ export default function EvalPage() {
             ))}
           </div>
 
-          {/* Per-type breakdown */}
+          {/* Per-surface breakdown, grouped by product area */}
           {stats.length > 0 && (
             <Card className="mb-6">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Score by Email Type</CardTitle>
+                <CardTitle className="text-sm">Score by surface</CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-wrap gap-3 pt-0">
-                {stats.map(s => (
-                  <div key={s.email_type} className="border border-[--border-subtle] rounded-lg px-4 py-3 min-w-[110px] bg-muted/30">
-                    <TypePill type={s.email_type} />
-                    <p className="mt-2 text-[20px] font-bold tracking-tight" style={{ color: SCORE_COLOR(s.avg_score) }}>
-                      {s.avg_score}<span className="text-[11px] text-muted-foreground font-normal ml-0.5">/5</span>
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">{s.count} eval{s.count !== 1 ? 's' : ''}</p>
-                  </div>
-                ))}
+              <CardContent className="flex flex-col gap-4 pt-0">
+                {AREA_ORDER.map(area => {
+                  const inArea = stats.filter(s => surfaceMeta(s.email_type).area === area)
+                  if (inArea.length === 0) return null
+                  return (
+                    <div key={area} className="flex flex-col gap-2">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">{area}</p>
+                      <div className="flex flex-wrap gap-3">
+                        {inArea.map(s => (
+                          <div key={s.email_type} className="border border-[--border-subtle] rounded-lg px-4 py-3 min-w-[110px] bg-muted/30">
+                            <TypePill type={s.email_type} />
+                            <p className="mt-2 text-[20px] font-bold tracking-tight" style={{ color: SCORE_COLOR(s.avg_score) }}>
+                              {s.avg_score}<span className="text-[11px] text-muted-foreground font-normal ml-0.5">/5</span>
+                            </p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">{s.count} eval{s.count !== 1 ? 's' : ''}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
               </CardContent>
             </Card>
           )}
