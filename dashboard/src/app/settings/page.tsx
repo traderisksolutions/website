@@ -5,9 +5,11 @@ import { useSearchParams }   from 'next/navigation'
 import SignaturePanel          from '@/components/SignaturePanel'
 import InsurerDirectoryPanel   from '@/components/InsurerDirectoryPanel'
 import MasterEmailTemplatePanel from '@/components/MasterEmailTemplatePanel'
+import ClientRecoTemplatePanel  from '@/components/ClientRecoTemplatePanel'
 import RfqOpsPanel              from '@/components/RfqOpsPanel'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -100,8 +102,18 @@ function GmailSection({ profile, onProfileChange }: { profile: Profile | null; o
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
+type TabKey = 'account' | 'signatures' | 'insurers' | 'rfq' | 'templates'
+const TABS: { key: TabKey; label: string; blurb: string }[] = [
+  { key: 'account',    label: 'Account',    blurb: 'Your connected Gmail for sending replies from your own address.' },
+  { key: 'signatures', label: 'Signatures', blurb: 'Your email signature, shown when you send from your own address.' },
+  { key: 'insurers',   label: 'Insurers',   blurb: 'The insurer directory the RFQ agent routes quotation requests to.' },
+  { key: 'rfq',        label: 'RFQ',        blurb: 'Quote-chase SLA and insurer responsiveness + win metrics.' },
+  { key: 'templates',  label: 'Templates',  blurb: 'The house email templates the RFQ agent follows.' },
+]
+
 function SettingsContent() {
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [tab, setTab] = useState<TabKey>('account')  // Account also catches Gmail connect redirects
 
   async function loadProfile() {
     const res = await fetch('/api/auth/profile', { cache: 'no-store' })
@@ -110,13 +122,41 @@ function SettingsContent() {
 
   useEffect(() => { loadProfile() }, [])
 
+  const active = TABS.find(t => t.key === tab)!
+
   return (
-    <div className="flex flex-col gap-6">
-      <GmailSection profile={profile} onProfileChange={loadProfile} />
-      <SignaturePanel profile={profile} />
-      <InsurerDirectoryPanel />
-      <RfqOpsPanel />
-      <MasterEmailTemplatePanel />
+    <div className="flex flex-col gap-5">
+      {/* Top tab bar */}
+      <div className="flex items-center gap-1 border-b border-border">
+        {TABS.map(t => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={cn(
+              'relative px-3.5 py-2 text-sm font-medium transition-colors -mb-px border-b-2',
+              tab === t.key
+                ? 'text-foreground border-primary'
+                : 'text-muted-foreground border-transparent hover:text-foreground',
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <p className="text-[13px] text-muted-foreground -mt-2">{active.blurb}</p>
+
+      <div className="flex flex-col gap-6">
+        {tab === 'account'    && <GmailSection profile={profile} onProfileChange={loadProfile} />}
+        {tab === 'signatures' && <SignaturePanel profile={profile} />}
+        {tab === 'insurers'   && <InsurerDirectoryPanel />}
+        {tab === 'rfq'        && <RfqOpsPanel />}
+        {tab === 'templates'  && (
+          <>
+            <MasterEmailTemplatePanel />
+            <ClientRecoTemplatePanel />
+          </>
+        )}
+      </div>
     </div>
   )
 }
@@ -124,9 +164,9 @@ function SettingsContent() {
 export default function SettingsPage() {
   return (
     <div className="p-8 max-w-3xl mx-auto">
-      <div className="mb-7">
+      <div className="mb-6">
         <h1 className="text-xl font-bold tracking-tight text-foreground">Settings</h1>
-        <p className="text-sm text-muted-foreground mt-1">Gmail accounts, signatures, sending addresses, and the insurer directory</p>
+        <p className="text-sm text-muted-foreground mt-1">Account, signatures, the insurer directory, RFQ operations, and email templates</p>
       </div>
       <Suspense>
         <SettingsContent />

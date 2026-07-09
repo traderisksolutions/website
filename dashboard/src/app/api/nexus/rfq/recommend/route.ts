@@ -89,11 +89,16 @@ export async function POST(req: NextRequest) {
       toEmail = tRes.ok ? (await tRes.json())[0]?.contact?.email ?? null : null
     }
 
-    // Optional house template for tone.
+    // House skeleton for the client email — follow its structure and fill the
+    // {placeholders} from the quotes ({options_summary}, {recommendation}, etc).
     let tone = ''
     const tRes = await fetch(`${SB_URL}/rest/v1/app_settings?key=eq.client_reco_template&limit=1`, { headers: sbH(), cache: 'no-store' })
     const tVal = tRes.ok ? (await tRes.json())[0]?.value : null
-    if (tVal) tone = `\nHouse tone/template to follow where sensible:\n"""${tVal}"""\n`
+    if (tVal) {
+      let skeleton = tVal
+      try { const t = JSON.parse(tVal) as { subject?: string; body?: string }; skeleton = [t.subject ? `Subject: ${t.subject}` : '', t.body ?? ''].filter(Boolean).join('\n') } catch { /* legacy plain text */ }
+      tone = `\nHOUSE TEMPLATE — follow this structure and fill the {placeholders} from the quotes ({options_summary} = the plain-language comparison, {recommendation} = your pick, {rationale} = why, {quote_count} = number of quotes). Keep the house wording where sensible:\n"""${skeleton}"""\n`
+    }
 
     const rec = quotes.find(q => q.dispatch_id === recommended_dispatch_id) ?? null
     const optionsText = quotes.map((q, i) => [
