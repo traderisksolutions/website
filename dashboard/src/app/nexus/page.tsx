@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo, Fragment } from 'react'
 import {
   Plus, ChevronDown, X, Search, Link2, Sparkles, BellRing,
   AlertCircle, Clock, CheckCircle2, Zap, BookOpen, ArrowRight,
@@ -798,6 +798,7 @@ function CaseDetailPanel({
         <ThreadLinkerModal
           caseId={caseData.id}
           linkedThreadIds={threads.map(ct => ct.thread_id)}
+          linkedThreads={threads}
           onLink={() => { load(); onRefresh() }}
           onClose={() => setLinkOpen(false)}
         />
@@ -1401,14 +1402,18 @@ function ExecBriefCard({ analysis, sa }: { analysis: CaseAnalysis; sa: NexusAnal
 
 // ── Stakeholder Map Section ───────────────────────────────────────────────────
 
-// Stance → colour. Fuzzy-matches the free-text stance from the model.
-function stanceStyle(stance?: string): { label: string; color: string; bg: string } | null {
+// Stance → short disposition + colour (full text kept for the expanded row/tooltip).
+function stanceStyle(stance?: string): { label: string; full: string; color: string; bg: string } | null {
   if (!stance) return null
   const s = stance.toLowerCase()
-  if (/(advers|hostile|oppos|against|dispute|litig)/.test(s)) return { label: stance, color: '#b91c1c', bg: 'rgba(185,28,28,0.08)' }
-  if (/(align|cooperat|support|favour|favor|friendly|collaborat|our client|client)/.test(s)) return { label: stance, color: '#047857', bg: 'rgba(4,120,87,0.08)' }
-  return { label: stance, color: '#b45309', bg: 'rgba(180,83,9,0.08)' } // neutral / cautious
+  if (/(advers|hostile|oppos|against|dispute|litig)/.test(s)) return { label: 'Adversarial', full: stance, color: '#b91c1c', bg: 'rgba(185,28,28,0.08)' }
+  if (/(align|cooperat|support|favour|favor|friendly|collaborat|engaged|our client)/.test(s)) return { label: 'Cooperative', full: stance, color: '#047857', bg: 'rgba(4,120,87,0.08)' }
+  return { label: 'Neutral', full: stance, color: '#b45309', bg: 'rgba(180,83,9,0.08)' }
 }
+
+const PARTY_LABEL: Record<string, string> = { client: 'Client', insurer: 'Insurer', lawyer: 'Lawyer', regulator: 'Regulator', trs: 'TRS', counterparty: 'Counterparty', other: 'Other' }
+function partyLabel(p: string): string { return PARTY_LABEL[p?.toLowerCase()] ?? (p ? p[0].toUpperCase() + p.slice(1) : 'Other') }
+const PARTY_ORDER = ['client', 'insurer', 'lawyer', 'counterparty', 'regulator', 'trs', 'other']
 
 // Does a free-text party token (from pending_from / missing_items.required_from)
 // refer to this stakeholder? Fuzzy on party type, first name, and company.
@@ -1444,6 +1449,8 @@ function StakeholderMapSection({
   pendingFrom:  Record<string, string>
   threads:      CaseThread[]
 }) {
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+
   if (!stakeholders?.length) return (
     <div>
       <SectionLabel title="Stakeholders" />
@@ -1451,91 +1458,111 @@ function StakeholderMapSection({
     </div>
   )
 
+  // Enrich each stakeholder (outstanding items, last activity, awaiting/overdue).
+  const rows = stakeholders.map((s, i) => {
+    const key = s.id ?? String(i)
+    const thread = matchStakeholderThread(s, threads)
+    const outstanding = Array.from(new Set([
+      ...Object.entries(pendingFrom || {}).filter(([party]) => partyRefersTo(party, s)).map(([, what]) => what),
+      ...(missingItems || []).filter(m => partyRefersTo(m.required_from, s)).map(m => m.item),
+    ])).filter(o => o && String(o).trim()).slice(0, 6)   // drop empty entries (#5)
+    const last = thread && thread.messages.length
+      ? [...thread.messages].sort((a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime())[0]
+      : null
+    const awaiting  = last?.direction === 'outbound'
+    const days      = last ? Math.floor((Date.now() - new Date(last.sent_at).getTime()) / 86_400_000) : 0
+    const isInsurer = s.party_type?.toLowerCase().includes('insur')
+    const overdue   = !!awaiting && (isInsurer ? days >= 3 : days >= 5)
+    return { key, s, st: stanceStyle(s.stance), thread, outstanding, last, awaiting, days, overdue }
+  })
+
+  // Group by party type; within a group, most-actionable first.
+  const groups = new Map<string, typeof rows>()
+  for (const r of rows) { const g = r.s.party_type?.toLowerCase() || 'other'; if (!groups.has(g)) groups.set(g, []); groups.get(g)!.push(r) }
+  const gi = (g: string) => { const n = PARTY_ORDER.indexOf(g); return n < 0 ? 99 : n }
+  const sortedGroups = Array.from(groups.entries()).sort((a, b) => gi(a[0]) - gi(b[0]))
+  for (const [, rs] of sortedGroups) rs.sort((a, b) => Number(b.overdue) - Number(a.overdue) || Number(b.awaiting) - Number(a.awaiting) || b.days - a.days)
+
+  const toggle = (key: string) => setExpanded(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n })
+
   return (
     <div>
       <SectionLabel title="Stakeholders" count={stakeholders.length} />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
-        {stakeholders.map((s, i) => {
-          const pc  = partyColor(s.party_type)
-          const st  = stanceStyle(s.stance)
-          const thread = matchStakeholderThread(s, threads)
-
-          // Outstanding from this party — from pending_from + missing_items.
-          const outstanding = Array.from(new Set([
-            ...Object.entries(pendingFrom || {}).filter(([party]) => partyRefersTo(party, s)).map(([, what]) => what),
-            ...(missingItems || []).filter(m => partyRefersTo(m.required_from, s)).map(m => m.item),
-          ])).slice(0, 4)
-
-          // Last activity from the matched thread.
-          const last = thread && thread.messages.length
-            ? [...thread.messages].sort((a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime())[0]
-            : null
-          const awaiting = last?.direction === 'outbound'
-          const days     = last ? Math.floor((Date.now() - new Date(last.sent_at).getTime()) / 86_400_000) : 0
-          const isInsurer = s.party_type?.toLowerCase().includes('insur')
-          const overdue  = awaiting && (isInsurer ? days >= 3 : days >= 5)
-
-          return (
-            <div key={s.id ?? i} className="flex flex-col rounded-xl border border-[--border-subtle] bg-card overflow-hidden">
-              <div className="flex items-start gap-3 px-4 py-3">
-                <div className="flex flex-col items-center gap-1.5 flex-shrink-0 pt-0.5">
-                  <span className="w-2 h-2 rounded-full" style={{ background: pc.dot }} />
-                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ color: pc.text, background: pc.bg }}>
-                    {s.party_type.slice(0, 3).toUpperCase()}
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline gap-1.5 flex-wrap mb-0.5">
-                    <span className="text-[12px] font-semibold text-foreground">{s.name}</span>
-                    {s.company && <span className="text-[10.5px] text-muted-foreground/50">· {s.company}</span>}
-                    {st && (
-                      <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full" style={{ color: st.color, background: st.bg }}>
-                        {st.label}
-                      </span>
-                    )}
-                  </div>
-                  {s.email && <p className="text-[10px] text-muted-foreground/45 mb-1">{s.email}</p>}
-                  <p className="text-[11.5px] text-foreground/70 leading-[1.5]">{s.role_summary}</p>
-                </div>
-              </div>
-
-              {/* Outstanding from them */}
-              {outstanding.length > 0 && (
-                <div className="px-4 pb-2.5 -mt-0.5">
-                  <p className="text-[8.5px] font-bold uppercase tracking-wider text-amber-600/80 mb-1">Waiting on them</p>
-                  <ul className="flex flex-col gap-0.5">
-                    {outstanding.map((o, oi) => (
-                      <li key={oi} className="flex items-start gap-1.5">
-                        <Clock size={9} strokeWidth={2} className="flex-shrink-0 mt-[3px] text-amber-500/70" />
-                        <span className="text-[10.5px] text-foreground/65 leading-[1.5]">{o}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Status + actions */}
-              <div className="flex items-center justify-between gap-2 px-4 py-2 border-t border-[--border-subtle] bg-muted/20">
-                <span className={cn('text-[10px] font-medium',
-                  !last ? 'text-muted-foreground/40'
-                  : overdue ? 'text-red-600'
-                  : awaiting ? 'text-amber-600'
-                  : 'text-emerald-600')}>
-                  {!last ? 'No linked thread'
-                    : awaiting ? `Awaiting reply · ${days}d`
-                    : `They replied · ${timeAgo(last.sent_at)}`}
-                </span>
-                {thread && (
-                  <a href={`/engagement?lead=${thread.thread_id}`}
-                    className={cn('inline-flex items-center gap-1 text-[10.5px] font-semibold hover:underline flex-shrink-0',
-                      overdue ? 'text-red-600' : 'text-primary')}>
-                    {overdue ? 'Chase' : 'Open in Engagement'} <ArrowRight size={10} />
-                  </a>
-                )}
-              </div>
-            </div>
-          )
-        })}
+      <div className="rounded-xl border border-[--border-subtle] bg-card overflow-hidden">
+        <table className="w-full text-left border-collapse text-[12px]">
+          <thead>
+            <tr className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/50 bg-muted/30">
+              <th className="w-7"></th>
+              <th className="py-2 px-3 font-bold">Stakeholder</th>
+              <th className="py-2 px-3 font-bold">Stance</th>
+              <th className="py-2 px-3 font-bold">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedGroups.map(([g, rs]) => (
+              <Fragment key={g}>
+                <tr className="bg-muted/15">
+                  <td colSpan={4} className="py-1.5 px-3 text-[9px] font-bold uppercase tracking-wider" style={{ color: partyColor(g).text }}>
+                    {partyLabel(g)} · {rs.length}
+                  </td>
+                </tr>
+                {rs.map(r => {
+                  const open = expanded.has(r.key)
+                  return (
+                    <Fragment key={r.key}>
+                      <tr className="border-t border-[--border-subtle] hover:bg-muted/20 cursor-pointer" onClick={() => toggle(r.key)}>
+                        <td className="py-2.5 pl-3 align-top"><ChevronDown size={13} className={cn('text-muted-foreground/40 transition-transform mt-0.5', open && 'rotate-180')} /></td>
+                        <td className="py-2.5 px-3 align-top">
+                          <div className="font-semibold text-foreground">{r.s.name}</div>
+                          {r.s.company && <div className="text-[10px] text-muted-foreground/50">{r.s.company}</div>}
+                        </td>
+                        <td className="py-2.5 px-3 align-top">
+                          {r.st ? <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ color: r.st.color, background: r.st.bg }} title={r.st.full}>{r.st.label}</span> : <span className="text-muted-foreground/40">—</span>}
+                        </td>
+                        <td className="py-2.5 px-3 align-top">
+                          <span className={cn('text-[10.5px] font-medium whitespace-nowrap',
+                            !r.last ? 'text-muted-foreground/40' : r.overdue ? 'text-red-600' : r.awaiting ? 'text-amber-600' : 'text-emerald-600')}>
+                            {!r.last ? 'No thread' : r.overdue ? `Overdue · ${r.days}d` : r.awaiting ? `Awaiting · ${r.days}d` : `Replied · ${timeAgo(r.last.sent_at)}`}
+                          </span>
+                          {r.outstanding.length > 0 && <span className="text-[9.5px] text-amber-600/80 ml-1.5">· {r.outstanding.length} awaited</span>}
+                        </td>
+                      </tr>
+                      {open && (
+                        <tr className="bg-muted/10 border-t border-[--border-subtle]/50">
+                          <td></td>
+                          <td colSpan={3} className="px-3 pb-3 pt-1">
+                            {r.s.email && <p className="text-[10.5px] text-muted-foreground/55 mb-1">{r.s.email}</p>}
+                            {r.s.role_summary && <p className="text-[11.5px] text-foreground/70 leading-[1.5] mb-2">{r.s.role_summary}</p>}
+                            {r.st && <p className="text-[10.5px] italic text-muted-foreground/60 mb-2">Stance: {r.st.full}</p>}
+                            {r.outstanding.length > 0 && (
+                              <div className="mb-2">
+                                <p className="text-[8.5px] font-bold uppercase tracking-wider text-amber-600/80 mb-1">Waiting on them</p>
+                                <ul className="flex flex-col gap-0.5">
+                                  {r.outstanding.map((o, oi) => (
+                                    <li key={oi} className="flex items-start gap-1.5">
+                                      <Clock size={9} strokeWidth={2} className="flex-shrink-0 mt-[3px] text-amber-500/70" />
+                                      <span className="text-[10.5px] text-foreground/65 leading-[1.5]">{o}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {r.thread && (
+                              <a href={`/engagement?lead=${r.thread.thread_id}`} onClick={e => e.stopPropagation()}
+                                className={cn('inline-flex items-center gap-1 text-[10.5px] font-semibold hover:underline', r.overdue ? 'text-red-600' : 'text-primary')}>
+                                {r.overdue ? 'Chase' : 'Open in Engagement'} <ArrowRight size={10} />
+                              </a>
+                            )}
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  )
+                })}
+              </Fragment>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   )
@@ -1543,10 +1570,24 @@ function StakeholderMapSection({
 
 // ── Scenario Section ──────────────────────────────────────────────────────────
 
-const SCENARIO_PROB: Record<string, { color: string; bg: string; border: string; barW: string }> = {
-  high:   { color: '#059669', bg: 'rgba(5,150,105,0.05)',   border: 'rgba(5,150,105,0.18)',   barW: '78%' },
-  medium: { color: '#d97706', bg: 'rgba(217,119,6,0.05)',   border: 'rgba(217,119,6,0.18)',   barW: '48%' },
-  low:    { color: '#6b7280', bg: 'rgba(107,114,128,0.05)', border: 'rgba(107,114,128,0.18)', barW: '22%' },
+const SCENARIO_PROB: Record<string, { color: string; bg: string; border: string; barW: string; pct: string }> = {
+  high:   { color: '#059669', bg: 'rgba(5,150,105,0.05)',   border: 'rgba(5,150,105,0.18)',   barW: '65%', pct: '~65%' },
+  medium: { color: '#d97706', bg: 'rgba(217,119,6,0.05)',   border: 'rgba(217,119,6,0.18)',   barW: '35%', pct: '~35%' },
+  low:    { color: '#6b7280', bg: 'rgba(107,114,128,0.05)', border: 'rgba(107,114,128,0.18)', barW: '15%', pct: '~15%' },
+}
+
+// Disposition (Optimistic / Expected / Adverse) inferred from the scenario name —
+// a neutral axis that doesn't clash with probability (e.g. "Optimistic ~15%").
+function scenarioView(s: V1Scenario) {
+  const name = s.name ?? ''
+  const n = name.toLowerCase()
+  let disp: { label: string; color: string; bg: string } | null = null
+  if (/best|favou?r|upside|optimistic/.test(n))                          disp = { label: 'Optimistic', color: '#059669', bg: 'rgba(5,150,105,0.10)' }
+  else if (/worst|adverse|downside|repudiat|inability|fail/.test(n))     disp = { label: 'Adverse',    color: '#dc2626', bg: 'rgba(220,38,38,0.10)' }
+  else if (/base|expected|likely|middle|central/.test(n))               disp = { label: 'Expected',   color: '#d97706', bg: 'rgba(217,119,6,0.10)' }
+  const cleanName = name.replace(/^\s*(best|base|worst)\s+case\s*[—\-:]\s*/i, '').trim() || name
+  const pm = SCENARIO_PROB[s.probability?.toLowerCase()] ?? SCENARIO_PROB.low
+  return { disp, cleanName, pm }
 }
 
 function ScenarioSection({ scenarios }: { scenarios: V1Scenario[] }) {
@@ -1567,31 +1608,37 @@ function ScenarioSection({ scenarios }: { scenarios: V1Scenario[] }) {
             <thead>
               <tr className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground/50 bg-muted/30">
                 <th className="py-2.5 px-4 font-bold w-[22%]">Scenario</th>
-                <th className="py-2.5 px-4 font-bold w-[13%]">Likelihood</th>
+                <th className="py-2.5 px-4 font-bold w-[13%]">Probability</th>
                 <th className="py-2.5 px-4 font-bold w-[32%]">Projected outcome</th>
                 <th className="py-2.5 px-4 font-bold w-[33%]">TRS action &amp; watch-fors</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[--border-subtle]">
               {scenarios.map((s, i) => {
-                const pm = SCENARIO_PROB[s.probability?.toLowerCase()] ?? SCENARIO_PROB.low
+                const { disp, cleanName, pm } = scenarioView(s)
+                const barColor = disp?.color ?? pm.color
                 const assumptions       = s.assumptions?.filter(Boolean)       ?? []
                 const triggerConditions = s.trigger_conditions?.filter(Boolean) ?? []
                 return (
                   <tr key={i} className="align-top" style={{ background: pm.bg }}>
-                    {/* Scenario name + strategic implication */}
+                    {/* Disposition chip + scenario name + strategic implication */}
                     <td className="py-3 px-4">
-                      <p className="text-[12px] font-bold text-foreground leading-snug">{s.name}</p>
+                      {disp && (
+                        <span className="inline-block text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full mb-1" style={{ color: disp.color, background: disp.bg }}>
+                          {disp.label}
+                        </span>
+                      )}
+                      <p className="text-[12px] font-bold text-foreground leading-snug">{cleanName}</p>
                       {s.strategic_implication && (
                         <p className="text-[10px] italic text-foreground/50 leading-[1.5] mt-1">{s.strategic_implication}</p>
                       )}
                     </td>
 
-                    {/* Likelihood badge + bar */}
+                    {/* Probability % + bar */}
                     <td className="py-3 px-4">
-                      <span className="text-[9.5px] font-bold uppercase tracking-wider" style={{ color: pm.color }}>{s.probability?.toUpperCase()}</span>
+                      <span className="text-[12px] font-bold" style={{ color: barColor }}>{pm.pct}</span>
                       <div className="h-[3px] rounded-full bg-black/[0.06] mt-1.5 overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width: pm.barW, background: pm.color }} />
+                        <div className="h-full rounded-full" style={{ width: pm.barW, background: barColor }} />
                       </div>
                     </td>
 
@@ -1846,11 +1893,21 @@ function NextStepsSection({
   const [stepDraftState, setStepDraftState] = useState<Record<number, StepDraftState>>({})
   const [copiedStep,     setCopiedStep]     = useState<number | null>(null)
 
+  // Case contact emails by party type — used to resolve a recipient for any step
+  // so every step that targets a reachable party can be drafted (not just step 1).
+  const partyEmails: Record<string, string[]> = {}
+  for (const ct of threads) {
+    const em = ct.thread?.contact?.email
+    if (em) { const k = (ct.party_type ?? 'other').toLowerCase(); (partyEmails[k] ??= []).push(em) }
+  }
+  function resolveEmail(step: V1NextStep, artifact: V1Draft | null): string {
+    return step.to_emails?.[0] || artifact?.to_emails?.[0] || partyEmails[(step.party_type ?? '').toLowerCase()]?.[0] || ''
+  }
+
   // Nexus decides; Engagement acts. Fresh-draft the step (Gemini from Opus's
   // action) and hand it to the recipient's Engagement thread. Nexus never sends.
-  async function draftInEngagement(step: V1NextStep, artifact: V1Draft | null) {
-    const key     = step.step
-    const toEmail = step.to_emails?.[0] || artifact?.to_emails?.[0] || ''
+  async function draftInEngagement(step: V1NextStep, toEmail: string) {
+    const key = step.step
     if (!toEmail) return
     setStepDraftState(prev => ({ ...prev, [key]: { status: 'creating' } }))
     try {
@@ -1936,6 +1993,7 @@ function NextStepsSection({
           const ps       = STEP_PRIORITY[step.priority?.toLowerCase()] ?? STEP_PRIORITY.normal
           const artifact = drafts[step.step - 1] ?? null
           const ds       = stepDraftState[step.step] ?? { status: 'idle' }
+          const toEmail  = resolveEmail(step, artifact)
 
           return (
             <div key={i} className="flex gap-4 px-4 py-3.5 rounded-xl border border-[--border-subtle] bg-card">
@@ -1957,8 +2015,8 @@ function NextStepsSection({
                     {step.owner?.toUpperCase()}
                   </span>
                   {step.deadline && (
-                    <span className="text-[10px] text-muted-foreground/55 flex items-center gap-1">
-                      <Clock size={9} strokeWidth={2} /> {step.deadline}
+                    <span className="text-[10px] text-muted-foreground/55 flex items-center gap-1" title="Timing is guidance, not a blocker — any step can be drafted now">
+                      <Clock size={9} strokeWidth={2} /> {step.deadline} · guidance
                     </span>
                   )}
                 </div>
@@ -1966,12 +2024,12 @@ function NextStepsSection({
 
                 {/* ── Step action bar ── */}
                 <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-[--border-subtle]/60">
-                  {(step.to_emails?.[0] || artifact?.to_emails?.[0]) ? (
+                  {toEmail ? (
                     <button
-                      onClick={() => draftInEngagement(step, artifact)}
+                      onClick={() => draftInEngagement(step, toEmail)}
                       disabled={ds.status === 'creating'}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/[0.06] text-[10.5px] font-semibold text-primary hover:bg-primary/[0.12] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      title="Draft this in Engagement and open the conversation"
+                      title={`Draft in Engagement to ${toEmail}`}
                     >
                       {ds.status === 'creating' ? (
                         <Loader2 size={10} strokeWidth={2} className="animate-spin" />
@@ -3427,8 +3485,16 @@ function NexusComposeWindow({
 // ── Thread Linker Modal ───────────────────────────────────────────────────────
 
 function ThreadLinkerModal({
-  caseId, linkedThreadIds, onLink, onClose,
-}: { caseId: string; linkedThreadIds: string[]; onLink: () => void; onClose: () => void }) {
+  caseId, linkedThreadIds, linkedThreads, onLink, onClose,
+}: { caseId: string; linkedThreadIds: string[]; linkedThreads: CaseThread[]; onLink: () => void; onClose: () => void }) {
+  const [unlinking, setUnlinking] = useState<string | null>(null)
+  async function unlink(threadId: string) {
+    setUnlinking(threadId)
+    try {
+      await fetch(`/api/nexus/cases/${caseId}/threads?thread_id=${threadId}`, { method: 'DELETE' })
+      onLink()
+    } finally { setUnlinking(null) }
+  }
   const [search,       setSearch]       = useState('')
   const [suggestions,  setSuggestions]  = useState<ThreadSuggestion[]>([])
   const [allThreads,   setAllThreads]   = useState<ThreadSuggestion[]>([])
@@ -3638,6 +3704,36 @@ function ThreadLinkerModal({
                 </tr>
               </thead>
               <tbody>
+                {!search && linkedThreads.length > 0 && (
+                  <>
+                    <tr className="bg-emerald-50/50">
+                      <td colSpan={5} className="px-3 py-2 border-b border-emerald-100">
+                        <span className="text-[9.5px] font-bold uppercase tracking-wider text-emerald-700/70 flex items-center gap-1.5">
+                          <CheckCircle2 size={9} strokeWidth={2.5} /> Already in this case · {linkedThreads.length}
+                        </span>
+                      </td>
+                    </tr>
+                    {linkedThreads.map(ct => {
+                      const lpc = partyColor(ct.party_type)
+                      return (
+                        <tr key={`linked-${ct.thread_id}`} className="border-b border-[--border-subtle] bg-muted/10">
+                          <td className="px-3 py-2.5 w-8"><CheckCircle2 size={13} className="text-emerald-500" strokeWidth={2} /></td>
+                          <td className="py-2.5 pr-3 max-w-[140px]"><p className="text-[11.5px] font-semibold text-foreground truncate">{ct.thread?.contact ? contactName(ct.thread.contact) : (ct.party_label ?? '—')}</p></td>
+                          <td className="py-2.5 pr-3 min-w-0"><p className="text-[11.5px] text-foreground truncate">{ct.thread?.subject ?? '(no subject)'}</p></td>
+                          <td className="py-2.5 pr-3 text-[10.5px] text-muted-foreground/60 whitespace-nowrap">{fmtDate(ct.thread?.last_message_at ?? null)}</td>
+                          <td className="py-2 pr-3 w-[130px]">
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ background: lpc.bg, color: lpc.text }}>{partyLabel(ct.party_type)}</span>
+                              <button onClick={() => unlink(ct.thread_id)} disabled={unlinking === ct.thread_id} className="text-[10px] text-muted-foreground/50 hover:text-red-500 disabled:opacity-40">
+                                {unlinking === ct.thread_id ? '…' : 'Unlink'}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </>
+                )}
                 {suggestedRows.length > 0 && !search && (
                   <>
                     <tr className="bg-primary/[0.04]">

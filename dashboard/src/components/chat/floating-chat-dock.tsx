@@ -50,7 +50,7 @@ export function FloatingChatDock() {
         className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-primary text-primary-foreground pl-3.5 pr-4 py-2.5 text-[12.5px] font-semibold transition-transform hover:scale-[1.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
         style={{ boxShadow: '0 10px 30px -10px rgba(12,51,138,0.5)' }}
       >
-        <Sparkles size={15} /> Ask the consultant
+        <Sparkles size={15} /> Ask Opus
       </button>
     )
   }
