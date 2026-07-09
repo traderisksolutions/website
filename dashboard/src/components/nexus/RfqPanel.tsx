@@ -285,19 +285,12 @@ function VerifyModal({ data, acknowledged, setAcknowledged, onClose, onProceed }
   )
 }
 
-// ── Outcome control (#4b: bind / lost per line) ────────────────────────────────
+// ── Outcome control (simplified: Selected insurer / Not chosen per line) ───────
 
 function OutcomeControl({ line, onChanged }: { line: RfqRequest; onChanged: () => void }) {
-  const [mode, setMode]   = useState<'idle' | 'bind' | 'lost'>('idle')
-  const [busy, setBusy]   = useState(false)
-  const [err,  setErr]    = useState<string | null>(null)
-  // bind form
+  const [busy, setBusy] = useState(false)
+  const [err,  setErr]  = useState<string | null>(null)
   const replied = line.dispatches.filter(d => d.status === 'replied')
-  const [winner,   setWinner]   = useState<string>(replied[0]?.id ?? '')
-  const [premium,  setPremium]  = useState('')
-  const [effDate,  setEffDate]  = useState('')
-  const [policyNo, setPolicyNo] = useState('')
-  const [reason,   setReason]   = useState('')
 
   async function post(payload: Record<string, unknown>) {
     setBusy(true); setErr(null)
@@ -307,96 +300,47 @@ function OutcomeControl({ line, onChanged }: { line: RfqRequest; onChanged: () =
       })
       const d = await res.json()
       if (!res.ok) { setErr(d.error ?? 'Failed'); return }
-      setMode('idle'); onChanged()
+      onChanged()
     } finally { setBusy(false) }
   }
 
-  // Decided → outcome summary + reopen.
-  if (line.status === 'won') return (
+  // Decided → outcome badge + reopen (support legacy won/lost rows too).
+  if (line.status === 'selected' || line.status === 'won') return (
     <div className="flex items-center justify-between gap-2 rounded-md border border-emerald-200 bg-emerald-50/60 px-3 py-2">
-      <span className="text-[11px] text-emerald-800">
-        <span className="font-bold uppercase tracking-wide">Bound</span> · {line.won_insurer ?? 'insurer'}
-        {line.bound_premium ? ` · ${line.bound_premium}` : ''}
-        {line.policy_number ? ` · policy ${line.policy_number}` : ''}
-        {line.effective_date ? ` · eff. ${line.effective_date}` : ''}
-      </span>
+      <span className="text-[11px] text-emerald-800"><span className="font-bold uppercase tracking-wide">Selected</span> · {line.won_insurer ?? 'insurer'}</span>
       <button onClick={() => post({ action: 'reopen', rfq_request_id: line.id })} disabled={busy}
         className="text-[10px] text-emerald-700/70 hover:underline flex-shrink-0">Reopen</button>
     </div>
   )
-  if (line.status === 'lost') return (
-    <div className="flex items-center justify-between gap-2 rounded-md border border-rose-200 bg-rose-50/50 px-3 py-2">
-      <span className="text-[11px] text-rose-800"><span className="font-bold uppercase tracking-wide">Lost</span>{line.outcome_reason ? ` · ${line.outcome_reason}` : ''}</span>
+  if (line.status === 'not_chosen' || line.status === 'lost') return (
+    <div className="flex items-center justify-between gap-2 rounded-md border border-muted-foreground/20 bg-muted/40 px-3 py-2">
+      <span className="text-[11px] text-muted-foreground"><span className="font-bold uppercase tracking-wide">Not chosen</span></span>
       <button onClick={() => post({ action: 'reopen', rfq_request_id: line.id })} disabled={busy}
-        className="text-[10px] text-rose-700/70 hover:underline flex-shrink-0">Reopen</button>
+        className="text-[10px] text-muted-foreground/70 hover:underline flex-shrink-0">Reopen</button>
     </div>
   )
 
-  // Only offer outcomes once at least one insurer has replied.
+  // Only offer an outcome once at least one insurer has replied.
   if (replied.length === 0) return null
 
-  if (mode === 'idle') return (
-    <div className="flex items-center justify-end gap-2 pt-0.5">
-      <span className="text-[10px] text-muted-foreground/60 mr-auto">Client decided? Record the outcome — nothing is sent.</span>
-      <button onClick={() => setMode('bind')} className="text-[10.5px] font-semibold px-2.5 py-1 rounded-md bg-emerald-600 text-white">Mark bound</button>
-      <button onClick={() => setMode('lost')} className="text-[10.5px] font-semibold px-2.5 py-1 rounded-md border border-rose-300 text-rose-700 hover:bg-rose-50">Mark lost</button>
-    </div>
-  )
-
-  if (mode === 'bind') return (
-    <div className="rounded-md border border-emerald-200 bg-emerald-50/40 p-3 flex flex-col gap-2">
-      <span className="text-[11px] font-semibold text-emerald-900">Bind this line</span>
-      <div className="grid grid-cols-2 gap-2">
-        <label className="flex flex-col gap-0.5 col-span-2">
-          <span className="text-[9.5px] uppercase tracking-wide text-emerald-700/70">Winning insurer</span>
-          <select value={winner} onChange={e => setWinner(e.target.value)} className="text-[11.5px] rounded border border-emerald-200 bg-white px-2 py-1">
-            {replied.map(d => <option key={d.id} value={d.id}>{d.insurer_name || d.to_email}</option>)}
-          </select>
-        </label>
-        <label className="flex flex-col gap-0.5">
-          <span className="text-[9.5px] uppercase tracking-wide text-emerald-700/70">Bound premium</span>
-          <input value={premium} onChange={e => setPremium(e.target.value)} placeholder="SGD 12,500" className="text-[11.5px] rounded border border-emerald-200 bg-white px-2 py-1" />
-        </label>
-        <label className="flex flex-col gap-0.5">
-          <span className="text-[9.5px] uppercase tracking-wide text-emerald-700/70">Effective date</span>
-          <input type="date" value={effDate} onChange={e => setEffDate(e.target.value)} className="text-[11.5px] rounded border border-emerald-200 bg-white px-2 py-1" />
-        </label>
-        <label className="flex flex-col gap-0.5 col-span-2">
-          <span className="text-[9.5px] uppercase tracking-wide text-emerald-700/70">Policy number</span>
-          <input value={policyNo} onChange={e => setPolicyNo(e.target.value)} placeholder="optional" className="text-[11.5px] rounded border border-emerald-200 bg-white px-2 py-1" />
-        </label>
-      </div>
-      {err && <span className="text-[10.5px] text-rose-600">{err}</span>}
-      <div className="flex items-center justify-end gap-2">
-        <button onClick={() => setMode('idle')} className="text-[10.5px] text-muted-foreground hover:text-foreground">Cancel</button>
-        <button onClick={() => post({ action: 'bind', rfq_request_id: line.id, dispatch_id: winner, bound_premium: premium || null, effective_date: effDate || null, policy_number: policyNo || null })}
-          disabled={busy || !winner} className="text-[10.5px] font-semibold px-3 py-1 rounded-md bg-emerald-600 text-white disabled:opacity-50">
-          {busy ? 'Saving…' : 'Confirm bind'}
-        </button>
-      </div>
-    </div>
-  )
-
-  // mode === 'lost'
   return (
-    <div className="rounded-md border border-rose-200 bg-rose-50/40 p-3 flex flex-col gap-2">
-      <span className="text-[11px] font-semibold text-rose-900">Mark this line lost</span>
-      <select value={reason} onChange={e => setReason(e.target.value)} className="text-[11.5px] rounded border border-rose-200 bg-white px-2 py-1">
-        <option value="">Select a reason…</option>
-        <option value="Price">Price</option>
-        <option value="Coverage / terms">Coverage / terms</option>
-        <option value="Client went direct">Client went direct</option>
-        <option value="No decision / lapsed">No decision / lapsed</option>
-        <option value="Other">Other</option>
-      </select>
-      {err && <span className="text-[10.5px] text-rose-600">{err}</span>}
-      <div className="flex items-center justify-end gap-2">
-        <button onClick={() => setMode('idle')} className="text-[10.5px] text-muted-foreground hover:text-foreground">Cancel</button>
-        <button onClick={() => post({ action: 'lost', rfq_request_id: line.id, outcome_reason: reason || null })}
-          disabled={busy} className="text-[10.5px] font-semibold px-3 py-1 rounded-md bg-rose-600 text-white disabled:opacity-50">
-          {busy ? 'Saving…' : 'Confirm lost'}
+    <div className="flex flex-col gap-1.5 pt-0.5">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-[10px] text-muted-foreground/60 mr-auto">Client decided? Mark the chosen insurer — logged, nothing is sent.</span>
+        <button onClick={() => post({ action: 'not_chosen', rfq_request_id: line.id })} disabled={busy}
+          className="text-[10.5px] font-medium px-2.5 py-1 rounded-md border border-[--border-subtle] text-muted-foreground hover:text-foreground disabled:opacity-50">
+          None chosen
         </button>
       </div>
+      <div className="flex flex-wrap gap-1.5">
+        {replied.map(d => (
+          <button key={d.id} onClick={() => post({ action: 'select', rfq_request_id: line.id, dispatch_id: d.id })} disabled={busy}
+            className="text-[10.5px] font-semibold px-2.5 py-1 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">
+            Select {d.insurer_name || d.to_email}
+          </button>
+        ))}
+      </div>
+      {err && <span className="text-[10.5px] text-rose-600">{err}</span>}
     </div>
   )
 }

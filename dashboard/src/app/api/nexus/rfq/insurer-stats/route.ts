@@ -31,7 +31,7 @@ export async function GET() {
 
     const quotedDispatch = new Set(quotes.filter(q => q.premium).map(q => q.dispatch_id))
     const recommendedDispatch = new Set(quotes.filter(q => q.status === 'recommended').map(q => q.dispatch_id))
-    const wonDispatch = new Set(quotes.filter(q => q.status === 'won').map(q => q.dispatch_id))
+    const wonDispatch = new Set(quotes.filter(q => q.status === 'selected' || q.status === 'won').map(q => q.dispatch_id))
 
     type Agg = { insurer: string; requested: number; replied: number; quoted: number; recommended: number; won: number; respDaysSum: number; respN: number }
     const map = new Map<string, Agg>()

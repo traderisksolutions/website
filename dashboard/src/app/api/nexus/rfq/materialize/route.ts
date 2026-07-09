@@ -11,6 +11,8 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { logActivity }               from '@/lib/log-activity'
+import { logRfqEvent }               from '@/lib/rfq-log'
+import { productLineLabel }          from '@/lib/product-lines'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -106,6 +108,10 @@ export async function POST(req: NextRequest) {
       resource_id:   dispatch?.id,
       lead_email:    contact?.contact_email ?? undefined,
       new_value:     { insurer: contact?.insurers?.name ?? null, product_line, case_id: caseId },
+    })
+    void logRfqEvent({
+      event_type: 'dispatched', case_id: caseId, rfq_request_id: requestId, dispatch_id: dispatch?.id,
+      insurer_name: contact?.insurers?.name ?? null, summary: `RFQ dispatched to ${contact?.insurers?.name ?? contact?.contact_email ?? 'insurer'} — ${productLineLabel(product_line)}`,
     })
 
     return NextResponse.json({ case_id: caseId, request_id: requestId, dispatch })

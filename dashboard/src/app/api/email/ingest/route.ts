@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { waitUntil }        from '@vercel/functions'
 import { extractAndStoreQuote } from '@/lib/rfq-quote-extract'
+import { logRfqEvent }          from '@/lib/rfq-log'
 import { productLineLabel } from '@/lib/product-lines'
 
 export const maxDuration = 300
@@ -394,7 +395,10 @@ async function linkRfqDispatch(gmailThreadId: string, threadDbId: string, direct
 
     // Auto quote capture head-start (best-effort; "Compare quotes" re-extracts to
     // pick up figures in attachments parsed after this point).
-    if (nowReplied) waitUntil(extractAndStoreQuote(d.id).catch(() => null).then(() => undefined))
+    if (nowReplied) {
+      void logRfqEvent({ event_type: 'replied', case_id: rfq.case_id, rfq_request_id: d.rfq_request_id, dispatch_id: d.id, insurer_name: d.insurer_name, summary: `${d.insurer_name ?? 'Insurer'} replied` })
+      waitUntil(extractAndStoreQuote(d.id).catch(() => null).then(() => undefined))
+    }
 
     console.log('[ingest] rfq dispatch linked on thread', threadDbId, '→ case', rfq.case_id, `(${direction})`)
   }

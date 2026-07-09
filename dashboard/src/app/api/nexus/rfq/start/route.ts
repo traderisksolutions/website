@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { logGeminiUsage }            from '@/lib/gemini-usage'
+import { logRfqEvent }               from '@/lib/rfq-log'
 import { PRODUCT_LINES, isValidProductLine } from '@/lib/product-lines'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
@@ -133,9 +134,9 @@ ${String(msg.body_text).slice(0, 12000)}`
     })
 
     // 3. One request row per chosen line.
-    await fetch(`${SB_URL}/rest/v1/rfq_requests`, {
+    const reqRes = await fetch(`${SB_URL}/rest/v1/rfq_requests`, {
       method:  'POST',
-      headers: sbH('return=minimal'),
+      headers: sbH('return=representation'),
       body: JSON.stringify(chosen.map(product_line => ({
         case_id:           caseId,
         client_thread_id:  body.thread_id,
@@ -144,6 +145,10 @@ ${String(msg.body_text).slice(0, 12000)}`
         insured_name:      insuredName,
       }))),
     })
+    const created: { id: string; product_line: string }[] = reqRes.ok ? await reqRes.json() : []
+    for (const r of created) {
+      void logRfqEvent({ event_type: 'requested', case_id: caseId, rfq_request_id: r.id, actor: user.email ?? null, summary: `Quotation requested — ${r.product_line}`, detail: { insured: insuredName } })
+    }
 
     return NextResponse.json({ case_id: caseId, requests: chosen.length })
   } catch (e) {

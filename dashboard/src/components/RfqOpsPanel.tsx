@@ -85,8 +85,8 @@ export default function RfqOpsPanel() {
                 { l: 'Dispatched',  v: funnel.funnel.dispatched },
                 { l: 'Quoted',      v: funnel.funnel.quoted },
                 { l: 'Recommended', v: funnel.funnel.recommended },
-                { l: 'Won',         v: funnel.funnel.won,  tone: 'emerald' },
-                { l: 'Lost',        v: funnel.funnel.lost, tone: 'rose' },
+                { l: 'Selected',    v: funnel.funnel.won,  tone: 'emerald' },
+                { l: 'Not chosen',  v: funnel.funnel.lost, tone: 'rose' },
               ] as { l: string; v: number; tone?: string }[]).map(s => (
                 <div key={s.l} className={`flex flex-col items-center justify-center rounded-lg border px-4 py-2 min-w-[84px] ${
                   s.tone === 'emerald' ? 'border-emerald-200 bg-emerald-50/60' : s.tone === 'rose' ? 'border-rose-200 bg-rose-50/50' : 'border-border bg-muted/20'}`}>
@@ -96,7 +96,7 @@ export default function RfqOpsPanel() {
               ))}
             </div>
             <div className="flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-muted-foreground mt-0.5">
-              <span>Win rate <b className="text-foreground">{funnel.win_rate}%</b> <span className="text-muted-foreground/50">(of decided)</span></span>
+              <span>Selection rate <b className="text-foreground">{funnel.win_rate}%</b> <span className="text-muted-foreground/50">(of decided)</span></span>
               <span>Quote conversion <b className="text-foreground">{funnel.quote_conversion}%</b></span>
               <span>In flight <b className="text-foreground">{funnel.in_flight}</b></span>
               {funnel.avg_time_to_quote_days != null && <span>Avg time-to-quote <b className="text-foreground">{funnel.avg_time_to_quote_days}d</b></span>}
@@ -122,8 +122,8 @@ export default function RfqOpsPanel() {
                     <th className="py-2 px-3 font-semibold">Quoted</th>
                     <th className="py-2 px-3 font-semibold">Quote rate</th>
                     <th className="py-2 px-3 font-semibold">Avg reply</th>
-                    <th className="py-2 px-3 font-semibold">Won</th>
-                    <th className="py-2 px-3 font-semibold">Win rate</th>
+                    <th className="py-2 px-3 font-semibold">Selected</th>
+                    <th className="py-2 px-3 font-semibold">Selection rate</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">

@@ -1,18 +1,16 @@
 /**
- * POST /api/nexus/rfq/outcome — record the outcome of a line of insurance (#4b).
+ * POST /api/nexus/rfq/outcome — record the final client decision on a line (#simplified).
  *
- *   { action: 'bind',   rfq_request_id, dispatch_id, bound_premium?, effective_date?, policy_number? }
- *       → winning quote won (+ commercial terms); sibling quotes lost; line = won.
- *   { action: 'lost',   rfq_request_id, outcome_reason? }
- *       → every quote on the line lost; line = lost.
- *   { action: 'reopen', rfq_request_id }
- *       → reset the line to 'quoted' and its quotes to 'received' (manual correction).
+ *   { action: 'select',     rfq_request_id, dispatch_id }  → that insurer selected; siblings not_chosen; line selected.
+ *   { action: 'not_chosen', rfq_request_id }               → whole line not chosen (client didn't proceed).
+ *   { action: 'reopen',     rfq_request_id }               → reset the line back to quoted.
  *
- * Nexus never sends. Binding does NOT auto-close the case (manual close).
+ * The final action is written to the rfq_events audit trail. No commercial terms
+ * are captured here — just who was chosen.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
-import { logActivity }               from '@/lib/log-activity'
+import { logRfqEvent }               from '@/lib/rfq-log'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -27,84 +25,62 @@ export async function POST(req: NextRequest) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    const actor = user.email ?? 'unknown'
 
-    const body = await req.json() as {
-      action: 'bind' | 'lost' | 'reopen'
+    const { action, rfq_request_id, dispatch_id } = await req.json() as {
+      action: 'select' | 'not_chosen' | 'reopen'
       rfq_request_id?: string
-      dispatch_id?:    string
-      bound_premium?:  string
-      effective_date?: string
-      policy_number?:  string
-      outcome_reason?: string
+      dispatch_id?: string
     }
-    const { action, rfq_request_id } = body
     if (!rfq_request_id) return NextResponse.json({ error: 'rfq_request_id required' }, { status: 400 })
 
+    // case_id for the audit row.
+    const rRes = await fetch(`${SB_URL}/rest/v1/rfq_requests?id=eq.${rfq_request_id}&select=case_id&limit=1`, { headers: sbH(), cache: 'no-store' })
+    const caseId = rRes.ok ? (await rRes.json())[0]?.case_id ?? null : null
     const now = new Date().toISOString()
 
-    // ── Bind: one insurer wins the line ────────────────────────────────────────
-    if (action === 'bind') {
-      if (!body.dispatch_id) return NextResponse.json({ error: 'dispatch_id required to bind' }, { status: 400 })
+    // ── Select: one insurer chosen ─────────────────────────────────────────────
+    if (action === 'select') {
+      if (!dispatch_id) return NextResponse.json({ error: 'dispatch_id required to select' }, { status: 400 })
 
-      // Winner insurer name (for the request snapshot).
-      const wRes = await fetch(`${SB_URL}/rest/v1/rfq_quotes?dispatch_id=eq.${body.dispatch_id}&select=insurer_name&limit=1`, { headers: sbH(), cache: 'no-store' })
-      const winnerInsurer = wRes.ok ? (await wRes.json())[0]?.insurer_name ?? null : null
+      const wRes = await fetch(`${SB_URL}/rest/v1/rfq_quotes?dispatch_id=eq.${dispatch_id}&select=id,insurer_name&limit=1`, { headers: sbH(), cache: 'no-store' })
+      const winner = wRes.ok ? (await wRes.json())[0] : null
 
-      const bind = {
-        status:         'won',
-        bound_premium:  body.bound_premium  ?? null,
-        effective_date: body.effective_date ?? null,
-        policy_number:  body.policy_number  ?? null,
-        bound_at:       now,
-        outcome_reason: null,
-        updated_at:     now,
-      }
-      // Winner → won.
-      await fetch(`${SB_URL}/rest/v1/rfq_quotes?dispatch_id=eq.${body.dispatch_id}`, {
-        method: 'PATCH', headers: sbH('return=minimal'), body: JSON.stringify(bind),
+      await fetch(`${SB_URL}/rest/v1/rfq_quotes?dispatch_id=eq.${dispatch_id}`, {
+        method: 'PATCH', headers: sbH('return=minimal'), body: JSON.stringify({ status: 'selected', updated_at: now }),
       })
-      // Siblings on the same line → lost.
-      await fetch(`${SB_URL}/rest/v1/rfq_quotes?rfq_request_id=eq.${rfq_request_id}&dispatch_id=neq.${body.dispatch_id}`, {
-        method: 'PATCH', headers: sbH('return=minimal'),
-        body: JSON.stringify({ status: 'lost', outcome_reason: 'Another insurer bound', updated_at: now }),
+      await fetch(`${SB_URL}/rest/v1/rfq_quotes?rfq_request_id=eq.${rfq_request_id}&dispatch_id=neq.${dispatch_id}`, {
+        method: 'PATCH', headers: sbH('return=minimal'), body: JSON.stringify({ status: 'not_chosen', updated_at: now }),
       })
-      // Line → won (+ commercial snapshot).
       await fetch(`${SB_URL}/rest/v1/rfq_requests?id=eq.${rfq_request_id}`, {
         method: 'PATCH', headers: sbH('return=minimal'),
-        body: JSON.stringify({
-          status: 'won', won_dispatch_id: body.dispatch_id, won_insurer: winnerInsurer,
-          bound_premium: body.bound_premium ?? null, effective_date: body.effective_date ?? null,
-          policy_number: body.policy_number ?? null, outcome_reason: null, decided_at: now,
-        }),
+        body: JSON.stringify({ status: 'selected', won_insurer: winner?.insurer_name ?? null, decided_at: now }),
       })
-      void logActivity({ action: 'rfq.bind', resource_type: 'rfq_request', resource_id: rfq_request_id, new_value: { dispatch_id: body.dispatch_id, insurer: winnerInsurer, premium: body.bound_premium } })
-      return NextResponse.json({ ok: true, status: 'won' })
+      void logRfqEvent({ event_type: 'selected', case_id: caseId, rfq_request_id, dispatch_id, quote_id: winner?.id, insurer_name: winner?.insurer_name, actor, summary: `Selected ${winner?.insurer_name ?? 'insurer'}` })
+      return NextResponse.json({ ok: true, status: 'selected' })
     }
 
-    // ── Lost: the whole line is lost ───────────────────────────────────────────
-    if (action === 'lost') {
+    // ── Not chosen: line closed with no insurer ────────────────────────────────
+    if (action === 'not_chosen') {
       await fetch(`${SB_URL}/rest/v1/rfq_quotes?rfq_request_id=eq.${rfq_request_id}`, {
-        method: 'PATCH', headers: sbH('return=minimal'),
-        body: JSON.stringify({ status: 'lost', outcome_reason: body.outcome_reason ?? null, updated_at: now }),
+        method: 'PATCH', headers: sbH('return=minimal'), body: JSON.stringify({ status: 'not_chosen', updated_at: now }),
       })
       await fetch(`${SB_URL}/rest/v1/rfq_requests?id=eq.${rfq_request_id}`, {
-        method: 'PATCH', headers: sbH('return=minimal'),
-        body: JSON.stringify({ status: 'lost', outcome_reason: body.outcome_reason ?? null, decided_at: now }),
+        method: 'PATCH', headers: sbH('return=minimal'), body: JSON.stringify({ status: 'not_chosen', won_insurer: null, decided_at: now }),
       })
-      void logActivity({ action: 'rfq.lost', resource_type: 'rfq_request', resource_id: rfq_request_id, new_value: { reason: body.outcome_reason } })
-      return NextResponse.json({ ok: true, status: 'lost' })
+      void logRfqEvent({ event_type: 'not_chosen', case_id: caseId, rfq_request_id, actor, summary: 'Line marked not chosen' })
+      return NextResponse.json({ ok: true, status: 'not_chosen' })
     }
 
-    // ── Reopen: undo an outcome ────────────────────────────────────────────────
+    // ── Reopen: undo the decision ──────────────────────────────────────────────
     if (action === 'reopen') {
       await fetch(`${SB_URL}/rest/v1/rfq_quotes?rfq_request_id=eq.${rfq_request_id}`, {
-        method: 'PATCH', headers: sbH('return=minimal'),
-        body: JSON.stringify({ status: 'received', bound_premium: null, effective_date: null, policy_number: null, outcome_reason: null, bound_at: null, updated_at: now }),
+        method: 'PATCH', headers: sbH('return=minimal'), body: JSON.stringify({ status: 'received', updated_at: now }),
       })
       await fetch(`${SB_URL}/rest/v1/rfq_requests?id=eq.${rfq_request_id}`, {
-        method: 'PATCH', headers: sbH('return=minimal'),
-        body: JSON.stringify({ status: 'quoted', won_dispatch_id: null, won_insurer: null, bound_premium: null, effective_date: null, policy_number: null, outcome_reason: null, decided_at: null }),
+        method: 'PATCH', headers: sbH('return=minimal'), body: JSON.stringify({ status: 'quoted', won_insurer: null, decided_at: null }),
       })
+      void logRfqEvent({ event_type: 'reopened', case_id: caseId, rfq_request_id, actor, summary: 'Outcome reopened' })
       return NextResponse.json({ ok: true, status: 'quoted' })
     }
 

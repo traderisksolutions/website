@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { productLineLabel }          from '@/lib/product-lines'
 import { logAnthropicUsage, logGeminiUsage } from '@/lib/gemini-usage'
+import { logRfqEvent }         from '@/lib/rfq-log'
 
 const SB_URL        = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
@@ -24,7 +25,7 @@ function sbH(prefer = 'return=representation') {
 }
 
 type QuoteRow = {
-  dispatch_id: string; insurer_name: string | null; product_line: string | null
+  dispatch_id: string; rfq_request_id: string | null; insurer_name: string | null; product_line: string | null
   premium: string | null; excess: string | null; limit_indemnity: string | null
   validity: string | null; key_terms: string[] | null; exclusions: string[] | null; summary: string | null
 }
@@ -78,7 +79,7 @@ export async function POST(req: NextRequest) {
     if (!case_id) return NextResponse.json({ error: 'case_id required' }, { status: 400 })
 
     // Captured quotes for this case.
-    const qRes = await fetch(`${SB_URL}/rest/v1/rfq_quotes?case_id=eq.${case_id}&select=dispatch_id,insurer_name,product_line,premium,excess,limit_indemnity,validity,key_terms,exclusions,summary`, { headers: sbH(), cache: 'no-store' })
+    const qRes = await fetch(`${SB_URL}/rest/v1/rfq_quotes?case_id=eq.${case_id}&select=dispatch_id,rfq_request_id,insurer_name,product_line,premium,excess,limit_indemnity,validity,key_terms,exclusions,summary`, { headers: sbH(), cache: 'no-store' })
     const quotes: QuoteRow[] = qRes.ok ? await qRes.json() : []
     if (quotes.length === 0) return NextResponse.json({ error: 'No captured quotes to recommend from yet — run Compare quotes first.' }, { status: 400 })
 
@@ -137,6 +138,8 @@ Return ONLY JSON: { "subject": "<subject>", "body": "<plain-text email body>" }`
       await fetch(`${SB_URL}/rest/v1/rfq_quotes?case_id=eq.${case_id}&dispatch_id=eq.${recommended_dispatch_id}`, {
         method: 'PATCH', headers: sbH('return=minimal'), body: JSON.stringify({ status: 'recommended', updated_at: new Date().toISOString() }),
       }).catch(() => {})
+      const rec = quotes.find(q => q.dispatch_id === recommended_dispatch_id)
+      void logRfqEvent({ event_type: 'recommended', case_id, dispatch_id: recommended_dispatch_id, rfq_request_id: rec?.rfq_request_id ?? null, insurer_name: rec?.insurer_name ?? null, actor: user.email ?? null, summary: `Recommended ${rec?.insurer_name ?? 'insurer'} to client` })
     }
     for (const sid of (shortlist_dispatch_ids ?? []).filter(s => s !== recommended_dispatch_id)) {
       await fetch(`${SB_URL}/rest/v1/rfq_quotes?case_id=eq.${case_id}&dispatch_id=eq.${sid}`, {

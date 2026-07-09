@@ -10,6 +10,7 @@
  * Used by both the on-demand compare endpoint and the ingest auto-capture trigger.
  */
 import { logGeminiUsage } from '@/lib/gemini-usage'
+import { logRfqEvent }    from '@/lib/rfq-log'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const geminiUrl  = (model: string) => `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
@@ -172,6 +173,11 @@ export async function extractAndStoreQuote(dispatchId: string): Promise<QuoteRow
   })
   if (!upRes.ok) return null
   const saved = (await upRes.json())[0]
+  void logRfqEvent({
+    event_type: 'quoted', case_id: caseId, rfq_request_id: d.rfq_request_id, dispatch_id: d.id, quote_id: saved?.id,
+    insurer_name: d.insurer_name, summary: `Quote captured from ${d.insurer_name ?? 'insurer'}`,
+    detail: { premium: saved?.premium ?? null, primary_source: saved?.primary_source ?? null },
+  })
   return {
     dispatch_id: d.id,
     insurer_name: d.insurer_name,

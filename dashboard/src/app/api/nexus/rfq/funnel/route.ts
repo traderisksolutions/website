@@ -35,15 +35,19 @@ export async function GET() {
     const quotedLines      = new Set(quotes.filter(q => q.premium && q.rfq_request_id).map(q => q.rfq_request_id as string))
     const recommendedLines = new Set(quotes.filter(q => q.status === 'recommended' && q.rfq_request_id).map(q => q.rfq_request_id as string))
 
+    // "selected"/"not_chosen" are the current statuses; won/lost kept for old rows.
+    const isSelected = (s: string) => s === 'selected' || s === 'won'
+    const isNotChosen = (s: string) => s === 'not_chosen' || s === 'lost'
+
     const total       = requests.length
     const dispatched  = requests.filter(r => dispatchedLines.has(r.id)).length
     const quoted      = requests.filter(r => quotedLines.has(r.id)).length
-    const recommended = requests.filter(r => recommendedLines.has(r.id) || r.status === 'won').length
-    const won         = requests.filter(r => r.status === 'won').length
-    const lost        = requests.filter(r => r.status === 'lost').length
-    const inFlight    = requests.filter(r => !['won', 'lost', 'closed'].includes(r.status)).length
+    const recommended = requests.filter(r => recommendedLines.has(r.id) || isSelected(r.status)).length
+    const won         = requests.filter(r => isSelected(r.status)).length
+    const lost        = requests.filter(r => isNotChosen(r.status)).length
+    const inFlight    = requests.filter(r => !['won', 'lost', 'closed', 'selected', 'not_chosen'].includes(r.status)).length
 
-    // Win rate = won / decided lines (won + lost).
+    // Selection rate = selected / decided lines (selected + not chosen).
     const decided  = won + lost
     const winRate  = decided ? Math.round((won / decided) * 100) : 0
     // Quote conversion = quoted / dispatched.
