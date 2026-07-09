@@ -1,8 +1,11 @@
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
-// Per-model token pricing (USD per token). Extend as models are added.
+// Per-model token pricing (USD per 1M tokens → per token). Base input / output.
+//   Gemini 2.5 Flash: $0.30 in (text) / $2.50 out (incl. thinking)
+//   Gemini 2.5 Pro:   $1.25 in / $10.00 out (≤200k context)
+//   Claude Opus 4.8:  $5.00 in / $25.00 out
 const PRICING: Record<string, { in: number; out: number }> = {
-  'gemini-2.5-flash': { in: 0.15 / 1e6, out: 0.60 / 1e6 },
+  'gemini-2.5-flash': { in: 0.30 / 1e6, out: 2.50 / 1e6 },
   'gemini-2.5-pro':   { in: 1.25 / 1e6, out: 10.0 / 1e6 },
   'claude-opus-4-8':  { in: 5.00 / 1e6, out: 25.0 / 1e6 },
 }

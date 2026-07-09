@@ -41,7 +41,7 @@ const AREA_OF_FEATURE: Record<string, string> = {
 const MODELS: Cat[] = [
   { key: 'claude-opus-4-8',     label: 'Opus 4.8',        color: '#8b5cf6', desc: 'Claude Opus 4.8 — Nexus strategy, quote decisions, consultant chat, recommendations. $5 / $25 per 1M.' },
   { key: 'gemini-2.5-pro',      label: 'Gemini 2.5 Pro',  color: '#3b82f6', desc: 'Gemini 2.5 Pro — Nexus synthesis + RFQ reasoning. $1.25 / $10 per 1M.' },
-  { key: 'gemini-2.5-flash',    label: 'Gemini 2.5 Flash', color: '#10b981', desc: 'Gemini 2.5 Flash — summaries, drafting, extraction. $0.15 / $0.60 per 1M.' },
+  { key: 'gemini-2.5-flash',    label: 'Gemini 2.5 Flash', color: '#10b981', desc: 'Gemini 2.5 Flash — summaries, drafting, extraction. $0.30 / $2.50 per 1M.' },
   { key: 'gemini-embedding-001', label: 'Embedding',      color: '#f97316', desc: 'gemini-embedding-001 — RAG indexing (priced per character).' },
   { key: 'other',               label: 'Other',           color: '#9ca3af', desc: 'Unlabelled model (legacy rows).' },
 ]
