@@ -4,3 +4,7 @@ node_modules/
 .env.local
 .env*.local
 .vercel
+
+# TypeScript incremental build cache (never commit)
+tsconfig.tsbuildinfo
+*.tsbuildinfo
