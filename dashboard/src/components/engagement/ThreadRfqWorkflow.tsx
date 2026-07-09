@@ -54,6 +54,15 @@ function htmlToText(html: string) {
 function parseEmails(s: string): string[] {
   return s.split(/[,;\s]+/).map(e => e.trim()).filter(e => e.includes('@'))
 }
+// The signature block always opens with this <hr> marker. Used both to build the
+// signature and to strip any already-appended one (de-dup guard on send).
+const SIG_MARKER = 'border-top:1px solid #e5e7eb'
+// Remove any existing signature block (from its <hr> marker to the end) so we
+// never double-append — guarantees exactly one signature regardless of source.
+function stripSignature(html: string): string {
+  const re = new RegExp(`(<br\\s*/?>\\s*)?<hr[^>]*${SIG_MARKER}[^>]*>[\\s\\S]*$`, 'i')
+  return html.replace(re, '').replace(/\s+$/, '')
+}
 function buildSigHtml(s: SigOption) {
   return ['<br><hr style="margin:16px 0;border:none;border-top:1px solid #e5e7eb">',
     `<p style="margin:0;font-size:13px;color:#1e3a5f;font-weight:600">${s.name}</p>`,
@@ -192,7 +201,8 @@ export default function ThreadRfqWorkflow({
     patchIns(line, ins.contact_id, { sending: true, sendError: null })
     try {
       const sig = signatures.find(s => s.id === sigId)
-      const bodyHtml = ins.body + (sig ? buildSigHtml(sig) : '')
+      // Strip any signature already in the body, then append exactly one (no dupes).
+      const bodyHtml = stripSignature(ins.body) + (sig ? buildSigHtml(sig) : '')
       const atts = attachments.filter(a => ins.attach.includes(a.id)).map(a => ({ filename: a.filename, mime_type: a.mime_type ?? undefined, storage_url: a.storage_url }))
       const cc = parseEmails(ins.cc)
 
@@ -466,6 +476,7 @@ function RfqWizard(p: {
                   {l.insurers.map(ins => (
                     <DraftCard key={ins.contact_id} line={l.line} ins={ins}
                       attachments={p.attachments}
+                      sigHtml={(() => { const s = p.signatures.find(x => x.id === p.sigId); return s ? buildSigHtml(s) : '' })()}
                       patchIns={p.patchIns} regenerate={p.regenerate} onSend={() => p.sendInsurer(l.line, ins)} />
                   ))}
                 </div>
@@ -510,9 +521,10 @@ function RfqWizard(p: {
 // ── One insurer draft card ────────────────────────────────────────────────────
 
 function DraftCard({
-  line, ins, attachments, patchIns, regenerate, onSend,
+  line, ins, attachments, sigHtml, patchIns, regenerate, onSend,
 }: {
   line: string; ins: StagedInsurer; attachments: Attachment[]
+  sigHtml: string
   patchIns: (line: string, contactId: string, patch: Partial<StagedInsurer>) => void
   regenerate: (line: string, ins: Insurer) => void
   onSend: () => void
@@ -563,6 +575,16 @@ function DraftCard({
           <label className="flex items-center gap-2"><span className="text-[9.5px] font-semibold uppercase tracking-wider text-muted-foreground/60 w-12 flex-shrink-0">Subject</span>
             <input value={ins.subject} onChange={e => set({ subject: e.target.value })} className={inp} /></label>
           <RichTextEditor html={ins.body} resetKey={ins.gen} onChange={html => set({ body: html })} />
+
+          {/* Signature preview — exactly what gets appended on send (no duplicates) */}
+          {sigHtml ? (
+            <div className="rounded-md border border-dashed border-[--border-subtle] bg-muted/20 px-3 py-2">
+              <span className="text-[9.5px] font-semibold uppercase tracking-wider text-muted-foreground/50">Signature appended on send</span>
+              <div className="text-[12px] text-foreground/80 mt-1" dangerouslySetInnerHTML={{ __html: sigHtml }} />
+            </div>
+          ) : (
+            <p className="text-[10.5px] text-muted-foreground/60 italic">No signature selected — nothing will be appended.</p>
+          )}
 
           {/* Attachments — manual add */}
           {attachments.length > 0 && (
