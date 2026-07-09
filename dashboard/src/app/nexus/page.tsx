@@ -88,15 +88,15 @@ type PlaybookStep = {
 }
 
 // V1 analysis types (mirrors NexusAnalysisV1 from run-nexus-analysis)
-type V1Citation    = { id: string; label: string; type: string; date?: string; excerpt?: string }
-type V1Stakeholder = { id: string; name: string; party_type: string; email?: string; company?: string; role_summary: string; stance?: string }
-type V1TimelineEvt = { date: string; party: string; event: string; significance: string; citation_ids?: string[] }
-type V1Evidence    = { id: string; filename_or_label: string; source_type: string; key_facts: string[]; coverage_relevant: boolean; citation_id?: string }
-type V1Question    = { question: string; priority: string; directed_at?: string; citation_ids?: string[] }
-type V1Missing     = { item: string; required_from: string; urgency: string; impact: string }
+type V1Citation    = { id: string; label: string; type: string; date?: string; excerpt?: string; message_id?: string; attachment_id?: string; thread_id?: string }
+type V1Stakeholder = { id: string; name: string; party_type: string; email?: string; company?: string; role_summary: string; stance?: string; thread_id?: string; contact_id?: string }
+type V1TimelineEvt = { date: string; party: string; event: string; significance: string; citation_ids?: string[]; stakeholder_id?: string }
+type V1Evidence    = { id: string; filename_or_label: string; source_type: string; key_facts: string[]; coverage_relevant: boolean; citation_id?: string; message_id?: string; attachment_id?: string }
+type V1Question    = { question: string; priority: string; directed_at?: string; citation_ids?: string[]; stakeholder_id?: string }
+type V1Missing     = { item: string; required_from: string; urgency: string; impact: string; stakeholder_id?: string }
 type V1Scenario    = { name: string; probability: string; outcome: string; trs_action: string; assumptions?: string[]; trigger_conditions?: string[]; strategic_implication?: string; citation_ids?: string[] }
-type V1NextStep    = { step: number; action: string; owner: string; deadline?: string; priority: string; rationale: string; citation_ids?: string[]; depends_on?: number[]; party_type?: string; to_emails?: string[] }
-type V1Draft       = { artifact_type: string; to_party: string; party_type: string; to_emails: string[]; cc_emails: string[]; subject: string; body: string; intent: string; priority: string; citation_ids?: string[] }
+type V1NextStep    = { step: number; action: string; owner: string; deadline?: string; priority: string; rationale: string; citation_ids?: string[]; depends_on?: number[]; party_type?: string; to_emails?: string[]; stakeholder_id?: string; contact_id?: string; thread_id?: string }
+type V1Draft       = { artifact_type: string; to_party: string; party_type: string; to_emails: string[]; cc_emails: string[]; subject: string; body: string; intent: string; priority: string; citation_ids?: string[]; stakeholder_id?: string; thread_id?: string }
 type V1Reserve     = { recommended_reserve?: string; basis: string; confidence: string; risk_factors: string[]; citation_ids?: string[] }
 type AnalysisMetadata = {
   analysis_ts:          string
@@ -112,7 +112,7 @@ type AnalysisMetadata = {
 }
 type NexusAnalysisV1 = {
   schema_version:         string
-  case_brief:             { summary: string; incident_date?: string; claim_amount?: string; policy_reference?: string; coverage_type?: string; current_stage: string; blocking_issues: string[]; pending_from: Record<string, string> }
+  case_brief:             { summary: string; incident_date?: string; claim_amount?: string; policy_reference?: string; coverage_type?: string; current_stage: string; blocking_issues: string[]; pending_from: Record<string, string>; pending?: { stakeholder_id: string; item: string }[] }
   stakeholder_map:        V1Stakeholder[]
   timeline:               V1TimelineEvt[]
   evidence_ledger:        V1Evidence[]
@@ -1058,6 +1058,7 @@ function MissionControlBody({
         stakeholders={sa?.stakeholder_map ?? []}
         missingItems={sa?.missing_items ?? []}
         pendingFrom={sa?.case_brief?.pending_from ?? analysis.current_status?.pending_from ?? {}}
+        pending={sa?.case_brief?.pending}
         threads={threads}
       />
     </div>
@@ -1293,12 +1294,25 @@ function KFact({ label, value }: { label: string; value: string }) {
 function CitationChip({ id, citations }: { id: string; citations: V1Citation[] }) {
   const c = citations.find(x => x.id === id)
   if (!c) return null
+  const label = `[${c.label.length > 18 ? c.label.slice(0, 18) + '…' : c.label}]`
+  // v1.1: cited facts resolve to a real message/attachment → link to the source thread.
+  const href = c.thread_id ? `/engagement?lead=${c.thread_id}` : null
+  if (href) return (
+    <a
+      href={href}
+      onClick={e => e.stopPropagation()}
+      title={`${c.excerpt ?? c.label} — open source`}
+      className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/10 text-primary/80 border border-primary/20 hover:bg-primary/20 cursor-pointer align-middle"
+    >
+      {label}
+    </a>
+  )
   return (
     <span
       title={c.excerpt ?? c.label}
       className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/8 text-primary/70 border border-primary/15 cursor-help align-middle"
     >
-      [{c.label.length > 18 ? c.label.slice(0, 18) + '…' : c.label}]
+      {label}
     </span>
   )
 }
@@ -1430,6 +1444,16 @@ function partyRefersTo(token: string, s: V1Stakeholder): boolean {
 }
 
 function matchStakeholderThread(s: V1Stakeholder, threads: CaseThread[]): CaseThread | null {
+  // 1. Exact id link (v1.1 analyses carry resolved thread_id/contact_id).
+  if (s.thread_id) {
+    const byId = threads.find(ct => ct.thread_id === s.thread_id)
+    if (byId) return byId
+  }
+  if (s.contact_id) {
+    const byContact = threads.find(ct => ct.thread?.contact_id === s.contact_id)
+    if (byContact) return byContact
+  }
+  // 2. Fallback: fuzzy match (older analyses without ids).
   const email = s.email?.toLowerCase()
   if (email) {
     const byEmail = threads.find(ct =>
@@ -1442,11 +1466,12 @@ function matchStakeholderThread(s: V1Stakeholder, threads: CaseThread[]): CaseTh
 }
 
 function StakeholderMapSection({
-  stakeholders, missingItems, pendingFrom, threads,
+  stakeholders, missingItems, pendingFrom, pending, threads,
 }: {
   stakeholders: V1Stakeholder[]
   missingItems: V1Missing[]
   pendingFrom:  Record<string, string>
+  pending?:     { stakeholder_id: string; item: string }[]
   threads:      CaseThread[]
 }) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
@@ -1458,14 +1483,24 @@ function StakeholderMapSection({
     </div>
   )
 
+  const hasIds = (missingItems || []).some(m => m.stakeholder_id) || (pending || []).length > 0
+
   // Enrich each stakeholder (outstanding items, last activity, awaiting/overdue).
   const rows = stakeholders.map((s, i) => {
     const key = s.id ?? String(i)
     const thread = matchStakeholderThread(s, threads)
-    const outstanding = Array.from(new Set([
-      ...Object.entries(pendingFrom || {}).filter(([party]) => partyRefersTo(party, s)).map(([, what]) => what),
-      ...(missingItems || []).filter(m => partyRefersTo(m.required_from, s)).map(m => m.item),
-    ])).filter(o => o && String(o).trim()).slice(0, 6)   // drop empty entries (#5)
+    // Prefer exact stakeholder_id links (v1.1); fall back to fuzzy party matching.
+    const outstanding = Array.from(new Set(
+      hasIds
+        ? [
+            ...(pending || []).filter(p => p.stakeholder_id === s.id).map(p => p.item),
+            ...(missingItems || []).filter(m => m.stakeholder_id ? m.stakeholder_id === s.id : partyRefersTo(m.required_from, s)).map(m => m.item),
+          ]
+        : [
+            ...Object.entries(pendingFrom || {}).filter(([party]) => partyRefersTo(party, s)).map(([, what]) => what),
+            ...(missingItems || []).filter(m => partyRefersTo(m.required_from, s)).map(m => m.item),
+          ]
+    )).filter(o => o && String(o).trim()).slice(0, 6)   // drop empty entries (#5)
     const last = thread && thread.messages.length
       ? [...thread.messages].sort((a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime())[0]
       : null
@@ -1901,7 +1936,10 @@ function NextStepsSection({
     if (em) { const k = (ct.party_type ?? 'other').toLowerCase(); (partyEmails[k] ??= []).push(em) }
   }
   function resolveEmail(step: V1NextStep, artifact: V1Draft | null): string {
-    return step.to_emails?.[0] || artifact?.to_emails?.[0] || partyEmails[(step.party_type ?? '').toLowerCase()]?.[0] || ''
+    // Prefer the exact id-resolved recipient (v1.1); fall back to party_type lookup.
+    const byThread = step.thread_id ? threads.find(ct => ct.thread_id === step.thread_id)?.thread?.contact?.email : ''
+    const byContact = step.contact_id ? threads.find(ct => ct.thread?.contact_id === step.contact_id)?.thread?.contact?.email : ''
+    return byThread || byContact || step.to_emails?.[0] || artifact?.to_emails?.[0] || partyEmails[(step.party_type ?? '').toLowerCase()]?.[0] || ''
   }
 
   // Nexus decides; Engagement acts. Fresh-draft the step (Gemini from Opus's

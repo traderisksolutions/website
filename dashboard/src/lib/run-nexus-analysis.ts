@@ -73,22 +73,28 @@ export type NexusAnalysis = {
 // ── V1 Analysis contract (stored in structured_analysis jsonb column) ─────────
 
 export type Citation = {
-  id:       string
-  label:    string
-  type:     'email' | 'attachment' | 'knowledge_doc' | 'web'
-  date?:    string
-  excerpt?: string
+  id:            string
+  label:         string
+  type:          'email' | 'attachment' | 'knowledge_doc' | 'web'
+  date?:         string
+  excerpt?:      string
+  // Real source ids (resolved against the case entity catalog). Let the UI link a
+  // cited fact straight to the exact email message or attachment it came from.
+  message_id?:   string
+  attachment_id?: string
+  thread_id?:    string
 }
 
 export type StakeholderV1 = {
-  id:           string
+  id:           string       // stable stakeholder_id within this analysis (e.g. "s1")
   name:         string
   party_type:   string
   email?:       string
   company?:     string
   role_summary: string
   stance?:      string
-  thread_id?:   string
+  thread_id?:   string       // linked case thread (resolved)
+  contact_id?:  string       // linked CRM contact (resolved)
 }
 
 export type TimelineEventV1 = {
@@ -97,6 +103,7 @@ export type TimelineEventV1 = {
   event:         string
   significance:  string
   citation_ids?: string[]
+  stakeholder_id?: string    // which stakeholder this event is about
 }
 
 export type EvidenceItem = {
@@ -106,6 +113,8 @@ export type EvidenceItem = {
   key_facts:         string[]
   coverage_relevant: boolean
   citation_id?:      string
+  message_id?:       string
+  attachment_id?:    string
 }
 
 export type OpenQuestion = {
@@ -113,6 +122,7 @@ export type OpenQuestion = {
   priority:      'critical' | 'high' | 'medium' | 'low'
   directed_at?:  string
   citation_ids?: string[]
+  stakeholder_id?: string    // who the question is directed at
 }
 
 export type MissingItem = {
@@ -120,6 +130,7 @@ export type MissingItem = {
   required_from: string
   urgency:       'urgent' | 'normal' | 'low'
   impact:        string
+  stakeholder_id?: string    // who the item is required from
 }
 
 export type Scenario = {
@@ -144,6 +155,9 @@ export type NextStepV1 = {
   party_type?:   string
   to_emails?:    string[]
   depends_on?:   number[]   // deprecated — steps are now independent; kept for back-compat
+  stakeholder_id?: string   // target stakeholder (resolves recipient + thread exactly)
+  contact_id?:   string
+  thread_id?:    string
 }
 
 export type DraftArtifact = {
@@ -157,6 +171,8 @@ export type DraftArtifact = {
   intent:        string
   priority:      'urgent' | 'high' | 'normal'
   citation_ids?: string[]
+  stakeholder_id?: string
+  thread_id?:    string
 }
 
 export type ReserveGuidance = {
@@ -206,6 +222,8 @@ export type NexusAnalysisV1 = {
     current_stage:     string
     blocking_issues:   string[]
     pending_from:      Record<string, string>
+    // id-linked equivalent of pending_from (party keyed by stakeholder_id)
+    pending?:          { stakeholder_id: string; item: string }[]
   }
   stakeholder_map:        StakeholderV1[]
   timeline:               TimelineEventV1[]
@@ -520,6 +538,154 @@ function normalizeScenarios(scenarios: Scenario[]): Scenario[] {
   }))
 }
 
+// ── Entity catalog + deterministic id linker ──────────────────────────────────
+// Every entity in the analysis should carry a real id so the UI joins exactly
+// instead of fuzzy-matching party_type/name strings. The model is asked to emit
+// ids, but we ALSO resolve them deterministically in code here (email/party/
+// filename matching) so linkage is correct regardless of model compliance.
+
+export type EntityCatalog = {
+  threads:     { thread_id: string; subject: string; party_type: string; party_label: string; contact_id: string | null; email: string | null }[]
+  contacts:    { contact_id: string; email: string | null; name: string; company: string | null; thread_id: string; party_type: string }[]
+  messages:    { message_id: string; thread_id: string; date: string; direction: string; from: string | null }[]
+  attachments: { attachment_id: string; thread_id: string; filename: string }[]
+}
+
+const norm = (s: string | null | undefined) => (s ?? '').trim().toLowerCase()
+
+// Resolve a stakeholder to a real thread_id + contact_id.
+function resolveStakeholderLinks(
+  s: StakeholderV1, cat: EntityCatalog,
+): { thread_id?: string; contact_id?: string } {
+  const email = norm(s.email)
+  // 1. Exact email match → most reliable.
+  if (email) {
+    const c = cat.contacts.find(c => norm(c.email) === email)
+    if (c) return { thread_id: c.thread_id, contact_id: c.contact_id }
+    const t = cat.threads.find(t => norm(t.email) === email)
+    if (t) return { thread_id: t.thread_id, contact_id: t.contact_id ?? undefined }
+  }
+  // 2. Honour a thread_id the model already supplied if it's real.
+  if (s.thread_id && cat.threads.some(t => t.thread_id === s.thread_id)) {
+    const t = cat.threads.find(t => t.thread_id === s.thread_id)!
+    return { thread_id: t.thread_id, contact_id: t.contact_id ?? undefined }
+  }
+  // 3. Unique thread of this party_type.
+  const pt = norm(s.party_type)
+  const sameType = cat.threads.filter(t => norm(t.party_type) === pt)
+  if (sameType.length === 1) return { thread_id: sameType[0].thread_id, contact_id: sameType[0].contact_id ?? undefined }
+  // 4. Name / company substring against a single thread.
+  const nameTokens = [norm(s.name), norm(s.company)].filter(Boolean)
+  if (nameTokens.length) {
+    const hits = cat.threads.filter(t => nameTokens.some(n => n.length > 2 && (norm(t.party_label).includes(n) || n.includes(norm(t.party_label)))))
+    if (hits.length === 1) return { thread_id: hits[0].thread_id, contact_id: hits[0].contact_id ?? undefined }
+  }
+  return {}
+}
+
+// Map a free-text party token ("insurer", "QBE", "the client", an email) to the
+// stakeholder it refers to.
+function stakeholderForToken(token: string | null | undefined, stakeholders: StakeholderV1[]): StakeholderV1 | null {
+  const t = norm(token)
+  if (!t || !stakeholders.length) return null
+  // exact email
+  const byEmail = stakeholders.find(s => s.email && norm(s.email) === t)
+  if (byEmail) return byEmail
+  // exact party_type, if unique
+  const byType = stakeholders.filter(s => norm(s.party_type) === t)
+  if (byType.length === 1) return byType[0]
+  // token contained in party_type / name / company (or vice-versa)
+  const contains = stakeholders.filter(s =>
+    [norm(s.party_type), norm(s.name), norm(s.company)].some(f => f.length > 2 && (f.includes(t) || t.includes(f))))
+  if (contains.length === 1) return contains[0]
+  // party_type keyword inside the token (e.g. "the insurer QBE")
+  const kw = stakeholders.filter(s => s.party_type && t.includes(norm(s.party_type)))
+  if (kw.length === 1) return kw[0]
+  return null
+}
+
+// Resolve a citation label to a real message/attachment id (best-effort).
+function resolveCitationSource(c: Citation, cat: EntityCatalog): { message_id?: string; attachment_id?: string; thread_id?: string } {
+  if (c.type === 'attachment') {
+    const label = norm(c.label)
+    const att = cat.attachments.find(a => label.includes(norm(a.filename)) || norm(a.filename).includes(label))
+    if (att) return { attachment_id: att.attachment_id, thread_id: att.thread_id }
+  }
+  if (c.type === 'email' && c.date) {
+    // match by same calendar day
+    const day = c.date.slice(0, 10)
+    const msg = cat.messages.find(m => m.date.slice(0, 10) === day)
+    if (msg) return { message_id: msg.message_id, thread_id: msg.thread_id }
+  }
+  return {}
+}
+
+// Apply deterministic id resolution across the whole V1 analysis in place.
+function linkAnalysisIds(a: NexusAnalysisV1, cat: EntityCatalog): void {
+  // 1. Stakeholders — ensure stable id + resolved thread/contact links.
+  a.stakeholder_map = (a.stakeholder_map ?? []).map((s, i) => {
+    const id = s.id || `s${i + 1}`
+    const links = resolveStakeholderLinks(s, cat)
+    return { ...s, id, thread_id: links.thread_id ?? s.thread_id, contact_id: links.contact_id ?? s.contact_id }
+  })
+  const stakeholders = a.stakeholder_map
+
+  // 2. missing_items.required_from → stakeholder_id
+  for (const m of a.missing_items ?? []) {
+    if (m.stakeholder_id) continue
+    const s = stakeholderForToken(m.required_from, stakeholders)
+    if (s) m.stakeholder_id = s.id
+  }
+  // 3. timeline.party → stakeholder_id
+  for (const e of a.timeline ?? []) {
+    if (e.stakeholder_id) continue
+    const s = stakeholderForToken(e.party, stakeholders)
+    if (s) e.stakeholder_id = s.id
+  }
+  // 4. open_questions.directed_at → stakeholder_id
+  for (const q of a.open_questions ?? []) {
+    if (q.stakeholder_id) continue
+    const s = stakeholderForToken(q.directed_at, stakeholders)
+    if (s) q.stakeholder_id = s.id
+  }
+  // 5. case_brief.pending_from → id-linked pending[]
+  const pendingFrom = a.case_brief?.pending_from ?? {}
+  a.case_brief.pending = Object.entries(pendingFrom)
+    .filter(([, v]) => v && String(v).toLowerCase() !== 'null')
+    .map(([party, item]) => {
+      const s = stakeholderForToken(party, stakeholders)
+      return { stakeholder_id: s?.id ?? '', item: String(item) }
+    })
+    .filter(p => p.stakeholder_id)
+  // 6. recommended_next_steps → stakeholder/contact/thread
+  for (const step of a.recommended_next_steps ?? []) {
+    if (step.stakeholder_id) continue
+    const s = stakeholderForToken(step.to_emails?.[0] || step.party_type || step.owner, stakeholders)
+    if (s) { step.stakeholder_id = s.id; step.contact_id = s.contact_id; step.thread_id = s.thread_id }
+  }
+  // 7. draft_artifacts → stakeholder/thread
+  for (const d of a.draft_artifacts ?? []) {
+    if (d.stakeholder_id) continue
+    const s = stakeholderForToken(d.to_emails?.[0] || d.party_type || d.to_party, stakeholders)
+    if (s) { d.stakeholder_id = s.id; d.thread_id = s.thread_id }
+  }
+  // 8. citations → real message/attachment ids
+  for (const c of a.citations ?? []) {
+    if (c.message_id || c.attachment_id) continue
+    const src = resolveCitationSource(c, cat)
+    if (src.message_id) c.message_id = src.message_id
+    if (src.attachment_id) c.attachment_id = src.attachment_id
+    if (src.thread_id) c.thread_id = src.thread_id
+  }
+  // 9. evidence_ledger → carry the citation's resolved source ids
+  const citById = new Map((a.citations ?? []).map(c => [c.id, c]))
+  for (const e of a.evidence_ledger ?? []) {
+    if (e.message_id || e.attachment_id) continue
+    const c = e.citation_id ? citById.get(e.citation_id) : undefined
+    if (c) { if (c.message_id) e.message_id = c.message_id; if (c.attachment_id) e.attachment_id = c.attachment_id }
+  }
+}
+
 // ── JSON parser (strips fences, regex fallback) ───────────────────────────────
 
 function parseJsonSafe(text: string): unknown {
@@ -761,10 +927,41 @@ ${threadMsgs || '(no messages yet)'}`
       email:       email ?? '',
       name,
       thread_id:   ct.thread_id,
+      contact_id:  contact?.id ?? null,
     }
   })
 
   const partyContactsJson = JSON.stringify(partyContacts, null, 2)
+
+  // Entity catalog with real ids — powers deterministic id-linking after analysis.
+  const attCatalog = await fetch(
+    `${SB_URL}/rest/v1/email_attachments?thread_id=in.(${threadIds.join(',')})&select=id,thread_id,filename`,
+    { headers: sbHeaders() }
+  ).then(r => r.ok ? r.json() : []).catch(() => [])
+
+  const entityCatalog: EntityCatalog = {
+    threads: caseThreads.map(ct => {
+      const p = partyMap[ct.thread_id]
+      const thread = (Array.isArray(threadRows) ? threadRows : []).find((t: { id: string }) => t.id === ct.thread_id)
+      return {
+        thread_id:   ct.thread_id,
+        subject:     thread?.subject ?? '',
+        party_type:  ct.party_type,
+        party_label: p.display_label,
+        contact_id:  thread?.contact_id ?? null,
+        email:       p.contact?.email ?? null,
+      }
+    }),
+    contacts: partyContacts
+      .filter(pc => pc.contact_id)
+      .map(pc => ({ contact_id: pc.contact_id as string, email: pc.email || null, name: pc.name, company: null, thread_id: pc.thread_id, party_type: pc.party_type })),
+    messages: allMsgsRaw.map((m: { id: string; thread_id: string; sent_at: string; direction: string; from_address: string | null }) => ({
+      message_id: m.id, thread_id: m.thread_id, date: m.sent_at, direction: m.direction, from: m.from_address ?? null,
+    })),
+    attachments: (Array.isArray(attCatalog) ? attCatalog : []).map((a: { id: string; thread_id: string; filename: string }) => ({
+      attachment_id: a.id, thread_id: a.thread_id, filename: a.filename,
+    })),
+  }
 
   // 8. Attachments + knowledge base summary for prompt context
   const gdriveNote = gdriveDocs.length > 0
@@ -829,7 +1026,8 @@ Return ONLY valid JSON (no markdown fences) with this exact structure:
       "company": "Company name or null",
       "role_summary": "One sentence describing their role in this case",
       "stance": "cooperative|unresponsive|disputing liability|awaiting instruction|engaged — be specific",
-      "thread_id": "thread_id from party contacts or null"
+      "thread_id": "thread_id from PARTY CONTACTS that belongs to this stakeholder, or null",
+      "contact_id": "contact_id from PARTY CONTACTS for this stakeholder, or null"
     }
   ],
   "timeline": [
@@ -838,7 +1036,8 @@ Return ONLY valid JSON (no markdown fences) with this exact structure:
       "party": "client|insurer|lawyer|trs|other",
       "event": "One sentence: what happened — specific, not generic",
       "significance": "Why this event matters to the case outcome or liability position",
-      "citation_ids": ["c1"]
+      "citation_ids": ["c1"],
+      "stakeholder_id": "id of the stakeholder (from stakeholder_map) this event is about, or null"
     }
   ],
   "evidence_ledger": [
@@ -864,7 +1063,8 @@ Return ONLY valid JSON (no markdown fences) with this exact structure:
       "item": "Specific document or information that is absent",
       "required_from": "insurer|client|lawyer|surveyor|other",
       "urgency": "urgent|normal|low",
-      "impact": "What decision or action is blocked without this item"
+      "impact": "What decision or action is blocked without this item",
+      "stakeholder_id": "id of the stakeholder (from stakeholder_map) this item is required from, or null"
     }
   ],
   "citations": [
@@ -1210,6 +1410,12 @@ COMMUNICATION BRIEFS (you plan the emails; a separate drafting model writes them
     citations:              synthesis.citations        ?? [],
     analysis_metadata:      analysisMetadata,
   }
+
+  // ── Deterministic id linking — resolve every entity to a real id ─────────────
+  // (stakeholder→thread/contact, missing_items/timeline/next_steps→stakeholder_id,
+  //  citations→message/attachment_id). Runs regardless of model id compliance.
+  try { linkAnalysisIds(structuredAnalysis, entityCatalog) }
+  catch (e) { console.error('[nexus] id linking failed (non-fatal):', e) }
 
   // ── Derive legacy columns from V1 for backwards compat ───────────────────────
 
