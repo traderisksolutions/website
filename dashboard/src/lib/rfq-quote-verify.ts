@@ -40,7 +40,7 @@ export type QuoteVerification = {
 
 // Numeric tokens in a string, normalised (commas removed) with a decimal-stripped
 // variant, so "SGD 254,000.00" matches "254000" and "254000.00".
-function numTokens(s: string): Set<string> {
+export function numTokens(s: string): Set<string> {
   const set = new Set<string>()
   for (const m of s.match(/\d[\d,]*(?:\.\d+)?/g) ?? []) {
     const noComma = m.replace(/,/g, '')
@@ -93,6 +93,14 @@ function checkField(
   }
 
   return { ...base, status: reasons.length ? 'review' : 'verified', reasons }
+}
+
+// Pure, testable wrapper: verify one figure against the raw source text.
+export function verifyFigure(
+  label: string, value: string | null, excerpt: string | null,
+  corpusText: string, consensusValue: string | null,
+): FieldCheck {
+  return checkField(label, value, { excerpt, source: null }, numTokens(corpusText), corpusText.trim().length > 0, consensusValue)
 }
 
 export async function verifyQuotes(caseId: string): Promise<QuoteVerification[]> {

@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dialog'
 import { RichTextEditor } from './RichTextEditor'
 import { groupedProductLines, productLineLabel } from '@/lib/product-lines'
+import { stripSignature } from '@/lib/signature-html'
 
 const OPS_EMAIL = 'operations@trade-risksol.com'
 
@@ -54,15 +55,6 @@ function htmlToText(html: string) {
 }
 function parseEmails(s: string): string[] {
   return s.split(/[,;\s]+/).map(e => e.trim()).filter(e => e.includes('@'))
-}
-// The signature block always opens with this <hr> marker. Used both to build the
-// signature and to strip any already-appended one (de-dup guard on send).
-const SIG_MARKER = 'border-top:1px solid #e5e7eb'
-// Remove any existing signature block (from its <hr> marker to the end) so we
-// never double-append — guarantees exactly one signature regardless of source.
-function stripSignature(html: string): string {
-  const re = new RegExp(`(<br\\s*/?>\\s*)?<hr[^>]*${SIG_MARKER}[^>]*>[\\s\\S]*$`, 'i')
-  return html.replace(re, '').replace(/\s+$/, '')
 }
 function buildSigHtml(s: SigOption) {
   return ['<br><hr style="margin:16px 0;border:none;border-top:1px solid #e5e7eb">',
