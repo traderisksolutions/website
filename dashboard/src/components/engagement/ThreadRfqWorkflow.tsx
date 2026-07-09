@@ -202,7 +202,7 @@ export default function ThreadRfqWorkflow({
       if (!draftRes.ok || !draftData.draftId) throw new Error(draftData.error || 'Could not prepare draft')
 
       const sendRes = await fetch('/api/email/send', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ draftId: draftData.draftId, htmlBody: bodyHtml, originalAiBody: plain, toEmail: ins.to.trim(), cc, customSubject: ins.subject, fromEmail: fromEmail || null, signatureId: sigId || null, attachments: atts }) })
+        body: JSON.stringify({ draftId: draftData.draftId, htmlBody: bodyHtml, originalAiBody: plain, toEmail: ins.to.trim(), cc, customSubject: ins.subject, fromEmail: fromEmail || null, signatureId: null, attachments: atts }) })
       const sendData = await sendRes.json()
       if (!sendRes.ok) throw new Error(sendData.error || 'Send failed')
 
@@ -439,6 +439,26 @@ function RfqWizard(p: {
           {/* Step 3 — review drafts */}
           {p.step === 'review' && (
             <div className="flex flex-col gap-4">
+              {p.stagedCount > 0 && (
+                <div className="rounded-lg border border-[--border-subtle] bg-muted/20 p-3 flex flex-col sm:flex-row gap-3">
+                  <label className="flex-1 flex flex-col gap-1 min-w-0">
+                    <span className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground/60">From — sender email</span>
+                    <select value={p.fromEmail} onChange={e => p.setFromEmail(e.target.value)} className="text-[12px] rounded-md border border-[--border-subtle] bg-background px-2.5 py-1.5">
+                      {p.senders.map(s => <option key={s.email} value={s.email}>{(s.type === 'shared' ? 'Shared · ' : 'You · ') + s.email}</option>)}
+                    </select>
+                    {p.senders.find(s => s.email === p.fromEmail)?.type === 'personal' && (
+                      <span className="text-[10px] text-amber-600">operations@ is auto-CC'd so it appears in Engagement</span>
+                    )}
+                  </label>
+                  <label className="flex-1 flex flex-col gap-1 min-w-0">
+                    <span className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground/60">Signature</span>
+                    <select value={p.sigId} onChange={e => p.setSigId(e.target.value)} className="text-[12px] rounded-md border border-[--border-subtle] bg-background px-2.5 py-1.5">
+                      {p.signatures.length === 0 && <option value="">No signature</option>}
+                      {p.signatures.map(s => <option key={s.id} value={s.id}>{s.name}{s.title ? ` · ${s.title}` : ''}</option>)}
+                    </select>
+                  </label>
+                </div>
+              )}
               {p.stagedCount === 0 && <p className="text-[12px] text-muted-foreground py-6 text-center">Nothing staged yet.</p>}
               {p.staged.map(l => (
                 <div key={l.line} className="flex flex-col gap-2">
@@ -469,17 +489,6 @@ function RfqWizard(p: {
             )}
           </div>
           <div className="flex items-center gap-2">
-            {/* Shared from/signature pickers on review */}
-            {p.step === 'review' && p.senders.length > 1 && (
-              <select value={p.fromEmail} onChange={e => p.setFromEmail(e.target.value)} className="text-[11px] rounded-md border border-[--border-subtle] bg-background px-2 py-1 max-w-[160px]">
-                {p.senders.map(s => <option key={s.email} value={s.email}>{s.label || s.email}</option>)}
-              </select>
-            )}
-            {p.step === 'review' && p.signatures.length > 0 && (
-              <select value={p.sigId} onChange={e => p.setSigId(e.target.value)} className="text-[11px] rounded-md border border-[--border-subtle] bg-background px-2 py-1 max-w-[150px]">
-                {p.signatures.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            )}
             {p.step === 'insurers' && (
               <button onClick={p.confirmInsurers} disabled={p.picked.length === 0}
                 className="text-[11.5px] font-semibold px-4 py-1.5 rounded-md bg-primary text-primary-foreground disabled:opacity-50">

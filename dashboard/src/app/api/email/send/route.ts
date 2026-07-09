@@ -343,7 +343,13 @@ export async function POST(req: NextRequest) {
       }))).filter((a): a is EmailAttachment => a !== null)
     }
 
-    const rawEmail = buildRawEmail(recipientEmail, subject, finalPlain, finalHtml, cc, bcc, undefined, FROM_EMAIL, emailAttachments)
+    // Every non-ops send CC's operations@ so the shared mailbox (Engagement)
+    // captures it — a thread appears there whoever sent it.
+    const isOpsSender = FROM_EMAIL.toLowerCase() === DEFAULT_OPS_EMAIL.toLowerCase()
+    const finalCc = [...(cc ?? [])]
+    if (!isOpsSender && !finalCc.some(c => c.toLowerCase() === DEFAULT_OPS_EMAIL.toLowerCase())) finalCc.push(DEFAULT_OPS_EMAIL)
+
+    const rawEmail = buildRawEmail(recipientEmail, subject, finalPlain, finalHtml, finalCc, bcc, undefined, FROM_EMAIL, emailAttachments)
 
     const sendPayload: Record<string, unknown> = { raw: rawEmail }
     if (gmailThreadId) sendPayload.threadId = gmailThreadId
@@ -395,6 +401,36 @@ export async function POST(req: NextRequest) {
         headers: sbHeaders('return=minimal'),
         body:    JSON.stringify({ last_message_at: sentAt }),
       })
+    }
+
+    // 7b. Thread-less send from ops (e.g. RFQ) → create the Engagement thread now
+    //     so it appears instantly. Ingestion later dedups by gmail_message_id.
+    //     Personal-mailbox sends appear on the next ops sync (per decision).
+    if (!draft.thread_id && isOpsSender && sent.threadId && sent.id) {
+      try {
+        // Resolve/create the recipient contact so the thread reads as the insurer.
+        const enc = encodeURIComponent(recipientEmail)
+        let recipientContactId: string | null = await fetch(`${SB_URL}/rest/v1/contacts?email=eq.${enc}&select=id&limit=1`, { headers: sbHeaders(), cache: 'no-store' })
+          .then(r => r.ok ? r.json() : []).then(rows => rows[0]?.id ?? null).catch(() => null)
+        if (!recipientContactId) {
+          recipientContactId = await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
+            method: 'POST', headers: sbHeaders('return=representation,resolution=merge-duplicates'),
+            body: JSON.stringify({ email: recipientEmail, source: 'email' }),
+          }).then(r => r.ok ? r.json() : []).then(rows => (Array.isArray(rows) ? rows[0]?.id : null) ?? null).catch(() => null)
+        }
+
+        const tRes = await fetch(`${SB_URL}/rest/v1/email_threads?on_conflict=gmail_thread_id`, {
+          method: 'POST', headers: sbHeaders('return=representation,resolution=merge-duplicates'),
+          body: JSON.stringify({ gmail_thread_id: sent.threadId, subject, contact_id: recipientContactId, snippet: sentBodyPlain.slice(0, 140), last_message_at: sentAt }),
+        })
+        const newThread = tRes.ok ? (await tRes.json())[0] : null
+        if (newThread?.id) {
+          await fetch(`${SB_URL}/rest/v1/email_messages?on_conflict=gmail_message_id`, {
+            method: 'POST', headers: sbHeaders('return=minimal,resolution=merge-duplicates'),
+            body: JSON.stringify({ thread_id: newThread.id, gmail_message_id: sent.id, direction: 'outbound', from_address: FROM_EMAIL, subject, body_text: sentBodyPlain, sent_at: sentAt, has_attachments: emailAttachments.length > 0 }),
+          }).catch(() => {})
+        }
+      } catch { /* best-effort — ingestion is the safety net */ }
     }
 
     // If TO was overridden to a different external email, ensure it exists as a contact
