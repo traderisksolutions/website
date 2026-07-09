@@ -516,8 +516,9 @@ function DraftCard({
 
   if (ins.sent) {
     return (
-      <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 flex items-center gap-2 text-[12px] text-emerald-700 font-medium">
-        <Check size={13} /> Sent to {ins.insurer_name} — {ins.to}
+      <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 flex items-center gap-2 text-[12px] text-emerald-700 font-semibold">
+        <span className="flex items-center justify-center w-4 h-4 rounded-full bg-emerald-600 text-white"><Check size={11} strokeWidth={3} /></span>
+        Done · sent to {ins.insurer_name} <span className="font-normal text-emerald-700/70">({ins.to})</span>
       </div>
     )
   }

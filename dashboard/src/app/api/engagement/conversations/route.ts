@@ -109,6 +109,9 @@ export async function GET() {
       // Skip threads with no subject and no snippet (empty/ghost records)
       if (!email && !t.subject && !t.snippet) return []
 
+      // No external contact (internal-only thread, e.g. TRS forward / ops↔ops):
+      // read as "Trade Risk Solutions" rather than an ugly dash.
+      const internalOnly = !email && !contact?.first_name && !contact?.last_name
       return [{
         id:               t.id,
         thread_id:        t.id,
@@ -116,7 +119,7 @@ export async function GET() {
         source:           'email' as const,
         subject:          t.subject,
         snippet:          t.snippet,
-        first_name:       contact?.first_name ?? null,
+        first_name:       contact?.first_name ?? (internalOnly ? 'Trade Risk Solutions' : null),
         last_name:        contact?.last_name  ?? null,
         email,
         phone:            null,
