@@ -13,7 +13,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { logGeminiUsage }            from '@/lib/gemini-usage'
 import { logRfqEvent }               from '@/lib/rfq-log'
-import { PRODUCT_LINES, isValidProductLine } from '@/lib/product-lines'
+import { PRODUCT_LINES, isValidProductLine, productLineLabel } from '@/lib/product-lines'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
@@ -103,54 +103,57 @@ ${String(msg.body_text).slice(0, 12000)}`
 
     const insuredName = (body.insured_name?.trim() || insured || 'New client').slice(0, 120)
 
-    // Idempotency: if this message already produced RFQ requests, reuse that case.
-    if (msg?.id) {
-      const dupRes = await fetch(
-        `${SB_URL}/rest/v1/rfq_requests?client_message_id=eq.${msg.id}&select=case_id&limit=1`,
-        { headers: sbH(), cache: 'no-store' }
-      )
-      const dup = dupRes.ok ? (await dupRes.json())[0] : null
-      if (dup?.case_id) return NextResponse.json({ case_id: dup.case_id, requests: chosen.length, reused: true })
+    // ONE case per line of insurance (Jane's Cyber and D&O are separate cases).
+    const caseIds: string[] = []
+    for (const product_line of chosen) {
+      const lineLabel = productLineLabel(product_line)
+
+      // Idempotency per (message × line): reuse the existing per-line case.
+      if (msg?.id) {
+        const dupRes = await fetch(
+          `${SB_URL}/rest/v1/rfq_requests?client_message_id=eq.${msg.id}&product_line=eq.${encodeURIComponent(product_line)}&select=case_id&limit=1`,
+          { headers: sbH(), cache: 'no-store' }
+        )
+        const dup = dupRes.ok ? (await dupRes.json())[0] : null
+        if (dup?.case_id) { caseIds.push(dup.case_id); continue }
+      }
+
+      const caseRes = await fetch(`${SB_URL}/rest/v1/cases`, {
+        method:  'POST',
+        headers: sbH('return=representation'),
+        body: JSON.stringify({
+          name:        `[RFQ] ${insuredName} — ${lineLabel}`,
+          description: 'Quotation request.',
+          status:      'open',
+        }),
+      })
+      if (!caseRes.ok) return NextResponse.json({ error: `case create failed: ${await caseRes.text()}` }, { status: 500 })
+      const caseId = (await caseRes.json())[0].id as string
+      caseIds.push(caseId)
+
+      await fetch(`${SB_URL}/rest/v1/case_threads?on_conflict=case_id,thread_id`, {
+        method:  'POST',
+        headers: sbH('return=minimal,resolution=merge-duplicates'),
+        body: JSON.stringify({ case_id: caseId, thread_id: body.thread_id, party_type: 'client', party_label: insuredName }),
+      })
+
+      const reqRes = await fetch(`${SB_URL}/rest/v1/rfq_requests`, {
+        method:  'POST',
+        headers: sbH('return=representation'),
+        body: JSON.stringify({
+          case_id:           caseId,
+          client_thread_id:  body.thread_id,
+          client_message_id: msg?.id ?? null,
+          product_line,
+          insured_name:      insuredName,
+        }),
+      })
+      const created = reqRes.ok ? (await reqRes.json())[0] : null
+      if (created?.id) void logRfqEvent({ event_type: 'requested', case_id: caseId, rfq_request_id: created.id, actor: user.email ?? null, summary: `Quotation requested — ${lineLabel}`, detail: { insured: insuredName } })
     }
 
-    // 1. Open the case.
-    const caseRes = await fetch(`${SB_URL}/rest/v1/cases`, {
-      method:  'POST',
-      headers: sbH('return=representation'),
-      body: JSON.stringify({
-        name:        `RFQ — ${insuredName}`,
-        description: `Manually started quotation request (${chosen.length} line${chosen.length === 1 ? '' : 's'}).`,
-        status:      'open',
-      }),
-    })
-    if (!caseRes.ok) return NextResponse.json({ error: `case create failed: ${await caseRes.text()}` }, { status: 500 })
-    const caseId = (await caseRes.json())[0].id as string
-
-    // 2. Link the client thread.
-    await fetch(`${SB_URL}/rest/v1/case_threads?on_conflict=case_id,thread_id`, {
-      method:  'POST',
-      headers: sbH('return=minimal,resolution=merge-duplicates'),
-      body: JSON.stringify({ case_id: caseId, thread_id: body.thread_id, party_type: 'client', party_label: insuredName }),
-    })
-
-    // 3. One request row per chosen line.
-    const reqRes = await fetch(`${SB_URL}/rest/v1/rfq_requests`, {
-      method:  'POST',
-      headers: sbH('return=representation'),
-      body: JSON.stringify(chosen.map(product_line => ({
-        case_id:           caseId,
-        client_thread_id:  body.thread_id,
-        client_message_id: msg?.id ?? null,
-        product_line,
-        insured_name:      insuredName,
-      }))),
-    })
-    const created: { id: string; product_line: string }[] = reqRes.ok ? await reqRes.json() : []
-    for (const r of created) {
-      void logRfqEvent({ event_type: 'requested', case_id: caseId, rfq_request_id: r.id, actor: user.email ?? null, summary: `Quotation requested — ${r.product_line}`, detail: { insured: insuredName } })
-    }
-
-    return NextResponse.json({ case_id: caseId, requests: chosen.length })
+    // Route the modal to the first case; caller can see the rest in Nexus.
+    return NextResponse.json({ case_id: caseIds[0] ?? null, case_ids: caseIds, requests: chosen.length })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }

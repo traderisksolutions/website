@@ -32,21 +32,25 @@ export async function POST(req: NextRequest) {
     if (!thread_id || !product_line || !contact_id) {
       return NextResponse.json({ error: 'thread_id, product_line and contact_id required' }, { status: 400 })
     }
-    const insured = (insured_name?.trim() || 'New client').slice(0, 120)
+    const insured   = (insured_name?.trim() || 'New client').slice(0, 120)
+    const lineLabel = productLineLabel(product_line)
 
-    // 1. get-or-create the case for this client thread (any existing request on the thread wins).
+    // ONE Nexus case per (client thread × line of insurance). Jane's Cyber and D&O
+    // become two separate cases/rows, each its own quote comparison.
     let caseId: string | null = null
-    const existRes = await fetch(
-      `${SB_URL}/rest/v1/rfq_requests?client_thread_id=eq.${thread_id}&select=case_id&limit=1`,
+    let requestId: string | null = null
+    const reqExist = await fetch(
+      `${SB_URL}/rest/v1/rfq_requests?client_thread_id=eq.${thread_id}&product_line=eq.${encodeURIComponent(product_line)}&select=id,case_id&limit=1`,
       { headers: sbH(), cache: 'no-store' }
     )
-    caseId = existRes.ok ? ((await existRes.json())[0]?.case_id ?? null) : null
+    const existing = reqExist.ok ? (await reqExist.json())[0] : null
+    if (existing) { caseId = existing.case_id; requestId = existing.id }
 
     if (!caseId) {
       const caseRes = await fetch(`${SB_URL}/rest/v1/cases`, {
         method:  'POST',
         headers: sbH('return=representation'),
-        body: JSON.stringify({ name: `RFQ — ${insured}`, description: 'Quotation request (opened on first send).', status: 'open' }),
+        body: JSON.stringify({ name: `[RFQ] ${insured} — ${lineLabel}`, description: 'Quotation request (opened on first send).', status: 'open' }),
       })
       if (!caseRes.ok) return NextResponse.json({ error: `case create failed: ${await caseRes.text()}` }, { status: 500 })
       caseId = (await caseRes.json())[0].id as string
@@ -57,16 +61,8 @@ export async function POST(req: NextRequest) {
         headers: sbH('return=minimal,resolution=merge-duplicates'),
         body: JSON.stringify({ case_id: caseId, thread_id, party_type: 'client', party_label: insured }),
       })
-      void logActivity({ action: 'rfq.file_opened', resource_type: 'case', resource_id: caseId, new_value: { insured, thread_id } })
+      void logActivity({ action: 'rfq.file_opened', resource_type: 'case', resource_id: caseId, new_value: { insured, thread_id, product_line } })
     }
-
-    // 2. get-or-create the request line for this case × product_line.
-    let requestId: string | null = null
-    const reqExist = await fetch(
-      `${SB_URL}/rest/v1/rfq_requests?case_id=eq.${caseId}&product_line=eq.${encodeURIComponent(product_line)}&select=id&limit=1`,
-      { headers: sbH(), cache: 'no-store' }
-    )
-    requestId = reqExist.ok ? ((await reqExist.json())[0]?.id ?? null) : null
 
     if (!requestId) {
       const reqRes = await fetch(`${SB_URL}/rest/v1/rfq_requests`, {
@@ -76,6 +72,7 @@ export async function POST(req: NextRequest) {
       })
       if (!reqRes.ok) return NextResponse.json({ error: `request create failed: ${await reqRes.text()}` }, { status: 500 })
       requestId = (await reqRes.json())[0].id as string
+      void logRfqEvent({ event_type: 'requested', case_id: caseId, rfq_request_id: requestId, summary: `Quotation requested — ${lineLabel}`, detail: { insured } })
     }
 
     // 3. record the dispatch (snapshot insurer identity).
