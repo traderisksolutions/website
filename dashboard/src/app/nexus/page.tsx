@@ -98,6 +98,9 @@ type V1Scenario    = { name: string; probability: string; outcome: string; trs_a
 type V1NextStep    = { step: number; action: string; owner: string; deadline?: string; priority: string; rationale: string; citation_ids?: string[]; depends_on?: number[]; party_type?: string; to_emails?: string[]; stakeholder_id?: string; contact_id?: string; thread_id?: string }
 type V1Draft       = { artifact_type: string; to_party: string; party_type: string; to_emails: string[]; cc_emails: string[]; subject: string; body: string; intent: string; priority: string; citation_ids?: string[]; stakeholder_id?: string; thread_id?: string }
 type V1Reserve     = { recommended_reserve?: string; basis: string; confidence: string; risk_factors: string[]; citation_ids?: string[] }
+type V1QuoteOption = { dispatch_id: string; insurer_name: string; premium?: string | null; excess?: string | null; limit_indemnity?: string | null; validity?: string | null; pros: string[]; cons: string[] }
+type V1LineDecision = { rfq_request_id: string; product_line: string; product_line_label: string; options: V1QuoteOption[]; recommended_dispatch_id: string | null; recommended_insurer: string | null; rationale: string; caveats: string[] }
+type V1QuoteDecision = { generated_ts: string; lines: V1LineDecision[]; note: string }
 type AnalysisMetadata = {
   analysis_ts:          string
   synthesis_model:      string
@@ -124,6 +127,7 @@ type NexusAnalysisV1 = {
   reserve_guidance:       V1Reserve | null
   citations:              V1Citation[]
   analysis_metadata?:     AnalysisMetadata
+  quote_decision?:        V1QuoteDecision | null
 }
 
 type CaseAnalysis = {
@@ -1023,6 +1027,11 @@ function MissionControlBody({
       {/* 1 — Executive brief */}
       <ExecBriefCard analysis={analysis} sa={sa} />
 
+      {/* 1b — Quote decision (RFQ cases — Run Analysis adapts to case type) */}
+      {sa?.quote_decision && sa.quote_decision.lines.length > 0 && (
+        <QuoteDecisionSection decision={sa.quote_decision} />
+      )}
+
       {/* Delta banner — supplementary, right under the brief */}
       {!analyzing && currentRun && previousRun && (
         <RunComparisonBanner
@@ -1314,6 +1323,80 @@ function CitationChip({ id, citations }: { id: string; citations: V1Citation[] }
     >
       {label}
     </span>
+  )
+}
+
+// ── Quote Decision (RFQ — per-line insurer comparison + recommendation) ────────
+
+function QuoteDecisionSection({ decision }: { decision: V1QuoteDecision }) {
+  return (
+    <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-5 flex flex-col gap-4">
+      <div className="flex items-center justify-between gap-2">
+        <SectionLabel title="Quote Decision" />
+        <span className="text-[10.5px] text-indigo-700/60 flex-shrink-0">Record the outcome in the RFQ tab once the client decides.</span>
+      </div>
+
+      {decision.lines.map((line, li) => {
+        const rec = line.options.find(o => o.dispatch_id === line.recommended_dispatch_id) ?? null
+        return (
+          <div key={line.rfq_request_id ?? li} className="rounded-lg border border-indigo-200/70 bg-white p-4 flex flex-col gap-3">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-[12.5px] font-semibold text-foreground">{line.product_line_label}</span>
+              <span className="text-[10px] text-muted-foreground/60">{line.options.length} insurer{line.options.length !== 1 ? 's' : ''}</span>
+            </div>
+
+            {/* Each option objectively — figures + benefits + downsides */}
+            <div className="grid gap-2.5 md:grid-cols-2">
+              {line.options.map(o => {
+                const isRec = o.dispatch_id === line.recommended_dispatch_id
+                return (
+                  <div key={o.dispatch_id} className={cn('rounded-md border p-3 flex flex-col gap-2',
+                    isRec ? 'border-emerald-300 bg-emerald-50/50' : 'border-border/60 bg-card')}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[12px] font-semibold text-foreground">{o.insurer_name}</span>
+                      {isRec && <span className="text-[9px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-100 rounded-full px-1.5 py-0.5">Broker pick</span>}
+                    </div>
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10.5px] text-muted-foreground">
+                      {o.premium && <span><span className="text-muted-foreground/60">Premium</span> <b className="text-foreground/80">{o.premium}</b></span>}
+                      {o.excess && <span><span className="text-muted-foreground/60">Excess</span> <b className="text-foreground/80">{o.excess}</b></span>}
+                      {o.limit_indemnity && <span><span className="text-muted-foreground/60">Limit</span> <b className="text-foreground/80">{o.limit_indemnity}</b></span>}
+                      {o.validity && <span><span className="text-muted-foreground/60">Valid</span> <b className="text-foreground/80">{o.validity}</b></span>}
+                    </div>
+                    {o.pros.length > 0 && (
+                      <ul className="flex flex-col gap-0.5">
+                        {o.pros.map((p, i) => <li key={i} className="text-[11px] text-emerald-800 flex gap-1.5"><span className="text-emerald-500">+</span><span>{p}</span></li>)}
+                      </ul>
+                    )}
+                    {o.cons.length > 0 && (
+                      <ul className="flex flex-col gap-0.5">
+                        {o.cons.map((c, i) => <li key={i} className="text-[11px] text-rose-700/90 flex gap-1.5"><span className="text-rose-400">−</span><span>{c}</span></li>)}
+                      </ul>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Recommendation */}
+            {line.rationale && (
+              <div className="rounded-md border border-emerald-200 bg-emerald-50/60 px-3 py-2.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700/70">Recommendation</span>
+                <p className="text-[12px] text-emerald-900 leading-[1.55] mt-0.5">
+                  {rec && <b>Go with {rec.insurer_name} — </b>}{line.rationale}
+                </p>
+              </div>
+            )}
+            {line.caveats.length > 0 && (
+              <ul className="flex flex-col gap-0.5">
+                {line.caveats.map((c, i) => <li key={i} className="text-[10.5px] text-amber-700 flex gap-1.5"><span>⚠</span><span>{c}</span></li>)}
+              </ul>
+            )}
+          </div>
+        )
+      })}
+
+      <p className="text-[10.5px] text-indigo-700/60 italic">{decision.note}</p>
+    </div>
   )
 }
 

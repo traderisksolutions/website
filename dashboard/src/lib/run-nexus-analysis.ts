@@ -13,6 +13,7 @@
 
 import { logGeminiUsage }   from '@/lib/gemini-usage'
 import { fetchKnowledgeDocs } from '@/lib/gdrive-knowledge'
+import { buildQuoteDecision, type QuoteDecisionV1 } from '@/lib/rfq-quote-decision'
 
 const SB_URL          = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const STORAGE_BUCKET  = 'email-attachments'
@@ -236,6 +237,9 @@ export type NexusAnalysisV1 = {
   reserve_guidance:       ReserveGuidance | null
   citations:              Citation[]
   analysis_metadata:      AnalysisMetadata
+  // Present only for RFQ cases with captured quotes (#4). Per-line insurer
+  // comparison + broker recommendation.
+  quote_decision?:        QuoteDecisionV1 | null
 }
 
 // ── Gmail attachment fetcher ──────────────────────────────────────────────────
@@ -1416,6 +1420,12 @@ COMMUNICATION BRIEFS (you plan the emails; a separate drafting model writes them
   //  citations→message/attachment_id). Runs regardless of model id compliance.
   try { linkAnalysisIds(structuredAnalysis, entityCatalog) }
   catch (e) { console.error('[nexus] id linking failed (non-fatal):', e) }
+
+  // ── RFQ cases: per-line quote decision (Run Analysis adapts to case type) ────
+  try {
+    const quoteDecision = await buildQuoteDecision(caseId)
+    if (quoteDecision) structuredAnalysis.quote_decision = quoteDecision
+  } catch (e) { console.error('[nexus] quote decision failed (non-fatal):', e) }
 
   // ── Derive legacy columns from V1 for backwards compat ───────────────────────
 
