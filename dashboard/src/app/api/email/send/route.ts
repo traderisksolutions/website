@@ -348,8 +348,11 @@ export async function POST(req: NextRequest) {
     const isOpsSender = FROM_EMAIL.toLowerCase() === DEFAULT_OPS_EMAIL.toLowerCase()
     const finalCc = [...(cc ?? [])]
     if (!isOpsSender && !finalCc.some(c => c.toLowerCase() === DEFAULT_OPS_EMAIL.toLowerCase())) finalCc.push(DEFAULT_OPS_EMAIL)
+    // Personal sends also Reply-To operations@ so the recipient's reply routes back
+    // to the shared mailbox (Engagement) rather than the employee's personal inbox.
+    const replyTo = isOpsSender ? undefined : DEFAULT_OPS_EMAIL
 
-    const rawEmail = buildRawEmail(recipientEmail, subject, finalPlain, finalHtml, finalCc, bcc, undefined, FROM_EMAIL, emailAttachments)
+    const rawEmail = buildRawEmail(recipientEmail, subject, finalPlain, finalHtml, finalCc, bcc, replyTo, FROM_EMAIL, emailAttachments)
 
     const sendPayload: Record<string, unknown> = { raw: rawEmail }
     if (gmailThreadId) sendPayload.threadId = gmailThreadId
