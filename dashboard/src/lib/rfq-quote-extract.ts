@@ -12,7 +12,7 @@
 import { logGeminiUsage } from '@/lib/gemini-usage'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
+const geminiUrl  = (model: string) => `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
 
 function sbH(prefer = 'return=representation') {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -50,7 +50,7 @@ export type QuoteRow = {
 }
 
 // Build the labelled source corpus: email body + each attachment's parsed text.
-async function loadSources(threadId: string): Promise<{ text: string; hasContent: boolean; messageId: string | null }> {
+export async function loadSources(threadId: string): Promise<{ text: string; hasContent: boolean; messageId: string | null }> {
   const [mRes, aRes] = await Promise.all([
     fetch(`${SB_URL}/rest/v1/email_messages?thread_id=eq.${threadId}&direction=eq.inbound&order=sent_at.desc&select=id,body_text&limit=1`, { headers: sbH(), cache: 'no-store' }),
     fetch(`${SB_URL}/rest/v1/email_attachments?thread_id=eq.${threadId}&parsed_text=not.is.null&select=filename,parsed_text&order=created_at.asc`, { headers: sbH(), cache: 'no-store' }),
@@ -66,7 +66,7 @@ async function loadSources(threadId: string): Promise<{ text: string; hasContent
   return { text: parts.join('\n\n'), hasContent: parts.length > 0, messageId: msg?.id ?? null }
 }
 
-async function extract(corpus: string, apiKey: string): Promise<ExtractedQuote | null> {
+export async function extract(corpus: string, apiKey: string, model = 'gemini-2.5-flash'): Promise<ExtractedQuote | null> {
   const prompt = `You are extracting an insurance quotation for a Singapore broker (Trade Risk Solutions). Below are one or more SOURCE blocks (the insurer's email body and/or attachment text). Extract the quote STRICTLY.
 
 RULES — read carefully:
@@ -90,14 +90,14 @@ Return ONLY JSON:
 SOURCES:
 ${corpus.slice(0, 30_000)}`
 
-  const res = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
+  const res = await fetch(`${geminiUrl(model)}?key=${apiKey}`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0, responseMimeType: 'application/json' } }),
   })
   if (!res.ok) return null
   const data = await res.json()
-  if (data?.usageMetadata) logGeminiUsage('email_analysis', data.usageMetadata).catch(() => {})
+  if (data?.usageMetadata) logGeminiUsage('email_analysis', data.usageMetadata, null, model).catch(() => {})
   const raw = (data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim()
   try {
     const p = JSON.parse(raw.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim())

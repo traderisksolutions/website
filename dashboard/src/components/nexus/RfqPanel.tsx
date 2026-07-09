@@ -74,12 +74,35 @@ function FigureCell({ value, ev }: { value: string | null; ev?: FieldEvidence })
   )
 }
 
+type FieldCheck = { field: string; value: string | null; status: 'verified' | 'review' | 'empty'; reasons: string[]; excerpt: string | null; source: string | null; consensus_value: string | null }
+type QuoteVerification = { dispatch_id: string; insurer_name: string | null; product_line: string | null; fields: FieldCheck[]; ok: boolean; note?: string }
+
 function QuotesComparison({ caseId }: { caseId: string }) {
   const [quotes,  setQuotes]  = useState<Quote[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [pick,    setPick]    = useState<string | null>(null)
   const [reccing, setReccing] = useState(false)
   const [recErr,  setRecErr]  = useState<string | null>(null)
+  // #1 pre-send verification failsafe
+  const [verifying,    setVerifying]    = useState(false)
+  const [verifyData,   setVerifyData]   = useState<{ results: QuoteVerification[]; all_ok: boolean; flagged_count: number } | null>(null)
+  const [showVerify,   setShowVerify]   = useState(false)
+  const [acknowledged, setAcknowledged] = useState(false)
+
+  // Run the failsafe (deterministic checks + second-model consensus), then open
+  // the verify modal — the recommendation is only drafted after this gate.
+  async function runVerify() {
+    if (!pick) return
+    setVerifying(true); setRecErr(null); setAcknowledged(false)
+    try {
+      const res = await fetch('/api/nexus/rfq/verify', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ case_id: caseId }),
+      })
+      const d = await res.json()
+      if (!res.ok) { setRecErr(d.error ?? 'Verification failed'); return }
+      setVerifyData(d); setShowVerify(true)
+    } finally { setVerifying(false) }
+  }
 
   async function compare() {
     setLoading(true)
@@ -160,14 +183,104 @@ function QuotesComparison({ caseId }: { caseId: string }) {
       )}
       {quotes && quotes.length > 0 && (
         <div className="flex items-center justify-between gap-3 border-t border-indigo-200/50 pt-2.5">
-          <span className="text-[10.5px] text-indigo-700/60">{pick ? 'Recommendation drafts in Engagement for your review — nothing is sent automatically.' : 'Pick the option to recommend to the client.'}</span>
-          <button onClick={recommend} disabled={!pick || reccing}
+          <span className="text-[10.5px] text-indigo-700/60">{pick ? 'Figures are verified against the insurer source before drafting — nothing is sent automatically.' : 'Pick the option to recommend to the client.'}</span>
+          <button onClick={runVerify} disabled={!pick || verifying || reccing}
             className="text-[11px] font-semibold px-3 py-1.5 rounded-md bg-indigo-600 text-white disabled:opacity-40 flex-shrink-0">
-            {reccing ? 'Drafting…' : 'Recommend to client →'}
+            {verifying ? 'Verifying figures…' : reccing ? 'Drafting…' : 'Verify & recommend →'}
           </button>
         </div>
       )}
       {recErr && <p className="text-[11px] text-rose-600">{recErr}</p>}
+
+      {showVerify && verifyData && (
+        <VerifyModal
+          data={verifyData}
+          acknowledged={acknowledged}
+          setAcknowledged={setAcknowledged}
+          onClose={() => setShowVerify(false)}
+          onProceed={() => { setShowVerify(false); recommend() }}
+        />
+      )}
+    </div>
+  )
+}
+
+// Pre-send verification modal — 3 checks per figure (source, excerpt, consensus).
+function VerifyModal({ data, acknowledged, setAcknowledged, onClose, onProceed }: {
+  data: { results: QuoteVerification[]; all_ok: boolean; flagged_count: number }
+  acknowledged: boolean; setAcknowledged: (v: boolean) => void
+  onClose: () => void; onProceed: () => void
+}) {
+  const canProceed = data.all_ok || acknowledged
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="sticky top-0 bg-white border-b border-border px-5 py-3.5 flex items-center justify-between">
+          <div>
+            <h3 className="text-[14px] font-semibold text-foreground">Verify figures before recommending</h3>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Each figure is checked against the insurer’s source, its cited excerpt, and a second model.
+            </p>
+          </div>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-lg leading-none">×</button>
+        </div>
+
+        <div className="px-5 py-4 flex flex-col gap-4">
+          {data.all_ok
+            ? <div className="rounded-md border border-emerald-200 bg-emerald-50/60 px-3 py-2 text-[12px] text-emerald-800">✓ All figures verified against the insurer source and the second model.</div>
+            : <div className="rounded-md border border-amber-300 bg-amber-50/70 px-3 py-2 text-[12px] text-amber-800">⚠ {data.flagged_count} figure{data.flagged_count === 1 ? '' : 's'} need a look before this goes to the client.</div>}
+
+          {data.results.map(r => (
+            <div key={r.dispatch_id} className="rounded-lg border border-border/70 p-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[12.5px] font-semibold text-foreground">{r.insurer_name ?? 'Insurer'}</span>
+                <span className={cn('text-[9.5px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5',
+                  r.ok ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' : 'text-amber-700 bg-amber-50 border border-amber-200')}>
+                  {r.ok ? 'verified' : 'review'}
+                </span>
+              </div>
+              {r.note && <p className="text-[10.5px] text-amber-700 mb-1.5">{r.note}</p>}
+              <div className="flex flex-col divide-y divide-border/50">
+                {r.fields.filter(f => f.status !== 'empty').map(f => (
+                  <div key={f.field} className="py-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className={cn('flex-shrink-0 text-[11px]', f.status === 'verified' ? 'text-emerald-600' : 'text-amber-600')}>
+                        {f.status === 'verified' ? '✓' : '⚠'}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground w-16 flex-shrink-0">{f.field}</span>
+                      <span className="text-[12px] font-semibold text-foreground">{f.value}</span>
+                    </div>
+                    {f.status === 'review' && f.reasons.map((rs, i) => (
+                      <p key={i} className="text-[10.5px] text-amber-700 ml-[26px] mt-0.5">— {rs}</p>
+                    ))}
+                    {f.excerpt && (
+                      <p className="text-[10px] text-muted-foreground/70 ml-[26px] mt-0.5 italic">
+                        source{f.source ? ` · ${f.source}` : ''}: “{f.excerpt}”
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="sticky bottom-0 bg-white border-t border-border px-5 py-3 flex items-center justify-between gap-3">
+          {!data.all_ok
+            ? <label className="flex items-center gap-2 text-[11.5px] text-foreground cursor-pointer">
+                <input type="checkbox" checked={acknowledged} onChange={e => setAcknowledged(e.target.checked)} className="accent-indigo-600" />
+                I’ve reviewed the flagged figures and want to proceed
+              </label>
+            : <span className="text-[11px] text-muted-foreground">Ready to draft the recommendation.</span>}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button onClick={onClose} className="text-[11.5px] text-muted-foreground hover:text-foreground px-3 py-1.5">Cancel</button>
+            <button onClick={onProceed} disabled={!canProceed}
+              className="text-[11.5px] font-semibold px-4 py-1.5 rounded-md bg-indigo-600 text-white disabled:opacity-40">
+              Proceed &amp; draft recommendation →
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
