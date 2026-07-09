@@ -97,6 +97,8 @@ export default function ThreadRfqWorkflow({
   const [activeLine, setActiveLine] = useState<string | null>(null)   // line being configured in the 'insurers' step
   const [lineInsurers, setLineInsurers] = useState<Insurer[]>([])
   const [picked,     setPicked]     = useState<string[]>([])          // contact_ids checked in 'insurers' step
+  const [pickedLines, setPickedLines] = useState<string[]>([])        // lines multi-selected in the 'line' step
+  const [lineQueue,  setLineQueue]  = useState<string[]>([])          // lines still to configure after the active one
   const [staged,     setStaged]     = useState<StagedLine[]>([])
 
   const refresh = useCallback(async () => {
@@ -156,12 +158,27 @@ export default function ThreadRfqWorkflow({
   }, [insured, messageId, patchIns])
 
   // ── wizard navigation ───────────────────────────────────────────────────────
-  function openWizardBlank() { setStep('line'); setActiveLine(null); setPicked([]); setWizardOpen(true) }
+  function openWizardBlank() { setStep('line'); setActiveLine(null); setPicked([]); setPickedLines([]); setLineQueue([]); setWizardOpen(true) }
+  function goToLineSelect()  { setPickedLines([]); setStep('line') }
+  function togglePickLine(slug: string) { setPickedLines(prev => prev.includes(slug) ? prev.filter(s => s !== slug) : [...prev, slug]) }
 
   async function openLineInsurers(line: string) {
     setActiveLine(line); setPicked([]); setStep('insurers'); setWizardOpen(true)
     const rows = await fetch(`/api/nexus/rfq/insurers?product_line=${line}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : []).catch(() => [])
     setLineInsurers(Array.isArray(rows) ? rows : [])
+  }
+
+  // Start the sequential per-line flow from the multi-selected lines.
+  function beginLineQueue() {
+    const [first, ...rest] = pickedLines
+    if (!first) return
+    setLineQueue(rest)
+    openLineInsurers(first)
+  }
+  // Advance to the next queued line, or finish at review.
+  function advanceQueue() {
+    if (lineQueue.length) { const [next, ...rest] = lineQueue; setLineQueue(rest); openLineInsurers(next) }
+    else setStep('review')
   }
 
   // Which sender is active, and whether it's the employee's personal Gmail.
@@ -192,7 +209,8 @@ export default function ThreadRfqWorkflow({
     })
     // Kick off drafts for the newly-picked insurers.
     chosen.forEach(i => generateDraft(activeLine, i))
-    setStep('review')
+    // Sequential multi-line flow: configure the next selected line, else review.
+    advanceQueue()
   }
 
   async function sendInsurer(line: string, ins: StagedInsurer) {
@@ -311,7 +329,9 @@ export default function ThreadRfqWorkflow({
         step={step} setStep={setStep}
         activeLine={activeLine} lineInsurers={lineInsurers}
         picked={picked} setPicked={setPicked}
-        onPickLine={openLineInsurers} confirmInsurers={confirmInsurers}
+        pickedLines={pickedLines} togglePickLine={togglePickLine} beginLineQueue={beginLineQueue}
+        queueRemaining={lineQueue.length} onAddAnotherLine={goToLineSelect}
+        confirmInsurers={confirmInsurers}
         staged={staged} patchIns={patchIns} regenerate={generateDraft}
         attachments={attachments} senders={senders} signatures={signatures}
         fromEmail={fromEmail} setFromEmail={setFromEmail} sigId={sigId} setSigId={setSigId}
@@ -363,7 +383,9 @@ function RfqWizard(p: {
   step: 'line' | 'insurers' | 'review'; setStep: (s: 'line' | 'insurers' | 'review') => void
   activeLine: string | null; lineInsurers: Insurer[]
   picked: string[]; setPicked: React.Dispatch<React.SetStateAction<string[]>>
-  onPickLine: (line: string) => void; confirmInsurers: () => void
+  pickedLines: string[]; togglePickLine: (slug: string) => void; beginLineQueue: () => void
+  queueRemaining: number; onAddAnotherLine: () => void
+  confirmInsurers: () => void
   staged: StagedLine[]; patchIns: (line: string, contactId: string, patch: Partial<StagedInsurer>) => void
   regenerate: (line: string, ins: Insurer) => void
   attachments: Attachment[]; senders: Sender[]; signatures: SigOption[]
@@ -384,8 +406,8 @@ function RfqWizard(p: {
               : 'Review & send'}
           </DialogTitle>
           <DialogDescription>
-            {p.step === 'line' ? 'Which line of insurance is the client asking to quote?'
-              : p.step === 'insurers' ? 'Pick the insurers to request a quote from. One draft is prepared per insurer.'
+            {p.step === 'line' ? 'Select one or more lines of insurance the client is asking to quote. You’ll pick insurers for each line in turn.'
+              : p.step === 'insurers' ? `Pick the insurers to request a quote from${p.activeLine ? ` for ${productLineLabel(p.activeLine)}` : ''}. One draft is prepared per insurer.${p.queueRemaining > 0 ? ` (${p.queueRemaining} more line${p.queueRemaining === 1 ? '' : 's'} to configure)` : ''}`
               : 'Check the recipient, content and attachments on each, then send all or individually.'}
           </DialogDescription>
         </DialogHeader>
@@ -403,12 +425,16 @@ function RfqWizard(p: {
                       <div className="grid grid-cols-2 gap-2">
                         {sec.lines.map(pl => {
                           const done = stagedLines.has(pl.slug)
+                          const sel  = p.pickedLines.includes(pl.slug)
                           return (
-                            <button key={pl.slug} onClick={() => p.onPickLine(pl.slug)} disabled={done}
-                              className={cn('text-left text-[12.5px] rounded-md border px-3 py-2.5 transition-colors',
+                            <button key={pl.slug} onClick={() => !done && p.togglePickLine(pl.slug)} disabled={done}
+                              className={cn('flex items-center gap-2 text-left text-[12.5px] rounded-md border px-3 py-2.5 transition-colors',
                                 done ? 'border-[--border-subtle] bg-muted/40 text-muted-foreground/60 cursor-default'
+                                     : sel ? 'border-primary bg-primary/10 text-foreground'
                                      : 'border-[--border-subtle] hover:border-primary/50 hover:bg-primary/5')}>
-                              {pl.label}{done && ' ✓'}
+                              <span className={cn('flex-shrink-0 w-3.5 h-3.5 rounded-[3px] border flex items-center justify-center text-[9px] text-white',
+                                sel ? 'bg-primary border-primary' : 'border-muted-foreground/40')}>{sel ? '✓' : ''}</span>
+                              {pl.label}{done && ' ✓ staged'}
                             </button>
                           )
                         })}
@@ -494,16 +520,24 @@ function RfqWizard(p: {
               </button>
             )}
             {p.step === 'review' && (
-              <button onClick={() => p.setStep('line')} className="flex items-center gap-1 text-[11.5px] font-medium text-primary hover:underline">
+              <button onClick={p.onAddAnotherLine} className="flex items-center gap-1 text-[11.5px] font-medium text-primary hover:underline">
                 <Plus size={12} /> Add another line
               </button>
             )}
           </div>
           <div className="flex items-center gap-2">
+            {p.step === 'line' && (
+              <button onClick={p.beginLineQueue} disabled={p.pickedLines.length === 0}
+                className="text-[11.5px] font-semibold px-4 py-1.5 rounded-md bg-primary text-primary-foreground disabled:opacity-50">
+                Next{p.pickedLines.length ? ` — ${p.pickedLines.length} line${p.pickedLines.length === 1 ? '' : 's'}` : ''}
+              </button>
+            )}
             {p.step === 'insurers' && (
               <button onClick={p.confirmInsurers} disabled={p.picked.length === 0}
                 className="text-[11.5px] font-semibold px-4 py-1.5 rounded-md bg-primary text-primary-foreground disabled:opacity-50">
-                Prepare {p.picked.length || ''} draft{p.picked.length === 1 ? '' : 's'}
+                {p.queueRemaining > 0
+                  ? `Prepare drafts · next line →`
+                  : `Prepare ${p.picked.length || ''} draft${p.picked.length === 1 ? '' : 's'} & review`}
               </button>
             )}
             {p.step === 'review' && p.stagedCount > 0 && (
