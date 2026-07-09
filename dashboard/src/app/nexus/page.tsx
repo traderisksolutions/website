@@ -1057,6 +1057,7 @@ function MissionControlBody({
         v1Steps={sa?.recommended_next_steps ?? []}
         missingItems={sa?.missing_items ?? []}
         drafts={sa?.draft_artifacts ?? []}
+        stakeholders={sa?.stakeholder_map ?? []}
         caseId={caseData.id}
         threads={threads}
         onOpenCompose={onOpenCompose}
@@ -1999,17 +2000,20 @@ type StepDraftState = {
 }
 
 function NextStepsSection({
-  v1Steps, missingItems, drafts, caseId, threads, onOpenCompose,
+  v1Steps, missingItems, drafts, stakeholders, caseId, threads, onOpenCompose,
 }: {
   v1Steps:        V1NextStep[]
   missingItems:   V1Missing[]
   drafts:         V1Draft[]
+  stakeholders:   V1Stakeholder[]
   caseId:         string
   threads:        CaseThread[]
   onOpenCompose:  (s: ComposeState) => void
 }) {
   const [stepDraftState, setStepDraftState] = useState<Record<number, StepDraftState>>({})
   const [copiedStep,     setCopiedStep]     = useState<number | null>(null)
+  const [pickFor,        setPickFor]        = useState<number | null>(null)   // step awaiting a manual recipient
+  const [pickEmail,      setPickEmail]      = useState('')
 
   // Case contact emails by party type — used to resolve a recipient for any step
   // so every step that targets a reachable party can be drafted (not just step 1).
@@ -2018,11 +2022,20 @@ function NextStepsSection({
     const em = ct.thread?.contact?.email
     if (em) { const k = (ct.party_type ?? 'other').toLowerCase(); (partyEmails[k] ??= []).push(em) }
   }
+  // Every known email on the case (contacts + analysis stakeholders) — powers the
+  // recipient datalist so the employee can pick when a step doesn't auto-resolve.
+  const knownEmails = Array.from(new Set([
+    ...threads.map(ct => ct.thread?.contact?.email).filter(Boolean) as string[],
+    ...stakeholders.map(s => s.email).filter(Boolean) as string[],
+  ]))
+
   function resolveEmail(step: V1NextStep, artifact: V1Draft | null): string {
-    // Prefer the exact id-resolved recipient (v1.1); fall back to party_type lookup.
+    // Prefer the exact id-resolved recipient (v1.1); then the analysis stakeholder
+    // (reaches parties not yet a case thread, e.g. a new insurer); then party_type.
     const byThread = step.thread_id ? threads.find(ct => ct.thread_id === step.thread_id)?.thread?.contact?.email : ''
     const byContact = step.contact_id ? threads.find(ct => ct.thread?.contact_id === step.contact_id)?.thread?.contact?.email : ''
-    return byThread || byContact || step.to_emails?.[0] || artifact?.to_emails?.[0] || partyEmails[(step.party_type ?? '').toLowerCase()]?.[0] || ''
+    const byStakeholder = step.stakeholder_id ? stakeholders.find(s => s.id === step.stakeholder_id)?.email : ''
+    return byThread || byContact || byStakeholder || step.to_emails?.[0] || artifact?.to_emails?.[0] || partyEmails[(step.party_type ?? '').toLowerCase()]?.[0] || ''
   }
 
   // Nexus decides; Engagement acts. Fresh-draft the step (Gemini from Opus's
@@ -2143,23 +2156,21 @@ function NextStepsSection({
                 </div>
                 <p className="text-[11.5px] text-muted-foreground/60 italic leading-[1.5] mb-3">{step.rationale}</p>
 
-                {/* ── Step action bar ── */}
+                {/* ── Step action bar (every step is draftable; recipient editable) ── */}
                 <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-[--border-subtle]/60">
-                  {toEmail ? (
-                    <button
-                      onClick={() => draftInEngagement(step, toEmail)}
-                      disabled={ds.status === 'creating'}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/[0.06] text-[10.5px] font-semibold text-primary hover:bg-primary/[0.12] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      title={`Draft in Engagement to ${toEmail}`}
-                    >
-                      {ds.status === 'creating' ? (
-                        <Loader2 size={10} strokeWidth={2} className="animate-spin" />
-                      ) : (
-                        <ArrowRight size={11} strokeWidth={2.5} />
-                      )}
-                      {ds.status === 'creating' ? 'Drafting…' : 'Draft in Engagement'}
-                    </button>
-                  ) : null}
+                  <button
+                    onClick={() => { if (toEmail) draftInEngagement(step, toEmail); else { setPickFor(pickFor === step.step ? null : step.step); setPickEmail('') } }}
+                    disabled={ds.status === 'creating'}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/[0.06] text-[10.5px] font-semibold text-primary hover:bg-primary/[0.12] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    title={toEmail ? `Draft in Engagement to ${toEmail}` : 'Choose a recipient to draft to'}
+                  >
+                    {ds.status === 'creating' ? (
+                      <Loader2 size={10} strokeWidth={2} className="animate-spin" />
+                    ) : (
+                      <ArrowRight size={11} strokeWidth={2.5} />
+                    )}
+                    {ds.status === 'creating' ? 'Drafting…' : toEmail ? 'Draft in Engagement' : 'Draft in Engagement…'}
+                  </button>
                   <button
                     onClick={() => copyStep(step)}
                     className={cn(
@@ -2179,11 +2190,34 @@ function NextStepsSection({
                     <span className={cn('text-[10px]', ds.status === 'error' ? 'text-red-500' : 'text-muted-foreground/70')}>{ds.errorMsg}</span>
                   )}
                 </div>
+
+                {/* Manual recipient picker — shown when the step has no auto-resolved recipient */}
+                {pickFor === step.step && (
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    <input
+                      list="nexus-known-emails"
+                      value={pickEmail}
+                      onChange={e => setPickEmail(e.target.value)}
+                      placeholder="recipient@company.com"
+                      className="flex-1 min-w-[200px] text-[11.5px] rounded-md border border-[--border-subtle] bg-background px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      autoFocus
+                    />
+                    <button
+                      onClick={() => { if (pickEmail.includes('@')) { draftInEngagement(step, pickEmail.trim()); setPickFor(null) } }}
+                      disabled={!pickEmail.includes('@')}
+                      className="text-[10.5px] font-semibold px-3 py-1.5 rounded-md bg-primary text-primary-foreground disabled:opacity-40"
+                    >
+                      Draft
+                    </button>
+                    <button onClick={() => setPickFor(null)} className="text-[10.5px] text-muted-foreground hover:text-foreground px-2">Cancel</button>
+                  </div>
+                )}
               </div>
             </div>
           )
         })}
       </div>
+      <datalist id="nexus-known-emails">{knownEmails.map(e => <option key={e} value={e} />)}</datalist>
     </div>
   )
 }
