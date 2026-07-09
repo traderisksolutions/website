@@ -10,6 +10,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
+import { logAnthropicUsage }         from '@/lib/gemini-usage'
 
 export const maxDuration = 300
 
@@ -186,7 +187,9 @@ export async function POST(req: NextRequest) {
         const emit = (o: unknown) => controller.enqueue(enc.encode(JSON.stringify(o) + '\n'))
 
         // One streaming turn → text (streamed to client) + any tool_use blocks.
+        let totalIn = 0, totalOut = 0   // accumulated Opus token usage across turns
         async function runTurn(): Promise<{ full: string; blocks: Block[]; stopReason: string }> {
+          let uIn = 0, uOut = 0
           const body: Record<string, unknown> = { model: 'claude-opus-4-8', max_tokens: 2000, system, messages: msgs, stream: true }
           if (effCaseId) body.tools = TOOLS           // read-tools when case-aware
           else body.thinking = { type: 'adaptive' }   // deeper reasoning for general chat
@@ -209,16 +212,20 @@ export async function POST(req: NextRequest) {
               if (!line.startsWith('data:')) continue
               const payload = line.slice(5).trim()
               if (!payload || payload === '[DONE]') continue
-              let ev: { type?: string; index?: number; content_block?: { type: string; id?: string; name?: string }; delta?: { type?: string; text?: string; partial_json?: string; stop_reason?: string } }
+              let ev: { type?: string; index?: number; content_block?: { type: string; id?: string; name?: string }; delta?: { type?: string; text?: string; partial_json?: string; stop_reason?: string }; usage?: { input_tokens?: number; output_tokens?: number }; message?: { usage?: { input_tokens?: number; output_tokens?: number } } }
               try { ev = JSON.parse(payload) } catch { continue }
-              if (ev.type === 'content_block_start' && typeof ev.index === 'number' && ev.content_block) {
+              if (ev.type === 'message_start' && ev.message?.usage) {
+                uIn  += ev.message.usage.input_tokens  ?? 0
+                uOut += ev.message.usage.output_tokens ?? 0
+              } else if (ev.type === 'content_block_start' && typeof ev.index === 'number' && ev.content_block) {
                 blocks[ev.index] = { type: ev.content_block.type, id: ev.content_block.id, name: ev.content_block.name, text: '', _json: '' }
               } else if (ev.type === 'content_block_delta' && typeof ev.index === 'number') {
                 const b = blocks[ev.index]; if (!b) continue
                 if (ev.delta?.type === 'text_delta' && ev.delta.text) { b.text += ev.delta.text; full += ev.delta.text; emit({ type: 'delta', text: ev.delta.text }) }
                 else if (ev.delta?.type === 'input_json_delta' && ev.delta.partial_json) { b._json += ev.delta.partial_json }
-              } else if (ev.type === 'message_delta' && ev.delta?.stop_reason) {
-                stopReason = ev.delta.stop_reason
+              } else if (ev.type === 'message_delta') {
+                if (ev.delta?.stop_reason) stopReason = ev.delta.stop_reason
+                if (ev.usage?.output_tokens) uOut += ev.usage.output_tokens
               }
             }
           }
@@ -229,6 +236,7 @@ export async function POST(req: NextRequest) {
             if (b.type === 'tool_use') { let input: unknown = {}; try { input = JSON.parse(b._json || '{}') } catch { /* keep {} */ } return { type: 'tool_use', id: b.id, name: b.name, input } }
             return { type: b.type }
           })
+          totalIn += uIn; totalOut += uOut
           return { full, blocks: out, stopReason }
         }
 
@@ -266,6 +274,7 @@ export async function POST(req: NextRequest) {
           })
           const saved = iRes.ok ? (await iRes.json())[0] : null
           fetch(`${SB_URL}/rest/v1/chat_threads?id=eq.${thread_id}`, { method: 'PATCH', headers: sbH('return=minimal'), body: JSON.stringify({ last_message_at: new Date().toISOString() }) }).catch(() => {})
+          void logAnthropicUsage('chat_consultant', { input_tokens: totalIn, output_tokens: totalOut }, effCaseId ?? null)
           emit({ type: 'done', message: saved })
         } catch (e) {
           if (!ac.signal.aborted) emit({ type: 'error', error: String(e) })

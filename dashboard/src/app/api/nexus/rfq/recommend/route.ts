@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { productLineLabel }          from '@/lib/product-lines'
+import { logAnthropicUsage, logGeminiUsage } from '@/lib/gemini-usage'
 
 const SB_URL        = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
@@ -43,6 +44,7 @@ async function draftWithOpus(prompt: string): Promise<{ subject?: string; body?:
     })
     if (!res.ok) return null
     const data = await res.json()
+    void logAnthropicUsage('rfq_recommend', data?.usage)
     const text = ((data?.content ?? []) as { type?: string; text?: string }[]).find(b => b.type === 'text')?.text ?? ''
     return parseJson(text)
   } catch { return null }
@@ -59,6 +61,7 @@ async function draftWithGemini(prompt: string): Promise<{ subject?: string; body
     })
     if (!res.ok) return null
     const data = await res.json()
+    void logGeminiUsage('rfq_recommend', data?.usageMetadata ?? {}, null, 'gemini-2.5-pro')
     return parseJson((data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim())
   } catch { return null }
 }

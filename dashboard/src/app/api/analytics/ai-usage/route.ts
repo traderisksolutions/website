@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     const filter = since ? `&created_at=gte.${encodeURIComponent(since)}` : ''
 
     const res = await fetch(
-      `${SB_URL}/rest/v1/gemini_usage_log?select=id,created_at,feature,input_tokens,output_tokens,cost_usd&order=created_at.asc${filter}&limit=5000`,
+      `${SB_URL}/rest/v1/gemini_usage_log?select=id,created_at,feature,provider,model,input_tokens,output_tokens,cost_usd&order=created_at.asc${filter}&limit=5000`,
       { headers: sbHeaders() }
     )
     if (!res.ok) {

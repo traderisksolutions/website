@@ -11,7 +11,7 @@
  * Set ANTHROPIC_API_KEY in env to enable Claude. Falls back to Gemini-only if not set.
  */
 
-import { logGeminiUsage }   from '@/lib/gemini-usage'
+import { logGeminiUsage, logAnthropicUsage } from '@/lib/gemini-usage'
 import { fetchKnowledgeDocs } from '@/lib/gdrive-knowledge'
 import { buildQuoteDecision, type QuoteDecisionV1 } from '@/lib/rfq-quote-decision'
 
@@ -1133,7 +1133,7 @@ Return [] for sections with no items; never omit a section`
     throw new Error(`Gemini synthesis failed ${synthRes.status}: ${err}`)
   }
   const synthData = await synthRes.json()
-  void logGeminiUsage('nexus_synthesis', synthData.usageMetadata ?? {}, caseId)
+  void logGeminiUsage('nexus_synthesis', synthData.usageMetadata ?? {}, caseId, 'gemini-2.5-pro')
 
   const synthParts2 = (synthData?.candidates?.[0]?.content?.parts ?? []) as { text?: string }[]
   const synthText   = synthParts2.find(p => p.text?.trim().startsWith('{'))?.text
@@ -1308,6 +1308,7 @@ COMMUNICATION BRIEFS (you plan the emails; a separate drafting model writes them
       if (claudeRes.ok) {
         const claudeData = await claudeRes.json()
         strategyTokens = (claudeData.usage?.input_tokens ?? 0) + (claudeData.usage?.output_tokens ?? 0)
+        void logAnthropicUsage('nexus_strategy', claudeData.usage, caseId)
         // With adaptive thinking, content[] leads with thinking block(s) — read the text block.
         const claudeText = ((claudeData?.content ?? []) as { type?: string; text?: string }[])
           .find(b => b.type === 'text')?.text ?? ''

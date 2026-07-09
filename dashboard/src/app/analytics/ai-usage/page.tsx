@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { Cpu, RefreshCw } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,24 +9,48 @@ import { cn } from '@/lib/utils'
 
 type UsageRow = {
   id: string; created_at: string; feature: string
+  provider: string | null; model: string | null
   input_tokens: number; output_tokens: number; cost_usd: number
 }
-type DayBucket = {
-  date: string; total: number; cost: number
-  auto_summarize: number; draft_reply: number; refresh_summary: number
-  email_analysis: number; outbound_search: number; summarize: number; rag_index: number
-}
 type Range = '7d' | '30d' | '90d'
+type Dim = 'area' | 'model'
 
-const FEATURES: { key: string; label: string; color: string; desc: string }[] = [
-  { key: 'auto_summarize',  label: 'Auto Summarize',  color: '#3b82f6', desc: 'Triggered automatically on every new inbound client email.' },
-  { key: 'draft_reply',     label: 'Draft Reply',     color: '#10b981', desc: 'Triggered when staff clicks "Generate AI reply" in the Engagement tab.' },
-  { key: 'refresh_summary', label: 'Refresh Summary', color: '#f59e0b', desc: 'Triggered by the "Regenerate" button in the AI Analysis section.' },
-  { key: 'email_analysis',  label: 'Email Analysis',  color: '#8b5cf6', desc: 'Triggered when a new inbound lead submits the website enquiry form.' },
-  { key: 'outbound_search', label: 'Outbound Search', color: '#ef4444', desc: 'Triggered during outbound prospecting — extracts company names from search results.' },
-  { key: 'summarize',       label: 'Summarize',       color: '#06b6d4', desc: 'On-demand thread summarization from the engagement dashboard.' },
-  { key: 'rag_index',       label: 'RAG Index',       color: '#f97316', desc: 'Embedding cost for indexing Google Drive files (text-embedding-004).' },
+// ── Dimensions ────────────────────────────────────────────────────────────────
+
+type Cat = { key: string; label: string; color: string; desc: string }
+
+const AREAS: Cat[] = [
+  { key: 'engagement', label: 'Engagement', color: '#3b82f6', desc: 'Thread summaries, reply drafting, and inbound auto-drafts in the Engagement inbox.' },
+  { key: 'nexus',      label: 'Nexus',      color: '#8b5cf6', desc: 'Grand analysis (synthesis + Opus strategy) and the Ask-Opus consultant chat.' },
+  { key: 'rfq',        label: 'RFQ',        color: '#6366f1', desc: 'Client recommendation drafting and the per-line quote decision.' },
+  { key: 'outbound',   label: 'Outbound',   color: '#ef4444', desc: 'Company-name extraction during outbound prospecting.' },
+  { key: 'leads',      label: 'Leads',      color: '#f59e0b', desc: 'Analysis of new inbound website enquiries.' },
+  { key: 'knowledge',  label: 'Knowledge',  color: '#f97316', desc: 'Embedding cost for indexing Google Drive knowledge docs.' },
+  { key: 'other',      label: 'Other',      color: '#9ca3af', desc: 'Uncategorised usage.' },
 ]
+const AREA_OF_FEATURE: Record<string, string> = {
+  auto_summarize: 'engagement', draft_reply: 'engagement', draft_reply_drafter: 'engagement', draft_reply_editor: 'engagement',
+  refresh_summary: 'engagement', summarize: 'engagement', rag_draft_reply: 'engagement', inbound_auto_draft: 'engagement', draft_email: 'engagement',
+  nexus_synthesis: 'nexus', nexus_strategy: 'nexus', chat_consultant: 'nexus',
+  rfq_recommend: 'rfq', rfq_quote_decision: 'rfq',
+  outbound_search: 'outbound',
+  email_analysis: 'leads',
+  rag_index: 'knowledge',
+}
+
+const MODELS: Cat[] = [
+  { key: 'claude-opus-4-8',     label: 'Opus 4.8',        color: '#8b5cf6', desc: 'Claude Opus 4.8 — Nexus strategy, quote decisions, consultant chat, recommendations. $5 / $25 per 1M.' },
+  { key: 'gemini-2.5-pro',      label: 'Gemini 2.5 Pro',  color: '#3b82f6', desc: 'Gemini 2.5 Pro — Nexus synthesis + RFQ reasoning. $1.25 / $10 per 1M.' },
+  { key: 'gemini-2.5-flash',    label: 'Gemini 2.5 Flash', color: '#10b981', desc: 'Gemini 2.5 Flash — summaries, drafting, extraction. $0.15 / $0.60 per 1M.' },
+  { key: 'gemini-embedding-001', label: 'Embedding',      color: '#f97316', desc: 'gemini-embedding-001 — RAG indexing (priced per character).' },
+  { key: 'other',               label: 'Other',           color: '#9ca3af', desc: 'Unlabelled model (legacy rows).' },
+]
+
+function catOf(row: UsageRow, dim: Dim): string {
+  if (dim === 'area') return AREA_OF_FEATURE[row.feature] ?? 'other'
+  const m = row.model ?? ''
+  return MODELS.some(c => c.key === m) ? m : 'other'
+}
 
 const RANGE_DAYS: Record<Range, number> = { '7d': 7, '30d': 30, '90d': 90 }
 const SGD_PER_USD = 1.35
@@ -41,26 +65,29 @@ async function fetchUsage(days: number): Promise<UsageRow[]> {
   return res.ok ? res.json() : []
 }
 
-function bucketByDay(rows: UsageRow[], features: string[]): DayBucket[] {
+type DayBucket = { date: string; total: number; cost: number } & Record<string, number>
+
+function bucketByDay(rows: UsageRow[], dim: Dim): DayBucket[] {
   const map = new Map<string, DayBucket>()
   for (const row of rows) {
     const date = row.created_at.slice(0, 10)
-    if (!map.has(date)) map.set(date, { date, total: 0, cost: 0, auto_summarize: 0, draft_reply: 0, refresh_summary: 0, email_analysis: 0, outbound_search: 0, summarize: 0, rag_index: 0 })
-    const b = map.get(date)!; const tok = row.input_tokens + row.output_tokens
-    if (features.includes(row.feature)) {
-      const key = row.feature as keyof Omit<DayBucket, 'date' | 'total' | 'cost'>
-      b[key] = (b[key] ?? 0) + tok; b.total += tok; b.cost += row.cost_usd
-    }
+    if (!map.has(date)) map.set(date, { date, total: 0, cost: 0 } as DayBucket)
+    const b = map.get(date)!
+    const cat = catOf(row, dim)
+    const tok = row.input_tokens + row.output_tokens
+    b[cat] = (b[cat] ?? 0) + tok
+    b.total += tok
+    b.cost += row.cost_usd
   }
-  return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([, v]) => v)
+  return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date))
 }
 
 export default function AIUsagePage() {
-  const [rows,           setRows]           = useState<UsageRow[]>([])
-  const [range,          setRange]          = useState<Range>('30d')
-  const [activeFeatures, setActiveFeatures] = useState<string[]>(FEATURES.map(f => f.key))
-  const [metric,         setMetric]         = useState<'tokens' | 'cost'>('tokens')
-  const [loading,        setLoading]        = useState(true)
+  const [rows,    setRows]    = useState<UsageRow[]>([])
+  const [range,   setRange]   = useState<Range>('30d')
+  const [dim,     setDim]     = useState<Dim>('area')
+  const [metric,  setMetric]  = useState<'tokens' | 'cost'>('cost')
+  const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
     setLoading(true); const data = await fetchUsage(RANGE_DAYS[range]); setRows(data); setLoading(false)
@@ -68,20 +95,31 @@ export default function AIUsagePage() {
 
   useEffect(() => { load() }, [load])
 
-  const filtered  = rows.filter(r => activeFeatures.includes(r.feature))
-  const totalTok  = filtered.reduce((s, r) => s + r.input_tokens + r.output_tokens, 0)
-  const totalCost = filtered.reduce((s, r) => s + r.cost_usd, 0)
-  const totalCall = filtered.length
-  const chartData = bucketByDay(rows, activeFeatures)
+  const cats = dim === 'area' ? AREAS : MODELS
+  const chartData = useMemo(() => bucketByDay(rows, dim), [rows, dim])
 
-  function toggleFeature(key: string) {
-    setActiveFeatures(prev => prev.includes(key) ? (prev.length > 1 ? prev.filter(k => k !== key) : prev) : [...prev, key])
-  }
+  // Categories that actually have data (drives bars + legend + the breakdown key).
+  const catTotals = useMemo(() => {
+    const t = new Map<string, { tok: number; cost: number }>()
+    for (const r of rows) {
+      const k = catOf(r, dim)
+      const e = t.get(k) ?? { tok: 0, cost: 0 }
+      e.tok += r.input_tokens + r.output_tokens; e.cost += r.cost_usd
+      t.set(k, e)
+    }
+    return t
+  }, [rows, dim])
+  const presentCats = cats.filter(c => catTotals.has(c.key))
+
+  const totalTok  = rows.reduce((s, r) => s + r.input_tokens + r.output_tokens, 0)
+  const totalCost = rows.reduce((s, r) => s + r.cost_usd, 0)
+  const totalCall = rows.length
+  const topCat    = presentCats.slice().sort((a, b) => (catTotals.get(b.key)!.cost) - (catTotals.get(a.key)!.cost))[0]
 
   const STAT_CARDS = [
-    { label: 'Total Tokens', value: fmtTokens(totalTok), sub: `${range} · ${activeFeatures.length} features`, color: '#3b82f6' },
-    { label: 'Total Cost',   value: fmtCost(totalCost),  sub: `${fmtCostSGD(totalCost)} SGD`,                  color: '#10b981' },
-    { label: 'API Calls',    value: totalCall.toLocaleString(), sub: 'Gemini requests',                         color: '#8b5cf6' },
+    { label: 'Total Cost',   value: fmtCost(totalCost),  sub: `${fmtCostSGD(totalCost)} SGD · ${range}`, color: '#10b981' },
+    { label: 'Total Tokens', value: fmtTokens(totalTok), sub: `${totalCall.toLocaleString()} calls`,     color: '#3b82f6' },
+    { label: 'Top ' + (dim === 'area' ? 'area' : 'model'), value: topCat?.label ?? '—', sub: topCat ? fmtCost(catTotals.get(topCat.key)!.cost) : '', color: topCat?.color ?? '#8b5cf6' },
     { label: 'Avg / Call',   value: fmtTokens(totalCall ? Math.round(totalTok / totalCall) : 0), sub: 'tokens per request', color: '#f59e0b' },
   ]
 
@@ -92,7 +130,7 @@ export default function AIUsagePage() {
       <div className="flex items-start justify-between mb-6 gap-4">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-foreground">AI Usage</h1>
-          <p className="text-sm text-muted-foreground mt-1">Gemini 2.5 Flash — token consumption &amp; cost</p>
+          <p className="text-sm text-muted-foreground mt-1">Opus &amp; Gemini — token consumption &amp; cost across Engagement, Nexus and RFQ</p>
         </div>
         <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
           <RefreshCw size={13} strokeWidth={2} className={loading ? 'animate-spin' : ''} />
@@ -122,56 +160,46 @@ export default function AIUsagePage() {
       <Card className="mb-4">
         <CardContent className="p-5">
 
-          {/* Feature pills */}
-          <div className="flex flex-wrap gap-1.5 mb-4">
-            {FEATURES.map(f => {
-              const active = activeFeatures.includes(f.key)
-              return (
-                <button key={f.key} title={f.desc} onClick={() => toggleFeature(f.key)}
-                  className={cn(
-                    'text-[11px] font-semibold px-3 py-1 rounded-[6px] transition-all duration-150',
-                    active ? 'opacity-100' : 'opacity-50'
-                  )}
-                  style={{
-                    background: active ? `${f.color}18` : 'hsl(var(--muted))',
-                    color: active ? f.color : 'hsl(var(--muted-foreground))',
-                  }}
-                >
-                  {f.label}
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Metric + range toggles */}
-          <div className="flex flex-wrap items-center justify-end gap-2 mb-5 pt-3 border-t border-[--border-subtle]">
+          {/* View (dimension) + metric + range toggles */}
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-5">
             <div className="flex rounded-md overflow-hidden border border-border">
-              {(['tokens', 'cost'] as const).map(m => (
-                <button key={m} onClick={() => setMetric(m)}
-                  className={cn('px-3 py-1 text-[11px] font-medium transition-colors', metric === m ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted/50')}
+              {(['area', 'model'] as Dim[]).map(d => (
+                <button key={d} onClick={() => setDim(d)}
+                  className={cn('px-3.5 py-1 text-[11px] font-semibold transition-colors', dim === d ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted/50')}
                 >
-                  {m === 'tokens' ? 'Tokens' : 'Cost (USD · SGD)'}
+                  {d === 'area' ? 'By product area' : 'By model'}
                 </button>
               ))}
             </div>
-            <div className="flex rounded-md overflow-hidden border border-border">
-              {(['7d', '30d', '90d'] as Range[]).map(r => (
-                <button key={r} onClick={() => setRange(r)}
-                  className={cn('px-3 py-1 text-[11px] font-medium transition-colors', range === r ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted/50')}
-                >
-                  {r}
-                </button>
-              ))}
+            <div className="flex items-center gap-2">
+              <div className="flex rounded-md overflow-hidden border border-border">
+                {(['cost', 'tokens'] as const).map(m => (
+                  <button key={m} onClick={() => setMetric(m)}
+                    className={cn('px-3 py-1 text-[11px] font-medium transition-colors', metric === m ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted/50')}
+                  >
+                    {m === 'tokens' ? 'Tokens' : 'Cost'}
+                  </button>
+                ))}
+              </div>
+              <div className="flex rounded-md overflow-hidden border border-border">
+                {(['7d', '30d', '90d'] as Range[]).map(r => (
+                  <button key={r} onClick={() => setRange(r)}
+                    className={cn('px-3 py-1 text-[11px] font-medium transition-colors', range === r ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted/50')}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
           {/* Chart */}
           {loading ? (
-            <div className="h-[280px] flex items-center justify-center text-sm text-muted-foreground">Loading…</div>
+            <div className="h-[300px] flex items-center justify-center text-sm text-muted-foreground">Loading…</div>
           ) : chartData.length === 0 ? (
-            <div className="h-[280px] flex flex-col items-center justify-center gap-2 text-muted-foreground">
+            <div className="h-[300px] flex flex-col items-center justify-center gap-2 text-muted-foreground">
               <Cpu size={32} strokeWidth={1.5} className="opacity-30" />
-              <p className="text-sm">No usage data yet — appears once Gemini API calls are made.</p>
+              <p className="text-sm">No usage data yet — appears once AI calls are made.</p>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={300}>
@@ -182,12 +210,12 @@ export default function AIUsagePage() {
                   <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} tickLine={false} axisLine={false}
                     tickFormatter={v => fmtTokens(Number(v))} width={48} />
                   <Tooltip cursor={false}
-                    formatter={(v, name) => [fmtTokens(Number(v)), FEATURES.find(f => f.key === name)?.label ?? String(name)]}
+                    formatter={(v, name) => [fmtTokens(Number(v)), cats.find(c => c.key === name)?.label ?? String(name)]}
                     labelFormatter={l => `Date: ${l}`}
                     contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid hsl(var(--border))' }} />
-                  <Legend formatter={name => FEATURES.find(f => f.key === name)?.label ?? name} wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
-                  {FEATURES.filter(f => activeFeatures.includes(f.key)).map(f => (
-                    <Bar key={f.key} dataKey={f.key} stackId="a" fill={f.color} />
+                  <Legend formatter={name => cats.find(c => c.key === name)?.label ?? name} wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                  {presentCats.map(c => (
+                    <Bar key={c.key} dataKey={c.key} stackId="a" fill={c.color} />
                   ))}
                 </BarChart>
               ) : (
@@ -200,7 +228,7 @@ export default function AIUsagePage() {
                     formatter={v => [`$${Number(v).toFixed(6)} · S$${(Number(v)*SGD_PER_USD).toFixed(6)}`, 'Cost']}
                     labelFormatter={l => `Date: ${l}`}
                     contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid hsl(var(--border))' }} />
-                  <Bar dataKey="cost" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="cost" fill="#10b981" radius={[4, 4, 0, 0]} />
                 </BarChart>
               )}
             </ResponsiveContainer>
@@ -208,22 +236,29 @@ export default function AIUsagePage() {
         </CardContent>
       </Card>
 
-      {/* Feature key */}
+      {/* Breakdown key (by the active dimension) */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">What each feature tracks</CardTitle>
+          <CardTitle className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+            Breakdown by {dim === 'area' ? 'product area' : 'model'}
+          </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {FEATURES.map(f => (
-              <div key={f.key} className="flex gap-2.5 items-start">
-                <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0 mt-1" style={{ background: f.color }} />
-                <div>
-                  <p className="text-[12px] font-semibold text-foreground">{f.label}</p>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">{f.desc}</p>
+            {presentCats.map(c => {
+              const e = catTotals.get(c.key)!
+              return (
+                <div key={c.key} className="flex gap-2.5 items-start">
+                  <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0 mt-1" style={{ background: c.color }} />
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-semibold text-foreground">
+                      {c.label} <span className="text-muted-foreground font-normal">· {fmtCost(e.cost)} · {fmtTokens(e.tok)} tok</span>
+                    </p>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">{c.desc}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </CardContent>
       </Card>

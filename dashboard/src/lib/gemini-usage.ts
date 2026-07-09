@@ -1,11 +1,17 @@
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
-// Gemini 2.5 Flash pricing (non-thinking)
-const INPUT_COST_PER_TOKEN  = 0.15  / 1_000_000   // $0.15 per 1M input tokens
-const OUTPUT_COST_PER_TOKEN = 0.60  / 1_000_000   // $0.60 per 1M output tokens
+// Per-model token pricing (USD per token). Extend as models are added.
+const PRICING: Record<string, { in: number; out: number }> = {
+  'gemini-2.5-flash': { in: 0.15 / 1e6, out: 0.60 / 1e6 },
+  'gemini-2.5-pro':   { in: 1.25 / 1e6, out: 10.0 / 1e6 },
+  'claude-opus-4-8':  { in: 5.00 / 1e6, out: 25.0 / 1e6 },
+}
+const DEFAULT_MODEL = 'gemini-2.5-flash'
 
 // gemini-embedding-001 pricing: $0.000025 per 1,000 characters
 const EMBED_COST_PER_CHAR = 0.000025 / 1_000
+
+export type Provider = 'gemini' | 'anthropic'
 
 export type GeminiFeature =
   | 'auto_summarize'
@@ -22,44 +28,87 @@ export type GeminiFeature =
   | 'inbound_auto_draft'
   | 'nexus_synthesis'
 
+// Opus / cross-provider features layered on top of the original Gemini ones.
+export type AiFeature =
+  | GeminiFeature
+  | 'nexus_strategy'
+  | 'chat_consultant'
+  | 'rfq_recommend'
+  | 'rfq_quote_decision'
+
 export interface GeminiUsageMeta {
   promptTokenCount?:     number
   candidatesTokenCount?: number
   totalTokenCount?:      number
 }
 
-export async function logGeminiUsage(
-  feature:   GeminiFeature,
-  usage:     GeminiUsageMeta,
-  threadId?: string | null,
-): Promise<void> {
+// Generic AI-usage ledger write (Gemini + Anthropic). Cost is derived from the
+// model's per-token pricing. Never throws — logging must not break a flow.
+export async function logAiUsage(p: {
+  provider:     Provider
+  model:        string
+  feature:      AiFeature
+  inputTokens:  number
+  outputTokens: number
+  threadId?:    string | null
+  metadata?:    Record<string, unknown>
+}): Promise<void> {
   try {
-    const inputTokens  = usage.promptTokenCount     ?? 0
-    const outputTokens = usage.candidatesTokenCount ?? 0
-    const costUsd      = inputTokens * INPUT_COST_PER_TOKEN + outputTokens * OUTPUT_COST_PER_TOKEN
-
     const k = process.env.SUPABASE_SERVICE_KEY
     if (!k) return
-
+    const price   = PRICING[p.model] ?? PRICING[DEFAULT_MODEL]
+    const costUsd = (p.inputTokens || 0) * price.in + (p.outputTokens || 0) * price.out
     await fetch(`${SB_URL}/rest/v1/gemini_usage_log`, {
       method:  'POST',
-      headers: {
-        apikey:         k,
-        Authorization:  `Bearer ${k}`,
-        'Content-Type': 'application/json',
-        Prefer:         'return=minimal',
-      },
+      headers: { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
       body: JSON.stringify({
-        feature,
-        input_tokens:  inputTokens,
-        output_tokens: outputTokens,
+        provider:      p.provider,
+        model:         p.model,
+        feature:       p.feature,
+        input_tokens:  p.inputTokens  || 0,
+        output_tokens: p.outputTokens || 0,
         cost_usd:      costUsd,
-        thread_id:     threadId ?? null,
+        thread_id:     p.threadId ?? null,
+        ...(p.metadata ? { metadata: JSON.stringify(p.metadata) } : {}),
       }),
     })
   } catch {
-    // Non-fatal — never let logging break the main flow
+    // Non-fatal
   }
+}
+
+export async function logGeminiUsage(
+  feature:   AiFeature,
+  usage:     GeminiUsageMeta,
+  threadId?: string | null,
+  model:     string = DEFAULT_MODEL,
+): Promise<void> {
+  await logAiUsage({
+    provider:     'gemini',
+    model,
+    feature,
+    inputTokens:  usage.promptTokenCount     ?? 0,
+    outputTokens: usage.candidatesTokenCount ?? 0,
+    threadId,
+  })
+}
+
+// Convenience for Anthropic (Opus) usage — reads the {input_tokens, output_tokens}
+// shape returned by the Messages API.
+export async function logAnthropicUsage(
+  feature:   AiFeature,
+  usage:     { input_tokens?: number; output_tokens?: number } | null | undefined,
+  threadId?: string | null,
+  model:     string = 'claude-opus-4-8',
+): Promise<void> {
+  await logAiUsage({
+    provider:     'anthropic',
+    model,
+    feature,
+    inputTokens:  usage?.input_tokens  ?? 0,
+    outputTokens: usage?.output_tokens ?? 0,
+    threadId,
+  })
 }
 
 // Log embedding usage (text-embedding-004 — priced per character, no output tokens)
@@ -77,6 +126,8 @@ export async function logEmbeddingUsage(totalChars: number, fileCount: number): 
         Prefer:         'return=minimal',
       },
       body: JSON.stringify({
+        provider:      'gemini',
+        model:         'gemini-embedding-001',
         feature:       'rag_index',
         input_tokens:  totalChars,   // stored as char count (not tokens — different model)
         output_tokens: 0,
