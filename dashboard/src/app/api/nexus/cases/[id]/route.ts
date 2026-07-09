@@ -53,7 +53,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       // Attachment extraction status + file metadata per thread
       threadIds.length > 0
         ? fetch(
-            `${SB_URL}/rest/v1/email_attachments?thread_id=in.(${threadIds.join(',')})&select=thread_id,filename,mime_type,storage_url,parsed_at&order=created_at.asc`,
+            `${SB_URL}/rest/v1/email_attachments?thread_id=in.(${threadIds.join(',')})&select=id,thread_id,filename,mime_type,size_bytes,storage_url,parsed_at,created_at&order=created_at.asc`,
             { headers: sbHeaders() }
           ).then(r => r.ok ? r.json() : []).catch(() => [])
         : Promise.resolve([]),
@@ -91,7 +91,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     }
 
     // Attachment records per thread
-    type AttRow = { thread_id: string; filename: string; mime_type: string | null; storage_url: string | null; parsed_at: string | null }
+    type AttRow = { id: string; thread_id: string; filename: string; mime_type: string | null; size_bytes: number | null; storage_url: string | null; parsed_at: string | null; created_at: string | null }
     const attRows: AttRow[] = Array.isArray(extractedAttachments) ? extractedAttachments : []
     const attByThread: Record<string, AttRow[]> = {}
     for (const row of attRows) {

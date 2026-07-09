@@ -46,11 +46,14 @@ type CaseThreadMsg = {
 }
 
 type AttachmentRecord = {
+  id?:         string
   thread_id:   string
   filename:    string
   mime_type:   string | null
+  size_bytes?: number | null
   storage_url: string | null
   parsed_at:   string | null
+  created_at?: string | null
 }
 
 type CaseThread = {
@@ -1071,6 +1074,9 @@ function MissionControlBody({
         pending={sa?.case_brief?.pending}
         threads={threads}
       />
+
+      {/* 6 — Documents (every attachment, grouped by who sent it) */}
+      <AttachmentsSection threads={threads} attachmentRecords={attachmentRecords} />
     </div>
   )
 }
@@ -1707,6 +1713,93 @@ function scenarioView(s: V1Scenario) {
   const cleanName = name.replace(/^\s*(best|base|worst)\s+case\s*[—\-:]\s*/i, '').trim() || name
   const pm = SCENARIO_PROB[s.probability?.toLowerCase()] ?? SCENARIO_PROB.low
   return { disp, cleanName, pm }
+}
+
+// ── Documents / Attachments index (grouped by the party that sent them) ────────
+
+function fmtBytes(n?: number | null): string {
+  if (!n) return ''
+  if (n >= 1e6) return `${(n / 1e6).toFixed(1)} MB`
+  if (n >= 1e3) return `${Math.round(n / 1e3)} KB`
+  return `${n} B`
+}
+
+function AttachmentsSection({ threads, attachmentRecords }: { threads: CaseThread[]; attachmentRecords: AttachmentRecord[] }) {
+  // Dedupe (same file can appear on multiple messages) by id, else filename+thread.
+  const seen = new Set<string>()
+  const files = attachmentRecords.filter(a => {
+    const key = a.id ?? `${a.thread_id}:${a.filename}`
+    if (seen.has(key)) return false
+    seen.add(key); return true
+  })
+  if (files.length === 0) return (
+    <div>
+      <SectionLabel title="Documents" />
+      <NoDataState icon={FileText} message="No attachments on this case yet." />
+    </div>
+  )
+
+  // Attribute each file to the party whose thread it arrived on.
+  const threadParty = new Map(threads.map(ct => [ct.thread_id, { type: (ct.party_type ?? 'other').toLowerCase(), label: ct.party_label ?? (ct.thread?.contact ? contactName(ct.thread.contact) : null) }]))
+  const groups = new Map<string, { label: string; items: AttachmentRecord[] }>()
+  for (const f of files) {
+    const p = threadParty.get(f.thread_id) ?? { type: 'other', label: null }
+    const key = p.label || partyLabel(p.type)
+    if (!groups.has(key)) groups.set(key, { label: key, items: [] })
+    groups.get(key)!.items.push(f)
+  }
+  // party-type order, then by label; newest file first within a group.
+  const partyRank = (label: string) => {
+    const ct = threads.find(t => (t.party_label ?? '') === label)
+    const n = PARTY_ORDER.indexOf((ct?.party_type ?? 'other').toLowerCase())
+    return n < 0 ? 99 : n
+  }
+  const sortedGroups = Array.from(groups.values()).sort((a, b) => partyRank(a.label) - partyRank(b.label) || a.label.localeCompare(b.label))
+  for (const g of sortedGroups) g.items.sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime())
+
+  const total = files.length
+  const parsed = files.filter(f => f.parsed_at).length
+
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-2">
+        <SectionLabel title="Documents" />
+        <span className="text-[10px] text-muted-foreground/60">{total} file{total !== 1 ? 's' : ''} · {parsed} read by Nexus</span>
+      </div>
+      <div className="flex flex-col gap-3 mt-1">
+        {sortedGroups.map(g => {
+          const ct = threads.find(t => (t.party_label ?? '') === g.label)
+          const pc = partyColor(ct?.party_type ?? 'other')
+          return (
+            <div key={g.label} className="rounded-lg border border-[--border-subtle] bg-card overflow-hidden">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 border-b border-[--border-subtle]/60">
+                <span className="text-[10px] font-bold uppercase tracking-wide rounded px-1.5 py-0.5" style={{ background: pc.bg, color: pc.text }}>{partyLabel(ct?.party_type ?? 'other')}</span>
+                <span className="text-[11.5px] font-semibold text-foreground truncate">{g.label}</span>
+                <span className="text-[10px] text-muted-foreground/50 ml-auto">{g.items.length}</span>
+              </div>
+              <div className="flex flex-col divide-y divide-border/40">
+                {g.items.map((f, i) => (
+                  <div key={f.id ?? i} className="flex items-center gap-2 px-3 py-2 text-[11.5px]">
+                    <FileText size={12} className="text-muted-foreground/50 flex-shrink-0" />
+                    {f.storage_url
+                      ? <a href={f.storage_url} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline truncate">{f.filename}</a>
+                      : <span className="font-medium text-foreground truncate">{f.filename}</span>}
+                    <span className="text-[10px] text-muted-foreground/50 flex-shrink-0">{fmtBytes(f.size_bytes)}</span>
+                    <span className="ml-auto flex items-center gap-2 flex-shrink-0">
+                      {f.created_at && <span className="text-[10px] text-muted-foreground/50">{new Date(f.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>}
+                      {f.parsed_at
+                        ? <span className="text-[9px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-1.5 py-0.5">read</span>
+                        : <span className="text-[9px] font-bold uppercase tracking-wide text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-1.5 py-0.5">pending</span>}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 function ScenarioSection({ scenarios }: { scenarios: V1Scenario[] }) {
