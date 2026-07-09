@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { X, ChevronRight, ChevronDown, Users, Copy, Check, Plus } from 'lucide-react'
+import { X, ChevronRight, ChevronDown, Users, Copy, Check, Plus, UploadCloud } from 'lucide-react'
+import BulkImportContacts from '@/components/BulkImportContacts'
 import { cn } from '@/lib/utils'
 import { AppSplitLayout, AppMainPanel, AppPageHeader } from '@/components/app-shell'
 import { DataTableToolbar, DataTableSearch } from '@/components/data-table/toolbar'
@@ -165,6 +166,7 @@ export default function ContactsPage() {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [copied,    setCopied]    = useState<string | null>(null)
   const [addOpen,   setAddOpen]   = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
 
   const load = useCallback(() => {
     Promise.all([
@@ -222,13 +224,19 @@ export default function ContactsPage() {
             ? 'Loading contacts…'
             : `${primaryCount} contact${primaryCount !== 1 ? 's' : ''}${ccCount > 0 ? ` · ${ccCount} CC` : ''}`}
           actions={
-            <Button size="sm" onClick={() => setAddOpen(true)} className="gap-1.5">
-              <Plus size={14} /> Add contact
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={() => setImportOpen(true)} className="gap-1.5">
+                <UploadCloud size={14} /> Import CSV
+              </Button>
+              <Button size="sm" onClick={() => setAddOpen(true)} className="gap-1.5">
+                <Plus size={14} /> Add contact
+              </Button>
+            </div>
           }
         />
 
         <AddContactDialog open={addOpen} onOpenChange={setAddOpen} onSaved={load} />
+        <BulkImportContacts open={importOpen} onOpenChange={setImportOpen} onImported={load} />
 
         {/* Table card */}
         <div className="flex-1 overflow-hidden px-6 pb-6">
