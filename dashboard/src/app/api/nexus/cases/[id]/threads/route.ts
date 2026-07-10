@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logActivity }               from '@/lib/log-activity'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -42,6 +43,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       body:    JSON.stringify({ updated_at: new Date().toISOString() }),
     }).catch(() => {})
 
+    void logActivity({ action: 'nexus.thread_linked', resource_type: 'case', resource_id: params.id, metadata: { thread_id, party_type } })
     return NextResponse.json(Array.isArray(rows) ? rows[0] : rows)
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
@@ -82,6 +84,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
       { method: 'DELETE', headers: sbHeaders('return=minimal') }
     )
     if (!res.ok) return NextResponse.json({ error: await res.text() }, { status: res.status })
+    void logActivity({ action: 'nexus.thread_unlinked', resource_type: 'case', resource_id: params.id, metadata: { thread_id: threadId } })
     return NextResponse.json({ ok: true })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })

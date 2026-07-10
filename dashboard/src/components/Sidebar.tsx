@@ -235,7 +235,7 @@ export default function Sidebar() {
         {analyticsOpen && (
           <div className="space-y-px">
             <NavItem label="Funnel"           href="/analytics"           icon={BarChart2}    isActive={active('/analytics') && !active('/analytics/ai-usage') && !active('/analytics/activity') && !active('/analytics/eval') && !active('/analytics/rag-index')} disabled />
-            <NavItem label="Activity Log"     href="/analytics/activity"  icon={UsersRound}   isActive={active('/analytics/activity')} disabled />
+            <NavItem label="Activity Log"     href="/analytics/activity"  icon={UsersRound}   isActive={active('/analytics/activity')} />
             <NavItem label="AI Usage"         href="/analytics/ai-usage"  icon={Cpu}          isActive={active('/analytics/ai-usage')} />
             <NavItem label="RAG Index"        href="/analytics/rag-index" icon={FolderOpen}   isActive={active('/analytics/rag-index')} />
             <NavItem label="Email Evaluation" href="/analytics/eval"      icon={FlaskConical} isActive={active('/analytics/eval')} />

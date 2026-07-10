@@ -12,6 +12,8 @@ import {
 import { cn } from '@/lib/utils'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
 import RfqPanel from '@/components/nexus/RfqPanel'
+import { ActivityFeed, LastHandledBy } from '@/components/ActivityFeed'
+import { logClient } from '@/lib/log-client'
 import { createClient } from '@/lib/supabase/client'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -566,6 +568,9 @@ function CaseDetailPanel({
     } finally { setLoading(false) }
   }, [caseData.id, loadRuns])
 
+  // Record who opened this case (feeds "last handled by" + the activity feed).
+  useEffect(() => { logClient('nexus.case_viewed', { resource_type: 'case', resource_id: caseData.id }) }, [caseData.id])
+
   // RFQ request count — drives whether the RFQ tab shows.
   useEffect(() => {
     let cancelled = false
@@ -939,6 +944,7 @@ function MissionHeader({
           {caseData.description && (
             <p className="text-[11px] text-muted-foreground/55 truncate">{caseData.description}</p>
           )}
+          <LastHandledBy resourceId={caseData.id} className="text-[10px] text-muted-foreground/45 mt-0.5 block truncate" />
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {confirmDelete ? (
@@ -2661,20 +2667,30 @@ function RunHistoryView({
 
   if (runs.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-4 py-28 px-8 text-center">
-        <div className="w-14 h-14 rounded-2xl bg-muted/60 border border-[--border-subtle] flex items-center justify-center">
-          <Database size={24} strokeWidth={1.2} className="text-muted-foreground/30" />
+      <div className="px-6 py-6 flex flex-col gap-4 pb-12">
+        <div className="flex flex-col items-center gap-3 py-12 px-8 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-muted/60 border border-[--border-subtle] flex items-center justify-center">
+            <Database size={24} strokeWidth={1.2} className="text-muted-foreground/30" />
+          </div>
+          <p className="text-[12.5px] font-bold text-foreground/50">No analysis runs yet</p>
+          <button onClick={onGoToMission} className="text-[11px] text-primary font-semibold hover:opacity-80">
+            Go to Mission Control →
+          </button>
         </div>
-        <p className="text-[12.5px] font-bold text-foreground/50">No analysis runs yet</p>
-        <button onClick={onGoToMission} className="text-[11px] text-primary font-semibold hover:opacity-80">
-          Go to Mission Control →
-        </button>
+        <div>
+          <SectionLabel title="Case activity" />
+          <ActivityFeed resourceId={caseId} emptyText="No activity on this case yet." />
+        </div>
       </div>
     )
   }
 
   return (
     <div className="px-6 py-6 flex flex-col gap-4 pb-12">
+      <div>
+        <SectionLabel title="Case activity" />
+        <ActivityFeed resourceId={caseId} emptyText="No activity on this case yet." />
+      </div>
       <div className="flex items-center justify-between">
         <SectionLabel title="Analysis Run History" count={runs.length} />
         <div className="flex items-center gap-2">

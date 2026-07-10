@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runNexusAnalysis } from '@/lib/run-nexus-analysis'
+import { logActivity }      from '@/lib/log-activity'
 
 export const maxDuration = 300
 
@@ -19,6 +20,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     } catch { /* no body is fine */ }
 
     const origin = new URL(req.url).origin
+    void logActivity({ action: 'nexus.analysis_run', resource_type: 'case', resource_id: params.id, metadata: { via: triggeredBy ?? 'button', threads: threadIds?.length ?? 'all' } })
     const analysis = await runNexusAnalysis(params.id, triggeredBy, instructions, { origin, threadIds })
     return NextResponse.json({ ok: true, analysis })
   } catch (e) {
