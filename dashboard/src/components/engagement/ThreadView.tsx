@@ -205,7 +205,10 @@ export function ThreadView({
           onCancelDelete={() => setConfirmDelete(false)}
         />
 
-        <AddToCaseControl threadId={threadId} />
+        {/* Only offer "Add to Nexus case" when the thread isn't already in one —
+            an insurer RFQ thread already belongs to its case (shown by the banner
+            below), so the two would otherwise contradict each other. */}
+        {!rfqContext?.case_id && <AddToCaseControl threadId={threadId} />}
 
         {/* ── Messages scroll region ── */}
         <EaMessageArea>
