@@ -105,6 +105,8 @@ export type TimelineEventV1 = {
   significance:  string
   citation_ids?: string[]
   stakeholder_id?: string    // which stakeholder this event is about
+  date_verified?: boolean    // the date string was found verbatim in the source (#3)
+  date_excerpt?:  string     // the source span the date came from
 }
 
 export type EvidenceItem = {
@@ -559,6 +561,63 @@ function stringSimilarity(a: string, b: string): number {
   let intersection = 0
   for (const bg of Array.from(aMap.keys())) intersection += Math.min(aMap.get(bg)!, bMap.get(bg) ?? 0)
   return (2 * intersection) / (a.length + b.length - 2)
+}
+
+// ── Dedicated timeline pass + date verification (#3) ──────────────────────────
+// Timeline accuracy matters most to the user, so we spend a focused Opus pass on
+// it over the RAW corpus (not the synthesis summary), demanding the date EXACTLY
+// as written + the source span it came from. Then we DETERMINISTICALLY verify the
+// date span actually appears in the corpus and flag any that don't.
+
+const normSpace = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim()
+
+async function extractVerifiedTimeline(corpus: string, anthropicKey: string): Promise<TimelineEventV1[]> {
+  const prompt = `You are a meticulous insurance case analyst. From the SOURCE below (emails + attachment text), extract EVERY event that has an explicit date. Accuracy of dates is critical.
+
+RULES:
+- Only include an event if its date is EXPLICITLY stated in the SOURCE. Never infer or estimate a date.
+- "date": normalise to YYYY-MM-DD where the full date is given; otherwise keep it exactly as written (e.g. "March 2025").
+- "date_excerpt": copy the SHORT verbatim span from the SOURCE that contains this date (character-for-character).
+- "event": one specific sentence of what happened. "party": client|insurer|lawyer|regulator|trs|other.
+- "significance": why it matters to the case.
+- Order chronologically. Do not merge distinct events. Do not invent parties or amounts.
+
+Return ONLY a JSON array:
+[ { "date": "...", "date_excerpt": "...", "party": "...", "event": "...", "significance": "..." } ]
+
+SOURCE:
+${corpus.slice(0, 120_000)}`
+
+  try {
+    const res = await fetch(ANTHROPIC_URL, {
+      method:  'POST',
+      headers: { 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-opus-4-8', max_tokens: 8000, thinking: { type: 'adaptive' }, messages: [{ role: 'user', content: prompt }] }),
+    })
+    if (!res.ok) return []
+    const data = await res.json()
+    void logAnthropicUsage('nexus_strategy', data?.usage)
+    const text = ((data?.content ?? []) as { type?: string; text?: string }[]).find(b => b.type === 'text')?.text ?? ''
+    const parsed = parseJsonSafe(text) as unknown
+    const arr = Array.isArray(parsed) ? parsed : (parsed as { timeline?: unknown[] })?.timeline
+    if (!Array.isArray(arr)) return []
+
+    const haystack = normSpace(corpus)
+    return arr.map((e) => {
+      const ev = e as { date?: string; date_excerpt?: string; party?: string; event?: string; significance?: string }
+      // Deterministic check: the cited date span (or the date itself) appears verbatim in the source.
+      const excerpt = ev.date_excerpt ?? ''
+      const verified = (!!excerpt && haystack.includes(normSpace(excerpt))) || (!!ev.date && haystack.includes(normSpace(ev.date)))
+      return {
+        date:          ev.date ?? '',
+        party:         ev.party ?? 'other',
+        event:         ev.event ?? '',
+        significance:  ev.significance ?? '',
+        date_excerpt:  excerpt || undefined,
+        date_verified: verified,
+      } as TimelineEventV1
+    }).filter(e => e.date && e.event)
+  } catch { return [] }
 }
 
 // Cap scenarios at 3; ensure each has required arrays even if model skipped them.
@@ -1444,13 +1503,20 @@ COMMUNICATION BRIEFS (you plan the emails; a separate drafting model writes them
     truncation_flags:     truncationFlags,
   }
 
+  // ── #3 Dedicated, date-verified timeline (Opus over the raw corpus) ──────────
+  let verifiedTimeline: TimelineEventV1[] = []
+  if (anthropicKey) {
+    try { verifiedTimeline = await extractVerifiedTimeline(`${threadSections}\n\n${attachmentText}`, anthropicKey) }
+    catch (e) { console.warn('[nexus] timeline pass non-fatal:', e) }
+  }
+
   // ── Build V1 structured analysis ─────────────────────────────────────────────
 
   const structuredAnalysis: NexusAnalysisV1 = {
     schema_version:         '1.0',
     case_brief:             synthesis.case_brief,
     stakeholder_map:        synthesis.stakeholder_map  ?? [],
-    timeline:               synthesis.timeline         ?? [],
+    timeline:               (verifiedTimeline.length > 0 ? verifiedTimeline : synthesis.timeline) ?? [],
     evidence_ledger:        synthesis.evidence_ledger  ?? [],
     open_questions:         synthesis.open_questions   ?? [],
     missing_items:          synthesis.missing_items    ?? [],

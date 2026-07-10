@@ -93,7 +93,7 @@ type PlaybookStep = {
 // V1 analysis types (mirrors NexusAnalysisV1 from run-nexus-analysis)
 type V1Citation    = { id: string; label: string; type: string; date?: string; excerpt?: string; message_id?: string; attachment_id?: string; thread_id?: string }
 type V1Stakeholder = { id: string; name: string; party_type: string; email?: string; company?: string; role_summary: string; stance?: string; thread_id?: string; contact_id?: string }
-type V1TimelineEvt = { date: string; party: string; event: string; significance: string; citation_ids?: string[]; stakeholder_id?: string }
+type V1TimelineEvt = { date: string; party: string; event: string; significance: string; citation_ids?: string[]; stakeholder_id?: string; date_verified?: boolean; date_excerpt?: string }
 type V1Evidence    = { id: string; filename_or_label: string; source_type: string; key_facts: string[]; coverage_relevant: boolean; citation_id?: string; message_id?: string; attachment_id?: string }
 type V1Question    = { question: string; priority: string; directed_at?: string; citation_ids?: string[]; stakeholder_id?: string }
 type V1Missing     = { item: string; required_from: string; urgency: string; impact: string; stakeholder_id?: string }
@@ -1926,8 +1926,8 @@ function MissionTimelineSection({
   const [showAll, setShowAll] = useState(false)
 
   const events = v1Timeline?.length > 0
-    ? v1Timeline.map(e => ({ date: e.date, party: e.party, event: e.event, significance: e.significance, citation_ids: e.citation_ids ?? [] }))
-    : legacyTimeline.map(e => ({ date: e.date, party: e.party, event: e.event, significance: e.significance, citation_ids: [] as string[] }))
+    ? v1Timeline.map(e => ({ date: e.date, party: e.party, event: e.event, significance: e.significance, citation_ids: e.citation_ids ?? [], date_verified: e.date_verified, date_excerpt: e.date_excerpt }))
+    : legacyTimeline.map(e => ({ date: e.date, party: e.party, event: e.event, significance: e.significance, citation_ids: [] as string[], date_verified: undefined as boolean | undefined, date_excerpt: undefined as string | undefined }))
 
   if (!events.length) return (
     <div>
@@ -1965,7 +1965,10 @@ function MissionTimelineSection({
                   <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: pc.text }}>
                     {e.party}
                   </span>
-                  <span className="text-[9.5px] text-muted-foreground/50">{fmtDate(e.date)}</span>
+                  <span className="text-[9.5px] text-muted-foreground/50" title={e.date_excerpt ? `Source: “${e.date_excerpt}”` : undefined}>{fmtDate(e.date)}</span>
+                  {e.date_verified === false && (
+                    <span className="text-[8.5px] font-bold uppercase tracking-wide text-amber-600 bg-amber-50 border border-amber-200 rounded px-1 py-0.5" title="This date could not be verified verbatim against the source — please check.">date?</span>
+                  )}
                   {e.citation_ids.map(cid => <CitationChip key={cid} id={cid} citations={citations} />)}
                 </div>
                 <p className="text-[12px] text-foreground/80 leading-[1.55] mb-0.5">{e.event}</p>
