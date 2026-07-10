@@ -359,6 +359,12 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
           window.location.href = `/engagement?lead=${threadId}`
           return
         }
+        // No thread yet → open the standalone composer in Engagement (created on send).
+        if (typeof window !== 'undefined' && action.to_email) {
+          window.sessionStorage.setItem('trs_pending_new', JSON.stringify({ toEmail: action.to_email, subject, body }))
+          window.location.href = '/engagement?compose=new'
+          return
+        }
         await navigator.clipboard.writeText(body).catch(() => {})
       } else if (action.type === 'edit_case' && caseId) {
         await fetch(`/api/nexus/cases/${caseId}`, {

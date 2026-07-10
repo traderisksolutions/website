@@ -2241,9 +2241,11 @@ function NextStepsSection({
         window.sessionStorage.setItem('trs_pending_reply', JSON.stringify({ threadId: data.thread_id, toEmail: data.to_email, subject: data.subject, body: data.body }))
         window.location.href = `/engagement?lead=${data.thread_id}`
       } else {
-        // No existing conversation yet — hand off the draft to start a fresh one.
-        await navigator.clipboard.writeText(data.body ?? '').catch(() => {})
-        setStepDraftState(prev => ({ ...prev, [key]: { status: 'done', errorMsg: `No thread with ${toEmail} yet — draft copied; start the email in Engagement.` } }))
+        // No existing thread — open the standalone composer in Engagement (compose
+        // only; the thread is created on send). The draft always lands in Engagement.
+        const toName = stakeholders.find(s => s.email && s.email.toLowerCase() === toEmail.toLowerCase())?.name
+        window.sessionStorage.setItem('trs_pending_new', JSON.stringify({ toEmail: data.to_email ?? toEmail, toName, subject: data.subject, body: data.body }))
+        window.location.href = `/engagement?compose=new`
       }
     } catch (e) {
       setStepDraftState(prev => ({ ...prev, [key]: { status: 'error', errorMsg: String(e) } }))

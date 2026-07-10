@@ -9,6 +9,7 @@ import { EMAIL_SOURCES, ENGAGED_STATUSES } from '@/components/engagement/types'
 import { matchesSearch } from '@/components/engagement/helpers'
 import { ConversationList } from '@/components/engagement/ConversationList'
 import { ThreadView } from '@/components/engagement/ThreadView'
+import { NewEmailComposeModal, type NewEmailDraft } from '@/components/engagement/NewEmailComposeModal'
 import { EngagementShell } from '@/components/engagement/shell'
 import { EaListPanel, EaWorkspaceArea, EaWorkspaceEmptyState } from '@/components/engagement/EaLayout'
 
@@ -80,6 +81,17 @@ function EngagementPageInner() {
   const [threadMap,       setThreadMap]       = useState<Record<string, ThreadState>>({})
   const [mobilePanelView, setMobilePanelView] = useState<'list' | 'thread'>('list')
   const [activeTab,       setActiveTab]       = useState<EngagementTab>('all')
+  const [newCompose,      setNewCompose]      = useState<NewEmailDraft | null>(null)
+
+  // A Nexus step targeting a recipient with no thread hands over a new-email
+  // draft here (compose-only) — open the composer so it lands in Engagement.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const raw = window.sessionStorage.getItem('trs_pending_new')
+    if (!raw) return
+    window.sessionStorage.removeItem('trs_pending_new')
+    try { setNewCompose(JSON.parse(raw) as NewEmailDraft) } catch { /* ignore */ }
+  }, [])
 
   const log = useAuditLog()
 
@@ -340,6 +352,13 @@ function EngagementPageInner() {
           )}
         </EaWorkspaceArea>
       </div>
+      {newCompose && (
+        <NewEmailComposeModal
+          initial={newCompose}
+          onClose={() => setNewCompose(null)}
+          onSent={() => { setNewCompose(null); load(true) }}
+        />
+      )}
     </EngagementShell>
   )
 }
