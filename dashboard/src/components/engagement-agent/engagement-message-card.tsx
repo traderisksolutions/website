@@ -5,6 +5,7 @@ import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { RealMsg } from '@/components/engagement/types'
 import { fmtDateTime, stripQuotedContent } from '@/components/engagement/helpers'
+import { cleanEmailBody } from '@/lib/clean-email-body'
 
 interface EngagementMessageCardProps {
   msg:         RealMsg
@@ -17,7 +18,7 @@ export function EngagementMessageCard({ msg, defaultOpen, onOpen }: EngagementMe
   const [showFull, setShowFull] = useState(false)
 
   const isOut       = msg.direction === 'outbound'
-  const fullBody    = msg.body_text ?? ''
+  const fullBody    = cleanEmailBody(msg.body_text)
   const stripped    = stripQuotedContent(fullBody)
   const hasQuoted   = stripped.length < fullBody.trim().length
   const senderLabel = isOut ? 'Trade Risk Solutions' : (msg.from_address ?? '—')

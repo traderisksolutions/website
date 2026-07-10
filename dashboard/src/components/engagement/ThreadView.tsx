@@ -9,6 +9,7 @@ import { EaWorkspaceColumn, EaMessageArea } from './EaLayout'
 import { EngagementThreadHeader } from '@/components/engagement-agent/engagement-thread-header'
 import { AddToCaseControl } from '@/components/engagement/AddToCaseControl'
 import { EngagementMessageCard } from '@/components/engagement-agent/engagement-message-card'
+import { cleanEmailBody } from '@/lib/clean-email-body'
 import { EngagementComposePanel } from '@/components/engagement-agent/engagement-compose-panel'
 import { EngagementContextPanel } from '@/components/engagement-agent/engagement-context-panel'
 import { AiAnalysisPanel } from '@/components/engagement-agent/ai-analysis-panel'
@@ -254,7 +255,7 @@ export function ThreadView({
                       Original message from lead form
                     </p>
                     <p className="text-[13px] text-foreground/80 whitespace-pre-wrap leading-[1.7] m-0">
-                      {initialMsg}
+                      {cleanEmailBody(initialMsg)}
                     </p>
                   </div>
                 )}
