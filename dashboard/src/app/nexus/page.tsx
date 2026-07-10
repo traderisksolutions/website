@@ -653,7 +653,7 @@ function CaseDetailPanel({
     return () => clearInterval(tick)
   }, [analyzing])
 
-  async function runAnalysis() {
+  async function runAnalysis(threadIds?: string[]) {
     setAnalyzing(true); setAnalyzeError(null)
     analyzeStartRef.current = Date.now()
     localStorage.setItem(LS_KEY, Date.now().toString())
@@ -661,7 +661,7 @@ function CaseDetailPanel({
       const res  = await fetch(`/api/nexus/cases/${caseData.id}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ triggered_by: userEmail }),
+        body: JSON.stringify({ triggered_by: userEmail, ...(threadIds && threadIds.length > 0 ? { thread_ids: threadIds } : {}) }),
       })
       const data = await res.json().catch(() => ({ error: '' }))
       if (!res.ok) {
@@ -801,6 +801,8 @@ function CaseDetailPanel({
             onUnlink={unlinkThread}
             onUpdatePartyType={updatePartyType}
             onGoToMission={() => setView('mission')}
+            onRunAnalysis={runAnalysis}
+            analyzing={analyzing}
           />
         ) : (
           <RfqPanel caseId={caseData.id} />
@@ -1095,7 +1097,7 @@ function MissionControlBody({
 // ── Logs View (evidence · draft outputs · linked threads · metadata) ───────────
 
 function LogsView({
-  analysis, threads, attachmentRecords, onLinkThreads, onUnlink, onUpdatePartyType, onGoToMission,
+  analysis, threads, attachmentRecords, onLinkThreads, onUnlink, onUpdatePartyType, onGoToMission, onRunAnalysis, analyzing,
 }: {
   analysis:          CaseAnalysis | null
   threads:           CaseThread[]
@@ -1104,6 +1106,8 @@ function LogsView({
   onUnlink:          (t: string) => void
   onUpdatePartyType: (t: string, p: string) => void
   onGoToMission:     () => void
+  onRunAnalysis:     (threadIds?: string[]) => void
+  analyzing:         boolean
 }) {
   const sa = analysis?.structured_analysis ?? null
 
@@ -1134,6 +1138,8 @@ function LogsView({
         onAddThread={onLinkThreads}
         onUnlink={onUnlink}
         onUpdatePartyType={onUpdatePartyType}
+        onRunAnalysis={onRunAnalysis}
+        analyzing={analyzing}
       />
 
       {sa?.analysis_metadata && (
@@ -2898,15 +2904,24 @@ function MetaStat({ label, value }: { label: string; value: string }) {
 // ── Threads Overview Card ─────────────────────────────────────────────────────
 
 function ThreadsOverviewCard({
-  threads, attachmentRecords, onAddThread, onUnlink, onUpdatePartyType,
+  threads, attachmentRecords, onAddThread, onUnlink, onUpdatePartyType, onRunAnalysis, analyzing,
 }: {
   threads:           CaseThread[]
   attachmentRecords: AttachmentRecord[]
   onAddThread:       () => void
   onUnlink:          (t: string) => void
   onUpdatePartyType: (t: string, p: string) => void
+  onRunAnalysis:     (threadIds?: string[]) => void
+  analyzing:         boolean
 }) {
   const [expanded, setExpanded] = useState(false)
+  // Which threads to include in a re-run (defaults to all; resets when the set changes).
+  const threadKey = threads.map(t => t.thread_id).join(',')
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(threads.map(t => t.thread_id)))
+  useEffect(() => { setSelected(new Set(threads.map(t => t.thread_id))) }, [threadKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  const toggle = (id: string) => setSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
+  const allSelected = selected.size === threads.length
+
   const extracted = attachmentRecords.filter(a => a.parsed_at !== null).length
   const pending   = threads.filter(ct => ct.attachments_pending && ct.attachments_extracted === 0).length
 
@@ -2946,13 +2961,38 @@ function ThreadsOverviewCard({
         </button>
 
         {expanded && (
-          <div className="border-t border-[--border-subtle] divide-y divide-[--border-subtle]">
-            {threads.map(ct => (
-              <div key={ct.id} className="px-4">
-                <LinkedThreadCard ct={ct} onUnlink={onUnlink} onUpdatePartyType={onUpdatePartyType} />
-              </div>
-            ))}
-          </div>
+          <>
+            <div className="border-t border-[--border-subtle] divide-y divide-[--border-subtle]">
+              {threads.map(ct => (
+                <div key={ct.id} className="flex items-start gap-2 px-4">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(ct.thread_id)}
+                    onChange={() => toggle(ct.thread_id)}
+                    className="mt-4 accent-primary flex-shrink-0"
+                    title="Include this thread in the next analysis"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <LinkedThreadCard ct={ct} onUnlink={onUnlink} onUpdatePartyType={onUpdatePartyType} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Re-run on the ticked subset — uncheck emails, then re-analyse this group */}
+            <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-t border-[--border-subtle] bg-muted/20">
+              <span className="text-[10.5px] text-muted-foreground/60">
+                {selected.size} of {threads.length} thread{threads.length === 1 ? '' : 's'} selected
+                {!allSelected && <button onClick={() => setSelected(new Set(threads.map(t => t.thread_id)))} className="ml-2 text-primary hover:underline">select all</button>}
+              </span>
+              <button
+                onClick={() => onRunAnalysis(allSelected ? undefined : Array.from(selected))}
+                disabled={analyzing || selected.size === 0}
+                className="text-[10.5px] font-semibold px-3 py-1.5 rounded-md bg-primary text-primary-foreground disabled:opacity-50"
+              >
+                {analyzing ? 'Analysing…' : allSelected ? 'Re-analyse all' : `Re-analyse with ${selected.size} selected`}
+              </button>
+            </div>
+          </>
         )}
       </div>
 
