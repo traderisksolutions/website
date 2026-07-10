@@ -19,6 +19,26 @@ function sbH() {
   return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json' }
 }
 
+// Case-insensitive resolution of the recipient's most recent engagement thread.
+async function resolveThreadForEmail(email: string): Promise<string | null> {
+  const e = email.trim()
+  if (!e) return null
+  // ilike (no wildcards) = case-insensitive exact match.
+  const pat = encodeURIComponent(e)
+  // 1. As a participant (from/to/cc) on any thread.
+  const p = await fetch(`${SB_URL}/rest/v1/email_participants?email=ilike.${pat}&select=thread_id&limit=1`, { headers: sbH(), cache: 'no-store' })
+  const pid = p.ok ? (await p.json())[0]?.thread_id : null
+  if (pid) return pid
+  // 2. As a message sender (older threads may predate email_participants).
+  const m = await fetch(`${SB_URL}/rest/v1/email_messages?from_address=ilike.${pat}&deleted_at=is.null&select=thread_id&order=sent_at.desc&limit=1`, { headers: sbH(), cache: 'no-store' })
+  const mid = m.ok ? (await m.json())[0]?.thread_id : null
+  if (mid) return mid
+  // 3. As the thread's contact.
+  const t = await fetch(`${SB_URL}/rest/v1/email_threads?contact.email=ilike.${pat}&deleted_at=is.null&select=id,contact:contacts!inner(email)&limit=1`, { headers: sbH(), cache: 'no-store' })
+  const tid = t.ok ? (await t.json())[0]?.id : null
+  return tid ?? null
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { case_id, action, rationale, party_type, to_email } = await req.json() as {
@@ -40,13 +60,10 @@ export async function POST(req: NextRequest) {
       caseBrief = a?.structured_analysis?.case_brief ?? null
     }
 
-    // Resolve the recipient's existing engagement thread (if any).
-    let threadId: string | null = null
-    const pRes = await fetch(
-      `${SB_URL}/rest/v1/email_participants?email=eq.${encodeURIComponent(to_email.toLowerCase())}&select=thread_id&order=thread_id.asc&limit=1`,
-      { headers: sbH(), cache: 'no-store' }
-    )
-    threadId = pRes.ok ? ((await pRes.json())[0]?.thread_id ?? null) : null
+    // Resolve the recipient's existing engagement thread. Match CASE-INSENSITIVELY
+    // (stored addresses keep their original casing, e.g. "Josephine.wee@…") and
+    // fall back to the message from-address so an existing thread is always found.
+    const threadId = await resolveThreadForEmail(to_email)
 
     // Close the round-trip: attach this party's thread to the case so their
     // replies flow back into Nexus and the "new replies" bell fires for them too.
