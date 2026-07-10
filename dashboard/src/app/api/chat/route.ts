@@ -139,7 +139,7 @@ Valid action shapes:
     { "target": "quote_decision", "op": "update", "line"?, "at"?, "value": { "recommended_insurer"?, "rationale"?, "caveats"? } }
 - { "type": "reanalyze", "instructions": "..." } — ONLY when the change needs re-reasoning over the underlying evidence.
 - { "type": "rescan_reanalyze", "filename"?, "all_pending"?: true, "instructions"?: "..." } — re-extract an attachment (by filename) OR ALL pending attachments, THEN re-run the analysis, in ONE step. Use when a document wasn't read and Mission Control should be repopulated from it.
-- { "type": "draft_email", "to_email"?, "subject"?, "body", "thread_id"? } — draft an email.
+- { "type": "draft_email", "to_email"?, "subject"?, "intent", "key_points": ["..."], "thread_id"? } — brief an email. YOU (Opus) decide the intent + key points; a drafting model (Gemini) writes the actual body on confirm (the house handoff). Do NOT write the full body yourself.
 - { "type": "edit_case", "patch": { "name"?, "description"?, "status"? } } — edit case fields.
 Never include more than one action. Never fabricate figures or coverage.
 

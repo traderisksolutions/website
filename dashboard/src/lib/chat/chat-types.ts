@@ -45,7 +45,7 @@ export type EditOp =
 export type ProposedAction =
   | { type: 'reanalyze'; instructions: string; label?: string }
   | { type: 'rescan_reanalyze'; filename?: string; all_pending?: boolean; instructions?: string; label?: string }
-  | { type: 'draft_email'; to_email?: string; subject?: string; body: string; thread_id?: string | null; label?: string }
+  | { type: 'draft_email'; to_email?: string; subject?: string; body?: string; intent?: string; key_points?: string[]; thread_id?: string | null; label?: string }
   | { type: 'edit_case'; patch: { name?: string; description?: string; status?: string }; label?: string }
   | { type: 'edit_analysis'; summary: string; ops: EditOp[]; label?: string }
 

@@ -322,17 +322,35 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
         updateMessageMeta(message.id, meta).catch(() => {})
         return
       } else if (action.type === 'draft_email') {
-        if (action.thread_id) {
+        // House handoff: Opus briefed the email (intent + key points); Gemini writes
+        // the body on confirm (matches the analysis's Opus→Gemini drafting split).
+        let subject = action.subject ?? ''
+        let body    = action.body ?? ''
+        let threadId: string | null | undefined = action.thread_id
+        if (action.intent || !body) {
+          const res = await fetch('/api/nexus/step-draft', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              case_id: caseId,
+              action: action.intent ?? action.subject ?? 'Draft this email',
+              rationale: Array.isArray(action.key_points) ? action.key_points.join('; ') : undefined,
+              to_email: action.to_email,
+            }),
+          })
+          const d = await res.json().catch(() => ({}))
+          if (res.ok && d.body) { subject = d.subject ?? subject; body = d.body; threadId = threadId ?? d.thread_id }
+        }
+        if (threadId) {
           // Attach this conversation to the case so the reply flows back into Nexus.
           if (caseId) await fetch(`/api/nexus/cases/${caseId}/threads`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ thread_id: action.thread_id, party_type: 'other' }),
+            body: JSON.stringify({ thread_id: threadId, party_type: 'other' }),
           }).catch(() => {})
-          window.sessionStorage.setItem('trs_pending_reply', JSON.stringify({ threadId: action.thread_id, toEmail: action.to_email, subject: action.subject, body: action.body }))
-          window.location.href = `/engagement?lead=${action.thread_id}`
+          window.sessionStorage.setItem('trs_pending_reply', JSON.stringify({ threadId, toEmail: action.to_email, subject, body }))
+          window.location.href = `/engagement?lead=${threadId}`
           return
         }
-        await navigator.clipboard.writeText(action.body).catch(() => {})
+        await navigator.clipboard.writeText(body).catch(() => {})
       } else if (action.type === 'edit_case' && caseId) {
         await fetch(`/api/nexus/cases/${caseId}`, {
           method: 'PATCH', headers: { 'Content-Type': 'application/json' },
