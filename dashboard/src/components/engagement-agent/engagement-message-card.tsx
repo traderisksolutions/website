@@ -142,6 +142,20 @@ export function EngagementMessageCard({ msg, defaultOpen, onOpen }: EngagementMe
           </div>
         )}
 
+        {/* Highlights the sender marked in this email (#2) */}
+        {msg.highlights && msg.highlights.length > 0 && (
+          <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2">
+            <span className="text-[9.5px] font-bold uppercase tracking-wider text-amber-700/70">Highlighted by sender</span>
+            <ul className="mt-1 flex flex-col gap-1">
+              {msg.highlights.map((h, i) => (
+                <li key={i} className="text-[12.5px] text-foreground/85 leading-snug">
+                  <mark className="bg-amber-200/70 px-0.5 rounded-sm">{h}</mark>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Email body — no artificial height cap; EaMessageArea handles scroll */}
         <div className="text-[13.5px] text-foreground/85 leading-[1.85] whitespace-pre-wrap break-words">
           {bodyText}

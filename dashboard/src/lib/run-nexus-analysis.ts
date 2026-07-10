@@ -911,7 +911,7 @@ export async function runNexusAnalysis(
     ).then(r => r.ok ? r.json() : []).catch(() => []),
 
     fetch(
-      `${SB_URL}/rest/v1/email_messages?thread_id=in.(${threadIds.join(',')})&deleted_at=is.null&order=sent_at.asc&select=id,thread_id,direction,from_address,body_text,sent_at,has_attachments,gmail_message_id`,
+      `${SB_URL}/rest/v1/email_messages?thread_id=in.(${threadIds.join(',')})&deleted_at=is.null&order=sent_at.asc&select=id,thread_id,direction,from_address,body_text,highlights,sent_at,has_attachments,gmail_message_id`,
       { headers: sbHeaders() }
     ).then(r => r.ok ? r.json() : []).catch(() => []),
   ])
@@ -991,6 +991,7 @@ export async function runNexusAnalysis(
     direction: string
     from_address: string | null
     body_text: string | null
+    highlights: string[] | null
     sent_at: string
     has_attachments: boolean
   }
@@ -1012,7 +1013,9 @@ export async function runNexusAnalysis(
         const date = new Date(m.sent_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
         const body = (m.body_text ?? '').slice(0, 15000) // generous limit with Gemini 2.5 Pro
         const att  = m.has_attachments ? ' [HAS ATTACHMENTS — see uploaded files]' : ''
-        return `  [${date}] ${who}:${att}\n${body}`
+        // Surface what the sender HIGHLIGHTED — often their actual reply, inline in quoted text.
+        const hl   = (m.highlights && m.highlights.length) ? `\n  >> SENDER HIGHLIGHTED: ${m.highlights.map(h => `"${h}"`).join('; ')}` : ''
+        return `  [${date}] ${who}:${att}\n${body}${hl}`
       })
       .join('\n\n  ───\n\n')
 

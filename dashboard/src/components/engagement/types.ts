@@ -24,6 +24,7 @@ export type RealMsg = {
   from_address: string | null
   subject: string | null
   body_text: string | null
+  highlights?: string[] | null
   sent_at: string | null
   to: string[]
   cc: string[]

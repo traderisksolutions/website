@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { waitUntil }        from '@vercel/functions'
 import { extractAndStoreQuote } from '@/lib/rfq-quote-extract'
+import { extractHighlights }    from '@/lib/extract-highlights'
 import { logRfqEvent }          from '@/lib/rfq-log'
 import { productLineLabel } from '@/lib/product-lines'
 
@@ -83,6 +84,15 @@ function decodeBody(parts: MimePart[]): string {
     }
   }
   if (htmlFallback) return stripHtml(htmlFallback)
+  return ''
+}
+
+// Returns the first raw text/html part (kept so we can surface highlights #2).
+function decodeHtml(parts: MimePart[]): string {
+  for (const part of parts) {
+    if (part.mimeType === 'text/html' && part.body?.data) return Buffer.from(part.body.data, 'base64').toString('utf-8')
+    if (part.parts) { const n = decodeHtml(part.parts as MimePart[]); if (n) return n }
+  }
   return ''
 }
 
@@ -428,6 +438,8 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
 
   const parts    = msg.payload?.parts ?? [msg.payload]
   const bodyText = decodeBody(parts)
+  const bodyHtml = decodeHtml(parts)
+  const highlights = extractHighlights(bodyHtml)          // client-highlighted text (#2)
   const direction: 'inbound' | 'outbound' = isInternal(fromEmail) ? 'outbound' : 'inbound'
 
   // Identify the primary external (non-TRS) contact for this thread
@@ -546,6 +558,8 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
       from_address:     fromEmail,
       subject,
       body_text:        bodyText,
+      body_html:        bodyHtml || null,
+      highlights:       highlights.length ? highlights : null,
       sent_at:          sentAt,
       has_attachments:  (msg.payload?.parts ?? []).some((p: { filename?: string }) => p.filename && p.filename.length > 0),
     }),
