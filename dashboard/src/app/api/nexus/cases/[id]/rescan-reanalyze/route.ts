@@ -57,7 +57,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     }
 
     // Re-run the analysis so Mission Control repopulates from the refreshed text.
-    await runNexusAnalysis(caseId, user.email ?? null, instructions ?? 'Re-scanned attachments — incorporate the refreshed document text.')
+    await runNexusAnalysis(caseId, user.email ?? null, instructions ?? 'Re-scanned attachments — incorporate the refreshed document text.', { origin })
 
     return NextResponse.json({ ok: true, rescanned: processed, attachments: atts.map(a => a.filename) })
   } catch (e) {

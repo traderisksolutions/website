@@ -327,6 +327,36 @@ type StoredAttachmentRow = {
   storage_url: string | null
 }
 
+// Force-read every unparsed attachment before analysis (#4). For each message
+// on the case that has attachments but no successfully-parsed text yet, re-run
+// the extractor (force). Spends tokens to guarantee the analysis sees 100% of
+// document content — fixes cases where an attachment was silently never read.
+async function ensureAttachmentsRead(threadIds: string[], origin: string): Promise<void> {
+  if (threadIds.length === 0) return
+  const inList = threadIds.join(',')
+
+  const [msgRes, attRes] = await Promise.all([
+    fetch(`${SB_URL}/rest/v1/email_messages?thread_id=in.(${inList})&has_attachments=eq.true&deleted_at=is.null&select=id,thread_id,gmail_message_id`, { headers: sbHeaders(), cache: 'no-store' }),
+    fetch(`${SB_URL}/rest/v1/email_attachments?thread_id=in.(${inList})&select=message_id,parsed_text`, { headers: sbHeaders(), cache: 'no-store' }),
+  ])
+  const msgs = (msgRes.ok ? await msgRes.json() : []) as { id: string; thread_id: string; gmail_message_id: string | null }[]
+  const atts = (attRes.ok ? await attRes.json() : []) as { message_id: string; parsed_text: string | null }[]
+
+  // A message is "read" only if at least one of its attachments has real text.
+  const readMsgs = new Set(atts.filter(a => (a.parsed_text ?? '').trim().length > 0).map(a => a.message_id))
+  const pending = msgs.filter(m => m.gmail_message_id && !readMsgs.has(m.id))
+  if (pending.length === 0) return
+
+  console.log(`[nexus] ensureAttachmentsRead: force-extracting ${pending.length} message(s) with unread attachments`)
+  await Promise.allSettled(pending.map(m =>
+    fetch(`${origin}/api/nexus/attachments/extract`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.CRON_SECRET ?? '' },
+      body: JSON.stringify({ message_id: m.id, thread_id: m.thread_id, gmail_message_id: m.gmail_message_id, force: true }),
+    }).catch(() => null),
+  ))
+}
+
 // Load pre-extracted attachments from email_attachments table.
 // PDFs/images: re-upload from Supabase Storage to Gemini Files API (fresh URI each analysis).
 // DOCX/XLSX/image descriptions: inject as text directly.
@@ -777,7 +807,12 @@ Return ONLY a JSON array (no markdown fences), one object per brief IN THE SAME 
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export async function runNexusAnalysis(caseId: string, triggeredBy?: string | null, instructions?: string | null): Promise<NexusAnalysis> {
+export async function runNexusAnalysis(
+  caseId: string,
+  triggeredBy?: string | null,
+  instructions?: string | null,
+  opts?: { origin?: string; threadIds?: string[] },
+): Promise<NexusAnalysis> {
   const runStart  = Date.now()
   const geminiKey = process.env.GEMINI_API_KEY_DRAFT_EMAIL
   if (!geminiKey) throw new Error('GEMINI_API_KEY_DRAFT_EMAIL not set')
@@ -789,14 +824,25 @@ export async function runNexusAnalysis(caseId: string, triggeredBy?: string | nu
     `${SB_URL}/rest/v1/case_threads?case_id=eq.${caseId}&select=*&order=created_at.asc`,
     { headers: sbHeaders() }
   )
-  const caseThreads: { thread_id: string; party_type: string; party_label: string | null }[] =
+  let caseThreads: { thread_id: string; party_type: string; party_label: string | null }[] =
     ctRes.ok ? await ctRes.json() : []
+
+  // Optional subset: analyse only the threads the employee ticked (#2).
+  if (opts?.threadIds && opts.threadIds.length > 0) {
+    const keep = new Set(opts.threadIds)
+    const filtered = caseThreads.filter(ct => keep.has(ct.thread_id))
+    if (filtered.length > 0) caseThreads = filtered
+  }
 
   if (!Array.isArray(caseThreads) || caseThreads.length === 0) {
     throw new Error('No threads linked to this case. Link at least one thread before running analysis.')
   }
 
   const threadIds = caseThreads.map(ct => ct.thread_id)
+
+  // Guarantee every attachment is read: force-extract any message whose
+  // attachments were never successfully parsed, before we synthesise (#4).
+  if (opts?.origin) { try { await ensureAttachmentsRead(threadIds, opts.origin) } catch (e) { console.warn('[nexus] ensureAttachmentsRead non-fatal:', e) } }
 
   // 2. Fetch thread details + all messages + contact info in parallel
   const [threadRows, allMessages] = await Promise.all([

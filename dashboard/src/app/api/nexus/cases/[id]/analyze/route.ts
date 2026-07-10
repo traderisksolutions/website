@@ -10,13 +10,16 @@ export async function POST(req: NextRequest, { params }: Params) {
   try {
     let triggeredBy: string | null = null
     let instructions: string | null = null
+    let threadIds: string[] | undefined
     try {
       const body = await req.json().catch(() => ({}))
       if (body?.triggered_by) triggeredBy = String(body.triggered_by)
       if (body?.instructions) { instructions = String(body.instructions); triggeredBy = triggeredBy ?? 'chat' }
+      if (Array.isArray(body?.thread_ids) && body.thread_ids.length > 0) threadIds = body.thread_ids.map(String)
     } catch { /* no body is fine */ }
 
-    const analysis = await runNexusAnalysis(params.id, triggeredBy, instructions)
+    const origin = new URL(req.url).origin
+    const analysis = await runNexusAnalysis(params.id, triggeredBy, instructions, { origin, threadIds })
     return NextResponse.json({ ok: true, analysis })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
