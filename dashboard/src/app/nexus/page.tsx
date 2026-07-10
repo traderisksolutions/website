@@ -247,11 +247,13 @@ type ComposeState = {
 // ── Analysis progress ──────────────────────────────────────────────────────────
 
 const ANALYSIS_STAGES = [
-  { model: null,             label: 'Fetching threads & messages',               from: 0,  to: 8,  duration: 2500  },
-  { model: 'Gemini Files',   label: 'Uploading & processing attachments',        from: 8,  to: 22, duration: 7000  },
-  { model: 'Gemini 2.5 Pro', label: 'Synthesising evidence & building brief',   from: 22, to: 72, duration: 32000 },
-  { model: 'Claude Opus',    label: 'Generating strategy & next steps',          from: 72, to: 93, duration: 18000 },
-  { model: null,             label: 'Saving analysis',                           from: 93, to: 99, duration: 2000  },
+  { model: null,             label: 'Fetching threads & messages',              from: 0,  to: 5,  duration: 2500  },
+  { model: 'Gemini',         label: 'Reading every attachment (re-scanning any unread)', from: 5,  to: 22, duration: 14000 },
+  { model: 'Gemini 2.5 Pro', label: 'Synthesising evidence & building the brief', from: 22, to: 52, duration: 26000 },
+  { model: 'Claude Opus',    label: 'Building a date-verified timeline',         from: 52, to: 70, duration: 16000 },
+  { model: 'Claude Opus',    label: 'Generating strategy & next steps',          from: 70, to: 88, duration: 18000 },
+  { model: 'Gemini Flash',   label: 'Drafting the recommended emails',           from: 88, to: 96, duration: 7000  },
+  { model: null,             label: 'Saving & repopulating Mission Control',     from: 96, to: 99, duration: 2500  },
 ] as const
 
 type AnalysisProgress = { pct: number; stageIdx: number }
@@ -576,15 +578,29 @@ function CaseDetailPanel({
   const loadRef = useRef(load)
   useEffect(() => { loadRef.current = load }, [load])
 
-  // Re-fetch when the AI consultant chat edits/re-runs this case's analysis.
+  // Re-fetch when the AI consultant chat edits/re-runs this case's analysis, and
+  // show the same progress banner while a chat-triggered re-analysis is running.
   useEffect(() => {
+    function onStarted(e: Event) {
+      const detail = (e as CustomEvent<{ caseId?: string }>).detail
+      if (detail?.caseId && detail.caseId !== caseData.id) return
+      analyzeStartRef.current = Date.now()
+      localStorage.setItem(LS_KEY, Date.now().toString())
+      setAnalyzing(true)
+    }
     function onUpdated(e: Event) {
       const detail = (e as CustomEvent<{ caseId?: string }>).detail
-      if (!detail?.caseId || detail.caseId === caseData.id) loadRef.current()
+      if (!detail?.caseId || detail.caseId === caseData.id) {
+        setAnalyzing(false); localStorage.removeItem(LS_KEY); loadRef.current()
+      }
     }
+    window.addEventListener('nexus:analysis-started', onStarted)
     window.addEventListener('nexus:analysis-updated', onUpdated)
-    return () => window.removeEventListener('nexus:analysis-updated', onUpdated)
-  }, [caseData.id])
+    return () => {
+      window.removeEventListener('nexus:analysis-started', onStarted)
+      window.removeEventListener('nexus:analysis-updated', onUpdated)
+    }
+  }, [caseData.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Live "new evidence" detection: an inbound reply landing on any linked thread
   // after the last analysis makes the case stale (→ Update-now bell in the header).
@@ -1240,36 +1256,41 @@ function PreAnalysisState({
 // ── Analyzing Banner ──────────────────────────────────────────────────────────
 
 function AnalyzingBanner({ progress }: { progress: AnalysisProgress | null }) {
-  const stage = progress ? ANALYSIS_STAGES[progress.stageIdx] : null
+  const idx = progress?.stageIdx ?? 0
   return (
     <div className="flex flex-col gap-3 px-4 py-4 bg-primary/5 border border-primary/15 rounded-xl">
-      <div className="flex items-start gap-3">
-        <Loader2 size={14} className="animate-spin text-primary flex-shrink-0 mt-0.5" />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-[12px] font-semibold text-primary/90">Grand analysis in progress</p>
-            {progress && (
-              <span className="text-[12px] font-bold text-primary tabular-nums">{progress.pct}%</span>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {stage && <p className="text-[10.5px] text-primary/60">{stage.label}</p>}
-            {stage?.model && (
-              <span className="text-[9px] font-bold bg-primary/10 text-primary/70 px-1.5 py-0.5 rounded flex-shrink-0">
-                {stage.model}
-              </span>
-            )}
-            {!stage && (
-              <p className="text-[10.5px] text-primary/60">Reading threads and attachments…</p>
-            )}
-          </div>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Loader2 size={14} className="animate-spin text-primary flex-shrink-0" />
+          <p className="text-[12px] font-semibold text-primary/90">Grand analysis in progress</p>
+          <span className="text-[10px] text-primary/50">step {Math.min(idx + 1, ANALYSIS_STAGES.length)} of {ANALYSIS_STAGES.length}</span>
         </div>
+        {progress && <span className="text-[12px] font-bold text-primary tabular-nums">{progress.pct}%</span>}
       </div>
+
       <div className="h-[3px] bg-primary/10 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-primary/50 rounded-full transition-[width] duration-300 ease-linear"
-          style={{ width: `${progress?.pct ?? 0}%` }}
-        />
+        <div className="h-full bg-primary/50 rounded-full transition-[width] duration-300 ease-linear" style={{ width: `${progress?.pct ?? 0}%` }} />
+      </div>
+
+      {/* Step checklist — what it's doing and what's next */}
+      <div className="flex flex-col gap-1 pt-0.5">
+        {ANALYSIS_STAGES.map((s, i) => {
+          const state = i < idx ? 'done' : i === idx ? 'current' : 'pending'
+          return (
+            <div key={i} className={cn('flex items-center gap-2 text-[10.5px]',
+              state === 'done' ? 'text-primary/50' : state === 'current' ? 'text-primary font-semibold' : 'text-muted-foreground/40')}>
+              <span className="w-3.5 flex-shrink-0 flex items-center justify-center">
+                {state === 'done' ? <CheckCircle2 size={11} strokeWidth={2.5} />
+                  : state === 'current' ? <Loader2 size={10} className="animate-spin" />
+                  : <span className="w-1.5 h-1.5 rounded-full bg-current opacity-40" />}
+              </span>
+              <span>{s.label}</span>
+              {s.model && state === 'current' && (
+                <span className="text-[9px] font-bold bg-primary/10 text-primary/70 px-1.5 py-0.5 rounded flex-shrink-0">{s.model}</span>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )

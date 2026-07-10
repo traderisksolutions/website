@@ -50,6 +50,11 @@ export const NEXUS_ANALYSIS_UPDATED = 'nexus:analysis-updated'
 function notifyAnalysisUpdated(caseId: string) {
   if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(NEXUS_ANALYSIS_UPDATED, { detail: { caseId } }))
 }
+// Tell the open case view to show its progress banner while a chat-triggered
+// re-analysis / re-scan is running (it clears on NEXUS_ANALYSIS_UPDATED).
+function notifyAnalysisStarted(caseId: string) {
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('nexus:analysis-started', { detail: { caseId } }))
+}
 
 export function ChatDockProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(chatDockReducer, initialChatDockState)
@@ -297,6 +302,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
     const caseId = stateRef.current.caseId
     try {
       if (action.type === 'reanalyze' && caseId) {
+        notifyAnalysisStarted(caseId)
         await fetch(`/api/nexus/cases/${caseId}/analyze`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ instructions: action.instructions }),
@@ -304,6 +310,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
         notifyAnalysisUpdated(caseId)
       } else if (action.type === 'rescan_reanalyze' && caseId) {
         // One step: re-extract the document(s), then re-run so Mission Control repopulates.
+        notifyAnalysisStarted(caseId)
         await fetch(`/api/nexus/cases/${caseId}/rescan-reanalyze`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ filename: action.filename, all_pending: action.all_pending, instructions: action.instructions }),
