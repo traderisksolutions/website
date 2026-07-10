@@ -1,7 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useReducer, useEffect, useRef, useCallback } from 'react'
-import { usePathname } from 'next/navigation'
+import React, { createContext, useContext, useReducer, useEffect, useRef, useCallback, useState } from 'react'
 import { chatDockReducer, initialChatDockState, type ChatDockState } from '@/stores/chat-dock-store'
 import { createClient } from '@/lib/supabase/client'
 import type { ChatMessage, ChatThread } from '@/lib/chat/chat-types'
@@ -40,8 +39,9 @@ export function useChatDock(): ChatDockContextValue {
 }
 
 // The Nexus case currently in view (case-aware context), read from the URL.
-function caseIdFromLocation(pathname: string): string | null {
-  if (typeof window === 'undefined' || !pathname.startsWith('/nexus')) return null
+function caseIdFromLocation(): string | null {
+  if (typeof window === 'undefined') return null
+  if (!window.location.pathname.startsWith('/nexus')) return null
   return new URLSearchParams(window.location.search).get('case')
 }
 
@@ -53,11 +53,21 @@ function notifyAnalysisUpdated(caseId: string) {
 
 export function ChatDockProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(chatDockReducer, initialChatDockState)
-  const pathname = usePathname()
+  // The active Nexus case (Ask Opus is per-case). Seeded from the URL, then kept
+  // current by the 'nexus:active-case' event the case view broadcasts.
+  const [routeCaseId, setRouteCaseId] = useState<string | null>(() => caseIdFromLocation())
+  const routeCaseRef = useRef<string | null>(routeCaseId)
+  routeCaseRef.current = routeCaseId
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const stateRef = useRef(state)
   stateRef.current = state
+
+  useEffect(() => {
+    const onCase = (e: Event) => setRouteCaseId((e as CustomEvent).detail?.caseId ?? null)
+    window.addEventListener('nexus:active-case', onCase as EventListener)
+    return () => window.removeEventListener('nexus:active-case', onCase as EventListener)
+  }, [])
 
   // ── Hydrate from Supabase once ──────────────────────────────────────────────
   useEffect(() => {
@@ -86,7 +96,21 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
     return () => { cancelled = true }
   }, [])
 
-  const caseIdInRoute = caseIdFromLocation(pathname)
+  const caseIdInRoute = routeCaseId
+
+  // Switching cases while the dock is in use → rebind to the new case's thread.
+  useEffect(() => {
+    const cur = stateRef.current
+    if (!cur.bootstrapped || !routeCaseId) return
+    if ((cur.caseId ?? null) === routeCaseId) return
+    if (!cur.isOpen && !cur.isMinimized) return   // otherwise bind lazily on open()
+    ;(async () => {
+      const thread = await getOrCreateOpenThread(routeCaseId)
+      if (!thread) return
+      const messages = await getThreadMessages(thread.id)
+      dispatch({ type: 'SET_THREAD', threadId: thread.id, caseId: thread.case_id, messages, draft: '', title: thread.title })
+    })()
+  }, [routeCaseId])
 
   // ── Realtime: cross-tab sync for the active thread's messages ────────────────
   useEffect(() => {
@@ -128,7 +152,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
   // ── Bind the dock to the right thread for the current case, then open ────────
   const open = useCallback(async () => {
     const cur = stateRef.current
-    const routeCase = caseIdFromLocation(pathname)
+    const routeCase = routeCaseRef.current ?? caseIdFromLocation()
     dispatch({ type: 'OPEN' })
     upsertChatUiState({ is_open: true, is_minimized: false }).catch(() => {})
 
@@ -141,7 +165,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'SET_THREAD', threadId: thread.id, caseId: thread.case_id, messages, draft: '', title: thread.title })
       upsertChatUiState({ active_thread_id: thread.id, is_open: true, is_minimized: false }).catch(() => {})
     } catch { /* keep dock open, empty */ }
-  }, [pathname])
+  }, [])
 
   const minimize = useCallback(() => {
     dispatch({ type: 'MINIMIZE' })
@@ -230,7 +254,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
     let caseId   = cur.caseId
     try {
       if (!threadId) {
-        const thread = await getOrCreateOpenThread(caseIdFromLocation(pathname))
+        const thread = await getOrCreateOpenThread(routeCaseRef.current ?? caseIdFromLocation())
         if (!thread) throw new Error('Could not start a chat')
         threadId = thread.id; caseId = thread.case_id
         dispatch({ type: 'SET_THREAD', threadId, caseId, messages: [], draft: '', title: thread.title })
@@ -248,7 +272,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
       return
     }
     await runAssistant(threadId, caseId, msgText, attachments)
-  }, [pathname, runAssistant])
+  }, [runAssistant])
 
   // Stop the in-flight streaming reply.
   const stop = useCallback(() => { abortRef.current?.abort() }, [])
@@ -340,7 +364,8 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
   const toggleHistory = useCallback(() => {
     const next = !stateRef.current.showHistory
     dispatch({ type: 'SET_HISTORY', show: next })
-    if (next) listThreads().then(threads => dispatch({ type: 'SET_THREADS', threads })).catch(() => {})
+    // Per-case history: only this case's conversations (general chats stay hidden).
+    if (next) listThreads(routeCaseRef.current).then(threads => dispatch({ type: 'SET_THREADS', threads })).catch(() => {})
   }, [])
 
   const openThread = useCallback(async (thread: ChatThread) => {
@@ -353,15 +378,15 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
 
   const newThread = useCallback(async () => {
     dispatch({ type: 'SET_HISTORY', show: false })
-    const thread = await createThread(caseIdFromLocation(pathname))
+    const thread = await createThread(routeCaseRef.current ?? caseIdFromLocation())
     if (!thread) return
     dispatch({ type: 'SET_THREAD', threadId: thread.id, caseId: thread.case_id, messages: [], draft: '', title: thread.title })
     upsertChatUiState({ active_thread_id: thread.id, is_open: true, is_minimized: false }).catch(() => {})
-  }, [pathname])
+  }, [])
 
   const archiveThread = useCallback(async (threadId: string) => {
     await setThreadStatus(threadId, 'archived').catch(() => {})
-    const threads = await listThreads()
+    const threads = await listThreads(routeCaseRef.current)
     dispatch({ type: 'SET_THREADS', threads })
     // If we archived the active thread, drop into a fresh one.
     if (stateRef.current.activeThreadId === threadId) {

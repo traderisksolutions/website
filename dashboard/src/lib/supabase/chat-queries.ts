@@ -34,12 +34,14 @@ export async function getOrCreateOpenThread(caseId?: string | null): Promise<Cha
 }
 
 // All of the user's non-archived threads, newest first — for the history drawer.
-export async function listThreads(): Promise<ChatThread[]> {
+export async function listThreads(caseId?: string | null): Promise<ChatThread[]> {
   const uid = await currentUserId()
   if (!uid) return []
-  const { data } = await db().from('chat_threads').select('*')
+  let q = db().from('chat_threads').select('*')
     .eq('user_id', uid).neq('status', 'archived')
-    .order('updated_at', { ascending: false }).limit(50)
+  // Ask Opus is per-case: only this case's conversations (hides general chats).
+  if (caseId) q = q.eq('case_id', caseId)
+  const { data } = await q.order('updated_at', { ascending: false }).limit(50)
   return (data ?? []) as ChatThread[]
 }
 

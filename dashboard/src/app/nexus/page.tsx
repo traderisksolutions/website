@@ -300,6 +300,17 @@ export default function NexusPage() {
     if (id) setSelectedId(id)
   }, [])
 
+  // Keep ?case= in sync + broadcast the active case so the per-case Ask Opus dock
+  // binds to it (and hides on the case list, where there is no active case).
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const url = new URL(window.location.href)
+    if (selectedId) url.searchParams.set('case', selectedId)
+    else url.searchParams.delete('case')
+    window.history.replaceState(null, '', url.toString())
+    window.dispatchEvent(new CustomEvent('nexus:active-case', { detail: { caseId: selectedId } }))
+  }, [selectedId])
+
   const visible = cases.filter(c =>
     !search || c.name.toLowerCase().includes(search.toLowerCase()) || (c.description ?? '').toLowerCase().includes(search.toLowerCase())
   )

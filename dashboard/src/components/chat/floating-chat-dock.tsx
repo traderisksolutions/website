@@ -36,10 +36,12 @@ export function FloatingChatDock() {
   }
 
   if (!state.bootstrapped) return null
+  // Ask Opus is per-case: only show when a specific Nexus case is open.
+  if (!caseIdInRoute) return null
 
-  const caseAware = !!(state.caseId ?? caseIdInRoute)
-  const title     = caseAware ? 'Case consultant' : 'Consultant'
-  const subtitle  = caseAware ? 'Steering this case' : 'AI assistant'
+  const caseAware = true
+  const title     = 'Case consultant'
+  const subtitle  = 'Steering this case'
 
   // ── Closed → launcher pill ──────────────────────────────────────────────────
   if (!state.isOpen) {

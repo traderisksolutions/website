@@ -12,10 +12,12 @@ export default function ConditionalShell({ children }: { children: React.ReactNo
 
   if (isAuthPage) return <>{children}</>
 
-  // The provider + dock live here (not in a page) so they stay mounted across
-  // route changes — only `children` swap on navigation.
+  // Ask Opus is a per-case Nexus assistant — mount it ONLY on Nexus (not dashboard
+  // wide). The dock itself hides until a specific case is open.
+  const onNexus = pathname.startsWith('/nexus')
+
   return (
-    <ChatDockProvider>
+    <>
       <Sidebar />
       <MobileTopNav />
       <div
@@ -24,7 +26,11 @@ export default function ConditionalShell({ children }: { children: React.ReactNo
       >
         {children}
       </div>
-      <FloatingChatDock />
-    </ChatDockProvider>
+      {onNexus && (
+        <ChatDockProvider>
+          <FloatingChatDock />
+        </ChatDockProvider>
+      )}
+    </>
   )
 }
