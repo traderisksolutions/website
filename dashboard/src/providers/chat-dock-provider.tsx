@@ -228,7 +228,8 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
           if (!line) continue
           let ev: { type?: string; text?: string; error?: string; message?: ChatMessage }
           try { ev = JSON.parse(line) } catch { continue }
-          if (ev.type === 'delta' && ev.text) { acc += ev.text; dispatch({ type: 'UPDATE_MESSAGE', id: streamId, patch: { content: acc } }) }
+          if (ev.type === 'status') { dispatch({ type: 'SET_STATUS', status: ev.text ?? null }) }
+          else if (ev.type === 'delta' && ev.text) { if (!acc) dispatch({ type: 'SET_STATUS', status: null }); acc += ev.text; dispatch({ type: 'UPDATE_MESSAGE', id: streamId, patch: { content: acc } }) }
           else if (ev.type === 'done') { settled = true; if (ev.message) dispatch({ type: 'REPLACE_MESSAGE', id: streamId, message: ev.message }); else dispatch({ type: 'UPDATE_MESSAGE', id: streamId, patch: { message_status: 'complete' } }) }
           else if (ev.type === 'error') throw new Error(ev.error ?? 'Assistant error')
         }
@@ -300,6 +301,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
     const action = message.metadata_json?.action
     if (!action) return
     const caseId = stateRef.current.caseId
+    dispatch({ type: 'SET_CONFIRMING', id: message.id })
     try {
       if (action.type === 'reanalyze' && caseId) {
         notifyAnalysisStarted(caseId)
@@ -370,6 +372,8 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
       updateMessageMeta(message.id, meta).catch(() => {})
     } catch {
       dispatch({ type: 'SET_ERROR', error: 'Action failed — please try from the case directly.' })
+    } finally {
+      dispatch({ type: 'SET_CONFIRMING', id: null })
     }
   }, [])
 

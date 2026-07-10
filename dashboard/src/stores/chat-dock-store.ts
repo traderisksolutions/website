@@ -15,6 +15,8 @@ export interface ChatDockState {
   threads:        ChatThread[]
   draft:          string
   sending:        boolean
+  status:         string | null   // what Opus is doing right now (tool loop), e.g. "Reading the analysis…"
+  confirmingId:   string | null   // message whose confirm-to-act action is running
   error:          string | null
 }
 
@@ -30,6 +32,8 @@ export const initialChatDockState: ChatDockState = {
   threads:        [],
   draft:          '',
   sending:        false,
+  status:         null,
+  confirmingId:   null,
   error:          null,
 }
 
@@ -48,6 +52,8 @@ export type ChatDockAction =
   | { type: 'REMOVE_MESSAGE'; id: string }
   | { type: 'SET_MESSAGES'; messages: ChatMessage[] }
   | { type: 'SET_SENDING'; sending: boolean }
+  | { type: 'SET_STATUS'; status: string | null }
+  | { type: 'SET_CONFIRMING'; id: string | null }
   | { type: 'SET_ERROR'; error: string | null }
   | { type: 'SET_HISTORY'; show: boolean }
   | { type: 'SET_THREADS'; threads: ChatThread[] }
@@ -67,7 +73,9 @@ export function chatDockReducer(state: ChatDockState, action: ChatDockAction): C
     case 'REPLACE_MESSAGE': return { ...state, messages: state.messages.map(m => m.id === action.id ? action.message : m) }
     case 'REMOVE_MESSAGE':  return { ...state, messages: state.messages.filter(m => m.id !== action.id) }
     case 'SET_MESSAGES':   return { ...state, messages: action.messages }
-    case 'SET_SENDING':    return { ...state, sending: action.sending }
+    case 'SET_SENDING':    return { ...state, sending: action.sending, ...(action.sending ? {} : { status: null }) }
+    case 'SET_STATUS':     return { ...state, status: action.status }
+    case 'SET_CONFIRMING': return { ...state, confirmingId: action.id }
     case 'SET_ERROR':      return { ...state, error: action.error }
     case 'SET_HISTORY':    return { ...state, showHistory: action.show }
     case 'SET_THREADS':    return { ...state, threads: action.threads }

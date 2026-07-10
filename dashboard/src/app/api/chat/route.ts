@@ -59,6 +59,20 @@ const TOOLS = [
   { name: 'rescan_attachment',  description: 'Re-run text extraction on a case attachment by (partial) filename — use when an attachment looks mis-read or was never read. After it succeeds, PROPOSE a reanalyze action so the refreshed text is used (the human confirms).', input_schema: { type: 'object', properties: { filename: { type: 'string' } }, required: ['filename'] } },
 ] as const
 
+// Friendly "what Opus is doing" label for the UI while tools run.
+const TOOL_STATUS: Record<string, string> = {
+  get_case_analysis:  'Reading the analysis…',
+  get_case_quotes:    'Reading the quotes…',
+  list_case_threads:  'Checking the linked threads…',
+  list_attachments:   'Checking the documents…',
+  get_thread_messages:'Reading the emails…',
+  rescan_attachment:  'Re-scanning a document…',
+}
+function toolStatus(names: string[]): string {
+  const known = names.map(n => TOOL_STATUS[n]).filter(Boolean)
+  return known[0] ?? 'Looking into the case…'
+}
+
 async function execTool(name: string, input: Record<string, unknown>, caseId: string, origin: string): Promise<string> {
   const cap = (s: string) => s.slice(0, 12_000)
   try {
@@ -264,6 +278,8 @@ export async function POST(req: NextRequest) {
             if (ac.signal.aborted) { controller.close(); return }
             const toolUses = turn.blocks.filter(b => b.type === 'tool_use')
             if (turn.stopReason === 'tool_use' && toolUses.length && effCaseId) {
+              // Tell the UI what Opus is doing (progress feedback during the tool loop).
+              emit({ type: 'status', text: toolStatus(toolUses.map(t => t.name ?? '')) })
               // Record the assistant turn, run the tools, feed results back, loop.
               msgs.push({ role: 'assistant', content: turn.blocks })
               const results = await Promise.all(toolUses.map(async t => ({

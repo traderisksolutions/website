@@ -101,6 +101,8 @@ export function FloatingChatDock() {
           <FloatingChatBody
             messages={state.messages}
             sending={state.sending}
+            status={state.status}
+            confirmingId={state.confirmingId}
             error={state.error}
             caseAware={caseAware}
             onConfirm={confirmAction}

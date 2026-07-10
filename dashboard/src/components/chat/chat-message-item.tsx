@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { cn } from '@/lib/utils'
-import { Sparkles, RefreshCw, Mail, PencilLine, Check, RotateCcw, Link as LinkIcon, FileText, Undo2 } from 'lucide-react'
+import { Sparkles, RefreshCw, Mail, PencilLine, Check, RotateCcw, Link as LinkIcon, FileText, Undo2, Loader2 } from 'lucide-react'
 import type { ChatMessage, ProposedAction, EditOp } from '@/lib/chat/chat-types'
 
 function actionLabel(a: ProposedAction): { label: string; icon: React.ReactNode } {
@@ -36,7 +36,7 @@ function opText(raw: EditOp): string {
   return `Update ${n} ${where}`
 }
 
-export function ChatMessageItem({ message, onConfirm, onUndo, onRegenerate }: { message: ChatMessage; onConfirm: (m: ChatMessage) => void; onUndo?: (m: ChatMessage) => void; onRegenerate?: () => void }) {
+export function ChatMessageItem({ message, confirming, onConfirm, onUndo, onRegenerate }: { message: ChatMessage; confirming?: boolean; onConfirm: (m: ChatMessage) => void; onUndo?: (m: ChatMessage) => void; onRegenerate?: () => void }) {
   const isUser = message.role === 'user'
   const action = message.metadata_json?.action
   const done   = message.metadata_json?.action_done
@@ -120,11 +120,16 @@ export function ChatMessageItem({ message, onConfirm, onUndo, onRegenerate }: { 
               </div>
             )}
             <button
-              onClick={() => onConfirm(message)}
-              className="self-start flex items-center gap-1.5 text-[11px] font-semibold rounded-lg border border-primary/30 bg-primary/5 text-primary px-2.5 py-1.5 hover:bg-primary/10 transition-colors"
+              onClick={() => !confirming && onConfirm(message)}
+              disabled={confirming}
+              className="self-start flex items-center gap-1.5 text-[11px] font-semibold rounded-lg border border-primary/30 bg-primary/5 text-primary px-2.5 py-1.5 hover:bg-primary/10 transition-colors disabled:opacity-70"
             >
-              {actionLabel(action).icon} {actionLabel(action).label}
+              {confirming ? <Loader2 size={12} className="animate-spin" /> : actionLabel(action).icon}
+              {confirming ? 'Working…' : actionLabel(action).label}
             </button>
+            {confirming && (action.type === 'reanalyze' || action.type === 'rescan_reanalyze') && (
+              <span className="text-[10px] text-muted-foreground/60">Re-running the analysis — Mission Control will update. This can take a minute.</span>
+            )}
           </div>
         )
       )}
