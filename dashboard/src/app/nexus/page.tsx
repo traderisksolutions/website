@@ -14,6 +14,7 @@ import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
 import RfqPanel from '@/components/nexus/RfqPanel'
 import { ActivityFeed, LastHandledBy } from '@/components/ActivityFeed'
 import { logClient } from '@/lib/log-client'
+import { relTime } from '@/lib/activity-labels'
 import { createClient } from '@/lib/supabase/client'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -2221,6 +2222,19 @@ function NextStepsSection({
     return byThread || byContact || byStakeholder || step.to_emails?.[0] || artifact?.to_emails?.[0] || partyEmails[(step.party_type ?? '').toLowerCase()]?.[0] || ''
   }
 
+  // Auto-detect that a step's email was likely already sent: the most recent
+  // OUTBOUND message on the recipient's thread. Surfaces "already actioned".
+  function lastSentForStep(step: V1NextStep, email: string): string | null {
+    if (!email) return null
+    const e = email.toLowerCase()
+    const t = (step.thread_id ? threads.find(ct => ct.thread_id === step.thread_id) : null)
+      ?? threads.find(ct => ct.thread?.contact?.email?.toLowerCase() === e || ct.messages.some(m => m.from_address?.toLowerCase() === e))
+    if (!t) return null
+    const outs = t.messages.filter(m => m.direction === 'outbound')
+    if (outs.length === 0) return null
+    return outs.sort((a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime())[0].sent_at
+  }
+
   // Nexus decides; Engagement acts. Fresh-draft the step (Gemini from Opus's
   // action) and hand it to the recipient's Engagement thread. Nexus never sends.
   async function draftInEngagement(step: V1NextStep, toEmail: string) {
@@ -2313,6 +2327,7 @@ function NextStepsSection({
           const artifact = drafts[step.step - 1] ?? null
           const ds       = stepDraftState[step.step] ?? { status: 'idle' }
           const toEmail  = resolveEmail(step, artifact)
+          const lastSent = lastSentForStep(step, toEmail)
 
           return (
             <div key={i} className="flex gap-4 px-4 py-3.5 rounded-xl border border-[--border-subtle] bg-card">
@@ -2336,6 +2351,12 @@ function NextStepsSection({
                   {step.deadline && (
                     <span className="text-[10px] text-muted-foreground/55 flex items-center gap-1" title="Timing is guidance, not a blocker — any step can be drafted now">
                       <Clock size={9} strokeWidth={2} /> {step.deadline} · guidance
+                    </span>
+                  )}
+                  {lastSent && (
+                    <span className="text-[9.5px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-1.5 py-0.5 flex items-center gap-1"
+                      title={`An email to this recipient was already sent on ${new Date(lastSent).toLocaleString('en-SG')}. Check the thread before re-sending.`}>
+                      <CheckCircle2 size={9} strokeWidth={2.5} /> emailed {relTime(lastSent)}
                     </span>
                   )}
                 </div>
