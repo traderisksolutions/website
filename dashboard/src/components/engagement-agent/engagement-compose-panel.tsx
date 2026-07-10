@@ -42,11 +42,8 @@ export function EngagementComposePanel({
   storedDraft, storedRagDraft, storedRagSources,
   onRagRefresh, onThreadRefresh, pendingRestore,
 }: EngagementComposePanelProps) {
-  const lastMsg    = messages.at(-1)
-  const needsReply = lastMsg?.direction === 'inbound'
 
   // ── All state preserved verbatim ──────────────────────────────────────────
-  const [open,            setOpen]            = useState(true)
   const [draftId,         setDraftId]         = useState<string | null>(null)
   const [draftHtml,       setDraftHtml]       = useState('')
   const [draftLoaded,     setDraftLoaded]     = useState(false)
@@ -119,7 +116,6 @@ export function EngagementComposePanel({
     setDraftHtml(pendingRestore.body)
     setDraftLoaded(true)
     setDraftEditorKey(k => k + 1)
-    setOpen(true)
   }, [pendingRestore?.stamp]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -190,7 +186,6 @@ export function EngagementComposePanel({
       setDraftId(data.draftId)
       setDraftHtml(plainToHtml(data.content))
       setDraftEditorKey(k => k + 1)
-      setOpen(true)
       log({
         action: 'draft.generated', resource_type: 'thread',
         resource_id: thread?.id ?? lead.id, metadata: { contact: lead.email },
@@ -279,38 +274,16 @@ export function EngagementComposePanel({
   return (
     <div className="flex-shrink-0 border-t border-primary/25 bg-card">
 
-      {/* ── Toggle header ── */}
-      <button
-        onClick={() => setOpen(v => !v)}
-        aria-expanded={open}
-        aria-label={open ? 'Collapse compose area' : 'Expand compose area'}
-        className={cn(
-          'w-full flex items-center justify-between px-5 h-10 text-left',
-          'border-b border-[--border-subtle] transition-colors',
-          open ? 'bg-card' : 'hover:bg-accent/20',
-        )}
-      >
-        <div className="flex items-center gap-2.5 min-w-0">
-          <span className="text-[12.5px] font-semibold text-foreground">Reply</span>
-          {needsReply && !open && (
-            <span className="text-[9.5px] font-bold px-2 py-[2px] rounded-full bg-[--warning-bg] text-[--warning]">
-              Awaiting reply
-            </span>
-          )}
-          {customSubject && open && (
-            <span className="text-[11px] text-muted-foreground/60 truncate">
-              {customSubject.length > 44 ? customSubject.slice(0, 42) + '…' : customSubject}
-            </span>
-          )}
+      {/* The bottom dock's "Reply" tab opens/closes this panel — no inner toggle. */}
+      {customSubject && (
+        <div className="px-5 h-9 flex items-center border-b border-[--border-subtle]">
+          <span className="text-[11px] text-muted-foreground/60 truncate">
+            {customSubject.length > 60 ? customSubject.slice(0, 58) + '…' : customSubject}
+          </span>
         </div>
-        <ChevronDown
-          size={13}
-          strokeWidth={2}
-          className={cn('text-muted-foreground/50 transition-transform flex-shrink-0', open && 'rotate-180')}
-        />
-      </button>
+      )}
 
-      {open && (
+      {(
         <>
           {/* ── Addressing fields ── */}
           <div className="pb-1">
