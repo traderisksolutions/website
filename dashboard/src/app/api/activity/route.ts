@@ -29,12 +29,14 @@ export async function GET(req: NextRequest) {
     const resourceId   = url.searchParams.get('resource_id')
     const resourceType = url.searchParams.get('resource_type')
     const since        = url.searchParams.get('since')
+    const exclude      = url.searchParams.get('exclude')   // action to omit (e.g. passive views)
     const limit        = Math.min(Number(url.searchParams.get('limit') ?? 50), 200)
 
     let q = `${SB_URL}/rest/v1/audit_logs?select=id,created_at,user_name,user_email,action,resource_type,resource_id,new_value&order=created_at.desc&limit=${limit}`
     if (resourceId)   q += `&resource_id=eq.${encodeURIComponent(resourceId)}`
     if (resourceType) q += `&resource_type=eq.${encodeURIComponent(resourceType)}`
     if (since)        q += `&created_at=gte.${encodeURIComponent(since)}`
+    if (exclude)      q += `&action=neq.${encodeURIComponent(exclude)}`
 
     const res  = await fetch(q, { headers: sbH(), cache: 'no-store' })
     const rows = res.ok ? await res.json() : []

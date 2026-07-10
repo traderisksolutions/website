@@ -31,9 +31,21 @@ const ACTION_CONFIG: Record<string, { label: string; color: string; bg: string; 
   'status.changed':       { label: 'Status changed',      color: '#7c3aed', bg: '#f5f3ff', group: 'Lead' },
   'note.saved':           { label: 'Note saved',          color: '#0891b2', bg: '#ecfeff', group: 'Lead' },
   'thread.viewed':        { label: 'Viewed thread',       color: '#6b7280', bg: '#f9fafb', group: 'Navigation' },
+  // Nexus
+  'nexus.case_renamed':        { label: 'Renamed case',        color: '#7c3aed', bg: '#f5f3ff', group: 'Nexus' },
+  'nexus.case_status_changed': { label: 'Changed case status', color: '#7c3aed', bg: '#f5f3ff', group: 'Nexus' },
+  'nexus.case_updated':        { label: 'Updated case',        color: '#7c3aed', bg: '#f5f3ff', group: 'Nexus' },
+  'nexus.analysis_run':        { label: 'Ran analysis',        color: '#6d28d9', bg: '#f5f3ff', group: 'Nexus' },
+  'nexus.analysis_edited':     { label: 'Edited analysis',     color: '#6d28d9', bg: '#f5f3ff', group: 'Nexus' },
+  'nexus.thread_linked':       { label: 'Linked thread',       color: '#4f46e5', bg: '#eef2ff', group: 'Nexus' },
+  'nexus.thread_unlinked':     { label: 'Unlinked thread',     color: '#b45309', bg: '#fffbeb', group: 'Nexus' },
+  'nexus.case_viewed':         { label: 'Opened case',         color: '#6b7280', bg: '#f9fafb', group: 'Navigation' },
+  // RFQ
+  'rfq.dispatched':            { label: 'Sent RFQ to insurer', color: '#4f46e5', bg: '#eef2ff', group: 'RFQ' },
+  'contacts.bulk_import':      { label: 'Imported contacts',   color: '#0891b2', bg: '#ecfeff', group: 'Lead' },
 }
 const ALL_ACTION_TYPES = Object.keys(ACTION_CONFIG)
-const ACTION_GROUPS = ['Email', 'AI', 'Lead', 'Navigation']
+const ACTION_GROUPS = ['Email', 'AI', 'Nexus', 'RFQ', 'Lead', 'Navigation']
 
 function actionCfg(action: string) {
   return ACTION_CONFIG[action] ?? { label: action, color: '#6b7280', bg: '#f9fafb', group: 'Other' }

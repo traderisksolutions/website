@@ -27,7 +27,8 @@ export function LastHandledBy({ resourceId, className }: { resourceId: string; c
   const [row, setRow] = useState<ActivityRow | null>(null)
   useEffect(() => {
     let live = true
-    fetch(`/api/activity?resource_id=${encodeURIComponent(resourceId)}&limit=1`, { cache: 'no-store' })
+    // "Handled" = the last meaningful change, not a passive open.
+    fetch(`/api/activity?resource_id=${encodeURIComponent(resourceId)}&exclude=nexus.case_viewed&limit=1`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : [])
       .then((rows: ActivityRow[]) => { if (live) setRow(rows[0] ?? null) })
       .catch(() => {})

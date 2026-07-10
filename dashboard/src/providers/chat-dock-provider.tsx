@@ -302,22 +302,21 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
     if (!action) return
     const caseId = stateRef.current.caseId
     dispatch({ type: 'SET_CONFIRMING', id: message.id })
+    let startedCaseId: string | null = null   // clear the case's progress banner even on failure
     try {
       if (action.type === 'reanalyze' && caseId) {
-        notifyAnalysisStarted(caseId)
+        startedCaseId = caseId; notifyAnalysisStarted(caseId)
         await fetch(`/api/nexus/cases/${caseId}/analyze`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ instructions: action.instructions }),
         })
-        notifyAnalysisUpdated(caseId)
       } else if (action.type === 'rescan_reanalyze' && caseId) {
         // One step: re-extract the document(s), then re-run so Mission Control repopulates.
-        notifyAnalysisStarted(caseId)
+        startedCaseId = caseId; notifyAnalysisStarted(caseId)
         await fetch(`/api/nexus/cases/${caseId}/rescan-reanalyze`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ filename: action.filename, all_pending: action.all_pending, instructions: action.instructions }),
         })
-        notifyAnalysisUpdated(caseId)
       } else if (action.type === 'edit_analysis' && caseId) {
         const res = await fetch(`/api/nexus/cases/${caseId}/edit-analysis`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -349,6 +348,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
           const d = await res.json().catch(() => ({}))
           if (res.ok && d.body) { subject = d.subject ?? subject; body = d.body; threadId = threadId ?? d.thread_id }
         }
+        if (!body.trim()) throw new Error('Could not draft the email — try again.')
         if (threadId) {
           // Attach this conversation to the case so the reply flows back into Nexus.
           if (caseId) await fetch(`/api/nexus/cases/${caseId}/threads`, {
@@ -373,6 +373,8 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
     } catch {
       dispatch({ type: 'SET_ERROR', error: 'Action failed — please try from the case directly.' })
     } finally {
+      // Always refetch + clear the progress banner (even if the re-run failed).
+      if (startedCaseId) notifyAnalysisUpdated(startedCaseId)
       dispatch({ type: 'SET_CONFIRMING', id: null })
     }
   }, [])
