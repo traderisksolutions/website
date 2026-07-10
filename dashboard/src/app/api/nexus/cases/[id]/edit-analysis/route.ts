@@ -20,10 +20,12 @@ function sbH(prefer = 'return=representation') {
 }
 
 const COLL: Record<string, { field: string; primary: string }> = {
-  next_steps:    { field: 'recommended_next_steps', primary: 'action' },
-  scenarios:     { field: 'scenario_analysis',      primary: 'name' },
-  stakeholders:  { field: 'stakeholder_map',        primary: 'name' },
-  missing_items: { field: 'missing_items',          primary: 'item' },
+  next_steps:     { field: 'recommended_next_steps', primary: 'action' },
+  scenarios:      { field: 'scenario_analysis',      primary: 'name' },
+  stakeholders:   { field: 'stakeholder_map',        primary: 'name' },
+  missing_items:  { field: 'missing_items',          primary: 'item' },
+  timeline:       { field: 'timeline',               primary: 'event' },
+  open_questions: { field: 'open_questions',         primary: 'question' },
 }
 
 type Rec = Record<string, unknown>
@@ -41,8 +43,9 @@ function applyOp(sa: Rec, op: EditOp): void {
   const brief = (sa.case_brief ??= {} as Rec) as Rec
 
   if (op.target === 'brief') {
-    if (op.set.summary       !== undefined) brief.summary       = op.set.summary
-    if (op.set.current_stage !== undefined) brief.current_stage = op.set.current_stage
+    for (const k of ['summary', 'current_stage', 'claim_amount', 'policy_reference', 'coverage_type', 'incident_date'] as const) {
+      if (op.set[k] !== undefined) brief[k] = op.set[k]
+    }
     return
   }
 
@@ -53,16 +56,33 @@ function applyOp(sa: Rec, op: EditOp): void {
     return
   }
 
+  // Quote decision — update a line's recommendation/rationale/caveats by line label or index.
+  if (op.target === 'quote_decision') {
+    const qd = sa.quote_decision as Rec | undefined
+    const lines = qd && Array.isArray(qd.lines) ? qd.lines as Rec[] : []
+    if (lines.length === 0) return
+    let i = typeof op.at === 'number' ? op.at - 1 : -1
+    if (i < 0 && op.line) { const m = String(op.line).toLowerCase(); i = lines.findIndex(l => String(l.product_line_label ?? l.product_line ?? '').toLowerCase().includes(m)) }
+    if (i < 0) i = 0
+    const line = lines[i] as Rec
+    if (op.value?.recommended_insurer !== undefined) line.recommended_insurer = op.value.recommended_insurer
+    if (op.value?.rationale !== undefined) line.rationale = op.value.rationale
+    if (op.value?.caveats !== undefined) line.caveats = op.value.caveats
+    return
+  }
+
   const cfg = COLL[op.target]
   if (!cfg) return
   const arr = (sa[cfg.field] = Array.isArray(sa[cfg.field]) ? sa[cfg.field] as Rec[] : []) as Rec[]
 
   if (op.op === 'add') {
     const v = { ...(op.value as Rec) }
-    if (op.target === 'stakeholders') { v.id ??= crypto.randomUUID(); v.party_type ??= 'other'; v.role_summary ??= '' }
-    if (op.target === 'next_steps')   { v.owner ??= 'TRS'; v.priority ??= 'medium'; v.rationale ??= '' }
-    if (op.target === 'scenarios')    { v.probability ??= 'medium'; v.outcome ??= ''; v.trs_action ??= '' }
-    if (op.target === 'missing_items'){ v.required_from ??= ''; v.urgency ??= 'normal'; v.impact ??= '' }
+    if (op.target === 'stakeholders')  { v.id ??= crypto.randomUUID(); v.party_type ??= 'other'; v.role_summary ??= '' }
+    if (op.target === 'next_steps')    { v.owner ??= 'TRS'; v.priority ??= 'medium'; v.rationale ??= '' }
+    if (op.target === 'scenarios')     { v.probability ??= 'medium'; v.outcome ??= ''; v.trs_action ??= '' }
+    if (op.target === 'missing_items') { v.required_from ??= ''; v.urgency ??= 'normal'; v.impact ??= '' }
+    if (op.target === 'timeline')      { v.date ??= new Date().toISOString().slice(0, 10); v.party ??= 'trs'; v.significance ??= '' }
+    if (op.target === 'open_questions'){ v.priority ??= 'medium' }
     arr.push(v)
   } else {
     const i = resolveIndex(arr, op.at, op.match, cfg.primary)

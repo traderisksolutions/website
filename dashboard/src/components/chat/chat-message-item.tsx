@@ -7,6 +7,7 @@ import type { ChatMessage, ProposedAction, EditOp } from '@/lib/chat/chat-types'
 
 function actionLabel(a: ProposedAction): { label: string; icon: React.ReactNode } {
   if (a.type === 'reanalyze')     return { label: a.label ?? 'Re-analyse with these changes', icon: <RefreshCw size={12} /> }
+  if (a.type === 'rescan_reanalyze') return { label: a.label ?? (a.all_pending ? 'Read all pending docs & re-populate' : `Read “${a.filename ?? 'document'}” & re-populate`), icon: <RefreshCw size={12} /> }
   if (a.type === 'draft_email')   return { label: a.label ?? 'Draft this in Engagement',       icon: <Mail size={12} /> }
   if (a.type === 'edit_analysis') return { label: a.label ?? 'Apply these edits',               icon: <PencilLine size={12} /> }
   return { label: a.label ?? 'Apply case change', icon: <PencilLine size={12} /> }
@@ -16,14 +17,19 @@ function actionLabel(a: ProposedAction): { label: string; icon: React.ReactNode 
 function opText(raw: EditOp): string {
   const op = raw as { target: string; op?: string; at?: number; match?: string; value?: Record<string, unknown>; set?: Record<string, unknown> }
   const where = op.at ? `#${op.at}` : op.match ? `“${op.match}”` : ''
-  const noun: Record<string, string> = { next_steps: 'next step', scenarios: 'scenario', stakeholders: 'stakeholder', missing_items: 'missing item', blocking_issues: 'blocking issue' }
+  const noun: Record<string, string> = { next_steps: 'next step', scenarios: 'scenario', stakeholders: 'stakeholder', missing_items: 'missing item', blocking_issues: 'blocking issue', timeline: 'timeline event', open_questions: 'open question', quote_decision: 'quote decision' }
   if (op.target === 'brief') {
-    const bits = [op.set?.summary != null ? 'summary' : null, op.set?.current_stage != null ? `stage → “${op.set.current_stage}”` : null].filter(Boolean)
+    const set = op.set ?? {}
+    const bits = Object.keys(set).map(k => k === 'current_stage' ? `stage → “${set.current_stage}”` : k).filter(Boolean)
     return `Update brief: ${bits.join(', ')}`
+  }
+  if (op.target === 'quote_decision') {
+    const line = (op as { line?: string }).line
+    return `Update quote decision${line ? ` (${line})` : ''}`
   }
   const n = noun[op.target] ?? op.target
   if (op.op === 'add') {
-    const label = (op.value?.action ?? op.value?.name ?? op.value?.item ?? op.value) as string
+    const label = (op.value?.action ?? op.value?.name ?? op.value?.item ?? op.value?.event ?? op.value?.question ?? op.value) as string
     return `Add ${n}: “${typeof label === 'string' ? label : JSON.stringify(label)}”`
   }
   if (op.op === 'remove') return `Remove ${n} ${where}`

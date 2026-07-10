@@ -24,7 +24,7 @@ export interface Citation { label: string; ref?: string; kind?: string }
 // in the UI); `match` is a substring on the item's primary text — either resolves
 // which item to update/remove.
 export type EditOp =
-  | { target: 'brief'; set: { summary?: string; current_stage?: string } }
+  | { target: 'brief'; set: { summary?: string; current_stage?: string; claim_amount?: string; policy_reference?: string; coverage_type?: string; incident_date?: string } }
   | { target: 'blocking_issues'; op: 'add' | 'remove'; value?: string; at?: number; match?: string }
   | { target: 'next_steps'; op: 'add'; value: { action: string; owner?: string; priority?: string; rationale?: string; deadline?: string } }
   | { target: 'next_steps'; op: 'update' | 'remove'; at?: number; match?: string; value?: Record<string, unknown> }
@@ -34,11 +34,17 @@ export type EditOp =
   | { target: 'stakeholders'; op: 'update' | 'remove'; at?: number; match?: string; value?: Record<string, unknown> }
   | { target: 'missing_items'; op: 'add'; value: { item: string; required_from?: string; urgency?: string; impact?: string } }
   | { target: 'missing_items'; op: 'remove'; at?: number; match?: string }
+  | { target: 'timeline'; op: 'add'; value: { date?: string; party?: string; event: string; significance?: string } }
+  | { target: 'timeline'; op: 'update' | 'remove'; at?: number; match?: string; value?: Record<string, unknown> }
+  | { target: 'open_questions'; op: 'add'; value: { question: string; priority?: string; directed_at?: string } }
+  | { target: 'open_questions'; op: 'update' | 'remove'; at?: number; match?: string; value?: Record<string, unknown> }
+  | { target: 'quote_decision'; op: 'update'; line?: string; at?: number; value: { recommended_insurer?: string; rationale?: string; caveats?: string[] } }
 
 // A confirm-to-act proposal the assistant can attach to a message. The employee
 // clicks to run it — nothing executes automatically. Extensible union.
 export type ProposedAction =
   | { type: 'reanalyze'; instructions: string; label?: string }
+  | { type: 'rescan_reanalyze'; filename?: string; all_pending?: boolean; instructions?: string; label?: string }
   | { type: 'draft_email'; to_email?: string; subject?: string; body: string; thread_id?: string | null; label?: string }
   | { type: 'edit_case'; patch: { name?: string; description?: string; status?: string }; label?: string }
   | { type: 'edit_analysis'; summary: string; ops: EditOp[]; label?: string }

@@ -302,6 +302,13 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
           body: JSON.stringify({ instructions: action.instructions }),
         })
         notifyAnalysisUpdated(caseId)
+      } else if (action.type === 'rescan_reanalyze' && caseId) {
+        // One step: re-extract the document(s), then re-run so Mission Control repopulates.
+        await fetch(`/api/nexus/cases/${caseId}/rescan-reanalyze`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: action.filename, all_pending: action.all_pending, instructions: action.instructions }),
+        })
+        notifyAnalysisUpdated(caseId)
       } else if (action.type === 'edit_analysis' && caseId) {
         const res = await fetch(`/api/nexus/cases/${caseId}/edit-analysis`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },

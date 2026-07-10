@@ -54,6 +54,7 @@ const TOOLS = [
   { name: 'get_case_analysis',  description: 'Get the full latest structured analysis JSON for this case (fuller than the summary in context).', input_schema: { type: 'object', properties: {} } },
   { name: 'get_case_quotes',    description: 'Get captured insurer quotes for this case (premium, excess, limit, validity, terms).',              input_schema: { type: 'object', properties: {} } },
   { name: 'list_case_threads',  description: 'List this case\'s linked email threads with party labels and thread_id.',                          input_schema: { type: 'object', properties: {} } },
+  { name: 'list_attachments',   description: 'List EVERY attachment on this case: filename, which party sent it, size, and whether it has been read/analysed (parsed:true) or is still pending (parsed:false). Use this to find documents that were never analysed.', input_schema: { type: 'object', properties: {} } },
   { name: 'get_thread_messages', description: 'Get recent messages (direction, from, date, body) for one thread on this case.',                  input_schema: { type: 'object', properties: { thread_id: { type: 'string' } }, required: ['thread_id'] } },
   { name: 'rescan_attachment',  description: 'Re-run text extraction on a case attachment by (partial) filename — use when an attachment looks mis-read or was never read. After it succeeds, PROPOSE a reanalyze action so the refreshed text is used (the human confirms).', input_schema: { type: 'object', properties: { filename: { type: 'string' } }, required: ['filename'] } },
 ] as const
@@ -73,6 +74,17 @@ async function execTool(name: string, input: Record<string, unknown>, caseId: st
     if (name === 'list_case_threads') {
       const r = await fetch(`${SB_URL}/rest/v1/case_threads?case_id=eq.${caseId}&select=thread_id,party_type,party_label`, { headers: sbH(), cache: 'no-store' })
       return cap(JSON.stringify(r.ok ? await r.json() : []))
+    }
+    if (name === 'list_attachments') {
+      const ctRes = await fetch(`${SB_URL}/rest/v1/case_threads?case_id=eq.${caseId}&select=thread_id,party_label,party_type`, { headers: sbH(), cache: 'no-store' })
+      const cts = (ctRes.ok ? await ctRes.json() : []) as { thread_id: string; party_label: string | null; party_type: string }[]
+      const tids = cts.map(t => t.thread_id)
+      if (tids.length === 0) return '[]'
+      const partyBy = new Map(cts.map(t => [t.thread_id, t.party_label || t.party_type]))
+      const aRes = await fetch(`${SB_URL}/rest/v1/email_attachments?thread_id=in.(${tids.join(',')})&select=filename,thread_id,size_bytes,parsed_at,created_at&order=created_at.desc`, { headers: sbH(), cache: 'no-store' })
+      const rows = ((aRes.ok ? await aRes.json() : []) as { filename: string; thread_id: string; size_bytes: number | null; parsed_at: string | null }[])
+        .map(a => ({ filename: a.filename, from: partyBy.get(a.thread_id) ?? 'unknown', parsed: !!a.parsed_at, size_bytes: a.size_bytes }))
+      return cap(JSON.stringify(rows))
     }
     if (name === 'get_thread_messages') {
       const tid = String(input.thread_id ?? '')
@@ -107,22 +119,26 @@ async function execTool(name: string, input: Record<string, unknown>, caseId: st
 
 const SYSTEM = `You are a sharp, candid insurance strategy consultant embedded in TRS (Trade Risk Solutions, a Singapore brokerage). A broker is chatting with you about a case's AI analysis. They may be unhappy with it, want clarifications, corrections, or changes.
 
-Be concise and practical. Ground factual claims in the context or in what your read-tools return — when case-aware you can call get_case_analysis, get_case_quotes, list_case_threads and get_thread_messages to check the live data before answering. Prefer looking things up over guessing.
+Be concise and practical. Ground factual claims in the context or in what your read-tools return — when case-aware you can call get_case_analysis, get_case_quotes, list_case_threads, get_thread_messages and list_attachments to check the live data before answering. To find documents that were never analysed, call list_attachments and look for parsed:false. Prefer looking things up over guessing.
 
 CONFIRM-TO-ACT: if — and only if — the broker's request implies a concrete change, END your reply with a single fenced block:
 \`\`\`action
 { "type": "reanalyze", "instructions": "<what to change/focus>" }
 \`\`\`
 Valid action shapes:
-- { "type": "edit_analysis", "summary": "<one line>", "ops": [ ... ] } — SURGICAL edits (reword/add/remove a next step, add a scenario, fix a stakeholder's stance, correct the stage, add/remove a blocking issue or missing item). Op shapes:
-    { "target": "brief", "set": { "summary"?, "current_stage"? } }
+- { "type": "edit_analysis", "summary": "<one line>", "ops": [ ... ] } — SURGICAL edits applied directly to the analysis (no full re-run). Op shapes:
+    { "target": "brief", "set": { "summary"?, "current_stage"?, "claim_amount"?, "policy_reference"?, "coverage_type"?, "incident_date"? } }
     { "target": "blocking_issues", "op": "add"|"remove", "value"?, "at"?, "match"? }
     { "target": "next_steps", "op": "add", "value": { "action", "owner"?, "priority"?, "rationale"?, "deadline"? } }
     { "target": "next_steps", "op": "update"|"remove", "at"?, "match"?, "value"? }
     { "target": "scenarios", "op": "add"|"update"|"remove", "at"?, "match"?, "value"? }
     { "target": "stakeholders", "op": "add"|"update"|"remove", "at"?, "match"?, "value"? }
     { "target": "missing_items", "op": "add"|"remove", "at"?, "match"?, "value"? }
-- { "type": "reanalyze", "instructions": "..." } — ONLY when the change needs re-reasoning over evidence.
+    { "target": "timeline", "op": "add"|"update"|"remove", "at"?, "match"?, "value": { "date"?, "party"?, "event", "significance"? } }
+    { "target": "open_questions", "op": "add"|"update"|"remove", "at"?, "match"?, "value": { "question", "priority"?, "directed_at"? } }
+    { "target": "quote_decision", "op": "update", "line"?, "at"?, "value": { "recommended_insurer"?, "rationale"?, "caveats"? } }
+- { "type": "reanalyze", "instructions": "..." } — ONLY when the change needs re-reasoning over the underlying evidence.
+- { "type": "rescan_reanalyze", "filename"?, "all_pending"?: true, "instructions"?: "..." } — re-extract an attachment (by filename) OR ALL pending attachments, THEN re-run the analysis, in ONE step. Use when a document wasn't read and Mission Control should be repopulated from it.
 - { "type": "draft_email", "to_email"?, "subject"?, "body", "thread_id"? } — draft an email.
 - { "type": "edit_case", "patch": { "name"?, "description"?, "status"? } } — edit case fields.
 Never include more than one action. Never fabricate figures or coverage.
