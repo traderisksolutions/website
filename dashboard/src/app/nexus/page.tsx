@@ -6,7 +6,7 @@ import {
   AlertCircle, Clock, CheckCircle2, Zap, BookOpen, ArrowRight,
   MailOpen, FileText, Scale, Users, Send, Loader2, Trash2, Paperclip,
   FolderOpen, Network, HelpCircle, ShieldAlert, TrendingUp, ListChecks,
-  BadgeDollarSign, Database, Eye, Pin, PinOff, Minus, Maximize2, Minimize2,
+  BadgeDollarSign, Database, Eye, Pin, PinOff, Minus, Maximize2, Minimize2, Pencil,
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -534,6 +534,8 @@ function CaseDetailPanel({
   const [rfqCount,      setRfqCount]      = useState(0)
   const [linkOpen,      setLinkOpen]      = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [editingTitle,  setEditingTitle]  = useState(false)
+  const [titleValue,    setTitleValue]    = useState(caseData.name)
   const [runs,          setRuns]          = useState<RunSummary[]>([])
   const [runsLoading,   setRunsLoading]   = useState(false)
   const [userEmail,     setUserEmail]     = useState<string | null>(null)
@@ -669,6 +671,17 @@ function CaseDetailPanel({
     return () => clearInterval(tick)
   }, [analyzing])
 
+  async function renameCase() {
+    const name = titleValue.trim()
+    setEditingTitle(false)
+    if (!name || name === caseData.name) { setTitleValue(caseData.name); return }
+    await fetch(`/api/nexus/cases/${caseData.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    }).catch(() => {})
+    onRefresh()
+  }
+
   async function runAnalysis(threadIds?: string[]) {
     setAnalyzing(true); setAnalyzeError(null)
     analyzeStartRef.current = Date.now()
@@ -774,6 +787,12 @@ function CaseDetailPanel({
         onDelete={() => { onDelete(); setConfirmDelete(false) }}
         onConfirmDelete={() => setConfirmDelete(true)}
         onCancelDelete={() => setConfirmDelete(false)}
+        editingTitle={editingTitle}
+        titleValue={titleValue}
+        onTitleChange={setTitleValue}
+        onStartEditTitle={() => { setTitleValue(caseData.name); setEditingTitle(true) }}
+        onSaveTitle={renameCase}
+        onCancelTitle={() => setEditingTitle(false)}
       />
       <div className="flex-1 overflow-y-auto bg-background">
         {view === 'history' ? (
@@ -848,6 +867,7 @@ function CaseDetailPanel({
 function MissionHeader({
   caseData, threads, analysis, newReplyCount, analyzing, analyzeProgress, analyzeError, confirmDelete, view, totalMsgCount, runsCount, rfqCount,
   onSetView, onRunAnalysis, onLinkThreads, onDelete, onConfirmDelete, onCancelDelete,
+  editingTitle, titleValue, onTitleChange, onStartEditTitle, onSaveTitle, onCancelTitle,
 }: {
   caseData:        Case
   threads:         CaseThread[]
@@ -864,6 +884,12 @@ function MissionHeader({
   onSetView:       (v: 'mission' | 'messages' | 'logs' | 'history' | 'rfq') => void
   onRunAnalysis:   () => void
   onLinkThreads:   () => void
+  editingTitle:    boolean
+  titleValue:      string
+  onTitleChange:   (v: string) => void
+  onStartEditTitle:() => void
+  onSaveTitle:     () => void
+  onCancelTitle:   () => void
   onDelete:        () => void
   onConfirmDelete: () => void
   onCancelDelete:  () => void
@@ -884,8 +910,25 @@ function MissionHeader({
       {/* Top row: name + actions */}
       <div className="flex items-start justify-between px-5 pt-3.5 pb-2.5">
         <div className="min-w-0 flex-1 pr-4">
-          <div className="flex items-center gap-2.5 mb-0.5">
-            <h2 className="text-[14px] font-bold text-foreground truncate">{caseData.name}</h2>
+          <div className="flex items-center gap-2 mb-0.5">
+            {editingTitle ? (
+              <input
+                value={titleValue}
+                onChange={e => onTitleChange(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') onSaveTitle(); if (e.key === 'Escape') onCancelTitle() }}
+                onBlur={onSaveTitle}
+                autoFocus
+                className="text-[14px] font-bold text-foreground bg-background border border-primary/40 rounded px-1.5 py-0.5 focus:outline-none focus:ring-2 focus:ring-primary/30 min-w-0 flex-1"
+              />
+            ) : (
+              <>
+                <h2 className="text-[14px] font-bold text-foreground truncate">{caseData.name}</h2>
+                <button onClick={onStartEditTitle} title="Rename case"
+                  className="flex-shrink-0 text-muted-foreground/40 hover:text-primary transition-colors">
+                  <Pencil size={12} strokeWidth={2} />
+                </button>
+              </>
+            )}
             <span className={cn(
               'text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full flex-shrink-0',
               caseData.status === 'open' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',

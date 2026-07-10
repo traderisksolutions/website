@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logActivity }               from '@/lib/log-activity'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -142,6 +143,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       body:    JSON.stringify(update),
     })
     const rows = res.ok ? await res.json() : []
+    const action = 'name' in body ? 'nexus.case_renamed' : 'status' in body ? 'nexus.case_status_changed' : 'nexus.case_updated'
+    void logActivity({ action, resource_type: 'case', resource_id: params.id, new_value: { ...body } })
     return NextResponse.json(Array.isArray(rows) ? rows[0] : rows)
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
