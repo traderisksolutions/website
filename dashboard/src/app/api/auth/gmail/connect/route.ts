@@ -24,7 +24,9 @@ export async function GET(req: NextRequest) {
     client_id:     clientId,
     redirect_uri:  redirectUri,
     response_type: 'code',
-    scope:         'https://www.googleapis.com/auth/gmail.send',
+    // gmail.send to send; userinfo.email so the callback can read WHICH address
+    // was connected (needed for the "From" sender list) — without it userinfo 403s.
+    scope:         'https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/userinfo.email',
     access_type:   'offline',
     prompt:        'consent',    // always show consent so we always get a refresh_token
     login_hint:    user.email ?? '',
