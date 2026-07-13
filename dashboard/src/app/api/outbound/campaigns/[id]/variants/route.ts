@@ -167,7 +167,7 @@ Return ONLY valid JSON:
 }`
 
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${geminiKey}`,
       {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -206,7 +206,7 @@ Return ONLY valid JSON:
           audience_split_pct: variantCount > 1 ? 50 : 100,
           step_count:       3,
           status:           'draft',
-          created_by_model: 'gemini-2.5-flash',
+          created_by_model: 'gemini-3.5-flash',
         }),
       })
 

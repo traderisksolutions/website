@@ -129,7 +129,7 @@ export async function verifyQuotes(caseId: string): Promise<QuoteVerification[]>
     const corpusTokens = numTokens(corpus)
 
     // Second-model consensus pass (Gemini 2.5 Pro) on the same source.
-    const consensus = (corpusAvailable && key) ? await extract(corpus, key, 'gemini-2.5-pro') : null
+    const consensus = (corpusAvailable && key) ? await extract(corpus, key, 'gemini-3.5-flash') : null
 
     const fields = FIELDS.map(f => checkField(
       f.label, q[f.key], q.evidence?.[f.key], corpusTokens, corpusAvailable,

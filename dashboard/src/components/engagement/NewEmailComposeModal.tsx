@@ -34,6 +34,14 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
 
   // Recipient typeahead — same source as the reply editor (contacts + employees).
   const toAc = useAutocomplete(to, c => setTo(c.email))
+  // CC is a comma-separated list — the typeahead matches the token currently being typed
+  // and appends the picked address.
+  const ccTokens = cc.split(',')
+  const ccQuery  = (ccTokens[ccTokens.length - 1] ?? '').trim()
+  const ccAc = useAutocomplete(ccQuery, c => {
+    const head = ccTokens.slice(0, -1).map(t => t.trim()).filter(Boolean)
+    setCc([...head, c.email].join(', ') + ', ')
+  })
 
   useEffect(() => {
     Promise.all([
@@ -108,7 +116,23 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
               {toAc.visible && <SuggestionList items={toAc.items} highlight={toAc.highlight} onPick={c => { setTo(c.email); toAc.close() }} />}
             </div></label>
           <label className="flex items-center gap-2"><span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 w-14 flex-shrink-0">Cc</span>
-            <input value={cc} onChange={e => setCc(e.target.value)} placeholder={personal ? 'operations@ auto-added' : 'optional'} className={inp} /></label>
+            <div ref={ccAc.boxRef} className="relative flex-1 min-w-0">
+              <input
+                value={cc}
+                onChange={e => { setCc(e.target.value); ccAc.reopen() }}
+                onKeyDown={e => ccAc.onKeyDown(e)}
+                onFocus={ccAc.reopen}
+                onBlur={ccAc.close}
+                placeholder={personal ? 'operations@ auto-added' : 'optional'}
+                autoComplete="off"
+                className={`${inp} w-full focus-visible:outline-none`}
+              />
+              {ccAc.visible && <SuggestionList items={ccAc.items} highlight={ccAc.highlight} onPick={c => {
+                const head = cc.split(',').slice(0, -1).map(t => t.trim()).filter(Boolean)
+                setCc([...head, c.email].join(', ') + ', ')
+                ccAc.close()
+              }} />}
+            </div></label>
           <label className="flex items-center gap-2"><span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 w-14 flex-shrink-0">Subject</span>
             <input value={subject} onChange={e => setSubject(e.target.value)} className={inp} /></label>
 

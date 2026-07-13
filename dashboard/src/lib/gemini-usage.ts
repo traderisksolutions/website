@@ -1,15 +1,20 @@
+import { GEMINI_DEFAULT } from './gemini-models'
+
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
 // Per-model token pricing (USD per 1M tokens → per token). Base input / output.
-//   Gemini 2.5 Flash: $0.30 in (text) / $2.50 out (incl. thinking)
-//   Gemini 2.5 Pro:   $1.25 in / $10.00 out (≤200k context)
+//   Gemini 3.5 Flash: $1.50 in / $9.00 out (incl. thinking) — current model
+//   Gemini 3.1 Pro:   $2.00 in / $12.00 out (≤200k context)
+//   Gemini 2.5 Flash/Pro kept for historical log rows.
 //   Claude Opus 4.8:  $5.00 in / $25.00 out
 const PRICING: Record<string, { in: number; out: number }> = {
-  'gemini-2.5-flash': { in: 0.30 / 1e6, out: 2.50 / 1e6 },
-  'gemini-2.5-pro':   { in: 1.25 / 1e6, out: 10.0 / 1e6 },
-  'claude-opus-4-8':  { in: 5.00 / 1e6, out: 25.0 / 1e6 },
+  'gemini-3.5-flash':       { in: 1.50 / 1e6, out: 9.00 / 1e6 },
+  'gemini-3.1-pro-preview': { in: 2.00 / 1e6, out: 12.0 / 1e6 },
+  'gemini-2.5-flash':       { in: 0.30 / 1e6, out: 2.50 / 1e6 },
+  'gemini-2.5-pro':         { in: 1.25 / 1e6, out: 10.0 / 1e6 },
+  'claude-opus-4-8':        { in: 5.00 / 1e6, out: 25.0 / 1e6 },
 }
-const DEFAULT_MODEL = 'gemini-2.5-flash'
+const DEFAULT_MODEL = GEMINI_DEFAULT
 
 // gemini-embedding-001 pricing: $0.000025 per 1,000 characters
 const EMBED_COST_PER_CHAR = 0.000025 / 1_000
