@@ -70,13 +70,28 @@ export async function POST(req: NextRequest) {
     // Manual compose — skip Gemini entirely
     if (manualContent !== undefined) {
       if (!contactEmail) return NextResponse.json({ error: 'Contact has no email address' }, { status: 400 })
-      // Upsert then fetch (merge-duplicates returns empty when row exists — always re-fetch)
+      // Contacts are stored lowercased — normalise so upsert + re-fetch align regardless
+      // of how the lead/thread recorded the address (avoids "Could not resolve contact_id"
+      // when e.g. the lead has "Hasya@…" but the contact row is "hasya@…").
+      const email = contactEmail.trim().toLowerCase()
+      // Include a name/company so a brand-new contact inserts cleanly even if those
+      // columns are NOT NULL — the manual-compose path always has contactName.
+      const nameParts = (contactName ?? '').trim().split(/\s+/).filter(Boolean)
+      const contactRow: Record<string, string> = { email, source: 'email' }
+      if (nameParts.length) {
+        contactRow.first_name = nameParts[0]
+        contactRow.last_name  = nameParts.slice(1).join(' ') || nameParts[0]
+      }
+      if (company) contactRow.company = company
+      // Insert-if-new then fetch. ignore-duplicates so an existing contact's name/company
+      // isn't clobbered by the lead's; we only need the id, which the re-fetch resolves.
       await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
         method:  'POST',
-        headers: sbHeaders('return=minimal,resolution=merge-duplicates'),
-        body:    JSON.stringify({ email: contactEmail, source: 'email' }),
+        headers: sbHeaders('return=minimal,resolution=ignore-duplicates'),
+        body:    JSON.stringify(contactRow),
       })
-      const cFetch    = await fetch(`${SB_URL}/rest/v1/contacts?email=eq.${encodeURIComponent(contactEmail)}&select=id&limit=1`, { headers: sbHeaders(), cache: 'no-store' })
+      // Case-insensitive re-fetch as a safety net for any pre-existing mixed-case row.
+      const cFetch    = await fetch(`${SB_URL}/rest/v1/contacts?email=ilike.${encodeURIComponent(email)}&select=id&limit=1`, { headers: sbHeaders(), cache: 'no-store' })
       const cRows     = cFetch.ok ? await cFetch.json() : []
       const contactId = Array.isArray(cRows) ? (cRows[0]?.id ?? null) : null
       if (!contactId) return NextResponse.json({ error: 'Could not resolve contact_id' }, { status: 400 })
@@ -480,13 +495,14 @@ Write only the email body starting with "${salutation}". End after the last para
       }
 
       // Helper: upsert contact by email and return its ID (two-step — merge-duplicates returns empty for existing rows)
-      const upsertAndGetId = async (email: string): Promise<string | null> => {
+      const upsertAndGetId = async (rawEmail: string): Promise<string | null> => {
+        const email = rawEmail.trim().toLowerCase()   // contacts are stored lowercased
         await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
           method:  'POST',
           headers: sbHeaders('return=minimal,resolution=merge-duplicates'),
           body:    JSON.stringify({ email, source: 'email' }),
         })
-        const r = await fetch(`${SB_URL}/rest/v1/contacts?email=eq.${encodeURIComponent(email)}&select=id&limit=1`, { headers: sbHeaders(), cache: 'no-store' })
+        const r = await fetch(`${SB_URL}/rest/v1/contacts?email=ilike.${encodeURIComponent(email)}&select=id&limit=1`, { headers: sbHeaders(), cache: 'no-store' })
         const rows = r.ok ? await r.json() : []
         return Array.isArray(rows) ? (rows[0]?.id ?? null) : null
       }
