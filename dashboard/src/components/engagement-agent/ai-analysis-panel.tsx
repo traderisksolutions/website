@@ -9,6 +9,7 @@ import { timeAgo, fmtDateTime } from '@/components/engagement/helpers'
 import { EmailTypeBadge } from './email-type-badge'
 import { DraftProvenancePanel } from './draft-provenance-panel'
 import { EvaluationSummary } from './evaluation-summary'
+import { InlineProgress } from '@/components/engagement/InlineProgress'
 
 interface DraftMeta {
   emailType:   string | null
@@ -95,7 +96,7 @@ export function AiAnalysisPanel({
 
       <div className="px-3.5 pb-3">
         {(loading || regenerating) && (
-          <p className="text-[11.5px] text-muted-foreground italic">Analysing thread…</p>
+          <InlineProgress label="Analysing thread…" className="py-1" />
         )}
 
         {!loading && !regenerating && !latest && (

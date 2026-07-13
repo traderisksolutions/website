@@ -164,24 +164,25 @@ export function ThreadView({
   }
 
   // The Refresh button GENERATES the analysis on demand (server auto-summarize on
-  // inbound was removed), then reloads the stored summary.
-  function refreshSummaries() {
+  // inbound was removed), then reloads the stored summary. Awaitable so the Reply
+  // "Generate" can run one analysis pass before drafting (#3).
+  async function runAnalysis(): Promise<void> {
     if (!threadId) return
     setAnalyzing(true)
-    fetch('/api/engagement/refresh-summary', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ thread_id: threadId, message_id: latestMessageId }),
-    })
-      .catch(() => {})
-      .finally(() => {
-        fetch(`/api/engagement/thread-summaries?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' })
-          .then(r => r.json())
-          .then(data => setSummaries(Array.isArray(data) ? data : []))
-          .catch(() => setSummaries([]))
-          .finally(() => setAnalyzing(false))
+    try {
+      await fetch('/api/engagement/refresh-summary', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ thread_id: threadId, message_id: latestMessageId }),
       })
+    } catch { /* ignore — still reload below */ }
+    try {
+      const data = await fetch(`/api/engagement/thread-summaries?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' }).then(r => r.json())
+      setSummaries(Array.isArray(data) ? data : [])
+    } catch { setSummaries([]) }
+    finally { setAnalyzing(false) }
   }
+  function refreshSummaries() { void runAnalysis() }
 
   // Auto-expand: last message + last inbound message
   const lastInboundIdx = messages.reduce((found, m, i) => m.direction === 'inbound' ? i : found, -1)
@@ -290,6 +291,7 @@ export function ThreadView({
               storedRagDraft={ragDraft?.content ?? null}
               storedRagSources={ragDraft?.sources ?? []}
               onThreadRefresh={onThreadRefresh}
+              onAnalyze={runAnalysis}
               pendingRestore={pendingRestore}
             />
           }

@@ -16,6 +16,15 @@ interface Row {
 const FIELDS = ['first_name', 'last_name', 'email', 'phone', 'company'] as const
 const TEMPLATE = 'first_name,last_name,email,phone,company\nJane,Tan,jane@acme.com,+65 9123 4567,Acme Pte Ltd\n'
 
+// The exact, only accepted headers — shown to the user so the format is unambiguous.
+const HEADER_SPEC: { key: string; req: 'required' | 'optional'; example: string }[] = [
+  { key: 'email',      req: 'required', example: 'jane@acme.com' },
+  { key: 'phone',      req: 'required', example: '+65 9123 4567' },
+  { key: 'first_name', req: 'optional', example: 'Jane' },
+  { key: 'last_name',  req: 'optional', example: 'Tan' },
+  { key: 'company',    req: 'optional', example: 'Acme Pte Ltd' },
+]
+
 // Minimal CSV parser (quotes, commas, CRLF).
 function parseCSV(text: string): string[][] {
   const rows: string[][] = []; let cur: string[] = []; let field = ''; let q = false
@@ -63,7 +72,16 @@ export default function BulkImportContacts({ open, onOpenChange, onImported }: {
     setError(null); setBusy(true)
     try {
       const parsed = parseCSV(await file.text())
-      if (parsed.length < 2) { setError('The file has no data rows.'); return }
+      if (parsed.length < 2) { setError('The file has no data rows — add at least one contact below the header row.'); return }
+
+      // Strict header validation: every column must be a recognised field, and the
+      // header row must contain email and/or phone. No silent dropping of columns.
+      const rawHeaders = parsed[0].map(h => h.trim()).filter(Boolean)
+      const unknown    = rawHeaders.filter(h => !HEADER[h.toLowerCase()])
+      if (unknown.length) {
+        setError(`Unrecognised column${unknown.length > 1 ? 's' : ''}: "${unknown.join('", "')}". Accepted headers: first_name, last_name, email, phone, company. Download the template for the exact format.`)
+        return
+      }
       const headers = parsed[0].map(h => HEADER[h.trim().toLowerCase()] ?? '')
       if (!headers.includes('email') && !headers.includes('phone')) {
         setError('CSV must include an "email" and/or "phone" column. Download the template for the exact format.'); return
@@ -124,6 +142,24 @@ export default function BulkImportContacts({ open, onOpenChange, onImported }: {
         {/* ── Upload ── */}
         {step === 'upload' && (
           <div className="flex flex-col gap-3 py-2">
+            {/* Explicit header spec — strict: exactly these columns, nothing else. */}
+            <div className="rounded-lg border border-[--border-subtle] bg-muted/30 px-3.5 py-3">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 mb-2">Required format — exactly these columns</p>
+              <ul className="flex flex-col gap-1 text-[11.5px] text-foreground/80">
+                {HEADER_SPEC.map(h => (
+                  <li key={h.key} className="flex items-baseline gap-2">
+                    <code className="font-mono text-[11px] text-primary w-[76px] flex-shrink-0">{h.key}</code>
+                    {h.req === 'required'
+                      ? <span className="text-muted-foreground/60"><b className="text-amber-600">email or phone required</b> · e.g. {h.example}</span>
+                      : <span className="text-muted-foreground/60">optional · e.g. {h.example}</span>}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-[10.5px] text-muted-foreground/55 mt-2 leading-relaxed">
+                First row must be the header. One contact per row. Only these five columns are accepted — any other column is rejected. Duplicates (by email or phone) are flagged for review before saving.
+              </p>
+            </div>
+
             <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[--border-subtle] rounded-xl py-10 cursor-pointer hover:border-primary/40 hover:bg-primary/[0.03] transition-colors">
               <UploadCloud size={26} className="text-muted-foreground/50" />
               <span className="text-[13px] font-medium text-foreground">Choose a CSV file</span>

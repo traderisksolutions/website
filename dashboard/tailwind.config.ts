@@ -76,11 +76,18 @@ const config: Config = {
           from: { opacity: '0', transform: 'translateY(-4px)' },
           to:   { opacity: '1', transform: 'translateY(0)' },
         },
+        // Indeterminate progress bar — a segment sweeps left→right.
+        'trs-indeterminate': {
+          '0%':   { left: '-40%', width: '40%' },
+          '50%':  { left: '30%',  width: '55%' },
+          '100%': { left: '100%', width: '40%' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up':   'accordion-up 0.2s ease-out',
         'fade-in':        'fade-in 0.15s ease-out',
+        'trs-indeterminate': 'trs-indeterminate 1.1s ease-in-out infinite',
       },
     },
   },

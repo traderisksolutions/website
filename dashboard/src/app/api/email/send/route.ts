@@ -82,8 +82,15 @@ async function getAccessToken(): Promise<string> {
 // 1. Employee's personal Gmail (token in employee_profiles) → use their refresh token
 // 2. Shared/generic address → use service account impersonation
 // 3. Fallback → legacy shared GMAIL_REFRESH_TOKEN
+const SHARED_SENDERS = new Set([DEFAULT_OPS_EMAIL.toLowerCase()])
+
 async function getTokenForSender(fromEmail: string, userId: string | null): Promise<string> {
-  // 1. Personal Gmail
+  const wantEmail = fromEmail.trim().toLowerCase()
+
+  // 1. Personal Gmail — the logged-in employee sending as their own connected address.
+  //    Match case-insensitively: userinfo/stored casing may differ from the From value
+  //    passed by the composer (this was the "can't send via employee email" bug).
+  let hasConnectedProfile = false
   if (userId) {
     try {
       const k = process.env.SUPABASE_SERVICE_KEY
@@ -94,7 +101,9 @@ async function getTokenForSender(fromEmail: string, userId: string | null): Prom
         )
         const profiles = profileRes.ok ? await profileRes.json() : []
         const profile  = Array.isArray(profiles) ? profiles[0] : null
-        if (profile?.gmail_refresh_token && profile?.gmail_email === fromEmail) {
+        const profileEmail = (profile?.gmail_email ?? '').trim().toLowerCase()
+        hasConnectedProfile = !!profile?.gmail_refresh_token
+        if (profile?.gmail_refresh_token && profileEmail === wantEmail) {
           const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
             method:  'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -107,15 +116,35 @@ async function getTokenForSender(fromEmail: string, userId: string | null): Prom
           })
           const tokenData = await tokenRes.json()
           if (tokenData.access_token) return tokenData.access_token as string
+          // We matched the sender but the refresh failed — don't silently fall back to a
+          // token that would send as the wrong identity. Tell the user to reconnect.
+          throw new Error('Your Gmail connection has expired — reconnect it in Settings › Account to send from your own address.')
         }
       }
-    } catch { /* fall through */ }
+    } catch (e) {
+      // Re-throw the actionable reconnect message; swallow only lookup/network noise.
+      if (e instanceof Error && e.message.startsWith('Your Gmail connection')) throw e
+    }
   }
-  // 2. Service account (preferred for shared senders)
+
+  // 2. Personal (non-shared) address that the current user hasn't connected → we cannot
+  //    legitimately send as them without domain-wide delegation. Fail with a clear message
+  //    rather than silently sending as ops@ (which Gmail would rewrite or reject).
+  const isSharedSender = SHARED_SENDERS.has(wantEmail)
+  if (!isSharedSender && !process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+    throw new Error(
+      hasConnectedProfile
+        ? `You're logged in with a different Gmail than ${fromEmail}. Select your own address in "From", or connect ${fromEmail} in Settings › Account.`
+        : `Connect your Gmail in Settings › Account to send from ${fromEmail}.`
+    )
+  }
+
+  // 3. Service account (domain-wide delegation) — shared/generic senders, or personal
+  //    senders when DWD is configured.
   if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
     return getTokenViaServiceAccount(fromEmail)
   }
-  // 3. Legacy shared token
+  // 4. Legacy shared token (ops mailbox).
   return getAccessToken()
 }
 
@@ -446,14 +475,16 @@ export async function POST(req: NextRequest) {
       )
       const existing = existsRes.ok ? await existsRes.json() : []
       if (!Array.isArray(existing) || existing.length === 0) {
+        const nm = nameFromEmail(recipientEmail).split(/\s+/)
         await fetch(`${SB_URL}/rest/v1/contacts`, {
           method:  'POST',
           headers: sbHeaders('return=minimal'),
           body: JSON.stringify({
-            full_name: nameFromEmail(recipientEmail),
-            email:     recipientEmail,
-            source:    'inbound_lead',
-            stage:     'engaged',
+            first_name:       nm[0] ?? '',
+            last_name:        nm.slice(1).join(' '),
+            email:            recipientEmail,
+            source:           'email',
+            engagement_stage: 'engaged',
           }),
         })
       }

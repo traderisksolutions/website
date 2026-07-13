@@ -14,6 +14,8 @@ import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
 import { useAuditLog } from '@/hooks/useAuditLog'
 import type { Lead, RealMsg, RagSource, SigOption, Sender } from '@/components/engagement/types'
 import { fullName } from '@/components/engagement/helpers'
+import { useAutocomplete, SuggestionList } from '@/components/engagement/RecipientAutocomplete'
+import { InlineProgress } from '@/components/engagement/InlineProgress'
 
 interface EngagementComposePanelProps {
   lead:              Lead
@@ -32,6 +34,8 @@ interface EngagementComposePanelProps {
   storedRagSources?: RagSource[]
   onRagRefresh?:     () => void
   onThreadRefresh?:  () => void
+  /** Run one AI-analysis pass (updates the AI Analysis tab + history) before drafting. */
+  onAnalyze?:        () => Promise<void>
   pendingRestore?:   { body: string; generatedBy: string; stamp: number } | null
 }
 
@@ -40,7 +44,7 @@ export function EngagementComposePanel({
   toAddress, ccList, bccList, customSubject,
   setToAddress, setCcList, setBccList, setCustomSubject,
   storedDraft, storedRagDraft, storedRagSources,
-  onRagRefresh, onThreadRefresh, pendingRestore,
+  onRagRefresh, onThreadRefresh, onAnalyze, pendingRestore,
 }: EngagementComposePanelProps) {
 
   // ── All state preserved verbatim ──────────────────────────────────────────
@@ -49,6 +53,7 @@ export function EngagementComposePanel({
   const [draftLoaded,     setDraftLoaded]     = useState(false)
   const [draftEditorKey,  setDraftEditorKey]  = useState(0)
   const [loading,         setLoading]         = useState<'gen' | 'send' | null>(null)
+  const [genStep,         setGenStep]         = useState<'analyze' | 'draft' | null>(null)
   const [sent,            setSent]            = useState(false)
   const [error,           setError]           = useState<string | null>(null)
   const [aiDraftChecked,  setAiDraftChecked]  = useState(false)
@@ -166,6 +171,12 @@ export function EngagementComposePanel({
   async function generate() {
     setLoading('gen'); setError(null)
     try {
+      // #3 — one AI-analysis pass first (updates AI Analysis tab + history), then draft.
+      if (onAnalyze && thread?.id) {
+        setGenStep('analyze')
+        try { await onAnalyze() } catch { /* draft anyway */ }
+      }
+      setGenStep('draft')
       const res = await fetch('/api/engagement/draft', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -191,7 +202,7 @@ export function EngagementComposePanel({
         resource_id: thread?.id ?? lead.id, metadata: { contact: lead.email },
       })
     } catch { setError('Failed to generate draft') }
-    finally { setLoading(null) }
+    finally { setLoading(null); setGenStep(null) }
   }
 
   async function handleSend() {
@@ -293,13 +304,7 @@ export function EngagementComposePanel({
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/55 w-[52px] flex-shrink-0 pl-5">
                 To
               </span>
-              <input
-                value={toAddress}
-                onChange={e => setToAddress(e.target.value)}
-                placeholder="recipient@example.com"
-                aria-label="Recipient email address"
-                className="flex-1 text-[12.5px] font-medium text-foreground bg-transparent border-none outline-none py-2 pr-4"
-              />
+              <ToAutocompleteInput value={toAddress} onChange={setToAddress} placeholder="Type a name or email…" />
               <button
                 onClick={() => setShowCc(v => !v)}
                 aria-label={showCc ? 'Hide CC field' : 'Show CC field'}
@@ -466,7 +471,9 @@ export function EngagementComposePanel({
                   ? <RefreshCw size={11} strokeWidth={2} className="animate-spin" />
                   : <Sparkles size={11} strokeWidth={2} />
                 }
-                {loading === 'gen' ? 'Generating…' : hasDraft ? 'Regenerate' : 'Generate AI reply'}
+                {loading === 'gen'
+                  ? (genStep === 'analyze' ? 'Analysing…' : 'Drafting…')
+                  : hasDraft ? 'Regenerate' : 'Generate AI reply'}
               </button>
 
               <Tip
@@ -494,13 +501,44 @@ export function EngagementComposePanel({
               </button>
             </div>
           </div>
+
+          {/* Progress bar under the buttons while a reply is being generated (#3) */}
+          {loading === 'gen' && (
+            <div className="px-4 pb-3 -mt-1">
+              <InlineProgress label={genStep === 'analyze' ? 'Analysing thread…' : 'Drafting reply…'} />
+            </div>
+          )}
         </>
       )}
     </div>
   )
 }
 
-// ── Chip input ────────────────────────────────────────────────────────────────
+// ── To field with recipient autocomplete (#2) ──────────────────────────────────
+
+function ToAutocompleteInput({
+  value, onChange, placeholder,
+}: { value: string; onChange: (v: string) => void; placeholder: string }) {
+  const ac = useAutocomplete(value, c => onChange(c.email))
+  return (
+    <div ref={ac.boxRef} className="relative flex-1">
+      <input
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onKeyDown={e => ac.onKeyDown(e)}
+        onFocus={ac.reopen}
+        onBlur={ac.close}
+        placeholder={placeholder}
+        aria-label="Recipient email address"
+        autoComplete="off"
+        className="w-full text-[12.5px] font-medium text-foreground bg-transparent border-none outline-none py-2 pr-4"
+      />
+      {ac.visible && <SuggestionList items={ac.items} highlight={ac.highlight} onPick={c => { onChange(c.email); ac.close() }} />}
+    </div>
+  )
+}
+
+// ── Chip input (CC / BCC) with the same recipient autocomplete ──────────────────
 
 function ChipInput({
   chips, onChange, placeholder,
@@ -514,8 +552,16 @@ function ChipInput({
     setInput('')
   }
 
+  function pick(email: string) {
+    const val = email.trim().toLowerCase()
+    if (val && !chips.includes(val)) onChange([...chips, val])
+    setInput('')
+  }
+
+  const ac = useAutocomplete(input, c => pick(c.email))
+
   return (
-    <div className="flex flex-wrap items-center gap-1 py-1.5 pr-3 flex-1 min-w-0">
+    <div ref={ac.boxRef} className="relative flex flex-wrap items-center gap-1 py-1.5 pr-3 flex-1 min-w-0">
       {chips.map(email => (
         <span
           key={email}
@@ -535,13 +581,17 @@ function ChipInput({
         value={input}
         onChange={e => setInput(e.target.value)}
         onKeyDown={e => {
+          if (ac.onKeyDown(e)) return
           if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); tryAdd(input) }
           if (e.key === 'Backspace' && !input && chips.length) onChange(chips.slice(0, -1))
         }}
-        onBlur={() => tryAdd(input)}
+        onFocus={ac.reopen}
+        onBlur={() => { ac.close(); tryAdd(input) }}
         placeholder={chips.length === 0 ? placeholder : ''}
+        autoComplete="off"
         className="min-w-[100px] text-[12px] bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground/40"
       />
+      {ac.visible && <SuggestionList items={ac.items} highlight={ac.highlight} onPick={c => pick(c.email)} />}
     </div>
   )
 }
