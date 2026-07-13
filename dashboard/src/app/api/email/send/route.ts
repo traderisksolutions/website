@@ -390,7 +390,12 @@ export async function POST(req: NextRequest) {
     const rawEmail = buildRawEmail(recipientEmail, subject, finalPlain, finalHtml, finalCc, bcc, replyTo, FROM_EMAIL, emailAttachments)
 
     const sendPayload: Record<string, unknown> = { raw: rawEmail }
-    if (gmailThreadId) sendPayload.threadId = gmailThreadId
+    // A Gmail threadId is mailbox-specific. It belongs to the shared ops mailbox that
+    // ingested the thread — attaching it to a send from a personal mailbox makes Gmail
+    // reject the whole request ("Requested entity was not found"). So only thread the
+    // send when we're actually sending as the ops mailbox. Personal sends go out as a
+    // fresh message (subject "Re:" keeps it grouped; Reply-To routes replies back to ops).
+    if (gmailThreadId && isOpsSender) sendPayload.threadId = gmailThreadId
 
     const sendRes = await fetch(`${GMAIL_API}/messages/send`, {
       method:  'POST',
@@ -400,6 +405,12 @@ export async function POST(req: NextRequest) {
 
     if (!sendRes.ok) {
       const err = await sendRes.text()
+      // Log the full Gmail error — the UI truncates it, and the payload/sender context
+      // is what actually diagnoses these (scope, invalid From, cross-mailbox threadId).
+      console.error('[email/send] Gmail send failed', {
+        from: FROM_EMAIL, to: recipientEmail, isOpsSender,
+        threadedSend: !!sendPayload.threadId, status: sendRes.status, gmailError: err,
+      })
       return NextResponse.json({ error: `Gmail send failed: ${err}` }, { status: 502 })
     }
 

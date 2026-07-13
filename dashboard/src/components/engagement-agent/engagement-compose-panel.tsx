@@ -7,7 +7,7 @@
 // has been updated. If you need to add logic, do it here.
 
 import { useState, useEffect, useRef } from 'react'
-import { RefreshCw, ChevronDown, X, Sparkles } from 'lucide-react'
+import { RefreshCw, ChevronDown, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tip } from '@/components/Tip'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
@@ -15,7 +15,7 @@ import { useAuditLog } from '@/hooks/useAuditLog'
 import type { Lead, RealMsg, RagSource, SigOption, Sender } from '@/components/engagement/types'
 import { fullName } from '@/components/engagement/helpers'
 import { useAutocomplete, SuggestionList } from '@/components/engagement/RecipientAutocomplete'
-import { InlineProgress } from '@/components/engagement/InlineProgress'
+import { InlineProgress, useFauxProgress } from '@/components/engagement/InlineProgress'
 
 interface EngagementComposePanelProps {
   lead:              Lead
@@ -86,6 +86,7 @@ export function EngagementComposePanel({
 
   const selectedSig = signatures.find(s => s.id === selectedSigId) ?? null
   const sigHtml     = selectedSig ? buildSigHtml(selectedSig) : ''
+  const genPct      = useFauxProgress(loading === 'gen')   // determinate % for the progress bar
 
   // ── All effects preserved verbatim ────────────────────────────────────────
 
@@ -181,7 +182,9 @@ export function EngagementComposePanel({
       const res = await fetch('/api/engagement/draft', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          leadId: lead.id, contactName: fullName(lead), contactEmail: lead.email,
+          // Resolve the contact from the actual recipient in the To field — the lead
+          // may have no email (e.g. an internal forwarded thread) even when To is set.
+          leadId: lead.id, contactName: fullName(lead), contactEmail: toAddress.trim() || lead.email,
           company: lead.company, topic: lead.topic, threadId: thread?.id ?? null,
           messages: messages.map(m => ({
             direction: m.direction, from_address: m.from_address,
@@ -217,7 +220,9 @@ export function EngagementComposePanel({
         const createRes = await fetch('/api/engagement/draft', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            leadId: lead.id, contactName: fullName(lead), contactEmail: lead.email,
+            // Use the To field as the recipient — the lead may have no email even when a
+            // valid address is typed in To (internal forwarded threads, ad-hoc replies).
+            leadId: lead.id, contactName: fullName(lead), contactEmail: toAddress.trim() || lead.email,
             company: lead.company, topic: lead.topic, threadId: thread?.id ?? null,
             messages: [], manualContent: plainText,
           }),
@@ -436,17 +441,21 @@ export function EngagementComposePanel({
                 </div>
               )}
 
-              {selectedSig && (
-                <div className="flex items-center gap-1 text-[10px] text-muted-foreground/60">
-                  <span className="truncate max-w-[90px]">
-                    {selectedSig.name.split(' ')[0]}
+              {signatures.length > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50">
+                    Sig
                   </span>
-                  <button
-                    onClick={() => setSelectedSigId('')}
-                    className="text-muted-foreground/35 hover:text-muted-foreground"
+                  <select
+                    value={selectedSigId}
+                    onChange={e => setSelectedSigId(e.target.value)}
+                    className="text-[11px] text-foreground border border-[--border-subtle] rounded-md px-2 py-[3px] bg-background cursor-pointer outline-none focus:ring-1 focus:ring-primary/30 max-w-[150px]"
                   >
-                    <X size={9} />
-                  </button>
+                    <option value="">No signature</option>
+                    {signatures.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
                 </div>
               )}
             </div>
@@ -506,7 +515,7 @@ export function EngagementComposePanel({
           {/* Progress bar under the buttons while a reply is being generated (#3) */}
           {loading === 'gen' && (
             <div className="px-4 pb-3 -mt-1">
-              <InlineProgress label={genStep === 'analyze' ? 'Analysing thread…' : 'Drafting reply…'} />
+              <InlineProgress value={genPct} label={genStep === 'analyze' ? 'Analysing thread…' : 'Drafting reply…'} />
             </div>
           )}
         </>

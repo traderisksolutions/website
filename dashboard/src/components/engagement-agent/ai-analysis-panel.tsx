@@ -9,7 +9,7 @@ import { timeAgo, fmtDateTime } from '@/components/engagement/helpers'
 import { EmailTypeBadge } from './email-type-badge'
 import { DraftProvenancePanel } from './draft-provenance-panel'
 import { EvaluationSummary } from './evaluation-summary'
-import { InlineProgress } from '@/components/engagement/InlineProgress'
+import { InlineProgress, useFauxProgress } from '@/components/engagement/InlineProgress'
 
 interface DraftMeta {
   emailType:   string | null
@@ -35,6 +35,9 @@ export function AiAnalysisPanel({
   const [regenErr,     setRegenErr]     = useState<string | null>(null)
   const [historyOpen,  setHistoryOpen]  = useState(false)
   const [meta,         setMeta]         = useState<DraftMeta | null>(null)
+
+  const analysing = loading || regenerating
+  const analysisPct = useFauxProgress(analysing)
 
   const latest = summaries[0] ?? null
   const older  = summaries.slice(1)
@@ -95,8 +98,8 @@ export function AiAnalysisPanel({
       </div>
 
       <div className="px-3.5 pb-3">
-        {(loading || regenerating) && (
-          <InlineProgress label="Analysing thread…" className="py-1" />
+        {analysing && (
+          <InlineProgress value={analysisPct} label="Analysing thread…" className="py-1" />
         )}
 
         {!loading && !regenerating && !latest && (

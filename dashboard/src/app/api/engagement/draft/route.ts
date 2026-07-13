@@ -69,7 +69,15 @@ export async function POST(req: NextRequest) {
 
     // Manual compose — skip Gemini entirely
     if (manualContent !== undefined) {
-      if (!contactEmail) return NextResponse.json({ error: 'Contact has no email address' }, { status: 400 })
+      if (!contactEmail) {
+        // Diagnostic: surfaces in Vercel logs what the composer actually sent when the
+        // recipient couldn't be resolved (lead.email null AND To field empty).
+        console.error('[engagement/draft] manual send has no recipient', {
+          leadId, threadId, contactName, company,
+          contactEmail_received: contactEmail,
+        })
+        return NextResponse.json({ error: 'No recipient — enter an email address in the To field before sending.' }, { status: 400 })
+      }
       // Contacts are stored lowercased — normalise so upsert + re-fetch align regardless
       // of how the lead/thread recorded the address (avoids "Could not resolve contact_id"
       // when e.g. the lead has "Hasya@…" but the contact row is "hasya@…").
@@ -452,13 +460,14 @@ Write only the email body starting with "${salutation}". End after the last para
     // merge-duplicates returns empty when the row already exists — never rely on its response body.
     let contactId: string | null = null
     if (contactEmail) {
+      const em = contactEmail.trim().toLowerCase()   // contacts are stored lowercased
       await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
         method:  'POST',
         headers: sbHeaders('return=minimal,resolution=merge-duplicates'),
-        body:    JSON.stringify({ email: contactEmail, source: 'email' }),
+        body:    JSON.stringify({ email: em, source: 'email' }),
       })
       const cFetch = await fetch(
-        `${SB_URL}/rest/v1/contacts?email=eq.${encodeURIComponent(contactEmail)}&select=id&limit=1`,
+        `${SB_URL}/rest/v1/contacts?email=ilike.${encodeURIComponent(em)}&select=id&limit=1`,
         { headers: sbHeaders(), cache: 'no-store' }
       )
       const cRows = cFetch.ok ? await cFetch.json() : []
@@ -563,7 +572,15 @@ Write only the email body starting with "${salutation}". End after the last para
     }
 
     if (!contactId) {
-      return NextResponse.json({ error: 'Could not resolve contact_id — lead has no email' }, { status: 400 })
+      // Diagnostic: which inputs failed to yield a recipient. The common case is an
+      // all-internal thread (every party @trade-risksol.com) with no To address passed,
+      // so thread-scraping — which skips internal addresses — finds nothing.
+      console.error('[engagement/draft] AI draft could not resolve a contact', {
+        leadId, threadId, contactName,
+        contactEmail_received: contactEmail,
+        note: 'pass the To address as contactEmail, or the thread is fully internal',
+      })
+      return NextResponse.json({ error: 'No recipient found — enter an email in the To field, then Regenerate.' }, { status: 400 })
     }
 
     // Supersede any existing pending drafts for this thread so only the latest is shown
