@@ -103,7 +103,7 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
                 onBlur={toAc.close}
                 placeholder="Type a name or email…"
                 autoComplete="off"
-                className={`${inp} w-full`}
+                className={`${inp} w-full focus-visible:outline-none`}
               />
               {toAc.visible && <SuggestionList items={toAc.items} highlight={toAc.highlight} onPick={c => { setTo(c.email); toAc.close() }} />}
             </div></label>

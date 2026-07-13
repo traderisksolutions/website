@@ -44,9 +44,10 @@ export function EngagementContextPanel({
           <button
             onClick={onCollapse}
             title="Collapse panel"
-            className="text-muted-foreground/50 hover:text-foreground transition-colors"
+            aria-label="Collapse panel"
+            className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white hover:bg-primary/90 transition-colors shadow-sm"
           >
-            <ChevronRight size={15} />
+            <ChevronRight size={14} strokeWidth={2.5} />
           </button>
         </div>
       )}

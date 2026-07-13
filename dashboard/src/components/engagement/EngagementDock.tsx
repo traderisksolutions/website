@@ -41,7 +41,7 @@ export function EngagementDock({
   ]
 
   return (
-    <div className="flex-shrink-0 border-t border-[--border-subtle] bg-card">
+    <div className="flex-shrink-0 border-t border-[--border-subtle] bg-card shadow-[0_-8px_20px_-8px_rgba(15,23,42,0.16)]">
       {/* Active panel — always in the DOM (height 0 when collapsed) so state is preserved */}
       <div
         className="overflow-hidden transition-[height] duration-150"

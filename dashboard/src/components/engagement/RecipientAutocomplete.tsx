@@ -6,21 +6,80 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ContactSuggestion } from '@/app/api/contacts/search/route'
 
-// Debounced fetch of contact suggestions for the given query.
+// Contact list is prefetched once and cached in-module so suggestions filter locally —
+// instant from the very first character, no per-keystroke network round-trip.
+let CACHE: { at: number; rows: ContactSuggestion[] } | null = null
+let INFLIGHT: Promise<ContactSuggestion[]> | null = null
+const CACHE_TTL = 5 * 60_000
+
+function loadAllContacts(): Promise<ContactSuggestion[]> {
+  if (CACHE && Date.now() - CACHE.at < CACHE_TTL) return Promise.resolve(CACHE.rows)
+  if (!INFLIGHT) {
+    INFLIGHT = fetch('/api/contacts/search?all=1', { cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : []))
+      .then((rows: ContactSuggestion[]) => {
+        const list = Array.isArray(rows) ? rows : []
+        CACHE = { at: Date.now(), rows: list }
+        return list
+      })
+      .catch(() => [] as ContactSuggestion[])
+      .finally(() => { INFLIGHT = null })
+  }
+  return INFLIGHT
+}
+
+function filterLocal(rows: ContactSuggestion[], query: string): ContactSuggestion[] {
+  const t = query.trim().toLowerCase()
+  if (!t) return []
+  const matches = rows.filter(c => c.name.toLowerCase().includes(t) || c.email.toLowerCase().includes(t))
+  matches.sort((a, b) => {
+    const aStart = a.name.toLowerCase().startsWith(t) || a.email.toLowerCase().startsWith(t)
+    const bStart = b.name.toLowerCase().startsWith(t) || b.email.toLowerCase().startsWith(t)
+    if (aStart !== bStart) return aStart ? -1 : 1
+    if (a.is_employee !== b.is_employee) return a.is_employee ? -1 : 1
+    return 0
+  })
+  return matches.slice(0, 8)
+}
+
+// Suggestions for the given query. Filters the prefetched cache locally (instant); if the
+// cache hasn't loaded yet, does a one-off server query as a fallback for that keystroke.
 export function useContactSearch(query: string): ContactSuggestion[] {
+  const [rows, setRows]       = useState<ContactSuggestion[]>(CACHE?.rows ?? [])
   const [results, setResults] = useState<ContactSuggestion[]>([])
+
+  // Warm the cache once on mount so the list is ready before the user types.
+  useEffect(() => {
+    let alive = true
+    loadAllContacts().then(r => { if (alive) setRows(r) })
+    return () => { alive = false }
+  }, [])
+
   useEffect(() => {
     const q = query.trim()
     if (q.length < 1) { setResults([]); return }
     let alive = true
-    const t = setTimeout(() => {
-      fetch(`/api/contacts/search?q=${encodeURIComponent(q)}`, { cache: 'no-store' })
-        .then(r => r.ok ? r.json() : [])
-        .then((rows: ContactSuggestion[]) => { if (alive) setResults(Array.isArray(rows) ? rows : []) })
-        .catch(() => { if (alive) setResults([]) })
-    }, 160)
-    return () => { alive = false; clearTimeout(t) }
-  }, [query])
+    if (rows.length) {
+      const local = filterLocal(rows, q)
+      setResults(local)
+      // Nothing matched locally — the contact may be beyond the prefetch cap; back it up
+      // with a server query so large contact sets still resolve.
+      if (local.length === 0 && q.length >= 2) {
+        fetch(`/api/contacts/search?q=${encodeURIComponent(q)}`, { cache: 'no-store' })
+          .then(r => (r.ok ? r.json() : []))
+          .then((x: ContactSuggestion[]) => { if (alive && Array.isArray(x) && x.length) setResults(x) })
+          .catch(() => {})
+      }
+      return () => { alive = false }
+    }
+    // Cache still loading — fall back to a server query for this keystroke.
+    fetch(`/api/contacts/search?q=${encodeURIComponent(q)}`, { cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : []))
+      .then((x: ContactSuggestion[]) => { if (alive) setResults(Array.isArray(x) ? x : []) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [query, rows])
+
   return results
 }
 

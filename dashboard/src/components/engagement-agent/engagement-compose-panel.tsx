@@ -9,7 +9,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { RefreshCw, ChevronDown, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Tip } from '@/components/Tip'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
 import { useAuditLog } from '@/hooks/useAuditLog'
 import type { Lead, RealMsg, RagSource, SigOption, Sender } from '@/components/engagement/types'
@@ -486,16 +485,6 @@ export function EngagementComposePanel({
                   : hasDraft ? 'Regenerate' : 'Generate AI reply'}
               </button>
 
-              <Tip
-                placement="left"
-                text="Edit the draft then click Approve & Send. Every sent reply is automatically evaluated to improve future AI drafts."
-              />
-
-              {/* Human-in-the-loop indicator — AI drafts, human approves */}
-              <span className="hidden xl:block text-[9px] text-muted-foreground/40 whitespace-nowrap">
-                You approve every reply
-              </span>
-
               {/* Approve & Send — primary CTA */}
               <button
                 onClick={handleSend}
@@ -541,7 +530,7 @@ function ToAutocompleteInput({
         placeholder={placeholder}
         aria-label="Recipient email address"
         autoComplete="off"
-        className="w-full text-[12.5px] font-medium text-foreground bg-transparent border-none outline-none py-2 pr-4"
+        className="w-full text-[12.5px] font-medium text-foreground bg-transparent border-none outline-none focus-visible:outline-none py-2 pr-4"
       />
       {ac.visible && <SuggestionList items={ac.items} highlight={ac.highlight} onPick={c => { onChange(c.email); ac.close() }} />}
     </div>
@@ -599,7 +588,7 @@ function ChipInput({
         onBlur={() => { ac.close(); tryAdd(input) }}
         placeholder={chips.length === 0 ? placeholder : ''}
         autoComplete="off"
-        className="min-w-[100px] text-[12px] bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground/40"
+        className="min-w-[100px] text-[12px] bg-transparent border-none outline-none focus-visible:outline-none text-foreground placeholder:text-muted-foreground/40"
       />
       {ac.visible && <SuggestionList items={ac.items} highlight={ac.highlight} onPick={c => pick(c.email)} />}
     </div>

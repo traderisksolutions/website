@@ -31,13 +31,19 @@ export async function GET(req: NextRequest) {
 
     const sp    = new URL(req.url).searchParams
     const q     = (sp.get('q') ?? '').trim()
-    const limit = Math.min(Number(sp.get('limit') ?? 8), 20)
-    if (q.length < 1) return NextResponse.json([])
+    const all   = sp.get('all') === '1'   // prefetch the whole list for instant local filtering
+    const limit = all ? 1000 : Math.min(Number(sp.get('limit') ?? 8), 20)
+    if (!all && q.length < 1) return NextResponse.json([])
 
-    // Sanitise for a PostgREST or=() filter: strip characters that break the grammar.
-    const like = `*${q.replace(/[(),*"]/g, ' ').trim()}*`
-    const or   = ['first_name', 'last_name', 'email', 'company'].map(f => `${f}.ilike.${like}`).join(',')
-    const base = `${SB_URL}/rest/v1/contacts?or=(${encodeURIComponent(or)})&email=not.is.null&limit=${limit}`
+    // With ?all=1 return the whole (capped) contact list with an email; otherwise filter by q.
+    let filter = 'email=not.is.null'
+    if (!all) {
+      // Sanitise for a PostgREST or=() filter: strip characters that break the grammar.
+      const like = `*${q.replace(/[(),*"]/g, ' ').trim()}*`
+      const or   = ['first_name', 'last_name', 'email', 'company'].map(f => `${f}.ilike.${like}`).join(',')
+      filter = `or=(${encodeURIComponent(or)})&email=not.is.null`
+    }
+    const base = `${SB_URL}/rest/v1/contacts?${filter}&limit=${limit}`
 
     // Prefer the is_employee-aware query (employees first + flagged). Fall back gracefully
     // if the column doesn't exist yet (migration not run) so the typeahead never breaks.
