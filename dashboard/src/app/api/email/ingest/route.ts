@@ -461,17 +461,23 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
     }
   }
 
-  // If no external party found but sender is an internal TRS employee, still store the thread
-  // so ops team can see it. This covers internal forwards (e.g. FlyORO doc chain) where the
-  // original client email is buried in a format we can't yet parse.
+  // If no external party found but sender is an internal TRS employee, attribute the thread
+  // to that employee (one of the seeded 1-of-12 contacts) rather than leaving it blank /
+  // generic. Covers internal forwards where the original client email is buried in a format
+  // we can't yet parse — at least the sidebar shows a real person + address, not the company.
   if (!resolvedParty) {
     if (isInternal(fromEmail)) {
-      console.log('[ingest] no external party found for internal forward — storing with null contact:', gmailMsgId)
+      resolvedParty = { email: fromEmail, name: fromName }
+      console.log('[ingest] no external party — attributing internal forward to employee:', fromEmail)
     } else {
       console.log('[ingest] skip — no external party and sender is not internal:', gmailMsgId)
       return
     }
   }
+
+  // Whether the resolved contact is a TRS employee (internal) vs an external client — used
+  // to skip lead-stage promotion / company inference for staff.
+  const partyIsInternal = !!resolvedParty && isInternal(resolvedParty.email)
 
   console.log('[ingest]', gmailMsgId, '|', direction, '|', resolvedParty?.email ?? 'no-contact')
 
@@ -482,6 +488,7 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
     const primaryBody: Record<string, unknown> = { email: resolvedParty.email, source: 'email' }
     if (pFirst) primaryBody.first_name = pFirst
     if (pLast)  primaryBody.last_name  = pLast
+    if (partyIsInternal) primaryBody.is_employee = true   // staff, not a lead
     const contactUpsert = await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
       method:  'POST',
       headers: sbHeaders('return=minimal,resolution=merge-duplicates'),
@@ -496,8 +503,9 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
     const existingContact  = Array.isArray(contactFetchRows) ? contactFetchRows[0] : null
     contactId = existingContact?.id ?? null
 
-    // Promote to 'engaged' if contact is new or still at prospect stage
-    if (contactId) {
+    // Promote to 'engaged' if contact is new or still at prospect stage — but never for
+    // staff (employees aren't leads and shouldn't enter the funnel).
+    if (contactId && !partyIsInternal) {
       const stage = existingContact?.engagement_stage
       if (!stage || stage === 'prospect') {
         await fetch(`${SB_URL}/rest/v1/contacts?id=eq.${contactId}`, {
@@ -508,7 +516,7 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
       }
     }
 
-    if (contactId && !existingContact?.company) {
+    if (contactId && !partyIsInternal && !existingContact?.company) {
       const inferred = inferCompanyFromEmail(resolvedParty.email)
       if (inferred) {
         await fetch(`${SB_URL}/rest/v1/contacts?id=eq.${contactId}`, {

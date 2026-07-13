@@ -8,6 +8,7 @@ import MasterEmailTemplatePanel from '@/components/MasterEmailTemplatePanel'
 import ClientRecoTemplatePanel  from '@/components/ClientRecoTemplatePanel'
 import RfqOpsPanel              from '@/components/RfqOpsPanel'
 import HighlightBackfillPanel   from '@/components/HighlightBackfillPanel'
+import ThreadContactBackfillPanel from '@/components/ThreadContactBackfillPanel'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -147,7 +148,7 @@ function SettingsContent() {
       <p className="text-[13px] text-muted-foreground -mt-2">{active.blurb}</p>
 
       <div className="flex flex-col gap-6">
-        {tab === 'account'    && <><GmailSection profile={profile} onProfileChange={loadProfile} /><HighlightBackfillPanel /></>}
+        {tab === 'account'    && <><GmailSection profile={profile} onProfileChange={loadProfile} /><HighlightBackfillPanel /><ThreadContactBackfillPanel /></>}
         {tab === 'signatures' && <SignaturePanel profile={profile} />}
         {tab === 'insurers'   && <InsurerDirectoryPanel />}
         {tab === 'rfq'        && <RfqOpsPanel />}
