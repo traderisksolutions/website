@@ -467,8 +467,20 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
   // we can't yet parse — at least the sidebar shows a real person + address, not the company.
   if (!resolvedParty) {
     if (isInternal(fromEmail)) {
-      resolvedParty = { email: fromEmail, name: fromName }
-      console.log('[ingest] no external party — attributing internal forward to employee:', fromEmail)
+      // Prefer the actual person over the shared ops mailbox: if the header sender is a
+      // shared mailbox (operations@ / road-plus@), pull the first personal @trade-risksol.com
+      // address from the body (signature / forwarded "From:") and attribute to them.
+      const SHARED_MAILBOXES = new Set(['operations@trade-risksol.com', 'road-plus@trade-risksol.com'])
+      let personEmail = fromEmail
+      if (SHARED_MAILBOXES.has(fromEmail.toLowerCase())) {
+        const fullText = decodeFullText(parts)
+        const found = (fullText.match(/[A-Za-z0-9._%+\-]+@trade-risksol\.com/gi) ?? [])
+          .map(e => e.toLowerCase())
+          .find(e => !SHARED_MAILBOXES.has(e))
+        if (found) personEmail = found
+      }
+      resolvedParty = { email: personEmail, name: personEmail === fromEmail ? fromName : null }
+      console.log('[ingest] no external party — attributing internal forward to employee:', personEmail)
     } else {
       console.log('[ingest] skip — no external party and sender is not internal:', gmailMsgId)
       return
@@ -486,9 +498,14 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
   if (resolvedParty) {
     const { first_name: pFirst, last_name: pLast } = splitDisplayName(resolvedParty.name)
     const primaryBody: Record<string, unknown> = { email: resolvedParty.email, source: 'email' }
-    if (pFirst) primaryBody.first_name = pFirst
-    if (pLast)  primaryBody.last_name  = pLast
-    if (partyIsInternal) primaryBody.is_employee = true   // staff, not a lead
+    // For staff, never overwrite the seeded employee name with the mailbox display name
+    // (e.g. "Trade Risk Solutions"); just flag is_employee and keep the existing row.
+    if (partyIsInternal) {
+      primaryBody.is_employee = true
+    } else {
+      if (pFirst) primaryBody.first_name = pFirst
+      if (pLast)  primaryBody.last_name  = pLast
+    }
     const contactUpsert = await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
       method:  'POST',
       headers: sbHeaders('return=minimal,resolution=merge-duplicates'),

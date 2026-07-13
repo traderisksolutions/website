@@ -1,8 +1,8 @@
 /**
  * Resolve the best CONTACT for an email thread (#3): the external client if one can be
- * found, otherwise the TRS employee who handled it (mapped to the seeded 1-of-12 contact),
- * otherwise nothing. Used by the internal-contact backfill; ingestion applies the same
- * client-first / employee-fallback logic inline.
+ * found, otherwise the specific TRS employee who handled it (a real person — not the shared
+ * operations@ mailbox — mapped to the seeded 1-of-12 contact), otherwise nothing.
+ * Used by the internal-contact backfill; ingestion applies the same idea inline.
  */
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
@@ -13,18 +13,32 @@ function sbH(prefer = 'return=minimal') {
   return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: prefer }
 }
 
-const isInternal  = (e: string) => /@trade-risksol\.com$/i.test(e.trim())
+const EMAIL_RE = /[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[a-z]{2,}/gi
+
+export const isInternalEmail = (e: string) => /@trade-risksol\.com$/i.test(e.trim())
 const isAutomated = (e: string) => {
   const l = e.toLowerCase()
   return l.includes('noreply') || l.includes('no-reply') || l.includes('mailer-daemon') || l.includes('postmaster') || l.includes('donotreply')
 }
-const isUsableClient = (e: string) => !!e && !isInternal(e) && !isAutomated(e)
-const EMAIL_RE = /[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[a-z]{2,}/gi
+// Shared/non-person mailboxes — attributing a thread to these is what makes the sidebar
+// read "Operations Team" / "Trade Risk Solutions" instead of the person who sent it.
+const SHARED_MAILBOXES = new Set(['operations@trade-risksol.com', 'road-plus@trade-risksol.com'])
+const isPersonalInternal = (e: string) => isInternalEmail(e) && !SHARED_MAILBOXES.has(e.toLowerCase())
+const isUsableClient      = (e: string) => !!e && !isInternalEmail(e) && !isAutomated(e)
+
+// Pull a bare email out of a raw address that may include a display name, angle brackets or
+// an Outlook "<mailto:…>" suffix, e.g. `Trade Risk Solutions <operations@trade-risksol.com>`.
+const extractEmail = (raw: string | null | undefined): string | null => {
+  if (!raw) return null
+  const m = raw.match(EMAIL_RE)
+  return m ? m[0].toLowerCase() : null
+}
 
 async function upsertContactByEmail(rawEmail: string, isEmployee: boolean): Promise<string | null> {
   const email = rawEmail.trim().toLowerCase()
   const body: Record<string, unknown> = { email, source: 'email' }
   if (isEmployee) body.is_employee = true
+  // ignore-duplicates so we never overwrite a seeded employee's name/company.
   await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
     method: 'POST', headers: sbH('return=minimal,resolution=ignore-duplicates'),
     body: JSON.stringify(body),
@@ -44,31 +58,38 @@ export async function resolveBestContactForThread(threadId: string): Promise<Res
   const msgs: { direction: string; from_address: string | null; body_text: string | null }[] = mRes.ok ? await mRes.json() : []
   if (!Array.isArray(msgs) || msgs.length === 0) return { contactId: null, kind: 'none', email: null }
 
-  // 1. External client — an inbound sender first, then any external address in a To:/Cc:
-  //    line inside the (possibly forwarded) bodies.
-  const inboundClient = msgs.find(m => m.direction === 'inbound' && m.from_address && isUsableClient(m.from_address))?.from_address
-  let clientEmail: string | null = inboundClient ?? null
-  if (!clientEmail) {
-    const allBody = msgs.map(m => m.body_text ?? '').join('\n')
-    const re = /^(?:To|Cc|CC|From)\s*:[^\n]+/gim
-    let lm: RegExpExecArray | null
-    scan: while ((lm = re.exec(allBody)) !== null) {
-      for (const e of lm[0].match(EMAIL_RE) ?? []) {
-        if (isUsableClient(e)) { clientEmail = e; break scan }
-      }
-    }
-  }
+  const fromEmails = msgs.map(m => extractEmail(m.from_address)).filter((e): e is string => !!e)
+  // All email addresses appearing anywhere in the bodies, in document order (top-down) —
+  // the signature of the person who wrote the latest message appears before the quoted chain.
+  const bodyEmails = (msgs.map(m => m.body_text ?? '').join('\n').match(EMAIL_RE) ?? []).map(e => e.toLowerCase())
+
+  // 1. External client — an inbound sender, then any external address in the bodies.
+  const clientEmail = fromEmails.find(e => msgsHasInbound(msgs, e) && isUsableClient(e))
+    ?? fromEmails.find(isUsableClient)
+    ?? bodyEmails.find(isUsableClient)
+    ?? null
   if (clientEmail) {
     const id = await upsertContactByEmail(clientEmail, false)
-    if (id) return { contactId: id, kind: 'client', email: clientEmail.toLowerCase() }
+    if (id) return { contactId: id, kind: 'client', email: clientEmail }
   }
 
-  // 2. Employee fallback — the first internal sender (resolves to the seeded 1-of-12).
-  const internalSender = msgs.map(m => m.from_address).find(e => e && isInternal(e)) as string | undefined
-  if (internalSender) {
-    const id = await upsertContactByEmail(internalSender, true)
-    if (id) return { contactId: id, kind: 'employee', email: internalSender.toLowerCase() }
+  // 2. Employee — prefer a real person over the shared mailbox: personal From, then personal
+  //    address in the body (signature), then any internal From, then any internal in body.
+  const employeeEmail =
+       fromEmails.find(isPersonalInternal)
+    ?? bodyEmails.find(isPersonalInternal)
+    ?? fromEmails.find(isInternalEmail)
+    ?? bodyEmails.find(isInternalEmail)
+    ?? null
+  if (employeeEmail) {
+    const id = await upsertContactByEmail(employeeEmail, true)
+    if (id) return { contactId: id, kind: 'employee', email: employeeEmail }
   }
 
   return { contactId: null, kind: 'none', email: null }
+}
+
+// True when some inbound message was sent from `email`.
+function msgsHasInbound(msgs: { direction: string; from_address: string | null }[], email: string): boolean {
+  return msgs.some(m => m.direction === 'inbound' && extractEmail(m.from_address) === email)
 }

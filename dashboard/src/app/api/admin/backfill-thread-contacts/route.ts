@@ -8,7 +8,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
-import { resolveBestContactForThread } from '@/lib/resolve-thread-contact'
+import { resolveBestContactForThread, isInternalEmail } from '@/lib/resolve-thread-contact'
 
 export const maxDuration = 300
 
@@ -47,14 +47,18 @@ export async function POST(req: NextRequest) {
     const rows = (listRes.ok ? await listRes.json() : []) as ThreadRow[]
 
     let processed = 0, updated = 0
+    const byKind = { client: 0, employee: 0, none: 0 }
     for (const t of rows) {
       processed++
-      // Needs fixing when there's no contact, or the contact has no email (the generic
-      // company placeholder). A contact that already has an email is left untouched.
-      const needsFix = !t.contact_id || !t.contact?.email
+      // Fix threads with no contact, a contact with no email, OR a contact whose email is
+      // internal (the generic "Trade Risk Solutions" / "Operations Team" placeholder) —
+      // those should point at the real client, or the specific person who handled it.
+      const email = t.contact?.email ?? null
+      const needsFix = !t.contact_id || !email || isInternalEmail(email)
       if (!needsFix) continue
 
       const resolved = await resolveBestContactForThread(t.id)
+      byKind[resolved.kind]++
       if (resolved.contactId && resolved.contactId !== t.contact_id) {
         const r = await fetch(`${SB_URL}/rest/v1/email_threads?id=eq.${t.id}`, {
           method: 'PATCH', headers: sbH('return=minimal'),
@@ -64,7 +68,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ processed, updated, nextOffset: offset + rows.length, done: rows.length < limit })
+    return NextResponse.json({ processed, updated, byKind, nextOffset: offset + rows.length, done: rows.length < limit })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
