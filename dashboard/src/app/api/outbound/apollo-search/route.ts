@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders } from '@/lib/sb'
 
 const APOLLO = 'https://api.apollo.io/api/v1'
-const GEMINI = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent'
+const GEMINI = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
 
 const HEADCOUNT_LABELS: Record<string, string> = {
   '<50':       'under 50 employees',

@@ -134,7 +134,7 @@ Return ONLY valid JSON — no markdown, no extra text:
 }`
 
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${geminiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${geminiKey}`,
       {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -204,7 +204,7 @@ Return ONLY valid JSON — no markdown, no extra text:
       entity_id:   id,
       campaign_id: id,
       payload:     {
-        model:         'gemini-3.5-flash',
+        model:         'gemini-3.1-flash-lite',
         step_count:    updatedSequences.length,
         prompt_tokens: usage.promptTokenCount   ?? 0,
         output_tokens: usage.candidatesTokenCount ?? 0,

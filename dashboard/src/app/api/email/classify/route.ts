@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent'
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
 
 const CATEGORIES = ['rfq', 'claim', 'renewal', 'general', 'other'] as const
 

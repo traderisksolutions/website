@@ -178,7 +178,7 @@ Classify as one of:
 Return: { "label": "<one of the above>", "confidence": <0.0–1.0>, "reasoning": "<1 sentence>" }`
 
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${geminiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${geminiKey}`,
       {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -206,7 +206,7 @@ Return: { "label": "<one of the above>", "confidence": <0.0–1.0>, "reasoning":
         ai_confidence:    parsed.confidence ?? null,
         ai_reasoning:     parsed.reasoning  ?? null,
         ai_classified_at: new Date().toISOString(),
-        ai_model_used:    'gemini-3.5-flash',
+        ai_model_used:    'gemini-3.1-flash-lite',
       }),
     })
 

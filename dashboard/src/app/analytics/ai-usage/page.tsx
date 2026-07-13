@@ -40,7 +40,8 @@ const AREA_OF_FEATURE: Record<string, string> = {
 
 const MODELS: Cat[] = [
   { key: 'claude-opus-4-8',     label: 'Opus 4.8',        color: '#8b5cf6', desc: 'Claude Opus 4.8 — Nexus strategy, quote decisions, consultant chat, recommendations. $5 / $25 per 1M.' },
-  { key: 'gemini-3.5-flash',    label: 'Gemini 3.5 Flash', color: '#10b981', desc: 'Gemini 3.5 Flash — all Gemini work (summaries, drafting, extraction, synthesis). $1.50 / $9 per 1M.' },
+  { key: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash-Lite', color: '#10b981', desc: 'Gemini 3.1 Flash-Lite — all Gemini work (summaries, drafting, extraction, synthesis). $0.25 / $1.50 per 1M.' },
+  { key: 'gemini-3.5-flash',    label: 'Gemini 3.5 Flash', color: '#14b8a6', desc: 'Gemini 3.5 Flash (retired) — historical rows. $1.50 / $9 per 1M.' },
   { key: 'gemini-2.5-pro',      label: 'Gemini 2.5 Pro',  color: '#3b82f6', desc: 'Gemini 2.5 Pro (retired) — historical Nexus synthesis + RFQ reasoning rows. $1.25 / $10 per 1M.' },
   { key: 'gemini-2.5-flash',    label: 'Gemini 2.5 Flash', color: '#22d3ee', desc: 'Gemini 2.5 Flash (retired) — historical rows. $0.30 / $2.50 per 1M.' },
   { key: 'gemini-embedding-001', label: 'Embedding',      color: '#f97316', desc: 'gemini-embedding-001 — RAG indexing (priced per character).' },

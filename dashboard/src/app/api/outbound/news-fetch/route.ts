@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
         `Return ONLY valid JSON: {"headline": "...", "summary": "...", "source": "..."}`
 
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${geminiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${geminiKey}`,
         {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
         `Return the single most relevant and recent story as JSON: {"headline": "...", "summary": "2-3 sentences explaining what happened and how insurance could have helped", "url": "...", "source": "publication name"}`
 
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${geminiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${geminiKey}`,
         {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },

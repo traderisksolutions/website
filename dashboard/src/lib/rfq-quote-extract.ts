@@ -67,7 +67,7 @@ export async function loadSources(threadId: string): Promise<{ text: string; has
   return { text: parts.join('\n\n'), hasContent: parts.length > 0, messageId: msg?.id ?? null }
 }
 
-export async function extract(corpus: string, apiKey: string, model = 'gemini-3.5-flash'): Promise<ExtractedQuote | null> {
+export async function extract(corpus: string, apiKey: string, model = 'gemini-3.1-flash-lite'): Promise<ExtractedQuote | null> {
   const prompt = `You are extracting an insurance quotation for a Singapore broker (Trade Risk Solutions). Below are one or more SOURCE blocks (the insurer's email body and/or attachment text). Extract the quote STRICTLY.
 
 RULES — read carefully:
@@ -161,7 +161,7 @@ export async function extractAndStoreQuote(dispatchId: string): Promise<QuoteRow
     evidence,
     primary_source:    ex.primary_source,
     source_message_id: messageId,
-    extracted_by:      'gemini-3.5-flash',
+    extracted_by:      'gemini-3.1-flash-lite',
     raw:               ex,
     updated_at:        new Date().toISOString(),
   }
