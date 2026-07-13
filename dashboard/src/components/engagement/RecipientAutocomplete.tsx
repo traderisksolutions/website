@@ -70,7 +70,9 @@ export function useAutocomplete(query: string, onPick: (c: ContactSuggestion) =>
   const boxRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => { setHighlight(0) }, [query])
-  useEffect(() => { if (query.trim().length > 0) setOpen(true) }, [query])
+  // NOTE: opening is driven explicitly by the caller (reopen() on type/focus), NOT by
+  // query changes — otherwise picking a suggestion (which sets the value) would reopen
+  // the dropdown and re-search the full address.
 
   const visible = open && items.length > 0
 

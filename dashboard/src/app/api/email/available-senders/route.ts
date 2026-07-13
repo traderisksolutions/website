@@ -29,7 +29,7 @@ export async function GET() {
   const [sharedRes, legacyRes, profileRes] = await Promise.all([
     fetch(`${SB_URL}/rest/v1/app_settings?key=eq.shared_email_senders&select=value&limit=1`, { headers: h, cache: 'no-store' }),
     fetch(`${SB_URL}/rest/v1/app_settings?key=eq.reply_from_email&select=value&limit=1`,     { headers: h, cache: 'no-store' }),
-    fetch(`${SB_URL}/rest/v1/employee_profiles?user_id=eq.${user.id}&select=gmail_email&limit=1`, { headers: h, cache: 'no-store' }),
+    fetch(`${SB_URL}/rest/v1/employee_profiles?user_id=eq.${user.id}&select=gmail_email,gmail_refresh_token&limit=1`, { headers: h, cache: 'no-store' }),
   ])
 
   const sharedRows = sharedRes.ok ? await sharedRes.json() : []
@@ -68,10 +68,16 @@ export async function GET() {
   const profile = Array.isArray(profiles) ? profiles[0] : null
   const sharedEmails = new Set(senders.map(s => s.email.toLowerCase()))
 
-  if (profile?.gmail_email && !sharedEmails.has((profile.gmail_email as string).toLowerCase())) {
-    const localPart = (profile.gmail_email as string).split('@')[0]
+  // Personal sender: their stored connected Gmail, or — for connections made before we
+  // captured the userinfo.email scope (gmail_email is null) — fall back to the address
+  // they signed in with, so they can still send from their own domain.
+  const personalEmail = (profile?.gmail_email as string | null)
+    || (profile?.gmail_refresh_token ? (user.email ?? null) : null)
+
+  if (personalEmail && !sharedEmails.has(personalEmail.toLowerCase())) {
+    const localPart = personalEmail.split('@')[0]
     const label = localPart.split(/[._-]/).map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
-    senders.push({ email: profile.gmail_email as string, label, type: 'personal', verified: true })
+    senders.push({ email: personalEmail, label, type: 'personal', verified: true })
   }
 
   return NextResponse.json(senders)

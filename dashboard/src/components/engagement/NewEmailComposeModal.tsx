@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { X, Loader2, Send } from 'lucide-react'
 import { plainToHtml, htmlToPlain } from '@/components/RichEditor'
+import { useAutocomplete, SuggestionList } from '@/components/engagement/RecipientAutocomplete'
 
 /**
  * Standalone "new email" composer for a recipient with no existing thread — so a
@@ -30,6 +31,9 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
   const [sigId,    setSigId]    = useState('')
   const [sending,  setSending]  = useState(false)
   const [error,    setError]    = useState<string | null>(null)
+
+  // Recipient typeahead — same source as the reply editor (contacts + employees).
+  const toAc = useAutocomplete(to, c => setTo(c.email))
 
   useEffect(() => {
     Promise.all([
@@ -90,7 +94,19 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
 
         <div className="px-5 py-4 flex flex-col gap-2.5">
           <label className="flex items-center gap-2"><span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 w-14 flex-shrink-0">To</span>
-            <input value={to} onChange={e => setTo(e.target.value)} className={inp} /></label>
+            <div ref={toAc.boxRef} className="relative flex-1 min-w-0">
+              <input
+                value={to}
+                onChange={e => { setTo(e.target.value); toAc.reopen() }}
+                onKeyDown={e => toAc.onKeyDown(e)}
+                onFocus={toAc.reopen}
+                onBlur={toAc.close}
+                placeholder="Type a name or email…"
+                autoComplete="off"
+                className={`${inp} w-full`}
+              />
+              {toAc.visible && <SuggestionList items={toAc.items} highlight={toAc.highlight} onPick={c => { setTo(c.email); toAc.close() }} />}
+            </div></label>
           <label className="flex items-center gap-2"><span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 w-14 flex-shrink-0">Cc</span>
             <input value={cc} onChange={e => setCc(e.target.value)} placeholder={personal ? 'operations@ auto-added' : 'optional'} className={inp} /></label>
           <label className="flex items-center gap-2"><span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 w-14 flex-shrink-0">Subject</span>

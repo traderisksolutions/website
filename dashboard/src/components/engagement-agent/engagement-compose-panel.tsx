@@ -157,7 +157,7 @@ export function EngagementComposePanel({
   useEffect(() => {
     if (!thread?.id || !aiDraftChecked || draftLoaded || messages.length === 0 || sent) return
     if (messages.at(-1)?.direction !== 'inbound') return
-    generate()
+    generate({ analyze: false })   // auto-draft on open: draft only, no paid analysis pass
   }, [thread?.id, aiDraftChecked, draftLoaded, messages.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -168,11 +168,12 @@ export function EngagementComposePanel({
 
   // ── All handlers preserved verbatim ───────────────────────────────────────
 
-  async function generate() {
+  async function generate(opts?: { analyze?: boolean }) {
+    const runAnalysis = opts?.analyze ?? true   // manual click analyses; auto-draft skips it
     setLoading('gen'); setError(null)
     try {
       // #3 — one AI-analysis pass first (updates AI Analysis tab + history), then draft.
-      if (onAnalyze && thread?.id) {
+      if (runAnalysis && onAnalyze && thread?.id) {
         setGenStep('analyze')
         try { await onAnalyze() } catch { /* draft anyway */ }
       }
@@ -453,12 +454,12 @@ export function EngagementComposePanel({
             {/* Right: error + generate + send */}
             <div className="flex items-center gap-2 flex-shrink-0">
               {error && (
-                <span className="text-[10.5px] text-[--error] max-w-[140px] truncate">{error}</span>
+                <span title={error} className="text-[10.5px] text-[--error] max-w-[220px] truncate cursor-help">{error}</span>
               )}
 
               {/* Generate AI Reply — subtle primary tint signals it's AI-powered */}
               <button
-                onClick={generate}
+                onClick={() => generate()}
                 disabled={!!loading}
                 className={cn(
                   'flex items-center gap-1.5 text-[11.5px] font-medium px-3 py-1.5 rounded-lg',
@@ -524,7 +525,7 @@ function ToAutocompleteInput({
     <div ref={ac.boxRef} className="relative flex-1">
       <input
         value={value}
-        onChange={e => onChange(e.target.value)}
+        onChange={e => { onChange(e.target.value); ac.reopen() }}
         onKeyDown={e => ac.onKeyDown(e)}
         onFocus={ac.reopen}
         onBlur={ac.close}
@@ -579,7 +580,7 @@ function ChipInput({
       ))}
       <input
         value={input}
-        onChange={e => setInput(e.target.value)}
+        onChange={e => { setInput(e.target.value); ac.reopen() }}
         onKeyDown={e => {
           if (ac.onKeyDown(e)) return
           if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); tryAdd(input) }

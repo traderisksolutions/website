@@ -103,7 +103,13 @@ async function getTokenForSender(fromEmail: string, userId: string | null): Prom
         const profile  = Array.isArray(profiles) ? profiles[0] : null
         const profileEmail = (profile?.gmail_email ?? '').trim().toLowerCase()
         hasConnectedProfile = !!profile?.gmail_refresh_token
-        if (profile?.gmail_refresh_token && profileEmail === wantEmail) {
+        // Use the personal token when the connected address matches the sender, OR when
+        // the stored address is blank (older connections made before we captured the
+        // userinfo.email scope) and the sender isn't a shared mailbox — the user's own
+        // token can only send as their own address anyway, so Gmail validates identity.
+        const personalMatch = !!profile?.gmail_refresh_token &&
+          (profileEmail === wantEmail || (!profileEmail && !SHARED_SENDERS.has(wantEmail)))
+        if (personalMatch) {
           const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
             method:  'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

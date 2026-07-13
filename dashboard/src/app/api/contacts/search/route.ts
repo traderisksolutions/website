@@ -37,11 +37,14 @@ export async function GET(req: NextRequest) {
     // Sanitise for a PostgREST or=() filter: strip characters that break the grammar.
     const like = `*${q.replace(/[(),*"]/g, ' ').trim()}*`
     const or   = ['first_name', 'last_name', 'email', 'company'].map(f => `${f}.ilike.${like}`).join(',')
-    const select = 'id,first_name,last_name,email,company,is_employee'
-    // Employees first, then most recent — staff are the common internal-email case.
-    const url = `${SB_URL}/rest/v1/contacts?or=(${encodeURIComponent(or)})&email=not.is.null&select=${select}&order=is_employee.desc,created_at.desc&limit=${limit}`
+    const base = `${SB_URL}/rest/v1/contacts?or=(${encodeURIComponent(or)})&email=not.is.null&limit=${limit}`
 
-    const res  = await fetch(url, { headers: sbH(), cache: 'no-store' })
+    // Prefer the is_employee-aware query (employees first + flagged). Fall back gracefully
+    // if the column doesn't exist yet (migration not run) so the typeahead never breaks.
+    let res  = await fetch(`${base}&select=id,first_name,last_name,email,company,is_employee&order=is_employee.desc,created_at.desc`, { headers: sbH(), cache: 'no-store' })
+    if (!res.ok) {
+      res = await fetch(`${base}&select=id,first_name,last_name,email,company&order=created_at.desc`, { headers: sbH(), cache: 'no-store' })
+    }
     const rows = res.ok ? await res.json() : []
 
     const out: ContactSuggestion[] = (Array.isArray(rows) ? rows : []).map((c: Record<string, unknown>) => {
