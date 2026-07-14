@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
-import { UploadCloud, Loader2, ArrowRight, ArrowLeft, Download, Reply } from 'lucide-react'
+import { UploadCloud, Loader2, ArrowRight, ArrowLeft, Download, Reply, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // ── Types mirrored from the API ────────────────────────────────────────────────
@@ -10,6 +10,7 @@ type Plan   = { rate_table_id: string; product_code: string; plan_code: string; 
 type Avail  = { rate_table_id: string; insurer_id: string | null; insurer_name: string; product_code: string; age_basis: string; plan_year: number | null; version: number; plans: Plan[] }
 type InsurerResult = { rate_table_id: string; insurer_id: string | null; insurer_name: string; by_product: Record<string, number>; subtotal: number; gst: number; total: number; missing: number }
 type Line = { member_index: number; member_name: string; category: string; relationship: string; age: number | null; insurer_name: string; product_code: string; plan_code: string | null; premium: number | null; note: string | null }
+type Analysis = { comparison: { benefit: string; by_insurer: Record<string, string> }[]; insurers: { insurer: string; pros: string[]; cons: string[] }[]; recommendation: string }
 
 const PRODUCTS = ['GHS', 'GOC', 'GOS']
 const TEMPLATE = 'name,category,relationship,dob,age\nJane Tan,Manager,self,1985-04-12,\nJohn Tan,Manager,spouse,1987-09-01,\nBaby Tan,Manager,child,,3\n'
@@ -66,7 +67,10 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
   const [map, setMap] = useState<Record<string, Record<string, Record<string, string>>>>({})
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [result, setResult] = useState<{ per_insurer: InsurerResult[]; lines: Line[] } | null>(null)
+  const [result, setResult] = useState<{ per_insurer: InsurerResult[]; lines: Line[]; quotation_id?: string | null } | null>(null)
+  const [quotationId, setQuotationId] = useState<string | null>(null)
+  const [analysis, setAnalysis] = useState<Analysis | null>(null)
+  const [analyzing, setAnalyzing] = useState(false)
 
   const categories = useMemo(() => Array.from(new Set(members.map(m => m.category))), [members])
 
@@ -113,8 +117,18 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
       })
       const d = await res.json()
       if (!res.ok) { setError(d.error ?? 'Compute failed'); return }
-      setResult(d); setStep(4); onSaved?.()
+      setResult(d); setQuotationId(d.quotation_id ?? null); setAnalysis(null); setStep(4); onSaved?.()
     } finally { setBusy(false) }
+  }
+
+  async function compareBenefits() {
+    if (!quotationId) return
+    setAnalyzing(true); setError(null)
+    try {
+      const res = await fetch(`/api/group-benefits/quote/${quotationId}/compare-benefits`, { method: 'POST' })
+      const d = await res.json()
+      if (res.ok && d.analysis) setAnalysis(d.analysis); else setError(d.error ?? 'Comparison failed')
+    } finally { setAnalyzing(false) }
   }
 
   function buildReplySummary(list: { insurer_name: string; subtotal: number; gst: number; total: number; by_product: Record<string, number> }[]): string {
@@ -128,6 +142,7 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
     })
     out.push('')
     out.push(`Covering ${members.length} member(s) across ${products.join(', ')}. Premiums exclude prevailing GST unless otherwise stated.`)
+    if (analysis?.recommendation) { out.push(''); out.push(`Our recommendation: ${analysis.recommendation}`) }
     return out.join('\n')
   }
 
@@ -145,6 +160,8 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
     }
     return Array.from(m.values()).sort((a, b) => a.total - b.total)
   }, [result])
+
+  const insurerNames = useMemo(() => analysis ? Array.from(new Set((analysis.comparison ?? []).flatMap(r => Object.keys(r.by_insurer ?? {})))) : [], [analysis])
 
   const stepTitles = ['Census', 'Products', 'Insurers & plans', 'Review', 'Comparison']
   const inp = 'text-[13px] border border-border rounded-md px-2.5 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-primary/25'
@@ -292,10 +309,58 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
               ))}
             </div>
           </div>
+          {/* Coverage comparison & recommendation (Opus) */}
+          <div className="border border-border rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-[13px] font-bold text-foreground">Coverage comparison & recommendation</h3>
+              {!analysis && (
+                <button onClick={compareBenefits} disabled={analyzing || !quotationId} className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-primary/30 text-primary hover:bg-primary/5 disabled:opacity-50">
+                  {analyzing ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}{analyzing ? 'Analysing coverage…' : 'Compare benefits with Opus'}
+                </button>
+              )}
+            </div>
+            {!analysis && !analyzing && <p className="text-[11.5px] text-muted-foreground/70">Opus aligns each plan&apos;s benefits, lists pros/cons per insurer, and recommends the best value (coverage vs price).</p>}
+            {analysis && (
+              <div className="flex flex-col gap-4">
+                <div className="rounded-lg bg-primary/5 border-l-2 border-primary/40 px-3 py-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-primary mb-1">Recommendation</p>
+                  <p className="text-[12px] text-foreground/80 leading-relaxed m-0">{analysis.recommendation}</p>
+                </div>
+                {(analysis.comparison?.length ?? 0) > 0 && (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-[11px] border-collapse">
+                      <thead><tr>
+                        <th className="text-left px-2 py-1 border-b border-border text-muted-foreground/70 font-semibold">Benefit</th>
+                        {insurerNames.map(n => <th key={n} className="text-left px-2 py-1 border-b border-border text-muted-foreground/70 font-semibold">{n}</th>)}
+                      </tr></thead>
+                      <tbody>
+                        {analysis.comparison.map((row, i) => (
+                          <tr key={i}>
+                            <td className="px-2 py-1 border-b border-border/50 font-medium text-foreground/80">{row.benefit}</td>
+                            {insurerNames.map(n => <td key={n} className="px-2 py-1 border-b border-border/50 text-muted-foreground">{row.by_insurer?.[n] ?? '—'}</td>)}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min((analysis.insurers ?? []).length, 3)},minmax(0,1fr))` }}>
+                  {(analysis.insurers ?? []).map(ins => (
+                    <div key={ins.insurer} className="rounded-lg border border-border p-3">
+                      <p className="text-[12px] font-bold text-foreground mb-1.5">{ins.insurer}</p>
+                      {ins.pros?.map((p, i) => <p key={`p${i}`} className="text-[11px] text-emerald-700 flex gap-1 m-0"><span>+</span>{p}</p>)}
+                      {ins.cons?.map((c, i) => <p key={`c${i}`} className="text-[11px] text-rose-600 flex gap-1 m-0"><span>−</span>{c}</p>)}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="flex items-center gap-2">
             {onDraftReply && (
               <button onClick={() => onDraftReply(buildReplySummary(byInsurer))} className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90">
-                <Reply size={13} /> Draft reply with this quote
+                <Reply size={13} /> Draft reply with this quote{analysis ? ' + recommendation' : ''}
               </button>
             )}
             <button onClick={() => { setStep(initialMembers?.length ? 1 : 0); setResult(null); if (!initialMembers?.length) setMembers([]); setSelectedTables(new Set()) }} className="text-[12.5px] px-3 py-1.5 rounded-lg border border-border hover:bg-muted">New quote</button>
