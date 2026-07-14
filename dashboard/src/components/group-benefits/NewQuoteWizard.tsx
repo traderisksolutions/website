@@ -7,8 +7,8 @@ import { cn } from '@/lib/utils'
 // ── Types mirrored from the API ────────────────────────────────────────────────
 type Member = { name: string; category: string; relationship: string; dob?: string | null; age?: number | null }
 type Plan   = { rate_table_id: string; product_code: string; plan_code: string; plan_name: string | null; hospital_type: string | null; beds: string | null }
-type Avail  = { rate_table_id: string; insurer_name: string; product_code: string; age_basis: string; plan_year: number | null; version: number; plans: Plan[] }
-type InsurerResult = { rate_table_id: string; insurer_name: string; by_product: Record<string, number>; subtotal: number; gst: number; total: number; missing: number }
+type Avail  = { rate_table_id: string; insurer_id: string | null; insurer_name: string; product_code: string; age_basis: string; plan_year: number | null; version: number; plans: Plan[] }
+type InsurerResult = { rate_table_id: string; insurer_id: string | null; insurer_name: string; by_product: Record<string, number>; subtotal: number; gst: number; total: number; missing: number }
 type Line = { member_index: number; member_name: string; category: string; relationship: string; age: number | null; insurer_name: string; product_code: string; plan_code: string | null; premium: number | null; note: string | null }
 
 const PRODUCTS = ['GHS', 'GOC', 'GOS']
@@ -22,13 +22,20 @@ function parseCensus(text: string): Member[] {
   const header = lines[0].toLowerCase().split(',').map(h => h.trim())
   const col = (n: string) => header.indexOf(n)
   const ci = { name: col('name'), cat: col('category'), rel: col('relationship'), dob: col('dob'), age: col('age') }
+  // Dependents (spouse/child) with a blank category inherit the most recent employee's
+  // category, so the census can list a family as: employee row, then dependent rows.
+  let lastSelfCategory = 'Default'
   return lines.slice(1).map(l => {
     const c = l.split(',').map(x => x.trim())
     const ageRaw = ci.age >= 0 ? c[ci.age] : ''
+    const rel = (ci.rel >= 0 ? c[ci.rel] : 'self').toLowerCase() || 'self'
+    let category = (ci.cat >= 0 ? c[ci.cat] : '') || ''
+    if (rel === 'self') { if (category) lastSelfCategory = category; else category = lastSelfCategory }
+    else if (!category) category = lastSelfCategory
     return {
       name: (ci.name >= 0 ? c[ci.name] : '') || 'Member',
-      category: (ci.cat >= 0 ? c[ci.cat] : '') || 'Default',
-      relationship: (ci.rel >= 0 ? c[ci.rel] : 'self') || 'self',
+      category: category || 'Default',
+      relationship: rel,
       dob: ci.dob >= 0 && c[ci.dob] ? c[ci.dob] : null,
       age: ageRaw ? Number(ageRaw) : null,
     }
@@ -99,15 +106,17 @@ export function NewQuoteWizard({ onSaved }: { onSaved: () => void }) {
     } finally { setBusy(false) }
   }
 
-  // Group per-table results by insurer for the comparison.
+  // Group per-table results by insurer (by directory id, falling back to name) so an
+  // insurer's GHS + GOS tables roll up into one column even across separate uploads.
   const byInsurer = useMemo(() => {
     if (!result) return []
     const m = new Map<string, { insurer_name: string; subtotal: number; gst: number; total: number; missing: number; by_product: Record<string, number> }>()
     for (const r of result.per_insurer) {
-      const e = m.get(r.insurer_name) ?? { insurer_name: r.insurer_name, subtotal: 0, gst: 0, total: 0, missing: 0, by_product: {} }
+      const key = r.insurer_id ?? `name:${r.insurer_name}`
+      const e = m.get(key) ?? { insurer_name: r.insurer_name, subtotal: 0, gst: 0, total: 0, missing: 0, by_product: {} }
       e.subtotal += r.subtotal; e.gst += r.gst; e.total += r.total; e.missing += r.missing
       for (const [p, v] of Object.entries(r.by_product)) e.by_product[p] = (e.by_product[p] ?? 0) + v
-      m.set(r.insurer_name, e)
+      m.set(key, e)
     }
     return Array.from(m.values()).sort((a, b) => a.total - b.total)
   }, [result])

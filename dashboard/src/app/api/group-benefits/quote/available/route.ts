@@ -21,8 +21,8 @@ export async function GET(req: NextRequest) {
 
     const products = (new URL(req.url).searchParams.get('products') ?? '').split(',').map(s => s.trim()).filter(Boolean)
     const prodFilter = products.length ? `&product_code=in.(${products.map(encodeURIComponent).join(',')})` : ''
-    const tRes = await fetch(`${SB_URL}/rest/v1/gb_rate_tables?status=eq.approved${prodFilter}&select=id,insurer_name,product_code,age_basis,plan_year,version&order=insurer_name`, { headers: sbH(), cache: 'no-store' })
-    const tables: { id: string; insurer_name: string; product_code: string; age_basis: string; plan_year: number | null; version: number }[] = tRes.ok ? await tRes.json() : []
+    const tRes = await fetch(`${SB_URL}/rest/v1/gb_rate_tables?status=eq.approved${prodFilter}&select=id,insurer_id,insurer_name,product_code,age_basis,plan_year,version&order=insurer_name`, { headers: sbH(), cache: 'no-store' })
+    const tables: { id: string; insurer_id: string | null; insurer_name: string; product_code: string; age_basis: string; plan_year: number | null; version: number }[] = tRes.ok ? await tRes.json() : []
     if (!tables.length) return NextResponse.json([])
 
     const ids = tables.map(t => `"${t.id}"`).join(',')
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     for (const p of plans) { const a = byTable.get(p.rate_table_id) ?? []; a.push(p); byTable.set(p.rate_table_id, a) }
 
     return NextResponse.json(tables.map(t => ({
-      rate_table_id: t.id, insurer_name: t.insurer_name ?? 'Unknown', product_code: t.product_code,
+      rate_table_id: t.id, insurer_id: t.insurer_id ?? null, insurer_name: t.insurer_name ?? 'Unknown', product_code: t.product_code,
       age_basis: t.age_basis, plan_year: t.plan_year, version: t.version,
       plans: byTable.get(t.id) ?? [],
     })))

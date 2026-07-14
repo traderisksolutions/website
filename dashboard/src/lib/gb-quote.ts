@@ -7,16 +7,16 @@ export type Relationship = 'self' | 'spouse' | 'child' | string
 export type Member = { name: string; category: string; relationship: Relationship; dob?: string | null; age?: number | null }
 
 export type RateRow = { product_code: string; plan_code: string; band_label: string; age_min: number | null; age_max: number | null; premium: number; renewal_only?: boolean }
-export type RateTableInfo = { rate_table_id: string; insurer_name: string; age_basis: 'next_birthday' | 'last_birthday'; rates: RateRow[] }
+export type RateTableInfo = { rate_table_id: string; insurer_id?: string | null; insurer_name: string; age_basis: 'next_birthday' | 'last_birthday'; rates: RateRow[] }
 // { [rate_table_id]: { [product_code]: { [category]: plan_code } } }
 export type CategoryMap = Record<string, Record<string, Record<string, string>>>
 
 export type QuoteLine = {
   member_index: number; member_name: string; relationship: Relationship; category: string; age: number | null
-  rate_table_id: string; insurer_name: string; product_code: string; plan_code: string | null; premium: number | null; note: string | null
+  rate_table_id: string; insurer_id: string | null; insurer_name: string; product_code: string; plan_code: string | null; premium: number | null; note: string | null
 }
 export type InsurerResult = {
-  rate_table_id: string; insurer_name: string
+  rate_table_id: string; insurer_id: string | null; insurer_name: string
   by_product: Record<string, number>; subtotal: number; gst: number; total: number
   missing: number   // lines with no premium (flag for the broker)
 }
@@ -68,7 +68,7 @@ export function computeQuote(
         // Skip products the category isn't mapped to (e.g. staff without a GOS rider).
         if (!plan) continue
         const { premium, note } = findRate(table.rates, product, plan, age)
-        lines.push({ member_index: i, member_name: m.name, relationship: m.relationship, category: m.category, age, rate_table_id: table.rate_table_id, insurer_name: table.insurer_name, product_code: product, plan_code: plan, premium, note })
+        lines.push({ member_index: i, member_name: m.name, relationship: m.relationship, category: m.category, age, rate_table_id: table.rate_table_id, insurer_id: table.insurer_id ?? null, insurer_name: table.insurer_name, product_code: product, plan_code: plan, premium, note })
         if (premium == null) { missing++; continue }
         byProduct[product] = round2((byProduct[product] ?? 0) + premium)
         subtotal = round2(subtotal + premium)
@@ -76,7 +76,7 @@ export function computeQuote(
     })
 
     const gst = round2(subtotal * gstRate)
-    per_insurer.push({ rate_table_id: table.rate_table_id, insurer_name: table.insurer_name, by_product: byProduct, subtotal, gst, total: round2(subtotal + gst), missing })
+    per_insurer.push({ rate_table_id: table.rate_table_id, insurer_id: table.insurer_id ?? null, insurer_name: table.insurer_name, by_product: byProduct, subtotal, gst, total: round2(subtotal + gst), missing })
   }
 
   per_insurer.sort((a, b) => a.total - b.total)   // cheapest first
