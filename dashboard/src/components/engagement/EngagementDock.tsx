@@ -1,22 +1,23 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Reply, Sparkles, FileText } from 'lucide-react'
+import { Reply, Sparkles, FileText, HeartPulse } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type Tab = 'reply' | 'analysis' | 'rfq'
+type Tab = 'reply' | 'analysis' | 'rfq' | 'gbquote'
 
 /**
- * Bottom tabbed dock for the engagement thread: Reply · AI Analysis · RFQ.
+ * Bottom tabbed dock for the engagement thread: Reply · AI Analysis · RFQ · GB Quote.
  * All-collapsed by default; one panel open at a time. Panels stay mounted once
  * opened, so a half-written reply / in-progress RFQ survives tab switches.
  */
 export function EngagementDock({
-  reply, analysis, rfq, openSignal,
+  reply, analysis, rfq, gbquote, openSignal,
 }: {
   reply:    React.ReactNode
   analysis: React.ReactNode
   rfq:      React.ReactNode
+  gbquote:  React.ReactNode
   /** Imperatively open a tab (e.g. a draft arriving from a Nexus roadmap step). */
   openSignal?: { tab: Tab; stamp: number }
 }) {
@@ -38,6 +39,7 @@ export function EngagementDock({
     { key: 'reply',    label: 'Reply',       icon: <Reply size={13} strokeWidth={2} /> },
     { key: 'analysis', label: 'AI Analysis', icon: <Sparkles size={13} strokeWidth={2} /> },
     { key: 'rfq',      label: 'RFQ',         icon: <FileText size={13} strokeWidth={2} /> },
+    { key: 'gbquote',  label: 'GB Quote',    icon: <HeartPulse size={13} strokeWidth={2} /> },
   ]
 
   return (
@@ -51,6 +53,7 @@ export function EngagementDock({
           {opened.has('reply')    && <div className={cn(active !== 'reply'    && 'hidden')}>{reply}</div>}
           {opened.has('analysis') && <div className={cn(active !== 'analysis' && 'hidden')}>{analysis}</div>}
           {opened.has('rfq')      && <div className={cn(active !== 'rfq'      && 'hidden')}>{rfq}</div>}
+          {opened.has('gbquote')  && <div className={cn(active !== 'gbquote'  && 'hidden')}>{gbquote}</div>}
         </div>
       </div>
 

@@ -15,6 +15,7 @@ import { EngagementContextPanel } from '@/components/engagement-agent/engagement
 import { AiAnalysisPanel } from '@/components/engagement-agent/ai-analysis-panel'
 import { EngagementDock } from './EngagementDock'
 import ThreadRfqWorkflow from './ThreadRfqWorkflow'
+import ThreadGbQuote from './ThreadGbQuote'
 
 interface ThreadViewProps {
   lead:            Lead
@@ -48,7 +49,7 @@ export function ThreadView({
   const [rfqContext, setRfqContext] = useState<{ is_insurer_rfq: boolean; case_id?: string | null; insurer_name?: string | null; insured?: string | null } | null>(null)
 
   // Dock imperative open (e.g. a draft arriving from a Nexus roadmap step)
-  const [dockSignal, setDockSignal] = useState<{ tab: 'reply' | 'analysis' | 'rfq'; stamp: number } | undefined>(undefined)
+  const [dockSignal, setDockSignal] = useState<{ tab: 'reply' | 'analysis' | 'rfq' | 'gbquote'; stamp: number } | undefined>(undefined)
 
   // Compose headers
   const [toAddress,     setToAddress]     = useState('')
@@ -309,6 +310,15 @@ export function ThreadView({
             threadId
               ? <ThreadRfqWorkflow threadId={threadId} messageId={latestMessageId} defaultInsured={lead.company ?? fullName(lead) ?? ''} />
               : <div className="p-5 text-[12px] text-muted-foreground/60">Open an email thread to start an RFQ.</div>
+          }
+          gbquote={
+            threadId
+              ? <ThreadGbQuote
+                  threadId={threadId}
+                  defaultCompany={lead.company ?? fullName(lead) ?? ''}
+                  onDraftReply={(body) => { setPendingRestore({ body, generatedBy: 'gb-quote', stamp: Date.now() }); setDockSignal({ tab: 'reply', stamp: Date.now() }) }}
+                />
+              : <div className="p-5 text-[12px] text-muted-foreground/60">Open an email thread to quote a census.</div>
           }
           openSignal={dockSignal}
         />

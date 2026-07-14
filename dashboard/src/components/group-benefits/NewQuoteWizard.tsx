@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
-import { UploadCloud, Loader2, ArrowRight, ArrowLeft, Download } from 'lucide-react'
+import React, { useEffect, useMemo, useState } from 'react'
+import { UploadCloud, Loader2, ArrowRight, ArrowLeft, Download, Reply } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // ── Types mirrored from the API ────────────────────────────────────────────────
@@ -42,9 +42,20 @@ function parseCensus(text: string): Member[] {
   }).filter(m => m.name)
 }
 
-export function NewQuoteWizard({ onSaved }: { onSaved: () => void }) {
+export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraftReply }: {
+  onSaved?: () => void
+  initialMembers?: Member[]
+  initialCompany?: string
+  onDraftReply?: (body: string) => void
+}) {
   const [step, setStep] = useState(0)
   const [members, setMembers] = useState<Member[]>([])
+
+  // Seed from a census extracted elsewhere (the Engagement "GB Quote" tab) and jump to setup.
+  useEffect(() => {
+    if (initialMembers && initialMembers.length) { setMembers(initialMembers); setStep(s => (s === 0 ? 1 : s)) }
+  }, [initialMembers])
+  useEffect(() => { if (initialCompany) setCompany(initialCompany) }, [initialCompany])
   const [company, setCompany] = useState('')
   const [effDate, setEffDate] = useState(new Date().toISOString().slice(0, 10))
   const [gst, setGst] = useState(9)
@@ -102,8 +113,22 @@ export function NewQuoteWizard({ onSaved }: { onSaved: () => void }) {
       })
       const d = await res.json()
       if (!res.ok) { setError(d.error ?? 'Compute failed'); return }
-      setResult(d); setStep(4); onSaved()
+      setResult(d); setStep(4); onSaved?.()
     } finally { setBusy(false) }
+  }
+
+  function buildReplySummary(list: { insurer_name: string; subtotal: number; gst: number; total: number; by_product: Record<string, number> }[]): string {
+    const out: string[] = []
+    out.push(`Please find our group insurance premium comparison${company ? ` for ${company}` : ''}${effDate ? ` (policy effective ${effDate})` : ''}:`)
+    out.push('')
+    list.forEach((r, i) => {
+      out.push(`${i + 1}. ${r.insurer_name} — ${money(r.total)} / year (incl. GST)`)
+      const prod = Object.entries(r.by_product).map(([p, v]) => `${p}: ${money(v)}`).join(', ')
+      if (prod) out.push(`   ${prod} (ex-GST ${money(r.subtotal)})`)
+    })
+    out.push('')
+    out.push(`Covering ${members.length} member(s) across ${products.join(', ')}. Premiums exclude prevailing GST unless otherwise stated.`)
+    return out.join('\n')
   }
 
   // Group per-table results by insurer (by directory id, falling back to name) so an
@@ -268,7 +293,12 @@ export function NewQuoteWizard({ onSaved }: { onSaved: () => void }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => { setStep(0); setResult(null); setMembers([]); setSelectedTables(new Set()) }} className="text-[12.5px] px-3 py-1.5 rounded-lg border border-border hover:bg-muted">New quote</button>
+            {onDraftReply && (
+              <button onClick={() => onDraftReply(buildReplySummary(byInsurer))} className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90">
+                <Reply size={13} /> Draft reply with this quote
+              </button>
+            )}
+            <button onClick={() => { setStep(initialMembers?.length ? 1 : 0); setResult(null); if (!initialMembers?.length) setMembers([]); setSelectedTables(new Set()) }} className="text-[12.5px] px-3 py-1.5 rounded-lg border border-border hover:bg-muted">New quote</button>
             <span className="text-[11.5px] text-emerald-600">Saved to history ✓</span>
           </div>
         </div>
