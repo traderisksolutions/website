@@ -157,39 +157,58 @@ export function parseRatesFromText(text: string): ParserRow[] {
 }
 
 // ── Judge (Opus reconciles A + B, cross-checks numbers vs C) ─────────────────────
+const rateKey = (product: string, plan: string, band: string) => `${product}|${plan}|${band}`
+const countRates = (e: GbExtraction) => (e.products ?? []).reduce((n, p) => n + (p.rates?.length ?? 0), 0)
+function indexRates(e: GbExtraction): Map<string, number> {
+  const m = new Map<string, number>()
+  for (const p of e.products ?? []) for (const rt of p.rates ?? []) m.set(rateKey(p.product_code, rt.plan_code, rt.band_label), rt.premium)
+  return m
+}
+
 export async function judgeExtractions(opus: GbExtraction, gemini: GbExtraction, parser: ParserRow[]): Promise<JudgeResult> {
-  // Deterministic merge + conflict detection on the RATES (the must-be-exact part).
-  // The merged skeleton is Opus's structure (usually strongest on layout); we then walk
-  // every (product, plan, band) and compare Opus vs Gemini vs the parser's seen numbers.
   const parserNums = new Set<number>()
   for (const r of parser) for (const n of r.numbers) parserNums.add(Math.round(n * 100) / 100)
+  const seenByParser = (n: number) => parserNums.has(Math.round(n * 100) / 100)
 
-  const gemIndex = new Map<string, number>()
-  for (const p of gemini.products ?? []) for (const rt of p.rates ?? []) gemIndex.set(`${p.product_code}|${rt.plan_code}|${rt.band_label}`, rt.premium)
+  const opusIdx = indexRates(opus)
+  const gemIdx  = indexRates(gemini)
+
+  // Base the merged skeleton on whichever extraction is richer (so a failed/empty Opus
+  // doesn't wipe out a good Gemini read), then fold in any cells only the other found.
+  const richer = countRates(opus) >= countRates(gemini) ? opus : gemini
+  const poorer = richer === opus ? gemini : opus
+  const merged: GbExtraction = JSON.parse(JSON.stringify({ insurer_name: opus.insurer_name ?? gemini.insurer_name ?? null, products: richer.products ?? [] }))
+
+  const present = new Set<string>()
+  for (const p of merged.products) for (const rt of p.rates ?? []) present.add(rateKey(p.product_code, rt.plan_code, rt.band_label))
+  for (const p of poorer.products ?? []) {
+    for (const rt of p.rates ?? []) {
+      const kk = rateKey(p.product_code, rt.plan_code, rt.band_label)
+      if (present.has(kk)) continue
+      present.add(kk)
+      let mp = merged.products.find(x => x.product_code === p.product_code)
+      if (!mp) { mp = { product_code: p.product_code, product_name: p.product_name ?? null, plans: [], rates: [], benefits: [] }; merged.products.push(mp) }
+      mp.rates.push({ ...rt })
+    }
+  }
 
   const conflicts: Conflict[] = []
-  const merged: GbExtraction = { insurer_name: opus.insurer_name ?? gemini.insurer_name ?? null, products: opus.products ?? [] }
-
   for (const p of merged.products) {
     for (const rt of p.rates ?? []) {
-      const g = gemIndex.get(`${p.product_code}|${rt.plan_code}|${rt.band_label}`) ?? null
-      const parserSeen = parserNums.has(Math.round(rt.premium * 100) / 100)
-      const disagree = g !== null && Math.abs(g - rt.premium) > 0.001
-      if (disagree || !parserSeen) {
+      const kk = rateKey(p.product_code, rt.plan_code, rt.band_label)
+      const o = opusIdx.has(kk) ? opusIdx.get(kk)! : null
+      const g = gemIdx.has(kk)  ? gemIdx.get(kk)!  : null
+      const parserSeen = seenByParser(rt.premium)
+      const disagree = o !== null && g !== null && Math.abs(o - g) > 0.001
+      const onlyOne  = (o === null) !== (g === null)
+      if (disagree || onlyOne || !parserSeen) {
         conflicts.push({
           product_code: p.product_code, plan_code: rt.plan_code, band_label: rt.band_label,
-          opus: rt.premium, gemini: g, parser_seen: parserSeen,
-          note: disagree ? 'Opus and Gemini disagree' : 'Not confirmed by the text parser',
+          opus: o, gemini: g, parser_seen: parserSeen,
+          note: disagree ? 'Opus and Gemini disagree' : onlyOne ? `Only ${o !== null ? 'Opus' : 'Gemini'} found this cell` : 'Not confirmed by the text parser',
         })
       }
     }
-  }
-  // Gemini rates that Opus missed entirely.
-  const opusKeys = new Set<string>()
-  for (const p of opus.products ?? []) for (const rt of p.rates ?? []) opusKeys.add(`${p.product_code}|${rt.plan_code}|${rt.band_label}`)
-  for (const p of gemini.products ?? []) for (const rt of p.rates ?? []) {
-    const kk = `${p.product_code}|${rt.plan_code}|${rt.band_label}`
-    if (!opusKeys.has(kk)) conflicts.push({ product_code: p.product_code, plan_code: rt.plan_code, band_label: rt.band_label, opus: null, gemini: rt.premium, parser_seen: parserNums.has(Math.round(rt.premium * 100) / 100), note: 'Only Gemini found this cell' })
   }
 
   const totalRates = merged.products.reduce((n, p) => n + (p.rates?.length ?? 0), 0)

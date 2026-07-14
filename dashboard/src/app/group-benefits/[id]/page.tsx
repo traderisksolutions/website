@@ -2,14 +2,14 @@
 
 import React, { useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2, CheckCircle2, AlertTriangle, Save } from 'lucide-react'
+import { ArrowLeft, Loader2, CheckCircle2, AlertTriangle, Save, FileText, RefreshCw, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type Rate    = { id?: string; product_code: string; plan_code: string; band_label: string; age_min: number | null; age_max: number | null; premium: number; renewal_only?: boolean }
 type Plan    = { product_code: string; plan_code: string; plan_name: string | null; hospital_type: string | null; beds: string | null; co_payment: string | null }
 type Benefit = { product_code: string; plan_code: string | null; category: string | null; benefit_name: string; value_text: string | null; value_numeric: number | null; unit: string | null; notes: string | null }
 type Conflict = { product_code: string; plan_code: string; band_label: string; opus: number | null; gemini: number | null; parser_seen: boolean; note?: string; judge?: { premium: number | null; confidence: number; reason: string } | null }
-type Detail  = { table: Record<string, unknown>; plans: Plan[]; rates: Rate[]; benefits: Benefit[]; conflicts: Conflict[]; confidence: number | null }
+type Detail  = { table: Record<string, unknown>; plans: Plan[]; rates: Rate[]; benefits: Benefit[]; conflicts: Conflict[]; confidence: number | null; extractors?: Record<string, { error: string | null; rates: number }> }
 
 const cKey = (c: { product_code: string; plan_code: string; band_label: string }) => `${c.product_code}|${c.plan_code}|${c.band_label}`
 
@@ -39,9 +39,34 @@ export default function GbReviewPage() {
     return () => clearInterval(iv)
   }, [status, load])
 
+  // Single source of truth for kicking extraction: if the table is still a fresh draft
+  // (upload succeeded but extraction never started), start it here. Ref guards double-fire.
+  const triggered = React.useRef(false)
+  useEffect(() => {
+    if (status === 'draft' && !triggered.current) {
+      triggered.current = true
+      fetch(`/api/group-benefits/rate-tables/${id}/extract`, { method: 'POST' }).catch(() => {})
+      setStatus('extracting')
+    }
+  }, [status, id])
+
+  async function reExtract() {
+    triggered.current = true
+    setStatus('extracting')
+    await fetch(`/api/group-benefits/rate-tables/${id}/extract`, { method: 'POST' }).catch(() => {})
+    load()
+  }
+  async function del() {
+    if (!confirm('Delete this rate table and its extraction? This cannot be undone.')) return
+    await fetch(`/api/group-benefits/rate-tables/${id}`, { method: 'DELETE' })
+    router.push('/group-benefits')
+  }
+
   const conflictMap = new Map((d?.conflicts ?? []).map(c => [cKey(c), c]))
 
   async function save(approveAfter = false) {
+    if (approveAfter && (d?.conflicts?.length ?? 0) > 0 &&
+        !confirm(`${d!.conflicts.length} cell(s) are still flagged for review. Approve anyway?`)) return
     setSaving(approveAfter ? 'approve' : 'save'); setMsg(null)
     try {
       await fetch(`/api/group-benefits/rate-tables/${id}`, {
@@ -72,18 +97,32 @@ export default function GbReviewPage() {
           <h1 className="text-lg font-bold text-foreground">{t.insurer_name || 'Unknown insurer'} · {t.product_code}</h1>
           <p className="text-[12px] text-muted-foreground/70 mt-0.5">{t.source_pdf_name} · age {t.age_basis === 'last_birthday' ? 'last' : 'next'} birthday{t.plan_year ? ` · ${t.plan_year}` : ''}</p>
         </div>
-        {status !== 'extracting' && status !== 'approved' && (
-          <div className="flex items-center gap-2">
-            {msg && <span className="text-[12px] text-emerald-600">{msg}</span>}
-            <button onClick={() => save(false)} disabled={!!saving} className="flex items-center gap-1.5 text-[12.5px] font-medium px-3 py-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-50">
-              {saving === 'save' ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} Save
+        <div className="flex items-center gap-2">
+          {msg && <span className="text-[12px] text-emerald-600">{msg}</span>}
+          {status === 'approved' && <span className="text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 mr-1">Approved</span>}
+          <a href={`/api/group-benefits/rate-tables/${id}/pdf`} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-[12.5px] font-medium px-3 py-1.5 rounded-lg border border-border hover:bg-muted">
+            <FileText size={13} /> View PDF
+          </a>
+          {status !== 'extracting' && (
+            <button onClick={reExtract} disabled={!!saving} className="flex items-center gap-1.5 text-[12.5px] font-medium px-3 py-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-50" title="Re-run the 3 extractors + judge">
+              <RefreshCw size={13} /> Re-run
             </button>
-            <button onClick={() => save(true)} disabled={!!saving} className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-              {saving === 'approve' ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />} Approve version
-            </button>
-          </div>
-        )}
-        {status === 'approved' && <span className="text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700">Approved</span>}
+          )}
+          <button onClick={del} className="flex items-center gap-1.5 text-[12.5px] font-medium px-2.5 py-1.5 rounded-lg border border-border text-rose-600 hover:bg-rose-50" title="Delete">
+            <Trash2 size={13} />
+          </button>
+          {status === 'in_review' && (
+            <>
+              <button onClick={() => save(false)} disabled={!!saving} className="flex items-center gap-1.5 text-[12.5px] font-medium px-3 py-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-50">
+                {saving === 'save' ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} Save
+              </button>
+              <button onClick={() => save(true)} disabled={!!saving} className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+                {saving === 'approve' ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />} Approve version
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {status === 'extracting' && (
@@ -94,6 +133,23 @@ export default function GbReviewPage() {
 
       {status !== 'extracting' && (
         <>
+          {/* Per-extractor status — surfaces a failed model/key so partial data isn't silent */}
+          {d.extractors && (
+            <div className="flex flex-wrap items-center gap-2 mb-3 text-[11px]">
+              {(['opus', 'gemini', 'parser'] as const).map(k => {
+                const e = d.extractors![k]
+                if (!e) return null
+                return (
+                  <span key={k} className={cn('px-2 py-0.5 rounded-full font-medium',
+                    e.error ? 'bg-rose-100 text-rose-700' : 'bg-muted text-muted-foreground')}
+                    title={e.error ?? ''}>
+                    {k}: {e.error ? 'failed' : `${e.rates} cells`}
+                  </span>
+                )
+              })}
+            </div>
+          )}
+
           {/* Conflict summary */}
           <div className={cn('flex items-center gap-2 rounded-lg px-4 py-2.5 mb-5 text-[12.5px]',
             d.conflicts.length ? 'bg-amber-50 border border-amber-200 text-amber-800' : 'bg-emerald-50 border border-emerald-200 text-emerald-800')}>
@@ -101,6 +157,12 @@ export default function GbReviewPage() {
             {d.confidence != null && <span className="font-semibold">{d.confidence}% agreement</span>}
             <span>· {d.conflicts.length} cell{d.conflicts.length === 1 ? '' : 's'} to verify (highlighted below){rates.length ? ` · ${rates.length} rates` : ''}</span>
           </div>
+
+          {rates.length === 0 && (
+            <div className="text-center py-12 text-muted-foreground text-[13px]">
+              No rates were extracted. Check the extractor statuses above (API keys / model access), then <button onClick={reExtract} className="text-primary underline">re-run</button>.
+            </div>
+          )}
 
           {/* Rates by product/plan */}
           {Array.from(byProduct.entries()).map(([product, prRates]) => {

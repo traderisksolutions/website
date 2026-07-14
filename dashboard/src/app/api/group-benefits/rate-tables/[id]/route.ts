@@ -26,16 +26,27 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   try {
     if (!await requireUser()) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     const q = (p: string) => fetch(`${SB_URL}/rest/v1/${p}`, { headers: sbH(), cache: 'no-store' }).then(r => r.ok ? r.json() : [])
-    const [table, plans, rates, benefits, judgeRun] = await Promise.all([
+    const [table, plans, rates, benefits, judgeRun, runs] = await Promise.all([
       q(`gb_rate_tables?id=eq.${id}&limit=1`),
       q(`gb_plans?rate_table_id=eq.${id}&select=*&order=product_code,plan_code`),
       q(`gb_rates?rate_table_id=eq.${id}&select=*&order=product_code,plan_code,age_min`),
       q(`gb_benefits?rate_table_id=eq.${id}&select=*&order=product_code,sort_order,id`),
       q(`gb_extraction_runs?rate_table_id=eq.${id}&extractor=eq.judge&select=conflicts,confidence,created_at&order=created_at.desc&limit=1`),
+      q(`gb_extraction_runs?rate_table_id=eq.${id}&extractor=in.(opus,gemini,parser)&select=extractor,error,raw_json,created_at&order=created_at.desc`),
     ])
     const t = Array.isArray(table) ? table[0] : null
     if (!t) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    return NextResponse.json({ table: t, plans, rates, benefits, conflicts: judgeRun?.[0]?.conflicts ?? [], confidence: judgeRun?.[0]?.confidence ?? null })
+    // Latest status per extractor (errors + rough cell counts) for the review banner.
+    const extractors: Record<string, { error: string | null; rates: number }> = {}
+    for (const r of (Array.isArray(runs) ? runs : []) as { extractor: string; error: string | null; raw_json: unknown }[]) {
+      if (extractors[r.extractor]) continue
+      const rj = r.raw_json as { products?: { rates?: unknown[] }[]; rows?: unknown[] } | null
+      const cells = r.extractor === 'parser'
+        ? (rj?.rows?.length ?? 0)
+        : (rj?.products ?? []).reduce((n: number, p) => n + (p.rates?.length ?? 0), 0)
+      extractors[r.extractor] = { error: r.error ?? null, rates: cells }
+    }
+    return NextResponse.json({ table: t, plans, rates, benefits, conflicts: judgeRun?.[0]?.conflicts ?? [], confidence: judgeRun?.[0]?.confidence ?? null, extractors })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }

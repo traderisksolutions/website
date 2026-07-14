@@ -152,8 +152,7 @@ function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
       const up = await fetch('/api/group-benefits/rate-tables', { method: 'POST', body: fd })
       const d = await up.json()
       if (!up.ok || !d.id) { setError(d.error ?? 'Upload failed'); return }
-      // Kick off extraction, then jump to the review page (it polls for completion).
-      fetch(`/api/group-benefits/rate-tables/${d.id}/extract`, { method: 'POST' }).catch(() => {})
+      // The review page starts extraction (single trigger) and polls for completion.
       onDone()
       router.push(`/group-benefits/${d.id}`)
     } catch (e) {
