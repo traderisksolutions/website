@@ -2,8 +2,9 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { UploadCloud, FileText, Loader2, Clock } from 'lucide-react'
+import { UploadCloud, FileText, Loader2, Clock, Calculator } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { NewQuoteWizard } from '@/components/group-benefits/NewQuoteWizard'
 
 type RateTable = {
   id: string; insurer_name: string | null; product_code: string; product_name: string | null
@@ -24,8 +25,10 @@ const STATUS_TONE: Record<string, string> = {
   in_review: 'bg-blue-100 text-blue-700', approved: 'bg-emerald-100 text-emerald-700', archived: 'bg-muted text-muted-foreground/60',
 }
 
+type Tab = 'tables' | 'quote' | 'quotes' | 'activity'
+
 export default function GroupBenefitsPage() {
-  const [tab, setTab]   = useState<'tables' | 'activity'>('tables')
+  const [tab, setTab]   = useState<Tab>('tables')
   const [tables, setTables] = useState<RateTable[]>([])
   const [loading, setLoading] = useState(true)
   const [showUpload, setShowUpload] = useState(false)
@@ -45,22 +48,27 @@ export default function GroupBenefitsPage() {
           <h1 className="text-xl font-bold tracking-tight text-foreground">Group Benefits</h1>
           <p className="text-sm text-muted-foreground mt-1">Insurer rate matrices — upload a PDF, extract with 3 agents + Opus judge, review, approve.</p>
         </div>
-        <button onClick={() => setShowUpload(true)} className="flex items-center gap-2 text-[13px] font-semibold px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90">
-          <UploadCloud size={15} /> Upload rate PDF
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setTab('quote')} className="flex items-center gap-2 text-[13px] font-semibold px-4 py-2 rounded-lg border border-primary/30 text-primary hover:bg-primary/5">
+            <Calculator size={15} /> New quote
+          </button>
+          <button onClick={() => setShowUpload(true)} className="flex items-center gap-2 text-[13px] font-semibold px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90">
+            <UploadCloud size={15} /> Upload rate PDF
+          </button>
+        </div>
       </div>
 
       <div className="flex items-center gap-1 border-b border-border mb-5">
-        {(['tables', 'activity'] as const).map(t => (
+        {(['tables', 'quote', 'quotes', 'activity'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={cn('px-3.5 py-2 text-sm font-medium -mb-px border-b-2 transition-colors',
               tab === t ? 'text-foreground border-primary' : 'text-muted-foreground border-transparent hover:text-foreground')}>
-            {t === 'tables' ? 'Rate Tables' : 'Activity'}
+            {t === 'tables' ? 'Rate Tables' : t === 'quote' ? 'New Quote' : t === 'quotes' ? 'Quotes' : 'Activity'}
           </button>
         ))}
       </div>
 
-      {tab === 'tables' ? (
+      {tab === 'tables' && (
         loading ? <p className="text-sm text-muted-foreground">Loading…</p>
         : tables.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground">
@@ -72,7 +80,10 @@ export default function GroupBenefitsPage() {
             {tables.map(t => <TableRow key={t.id} t={t} />)}
           </div>
         )
-      ) : <ActivityTab />}
+      )}
+      {tab === 'quote'    && <NewQuoteWizard onSaved={() => { /* results shown inline; Quotes tab reloads on open */ }} />}
+      {tab === 'quotes'   && <QuotesTab />}
+      {tab === 'activity' && <ActivityTab />}
 
       {showUpload && <UploadModal onClose={() => setShowUpload(false)} onDone={() => { setShowUpload(false); load() }} />}
     </div>
@@ -98,6 +109,35 @@ function TableRow({ t }: { t: RateTable }) {
         {t.status.replace('_', ' ')}
       </span>
     </button>
+  )
+}
+
+type Quote = { id: string; company_name: string | null; effective_date: string | null; product_codes: string[]; member_count: number; results: { insurer_name: string; total: number }[]; created_at: string }
+
+function QuotesTab() {
+  const [rows, setRows] = useState<Quote[]>([])
+  const [loading, setLoading] = useState(true)
+  useEffect(() => {
+    fetch('/api/group-benefits/quote', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).then((d) => { setRows(d); setLoading(false) }).catch(() => setLoading(false))
+  }, [])
+  if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>
+  if (rows.length === 0) return <p className="text-sm text-muted-foreground">No quotes yet. Use “New Quote” to run a census.</p>
+  return (
+    <div className="flex flex-col gap-2">
+      {rows.map(q => {
+        const best = [...(q.results ?? [])].sort((a, b) => a.total - b.total)[0]
+        return (
+          <div key={q.id} className="flex items-center justify-between px-4 py-3 rounded-lg border border-border bg-card text-[12.5px]">
+            <div className="min-w-0">
+              <span className="font-semibold text-foreground">{q.company_name || 'Untitled'}</span>
+              <span className="text-muted-foreground/60"> · {q.member_count} members · {(q.product_codes ?? []).join('/')}</span>
+              <p className="text-[11px] text-muted-foreground/60 mt-0.5">{new Date(q.created_at).toLocaleString('en-SG')}{q.effective_date ? ` · eff ${q.effective_date}` : ''}</p>
+            </div>
+            {best && <span className="text-[12px] text-emerald-700 font-semibold flex-shrink-0">Best: {best.insurer_name} {best.total.toLocaleString('en-SG', { style: 'currency', currency: 'SGD' })}</span>}
+          </div>
+        )
+      })}
+    </div>
   )
 }
 
