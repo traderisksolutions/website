@@ -10,7 +10,7 @@ import {
   Bot, Table2, UsersRound,
   LogOut, BookOpen, Cpu, FolderOpen,
   Telescope, Megaphone, Settings, FlaskConical,
-  LayoutDashboard, TrendingUp, ScrollText, Network,
+  LayoutDashboard, TrendingUp, ScrollText, Network, HeartPulse,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -130,6 +130,7 @@ export default function Sidebar() {
           <CollapsedIcon icon={Users}   href="/contacts"   isActive={active('/contacts')}   label="Active Contacts"  hasBadge={totalEngaged > 0} />
           <CollapsedIcon icon={Bot}    href="/engagement" isActive={active('/engagement')} label="Engagement Agent" />
           <CollapsedIcon icon={Network} href="/nexus"      isActive={active('/nexus')}      label="Nexus" />
+          <CollapsedIcon icon={HeartPulse} href="/group-benefits" isActive={active('/group-benefits')} label="Group Benefits" />
           <IconDivider />
           <CollapsedIcon icon={Cpu}          href="/analytics/ai-usage"  isActive={active('/analytics/ai-usage')}  label="AI Usage" />
           <CollapsedIcon icon={FolderOpen}   href="/analytics/rag-index" isActive={active('/analytics/rag-index')} label="RAG Index" />
@@ -226,6 +227,7 @@ export default function Sidebar() {
             <NavItem label="Active Contacts" href="/contacts"   icon={Users} isActive={active('/contacts')} />
             <NavItem label="Engagement Agent" href="/engagement" icon={Bot} isActive={active('/engagement')} />
             <NavItem label="Nexus" href="/nexus" icon={Network} isActive={active('/nexus')} />
+            <NavItem label="Group Benefits" href="/group-benefits" icon={HeartPulse} isActive={active('/group-benefits')} />
           </div>
         )}
 
