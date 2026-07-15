@@ -1,12 +1,14 @@
 /**
- * Group Benefits extraction (Phase 1). Three independent extractors read an insurer rate
- * PDF, then an Opus judge reconciles them and flags every numeric disagreement for human
- * review. Rates (the numbers) must be exact; benefits are captured flexibly (EAV).
+ * Pricing Matrix extraction. Three independent extractors read an insurer rate PDF, then an
+ * Opus judge reconciles them and flags every numeric disagreement for human review.
  *
- *   A. Opus 4.8   — reads the PDF natively (document block), best at messy tables + footnotes
+ *   A. Opus 4.8   — reads the PDF natively; best on messy tables + footnotes
  *   B. Gemini     — independent vision read (different model family)
  *   C. Code parser — deterministic text parse of the rate rows (no LLM) as a numeric check
- *   Judge (Opus)  — merges A/B, cross-checks the numbers against C, emits conflicts
+ *   Judge (Opus)  — merges A/B, cross-checks the numbers against C, adjudicates conflicts
+ *
+ * Output is a FLAT list of price points — one row per (product × member type × plan × age
+ * band) — so any matrix shape fits and the models can't "sample" a nested structure.
  */
 import { logAiUsage } from './gemini-usage'
 import { GEMINI_FLASH, geminiUrl } from './gemini-models'
@@ -15,50 +17,60 @@ const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
 const OPUS = 'claude-opus-4-8'
 
 // ── Shared shape ────────────────────────────────────────────────────────────────
-export type GbPlan    = { plan_code: string; plan_name?: string | null; hospital_type?: string | null; beds?: string | null; co_payment?: string | null; renewal_only?: boolean }
-export type GbRate    = { plan_code: string; band_label: string; age_min: number | null; age_max: number | null; premium: number; renewal_only?: boolean }
-export type GbBenefit = { plan_code?: string | null; category?: string | null; benefit_name: string; value_text?: string | null; value_numeric?: number | null; unit?: string | null; notes?: string | null }
-export type GbProduct = { product_code: string; product_name?: string | null; age_basis?: 'next_birthday' | 'last_birthday' | null; plans: GbPlan[]; rates: GbRate[]; benefits: GbBenefit[] }
-export type GbExtraction = { insurer_name?: string | null; plan_year?: number | null; effective_date?: string | null; products: GbProduct[] }
+export type MemberType = 'employee' | 'dependant' | null
+export type PriceRow    = { product_title: string; member_type: MemberType; plan_code: string; band_label: string; age_min: number | null; age_max: number | null; price: number; dimensions?: Record<string, unknown> }
+export type CoverageRow = { product_title: string; member_type: MemberType; plan_code: string; item_label: string; value_numeric: number | null; value_text: string | null; unit: string | null }
+export type GbPlan      = { product_title: string; plan_code: string; plan_name?: string | null; hospital_type?: string | null; beds?: string | null; co_payment?: string | null }
+export type GbBenefit   = { product_title?: string | null; plan_code?: string | null; category?: string | null; benefit_name: string; value_text?: string | null; value_numeric?: number | null; unit?: string | null; notes?: string | null }
+export type GbExtraction = {
+  insurer_name?: string | null; plan_year?: number | null; effective_date?: string | null
+  age_basis?: 'next_birthday' | 'last_birthday' | null
+  pricing: PriceRow[]; coverage: CoverageRow[]; plans: GbPlan[]; benefits: GbBenefit[]
+}
 
-export type ParserRow    = { band_label: string; age_min: number | null; age_max: number | null; numbers: number[] }
-export type Conflict     = { product_code: string; plan_code: string; band_label: string; opus: number | null; gemini: number | null; parser_seen: boolean; note?: string }
-export type JudgeResult  = { merged: GbExtraction; conflicts: Conflict[]; confidence: number; summary: string }
+export type ParserRow   = { band_label: string; age_min: number | null; age_max: number | null; numbers: number[] }
+export type Conflict    = { product_title: string; member_type: MemberType; plan_code: string; band_label: string; opus: number | null; gemini: number | null; parser_seen: boolean; note?: string }
+export type JudgeResult = { merged: GbExtraction; conflicts: Conflict[]; confidence: number; summary: string }
 
-const EMPTY: GbExtraction = { products: [] }
+const EMPTY: GbExtraction = { pricing: [], coverage: [], plans: [], benefits: [] }
 
 // ── Prompt shared by the two LLM extractors ─────────────────────────────────────
 const SCHEMA_HINT = `Return ONLY valid JSON (no markdown fences) matching:
 {
-  "insurer_name": string|null,             // the underwriting insurer's name as printed
-  "plan_year": number|null,                // policy/rate year if printed (e.g. 2026)
-  "effective_date": "YYYY-MM-DD"|null,     // policy effective / rate effective date if printed
-  "products": [{
-    "product_code": "GHS"|"GOC"|"GOS"|string,   // GHS=hospital&surgical, GOC=outpatient clinical, GOS=outpatient specialist rider; else the printed product name
-    "product_name": string|null,
-    "age_basis": "next_birthday"|"last_birthday"|null,   // read from the age column header (e.g. "AGE NEXT BIRTHDAY")
-    "plans": [{ "plan_code": string, "plan_name": string|null, "hospital_type": string|null, "beds": string|null, "co_payment": string|null, "renewal_only": boolean }],
-    "rates": [{ "plan_code": string, "band_label": string, "age_min": number|null, "age_max": number|null, "premium": number, "renewal_only": boolean }],
-    "benefits": [{ "plan_code": string|null, "category": string|null, "benefit_name": string, "value_text": string|null, "value_numeric": number|null, "unit": string|null, "notes": string|null }]
-  }]
+  "insurer_name": string|null,
+  "plan_year": number|null,
+  "effective_date": "YYYY-MM-DD"|null,            // rate/policy effective date if printed
+  "age_basis": "next_birthday"|"last_birthday"|null,   // from the age column / footnote ("age next/last birthday")
+  "pricing":  [ { "product_title": string, "member_type": "employee"|"dependant"|null, "plan_code": string, "band_label": string, "age_min": number|null, "age_max": number|null, "price": number } ],
+  "coverage": [ { "product_title": string, "member_type": "employee"|"dependant"|null, "plan_code": string, "item_label": string, "value_numeric": number|null, "value_text": string|null, "unit": string|null } ],
+  "plans":    [ { "product_title": string, "plan_code": string, "plan_name": string|null, "hospital_type": string|null, "beds": string|null, "co_payment": string|null } ],
+  "benefits": [ { "product_title": string|null, "plan_code": string|null, "category": string|null, "benefit_name": string, "value_text": string|null, "value_numeric": number|null, "unit": string|null, "notes": string|null } ]
 }
-RULES:
-- Transcribe EVERY premium number EXACTLY as printed (keep cents). Never round, never infer a missing cell — omit it.
-- band_label is verbatim ("Up to 25", "26-30", "71-75*"). Parse age_min/age_max from it; "Up to 25" -> {0,25}. A trailing "*" (or footnote "for renewal only") -> renewal_only=true.
-- Capture co-payment / hospital type / bed type per plan from the schedule (these differentiate insurers).
-- For benefits, one row per benefit line per plan (or plan_code=null if a single value spans all plans). Put the printed value in value_text, and value_numeric only when it's a clean dollar amount.
-- Include ALL products, plans, age bands and benefit lines you can see across every page.`
+
+CRITICAL — COMPLETENESS (this is the whole point):
+- The PDF usually has MULTIPLE premium tables across several pages. Process EVERY table on EVERY page.
+- product_title = the EXACT printed product, e.g. "GHS+EMM", "GTL+GACI", "GOS". NEVER invent or normalise to GHS/GOC/GOS.
+- member_type from the table title: "...FOR EMPLOYEE..." -> "employee"; "...FOR DEPENDANT/DEPENDENT..." -> "dependant"; otherwise null.
+- Output ONE "pricing" row for EVERY (plan column × age-band row) in EVERY premium table. If a table has 10 age bands and 4 plans, that is 40 rows — output all 40. NEVER sample, summarise, truncate, or output only the first band. Transcribe every printed number EXACTLY (keep cents; strip thousands commas).
+- band_label verbatim ("Up to 29", "30-34", "70-74"). Parse age_min/age_max ("Up to 29" -> {0,29}).
+- Sum-assured / coverage matrices (e.g. GACI "37 Critical Illnesses" sum assured per plan) go in "coverage", NOT "pricing".
+- Also capture plan tier attributes (hospital type / beds / co-pay) in "plans" and any descriptive benefit lines in "benefits".
+
+Before you finish, self-check: for each premium table, does every age band appear for every plan and the correct member_type? If any row is missing, add it. Completeness matters more than anything else.`
 
 function stripJson(s: string): string {
   const t = s.trim().replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim()
   const a = t.indexOf('{'); const b = t.lastIndexOf('}')
   return a >= 0 && b > a ? t.slice(a, b + 1) : t
 }
-
 function safeParse(s: string): GbExtraction {
   try {
     const o = JSON.parse(stripJson(s))
-    if (o && Array.isArray(o.products)) return o as GbExtraction
+    if (o && (Array.isArray(o.pricing) || Array.isArray(o.products))) {
+      return { insurer_name: o.insurer_name ?? null, plan_year: o.plan_year ?? null, effective_date: o.effective_date ?? null, age_basis: o.age_basis ?? null,
+        pricing: Array.isArray(o.pricing) ? o.pricing : [], coverage: Array.isArray(o.coverage) ? o.coverage : [],
+        plans: Array.isArray(o.plans) ? o.plans : [], benefits: Array.isArray(o.benefits) ? o.benefits : [] }
+    }
   } catch { /* fall through */ }
   return EMPTY
 }
@@ -72,16 +84,11 @@ export async function extractWithOpus(pdfBase64: string, profileHint: string): P
       method: 'POST',
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({
-        model: OPUS,
-        max_tokens: 16000,
-        thinking: { type: 'adaptive' },
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 } },
-            { type: 'text', text: `You are a meticulous insurance data extractor. Extract the group-benefits rate matrices and benefit schedules from this PDF.\n${profileHint}\n\n${SCHEMA_HINT}` },
-          ],
-        }],
+        model: OPUS, max_tokens: 32000, thinking: { type: 'adaptive' },
+        messages: [{ role: 'user', content: [
+          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 } },
+          { type: 'text', text: `You are a meticulous insurance data extractor. Extract EVERY premium and coverage table from this PDF, completely.\n${profileHint}\n\n${SCHEMA_HINT}` },
+        ] }],
       }),
     })
     if (!res.ok) return { data: EMPTY, raw: '', error: `Opus ${res.status}: ${(await res.text()).slice(0, 300)}` }
@@ -104,9 +111,9 @@ export async function extractWithGemini(pdfBase64: string, profileHint: string):
       body: JSON.stringify({
         contents: [{ parts: [
           { inline_data: { mime_type: 'application/pdf', data: pdfBase64 } },
-          { text: `Extract the group-benefits rate matrices and benefit schedules from this insurance PDF.\n${profileHint}\n\n${SCHEMA_HINT}` },
+          { text: `Extract EVERY premium and coverage table from this insurance PDF, completely.\n${profileHint}\n\n${SCHEMA_HINT}` },
         ] }],
-        generationConfig: { temperature: 0, maxOutputTokens: 32000 },
+        generationConfig: { temperature: 0, maxOutputTokens: 60000 },
       }),
     })
     if (!res.ok) return { data: EMPTY, raw: '', error: `Gemini ${res.status}: ${(await res.text()).slice(0, 300)}` }
@@ -131,8 +138,6 @@ export function bandBounds(label: string): { age_min: number | null; age_max: nu
   return { age_min: null, age_max: null, renewal_only }
 }
 
-// Extract, for each age-band row, the premium numbers on that line. Ages (small bare ints)
-// are filtered out; premiums have cents, a thousands comma, a $ sign, or are >= 100.
 export function parseRatesFromText(text: string): ParserRow[] {
   const rows: ParserRow[] = []
   const bandRe = /(up to\s*\d+|\d+\s*[-–]\s*\d+\*?|\d+\s*(?:and|&)\s*(?:above|over)|(?:above|over)\s*\d+)/i
@@ -141,7 +146,6 @@ export function parseRatesFromText(text: string): ParserRow[] {
     const bm = line.match(bandRe)
     if (!bm) continue
     const band_label = bm[0].replace(/\s+/g, ' ')
-    // Numbers after the band label on the same line.
     const rest = line.slice((bm.index ?? 0) + bm[0].length)
     const numbers: number[] = []
     for (const nm of Array.from(rest.matchAll(/\$?\s*([\d,]+(?:\.\d{1,2})?)/g))) {
@@ -150,20 +154,18 @@ export function parseRatesFromText(text: string): ParserRow[] {
       if (!isFinite(val)) continue
       if (tokenHadDollarOrComma || val >= 100) numbers.push(val)
     }
-    if (numbers.length) {
-      const { age_min, age_max } = bandBounds(band_label)
-      rows.push({ band_label, age_min, age_max, numbers })
-    }
+    if (numbers.length) { const { age_min, age_max } = bandBounds(band_label); rows.push({ band_label, age_min, age_max, numbers }) }
   }
   return rows
 }
 
-// ── Judge (Opus reconciles A + B, cross-checks numbers vs C) ─────────────────────
-const rateKey = (product: string, plan: string, band: string) => `${product}|${plan}|${band}`
-const countRates = (e: GbExtraction) => (e.products ?? []).reduce((n, p) => n + (p.rates?.length ?? 0), 0)
-function indexRates(e: GbExtraction): Map<string, number> {
+// ── Judge: reconcile A + B, cross-check numbers vs C ─────────────────────────────
+export const priceKey = (r: { product_title: string; member_type: MemberType; plan_code: string; band_label: string }) =>
+  `${r.product_title}|${r.member_type ?? ''}|${r.plan_code}|${r.band_label}`
+
+function indexPricing(e: GbExtraction): Map<string, number> {
   const m = new Map<string, number>()
-  for (const p of e.products ?? []) for (const rt of p.rates ?? []) m.set(rateKey(p.product_code, rt.plan_code, rt.band_label), rt.premium)
+  for (const r of e.pricing ?? []) m.set(priceKey(r), r.price)
   return m
 }
 
@@ -172,84 +174,75 @@ export async function judgeExtractions(opus: GbExtraction, gemini: GbExtraction,
   for (const r of parser) for (const n of r.numbers) parserNums.add(Math.round(n * 100) / 100)
   const seenByParser = (n: number) => parserNums.has(Math.round(n * 100) / 100)
 
-  const opusIdx = indexRates(opus)
-  const gemIdx  = indexRates(gemini)
+  const opusIdx = indexPricing(opus)
+  const gemIdx  = indexPricing(gemini)
 
-  // Base the merged skeleton on whichever extraction is richer (so a failed/empty Opus
-  // doesn't wipe out a good Gemini read), then fold in any cells only the other found.
-  const richer = countRates(opus) >= countRates(gemini) ? opus : gemini
+  // Base on whichever extractor found more price points; fold in cells only the other saw.
+  const richer = (opus.pricing?.length ?? 0) >= (gemini.pricing?.length ?? 0) ? opus : gemini
   const poorer = richer === opus ? gemini : opus
-  const merged: GbExtraction = JSON.parse(JSON.stringify({
+  const merged: GbExtraction = {
     insurer_name:   opus.insurer_name ?? gemini.insurer_name ?? null,
     plan_year:      opus.plan_year ?? gemini.plan_year ?? null,
     effective_date: opus.effective_date ?? gemini.effective_date ?? null,
-    products:       richer.products ?? [],
-  }))
-
-  const present = new Set<string>()
-  for (const p of merged.products) for (const rt of p.rates ?? []) present.add(rateKey(p.product_code, rt.plan_code, rt.band_label))
-  for (const p of poorer.products ?? []) {
-    for (const rt of p.rates ?? []) {
-      const kk = rateKey(p.product_code, rt.plan_code, rt.band_label)
-      if (present.has(kk)) continue
-      present.add(kk)
-      let mp = merged.products.find(x => x.product_code === p.product_code)
-      if (!mp) { mp = { product_code: p.product_code, product_name: p.product_name ?? null, plans: [], rates: [], benefits: [] }; merged.products.push(mp) }
-      mp.rates.push({ ...rt })
-    }
+    age_basis:      opus.age_basis ?? gemini.age_basis ?? null,
+    pricing:  [...(richer.pricing ?? [])],
+    coverage: dedupeCoverage([...(opus.coverage ?? []), ...(gemini.coverage ?? [])]),
+    plans:    dedupePlans([...(opus.plans ?? []), ...(gemini.plans ?? [])]),
+    benefits: (richer.benefits ?? []).length >= (poorer.benefits ?? []).length ? (richer.benefits ?? []) : (poorer.benefits ?? []),
   }
+  const present = new Set(merged.pricing.map(priceKey))
+  for (const r of poorer.pricing ?? []) { const k = priceKey(r); if (!present.has(k)) { present.add(k); merged.pricing.push(r) } }
 
   const conflicts: Conflict[] = []
-  for (const p of merged.products) {
-    for (const rt of p.rates ?? []) {
-      const kk = rateKey(p.product_code, rt.plan_code, rt.band_label)
-      const o = opusIdx.has(kk) ? opusIdx.get(kk)! : null
-      const g = gemIdx.has(kk)  ? gemIdx.get(kk)!  : null
-      const parserSeen = seenByParser(rt.premium)
-      const disagree = o !== null && g !== null && Math.abs(o - g) > 0.001
-      const onlyOne  = (o === null) !== (g === null)
-      if (disagree || onlyOne || !parserSeen) {
-        conflicts.push({
-          product_code: p.product_code, plan_code: rt.plan_code, band_label: rt.band_label,
-          opus: o, gemini: g, parser_seen: parserSeen,
-          note: disagree ? 'Opus and Gemini disagree' : onlyOne ? `Only ${o !== null ? 'Opus' : 'Gemini'} found this cell` : 'Not confirmed by the text parser',
-        })
-      }
+  for (const r of merged.pricing) {
+    const k = priceKey(r)
+    const o = opusIdx.has(k) ? opusIdx.get(k)! : null
+    const g = gemIdx.has(k) ? gemIdx.get(k)! : null
+    const parserSeen = seenByParser(r.price)
+    const disagree = o !== null && g !== null && Math.abs(o - g) > 0.001
+    const onlyOne  = (o === null) !== (g === null)
+    if (disagree || onlyOne || !parserSeen) {
+      conflicts.push({ product_title: r.product_title, member_type: r.member_type, plan_code: r.plan_code, band_label: r.band_label,
+        opus: o, gemini: g, parser_seen: parserSeen,
+        note: disagree ? 'Opus and Gemini disagree' : onlyOne ? `Only ${o !== null ? 'Opus' : 'Gemini'} found this cell` : 'Not confirmed by the text parser' })
     }
   }
 
-  const totalRates = merged.products.reduce((n, p) => n + (p.rates?.length ?? 0), 0)
-  const confidence = totalRates === 0 ? 0 : Math.round(((totalRates - conflicts.length) / totalRates) * 10000) / 100
-  const summary = `${totalRates} rate cells · ${conflicts.length} to review · ${merged.products.length} product(s)`
-  return { merged, conflicts, confidence: Math.max(0, confidence), summary }
+  const total = merged.pricing.length
+  const confidence = total === 0 ? 0 : Math.max(0, Math.round(((total - conflicts.length) / total) * 10000) / 100)
+  const summary = `${total} price points · ${conflicts.length} to review · ${merged.coverage.length} coverage rows`
+  return { merged, conflicts, confidence, summary }
+}
+
+function dedupePlans(rows: GbPlan[]): GbPlan[] {
+  const seen = new Set<string>(); const out: GbPlan[] = []
+  for (const p of rows) { const k = `${p.product_title}|${p.plan_code}`; if (!seen.has(k)) { seen.add(k); out.push(p) } }
+  return out
+}
+function dedupeCoverage(rows: CoverageRow[]): CoverageRow[] {
+  const seen = new Set<string>(); const out: CoverageRow[] = []
+  for (const c of rows) { const k = `${c.product_title}|${c.member_type ?? ''}|${c.plan_code}|${c.item_label}`; if (!seen.has(k)) { seen.add(k); out.push(c) } }
+  return out
 }
 
 // ── Opus judge — focused adjudication of the disputed cells only ─────────────────
-// Opus re-reads the PDF for just the cells the two extractors disagreed on (or the parser
-// couldn't confirm) and returns the value it reads, with confidence. Bounded: input is the
-// small conflict list, output is one line per conflict.
-export type Adjudication = Record<string, { premium: number | null; confidence: number; reason: string }>
-export const conflictKey = (c: { product_code: string; plan_code: string; band_label: string }) => `${c.product_code}|${c.plan_code}|${c.band_label}`
+export type Adjudication = Record<string, { price: number | null; confidence: number; reason: string }>
+export const conflictKey = priceKey
 
 export async function adjudicateWithOpus(pdfBase64: string, conflicts: Conflict[]): Promise<Adjudication> {
   const key = process.env.ANTHROPIC_API_KEY
   if (!key || conflicts.length === 0) return {}
   try {
-    const list = conflicts.slice(0, 120).map(c => ({ key: conflictKey(c), product: c.product_code, plan: c.plan_code, age_band: c.band_label, opus_value: c.opus, gemini_value: c.gemini }))
+    const list = conflicts.slice(0, 200).map(c => ({ key: priceKey(c), product: c.product_title, member_type: c.member_type, plan: c.plan_code, age_band: c.band_label, opus_value: c.opus, gemini_value: c.gemini }))
     const res = await fetch(ANTHROPIC_URL, {
       method: 'POST',
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({
-        model: OPUS,
-        max_tokens: 8000,
-        thinking: { type: 'adaptive' },
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 } },
-            { type: 'text', text: `Two extractors disagreed on these rate cells (or a text parser couldn't confirm them). For EACH, find the exact premium printed in the PDF for that product + plan + age band and report the value you actually read.\n\nCELLS:\n${JSON.stringify(list, null, 2)}\n\nReturn ONLY JSON: { "<key>": { "premium": number|null, "confidence": 0-100, "reason": string } } using the exact "key" values above. premium=null if you genuinely cannot find it.` },
-          ],
-        }],
+        model: OPUS, max_tokens: 12000, thinking: { type: 'adaptive' },
+        messages: [{ role: 'user', content: [
+          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 } },
+          { type: 'text', text: `Two extractors disagreed on these premium cells (or a text parser couldn't confirm them). For EACH, find the exact price printed in the PDF for that product + member type + plan + age band and report the value you actually read.\n\nCELLS:\n${JSON.stringify(list, null, 2)}\n\nReturn ONLY JSON: { "<key>": { "price": number|null, "confidence": 0-100, "reason": string } } using the exact "key" values above. price=null if you genuinely cannot find it.` },
+        ] }],
       }),
     })
     if (!res.ok) return {}

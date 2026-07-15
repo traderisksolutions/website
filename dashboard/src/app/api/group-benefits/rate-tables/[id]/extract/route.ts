@@ -73,11 +73,9 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
     // Apply Opus's re-read where it's confident, and annotate each conflict with the verdict.
     const merged: GbExtraction = judged.merged
-    for (const p of merged.products) {
-      for (const rt of p.rates ?? []) {
-        const a = adjud[conflictKey({ product_code: p.product_code, plan_code: rt.plan_code, band_label: rt.band_label })]
-        if (a && a.premium != null && a.confidence >= 70) rt.premium = a.premium
-      }
+    for (const r of merged.pricing) {
+      const a = adjud[conflictKey(r)]
+      if (a && a.price != null && a.confidence >= 70) r.price = a.price
     }
     const conflictsOut = judged.conflicts.map(c => ({ ...c, judge: adjud[conflictKey(c)] ?? null }))
 
@@ -91,49 +89,55 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     ]
     await fetch(`${SB_URL}/rest/v1/gb_extraction_runs`, { method: 'POST', headers: sbH(), body: JSON.stringify(runs.map(r => ({ rate_table_id: id, ...r }))) }).catch(() => {})
 
-    // 5. Replace the candidate rows.
-    for (const tbl of ['gb_plans', 'gb_rates', 'gb_benefits']) {
-      await fetch(`${SB_URL}/rest/v1/${tbl}?rate_table_id=eq.${id}`, { method: 'DELETE', headers: sbH() }).catch(() => {})
-    }
-    const plans: unknown[] = [], rates: unknown[] = [], benefits: unknown[] = []
-    for (const p of merged.products) {
-      const seenPlan = new Set<string>()
-      for (const pl of p.plans ?? []) {
-        if (seenPlan.has(pl.plan_code)) continue; seenPlan.add(pl.plan_code)
-        plans.push({ rate_table_id: id, product_code: p.product_code, plan_code: pl.plan_code, plan_name: pl.plan_name ?? null, hospital_type: pl.hospital_type ?? null, beds: pl.beds ?? null, co_payment: pl.co_payment ?? null, renewal_only: !!pl.renewal_only })
-      }
-      const seenRate = new Set<string>()
-      for (const rt of p.rates ?? []) {
-        const kk = `${rt.plan_code}|${rt.band_label}`
-        if (seenRate.has(kk) || rt.premium == null) continue; seenRate.add(kk)
-        rates.push({ rate_table_id: id, product_code: p.product_code, plan_code: rt.plan_code, band_label: rt.band_label, age_min: rt.age_min ?? null, age_max: rt.age_max ?? null, premium: rt.premium, renewal_only: !!rt.renewal_only })
-      }
-      for (const b of p.benefits ?? []) {
-        benefits.push({ rate_table_id: id, product_code: p.product_code, plan_code: b.plan_code ?? null, category: b.category ?? null, benefit_name: b.benefit_name, value_text: b.value_text ?? null, value_numeric: b.value_numeric ?? null, unit: b.unit ?? null, notes: b.notes ?? null })
-      }
-    }
-    if (plans.length)    await fetch(`${SB_URL}/rest/v1/gb_plans`,    { method: 'POST', headers: sbH(), body: JSON.stringify(plans) }).catch(() => {})
-    if (rates.length)    await fetch(`${SB_URL}/rest/v1/gb_rates`,    { method: 'POST', headers: sbH(), body: JSON.stringify(rates) }).catch(() => {})
-    if (benefits.length) await fetch(`${SB_URL}/rest/v1/gb_benefits`, { method: 'POST', headers: sbH(), body: JSON.stringify(benefits) }).catch(() => {})
-
-    // Write back the metadata read from the PDF (insurer / product / age basis / year /
-    // effective date), resolving the insurer to the directory by name where possible. Only
-    // set fields we actually extracted — the reviewer can correct any of them.
-    const primary = merged.products[0]
+    // Resolve insurer + effective date first (denormalised onto each price row).
     const insurerName: string | null = merged.insurer_name ?? table.insurer_name ?? null
     let insurerId: string | null = table.insurer_id ?? null
     if (!insurerId && insurerName) {
       insurerId = await fetch(`${SB_URL}/rest/v1/insurers?name=ilike.${encodeURIComponent('%' + insurerName + '%')}&select=id&limit=1`, { headers: sbH(), cache: 'no-store' })
         .then(r => (r.ok ? r.json() : [])).then(rows => (Array.isArray(rows) ? rows[0]?.id : null) ?? null).catch(() => null)
     }
+    const effDate = (merged.effective_date && /^\d{4}-\d{2}-\d{2}$/.test(merged.effective_date)) ? merged.effective_date : (table.effective_date ?? null)
+
+    // 5. Replace the candidate rows (pricing → gb_rates, coverage → gb_coverage, etc.).
+    for (const tbl of ['gb_plans', 'gb_rates', 'gb_benefits', 'gb_coverage']) {
+      await fetch(`${SB_URL}/rest/v1/${tbl}?rate_table_id=eq.${id}`, { method: 'DELETE', headers: sbH() }).catch(() => {})
+    }
+
+    const seenRate = new Set<string>()
+    const rates = (merged.pricing ?? []).filter(r => r.plan_code && r.band_label && r.price != null).filter(r => {
+      const k = `${r.product_title}|${r.member_type ?? ''}|${r.plan_code}|${r.band_label}`
+      if (seenRate.has(k)) return false; seenRate.add(k); return true
+    }).map(r => ({
+      rate_table_id: id, insurer_id: insurerId, insurer_name: insurerName, effective_date: effDate,
+      product_code: r.product_title, member_type: r.member_type ?? null, plan_code: r.plan_code,
+      band_label: r.band_label, age_min: r.age_min ?? null, age_max: r.age_max ?? null,
+      premium: r.price, dimensions: r.dimensions ?? {},
+    }))
+
+    const seenPlan = new Set<string>()
+    const plans = (merged.plans ?? []).filter(p => p.plan_code).filter(p => {
+      const k = `${p.product_title}|${p.plan_code}`; if (seenPlan.has(k)) return false; seenPlan.add(k); return true
+    }).map(p => ({ rate_table_id: id, product_code: p.product_title, plan_code: p.plan_code, plan_name: p.plan_name ?? null, hospital_type: p.hospital_type ?? null, beds: p.beds ?? null, co_payment: p.co_payment ?? null }))
+
+    const benefits = (merged.benefits ?? []).filter(b => b.benefit_name).map(b => ({ rate_table_id: id, product_code: b.product_title ?? '', plan_code: b.plan_code ?? null, category: b.category ?? null, benefit_name: b.benefit_name, value_text: b.value_text ?? null, value_numeric: b.value_numeric ?? null, unit: b.unit ?? null, notes: b.notes ?? null }))
+
+    const coverage = (merged.coverage ?? []).filter(c => c.item_label).map((c, i) => ({ rate_table_id: id, product_title: c.product_title, member_type: c.member_type ?? null, plan_code: c.plan_code ?? null, item_label: c.item_label, value_numeric: c.value_numeric ?? null, value_text: c.value_text ?? null, unit: c.unit ?? null, sort_order: i }))
+
+    if (plans.length)    await fetch(`${SB_URL}/rest/v1/gb_plans`,    { method: 'POST', headers: sbH(), body: JSON.stringify(plans) }).catch(() => {})
+    if (rates.length)    await fetch(`${SB_URL}/rest/v1/gb_rates`,    { method: 'POST', headers: sbH(), body: JSON.stringify(rates) }).catch(() => {})
+    if (benefits.length) await fetch(`${SB_URL}/rest/v1/gb_benefits`, { method: 'POST', headers: sbH(), body: JSON.stringify(benefits) }).catch(() => {})
+    if (coverage.length) await fetch(`${SB_URL}/rest/v1/gb_coverage`, { method: 'POST', headers: sbH(), body: JSON.stringify(coverage) }).catch(() => {})
+
+    // Write back the table metadata read from the PDF (reviewer can correct). product_code
+    // becomes the distinct product titles found (display only; per-row product lives on rates).
+    const productTitles = Array.from(new Set((merged.pricing ?? []).map(r => r.product_title).filter(Boolean)))
     const meta: Record<string, unknown> = { status: 'in_review', updated_at: new Date().toISOString() }
-    if (insurerName)                 meta.insurer_name = insurerName
-    if (insurerId)                   meta.insurer_id   = insurerId
-    if (primary?.product_code)       meta.product_code = primary.product_code
-    if (primary?.product_name)       meta.product_name = primary.product_name
-    if (primary?.age_basis)          meta.age_basis    = primary.age_basis
+    if (insurerName)              meta.insurer_name = insurerName
+    if (insurerId)                meta.insurer_id   = insurerId
+    if (productTitles.length)     meta.product_code = productTitles.join(' · ')
+    if (merged.age_basis)         meta.age_basis    = merged.age_basis
     if (typeof merged.plan_year === 'number') meta.plan_year = merged.plan_year
-    if (merged.effective_date && /^\d{4}-\d{2}-\d{2}$/.test(merged.effective_date)) meta.effective_date = merged.effective_date
+    if (effDate)                  meta.effective_date = effDate
     await fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=eq.${id}`, { method: 'PATCH', headers: sbH(), body: JSON.stringify(meta) })
     // Clear the progress stage (best-effort — column may not exist yet).
     await fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=eq.${id}`, { method: 'PATCH', headers: sbH(), body: JSON.stringify({ extract_stage: null }) }).catch(() => {})

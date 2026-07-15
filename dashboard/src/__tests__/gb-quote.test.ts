@@ -47,6 +47,21 @@ describe('findRate', () => {
   })
 })
 
+describe('member type', () => {
+  const rr = [
+    { product_code: 'GHS', member_type: 'employee',  plan_code: 'Plan 1', band_label: 'Up to 29', age_min: 0, age_max: 29, premium: 100 },
+    { product_code: 'GHS', member_type: 'dependant', plan_code: 'Plan 1', band_label: 'Up to 29', age_min: 0, age_max: 29, premium: 130 },
+  ]
+  it('prices self from employee rows and spouse/child from dependant rows', () => {
+    expect(findRate(rr, 'GHS', 'Plan 1', 20, 'employee').premium).toBe(100)
+    expect(findRate(rr, 'GHS', 'Plan 1', 20, 'dependant').premium).toBe(130)
+  })
+  it('falls back to untyped rows when member type not present', () => {
+    const untyped = [{ product_code: 'GHS', member_type: null, plan_code: 'Plan 1', band_label: 'Up to 29', age_min: 0, age_max: 29, premium: 90 }]
+    expect(findRate(untyped, 'GHS', 'Plan 1', 20, 'dependant').premium).toBe(90)
+  })
+})
+
 describe('computeQuote', () => {
   const tables: RateTableInfo[] = [
     { rate_table_id: 't1', insurer_name: 'Insurer A', age_basis: 'next_birthday', rates },

@@ -8,13 +8,12 @@ import { plainToHtml } from '@/components/RichEditor'
 // ── Types mirrored from the API ────────────────────────────────────────────────
 type Member = { name: string; category: string; relationship: string; dob?: string | null; age?: number | null }
 type Plan   = { rate_table_id: string; product_code: string; plan_code: string; plan_name: string | null; hospital_type: string | null; beds: string | null }
-type Avail  = { rate_table_id: string; insurer_id: string | null; insurer_name: string; product_code: string; age_basis: string; plan_year: number | null; version: number; plans: Plan[] }
+type Avail  = { rate_table_id: string; insurer_id: string | null; insurer_name: string; product_title: string; age_basis: string; plan_year: number | null; member_types: string[]; plans: Plan[] }
 type InsurerResult = { rate_table_id: string; insurer_id: string | null; insurer_name: string; by_product: Record<string, number>; subtotal: number; gst: number; total: number; missing: number }
 type Line = { member_index: number; member_name: string; category: string; relationship: string; age: number | null; insurer_name: string; product_code: string; plan_code: string | null; premium: number | null; note: string | null }
 type Analysis = { comparison: { benefit: string; by_insurer: Record<string, string> }[]; insurers: { insurer: string; pros: string[]; cons: string[] }[]; recommendation: string }
 
-const PRODUCTS = ['GHS', 'GOC', 'GOS']
-const TEMPLATE = 'name,category,relationship,dob,age\nJane Tan,Manager,self,1985-04-12,\nJohn Tan,Manager,spouse,1987-09-01,\nBaby Tan,Manager,child,,3\n'
+const TEMPLATE ='name,category,relationship,dob,age\nJane Tan,Manager,self,1985-04-12,\nJohn Tan,Manager,spouse,1987-09-01,\nBaby Tan,Manager,child,,3\n'
 const money = (n: number) => n.toLocaleString('en-SG', { style: 'currency', currency: 'SGD' })
 
 // Minimal CSV parse (name,category,relationship,dob,age).
@@ -62,10 +61,9 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
   const [company, setCompany] = useState('')
   const [effDate, setEffDate] = useState(new Date().toISOString().slice(0, 10))
   const [gst, setGst] = useState(9)
-  const [products, setProducts] = useState<string[]>(['GHS'])
   const [avail, setAvail] = useState<Avail[]>([])
-  const [selectedTables, setSelectedTables] = useState<Set<string>>(new Set())
-  // categoryMap[rate_table_id][product][category] = plan_code
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
+  // categoryMap[rate_table_id][product_title][category] = plan_code
   const [map, setMap] = useState<Record<string, Record<string, Record<string, string>>>>({})
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -76,6 +74,7 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
 
   const categories = useMemo(() => Array.from(new Set(members.filter(m => m.name.trim()).map(m => m.category))), [members])
   function editMember(i: number, patch: Partial<Member>) { setMembers(prev => prev.map((m, j) => (j === i ? { ...m, ...patch } : m))) }
+  const entryKey = (t: Avail) => `${t.rate_table_id}::${t.product_title}`
 
   function downloadTemplate() {
     const a = document.createElement('a')
@@ -86,37 +85,42 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
   async function loadAvailable() {
     setBusy(true); setError(null)
     try {
-      const res = await fetch(`/api/group-benefits/quote/available?products=${products.join(',')}`, { cache: 'no-store' })
+      const res = await fetch('/api/group-benefits/quote/available', { cache: 'no-store' })
       const rows: Avail[] = res.ok ? await res.json() : []
       setAvail(rows)
-      if (rows.length === 0) setError('No approved rate tables for the selected products yet. Approve one under Rate Tables first.')
+      if (rows.length === 0) setError('No approved pricing yet. Upload + approve an insurer PDF under Rate Tables first.')
       setStep(2)
     } finally { setBusy(false) }
   }
 
-  function toggleTable(t: Avail) {
-    setSelectedTables(prev => { const n = new Set(prev); n.has(t.rate_table_id) ? n.delete(t.rate_table_id) : n.add(t.rate_table_id); return n })
-    // Seed default mapping: first plan of that product for every category.
+  function toggleEntry(t: Avail) {
+    const key = entryKey(t)
+    setSelectedKeys(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n })
+    // Seed default mapping: first plan for every category.
     setMap(prev => {
       const next = { ...prev }
-      if (!next[t.rate_table_id]) {
-        const firstPlan = t.plans.find(p => p.product_code === t.product_code)?.plan_code ?? t.plans[0]?.plan_code ?? ''
-        next[t.rate_table_id] = { [t.product_code]: Object.fromEntries(categories.map(c => [c, firstPlan])) }
+      if (!next[t.rate_table_id]) next[t.rate_table_id] = {}
+      if (!next[t.rate_table_id][t.product_title]) {
+        const firstPlan = t.plans[0]?.plan_code ?? ''
+        next[t.rate_table_id] = { ...next[t.rate_table_id], [t.product_title]: Object.fromEntries(categories.map(c => [c, firstPlan])) }
       }
       return next
     })
   }
 
-  function setPlan(tableId: string, product: string, category: string, plan: string) {
-    setMap(prev => ({ ...prev, [tableId]: { ...prev[tableId], [product]: { ...(prev[tableId]?.[product] ?? {}), [category]: plan } } }))
+  function setPlan(tableId: string, title: string, category: string, plan: string) {
+    setMap(prev => ({ ...prev, [tableId]: { ...prev[tableId], [title]: { ...(prev[tableId]?.[title] ?? {}), [category]: plan } } }))
   }
 
   async function compute() {
     setBusy(true); setError(null)
     try {
+      const selected = avail.filter(t => selectedKeys.has(entryKey(t)))
+      const products = Array.from(new Set(selected.map(t => t.product_title)))
+      const rate_table_ids = Array.from(new Set(selected.map(t => t.rate_table_id)))
       const res = await fetch('/api/group-benefits/quote', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ company_name: company, effective_date: effDate, gst_rate: gst / 100, products, rate_table_ids: Array.from(selectedTables), category_map: map, census: members.filter(m => m.name.trim()) }),
+        body: JSON.stringify({ company_name: company, effective_date: effDate, gst_rate: gst / 100, products, rate_table_ids, category_map: map, census: members.filter(m => m.name.trim()) }),
       })
       const d = await res.json()
       if (!res.ok) { setError(d.error ?? 'Compute failed'); return }
@@ -144,7 +148,8 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
       if (prod) out.push(`   ${prod} (ex-GST ${money(r.subtotal)})`)
     })
     out.push('')
-    out.push(`Covering ${members.length} member(s) across ${products.join(', ')}. Premiums exclude prevailing GST unless otherwise stated.`)
+    const prods = Array.from(new Set(list.flatMap(r => Object.keys(r.by_product))))
+    out.push(`Covering ${members.length} member(s) across ${prods.join(', ')}. Premiums exclude prevailing GST unless otherwise stated.`)
     if (analysis?.recommendation) { out.push(''); out.push(`Our recommendation: ${analysis.recommendation}`) }
     return out.join('\n')
   }
@@ -166,7 +171,7 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
 
   const insurerNames = useMemo(() => analysis ? Array.from(new Set((analysis.comparison ?? []).flatMap(r => Object.keys(r.by_insurer ?? {})))) : [], [analysis])
 
-  const stepTitles = ['Census', 'Products', 'Insurers & plans', 'Review', 'Comparison']
+  const stepTitles = ['Census', 'Setup', 'Insurer products', 'Map plans', 'Comparison']
   const inp = 'text-[13px] border border-border rounded-md px-2.5 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-primary/25'
 
   return (
@@ -222,11 +227,11 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
                 className="w-full flex items-center justify-center gap-1 px-3 py-1.5 text-[11px] text-primary hover:bg-primary/5 border-t border-border/60"><Plus size={12} /> Add member</button>
             </div>
           )}
-          <Nav next={() => setStep(1)} nextLabel="Products" nextDisabled={members.filter(m => m.name.trim()).length === 0} />
+          <Nav next={() => setStep(1)} nextLabel="Setup" nextDisabled={members.filter(m => m.name.trim()).length === 0} />
         </div>
       )}
 
-      {/* Step 1 — products + meta */}
+      {/* Step 1 — company / date / GST */}
       {step === 1 && (
         <div className="flex flex-col gap-4">
           <div className="grid grid-cols-3 gap-3">
@@ -234,59 +239,51 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
             <label className="flex flex-col gap-1"><span className="text-[11px] font-semibold text-muted-foreground/70">Policy effective date</span><input type="date" value={effDate} onChange={e => setEffDate(e.target.value)} className={inp} /></label>
             <label className="flex flex-col gap-1"><span className="text-[11px] font-semibold text-muted-foreground/70">GST %</span><input type="number" value={gst} onChange={e => setGst(Number(e.target.value))} className={inp} /></label>
           </div>
-          <div>
-            <p className="text-[11px] font-semibold text-muted-foreground/70 mb-1.5">Products to quote</p>
-            <div className="flex gap-2">
-              {PRODUCTS.map(p => (
-                <button key={p} onClick={() => setProducts(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p])}
-                  className={cn('text-[12px] font-medium px-3 py-1.5 rounded-lg border', products.includes(p) ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground')}>{p}</button>
-              ))}
-            </div>
-          </div>
-          <Nav back={() => setStep(0)} next={loadAvailable} nextLabel="Find insurers" nextDisabled={products.length === 0 || busy} busy={busy} />
+          <p className="text-[11.5px] text-muted-foreground/60">Insurer products come from your approved pricing (newest date per insurer).</p>
+          <Nav back={() => setStep(0)} next={loadAvailable} nextLabel="Find insurer products" nextDisabled={busy} busy={busy} />
         </div>
       )}
 
-      {/* Step 2 — pick insurers (approved tables) */}
+      {/* Step 2 — pick insurer products (approved) */}
       {step === 2 && (
         <div className="flex flex-col gap-3">
-          <p className="text-[12px] text-muted-foreground">Select the approved insurer tables to compare.</p>
+          <p className="text-[12px] text-muted-foreground">Select the insurer products to compare.</p>
           <div className="flex flex-col gap-1.5">
-            {avail.map(t => (
-              <button key={t.rate_table_id} onClick={() => toggleTable(t)}
-                className={cn('flex items-center justify-between px-3 py-2 rounded-lg border text-left text-[12.5px]', selectedTables.has(t.rate_table_id) ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30')}>
-                <span><span className="font-semibold">{t.insurer_name}</span> · {t.product_code}{t.plan_year ? ` · ${t.plan_year}` : ''} <span className="text-muted-foreground/50">v{t.version} · {t.plans.length} plans</span></span>
-                <input type="checkbox" readOnly checked={selectedTables.has(t.rate_table_id)} />
-              </button>
-            ))}
+            {avail.map(t => {
+              const on = selectedKeys.has(entryKey(t))
+              return (
+                <button key={entryKey(t)} onClick={() => toggleEntry(t)}
+                  className={cn('flex items-center justify-between px-3 py-2 rounded-lg border text-left text-[12.5px]', on ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30')}>
+                  <span><span className="font-semibold">{t.insurer_name}</span> · {t.product_title}{t.plan_year ? ` · ${t.plan_year}` : ''} <span className="text-muted-foreground/50">{t.plans.length} plans{t.member_types.length ? ` · ${t.member_types.map(m => m === 'employee' ? 'Emp' : 'Dep').join('/')}` : ''}</span></span>
+                  <input type="checkbox" readOnly checked={on} />
+                </button>
+              )
+            })}
           </div>
-          <Nav back={() => setStep(1)} next={() => setStep(3)} nextLabel="Map plans" nextDisabled={selectedTables.size === 0} />
+          <Nav back={() => setStep(1)} next={() => setStep(3)} nextLabel="Map plans" nextDisabled={selectedKeys.size === 0} />
         </div>
       )}
 
-      {/* Step 3 — category → plan mapping per selected table */}
+      {/* Step 3 — category → plan mapping per selected insurer product */}
       {step === 3 && (
         <div className="flex flex-col gap-4">
-          <p className="text-[12px] text-muted-foreground">Map each employee category to a plan for every insurer.</p>
-          {avail.filter(t => selectedTables.has(t.rate_table_id)).map(t => {
-            const planOpts = t.plans.filter(p => p.product_code === t.product_code)
-            return (
-              <div key={t.rate_table_id} className="border border-border rounded-lg overflow-hidden">
-                <div className="px-3 py-1.5 bg-muted/40 text-[12px] font-semibold">{t.insurer_name} · {t.product_code}</div>
-                <div className="divide-y divide-border/60">
-                  {categories.map(cat => (
-                    <div key={cat} className="flex items-center gap-3 px-3 py-1.5 text-[12px]">
-                      <span className="w-28 text-muted-foreground/80">{cat}</span>
-                      <select value={map[t.rate_table_id]?.[t.product_code]?.[cat] ?? ''} onChange={e => setPlan(t.rate_table_id, t.product_code, cat, e.target.value)} className={inp}>
-                        <option value="">— none —</option>
-                        {(planOpts.length ? planOpts : t.plans).map(p => <option key={p.plan_code} value={p.plan_code}>{p.plan_code}{p.beds ? ` · ${p.beds}` : ''}{p.hospital_type ? ` · ${p.hospital_type}` : ''}</option>)}
-                      </select>
-                    </div>
-                  ))}
-                </div>
+          <p className="text-[12px] text-muted-foreground">Map each employee category to a plan for every insurer product. Dependants are priced automatically from the dependant table.</p>
+          {avail.filter(t => selectedKeys.has(entryKey(t))).map(t => (
+            <div key={entryKey(t)} className="border border-border rounded-lg overflow-hidden">
+              <div className="px-3 py-1.5 bg-muted/40 text-[12px] font-semibold">{t.insurer_name} · {t.product_title}</div>
+              <div className="divide-y divide-border/60">
+                {categories.map(cat => (
+                  <div key={cat} className="flex items-center gap-3 px-3 py-1.5 text-[12px]">
+                    <span className="w-28 text-muted-foreground/80">{cat}</span>
+                    <select value={map[t.rate_table_id]?.[t.product_title]?.[cat] ?? ''} onChange={e => setPlan(t.rate_table_id, t.product_title, cat, e.target.value)} className={inp}>
+                      <option value="">— none —</option>
+                      {t.plans.map(p => <option key={p.plan_code} value={p.plan_code}>{p.plan_code}{p.beds ? ` · ${p.beds}` : ''}{p.hospital_type ? ` · ${p.hospital_type}` : ''}</option>)}
+                    </select>
+                  </div>
+                ))}
               </div>
-            )
-          })}
+            </div>
+          ))}
           <Nav back={() => setStep(2)} next={compute} nextLabel="Compute comparison" busy={busy} />
         </div>
       )}
@@ -381,7 +378,7 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
                 <Reply size={13} /> Draft reply with this quote{analysis ? ' + recommendation' : ''}
               </button>
             )}
-            <button onClick={() => { setStep(initialMembers?.length ? 1 : 0); setResult(null); if (!initialMembers?.length) setMembers([]); setSelectedTables(new Set()) }} className="text-[12.5px] px-3 py-1.5 rounded-lg border border-border hover:bg-muted">New quote</button>
+            <button onClick={() => { setStep(initialMembers?.length ? 1 : 0); setResult(null); if (!initialMembers?.length) setMembers([]); setSelectedKeys(new Set()) }} className="text-[12.5px] px-3 py-1.5 rounded-lg border border-border hover:bg-muted">New quote</button>
             <span className="text-[11.5px] text-emerald-600">Saved to history ✓</span>
           </div>
         </div>

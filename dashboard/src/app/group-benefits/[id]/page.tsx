@@ -5,13 +5,17 @@ import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Loader2, CheckCircle2, AlertTriangle, Save, FileText, RefreshCw, Trash2, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type Rate    = { id?: string; product_code: string; plan_code: string; band_label: string; age_min: number | null; age_max: number | null; premium: number; renewal_only?: boolean }
+type Rate    = { id?: string; product_code: string; member_type: string | null; plan_code: string; band_label: string; age_min: number | null; age_max: number | null; premium: number; renewal_only?: boolean }
 type Plan    = { product_code: string; plan_code: string; plan_name: string | null; hospital_type: string | null; beds: string | null; co_payment: string | null }
 type Benefit = { product_code: string; plan_code: string | null; category: string | null; benefit_name: string; value_text: string | null; value_numeric: number | null; unit: string | null; notes: string | null }
-type Conflict = { product_code: string; plan_code: string; band_label: string; opus: number | null; gemini: number | null; parser_seen: boolean; note?: string; judge?: { premium: number | null; confidence: number; reason: string } | null }
-type Detail  = { table: Record<string, unknown>; plans: Plan[]; rates: Rate[]; benefits: Benefit[]; conflicts: Conflict[]; confidence: number | null; extractors?: Record<string, { error: string | null; rates: number }> }
+type Coverage = { product_title: string | null; member_type: string | null; plan_code: string | null; item_label: string; value_numeric: number | null; value_text: string | null; unit: string | null }
+type Conflict = { product_title: string; member_type: string | null; plan_code: string; band_label: string; opus: number | null; gemini: number | null; parser_seen: boolean; note?: string; judge?: { price: number | null; confidence: number; reason: string } | null }
+type Detail  = { table: Record<string, unknown>; plans: Plan[]; rates: Rate[]; benefits: Benefit[]; coverage: Coverage[]; conflicts: Conflict[]; confidence: number | null; extractors?: Record<string, { error: string | null; rates: number }> }
 
-const cKey = (c: { product_code: string; plan_code: string; band_label: string }) => `${c.product_code}|${c.plan_code}|${c.band_label}`
+// Keyed by product title + member type + plan + band (matches the judge's conflict keys).
+const cKey = (c: { product_title?: string; product_code?: string; member_type: string | null; plan_code: string; band_label: string }) =>
+  `${c.product_title ?? c.product_code ?? ''}|${c.member_type ?? ''}|${c.plan_code}|${c.band_label}`
+const mtLabel = (m: string | null) => m === 'employee' ? 'Employee' : m === 'dependant' ? 'Dependant' : ''
 
 // Live extraction stages for the progress checklist (server reports the current one).
 const STAGES = [
@@ -27,6 +31,7 @@ export default function GbReviewPage() {
   const [d, setD] = useState<Detail | null>(null)
   const [rates, setRates] = useState<Rate[]>([])
   const [benefits, setBenefits] = useState<Benefit[]>([])
+  const [coverage, setCoverage] = useState<Coverage[]>([])
   const [status, setStatus] = useState<string>('')
   const [saving, setSaving] = useState<'save' | 'approve' | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
@@ -37,7 +42,7 @@ export default function GbReviewPage() {
     const res = await fetch(`/api/group-benefits/rate-tables/${id}`, { cache: 'no-store' })
     if (!res.ok) return
     const data: Detail = await res.json()
-    setD(data); setRates(data.rates); setBenefits(data.benefits)
+    setD(data); setRates(data.rates); setBenefits(data.benefits); setCoverage(data.coverage ?? [])
     setStatus(String(data.table.status ?? ''))
     const t = data.table as Record<string, unknown>
     setMeta({
@@ -247,50 +252,68 @@ export default function GbReviewPage() {
             </div>
           )}
 
-          {/* Rates by product/plan */}
-          {Array.from(byProduct.entries()).map(([product, prRates]) => {
-            const byPlan = groupBy(prRates, r => r.plan_code)
-            return (
-              <div key={product} className="mb-6">
-                <h2 className="text-[13px] font-bold text-foreground mb-2">{product}</h2>
-                <div className="flex flex-col gap-3">
-                  {Array.from(byPlan.entries()).map(([plan, planRates]) => (
-                    <div key={plan} className="border border-border rounded-lg overflow-hidden">
-                      <div className="px-3 py-1.5 bg-muted/40 text-[11.5px] font-semibold text-foreground/80">{plan}</div>
-                      <div className="divide-y divide-border/60">
-                        {planRates.sort((a, b) => (a.age_min ?? 0) - (b.age_min ?? 0)).map((r) => {
-                          const conflict = conflictMap.get(cKey(r))
-                          const idx = rates.indexOf(r)
-                          const editable = status === 'in_review'
-                          return (
-                            <div key={idx} className={cn('flex items-center gap-2 px-3 py-1.5 text-[12px]', conflict && 'bg-amber-50/60')}>
-                              <input value={r.band_label} disabled={!editable} onChange={e => updateRate(idx, { band_label: e.target.value })}
-                                className="w-28 text-[12px] px-2 py-0.5 rounded border border-transparent hover:border-border focus:border-primary/40 focus:outline-none bg-transparent text-muted-foreground/80 disabled:hover:border-transparent" />
-                              <span className="text-muted-foreground/40">$</span>
-                              <input type="number" step="0.01" value={r.premium} disabled={!editable}
-                                onChange={e => updateRate(idx, { premium: parseFloat(e.target.value) || 0 })}
-                                className={cn('w-28 text-[12px] px-2 py-0.5 rounded border bg-background focus:outline-none focus:ring-1 focus:ring-primary/30', conflict ? 'border-amber-300' : 'border-border')} />
-                              {conflict && (
-                                <span className="text-[10.5px] text-amber-700 flex items-center gap-2">
-                                  <span>Opus {fmt(conflict.opus)} · Gemini {fmt(conflict.gemini)}{!conflict.parser_seen ? ' · not in text' : ''}</span>
-                                  {conflict.judge?.premium != null && <span className="font-semibold text-amber-800">→ judge {fmt(conflict.judge.premium)} ({conflict.judge.confidence}%)</span>}
-                                </span>
-                              )}
-                              {editable && <button onClick={() => setRates(prev => prev.filter((_, i) => i !== idx))} className="ml-auto text-muted-foreground/30 hover:text-rose-600"><Trash2 size={12} /></button>}
-                            </div>
-                          )
-                        })}
+          {/* Rates by product → member type → plan */}
+          {Array.from(byProduct.entries()).map(([product, prRates]) => (
+            <div key={product} className="mb-6">
+              <h2 className="text-[13px] font-bold text-foreground mb-2">{product}</h2>
+              {Array.from(groupBy(prRates, r => r.member_type ?? '').entries()).map(([mt, mtRates]) => (
+                <div key={mt} className="mb-3">
+                  {mtLabel(mt || null) && <p className="text-[10px] font-bold uppercase tracking-wider text-primary/70 mb-1.5">{mtLabel(mt || null)}</p>}
+                  <div className="flex flex-col gap-3">
+                    {Array.from(groupBy(mtRates, r => r.plan_code).entries()).map(([plan, planRates]) => (
+                      <div key={plan} className="border border-border rounded-lg overflow-hidden">
+                        <div className="px-3 py-1.5 bg-muted/40 text-[11.5px] font-semibold text-foreground/80">{plan}</div>
+                        <div className="divide-y divide-border/60">
+                          {planRates.sort((a, b) => (a.age_min ?? 0) - (b.age_min ?? 0)).map((r) => {
+                            const conflict = conflictMap.get(cKey(r))
+                            const idx = rates.indexOf(r)
+                            const editable = status === 'in_review'
+                            return (
+                              <div key={idx} className={cn('flex items-center gap-2 px-3 py-1.5 text-[12px]', conflict && 'bg-amber-50/60')}>
+                                <input value={r.band_label} disabled={!editable} onChange={e => updateRate(idx, { band_label: e.target.value })}
+                                  className="w-28 text-[12px] px-2 py-0.5 rounded border border-transparent hover:border-border focus:border-primary/40 focus:outline-none bg-transparent text-muted-foreground/80 disabled:hover:border-transparent" />
+                                <span className="text-muted-foreground/40">$</span>
+                                <input type="number" step="0.01" value={r.premium} disabled={!editable}
+                                  onChange={e => updateRate(idx, { premium: parseFloat(e.target.value) || 0 })}
+                                  className={cn('w-28 text-[12px] px-2 py-0.5 rounded border bg-background focus:outline-none focus:ring-1 focus:ring-primary/30', conflict ? 'border-amber-300' : 'border-border')} />
+                                {conflict && (
+                                  <span className="text-[10.5px] text-amber-700 flex items-center gap-2">
+                                    <span>Opus {fmt(conflict.opus)} · Gemini {fmt(conflict.gemini)}{!conflict.parser_seen ? ' · not in text' : ''}</span>
+                                    {conflict.judge?.price != null && <span className="font-semibold text-amber-800">→ judge {fmt(conflict.judge.price)} ({conflict.judge.confidence}%)</span>}
+                                  </span>
+                                )}
+                                {editable && <button onClick={() => setRates(prev => prev.filter((_, i) => i !== idx))} className="ml-auto text-muted-foreground/30 hover:text-rose-600"><Trash2 size={12} /></button>}
+                              </div>
+                            )
+                          })}
+                        </div>
+                        {status === 'in_review' && (
+                          <button onClick={() => setRates(prev => [...prev, { product_code: product, member_type: mt || null, plan_code: plan, band_label: '', age_min: null, age_max: null, premium: 0 }])}
+                            className="w-full flex items-center justify-center gap-1 px-3 py-1 text-[11px] text-primary hover:bg-primary/5 border-t border-border/60"><Plus size={11} /> Add band</button>
+                        )}
                       </div>
-                      {status === 'in_review' && (
-                        <button onClick={() => setRates(prev => [...prev, { product_code: product, plan_code: plan, band_label: '', age_min: null, age_max: null, premium: 0 }])}
-                          className="w-full flex items-center justify-center gap-1 px-3 py-1 text-[11px] text-primary hover:bg-primary/5 border-t border-border/60"><Plus size={11} /> Add band</button>
-                      )}
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
+              ))}
+            </div>
+          ))}
+
+          {/* Coverage / sum assured */}
+          {coverage.length > 0 && (
+            <div className="mb-6">
+              <h2 className="text-[13px] font-bold text-foreground mb-2">Coverage & sum assured ({coverage.length})</h2>
+              <div className="border border-border rounded-lg divide-y divide-border/60 max-h-[360px] overflow-y-auto">
+                {coverage.map((c, i) => (
+                  <div key={i} className="flex items-center gap-3 px-3 py-1.5 text-[11.5px]">
+                    <span className="w-40 text-muted-foreground/50 flex-shrink-0 truncate">{c.product_title}{c.member_type ? ` · ${mtLabel(c.member_type)}` : ''}{c.plan_code ? ` · ${c.plan_code}` : ''}</span>
+                    <span className="flex-1 text-foreground/80 truncate">{c.item_label}</span>
+                    <span className="font-medium text-foreground/70">{c.value_numeric != null ? c.value_numeric.toLocaleString('en-SG') : c.value_text}{c.unit ? ` ${c.unit}` : ''}</span>
+                  </div>
+                ))}
               </div>
-            )
-          })}
+            </div>
+          )}
 
           {/* Benefits */}
           {benefits.length > 0 && (

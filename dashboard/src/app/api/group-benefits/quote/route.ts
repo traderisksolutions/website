@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     const ids = tableIds.map(i => `"${i}"`).join(',')
     const [metaRes, ratesRes] = await Promise.all([
       fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=in.(${ids})&select=id,insurer_id,insurer_name,age_basis&limit=100`, { headers: sbH(), cache: 'no-store' }),
-      fetch(`${SB_URL}/rest/v1/gb_rates?rate_table_id=in.(${ids})&select=rate_table_id,product_code,plan_code,band_label,age_min,age_max,premium,renewal_only&limit=10000`, { headers: sbH(), cache: 'no-store' }),
+      fetch(`${SB_URL}/rest/v1/gb_rates?rate_table_id=in.(${ids})&select=rate_table_id,product_code,member_type,plan_code,band_label,age_min,age_max,premium,renewal_only&limit=20000`, { headers: sbH(), cache: 'no-store' }),
     ])
     const metas: { id: string; insurer_id: string | null; insurer_name: string | null; age_basis: string }[] = metaRes.ok ? await metaRes.json() : []
     const rateRows: (RateTableInfo['rates'][number] & { rate_table_id: string })[] = ratesRes.ok ? await ratesRes.json() : []

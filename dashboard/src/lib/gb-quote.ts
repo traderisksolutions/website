@@ -6,7 +6,11 @@
 export type Relationship = 'self' | 'spouse' | 'child' | string
 export type Member = { name: string; category: string; relationship: Relationship; dob?: string | null; age?: number | null }
 
-export type RateRow = { product_code: string; plan_code: string; band_label: string; age_min: number | null; age_max: number | null; premium: number; renewal_only?: boolean }
+export type RateRow = { product_code: string; member_type?: string | null; plan_code: string; band_label: string; age_min: number | null; age_max: number | null; premium: number; renewal_only?: boolean }
+
+// A member's relationship maps to which premium table applies (employee vs dependant).
+export const memberTypeFor = (relationship: string): 'employee' | 'dependant' =>
+  /spouse|child|dependa|dependent|son|daughter|wife|husband|partner/i.test(relationship) ? 'dependant' : 'employee'
 export type RateTableInfo = { rate_table_id: string; insurer_id?: string | null; insurer_name: string; age_basis: 'next_birthday' | 'last_birthday'; rates: RateRow[] }
 // { [rate_table_id]: { [product_code]: { [category]: plan_code } } }
 export type CategoryMap = Record<string, Record<string, Record<string, string>>>
@@ -40,12 +44,17 @@ export function memberAge(m: Member, effDate: string, basis: 'next_birthday' | '
   return null
 }
 
-export function findRate(rates: RateRow[], product: string, plan: string | null, age: number | null): { premium: number | null; note: string | null } {
+export function findRate(rates: RateRow[], product: string, plan: string | null, age: number | null, memberType?: 'employee' | 'dependant'): { premium: number | null; note: string | null } {
   if (!plan) return { premium: null, note: 'no plan mapped' }
   if (age == null) return { premium: null, note: 'no age' }
   const cand = rates.filter(r => r.product_code === product && r.plan_code === plan)
   if (!cand.length) return { premium: null, note: 'plan not in rate table' }
-  const match = cand.find(r => age >= (r.age_min ?? 0) && (r.age_max == null || age <= r.age_max))
+  // Prefer rows for the member type (employee/dependant); fall back to untyped rows, then
+  // any — so tables that don't split by member type still resolve.
+  const typed   = memberType ? cand.filter(r => (r.member_type ?? null) === memberType) : []
+  const untyped = cand.filter(r => (r.member_type ?? null) === null)
+  const pool    = typed.length ? typed : untyped.length ? untyped : cand
+  const match = pool.find(r => age >= (r.age_min ?? 0) && (r.age_max == null || age <= r.age_max))
   if (!match) return { premium: null, note: `no band for age ${age}` }
   return { premium: match.premium, note: match.renewal_only ? 'renewal-only band' : null }
 }
@@ -67,7 +76,7 @@ export function computeQuote(
         const plan = tMap[product]?.[m.category] ?? null
         // Skip products the category isn't mapped to (e.g. staff without a GOS rider).
         if (!plan) continue
-        const { premium, note } = findRate(table.rates, product, plan, age)
+        const { premium, note } = findRate(table.rates, product, plan, age, memberTypeFor(m.relationship))
         lines.push({ member_index: i, member_name: m.name, relationship: m.relationship, category: m.category, age, rate_table_id: table.rate_table_id, insurer_id: table.insurer_id ?? null, insurer_name: table.insurer_name, product_code: product, plan_code: plan, premium, note })
         if (premium == null) { missing++; continue }
         byProduct[product] = round2((byProduct[product] ?? 0) + premium)
