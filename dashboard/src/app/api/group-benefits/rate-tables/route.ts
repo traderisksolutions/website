@@ -42,11 +42,12 @@ export async function POST(req: NextRequest) {
 
     const form = await req.formData()
     const file = form.get('file') as File | null
+    // Metadata (insurer/product/age basis/year/effective date) is read from the PDF by the
+    // extractor and written back to the row; anything passed here is just an optional hint.
     const productCode = String(form.get('product_code') ?? '').trim()
     if (!file) return NextResponse.json({ error: 'No PDF provided' }, { status: 400 })
     if (file.type !== 'application/pdf') return NextResponse.json({ error: 'File must be a PDF' }, { status: 400 })
     if (file.size > MAX) return NextResponse.json({ error: 'PDF too large (max 25 MB)' }, { status: 400 })
-    if (!productCode) return NextResponse.json({ error: 'product_code required' }, { status: 400 })
 
     // Ensure the private bucket exists, then upload.
     const k = process.env.SUPABASE_SERVICE_KEY!

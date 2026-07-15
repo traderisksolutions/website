@@ -22,6 +22,8 @@ export default function GbReviewPage() {
   const [status, setStatus] = useState<string>('')
   const [saving, setSaving] = useState<'save' | 'approve' | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
+  const [meta, setMeta] = useState<Record<string, string>>({})
+  const [insurers, setInsurers] = useState<{ id: string; name: string }[]>([])
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/group-benefits/rate-tables/${id}`, { cache: 'no-store' })
@@ -29,7 +31,18 @@ export default function GbReviewPage() {
     const data: Detail = await res.json()
     setD(data); setRates(data.rates); setBenefits(data.benefits)
     setStatus(String(data.table.status ?? ''))
+    const t = data.table as Record<string, unknown>
+    setMeta({
+      insurer_id:     (t.insurer_id as string) ?? '',
+      insurer_name:   (t.insurer_name as string) ?? '',
+      product_code:   (t.product_code as string) ?? '',
+      age_basis:      (t.age_basis as string) ?? 'next_birthday',
+      plan_year:      t.plan_year != null ? String(t.plan_year) : '',
+      effective_date: (t.effective_date as string) ?? '',
+    })
   }, [id])
+
+  useEffect(() => { fetch('/api/settings/insurers', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).then(rows => setInsurers(Array.isArray(rows) ? rows : [])).catch(() => {}) }, [])
 
   useEffect(() => { load() }, [load])
   // Poll while extraction is running.
@@ -71,9 +84,17 @@ export default function GbReviewPage() {
         !confirm(`${d!.conflicts.length} cell(s) are still flagged for review. Approve anyway?`)) return
     setSaving(approveAfter ? 'approve' : 'save'); setMsg(null)
     try {
+      const metaPayload = {
+        insurer_id:     meta.insurer_id || null,
+        insurer_name:   meta.insurer_name || null,
+        product_code:   meta.product_code || '',
+        age_basis:      meta.age_basis || 'next_birthday',
+        plan_year:      meta.plan_year ? Number(meta.plan_year) : null,
+        effective_date: meta.effective_date || null,
+      }
       const saveRes = await fetch(`/api/group-benefits/rate-tables/${id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rates, benefits }),
+        body: JSON.stringify({ rates, benefits, meta: metaPayload }),
       })
       if (!saveRes.ok) { setMsg((await saveRes.json().catch(() => ({}))).error ?? 'Save failed'); return }
       if (approveAfter) {
@@ -90,6 +111,7 @@ export default function GbReviewPage() {
 
   const t = d.table as { insurer_name?: string; product_code?: string; source_pdf_name?: string; age_basis?: string; plan_year?: number }
   const byProduct = groupBy(rates, r => r.product_code)
+  const mi = 'w-full text-[12px] border border-border rounded-md px-2 py-1 bg-background focus:outline-none focus:ring-1 focus:ring-primary/25'
 
   return (
     <div className="p-8 max-w-6xl mx-auto">
@@ -127,6 +149,42 @@ export default function GbReviewPage() {
           )}
         </div>
       </div>
+
+      {/* Extracted metadata — read from the PDF, editable before approval */}
+      {status === 'in_review' && (
+        <div className="border border-border rounded-lg p-3 mb-5">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50 mb-2">Details read from the PDF — correct if needed</p>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5 items-end">
+            <div className="col-span-2 md:col-span-1">
+              <label className="text-[10px] font-semibold text-muted-foreground/60">Insurer</label>
+              <select value={meta.insurer_id ?? ''} onChange={e => { const iid = e.target.value; setMeta(m => ({ ...m, insurer_id: iid, insurer_name: insurers.find(i => i.id === iid)?.name ?? m.insurer_name })) }} className={mi}>
+                <option value="">— unlinked —</option>
+                {insurers.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+              </select>
+              <input value={meta.insurer_name ?? ''} onChange={e => setMeta(m => ({ ...m, insurer_name: e.target.value }))} placeholder="insurer name" className={`${mi} mt-1`} />
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-muted-foreground/60">Product</label>
+              <input value={meta.product_code ?? ''} onChange={e => setMeta(m => ({ ...m, product_code: e.target.value }))} placeholder="GHS" className={mi} />
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-muted-foreground/60">Age basis</label>
+              <select value={meta.age_basis ?? 'next_birthday'} onChange={e => setMeta(m => ({ ...m, age_basis: e.target.value }))} className={mi}>
+                <option value="next_birthday">Next birthday</option>
+                <option value="last_birthday">Last birthday</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-muted-foreground/60">Plan year</label>
+              <input value={meta.plan_year ?? ''} onChange={e => setMeta(m => ({ ...m, plan_year: e.target.value }))} placeholder="2026" className={mi} />
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-muted-foreground/60">Effective date</label>
+              <input type="date" value={meta.effective_date ?? ''} onChange={e => setMeta(m => ({ ...m, effective_date: e.target.value }))} className={mi} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {status === 'extracting' && (
         <div className="flex items-center gap-2 text-[13px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">

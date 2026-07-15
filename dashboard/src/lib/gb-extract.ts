@@ -19,7 +19,7 @@ export type GbPlan    = { plan_code: string; plan_name?: string | null; hospital
 export type GbRate    = { plan_code: string; band_label: string; age_min: number | null; age_max: number | null; premium: number; renewal_only?: boolean }
 export type GbBenefit = { plan_code?: string | null; category?: string | null; benefit_name: string; value_text?: string | null; value_numeric?: number | null; unit?: string | null; notes?: string | null }
 export type GbProduct = { product_code: string; product_name?: string | null; age_basis?: 'next_birthday' | 'last_birthday' | null; plans: GbPlan[]; rates: GbRate[]; benefits: GbBenefit[] }
-export type GbExtraction = { insurer_name?: string | null; products: GbProduct[] }
+export type GbExtraction = { insurer_name?: string | null; plan_year?: number | null; effective_date?: string | null; products: GbProduct[] }
 
 export type ParserRow    = { band_label: string; age_min: number | null; age_max: number | null; numbers: number[] }
 export type Conflict     = { product_code: string; plan_code: string; band_label: string; opus: number | null; gemini: number | null; parser_seen: boolean; note?: string }
@@ -30,7 +30,9 @@ const EMPTY: GbExtraction = { products: [] }
 // ── Prompt shared by the two LLM extractors ─────────────────────────────────────
 const SCHEMA_HINT = `Return ONLY valid JSON (no markdown fences) matching:
 {
-  "insurer_name": string|null,
+  "insurer_name": string|null,             // the underwriting insurer's name as printed
+  "plan_year": number|null,                // policy/rate year if printed (e.g. 2026)
+  "effective_date": "YYYY-MM-DD"|null,     // policy effective / rate effective date if printed
   "products": [{
     "product_code": "GHS"|"GOC"|"GOS"|string,   // GHS=hospital&surgical, GOC=outpatient clinical, GOS=outpatient specialist rider; else the printed product name
     "product_name": string|null,
@@ -177,7 +179,12 @@ export async function judgeExtractions(opus: GbExtraction, gemini: GbExtraction,
   // doesn't wipe out a good Gemini read), then fold in any cells only the other found.
   const richer = countRates(opus) >= countRates(gemini) ? opus : gemini
   const poorer = richer === opus ? gemini : opus
-  const merged: GbExtraction = JSON.parse(JSON.stringify({ insurer_name: opus.insurer_name ?? gemini.insurer_name ?? null, products: richer.products ?? [] }))
+  const merged: GbExtraction = JSON.parse(JSON.stringify({
+    insurer_name:   opus.insurer_name ?? gemini.insurer_name ?? null,
+    plan_year:      opus.plan_year ?? gemini.plan_year ?? null,
+    effective_date: opus.effective_date ?? gemini.effective_date ?? null,
+    products:       richer.products ?? [],
+  }))
 
   const present = new Set<string>()
   for (const p of merged.products) for (const rt of p.rates ?? []) present.add(rateKey(p.product_code, rt.plan_code, rt.band_label))

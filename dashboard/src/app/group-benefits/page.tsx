@@ -11,15 +11,8 @@ type RateTable = {
   plan_year: number | null; effective_date: string | null; status: string; version: number
   source_pdf_name: string | null; created_at: string; approved_at: string | null
 }
-type Insurer = { id: string; name: string }
 type Activity = { id: string; created_at: string; user_name: string | null; action: string; new_value: Record<string, unknown> | null }
 
-const PRODUCTS = [
-  { code: 'GHS', label: 'GHS — Hospital & Surgical' },
-  { code: 'GOC', label: 'GOC — Outpatient Clinical' },
-  { code: 'GOS', label: 'GOS — Outpatient Specialist' },
-  { code: 'OTHER', label: 'Other' },
-]
 const STATUS_TONE: Record<string, string> = {
   draft: 'bg-muted text-muted-foreground', extracting: 'bg-amber-100 text-amber-700',
   in_review: 'bg-blue-100 text-blue-700', approved: 'bg-emerald-100 text-emerald-700', archived: 'bg-muted text-muted-foreground/60',
@@ -166,31 +159,16 @@ function ActivityTab() {
 
 function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const router = useRouter()
-  const [insurers, setInsurers] = useState<Insurer[]>([])
   const [file, setFile] = useState<File | null>(null)
-  const [insurerId, setInsurerId] = useState('')
-  const [insurerName, setInsurerName] = useState('')
-  const [product, setProduct] = useState('GHS')
-  const [planYear, setPlanYear] = useState('')
-  const [effDate, setEffDate] = useState('')
-  const [ageBasis, setAgeBasis] = useState('next_birthday')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    fetch('/api/settings/insurers', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).then((rows: Insurer[]) => setInsurers(Array.isArray(rows) ? rows : [])).catch(() => {})
-  }, [])
 
   async function submit() {
     if (!file) { setError('Choose a PDF'); return }
     setBusy(true); setError(null)
     try {
       const fd = new FormData()
-      fd.set('file', file); fd.set('product_code', product); fd.set('age_basis', ageBasis)
-      if (insurerId) { fd.set('insurer_id', insurerId); fd.set('insurer_name', insurers.find(i => i.id === insurerId)?.name ?? '') }
-      else if (insurerName) fd.set('insurer_name', insurerName)
-      if (planYear) fd.set('plan_year', planYear)
-      if (effDate) fd.set('effective_date', effDate)
+      fd.set('file', file)
       const up = await fetch('/api/group-benefits/rate-tables', { method: 'POST', body: fd })
       const d = await up.json()
       if (!up.ok || !d.id) { setError(d.error ?? 'Upload failed'); return }
@@ -202,45 +180,18 @@ function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
     } finally { setBusy(false) }
   }
 
-  const inp = 'w-full text-[13px] border border-border rounded-md px-2.5 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-primary/25'
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="w-full max-w-lg rounded-xl bg-card shadow-2xl p-5 flex flex-col gap-3" onClick={e => e.stopPropagation()}>
-        <h3 className="text-[15px] font-semibold text-foreground">Upload insurer rate PDF</h3>
-        <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-xl py-8 cursor-pointer hover:border-primary/40">
-          <UploadCloud size={22} className="text-muted-foreground/50" />
+        <div>
+          <h3 className="text-[15px] font-semibold text-foreground">Upload insurer rate PDF</h3>
+          <p className="text-[11.5px] text-muted-foreground/70 mt-0.5">Insurer, product, age basis, plan year and effective date are read from the PDF — you can correct them during review.</p>
+        </div>
+        <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-xl py-10 cursor-pointer hover:border-primary/40">
+          <UploadCloud size={24} className="text-muted-foreground/50" />
           <span className="text-[12.5px] font-medium">{file ? file.name : 'Choose a PDF'}</span>
           <input type="file" accept="application/pdf" className="hidden" onChange={e => setFile(e.target.files?.[0] ?? null)} />
         </label>
-        <div className="grid grid-cols-2 gap-2.5">
-          <div className="col-span-2">
-            <label className="text-[11px] font-semibold text-muted-foreground/70">Insurer</label>
-            <select value={insurerId} onChange={e => setInsurerId(e.target.value)} className={inp}>
-              <option value="">— pick from directory —</option>
-              {insurers.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
-            </select>
-            {!insurerId && <input value={insurerName} onChange={e => setInsurerName(e.target.value)} placeholder="…or type insurer name" className={`${inp} mt-1.5`} />}
-          </div>
-          <div>
-            <label className="text-[11px] font-semibold text-muted-foreground/70">Product</label>
-            <select value={product} onChange={e => setProduct(e.target.value)} className={inp}>{PRODUCTS.map(p => <option key={p.code} value={p.code}>{p.label}</option>)}</select>
-          </div>
-          <div>
-            <label className="text-[11px] font-semibold text-muted-foreground/70">Age basis</label>
-            <select value={ageBasis} onChange={e => setAgeBasis(e.target.value)} className={inp}>
-              <option value="next_birthday">Age next birthday</option>
-              <option value="last_birthday">Age last birthday</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-[11px] font-semibold text-muted-foreground/70">Plan year</label>
-            <input value={planYear} onChange={e => setPlanYear(e.target.value)} placeholder="2026" className={inp} />
-          </div>
-          <div>
-            <label className="text-[11px] font-semibold text-muted-foreground/70">Effective date</label>
-            <input type="date" value={effDate} onChange={e => setEffDate(e.target.value)} className={inp} />
-          </div>
-        </div>
         {error && <p className="text-[12px] text-rose-600">{error}</p>}
         <div className="flex justify-end gap-2 mt-1">
           <button onClick={onClose} className="text-[13px] px-3 py-1.5 rounded-lg border border-border hover:bg-muted">Cancel</button>

@@ -107,7 +107,25 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     if (rates.length)    await fetch(`${SB_URL}/rest/v1/gb_rates`,    { method: 'POST', headers: sbH(), body: JSON.stringify(rates) }).catch(() => {})
     if (benefits.length) await fetch(`${SB_URL}/rest/v1/gb_benefits`, { method: 'POST', headers: sbH(), body: JSON.stringify(benefits) }).catch(() => {})
 
-    await fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=eq.${id}`, { method: 'PATCH', headers: sbH(), body: JSON.stringify({ status: 'in_review', updated_at: new Date().toISOString() }) })
+    // Write back the metadata read from the PDF (insurer / product / age basis / year /
+    // effective date), resolving the insurer to the directory by name where possible. Only
+    // set fields we actually extracted — the reviewer can correct any of them.
+    const primary = merged.products[0]
+    const insurerName: string | null = merged.insurer_name ?? table.insurer_name ?? null
+    let insurerId: string | null = table.insurer_id ?? null
+    if (!insurerId && insurerName) {
+      insurerId = await fetch(`${SB_URL}/rest/v1/insurers?name=ilike.${encodeURIComponent('%' + insurerName + '%')}&select=id&limit=1`, { headers: sbH(), cache: 'no-store' })
+        .then(r => (r.ok ? r.json() : [])).then(rows => (Array.isArray(rows) ? rows[0]?.id : null) ?? null).catch(() => null)
+    }
+    const meta: Record<string, unknown> = { status: 'in_review', updated_at: new Date().toISOString() }
+    if (insurerName)                 meta.insurer_name = insurerName
+    if (insurerId)                   meta.insurer_id   = insurerId
+    if (primary?.product_code)       meta.product_code = primary.product_code
+    if (primary?.product_name)       meta.product_name = primary.product_name
+    if (primary?.age_basis)          meta.age_basis    = primary.age_basis
+    if (typeof merged.plan_year === 'number') meta.plan_year = merged.plan_year
+    if (merged.effective_date && /^\d{4}-\d{2}-\d{2}$/.test(merged.effective_date)) meta.effective_date = merged.effective_date
+    await fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=eq.${id}`, { method: 'PATCH', headers: sbH(), body: JSON.stringify(meta) })
 
     void logActivity({ action: 'gb.extracted', resource_type: 'gb_rate_table', resource_id: id, new_value: { rates: rates.length, conflicts: conflictsOut.length, confidence: judged.confidence } })
     return NextResponse.json({ ok: true, rates: rates.length, plans: plans.length, benefits: benefits.length, conflicts: conflictsOut.length, confidence: judged.confidence, errors: { opus: opus.error ?? null, gemini: gemini.error ?? null } })
