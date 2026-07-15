@@ -13,6 +13,14 @@ type Detail  = { table: Record<string, unknown>; plans: Plan[]; rates: Rate[]; b
 
 const cKey = (c: { product_code: string; plan_code: string; band_label: string }) => `${c.product_code}|${c.plan_code}|${c.band_label}`
 
+// Live extraction stages for the progress checklist (server reports the current one).
+const STAGES = [
+  { key: 'reading',    label: 'Reading the PDF' },
+  { key: 'extracting', label: 'Extracting — Opus + Gemini + text parser' },
+  { key: 'judging',    label: 'Opus judge reconciling the numbers' },
+  { key: 'saving',     label: 'Saving results' },
+]
+
 export default function GbReviewPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
@@ -48,7 +56,7 @@ export default function GbReviewPage() {
   // Poll while extraction is running.
   useEffect(() => {
     if (status !== 'extracting') return
-    const iv = setInterval(load, 3000)
+    const iv = setInterval(load, 1800)
     return () => clearInterval(iv)
   }, [status, load])
 
@@ -186,11 +194,25 @@ export default function GbReviewPage() {
         </div>
       )}
 
-      {status === 'extracting' && (
-        <div className="flex items-center gap-2 text-[13px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
-          <Loader2 size={15} className="animate-spin" /> Running 3 extractors + Opus judge on the PDF… this can take up to a minute.
-        </div>
-      )}
+      {status === 'extracting' && (() => {
+        const stage = (d.table as { extract_stage?: string | null }).extract_stage ?? 'reading'
+        const cur = Math.max(0, STAGES.findIndex(s => s.key === stage))
+        return (
+          <div className="rounded-lg border border-amber-200 bg-amber-50/60 px-4 py-3.5">
+            <p className="text-[12px] font-semibold text-amber-800 mb-2.5">Extracting the rate matrix — this can take up to a minute…</p>
+            <div className="flex flex-col gap-1.5">
+              {STAGES.map((s, i) => (
+                <div key={s.key} className="flex items-center gap-2 text-[12px]">
+                  {i < cur ? <CheckCircle2 size={14} className="text-emerald-600 flex-shrink-0" />
+                    : i === cur ? <Loader2 size={14} className="animate-spin text-amber-600 flex-shrink-0" />
+                    : <span className="w-3.5 h-3.5 rounded-full border border-muted-foreground/30 flex-shrink-0" />}
+                  <span className={cn(i <= cur ? 'text-foreground/80 font-medium' : 'text-muted-foreground/50')}>{s.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
 
       {status !== 'extracting' && (
         <>

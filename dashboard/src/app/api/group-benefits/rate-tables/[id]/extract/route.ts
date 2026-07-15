@@ -35,12 +35,18 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     const table = tRes.ok ? (await tRes.json())[0] : null
     if (!table?.source_pdf_url) return NextResponse.json({ error: 'Rate table or PDF not found' }, { status: 404 })
 
+    // Live progress stage for the review UI's step checklist. Tolerant of the extract_stage
+    // column not existing yet (falls back to just setting status) so it never blocks the flow.
+    const setStage = async (stage: string | null) => {
+      const r = await fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=eq.${id}`, { method: 'PATCH', headers: sbH(), body: JSON.stringify({ status: 'extracting', extract_stage: stage }) }).catch(() => null)
+      if (!r || !r.ok) await fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=eq.${id}`, { method: 'PATCH', headers: sbH(), body: JSON.stringify({ status: 'extracting' }) }).catch(() => {})
+    }
+    await setStage('reading')
+
     const pdfRes = await fetch(table.source_pdf_url, { headers: storageKey(), cache: 'no-store' })
     if (!pdfRes.ok) return NextResponse.json({ error: 'Could not download PDF' }, { status: 502 })
     const buf = Buffer.from(await pdfRes.arrayBuffer())
     const b64 = buf.toString('base64')
-
-    await fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=eq.${id}`, { method: 'PATCH', headers: sbH(), body: JSON.stringify({ status: 'extracting' }) })
 
     const profileHint = `Expected primary product: ${table.product_code}${table.product_name ? ` (${table.product_name})` : ''}. Insurer: ${table.insurer_name ?? 'unknown'}.`
 
@@ -54,12 +60,14 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       parserRows = parseRatesFromText(parsed?.text ?? '')
     } catch { /* parser is best-effort — degrade to LLM-only cross-check */ }
 
+    await setStage('extracting')
     const [opus, gemini] = await Promise.all([
       extractWithOpus(b64, profileHint),
       extractWithGemini(b64, profileHint),
     ])
 
     // 3. Reconcile + Opus adjudication of disputed cells.
+    await setStage('judging')
     const judged = await judgeExtractions(opus.data, gemini.data, parserRows)
     const adjud = await adjudicateWithOpus(b64, judged.conflicts)
 
@@ -73,6 +81,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     }
     const conflictsOut = judged.conflicts.map(c => ({ ...c, judge: adjud[conflictKey(c)] ?? null }))
 
+    await setStage('saving')
     // 4. Record every run for audit.
     const runs = [
       { extractor: 'opus',   model: 'claude-opus-4-8',      raw_json: opus.data,   error: opus.error ?? null },
@@ -126,6 +135,8 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     if (typeof merged.plan_year === 'number') meta.plan_year = merged.plan_year
     if (merged.effective_date && /^\d{4}-\d{2}-\d{2}$/.test(merged.effective_date)) meta.effective_date = merged.effective_date
     await fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=eq.${id}`, { method: 'PATCH', headers: sbH(), body: JSON.stringify(meta) })
+    // Clear the progress stage (best-effort — column may not exist yet).
+    await fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=eq.${id}`, { method: 'PATCH', headers: sbH(), body: JSON.stringify({ extract_stage: null }) }).catch(() => {})
 
     void logActivity({ action: 'gb.extracted', resource_type: 'gb_rate_table', resource_id: id, new_value: { rates: rates.length, conflicts: conflictsOut.length, confidence: judged.confidence } })
     return NextResponse.json({ ok: true, rates: rates.length, plans: plans.length, benefits: benefits.length, conflicts: conflictsOut.length, confidence: judged.confidence, errors: { opus: opus.error ?? null, gemini: gemini.error ?? null } })

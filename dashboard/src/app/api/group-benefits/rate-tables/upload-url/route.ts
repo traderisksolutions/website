@@ -18,12 +18,15 @@ export async function POST(_req: NextRequest) {
 
     const k = process.env.SUPABASE_SERVICE_KEY
     if (!k) return NextResponse.json({ error: 'server misconfigured' }, { status: 500 })
-    const h = { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json' }
+    const auth = { apikey: k, Authorization: `Bearer ${k}` }
 
-    await fetch(`${SB_URL}/storage/v1/bucket`, { method: 'POST', headers: h, body: JSON.stringify({ id: BUCKET, name: BUCKET, public: false }) }).catch(() => {})
+    // Ensure the bucket (this call has a JSON body).
+    await fetch(`${SB_URL}/storage/v1/bucket`, { method: 'POST', headers: { ...auth, 'Content-Type': 'application/json' }, body: JSON.stringify({ id: BUCKET, name: BUCKET, public: false }) }).catch(() => {})
 
+    // Create the signed upload URL. NOTE: this POST has NO body, so we must NOT send a
+    // Content-Type: application/json header — the storage server 400s ("Body cannot be empty").
     const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.pdf`
-    const res  = await fetch(`${SB_URL}/storage/v1/object/upload/sign/${BUCKET}/${path}`, { method: 'POST', headers: h })
+    const res  = await fetch(`${SB_URL}/storage/v1/object/upload/sign/${BUCKET}/${path}`, { method: 'POST', headers: auth })
     if (!res.ok) return NextResponse.json({ error: `Could not create upload URL: ${(await res.text()).slice(0, 200)}` }, { status: 502 })
     const data  = await res.json() as { url?: string }
     const token = new URLSearchParams((data.url ?? '').split('?')[1] ?? '').get('token')
