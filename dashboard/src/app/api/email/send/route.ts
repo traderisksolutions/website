@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { waitUntil }                  from '@vercel/functions'
-import { createSign }                 from 'node:crypto'
+import { createSign, randomUUID }     from 'node:crypto'
 import { runDraftEvaluation }         from '@/lib/run-draft-evaluation'
 import { logActivity }                from '@/lib/log-activity'
 import { createClient }               from '@/lib/supabase/server'
+import { buildQuotedHistory, buildReferences, type ThreadMessage } from '@/lib/build-reply-thread'
+import { buildRawEmail, htmlToText, type EmailAttachment, type ThreadingHeaders } from '@/lib/email-mime'
 
 const SB_URL    = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me'
@@ -154,110 +156,10 @@ async function getTokenForSender(fromEmail: string, userId: string | null): Prom
   return getAccessToken()
 }
 
-function encodeSubject(subject: string): string {
-  if (!/[^\x20-\x7E]/.test(subject)) return subject
-  return `=?UTF-8?B?${Buffer.from(subject, 'utf-8').toString('base64')}?=`
-}
-
 // Derives a display name from an email local-part: "jarod.hong" → "Jarod Hong"
 function nameFromEmail(email: string): string {
   const local = email.split('@')[0] ?? ''
   return local.split(/[._-]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || email
-}
-
-function htmlToText(html: string): string {
-  return html
-    .replace(/<\/p>/gi, '\n\n')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/h[1-6]>/gi, '\n\n')
-    .replace(/<li>/gi, '• ')
-    .replace(/<\/li>/gi, '\n')
-    .replace(/<\/ul>|<\/ol>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&#39;/g, "'")
-    .replace(/&quot;/g, '"')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
-}
-
-function wrapBase64Lines(b64: string): string {
-  return b64.match(/.{1,76}/g)?.join('\r\n') ?? b64
-}
-
-type EmailAttachment = { filename: string; mimeType: string; dataB64: string }
-
-function buildRawEmail(to: string, subject: string, body: string, htmlBody?: string | null, cc?: string[], bcc?: string[], replyTo?: string, fromEmail = DEFAULT_OPS_EMAIL, attachments?: EmailAttachment[]): string {
-  const boundary    = `trs_${Date.now()}`
-  const plainText   = htmlBody ? htmlToText(htmlBody) : body
-  const emailCss = `<style>body{margin:0;padding:0}p{margin:0 0 10px 0;padding:0}p:last-child{margin-bottom:0}ul,ol{margin:0 0 10px 0;padding-left:22px}li{margin-bottom:3px}strong{font-weight:600}a{color:#1d4ed8}img{max-width:100%;height:auto;display:block;margin:8px 0}</style>`
-  const bodyStyle = `font-family:Arial,sans-serif;font-size:14px;line-height:1.65;color:#333`
-  const fullHtml    = htmlBody
-    ? `<!DOCTYPE html><html><head><meta charset="utf-8">${emailCss}</head><body style="${bodyStyle}">${htmlBody}</body></html>`
-    : `<!DOCTYPE html><html><head><meta charset="utf-8">${emailCss}</head><body style="${bodyStyle}"><p style="white-space:pre-wrap">${body.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p></body></html>`
-
-  const plainB64 = wrapBase64Lines(Buffer.from(plainText, 'utf-8').toString('base64'))
-  const htmlB64  = wrapBase64Lines(Buffer.from(fullHtml,  'utf-8').toString('base64'))
-
-  // Address + subject headers are shared; the body layout differs when attachments are present.
-  const headers = [
-    `From: Trade Risk Solutions <${fromEmail}>`,
-    `To: ${to}`,
-    ...(replyTo && replyTo !== fromEmail ? [`Reply-To: ${replyTo}`] : []),
-    ...(cc?.length  ? [`Cc: ${cc.join(', ')}`]  : []),
-    ...(bcc?.length ? [`Bcc: ${bcc.join(', ')}`] : []),
-    `Subject: ${encodeSubject(subject)}`,
-    'MIME-Version: 1.0',
-  ]
-
-  const altPart = [
-    `--${boundary}`,
-    'Content-Type: text/plain; charset=utf-8',
-    'Content-Transfer-Encoding: base64',
-    '',
-    plainB64,
-    '',
-    `--${boundary}`,
-    'Content-Type: text/html; charset=utf-8',
-    'Content-Transfer-Encoding: base64',
-    '',
-    htmlB64,
-    '',
-    `--${boundary}--`,
-  ]
-
-  const atts = attachments?.filter(a => a.dataB64) ?? []
-  if (atts.length === 0) {
-    const lines = [...headers, `Content-Type: multipart/alternative; boundary="${boundary}"`, '', ...altPart]
-    return Buffer.from(lines.join('\r\n')).toString('base64url')
-  }
-
-  // Wrap the alternative body + attachments in a multipart/mixed envelope.
-  const mixed = `mixed_${Date.now()}`
-  const lines = [
-    ...headers,
-    `Content-Type: multipart/mixed; boundary="${mixed}"`,
-    '',
-    `--${mixed}`,
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    '',
-    ...altPart,
-    '',
-    ...atts.flatMap(a => [
-      `--${mixed}`,
-      `Content-Type: ${a.mimeType || 'application/octet-stream'}; name="${a.filename}"`,
-      `Content-Disposition: attachment; filename="${a.filename}"`,
-      'Content-Transfer-Encoding: base64',
-      '',
-      wrapBase64Lines(a.dataB64),
-      '',
-    ]),
-    `--${mixed}--`,
-  ]
-  return Buffer.from(lines.join('\r\n')).toString('base64url')
 }
 
 type Signature = {
@@ -360,6 +262,42 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // 4b. Append the quoted conversation history + build threading headers.
+    //     Every reply on an existing thread now carries the prior chain below the signature
+    //     (Gmail-style, de-duplicated) and In-Reply-To/References so it threads in the
+    //     recipient's client. We self-assign a Message-ID so the chain stays continuous.
+    const ourMessageId = `<${randomUUID()}@trade-risksol.com>`
+    const threading: ThreadingHeaders = { messageId: ourMessageId }
+    if (draft.thread_id) {
+      const [priorRes, partRes] = await Promise.all([
+        fetch(
+          `${SB_URL}/rest/v1/email_messages?thread_id=eq.${draft.thread_id}&select=from_address,sent_at,body_text,body_html,rfc822_message_id&order=sent_at.asc`,
+          { headers: sbHeaders(), cache: 'no-store' }
+        ),
+        fetch(
+          `${SB_URL}/rest/v1/email_participants?thread_id=eq.${draft.thread_id}&role=eq.from&select=email,name`,
+          { headers: sbHeaders(), cache: 'no-store' }
+        ),
+      ])
+      const priorRows: ThreadMessage[] = priorRes.ok ? await priorRes.json() : []
+      const partRows: { email: string; name: string | null }[] = partRes.ok ? await partRes.json() : []
+      // Map sender email → display name for the "On <date>, <Name> wrote:" attribution.
+      const nameByEmail = new Map(partRows.filter(p => p.name?.trim()).map(p => [p.email.toLowerCase(), p.name!.trim()]))
+      const priorMessages: ThreadMessage[] = priorRows.map(m => ({
+        ...m,
+        from_name: m.from_address ? nameByEmail.get(m.from_address.toLowerCase()) ?? null : null,
+      }))
+
+      if (priorMessages.length > 0) {
+        const quote = buildQuotedHistory(priorMessages)
+        if (quote.html && finalHtml) finalHtml = `${finalHtml}<br><br>${quote.html}`
+        if (quote.text)              finalPlain = `${finalPlain}\n\n${quote.text}`
+        const refs = buildReferences(priorMessages)
+        threading.inReplyTo  = refs.inReplyTo
+        threading.references = refs.references
+      }
+    }
+
     // 5. Send via Gmail API — use the employee's personal token if they've connected their Gmail,
     //    otherwise fall back to the shared ops@ token.
     const token    = await getTokenForSender(FROM_EMAIL, userId)
@@ -387,7 +325,7 @@ export async function POST(req: NextRequest) {
     // to the shared mailbox (Engagement) rather than the employee's personal inbox.
     const replyTo = isOpsSender ? undefined : DEFAULT_OPS_EMAIL
 
-    const rawEmail = buildRawEmail(recipientEmail, subject, finalPlain, finalHtml, finalCc, bcc, replyTo, FROM_EMAIL, emailAttachments)
+    const rawEmail = buildRawEmail(recipientEmail, subject, finalPlain, finalHtml, finalCc, bcc, replyTo, FROM_EMAIL, emailAttachments, threading)
 
     const sendPayload: Record<string, unknown> = { raw: rawEmail }
     // A Gmail threadId is mailbox-specific. It belongs to the shared ops mailbox that
@@ -417,6 +355,23 @@ export async function POST(req: NextRequest) {
     const sent = await sendRes.json()
     const sentAt = new Date().toISOString()
 
+    // Gmail may rewrite a caller-supplied Message-ID. Read back the authoritative one so the
+    // value we persist matches what the recipient's reply will reference — otherwise the
+    // References chain would break on the next round-trip. Falls back to ours on failure.
+    let storedMessageId = ourMessageId
+    if (sent.id) {
+      try {
+        const mRes = await fetch(`${GMAIL_API}/messages/${sent.id}?format=metadata&metadataHeaders=Message-ID`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (mRes.ok) {
+          const meta = await mRes.json()
+          const hdr  = (meta.payload?.headers ?? []).find((h: { name: string }) => h.name.toLowerCase() === 'message-id')
+          if (hdr?.value) storedMessageId = hdr.value
+        }
+      } catch { /* keep ourMessageId */ }
+    }
+
     // 6. Mark draft as sent
     await fetch(`${SB_URL}/rest/v1/ai_drafts?id=eq.${draftId}`, {
       method:  'PATCH',
@@ -433,14 +388,15 @@ export async function POST(req: NextRequest) {
         method:  'POST',
         headers: sbHeaders('return=minimal'),
         body: JSON.stringify({
-          thread_id:        draft.thread_id,
-          gmail_message_id: sent.id,
-          direction:        'outbound',
-          from_address:     FROM_EMAIL,
+          thread_id:         draft.thread_id,
+          gmail_message_id:  sent.id,
+          rfc822_message_id: storedMessageId,
+          direction:         'outbound',
+          from_address:      FROM_EMAIL,
           subject,
-          body_text:        sentBodyPlain,
-          sent_at:          sentAt,
-          has_attachments:  false,
+          body_text:         sentBodyPlain,
+          sent_at:           sentAt,
+          has_attachments:   false,
         }),
       })
 
@@ -476,7 +432,7 @@ export async function POST(req: NextRequest) {
         if (newThread?.id) {
           await fetch(`${SB_URL}/rest/v1/email_messages?on_conflict=gmail_message_id`, {
             method: 'POST', headers: sbHeaders('return=minimal,resolution=merge-duplicates'),
-            body: JSON.stringify({ thread_id: newThread.id, gmail_message_id: sent.id, direction: 'outbound', from_address: FROM_EMAIL, subject, body_text: sentBodyPlain, sent_at: sentAt, has_attachments: emailAttachments.length > 0 }),
+            body: JSON.stringify({ thread_id: newThread.id, gmail_message_id: sent.id, rfc822_message_id: storedMessageId, direction: 'outbound', from_address: FROM_EMAIL, subject, body_text: sentBodyPlain, sent_at: sentAt, has_attachments: emailAttachments.length > 0 }),
           }).catch(() => {})
         }
       } catch { /* best-effort — ingestion is the safety net */ }

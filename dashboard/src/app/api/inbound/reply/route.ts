@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSign }                 from 'node:crypto'
+import { createSign, randomUUID }     from 'node:crypto'
 import { waitUntil }                  from '@vercel/functions'
 import { runDraftEvaluation }         from '@/lib/run-draft-evaluation'
 import { createClient }               from '@/lib/supabase/server'
+import { buildRawEmail, htmlToText, type ThreadingHeaders } from '@/lib/email-mime'
+import { buildQuotedHistory }         from '@/lib/build-reply-thread'
 
 const SB_URL       = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GMAIL_API    = 'https://gmail.googleapis.com/gmail/v1/users/me'
@@ -94,73 +96,6 @@ async function getTokenForSender(fromEmail: string, userId: string | null): Prom
   return data.access_token
 }
 
-// ── Email builders ────────────────────────────────────────────────────────────
-
-function encodeSubject(subject: string): string {
-  if (!/[^\x20-\x7E]/.test(subject)) return subject
-  return `=?UTF-8?B?${Buffer.from(subject, 'utf-8').toString('base64')}?=`
-}
-
-function htmlToText(html: string): string {
-  return html
-    .replace(/<\/p>/gi, '\n\n')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/h[1-6]>/gi, '\n\n')
-    .replace(/<li>/gi, '• ')
-    .replace(/<\/li>/gi, '\n')
-    .replace(/<\/ul>|<\/ol>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&#39;/g, "'")
-    .replace(/&quot;/g, '"')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
-}
-
-function wrapBase64Lines(b64: string): string {
-  return b64.match(/.{1,76}/g)?.join('\r\n') ?? b64
-}
-
-function buildRawEmail(
-  to: string, subject: string, htmlBody: string, fromEmail: string,
-  cc?: string[], replyTo?: string,
-): string {
-  const boundary  = `trs_${Date.now()}`
-  const plainText = htmlToText(htmlBody)
-  const emailCss  = `<style>body{margin:0;padding:0}p{margin:0 0 10px 0;padding:0}p:last-child{margin-bottom:0}ul,ol{margin:0 0 10px 0;padding-left:22px}li{margin-bottom:3px}strong{font-weight:600}a{color:#1d4ed8}</style>`
-  const bodyStyle = `font-family:Arial,sans-serif;font-size:14px;line-height:1.65;color:#333`
-  const fullHtml  = `<!DOCTYPE html><html><head><meta charset="utf-8">${emailCss}</head><body style="${bodyStyle}">${htmlBody}</body></html>`
-  const plainB64  = wrapBase64Lines(Buffer.from(plainText, 'utf-8').toString('base64'))
-  const htmlB64   = wrapBase64Lines(Buffer.from(fullHtml,  'utf-8').toString('base64'))
-  const lines = [
-    `From: Trade Risk Solutions <${fromEmail}>`,
-    `To: ${to}`,
-    ...(replyTo && replyTo !== fromEmail ? [`Reply-To: ${replyTo}`] : []),
-    ...(cc?.length ? [`Cc: ${cc.join(', ')}`] : []),
-    `Subject: ${encodeSubject(subject)}`,
-    'MIME-Version: 1.0',
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    '',
-    `--${boundary}`,
-    'Content-Type: text/plain; charset=utf-8',
-    'Content-Transfer-Encoding: base64',
-    '',
-    plainB64,
-    '',
-    `--${boundary}`,
-    'Content-Type: text/html; charset=utf-8',
-    'Content-Transfer-Encoding: base64',
-    '',
-    htmlB64,
-    '',
-    `--${boundary}--`,
-  ]
-  return Buffer.from(lines.join('\r\n')).toString('base64url')
-}
-
 // POST /api/inbound/reply
 // Body: { leadId, name, email, company, topic, originalMessage, htmlBody, fromEmail?, draftId? }
 // Sends reply via Gmail, creates contact + thread, updates lead status to 'contacted'.
@@ -198,9 +133,30 @@ export async function POST(req: NextRequest) {
     const autoCC    = FROM_EMAIL !== DEFAULT_FROM ? [DEFAULT_FROM] : []
     const replyTo   = FROM_EMAIL !== DEFAULT_FROM ? DEFAULT_FROM  : undefined
 
+    // The original web-form enquiry — quoted below our reply so the recipient sees the
+    // context they submitted. It's a form, not an email, so there's no In-Reply-To to set;
+    // we still assign a Message-ID so the lead's reply threads back to us.
+    const enquiryText = [
+      topic           ? `Topic: ${topic}`     : null,
+      company         ? `Company: ${company}`  : null,
+      originalMessage ? `\n${originalMessage}` : null,
+    ].filter(Boolean).join('\n')
+
+    let htmlToSend = htmlBody
+    if (enquiryText.trim()) {
+      const quote = buildQuotedHistory([{
+        from_address: email, from_name: name?.trim() || null, sent_at: sentAt,
+        body_text: enquiryText, body_html: null, rfc822_message_id: null,
+      }])
+      if (quote.html) htmlToSend = `${htmlBody}<br><br>${quote.html}`
+    }
+
+    const ourMessageId = `<${randomUUID()}@trade-risksol.com>`
+    const threading: ThreadingHeaders = { messageId: ourMessageId }
+
     // 1. Send via Gmail
     const token    = await getTokenForSender(FROM_EMAIL, userId)
-    const rawEmail = buildRawEmail(email, subject, htmlBody, FROM_EMAIL, autoCC, replyTo)
+    const rawEmail = buildRawEmail(email, subject, plainText, htmlToSend, autoCC, undefined, replyTo, FROM_EMAIL, undefined, threading)
 
     const sendRes = await fetch(`${GMAIL_API}/messages/send`, {
       method:  'POST',
@@ -216,6 +172,22 @@ export async function POST(req: NextRequest) {
     const sent          = await sendRes.json()
     const gmailMsgId    = sent.id as string
     const gmailThreadId = sent.threadId as string
+
+    // Read back the authoritative Message-ID (Gmail may rewrite ours) so the References
+    // chain stays continuous when the lead replies. Falls back to ours on failure.
+    let storedMessageId = ourMessageId
+    if (gmailMsgId) {
+      try {
+        const mRes = await fetch(`${GMAIL_API}/messages/${gmailMsgId}?format=metadata&metadataHeaders=Message-ID`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (mRes.ok) {
+          const meta = await mRes.json()
+          const hdr  = (meta.payload?.headers ?? []).find((h: { name: string }) => h.name.toLowerCase() === 'message-id')
+          if (hdr?.value) storedMessageId = hdr.value
+        }
+      } catch { /* keep ourMessageId */ }
+    }
 
     // 2. Upsert contact
     const nameParts  = (name ?? '').trim().split(/\s+/)
@@ -286,13 +258,7 @@ export async function POST(req: NextRequest) {
 
     // 4. Record messages in email_messages (original enquiry + our reply)
     if (threadId) {
-      const enquiryBody = [
-        topic           ? `Topic: ${topic}`          : null,
-        company         ? `Company: ${company}`       : null,
-        originalMessage ? `\n${originalMessage}`      : null,
-      ].filter(Boolean).join('\n')
-
-      if (enquiryBody) {
+      if (enquiryText) {
         await fetch(`${SB_URL}/rest/v1/email_messages`, {
           method:  'POST',
           headers: sbHeaders('return=minimal'),
@@ -302,7 +268,7 @@ export async function POST(req: NextRequest) {
             direction:        'inbound',
             from_address:     email,
             subject:          `Enquiry: ${topic || 'General Insurance'}`,
-            body_text:        enquiryBody,
+            body_text:        enquiryText,
             sent_at:          sentAt,
             has_attachments:  false,
           }),
@@ -313,14 +279,15 @@ export async function POST(req: NextRequest) {
         method:  'POST',
         headers: sbHeaders('return=minimal'),
         body: JSON.stringify({
-          thread_id:        threadId,
-          gmail_message_id: gmailMsgId,
-          direction:        'outbound',
-          from_address:     FROM_EMAIL,
+          thread_id:         threadId,
+          gmail_message_id:  gmailMsgId,
+          rfc822_message_id: storedMessageId,
+          direction:         'outbound',
+          from_address:      FROM_EMAIL,
           subject,
-          body_text:        plainText,
-          sent_at:          sentAt,
-          has_attachments:  false,
+          body_text:         plainText,
+          sent_at:           sentAt,
+          has_attachments:   false,
         }),
       })
     }
