@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseEml } from '@/lib/parse-eml'
+import { parseEml, parseEmlSmart } from '@/lib/parse-eml'
 
 // Build a raw multipart/mixed .eml the way Outlook forwards them: headers, a body, and a
 // base64 attachment (an Excel here). CRLF line endings, as in real MIME.
@@ -76,6 +76,22 @@ describe('parseEml — attached email extraction', () => {
     expect(r.text).toContain('Cost is')
     expect(r.attachments.map(a => a.filename)).toEqual(['a.pdf', 'b.csv'])
     expect(r.attachments[0].data.toString()).toBe('hello')
+  })
+
+  it('parseEmlSmart (mailparser) extracts body + attachment', async () => {
+    const payload = Buffer.from([0x50, 0x4b, 0x03, 0x04, 9, 8, 7])
+    const r = await parseEmlSmart(buildEml('payroll.xlsx', payload))
+    expect(r.text).toContain('Red Beacon claim documents')
+    expect(r.text).toContain('payroll schedule')
+    expect(r.attachments).toHaveLength(1)
+    expect(r.attachments[0].filename).toBe('payroll.xlsx')
+    expect(r.attachments[0].data.equals(payload)).toBe(true)
+  })
+
+  it('parseEmlSmart falls back gracefully on garbage input', async () => {
+    const r = await parseEmlSmart(Buffer.from('not a real email at all', 'utf-8'))
+    expect(r).toHaveProperty('text')
+    expect(Array.isArray(r.attachments)).toBe(true)
   })
 
   it('falls back to HTML body when no plain text part', () => {

@@ -18,7 +18,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { parseEml }                  from '@/lib/parse-eml'
+import { parseEmlSmart }             from '@/lib/parse-eml'
 
 export const maxDuration = 300
 
@@ -288,7 +288,7 @@ async function extractInnerBuffer(name: string, buf: Buffer, apiKey: string, thr
     } catch { return `[${name}: ZIP extraction failed]` }
   }
   if (ext === 'eml' || ext === 'msg') {
-    const parsed   = parseEml(buf)
+    const parsed   = await parseEmlSmart(buf)
     const attTexts: string[] = []
     for (const a of parsed.attachments.slice(0, 15)) attTexts.push(await extractInnerBuffer(a.filename, a.data, apiKey, threadId, messageId, depth + 1))
     return `${name} (attached email):\n${parsed.text.slice(0, 12000)}${attTexts.length ? `\n\n--- attachments ---\n${attTexts.join('\n\n')}` : ''}`

@@ -15,6 +15,7 @@ const GEMINI_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/gem
 const EMBED_URL   = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent'
 
 import { logGeminiUsage } from '@/lib/gemini-usage'
+import { fetchAttachmentContext } from '@/lib/thread-attachment-context'
 
 function sbHeaders(prefer = 'return=minimal') {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -90,6 +91,9 @@ export async function runRagDraft(thread_id: string, message_id: string, contact
   }).join('\n\n---\n\n')
 
   const lastMsgText = messages.slice(-3).map(m => (m.body_text ?? '').slice(0, 3000)).join('\n---\n')
+
+  // Attachment contents (PDFs / Excel / attached emails) so the reply reflects the documents.
+  const attachmentText = await fetchAttachmentContext(thread_id)
 
   // 2. Embed + classify + fetch campaign context — all in parallel
   const classifyPrompt = `Classify this email for a Singapore insurance brokerage. Reply with EXACTLY one word from this list:
@@ -305,7 +309,7 @@ ${fewShotSection}${antiPatternSection}
 
 ━━ CONVERSATION THREAD ━━
 ${threadText}
-
+${attachmentText ? `\n━━ ATTACHMENT CONTENTS (read fully — use these figures/details in the reply) ━━${attachmentText}\n` : ''}
 ━━ RETRIEVED KNOWLEDGE ━━
 The following passages were retrieved from TRS's knowledge base as relevant to this enquiry:
 

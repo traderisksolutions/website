@@ -76,3 +76,37 @@ export function parseEml(data: Buffer): EmlResult {
   acc.text = (meta ? meta + '\n\n' : '') + acc.text.trim()
   return acc
 }
+
+// Preferred parser: mailparser handles the messy real-world cases (nested multiparts, odd
+// encodings, charsets) that the hand-rolled walker can miss. Falls back to parseEml() on any
+// error or empty result, so extraction never regresses. Async because simpleParser is async.
+export async function parseEmlSmart(data: Buffer): Promise<EmlResult> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { simpleParser } = require('mailparser') as {
+      simpleParser: (src: Buffer) => Promise<{
+        text?: string; html?: string | false; subject?: string
+        from?: { text?: string }; date?: Date
+        attachments?: { filename?: string; content?: Buffer }[]
+      }>
+    }
+    const p = await simpleParser(data)
+    const meta = [
+      p.subject   && `Subject: ${p.subject}`,
+      p.from?.text && `From: ${p.from.text}`,
+      p.date      && `Date: ${p.date instanceof Date ? p.date.toISOString() : String(p.date)}`,
+    ].filter(Boolean).join('\n')
+    const bodyText = (p.text && p.text.trim())
+      ? p.text
+      : (typeof p.html === 'string' ? p.html.replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim() : '')
+    const attachments = (p.attachments ?? [])
+      .filter(a => a.content && a.filename)
+      .map(a => ({ filename: a.filename as string, data: a.content as Buffer }))
+
+    // If mailparser found nothing usable, defer to the hand-rolled walker.
+    if (!bodyText && attachments.length === 0) return parseEml(data)
+    return { text: (meta ? meta + '\n\n' : '') + bodyText, attachments }
+  } catch {
+    return parseEml(data)
+  }
+}

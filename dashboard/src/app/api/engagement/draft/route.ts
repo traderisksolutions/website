@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logGeminiUsage }           from '@/lib/gemini-usage'
 import { fetchKnowledgeDocs }       from '@/lib/gdrive-knowledge'
+import { fetchAttachmentContext }   from '@/lib/thread-attachment-context'
 
 const SB_URL    = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
@@ -293,6 +294,9 @@ Reply with one word only.`
     // Thread subject for additional context (topic comes from the lead/thread metadata)
     const threadSubject = topic || ''
 
+    // Attachment contents (PDFs / Excel / attached emails) so the reply uses real figures.
+    const attachmentText = await fetchAttachmentContext(threadId ?? null)
+
     const lastInboundText = lastInbound ? (lastInbound.body_text || '').slice(0, 12000) : '(no inbound message found)'
 
     // Fetch GDrive docs for all email types — the folder contains pricing docs, product FAQs,
@@ -428,6 +432,7 @@ ${lastInboundText}
 
 ━━ THREAD HISTORY (read for full context) ━━
 ${threadCtx || '(no prior messages)'}
+${attachmentText ? `\n━━ ATTACHMENT CONTENTS (read fully — respond using these figures/details) ━━${attachmentText}\n` : ''}
 
 Write only the email body starting with "${salutation}". End after the last paragraph — no closing line or signature.`
 

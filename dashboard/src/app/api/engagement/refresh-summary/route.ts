@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logGeminiUsage }           from '@/lib/gemini-usage'
+import { fetchAttachmentContext }   from '@/lib/thread-attachment-context'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
@@ -56,11 +57,15 @@ export async function POST(req: NextRequest) {
       ).join('\n')
     : 'No previous summaries — this is the first message in this thread.'
 
+  // Include attachment contents (PDFs / Excel / attached emails) so the analysis reflects
+  // what's actually in the documents, not just the email body.
+  const attachmentText = await fetchAttachmentContext(thread_id)
+
   const prompt = `You are an email assistant for Trade Risk Solutions, a Singapore insurance brokerage.
 
 ━━ CONVERSATION THREAD ━━
 ${threadText}
-
+${attachmentText ? `\n━━ ATTACHMENT CONTENTS (read fully) ━━${attachmentText}\n` : ''}
 ━━ PREVIOUS SUMMARIES ━━
 ${pastSummaryText}
 
