@@ -5,6 +5,15 @@ import { useRouter } from 'next/navigation'
 import { UploadCloud, FileText, Loader2, Clock, Calculator } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { NewQuoteWizard } from '@/components/group-benefits/NewQuoteWizard'
+import { createClient } from '@/lib/supabase/client'
+
+// Parse a response as JSON, but degrade gracefully if the server returned plain text
+// (e.g. a Vercel "Request Entity Too Large" page) instead of crashing on JSON.parse.
+async function safeJson<T = Record<string, unknown>>(r: Response): Promise<T & { error?: string }> {
+  const t = await r.text().catch(() => '')
+  try { return (t ? JSON.parse(t) : {}) as T & { error?: string } }
+  catch { return { error: t.slice(0, 160) || 'Server error' } as T & { error?: string } }
+}
 
 type RateTable = {
   id: string; insurer_name: string | null; product_code: string; product_name: string | null
@@ -165,16 +174,25 @@ function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
 
   async function submit() {
     if (!file) { setError('Choose a PDF'); return }
+    if (file.type !== 'application/pdf') { setError('File must be a PDF'); return }
+    if (file.size > 25 * 1024 * 1024) { setError('PDF too large (max 25 MB)'); return }
     setBusy(true); setError(null)
     try {
-      const fd = new FormData()
-      fd.set('file', file)
-      const up = await fetch('/api/group-benefits/rate-tables', { method: 'POST', body: fd })
-      const d = await up.json()
-      if (!up.ok || !d.id) { setError(d.error ?? 'Upload failed'); return }
+      // 1. Push the PDF straight to Supabase Storage via a signed URL — bypasses the
+      //    serverless request-body size limit that fails on large insurer brochures.
+      const uu = await fetch('/api/group-benefits/rate-tables/upload-url', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filename: file.name }) })
+      const ud = await safeJson<{ path?: string; token?: string }>(uu)
+      if (!uu.ok || !ud.path || !ud.token) { setError(ud.error ?? 'Could not start upload'); return }
+      const supabase = createClient()
+      const { error: upErr } = await supabase.storage.from('group-benefits').uploadToSignedUrl(ud.path, ud.token, file, { contentType: 'application/pdf' })
+      if (upErr) { setError(`Upload failed: ${upErr.message}`); return }
+      // 2. Record the uploaded object → creates the draft row.
+      const cr = await fetch('/api/group-benefits/rate-tables', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ storage_path: ud.path, filename: file.name }) })
+      const cd = await safeJson<{ id?: string }>(cr)
+      if (!cr.ok || !cd.id) { setError(cd.error ?? 'Upload failed'); return }
       // The review page starts extraction (single trigger) and polls for completion.
       onDone()
-      router.push(`/group-benefits/${d.id}`)
+      router.push(`/group-benefits/${cd.id}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Upload failed')
     } finally { setBusy(false) }

@@ -40,42 +40,41 @@ export async function POST(req: NextRequest) {
     const user = await requireUser()
     if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
-    const form = await req.formData()
-    const file = form.get('file') as File | null
+    const k = process.env.SUPABASE_SERVICE_KEY
+    if (!k) return NextResponse.json({ error: 'server misconfigured' }, { status: 500 })
+
+    let storageUrl: string
+    let sourceName: string
+
+    if ((req.headers.get('content-type') ?? '').includes('application/json')) {
+      // The browser already uploaded the PDF straight to Storage (bypassing the ~4.5 MB
+      // function body limit); we just record the object.
+      const { storage_path, filename } = await req.json() as { storage_path?: string; filename?: string }
+      if (!storage_path) return NextResponse.json({ error: 'storage_path required' }, { status: 400 })
+      storageUrl = `${SB_URL}/storage/v1/object/${BUCKET}/${storage_path}`
+      sourceName = filename || 'rates.pdf'
+    } else {
+      // Fallback: small file posted through the function.
+      const form = await req.formData()
+      const file = form.get('file') as File | null
+      if (!file) return NextResponse.json({ error: 'No PDF provided' }, { status: 400 })
+      if (file.type !== 'application/pdf') return NextResponse.json({ error: 'File must be a PDF' }, { status: 400 })
+      if (file.size > MAX) return NextResponse.json({ error: 'PDF too large (max 25 MB)' }, { status: 400 })
+      await fetch(`${SB_URL}/storage/v1/bucket`, { method: 'POST', headers: { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ id: BUCKET, name: BUCKET, public: false }) }).catch(() => {})
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.pdf`
+      const up = await fetch(`${SB_URL}/storage/v1/object/${BUCKET}/${path}`, { method: 'POST', headers: { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/pdf', 'x-upsert': 'false' }, body: await file.arrayBuffer() })
+      if (!up.ok) return NextResponse.json({ error: `Upload failed: ${(await up.text()).slice(0, 200)}` }, { status: 502 })
+      storageUrl = `${SB_URL}/storage/v1/object/${BUCKET}/${path}`
+      sourceName = file.name
+    }
+
     // Metadata (insurer/product/age basis/year/effective date) is read from the PDF by the
-    // extractor and written back to the row; anything passed here is just an optional hint.
-    const productCode = String(form.get('product_code') ?? '').trim()
-    if (!file) return NextResponse.json({ error: 'No PDF provided' }, { status: 400 })
-    if (file.type !== 'application/pdf') return NextResponse.json({ error: 'File must be a PDF' }, { status: 400 })
-    if (file.size > MAX) return NextResponse.json({ error: 'PDF too large (max 25 MB)' }, { status: 400 })
-
-    // Ensure the private bucket exists, then upload.
-    const k = process.env.SUPABASE_SERVICE_KEY!
-    await fetch(`${SB_URL}/storage/v1/bucket`, {
-      method: 'POST', headers: { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: BUCKET, name: BUCKET, public: false }),
-    }).catch(() => {})
-
-    const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.pdf`
-    const up = await fetch(`${SB_URL}/storage/v1/object/${BUCKET}/${path}`, {
-      method: 'POST', headers: { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/pdf', 'x-upsert': 'false' },
-      body: await file.arrayBuffer(),
-    })
-    if (!up.ok) return NextResponse.json({ error: `Upload failed: ${(await up.text()).slice(0, 200)}` }, { status: 502 })
-    const storageUrl = `${SB_URL}/storage/v1/object/${BUCKET}/${path}`
-
-    const insurerId = form.get('insurer_id') ? String(form.get('insurer_id')) : null
-    const planYear  = form.get('plan_year') ? Number(form.get('plan_year')) : null
+    // extractor and written back to the row; the reviewer can correct it.
     const row = {
-      insurer_id:      insurerId,
-      insurer_name:    form.get('insurer_name') ? String(form.get('insurer_name')) : null,
-      product_code:    productCode,
-      product_name:    form.get('product_name') ? String(form.get('product_name')) : null,
-      plan_year:       planYear,
-      effective_date:  form.get('effective_date') ? String(form.get('effective_date')) : null,
-      age_basis:       form.get('age_basis') === 'last_birthday' ? 'last_birthday' : 'next_birthday',
+      product_code:    '',
+      age_basis:       'next_birthday',
       source_pdf_url:  storageUrl,
-      source_pdf_name: file.name,
+      source_pdf_name: sourceName,
       status:          'draft',
       uploaded_by:     user.id,
     }
@@ -83,7 +82,7 @@ export async function POST(req: NextRequest) {
     if (!ins.ok) return NextResponse.json({ error: await ins.text() }, { status: 500 })
     const created = (await ins.json())[0]
 
-    void logActivity({ action: 'gb.rate_table_uploaded', resource_type: 'gb_rate_table', resource_id: created?.id, new_value: { insurer: row.insurer_name, product: productCode, file: file.name } })
+    void logActivity({ action: 'gb.rate_table_uploaded', resource_type: 'gb_rate_table', resource_id: created?.id, new_value: { file: sourceName } })
     return NextResponse.json({ id: created?.id })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
