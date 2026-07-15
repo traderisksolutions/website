@@ -27,11 +27,29 @@ interface ThreadViewProps {
   onBack?:         () => void
 }
 
+// Reply-All recipients = the To+CC of the message being replied to (the latest one),
+// minus TRS internal addresses, automated addresses, and whoever's in the To field.
+function computeReplyAllCcs(messages: RealMsg[], toAddr: string): string[] {
+  const latest = messages.at(-1)
+  if (!latest) return []
+  const to  = toAddr.trim().toLowerCase()
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const raw of [...(latest.to ?? []), ...(latest.cc ?? [])]) {
+    const e  = extractEmail(raw)
+    const le = e.toLowerCase()
+    if (!e || le === to) continue
+    if (le.endsWith('@trade-risksol.com')) continue
+    if (le.includes('noreply') || le.includes('no-reply') || le.includes('mailer-daemon')) continue
+    if (seen.has(le)) continue
+    seen.add(le); out.push(e)
+  }
+  return out
+}
+
 export function ThreadView({
   lead, threadState, onStatus, onTransfer, onDelete, onThreadRefresh, onBack,
 }: ThreadViewProps) {
-  const { thread, messages, loading, error } = threadState
-  const needsReply = messages.at(-1)?.direction === 'inbound'
   const initialMsg = lead.details || lead.message
 
   // Summaries
@@ -51,12 +69,26 @@ export function ThreadView({
   // Dock imperative open (e.g. a draft arriving from a Nexus roadmap step)
   const [dockSignal, setDockSignal] = useState<{ tab: 'reply' | 'analysis' | 'rfq' | 'gbquote'; stamp: number } | undefined>(undefined)
 
+  // ── Party switcher: a conversation can span several threads (client, employee, insurer…).
+  //    The page loads the primary thread; picking another party in the right panel overrides
+  //    which thread's messages the workspace shows. propThreadId is the page-loaded (anchor)
+  //    thread; activeThreadId is the one currently displayed.
+  const propThreadId = threadState.thread?.id ?? null
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null)
+  const [overrideState,  setOverrideState]  = useState<ThreadState | null>(null)
+  const [refreshNonce,   setRefreshNonce]   = useState(0)
+  const isOverriding  = !!activeThreadId && activeThreadId !== propThreadId
+  const effectiveState = isOverriding && overrideState ? overrideState : threadState
+  const { thread, messages, loading, error } = effectiveState
+  const needsReply = messages.at(-1)?.direction === 'inbound'
+
   // Compose headers
   const [toAddress,     setToAddress]     = useState('')
   const [ccList,        setCcList]        = useState<string[]>([])
   const [bccList,       setBccList]       = useState<string[]>([])
   const [customSubject, setCustomSubject] = useState('')
-  const toInitialised = useRef(false)
+  const [replyAll,      setReplyAll]      = useState(true)   // default to Reply All
+  const initedThreadRef = useRef<string | null>(null)
 
   // Restore draft from history
   const [pendingRestore, setPendingRestore] = useState<{ body: string; generatedBy: string; stamp: number } | null>(null)
@@ -69,11 +101,27 @@ export function ThreadView({
   const latestMessageId = messages.at(-1)?.id ?? null
   const log             = useAuditLog()
 
-  // Reset per-lead state when switching leads
+  // Load the selected party's thread when it differs from the page-loaded one. refreshNonce
+  // lets a send re-pull the override in place (keeps old messages visible while loading).
   useEffect(() => {
-    toInitialised.current      = false
+    if (!isOverriding) { setOverrideState(null); return }
+    let cancelled = false
+    setOverrideState(prev => prev ?? { loading: true, thread: null, messages: [], error: null })
+    fetch(`/api/engagement/thread?thread_id=${encodeURIComponent(activeThreadId!)}`, { cache: 'no-store' })
+      .then(r => r.json())
+      .then(d => { if (!cancelled) setOverrideState({ loading: false, thread: d.thread ?? null, messages: Array.isArray(d.messages) ? d.messages : [], error: null }) })
+      .catch(() => { if (!cancelled) setOverrideState({ loading: false, thread: null, messages: [], error: 'Failed to load conversation' }) })
+    return () => { cancelled = true }
+  }, [activeThreadId, propThreadId, refreshNonce, isOverriding])
+
+  // Reset per-lead state when switching leads (incl. any active party override)
+  useEffect(() => {
+    initedThreadRef.current = null
+    setActiveThreadId(null)
+    setOverrideState(null)
     setAnalyzing(false)
-    const s = thread?.subject ?? ''
+    setReplyAll(true)
+    const s = threadState.thread?.subject ?? ''
     setCustomSubject(s ? (s.startsWith('Re:') ? s : `Re: ${s}`) : 'Re: Your enquiry | Trade Risk Solutions')
     setToAddress(lead.email ?? '')
     setCcList([])
@@ -82,25 +130,43 @@ export function ThreadView({
     setRagDraft(null)
   }, [lead.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Once per lead: initialise TO/CC from first loaded messages (never re-runs on poll)
+  // Initialise TO/CC/subject from the active thread's messages. Re-runs when the displayed
+  // thread changes (lead switch OR party switch), but never on a plain poll of the same thread.
   useEffect(() => {
-    if (toInitialised.current || messages.length === 0) return
-    toInitialised.current = true
+    if (messages.length === 0) return
+    if (initedThreadRef.current === threadId) return
+    initedThreadRef.current = threadId
 
     const lastInbound = [...messages].reverse().find(m => m.direction === 'inbound')
-    if (lastInbound?.from_address) {
-      setToAddress(extractEmail(lastInbound.from_address))
+    // Prefer the party who last wrote to us; for a thread we started (no inbound yet), fall
+    // back to whoever we last addressed — so To follows the selected party either way.
+    let toGuess = lastInbound?.from_address ? extractEmail(lastInbound.from_address) : ''
+    if (!toGuess) {
+      const lastOutbound = [...messages].reverse().find(m => m.direction === 'outbound')
+      if (lastOutbound?.to?.[0]) toGuess = extractEmail(lastOutbound.to[0])
     }
+    if (toGuess) setToAddress(toGuess)
+
     if (thread?.subject) {
       const s = thread.subject
       setCustomSubject(s.startsWith('Re:') ? s : `Re: ${s}`)
     }
-    const inboundCcs = lastInbound?.cc ?? []
-    const ccs = inboundCcs
-      .map(a => extractEmail(a))
-      .filter(a => a && !a.endsWith('@trade-risksol.com') && !a.includes('noreply') && !a.includes('no-reply') && !a.includes('mailer-daemon'))
-    if (ccs.length > 0) setCcList(Array.from(new Set(ccs)))
-  }, [messages.length]) // eslint-disable-line react-hooks/exhaustive-deps
+    // Reply All (default): CC everyone on the message being replied to. Sender-only clears CC.
+    setCcList(replyAll ? computeReplyAllCcs(messages, toGuess || toAddress) : [])
+  }, [threadId, messages.length]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Toggle Reply All ↔ sender-only, recomputing CC from the current thread.
+  function toggleReplyAll() {
+    const next = !replyAll
+    setReplyAll(next)
+    setCcList(next ? computeReplyAllCcs(messages, toAddress) : [])
+  }
+
+  // A send should refresh the page thread AND (if a party override is active) re-pull it.
+  function handleThreadRefresh() {
+    onThreadRefresh()
+    if (isOverriding) setRefreshNonce(n => n + 1)
+  }
 
   // Read any existing summary when the thread changes (display only — never generates).
   // The reply draft is NOT auto-loaded; it appears only when the employee clicks Generate.
@@ -288,10 +354,12 @@ export function ThreadView({
               setCcList={setCcList}
               setBccList={setBccList}
               setCustomSubject={setCustomSubject}
+              replyAll={replyAll}
+              onToggleReplyAll={toggleReplyAll}
               storedDraft={summaries[0]?.draft_reply ?? null}
               storedRagDraft={ragDraft?.content ?? null}
               storedRagSources={ragDraft?.sources ?? []}
-              onThreadRefresh={onThreadRefresh}
+              onThreadRefresh={handleThreadRefresh}
               onAnalyze={runAnalysis}
               pendingRestore={pendingRestore}
             />
@@ -330,6 +398,9 @@ export function ThreadView({
           lead={lead}
           messages={messages}
           threadId={threadId}
+          conversationThreadId={propThreadId}
+          activeThreadId={threadId}
+          onSelectThread={setActiveThreadId}
           onStatus={onStatus}
           onTransfer={onTransfer}
           onRestoreDraft={(body, generatedBy) => setPendingRestore({ body, generatedBy, stamp: Date.now() })}

@@ -7,7 +7,7 @@
 // has been updated. If you need to add logic, do it here.
 
 import { useState, useEffect, useRef } from 'react'
-import { RefreshCw, ChevronDown, Sparkles } from 'lucide-react'
+import { RefreshCw, ChevronDown, Sparkles, Paperclip, Upload, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
 import { useAuditLog } from '@/hooks/useAuditLog'
@@ -28,6 +28,8 @@ interface EngagementComposePanelProps {
   setCcList:         (v: string[]) => void
   setBccList:        (v: string[]) => void
   setCustomSubject:  (v: string) => void
+  replyAll?:         boolean
+  onToggleReplyAll?: () => void
   storedDraft?:      string | null
   storedRagDraft?:   string | null
   storedRagSources?: RagSource[]
@@ -42,6 +44,7 @@ export function EngagementComposePanel({
   lead, thread, messages,
   toAddress, ccList, bccList, customSubject,
   setToAddress, setCcList, setBccList, setCustomSubject,
+  replyAll, onToggleReplyAll,
   storedDraft, storedRagDraft, storedRagSources,
   onRagRefresh, onThreadRefresh, onAnalyze, pendingRestore,
 }: EngagementComposePanelProps) {
@@ -67,7 +70,18 @@ export function EngagementComposePanel({
   const [selectedFrom,    setSelectedFrom]    = useState<string>('')
   const [sigsLoaded,      setSigsLoaded]      = useState(false)
 
+  // ── Attachments: files to attach on this reply (local uploads + re-attached thread files) ──
+  type Att = { filename: string; mime_type?: string; storage_url: string; size_bytes?: number }
+  const [attachments,   setAttachments]   = useState<Att[]>([])
+  const [threadFiles,   setThreadFiles]   = useState<Att[]>([])
+  const [attachMenuOpen, setAttachMenuOpen] = useState(false)
+  const [uploading,     setUploading]     = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   const log = useAuditLog()
+
+  // Reveal the CC row whenever it gets populated (e.g. Reply All fills it after mount).
+  useEffect(() => { if (ccList.length > 0) setShowCc(true) }, [ccList.length])
 
   // ── All helpers preserved verbatim ────────────────────────────────────────
 
@@ -114,7 +128,50 @@ export function EngagementComposePanel({
     setDraftEditorKey(0); setSent(false); setError(null)
     setRagSources([]); setAiDraftChecked(false)
     setSelectedFrom(senders[0]?.email ?? '')
+    setAttachments([]); setAttachMenuOpen(false)
   }, [lead.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load the thread's stored files (for re-attaching) + clear selected attachments on switch.
+  useEffect(() => {
+    setAttachments([]); setAttachMenuOpen(false); setThreadFiles([])
+    const tid = thread?.id
+    if (!tid) return
+    let ok = true
+    fetch(`/api/nexus/rfq/attachments?thread_id=${encodeURIComponent(tid)}`, { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : [])
+      .then((rows: Att[]) => { if (ok) setThreadFiles(Array.isArray(rows) ? rows : []) })
+      .catch(() => {})
+    return () => { ok = false }
+  }, [thread?.id])
+
+  async function uploadLocalFiles(files: FileList | null) {
+    if (!files || files.length === 0) return
+    setUploading(true)
+    try {
+      for (const file of Array.from(files)) {
+        const fd = new FormData()
+        fd.append('file', file)
+        const res = await fetch('/api/email/attachments/upload', { method: 'POST', body: fd })
+        const d = await res.json().catch(() => null)
+        if (res.ok && d?.storage_url) {
+          setAttachments(prev => prev.some(a => a.storage_url === d.storage_url) ? prev : [...prev, d as Att])
+        } else {
+          setError(d?.error ?? `Failed to upload ${file.name}`)
+        }
+      }
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+  function toggleThreadFile(f: Att) {
+    setAttachments(prev => prev.some(a => a.storage_url === f.storage_url)
+      ? prev.filter(a => a.storage_url !== f.storage_url)
+      : [...prev, f])
+  }
+  function removeAttachment(url: string) {
+    setAttachments(prev => prev.filter(a => a.storage_url !== url))
+  }
 
   useEffect(() => {
     if (!pendingRestore) return
@@ -247,6 +304,7 @@ export function EngagementComposePanel({
           bcc:           bccList.length ? bccList : undefined,
           customSubject: customSubject || undefined,
           fromEmail:     selectedFrom || undefined,
+          attachments:   attachments.length ? attachments : undefined,
         }),
       })
       if (!sendRes.ok) {
@@ -310,6 +368,19 @@ export function EngagementComposePanel({
                 To
               </span>
               <ToAutocompleteInput value={toAddress} onChange={setToAddress} placeholder="Type a name or email…" />
+              {onToggleReplyAll && (
+                <button
+                  onClick={onToggleReplyAll}
+                  title={replyAll ? 'Replying to everyone — click for sender only' : 'Replying to sender only — click to Reply All'}
+                  aria-pressed={replyAll}
+                  className={cn(
+                    'text-[10px] font-semibold px-2 flex-shrink-0 transition-colors',
+                    replyAll ? 'text-primary' : 'text-muted-foreground/50 hover:text-muted-foreground',
+                  )}
+                >
+                  {replyAll ? 'Reply all ✓' : 'Reply all'}
+                </button>
+              )}
               <button
                 onClick={() => setShowCc(v => !v)}
                 aria-label={showCc ? 'Hide CC field' : 'Show CC field'}
@@ -417,6 +488,63 @@ export function EngagementComposePanel({
               )}
             </div>
           )}
+
+          {/* ── Attachments (local upload + re-attach thread files) ── */}
+          <div className="px-4 pb-1">
+            {attachments.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-1.5">
+                {attachments.map(a => (
+                  <span key={a.storage_url} className="inline-flex items-center gap-1 text-[10.5px] bg-muted/60 border border-[--border-subtle] rounded-md pl-2 pr-1 py-[3px]">
+                    <Paperclip size={9} className="text-muted-foreground/60" />
+                    <span className="max-w-[160px] truncate text-foreground/75">{a.filename}</span>
+                    <button onClick={() => removeAttachment(a.storage_url)} aria-label={`Remove ${a.filename}`} className="text-muted-foreground/50 hover:text-foreground">
+                      <X size={11} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="relative inline-block">
+              <button
+                onClick={() => setAttachMenuOpen(v => !v)}
+                className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-muted-foreground/60 hover:text-foreground transition-colors"
+              >
+                <Paperclip size={11} /> {uploading ? 'Uploading…' : 'Attach'}
+              </button>
+
+              {attachMenuOpen && (
+                <div className="absolute bottom-full left-0 mb-1 z-30 w-64 rounded-lg border border-[--border-subtle] bg-card p-1 shadow-[0_12px_32px_-12px_rgba(16,24,40,0.28)]">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full text-left px-2.5 py-1.5 rounded-md text-[11.5px] text-foreground/85 hover:bg-muted/60 flex items-center gap-1.5"
+                  >
+                    <Upload size={11} /> Upload from computer
+                  </button>
+                  {threadFiles.length > 0 && (
+                    <>
+                      <div className="px-2.5 pt-2 pb-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground/50">From this thread</div>
+                      {threadFiles.map(f => {
+                        const on = attachments.some(a => a.storage_url === f.storage_url)
+                        return (
+                          <button
+                            key={f.storage_url}
+                            onClick={() => toggleThreadFile(f)}
+                            className="w-full text-left px-2.5 py-1.5 rounded-md text-[11.5px] hover:bg-muted/60 flex items-center gap-1.5"
+                          >
+                            <span className={cn('w-3 h-3 rounded-sm border flex items-center justify-center flex-shrink-0 text-[8px]', on ? 'bg-primary border-primary text-white' : 'border-muted-foreground/40')}>{on ? '✓' : ''}</span>
+                            <span className="truncate text-foreground/80">{f.filename}</span>
+                          </button>
+                        )
+                      })}
+                    </>
+                  )}
+                </div>
+              )}
+
+              <input ref={fileInputRef} type="file" multiple className="hidden" onChange={e => uploadLocalFiles(e.target.files)} />
+            </div>
+          </div>
 
           {/* ── Footer: from/sig | generate | send ── */}
           <div className="flex items-center justify-between gap-3 px-4 py-3">

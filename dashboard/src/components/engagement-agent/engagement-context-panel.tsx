@@ -15,17 +15,21 @@ import { STATUS_MAP, ALL_STATUSES, EMAIL_SOURCES } from '@/components/engagement
 import { fullName, timeAgo, daysSince } from '@/components/engagement/helpers'
 
 interface EngagementContextPanelProps {
-  lead:             Lead
-  messages:         RealMsg[]
-  threadId:         string | null
-  onStatus:         (id: string, s: string) => void
-  onTransfer:       (id: string, note: string) => Promise<void>
-  onRestoreDraft:   (body: string, generatedBy: string) => void
-  onCollapse?:      () => void
+  lead:                 Lead
+  messages:             RealMsg[]
+  threadId:             string | null
+  conversationThreadId?: string | null           // anchor for the party switcher (page-loaded thread)
+  activeThreadId?:      string | null             // currently displayed thread (for highlight)
+  onSelectThread?:      (threadId: string) => void
+  onStatus:             (id: string, s: string) => void
+  onTransfer:           (id: string, note: string) => Promise<void>
+  onRestoreDraft:       (body: string, generatedBy: string) => void
+  onCollapse?:          () => void
 }
 
 export function EngagementContextPanel({
   lead, messages, threadId,
+  conversationThreadId, activeThreadId, onSelectThread,
   onStatus, onTransfer, onRestoreDraft, onCollapse,
 }: EngagementContextPanelProps) {
   const needsReply  = messages.at(-1)?.direction === 'inbound'
@@ -86,6 +90,13 @@ export function EngagementContextPanel({
 
       {/* AI Analysis now lives in the bottom dock (moved out of this sidebar). */}
 
+      {/* ── Parties in this conversation (only shown when it spans >1 thread) ── */}
+      <ConversationsSection
+        anchorThreadId={conversationThreadId ?? null}
+        activeThreadId={activeThreadId ?? threadId}
+        onSelect={onSelectThread}
+      />
+
       {/* ── Status ── */}
       <StatusSection lead={lead} onStatus={onStatus} />
 
@@ -106,6 +117,111 @@ export function EngagementContextPanel({
         <DraftHistorySection threadId={threadId} onRestore={onRestoreDraft} />
       )}
     </aside>
+  )
+}
+
+// ── Conversation party switcher ───────────────────────────────────────────────
+// A claim/enquiry can span several threads (client, employee, insurer…). Lists every
+// party in the conversation and lets the handler switch which one they're viewing/replying
+// to. Hidden unless the conversation spans more than one thread. Nudges toward Nexus once
+// it gets busy (suggest_nexus, 3+ parties).
+
+type ConvParty  = { contact_id: string | null; email: string | null; name: string; company: string | null }
+type ConvThread = {
+  id: string; is_root: boolean; subject: string; party: ConvParty
+  message_count: number; last_direction: string | null; last_message_at: string | null; snippet: string | null
+}
+type ConvResp   = { root_thread_id: string; suggest_nexus: boolean; threads: ConvThread[] }
+
+function ConversationsSection({
+  anchorThreadId, activeThreadId, onSelect,
+}: {
+  anchorThreadId: string | null
+  activeThreadId: string | null
+  onSelect?: (threadId: string) => void
+}) {
+  const [data, setData] = useState<ConvResp | null>(null)
+  const [promoting, setPromoting] = useState(false)
+
+  useEffect(() => {
+    if (!anchorThreadId) { setData(null); return }
+    let cancelled = false
+    setPromoting(false)
+    fetch(`/api/engagement/conversation?thread_id=${encodeURIComponent(anchorThreadId)}`, { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (!cancelled) setData(d && Array.isArray(d.threads) ? d : null) })
+      .catch(() => { if (!cancelled) setData(null) })
+    return () => { cancelled = true }
+  }, [anchorThreadId])
+
+  async function promoteToNexus() {
+    if (!anchorThreadId || promoting) return
+    setPromoting(true)
+    try {
+      const res = await fetch('/api/engagement/conversation/promote', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ thread_id: anchorThreadId }),
+      })
+      const d = res.ok ? await res.json() : null
+      if (d?.case_id) { window.location.href = `/nexus?case=${d.case_id}` }
+      else setPromoting(false)
+    } catch { setPromoting(false) }
+  }
+
+  const threads = data?.threads ?? []
+  // Nothing to switch between → don't clutter the panel.
+  if (!anchorThreadId || threads.length <= 1) return null
+
+  return (
+    <AccordionSection title={`Conversations (${threads.length})`} defaultOpen>
+      <div className="px-3 pb-3 flex flex-col gap-1.5">
+        {threads.map(t => {
+          const active = t.id === activeThreadId
+          return (
+            <button
+              key={t.id}
+              onClick={() => onSelect?.(t.id)}
+              className={cn(
+                'w-full text-left rounded-lg border px-2.5 py-2 transition-colors',
+                active
+                  ? 'border-primary/40 bg-primary/5'
+                  : 'border-[--border-subtle] bg-card hover:bg-accent/30',
+              )}
+            >
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="text-[11px] font-semibold text-foreground/85 truncate">{t.party.name}</span>
+                {t.is_root && (
+                  <span className="text-[8.5px] font-bold uppercase tracking-wide text-primary/70 bg-primary/8 rounded px-1 py-[1px] flex-shrink-0">
+                    client
+                  </span>
+                )}
+                <span className="ml-auto text-[9px] text-muted-foreground/50 flex-shrink-0 tabular-nums">
+                  {t.last_message_at ? timeAgo(t.last_message_at) : ''}
+                </span>
+              </div>
+              {t.party.company && (
+                <p className="text-[10px] text-muted-foreground/60 m-0 truncate">{t.party.company}</p>
+              )}
+              <p className="text-[10px] text-muted-foreground/55 m-0 truncate">
+                {t.message_count} msg{t.message_count === 1 ? '' : 's'}
+                {t.snippet ? ` · ${t.snippet}` : ''}
+              </p>
+            </button>
+          )
+        })}
+
+        {data?.suggest_nexus && (
+          <button
+            onClick={promoteToNexus}
+            disabled={promoting}
+            className="mt-1 flex items-center justify-between rounded-lg border border-amber-300/50 bg-amber-50/60 px-2.5 py-1.5 text-[10.5px] font-medium text-amber-700 hover:bg-amber-50 disabled:opacity-60 transition-colors"
+          >
+            <span>{promoting ? 'Creating Nexus case…' : `${threads.length} parties — promote to Nexus`}</span>
+            <span aria-hidden>{promoting ? '⋯' : '→'}</span>
+          </button>
+        )}
+      </div>
+    </AccordionSection>
   )
 }
 
@@ -543,12 +659,13 @@ function DraftHistorySection({
 // ── Accordion section wrapper ─────────────────────────────────────────────────
 
 function AccordionSection({
-  title, children,
+  title, children, defaultOpen = false,
 }: {
   title: string
   children: React.ReactNode
+  defaultOpen?: boolean
 }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(defaultOpen)
   return (
     <div className="border-b border-[--border-subtle]">
       <button

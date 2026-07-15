@@ -231,19 +231,53 @@ export async function POST(req: NextRequest) {
     // Use the overridden TO address if provided, otherwise fall back to the contact's email
     const recipientEmail = (toEmail && toEmail.includes('@')) ? toEmail.trim().toLowerCase() : contact.email as string
 
-    // 3. Load thread subject (for reply subject line)
+    // 3. Load thread subject (for reply subject line) + conversation grouping context
     let subject = 'Re: Your enquiry | Trade Risk Solutions'
     let gmailThreadId: string | null = null
+    // Party fork: when the To isn't already part of this conversation, the send starts a NEW
+    // linked sub-thread to that party (e.g. emailing the employee about a client's claim)
+    // instead of replying into the client thread.
+    let forking = false
+    let conversationRoot: string | null = null
     if (draft.thread_id) {
       const threadRes = await fetch(
-        `${SB_URL}/rest/v1/email_threads?id=eq.${draft.thread_id}&select=subject,gmail_thread_id&limit=1`,
+        `${SB_URL}/rest/v1/email_threads?id=eq.${draft.thread_id}&select=subject,gmail_thread_id,conversation_root_id&limit=1`,
         { headers: sbHeaders() }
       )
       const threads = threadRes.ok ? await threadRes.json() : []
       const thread  = Array.isArray(threads) ? threads[0] : null
       if (thread?.subject) subject = thread.subject.startsWith('Re:') ? thread.subject : `Re: ${thread.subject}`
       if (customSubject?.trim()) subject = customSubject.trim()
-      gmailThreadId = thread?.gmail_thread_id ?? null
+      gmailThreadId    = thread?.gmail_thread_id ?? null
+      conversationRoot = thread?.conversation_root_id ?? draft.thread_id
+
+      // Is the recipient already a party in this conversation? Collect participants + thread
+      // contacts across every thread in the group; if the (external) recipient is absent, this
+      // send forks a new party sub-thread linked to the conversation root.
+      const rEmail = recipientEmail.toLowerCase()
+      if (!rEmail.endsWith('@trade-risksol.com')) {
+        const groupRes = await fetch(
+          `${SB_URL}/rest/v1/email_threads?or=(id.eq.${conversationRoot},conversation_root_id.eq.${conversationRoot})&deleted_at=is.null&select=id,contact_id`,
+          { headers: sbHeaders(), cache: 'no-store' }
+        )
+        const groupThreads: { id: string; contact_id: string | null }[] = groupRes.ok ? await groupRes.json() : []
+        const groupIds   = groupThreads.map(t => t.id)
+        const contactIds = Array.from(new Set(groupThreads.map(t => t.contact_id).filter((x): x is string => !!x)))
+        const [pRes, cRes] = await Promise.all([
+          groupIds.length
+            ? fetch(`${SB_URL}/rest/v1/email_participants?thread_id=in.(${groupIds.join(',')})&select=email`, { headers: sbHeaders(), cache: 'no-store' })
+            : Promise.resolve(null),
+          contactIds.length
+            ? fetch(`${SB_URL}/rest/v1/contacts?id=in.(${contactIds.join(',')})&select=email`, { headers: sbHeaders(), cache: 'no-store' })
+            : Promise.resolve(null),
+        ])
+        const parts:        { email: string | null }[] = pRes && pRes.ok ? await pRes.json() : []
+        const convContacts: { email: string | null }[] = cRes && cRes.ok ? await cRes.json() : []
+        const known = new Set<string>()
+        for (const p of parts)        if (p.email) known.add(p.email.toLowerCase())
+        for (const c of convContacts) if (c.email) known.add(c.email.toLowerCase())
+        forking = !known.has(rEmail)
+      }
     }
 
     // 4. Load signature and build final bodies
@@ -268,7 +302,9 @@ export async function POST(req: NextRequest) {
     //     recipient's client. We self-assign a Message-ID so the chain stays continuous.
     const ourMessageId = `<${randomUUID()}@trade-risksol.com>`
     const threading: ThreadingHeaders = { messageId: ourMessageId }
-    if (draft.thread_id) {
+    // A fork starts a fresh conversation with a new party — no prior history to quote and no
+    // In-Reply-To/References (it's a new thread, not a reply into the client chain).
+    if (draft.thread_id && !forking) {
       const [priorRes, partRes] = await Promise.all([
         fetch(
           `${SB_URL}/rest/v1/email_messages?thread_id=eq.${draft.thread_id}&select=from_address,sent_at,body_text,body_html,rfc822_message_id&order=sent_at.asc`,
@@ -305,10 +341,17 @@ export async function POST(req: NextRequest) {
     // Download any selected attachments from Supabase Storage → base64 for the MIME envelope.
     let emailAttachments: EmailAttachment[] = []
     if (Array.isArray(attachmentRefs) && attachmentRefs.length > 0) {
+      const svcKey = process.env.SUPABASE_SERVICE_KEY
       emailAttachments = (await Promise.all(attachmentRefs.slice(0, 10).map(async ref => {
         try {
           if (!ref.storage_url) return null
-          const r = await fetch(ref.storage_url)
+          // storage_url is either a full URL or a bare path in the private email-attachments
+          // bucket — the latter needs the service key to fetch. (This also fixes RFQ forwards,
+          // which pass bare paths.)
+          const r = ref.storage_url.startsWith('http')
+            ? await fetch(ref.storage_url)
+            : await fetch(`${SB_URL}/storage/v1/object/email-attachments/${ref.storage_url}`,
+                { headers: svcKey ? { apikey: svcKey, Authorization: `Bearer ${svcKey}` } : undefined })
           if (!r.ok) return null
           const buf = Buffer.from(await r.arrayBuffer())
           return { filename: ref.filename, mimeType: ref.mime_type || 'application/octet-stream', dataB64: buf.toString('base64') }
@@ -333,7 +376,9 @@ export async function POST(req: NextRequest) {
     // reject the whole request ("Requested entity was not found"). So only thread the
     // send when we're actually sending as the ops mailbox. Personal sends go out as a
     // fresh message (subject "Re:" keeps it grouped; Reply-To routes replies back to ops).
-    if (gmailThreadId && isOpsSender) sendPayload.threadId = gmailThreadId
+    // Don't thread a fork into the client's Gmail thread — it must go out as a new thread so
+    // the new party's replies stay in their own sub-thread.
+    if (gmailThreadId && isOpsSender && !forking) sendPayload.threadId = gmailThreadId
 
     const sendRes = await fetch(`${GMAIL_API}/messages/send`, {
       method:  'POST',
@@ -382,8 +427,9 @@ export async function POST(req: NextRequest) {
     // The plain-text body of what was actually sent (signature stripped for cleaner eval comparison)
     const sentBodyPlain = finalHtml ? htmlToText(finalHtml) : finalPlain
 
-    // 7. Record outbound message in email_messages (if thread exists in DB)
-    if (draft.thread_id && sent.id) {
+    // 7. Record outbound message in email_messages (into the existing thread — but not for a
+    //    fork, which records into its own new sub-thread in 7c below)
+    if (draft.thread_id && sent.id && !forking) {
       await fetch(`${SB_URL}/rest/v1/email_messages`, {
         method:  'POST',
         headers: sbHeaders('return=minimal'),
@@ -433,6 +479,35 @@ export async function POST(req: NextRequest) {
           await fetch(`${SB_URL}/rest/v1/email_messages?on_conflict=gmail_message_id`, {
             method: 'POST', headers: sbHeaders('return=minimal,resolution=merge-duplicates'),
             body: JSON.stringify({ thread_id: newThread.id, gmail_message_id: sent.id, rfc822_message_id: storedMessageId, direction: 'outbound', from_address: FROM_EMAIL, subject, body_text: sentBodyPlain, sent_at: sentAt, has_attachments: emailAttachments.length > 0 }),
+          }).catch(() => {})
+        }
+      } catch { /* best-effort — ingestion is the safety net */ }
+    }
+
+    // 7c. Party fork from ops → create the new linked sub-thread now, tagged to the conversation
+    //     root so it shows in the party switcher immediately. (Personal-sender forks link on the
+    //     next ops sync via ingest; conversation_root_id is preserved by merge-duplicates.)
+    if (forking && conversationRoot && isOpsSender && sent.threadId && sent.id) {
+      try {
+        const enc = encodeURIComponent(recipientEmail)
+        let recipientContactId: string | null = await fetch(`${SB_URL}/rest/v1/contacts?email=eq.${enc}&select=id&limit=1`, { headers: sbHeaders(), cache: 'no-store' })
+          .then(r => r.ok ? r.json() : []).then(rows => rows[0]?.id ?? null).catch(() => null)
+        if (!recipientContactId) {
+          recipientContactId = await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
+            method: 'POST', headers: sbHeaders('return=representation,resolution=merge-duplicates'),
+            body: JSON.stringify({ email: recipientEmail, source: 'email' }),
+          }).then(r => r.ok ? r.json() : []).then(rows => (Array.isArray(rows) ? rows[0]?.id : null) ?? null).catch(() => null)
+        }
+
+        const tRes = await fetch(`${SB_URL}/rest/v1/email_threads?on_conflict=gmail_thread_id`, {
+          method: 'POST', headers: sbHeaders('return=representation,resolution=merge-duplicates'),
+          body: JSON.stringify({ gmail_thread_id: sent.threadId, subject, contact_id: recipientContactId, conversation_root_id: conversationRoot, snippet: sentBodyPlain.slice(0, 140), last_message_at: sentAt }),
+        })
+        const forkThread = tRes.ok ? (await tRes.json())[0] : null
+        if (forkThread?.id) {
+          await fetch(`${SB_URL}/rest/v1/email_messages?on_conflict=gmail_message_id`, {
+            method: 'POST', headers: sbHeaders('return=minimal,resolution=merge-duplicates'),
+            body: JSON.stringify({ thread_id: forkThread.id, gmail_message_id: sent.id, rfc822_message_id: storedMessageId, direction: 'outbound', from_address: FROM_EMAIL, subject, body_text: sentBodyPlain, sent_at: sentAt, has_attachments: emailAttachments.length > 0 }),
           }).catch(() => {})
         }
       } catch { /* best-effort — ingestion is the safety net */ }

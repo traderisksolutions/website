@@ -18,6 +18,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { parseEml }                  from '@/lib/parse-eml'
 
 export const maxDuration = 300
 
@@ -116,17 +117,22 @@ function collectAttachmentParts(payload: unknown, results: AttachmentPart[] = []
 
   if (
     p.filename && typeof p.filename === 'string' && p.filename.length > 0 &&
-    p.mimeType && p.mimeType !== 'message/rfc822' &&
+    p.mimeType && typeof p.mimeType === 'string' &&
     p.body && typeof p.body === 'object' &&
     (p.body as Record<string, unknown>).attachmentId
   ) {
     const body = p.body as Record<string, unknown>
     results.push({
       filename:     p.filename,
-      mimeType:     p.mimeType as string,
+      mimeType:     p.mimeType,
       attachmentId: body.attachmentId as string,
       size:         (body.size as number) ?? 0,
     })
+    // An attached email (single message/rfc822 blob) is parsed as a whole — parseEml handles
+    // its nested attachments — so don't also descend into its children here (avoids double
+    // processing). When Gmail instead decomposes the .eml into child parts (no attachmentId
+    // on the wrapper), the branch below still recurses and collects them individually.
+    if (p.mimeType === 'message/rfc822') return results
   }
 
   if (Array.isArray(p.parts)) {
@@ -233,6 +239,61 @@ async function extractPdfText(data: Buffer, apiKey: string): Promise<string | nu
 
 function sanitise(name: string): string {
   return name.replace(/[^a-zA-Z0-9.\-_]/g, '_').slice(0, 200)
+}
+
+// Extract readable text from a raw file buffer (nested inside a zip or an attached email).
+// Shared so zip entries and .eml attachments get identical treatment, including recursion
+// into nested zips / attached emails (depth-guarded).
+async function extractInnerBuffer(name: string, buf: Buffer, apiKey: string, threadId: string, messageId: string, depth: number): Promise<string> {
+  if (depth > 4) return `[${name}: nesting too deep — skipped]`
+  const ext    = name.split('.').pop()?.toLowerCase() ?? ''
+  const nested = `${threadId}/${messageId}/nested_${sanitise(name)}`
+
+  if (ext === 'pdf') {
+    await uploadToStorage(nested, buf, 'application/pdf')
+    const t = await extractPdfText(buf, apiKey)
+    return `${name} (PDF):\n${t ? t.slice(0, 8000) : '[no text extracted]'}`
+  }
+  if (['jpg', 'jpeg', 'png', 'webp', 'tiff', 'gif'].includes(ext)) {
+    const imgMime = `image/${ext === 'jpg' ? 'jpeg' : ext}`
+    await uploadToStorage(nested, buf, imgMime)
+    const desc = apiKey ? await describeImage(buf, imgMime, apiKey) : ''
+    return `[${name}: image${desc ? ` — ${desc.slice(0, 500)}` : ' stored'}]`
+  }
+  if (['csv', 'txt'].includes(ext)) return `${name}:\n${buf.toString('utf-8').slice(0, 6000)}`
+  if (ext === 'docx') {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const m = require('mammoth') as { extractRawText: (o: { buffer: Buffer }) => Promise<{ value: string }> }
+      const r = await m.extractRawText({ buffer: buf })
+      return `${name}:\n${r.value.slice(0, 8000)}`
+    } catch { return `[${name}: DOCX extraction failed]` }
+  }
+  if (['xlsx', 'xls'].includes(ext)) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const xl = require('xlsx') as { read: (d: Buffer, o: { type: string }) => { SheetNames: string[]; Sheets: Record<string, unknown> }; utils: { sheet_to_csv: (s: unknown) => string } }
+      const wb = xl.read(buf, { type: 'buffer' })
+      return `${name}:\n${wb.SheetNames.map(n => xl.utils.sheet_to_csv(wb.Sheets[n]).slice(0, 4000)).join('\n')}`
+    } catch { return `[${name}: XLSX extraction failed]` }
+  }
+  if (ext === 'zip') {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const AdmZip = require('adm-zip') as new (b: Buffer) => { getEntries: () => { entryName: string; getData: () => Buffer; isDirectory: boolean }[] }
+      const entries = new AdmZip(buf).getEntries().filter(e => !e.isDirectory && e.getData().length < 15_000_000).slice(0, 20)
+      const parts: string[] = []
+      for (const e of entries) parts.push(await extractInnerBuffer(e.entryName, e.getData(), apiKey, threadId, messageId, depth + 1))
+      return `${name} (zip):\n${parts.join('\n\n')}`
+    } catch { return `[${name}: ZIP extraction failed]` }
+  }
+  if (ext === 'eml' || ext === 'msg') {
+    const parsed   = parseEml(buf)
+    const attTexts: string[] = []
+    for (const a of parsed.attachments.slice(0, 15)) attTexts.push(await extractInnerBuffer(a.filename, a.data, apiKey, threadId, messageId, depth + 1))
+    return `${name} (attached email):\n${parsed.text.slice(0, 12000)}${attTexts.length ? `\n\n--- attachments ---\n${attTexts.join('\n\n')}` : ''}`
+  }
+  return `[${name}: ${ext.toUpperCase() || 'unknown'} file, ${buf.length} bytes — not extracted]`
 }
 
 // ── Per-attachment processor ──────────────────────────────────────────────────
@@ -361,45 +422,21 @@ async function processAttachment(
       const zip       = new AdmZip(data)
       const entries   = zip.getEntries().filter(e => !e.isDirectory && e.getData().length < 15_000_000)
       const textParts: string[] = []
-
+      // Shared extractor handles each entry — including nested zips and attached emails.
       for (const entry of entries.slice(0, 20)) {
-        const ext  = entry.entryName.split('.').pop()?.toLowerCase() ?? ''
-        const buf  = entry.getData()
-        if (['pdf'].includes(ext)) {
-          const nested = `${threadId}/${messageId}/zip_${sanitise(entry.entryName)}`
-          await uploadToStorage(nested, buf, 'application/pdf')
-          const pdfText = await extractPdfText(buf, apiKey)
-          textParts.push(`${entry.entryName} (PDF):\n${pdfText ? pdfText.slice(0, 8000) : '[no text extracted]'}`)
-        } else if (['jpg', 'jpeg', 'png', 'webp', 'tiff'].includes(ext)) {
-          const nested = `${threadId}/${messageId}/zip_${sanitise(entry.entryName)}`
-          await uploadToStorage(nested, buf, `image/${ext === 'jpg' ? 'jpeg' : ext}`)
-          const desc = apiKey ? await describeImage(buf, `image/${ext}`, apiKey) : ''
-          textParts.push(`[${entry.entryName}: image${desc ? ` — ${desc.slice(0, 500)}` : ' stored'}]`)
-        } else if (['csv', 'txt'].includes(ext)) {
-          textParts.push(`${entry.entryName}:\n${buf.toString('utf-8').slice(0, 5000)}`)
-        } else if (['docx'].includes(ext)) {
-          try {
-            // eslint-disable-next-line @typescript-eslint/no-require-imports
-            const m = require('mammoth') as { extractRawText: (o: { buffer: Buffer }) => Promise<{ value: string }> }
-            const r = await m.extractRawText({ buffer: buf })
-            textParts.push(`${entry.entryName}:\n${r.value.slice(0, 5000)}`)
-          } catch { textParts.push(`[${entry.entryName}: DOCX extraction failed]`) }
-        } else if (['xlsx', 'xls'].includes(ext)) {
-          try {
-            // eslint-disable-next-line @typescript-eslint/no-require-imports
-            const xl = require('xlsx') as { read: (d: Buffer, o: { type: string }) => { SheetNames: string[]; Sheets: Record<string, unknown> }; utils: { sheet_to_csv: (s: unknown) => string } }
-            const wb = xl.read(buf, { type: 'buffer' })
-            textParts.push(`${entry.entryName}:\n${wb.SheetNames.map((n: string) => xl.utils.sheet_to_csv(wb.Sheets[n]).slice(0, 3000)).join('\n')}`)
-          } catch { textParts.push(`[${entry.entryName}: XLSX extraction failed]`) }
-        } else {
-          textParts.push(`[${entry.entryName}: ${ext.toUpperCase() || 'unknown'} file, ${buf.length} bytes — not extracted]`)
-        }
+        textParts.push(await extractInnerBuffer(entry.entryName, entry.getData(), apiKey, threadId, messageId, 1))
       }
       parsedText = textParts.join('\n\n').slice(0, 30000)
     } catch {
       parsedText = '[ZIP extraction failed]'
     }
     console.log(`[nexus/extract] ZIP extracted: ${filename}`)
+  }
+
+  // ── Attached email (.eml / message/rfc822): read body + nested attachments ──
+  else if (mime === 'message/rfc822' || filename.toLowerCase().endsWith('.eml')) {
+    parsedText = await extractInnerBuffer(filename, data, apiKey, threadId, messageId, 0)
+    console.log(`[nexus/extract] attached email parsed: ${filename} (${parsedText?.length ?? 0} chars)`)
   }
 
   // ── Other types: skip ────────────────────────────────────────────────────
