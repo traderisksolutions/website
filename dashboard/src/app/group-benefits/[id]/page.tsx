@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2, CheckCircle2, AlertTriangle, Save, FileText, RefreshCw, Trash2 } from 'lucide-react'
+import { ArrowLeft, Loader2, CheckCircle2, AlertTriangle, Save, FileText, RefreshCw, Trash2, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type Rate    = { id?: string; product_code: string; plan_code: string; band_label: string; age_min: number | null; age_max: number | null; premium: number; renewal_only?: boolean }
@@ -64,15 +64,18 @@ export default function GbReviewPage() {
 
   const conflictMap = new Map((d?.conflicts ?? []).map(c => [cKey(c), c]))
 
+  function updateRate(idx: number, patch: Partial<Rate>) { setRates(prev => prev.map((x, i) => (i === idx ? { ...x, ...patch } : x))) }
+
   async function save(approveAfter = false) {
     if (approveAfter && (d?.conflicts?.length ?? 0) > 0 &&
         !confirm(`${d!.conflicts.length} cell(s) are still flagged for review. Approve anyway?`)) return
     setSaving(approveAfter ? 'approve' : 'save'); setMsg(null)
     try {
-      await fetch(`/api/group-benefits/rate-tables/${id}`, {
+      const saveRes = await fetch(`/api/group-benefits/rate-tables/${id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rates, benefits }),
       })
+      if (!saveRes.ok) { setMsg((await saveRes.json().catch(() => ({}))).error ?? 'Save failed'); return }
       if (approveAfter) {
         const ap = await fetch(`/api/group-benefits/rate-tables/${id}/approve`, { method: 'POST' })
         if (!ap.ok) { setMsg('Approve failed'); return }
@@ -98,7 +101,7 @@ export default function GbReviewPage() {
           <p className="text-[12px] text-muted-foreground/70 mt-0.5">{t.source_pdf_name} · age {t.age_basis === 'last_birthday' ? 'last' : 'next'} birthday{t.plan_year ? ` · ${t.plan_year}` : ''}</p>
         </div>
         <div className="flex items-center gap-2">
-          {msg && <span className="text-[12px] text-emerald-600">{msg}</span>}
+          {msg && <span className={cn('text-[12px]', /fail/i.test(msg) ? 'text-rose-600' : 'text-emerald-600')}>{msg}</span>}
           {status === 'approved' && <span className="text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 mr-1">Approved</span>}
           <a href={`/api/group-benefits/rate-tables/${id}/pdf`} target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-1.5 text-[12.5px] font-medium px-3 py-1.5 rounded-lg border border-border hover:bg-muted">
@@ -178,12 +181,14 @@ export default function GbReviewPage() {
                         {planRates.sort((a, b) => (a.age_min ?? 0) - (b.age_min ?? 0)).map((r) => {
                           const conflict = conflictMap.get(cKey(r))
                           const idx = rates.indexOf(r)
+                          const editable = status === 'in_review'
                           return (
-                            <div key={r.band_label} className={cn('flex items-center gap-3 px-3 py-1.5 text-[12px]', conflict && 'bg-amber-50/60')}>
-                              <span className="w-28 text-muted-foreground/80">{r.band_label}</span>
+                            <div key={idx} className={cn('flex items-center gap-2 px-3 py-1.5 text-[12px]', conflict && 'bg-amber-50/60')}>
+                              <input value={r.band_label} disabled={!editable} onChange={e => updateRate(idx, { band_label: e.target.value })}
+                                className="w-28 text-[12px] px-2 py-0.5 rounded border border-transparent hover:border-border focus:border-primary/40 focus:outline-none bg-transparent text-muted-foreground/80 disabled:hover:border-transparent" />
                               <span className="text-muted-foreground/40">$</span>
-                              <input type="number" step="0.01" value={r.premium}
-                                onChange={e => setRates(prev => prev.map((x, i) => i === idx ? { ...x, premium: parseFloat(e.target.value) || 0 } : x))}
+                              <input type="number" step="0.01" value={r.premium} disabled={!editable}
+                                onChange={e => updateRate(idx, { premium: parseFloat(e.target.value) || 0 })}
                                 className={cn('w-28 text-[12px] px-2 py-0.5 rounded border bg-background focus:outline-none focus:ring-1 focus:ring-primary/30', conflict ? 'border-amber-300' : 'border-border')} />
                               {conflict && (
                                 <span className="text-[10.5px] text-amber-700 flex items-center gap-2">
@@ -191,10 +196,15 @@ export default function GbReviewPage() {
                                   {conflict.judge?.premium != null && <span className="font-semibold text-amber-800">→ judge {fmt(conflict.judge.premium)} ({conflict.judge.confidence}%)</span>}
                                 </span>
                               )}
+                              {editable && <button onClick={() => setRates(prev => prev.filter((_, i) => i !== idx))} className="ml-auto text-muted-foreground/30 hover:text-rose-600"><Trash2 size={12} /></button>}
                             </div>
                           )
                         })}
                       </div>
+                      {status === 'in_review' && (
+                        <button onClick={() => setRates(prev => [...prev, { product_code: product, plan_code: plan, band_label: '', age_min: null, age_max: null, premium: 0 }])}
+                          className="w-full flex items-center justify-center gap-1 px-3 py-1 text-[11px] text-primary hover:bg-primary/5 border-t border-border/60"><Plus size={11} /> Add band</button>
+                      )}
                     </div>
                   ))}
                 </div>

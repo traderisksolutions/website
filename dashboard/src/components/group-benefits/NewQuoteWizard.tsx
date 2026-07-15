@@ -1,8 +1,9 @@
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
-import { UploadCloud, Loader2, ArrowRight, ArrowLeft, Download, Reply, Sparkles } from 'lucide-react'
+import { UploadCloud, Loader2, ArrowRight, ArrowLeft, Download, Reply, Sparkles, Trash2, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { plainToHtml } from '@/components/RichEditor'
 
 // ── Types mirrored from the API ────────────────────────────────────────────────
 type Member = { name: string; category: string; relationship: string; dob?: string | null; age?: number | null }
@@ -52,9 +53,10 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
   const [step, setStep] = useState(0)
   const [members, setMembers] = useState<Member[]>([])
 
-  // Seed from a census extracted elsewhere (the Engagement "GB Quote" tab) and jump to setup.
+  // Seed from a census extracted elsewhere (the Engagement "GB Quote" tab). Stay on step 0
+  // so the broker can review/fix the extracted rows before quoting.
   useEffect(() => {
-    if (initialMembers && initialMembers.length) { setMembers(initialMembers); setStep(s => (s === 0 ? 1 : s)) }
+    if (initialMembers && initialMembers.length) setMembers(initialMembers)
   }, [initialMembers])
   useEffect(() => { if (initialCompany) setCompany(initialCompany) }, [initialCompany])
   const [company, setCompany] = useState('')
@@ -72,7 +74,8 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
 
-  const categories = useMemo(() => Array.from(new Set(members.map(m => m.category))), [members])
+  const categories = useMemo(() => Array.from(new Set(members.filter(m => m.name.trim()).map(m => m.category))), [members])
+  function editMember(i: number, patch: Partial<Member>) { setMembers(prev => prev.map((m, j) => (j === i ? { ...m, ...patch } : m))) }
 
   function downloadTemplate() {
     const a = document.createElement('a')
@@ -113,7 +116,7 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
     try {
       const res = await fetch('/api/group-benefits/quote', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ company_name: company, effective_date: effDate, gst_rate: gst / 100, products, rate_table_ids: Array.from(selectedTables), category_map: map, census: members }),
+        body: JSON.stringify({ company_name: company, effective_date: effDate, gst_rate: gst / 100, products, rate_table_ids: Array.from(selectedTables), category_map: map, census: members.filter(m => m.name.trim()) }),
       })
       const d = await res.json()
       if (!res.ok) { setError(d.error ?? 'Compute failed'); return }
@@ -192,19 +195,34 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
             <span className="text-[11px] text-muted-foreground/60">Headers: <code>name, category, relationship, dob, age</code> — dob (YYYY-MM-DD) preferred; age used if no dob. relationship = self / spouse / child.</span>
           </div>
           {members.length > 0 && (
-            <div className="border border-border rounded-lg divide-y divide-border/60 max-h-64 overflow-y-auto text-[11.5px]">
-              <div className="px-3 py-1.5 bg-muted/40 font-semibold text-muted-foreground/70">{members.length} members · {categories.length} categories ({categories.join(', ')})</div>
-              {members.map((m, i) => (
-                <div key={i} className="flex items-center gap-3 px-3 py-1">
-                  <span className="flex-1 truncate">{m.name}</span>
-                  <span className="w-20 text-muted-foreground/70">{m.category}</span>
-                  <span className="w-16 text-muted-foreground/60">{m.relationship}</span>
-                  <span className="w-24 text-muted-foreground/50">{m.dob || (m.age != null ? `age ${m.age}` : '—')}</span>
-                </div>
-              ))}
+            <div className="border border-border rounded-lg overflow-hidden text-[11.5px]">
+              <div className="px-3 py-1.5 bg-muted/40 font-semibold text-muted-foreground/70 flex items-center justify-between">
+                <span>{members.length} members · {categories.length} categor{categories.length === 1 ? 'y' : 'ies'} ({categories.join(', ')})</span>
+                <span className="text-[10px] font-normal text-muted-foreground/50">Review &amp; fix before quoting</span>
+              </div>
+              <div className="grid grid-cols-[1.4fr_1fr_0.8fr_1fr_24px] gap-1 px-2 py-1 text-[9.5px] font-bold uppercase tracking-wide text-muted-foreground/50">
+                <span>Name</span><span>Category</span><span>Relation</span><span>DOB / age</span><span />
+              </div>
+              <div className="divide-y divide-border/60 max-h-72 overflow-y-auto">
+                {members.map((m, i) => (
+                  <div key={i} className="grid grid-cols-[1.4fr_1fr_0.8fr_1fr_24px] gap-1 px-2 py-1 items-center">
+                    <input value={m.name} onChange={e => editMember(i, { name: e.target.value })} className="text-[11.5px] px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-primary/40 focus:outline-none bg-transparent" />
+                    <input value={m.category} onChange={e => editMember(i, { category: e.target.value })} className="text-[11.5px] px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-primary/40 focus:outline-none bg-transparent" />
+                    <select value={m.relationship} onChange={e => editMember(i, { relationship: e.target.value })} className="text-[11px] px-1 py-0.5 rounded border border-transparent hover:border-border focus:border-primary/40 focus:outline-none bg-transparent">
+                      <option value="self">self</option><option value="spouse">spouse</option><option value="child">child</option>
+                    </select>
+                    <input value={m.dob ?? (m.age != null ? String(m.age) : '')} placeholder="YYYY-MM-DD or age"
+                      onChange={e => { const v = e.target.value.trim(); editMember(i, /^\d{1,3}$/.test(v) && Number(v) <= 120 ? { dob: null, age: Number(v) } : { dob: v || null, age: null }) }}
+                      className="text-[11.5px] px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-primary/40 focus:outline-none bg-transparent" />
+                    <button onClick={() => setMembers(prev => prev.filter((_, j) => j !== i))} className="text-muted-foreground/30 hover:text-rose-600"><Trash2 size={12} /></button>
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => setMembers(prev => [...prev, { name: '', category: categories[0] ?? 'Default', relationship: 'self', dob: null, age: null }])}
+                className="w-full flex items-center justify-center gap-1 px-3 py-1.5 text-[11px] text-primary hover:bg-primary/5 border-t border-border/60"><Plus size={12} /> Add member</button>
             </div>
           )}
-          <Nav next={() => setStep(1)} nextLabel="Products" nextDisabled={members.length === 0} />
+          <Nav next={() => setStep(1)} nextLabel="Products" nextDisabled={members.filter(m => m.name.trim()).length === 0} />
         </div>
       )}
 
@@ -359,7 +377,7 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
 
           <div className="flex items-center gap-2">
             {onDraftReply && (
-              <button onClick={() => onDraftReply(buildReplySummary(byInsurer))} className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90">
+              <button onClick={() => onDraftReply(plainToHtml(buildReplySummary(byInsurer)))} className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90">
                 <Reply size={13} /> Draft reply with this quote{analysis ? ' + recommendation' : ''}
               </button>
             )}

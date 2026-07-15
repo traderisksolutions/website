@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
+import { bandBounds }                from '@/lib/gb-extract'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -71,9 +72,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     // Arrays fully replace the candidate rows for this table (the review grid sends the
     // whole edited set).
     if (Array.isArray(body.rates)) {
+      // Re-derive age bounds + renewal flag from the (possibly edited) band label, and drop
+      // duplicate (product, plan, band) rows so the bulk insert can't fail on the constraint.
+      const seen = new Set<string>()
+      const rows = body.rates
+        .filter(r => r.plan_code && r.band_label && r.premium != null)
+        .map(r => { const b = bandBounds(r.band_label); return { rate_table_id: id, ...r, age_min: b.age_min, age_max: b.age_max, renewal_only: b.renewal_only } })
+        .filter(r => { const k = `${r.product_code}|${r.plan_code}|${r.band_label}`; if (seen.has(k)) return false; seen.add(k); return true })
       await fetch(`${SB_URL}/rest/v1/gb_rates?rate_table_id=eq.${id}`, { method: 'DELETE', headers: sbH() })
-      const rows = body.rates.filter(r => r.plan_code && r.band_label && r.premium != null).map(r => ({ rate_table_id: id, ...r }))
-      if (rows.length) await fetch(`${SB_URL}/rest/v1/gb_rates`, { method: 'POST', headers: sbH(), body: JSON.stringify(rows) })
+      if (rows.length) {
+        const ins = await fetch(`${SB_URL}/rest/v1/gb_rates`, { method: 'POST', headers: sbH(), body: JSON.stringify(rows) })
+        if (!ins.ok) return NextResponse.json({ error: `Failed to save rates: ${(await ins.text()).slice(0, 200)}` }, { status: 500 })
+      }
     }
     if (Array.isArray(body.plans)) {
       await fetch(`${SB_URL}/rest/v1/gb_plans?rate_table_id=eq.${id}`, { method: 'DELETE', headers: sbH() })

@@ -118,7 +118,7 @@ export async function extractWithGemini(pdfBase64: string, profileHint: string):
 }
 
 // ── C. Deterministic code parser (text rate rows) ───────────────────────────────
-function bandBounds(label: string): { age_min: number | null; age_max: number | null; renewal_only: boolean } {
+export function bandBounds(label: string): { age_min: number | null; age_max: number | null; renewal_only: boolean } {
   const renewal_only = /\*/.test(label)
   const l = label.toLowerCase()
   let m: RegExpMatchArray | null
