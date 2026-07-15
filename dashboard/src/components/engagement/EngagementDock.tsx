@@ -39,7 +39,7 @@ export function EngagementDock({
     { key: 'reply',    label: 'Reply',       icon: <Reply size={13} strokeWidth={2} /> },
     { key: 'analysis', label: 'AI Analysis', icon: <Sparkles size={13} strokeWidth={2} /> },
     { key: 'rfq',      label: 'RFQ',         icon: <FileText size={13} strokeWidth={2} /> },
-    { key: 'gbquote',  label: 'GB Quote',    icon: <HeartPulse size={13} strokeWidth={2} /> },
+    { key: 'gbquote',  label: 'Pricing Quote', icon: <HeartPulse size={13} strokeWidth={2} /> },
   ]
 
   return (

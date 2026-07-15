@@ -45,7 +45,7 @@ export default function GroupBenefitsPage() {
     <div className="p-8 max-w-6xl mx-auto">
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">Group Benefits</h1>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">Pricing Matrix</h1>
           <p className="text-sm text-muted-foreground mt-1">Insurer rate matrices — upload a PDF, extract with 3 agents + Opus judge, review, approve.</p>
         </div>
         <div className="flex items-center gap-2">

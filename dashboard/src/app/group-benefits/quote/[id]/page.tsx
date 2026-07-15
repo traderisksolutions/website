@@ -57,7 +57,7 @@ export default function QuoteDetailPage() {
 
   return (
     <div className="p-8 max-w-6xl mx-auto">
-      <button onClick={() => router.push('/group-benefits')} className="flex items-center gap-1.5 text-[12px] text-muted-foreground hover:text-foreground mb-4"><ArrowLeft size={13} /> Group Benefits</button>
+      <button onClick={() => router.push('/group-benefits')} className="flex items-center gap-1.5 text-[12px] text-muted-foreground hover:text-foreground mb-4"><ArrowLeft size={13} /> Pricing Matrix</button>
 
       <div className="mb-5">
         <h1 className="text-lg font-bold text-foreground">{q.company_name || 'Untitled quote'}</h1>
