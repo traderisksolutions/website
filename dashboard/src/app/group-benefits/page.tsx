@@ -115,6 +115,7 @@ function TableRow({ t }: { t: RateTable }) {
 type Quote = { id: string; company_name: string | null; effective_date: string | null; product_codes: string[]; member_count: number; results: { insurer_name: string; total: number }[]; created_at: string }
 
 function QuotesTab() {
+  const router = useRouter()
   const [rows, setRows] = useState<Quote[]>([])
   const [loading, setLoading] = useState(true)
   useEffect(() => {
@@ -127,14 +128,15 @@ function QuotesTab() {
       {rows.map(q => {
         const best = [...(q.results ?? [])].sort((a, b) => a.total - b.total)[0]
         return (
-          <div key={q.id} className="flex items-center justify-between px-4 py-3 rounded-lg border border-border bg-card text-[12.5px]">
+          <button key={q.id} onClick={() => router.push(`/group-benefits/quote/${q.id}`)}
+            className="flex items-center justify-between px-4 py-3 rounded-lg border border-border bg-card text-[12.5px] text-left hover:border-primary/40 hover:bg-primary/[0.02] transition-colors">
             <div className="min-w-0">
               <span className="font-semibold text-foreground">{q.company_name || 'Untitled'}</span>
               <span className="text-muted-foreground/60"> · {q.member_count} members · {(q.product_codes ?? []).join('/')}</span>
               <p className="text-[11px] text-muted-foreground/60 mt-0.5">{new Date(q.created_at).toLocaleString('en-SG')}{q.effective_date ? ` · eff ${q.effective_date}` : ''}</p>
             </div>
             {best && <span className="text-[12px] text-emerald-700 font-semibold flex-shrink-0">Best: {best.insurer_name} {best.total.toLocaleString('en-SG', { style: 'currency', currency: 'SGD' })}</span>}
-          </div>
+          </button>
         )
       })}
     </div>

@@ -427,6 +427,11 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
   const dateStr  = headerVal(hdrs, 'Date')
   const sentAt   = dateStr ? new Date(dateStr).toISOString() : new Date().toISOString()
   const gmailThreadId = msg.threadId
+  // RFC822 threading headers — needed to build In-Reply-To/References on our replies
+  // so recipients' clients (Outlook/AIA) thread the conversation. Gmail's internal id
+  // (gmailMsgId) is not a valid References value; the Message-ID header is.
+  const rfc822MessageId = headerVal(hdrs, 'Message-ID') || null
+  const inReplyTo       = headerVal(hdrs, 'In-Reply-To') || null
 
   const fromEmail = (fromRaw.match(/<(.+?)>/) ?? [, fromRaw])[1]?.trim() ?? fromRaw.trim()
   const fromName  = fromRaw.includes('<') ? fromRaw.split('<')[0].trim().replace(/^"|"$/g, '') : null
@@ -579,6 +584,8 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
     body:    JSON.stringify({
       thread_id:        thread.id,
       gmail_message_id: gmailMsgId,
+      rfc822_message_id: rfc822MessageId,
+      in_reply_to:      inReplyTo,
       direction,
       from_address:     fromEmail,
       subject,
