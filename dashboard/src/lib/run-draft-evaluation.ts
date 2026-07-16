@@ -6,6 +6,8 @@
  * If score >= 4, also stores in prompt_examples for future few-shot injection.
  */
 
+import { fetchAttachmentContext } from '@/lib/thread-attachment-context'
+
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
 
@@ -101,19 +103,36 @@ export async function runDraftEvaluation(
 
     const draft = { body: draftRow.body, email_type: emailType, thread_id: draftRow.thread_id }
 
-    // 3. Last inbound message = what the client sent (context for scoring)
-    let incomingEmail = ''
-    if (tid) {
-      const inboundRes = await sb<{ body_text: string }>(
-        `email_messages?thread_id=eq.${encodeURIComponent(tid)}&direction=eq.inbound&order=sent_at.desc&select=body_text&limit=1`
-      )
-      incomingEmail = inboundRes.data[0]?.body_text ?? ''
-    }
-
     // Use override when provided (RAG drafts: original AI content before human edits)
     const aiBody = aiBodyOverride?.trim() || draft.body
 
-    // Skip evaluation if the AI and human bodies are nearly identical (no edits made)
+    // 3. Gather FULL context so the evaluator judges the draft the way a reviewer would:
+    //    the whole thread, our AI analysis (what we understood + recommended), and attachment
+    //    contents (so a human fixing a figure from a PDF/Excel is understood, not mislabeled).
+    let threadText = '', analysisText = '', attachmentText = ''
+    if (tid) {
+      const [msgsRes, sumRes, atts] = await Promise.all([
+        sb<{ direction: string; from_address: string | null; body_text: string | null; sent_at: string }>(
+          `email_messages?thread_id=eq.${encodeURIComponent(tid)}&order=sent_at.asc&select=direction,from_address,body_text,sent_at`
+        ),
+        sb<{ summary: string | null; next_action: string | null }>(
+          `thread_summaries?thread_id=eq.${encodeURIComponent(tid)}&order=created_at.desc&limit=1&select=summary,next_action`
+        ),
+        fetchAttachmentContext(tid, 8000),
+      ])
+      threadText = msgsRes.data.map(m => {
+        const who = m.direction === 'inbound' ? `CLIENT (${m.from_address})` : 'TRS (us)'
+        return `${who}:\n${(m.body_text ?? '').slice(0, 1500)}`
+      }).join('\n\n---\n\n')
+      const s = sumRes.data[0]
+      if (s?.summary || s?.next_action) {
+        analysisText = [s?.summary && `Summary: ${s.summary}`, s?.next_action && `Recommended next action: ${s.next_action}`].filter(Boolean).join('\n')
+      }
+      attachmentText = atts
+    }
+
+    // Skip evaluation if the AI and human bodies are nearly identical (no edits made) — no need
+    // to spend a Gemini call. Positional char overlap is a cheap "are these basically the same".
     const aiTrimmed    = aiBody.trim().replace(/\s+/g, ' ')
     const humanTrimmed = humanBody.trim().replace(/\s+/g, ' ')
     const longer  = Math.max(aiTrimmed.length, humanTrimmed.length)
@@ -121,47 +140,54 @@ export async function runDraftEvaluation(
     let matching = 0
     for (let i = 0; i < shorter; i++) { if (aiTrimmed[i] === humanTrimmed[i]) matching++ }
     const overlap = longer > 0 ? matching / longer : 0
-    // If >95% identical, score it as a 5 without calling Gemini (saves cost)
     if (overlap > 0.95) {
-      console.log(`[eval] >95% overlap — storing score=5 without Gemini call`)
-      await storeEval(draftId, tid ?? '', emailType, aiBody, humanBody, 5, {
-        what_human_changed: 'No meaningful changes — sent almost as-is.',
-        why_better:         'AI draft was high quality.',
-        key_learning:       'Continue current approach for this email type.',
-        context_summary:    `${emailType} email handled well. Client email: ${incomingEmail.slice(0, 120)}`,
-      }, true)
+      console.log(`[eval] >95% overlap — storing 5/5 (sent as-is) without Gemini call`)
+      await storeEval(draftId, tid ?? '', emailType, aiBody, humanBody,
+        { substance: 5, style: 5, editType: 'none' }, {
+          what_human_changed: 'No meaningful changes — sent almost as-is.',
+          why_better:         'AI draft was high quality.',
+          key_learning:       '',
+          context_summary:    `${emailType} email handled well as drafted.`,
+        }, true)
       return
     }
 
-    // 4. Gemini evaluation call
+    // 4. Gemini evaluation call — two axes (substance vs style)
     console.log(`[eval] calling Gemini to score draft (overlap=${Math.round(overlap*100)}%)`)
-    const evalPrompt = `You evaluate AI-generated email replies for Trade Risk Solutions, a Singapore insurance brokerage.
+    const evalPrompt = `You evaluate AI-generated email replies for Trade Risk Solutions, a Singapore insurance brokerage. You compare the AI's draft to what the human account executive actually sent, and extract lessons to improve future drafts.
 
 EMAIL TYPE: ${emailType}
 
-INCOMING CLIENT EMAIL:
-${incomingEmail.slice(0, 2000)}
+━━ CONVERSATION THREAD ━━
+${threadText.slice(0, 6000) || '(no prior messages)'}
 
-AI DRAFT (what the AI generated):
-${aiBody.slice(0, 2000)}
+━━ OUR AI ANALYSIS (what the system understood + recommended) ━━
+${analysisText || '(none)'}
 
-HUMAN-SENT REPLY (what was actually sent after editing):
-${humanBody.slice(0, 2000)}
+━━ ATTACHMENT CONTENTS (documents in the thread) ━━
+${attachmentText ? attachmentText.slice(0, 6000) : '(none)'}
 
-Score the AI draft on how close it was to what the human sent (1–5):
-5 = sent almost as-is — only cosmetic or punctuation edits
-4 = good draft, human made small but meaningful improvements
-3 = usable but human made significant rewrites, restructuring, or cuts
-2 = major problems — human rewrote more than half
-1 = AI draft discarded — human wrote from scratch
+━━ AI DRAFT (what the AI generated) ━━
+${aiBody.slice(0, 3000)}
 
-Return ONLY valid JSON (no markdown fences, no text outside the JSON):
+━━ HUMAN-SENT REPLY (what was actually sent) ━━
+${humanBody.slice(0, 3000)}
+
+Judge the AI draft on TWO independent axes, each 1–5 (5 = the human needed to change nothing on that axis; 1 = badly wrong / fully rewritten):
+- SUBSTANCE: facts, figures, completeness, correctness, and whether it followed the recommended next action. Did the human have to fix or add real content?
+- STYLE: tone, phrasing, formatting, personalisation — presentation only.
+
+Also classify edit_type: "none" (sent ~as-is), "style" (only tone/wording changed), "substance" (facts/content changed), or "both".
+
+Return ONLY valid JSON (no markdown fences):
 {
-  "score": <number 1-5>,
+  "substance_score": <1-5>,
+  "style_score": <1-5>,
+  "edit_type": "none|style|substance|both",
   "what_human_changed": "<one sentence describing the main edit>",
   "why_better": "<one sentence: what the human version did better>",
-  "key_learning": "<one specific actionable rule the AI prompt should add or change for ${emailType} emails>",
-  "context_summary": "<2-sentence summary of this email exchange — used as a label if this example is stored>"
+  "key_learning": "<ONE specific, actionable rule for future ${emailType} drafts, based on a SUBSTANTIVE gap. If the edit was purely stylistic/personalisation with no substantive fix, return an empty string — we do not over-train on one person's tone.>",
+  "context_summary": "<2-sentence summary of this exchange — used as a label if stored>"
 }`
 
     const evalRes = await fetch(`${GEMINI_URL}?key=${geminiKey}`, {
@@ -186,15 +212,20 @@ Return ONLY valid JSON (no markdown fences, no text outside the JSON):
       parsed  = m ? JSON.parse(m[0]) : {}
     } catch { return }
 
-    const score = typeof parsed.score === 'number' ? Math.min(5, Math.max(1, Math.round(parsed.score))) : 0
-    if (!score) return
+    const clamp = (v: unknown) => typeof v === 'number' ? Math.min(5, Math.max(1, Math.round(v))) : 0
+    const substance = clamp(parsed.substance_score)
+    const style     = clamp(parsed.style_score)
+    if (!substance && !style) return
+    const editType  = ['none', 'style', 'substance', 'both'].includes(String(parsed.edit_type)) ? String(parsed.edit_type) : 'both'
 
-    await storeEval(draftId, tid ?? '', emailType, aiBody, humanBody, score, {
-      what_human_changed: String(parsed.what_human_changed ?? ''),
-      why_better:         String(parsed.why_better ?? ''),
-      key_learning:       String(parsed.key_learning ?? ''),
-      context_summary:    String(parsed.context_summary ?? ''),
-    }, score >= 4)
+    // Store the sent reply as a few-shot ideal example when the AI was substantively strong.
+    await storeEval(draftId, tid ?? '', emailType, aiBody, humanBody,
+      { substance: substance || style, style: style || substance, editType }, {
+        what_human_changed: String(parsed.what_human_changed ?? ''),
+        why_better:         String(parsed.why_better ?? ''),
+        key_learning:       String(parsed.key_learning ?? ''),
+        context_summary:    String(parsed.context_summary ?? ''),
+      }, (substance || style) >= 4)
 
   } catch {
     // Never surface — evaluation is non-critical
@@ -207,21 +238,27 @@ async function storeEval(
   emailType: string,
   aiBody: string,
   humanBody: string,
-  score: number,
+  scores: { substance: number; style: number; editType: string },
   evalJson: Record<string, string>,
   storeExample: boolean,
 ) {
   const h = sbH()
 
+  // score (legacy, for existing UI/thresholds) mirrors the substance axis — the one that matters.
   await fetch(`${SB_URL}/rest/v1/draft_evaluations`, {
     method: 'POST', headers: h,
-    body: JSON.stringify({ draft_id: draftId, thread_id: threadId, email_type: emailType, ai_body: aiBody, human_body: humanBody, score, eval_json: evalJson }),
+    body: JSON.stringify({
+      draft_id: draftId, thread_id: threadId || null, email_type: emailType,
+      ai_body: aiBody, human_body: humanBody,
+      score: scores.substance, substance_score: scores.substance, style_score: scores.style, edit_type: scores.editType,
+      eval_json: evalJson,
+    }),
   })
 
   if (storeExample) {
     await fetch(`${SB_URL}/rest/v1/prompt_examples`, {
       method: 'POST', headers: h,
-      body: JSON.stringify({ email_type: emailType, context_summary: evalJson.context_summary, ideal_reply: humanBody, score }),
+      body: JSON.stringify({ email_type: emailType, context_summary: evalJson.context_summary, ideal_reply: humanBody, score: scores.substance }),
     })
   }
 }
