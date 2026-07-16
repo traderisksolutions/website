@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2, CheckCircle2, AlertTriangle, Save, FileText, RefreshCw, Trash2 } from 'lucide-react'
+import { ArrowLeft, Loader2, CheckCircle2, AlertTriangle, Save, FileText, RefreshCw, Trash2, Pencil, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type Rate    = { id?: string; product_code: string; member_type: string | null; plan_code: string; band_label: string; age_min: number | null; age_max: number | null; premium: number; renewal_only?: boolean }
@@ -37,6 +37,7 @@ export default function GbReviewPage() {
   const [msg, setMsg] = useState<string | null>(null)
   const [meta, setMeta] = useState<Record<string, string>>({})
   const [insurers, setInsurers] = useState<{ id: string; name: string }[]>([])
+  const [editing, setEditing] = useState(false)   // edit an already-approved table without re-extracting
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/group-benefits/rate-tables/${id}`, { cache: 'no-store' })
@@ -116,9 +117,10 @@ export default function GbReviewPage() {
         router.push('/group-benefits')
         return
       }
-      setMsg('Saved'); load()
+      setMsg('Saved'); setEditing(false); load()
     } finally { setSaving(null) }
   }
+  function cancelEdit() { setEditing(false); setMsg(null); load() }
 
   if (!d) return <div className="p-8"><Loader2 className="animate-spin text-muted-foreground" /></div>
 
@@ -127,6 +129,7 @@ export default function GbReviewPage() {
   const mi = 'w-full text-[12.5px] border border-border rounded-md px-2.5 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary/25'
   const btn = 'flex items-center gap-1.5 text-[12.5px] font-medium px-2.5 py-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50'
   const insurerLabel = meta.insurer_name || t.insurer_name || 'Insurer'
+  const editable = status === 'in_review' || editing   // cells + metadata are editable in review, or when explicitly editing an approved table
 
   return (
     <div className="min-h-screen bg-white">
@@ -142,26 +145,37 @@ export default function GbReviewPage() {
         </div>
         <div className="flex items-center gap-0.5 flex-shrink-0">
           {msg && <span className={cn('text-[12px] mr-2', /fail/i.test(msg) ? 'text-rose-600' : 'text-emerald-600')}>{msg}</span>}
-          {status === 'approved' && <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 mr-1.5">Approved</span>}
+          {status === 'approved' && !editing && <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 mr-1.5">Approved</span>}
           <a href={`/api/group-benefits/rate-tables/${id}/pdf`} target="_blank" rel="noopener noreferrer" className={btn}><FileText size={13} /> PDF</a>
-          {status !== 'extracting' && <button onClick={reExtract} disabled={!!saving} className={btn} title="Re-run extraction"><RefreshCw size={13} /> Re-run</button>}
-          <button onClick={del} className={cn(btn, 'text-rose-500 hover:text-rose-600 hover:bg-rose-50')} title="Delete"><Trash2 size={13} /></button>
-          {status === 'in_review' && (
+          {status !== 'extracting' && !editing && <button onClick={reExtract} disabled={!!saving} className={btn} title="Re-run extraction"><RefreshCw size={13} /> Re-run</button>}
+          {!editing && <button onClick={del} className={cn(btn, 'text-rose-500 hover:text-rose-600 hover:bg-rose-50')} title="Delete"><Trash2 size={13} /></button>}
+
+          {/* Edit an approved table in place (no re-extract) */}
+          {status === 'approved' && !editing && (
             <>
               <span className="w-px h-5 bg-border mx-1.5" />
+              <button onClick={() => setEditing(true)} className={btn}><Pencil size={13} /> Edit</button>
+            </>
+          )}
+          {(status === 'in_review' || editing) && (
+            <>
+              <span className="w-px h-5 bg-border mx-1.5" />
+              {editing && <button onClick={cancelEdit} disabled={!!saving} className={btn}><X size={13} /> Cancel</button>}
               <button onClick={() => save(false)} disabled={!!saving} className={btn}>
-                {saving === 'save' ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} Save
+                {saving === 'save' ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} {editing ? 'Save changes' : 'Save'}
               </button>
-              <button onClick={() => save(true)} disabled={!!saving} className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-1.5 rounded-md bg-primary text-white hover:bg-primary/90 disabled:opacity-50">
-                {saving === 'approve' ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />} Approve
-              </button>
+              {status === 'in_review' && (
+                <button onClick={() => save(true)} disabled={!!saving} className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-1.5 rounded-md bg-primary text-white hover:bg-primary/90 disabled:opacity-50">
+                  {saving === 'approve' ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />} Approve
+                </button>
+              )}
             </>
           )}
         </div>
       </div>
 
-      {/* Extracted metadata — read from the PDF, editable before approval */}
-      {status === 'in_review' && (
+      {/* Extracted metadata — read from the PDF, editable in review or edit mode */}
+      {editable && (
         <div className="rounded-lg border border-border bg-white p-4 mb-6">
           <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50 mb-3">Details read from the PDF — correct if needed</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-start">
@@ -256,7 +270,6 @@ export default function GbReviewPage() {
                 const bands = Array.from(order.keys()).sort((a, b) => (order.get(a)! - order.get(b)!) || a.localeCompare(b))
                 const cell = new Map<string, Rate>()
                 for (const r of mtRates) cell.set(`${r.band_label}|${r.plan_code}`, r)
-                const editable = status === 'in_review'
                 return (
                   <div key={mt} className="mb-5">
                     {mtLabel(mt || null) && <p className="text-[10px] font-bold uppercase tracking-wider text-primary/60 mb-2">{mtLabel(mt || null)}</p>}
@@ -338,8 +351,8 @@ export default function GbReviewPage() {
                         <td className="pl-4 whitespace-nowrap text-muted-foreground">{b.product_code}{b.plan_code ? ` · ${b.plan_code}` : ''}</td>
                         <td className="text-foreground/80">{b.category ? `${b.category} — ` : ''}{b.benefit_name}</td>
                         <td className="text-right pr-2 py-1">
-                          <input value={b.value_text ?? ''} onChange={e => setBenefits(prev => prev.map((x, j) => j === i ? { ...x, value_text: e.target.value } : x))}
-                            className="w-44 text-right text-[12px] px-2 py-1 rounded border border-transparent hover:border-border focus:border-primary/40 focus:outline-none bg-white" />
+                          <input value={b.value_text ?? ''} disabled={!editable} onChange={e => setBenefits(prev => prev.map((x, j) => j === i ? { ...x, value_text: e.target.value } : x))}
+                            className="w-44 text-right text-[12px] px-2 py-1 rounded border border-transparent hover:border-border focus:border-primary/40 focus:outline-none bg-white disabled:hover:border-transparent" />
                         </td>
                       </tr>
                     ))}
