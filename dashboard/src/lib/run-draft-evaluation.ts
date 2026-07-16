@@ -29,6 +29,20 @@ async function sb<T>(path: string): Promise<{ ok: boolean; data: T[]; status: nu
   return { ok: res.ok, status: res.status, data: Array.isArray(data) ? data : [] }
 }
 
+// Word-set Jaccard similarity — robust to insertions/reordering (unlike positional char match,
+// where a single early edit tanks the score and forces a needless Gemini call).
+function wordSet(s: string): Set<string> {
+  return new Set(s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean))
+}
+function wordJaccard(a: string, b: string): number {
+  const sa = wordSet(a), sb = wordSet(b)
+  if (sa.size === 0 && sb.size === 0) return 1
+  let inter = 0
+  for (const w of Array.from(sa)) if (sb.has(w)) inter++
+  const union = sa.size + sb.size - inter
+  return union > 0 ? inter / union : 1
+}
+
 // humanBodyOverride: the plain-text body of what was actually sent, passed directly from the
 // send route so evaluation works even when thread_id is null or email_messages insert is delayed.
 // aiBodyOverride: the original AI-generated body before human edits. Passed for RAG drafts because
@@ -132,17 +146,10 @@ export async function runDraftEvaluation(
       attachmentText = atts
     }
 
-    // Skip evaluation if the AI and human bodies are nearly identical (no edits made) — no need
-    // to spend a Gemini call. Positional char overlap is a cheap "are these basically the same".
-    const aiTrimmed    = aiBody.trim().replace(/\s+/g, ' ')
-    const humanTrimmed = humanBody.trim().replace(/\s+/g, ' ')
-    const longer  = Math.max(aiTrimmed.length, humanTrimmed.length)
-    const shorter = Math.min(aiTrimmed.length, humanTrimmed.length)
-    let matching = 0
-    for (let i = 0; i < shorter; i++) { if (aiTrimmed[i] === humanTrimmed[i]) matching++ }
-    const overlap = longer > 0 ? matching / longer : 0
-    if (overlap > 0.95) {
-      console.log(`[eval] >95% overlap — storing 5/5 (sent as-is) without Gemini call`)
+    // Skip the Gemini call when the AI and human bodies are near-identical (no meaningful edits).
+    const similarity = wordJaccard(aiBody, humanBody)
+    if (similarity > 0.9) {
+      console.log(`[eval] ${Math.round(similarity*100)}% word-overlap — storing 5/5 (sent as-is) without Gemini call`)
       await storeEval(draftId, tid ?? '', emailType, aiBody, humanBody,
         { substance: 5, style: 5, editType: 'none' }, {
           what_human_changed: 'No meaningful changes — sent almost as-is.',
@@ -154,7 +161,7 @@ export async function runDraftEvaluation(
     }
 
     // 4. Gemini evaluation call — two axes (substance vs style)
-    console.log(`[eval] calling Gemini to score draft (overlap=${Math.round(overlap*100)}%)`)
+    console.log(`[eval] calling Gemini to score draft (word-overlap=${Math.round(similarity*100)}%)`)
     const evalPrompt = `You evaluate AI-generated email replies for Trade Risk Solutions, a Singapore insurance brokerage. You compare the AI's draft to what the human account executive actually sent, and extract lessons to improve future drafts.
 
 EMAIL TYPE: ${emailType}
@@ -263,9 +270,19 @@ async function storeEval(
   })
 
   if (storeExample) {
-    await fetch(`${SB_URL}/rest/v1/prompt_examples`, {
-      method: 'POST', headers: h,
-      body: JSON.stringify({ email_type: emailType, context_summary: evalJson.context_summary, ideal_reply: humanBody, score: scores.substance }),
-    })
+    // Dedup: don't store a near-identical ideal reply we already have for this type — keeps the
+    // few-shot pool diverse rather than repeating the same template.
+    const exRes = await fetch(
+      `${SB_URL}/rest/v1/prompt_examples?email_type=eq.${encodeURIComponent(emailType)}&order=created_at.desc&limit=20&select=ideal_reply`,
+      { headers: { apikey: h.apikey, Authorization: h.Authorization }, cache: 'no-store' }
+    )
+    const existing: { ideal_reply: string | null }[] = exRes.ok ? await exRes.json() : []
+    const dup = existing.some(e => e.ideal_reply && wordJaccard(e.ideal_reply, humanBody) > 0.85)
+    if (!dup) {
+      await fetch(`${SB_URL}/rest/v1/prompt_examples`, {
+        method: 'POST', headers: h,
+        body: JSON.stringify({ email_type: emailType, context_summary: evalJson.context_summary, ideal_reply: humanBody, score: scores.substance }),
+      })
+    }
   }
 }

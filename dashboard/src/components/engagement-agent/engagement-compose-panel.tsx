@@ -78,6 +78,9 @@ export function EngagementComposePanel({
   const [attachMenuOpen, setAttachMenuOpen] = useState(false)
   const [uploading,     setUploading]     = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // The AI/RAG draft as generated, captured before the human edits it — sent as originalAiBody
+  // so the eval compares the true AI output vs the sent version (esp. for RAG-origin drafts).
+  const aiOriginalRef = useRef<string>('')
 
   const log = useAuditLog()
 
@@ -130,6 +133,7 @@ export function EngagementComposePanel({
     setRagSources([]); setAiDraftChecked(false)
     setSelectedFrom(senders[0]?.email ?? '')
     setAttachments([]); setAttachMenuOpen(false)
+    aiOriginalRef.current = ''
   }, [lead.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load the thread's stored files (for re-attaching) + clear selected attachments on switch.
@@ -186,6 +190,7 @@ export function EngagementComposePanel({
   useEffect(() => {
     if (!pendingRestore) return
     setDraftHtml(pendingRestore.body)
+    aiOriginalRef.current = htmlToPlain(pendingRestore.body)
     setDraftLoaded(true)
     setDraftEditorKey(k => k + 1)
   }, [pendingRestore?.stamp]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -203,6 +208,7 @@ export function EngagementComposePanel({
         if (latest?.body) {
           setDraftId(latest.id)
           setDraftHtml(plainToHtml(latest.body))
+          aiOriginalRef.current = latest.body
           setDraftLoaded(true)
           setDraftEditorKey(k => k + 1)
         }
@@ -216,6 +222,7 @@ export function EngagementComposePanel({
     if (!aiDraftChecked || draftLoaded || sent) return
     if (storedDraft) {
       setDraftHtml(plainToHtml(storedDraft))
+      aiOriginalRef.current = storedDraft
       setDraftLoaded(true)
       setDraftEditorKey(k => k + 1)
     }
@@ -266,6 +273,7 @@ export function EngagementComposePanel({
       if (data.error) { setError(data.error); return }
       setDraftId(data.draftId)
       setDraftHtml(plainToHtml(data.content))
+      aiOriginalRef.current = data.content
       setDraftEditorKey(k => k + 1)
       log({
         action: 'draft.generated', resource_type: 'thread',
@@ -315,6 +323,7 @@ export function EngagementComposePanel({
           customSubject: customSubject || undefined,
           fromEmail:     selectedFrom || undefined,
           attachments:   attachments.length ? attachments : undefined,
+          originalAiBody: aiOriginalRef.current.trim() || undefined,
         }),
       })
       if (!sendRes.ok) {
