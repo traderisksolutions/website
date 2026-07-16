@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2, CheckCircle2, AlertTriangle, Save, FileText, RefreshCw, Trash2, Plus } from 'lucide-react'
+import { ArrowLeft, Loader2, CheckCircle2, AlertTriangle, Save, FileText, RefreshCw, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type Rate    = { id?: string; product_code: string; member_type: string | null; plan_code: string; band_label: string; age_min: number | null; age_max: number | null; premium: number; renewal_only?: boolean }
@@ -124,39 +124,36 @@ export default function GbReviewPage() {
 
   const t = d.table as { insurer_name?: string; product_code?: string; source_pdf_name?: string; age_basis?: string; plan_year?: number }
   const byProduct = groupBy(rates, r => r.product_code)
-  const mi = 'w-full text-[12px] border border-border rounded-md px-2 py-1 bg-background focus:outline-none focus:ring-1 focus:ring-primary/25'
+  const mi = 'w-full text-[12.5px] border border-border rounded-md px-2.5 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary/25'
+  const btn = 'flex items-center gap-1.5 text-[12.5px] font-medium px-2.5 py-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50'
+  const insurerLabel = meta.insurer_name || t.insurer_name || 'Insurer'
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
+    <div className="min-h-screen bg-white">
+    <div className="max-w-6xl mx-auto px-8 py-6">
       <button onClick={() => router.push('/group-benefits')} className="flex items-center gap-1.5 text-[12px] text-muted-foreground hover:text-foreground mb-4"><ArrowLeft size={13} /> Rate Tables</button>
 
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <h1 className="text-lg font-bold text-foreground">{t.insurer_name || 'Unknown insurer'} · {t.product_code}</h1>
-          <p className="text-[12px] text-muted-foreground/70 mt-0.5">{t.source_pdf_name} · age {t.age_basis === 'last_birthday' ? 'last' : 'next'} birthday{t.plan_year ? ` · ${t.plan_year}` : ''}</p>
+      <div className="flex items-start justify-between gap-6 mb-6">
+        <div className="min-w-0">
+          <h1 className="text-[19px] font-semibold text-foreground tracking-tight truncate">{insurerLabel}</h1>
+          <p className="text-[12px] text-muted-foreground mt-1 truncate">
+            {t.source_pdf_name} · age {t.age_basis === 'last_birthday' ? 'last' : 'next'} birthday{t.plan_year ? ` · ${t.plan_year}` : ''} · {byProduct.size} product{byProduct.size === 1 ? '' : 's'} · {rates.length} rates
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          {msg && <span className={cn('text-[12px]', /fail/i.test(msg) ? 'text-rose-600' : 'text-emerald-600')}>{msg}</span>}
-          {status === 'approved' && <span className="text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 mr-1">Approved</span>}
-          <a href={`/api/group-benefits/rate-tables/${id}/pdf`} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-[12.5px] font-medium px-3 py-1.5 rounded-lg border border-border hover:bg-muted">
-            <FileText size={13} /> View PDF
-          </a>
-          {status !== 'extracting' && (
-            <button onClick={reExtract} disabled={!!saving} className="flex items-center gap-1.5 text-[12.5px] font-medium px-3 py-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-50" title="Re-run the 3 extractors + judge">
-              <RefreshCw size={13} /> Re-run
-            </button>
-          )}
-          <button onClick={del} className="flex items-center gap-1.5 text-[12.5px] font-medium px-2.5 py-1.5 rounded-lg border border-border text-rose-600 hover:bg-rose-50" title="Delete">
-            <Trash2 size={13} />
-          </button>
+        <div className="flex items-center gap-0.5 flex-shrink-0">
+          {msg && <span className={cn('text-[12px] mr-2', /fail/i.test(msg) ? 'text-rose-600' : 'text-emerald-600')}>{msg}</span>}
+          {status === 'approved' && <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 mr-1.5">Approved</span>}
+          <a href={`/api/group-benefits/rate-tables/${id}/pdf`} target="_blank" rel="noopener noreferrer" className={btn}><FileText size={13} /> PDF</a>
+          {status !== 'extracting' && <button onClick={reExtract} disabled={!!saving} className={btn} title="Re-run extraction"><RefreshCw size={13} /> Re-run</button>}
+          <button onClick={del} className={cn(btn, 'text-rose-500 hover:text-rose-600 hover:bg-rose-50')} title="Delete"><Trash2 size={13} /></button>
           {status === 'in_review' && (
             <>
-              <button onClick={() => save(false)} disabled={!!saving} className="flex items-center gap-1.5 text-[12.5px] font-medium px-3 py-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-50">
+              <span className="w-px h-5 bg-border mx-1.5" />
+              <button onClick={() => save(false)} disabled={!!saving} className={btn}>
                 {saving === 'save' ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} Save
               </button>
-              <button onClick={() => save(true)} disabled={!!saving} className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-                {saving === 'approve' ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />} Approve version
+              <button onClick={() => save(true)} disabled={!!saving} className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-1.5 rounded-md bg-primary text-white hover:bg-primary/90 disabled:opacity-50">
+                {saving === 'approve' ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />} Approve
               </button>
             </>
           )}
@@ -165,35 +162,31 @@ export default function GbReviewPage() {
 
       {/* Extracted metadata — read from the PDF, editable before approval */}
       {status === 'in_review' && (
-        <div className="border border-border rounded-lg p-3 mb-5">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50 mb-2">Details read from the PDF — correct if needed</p>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5 items-end">
+        <div className="rounded-lg border border-border bg-white p-4 mb-6">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50 mb-3">Details read from the PDF — correct if needed</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-start">
             <div className="col-span-2 md:col-span-1">
-              <label className="text-[10px] font-semibold text-muted-foreground/60">Insurer</label>
-              <select value={meta.insurer_id ?? ''} onChange={e => { const iid = e.target.value; setMeta(m => ({ ...m, insurer_id: iid, insurer_name: insurers.find(i => i.id === iid)?.name ?? m.insurer_name })) }} className={mi}>
-                <option value="">— unlinked —</option>
+              <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60">Insurer</label>
+              <input value={meta.insurer_name ?? ''} onChange={e => setMeta(m => ({ ...m, insurer_name: e.target.value }))} placeholder="Insurer name" className={`${mi} mt-1`} />
+              <select value={meta.insurer_id ?? ''} onChange={e => { const iid = e.target.value; setMeta(m => ({ ...m, insurer_id: iid, insurer_name: insurers.find(i => i.id === iid)?.name ?? m.insurer_name })) }} className={`${mi} mt-1.5 text-muted-foreground`}>
+                <option value="">Link to directory (optional)…</option>
                 {insurers.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
               </select>
-              <input value={meta.insurer_name ?? ''} onChange={e => setMeta(m => ({ ...m, insurer_name: e.target.value }))} placeholder="insurer name" className={`${mi} mt-1`} />
             </div>
             <div>
-              <label className="text-[10px] font-semibold text-muted-foreground/60">Product</label>
-              <input value={meta.product_code ?? ''} onChange={e => setMeta(m => ({ ...m, product_code: e.target.value }))} placeholder="GHS" className={mi} />
-            </div>
-            <div>
-              <label className="text-[10px] font-semibold text-muted-foreground/60">Age basis</label>
-              <select value={meta.age_basis ?? 'next_birthday'} onChange={e => setMeta(m => ({ ...m, age_basis: e.target.value }))} className={mi}>
+              <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60">Age basis</label>
+              <select value={meta.age_basis ?? 'next_birthday'} onChange={e => setMeta(m => ({ ...m, age_basis: e.target.value }))} className={`${mi} mt-1`}>
                 <option value="next_birthday">Next birthday</option>
                 <option value="last_birthday">Last birthday</option>
               </select>
             </div>
             <div>
-              <label className="text-[10px] font-semibold text-muted-foreground/60">Plan year</label>
-              <input value={meta.plan_year ?? ''} onChange={e => setMeta(m => ({ ...m, plan_year: e.target.value }))} placeholder="2026" className={mi} />
+              <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60">Plan year</label>
+              <input value={meta.plan_year ?? ''} onChange={e => setMeta(m => ({ ...m, plan_year: e.target.value }))} placeholder="2026" className={`${mi} mt-1`} />
             </div>
             <div>
-              <label className="text-[10px] font-semibold text-muted-foreground/60">Effective date</label>
-              <input type="date" value={meta.effective_date ?? ''} onChange={e => setMeta(m => ({ ...m, effective_date: e.target.value }))} className={mi} />
+              <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60">Effective date</label>
+              <input type="date" value={meta.effective_date ?? ''} onChange={e => setMeta(m => ({ ...m, effective_date: e.target.value }))} className={`${mi} mt-1`} />
             </div>
           </div>
         </div>
@@ -252,87 +245,112 @@ export default function GbReviewPage() {
             </div>
           )}
 
-          {/* Rates by product → member type → plan */}
+          {/* Rates: a matrix (age band × plan) per product → member type */}
           {Array.from(byProduct.entries()).map(([product, prRates]) => (
-            <div key={product} className="mb-6">
-              <h2 className="text-[13px] font-bold text-foreground mb-2">{product}</h2>
-              {Array.from(groupBy(prRates, r => r.member_type ?? '').entries()).map(([mt, mtRates]) => (
-                <div key={mt} className="mb-3">
-                  {mtLabel(mt || null) && <p className="text-[10px] font-bold uppercase tracking-wider text-primary/70 mb-1.5">{mtLabel(mt || null)}</p>}
-                  <div className="flex flex-col gap-3">
-                    {Array.from(groupBy(mtRates, r => r.plan_code).entries()).map(([plan, planRates]) => (
-                      <div key={plan} className="border border-border rounded-lg overflow-hidden">
-                        <div className="px-3 py-1.5 bg-muted/40 text-[11.5px] font-semibold text-foreground/80">{plan}</div>
-                        <div className="divide-y divide-border/60">
-                          {planRates.sort((a, b) => (a.age_min ?? 0) - (b.age_min ?? 0)).map((r) => {
-                            const conflict = conflictMap.get(cKey(r))
-                            const idx = rates.indexOf(r)
-                            const editable = status === 'in_review'
-                            return (
-                              <div key={idx} className={cn('flex items-center gap-2 px-3 py-1.5 text-[12px]', conflict && 'bg-amber-50/60')}>
-                                <input value={r.band_label} disabled={!editable} onChange={e => updateRate(idx, { band_label: e.target.value })}
-                                  className="w-28 text-[12px] px-2 py-0.5 rounded border border-transparent hover:border-border focus:border-primary/40 focus:outline-none bg-transparent text-muted-foreground/80 disabled:hover:border-transparent" />
-                                <span className="text-muted-foreground/40">$</span>
-                                <input type="number" step="0.01" value={r.premium} disabled={!editable}
-                                  onChange={e => updateRate(idx, { premium: parseFloat(e.target.value) || 0 })}
-                                  className={cn('w-28 text-[12px] px-2 py-0.5 rounded border bg-background focus:outline-none focus:ring-1 focus:ring-primary/30', conflict ? 'border-amber-300' : 'border-border')} />
-                                {conflict && (
-                                  <span className="text-[10.5px] text-amber-700 flex items-center gap-2">
-                                    <span>Opus {fmt(conflict.opus)} · Gemini {fmt(conflict.gemini)}{!conflict.parser_seen ? ' · not in text' : ''}</span>
-                                    {conflict.judge?.price != null && <span className="font-semibold text-amber-800">→ judge {fmt(conflict.judge.price)} ({conflict.judge.confidence}%)</span>}
-                                  </span>
-                                )}
-                                {editable && <button onClick={() => setRates(prev => prev.filter((_, i) => i !== idx))} className="ml-auto text-muted-foreground/30 hover:text-rose-600"><Trash2 size={12} /></button>}
-                              </div>
-                            )
-                          })}
-                        </div>
-                        {status === 'in_review' && (
-                          <button onClick={() => setRates(prev => [...prev, { product_code: product, member_type: mt || null, plan_code: plan, band_label: '', age_min: null, age_max: null, premium: 0 }])}
-                            className="w-full flex items-center justify-center gap-1 px-3 py-1 text-[11px] text-primary hover:bg-primary/5 border-t border-border/60"><Plus size={11} /> Add band</button>
-                        )}
-                      </div>
-                    ))}
+            <section key={product} className="mb-8">
+              <h2 className="text-[14px] font-semibold text-foreground mb-3 pb-1.5 border-b border-border">{product}</h2>
+              {Array.from(groupBy(prRates, r => r.member_type ?? '').entries()).map(([mt, mtRates]) => {
+                const plans = Array.from(new Set(mtRates.map(r => r.plan_code)))
+                const order = new Map<string, number>()
+                for (const r of mtRates) if (!order.has(r.band_label)) order.set(r.band_label, r.age_min ?? 9999)
+                const bands = Array.from(order.keys()).sort((a, b) => (order.get(a)! - order.get(b)!) || a.localeCompare(b))
+                const cell = new Map<string, Rate>()
+                for (const r of mtRates) cell.set(`${r.band_label}|${r.plan_code}`, r)
+                const editable = status === 'in_review'
+                return (
+                  <div key={mt} className="mb-5">
+                    {mtLabel(mt || null) && <p className="text-[10px] font-bold uppercase tracking-wider text-primary/60 mb-2">{mtLabel(mt || null)}</p>}
+                    <div className="rounded-lg border border-border overflow-x-auto">
+                      <table className="data-table w-full border-collapse text-[12.5px]">
+                        <thead>
+                          <tr>
+                            <th className="text-left pl-4">Age band</th>
+                            {plans.map(p => <th key={p} className="text-right pr-4">{p}</th>)}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {bands.map(band => (
+                            <tr key={band}>
+                              <td className="pl-4 font-medium text-foreground/70 whitespace-nowrap">{band}</td>
+                              {plans.map(plan => {
+                                const r = cell.get(`${band}|${plan}`)
+                                if (!r) return <td key={plan} className="text-right pr-4 text-muted-foreground/25">—</td>
+                                const idx = rates.indexOf(r)
+                                const conflict = conflictMap.get(cKey(r))
+                                return (
+                                  <td key={plan} className="text-right pr-2 py-1">
+                                    <input type="number" step="0.01" value={r.premium} disabled={!editable}
+                                      onChange={e => updateRate(idx, { premium: parseFloat(e.target.value) || 0 })}
+                                      title={conflict ? `Opus ${fmt(conflict.opus)} · Gemini ${fmt(conflict.gemini)}` : ''}
+                                      className={cn('w-24 text-right tabular-nums text-[12.5px] px-2 py-1 rounded border bg-white focus:outline-none focus:ring-1 focus:ring-primary/30',
+                                        conflict ? 'border-amber-300 bg-amber-50/70' : 'border-transparent hover:border-border')} />
+                                  </td>
+                                )
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                )
+              })}
+            </section>
           ))}
 
           {/* Coverage / sum assured */}
           {coverage.length > 0 && (
-            <div className="mb-6">
-              <h2 className="text-[13px] font-bold text-foreground mb-2">Coverage & sum assured ({coverage.length})</h2>
-              <div className="border border-border rounded-lg divide-y divide-border/60 max-h-[360px] overflow-y-auto">
-                {coverage.map((c, i) => (
-                  <div key={i} className="flex items-center gap-3 px-3 py-1.5 text-[11.5px]">
-                    <span className="w-40 text-muted-foreground/50 flex-shrink-0 truncate">{c.product_title}{c.member_type ? ` · ${mtLabel(c.member_type)}` : ''}{c.plan_code ? ` · ${c.plan_code}` : ''}</span>
-                    <span className="flex-1 text-foreground/80 truncate">{c.item_label}</span>
-                    <span className="font-medium text-foreground/70">{c.value_numeric != null ? c.value_numeric.toLocaleString('en-SG') : c.value_text}{c.unit ? ` ${c.unit}` : ''}</span>
-                  </div>
-                ))}
+            <section className="mb-8">
+              <h2 className="text-[14px] font-semibold text-foreground mb-3 pb-1.5 border-b border-border">Coverage &amp; sum assured</h2>
+              <div className="rounded-lg border border-border overflow-x-auto max-h-[360px] overflow-y-auto">
+                <table className="data-table w-full border-collapse text-[12.5px]">
+                  <thead><tr>
+                    <th className="pl-4 text-left">Product</th><th className="text-left">Member</th><th className="text-left">Plan</th><th className="text-left">Item</th><th className="text-right pr-4">Value</th>
+                  </tr></thead>
+                  <tbody>
+                    {coverage.map((c, i) => (
+                      <tr key={i}>
+                        <td className="pl-4 whitespace-nowrap text-foreground/80">{c.product_title}</td>
+                        <td className="text-muted-foreground">{c.member_type ? mtLabel(c.member_type) : '—'}</td>
+                        <td className="text-muted-foreground">{c.plan_code ?? '—'}</td>
+                        <td className="text-foreground/80">{c.item_label}</td>
+                        <td className="text-right pr-4 tabular-nums font-medium">{c.value_numeric != null ? c.value_numeric.toLocaleString('en-SG') : c.value_text}{c.unit ? ` ${c.unit}` : ''}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </div>
+            </section>
           )}
 
           {/* Benefits */}
           {benefits.length > 0 && (
-            <div className="mb-6">
-              <h2 className="text-[13px] font-bold text-foreground mb-2">Benefit schedule ({benefits.length})</h2>
-              <div className="border border-border rounded-lg divide-y divide-border/60 max-h-[420px] overflow-y-auto">
-                {benefits.map((b, i) => (
-                  <div key={i} className="flex items-center gap-3 px-3 py-1.5 text-[11.5px]">
-                    <span className="w-14 text-muted-foreground/50 flex-shrink-0">{b.product_code}{b.plan_code ? `·${b.plan_code}` : ''}</span>
-                    <span className="flex-1 text-foreground/80 truncate">{b.category ? `${b.category} — ` : ''}{b.benefit_name}</span>
-                    <input value={b.value_text ?? ''} onChange={e => setBenefits(prev => prev.map((x, j) => j === i ? { ...x, value_text: e.target.value } : x))}
-                      className="w-40 text-[11.5px] px-2 py-0.5 rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary/30" />
-                  </div>
-                ))}
+            <section className="mb-8">
+              <h2 className="text-[14px] font-semibold text-foreground mb-3 pb-1.5 border-b border-border">Benefit schedule</h2>
+              <div className="rounded-lg border border-border overflow-x-auto max-h-[420px] overflow-y-auto">
+                <table className="data-table w-full border-collapse text-[12px]">
+                  <thead><tr>
+                    <th className="pl-4 text-left">Scope</th><th className="text-left">Benefit</th><th className="text-right pr-4">Value</th>
+                  </tr></thead>
+                  <tbody>
+                    {benefits.map((b, i) => (
+                      <tr key={i}>
+                        <td className="pl-4 whitespace-nowrap text-muted-foreground">{b.product_code}{b.plan_code ? ` · ${b.plan_code}` : ''}</td>
+                        <td className="text-foreground/80">{b.category ? `${b.category} — ` : ''}{b.benefit_name}</td>
+                        <td className="text-right pr-2 py-1">
+                          <input value={b.value_text ?? ''} onChange={e => setBenefits(prev => prev.map((x, j) => j === i ? { ...x, value_text: e.target.value } : x))}
+                            className="w-44 text-right text-[12px] px-2 py-1 rounded border border-transparent hover:border-border focus:border-primary/40 focus:outline-none bg-white" />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </div>
+            </section>
           )}
         </>
       )}
+    </div>
     </div>
   )
 }
