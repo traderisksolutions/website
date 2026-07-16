@@ -66,10 +66,13 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       extractWithGemini(b64, profileHint),
     ])
 
-    // 3. Reconcile + Opus adjudication of disputed cells.
+    // 3. Reconcile + Opus adjudication. Only re-read the PDF for cells where Opus and Gemini
+    //    genuinely DISAGREE (or only one found) — not the parser-unconfirmed ones, which on an
+    //    image PDF would be hundreds and make this stage crawl.
     await setStage('judging')
     const judged = await judgeExtractions(opus.data, gemini.data, parserRows)
-    const adjud = await adjudicateWithOpus(b64, judged.conflicts)
+    const disputed = judged.conflicts.filter(c => c.note === 'Opus and Gemini disagree').slice(0, 60)
+    const adjud = disputed.length ? await adjudicateWithOpus(b64, disputed) : {}
 
     // Apply Opus's re-read where it's confident, and annotate each conflict with the verdict.
     const merged: GbExtraction = judged.merged

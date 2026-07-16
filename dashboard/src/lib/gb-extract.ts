@@ -193,6 +193,13 @@ export async function judgeExtractions(opus: GbExtraction, gemini: GbExtraction,
   const present = new Set(merged.pricing.map(priceKey))
   for (const r of poorer.pricing ?? []) { const k = priceKey(r); if (!present.has(k)) { present.add(k); merged.pricing.push(r) } }
 
+  // The text parser can't read image-based tables (it finds few/no numbers). If it confirms
+  // less than ~40% of the prices it's unreliable → ignore it, so we don't flag every cell
+  // (which would flood the Opus judge and take forever).
+  let confirmed = 0
+  for (const r of merged.pricing) if (seenByParser(r.price)) confirmed++
+  const parserReliable = merged.pricing.length >= 10 && confirmed / merged.pricing.length >= 0.4
+
   const conflicts: Conflict[] = []
   for (const r of merged.pricing) {
     const k = priceKey(r)
@@ -201,7 +208,8 @@ export async function judgeExtractions(opus: GbExtraction, gemini: GbExtraction,
     const parserSeen = seenByParser(r.price)
     const disagree = o !== null && g !== null && Math.abs(o - g) > 0.001
     const onlyOne  = (o === null) !== (g === null)
-    if (disagree || onlyOne || !parserSeen) {
+    const notConfirmed = parserReliable && !parserSeen
+    if (disagree || onlyOne || notConfirmed) {
       conflicts.push({ product_title: r.product_title, member_type: r.member_type, plan_code: r.plan_code, band_label: r.band_label,
         opus: o, gemini: g, parser_seen: parserSeen,
         note: disagree ? 'Opus and Gemini disagree' : onlyOne ? `Only ${o !== null ? 'Opus' : 'Gemini'} found this cell` : 'Not confirmed by the text parser' })
