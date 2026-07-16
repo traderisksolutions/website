@@ -47,7 +47,10 @@ function headerVal(headers: { name: string; value: string }[], name: string): st
   return headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value ?? ''
 }
 
-type MsgRow = { id: string; gmail_message_id: string }
+type MsgRow = { id: string; gmail_message_id: string | null; rfc822_message_id: string | null }
+
+// Synthetic ids (web-form enquiries) can't be re-fetched from Gmail — skip them.
+const isRealGmailId = (id: string | null) => !!id && !id.startsWith('inbound_lead_') && !id.includes('@')
 
 export async function POST(req: NextRequest) {
   try {
@@ -58,20 +61,27 @@ export async function POST(req: NextRequest) {
       if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    const limit = Math.min(Number(new URL(req.url).searchParams.get('limit') ?? 100), 200)
+    const sp     = new URL(req.url).searchParams
+    const limit  = Math.min(Math.max(Number(sp.get('limit') ?? 100), 1), 200)
+    const offset = Math.max(Number(sp.get('offset') ?? 0), 0)
 
-    // Only rows still missing the Message-ID; newest first so open threads thread soonest.
+    // Stable pagination over ALL messages (ordered by created_at, which we never mutate) —
+    // NOT the is-null set, which shifts as we fill rows and can loop forever on rows that can
+    // never be filled (web-form enquiries, personal-mailbox sends). Each row is visited once;
+    // we skip ones already filled or without a real Gmail id. Caller bumps offset until done.
     const listRes = await fetch(
-      `${SB_URL}/rest/v1/email_messages?rfc822_message_id=is.null&select=id,gmail_message_id&order=sent_at.desc&limit=${limit}`,
+      `${SB_URL}/rest/v1/email_messages?select=id,gmail_message_id,rfc822_message_id&order=created_at.asc&limit=${limit}&offset=${offset}`,
       { headers: sbH('return=representation'), cache: 'no-store' },
     )
     const rows = (listRes.ok ? await listRes.json() : []) as MsgRow[]
-    if (rows.length === 0) return NextResponse.json({ processed: 0, updated: 0, done: true })
+    if (rows.length === 0) return NextResponse.json({ processed: 0, updated: 0, already: 0, skipped: 0, offset, next_offset: offset, done: true })
 
     const token = await getAccessToken()
-    let updated = 0, skipped = 0
+    let updated = 0, skipped = 0, already = 0
 
     for (const row of rows) {
+      if (row.rfc822_message_id) { already++; continue }                       // already backfilled
+      if (!isRealGmailId(row.gmail_message_id)) { skipped++; continue }         // synthetic / non-Gmail id
       try {
         const r = await fetch(
           `${GMAIL_API}/messages/${row.gmail_message_id}?format=metadata&metadataHeaders=Message-ID&metadataHeaders=In-Reply-To`,
@@ -91,8 +101,8 @@ export async function POST(req: NextRequest) {
       } catch { skipped++ }
     }
 
-    // done when this page was smaller than the limit (no more null rows to fetch)
-    return NextResponse.json({ processed: rows.length, updated, skipped, done: rows.length < limit })
+    // done when this page was short (reached the end of the table).
+    return NextResponse.json({ processed: rows.length, updated, already, skipped, offset, next_offset: offset + rows.length, done: rows.length < limit })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
