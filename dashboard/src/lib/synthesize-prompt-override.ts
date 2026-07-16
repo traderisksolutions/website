@@ -124,9 +124,11 @@ Output ONLY the rewritten instruction block, starting with ━━ ${emailType} �
   if (!overrideText || overrideText.length < 20) return { ok: false, synthesized: false, count: items.length, reason: 'empty synthesis' }
 
   // INSERT (no delete) — the drafter picks the newest; older rows remain as versioned history.
+  // Set synthesized_at explicitly: newest-wins ordering AND the auto-synthesis throttle window
+  // both depend on it, so we don't rely on a DB default being present.
   await fetch(`${SB_URL}/rest/v1/prompt_overrides`, {
     method: 'POST', headers: sbH(),
-    body: JSON.stringify({ email_type: emailType, override_text: overrideText, source_eval_count: items.length }),
+    body: JSON.stringify({ email_type: emailType, override_text: overrideText, source_eval_count: items.length, synthesized_at: new Date().toISOString() }),
   })
 
   return { ok: true, synthesized: true, count: items.length, override_text: overrideText }

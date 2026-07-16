@@ -107,9 +107,16 @@ export async function runDraftEvaluation(
     }
     console.log(`[eval] found outbound message (${humanBody.length} chars)`)
 
-    // Strip email signature before comparison — the sent body includes the appended signature
-    // (e.g. "--\nJarod Hong\n...") but the AI draft does not. Stripping prevents artificially
-    // low overlap scores that would trigger an unnecessary Gemini evaluation call.
+    // The sent body = reply + signature + quoted conversation history (the send route appends
+    // the Gmail-style quote below the signature). The AI draft is just the reply, so we must
+    // strip BOTH before comparing — otherwise the evaluator thinks the human "added" the whole
+    // thread and every eval looks like a huge substantive rewrite (skewed scores, bogus
+    // learnings, and prompt_examples polluted with the quoted thread).
+    // 1. Cut the quoted history at the first attribution line ("On <date>, X wrote:") or a
+    //    forwarded-message marker — buildQuotedHistory always emits that attribution.
+    const quoteIdx = humanBody.search(/(^|\n)\s*(On\b[^\n]{0,200}?\bwrote:|-{2,}\s*Original Message|From:\s.+\bSent:)/i)
+    if (quoteIdx > 40) humanBody = humanBody.slice(0, quoteIdx).trim()
+    // 2. Strip the signature (best-effort — the common "--" delimiter; HTML-derived sigs vary).
     const sigDelimiters = ['\n--\n', '\n___\n', '\n—\n']
     for (const delim of sigDelimiters) {
       const idx = humanBody.indexOf(delim)
