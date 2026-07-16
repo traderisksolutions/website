@@ -170,6 +170,7 @@ export function EngagementComposePanel({
       }
     } finally {
       setUploading(false)
+      setAttachMenuOpen(false)   // collapse the "Upload from computer" menu once done
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
