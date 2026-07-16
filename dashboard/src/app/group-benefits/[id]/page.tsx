@@ -314,7 +314,7 @@ export default function GbReviewPage() {
                     {mtLabel(mt || null) && <p className="text-[10px] font-bold uppercase tracking-wider text-primary/60 mb-2">{mtLabel(mt || null)}</p>}
                     <div className="rounded-lg border border-border overflow-x-auto">
                       <table className="data-table w-full border-collapse text-[12.5px]">
-                        <thead>
+                        <thead className={gm(mt) === 'employee' ? 'mt-employee' : gm(mt) === 'dependant' ? 'mt-dependant' : ''}>
                           <tr>
                             <th className="text-left pl-4">Age band</th>
                             {plans.map(plan => (

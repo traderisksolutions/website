@@ -515,6 +515,9 @@ select:focus-visible {
   background: var(--table-header-bg);
   white-space: nowrap;
 }
+/* Member-type differentiators for the Pricing Matrix review grid. */
+.data-table thead.mt-employee th  { background: #0c338a; color: #ffffff; }
+.data-table thead.mt-dependant th { background: #eef1f5; color: #1a2233; }
 .data-table tbody td {
   padding: 0 12px; height: 44px; vertical-align: middle;
   border-bottom: 1px solid var(--border-subtle);
