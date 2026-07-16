@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Loader2, CheckCircle2, AlertTriangle, Save, FileText, RefreshCw, Trash2, Pencil, X, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -38,6 +38,7 @@ export default function GbReviewPage() {
   const [meta, setMeta] = useState<Record<string, string>>({})
   const [insurers, setInsurers] = useState<{ id: string; name: string }[]>([])
   const [editing, setEditing] = useState(false)   // edit an already-approved table without re-extracting
+  const [snapshot, setSnapshot] = useState('')     // serialized state at load, to detect unsaved edits
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/group-benefits/rate-tables/${id}`, { cache: 'no-store' })
@@ -46,14 +47,16 @@ export default function GbReviewPage() {
     setD(data); setRates(data.rates); setBenefits(data.benefits); setCoverage(data.coverage ?? [])
     setStatus(String(data.table.status ?? ''))
     const t = data.table as Record<string, unknown>
-    setMeta({
+    const m = {
       insurer_id:     (t.insurer_id as string) ?? '',
       insurer_name:   (t.insurer_name as string) ?? '',
       product_code:   (t.product_code as string) ?? '',
       age_basis:      (t.age_basis as string) ?? 'next_birthday',
       plan_year:      t.plan_year != null ? String(t.plan_year) : '',
       effective_date: (t.effective_date as string) ?? '',
-    })
+    }
+    setMeta(m)
+    setSnapshot(JSON.stringify({ r: data.rates, b: data.benefits, c: data.coverage ?? [], m }))
   }, [id])
 
   useEffect(() => { fetch('/api/settings/insurers', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).then(rows => setInsurers(Array.isArray(rows) ? rows : [])).catch(() => {}) }, [])
@@ -65,6 +68,16 @@ export default function GbReviewPage() {
     const iv = setInterval(load, 1800)
     return () => clearInterval(iv)
   }, [status, load])
+
+  // Unsaved-changes tracking: compare current editable state to the snapshot taken at load.
+  const dirty = useMemo(() => snapshot !== '' && JSON.stringify({ r: rates, b: benefits, c: coverage, m: meta }) !== snapshot, [rates, benefits, coverage, meta, snapshot])
+  useEffect(() => {
+    if (!dirty) return
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [dirty])
+  function leave() { if (dirty && !confirm('You have unsaved changes. Leave without saving?')) return; router.push('/group-benefits') }
 
   // Single source of truth for kicking extraction: if the table is still a fresh draft
   // (upload succeeded but extraction never started), start it here. Ref guards double-fire.
@@ -144,7 +157,7 @@ export default function GbReviewPage() {
       setMsg('Saved'); setEditing(false); load()
     } finally { setSaving(null) }
   }
-  function cancelEdit() { setEditing(false); setMsg(null); load() }
+  function cancelEdit() { if (dirty && !confirm('Discard unsaved changes?')) return; setEditing(false); setMsg(null); load() }
 
   if (!d) return <div className="p-8"><Loader2 className="animate-spin text-muted-foreground" /></div>
 
@@ -159,7 +172,7 @@ export default function GbReviewPage() {
   return (
     <div className="min-h-screen bg-white">
     <div className="max-w-6xl mx-auto px-8 py-6">
-      <button onClick={() => router.push('/group-benefits')} className="flex items-center gap-1.5 text-[12px] text-muted-foreground hover:text-foreground mb-4"><ArrowLeft size={13} /> Rate Tables</button>
+      <button onClick={leave} className="flex items-center gap-1.5 text-[12px] text-muted-foreground hover:text-foreground mb-4"><ArrowLeft size={13} /> Rate Tables</button>
 
       <div className="flex items-start justify-between gap-6 mb-6">
         <div className="min-w-0">
@@ -169,7 +182,8 @@ export default function GbReviewPage() {
           </p>
         </div>
         <div className="flex items-center gap-0.5 flex-shrink-0">
-          {msg && <span className={cn('text-[12px] mr-2', /fail/i.test(msg) ? 'text-rose-600' : 'text-emerald-600')}>{msg}</span>}
+          {dirty && <span className="text-[11px] font-medium text-amber-600 mr-2">Unsaved changes</span>}
+          {msg && !dirty && <span className={cn('text-[12px] mr-2', /fail/i.test(msg) ? 'text-rose-600' : 'text-emerald-600')}>{msg}</span>}
           {status === 'approved' && !editing && <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 mr-1.5">Approved</span>}
           <a href={`/api/group-benefits/rate-tables/${id}/pdf`} target="_blank" rel="noopener noreferrer" className={btn}><FileText size={13} /> PDF</a>
           {status !== 'extracting' && !editing && <button onClick={reExtract} disabled={!!saving} className={btn} title="Re-run extraction"><RefreshCw size={13} /> Re-run</button>}

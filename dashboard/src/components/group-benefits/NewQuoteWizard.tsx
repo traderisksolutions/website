@@ -309,19 +309,26 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
           </div>
 
           {/* Per-member breakdown */}
-          <div className="border border-border rounded-lg overflow-hidden">
-            <div className="px-3 py-1.5 bg-muted/40 text-[12px] font-semibold">Per-member breakdown ({result.lines.length} lines)</div>
-            <div className="max-h-96 overflow-y-auto divide-y divide-border/60 text-[11.5px]">
-              {result.lines.map((l, i) => (
-                <div key={i} className={cn('flex items-center gap-2 px-3 py-1', l.premium == null && 'bg-amber-50/60')}>
-                  <span className="w-40 truncate">{l.member_name} <span className="text-muted-foreground/50">({l.relationship})</span></span>
-                  <span className="w-24 text-muted-foreground/60">{l.insurer_name}</span>
-                  <span className="w-12 text-muted-foreground/60">{l.product_code}</span>
-                  <span className="w-20 text-muted-foreground/60">{l.plan_code ?? '—'}</span>
-                  <span className="w-14 text-muted-foreground/50">age {l.age ?? '?'}</span>
-                  <span className="flex-1 text-right font-medium">{l.premium != null ? money(l.premium) : <span className="text-amber-600">{l.note}</span>}</span>
-                </div>
-              ))}
+          <div>
+            <h3 className="text-[13px] font-semibold text-foreground mb-2 pb-1.5 border-b border-border">Per-member breakdown <span className="text-muted-foreground/60 font-normal">· {result.lines.length} lines</span></h3>
+            <div className="rounded-lg border border-border overflow-x-auto max-h-96 overflow-y-auto">
+              <table className="data-table w-full border-collapse text-[12.5px]">
+                <thead><tr>
+                  <th className="pl-4 text-left">Member</th><th className="text-left">Insurer</th><th className="text-left">Product</th><th className="text-left">Plan</th><th className="text-left">Age</th><th className="text-right pr-4">Premium</th>
+                </tr></thead>
+                <tbody>
+                  {result.lines.map((l, i) => (
+                    <tr key={i} className={cn(l.premium == null && 'bg-amber-50/50')}>
+                      <td className="pl-4 whitespace-nowrap">{l.member_name} <span className="text-muted-foreground/50">({l.relationship})</span></td>
+                      <td className="text-muted-foreground">{l.insurer_name}</td>
+                      <td className="text-muted-foreground">{l.product_code}</td>
+                      <td className="text-muted-foreground">{l.plan_code ?? '—'}</td>
+                      <td className="text-muted-foreground/70">{l.age ?? '?'}</td>
+                      <td className="text-right pr-4 tabular-nums font-medium">{l.premium != null ? money(l.premium) : <span className="text-amber-600 font-normal">{l.note}</span>}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
           {/* Coverage comparison & recommendation (Opus) */}
