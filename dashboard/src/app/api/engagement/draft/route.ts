@@ -240,6 +240,20 @@ Reply with one word only.`
       }
     } catch { /* non-fatal */ }
 
+    // Self-improvement: the auto-synthesised instruction override for this email type (newest).
+    // Appended as authoritative refinements on top of the doc-aware base instructions.
+    let learnedRefinements = ''
+    try {
+      const ovRes = await fetch(
+        `${SB_URL}/rest/v1/prompt_overrides?email_type=eq.${emailType}&order=synthesized_at.desc&limit=1&select=override_text`,
+        { headers: sbHeaders(), cache: 'no-store' }
+      )
+      const ov = (ovRes.ok ? await ovRes.json() : [])[0]?.override_text
+      if (ov && ov.trim().length > 20) {
+        learnedRefinements = `\n━━ LEARNED REFINEMENTS (apply these on top — synthesised from past human edits) ━━\n${ov.trim()}\n`
+      }
+    } catch { /* non-fatal */ }
+
     // Fetch campaign context + outbound lead profile if this thread came from a campaign reply
     let campaignCtxStr = ''
     let leadProfileStr = ''
@@ -408,7 +422,7 @@ If the conversation touches on a specific product or coverage detail, you may re
     const drafterPrompt = `You are an email assistant for Trade Risk Solutions (TRS), a Singapore insurance brokerage. You draft replies that Account Executives review and send. Replies must read like a senior AE wrote them — direct, specific, no filler.
 ${campaignCtxStr}
 ${typeInstructions}
-${fewShotSection}${antiPatternSection}
+${learnedRefinements}${fewShotSection}${antiPatternSection}
 
 ━━ UNIVERSAL RULES ━━
 - Start with exactly "${salutation}"

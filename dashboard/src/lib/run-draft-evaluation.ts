@@ -7,6 +7,7 @@
  */
 
 import { fetchAttachmentContext } from '@/lib/thread-attachment-context'
+import { maybeAutoSynthesize }    from '@/lib/synthesize-prompt-override'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
@@ -226,6 +227,12 @@ Return ONLY valid JSON (no markdown fences):
         key_learning:       String(parsed.key_learning ?? ''),
         context_summary:    String(parsed.context_summary ?? ''),
       }, (substance || style) >= 4)
+
+    // Fully-automatic self-improvement: a substantive miss with a real learning may trigger a
+    // resynthesis of this email type's drafting instructions (throttled inside).
+    if ((editType === 'substance' || editType === 'both') && String(parsed.key_learning ?? '').trim().length >= 10) {
+      await maybeAutoSynthesize(emailType)
+    }
 
   } catch {
     // Never surface — evaluation is non-critical
