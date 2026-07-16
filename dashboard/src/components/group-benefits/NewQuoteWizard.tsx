@@ -197,7 +197,6 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
           </label>
           <div className="flex items-center justify-between">
             <button onClick={downloadTemplate} className="flex items-center gap-1.5 text-[11.5px] font-semibold text-primary hover:underline"><Download size={12} /> Download template</button>
-            <span className="text-[11px] text-muted-foreground/60">Headers: <code>name, category, relationship, dob, age</code> — dob (YYYY-MM-DD) preferred; age used if no dob. relationship = self / spouse / child.</span>
           </div>
           {members.length > 0 && (
             <div className="border border-border rounded-lg overflow-hidden text-[11.5px]">
@@ -228,6 +227,28 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
             </div>
           )}
           <Nav next={() => setStep(1)} nextLabel="Setup" nextDisabled={members.filter(m => m.name.trim()).length === 0} />
+
+          {/* Expected CSV format — shown as a mock table so the headers are unambiguous. */}
+          <div className="mt-6">
+            <h3 className="text-[12px] font-semibold text-foreground mb-2 pb-1.5 border-b border-border">Expected CSV format</h3>
+            <div className="rounded-lg border border-border overflow-x-auto">
+              <table className="data-table w-full border-collapse text-[12px]">
+                <thead><tr>
+                  <th className="pl-4 text-left">name</th><th className="text-left">category</th><th className="text-left">relationship</th><th className="text-left">dob</th><th className="text-left">age</th>
+                </tr></thead>
+                <tbody>
+                  <tr><td className="pl-4">Tan Wei Ming</td><td>Executive</td><td>self</td><td className="tabular-nums">1985-03-12</td><td className="text-muted-foreground/40">—</td></tr>
+                  <tr><td className="pl-4">Sarah Tan</td><td>Executive</td><td>spouse</td><td className="tabular-nums">1987-09-04</td><td className="text-muted-foreground/40">—</td></tr>
+                  <tr><td className="pl-4">Lim Jun Jie</td><td>Staff</td><td>self</td><td className="text-muted-foreground/40">—</td><td className="tabular-nums">42</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <ul className="mt-2 flex flex-col gap-0.5 text-[11px] text-muted-foreground/70 list-disc pl-4">
+              <li><span className="font-medium text-foreground/70">dob</span> (YYYY-MM-DD) is preferred; <span className="font-medium text-foreground/70">age</span> is used only when there&apos;s no dob.</li>
+              <li><span className="font-medium text-foreground/70">relationship</span> must be one of <code>self</code>, <code>spouse</code>, or <code>child</code>.</li>
+              <li><span className="font-medium text-foreground/70">category</span> is your own plan tier / class label (e.g. Executive, Staff).</li>
+            </ul>
+          </div>
         </div>
       )}
 
