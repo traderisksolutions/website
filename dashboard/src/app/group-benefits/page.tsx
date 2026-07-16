@@ -30,6 +30,7 @@ const STATUS_TONE: Record<string, string> = {
 type Tab = 'tables' | 'quote' | 'quotes' | 'activity'
 
 export default function GroupBenefitsPage() {
+  const router = useRouter()
   const [tab, setTab]   = useState<Tab>('tables')
   const [tables, setTables] = useState<RateTable[]>([])
   const [loading, setLoading] = useState(true)
@@ -44,7 +45,8 @@ export default function GroupBenefitsPage() {
   useEffect(() => { load() }, [])
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
+    <div className="min-h-screen bg-white">
+    <div className="max-w-6xl mx-auto px-8 py-6">
       <div className="flex items-start justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-foreground">Pricing Matrix</h1>
@@ -78,8 +80,23 @@ export default function GroupBenefitsPage() {
             <p className="text-sm">No rate tables yet. Upload an insurer rate PDF to begin.</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
-            {tables.map(t => <TableRow key={t.id} t={t} />)}
+          <div className="rounded-lg border border-border overflow-x-auto">
+            <table className="data-table w-full border-collapse text-[13px]">
+              <thead><tr>
+                <th className="pl-4 text-left">Insurer</th><th className="text-left">Products</th><th className="text-left">Year</th><th className="text-left">Status</th><th className="text-right pr-4">Uploaded</th>
+              </tr></thead>
+              <tbody>
+                {tables.map(t => (
+                  <tr key={t.id} onClick={() => router.push(`/group-benefits/${t.id}`)} className="cursor-pointer">
+                    <td className="pl-4 font-medium text-foreground whitespace-nowrap">{t.insurer_name || 'Unknown insurer'}{t.version > 1 && <span className="text-muted-foreground/50 font-normal"> · v{t.version}</span>}</td>
+                    <td className="text-muted-foreground max-w-[380px] truncate">{t.product_code}</td>
+                    <td className="text-muted-foreground">{t.plan_year ?? '—'}</td>
+                    <td><span className={cn('text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full', STATUS_TONE[t.status] ?? 'bg-muted')}>{t.status.replace('_', ' ')}</span></td>
+                    <td className="text-right pr-4 text-muted-foreground/70 whitespace-nowrap">{new Date(t.created_at).toLocaleDateString('en-SG')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )
       )}
@@ -89,30 +106,10 @@ export default function GroupBenefitsPage() {
 
       {showUpload && <UploadModal onClose={() => setShowUpload(false)} onDone={() => { setShowUpload(false); load() }} />}
     </div>
+    </div>
   )
 }
 
-function TableRow({ t }: { t: RateTable }) {
-  const router = useRouter()
-  return (
-    <button onClick={() => router.push(`/group-benefits/${t.id}`)}
-      className="flex items-center justify-between gap-4 px-4 py-3 rounded-lg border border-border bg-card hover:border-primary/40 hover:bg-primary/[0.02] text-left transition-colors">
-      <div className="min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="text-[13.5px] font-semibold text-foreground truncate">{t.insurer_name || 'Unknown insurer'}</span>
-          <span className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground/60">{t.product_code}</span>
-          {t.version > 1 && <span className="text-[10px] text-muted-foreground">v{t.version}</span>}
-        </div>
-        <p className="text-[11.5px] text-muted-foreground/70 truncate mt-0.5">
-          {t.source_pdf_name}{t.plan_year ? ` · ${t.plan_year}` : ''}{t.effective_date ? ` · eff ${t.effective_date}` : ''}
-        </p>
-      </div>
-      <span className={cn('flex-shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full', STATUS_TONE[t.status] ?? 'bg-muted')}>
-        {t.status.replace('_', ' ')}
-      </span>
-    </button>
-  )
-}
 
 type Quote = { id: string; company_name: string | null; effective_date: string | null; product_codes: string[]; member_count: number; results: { insurer_name: string; total: number }[]; created_at: string }
 
@@ -126,21 +123,26 @@ function QuotesTab() {
   if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>
   if (rows.length === 0) return <p className="text-sm text-muted-foreground">No quotes yet. Use “New Quote” to run a census.</p>
   return (
-    <div className="flex flex-col gap-2">
-      {rows.map(q => {
-        const best = [...(q.results ?? [])].sort((a, b) => a.total - b.total)[0]
-        return (
-          <button key={q.id} onClick={() => router.push(`/group-benefits/quote/${q.id}`)}
-            className="flex items-center justify-between px-4 py-3 rounded-lg border border-border bg-card text-[12.5px] text-left hover:border-primary/40 hover:bg-primary/[0.02] transition-colors">
-            <div className="min-w-0">
-              <span className="font-semibold text-foreground">{q.company_name || 'Untitled'}</span>
-              <span className="text-muted-foreground/60"> · {q.member_count} members · {(q.product_codes ?? []).join('/')}</span>
-              <p className="text-[11px] text-muted-foreground/60 mt-0.5">{new Date(q.created_at).toLocaleString('en-SG')}{q.effective_date ? ` · eff ${q.effective_date}` : ''}</p>
-            </div>
-            {best && <span className="text-[12px] text-emerald-700 font-semibold flex-shrink-0">Best: {best.insurer_name} {best.total.toLocaleString('en-SG', { style: 'currency', currency: 'SGD' })}</span>}
-          </button>
-        )
-      })}
+    <div className="rounded-lg border border-border overflow-x-auto">
+      <table className="data-table w-full border-collapse text-[13px]">
+        <thead><tr>
+          <th className="pl-4 text-left">Company</th><th className="text-left">Members</th><th className="text-left">Products</th><th className="text-left">Best price</th><th className="text-right pr-4">Created</th>
+        </tr></thead>
+        <tbody>
+          {rows.map(q => {
+            const best = [...(q.results ?? [])].sort((a, b) => a.total - b.total)[0]
+            return (
+              <tr key={q.id} onClick={() => router.push(`/group-benefits/quote/${q.id}`)} className="cursor-pointer">
+                <td className="pl-4 font-medium text-foreground whitespace-nowrap">{q.company_name || 'Untitled'}</td>
+                <td className="text-muted-foreground">{q.member_count}</td>
+                <td className="text-muted-foreground max-w-[280px] truncate">{(q.product_codes ?? []).join(', ')}</td>
+                <td className="text-emerald-700 font-semibold whitespace-nowrap">{best ? `${best.insurer_name} · ${best.total.toLocaleString('en-SG', { style: 'currency', currency: 'SGD' })}` : '—'}</td>
+                <td className="text-right pr-4 text-muted-foreground/70 whitespace-nowrap">{new Date(q.created_at).toLocaleDateString('en-SG')}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
     </div>
   )
 }

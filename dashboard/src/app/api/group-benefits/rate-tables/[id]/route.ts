@@ -55,6 +55,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 type RateIn    = { product_code: string; member_type?: string | null; plan_code: string; band_label: string; age_min: number | null; age_max: number | null; premium: number; renewal_only?: boolean }
 type PlanIn    = { product_code: string; plan_code: string; plan_name?: string | null; hospital_type?: string | null; beds?: string | null; co_payment?: string | null; renewal_only?: boolean }
 type BenefitIn = { product_code: string; plan_code?: string | null; category?: string | null; benefit_name: string; value_text?: string | null; value_numeric?: number | null; unit?: string | null; notes?: string | null }
+type CoverageIn = { product_title?: string | null; member_type?: string | null; plan_code?: string | null; item_label: string; value_numeric?: number | null; value_text?: string | null; unit?: string | null }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -62,7 +63,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (!await requireUser()) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     const body = await req.json() as {
       meta?: Record<string, unknown>
-      plans?: PlanIn[]; rates?: RateIn[]; benefits?: BenefitIn[]
+      plans?: PlanIn[]; rates?: RateIn[]; benefits?: BenefitIn[]; coverage?: CoverageIn[]
     }
 
     if (body.meta && Object.keys(body.meta).length) {
@@ -88,6 +89,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       await fetch(`${SB_URL}/rest/v1/gb_plans?rate_table_id=eq.${id}`, { method: 'DELETE', headers: sbH() })
       const rows = body.plans.filter(p => p.plan_code).map(p => ({ rate_table_id: id, ...p }))
       if (rows.length) await fetch(`${SB_URL}/rest/v1/gb_plans`, { method: 'POST', headers: sbH(), body: JSON.stringify(rows) })
+    }
+    if (Array.isArray(body.coverage)) {
+      await fetch(`${SB_URL}/rest/v1/gb_coverage?rate_table_id=eq.${id}`, { method: 'DELETE', headers: sbH() })
+      const rows = body.coverage.filter(c => c.item_label).map((c, i) => ({ rate_table_id: id, sort_order: i, product_title: c.product_title ?? null, member_type: c.member_type ?? null, plan_code: c.plan_code ?? null, item_label: c.item_label, value_numeric: c.value_numeric ?? null, value_text: c.value_text ?? null, unit: c.unit ?? null }))
+      if (rows.length) await fetch(`${SB_URL}/rest/v1/gb_coverage`, { method: 'POST', headers: sbH(), body: JSON.stringify(rows) })
     }
     if (Array.isArray(body.benefits)) {
       await fetch(`${SB_URL}/rest/v1/gb_benefits?rate_table_id=eq.${id}`, { method: 'DELETE', headers: sbH() })

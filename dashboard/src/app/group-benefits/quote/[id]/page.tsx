@@ -56,7 +56,8 @@ export default function QuoteDetailPage() {
   if (!q) return <div className="p-8"><Loader2 className="animate-spin text-muted-foreground" /></div>
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
+    <div className="min-h-screen bg-white">
+    <div className="max-w-6xl mx-auto px-8 py-6">
       <button onClick={() => router.push('/group-benefits')} className="flex items-center gap-1.5 text-[12px] text-muted-foreground hover:text-foreground mb-4"><ArrowLeft size={13} /> Pricing Matrix</button>
 
       <div className="mb-5">
@@ -133,22 +134,30 @@ export default function QuoteDetailPage() {
 
       {/* Per-member breakdown */}
       {lines.length > 0 && (
-        <div className="border border-border rounded-lg overflow-hidden">
-          <div className="px-3 py-1.5 bg-muted/40 text-[12px] font-semibold">Per-member breakdown ({lines.length} lines)</div>
-          <div className="max-h-[480px] overflow-y-auto divide-y divide-border/60 text-[11.5px]">
-            {lines.map((l, i) => (
-              <div key={i} className={cn('flex items-center gap-2 px-3 py-1', l.premium == null && 'bg-amber-50/60')}>
-                <span className="w-40 truncate">{l.member_name} <span className="text-muted-foreground/50">({l.relationship})</span></span>
-                <span className="w-24 text-muted-foreground/60">{l.insurer_name}</span>
-                <span className="w-12 text-muted-foreground/60">{l.product_code}</span>
-                <span className="w-20 text-muted-foreground/60">{l.plan_code ?? '—'}</span>
-                <span className="w-14 text-muted-foreground/50">age {l.age ?? '?'}</span>
-                <span className="flex-1 text-right font-medium">{l.premium != null ? money(l.premium) : <span className="text-amber-600">{l.note}</span>}</span>
-              </div>
-            ))}
+        <section className="mb-8">
+          <h2 className="text-[14px] font-semibold text-foreground mb-3 pb-1.5 border-b border-border">Per-member breakdown <span className="text-muted-foreground/60 font-normal">· {lines.length} lines</span></h2>
+          <div className="rounded-lg border border-border overflow-x-auto max-h-[520px] overflow-y-auto">
+            <table className="data-table w-full border-collapse text-[12.5px]">
+              <thead><tr>
+                <th className="pl-4 text-left">Member</th><th className="text-left">Insurer</th><th className="text-left">Product</th><th className="text-left">Plan</th><th className="text-left">Age</th><th className="text-right pr-4">Premium</th>
+              </tr></thead>
+              <tbody>
+                {lines.map((l, i) => (
+                  <tr key={i} className={cn(l.premium == null && 'bg-amber-50/50')}>
+                    <td className="pl-4 whitespace-nowrap">{l.member_name} <span className="text-muted-foreground/50">({l.relationship})</span></td>
+                    <td className="text-muted-foreground">{l.insurer_name}</td>
+                    <td className="text-muted-foreground">{l.product_code}</td>
+                    <td className="text-muted-foreground">{l.plan_code ?? '—'}</td>
+                    <td className="text-muted-foreground/70">{l.age ?? '?'}</td>
+                    <td className="text-right pr-4 tabular-nums font-medium">{l.premium != null ? money(l.premium) : <span className="text-amber-600 font-normal">{l.note}</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
+        </section>
       )}
+    </div>
     </div>
   )
 }

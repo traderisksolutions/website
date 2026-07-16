@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2, CheckCircle2, AlertTriangle, Save, FileText, RefreshCw, Trash2, Pencil, X } from 'lucide-react'
+import { ArrowLeft, Loader2, CheckCircle2, AlertTriangle, Save, FileText, RefreshCw, Trash2, Pencil, X, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type Rate    = { id?: string; product_code: string; member_type: string | null; plan_code: string; band_label: string; age_min: number | null; age_max: number | null; premium: number; renewal_only?: boolean }
@@ -93,6 +93,30 @@ export default function GbReviewPage() {
 
   function updateRate(idx: number, patch: Partial<Rate>) { setRates(prev => prev.map((x, i) => (i === idx ? { ...x, ...patch } : x))) }
 
+  // ── Structural edits on the flat rates (matrix add/remove/rename) ──────────────
+  const gm = (m: string | null) => m ?? ''                       // member-type group key
+  const inGroup = (r: Rate, product: string, mt: string) => r.product_code === product && gm(r.member_type) === mt
+  function renameBand(product: string, mt: string, oldB: string, newB: string) { if (!newB || newB === oldB) return; setRates(prev => prev.map(r => (inGroup(r, product, mt) && r.band_label === oldB ? { ...r, band_label: newB } : r))) }
+  function renamePlan(product: string, mt: string, oldP: string, newP: string) { if (!newP || newP === oldP) return; setRates(prev => prev.map(r => (inGroup(r, product, mt) && r.plan_code === oldP ? { ...r, plan_code: newP } : r))) }
+  function deleteBand(product: string, mt: string, band: string) { setRates(prev => prev.filter(r => !(inGroup(r, product, mt) && r.band_label === band))) }
+  function deletePlan(product: string, mt: string, plan: string) { setRates(prev => prev.filter(r => !(inGroup(r, product, mt) && r.plan_code === plan))) }
+  function addBand(product: string, mt: string, plans: string[], bands: string[]) { let n = 1, label = 'New band'; while (bands.includes(label)) label = `New band ${++n}`; setRates(prev => [...prev, ...plans.map(p => ({ product_code: product, member_type: mt || null, plan_code: p, band_label: label, age_min: null, age_max: null, premium: 0 }))]) }
+  function addPlan(product: string, mt: string, bands: string[], plans: string[]) { let n = 1, code = 'New plan'; while (plans.includes(code)) code = `New plan ${++n}`; setRates(prev => [...prev, ...(bands.length ? bands : ['Up to 99']).map(b => ({ product_code: product, member_type: mt || null, plan_code: code, band_label: b, age_min: null, age_max: null, premium: 0 }))]) }
+  function addProduct() { setRates(prev => [...prev, { product_code: 'New product', member_type: null, plan_code: 'Plan 1', band_label: 'Up to 99', age_min: 0, age_max: 99, premium: 0 }]) }
+  function setCell(product: string, mt: string, band: string, plan: string, valStr: string) {
+    const num = parseFloat(valStr)
+    setRates(prev => {
+      const i = prev.findIndex(r => inGroup(r, product, mt) && r.band_label === band && r.plan_code === plan)
+      if (i >= 0) return prev.map((r, j) => (j === i ? { ...r, premium: isFinite(num) ? num : 0 } : r))
+      if (!isFinite(num)) return prev
+      return [...prev, { product_code: product, member_type: mt || null, plan_code: plan, band_label: band, age_min: null, age_max: null, premium: num }]
+    })
+  }
+  // Coverage + benefit row edits
+  function updateCoverage(i: number, patch: Partial<Coverage>) { setCoverage(prev => prev.map((x, j) => (j === i ? { ...x, ...patch } : x))) }
+  function addCoverage() { setCoverage(prev => [...prev, { product_title: rates[0]?.product_code ?? '', member_type: null, plan_code: null, item_label: 'New item', value_numeric: null, value_text: '', unit: null }]) }
+  function addBenefit() { setBenefits(prev => [...prev, { product_code: '', plan_code: null, category: null, benefit_name: 'New benefit', value_text: '', value_numeric: null, unit: null, notes: null }]) }
+
   async function save(approveAfter = false) {
     if (approveAfter && (d?.conflicts?.length ?? 0) > 0 &&
         !confirm(`${d!.conflicts.length} cell(s) are still flagged for review. Approve anyway?`)) return
@@ -108,7 +132,7 @@ export default function GbReviewPage() {
       }
       const saveRes = await fetch(`/api/group-benefits/rate-tables/${id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rates, benefits, meta: metaPayload }),
+        body: JSON.stringify({ rates, benefits, coverage, meta: metaPayload }),
       })
       if (!saveRes.ok) { setMsg((await saveRes.json().catch(() => ({}))).error ?? 'Save failed'); return }
       if (approveAfter) {
@@ -127,6 +151,7 @@ export default function GbReviewPage() {
   const t = d.table as { insurer_name?: string; product_code?: string; source_pdf_name?: string; age_basis?: string; plan_year?: number }
   const byProduct = groupBy(rates, r => r.product_code)
   const mi = 'w-full text-[12.5px] border border-border rounded-md px-2.5 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary/25'
+  const ci = 'w-full text-[12px] px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-primary/40 focus:outline-none bg-white'
   const btn = 'flex items-center gap-1.5 text-[12.5px] font-medium px-2.5 py-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50'
   const insurerLabel = meta.insurer_name || t.insurer_name || 'Insurer'
   const editable = status === 'in_review' || editing   // cells + metadata are editable in review, or when explicitly editing an approved table
@@ -278,30 +303,53 @@ export default function GbReviewPage() {
                         <thead>
                           <tr>
                             <th className="text-left pl-4">Age band</th>
-                            {plans.map(p => <th key={p} className="text-right pr-4">{p}</th>)}
+                            {plans.map(plan => (
+                              <th key={plan} className="text-right pr-2">
+                                {editable ? (
+                                  <span className="inline-flex items-center gap-1 justify-end">
+                                    <input defaultValue={plan} key={plan} onBlur={e => renamePlan(product, mt, plan, e.target.value.trim())}
+                                      className="w-24 text-right text-[11px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-primary/40 focus:outline-none bg-white" />
+                                    <button onClick={() => deletePlan(product, mt, plan)} title="Remove plan" className="text-muted-foreground/30 hover:text-rose-600"><X size={11} /></button>
+                                  </span>
+                                ) : plan}
+                              </th>
+                            ))}
+                            {editable && <th className="pr-2 text-right"><button onClick={() => addPlan(product, mt, bands, plans)} title="Add plan" className="text-primary/70 hover:text-primary"><Plus size={13} /></button></th>}
                           </tr>
                         </thead>
                         <tbody>
                           {bands.map(band => (
                             <tr key={band}>
-                              <td className="pl-4 font-medium text-foreground/70 whitespace-nowrap">{band}</td>
+                              <td className="pl-4 whitespace-nowrap">
+                                {editable
+                                  ? <input defaultValue={band} key={band} onBlur={e => renameBand(product, mt, band, e.target.value.trim())}
+                                      className="w-28 text-[12.5px] font-medium px-2 py-0.5 rounded border border-transparent hover:border-border focus:border-primary/40 focus:outline-none bg-white" />
+                                  : <span className="font-medium text-foreground/70">{band}</span>}
+                              </td>
                               {plans.map(plan => {
                                 const r = cell.get(`${band}|${plan}`)
-                                if (!r) return <td key={plan} className="text-right pr-4 text-muted-foreground/25">—</td>
-                                const idx = rates.indexOf(r)
-                                const conflict = conflictMap.get(cKey(r))
+                                const conflict = r ? conflictMap.get(cKey(r)) : undefined
+                                if (!editable) return r
+                                  ? <td key={plan} className="text-right pr-2 py-1"><input type="number" value={r.premium} disabled title={conflict ? `Opus ${fmt(conflict.opus)} · Gemini ${fmt(conflict.gemini)}` : ''} className={cn('w-24 text-right tabular-nums text-[12.5px] px-2 py-1 rounded border bg-white', conflict ? 'border-amber-300 bg-amber-50/70' : 'border-transparent')} /></td>
+                                  : <td key={plan} className="text-right pr-4 text-muted-foreground/25">—</td>
                                 return (
                                   <td key={plan} className="text-right pr-2 py-1">
-                                    <input type="number" step="0.01" value={r.premium} disabled={!editable}
-                                      onChange={e => updateRate(idx, { premium: parseFloat(e.target.value) || 0 })}
+                                    <input type="number" step="0.01" value={r ? r.premium : ''} placeholder="—"
+                                      onChange={e => setCell(product, mt, band, plan, e.target.value)}
                                       title={conflict ? `Opus ${fmt(conflict.opus)} · Gemini ${fmt(conflict.gemini)}` : ''}
                                       className={cn('w-24 text-right tabular-nums text-[12.5px] px-2 py-1 rounded border bg-white focus:outline-none focus:ring-1 focus:ring-primary/30',
                                         conflict ? 'border-amber-300 bg-amber-50/70' : 'border-transparent hover:border-border')} />
                                   </td>
                                 )
                               })}
+                              {editable && <td className="pr-2 text-right"><button onClick={() => deleteBand(product, mt, band)} title="Remove age band" className="text-muted-foreground/30 hover:text-rose-600"><Trash2 size={12} /></button></td>}
                             </tr>
                           ))}
+                          {editable && (
+                            <tr><td colSpan={plans.length + 2} className="pl-4">
+                              <button onClick={() => addBand(product, mt, plans, bands)} className="flex items-center gap-1 text-[11.5px] text-primary hover:text-primary/80 py-1"><Plus size={12} /> Add age band</button>
+                            </td></tr>
+                          )}
                         </tbody>
                       </table>
                     </div>
@@ -311,17 +359,30 @@ export default function GbReviewPage() {
             </section>
           ))}
 
+          {editable && (
+            <button onClick={addProduct} className="flex items-center gap-1.5 text-[12px] font-medium text-primary hover:text-primary/80 mb-8"><Plus size={13} /> Add product / matrix</button>
+          )}
+
           {/* Coverage / sum assured */}
-          {coverage.length > 0 && (
+          {(coverage.length > 0 || editable) && (
             <section className="mb-8">
               <h2 className="text-[14px] font-semibold text-foreground mb-3 pb-1.5 border-b border-border">Coverage &amp; sum assured</h2>
-              <div className="rounded-lg border border-border overflow-x-auto max-h-[360px] overflow-y-auto">
+              <div className="rounded-lg border border-border overflow-x-auto max-h-[400px] overflow-y-auto">
                 <table className="data-table w-full border-collapse text-[12.5px]">
                   <thead><tr>
-                    <th className="pl-4 text-left">Product</th><th className="text-left">Member</th><th className="text-left">Plan</th><th className="text-left">Item</th><th className="text-right pr-4">Value</th>
+                    <th className="pl-4 text-left">Product</th><th className="text-left">Member</th><th className="text-left">Plan</th><th className="text-left">Item</th><th className="text-right pr-4">Value</th>{editable && <th />}
                   </tr></thead>
                   <tbody>
-                    {coverage.map((c, i) => (
+                    {coverage.map((c, i) => editable ? (
+                      <tr key={i}>
+                        <td className="pl-4"><input value={c.product_title ?? ''} onChange={e => updateCoverage(i, { product_title: e.target.value })} className={ci} /></td>
+                        <td><select value={c.member_type ?? ''} onChange={e => updateCoverage(i, { member_type: e.target.value || null })} className={ci}><option value="">—</option><option value="employee">Employee</option><option value="dependant">Dependant</option></select></td>
+                        <td><input value={c.plan_code ?? ''} onChange={e => updateCoverage(i, { plan_code: e.target.value || null })} className={ci} /></td>
+                        <td><input value={c.item_label} onChange={e => updateCoverage(i, { item_label: e.target.value })} className={ci} /></td>
+                        <td className="text-right pr-2"><input value={c.value_numeric != null ? String(c.value_numeric) : (c.value_text ?? '')} onChange={e => { const n = parseFloat(e.target.value.replace(/,/g, '')); updateCoverage(i, isFinite(n) && /^[\d.,]+$/.test(e.target.value) ? { value_numeric: n, value_text: null } : { value_numeric: null, value_text: e.target.value }) }} className={cn(ci, 'text-right w-32')} /></td>
+                        <td className="pr-2 text-right"><button onClick={() => setCoverage(prev => prev.filter((_, j) => j !== i))} className="text-muted-foreground/30 hover:text-rose-600"><Trash2 size={12} /></button></td>
+                      </tr>
+                    ) : (
                       <tr key={i}>
                         <td className="pl-4 whitespace-nowrap text-foreground/80">{c.product_title}</td>
                         <td className="text-muted-foreground">{c.member_type ? mtLabel(c.member_type) : '—'}</td>
@@ -330,6 +391,7 @@ export default function GbReviewPage() {
                         <td className="text-right pr-4 tabular-nums font-medium">{c.value_numeric != null ? c.value_numeric.toLocaleString('en-SG') : c.value_text}{c.unit ? ` ${c.unit}` : ''}</td>
                       </tr>
                     ))}
+                    {editable && <tr><td colSpan={6} className="pl-4"><button onClick={addCoverage} className="flex items-center gap-1 text-[11.5px] text-primary py-1"><Plus size={12} /> Add coverage row</button></td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -337,25 +399,35 @@ export default function GbReviewPage() {
           )}
 
           {/* Benefits */}
-          {benefits.length > 0 && (
+          {(benefits.length > 0 || editable) && (
             <section className="mb-8">
               <h2 className="text-[14px] font-semibold text-foreground mb-3 pb-1.5 border-b border-border">Benefit schedule</h2>
               <div className="rounded-lg border border-border overflow-x-auto max-h-[420px] overflow-y-auto">
                 <table className="data-table w-full border-collapse text-[12px]">
                   <thead><tr>
-                    <th className="pl-4 text-left">Scope</th><th className="text-left">Benefit</th><th className="text-right pr-4">Value</th>
+                    <th className="pl-4 text-left">Scope</th><th className="text-left">Benefit</th><th className="text-right pr-4">Value</th>{editable && <th />}
                   </tr></thead>
                   <tbody>
                     {benefits.map((b, i) => (
                       <tr key={i}>
-                        <td className="pl-4 whitespace-nowrap text-muted-foreground">{b.product_code}{b.plan_code ? ` · ${b.plan_code}` : ''}</td>
-                        <td className="text-foreground/80">{b.category ? `${b.category} — ` : ''}{b.benefit_name}</td>
+                        <td className="pl-4 whitespace-nowrap text-muted-foreground">
+                          {editable
+                            ? <input value={b.product_code ?? ''} onChange={e => setBenefits(prev => prev.map((x, j) => j === i ? { ...x, product_code: e.target.value } : x))} placeholder="product" className={cn(ci, 'w-24')} />
+                            : <>{b.product_code}{b.plan_code ? ` · ${b.plan_code}` : ''}</>}
+                        </td>
+                        <td className="text-foreground/80">
+                          {editable
+                            ? <input value={b.benefit_name} onChange={e => setBenefits(prev => prev.map((x, j) => j === i ? { ...x, benefit_name: e.target.value } : x))} className={ci} />
+                            : <>{b.category ? `${b.category} — ` : ''}{b.benefit_name}</>}
+                        </td>
                         <td className="text-right pr-2 py-1">
                           <input value={b.value_text ?? ''} disabled={!editable} onChange={e => setBenefits(prev => prev.map((x, j) => j === i ? { ...x, value_text: e.target.value } : x))}
-                            className="w-44 text-right text-[12px] px-2 py-1 rounded border border-transparent hover:border-border focus:border-primary/40 focus:outline-none bg-white disabled:hover:border-transparent" />
+                            className={cn('w-44 text-right text-[12px] px-2 py-1 rounded border bg-white focus:outline-none', editable ? 'border-transparent hover:border-border focus:border-primary/40' : 'border-transparent')} />
                         </td>
+                        {editable && <td className="pr-2 text-right"><button onClick={() => setBenefits(prev => prev.filter((_, j) => j !== i))} className="text-muted-foreground/30 hover:text-rose-600"><Trash2 size={12} /></button></td>}
                       </tr>
                     ))}
+                    {editable && <tr><td colSpan={4} className="pl-4"><button onClick={addBenefit} className="flex items-center gap-1 text-[11.5px] text-primary py-1"><Plus size={12} /> Add benefit row</button></td></tr>}
                   </tbody>
                 </table>
               </div>
