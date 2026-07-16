@@ -10,6 +10,7 @@ import { useState, useEffect, useRef } from 'react'
 import { RefreshCw, ChevronDown, Sparkles, Paperclip, Upload, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
+import { createClient } from '@/lib/supabase/client'
 import { useAuditLog } from '@/hooks/useAuditLog'
 import type { Lead, RealMsg, RagSource, SigOption, Sender } from '@/components/engagement/types'
 import { fullName } from '@/components/engagement/helpers'
@@ -148,16 +149,24 @@ export function EngagementComposePanel({
     if (!files || files.length === 0) return
     setUploading(true)
     try {
+      const supabase = createClient()
       for (const file of Array.from(files)) {
-        const fd = new FormData()
-        fd.append('file', file)
-        const res = await fetch('/api/email/attachments/upload', { method: 'POST', body: fd })
-        const d = await res.json().catch(() => null)
-        if (res.ok && d?.storage_url) {
-          setAttachments(prev => prev.some(a => a.storage_url === d.storage_url) ? prev : [...prev, d as Att])
-        } else {
-          setError(d?.error ?? `Failed to upload ${file.name}`)
-        }
+        // 1. Get a signed upload URL, then 2. upload the file DIRECTLY to Supabase Storage
+        //    (bypasses Vercel's ~4.5MB request-body limit — no size cap on our side).
+        const uu = await fetch('/api/email/attachments/upload-url', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: file.name }),
+        })
+        const ud = await uu.json().catch(() => null) as { path?: string; token?: string; error?: string } | null
+        if (!uu.ok || !ud?.path || !ud?.token) { setError(ud?.error ?? `Could not start upload for ${file.name}`); continue }
+
+        const { error: upErr } = await supabase.storage
+          .from('email-attachments')
+          .uploadToSignedUrl(ud.path, ud.token, file, { contentType: file.type || 'application/octet-stream' })
+        if (upErr) { setError(`Upload failed for ${file.name}: ${upErr.message}`); continue }
+
+        const att: Att = { filename: file.name, mime_type: file.type || 'application/octet-stream', storage_url: ud.path }
+        setAttachments(prev => prev.some(a => a.storage_url === att.storage_url) ? prev : [...prev, att])
       }
     } finally {
       setUploading(false)

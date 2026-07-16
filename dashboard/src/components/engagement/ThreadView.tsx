@@ -27,8 +27,10 @@ interface ThreadViewProps {
   onBack?:         () => void
 }
 
-// Reply-All recipients = the To+CC of the message being replied to (the latest one),
-// minus TRS internal addresses, automated addresses, and whoever's in the To field.
+// Reply-All recipients = the To+CC of the message being replied to (the latest one). We KEEP
+// internal @trade-risksol.com colleagues (the whole point — everyone on the thread stays in the
+// loop) and only drop: whoever's already in the To field, automated addresses, and the shared
+// operations@ mailbox (the send route auto-adds that itself).
 function computeReplyAllCcs(messages: RealMsg[], toAddr: string): string[] {
   const latest = messages.at(-1)
   if (!latest) return []
@@ -39,7 +41,7 @@ function computeReplyAllCcs(messages: RealMsg[], toAddr: string): string[] {
     const e  = extractEmail(raw)
     const le = e.toLowerCase()
     if (!e || le === to) continue
-    if (le.endsWith('@trade-risksol.com')) continue
+    if (le === 'operations@trade-risksol.com') continue
     if (le.includes('noreply') || le.includes('no-reply') || le.includes('mailer-daemon')) continue
     if (seen.has(le)) continue
     seen.add(le); out.push(e)
