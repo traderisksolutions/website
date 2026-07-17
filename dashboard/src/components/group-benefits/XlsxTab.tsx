@@ -145,8 +145,9 @@ function RulesPanel({ tableId, onChanged }: { tableId: string; onChanged: () => 
   const [rules, setRules] = useState<Record<string, unknown>>({})
   const [warnings, setWarnings] = useState<string[]>([])
   const [status, setStatus] = useState<string>('in_review')
-  const [saving, setSaving] = useState<'save' | 'approve' | null>(null)
+  const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [editing, setEditing] = useState(false)
 
   const load = React.useCallback(async () => {
     setLoading(true)
@@ -162,14 +163,17 @@ function RulesPanel({ tableId, onChanged }: { tableId: string; onChanged: () => 
 
   const setRule = React.useCallback((rule: string, value: unknown) => setRules(prev => ({ ...prev, [rule]: value })), [])
 
-  async function save(approve: boolean) {
-    setSaving(approve ? 'approve' : 'save')
+  const editable = status !== 'approved' || editing
+
+  async function save() {
+    setSaving(true)
     const res = await fetch(`/api/group-benefits/rate-tables/${tableId}/calculator`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rules, approved: approve }),
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rules, approved: true }),
     })
-    setSaving(null)
-    if (res.ok) { setStatus(approve ? 'approved' : 'in_review'); onChanged() }
+    setSaving(false)
+    if (res.ok) { setStatus('approved'); setEditing(false); onChanged() }
   }
+  function cancel() { setEditing(false); load() }   // discard edits — reload from server
 
   if (loading) return <div className="px-6 py-4 bg-muted/20"><Loader2 size={15} className="animate-spin text-muted-foreground" /></div>
 
@@ -181,12 +185,18 @@ function RulesPanel({ tableId, onChanged }: { tableId: string; onChanged: () => 
       <div className="flex items-center justify-between mb-3">
         <div>
           <h4 className="text-[13px] font-bold text-foreground">Calculation rules from this calculator</h4>
-          <p className="text-[11.5px] text-muted-foreground/70 mt-0.5">We read the workbook and filled these in. Check each one, adjust if needed, then Approve — they&apos;ll be applied automatically when you quote this insurer.</p>
+          <p className="text-[11.5px] text-muted-foreground/70 mt-0.5">{editable
+            ? 'We read the workbook and filled these in. Check each one, adjust if needed, then Save — they’ll be applied automatically when you quote this insurer.'
+            : 'These rules are applied automatically when you quote this insurer. Click Edit to change them.'}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {status === 'approved' && <span className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-emerald-700"><CheckCircle2 size={13} /> Approved</span>}
-          <button onClick={() => save(false)} disabled={!!saving} className="text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-border bg-white hover:bg-muted/40 disabled:opacity-50">{saving === 'save' ? 'Saving…' : 'Save'}</button>
-          <button onClick={() => save(true)} disabled={!!saving} className="text-[12px] font-semibold px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">{saving === 'approve' ? 'Approving…' : 'Approve rules'}</button>
+          {status === 'approved' && !editing && <span className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-emerald-700"><CheckCircle2 size={13} /> Approved</span>}
+          {editable
+            ? <>
+                {editing && <button onClick={cancel} disabled={saving} className="text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-border bg-white hover:bg-muted/40 disabled:opacity-50">Cancel</button>}
+                <button onClick={save} disabled={saving} className="text-[12px] font-semibold px-3.5 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">{saving ? 'Saving…' : 'Save'}</button>
+              </>
+            : <button onClick={() => setEditing(true)} className="text-[12px] font-semibold px-3.5 py-1.5 rounded-lg border border-border bg-white hover:bg-muted/40">Edit</button>}
         </div>
       </div>
 
@@ -197,27 +207,27 @@ function RulesPanel({ tableId, onChanged }: { tableId: string; onChanged: () => 
       )}
 
       <div className="flex flex-col gap-2.5">
-        <RuleCard title="How is age counted?" blurb="Sets each member's age from their date of birth. “Next birthday” makes everyone a year older." confidence={confOf('age_basis')} source={srcOf('age_basis')}>
+        <RuleCard title="How is age counted?" blurb="Sets each member's age from their date of birth. “Next birthday” makes everyone a year older." confidence={confOf('age_basis')} source={srcOf('age_basis')} editable={editable}>
           <AgeBasisEditor value={rules.age_basis} onChange={v => setRule('age_basis', v)} />
         </RuleCard>
 
-        <RuleCard title="Do the rates include GST?" blurb="Comparisons are shown net of GST. If the printed rates include GST, we divide them down." confidence={confOf('gst_treatment')} source={srcOf('gst_treatment')}>
+        <RuleCard title="Do the rates include GST?" blurb="Comparisons are shown net of GST. If the printed rates include GST, we divide them down." confidence={confOf('gst_treatment')} source={srcOf('gst_treatment')} editable={editable}>
           <GstEditor value={rules.gst_treatment} onChange={v => setRule('gst_treatment', v)} />
         </RuleCard>
 
-        <RuleCard title="Discount or loading by group size?" blurb="Adjusts every premium based on the total number of lives (e.g. −5% for 5+ employees)." confidence={confOf('group_size_discount')} source={srcOf('group_size_discount')}>
+        <RuleCard title="Discount or loading by group size?" blurb="Adjusts every premium based on the total number of lives (e.g. −5% for 5+ employees)." confidence={confOf('group_size_discount')} source={srcOf('group_size_discount')} editable={editable}>
           <GroupDiscountEditor value={rules.group_size_discount} onChange={v => setRule('group_size_discount', v)} />
         </RuleCard>
 
-        <RuleCard title="Ages only available on renewal?" blurb="On a New Business quote these ages are left unpriced; on a Renewal quote they're priced." confidence={confOf('renewal_only_bands')} source={srcOf('renewal_only_bands')}>
+        <RuleCard title="Ages only available on renewal?" blurb="On a New Business quote these ages are left unpriced; on a Renewal quote they're priced." confidence={confOf('renewal_only_bands')} source={srcOf('renewal_only_bands')} editable={editable}>
           <RenewalBandsEditor value={rules.renewal_only_bands} onChange={v => setRule('renewal_only_bands', v)} />
         </RuleCard>
 
-        <RuleCard title="Occupation classes not eligible" blurb="Members whose occupation class is ticked here are marked ineligible for this insurer." confidence={confOf('occupation_class_rules')} source={srcOf('occupation_class_rules')}>
+        <RuleCard title="Occupation classes not eligible" blurb="Members whose occupation class is ticked here are marked ineligible for this insurer." confidence={confOf('occupation_class_rules')} source={srcOf('occupation_class_rules')} editable={editable}>
           <OccClassEditor value={rules.occupation_class_rules} onChange={v => setRule('occupation_class_rules', v)} />
         </RuleCard>
 
-        <RuleCard title="Coverage dependencies" blurb="Note where one coverage can only be taken alongside another (for your reference)." confidence={confOf('rider_dependencies')} source={srcOf('rider_dependencies')}>
+        <RuleCard title="Coverage dependencies" blurb="Note where one coverage can only be taken alongside another (for your reference)." confidence={confOf('rider_dependencies')} source={srcOf('rider_dependencies')} editable={editable}>
           <RiderEditor value={rules.rider_dependencies} onChange={v => setRule('rider_dependencies', v)} />
         </RuleCard>
       </div>
@@ -233,7 +243,7 @@ const CONF_META: Record<string, { label: string; cls: string }> = {
   'n/a':  { label: 'Not found',     cls: 'bg-muted text-muted-foreground' },
 }
 
-function RuleCard({ title, blurb, confidence, source, children }: { title: string; blurb: string; confidence: string; source: string; children: React.ReactNode }) {
+function RuleCard({ title, blurb, confidence, source, editable, children }: { title: string; blurb: string; confidence: string; source: string; editable: boolean; children: React.ReactNode }) {
   const [showSrc, setShowSrc] = useState(false)
   const cm = CONF_META[confidence] ?? CONF_META['n/a']
   return (
@@ -247,11 +257,12 @@ function RuleCard({ title, blurb, confidence, source, children }: { title: strin
           <p className="text-[11px] text-muted-foreground/70 mt-0.5">{blurb}</p>
         </div>
         {source && (
-          <button onClick={() => setShowSrc(s => !s)} className="text-[10.5px] text-muted-foreground/50 hover:text-primary shrink-0 mt-0.5">{showSrc ? 'hide' : 'where?'}</button>
+          <button type="button" onClick={() => setShowSrc(s => !s)} className="text-[10.5px] text-muted-foreground/50 hover:text-primary shrink-0 mt-0.5">{showSrc ? 'hide' : 'where?'}</button>
         )}
       </div>
       {showSrc && source && <p className="text-[10.5px] text-muted-foreground/60 mt-1.5 bg-muted/40 rounded px-2 py-1 break-words">Found in: {source}</p>}
-      <div className="mt-2.5">{children}</div>
+      {/* Disabling the fieldset makes every control inside read-only when not editing. */}
+      <fieldset disabled={!editable} className="mt-2.5 min-w-0">{children}</fieldset>
     </div>
   )
 }
