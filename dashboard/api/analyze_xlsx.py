@@ -261,6 +261,10 @@ class handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def do_GET(self):
+        # Health check — a browser visit confirms the Python function is live.
+        self._send(200, {"ok": True, "service": "analyze_xlsx", "usage": "POST { xlsx_url, insurer_name? }"})
+
     def do_POST(self):
         try:
             length = int(self.headers.get("Content-Length", 0))
