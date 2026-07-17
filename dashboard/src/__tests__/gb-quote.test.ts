@@ -88,3 +88,40 @@ describe('computeQuote', () => {
     expect(res.per_insurer[0].subtotal).toBe(430.65)
   })
 })
+
+describe('Phase C — calculator rules', () => {
+  const rates: RateTableInfo['rates'] = [
+    { product_code: 'GHS', member_type: null, plan_code: 'P1', band_label: 'Up to 40', age_min: 0, age_max: 40, premium: 109 },
+    { product_code: 'GHS', member_type: null, plan_code: 'P1', band_label: '71-75', age_min: 71, age_max: 75, premium: 1000, renewal_only: true },
+  ]
+  const map = { t1: { GHS: { Staff: 'P1' } } }
+  const base = (rules: RateTableInfo['rules']): RateTableInfo => ({ rate_table_id: 't1', insurer_name: 'RCC', age_basis: 'last_birthday', rates, rules })
+  const mem = (over: Partial<Member> = {}): Member => ({ name: 'A', category: 'Staff', relationship: 'self', dob: null, age: 35, ...over })
+
+  it('GST inclusive rates are divided to net', () => {
+    const r = computeQuote([mem()], [base({ gst_treatment: { treatment: 'inclusive', conversion_factor: 1.09 } })], map, ['GHS'], 0.09, '2026-01-01')
+    expect(r.per_insurer[0].subtotal).toBeCloseTo(100, 1)  // 109 / 1.09
+  })
+  it('group-size discount factor applies by lives', () => {
+    const rules = { group_size_discount: { tiers: [{ min_lives: 1, factor: 1.5 }, { min_lives: 10, factor: 0.9 }] } }
+    const one = computeQuote([mem()], [base(rules)], map, ['GHS'], 0.09, '2026-01-01')
+    expect(one.per_insurer[0].subtotal).toBeCloseTo(163.5, 1)  // 109 * 1.5 (1 life)
+  })
+  it('renewal-only band is excluded on new business, priced on renewal', () => {
+    const old = mem({ age: 73 })
+    const nb = computeQuote([old], [base({})], map, ['GHS'], 0.09, '2026-01-01', { basis: 'new_business' })
+    expect(nb.per_insurer[0].subtotal).toBe(0)
+    expect(nb.lines[0].note).toContain('renewal-only')
+    const rn = computeQuote([old], [base({})], map, ['GHS'], 0.09, '2026-01-01', { basis: 'renewal' })
+    expect(rn.per_insurer[0].subtotal).toBe(1000)
+  })
+  it('excluded occupation class makes the member ineligible', () => {
+    const r = computeQuote([mem({ occupation_class: '3' })], [base({ occupation_class_rules: { excluded_classes: [3] } })], map, ['GHS'], 0.09, '2026-01-01')
+    expect(r.per_insurer[0].subtotal).toBe(0)
+    expect(r.lines[0].note).toContain('not eligible')
+  })
+  it('no rules → unchanged behaviour', () => {
+    const r = computeQuote([mem()], [{ rate_table_id: 't1', insurer_name: 'X', age_basis: 'last_birthday', rates }], map, ['GHS'], 0.09, '2026-01-01')
+    expect(r.per_insurer[0].subtotal).toBe(109)
+  })
+})

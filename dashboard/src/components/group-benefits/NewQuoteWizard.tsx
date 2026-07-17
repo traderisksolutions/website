@@ -6,14 +6,14 @@ import { cn } from '@/lib/utils'
 import { plainToHtml } from '@/components/RichEditor'
 
 // ── Types mirrored from the API ────────────────────────────────────────────────
-type Member = { name: string; category: string; relationship: string; dob?: string | null; age?: number | null }
+type Member = { name: string; category: string; relationship: string; dob?: string | null; age?: number | null; occupation_class?: string | null }
 type Plan   = { rate_table_id: string; product_code: string; plan_code: string; plan_name: string | null; hospital_type: string | null; beds: string | null }
 type Avail  = { rate_table_id: string; insurer_id: string | null; insurer_name: string; product_title: string; age_basis: string; plan_year: number | null; member_types: string[]; plans: Plan[] }
 type InsurerResult = { rate_table_id: string; insurer_id: string | null; insurer_name: string; by_product: Record<string, number>; subtotal: number; gst: number; total: number; missing: number }
 type Line = { member_index: number; member_name: string; category: string; relationship: string; age: number | null; insurer_name: string; product_code: string; plan_code: string | null; premium: number | null; note: string | null }
 type Analysis = { comparison: { benefit: string; by_insurer: Record<string, string> }[]; insurers: { insurer: string; pros: string[]; cons: string[] }[]; recommendation: string }
 
-const TEMPLATE ='name,category,relationship,dob,age\nJane Tan,Manager,self,1985-04-12,\nJohn Tan,Manager,spouse,1987-09-01,\nBaby Tan,Manager,child,,3\n'
+const TEMPLATE ='name,category,relationship,dob,age,occupation_class\nJane Tan,Manager,self,1985-04-12,,1\nJohn Tan,Manager,spouse,1987-09-01,,\nBaby Tan,Manager,child,,3,\n'
 const money = (n: number) => n.toLocaleString('en-SG', { style: 'currency', currency: 'SGD' })
 
 // Minimal CSV parse (name,category,relationship,dob,age).
@@ -22,7 +22,8 @@ function parseCensus(text: string): Member[] {
   if (lines.length < 2) return []
   const header = lines[0].toLowerCase().split(',').map(h => h.trim())
   const col = (n: string) => header.indexOf(n)
-  const ci = { name: col('name'), cat: col('category'), rel: col('relationship'), dob: col('dob'), age: col('age') }
+  const ci = { name: col('name'), cat: col('category'), rel: col('relationship'), dob: col('dob'), age: col('age'),
+    cls: [col('occupation_class'), col('occupation class'), col('class')].find(i => i >= 0) ?? -1 }
   // Dependents (spouse/child) with a blank category inherit the most recent employee's
   // category, so the census can list a family as: employee row, then dependent rows.
   let lastSelfCategory = 'Default'
@@ -39,6 +40,7 @@ function parseCensus(text: string): Member[] {
       relationship: rel,
       dob: ci.dob >= 0 && c[ci.dob] ? c[ci.dob] : null,
       age: ageRaw ? Number(ageRaw) : null,
+      occupation_class: ci.cls >= 0 && c[ci.cls] ? c[ci.cls] : null,
     }
   }).filter(m => m.name)
 }
@@ -61,6 +63,7 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
   const [company, setCompany] = useState('')
   const [effDate, setEffDate] = useState(new Date().toISOString().slice(0, 10))
   const [gst, setGst] = useState(9)
+  const [basis, setBasis] = useState<'new_business' | 'renewal'>('new_business')
   const [avail, setAvail] = useState<Avail[]>([])
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
   // categoryMap[rate_table_id][product_title][category] = plan_code
@@ -120,7 +123,7 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
       const rate_table_ids = Array.from(new Set(selected.map(t => t.rate_table_id)))
       const res = await fetch('/api/group-benefits/quote', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ company_name: company, effective_date: effDate, gst_rate: gst / 100, products, rate_table_ids, category_map: map, census: members.filter(m => m.name.trim()) }),
+        body: JSON.stringify({ company_name: company, effective_date: effDate, gst_rate: gst / 100, basis, products, rate_table_ids, category_map: map, census: members.filter(m => m.name.trim()) }),
       })
       const d = await res.json()
       if (!res.ok) { setError(d.error ?? 'Compute failed'); return }
@@ -204,12 +207,12 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
                 <span>{members.length} members · {categories.length} categor{categories.length === 1 ? 'y' : 'ies'} ({categories.join(', ')})</span>
                 <span className="text-[10px] font-normal text-muted-foreground/50">Review &amp; fix before quoting</span>
               </div>
-              <div className="grid grid-cols-[1.4fr_1fr_0.8fr_1fr_24px] gap-1 px-2 py-1 text-[9.5px] font-bold uppercase tracking-wide text-muted-foreground/50">
-                <span>Name</span><span>Category</span><span>Relation</span><span>DOB / age</span><span />
+              <div className="grid grid-cols-[1.4fr_1fr_0.8fr_1fr_0.6fr_24px] gap-1 px-2 py-1 text-[9.5px] font-bold uppercase tracking-wide text-muted-foreground/50">
+                <span>Name</span><span>Category</span><span>Relation</span><span>DOB / age</span><span>Class</span><span />
               </div>
               <div className="divide-y divide-border/60 max-h-72 overflow-y-auto">
                 {members.map((m, i) => (
-                  <div key={i} className="grid grid-cols-[1.4fr_1fr_0.8fr_1fr_24px] gap-1 px-2 py-1 items-center">
+                  <div key={i} className="grid grid-cols-[1.4fr_1fr_0.8fr_1fr_0.6fr_24px] gap-1 px-2 py-1 items-center">
                     <input value={m.name} onChange={e => editMember(i, { name: e.target.value })} className="text-[11.5px] px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-primary/40 focus:outline-none bg-transparent" />
                     <input value={m.category} onChange={e => editMember(i, { category: e.target.value })} className="text-[11.5px] px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-primary/40 focus:outline-none bg-transparent" />
                     <select value={m.relationship} onChange={e => editMember(i, { relationship: e.target.value })} className="text-[11px] px-1 py-0.5 rounded border border-transparent hover:border-border focus:border-primary/40 focus:outline-none bg-transparent">
@@ -218,11 +221,14 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
                     <input value={m.dob ?? (m.age != null ? String(m.age) : '')} placeholder="YYYY-MM-DD or age"
                       onChange={e => { const v = e.target.value.trim(); editMember(i, /^\d{1,3}$/.test(v) && Number(v) <= 120 ? { dob: null, age: Number(v) } : { dob: v || null, age: null }) }}
                       className="text-[11.5px] px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-primary/40 focus:outline-none bg-transparent" />
+                    <input value={m.occupation_class ?? ''} placeholder="—" title="Occupation class (1–4)"
+                      onChange={e => editMember(i, { occupation_class: e.target.value.trim() || null })}
+                      className="text-[11.5px] px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-primary/40 focus:outline-none bg-transparent" />
                     <button onClick={() => setMembers(prev => prev.filter((_, j) => j !== i))} className="text-muted-foreground/30 hover:text-rose-600"><Trash2 size={12} /></button>
                   </div>
                 ))}
               </div>
-              <button onClick={() => setMembers(prev => [...prev, { name: '', category: categories[0] ?? 'Default', relationship: 'self', dob: null, age: null }])}
+              <button onClick={() => setMembers(prev => [...prev, { name: '', category: categories[0] ?? 'Default', relationship: 'self', dob: null, age: null, occupation_class: null }])}
                 className="w-full flex items-center justify-center gap-1 px-3 py-1.5 text-[11px] text-primary hover:bg-primary/5 border-t border-border/60"><Plus size={12} /> Add member</button>
             </div>
           )}
@@ -234,12 +240,12 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
             <div className="rounded-lg border border-border overflow-x-auto">
               <table className="data-table w-full border-collapse text-[12px]">
                 <thead><tr>
-                  <th className="pl-4 text-left">name</th><th className="text-left">category</th><th className="text-left">relationship</th><th className="text-left">dob</th><th className="text-left">age</th>
+                  <th className="pl-4 text-left">name</th><th className="text-left">category</th><th className="text-left">relationship</th><th className="text-left">dob</th><th className="text-left">age</th><th className="text-left">occupation_class</th>
                 </tr></thead>
                 <tbody>
-                  <tr><td className="pl-4">Tan Wei Ming</td><td>Executive</td><td>self</td><td className="tabular-nums">1985-03-12</td><td className="text-muted-foreground/40">—</td></tr>
-                  <tr><td className="pl-4">Sarah Tan</td><td>Executive</td><td>spouse</td><td className="tabular-nums">1987-09-04</td><td className="text-muted-foreground/40">—</td></tr>
-                  <tr><td className="pl-4">Lim Jun Jie</td><td>Staff</td><td>self</td><td className="text-muted-foreground/40">—</td><td className="tabular-nums">42</td></tr>
+                  <tr><td className="pl-4">Tan Wei Ming</td><td>Executive</td><td>self</td><td className="tabular-nums">1985-03-12</td><td className="text-muted-foreground/40">—</td><td className="tabular-nums">1</td></tr>
+                  <tr><td className="pl-4">Sarah Tan</td><td>Executive</td><td>spouse</td><td className="tabular-nums">1987-09-04</td><td className="text-muted-foreground/40">—</td><td className="text-muted-foreground/40">—</td></tr>
+                  <tr><td className="pl-4">Lim Jun Jie</td><td>Staff</td><td>self</td><td className="text-muted-foreground/40">—</td><td className="tabular-nums">42</td><td className="tabular-nums">2</td></tr>
                 </tbody>
               </table>
             </div>
@@ -247,6 +253,7 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
               <li><span className="font-medium text-foreground/70">dob</span> (YYYY-MM-DD) is preferred; <span className="font-medium text-foreground/70">age</span> is used only when there&apos;s no dob.</li>
               <li><span className="font-medium text-foreground/70">relationship</span> must be one of <code>self</code>, <code>spouse</code>, or <code>child</code>.</li>
               <li><span className="font-medium text-foreground/70">category</span> is your own plan tier / class label (e.g. Executive, Staff).</li>
+              <li><span className="font-medium text-foreground/70">occupation_class</span> (optional, 1–4) drives insurer eligibility rules; leave blank if not applicable.</li>
             </ul>
           </div>
         </div>
@@ -259,6 +266,18 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
             <label className="flex flex-col gap-1"><span className="text-[11px] font-semibold text-muted-foreground/70">Company</span><input value={company} onChange={e => setCompany(e.target.value)} className={inp} placeholder="Acme Pte Ltd" /></label>
             <label className="flex flex-col gap-1"><span className="text-[11px] font-semibold text-muted-foreground/70">Policy effective date</span><input type="date" value={effDate} onChange={e => setEffDate(e.target.value)} className={inp} /></label>
             <label className="flex flex-col gap-1"><span className="text-[11px] font-semibold text-muted-foreground/70">GST %</span><input type="number" value={gst} onChange={e => setGst(Number(e.target.value))} className={inp} /></label>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-semibold text-muted-foreground/70">Quote basis</span>
+            <div className="inline-flex rounded-lg border border-border overflow-hidden w-fit text-[12.5px]">
+              {(['new_business', 'renewal'] as const).map(b => (
+                <button key={b} onClick={() => setBasis(b)}
+                  className={cn('px-4 py-1.5 font-medium', basis === b ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted/50')}>
+                  {b === 'new_business' ? 'New Business' : 'Renewal'}
+                </button>
+              ))}
+            </div>
+            <span className="text-[10.5px] text-muted-foreground/60">Renewal-only age bands are excluded on New Business and priced on Renewal.</span>
           </div>
           <p className="text-[11.5px] text-muted-foreground/60">Insurer products come from your approved pricing (newest date per insurer).</p>
           <Nav back={() => setStep(0)} next={loadAvailable} nextLabel="Find insurer products" nextDisabled={busy} busy={busy} />

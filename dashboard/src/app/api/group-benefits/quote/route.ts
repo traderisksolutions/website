@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
-import { computeQuote, type Member, type RateTableInfo, type CategoryMap } from '@/lib/gb-quote'
+import { computeQuote, type Member, type RateTableInfo, type CategoryMap, type QuoteBasis } from '@/lib/gb-quote'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 function sbH(prefer = 'return=minimal') {
@@ -40,33 +40,41 @@ export async function POST(req: NextRequest) {
     const body = await req.json() as {
       company_name?: string; effective_date?: string; gst_rate?: number
       products: string[]; rate_table_ids: string[]; category_map: CategoryMap
-      census: Member[]; source?: string
+      census: Member[]; source?: string; basis?: QuoteBasis
     }
     const products = body.products ?? []
     const tableIds = body.rate_table_ids ?? []
     const census   = Array.isArray(body.census) ? body.census : []
     const effDate  = body.effective_date || new Date().toISOString().slice(0, 10)
     const gstRate  = body.gst_rate ?? 0.09
+    const basis: QuoteBasis = body.basis === 'renewal' ? 'renewal' : 'new_business'
     if (!tableIds.length || !census.length || !products.length) return NextResponse.json({ error: 'Select insurers, products and a census' }, { status: 400 })
 
-    // Load the selected approved tables + their rates.
+    // Load the selected approved tables + their rates + any approved calculator rules.
     const ids = tableIds.map(i => `"${i}"`).join(',')
     const [metaRes, ratesRes] = await Promise.all([
-      fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=in.(${ids})&select=id,insurer_id,insurer_name,age_basis&limit=100`, { headers: sbH(), cache: 'no-store' }),
+      fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=in.(${ids})&select=id,insurer_id,insurer_name,age_basis,rules,rules_status&limit=100`, { headers: sbH(), cache: 'no-store' }),
       fetch(`${SB_URL}/rest/v1/gb_rates?rate_table_id=in.(${ids})&select=rate_table_id,product_code,member_type,plan_code,band_label,age_min,age_max,premium,renewal_only&limit=20000`, { headers: sbH(), cache: 'no-store' }),
     ])
-    const metas: { id: string; insurer_id: string | null; insurer_name: string | null; age_basis: string }[] = metaRes.ok ? await metaRes.json() : []
+    const metas: { id: string; insurer_id: string | null; insurer_name: string | null; age_basis: string; rules: Record<string, unknown> | null; rules_status: string | null }[] = metaRes.ok ? await metaRes.json() : []
     const rateRows: (RateTableInfo['rates'][number] & { rate_table_id: string })[] = ratesRes.ok ? await ratesRes.json() : []
 
-    const tables: RateTableInfo[] = metas.map(m => ({
-      rate_table_id: m.id,
-      insurer_id: m.insurer_id ?? null,
-      insurer_name: m.insurer_name ?? 'Unknown',
-      age_basis: m.age_basis === 'last_birthday' ? 'last_birthday' : 'next_birthday',
-      rates: rateRows.filter(r => r.rate_table_id === m.id),
-    }))
+    // Approved calculator rules override the table's age basis and drive GST/discount/gating.
+    const ruleBasis = (r: Record<string, unknown> | null): 'next_birthday' | 'last_birthday' | null =>
+      r?.age_basis === 'next birthday' ? 'next_birthday' : r?.age_basis === 'last birthday' ? 'last_birthday' : null
+    const tables: RateTableInfo[] = metas.map(m => {
+      const approved = m.rules_status === 'approved' && m.rules ? (m.rules as RateTableInfo['rules']) : null
+      return {
+        rate_table_id: m.id,
+        insurer_id: m.insurer_id ?? null,
+        insurer_name: m.insurer_name ?? 'Unknown',
+        age_basis: ruleBasis(m.rules) && m.rules_status === 'approved' ? ruleBasis(m.rules)! : (m.age_basis === 'last_birthday' ? 'last_birthday' : 'next_birthday'),
+        rates: rateRows.filter(r => r.rate_table_id === m.id),
+        rules: approved,
+      }
+    })
 
-    const result = computeQuote(census, tables, body.category_map ?? {}, products, gstRate, effDate)
+    const result = computeQuote(census, tables, body.category_map ?? {}, products, gstRate, effDate, { basis })
 
     // Save the quotation + flattened lines.
     const qRes = await fetch(`${SB_URL}/rest/v1/gb_quotations`, {
