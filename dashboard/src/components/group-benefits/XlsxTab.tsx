@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { UploadCloud, Loader2, CheckCircle2, AlertTriangle, FileSpreadsheet, ChevronDown, ChevronRight } from 'lucide-react'
+import { UploadCloud, Loader2, CheckCircle2, FileSpreadsheet, ChevronDown, ChevronRight, Trash2, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 
@@ -142,12 +142,7 @@ function RulesPanel({ tableId, onChanged }: { tableId: string; onChanged: () => 
   }, [tableId])
   React.useEffect(() => { load() }, [load])
 
-  function setRuleValue(rule: string, raw: string) {
-    // Accept JSON where it parses (objects/arrays/numbers), else keep the raw string.
-    let v: unknown = raw
-    try { v = JSON.parse(raw) } catch { /* plain string */ }
-    setRules(prev => ({ ...prev, [rule]: v }))
-  }
+  const setRule = React.useCallback((rule: string, value: unknown) => setRules(prev => ({ ...prev, [rule]: value })), [])
 
   async function save(approve: boolean) {
     setSaving(approve ? 'approve' : 'save')
@@ -160,17 +155,19 @@ function RulesPanel({ tableId, onChanged }: { tableId: string; onChanged: () => 
 
   if (loading) return <div className="px-6 py-4 bg-muted/20"><Loader2 size={15} className="animate-spin text-muted-foreground" /></div>
 
-  const notDetectedCount = (log ?? []).filter(e => typeof e.value === 'string' && (e.value as string).startsWith('NOT DETECTED')).length
+  const confOf = (rule: string) => (log ?? []).find(e => e.rule === rule)?.confidence ?? 'n/a'
+  const srcOf = (rule: string) => (log ?? []).find(e => e.rule === rule)?.source_cell_or_text ?? ''
 
   return (
     <div className="px-6 py-5 bg-muted/20 border-t border-border">
       <div className="flex items-center justify-between mb-3">
-        <h4 className="text-[12.5px] font-bold text-foreground uppercase tracking-wide">Detected calculation rules</h4>
-        <div className="flex items-center gap-2">
-          {status === 'approved'
-            ? <span className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-emerald-700"><CheckCircle2 size={13} /> Approved</span>
-            : notDetectedCount > 0 && <span className="inline-flex items-center gap-1 text-[11.5px] text-amber-700"><AlertTriangle size={13} /> {notDetectedCount} need input</span>}
-          <button onClick={() => save(false)} disabled={!!saving} className="text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-border hover:bg-white disabled:opacity-50">{saving === 'save' ? 'Saving…' : 'Save'}</button>
+        <div>
+          <h4 className="text-[13px] font-bold text-foreground">Calculation rules from this calculator</h4>
+          <p className="text-[11.5px] text-muted-foreground/70 mt-0.5">We read the workbook and filled these in. Check each one, adjust if needed, then Approve — they&apos;ll be applied automatically when you quote this insurer.</p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {status === 'approved' && <span className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-emerald-700"><CheckCircle2 size={13} /> Approved</span>}
+          <button onClick={() => save(false)} disabled={!!saving} className="text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-border bg-white hover:bg-muted/40 disabled:opacity-50">{saving === 'save' ? 'Saving…' : 'Save'}</button>
           <button onClick={() => save(true)} disabled={!!saving} className="text-[12px] font-semibold px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">{saving === 'approve' ? 'Approving…' : 'Approve rules'}</button>
         </div>
       </div>
@@ -181,36 +178,193 @@ function RulesPanel({ tableId, onChanged }: { tableId: string; onChanged: () => 
         </div>
       )}
 
-      <div className="rounded-lg border border-border overflow-hidden bg-white">
-        <table className="data-table w-full border-collapse text-[12px]">
-          <thead><tr>
-            <th className="pl-4 text-left w-[150px]">Rule</th><th className="text-left">Value (editable)</th><th className="text-left w-[90px]">Confidence</th><th className="text-left">Source</th>
-          </tr></thead>
-          <tbody>
-            {(log ?? []).map(e => {
-              const val = rules[e.rule]
-              const missing = typeof val === 'string' && (val as string).startsWith('NOT DETECTED')
-              const asText = typeof val === 'string' ? val : JSON.stringify(val)
-              return (
-                <tr key={e.rule} className={cn(missing && 'bg-amber-50/60')}>
-                  <td className="pl-4 font-medium text-foreground/80 align-top py-2 capitalize">{e.rule.replace(/_/g, ' ')}</td>
-                  <td className="align-top py-2">
-                    <textarea defaultValue={missing ? '' : asText} placeholder={missing ? NOT_DETECTED : ''}
-                      onBlur={ev => setRuleValue(e.rule, ev.target.value.trim())}
-                      rows={asText.length > 60 ? 3 : 1}
-                      className={cn('w-full text-[11.5px] font-mono px-2 py-1 rounded border bg-white focus:outline-none focus:border-primary/40 resize-y',
-                        missing ? 'border-amber-300 placeholder:text-amber-600' : 'border-border')} />
-                  </td>
-                  <td className="align-top py-2"><span className={cn('text-[10px] font-bold uppercase px-1.5 py-0.5 rounded',
-                    e.confidence === 'high' ? 'bg-emerald-100 text-emerald-700' : e.confidence === 'medium' ? 'bg-blue-100 text-blue-700' : 'bg-muted text-muted-foreground')}>{e.confidence}</span></td>
-                  <td className="align-top py-2 text-muted-foreground/70 text-[11px] max-w-[280px] break-words">{e.source_cell_or_text}</td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+      <div className="flex flex-col gap-2.5">
+        <RuleCard title="How is age counted?" blurb="Sets each member's age from their date of birth. “Next birthday” makes everyone a year older." confidence={confOf('age_basis')} source={srcOf('age_basis')}>
+          <AgeBasisEditor value={rules.age_basis} onChange={v => setRule('age_basis', v)} />
+        </RuleCard>
+
+        <RuleCard title="Do the rates include GST?" blurb="Comparisons are shown net of GST. If the printed rates include GST, we divide them down." confidence={confOf('gst_treatment')} source={srcOf('gst_treatment')}>
+          <GstEditor value={rules.gst_treatment} onChange={v => setRule('gst_treatment', v)} />
+        </RuleCard>
+
+        <RuleCard title="Discount or loading by group size?" blurb="Adjusts every premium based on the total number of lives (e.g. −5% for 5+ employees)." confidence={confOf('group_size_discount')} source={srcOf('group_size_discount')}>
+          <GroupDiscountEditor value={rules.group_size_discount} onChange={v => setRule('group_size_discount', v)} />
+        </RuleCard>
+
+        <RuleCard title="Ages only available on renewal?" blurb="On a New Business quote these ages are left unpriced; on a Renewal quote they're priced." confidence={confOf('renewal_only_bands')} source={srcOf('renewal_only_bands')}>
+          <RenewalBandsEditor value={rules.renewal_only_bands} onChange={v => setRule('renewal_only_bands', v)} />
+        </RuleCard>
+
+        <RuleCard title="Occupation classes not eligible" blurb="Members whose occupation class is ticked here are marked ineligible for this insurer." confidence={confOf('occupation_class_rules')} source={srcOf('occupation_class_rules')}>
+          <OccClassEditor value={rules.occupation_class_rules} onChange={v => setRule('occupation_class_rules', v)} />
+        </RuleCard>
+
+        <RuleCard title="Coverage dependencies" blurb="Note where one coverage can only be taken alongside another (for your reference)." confidence={confOf('rider_dependencies')} source={srcOf('rider_dependencies')}>
+          <RiderEditor value={rules.rider_dependencies} onChange={v => setRule('rider_dependencies', v)} />
+        </RuleCard>
       </div>
-      <p className="mt-2 text-[10.5px] text-muted-foreground/60">Values accept JSON (objects/arrays/numbers) or plain text. Fix any amber &ldquo;need input&rdquo; rows, then Approve to attach these rules to the rate table.</p>
+    </div>
+  )
+}
+
+// ── Guided rule editors (no JSON) ──────────────────────────────────────────────────
+const CONF_META: Record<string, { label: string; cls: string }> = {
+  high:   { label: 'Detected',      cls: 'bg-emerald-100 text-emerald-700' },
+  medium: { label: 'Likely',        cls: 'bg-blue-100 text-blue-700' },
+  low:    { label: 'Please check',  cls: 'bg-amber-100 text-amber-700' },
+  'n/a':  { label: 'Not found',     cls: 'bg-muted text-muted-foreground' },
+}
+
+function RuleCard({ title, blurb, confidence, source, children }: { title: string; blurb: string; confidence: string; source: string; children: React.ReactNode }) {
+  const [showSrc, setShowSrc] = useState(false)
+  const cm = CONF_META[confidence] ?? CONF_META['n/a']
+  return (
+    <div className="rounded-lg border border-border bg-white px-4 py-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-[12.5px] font-semibold text-foreground">{title}</span>
+            <span className={cn('text-[9.5px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded', cm.cls)}>{cm.label}</span>
+          </div>
+          <p className="text-[11px] text-muted-foreground/70 mt-0.5">{blurb}</p>
+        </div>
+        {source && (
+          <button onClick={() => setShowSrc(s => !s)} className="text-[10.5px] text-muted-foreground/50 hover:text-primary shrink-0 mt-0.5">{showSrc ? 'hide' : 'where?'}</button>
+        )}
+      </div>
+      {showSrc && source && <p className="text-[10.5px] text-muted-foreground/60 mt-1.5 bg-muted/40 rounded px-2 py-1 break-words">Found in: {source}</p>}
+      <div className="mt-2.5">{children}</div>
+    </div>
+  )
+}
+
+const pill = 'text-[12px] px-3 py-1.5 rounded-lg border font-medium'
+const numInput = 'w-16 text-[12px] px-2 py-1 rounded border border-border focus:outline-none focus:border-primary/40'
+
+function AgeBasisEditor({ value, onChange }: { value: unknown; onChange: (v: unknown) => void }) {
+  const cur = value === 'last birthday' || value === 'next birthday' ? value : ''
+  const opts: [string, string][] = [['last birthday', 'Age last birthday'], ['next birthday', 'Age next birthday']]
+  return (
+    <div className="flex items-center gap-1.5">
+      {opts.map(([v, label]) => (
+        <button key={v} onClick={() => onChange(v)} className={cn(pill, cur === v ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/30')}>{label}</button>
+      ))}
+      <button onClick={() => onChange(NOT_DETECTED)} className={cn(pill, cur === '' ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-border text-muted-foreground/60 hover:border-amber-300')}>Not sure</button>
+    </div>
+  )
+}
+
+function GstEditor({ value, onChange }: { value: unknown; onChange: (v: unknown) => void }) {
+  const v = (value && typeof value === 'object') ? value as { treatment?: string; conversion_factor?: number | null } : {}
+  const treatment = v.treatment === 'inclusive' || v.treatment === 'exclusive' ? v.treatment : ''
+  const factor = typeof v.conversion_factor === 'number' ? v.conversion_factor : 1.09
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <button onClick={() => onChange({ treatment: 'inclusive', conversion_factor: factor })} className={cn(pill, treatment === 'inclusive' ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/30')}>Rates include GST</button>
+      <button onClick={() => onChange({ treatment: 'exclusive', conversion_factor: null })} className={cn(pill, treatment === 'exclusive' ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/30')}>Rates exclude GST (net)</button>
+      {treatment === 'inclusive' && (
+        <span className="inline-flex items-center gap-1.5 text-[11.5px] text-muted-foreground ml-1">
+          divide by
+          <input type="number" step="0.01" defaultValue={factor} onBlur={e => onChange({ treatment: 'inclusive', conversion_factor: Number(e.target.value) || 1.09 })} className={numInput} />
+          <span className="text-muted-foreground/50">(9% GST = 1.09)</span>
+        </span>
+      )}
+    </div>
+  )
+}
+
+type Tier = { min_lives: number; factor: number }
+function GroupDiscountEditor({ value, onChange }: { value: unknown; onChange: (v: unknown) => void }) {
+  const tiers: Tier[] = (value && typeof value === 'object' && Array.isArray((value as { tiers?: Tier[] }).tiers)) ? (value as { tiers: Tier[] }).tiers : []
+  const set = (next: Tier[]) => onChange(next.length ? { tiers: next } : {})
+  const pctOf = (f: number) => Math.round(Math.abs(f - 1) * 100)
+  return (
+    <div className="flex flex-col gap-1.5">
+      {tiers.length === 0 && <p className="text-[11.5px] text-muted-foreground/60">No group-size adjustment.</p>}
+      {tiers.map((t, i) => {
+        const kind = t.factor >= 1 ? 'loading' : 'discount'
+        return (
+          <div key={i} className="flex items-center gap-1.5 text-[12px]">
+            <span className="text-muted-foreground">From</span>
+            <input type="number" defaultValue={t.min_lives} onBlur={e => { const n = [...tiers]; n[i] = { ...t, min_lives: Number(e.target.value) || 1 }; set(n) }} className={numInput} />
+            <span className="text-muted-foreground">lives →</span>
+            <select value={kind} onChange={e => { const p = pctOf(t.factor); const f = e.target.value === 'loading' ? 1 + p / 100 : 1 - p / 100; const n = [...tiers]; n[i] = { ...t, factor: f }; set(n) }} className="text-[12px] px-1.5 py-1 rounded border border-border">
+              <option value="discount">discount</option><option value="loading">loading</option>
+            </select>
+            <input type="number" defaultValue={pctOf(t.factor)} onBlur={e => { const p = Number(e.target.value) || 0; const f = kind === 'loading' ? 1 + p / 100 : 1 - p / 100; const n = [...tiers]; n[i] = { ...t, factor: f }; set(n) }} className={numInput} />
+            <span className="text-muted-foreground">%</span>
+            <button onClick={() => set(tiers.filter((_, j) => j !== i))} className="text-muted-foreground/30 hover:text-rose-600 ml-1"><Trash2 size={13} /></button>
+          </div>
+        )
+      })}
+      <button onClick={() => set([...tiers, { min_lives: (tiers.at(-1)?.min_lives ?? 0) + 1, factor: 0.95 }])} className="inline-flex items-center gap-1 text-[11.5px] text-primary hover:underline w-fit"><Plus size={12} /> Add a tier</button>
+    </div>
+  )
+}
+
+type Band = { band: [number, number] | null; text?: string }
+function RenewalBandsEditor({ value, onChange }: { value: unknown; onChange: (v: unknown) => void }) {
+  const bands: Band[] = Array.isArray(value) ? value as Band[] : []
+  const set = (next: Band[]) => onChange(next)
+  return (
+    <div className="flex flex-col gap-1.5">
+      {bands.length === 0 && <p className="text-[11.5px] text-muted-foreground/60">No renewal-only ages.</p>}
+      {bands.map((b, i) => {
+        const from = b.band?.[0] ?? '', to = b.band?.[1] ?? ''
+        return (
+          <div key={i} className="flex items-center gap-1.5 text-[12px]">
+            <span className="text-muted-foreground">Ages</span>
+            <input type="number" placeholder="from" defaultValue={from === '' ? '' : from} onBlur={e => { const n = [...bands]; n[i] = { ...b, band: [Number(e.target.value) || 0, Number(to) || 999] }; set(n) }} className={numInput} />
+            <span className="text-muted-foreground">to</span>
+            <input type="number" placeholder="to" defaultValue={to === '' ? '' : to} onBlur={e => { const n = [...bands]; n[i] = { ...b, band: [Number(from) || 0, Number(e.target.value) || 999] }; set(n) }} className={numInput} />
+            <span className="text-muted-foreground">— renewal only</span>
+            {b.text && <span className="text-[10.5px] text-muted-foreground/50 truncate max-w-[220px]" title={b.text}>· {b.text}</span>}
+            <button onClick={() => set(bands.filter((_, j) => j !== i))} className="text-muted-foreground/30 hover:text-rose-600 ml-1"><Trash2 size={13} /></button>
+          </div>
+        )
+      })}
+      <button onClick={() => set([...bands, { band: [65, 999] }])} className="inline-flex items-center gap-1 text-[11.5px] text-primary hover:underline w-fit"><Plus size={12} /> Add an age range</button>
+    </div>
+  )
+}
+
+function OccClassEditor({ value, onChange }: { value: unknown; onChange: (v: unknown) => void }) {
+  const v = (value && typeof value === 'object') ? value as { excluded_classes?: (number | string)[]; classes_present?: number[] } : {}
+  const excluded = new Set((v.excluded_classes ?? []).map(Number))
+  const present = v.classes_present ?? []
+  const toggle = (c: number) => {
+    const next = new Set(excluded); next.has(c) ? next.delete(c) : next.add(c)
+    onChange({ ...v, excluded_classes: Array.from(next).sort() })
+  }
+  return (
+    <div>
+      <div className="flex items-center gap-1.5">
+        {[1, 2, 3, 4].map(c => (
+          <button key={c} onClick={() => toggle(c)} className={cn(pill, excluded.has(c) ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-border text-muted-foreground hover:border-rose-300')}>Class {c}{excluded.has(c) ? ' ✕' : ''}</button>
+        ))}
+      </div>
+      <p className="text-[10.5px] text-muted-foreground/50 mt-1.5">{excluded.size === 0 ? 'All classes eligible (tick a class to exclude it).' : `Excluded: Class ${Array.from(excluded).sort().join(', ')}.`}{present.length ? ` Classes seen in the sheet: ${present.join(', ')}.` : ''}</p>
+    </div>
+  )
+}
+
+type Dep = { coverage: string; requires: string }
+function RiderEditor({ value, onChange }: { value: unknown; onChange: (v: unknown) => void }) {
+  const deps: Dep[] = Array.isArray(value) ? value as Dep[] : []
+  const set = (next: Dep[]) => onChange(next)
+  const ti = 'text-[12px] px-2 py-1 rounded border border-border focus:outline-none focus:border-primary/40 w-40'
+  return (
+    <div className="flex flex-col gap-1.5">
+      {deps.length === 0 && <p className="text-[11.5px] text-muted-foreground/60">No dependencies.</p>}
+      {deps.map((d, i) => (
+        <div key={i} className="flex items-center gap-1.5 text-[12px]">
+          <input placeholder="coverage" defaultValue={d.coverage} onBlur={e => { const n = [...deps]; n[i] = { ...d, coverage: e.target.value }; set(n) }} className={ti} />
+          <span className="text-muted-foreground">requires</span>
+          <input placeholder="other coverage" defaultValue={d.requires} onBlur={e => { const n = [...deps]; n[i] = { ...d, requires: e.target.value }; set(n) }} className={ti} />
+          <button onClick={() => set(deps.filter((_, j) => j !== i))} className="text-muted-foreground/30 hover:text-rose-600"><Trash2 size={13} /></button>
+        </div>
+      ))}
+      <button onClick={() => set([...deps, { coverage: '', requires: '' }])} className="inline-flex items-center gap-1 text-[11.5px] text-primary hover:underline w-fit"><Plus size={12} /> Add a dependency</button>
     </div>
   )
 }
