@@ -2,8 +2,9 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2, Sparkles, Download } from 'lucide-react'
+import { ArrowLeft, Loader2, Sparkles, Download, Reply } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ThreadSelectorModal } from '@/components/group-benefits/ThreadSelectorModal'
 
 type InsurerResult = { rate_table_id: string; insurer_id: string | null; insurer_name: string; by_product: Record<string, number>; subtotal: number; gst: number; total: number; missing: number }
 type Line = { member_name: string; relationship: string; category: string; age: number | null; insurer_name: string; product_code: string; plan_code: string | null; premium: number | null; note: string | null }
@@ -20,6 +21,24 @@ export default function QuoteDetailPage() {
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [attachFormat, setAttachFormat] = useState<'xlsx' | 'csv'>('xlsx')
+  const [showThreadPick, setShowThreadPick] = useState(false)
+  const [preparing, setPreparing] = useState<string | null>(null)
+
+  async function prepareReply(leadId: string) {
+    setPreparing('Generating files & drafting reply…')
+    try {
+      const res = await fetch(`/api/group-benefits/quote/${id}/prepare-reply`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lead_id: leadId, insurers: byInsurer.map(r => r.insurer_name), format: attachFormat }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok) { setError(d.error ?? 'Could not prepare reply'); setPreparing(null); setShowThreadPick(false); return }
+      router.push(`/engagement?lead=${leadId}`)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed'); setPreparing(null); setShowThreadPick(false)
+    }
+  }
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/group-benefits/quote/${id}`, { cache: 'no-store' })
@@ -85,8 +104,25 @@ export default function QuoteDetailPage() {
               </div>
             ))}
           </div>
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/60">
+            <div className="inline-flex items-center gap-1.5 text-[11.5px]">
+              <span className="text-muted-foreground/70">Attach as</span>
+              <div className="inline-flex rounded-lg border border-border overflow-hidden">
+                {(['xlsx', 'csv'] as const).map(f => (
+                  <button key={f} onClick={() => setAttachFormat(f)}
+                    className={cn('px-2.5 py-1 font-semibold uppercase', attachFormat === f ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted/40')}>{f}</button>
+                ))}
+              </div>
+            </div>
+            <button onClick={() => setShowThreadPick(true)}
+              className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90">
+              <Reply size={14} /> Reply to thread with attachments
+            </button>
+          </div>
         </div>
       )}
+
+      {showThreadPick && <ThreadSelectorModal onPick={prepareReply} onClose={() => { if (!preparing) setShowThreadPick(false) }} busyLabel={preparing} />}
 
       {/* Comparison cards */}
       <div className="grid gap-3 mb-6" style={{ gridTemplateColumns: `repeat(${Math.min(byInsurer.length, 4)}, minmax(0,1fr))` }}>

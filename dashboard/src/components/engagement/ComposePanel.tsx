@@ -52,6 +52,7 @@ export function ComposePanel({
   const [showCc,          setShowCc]          = useState(ccList.length > 0)
   const [ragSources,      setRagSources]      = useState<RagSource[]>(storedRagSources ?? [])
   const [showSources,     setShowSources]     = useState(false)
+  const [attachments,     setAttachments]     = useState<{ filename: string; mime_type?: string; storage_url: string }[]>([])
 
   // Signature + sender
   const [signatures,      setSignatures]      = useState<SigOption[]>([])
@@ -103,7 +104,7 @@ export function ComposePanel({
   useEffect(() => {
     setDraftId(null); setDraftHtml(''); setDraftLoaded(false)
     setDraftEditorKey(0); setSent(false); setError(null)
-    setRagSources([]); setAiDraftChecked(false)
+    setRagSources([]); setAiDraftChecked(false); setAttachments([])
     setSelectedFrom(senders[0]?.email ?? '')
   }, [lead.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -124,7 +125,7 @@ export function ComposePanel({
     setAiDraftChecked(false)
     fetch(`/api/engagement/draft?thread_id=${encodeURIComponent(tid)}`, { cache: 'no-store' })
       .then(r => r.json())
-      .then((rows: { id: string; body: string }[]) => {
+      .then((rows: { id: string; body: string; attachments?: { filename: string; mime_type?: string; storage_url: string }[] }[]) => {
         if (!current) return
         const latest = Array.isArray(rows) ? rows[0] : null
         if (latest?.body) {
@@ -133,6 +134,7 @@ export function ComposePanel({
           setDraftLoaded(true)
           setDraftEditorKey(k => k + 1)
         }
+        if (latest?.attachments?.length) setAttachments(latest.attachments)
       })
       .catch(() => {})
       .finally(() => { if (current) setAiDraftChecked(true) })
@@ -226,6 +228,7 @@ export function ComposePanel({
           bcc:           bccList.length ? bccList : undefined,
           customSubject: customSubject || undefined,
           fromEmail:     selectedFrom || undefined,
+          attachments:   attachments.length ? attachments : undefined,
         }),
       })
       if (!sendRes.ok) {
@@ -373,6 +376,18 @@ export function ComposePanel({
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ── Attachments (e.g. generated Pricing-Matrix quote files) ── */}
+          {attachments.length > 0 && (
+            <div className="mx-3 mb-2 flex flex-wrap items-center gap-1.5">
+              {attachments.map((a, i) => (
+                <span key={i} className="inline-flex items-center gap-1.5 text-[11px] font-medium bg-primary/5 border border-primary/20 text-primary rounded-full pl-2.5 pr-1.5 py-1">
+                  {a.filename}
+                  <button onClick={() => setAttachments(prev => prev.filter((_, j) => j !== i))} title="Remove attachment" className="text-primary/50 hover:text-rose-600"><X size={11} /></button>
+                </span>
+              ))}
             </div>
           )}
 
