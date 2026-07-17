@@ -1,0 +1,3 @@
+# Python deps for Vercel serverless functions under /api (e.g. analyze_xlsx.py).
+# The Next.js app itself needs nothing here.
+openpyxl>=3.1

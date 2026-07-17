@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { UploadCloud, FileText, Loader2, Clock, Calculator } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { NewQuoteWizard } from '@/components/group-benefits/NewQuoteWizard'
+import { XlsxTab } from '@/components/group-benefits/XlsxTab'
 import { createClient } from '@/lib/supabase/client'
 
 // Parse a response as JSON, but degrade gracefully if the server returned plain text
@@ -19,6 +20,7 @@ type RateTable = {
   id: string; insurer_name: string | null; product_code: string; product_name: string | null
   plan_year: number | null; effective_date: string | null; status: string; version: number
   source_pdf_name: string | null; created_at: string; approved_at: string | null
+  calculator_filename?: string | null; rules_status?: string | null; rules_updated_at?: string | null
 }
 type Activity = { id: string; created_at: string; user_name: string | null; action: string; new_value: Record<string, unknown> | null }
 
@@ -27,7 +29,7 @@ const STATUS_TONE: Record<string, string> = {
   in_review: 'bg-blue-100 text-blue-700', approved: 'bg-emerald-100 text-emerald-700', archived: 'bg-muted text-muted-foreground/60',
 }
 
-type Tab = 'tables' | 'quote' | 'quotes' | 'activity'
+type Tab = 'tables' | 'xlsx' | 'quote' | 'quotes' | 'activity'
 
 export default function GroupBenefitsPage() {
   const router = useRouter()
@@ -63,11 +65,11 @@ export default function GroupBenefitsPage() {
       </div>
 
       <div className="flex items-center gap-1 border-b border-border mb-5">
-        {(['tables', 'quote', 'quotes', 'activity'] as const).map(t => (
+        {(['tables', 'xlsx', 'quote', 'quotes', 'activity'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={cn('px-3.5 py-2 text-sm font-medium -mb-px border-b-2 transition-colors',
               tab === t ? 'text-foreground border-primary' : 'text-muted-foreground border-transparent hover:text-foreground')}>
-            {t === 'tables' ? 'Rate Tables' : t === 'quote' ? 'New Quote' : t === 'quotes' ? 'Quotes' : 'Activity'}
+            {t === 'tables' ? 'Rate Tables' : t === 'xlsx' ? 'Xlsx' : t === 'quote' ? 'New Quote' : t === 'quotes' ? 'Quotes' : 'Activity'}
           </button>
         ))}
       </div>
@@ -100,6 +102,7 @@ export default function GroupBenefitsPage() {
           </div>
         )
       )}
+      {tab === 'xlsx'     && <XlsxTab tables={tables} loading={loading} onChanged={load} />}
       {tab === 'quote'    && <NewQuoteWizard onSaved={() => { /* results shown inline; Quotes tab reloads on open */ }} />}
       {tab === 'quotes'   && <QuotesTab />}
       {tab === 'activity' && <ActivityTab />}
