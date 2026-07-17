@@ -49,12 +49,19 @@ const SCHEMA_HINT = `Return ONLY valid JSON (no markdown fences) matching:
 
 CRITICAL — COMPLETENESS (this is the whole point):
 - The PDF usually has MULTIPLE premium tables across several pages. Process EVERY table on EVERY page.
-- product_title = the EXACT printed product, e.g. "GHS+EMM", "GTL+GACI", "GOS". NEVER invent or normalise to GHS/GOC/GOS.
+- product_title = the product name, written in FULL with the printed abbreviation kept in brackets, e.g. "Group Term Life + Group Additional Critical Illness (GTL+GACI)", "Group Hospital & Surgical + Extended Major Medical (GHS+EMM)". Keep the bracketed abbreviation EXACTLY as printed (same tokens and "+" joins) so the same product reads identically across every table. See NAMING below for how to source the full wording.
 - member_type from the table title: "...FOR EMPLOYEE..." -> "employee"; "...FOR DEPENDANT/DEPENDENT..." -> "dependant"; otherwise null.
 - Output ONE "pricing" row for EVERY (plan column × age-band row) in EVERY premium table. If a table has 10 age bands and 4 plans, that is 40 rows — output all 40. NEVER sample, summarise, truncate, or output only the first band. Transcribe every printed number EXACTLY (keep cents; strip thousands commas).
 - band_label verbatim ("Up to 29", "30-34", "70-74"). Parse age_min/age_max ("Up to 29" -> {0,29}).
 - Sum-assured / coverage matrices (e.g. GACI "37 Critical Illnesses" sum assured per plan) go in "coverage", NOT "pricing".
 - Also capture plan tier attributes (hospital type / beds / co-pay) in "plans" and any descriptive benefit lines in "benefits".
+
+NAMING — NO BARE ABBREVIATIONS:
+- Applies to EVERY human-readable name field: product_title, plan_name, category, item_label, benefit_name (and any plan_code that is itself an acronym).
+- Whenever a value is an abbreviation/acronym (e.g. GTL, GACI, GADD, GHS, EMM, GHS-FW, GOS, CI, TPD, PA), write it as "Full Name (ABBR)" — spell out the full term and keep the exact printed abbreviation in brackets.
+- Source the full wording ONLY from what is actually printed in THIS PDF: cover page, product/section headings, footnotes, legends or a glossary, benefit descriptions. Search the WHOLE document for where each acronym is defined.
+- If the PDF genuinely never spells an abbreviation out anywhere, leave it EXACTLY as printed — never invent, guess, or normalise an expansion.
+- Pure tier labels that are not acronyms (Plan 1, Plan 2, Class 1, Tier A, "Up to 29") are NOT abbreviations — leave them unchanged.
 
 Before you finish, self-check: for each premium table, does every age band appear for every plan and the correct member_type? If any row is missing, add it. Completeness matters more than anything else.`
 
