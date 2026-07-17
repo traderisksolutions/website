@@ -322,8 +322,8 @@ export default function GbReviewPage() {
                                 {editable ? (
                                   <span className="inline-flex items-center gap-1 justify-end">
                                     <input defaultValue={plan} key={plan} onBlur={e => renamePlan(product, mt, plan, e.target.value.trim())}
-                                      className="w-24 text-right text-[11px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-primary/40 focus:outline-none bg-white" />
-                                    <button onClick={() => deletePlan(product, mt, plan)} title="Remove plan" className="text-muted-foreground/30 hover:text-rose-600"><X size={11} /></button>
+                                      className="w-24 text-right text-[12px] font-semibold uppercase tracking-wide px-2 py-1 rounded border border-transparent focus:border-primary/40 focus:outline-none bg-white !text-slate-900" />
+                                    <button onClick={() => deletePlan(product, mt, plan)} title="Remove plan" className="text-slate-400 hover:text-rose-500"><X size={12} /></button>
                                   </span>
                                 ) : plan}
                               </th>
