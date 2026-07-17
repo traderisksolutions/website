@@ -518,6 +518,25 @@ select:focus-visible {
 /* Member-type differentiators for the Pricing Matrix review grid. */
 .data-table thead.mt-employee th  { background: #0c338a; color: #ffffff; }
 .data-table thead.mt-dependant th { background: #eef1f5; color: #1a2233; }
+
+/* Wide rate matrices (Pricing Matrix review): zebra striping + a sticky Age-band
+   first column so rows stay traceable when scrolling across many plan columns.
+   Scoped to .matrix-table so other .data-table uses are unaffected. This surface is
+   always rendered on the white review page, so the tints are light-mode fixed. */
+.data-table.matrix-table tbody td:first-child { background: #ffffff; }
+.data-table.matrix-table tbody tr:nth-child(even) td,
+.data-table.matrix-table tbody tr:nth-child(even) td:first-child { background: #f7f8fb; }
+.data-table.matrix-table thead th        { position: sticky; top: 0; z-index: 2; }
+.data-table.matrix-table thead th:first-child,
+.data-table.matrix-table tbody td:first-child {
+  position: sticky; left: 0;
+  box-shadow: 2px 0 4px -2px rgba(15, 23, 42, 0.12);
+}
+.data-table.matrix-table thead th:first-child { z-index: 3; }
+.data-table.matrix-table tbody td:first-child { z-index: 1; }
+/* Hover traces a whole row and must win over the zebra rule (equal specificity → last). */
+.data-table.matrix-table tbody tr:hover td,
+.data-table.matrix-table tbody tr:hover td:first-child { background: var(--hover-row-bg); }
 .data-table tbody td {
   padding: 0 12px; height: 44px; vertical-align: middle;
   border-bottom: 1px solid var(--border-subtle);

@@ -313,7 +313,7 @@ export default function GbReviewPage() {
                   <div key={mt} className="mb-5">
                     {mtLabel(mt || null) && <p className="text-[10px] font-bold uppercase tracking-wider text-primary/60 mb-2">{mtLabel(mt || null)}</p>}
                     <div className="rounded-lg border border-border overflow-x-auto">
-                      <table className="data-table w-full border-collapse text-[12.5px]">
+                      <table className="data-table matrix-table w-full border-collapse text-[12.5px]">
                         <thead className={gm(mt) === 'employee' ? 'mt-employee' : gm(mt) === 'dependant' ? 'mt-dependant' : ''}>
                           <tr>
                             <th className="text-left pl-4">Age band</th>
@@ -344,7 +344,7 @@ export default function GbReviewPage() {
                                 const r = cell.get(`${band}|${plan}`)
                                 const conflict = r ? conflictMap.get(cKey(r)) : undefined
                                 if (!editable) return r
-                                  ? <td key={plan} className="text-right pr-2 py-1"><input type="number" value={r.premium} disabled title={conflict ? `Opus ${fmt(conflict.opus)} · Gemini ${fmt(conflict.gemini)}` : ''} className={cn('w-24 text-right tabular-nums text-[12.5px] px-2 py-1 rounded border bg-white', conflict ? 'border-amber-300 bg-amber-50/70' : 'border-transparent')} /></td>
+                                  ? <td key={plan} className="text-right pr-4 py-1"><span title={conflict ? `Opus ${fmt(conflict.opus)} · Gemini ${fmt(conflict.gemini)}` : ''} className={cn('tabular-nums text-[12.5px]', conflict ? 'rounded px-1.5 py-0.5 bg-amber-100 text-amber-800 font-medium' : 'text-foreground/80')}>{r.premium}</span></td>
                                   : <td key={plan} className="text-right pr-4 text-muted-foreground/25">—</td>
                                 return (
                                   <td key={plan} className="text-right pr-2 py-1">
