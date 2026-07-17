@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
     const qRes = await fetch(`${SB_URL}/rest/v1/gb_quotations`, {
       method: 'POST', headers: sbH('return=representation'),
       body: JSON.stringify({
-        company_name: body.company_name ?? null, effective_date: effDate, gst_rate: gstRate,
+        company_name: body.company_name ?? null, effective_date: effDate, gst_rate: gstRate, basis,
         product_codes: products, rate_table_ids: tableIds, category_map: body.category_map ?? {},
         census, results: result.per_insurer, member_count: census.length, source: body.source ?? 'csv', created_by: user.id,
       }),

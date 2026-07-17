@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2, Sparkles } from 'lucide-react'
+import { ArrowLeft, Loader2, Sparkles, Download } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type InsurerResult = { rate_table_id: string; insurer_id: string | null; insurer_name: string; by_product: Record<string, number>; subtotal: number; gst: number; total: number; missing: number }
@@ -64,6 +64,29 @@ export default function QuoteDetailPage() {
         <h1 className="text-lg font-bold text-foreground">{q.company_name || 'Untitled quote'}</h1>
         <p className="text-[12px] text-muted-foreground/70 mt-0.5">{q.member_count} members · {(q.product_codes ?? []).join('/')}{q.effective_date ? ` · eff ${q.effective_date}` : ''} · {new Date(q.created_at).toLocaleString('en-SG')}</p>
       </div>
+
+      {/* Download / export — one file per insurer */}
+      {byInsurer.length > 0 && (
+        <div className="mb-6 rounded-lg border border-border p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-[13px] font-bold text-foreground">Download quotes <span className="text-muted-foreground/60 font-normal">· one file per insurer</span></h3>
+            <span className="text-[11px] text-muted-foreground/60">Download &amp; attach in your reply</span>
+          </div>
+          <div className="flex flex-col divide-y divide-border/60">
+            {byInsurer.map(r => (
+              <div key={r.insurer_name} className="flex items-center justify-between py-2">
+                <span className="text-[12.5px] font-medium text-foreground">{r.insurer_name} <span className="text-muted-foreground/50 font-normal">· {money(r.total)}</span></span>
+                <div className="flex items-center gap-2">
+                  <a href={`/api/group-benefits/quote/${id}/export?format=xlsx&insurer=${encodeURIComponent(r.insurer_name)}`}
+                     className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-primary/30 text-primary hover:bg-primary/5"><Download size={13} /> XLSX</a>
+                  <a href={`/api/group-benefits/quote/${id}/export?format=csv&insurer=${encodeURIComponent(r.insurer_name)}`}
+                     className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:bg-muted/40"><Download size={13} /> CSV</a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Comparison cards */}
       <div className="grid gap-3 mb-6" style={{ gridTemplateColumns: `repeat(${Math.min(byInsurer.length, 4)}, minmax(0,1fr))` }}>

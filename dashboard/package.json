@@ -35,6 +35,7 @@
     "antd": "^6.4.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "exceljs": "^4.4.0",
     "lucide-react": "^0.396.0",
     "mailparser": "^3.9.14",
     "mammoth": "^1.12.0",
