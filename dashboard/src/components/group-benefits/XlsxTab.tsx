@@ -207,27 +207,27 @@ function RulesPanel({ tableId, onChanged }: { tableId: string; onChanged: () => 
       )}
 
       <div className="flex flex-col gap-2.5">
-        <RuleCard title="How is age counted?" blurb="Sets each member's age from their date of birth. “Next birthday” makes everyone a year older." confidence={confOf('age_basis')} source={srcOf('age_basis')} editable={editable}>
+        <RuleCard title="How is age counted?" blurb="Sets each member's age from their date of birth. “Next birthday” makes everyone a year older." confidence={confOf('age_basis')} source={srcOf('age_basis')} editable={editable} found={confOf('age_basis') !== 'n/a'}>
           <AgeBasisEditor value={rules.age_basis} onChange={v => setRule('age_basis', v)} />
         </RuleCard>
 
-        <RuleCard title="Do the rates include GST?" blurb="Comparisons are shown net of GST. If the printed rates include GST, we divide them down." confidence={confOf('gst_treatment')} source={srcOf('gst_treatment')} editable={editable}>
+        <RuleCard title="Do the rates include GST?" blurb="Comparisons are shown net of GST. If the printed rates include GST, we divide them down." confidence={confOf('gst_treatment')} source={srcOf('gst_treatment')} editable={editable} found={confOf('gst_treatment') !== 'n/a'}>
           <GstEditor value={rules.gst_treatment} onChange={v => setRule('gst_treatment', v)} />
         </RuleCard>
 
-        <RuleCard title="Discount or loading by group size?" blurb="Adjusts every premium based on the total number of lives (e.g. −5% for 5+ employees)." confidence={confOf('group_size_discount')} source={srcOf('group_size_discount')} editable={editable}>
+        <RuleCard title="Discount or loading by group size?" blurb="Adjusts every premium based on the total number of lives (e.g. −5% for 5+ employees)." confidence={confOf('group_size_discount')} source={srcOf('group_size_discount')} editable={editable} found={confOf('group_size_discount') !== 'n/a'}>
           <GroupDiscountEditor value={rules.group_size_discount} onChange={v => setRule('group_size_discount', v)} />
         </RuleCard>
 
-        <RuleCard title="Ages only available on renewal?" blurb="On a New Business quote these ages are left unpriced; on a Renewal quote they're priced." confidence={confOf('renewal_only_bands')} source={srcOf('renewal_only_bands')} editable={editable}>
+        <RuleCard title="Ages only available on renewal?" blurb="On a New Business quote these ages are left unpriced; on a Renewal quote they're priced." confidence={confOf('renewal_only_bands')} source={srcOf('renewal_only_bands')} editable={editable} found={confOf('renewal_only_bands') !== 'n/a'}>
           <RenewalBandsEditor value={rules.renewal_only_bands} onChange={v => setRule('renewal_only_bands', v)} />
         </RuleCard>
 
-        <RuleCard title="Occupation classes not eligible" blurb="Members whose occupation class is ticked here are marked ineligible for this insurer." confidence={confOf('occupation_class_rules')} source={srcOf('occupation_class_rules')} editable={editable}>
+        <RuleCard title="Occupation classes not eligible" blurb="Members whose occupation class is ticked here are marked ineligible for this insurer." confidence={confOf('occupation_class_rules')} source={srcOf('occupation_class_rules')} editable={editable} found={confOf('occupation_class_rules') !== 'n/a'}>
           <OccClassEditor value={rules.occupation_class_rules} onChange={v => setRule('occupation_class_rules', v)} />
         </RuleCard>
 
-        <RuleCard title="Coverage dependencies" blurb="Note where one coverage can only be taken alongside another (for your reference)." confidence={confOf('rider_dependencies')} source={srcOf('rider_dependencies')} editable={editable}>
+        <RuleCard title="Coverage dependencies" blurb="Note where one coverage can only be taken alongside another (for your reference)." confidence={confOf('rider_dependencies')} source={srcOf('rider_dependencies')} editable={editable} found={confOf('rider_dependencies') !== 'n/a'}>
           <RiderEditor value={rules.rider_dependencies} onChange={v => setRule('rider_dependencies', v)} />
         </RuleCard>
       </div>
@@ -243,9 +243,13 @@ const CONF_META: Record<string, { label: string; cls: string }> = {
   'n/a':  { label: 'Not found',     cls: 'bg-muted text-muted-foreground' },
 }
 
-function RuleCard({ title, blurb, confidence, source, editable, children }: { title: string; blurb: string; confidence: string; source: string; editable: boolean; children: React.ReactNode }) {
+function RuleCard({ title, blurb, confidence, source, editable, found, children }: { title: string; blurb: string; confidence: string; source: string; editable: boolean; found: boolean; children: React.ReactNode }) {
   const [showSrc, setShowSrc] = useState(false)
+  const [adding, setAdding] = useState(false)
   const cm = CONF_META[confidence] ?? CONF_META['n/a']
+  // Not-found rules don't show an empty editable form — only what the sheet actually
+  // contained. In edit mode a broker can still opt to add one manually.
+  const show = found || adding
   return (
     <div className="rounded-lg border border-border bg-white px-4 py-3">
       <div className="flex items-start justify-between gap-3">
@@ -262,7 +266,14 @@ function RuleCard({ title, blurb, confidence, source, editable, children }: { ti
       </div>
       {showSrc && source && <p className="text-[10.5px] text-muted-foreground/60 mt-1.5 bg-muted/40 rounded px-2 py-1 break-words">Found in: {source}</p>}
       {/* Disabling the fieldset makes every control inside read-only when not editing. */}
-      <fieldset disabled={!editable} className="mt-2.5 min-w-0">{children}</fieldset>
+      {show
+        ? <fieldset disabled={!editable} className="mt-2.5 min-w-0">{children}</fieldset>
+        : (
+          <div className="mt-2 flex items-center gap-2 text-[11.5px] text-muted-foreground/60">
+            <span>Not found in this calculator.</span>
+            {editable && <button type="button" onClick={() => setAdding(true)} className="text-primary hover:underline">Add manually</button>}
+          </div>
+        )}
     </div>
   )
 }
