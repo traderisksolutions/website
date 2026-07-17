@@ -69,7 +69,7 @@ export default function GroupBenefitsPage() {
           <button key={t} onClick={() => setTab(t)}
             className={cn('px-3.5 py-2 text-sm font-medium -mb-px border-b-2 transition-colors',
               tab === t ? 'text-foreground border-primary' : 'text-muted-foreground border-transparent hover:text-foreground')}>
-            {t === 'tables' ? 'Rate Tables' : t === 'xlsx' ? 'Xlsx' : t === 'quote' ? 'New Quote' : t === 'quotes' ? 'Quotes' : 'Activity'}
+            {t === 'tables' ? 'Rate Tables' : t === 'xlsx' ? 'Calculators' : t === 'quote' ? 'New Quote' : t === 'quotes' ? 'Quotes' : 'Activity'}
           </button>
         ))}
       </div>
