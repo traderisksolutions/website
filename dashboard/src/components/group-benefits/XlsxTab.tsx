@@ -42,10 +42,28 @@ export function XlsxTab({ tables, loading, onChanged }: { tables: Table[]; loadi
   return (
     <div className="flex flex-col gap-4">
       <p className="text-[12.5px] text-muted-foreground/80 -mt-1">
-        Attach each insurer&apos;s Excel calculator to its rate table. We read the workbook and extract the
-        <span className="font-medium text-foreground/70"> calculation rules</span> — age basis, GST, group-size discount,
-        renewal-only bands, rider dependencies, occupation class — with a source citation each. Rate numbers still come from the rate PDF.
+        Attach each insurer&apos;s Excel calculator to its rate table. We read the workbook and pull out the
+        <span className="font-medium text-foreground/70"> calculation rules</span> the rate PDF doesn&apos;t contain. Rate numbers still come from the rate PDF.
       </p>
+      <div className="rounded-lg border border-border bg-muted/20 px-4 py-3">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground/70 mb-2">What we extract from the calculator</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-[11.5px]">
+          {[
+            ['Age basis', 'how the insurer counts age (last vs next birthday)'],
+            ['GST treatment', 'whether printed rates include GST'],
+            ['Group-size discount', 'loading or discount based on headcount'],
+            ['Renewal-only ages', 'age bands sold only on renewal, not new business'],
+            ['Occupation class', 'which occupation classes are ineligible'],
+            ['Coverage dependencies', 'a cover that requires another first (for reference)'],
+          ].map(([t, d]) => (
+            <div key={t} className="flex gap-1.5">
+              <span className="text-primary/50 mt-px">•</span>
+              <span><span className="font-semibold text-foreground/80">{t}</span> <span className="text-muted-foreground/70">— {d}</span></span>
+            </div>
+          ))}
+        </div>
+        <p className="text-[10.5px] text-muted-foreground/60 mt-2.5">Each is shown with where we found it and how confident we are — you review and approve before it&apos;s used in quotes.</p>
+      </div>
       <div className="rounded-lg border border-border overflow-x-auto">
         <table className="data-table w-full border-collapse text-[13px]">
           <thead><tr>
