@@ -1,0 +1,3 @@
+# Only the dumper needs a third-party package; the compiler + generated modules
+# are standard-library only.
+openpyxl>=3.1
