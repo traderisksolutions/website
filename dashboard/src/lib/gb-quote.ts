@@ -37,8 +37,12 @@ export function groupFactor(rules: AppliedRules | null | undefined, lives: numbe
 export function netOfGst(premium: number, rules: AppliedRules | null | undefined): number {
   const g = rules?.gst_treatment
   if (!g || typeof g === 'string') return premium
-  const f = g.conversion_factor
-  if (g.treatment === 'inclusive' && typeof f === 'number' && f > 0) return premium / f  // strip inclusive GST -> net
+  if (g.treatment === 'inclusive') {
+    // Strip inclusive GST -> net. When the calculator said "inclusive" but no factor was
+    // captured (text-only detection), default to Singapore's 9% GST (÷1.09).
+    const f = typeof g.conversion_factor === 'number' && g.conversion_factor > 0 ? g.conversion_factor : 1.09
+    return premium / f
+  }
   return premium
 }
 export function inRenewalBand(rules: AppliedRules | null | undefined, age: number | null): boolean {

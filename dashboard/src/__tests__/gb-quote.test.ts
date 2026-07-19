@@ -102,6 +102,10 @@ describe('Phase C — calculator rules', () => {
     const r = computeQuote([mem()], [base({ gst_treatment: { treatment: 'inclusive', conversion_factor: 1.09 } })], map, ['GHS'], 0.09, '2026-01-01')
     expect(r.per_insurer[0].subtotal).toBeCloseTo(100, 1)  // 109 / 1.09
   })
+  it('GST inclusive with no captured factor defaults to /1.09', () => {
+    const r = computeQuote([mem()], [base({ gst_treatment: { treatment: 'inclusive', conversion_factor: null } })], map, ['GHS'], 0.09, '2026-01-01')
+    expect(r.per_insurer[0].subtotal).toBeCloseTo(100, 1)  // 109 / 1.09 default
+  })
   it('group-size discount factor applies by lives', () => {
     const rules = { group_size_discount: { tiers: [{ min_lives: 1, factor: 1.5 }, { min_lives: 10, factor: 0.9 }] } }
     const one = computeQuote([mem()], [base(rules)], map, ['GHS'], 0.09, '2026-01-01')

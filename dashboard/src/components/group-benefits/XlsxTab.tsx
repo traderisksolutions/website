@@ -207,32 +207,48 @@ function RulesPanel({ tableId, onChanged }: { tableId: string; onChanged: () => 
       )}
 
       <div className="flex flex-col gap-2.5">
-        <RuleCard title="How is age counted?" blurb="Sets each member's age from their date of birth. “Next birthday” makes everyone a year older." confidence={confOf('age_basis')} source={srcOf('age_basis')} editable={editable} found={confOf('age_basis') !== 'n/a'}>
+        <RuleCard title="How is age counted?" blurb="Sets each member's age from their date of birth. “Next birthday” makes everyone a year older." confidence={confOf('age_basis')} source={srcOf('age_basis')} editable={editable} found={confOf('age_basis') !== 'n/a' || hasVal(rules.age_basis)}>
           <AgeBasisEditor value={rules.age_basis} onChange={v => setRule('age_basis', v)} />
         </RuleCard>
 
-        <RuleCard title="Do the rates include GST?" blurb="Comparisons are shown net of GST. If the printed rates include GST, we divide them down." confidence={confOf('gst_treatment')} source={srcOf('gst_treatment')} editable={editable} found={confOf('gst_treatment') !== 'n/a'}>
+        <RuleCard title="Do the rates include GST?" blurb="Comparisons are shown net of GST. If the printed rates include GST, we divide them down." confidence={confOf('gst_treatment')} source={srcOf('gst_treatment')} editable={editable} found={confOf('gst_treatment') !== 'n/a' || hasVal(rules.gst_treatment)}>
           <GstEditor value={rules.gst_treatment} onChange={v => setRule('gst_treatment', v)} />
         </RuleCard>
 
-        <RuleCard title="Discount or loading by group size?" blurb="Adjusts every premium based on the total number of lives (e.g. −5% for 5+ employees)." confidence={confOf('group_size_discount')} source={srcOf('group_size_discount')} editable={editable} found={confOf('group_size_discount') !== 'n/a'}>
+        <RuleCard title="Discount or loading by group size?" blurb="Adjusts every premium based on the total number of lives (e.g. −5% for 5+ employees)." confidence={confOf('group_size_discount')} source={srcOf('group_size_discount')} editable={editable} found={confOf('group_size_discount') !== 'n/a' || hasVal(rules.group_size_discount)}>
           <GroupDiscountEditor value={rules.group_size_discount} onChange={v => setRule('group_size_discount', v)} />
         </RuleCard>
 
-        <RuleCard title="Ages only available on renewal?" blurb="On a New Business quote these ages are left unpriced; on a Renewal quote they're priced." confidence={confOf('renewal_only_bands')} source={srcOf('renewal_only_bands')} editable={editable} found={confOf('renewal_only_bands') !== 'n/a'}>
+        <RuleCard title="Ages only available on renewal?" blurb="On a New Business quote these ages are left unpriced; on a Renewal quote they're priced." confidence={confOf('renewal_only_bands')} source={srcOf('renewal_only_bands')} editable={editable} found={confOf('renewal_only_bands') !== 'n/a' || hasVal(rules.renewal_only_bands)}>
           <RenewalBandsEditor value={rules.renewal_only_bands} onChange={v => setRule('renewal_only_bands', v)} />
         </RuleCard>
 
-        <RuleCard title="Occupation classes not eligible" blurb="Members whose occupation class is ticked here are marked ineligible for this insurer." confidence={confOf('occupation_class_rules')} source={srcOf('occupation_class_rules')} editable={editable} found={confOf('occupation_class_rules') !== 'n/a'}>
+        <RuleCard title="Occupation classes not eligible" blurb="Members whose occupation class is ticked here are marked ineligible for this insurer." confidence={confOf('occupation_class_rules')} source={srcOf('occupation_class_rules')} editable={editable} found={confOf('occupation_class_rules') !== 'n/a' || hasVal(rules.occupation_class_rules)}>
           <OccClassEditor value={rules.occupation_class_rules} onChange={v => setRule('occupation_class_rules', v)} />
         </RuleCard>
 
-        <RuleCard title="Coverage dependencies" blurb="Note where one coverage can only be taken alongside another (for your reference)." confidence={confOf('rider_dependencies')} source={srcOf('rider_dependencies')} editable={editable} found={confOf('rider_dependencies') !== 'n/a'}>
+        <RuleCard title="Coverage dependencies" blurb="Note where one coverage can only be taken alongside another (for your reference)." confidence={confOf('rider_dependencies')} source={srcOf('rider_dependencies')} editable={editable} found={confOf('rider_dependencies') !== 'n/a' || hasVal(rules.rider_dependencies)}>
           <RiderEditor value={rules.rider_dependencies} onChange={v => setRule('rider_dependencies', v)} />
         </RuleCard>
       </div>
     </div>
   )
+}
+
+// True when a rule holds a real value (either detected or added by hand), across the
+// various rule shapes — used so manually-added rules stay visible after reload.
+function hasVal(v: unknown): boolean {
+  if (v == null) return false
+  if (typeof v === 'string') return v !== '' && !v.startsWith('NOT DETECTED')
+  if (Array.isArray(v)) return v.length > 0
+  if (typeof v === 'object') {
+    const o = v as Record<string, unknown>
+    if (Array.isArray(o.tiers)) return o.tiers.length > 0
+    if (Array.isArray(o.excluded_classes)) return o.excluded_classes.length > 0
+    if (Array.isArray(o.classes_present)) return o.classes_present.length > 0
+    if (typeof o.treatment === 'string' && o.treatment) return true
+  }
+  return false
 }
 
 // ── Guided rule editors (no JSON) ──────────────────────────────────────────────────
