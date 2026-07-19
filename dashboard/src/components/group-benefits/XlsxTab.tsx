@@ -91,7 +91,8 @@ export function XlsxTab({ tables, loading, onChanged }: { tables: Table[]; loadi
                   </tr>
                   {open && rs !== 'none' && (
                     <tr><td colSpan={6} className="!p-0">
-                      <RulesPanel tableId={t.id} onChanged={onChanged} />
+                      {/* key on rules_updated_at so the panel refetches after a re-analysis/save */}
+                      <RulesPanel key={t.rules_updated_at ?? t.id} tableId={t.id} onChanged={onChanged} />
                     </td></tr>
                   )}
                 </React.Fragment>

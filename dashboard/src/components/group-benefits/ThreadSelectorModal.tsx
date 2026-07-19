@@ -28,10 +28,11 @@ export function ThreadSelectorModal({ onPick, onClose, busyLabel }: {
   const name = (l: Lead) => [l.first_name, l.last_name].filter(Boolean).join(' ') || l.email || 'Unknown'
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase()
-    const withThread = leads.filter(l => l.email || l.thread_id)
+    // Only real conversations — a reply + its attachments load via the thread, so a
+    // lead with no thread would silently drop the draft.
+    const withThread = leads.filter(l => l.thread_id)
     const base = s ? withThread.filter(l => `${name(l)} ${l.email ?? ''} ${l.company ?? ''}`.toLowerCase().includes(s)) : withThread
-    // Existing threads first.
-    return base.sort((a, b) => Number(!!b.thread_id) - Number(!!a.thread_id)).slice(0, 60)
+    return base.slice(0, 60)
   }, [leads, q])
 
   return (
@@ -50,7 +51,7 @@ export function ThreadSelectorModal({ onPick, onClose, busyLabel }: {
         </div>
         <div className="flex-1 overflow-y-auto px-3 py-3">
           {loading ? <div className="py-10 text-center"><Loader2 size={18} className="animate-spin text-muted-foreground mx-auto" /></div>
-          : filtered.length === 0 ? <p className="py-10 text-center text-[12.5px] text-muted-foreground">No matching contacts.</p>
+          : filtered.length === 0 ? <p className="py-10 text-center text-[12.5px] text-muted-foreground">{q ? 'No matching conversations.' : 'No email conversations yet — reply is available once a thread exists.'}</p>
           : (
             <ul className="flex flex-col gap-0.5">
               {filtered.map(l => (
