@@ -16,7 +16,7 @@ import { logRfqEvent }         from '@/lib/rfq-log'
 
 const SB_URL        = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
-const GEMINI_PRO    = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
+const GEMINI_PRO    = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent'
 
 function sbH(prefer = 'return=representation') {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -62,7 +62,7 @@ async function draftWithGemini(prompt: string): Promise<{ subject?: string; body
     })
     if (!res.ok) return null
     const data = await res.json()
-    void logGeminiUsage('rfq_recommend', data?.usageMetadata ?? {}, null, 'gemini-3.1-flash-lite')
+    void logGeminiUsage('rfq_recommend', data?.usageMetadata ?? {}, null, 'gemini-3.1-pro-preview')
     return parseJson((data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim())
   } catch { return null }
 }

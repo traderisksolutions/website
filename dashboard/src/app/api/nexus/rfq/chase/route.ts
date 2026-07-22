@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       })
       if (g.ok) {
         const data = await g.json()
-        if (data?.usageMetadata) logGeminiUsage('draft_email', data.usageMetadata).catch(() => {})
+        if (data?.usageMetadata) logGeminiUsage('draft_email', data.usageMetadata, null, 'gemini-3.1-flash-lite').catch(() => {})
         const raw = (data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim()
         try { const p = JSON.parse(raw.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim()); if (p.body) body = p.body } catch { /* keep fallback */ }
       }

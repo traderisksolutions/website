@@ -202,7 +202,7 @@ Write only the email body.`
     }
 
     const gemData = await gemRes.json()
-    void logGeminiUsage('inbound_auto_draft', gemData.usageMetadata ?? {})
+    void logGeminiUsage('inbound_auto_draft', gemData.usageMetadata ?? {}, undefined, 'gemini-3.1-flash-lite')
     const content = (gemData?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim()
     if (!content) return NextResponse.json({ error: 'Gemini returned no content' }, { status: 502 })
 

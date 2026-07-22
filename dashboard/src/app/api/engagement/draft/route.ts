@@ -4,7 +4,7 @@ import { fetchKnowledgeDocs }       from '@/lib/gdrive-knowledge'
 import { fetchAttachmentContext }   from '@/lib/thread-attachment-context'
 
 const SB_URL    = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
 
 function sbHeaders(prefer = 'return=representation') {
   const k = process.env.SUPABASE_SERVICE_KEY

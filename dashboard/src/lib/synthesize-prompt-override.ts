@@ -10,7 +10,7 @@
  */
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
 
 // How many new substantive-miss evals must accumulate (since the last override for a type)
 // before we auto-resynthesise that type. Keeps Gemini calls bounded.

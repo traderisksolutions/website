@@ -3,15 +3,17 @@ import { GEMINI_DEFAULT } from './gemini-models'
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
 // Per-model token pricing (USD per 1M tokens → per token). Base input / output.
-//   Gemini 3.1 Flash-Lite: $0.25 in / $1.50 out — current model
-//   Gemini 3.5 Flash:      $1.50 in / $9.00 out
-//   Gemini 3.1 Pro:        $2.00 in / $12.00 out (≤200k context)
+//   Gemini 3.6 Flash:      $1.50 in / $7.50 out — FLASH tier (drafting/analysis/extraction)
+//   Gemini 3.1 Pro:        $2.00 in / $12.00 out — PRO tier (heavy reasoning, ≤200k context)
+//   Gemini 3.1 Flash-Lite: $0.25 in / $1.50 out — LITE tier (high-volume classification/chase/bulk)
+//   Gemini 3.5 Flash:      $1.50 in / $9.00 out — kept for historical log rows.
 //   Gemini 2.5 Flash/Pro kept for historical log rows.
 //   Claude Opus 4.8:       $5.00 in / $25.00 out
 const PRICING: Record<string, { in: number; out: number }> = {
+  'gemini-3.6-flash':       { in: 1.50 / 1e6, out: 7.50 / 1e6 },
+  'gemini-3.1-pro-preview': { in: 2.00 / 1e6, out: 12.0 / 1e6 },
   'gemini-3.1-flash-lite':  { in: 0.25 / 1e6, out: 1.50 / 1e6 },
   'gemini-3.5-flash':       { in: 1.50 / 1e6, out: 9.00 / 1e6 },
-  'gemini-3.1-pro-preview': { in: 2.00 / 1e6, out: 12.0 / 1e6 },
   'gemini-2.5-flash':       { in: 0.30 / 1e6, out: 2.50 / 1e6 },
   'gemini-2.5-pro':         { in: 1.25 / 1e6, out: 10.0 / 1e6 },
   'claude-opus-4-8':        { in: 5.00 / 1e6, out: 25.0 / 1e6 },

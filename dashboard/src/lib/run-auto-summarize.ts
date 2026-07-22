@@ -128,7 +128,7 @@ Rules for draft_reply:
   }
 
   const geminiData = await geminiRes.json()
-  void logGeminiUsage('auto_summarize', geminiData.usageMetadata ?? {}, thread_id)
+  void logGeminiUsage('auto_summarize', geminiData.usageMetadata ?? {}, thread_id, 'gemini-3.1-flash-lite')
   const resultText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text
   if (!resultText) throw new Error('Gemini returned empty response')
 

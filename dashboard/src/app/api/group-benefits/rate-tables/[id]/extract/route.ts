@@ -11,6 +11,7 @@ import {
   extractWithOpus, extractWithGemini, parseRatesFromText, judgeExtractions,
   adjudicateWithOpus, conflictKey, type GbExtraction,
 } from '@/lib/gb-extract'
+import { GEMINI_FLASH } from '@/lib/gemini-models'
 
 export const maxDuration = 300
 
@@ -86,7 +87,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     // 4. Record every run for audit.
     const runs = [
       { extractor: 'opus',   model: 'claude-opus-4-8',      raw_json: opus.data,   error: opus.error ?? null },
-      { extractor: 'gemini', model: 'gemini-3.1-flash-lite', raw_json: gemini.data, error: gemini.error ?? null },
+      { extractor: 'gemini', model: GEMINI_FLASH, raw_json: gemini.data, error: gemini.error ?? null },
       { extractor: 'parser', model: 'pdf-parse',            raw_json: { rows: parserRows }, error: null },
       { extractor: 'judge',  model: 'claude-opus-4-8',      raw_json: merged, conflicts: conflictsOut, confidence: judged.confidence, error: null },
     ]

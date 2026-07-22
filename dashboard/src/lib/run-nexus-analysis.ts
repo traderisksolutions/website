@@ -17,8 +17,8 @@ import { buildQuoteDecision, type QuoteDecisionV1 } from '@/lib/rfq-quote-decisi
 
 const SB_URL          = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const STORAGE_BUCKET  = 'email-attachments'
-const GEMINI_URL      = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
-const GEMINI_FLASH    = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
+const GEMINI_URL      = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
+const GEMINI_FLASH    = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
 const GEMINI_UPLOAD   = 'https://generativelanguage.googleapis.com/upload/v1beta/files'
 const ANTHROPIC_URL   = 'https://api.anthropic.com/v1/messages'
 
@@ -1241,7 +1241,7 @@ Return [] for sections with no items; never omit a section`
     throw new Error(`Gemini synthesis failed ${synthRes.status}: ${err}`)
   }
   const synthData = await synthRes.json()
-  void logGeminiUsage('nexus_synthesis', synthData.usageMetadata ?? {}, caseId, 'gemini-3.1-flash-lite')
+  void logGeminiUsage('nexus_synthesis', synthData.usageMetadata ?? {}, caseId, 'gemini-3.6-flash')
 
   const synthParts2 = (synthData?.candidates?.[0]?.content?.parts ?? []) as { text?: string }[]
   const synthText   = synthParts2.find(p => p.text?.trim().startsWith('{'))?.text
@@ -1453,7 +1453,7 @@ COMMUNICATION BRIEFS (you plan the emails; a separate drafting model writes them
   if (communicationBriefs.length > 0) {
     try {
       draftArtifacts  = await draftEmailsFromBriefs(communicationBriefs, synthesis.case_brief, partyContactsJson, geminiKey)
-      draftModelName  = 'gemini-3.1-flash-lite'
+      draftModelName  = 'gemini-3.6-flash'
       console.log('[nexus] Gemini drafting complete —', draftArtifacts.length, 'drafts from', communicationBriefs.length, 'briefs')
     } catch (e) {
       console.warn('[nexus] Gemini drafting error (non-fatal):', e instanceof Error ? e.message : e)
@@ -1491,7 +1491,7 @@ COMMUNICATION BRIEFS (you plan the emails; a separate drafting model writes them
   const strategyModelName = anthropicKey ? 'claude-opus-4-8' : 'not_configured'
   const analysisMetadata: AnalysisMetadata = {
     analysis_ts:          new Date().toISOString(),
-    synthesis_model:      'gemini-3.1-flash-lite',
+    synthesis_model:      'gemini-3.6-flash',
     strategy_model:       strategyModelName,
     draft_model:          draftModelName,
     synthesis_tokens:     synthData.usageMetadata?.totalTokenCount ?? null,
@@ -1607,7 +1607,7 @@ COMMUNICATION BRIEFS (you plan the emails; a separate drafting model writes them
       playbook:            analysis.playbook,
       outreach_strategy:   analysis.outreach_strategy,
       legal_research:      null,
-      synthesis_model:     'gemini-3.1-flash-lite',
+      synthesis_model:     'gemini-3.6-flash',
       strategy_model:      strategyModelName,
       gemini_tokens:       synthData.usageMetadata?.totalTokenCount ?? null,
       claude_tokens:       strategyTokens || null,
