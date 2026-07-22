@@ -1,3 +1,9 @@
-# Python deps for Vercel serverless functions under /api (e.g. analyze_xlsx.py).
+# Python deps for Vercel serverless functions under /api.
 # The Next.js app itself needs nothing here.
+#
+# analyze_xlsx.py (legacy, rules-only) + pm_dump.py need just openpyxl.
+# pm_run.py RUNS the insurer's real Excel formula graph and needs `formulas` (which pulls
+# numpy/scipy/schedula). This is the heaviest dep — watch the Vercel 250 MB unzipped limit;
+# GET /api/pm_run is a health-check that reports whether the `formulas` import succeeded in prod.
 openpyxl>=3.1
+formulas>=1.3

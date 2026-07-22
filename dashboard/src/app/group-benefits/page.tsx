@@ -49,9 +49,14 @@ export default function GroupBenefitsPage() {
   return (
     <div className="min-h-screen bg-white">
     <div className="max-w-6xl mx-auto px-8 py-6">
+      <div className="mb-4 text-[12.5px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+        This is the <b>deprecated</b> Pricing Matrix (PDF rate-extraction model). The rebuilt version —
+        which runs each insurer&rsquo;s own Excel calculator — lives at{' '}
+        <a href="/pricing-matrix" className="underline font-medium">/pricing-matrix</a>.
+      </div>
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">Pricing Matrix</h1>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">Pricing Matrix <span className="text-[12px] font-normal text-muted-foreground">(deprecated)</span></h1>
           <p className="text-sm text-muted-foreground mt-1">Insurer rate matrices — upload a PDF, extract with 3 agents + Opus judge, review, approve.</p>
         </div>
         <div className="flex items-center gap-2">
