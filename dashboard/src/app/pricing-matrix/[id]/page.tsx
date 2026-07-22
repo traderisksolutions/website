@@ -264,6 +264,14 @@ function ProfileEditor({ profile, setProfile, disabled }: { profile: CellMapProf
           </label>
         </div>
       </div>
+
+      <div>
+        <p className="text-[11px] uppercase tracking-wide text-muted-foreground/50 mb-1">Per-life total column <span className="normal-case text-muted-foreground/40">— use when premiums aren&rsquo;t on this sheet; leave line outputs blank</span></p>
+        <label className="text-[11.5px] flex items-center gap-1.5">
+          <span className="text-muted-foreground/70">column (e.g. Y)</span>
+          <input value={profile.per_life_total ?? ''} onChange={e => up({ per_life_total: e.target.value.toUpperCase() || undefined })} disabled={disabled} className={colInput} placeholder="—" />
+        </label>
+      </div>
     </section>
   )
 }

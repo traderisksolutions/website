@@ -177,11 +177,18 @@ def run_calculator(data: bytes, profile: dict, members: list, globals_in: dict |
 
         placed.append((r, m.get("name")))
 
-    # Outputs: per-life premium cells, plus totals.
+    # `per_life_total` (optional): a single per-life total column on the driving sheet, used when the
+    # workbook has no per-coverage-line outputs there (e.g. premiums live on a hidden/other sheet).
+    plt = profile.get("per_life_total")
+
+    # Outputs: per-life premium cells (+ per-life total), plus totals.
     outputs = []
     for (r, _name) in placed:
         for line in lines:
-            outputs.append(_addr(sheet, f"{line['output']}{r}"))
+            if line.get("output"):
+                outputs.append(_addr(sheet, f"{line['output']}{r}"))
+        if plt:
+            outputs.append(_addr(sheet, f"{plt}{r}"))
     totals = profile.get("totals", {}) or {}
     for _code, cell in (totals.get("by_line") or {}).items():
         outputs.append(_addr(sheet, cell))
@@ -195,13 +202,21 @@ def run_calculator(data: bytes, profile: dict, members: list, globals_in: dict |
 
     out_members = []
     for (r, name) in placed:
-        line_vals = {line["code"]: read(f"{line['output']}{r}") for line in lines}
-        subtotal = sum(v for v in line_vals.values() if isinstance(v, (int, float)))
-        out_members.append({"row": r, "name": name, "lines": line_vals, "subtotal": round(subtotal, 2)})
+        line_vals = {line["code"]: read(f"{line['output']}{r}") for line in lines if line.get("output")}
+        life_total = read(f"{plt}{r}") if plt else None
+        # Prefer the workbook's own per-life total; else sum the per-line premiums we read.
+        if isinstance(life_total, (int, float)):
+            subtotal = round(life_total, 2)
+        else:
+            subtotal = round(sum(v for v in line_vals.values() if isinstance(v, (int, float))), 2)
+        out_members.append({"row": r, "name": name, "lines": line_vals, "subtotal": subtotal})
 
     # by_line cells are absolute (e.g. "N116"); read directly.
     by_line = {code: read(cell) for code, cell in (totals.get("by_line") or {}).items()}
     grand = read(totals["grand"]) if totals.get("grand") else None
+    # Fallback: no grand-total cell in the workbook → sum the per-life totals.
+    if grand is None and out_members:
+        grand = round(sum(m["subtotal"] for m in out_members if isinstance(m["subtotal"], (int, float))), 2)
 
     return {
         "ok": True,

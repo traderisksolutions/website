@@ -45,6 +45,12 @@ export type CellMapProfile = {
     grand?: string                    // grand total annual premium, e.g. "Z118"
   }
 
+  /** Some workbooks don't expose per-coverage-line premium outputs on the driving sheet — only a
+   *  single PER-LIFE TOTAL column (e.g. Income's Step-1 col "Y"). When set, the engine reads this
+   *  column as each member's total; the grand total is summed across members if `totals.grand` is
+   *  unmapped. Coverage lines are still used for their INPUTS (plan selections). */
+  per_life_total?: string             // column letter on `sheet`, e.g. "Y"
+
   /** Dropdown domains discovered from data-validations, for the review UI + census dropdowns.
    *  Keyed by "field" for member inputs or "CODE.field" for coverage inputs. */
   dropdowns?: Record<string, string[]>
@@ -69,11 +75,15 @@ export const EMPTY_PROFILE: CellMapProfile = {
   date_serial: true,
 }
 
-/** Minimal validity check used to gate "run verification" / "approve". */
+/** Minimal validity check used to gate "run verification" / "approve".
+ *  A profile is runnable when each coverage line has inputs AND premiums are readable — either via
+ *  a per-life-total column OR a per-line output on every coverage line. */
 export function profileIsRunnable(p: CellMapProfile | null | undefined): boolean {
   if (!p || !p.sheet) return false
   if (!p.rows || !(p.rows.end >= p.rows.start && p.rows.start > 0)) return false
   if (!p.member_inputs?.date_of_birth) return false
   if (!Array.isArray(p.coverage_lines) || p.coverage_lines.length === 0) return false
-  return p.coverage_lines.every(l => l.code && l.output && l.inputs && Object.keys(l.inputs).length > 0)
+  const inputsOk = p.coverage_lines.every(l => l.code && l.inputs && Object.keys(l.inputs).length > 0)
+  if (!inputsOk) return false
+  return !!p.per_life_total || p.coverage_lines.every(l => l.output)
 }

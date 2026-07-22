@@ -46,6 +46,7 @@ Return ONLY a JSON object of this exact shape (no prose, no markdown fence):
       "inputs": { "<field>": "<col letter>", ... }, "output": "<premium col letter>" }
   ],
   "totals": { "by_line": { "<code>": "<absolute total cell>", ... }, "grand": "<grand-total cell>" },
+  "per_life_total": "<column letter on the driving sheet holding each life's TOTAL premium, or omit>",
   "globals": { "<field>": "<absolute cell>" },
   "date_serial": true,
   "unmapped": [ "<anything you could not confidently map>" ]
@@ -61,6 +62,13 @@ Rules:
   'Premium'). Use the group headers (e.g. 'Hospital and Surgical') for labels.
 - totals.by_line maps each coverage code to its SUM cell (match the SUM column to the line's
   output column). totals.grand = the cell that sums the line totals (see total_hints).
+- IMPORTANT: if the per-coverage-line premium outputs are NOT on the driving sheet (they live on a
+  hidden/other sheet, or only a combined per-life total is on the driving sheet), then LEAVE each
+  coverage line's "output" blank and instead set "per_life_total" to the driving-sheet column that
+  holds each life's total premium (e.g. a "Total" / "Premium" column beside the census rows). Still
+  map every coverage line's INPUTS (the plan-selection columns) — they drive the calculation.
+- If no grand-total cell exists (each life has its own total but nothing sums them), leave
+  totals.grand blank — the engine sums the per-life totals.
 - Only include member_inputs / globals fields that truly exist. Put uncertainties in "unmapped".`
 
 function extractJson(text: string): CellMapProfile | null {
