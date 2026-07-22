@@ -200,21 +200,28 @@ def run_calculator(data: bytes, profile: dict, members: list, globals_in: dict |
     def read(cell):
         return _scalar(sol.get(_addr(sheet, cell)))
 
+    # Optional GST net-down: the workbook total includes GST but we want net premiums.
+    try:
+        gst_div = float(profile.get("total_gst_divisor") or 0)
+    except (TypeError, ValueError):
+        gst_div = 0.0
+    net = (lambda v: round(v / gst_div, 2) if (gst_div > 1 and isinstance(v, (int, float))) else v)
+
     out_members = []
     for (r, name) in placed:
-        line_vals = {line["code"]: read(f"{line['output']}{r}") for line in lines if line.get("output")}
+        line_vals = {line["code"]: net(read(f"{line['output']}{r}")) for line in lines if line.get("output")}
         life_total = read(f"{plt}{r}") if plt else None
         # Prefer the workbook's own per-life total; else sum the per-line premiums we read.
         if isinstance(life_total, (int, float)):
-            subtotal = round(life_total, 2)
+            subtotal = net(round(life_total, 2))
         else:
             subtotal = round(sum(v for v in line_vals.values() if isinstance(v, (int, float))), 2)
         out_members.append({"row": r, "name": name, "lines": line_vals, "subtotal": subtotal})
 
     # by_line cells are absolute (e.g. "N116"); read directly.
-    by_line = {code: read(cell) for code, cell in (totals.get("by_line") or {}).items()}
-    grand = read(totals["grand"]) if totals.get("grand") else None
-    # Fallback: no grand-total cell in the workbook → sum the per-life totals.
+    by_line = {code: net(read(cell)) for code, cell in (totals.get("by_line") or {}).items()}
+    grand = net(read(totals["grand"])) if totals.get("grand") else None
+    # Fallback: no grand-total cell in the workbook → sum the (already net) per-life totals.
     if grand is None and out_members:
         grand = round(sum(m["subtotal"] for m in out_members if isinstance(m["subtotal"], (int, float))), 2)
 

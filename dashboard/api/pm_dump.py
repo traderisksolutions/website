@@ -28,6 +28,8 @@ MAX_TOP_ROWS = 20
 MAX_FORMULA_SAMPLES = 24
 MAX_SUM_CELLS = 40
 CELL_TEXT_CAP = 60
+MAX_VALUES_PER_SHEET = 3000
+MAX_VALUES_TOTAL = 12000
 
 
 def _short(v):
@@ -143,8 +145,27 @@ def dump(data: bytes) -> dict:
                 if line:
                     notes_chunks.append(line)
 
+    # Full cached values per sheet (for the pricing extractor to read every rate, and for the UI to
+    # let a human open any sheet). Capped so the payload stays reasonable.
+    values = {}
+    total = 0
+    for ws in wb_v.worksheets:
+        m = {}
+        for row in ws.iter_rows():
+            for c in row:
+                if c.value is not None:
+                    m[c.coordinate] = _short(c.value)
+                    total += 1
+            if len(m) >= MAX_VALUES_PER_SHEET or total >= MAX_VALUES_TOTAL:
+                m["_truncated"] = "true"
+                break
+        if m:
+            values[ws.title] = m
+        if total >= MAX_VALUES_TOTAL:
+            break
+
     return {"sheets": sheets, "validations": validations, "previews": previews,
-            "notes_text": "\n".join(notes_chunks)[:8000]}
+            "values": values, "notes_text": "\n".join(notes_chunks)[:8000]}
 
 
 # ── Vercel handler ────────────────────────────────────────────────────────────────

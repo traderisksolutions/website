@@ -9,6 +9,7 @@ import { logActivity }               from '@/lib/log-activity'
 import { SB_URL, sbH, signRead }     from '@/lib/pm-storage'
 import { proposeProfile }            from '@/lib/pm-map'
 import type { WorkbookDump }         from '@/lib/pm-map'
+import { extractPricing }            from '@/lib/pm-pricing'
 
 export const maxDuration = 300
 
@@ -32,7 +33,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       .then(r => (r.ok ? r.json() : [])).then(rows => rows[0] ?? null)
     if (!calc?.xlsx_path) return NextResponse.json({ error: 'Calculator has no uploaded .xlsx' }, { status: 400 })
 
+    // Live progress the review page polls (Opus + Gemini + judge takes a while).
+    const progress = async (label: string, step: number, total: number): Promise<void> => { await patch(id, { map_progress: { label, step, total, at: new Date().toISOString() } }) }
+
     await patch(id, { status: 'mapping' })
+    await progress('Reading the workbook', 1, 6)
 
     const xlsx_url = await signRead(calc.xlsx_path)
     const origin = new URL(req.url).origin
@@ -48,6 +53,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     void logRun(id, { kind: 'dump', ok: true, output: { sheets: dump.sheets?.length ?? 0 }, duration_ms: Date.now() - t0 })
 
     // 2) Opus proposes the cell-map profile.
+    await progress('Mapping the input & output cells', 2, 6)
     const { profile, raw, error } = await proposeProfile(dump)
     if (!profile) {
       await patch(id, { status: 'draft', workbook_summary: dump })
@@ -58,6 +64,23 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     await patch(id, { profile, workbook_summary: dump, status: 'in_review' })
     void logRun(id, { kind: 'map_propose', model: 'claude-opus-4-8', ok: true, output: { coverage_lines: profile.coverage_lines?.length ?? 0, unmapped: profile.unmapped ?? [] }, duration_ms: Date.now() - t0 })
     void logActivity({ action: 'pm.calculator_mapped', resource_type: 'pm_calculator', resource_id: id, new_value: { coverage_lines: profile.coverage_lines?.length ?? 0 } })
+
+    // Extract the transparent rate tables from the same dump — Opus + Gemini + reconciling judge
+    // (best-effort: a pricing failure must not fail the mapping; the reviewer can re-map to retry).
+    await progress('Extracting rate tables', 3, 6)
+    try {
+      const { pricing, error: pErr } = await extractPricing(dump, progress)
+      if (pricing) {
+        await patch(id, { pricing })
+        void logRun(id, { kind: 'map_propose', model: 'claude-opus-4-8', ok: true, output: { pricing_coverages: pricing.coverages?.length ?? 0, accuracy: pricing.accuracy } })
+      } else {
+        void logRun(id, { kind: 'map_propose', ok: false, error: `pricing: ${pErr ?? 'no pricing'}` })
+      }
+    } catch (e) {
+      void logRun(id, { kind: 'map_propose', ok: false, error: `pricing: ${String(e)}` })
+    }
+
+    await progress('Done', 6, 6)
     return NextResponse.json({ ok: true, profile })
   } catch (e) {
     await patch(id, { status: 'draft' }).catch(() => {})

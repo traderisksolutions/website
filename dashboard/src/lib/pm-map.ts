@@ -49,7 +49,19 @@ Return ONLY a JSON object of this exact shape (no prose, no markdown fence):
   "per_life_total": "<column letter on the driving sheet holding each life's TOTAL premium, or omit>",
   "globals": { "<field>": "<absolute cell>" },
   "date_serial": true,
-  "unmapped": [ "<anything you could not confidently map>" ]
+  "analysis": {
+    "detected_sheets": [ { "sheet": "<name>", "role": "<census input | premiums | rate table | notes | other>" } ],
+    "mapped": [ "<short confirmed mapping, e.g. 'Name → B', 'Per-life total → Y (incl. 9% GST)'>" ],
+    "review_items": [
+      { "id": "<slug>", "severity": "<assumption | action>", "question": "<a yes/no or pick question the reviewer answers>",
+        "target_path": "<profile path the pick/value options write to, when relevant>",
+        "options": [ /* each option EITHER confirms a value, reveals a picker/input, or dismisses */
+          { "label": "Yes, keep G", "set": { "path": "member_inputs.date_of_birth", "value": "G" }, "recommended": true },
+          { "label": "Pick another column", "pick_column": true },
+          { "label": "It's already net", "dismiss": true }
+        ] }
+    ]
+  }
 }
 
 Rules:
@@ -69,7 +81,20 @@ Rules:
   map every coverage line's INPUTS (the plan-selection columns) — they drive the calculation.
 - If no grand-total cell exists (each life has its own total but nothing sums them), leave
   totals.grand blank — the engine sums the per-life totals.
-- Only include member_inputs / globals fields that truly exist. Put uncertainties in "unmapped".`
+- Only include member_inputs / globals fields that truly exist.
+- "analysis": detected_sheets (each sheet + role) and mapped (short phrases) are informational.
+- "review_items": turn EVERY assumption you made AND everything the human should confirm/fix into an
+  ANSWERABLE question. Each item's options must let the reviewer settle it in one click:
+  * to confirm/replace a mapping: a "set" option with the recommended value, plus a { "pick_column": true }
+    option, with target_path pointing at the field (e.g. "member_inputs.date_of_birth").
+  * to confirm a number (e.g. last row): a "set" option + a { "value_input": "number" } option, target_path
+    "rows.end".
+  * for a real decision (e.g. total includes GST): options that "set" the fix (e.g. path
+    "total_gst_divisor" value 1.09) OR "dismiss" (leave as-is).
+  ALLOWED target_path / set.path values ONLY: member_inputs.{name|category|date_of_birth|
+  policy_effective_date|policy_expiry_date|relationship|occupation_class}, rows.start, rows.end,
+  per_life_total, total_gst_divisor. Mark the safest option "recommended": true. Every assumption
+  becomes a low-friction "Yes, keep it / change it" item; every gap becomes a real choice.`
 
 function extractJson(text: string): CellMapProfile | null {
   const t = text.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim()

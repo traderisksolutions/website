@@ -49,6 +49,7 @@ export type AiFeature =
   | 'rfq_quote_decision'
   | 'pm_map_propose'
   | 'pm_recommend'
+  | 'pm_pricing'
 
 export interface GeminiUsageMeta {
   promptTokenCount?:     number
