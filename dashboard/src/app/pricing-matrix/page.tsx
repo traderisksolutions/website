@@ -154,7 +154,7 @@ function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
     } finally { setBusy(false); setStatus(null) }
   }
 
-  const drop = 'flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-border rounded-xl py-6 cursor-pointer hover:border-primary/40 text-center'
+  const drop = 'flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-border rounded-xl py-6 px-3 min-w-0 cursor-pointer hover:border-primary/40 text-center'
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="w-full max-w-lg rounded-xl bg-card shadow-2xl p-5 flex flex-col gap-3.5" onClick={e => e.stopPropagation()}>
@@ -168,13 +168,13 @@ function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
 
         <div className="grid grid-cols-2 gap-2.5">
           <label className={drop}>
-            <FileSpreadsheet size={20} className="text-emerald-600/70" />
-            <span className="text-[12px] font-medium">{xlsx ? xlsx.name : 'Calculator .xlsx *'}</span>
+            <FileSpreadsheet size={20} className="text-emerald-600/70 shrink-0" />
+            <span className="text-[12px] font-medium max-w-full truncate" title={xlsx?.name}>{xlsx ? xlsx.name : 'Calculator .xlsx *'}</span>
             <input type="file" accept=".xlsx,.xls" className="hidden" onChange={e => setXlsx(e.target.files?.[0] ?? null)} />
           </label>
           <label className={drop}>
-            <FileText size={20} className="text-rose-500/60" />
-            <span className="text-[12px] font-medium">{pdf ? pdf.name : 'Brochure .pdf (optional)'}</span>
+            <FileText size={20} className="text-rose-500/60 shrink-0" />
+            <span className="text-[12px] font-medium max-w-full truncate" title={pdf?.name}>{pdf ? pdf.name : 'Brochure .pdf (optional)'}</span>
             <input type="file" accept="application/pdf" className="hidden" onChange={e => setPdf(e.target.files?.[0] ?? null)} />
           </label>
         </div>
