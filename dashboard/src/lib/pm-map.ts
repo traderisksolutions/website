@@ -136,7 +136,7 @@ export async function proposeProfile(dump: WorkbookDump): Promise<{ profile: Cel
       method: 'POST',
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({
-        model: OPUS, max_tokens: 8000, thinking: { type: 'adaptive' }, system: SYSTEM,
+        model: OPUS, max_tokens: 20000, thinking: { type: 'adaptive' }, system: SYSTEM,
         messages: [{ role: 'user', content: [{ type: 'text', text: 'Workbook dump:\n' + JSON.stringify(dump) }] }],
       }),
     })

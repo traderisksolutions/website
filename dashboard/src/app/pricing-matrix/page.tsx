@@ -133,7 +133,7 @@ function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
 
   async function submit() {
     if (!xlsx) { setError('Choose the calculator .xlsx'); return }
-    if (!xlsx.name.match(/\.xlsx?$/i)) { setError('Calculator must be an Excel file (.xlsx)'); return }
+    if (!xlsx.name.match(/\.(xlsx|xlsm|xls)$/i)) { setError('Calculator must be an Excel file (.xlsx, .xlsm or .xls)'); return }
     setBusy(true); setError(null)
     try {
       setStatus('Uploading calculator…')
@@ -170,7 +170,7 @@ function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
           <label className={drop}>
             <FileSpreadsheet size={20} className="text-emerald-600/70 shrink-0" />
             <span className="text-[12px] font-medium max-w-full truncate" title={xlsx?.name}>{xlsx ? xlsx.name : 'Calculator .xlsx *'}</span>
-            <input type="file" accept=".xlsx,.xls" className="hidden" onChange={e => setXlsx(e.target.files?.[0] ?? null)} />
+            <input type="file" accept=".xlsx,.xlsm,.xls" className="hidden" onChange={e => setXlsx(e.target.files?.[0] ?? null)} />
           </label>
           <label className={drop}>
             <FileText size={20} className="text-rose-500/60 shrink-0" />
