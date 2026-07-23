@@ -29,9 +29,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     if (!await requireUser()) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
-    const calc = await fetch(`${SB_URL}/rest/v1/pm_calculators?id=eq.${id}&select=xlsx_path,insurer_name&limit=1`, { headers: sbH(), cache: 'no-store' })
+    const calc = await fetch(`${SB_URL}/rest/v1/pm_calculators?id=eq.${id}&select=xlsx_path,insurer_name,pricing&limit=1`, { headers: sbH(), cache: 'no-store' })
       .then(r => (r.ok ? r.json() : [])).then(rows => rows[0] ?? null)
     if (!calc?.xlsx_path) return NextResponse.json({ error: 'Calculator has no uploaded .xlsx' }, { status: 400 })
+    // Only run the (heavy) Opus+Gemini+judge pricing extraction when we don't already have it, so a
+    // Re-map (to fix the cell-map) stays cheap. Force it via "Refresh rate tables" / ?pricing=1.
+    const needPricing = new URL(req.url).searchParams.get('pricing') === '1' || !calc.pricing?.coverages?.length
 
     // Live progress the review page polls (Opus + Gemini + judge takes a while).
     const progress = async (label: string, step: number, total: number): Promise<void> => { await patch(id, { map_progress: { label, step, total, at: new Date().toISOString() } }) }
@@ -67,17 +70,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     // Extract the transparent rate tables from the same dump — Opus + Gemini + reconciling judge
     // (best-effort: a pricing failure must not fail the mapping; the reviewer can re-map to retry).
-    await progress('Extracting rate tables', 3, 6)
-    try {
-      const { pricing, error: pErr } = await extractPricing(dump, progress)
-      if (pricing) {
-        await patch(id, { pricing })
-        void logRun(id, { kind: 'map_propose', model: 'claude-opus-4-8', ok: true, output: { pricing_coverages: pricing.coverages?.length ?? 0, accuracy: pricing.accuracy } })
-      } else {
-        void logRun(id, { kind: 'map_propose', ok: false, error: `pricing: ${pErr ?? 'no pricing'}` })
+    if (needPricing) {
+      await progress('Extracting rate tables', 3, 6)
+      try {
+        const { pricing, error: pErr } = await extractPricing(dump, progress)
+        if (pricing) {
+          await patch(id, { pricing })
+          void logRun(id, { kind: 'map_propose', model: 'claude-opus-4-8', ok: true, output: { pricing_coverages: pricing.coverages?.length ?? 0, accuracy: pricing.accuracy } })
+        } else {
+          void logRun(id, { kind: 'map_propose', ok: false, error: `pricing: ${pErr ?? 'no pricing'}` })
+        }
+      } catch (e) {
+        void logRun(id, { kind: 'map_propose', ok: false, error: `pricing: ${String(e)}` })
       }
-    } catch (e) {
-      void logRun(id, { kind: 'map_propose', ok: false, error: `pricing: ${String(e)}` })
     }
 
     await progress('Done', 6, 6)

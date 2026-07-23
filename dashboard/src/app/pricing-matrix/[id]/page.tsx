@@ -146,7 +146,7 @@ export default function CalculatorReviewPage() {
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <button onClick={runMap} disabled={mapping} className="flex items-center gap-1.5 text-[12.5px] px-3 py-1.5 rounded-lg border border-slate-100 text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+          <button onClick={() => { if (hasRealProfile(calc.profile) && !window.confirm('Re-mapping replaces the current cell-map, your edits, and your resolved answers with a fresh AI proposal. Continue?')) return; runMap() }} disabled={mapping} className="flex items-center gap-1.5 text-[12.5px] px-3 py-1.5 rounded-lg border border-slate-100 text-slate-700 hover:bg-slate-50 disabled:opacity-50">
             {mapping ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}{hasRealProfile(calc.profile) ? 'Re-map' : 'Auto-map'}
           </button>
           {!approved && <button onClick={saveProfile} disabled={saving || !profile} className="flex items-center gap-1.5 text-[12.5px] px-3 py-1.5 rounded-lg border border-slate-100 text-slate-700 hover:bg-slate-50 disabled:opacity-50"><Save size={14} /> Save</button>}
@@ -197,7 +197,7 @@ export default function CalculatorReviewPage() {
             </div>
             {/* 3 — Pricing & maths (transparent rate tables + worked example). */}
             <div className="flex flex-col gap-5">
-              <PricingPanel id={id} pricing={calc.pricing} profile={profile} runnable={runnable} defaultEff={calc.effective_date} />
+              <PricingPanel id={id} pricing={calc.pricing} profile={profile} runnable={runnable} defaultEff={calc.effective_date} onRefreshed={load} />
             </div>
           </div>
         </div>
@@ -353,7 +353,7 @@ function WorkbookSummary({ dump, sheet }: { dump: Dump | null; sheet: string }) 
           </button>
         ))}
       </div>
-      {values ? <SheetGrid values={values} /> : <p className="text-[11px] text-slate-400">No cached cells for this sheet.</p>}
+      {values ? <SheetGrid values={values} /> : <p className="text-[11.5px] text-slate-500 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2.5">This sheet is computed — values appear when a census runs (see the worked example under Pricing &amp; maths).</p>}
     </section>
   )
 }
@@ -488,14 +488,36 @@ function ProfileEditor({ profile, setProfile, disabled }: { profile: CellMapProf
 // ── Pricing & maths — transparent rate tables + a worked example (replaces Verify) ────
 type SampleMember = { name: string; age?: number; coverage: Record<string, Record<string, string>> }
 
-function PricingPanel({ id, pricing, profile, runnable, defaultEff }: {
-  id: string; pricing: Pricing | null; profile: CellMapProfile; runnable: boolean; defaultEff: string | null
+function PricingPanel({ id, pricing, profile, runnable, defaultEff, onRefreshed }: {
+  id: string; pricing: Pricing | null; profile: CellMapProfile; runnable: boolean; defaultEff: string | null; onRefreshed: () => void
 }) {
+  const inclGst = /incl|inclusive/i.test(pricing?.gst ?? '')
+  const gstDiv = profile.total_gst_divisor
+  const [refreshing, setRefreshing] = useState(false)
+  const [rlabel, setRlabel] = useState('')
+
+  async function refresh() {
+    setRefreshing(true); setRlabel('Reading the workbook…')
+    const poll = setInterval(async () => {
+      const s = await fetch(`/api/pricing-matrix/calculators/${id}/map-status`, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null)
+      if (s?.map_progress?.label) setRlabel(s.map_progress.label)
+    }, 1800)
+    try {
+      await fetch(`/api/pricing-matrix/calculators/${id}/extract-pricing`, { method: 'POST' })
+      onRefreshed()
+    } finally { clearInterval(poll); setRefreshing(false); setRlabel('') }
+  }
+
   return (
     <section className={card + ' p-4 flex flex-col gap-4'}>
-      <div className="flex items-center gap-2">
-        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-[11px] font-bold shrink-0">3</span>
-        <h2 className="text-[13px] font-semibold text-slate-800">Pricing &amp; maths <span className="font-normal text-slate-400">— confirm every rate is right</span></h2>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-[11px] font-bold shrink-0">3</span>
+          <h2 className="text-[13px] font-semibold text-slate-800 truncate">Pricing &amp; maths <span className="font-normal text-slate-400">— confirm every rate is right</span></h2>
+        </div>
+        <button onClick={refresh} disabled={refreshing} title="Re-read the rate tables (Opus + Gemini + judge) without changing your cell-map" className="flex items-center gap-1.5 text-[11.5px] text-slate-500 hover:text-slate-800 disabled:opacity-60 shrink-0">
+          {refreshing ? <><Loader2 size={12} className="animate-spin" />{rlabel || 'Refreshing…'}</> : <><Wand2 size={12} /> Refresh rate tables</>}
+        </button>
       </div>
 
       {/* Worked example first — proof a real premium computes correctly. */}
@@ -510,6 +532,8 @@ function PricingPanel({ id, pricing, profile, runnable, defaultEff }: {
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center gap-1.5">
             {pricing.gst && <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{pricing.gst}</span>}
+            {inclGst && <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium">Rates below include GST</span>}
+            {gstDiv && <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">Quotes shown net (÷{gstDiv})</span>}
             {pricing.rate_version && <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">{pricing.rate_version}</span>}
             {pricing.accuracy && pricing.accuracy.extractors.length > 1 && (
               <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 inline-flex items-center gap-1" title={`${pricing.accuracy.agreed} agreed · ${pricing.accuracy.conflicts} reconciled by judge · ${pricing.accuracy.single_source} single-source of ${pricing.accuracy.total_rates}`}>
@@ -524,6 +548,7 @@ function PricingPanel({ id, pricing, profile, runnable, defaultEff }: {
                   <span className="text-[12.5px] font-semibold text-slate-800">{cov.full_name}</span>
                   {cov.code && cov.code !== cov.full_name && <span className="font-mono text-[10.5px] px-1.5 py-0.5 rounded bg-white border border-slate-100 text-slate-500">{cov.code}</span>}
                   {cov.member_type && <span className="text-[10.5px] px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600">{cov.member_type}</span>}
+                  {inclGst && <span className="text-[10.5px] text-amber-600">(incl. GST)</span>}
                 </div>
                 {cov.derivation && <p className="text-[11px] text-slate-500 mt-1 flex items-start gap-1.5"><Lightbulb size={12} className="text-amber-500 mt-0.5 shrink-0" />{cov.derivation}</p>}
               </div>

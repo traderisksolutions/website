@@ -59,8 +59,12 @@ Rules:
   coverage entries or plan labels — never lose rows.`
 
 const norm = (s: unknown) => String(s ?? '').toLowerCase().replace(/[^a-z0-9]/g, '')
-const rateKey = (cov: PricingCoverage, planCode: string, band: string) =>
-  `${norm(cov.full_name || cov.code)}|${norm(cov.member_type)}|${norm(planCode)}|${norm(band)}`
+const mkKey = (covId: string, member: unknown, plan: string, band: string) => `${covId}|${norm(member)}|${norm(plan)}|${norm(band)}`
+/** A coverage can be matched by its printed CODE or its full name — either identifies it across the
+ *  two extractions even when the models spell the full name differently. */
+const covIds = (cov: PricingCoverage) => Array.from(new Set([cov.code, cov.full_name].map(norm).filter(Boolean)))
+const primaryId = (cov: PricingCoverage) => norm(cov.code || cov.full_name)
+const rateKey = (cov: PricingCoverage, planCode: string, band: string) => mkKey(primaryId(cov), cov.member_type, planCode, band)
 
 function extractJson<T>(text: string): T | null {
   const t = text.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim()
@@ -93,11 +97,12 @@ async function geminiExtract(dump: unknown): Promise<{ pricing: Pricing | null; 
   const key = process.env.GEMINI_API_KEY_EMAIL_ANALYSIS || process.env.GEMINI_API_KEY_DRAFT_EMAIL
   if (!key) return { pricing: null, error: 'GEMINI key not set' }
   try {
+    // Fold the system prompt into the user turn (matches the codebase's proven Gemini pattern;
+    // `systemInstruction` is used nowhere else here, so don't rely on it).
     const res = await fetch(`${geminiUrl(GEMINI_PRO)}?key=${key}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: SYSTEM }] },
-        contents: [{ parts: [{ text: 'Workbook dump:\n' + JSON.stringify(dump) }] }],
+        contents: [{ parts: [{ text: `${SYSTEM}\n\nWorkbook dump:\n${JSON.stringify(dump)}` }] }],
         generationConfig: { temperature: 0, maxOutputTokens: 32000, responseMimeType: 'application/json' },
       }),
     })
@@ -111,8 +116,9 @@ async function geminiExtract(dump: unknown): Promise<{ pricing: Pricing | null; 
 }
 
 // ── C. Reconcile — compare every dollar value across the two extractions ──────────
-type Conflict = { key: string; coverage: string; member_type?: string; plan: string; band: string; opus: number | string; gemini: number | string }
+export type Conflict = { key: string; coverage: string; member_type?: string; plan: string; band: string; opus: number | string; gemini: number | string }
 
+/** One rate per (primary coverage id × plan × band) — for counting a single extraction's size. */
 function flatten(p: Pricing): Map<string, number | string> {
   const m = new Map<string, number | string>()
   for (const cov of p.coverages ?? []) {
@@ -125,11 +131,47 @@ function flatten(p: Pricing): Map<string, number | string> {
   return m
 }
 
-const sameRate = (a: number | string, b: number | string) => {
+/** Index a pricing under EVERY coverage id (code + full name) so a lookup matches on either. */
+function pricingIndex(p: Pricing): Map<string, number | string> {
+  const m = new Map<string, number | string>()
+  for (const cov of p.coverages ?? []) {
+    for (const row of cov.rates ?? []) {
+      for (const [planCode, v] of Object.entries(row.by_plan ?? {})) {
+        if (v === undefined || v === null || v === '') continue
+        for (const id of covIds(cov)) m.set(mkKey(id, cov.member_type, planCode, row.band), v)
+      }
+    }
+  }
+  return m
+}
+
+export const sameRate = (a: number | string, b: number | string) => {
   const na = typeof a === 'number' ? a : parseFloat(String(a).replace(/[^0-9.-]/g, ''))
   const nb = typeof b === 'number' ? b : parseFloat(String(b).replace(/[^0-9.-]/g, ''))
   if (!isNaN(na) && !isNaN(nb)) return Math.abs(na - nb) < 0.01
   return norm(a) === norm(b)
+}
+
+/** Compare every (coverage × plan × age-band) rate across the two extractions. Pure + testable. */
+export function reconcile(opus: Pricing, gemini: Pricing): { conflicts: Conflict[]; agreed: number; single_source: number; total: number } {
+  const gm = pricingIndex(gemini)
+  const conflicts: Conflict[] = []
+  let agreed = 0, single = 0, total = 0
+  for (const cov of opus.coverages ?? []) {
+    for (const row of cov.rates ?? []) {
+      for (const planCode of Object.keys(row.by_plan ?? {})) {
+        total++
+        // Match on the coverage's code OR its full name (models may spell the name differently).
+        let gv: number | string | undefined
+        for (const id of covIds(cov)) { const hit = gm.get(mkKey(id, cov.member_type, planCode, row.band)); if (hit !== undefined) { gv = hit; break } }
+        const ov = row.by_plan[planCode]
+        if (gv === undefined) { single++; continue }
+        if (sameRate(ov, gv)) agreed++
+        else conflicts.push({ key: rateKey(cov, planCode, row.band), coverage: cov.full_name || cov.code, member_type: cov.member_type, plan: planCode, band: row.band, opus: ov, gemini: gv })
+      }
+    }
+  }
+  return { conflicts, agreed, single_source: single, total }
 }
 
 // ── D. Opus judge on the disputed cells ──────────────────────────────────────────
@@ -169,21 +211,7 @@ export async function extractPricing(dump: unknown, onStep?: StepFn): Promise<{ 
   }
 
   await onStep?.('Cross-checking every rate', 5, 6)
-  const gm = flatten(g.pricing)
-  const conflicts: Conflict[] = []
-  let agreed = 0, single = 0, total = 0
-  for (const cov of o.pricing.coverages) {
-    for (const row of cov.rates ?? []) {
-      for (const planCode of Object.keys(row.by_plan ?? {})) {
-        total++
-        const k = rateKey(cov, planCode, row.band)
-        const ov = row.by_plan[planCode]; const gv = gm.get(k)
-        if (gv === undefined) { single++; continue }
-        if (sameRate(ov, gv)) agreed++
-        else conflicts.push({ key: k, coverage: cov.full_name || cov.code, member_type: cov.member_type, plan: planCode, band: row.band, opus: ov, gemini: gv })
-      }
-    }
-  }
+  const { conflicts, agreed, single_source: single, total } = reconcile(o.pricing, g.pricing)
 
   // Judge resolves disagreements against the raw cells.
   const resolved = conflicts.length ? await adjudicate(dump, conflicts) : new Map<string, number | string>()
