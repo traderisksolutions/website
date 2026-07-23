@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { FileSpreadsheet, FileText, Loader2, Plus, X, Calculator } from 'lucide-react'
+import { FileSpreadsheet, FileText, Loader2, Plus, X, Calculator, Trash2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 type Calc = {
@@ -37,6 +37,13 @@ export default function PricingMatrixPage() {
     setLoading(false)
   }
   useEffect(() => { load() }, [])
+
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  async function del(id: string, name: string) {
+    if (!window.confirm(`Delete "${name}"? This removes the calculator so you can re-upload/replace it. Quotes already generated keep their saved numbers.`)) return
+    setDeletingId(id)
+    try { await fetch(`/api/pricing-matrix/calculators/${id}`, { method: 'DELETE' }) } finally { setDeletingId(null); load() }
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-6">
@@ -82,11 +89,12 @@ export default function PricingMatrixPage() {
                 <th className="py-2 pr-3 font-medium">Ver.</th>
                 <th className="py-2 pr-3 font-medium">Status</th>
                 <th className="py-2 pr-3 font-medium">Added</th>
+                <th className="py-2 font-medium" />
               </tr>
             </thead>
             <tbody>
               {rows.map(r => (
-                <tr key={r.id} className="border-b border-border/50 hover:bg-muted/40">
+                <tr key={r.id} className="group border-b border-border/50 hover:bg-muted/40">
                   <td className="py-2.5 pr-3">
                     <Link href={`/pricing-matrix/${r.id}`} className="font-medium text-foreground hover:text-primary">
                       {r.insurer_name || r.label || 'Untitled'}
@@ -98,6 +106,12 @@ export default function PricingMatrixPage() {
                   <td className="py-2.5 pr-3 text-muted-foreground/70">v{r.version}</td>
                   <td className="py-2.5 pr-3"><span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${STATUS[r.status]?.cls ?? 'bg-slate-100 text-slate-500'}`}>{STATUS[r.status]?.label ?? r.status}</span></td>
                   <td className="py-2.5 pr-3 text-muted-foreground/50">{new Date(r.created_at).toLocaleDateString('en-SG')}</td>
+                  <td className="py-2.5 text-right">
+                    <button onClick={() => del(r.id, r.insurer_name || r.label || 'this calculator')} disabled={deletingId === r.id}
+                      title="Delete calculator" className="text-muted-foreground/30 hover:text-rose-500 disabled:opacity-50 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                      {deletingId === r.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
