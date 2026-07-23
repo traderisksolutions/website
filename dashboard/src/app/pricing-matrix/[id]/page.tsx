@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, Wand2, Save, CheckCircle2, Play, Plus, Trash2, FileSpreadsheet, Lightbulb, Eye, Table2, ArrowRight, Check, ListChecks } from 'lucide-react'
+import { ArrowLeft, Loader2, Wand2, Save, CheckCircle2, Play, Plus, Trash2, FileSpreadsheet, Lightbulb, Eye, Table2, ArrowRight, Check, ListChecks, Pencil } from 'lucide-react'
 import type { CellMapProfile, CoverageLine, ReviewItem, ReviewOption } from '@/lib/pm-profile'
 import { profileIsRunnable, deriveReviewItems, unresolvedReviewCount, applyProfilePath, resolveReviewItem } from '@/lib/pm-profile'
 import type { Pricing } from '@/lib/pm-pricing'
@@ -49,6 +49,13 @@ export default function CalculatorReviewPage() {
   const [progress, setProgress] = useState<{ label: string; step: number; total: number } | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [editingName, setEditingName] = useState(false)
+  const [nameDraft, setNameDraft] = useState('')
+
+  async function patchMeta(body: Record<string, unknown>) {
+    await fetch(`/api/pricing-matrix/calculators/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    await load()
+  }
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/pricing-matrix/calculators/${id}`, { cache: 'no-store' })
@@ -133,16 +140,30 @@ export default function CalculatorReviewPage() {
       <div className="flex items-start justify-between gap-4 mb-5">
         <div className="min-w-0">
           <div className="flex items-center gap-2.5">
-            <h1 className="text-[19px] font-semibold text-slate-900 truncate">{calc.insurer_name || calc.label || 'Untitled calculator'}</h1>
-            <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${statusStyle[calc.status] ?? 'bg-slate-100 text-slate-500'}`}>{calc.status.replace('_', ' ')}</span>
-            <span className="text-[11px] text-slate-400">v{calc.version}</span>
+            {editingName ? (
+              <input autoFocus value={nameDraft} onChange={e => setNameDraft(e.target.value)}
+                onBlur={() => { setEditingName(false); const v = nameDraft.trim(); if (v && v !== (calc.insurer_name ?? '')) patchMeta({ insurer_name: v }) }}
+                onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setEditingName(false) }}
+                placeholder="Insurer name" className="text-[19px] font-semibold text-slate-900 bg-slate-50 rounded px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-primary/25 min-w-[220px]" />
+            ) : (
+              <span className="flex items-center gap-1.5 min-w-0">
+                <h1 className={`text-[19px] font-semibold truncate ${calc.insurer_name ? 'text-slate-900' : 'text-slate-400 italic'}`}>{calc.insurer_name || calc.label || 'Untitled calculator'}</h1>
+                {!approved && <button onClick={() => { setNameDraft(calc.insurer_name ?? ''); setEditingName(true) }} title="Rename insurer" className="text-slate-300 hover:text-slate-600 shrink-0"><Pencil size={13} /></button>}
+              </span>
+            )}
+            <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full shrink-0 ${statusStyle[calc.status] ?? 'bg-slate-100 text-slate-500'}`}>{calc.status.replace('_', ' ')}</span>
+            <span className="text-[11px] text-slate-400 shrink-0">v{calc.version}</span>
           </div>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5 text-[11.5px] text-slate-500">
             <span className="inline-flex items-center gap-1"><FileSpreadsheet size={12} className="text-emerald-600/70" />{calc.xlsx_filename}</span>
             {calc.brochure_filename && <span className="text-slate-300">·</span>}
             {calc.brochure_filename && <span>{calc.brochure_filename}</span>}
-            {calc.effective_date && <span className="text-slate-300">·</span>}
-            {calc.effective_date && <span>eff. {calc.effective_date}</span>}
+            <span className="text-slate-300">·</span>
+            {approved ? (
+              calc.effective_date ? <span>eff. {calc.effective_date}</span> : null
+            ) : (
+              <span className="inline-flex items-center gap-1">eff. <input type="date" value={calc.effective_date ?? ''} onChange={e => patchMeta({ effective_date: e.target.value || null })} className="bg-slate-50 rounded px-1.5 py-0.5 text-[11.5px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/25" /></span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
