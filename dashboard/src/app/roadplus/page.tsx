@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Loader2, Search, AlertTriangle, ExternalLink } from 'lucide-react'
+import { Loader2, Search, AlertTriangle, ExternalLink, RefreshCw } from 'lucide-react'
 
 type Payment = {
   id: string
@@ -73,6 +73,25 @@ export default function RoadplusReconPage() {
 
   useEffect(() => { loadPayments() }, [loadPayments])
 
+  // ── reconcile trigger (Phase 4) ─────────────────────────────────────────
+  const [recon, setRecon] = useState<{ running: boolean; msg?: string }>({ running: false })
+  const runReconcile = useCallback(async () => {
+    setRecon({ running: true })
+    try {
+      const res = await fetch('/api/roadplus/reconcile', { method: 'POST' })
+      const d = await res.json()
+      if (d.configured === false)
+        setRecon({ running: false, msg: 'Not configured — set ROADPLUS_SITE_URL + reconcile secret.' })
+      else if (d.ok === false)
+        setRecon({ running: false, msg: `Failed: ${d.error ?? 'error'}` })
+      else
+        setRecon({ running: false, msg: `Scanned ${d.scanned ?? 0} · reconciled ${d.reconciled ?? 0} · still pending ${d.pending ?? 0}.` })
+      loadPayments(pQuery)
+    } catch (e) {
+      setRecon({ running: false, msg: `Error: ${String(e)}` })
+    }
+  }, [loadPayments, pQuery])
+
   // ── journey ───────────────────────────────────────────────────────────
   const [jQuery, setJQuery] = useState('')
   const [journey, setJourney] = useState<JourneyEvent[]>([])
@@ -137,24 +156,38 @@ export default function RoadplusReconPage() {
         {/* ── PAYMENTS ── */}
         {tab === 'payments' && (
           <div className="mt-5">
-            <form
-              onSubmit={(e) => { e.preventDefault(); loadPayments(pQuery) }}
-              className="mb-3 flex items-center gap-2"
-            >
-              <div className="relative">
-                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  value={pQuery}
-                  onChange={(e) => setPQuery(e.target.value)}
-                  placeholder="Policy no / policy id / proposal / txn id…"
-                  className="w-80 rounded-lg border border-slate-200 pl-8 pr-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-slate-900/10"
-                />
+            <div className="mb-3 flex items-center justify-between gap-3 flex-wrap">
+              <form
+                onSubmit={(e) => { e.preventDefault(); loadPayments(pQuery) }}
+                className="flex items-center gap-2"
+              >
+                <div className="relative">
+                  <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    value={pQuery}
+                    onChange={(e) => setPQuery(e.target.value)}
+                    placeholder="Policy no / policy id / proposal / txn id…"
+                    className="w-80 rounded-lg border border-slate-200 pl-8 pr-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                  />
+                </div>
+                <button className="rounded-lg bg-slate-900 px-3 py-1.5 text-[12.5px] font-medium text-white hover:bg-slate-800">Search</button>
+                {pQuery && (
+                  <button type="button" onClick={() => { setPQuery(''); loadPayments() }} className="text-[12.5px] text-slate-400 hover:text-slate-600">Clear</button>
+                )}
+              </form>
+              <div className="flex items-center gap-2">
+                {recon.msg && <span className="text-[12px] text-slate-500">{recon.msg}</span>}
+                <button
+                  onClick={runReconcile}
+                  disabled={recon.running}
+                  title="Ask ECICS to backfill any paid-but-unrecorded policies"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  {recon.running ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+                  Run reconcile
+                </button>
               </div>
-              <button className="rounded-lg bg-slate-900 px-3 py-1.5 text-[12.5px] font-medium text-white hover:bg-slate-800">Search</button>
-              {pQuery && (
-                <button type="button" onClick={() => { setPQuery(''); loadPayments() }} className="text-[12.5px] text-slate-400 hover:text-slate-600">Clear</button>
-              )}
-            </form>
+            </div>
 
             {pLoading ? (
               <div className="flex items-center gap-2 py-10 text-slate-400"><Loader2 size={16} className="animate-spin" /> Loading…</div>
