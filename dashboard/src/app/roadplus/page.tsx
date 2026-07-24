@@ -1,7 +1,55 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { Loader2, Search, AlertTriangle, ExternalLink, RefreshCw } from 'lucide-react'
+
+type AnalyticsData = {
+  configured?: boolean
+  error?: string
+  totals?: { visitors: number; sessions: number; searches: number; purchaseIntent: number; issued: number }
+  rates?: { conversion: number; repeatVisitor: number; avgSearchesPerSession: number; avgSessionsPerVisitor: number; avgSearchesBeforePurchase: number }
+  funnel?: { step: string; journeys: number }[]
+  regionSplit?: Record<string, number>
+  typeSplit?: Record<string, number>
+  failures?: number
+}
+const pct = (n: number) => `${(n * 100).toFixed(0)}%`
+const STEP_LABEL: Record<string, string> = {
+  quote_open: 'Opened quote', premium: 'Got a price', finalize: 'Proceeded to pay',
+  payment_redirect: 'Sent to payment', policy_issued: 'Policy issued',
+}
+
+function Tile({ label, value, tone }: { label: string; value: ReactNode; tone?: 'rose' }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <div className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{label}</div>
+      <div className={`mt-1 text-[26px] font-semibold tabular-nums ${tone === 'rose' ? 'text-rose-600' : 'text-slate-900'}`}>{value}</div>
+    </div>
+  )
+}
+
+function Split({ title, data }: { title: string; data: Record<string, number> }) {
+  const entries = Object.entries(data).sort((a, b) => b[1] - a[1])
+  const total = entries.reduce((s, [, v]) => s + v, 0) || 1
+  return (
+    <div>
+      <h3 className="mb-3 text-[13px] font-semibold text-slate-800">{title}</h3>
+      {entries.length === 0 ? (
+        <p className="text-[12.5px] text-slate-400">No data yet.</p>
+      ) : (
+        <div className="space-y-2">
+          {entries.map(([k, v]) => (
+            <div key={k} className="flex items-center gap-3">
+              <div className="w-28 shrink-0 text-[12.5px] capitalize text-slate-600">{k}</div>
+              <div className="h-5 flex-1 overflow-hidden rounded bg-slate-100"><div className="h-full rounded bg-slate-400" style={{ width: `${(v / total) * 100}%` }} /></div>
+              <div className="w-16 text-right text-[11px] tabular-nums text-slate-400">{v} ({((v / total) * 100).toFixed(0)}%)</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 type Payment = {
   id: string
@@ -51,7 +99,7 @@ function StatusPill({ s }: { s: string | null }) {
 }
 
 export default function RoadplusReconPage() {
-  const [tab, setTab] = useState<'payments' | 'journey'>('payments')
+  const [tab, setTab] = useState<'payments' | 'journey' | 'analytics'>('payments')
   const [configured, setConfigured] = useState(true)
 
   // ── payments ──────────────────────────────────────────────────────────
@@ -117,6 +165,22 @@ export default function RoadplusReconPage() {
     }
   }, [])
 
+  // ── analytics (Phase 3) ─────────────────────────────────────────────────
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
+  const [aLoading, setALoading] = useState(false)
+  const loadAnalytics = useCallback(async () => {
+    setALoading(true)
+    try {
+      const res = await fetch('/api/roadplus/analytics', { cache: 'no-store' })
+      const d: AnalyticsData = await res.json()
+      setConfigured(d.configured !== false)
+      setAnalytics(d)
+    } finally {
+      setALoading(false)
+    }
+  }, [])
+  useEffect(() => { if (tab === 'analytics' && !analytics) loadAnalytics() }, [tab, analytics, loadAnalytics])
+
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-6xl mx-auto px-8 py-7">
@@ -140,7 +204,7 @@ export default function RoadplusReconPage() {
 
         {/* tabs */}
         <div className="mt-6 flex gap-1 border-b border-slate-200">
-          {(['payments', 'journey'] as const).map((t) => (
+          {(['payments', 'journey', 'analytics'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -148,7 +212,7 @@ export default function RoadplusReconPage() {
                 tab === t ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-400 hover:text-slate-600'
               }`}
             >
-              {t === 'payments' ? 'Payments' : 'Journey lookup'}
+              {t === 'payments' ? 'Payments' : t === 'journey' ? 'Journey lookup' : 'Analytics'}
             </button>
           ))}
         </div>
@@ -282,6 +346,88 @@ export default function RoadplusReconPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── ANALYTICS ── */}
+        {tab === 'analytics' && (
+          <div className="mt-5">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-[12.5px] text-slate-500">
+                No-login behaviour across visitors, sessions &amp; journeys (most recent activity).
+              </p>
+              <button
+                onClick={loadAnalytics}
+                disabled={aLoading}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                {aLoading ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+                Refresh
+              </button>
+            </div>
+
+            {aLoading && !analytics ? (
+              <div className="flex items-center gap-2 py-10 text-slate-400"><Loader2 size={16} className="animate-spin" /> Loading…</div>
+            ) : !analytics || analytics.configured === false ? (
+              <p className="py-10 text-center text-[13px] text-slate-400">Not connected — set the roadplus database env vars.</p>
+            ) : analytics.error ? (
+              <p className="py-10 text-center text-[13px] text-rose-500">{analytics.error}</p>
+            ) : (
+              <div className="space-y-8">
+                {/* stat tiles */}
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                  <Tile label="Visitors" value={analytics.totals!.visitors} />
+                  <Tile label="Sessions" value={analytics.totals!.sessions} />
+                  <Tile label="Searches" value={analytics.totals!.searches} />
+                  <Tile label="Policies issued" value={analytics.totals!.issued} />
+                  <Tile label="Failed steps" value={analytics.failures ?? 0} tone="rose" />
+                  <Tile label="Conversion" value={pct(analytics.rates!.conversion)} />
+                  <Tile label="Repeat visitors" value={pct(analytics.rates!.repeatVisitor)} />
+                  <Tile label="Searches / session" value={analytics.rates!.avgSearchesPerSession.toFixed(1)} />
+                  <Tile label="Sessions / visitor" value={analytics.rates!.avgSessionsPerVisitor.toFixed(1)} />
+                  <Tile label="Searches before buy" value={analytics.rates!.avgSearchesBeforePurchase.toFixed(1)} />
+                </div>
+
+                {/* funnel */}
+                <div>
+                  <h3 className="mb-3 text-[13px] font-semibold text-slate-800">
+                    Conversion funnel <span className="font-normal text-slate-400">— unique journeys reaching each step</span>
+                  </h3>
+                  <div className="space-y-2">
+                    {(() => {
+                      const funnel = analytics.funnel ?? []
+                      const max = Math.max(1, ...funnel.map((f) => f.journeys))
+                      return funnel.map((f, i) => {
+                        const prev = i > 0 ? funnel[i - 1].journeys : f.journeys
+                        const drop = prev > 0 ? 1 - f.journeys / prev : 0
+                        return (
+                          <div key={f.step} className="flex items-center gap-3">
+                            <div className="w-40 shrink-0 text-[12.5px] text-slate-600">{STEP_LABEL[f.step] ?? f.step}</div>
+                            <div className="h-6 flex-1 overflow-hidden rounded bg-slate-100">
+                              <div
+                                className="flex h-full items-center rounded bg-slate-800 px-2 text-[11px] font-semibold text-white"
+                                style={{ width: `${Math.max(4, (f.journeys / max) * 100)}%` }}
+                              >
+                                {f.journeys}
+                              </div>
+                            </div>
+                            <div className="w-16 text-right text-[11px] tabular-nums text-slate-400">
+                              {i > 0 && drop > 0 ? `−${(drop * 100).toFixed(0)}%` : ''}
+                            </div>
+                          </div>
+                        )
+                      })
+                    })()}
+                  </div>
+                </div>
+
+                {/* splits */}
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <Split title="Searches by region" data={analytics.regionSplit ?? {}} />
+                  <Split title="Searches by policy type" data={analytics.typeSplit ?? {}} />
+                </div>
               </div>
             )}
           </div>
