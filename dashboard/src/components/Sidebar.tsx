@@ -10,7 +10,7 @@ import {
   Bot, Table2, UsersRound,
   LogOut, BookOpen, Cpu, FolderOpen,
   Telescope, Megaphone, Settings, FlaskConical,
-  LayoutDashboard, TrendingUp, ScrollText, Network, HeartPulse,
+  LayoutDashboard, TrendingUp, ScrollText, Network, HeartPulse, Car,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -131,6 +131,7 @@ export default function Sidebar() {
           <CollapsedIcon icon={Bot}    href="/engagement" isActive={active('/engagement')} label="Engagement Agent" />
           <CollapsedIcon icon={Network} href="/nexus"      isActive={active('/nexus')}      label="Nexus" />
           <CollapsedIcon icon={HeartPulse} href="/pricing-matrix" isActive={active('/pricing-matrix')} label="Pricing Matrix" />
+          <CollapsedIcon icon={Car} href="/roadplus" isActive={active('/roadplus')} label="RoadPlus" />
           <IconDivider />
           <CollapsedIcon icon={Cpu}          href="/analytics/ai-usage"  isActive={active('/analytics/ai-usage')}  label="AI Usage" />
           <CollapsedIcon icon={FolderOpen}   href="/analytics/rag-index" isActive={active('/analytics/rag-index')} label="RAG Index" />
@@ -228,6 +229,7 @@ export default function Sidebar() {
             <NavItem label="Engagement Agent" href="/engagement" icon={Bot} isActive={active('/engagement')} />
             <NavItem label="Nexus" href="/nexus" icon={Network} isActive={active('/nexus')} />
             <NavItem label="Pricing Matrix" href="/pricing-matrix" icon={HeartPulse} isActive={active('/pricing-matrix')} />
+            <NavItem label="RoadPlus" href="/roadplus" icon={Car} isActive={active('/roadplus')} />
           </div>
         )}
 
