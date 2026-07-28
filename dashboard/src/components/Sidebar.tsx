@@ -49,6 +49,7 @@ export default function Sidebar() {
   const [stages,        setStages]        = useState<StageCounts>({ engaged: 0, qualified: 0, proposal: 0, converted: 0 })
   const [outboundOpen,  setOutboundOpen]  = useState(true)
   const [engageOpen,    setEngageOpen]    = useState(true)
+  const [roadplusOpen,  setRoadplusOpen]  = useState(true)
   const [analyticsOpen, setAnalyticsOpen] = useState(true)
   const [vendorOpen,    setVendorOpen]    = useState(true)
   const [collapsed,     setCollapsed]     = useState(false)
@@ -131,7 +132,8 @@ export default function Sidebar() {
           <CollapsedIcon icon={Bot}    href="/engagement" isActive={active('/engagement')} label="Engagement Agent" />
           <CollapsedIcon icon={Network} href="/nexus"      isActive={active('/nexus')}      label="Nexus" />
           <CollapsedIcon icon={HeartPulse} href="/pricing-matrix" isActive={active('/pricing-matrix')} label="Pricing Matrix" />
-          <CollapsedIcon icon={Car} href="/roadplus" isActive={active('/roadplus')} label="RoadPlus" />
+          <IconDivider />
+          <CollapsedIcon icon={Car} href="/roadplus" isActive={active('/roadplus')} label="RoadPlus Reconciliation" />
           <IconDivider />
           <CollapsedIcon icon={Cpu}          href="/analytics/ai-usage"  isActive={active('/analytics/ai-usage')}  label="AI Usage" />
           <CollapsedIcon icon={FolderOpen}   href="/analytics/rag-index" isActive={active('/analytics/rag-index')} label="RAG Index" />
@@ -229,7 +231,15 @@ export default function Sidebar() {
             <NavItem label="Engagement Agent" href="/engagement" icon={Bot} isActive={active('/engagement')} />
             <NavItem label="Nexus" href="/nexus" icon={Network} isActive={active('/nexus')} />
             <NavItem label="Pricing Matrix" href="/pricing-matrix" icon={HeartPulse} isActive={active('/pricing-matrix')} />
-            <NavItem label="RoadPlus" href="/roadplus" icon={Car} isActive={active('/roadplus')} />
+          </div>
+        )}
+
+        <SectionDivider />
+
+        <SectionHeader label="RoadPlus" open={roadplusOpen} onToggle={() => setRoadplusOpen(o => !o)} />
+        {roadplusOpen && (
+          <div className="space-y-px">
+            <NavItem label="Reconciliation" href="/roadplus" icon={Car} isActive={active('/roadplus')} />
           </div>
         )}
 
