@@ -8,7 +8,9 @@ export type ContactStatus =
 export type CampaignStatus =
   | 'draft' | 'review' | 'active' | 'paused' | 'completed' | 'archived'
 
-export type AppStatus = ContactStatus | CampaignStatus
+export type DebitNoteStatus = 'unpaid' | 'partially_paid' | 'paid'
+
+export type AppStatus = ContactStatus | CampaignStatus | DebitNoteStatus
 
 type StatusConfig = { label: string; bg: string; color: string }
 
@@ -31,6 +33,10 @@ export const STATUS_MAP: Record<AppStatus, StatusConfig> = {
   paused:    { label: 'Paused',    bg: 'rgba(90,34,184,0.09)',  color: '#5A22B8' },
   completed: { label: 'Completed', bg: 'rgba(16,24,40,0.07)',   color: '#445868' },
   archived:  { label: 'Archived',  bg: 'rgba(16,24,40,0.06)',   color: '#5C6878' },
+  // Debit notes
+  unpaid:         { label: 'Unpaid',    bg: 'rgba(192,51,71,0.09)', color: '#C03347' },
+  partially_paid: { label: 'Partial',   bg: 'rgba(138,66,0,0.09)',  color: '#8A4200' },
+  paid:           { label: 'Paid',      bg: 'rgba(9,104,66,0.09)',  color: '#096842' },
 }
 
 interface StatusBadgeProps {

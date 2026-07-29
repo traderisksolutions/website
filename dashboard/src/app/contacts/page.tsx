@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog'
+import { CompaniesTab } from '@/components/contacts/CompaniesTab'
 
 interface Contact {
   id: string; first_name: string | null; last_name: string | null
@@ -167,6 +168,7 @@ export default function ContactsPage() {
   const [copied,    setCopied]    = useState<string | null>(null)
   const [addOpen,   setAddOpen]   = useState(false)
   const [importOpen, setImportOpen] = useState(false)
+  const [view,      setView]      = useState<'contacts' | 'companies'>('contacts')
 
   const load = useCallback(() => {
     Promise.all([
@@ -212,6 +214,12 @@ export default function ContactsPage() {
   const ccCount      = contacts.filter(c => c.isCC).length
   const primaryCount = contacts.length - ccCount
 
+  // Insurance clients (companies/policies/debit notes) are additive to this page — a separate
+  // tab that leaves the sales-lead contact list above untouched.
+  if (view === 'companies') {
+    return <CompaniesTab onSwitchToContacts={() => setView('contacts')} />
+  }
+
   return (
     <AppSplitLayout>
 
@@ -225,6 +233,10 @@ export default function ContactsPage() {
             : `${primaryCount} contact${primaryCount !== 1 ? 's' : ''}${ccCount > 0 ? ` · ${ccCount} CC` : ''}`}
           actions={
             <div className="flex items-center gap-2">
+              <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted mr-1">
+                <button onClick={() => setView('contacts')} className="text-[11.5px] font-semibold px-2.5 py-1 rounded bg-card shadow-sm text-foreground">Contacts</button>
+                <button onClick={() => setView('companies')} className="text-[11.5px] font-medium px-2.5 py-1 rounded text-muted-foreground hover:text-foreground">Companies</button>
+              </div>
               <Button size="sm" variant="outline" onClick={() => setImportOpen(true)} className="gap-1.5">
                 <UploadCloud size={14} /> Import CSV
               </Button>

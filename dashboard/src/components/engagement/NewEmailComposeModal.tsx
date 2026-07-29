@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { X, Loader2, Send } from 'lucide-react'
+import { X, Loader2, Send, Paperclip } from 'lucide-react'
 import { plainToHtml, htmlToPlain } from '@/components/RichEditor'
 import { useAutocomplete, SuggestionList } from '@/components/engagement/RecipientAutocomplete'
 
@@ -14,7 +14,8 @@ import { useAutocomplete, SuggestionList } from '@/components/engagement/Recipie
 type Sender    = { email: string; label: string; type: string }
 type SigOption = { id: string; name: string; title: string | null; phone: string | null; email: string | null }
 
-export type NewEmailDraft = { toEmail: string; toName?: string; subject: string; body: string }
+export type EmailAttachmentRef = { filename: string; mime_type?: string; storage_url: string }
+export type NewEmailDraft = { toEmail: string; toName?: string; subject: string; body: string; attachment?: EmailAttachmentRef }
 
 export function NewEmailComposeModal({ initial, onClose, onSent }: {
   initial: NewEmailDraft
@@ -76,6 +77,7 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
           draftId: draftData.draftId, htmlBody: plainToHtml(plain), originalAiBody: plain,
           toEmail: to.trim(), cc: ccList, customSubject: subject, fromEmail: fromEmail || null,
           signatureId: sigId || null,   // server appends the signature
+          attachments: initial.attachment ? [initial.attachment] : undefined,
         }),
       })
       const sendData = await sendRes.json()
@@ -149,6 +151,12 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
 
           <textarea value={body} onChange={e => setBody(e.target.value)} rows={13}
             className="w-full text-[13px] leading-relaxed bg-background border border-[--border-subtle] rounded-md px-3 py-2.5 resize-y focus:outline-none focus:ring-2 focus:ring-primary/30 mt-1" />
+
+          {initial.attachment && (
+            <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground bg-muted/40 rounded-md px-2.5 py-1.5 w-fit">
+              <Paperclip size={12} /> {initial.attachment.filename}
+            </div>
+          )}
 
           {error && <p className="text-[11.5px] text-rose-600">{error}</p>}
         </div>

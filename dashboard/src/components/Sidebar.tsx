@@ -11,6 +11,7 @@ import {
   LogOut, BookOpen, Cpu, FolderOpen,
   Telescope, Megaphone, Settings, FlaskConical,
   LayoutDashboard, TrendingUp, ScrollText, Network, HeartPulse, Car,
+  Receipt, CalendarDays,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -132,6 +133,8 @@ export default function Sidebar() {
           <CollapsedIcon icon={Bot}    href="/engagement" isActive={active('/engagement')} label="Engagement Agent" />
           <CollapsedIcon icon={Network} href="/nexus"      isActive={active('/nexus')}      label="Nexus" />
           <CollapsedIcon icon={HeartPulse} href="/pricing-matrix" isActive={active('/pricing-matrix')} label="Pricing Matrix" />
+          <CollapsedIcon icon={Receipt} href="/debit-notes" isActive={active('/debit-notes')} label="Debit Notes" />
+          <CollapsedIcon icon={CalendarDays} href="/calendar" isActive={active('/calendar')} label="Calendar" />
           <IconDivider />
           <CollapsedIcon icon={Car} href="/roadplus" isActive={active('/roadplus')} label="RoadPlus Reconciliation" />
           <IconDivider />
@@ -231,6 +234,8 @@ export default function Sidebar() {
             <NavItem label="Engagement Agent" href="/engagement" icon={Bot} isActive={active('/engagement')} />
             <NavItem label="Nexus" href="/nexus" icon={Network} isActive={active('/nexus')} />
             <NavItem label="Pricing Matrix" href="/pricing-matrix" icon={HeartPulse} isActive={active('/pricing-matrix')} />
+            <NavItem label="Debit Notes" href="/debit-notes" icon={Receipt} isActive={active('/debit-notes')} />
+            <NavItem label="Calendar" href="/calendar" icon={CalendarDays} isActive={active('/calendar')} />
           </div>
         )}
 
