@@ -3,19 +3,20 @@
  * POST /api/pricing-matrix/quote            → compute a quote across selected calculators + save
  *   body: { company_name?, effective_date?, census[], calculator_ids[], selections{} }
  *
- * For each selected calculator we RUN its real Excel formula graph (pm_run.py) with the census ×
- * that insurer's plan selection, then assemble a side-by-side comparison. No numbers are derived
- * here — every premium/total comes from the insurer's own workbook.
+ * For each selected calculator we compute the premium ourselves (pm-calc.ts) from its stored,
+ * human-approved rate table + rules — no AI call and no external engine at quote time.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
-import { SB_URL, sbH, signRead }     from '@/lib/pm-storage'
-import { buildMembers, toInsurerResult, alignLines } from '@/lib/pm-quote'
+import { SB_URL, sbH }               from '@/lib/pm-storage'
+import { coverageCodes } from '@/lib/pm-rates'
+import type { RateTable } from '@/lib/pm-rates'
+import { computeInsurerQuote } from '@/lib/pm-calc'
+import { alignLines } from '@/lib/pm-quote'
 import type { CensusMember, Selection, InsurerResult, QuoteResult } from '@/lib/pm-quote'
-import type { CellMapProfile }       from '@/lib/pm-profile'
 
-export const maxDuration = 300
+export const maxDuration = 60
 
 async function requireUser() {
   const supabase = await createClient()
@@ -48,29 +49,26 @@ export async function POST(req: NextRequest) {
     if (census.length === 0) return NextResponse.json({ error: 'census is empty' }, { status: 400 })
     if (ids.length === 0) return NextResponse.json({ error: 'select at least one insurer' }, { status: 400 })
 
-    // Load the selected approved calculators.
+    // Load the selected approved calculators + their rate tables.
     const inList = ids.map(i => `"${i}"`).join(',')
-    const calcs = await fetch(`${SB_URL}/rest/v1/pm_calculators?id=in.(${inList})&status=eq.approved&select=id,insurer_name,label,effective_date,xlsx_path,profile`, { headers: sbH(), cache: 'no-store' })
-      .then(r => (r.ok ? r.json() : [])) as { id: string; insurer_name: string | null; label: string | null; effective_date: string | null; xlsx_path: string; profile: CellMapProfile }[]
+    const calcs = await fetch(`${SB_URL}/rest/v1/pm_calculators?id=in.(${inList})&status=eq.approved&select=id,insurer_name,label,effective_date`, { headers: sbH(), cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : [])) as { id: string; insurer_name: string | null; label: string | null; effective_date: string | null }[]
+    const rts = await fetch(`${SB_URL}/rest/v1/pm_rate_tables?calculator_id=in.(${inList})&select=calculator_id,age_basis,coverages,rules`, { headers: sbH(), cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : [])) as (RateTable & { calculator_id: string })[]
+    const rtByCalc = new Map(rts.map(r => [r.calculator_id, r]))
 
-    const origin = new URL(req.url).origin
     const globals = { effective_date: b.effective_date || null }
 
-    // Run each calculator (in parallel) through the real engine.
-    const insurers: InsurerResult[] = await Promise.all(calcs.map(async (c): Promise<InsurerResult> => {
+    const insurers: InsurerResult[] = calcs.map((c): InsurerResult => {
       const name = c.insurer_name || c.label || 'Untitled'
-      const base: InsurerResult = { calculator_id: c.id, insurer_name: name, effective_date: c.effective_date, coverage_lines: (c.profile?.coverage_lines ?? []).map(l => ({ code: l.code, label: l.label })), by_line: {}, grand: null, member_count: 0, avg_per_life: null, members: [] }
+      const rt = rtByCalc.get(c.id)
+      if (!rt) return { calculator_id: c.id, insurer_name: name, effective_date: c.effective_date, coverage_lines: [], by_line: {}, grand: null, member_count: 0, avg_per_life: null, members: [], error: 'No approved rate table for this insurer' }
       try {
-        const members = buildMembers(census, (b.selections?.[c.id] ?? {}) as Selection, c.profile?.coverage_lines ?? [])
-        const xlsx_url = await signRead(c.xlsx_path)
-        const runRes = await fetch(`${origin}/api/pm_run`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ xlsx_url, profile: c.profile, members, globals }) })
-        const run = await runRes.json().catch(() => ({ error: 'pm_run non-JSON' }))
-        if (!runRes.ok || run.error) return { ...base, error: run.error ?? `pm_run ${runRes.status}` }
-        return toInsurerResult(c.id, name, c.effective_date, c.profile, run)
+        return computeInsurerQuote(c.id, name, c.effective_date, rt, census, (b.selections?.[c.id] ?? {}) as Selection, globals)
       } catch (e) {
-        return { ...base, error: String(e) }
+        return { calculator_id: c.id, insurer_name: name, effective_date: c.effective_date, coverage_lines: coverageCodes(rt), by_line: {}, grand: null, member_count: 0, avg_per_life: null, members: [], error: String(e) }
       }
-    }))
+    })
 
     const results: QuoteResult = { insurers, lines_union: alignLines(insurers), census_size: census.length }
 

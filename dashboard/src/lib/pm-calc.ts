@@ -1,0 +1,109 @@
+/**
+ * Pricing Matrix v2 — the quote engine.
+ *
+ * Pure TypeScript, no network call, no AI, no Python. Prices a census against one insurer's
+ * approved RateTable: looks up each life's rate by (coverage × selected plan × age band ×
+ * member type), applies the insurer's rules (group-size loading, quote-basis exclusions, GST),
+ * and assembles the same InsurerResult shape the rest of the app (export/reply/recommend/
+ * comparison UI) already consumes.
+ */
+import type { RateTable, Coverage } from '@/lib/pm-rates'
+import { bandContains, coverageCodes } from '@/lib/pm-rates'
+import { buildMembers, toInsurerResult } from '@/lib/pm-quote'
+import type { CensusMember, Selection, InsurerResult, RunMember, EngineMember } from '@/lib/pm-quote'
+
+export type CalcGlobals = { effective_date?: string | null; quote_basis?: 'new_business' | 'renewal' }
+
+const round2 = (v: number) => Math.round(v * 100) / 100
+
+const canonMember = (s?: string | null): 'EE' | 'DEP' | null => {
+  const t = (s ?? '').toLowerCase()
+  if (t.startsWith('emp')) return 'EE'
+  if (t.startsWith('dep') || t.startsWith('spou') || t.startsWith('chil')) return 'DEP'
+  return null
+}
+
+/** Standard "age today" calc (Age Last Birthday) as of a given date. */
+function ageLastBirthday(dob: Date, asOf: Date): number {
+  let age = asOf.getFullYear() - dob.getFullYear()
+  const hadBirthday = asOf.getMonth() > dob.getMonth() || (asOf.getMonth() === dob.getMonth() && asOf.getDate() >= dob.getDate())
+  if (!hadBirthday) age--
+  return age
+}
+
+export function ageForBasis(member: Pick<EngineMember, 'date_of_birth' | 'age'>, basis: RateTable['age_basis'], asOf: Date): number | null {
+  if (member.date_of_birth) {
+    const dob = new Date(member.date_of_birth)
+    if (!isNaN(dob.getTime())) {
+      const alb = ageLastBirthday(dob, asOf)
+      return basis === 'ANB' ? alb + 1 : alb
+    }
+  }
+  return member.age ?? null
+}
+
+/** Pick the Coverage entry (member-type variant) applicable to this life, for a given code.
+ *  Insurers that price Employee/Dependant differently split one code into two Coverage entries
+ *  (see pm-rates.ts); an unscoped entry (no member_type) applies to everyone. */
+export function coverageFor(rt: RateTable, code: string, category: string | undefined): Coverage | undefined {
+  const variants = rt.coverages.filter(c => c.code === code)
+  if (variants.length <= 1) return variants[0]
+  const wanted = canonMember(category)
+  return variants.find(c => canonMember(c.member_type) === wanted) ?? variants.find(c => !c.member_type) ?? variants[0]
+}
+
+function loadingPctFor(rt: RateTable, headcount: number): number {
+  for (const b of rt.rules.group_size_loading ?? []) {
+    if (headcount >= b.min && (b.max === null || headcount <= b.max)) return b.loading_pct
+  }
+  return 0
+}
+
+/** Price one member's selection for one coverage code, or null if not ratable (no selection,
+ *  no age, no matching band/plan cell, or excluded by the quote basis). */
+function priceLine(rt: RateTable, code: string, m: EngineMember, age: number | null, basis: 'new_business' | 'renewal'): number | null {
+  const planCode = m.coverage[code]?.plan
+  if (!planCode || age === null) return null
+  const cov = coverageFor(rt, code, m.category)
+  if (!cov) return null
+  const row = cov.rates.find(r => bandContains(r.band, age))
+  if (!row) return null
+  const excluded = basis === 'renewal' ? rt.rules.quote_basis_exclusions?.renewal : rt.rules.quote_basis_exclusions?.new_business
+  if (excluded?.includes(row.band)) return null
+  const v = row.by_plan?.[planCode]
+  if (typeof v !== 'number') return null
+
+  const gst = rt.rules.gst
+  return gst?.inclusive && gst.rate > 0 ? round2(v / (1 + gst.rate)) : round2(v)
+}
+
+/** Compute one insurer's InsurerResult for a census — the sole source of every quoted number. */
+export function computeInsurerQuote(
+  calculator_id: string, insurer_name: string, effective_date: string | null,
+  rt: RateTable, census: CensusMember[], selection: Selection, globals: CalcGlobals,
+): InsurerResult {
+  const codes = Array.from(new Set(rt.coverages.map(c => c.code)))
+  const members = buildMembers(census, selection, codes)
+  const asOf = globals.effective_date ? new Date(globals.effective_date) : new Date()
+  const basis = globals.quote_basis ?? 'new_business'
+  const loadingPct = loadingPctFor(rt, members.length)
+  const excludes = new Set(rt.rules.loading_excludes ?? [])
+
+  const runMembers: RunMember[] = members.map((m, i) => {
+    const age = ageForBasis(m, rt.age_basis, asOf)
+    const lines: Record<string, number | null> = {}
+    for (const code of codes) {
+      const base = priceLine(rt, code, m, age, basis)
+      if (base == null) continue
+      lines[code] = loadingPct && !excludes.has(code) ? round2(base * (1 + loadingPct / 100)) : base
+    }
+    const subtotal = round2(Object.values(lines).reduce<number>((s, v) => s + (v ?? 0), 0))
+    return { row: i + 1, name: m.name, lines, subtotal }
+  })
+
+  const by_line: Record<string, number | null> = {}
+  for (const code of codes) by_line[code] = round2(runMembers.reduce((s, m) => s + (m.lines[code] ?? 0), 0))
+  const grand = round2(runMembers.reduce((s, m) => s + m.subtotal, 0))
+
+  return toInsurerResult(calculator_id, insurer_name, effective_date, coverageCodes(rt), { members: runMembers, totals: { by_line, grand } })
+}

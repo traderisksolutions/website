@@ -1,12 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { categoryFor, buildMembers, alignLines, avgPerLife, toInsurerResult } from '@/lib/pm-quote'
 import type { InsurerResult } from '@/lib/pm-quote'
-import type { CellMapProfile, CoverageLine } from '@/lib/pm-profile'
 
-const LINES: CoverageLine[] = [
-  { code: 'HS', label: 'Hospital & Surgical', inputs: { plan: 'J', hospital: 'K', beds: 'L', coinsurance: 'M' }, output: 'N' },
-  { code: 'OPGP', label: 'Outpatient GP', inputs: { plan: 'O' }, output: 'Q' },
-]
+const CODES = ['HS', 'OPGP']
+const LINES = [{ code: 'HS', label: 'Hospital & Surgical' }, { code: 'OPGP', label: 'Outpatient GP' }]
 
 describe('categoryFor', () => {
   it('derives Employee from Self and Dependent otherwise', () => {
@@ -27,14 +24,14 @@ describe('buildMembers', () => {
   const selection = { HS: { plan: 'Plan 1', hospital: 'Private Hospital', beds: '1-bedded', coinsurance: '0%' }, OPGP: { plan: 'Plan 1' } }
 
   it('applies the selection to every named life and derives category', () => {
-    const m = buildMembers(census, selection, LINES)
+    const m = buildMembers(census, selection, CODES)
     expect(m).toHaveLength(2)
     expect(m[0]).toMatchObject({ name: 'Jane', category: 'Employee', coverage: { HS: { plan: 'Plan 1' }, OPGP: { plan: 'Plan 1' } } })
     expect(m[1]).toMatchObject({ name: 'Baby', category: 'Dependent', age: 3 })
   })
 
   it('omits coverage lines with no selection', () => {
-    const m = buildMembers([{ name: 'X' }], { OPGP: { plan: 'Plan 2' } }, LINES)
+    const m = buildMembers([{ name: 'X' }], { OPGP: { plan: 'Plan 2' } }, CODES)
     expect(m[0].coverage).toEqual({ OPGP: { plan: 'Plan 2' } })
     expect(m[0].coverage.HS).toBeUndefined()
   })
@@ -50,11 +47,10 @@ describe('avgPerLife', () => {
 })
 
 describe('toInsurerResult + alignLines', () => {
-  const profile = { coverage_lines: LINES } as CellMapProfile
   const run = { members: [{ row: 16, name: 'Jane', lines: { HS: 1706.88, OPGP: 413 }, subtotal: 2119.88 }], totals: { by_line: { HS: 1706.88, OPGP: 413 }, grand: 2119.88 } }
 
   it('shapes one insurer result with avg/life', () => {
-    const r = toInsurerResult('c1', 'Steadfast', '2026-05-20', profile, run)
+    const r = toInsurerResult('c1', 'Steadfast', '2026-05-20', LINES, run)
     expect(r.grand).toBe(2119.88)
     expect(r.member_count).toBe(1)
     expect(r.avg_per_life).toBe(2119.88)
@@ -62,7 +58,7 @@ describe('toInsurerResult + alignLines', () => {
   })
 
   it('aligns lines across insurers by normalised label, mapping each insurer code', () => {
-    const a = toInsurerResult('c1', 'A', null, profile, run)
+    const a = toInsurerResult('c1', 'A', null, LINES, run)
     const b: InsurerResult = {
       calculator_id: 'c2', insurer_name: 'B', effective_date: null,
       coverage_lines: [{ code: 'HOSP', label: 'hospital & surgical' }, { code: 'DENT', label: 'Dental' }],

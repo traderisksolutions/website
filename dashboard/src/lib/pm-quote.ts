@@ -1,12 +1,11 @@
 /**
- * Pricing Matrix — Phase 2 quote assembly (pure helpers).
+ * Pricing Matrix — quote assembly (pure helpers).
  *
  * A quote runs one census through several approved calculators. For each calculator we build the
- * `members` payload pm_run.py expects (census × the insurer's plan selection), then assemble the
- * per-insurer results into a side-by-side comparison. NO pricing happens here — pm_run (the real
- * Excel formula graph) produces every number; this module only shapes inputs and aligns outputs.
+ * per-life `members` pm-calc.ts prices (census × the insurer's plan selection), then assemble the
+ * per-insurer results into a side-by-side comparison. Pricing itself happens in pm-calc.ts; this
+ * module only shapes inputs and aligns outputs.
  */
-import type { CellMapProfile, CoverageLine } from '@/lib/pm-profile'
 
 export type CensusMember = {
   name?: string
@@ -19,7 +18,7 @@ export type CensusMember = {
 /** Per-insurer plan selection: coverage_code -> field -> value, applied to every census member. */
 export type Selection = Record<string, Record<string, string>>
 
-/** A member row shaped for pm_run.py. */
+/** A per-life member row for pm-calc.ts to price. */
 export type EngineMember = {
   name: string
   category?: string
@@ -36,15 +35,15 @@ export function categoryFor(m: CensusMember): string {
   return rel === 'self' ? 'Employee' : 'Dependent'
 }
 
-/** Build the pm_run members[] for one calculator: census × that insurer's selection. */
-export function buildMembers(census: CensusMember[], selection: Selection, lines: CoverageLine[]): EngineMember[] {
+/** Build the per-life member rows for one calculator: census × that insurer's selection. */
+export function buildMembers(census: CensusMember[], selection: Selection, codes: string[]): EngineMember[] {
   return census
     .filter(m => (m.name ?? '').trim() || m.date_of_birth || m.age != null)
     .map(m => {
       const coverage: Record<string, Record<string, string>> = {}
-      for (const line of lines) {
-        const sel = selection?.[line.code]
-        if (sel && Object.keys(sel).length) coverage[line.code] = { ...sel }
+      for (const code of codes) {
+        const sel = selection?.[code]
+        if (sel && Object.keys(sel).length) coverage[code] = { ...sel }
       }
       return {
         name: (m.name ?? '').trim() || 'Unnamed',
@@ -105,15 +104,16 @@ export function avgPerLife(grand: number | null, count: number): number | null {
   return Math.round((grand / count) * 100) / 100
 }
 
-/** Assemble one insurer's pm_run output into an InsurerResult. */
+/** Assemble one insurer's computed run into an InsurerResult. */
 export function toInsurerResult(
   calculator_id: string, insurer_name: string, effective_date: string | null,
-  profile: CellMapProfile, run: { members: RunMember[]; totals: { by_line: Record<string, number | null>; grand: number | null } },
+  coverage_lines: { code: string; label: string }[],
+  run: { members: RunMember[]; totals: { by_line: Record<string, number | null>; grand: number | null } },
 ): InsurerResult {
   const count = run.members.length
   return {
     calculator_id, insurer_name, effective_date,
-    coverage_lines: (profile.coverage_lines ?? []).map(l => ({ code: l.code, label: l.label })),
+    coverage_lines,
     by_line: run.totals?.by_line ?? {},
     grand: run.totals?.grand ?? null,
     member_count: count,

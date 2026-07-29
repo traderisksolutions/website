@@ -47,9 +47,10 @@ export type AiFeature =
   | 'chat_consultant'
   | 'rfq_recommend'
   | 'rfq_quote_decision'
-  | 'pm_map_propose'
   | 'pm_recommend'
-  | 'pm_pricing'
+  | 'pm_rate_extract'
+  | 'pm_benefit_extract'
+  | 'debit_note_extract'
 
 export interface GeminiUsageMeta {
   promptTokenCount?:     number

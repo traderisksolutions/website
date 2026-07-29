@@ -1,12 +1,15 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, Wand2, Save, CheckCircle2, Play, Plus, Trash2, FileSpreadsheet, Lightbulb, Eye, Table2, ArrowRight, Check, ListChecks, Pencil } from 'lucide-react'
-import type { CellMapProfile, CoverageLine, ReviewItem, ReviewOption } from '@/lib/pm-profile'
-import { profileIsRunnable, deriveReviewItems, unresolvedReviewCount, applyProfilePath, resolveReviewItem } from '@/lib/pm-profile'
-import type { Pricing } from '@/lib/pm-pricing'
+import { ArrowLeft, Loader2, Wand2, Save, CheckCircle2, Plus, Trash2, FileSpreadsheet, AlertTriangle, Table2, ArrowRight, Pencil, ListChecks } from 'lucide-react'
+import type { RateTable, Coverage, RatePlan } from '@/lib/pm-rates'
+import { runnableIssues, rateTableIsRunnable, EMPTY_RATE_TABLE } from '@/lib/pm-rates'
+import type { RuleConflict } from '@/lib/pm-rates-extract'
+import type { BenefitTerm, TermConflict } from '@/lib/pm-benefits-extract'
+import { computeInsurerQuote } from '@/lib/pm-calc'
+import type { InsurerResult } from '@/lib/pm-quote'
 
 /** Card surface — white cards with a subtle border + shadow so they read on the white page. */
 const card = 'bg-white border border-slate-100 rounded-xl shadow-sm'
@@ -16,26 +19,17 @@ type Dump = {
   previews: Record<string, { top_rows: { row: number; cells: Record<string, string> }[] }>
   values?: Record<string, Record<string, string>>
 }
+type Accuracy = { extractors?: string[]; total_rates?: number; agreed?: number; conflicts?: number; adjudicated?: number; single_source?: number; rule_conflicts?: RuleConflict[] }
 type Calc = {
   id: string; insurer_name: string | null; label: string | null; status: string
   xlsx_filename: string | null; brochure_filename: string | null; effective_date: string | null; version: number
-  profile: CellMapProfile | null; workbook_summary: Dump | null; pricing: Pricing | null
-  verification: { at: string; members: RunMember[]; totals: RunTotals; warnings: string[] } | null
+  workbook_summary: Dump | null
+  rate_table: (RateTable & { accuracy?: Accuracy }) | null
+  benefit_terms: { terms: BenefitTerm[]; accuracy?: { total: number; conflicts: TermConflict[] } } | null
 }
-type RunMember = { row: number; name: string | null; lines: Record<string, number | null>; subtotal: number }
-type RunTotals = { by_line: Record<string, number | null>; grand: number | null }
-
-const MEMBER_FIELDS: (keyof NonNullable<CellMapProfile['member_inputs']>)[] =
-  ['name', 'category', 'date_of_birth', 'policy_effective_date', 'policy_expiry_date', 'relationship', 'occupation_class']
 
 async function safeJson<T>(r: Response): Promise<T & { error?: string }> {
   try { return await r.json() } catch { return { error: `HTTP ${r.status}` } as T & { error?: string } }
-}
-
-/** A real (mapped or manually-started) profile always has a coverage_lines array; the DB default
- *  is an empty {} which must be treated as "not mapped yet". */
-function hasRealProfile(p: CellMapProfile | null | undefined): p is CellMapProfile {
-  return !!p && Array.isArray((p as CellMapProfile).coverage_lines)
 }
 
 export default function CalculatorReviewPage() {
@@ -43,9 +37,12 @@ export default function CalculatorReviewPage() {
   const search = useSearchParams()
   const router = useRouter()
   const [calc, setCalc] = useState<Calc | null>(null)
-  const [profile, setProfile] = useState<CellMapProfile | null>(null)
+  const [rt, setRt] = useState<RateTable | null>(null)
+  const [terms, setTerms] = useState<BenefitTerm[]>([])
+  const [ruleConflicts, setRuleConflicts] = useState<RuleConflict[]>([])
+  const [termConflicts, setTermConflicts] = useState<TermConflict[]>([])
   const [loading, setLoading] = useState(true)
-  const [mapping, setMapping] = useState(false)
+  const [extracting, setExtracting] = useState(false)
   const [progress, setProgress] = useState<{ label: string; step: number; total: number } | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -60,46 +57,50 @@ export default function CalculatorReviewPage() {
   const load = useCallback(async () => {
     const res = await fetch(`/api/pricing-matrix/calculators/${id}`, { cache: 'no-store' })
     const row = await safeJson<Calc>(res)
-    // The DB defaults profile to '{}'::jsonb; treat an un-mapped (no coverage_lines) profile as none.
-    if (res.ok) { setCalc(row); setProfile(hasRealProfile(row.profile) ? row.profile : null) }
+    if (res.ok) {
+      setCalc(row)
+      setRt(row.rate_table ?? null)
+      setTerms(row.benefit_terms?.terms ?? [])
+      setRuleConflicts(row.rate_table?.accuracy?.rule_conflicts ?? [])
+      setTermConflicts(row.benefit_terms?.accuracy?.conflicts ?? [])
+    }
     setLoading(false)
     return row
   }, [id])
 
-  const runMap = useCallback(async () => {
-    setMapping(true); setError(null); setProgress({ label: 'Starting…', step: 0, total: 6 })
-    // Poll the light status endpoint so the progress bar reflects the real ensemble steps.
+  const runExtract = useCallback(async () => {
+    setExtracting(true); setError(null); setProgress({ label: 'Starting…', step: 0, total: 5 })
     const poll = setInterval(async () => {
       const s = await fetch(`/api/pricing-matrix/calculators/${id}/map-status`, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null)
       if (s?.map_progress) setProgress(s.map_progress)
     }, 1800)
     try {
-      const res = await fetch(`/api/pricing-matrix/calculators/${id}/map`, { method: 'POST' })
-      const d = await safeJson<{ profile?: CellMapProfile }>(res)
-      if (!res.ok) setError(d.error ?? 'Mapping failed')
+      const res = await fetch(`/api/pricing-matrix/calculators/${id}/extract`, { method: 'POST' })
+      const d = await safeJson<{ error?: string }>(res)
+      if (!res.ok) setError(d.error ?? 'Extraction failed')
       await load()
-    } finally { clearInterval(poll); setMapping(false); setProgress(null) }
+    } finally { clearInterval(poll); setExtracting(false); setProgress(null) }
   }, [id, load])
 
   useEffect(() => { load() }, [load])
-  // Auto-map right after upload (a fresh calculator has an empty {} profile, not a real one).
+  // Auto-extract right after upload.
   useEffect(() => {
-    if (calc && calc.status === 'draft' && !hasRealProfile(calc.profile) && search.get('automap') === '1' && !mapping) {
-      runMap()
+    if (calc && calc.status === 'draft' && !calc.rate_table && search.get('automap') === '1' && !extracting) {
+      runExtract()
       router.replace(`/pricing-matrix/${id}`)
     }
-  }, [calc, search, mapping, runMap, router, id])
+  }, [calc, search, extracting, runExtract, router, id])
 
-  function startBlank() {
-    const sheets = calc?.workbook_summary?.sheets ?? []
-    const guess = sheets.find(s => s.visible && !/table|diff/i.test(s.name))?.name ?? sheets.find(s => s.visible)?.name ?? ''
-    setProfile({ sheet: guess, rows: { start: 0, end: 0 }, member_inputs: {}, coverage_lines: [{ code: '', label: '', inputs: { plan: '' }, output: '' }], totals: {}, date_serial: true })
-  }
-
-  async function saveProfile() {
-    if (!profile) return
+  async function save() {
+    if (!rt) return
     setSaving(true); setError(null)
-    const res = await fetch(`/api/pricing-matrix/calculators/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profile }) })
+    const res = await fetch(`/api/pricing-matrix/calculators/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        rate_table: { ...rt, accuracy: { ...rt.accuracy, rule_conflicts: ruleConflicts } },
+        benefit_terms: { terms, accuracy: { total: terms.length, conflicts: termConflicts } },
+      }),
+    })
     if (!res.ok) setError((await safeJson<{ error?: string }>(res)).error ?? 'Save failed')
     await load(); setSaving(false)
   }
@@ -111,24 +112,33 @@ export default function CalculatorReviewPage() {
     await load(); setSaving(false)
   }
 
+  function resolveRule(rc: RuleConflict, value: unknown) {
+    if (!rt) return
+    setRt({ ...rt, rules: { ...rt.rules, [rc.field]: value } })
+    setRuleConflicts(cs => cs.filter(c => c !== rc))
+  }
+  function dismissRule(rc: RuleConflict) { setRuleConflicts(cs => cs.filter(c => c !== rc)) }
+
+  function resolveTerm(tc: TermConflict, value: string | undefined) {
+    setTerms(ts => {
+      const idx = ts.findIndex(t => termKeyOf(t) === tc.key)
+      if (value === undefined) return idx >= 0 ? ts.filter((_, i) => i !== idx) : ts // "remove"
+      if (idx >= 0) { const copy = [...ts]; copy[idx] = { ...copy[idx], value }; return copy }
+      return ts
+    })
+    setTermConflicts(cs => cs.filter(c => c !== tc))
+  }
+
   if (loading) return <div className="flex items-center gap-2 text-[13px] text-muted-foreground py-24 justify-center"><Loader2 size={15} className="animate-spin" /> Loading…</div>
   if (!calc) return <div className="p-8 text-sm text-rose-600">Not found.</div>
 
-  const runnable = profileIsRunnable(profile)
+  const issues = runnableIssues(rt)
+  const runnable = rateTableIsRunnable(rt)
   const approved = calc.status === 'approved'
-  const openItems = unresolvedReviewCount(profile)
-
-  // Column letter → header label for the driving sheet (for the resolve wizard's column picker).
-  const columnLabels: Record<string, string> = {}
-  const dsheet = profile?.sheet
-  for (const r of (dsheet ? calc.workbook_summary?.previews?.[dsheet]?.top_rows ?? [] : [])) {
-    for (const [col, val] of Object.entries(r.cells)) {
-      if (!String(val).startsWith('=') && !columnLabels[col]) columnLabels[col] = String(val)
-    }
-  }
+  const openItems = ruleConflicts.length + termConflicts.length
 
   const statusStyle: Record<string, string> = {
-    draft: 'bg-slate-100 text-slate-600', mapping: 'bg-amber-100 text-amber-700',
+    draft: 'bg-slate-100 text-slate-600', extracting: 'bg-amber-100 text-amber-700',
     in_review: 'bg-indigo-100 text-indigo-700', approved: 'bg-emerald-100 text-emerald-700', archived: 'bg-slate-100 text-slate-400',
   }
 
@@ -167,16 +177,16 @@ export default function CalculatorReviewPage() {
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <button onClick={() => { if (hasRealProfile(calc.profile) && !window.confirm('Re-mapping replaces the current cell-map, your edits, and your resolved answers with a fresh AI proposal. Continue?')) return; runMap() }} disabled={mapping} className="flex items-center gap-1.5 text-[12.5px] px-3 py-1.5 rounded-lg border border-slate-100 text-slate-700 hover:bg-slate-50 disabled:opacity-50">
-            {mapping ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}{hasRealProfile(calc.profile) ? 'Re-map' : 'Auto-map'}
+          <button onClick={() => { if (rt && !window.confirm('Re-extracting replaces the current rate table, rules, and coverage terms with a fresh AI proposal. Continue?')) return; runExtract() }} disabled={extracting} className="flex items-center gap-1.5 text-[12.5px] px-3 py-1.5 rounded-lg border border-slate-100 text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+            {extracting ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}{rt ? 'Re-extract' : 'Extract'}
           </button>
-          {!approved && <button onClick={saveProfile} disabled={saving || !profile} className="flex items-center gap-1.5 text-[12.5px] px-3 py-1.5 rounded-lg border border-slate-100 text-slate-700 hover:bg-slate-50 disabled:opacity-50"><Save size={14} /> Save</button>}
-          {!approved && <button onClick={approve} disabled={saving || !runnable || openItems > 0} title={openItems > 0 ? `Resolve ${openItems} review item${openItems === 1 ? '' : 's'} first` : (!runnable ? 'Finish the cell-map first' : '')} className="flex items-center gap-1.5 text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"><CheckCircle2 size={14} /> Approve{openItems > 0 ? ` · ${openItems} left` : ''}</button>}
+          {!approved && <button onClick={save} disabled={saving || !rt} className="flex items-center gap-1.5 text-[12.5px] px-3 py-1.5 rounded-lg border border-slate-100 text-slate-700 hover:bg-slate-50 disabled:opacity-50"><Save size={14} /> Save</button>}
+          {!approved && <button onClick={approve} disabled={saving || !runnable || openItems > 0} title={openItems > 0 ? `Resolve ${openItems} flagged item${openItems === 1 ? '' : 's'} first` : (!runnable ? issues[0] : '')} className="flex items-center gap-1.5 text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"><CheckCircle2 size={14} /> Approve{openItems > 0 ? ` · ${openItems} left` : ''}</button>}
         </div>
       </div>
 
       {error && <div className="mb-4 text-[12.5px] text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{error}</div>}
-      {mapping && (
+      {extracting && (
         <div className="mb-4 rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3">
           <div className="flex items-center gap-2 text-[12.5px] text-indigo-800 mb-2">
             <Loader2 size={14} className="animate-spin" />
@@ -186,39 +196,40 @@ export default function CalculatorReviewPage() {
           <div className="h-1.5 rounded-full bg-indigo-100 overflow-hidden">
             <div className="h-full rounded-full bg-indigo-500 transition-all duration-500" style={{ width: `${progress ? Math.round((Math.min(progress.step, progress.total) / progress.total) * 100) : 8}%` }} />
           </div>
-          <p className="text-[10.5px] text-indigo-400 mt-1.5">Two models read the rates independently; a judge reconciles any disagreement for dollar accuracy.</p>
+          <p className="text-[10.5px] text-indigo-400 mt-1.5">Two models read the rates, rules and coverage terms independently, cross-checking the xlsx and the brochure.</p>
         </div>
       )}
 
-      {!profile && !mapping && (
+      {!rt && !extracting && (
         <div className="text-center text-slate-500 py-16 border border-dashed border-slate-100 rounded-xl bg-slate-50/50">
           <Wand2 size={24} className="mx-auto mb-2 text-slate-300" />
-          <p className="text-sm">No cell-map yet. Click <b>Auto-map</b> to have the AI propose one from the workbook.</p>
-          <button onClick={startBlank} className="mt-3 text-[12px] text-primary hover:underline">or set up the cell-map manually</button>
+          <p className="text-sm">No rate table yet. Click <b>Extract</b> to have the AI read the workbook and brochure.</p>
+          <button onClick={() => setRt({ ...EMPTY_RATE_TABLE, calculator_id: id })} className="mt-3 text-[12px] text-primary hover:underline">or set one up manually</button>
         </div>
       )}
 
       {approved && (
         <div className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-          <div className="flex items-center gap-2 text-[13px] text-emerald-800"><CheckCircle2 size={16} /> Approved &amp; saved. This insurer is now available to quote.</div>
+          <div className="flex items-center gap-2 text-[13px] text-emerald-800"><CheckCircle2 size={16} /> Approved &amp; saved. This insurer is now available to quote and compare.</div>
           <Link href="/pricing-matrix/quote/new" className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">Add employees &amp; quote <ArrowRight size={14} /></Link>
         </div>
       )}
 
-      {profile && (
+      {rt && (
         <div className="flex flex-col gap-5">
-          {/* 1 — What the AI understood + resolve its questions in place. */}
-          <WorkbookAnalysis profile={profile} setProfile={setProfile} columnLabels={columnLabels} disabled={approved} />
+          {/* 1 — Flagged items + readiness. */}
+          <ReviewPanel issues={issues} ruleConflicts={ruleConflicts} termConflicts={termConflicts} onResolveRule={resolveRule} onDismissRule={dismissRule} onResolveTerm={resolveTerm} disabled={approved} />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
-            {/* 2 — Cell-map + workbook reference. */}
+            {/* 2 — Rate table + rules. */}
             <div className="flex flex-col gap-5">
-              <ProfileEditor profile={profile} setProfile={setProfile} disabled={approved} />
-              <WorkbookSummary dump={calc.workbook_summary} sheet={profile.sheet} />
+              <RateTableEditor rt={rt} setRt={setRt} disabled={approved} />
+              <BenefitTermsEditor terms={terms} setTerms={setTerms} disabled={approved} />
+              <WorkbookSummary dump={calc.workbook_summary} />
             </div>
-            {/* 3 — Pricing & maths (transparent rate tables + worked example). */}
+            {/* 3 — Worked example, computed locally by pm-calc.ts. */}
             <div className="flex flex-col gap-5">
-              <PricingPanel id={id} pricing={calc.pricing} profile={profile} runnable={runnable} defaultEff={calc.effective_date} onRefreshed={load} />
+              <WorkedExample rt={rt} defaultEff={calc.effective_date} />
             </div>
           </div>
         </div>
@@ -227,139 +238,248 @@ export default function CalculatorReviewPage() {
   )
 }
 
-// ── Step 1 — what the AI found + resolve its questions in place ────────────────────
-function WorkbookAnalysis({ profile, setProfile, columnLabels, disabled }: {
-  profile: CellMapProfile; setProfile: (p: CellMapProfile) => void; columnLabels: Record<string, string>; disabled: boolean
+const termKeyOf = (t: Pick<BenefitTerm, 'plan_code' | 'category' | 'label'>) => {
+  const n = (s: unknown) => String(s ?? '').toLowerCase().replace(/[^a-z0-9]/g, '')
+  return `${n(t.plan_code)}|${n(t.category)}|${n(t.label)}`
+}
+
+// ── Step 1 — readiness + flagged items to resolve ───────────────────────────────
+function ReviewPanel({ issues, ruleConflicts, termConflicts, onResolveRule, onDismissRule, onResolveTerm, disabled }: {
+  issues: string[]; ruleConflicts: RuleConflict[]; termConflicts: TermConflict[]
+  onResolveRule: (c: RuleConflict, value: unknown) => void; onDismissRule: (c: RuleConflict) => void
+  onResolveTerm: (c: TermConflict, value: string | undefined) => void; disabled: boolean
 }) {
-  const a = profile.analysis ?? {}
+  const allDone = ruleConflicts.length === 0 && termConflicts.length === 0
   return (
     <section className={card + ' p-4'}>
       <div className="flex items-center gap-2 mb-3">
         <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-[11px] font-bold">1</span>
-        <h2 className="text-[13px] font-semibold text-slate-800">What the AI found <span className="font-normal text-slate-400">— resolve its questions, then approve</span></h2>
+        <h2 className="text-[13px] font-semibold text-slate-800">Review <span className="font-normal text-slate-400">— resolve flagged items, then approve</span></h2>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-4">
-        {a.detected_sheets && a.detected_sheets.length > 0 && (
-          <div>
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide mb-1.5 text-slate-500"><FileSpreadsheet size={12} />Detected sheets</div>
-            <ul className="flex flex-col gap-1">{a.detected_sheets.map((s, i) => (
-              <li key={i} className="text-[12px] text-slate-700 flex items-baseline gap-1.5"><span className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">{s.sheet}</span><span className="text-slate-400">→</span><span className="text-slate-600">{s.role}</span></li>
-            ))}</ul>
-          </div>
-        )}
-        {a.mapped && a.mapped.length > 0 && (
-          <div>
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide mb-1.5 text-emerald-600"><CheckCircle2 size={12} />Mapped</div>
-            <ul className="flex flex-col gap-1">{a.mapped.map((m, i) => <li key={i} className="text-[12px] text-slate-700 flex items-start gap-1.5"><CheckCircle2 size={12} className="text-emerald-500 mt-0.5 shrink-0" />{m}</li>)}</ul>
-          </div>
-        )}
-      </div>
+      {issues.length > 0 && (
+        <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+          <div className="flex items-center gap-1.5 text-[11.5px] font-semibold text-amber-800 mb-1"><AlertTriangle size={13} /> Not ready to approve yet</div>
+          <ul className="text-[12px] text-amber-800 list-disc list-inside">{issues.map((s, i) => <li key={i}>{s}</li>)}</ul>
+        </div>
+      )}
 
-      <ResolveWizard profile={profile} setProfile={setProfile} columnLabels={columnLabels} disabled={disabled} />
+      {ruleConflicts.length === 0 && termConflicts.length === 0 ? (
+        <div className="flex items-center gap-2 text-[12.5px] text-emerald-700 py-1"><CheckCircle2 size={15} /> {allDone ? 'No flagged disagreements — Opus and Gemini agreed on everything.' : ''}</div>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {ruleConflicts.map((c, i) => (
+            <div key={`r${i}`} className="rounded-lg border border-slate-100 bg-slate-50/60 p-2.5">
+              <div className="flex items-start gap-1.5 text-[12.5px] text-slate-800 font-medium mb-1.5"><ListChecks size={13} className="mt-0.5 text-rose-500 shrink-0" />Rule "{c.field}" — Opus and Gemini disagree</div>
+              <div className="flex flex-wrap gap-2 pl-5">
+                <button disabled={disabled} onClick={() => onResolveRule(c, c.opus)} className="text-[11.5px] px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-white">Use Opus: {JSON.stringify(c.opus)}</button>
+                <button disabled={disabled} onClick={() => onResolveRule(c, c.gemini)} className="text-[11.5px] px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-white">Use Gemini: {JSON.stringify(c.gemini)}</button>
+                <button disabled={disabled} onClick={() => onDismissRule(c)} className="text-[11.5px] text-slate-400 hover:text-slate-600">I&rsquo;ve edited it below, dismiss</button>
+              </div>
+            </div>
+          ))}
+          {termConflicts.map((c, i) => (
+            <div key={`t${i}`} className="rounded-lg border border-slate-100 bg-slate-50/60 p-2.5">
+              <div className="flex items-start gap-1.5 text-[12.5px] text-slate-800 font-medium mb-1.5"><ListChecks size={13} className="mt-0.5 text-amber-500 shrink-0" />{c.category} — {c.label} <span className="font-normal text-slate-400">({c.note})</span></div>
+              <div className="flex flex-wrap gap-2 pl-5">
+                {c.opus !== undefined && <button disabled={disabled} onClick={() => onResolveTerm(c, c.opus)} className="text-[11.5px] px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-white">Use: {c.opus}</button>}
+                {c.gemini !== undefined && <button disabled={disabled} onClick={() => onResolveTerm(c, c.gemini)} className="text-[11.5px] px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-white">Use: {c.gemini}</button>}
+                <button disabled={disabled} onClick={() => onResolveTerm(c, undefined)} className="text-[11.5px] text-rose-400 hover:text-rose-600">Remove this term</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   )
 }
 
-// ── Resolve wizard — one question at a time; each answer edits the cell-map + checks off ──
-function ResolveWizard({ profile, setProfile, columnLabels, disabled }: {
-  profile: CellMapProfile; setProfile: (p: CellMapProfile) => void; columnLabels: Record<string, string>; disabled: boolean
-}) {
-  const items = deriveReviewItems(profile)
-  const [idx, setIdx] = useState(0)
-  const [pending, setPending] = useState<{ mode: 'column' | 'input'; opt: ReviewOption } | null>(null)
-  const [draft, setDraft] = useState('')
-  if (items.length === 0) return null
+// ── Step 2 — rate table + insurer-specific pricing rules ────────────────────────
+const colInput = 'w-16 text-[12px] text-right font-mono rounded px-1.5 py-0.5 bg-slate-50 border border-transparent hover:bg-slate-100/70 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white disabled:opacity-60'
+const txtInput = 'text-[12px] rounded px-2 py-0.5 bg-slate-50 border border-transparent hover:bg-slate-100/70 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white disabled:opacity-60'
+const chip = 'text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 flex items-center gap-1'
 
-  const openIdxs = items.map((it, i) => (it.resolved ? -1 : i)).filter(i => i >= 0)
-  const allDone = openIdxs.length === 0
-  const cur = items[Math.min(idx, items.length - 1)]
-
-  function resolve(item: ReviewItem, resolvedLabel: string, path?: string, value?: string | number | null) {
-    let np = profile
-    if (path && value !== undefined) np = applyProfilePath(np, path, value)
-    np = resolveReviewItem(np, item.id, { label: resolvedLabel, value: value ?? undefined })
-    setProfile(np)
-    setPending(null); setDraft('')
-    // Advance to the next still-open item.
-    const next = items.findIndex((it, i) => i !== items.indexOf(item) && !it.resolved)
-    if (next >= 0) setIdx(next)
-  }
-
-  function choose(item: ReviewItem, opt: ReviewOption) {
-    if (opt.dismiss) return resolve(item, opt.label)
-    if (opt.set) return resolve(item, `${opt.label}`, opt.set.path, opt.set.value)
-    if (opt.pick_column) { setPending({ mode: 'column', opt }); setDraft(''); return }
-    if (opt.value_input) { setPending({ mode: 'input', opt }); setDraft(''); return }
-    resolve(item, opt.label) // no-op option → just acknowledge
-  }
-
-  const cols = Object.keys(columnLabels).length ? columnLabels : Object.fromEntries('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(c => [c, '']))
+function RateTableEditor({ rt, setRt, disabled }: { rt: RateTable; setRt: (rt: RateTable) => void; disabled: boolean }) {
+  const up = (patch: Partial<RateTable>) => setRt({ ...rt, ...patch })
+  const upRules = (patch: Partial<RateTable['rules']>) => up({ rules: { ...rt.rules, ...patch } })
+  const upCov = (i: number, patch: Partial<Coverage>) => { const cs = [...rt.coverages]; cs[i] = { ...cs[i], ...patch }; up({ coverages: cs }) }
+  const addCoverage = () => up({ coverages: [...rt.coverages, { code: 'NEW', full_name: 'New coverage', plans: [{ code: 'Plan 1', label: 'Plan 1' }], age_bands: ['0-99'], rates: [{ band: '0-99', by_plan: {} }] }] })
+  const removeCoverage = (i: number) => up({ coverages: rt.coverages.filter((_, j) => j !== i) })
 
   return (
-    <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-3.5">
-      <div className="flex items-center justify-between gap-2 mb-2.5">
-        <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-          <ListChecks size={12} /> Resolve {allDone ? '' : <span className="text-rose-500">· {openIdxs.length} left</span>}
+    <section className={card + ' p-4 flex flex-col gap-4'}>
+      <div className="flex items-center gap-2">
+        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-[11px] font-bold">2</span>
+        <h2 className="text-[13px] font-semibold text-slate-800">Rate table &amp; rules <span className="font-normal text-slate-400">— every number a quote will use</span></h2>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-4">
+        <label className="text-[12px] flex items-center gap-1.5">Age basis
+          <select value={rt.age_basis ?? ''} onChange={e => up({ age_basis: (e.target.value || null) as RateTable['age_basis'] })} disabled={disabled} className={`${txtInput} w-24`}>
+            <option value="">—</option><option value="ANB">Next birthday</option><option value="ALB">Last birthday</option>
+          </select>
+        </label>
+        <label className="text-[12px] flex items-center gap-1.5">
+          <input type="checkbox" checked={!!rt.rules.gst?.inclusive} disabled={disabled} onChange={e => upRules({ gst: { inclusive: e.target.checked, rate: rt.rules.gst?.rate ?? 0.09 } })} /> Rates include GST
+        </label>
+        {rt.rules.gst?.inclusive && (
+          <label className="text-[12px] flex items-center gap-1.5">rate <input type="number" step="0.01" value={rt.rules.gst?.rate ?? 0.09} disabled={disabled} onChange={e => upRules({ gst: { inclusive: true, rate: +e.target.value } })} className={`${colInput} w-16`} /></label>
+        )}
+      </div>
+
+      <LoadingBandsEditor rt={rt} upRules={upRules} disabled={disabled} />
+
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground/50">Coverages</p>
+          {!disabled && <button onClick={addCoverage} className="text-[11px] text-primary flex items-center gap-1 hover:underline"><Plus size={11} /> add</button>}
         </div>
-        {/* progress dots */}
-        <div className="flex items-center gap-1">
-          {items.map((it, i) => (
-            <button key={it.id} onClick={() => setIdx(i)} title={it.question}
-              className={`w-2 h-2 rounded-full transition-colors ${it.resolved ? 'bg-emerald-400' : i === Math.min(idx, items.length - 1) ? 'bg-primary' : 'bg-slate-300'}`} />
+        <div className="flex flex-col gap-3">
+          {rt.coverages.map((c, i) => (
+            <CoverageEditor key={i} cov={c} onChange={p => upCov(i, p)} onRemove={() => removeCoverage(i)} disabled={disabled} />
           ))}
         </div>
       </div>
+    </section>
+  )
+}
 
-      {allDone ? (
-        <div className="flex items-center gap-2 text-[12.5px] text-emerald-700 py-1.5"><CheckCircle2 size={15} /> All settled — the cell-map reflects your answers. You can Approve now.</div>
-      ) : (
-        <div>
-          <div className="flex items-start gap-2 mb-2.5">
-            <span className={`mt-0.5 shrink-0 ${cur.severity === 'assumption' ? 'text-amber-500' : 'text-rose-500'}`}>{cur.severity === 'assumption' ? <Lightbulb size={14} /> : <Eye size={14} />}</span>
-            <p className="text-[13px] text-slate-800 font-medium">{cur.question}</p>
+function LoadingBandsEditor({ rt, upRules, disabled }: { rt: RateTable; upRules: (p: Partial<RateTable['rules']>) => void; disabled: boolean }) {
+  const bands = rt.rules.group_size_loading ?? []
+  const setBands = (b: typeof bands) => upRules({ group_size_loading: b })
+  const excludes = new Set(rt.rules.loading_excludes ?? [])
+  const codes = Array.from(new Set(rt.coverages.map(c => c.code)))
+
+  return (
+    <div>
+      <p className="text-[11px] uppercase tracking-wide text-muted-foreground/50 mb-1.5">Group-size loading <span className="normal-case text-muted-foreground/40">— headcount → % adjustment</span></p>
+      <div className="flex flex-col gap-1.5">
+        {bands.map((b, i) => (
+          <div key={i} className="flex items-center gap-1.5 text-[12px]">
+            <input type="number" value={b.min} disabled={disabled} onChange={e => setBands(bands.map((x, j) => j === i ? { ...x, min: +e.target.value } : x))} className={`${colInput} w-14`} />
+            <span className="text-muted-foreground/50">to</span>
+            <input type="number" value={b.max ?? ''} placeholder="∞" disabled={disabled} onChange={e => setBands(bands.map((x, j) => j === i ? { ...x, max: e.target.value === '' ? null : +e.target.value } : x))} className={`${colInput} w-14`} />
+            <span className="text-muted-foreground/50">lives →</span>
+            <input type="number" value={b.loading_pct} disabled={disabled} onChange={e => setBands(bands.map((x, j) => j === i ? { ...x, loading_pct: +e.target.value } : x))} className={`${colInput} w-16`} />
+            <span className="text-muted-foreground/50">%</span>
+            {!disabled && <button onClick={() => setBands(bands.filter((_, j) => j !== i))} className="text-rose-400 hover:text-rose-600"><Trash2 size={12} /></button>}
           </div>
-
-          {pending ? (
-            <div className="flex items-center gap-2 pl-6">
-              {pending.mode === 'column' ? (
-                <select autoFocus value={draft} onChange={e => setDraft(e.target.value)} className="text-[12px] rounded-md bg-white border border-slate-200 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary/20">
-                  <option value="">Pick a column…</option>
-                  {Object.entries(cols).map(([c, lbl]) => <option key={c} value={c}>{c}{lbl ? ` — ${lbl}` : ''}</option>)}
-                </select>
-              ) : (
-                <input autoFocus type={pending.opt.value_input === 'number' ? 'number' : 'text'} value={draft} onChange={e => setDraft(e.target.value)} placeholder="Enter value" className="w-32 text-[12px] rounded-md bg-white border border-slate-200 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary/20" />
-              )}
-              <button disabled={!draft} onClick={() => resolve(cur, `${pending.opt.label}: ${pending.mode === 'column' ? `${draft}${cols[draft] ? ` — ${cols[draft]}` : ''}` : draft}`, cur.target_path ?? pending.opt.set?.path, draft)}
-                className="text-[12px] font-semibold px-3 py-1 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">Apply</button>
-              <button onClick={() => { setPending(null); setDraft('') }} className="text-[12px] text-slate-400 hover:text-slate-600">Cancel</button>
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-2 pl-6">
-              {cur.options.map((opt, i) => (
-                <button key={i} disabled={disabled} onClick={() => choose(cur, opt)}
-                  className={`text-[12px] px-3 py-1.5 rounded-lg border transition-colors disabled:opacity-50 ${opt.recommended ? 'border-primary/40 bg-primary/5 text-primary font-medium hover:bg-primary/10' : 'border-slate-200 text-slate-700 hover:bg-white'}`}>
-                  {opt.recommended && <Check size={12} className="inline mr-1 -mt-0.5" />}{opt.label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className="flex items-center justify-between mt-3 pl-6">
-            <span className="text-[11px] text-slate-400">Question {Math.min(idx, items.length - 1) + 1} of {items.length}</span>
-            <button onClick={() => { const n = items.findIndex((it, i) => i > idx && !it.resolved); setIdx(n >= 0 ? n : (openIdxs[0] ?? idx)) }} className="text-[11.5px] text-slate-400 hover:text-slate-600">Skip →</button>
-          </div>
+        ))}
+        {!disabled && <button onClick={() => setBands([...bands, { min: 1, max: null, loading_pct: 0 }])} className="text-[11px] text-primary flex items-center gap-1 hover:underline self-start"><Plus size={10} /> add band</button>}
+      </div>
+      {codes.length > 0 && (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          <span className="text-[11px] text-muted-foreground/60">excluded from loading:</span>
+          {codes.map(code => (
+            <label key={code} className={`${chip} cursor-pointer ${excludes.has(code) ? 'bg-rose-50 text-rose-600' : ''}`}>
+              <input type="checkbox" className="hidden" disabled={disabled} checked={excludes.has(code)}
+                onChange={e => { const s = new Set(excludes); e.target.checked ? s.add(code) : s.delete(code); upRules({ loading_excludes: Array.from(s) }) }} />
+              {code}
+            </label>
+          ))}
         </div>
       )}
     </div>
   )
 }
 
+function CoverageEditor({ cov, onChange, onRemove, disabled }: { cov: Coverage; onChange: (p: Partial<Coverage>) => void; onRemove: () => void; disabled: boolean }) {
+  const setPlans = (plans: RatePlan[]) => onChange({ plans })
+  const addPlan = () => setPlans([...cov.plans, { code: `Plan ${cov.plans.length + 1}`, label: `Plan ${cov.plans.length + 1}` }])
+  const removePlan = (code: string) => setPlans(cov.plans.filter(p => p.code !== code))
+  const addBand = () => onChange({ rates: [...cov.rates, { band: '', by_plan: {} }] })
+  const removeBand = (i: number) => onChange({ rates: cov.rates.filter((_, j) => j !== i) })
+  const setRate = (ri: number, planCode: string, raw: string) => {
+    const rates = [...cov.rates]
+    const v: number | string | undefined = raw.trim() === '' ? undefined : (isNaN(Number(raw)) ? raw : Number(raw))
+    rates[ri] = { ...rates[ri], by_plan: { ...rates[ri].by_plan, [planCode]: v as number } }
+    onChange({ rates })
+  }
+  const setBand = (ri: number, band: string) => { const rates = [...cov.rates]; rates[ri] = { ...rates[ri], band }; onChange({ rates }) }
+
+  return (
+    <div className="border border-slate-100 rounded-lg p-2.5">
+      <div className="flex items-center gap-2 mb-2 flex-wrap">
+        <input value={cov.code} onChange={e => onChange({ code: e.target.value.toUpperCase() })} disabled={disabled} className={`${txtInput} w-20 font-mono`} placeholder="CODE" />
+        <input value={cov.full_name} onChange={e => onChange({ full_name: e.target.value })} disabled={disabled} className={`${txtInput} flex-1 min-w-[140px]`} placeholder="Full name" />
+        <input value={cov.member_type ?? ''} onChange={e => onChange({ member_type: e.target.value || undefined })} disabled={disabled} className={`${txtInput} w-28`} placeholder="member type (opt.)" />
+        {!disabled && <button onClick={onRemove} className="text-rose-400 hover:text-rose-600"><Trash2 size={13} /></button>}
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="text-[11.5px] border-collapse w-full">
+          <thead>
+            <tr className="text-slate-500">
+              <th className="text-left py-1 pr-2 font-medium">Age band</th>
+              {cov.plans.map(p => (
+                <th key={p.code} className="text-right py-1 pr-2 font-medium">
+                  <input value={p.label} disabled={disabled} onChange={e => setPlans(cov.plans.map(x => x.code === p.code ? { ...x, label: e.target.value } : x))} className={`${txtInput} w-20 text-right`} />
+                  {!disabled && <button onClick={() => removePlan(p.code)} className="text-slate-300 hover:text-rose-500 ml-1"><Trash2 size={10} className="inline" /></button>}
+                </th>
+              ))}
+              {!disabled && <th className="text-right py-1"><button onClick={addPlan} className="text-primary hover:underline text-[11px] flex items-center gap-0.5 ml-auto"><Plus size={10} /> plan</button></th>}
+            </tr>
+          </thead>
+          <tbody>
+            {cov.rates.map((r, ri) => (
+              <tr key={ri} className="border-t border-slate-50">
+                <td className="py-1 pr-2"><input value={r.band} disabled={disabled} onChange={e => setBand(ri, e.target.value)} className={`${txtInput} w-20`} placeholder="0-25" /></td>
+                {cov.plans.map(p => (
+                  <td key={p.code} className="py-1 pr-2 text-right">
+                    <input value={r.by_plan?.[p.code] ?? ''} disabled={disabled} onChange={e => setRate(ri, p.code, e.target.value)} className={colInput} placeholder="—" />
+                  </td>
+                ))}
+                {!disabled && <td className="text-right"><button onClick={() => removeBand(ri)} className="text-slate-300 hover:text-rose-500"><Trash2 size={11} /></button></td>}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {!disabled && <button onClick={addBand} className="mt-1.5 text-[11px] text-primary flex items-center gap-1 hover:underline"><Plus size={10} /> add age band</button>}
+    </div>
+  )
+}
+
+// ── Step 3 — coverage / benefit terms (Level 2 comparison data) ─────────────────
+function BenefitTermsEditor({ terms, setTerms, disabled }: { terms: BenefitTerm[]; setTerms: (t: BenefitTerm[]) => void; disabled: boolean }) {
+  const upTerm = (i: number, patch: Partial<BenefitTerm>) => { const t = [...terms]; t[i] = { ...t[i], ...patch }; setTerms(t) }
+  const addTerm = () => setTerms([...terms, { category: '', label: '', value: '', source: 'pdf' }])
+  const removeTerm = (i: number) => setTerms(terms.filter((_, j) => j !== i))
+
+  return (
+    <section className={card + ' p-4 flex flex-col gap-3'}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-[11px] font-bold">3</span>
+          <h2 className="text-[13px] font-semibold text-slate-800">Coverage terms <span className="font-normal text-slate-400">— what&rsquo;s actually covered, for comparison</span></h2>
+        </div>
+        {!disabled && <button onClick={addTerm} className="text-[11px] text-primary flex items-center gap-1 hover:underline"><Plus size={11} /> add</button>}
+      </div>
+      {terms.length === 0 ? (
+        <p className="text-[12px] text-slate-400">No coverage terms yet — Extract reads them from the brochure.</p>
+      ) : (
+        <div className="flex flex-col gap-1.5 max-h-[420px] overflow-auto">
+          {terms.map((t, i) => (
+            <div key={i} className="grid grid-cols-[70px_100px_1fr_1fr_20px] gap-1.5 items-center">
+              <input value={t.plan_code ?? ''} disabled={disabled} onChange={e => upTerm(i, { plan_code: e.target.value || undefined })} className={txtInput} placeholder="plan" />
+              <input value={t.category} disabled={disabled} onChange={e => upTerm(i, { category: e.target.value })} className={txtInput} placeholder="category" />
+              <input value={t.label} disabled={disabled} onChange={e => upTerm(i, { label: e.target.value })} className={txtInput} placeholder="label" />
+              <input value={t.value} disabled={disabled} onChange={e => upTerm(i, { value: e.target.value })} className={txtInput} placeholder="value" />
+              {!disabled && <button onClick={() => removeTerm(i)} className="text-slate-300 hover:text-rose-500"><Trash2 size={12} /></button>}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
 // ── Workbook reference — click any sheet to inspect its cells ─────────────────────────
-function WorkbookSummary({ dump, sheet }: { dump: Dump | null; sheet: string }) {
-  const [open, setOpen] = useState(sheet)
+function WorkbookSummary({ dump }: { dump: Dump | null }) {
+  const [open, setOpen] = useState<string | null>(null)
   if (!dump) return null
-  const values = dump.values?.[open]
+  const sheet = open ?? dump.sheets?.[0]?.name ?? ''
+  const values = dump.values?.[sheet]
   return (
     <section className={card + ' p-4'}>
       <div className="flex items-center gap-2 mb-2">
@@ -369,12 +489,12 @@ function WorkbookSummary({ dump, sheet }: { dump: Dump | null; sheet: string }) 
       <div className="flex flex-wrap gap-1.5 mb-3">
         {dump.sheets.map(s => (
           <button key={s.name} onClick={() => setOpen(s.name)}
-            className={`text-[11px] px-2 py-0.5 rounded-full transition-colors ${s.name === open ? 'bg-primary/10 text-primary font-medium ring-1 ring-primary/20' : s.visible ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>
-            {s.name}{!s.visible ? ' (hidden)' : ''}{s.name === sheet ? ' ·map' : ''}
+            className={`text-[11px] px-2 py-0.5 rounded-full transition-colors ${s.name === sheet ? 'bg-primary/10 text-primary font-medium ring-1 ring-primary/20' : s.visible ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>
+            {s.name}{!s.visible ? ' (hidden)' : ''}
           </button>
         ))}
       </div>
-      {values ? <SheetGrid values={values} /> : <p className="text-[11.5px] text-slate-500 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2.5">This sheet is computed — values appear when a census runs (see the worked example under Pricing &amp; maths).</p>}
+      {values ? <SheetGrid values={values} /> : <p className="text-[11.5px] text-slate-500 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2.5">No cell values captured for this sheet.</p>}
     </section>
   )
 }
@@ -411,265 +531,49 @@ function SheetGrid({ values }: { values: Record<string, string> }) {
   )
 }
 
-// ── Profile editor ────────────────────────────────────────────────────────────────
-const colInput = 'w-14 text-[12px] font-mono text-center rounded px-1 py-0.5 bg-slate-50 border border-transparent hover:bg-slate-100/70 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white disabled:opacity-60'
-const txtInput = 'text-[12px] rounded px-2 py-0.5 bg-slate-50 border border-transparent hover:bg-slate-100/70 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white disabled:opacity-60'
-
-function ProfileEditor({ profile, setProfile, disabled }: { profile: CellMapProfile; setProfile: (p: CellMapProfile) => void; disabled: boolean }) {
-  const up = (patch: Partial<CellMapProfile>) => setProfile({ ...profile, ...patch })
-  const upMember = (field: string, col: string) => up({ member_inputs: { ...profile.member_inputs, [field]: col || undefined } })
-  const upLine = (i: number, patch: Partial<CoverageLine>) => { const l = [...profile.coverage_lines]; l[i] = { ...l[i], ...patch }; up({ coverage_lines: l }) }
-  const upLineInput = (i: number, field: string, col: string) => { const l = [...profile.coverage_lines]; l[i] = { ...l[i], inputs: { ...l[i].inputs, [field]: col } }; up({ coverage_lines: l }) }
-  const removeLineInput = (i: number, field: string) => { const l = [...profile.coverage_lines]; const inputs = { ...l[i].inputs }; delete inputs[field]; l[i] = { ...l[i], inputs }; up({ coverage_lines: l }) }
-
-  return (
-    <section className={card + ' p-4 flex flex-col gap-4'}>
-      <div className="flex items-center gap-2">
-        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-[11px] font-bold">2</span>
-        <h2 className="text-[13px] font-semibold text-slate-800">Cell-map <span className="font-normal text-slate-400">— confirm before approving</span></h2>
-      </div>
-
-      <div className="flex items-center gap-3 flex-wrap">
-        <label className="text-[12px] flex items-center gap-1.5">Sheet <input value={profile.sheet} onChange={e => up({ sheet: e.target.value })} disabled={disabled} className={`${txtInput} w-28`} /></label>
-        <label className="text-[12px] flex items-center gap-1.5">Rows <input type="number" value={profile.rows?.start ?? 0} onChange={e => up({ rows: { ...profile.rows, start: +e.target.value } })} disabled={disabled} className={`${colInput} w-16`} /> → <input type="number" value={profile.rows?.end ?? 0} onChange={e => up({ rows: { ...profile.rows, end: +e.target.value } })} disabled={disabled} className={`${colInput} w-16`} /></label>
-      </div>
-
-      <div>
-        <p className="text-[11px] uppercase tracking-wide text-muted-foreground/50 mb-1.5">Per-life inputs (column letter)</p>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-          {MEMBER_FIELDS.map(f => (
-            <label key={f} className="text-[12px] flex items-center justify-between gap-2">
-              <span className="text-muted-foreground/80">{f.replace(/_/g, ' ')}</span>
-              <input value={profile.member_inputs?.[f] ?? ''} onChange={e => upMember(f, e.target.value.toUpperCase())} disabled={disabled} className={colInput} placeholder="—" />
-            </label>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <div className="flex items-center justify-between mb-1.5">
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground/50">Coverage lines</p>
-          {!disabled && <button onClick={() => up({ coverage_lines: [...profile.coverage_lines, { code: 'NEW', label: 'New line', inputs: { plan: '' }, output: '' }] })} className="text-[11px] text-primary flex items-center gap-1 hover:underline"><Plus size={11} /> add</button>}
-        </div>
-        <div className="flex flex-col gap-2.5">
-          {profile.coverage_lines.map((line, i) => (
-            <div key={i} className="border border-slate-100/60 rounded-lg p-2.5">
-              <div className="flex items-center gap-2 mb-1.5">
-                <input value={line.code} onChange={e => upLine(i, { code: e.target.value.toUpperCase() })} disabled={disabled} className={`${txtInput} w-20 font-mono`} placeholder="CODE" />
-                <input value={line.label} onChange={e => upLine(i, { label: e.target.value })} disabled={disabled} className={`${txtInput} flex-1`} placeholder="Label" />
-                <span className="text-[11px] text-muted-foreground/60">→ premium</span>
-                <input value={line.output} onChange={e => upLine(i, { output: e.target.value.toUpperCase() })} disabled={disabled} className={colInput} placeholder="col" />
-                {!disabled && <button onClick={() => up({ coverage_lines: profile.coverage_lines.filter((_, j) => j !== i) })} className="text-rose-400 hover:text-rose-600"><Trash2 size={13} /></button>}
-              </div>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pl-1">
-                {Object.entries(line.inputs ?? {}).map(([field, col]) => (
-                  <span key={field} className="text-[11.5px] flex items-center gap-1 group/f">
-                    <span className="text-muted-foreground/70">{field}</span>
-                    <input value={col} onChange={e => upLineInput(i, field, e.target.value.toUpperCase())} disabled={disabled} className={colInput} />
-                    {!disabled && <button title={`remove ${field}`} onClick={() => removeLineInput(i, field)} className="text-slate-300 hover:text-rose-500"><Trash2 size={11} /></button>}
-                  </span>
-                ))}
-                {!disabled && (
-                  <button onClick={() => { const f = window.prompt('New input field name (e.g. plan, hospital, beds, coinsurance, panel):')?.trim(); if (f) upLineInput(i, f, '') }}
-                    className="text-[11px] text-primary hover:underline flex items-center gap-0.5"><Plus size={10} /> field</button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <p className="text-[11px] uppercase tracking-wide text-muted-foreground/50 mb-1.5">Totals (absolute cells)</p>
-        <div className="flex flex-wrap gap-x-4 gap-y-1.5 items-center">
-          {profile.coverage_lines.map(line => (
-            <label key={line.code} className="text-[11.5px] flex items-center gap-1">
-              <span className="text-muted-foreground/70">{line.code}</span>
-              <input value={profile.totals?.by_line?.[line.code] ?? ''} onChange={e => up({ totals: { ...profile.totals, by_line: { ...profile.totals?.by_line, [line.code]: e.target.value.toUpperCase() } } })} disabled={disabled} className={`${colInput} w-16`} placeholder="cell" />
-            </label>
-          ))}
-          <label className="text-[11.5px] flex items-center gap-1 font-medium">
-            <span>grand</span>
-            <input value={profile.totals?.grand ?? ''} onChange={e => up({ totals: { ...profile.totals, grand: e.target.value.toUpperCase() } })} disabled={disabled} className={`${colInput} w-16`} placeholder="cell" />
-          </label>
-        </div>
-      </div>
-
-      <div>
-        <p className="text-[11px] uppercase tracking-wide text-muted-foreground/50 mb-1">Per-life total column <span className="normal-case text-muted-foreground/40">— use when premiums aren&rsquo;t on this sheet; leave line outputs blank</span></p>
-        <label className="text-[11.5px] flex items-center gap-1.5">
-          <span className="text-muted-foreground/70">column (e.g. Y)</span>
-          <input value={profile.per_life_total ?? ''} onChange={e => up({ per_life_total: e.target.value.toUpperCase() || undefined })} disabled={disabled} className={colInput} placeholder="—" />
-        </label>
-      </div>
-    </section>
-  )
-}
-
-// ── Pricing & maths — transparent rate tables + a worked example (replaces Verify) ────
-type SampleMember = { name: string; age?: number; coverage: Record<string, Record<string, string>> }
-
-function PricingPanel({ id, pricing, profile, runnable, defaultEff, onRefreshed }: {
-  id: string; pricing: Pricing | null; profile: CellMapProfile; runnable: boolean; defaultEff: string | null; onRefreshed: () => void
-}) {
-  const inclGst = /incl|inclusive/i.test(pricing?.gst ?? '')
-  const gstDiv = profile.total_gst_divisor
-  const [refreshing, setRefreshing] = useState(false)
-  const [rlabel, setRlabel] = useState('')
-
-  async function refresh() {
-    setRefreshing(true); setRlabel('Reading the workbook…')
-    const poll = setInterval(async () => {
-      const s = await fetch(`/api/pricing-matrix/calculators/${id}/map-status`, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null)
-      if (s?.map_progress?.label) setRlabel(s.map_progress.label)
-    }, 1800)
-    try {
-      await fetch(`/api/pricing-matrix/calculators/${id}/extract-pricing`, { method: 'POST' })
-      onRefreshed()
-    } finally { clearInterval(poll); setRefreshing(false); setRlabel('') }
-  }
-
-  return (
-    <section className={card + ' p-4 flex flex-col gap-4'}>
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-[11px] font-bold shrink-0">3</span>
-          <h2 className="text-[13px] font-semibold text-slate-800 truncate">Pricing &amp; maths <span className="font-normal text-slate-400">— confirm every rate is right</span></h2>
-        </div>
-        <button onClick={refresh} disabled={refreshing} title="Re-read the rate tables (Opus + Gemini + judge) without changing your cell-map" className="flex items-center gap-1.5 text-[11.5px] text-slate-500 hover:text-slate-800 disabled:opacity-60 shrink-0">
-          {refreshing ? <><Loader2 size={12} className="animate-spin" />{rlabel || 'Refreshing…'}</> : <><Wand2 size={12} /> Refresh rate tables</>}
-        </button>
-      </div>
-
-      {/* Worked example first — proof a real premium computes correctly. */}
-      <WorkedExample id={id} profile={profile} runnable={runnable} defaultEff={defaultEff} />
-
-      {/* Full rate tables from the workbook. */}
-      {!pricing || !pricing.coverages?.length ? (
-        <p className="text-[12px] text-slate-500 border border-dashed border-slate-100 rounded-lg px-3 py-4 text-center">
-          Rate tables appear after <b>Auto-map</b>. If they&rsquo;re missing, click <b>Re-map</b> to re-read the workbook.
-        </p>
-      ) : (
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-wrap items-center gap-1.5">
-            {pricing.gst && <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{pricing.gst}</span>}
-            {inclGst && <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium">Rates below include GST</span>}
-            {gstDiv && <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">Quotes shown net (÷{gstDiv})</span>}
-            {pricing.rate_version && <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">{pricing.rate_version}</span>}
-            {pricing.accuracy && pricing.accuracy.extractors.length > 1 && (
-              <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 inline-flex items-center gap-1" title={`${pricing.accuracy.agreed} agreed · ${pricing.accuracy.conflicts} reconciled by judge · ${pricing.accuracy.single_source} single-source of ${pricing.accuracy.total_rates}`}>
-                <CheckCircle2 size={11} /> Opus + Gemini cross-checked{pricing.accuracy.conflicts ? ` · ${pricing.accuracy.adjudicated} reconciled` : ''}
-              </span>
-            )}
-          </div>
-          {pricing.coverages.map((cov, i) => (
-            <div key={i} className="border border-slate-100 rounded-lg overflow-hidden">
-              <div className="px-3 py-2 bg-slate-50 border-b border-slate-100">
-                <div className="flex items-baseline gap-2 flex-wrap">
-                  <span className="text-[12.5px] font-semibold text-slate-800">{cov.full_name}</span>
-                  {cov.code && cov.code !== cov.full_name && <span className="font-mono text-[10.5px] px-1.5 py-0.5 rounded bg-white border border-slate-100 text-slate-500">{cov.code}</span>}
-                  {cov.member_type && <span className="text-[10.5px] px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600">{cov.member_type}</span>}
-                  {inclGst && <span className="text-[10.5px] text-amber-600">(incl. GST)</span>}
-                </div>
-                {cov.derivation && <p className="text-[11px] text-slate-500 mt-1 flex items-start gap-1.5"><Lightbulb size={12} className="text-amber-500 mt-0.5 shrink-0" />{cov.derivation}</p>}
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-[11.5px] border-collapse">
-                  <thead>
-                    <tr className="text-slate-500 border-b border-slate-100 bg-white">
-                      <th className="text-left py-1.5 px-3 font-medium">Age band</th>
-                      {cov.plans.map(p => <th key={p.code} className="text-right py-1.5 px-3 font-medium whitespace-nowrap" title={p.attrs ?? ''}>{p.label}{p.attrs ? <span className="block text-[9.5px] font-normal text-slate-400">{p.attrs}</span> : null}</th>)}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cov.rates.map((r, j) => (
-                      <tr key={j} className="border-b border-slate-100">
-                        <td className="py-1 px-3 text-slate-700 whitespace-nowrap">{r.band}</td>
-                        {cov.plans.map(p => {
-                          const v = r.by_plan?.[p.code]
-                          return <td key={p.code} className="py-1 px-3 text-right tabular-nums text-slate-600">{typeof v === 'number' ? v.toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : (v ? <span className="text-slate-300">{v}</span> : '—')}</td>
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ))}
-          <p className="text-[10.5px] text-slate-400">Rates read directly from the insurer&rsquo;s workbook. Premiums are computed by running that same workbook — never re-typed.</p>
-        </div>
-      )}
-    </section>
-  )
-}
-
-/** A single worked example: pick an age + plans → run the real workbook → show the premium. */
-function WorkedExample({ id, profile, runnable, defaultEff }: { id: string; profile: CellMapProfile; runnable: boolean; defaultEff: string | null }) {
-  const dd = profile.dropdowns ?? {}
-  const initCov = useMemo(() => Object.fromEntries(profile.coverage_lines.map(l =>
-    [l.code, Object.fromEntries(Object.keys(l.inputs).map(f => [f, dd[`${l.code}.${f}`]?.[0] ?? (f === 'plan' ? 'Plan 1' : '')]))]
-  )), [profile, dd])
+// ── Worked example — computed locally, instantly, by pm-calc.ts (no network call) ──
+function WorkedExample({ rt, defaultEff }: { rt: RateTable; defaultEff: string | null }) {
+  const codes = Array.from(new Set(rt.coverages.map(c => c.code)))
   const [age, setAge] = useState(40)
-  const [cov, setCov] = useState<Record<string, Record<string, string>>>(initCov)
-  const [res, setRes] = useState<{ members: RunMember[]; totals: RunTotals } | null>(null)
-  const [running, setRunning] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [relationship, setRelationship] = useState<'Self' | 'Spouse' | 'Child'>('Self')
+  const [sel, setSel] = useState<Record<string, string>>(() => Object.fromEntries(codes.map(c => [c, rt.coverages.find(cc => cc.code === c)?.plans[0]?.code ?? ''])))
 
-  async function run() {
-    setRunning(true); setError(null); setRes(null)
-    const member: SampleMember = { name: `Age ${age} example`, age, coverage: cov }
-    const r = await fetch(`/api/pricing-matrix/calculators/${id}/verify`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ members: [member], globals: { effective_date: defaultEff ?? '2026-01-01' } }),
-    })
-    const d = await safeJson<{ members: RunMember[]; totals: RunTotals }>(r)
-    if (!r.ok) setError(d.error ?? 'Run failed'); else setRes(d)
-    setRunning(false)
-  }
+  const selection = Object.fromEntries(codes.filter(c => sel[c]).map(c => [c, { plan: sel[c] }]))
+  const result: InsurerResult = computeInsurerQuote('preview', 'preview', defaultEff, rt, [{ name: 'Example', age, relationship }], selection, { effective_date: defaultEff })
+  const m = result.members[0]
 
-  const m = res?.members?.[0]
   return (
-    <div className="border border-slate-100 rounded-lg p-3 bg-slate-50/60">
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <span className="text-[12px] font-medium text-slate-700">Worked example</span>
-        <button onClick={run} disabled={running || !runnable} className="flex items-center gap-1.5 text-[11.5px] font-semibold px-2.5 py-1 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-          {running ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />} Show workings
-        </button>
+    <section className={card + ' p-4 flex flex-col gap-3'}>
+      <div className="flex items-center gap-2">
+        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-[11px] font-bold">4</span>
+        <h2 className="text-[13px] font-semibold text-slate-800">Worked example <span className="font-normal text-slate-400">— computed live from the table on the left</span></h2>
       </div>
-      {!runnable && <p className="text-[11px] text-amber-600 mb-1.5">Finish the cell-map to enable the worked example.</p>}
       <div className="flex items-center gap-2 flex-wrap text-[11.5px]">
         <label className="flex items-center gap-1">Age <input type="number" value={age} onChange={e => setAge(+e.target.value)} className="w-14 border border-slate-100 rounded px-1.5 py-0.5 bg-white" /></label>
-        {profile.coverage_lines.map(l => (
-          <span key={l.code} className="flex items-center gap-1 text-slate-500">
-            <span className="font-medium">{l.code}:</span>
-            {Object.keys(l.inputs).map(f => (
-              <SelOrText key={f} value={cov[l.code]?.[f] ?? ''} opts={dd[`${l.code}.${f}`]} placeholder={f}
-                onChange={v => setCov(c => ({ ...c, [l.code]: { ...c[l.code], [f]: v } }))} />
-            ))}
-          </span>
+        <label className="flex items-center gap-1">Relationship
+          <select value={relationship} onChange={e => setRelationship(e.target.value as 'Self' | 'Spouse' | 'Child')} className="border border-slate-100 rounded px-1.5 py-0.5 bg-white">
+            <option>Self</option><option>Spouse</option><option>Child</option>
+          </select>
+        </label>
+        {codes.map(code => (
+          <label key={code} className="flex items-center gap-1 text-slate-500">
+            <span className="font-medium">{code}:</span>
+            <select value={sel[code] ?? ''} onChange={e => setSel(s => ({ ...s, [code]: e.target.value }))} className="text-[11px] border border-slate-100 rounded px-1 py-0.5 bg-white">
+              <option value="">— not selected —</option>
+              {Array.from(new Set(rt.coverages.filter(c => c.code === code).flatMap(c => c.plans))).map(p => <option key={p.code} value={p.code}>{p.label}</option>)}
+            </select>
+          </label>
         ))}
       </div>
-      {error && <p className="text-[11.5px] text-rose-600 mt-2">{error}</p>}
       {m && (
-        <div className="mt-2.5 border-t border-slate-100 pt-2 flex items-center gap-4 flex-wrap">
-          {profile.coverage_lines.filter(l => typeof m.lines[l.code] === 'number').map(l => (
-            <span key={l.code} className="text-[11.5px] text-slate-600">{l.code} <b className="tabular-nums text-slate-800">{fmt(m.lines[l.code])}</b></span>
+        <div className="border-t border-slate-100 pt-2 flex items-center gap-4 flex-wrap">
+          {codes.filter(c => typeof m.lines[c] === 'number').map(c => (
+            <span key={c} className="text-[11.5px] text-slate-600">{c} <b className="tabular-nums text-slate-800">{m.lines[c]?.toFixed(2)}</b></span>
           ))}
-          <span className="text-[12px] text-slate-700 ml-auto">Premium <b className="tabular-nums text-primary text-[13px]">{fmt(m.subtotal)}</b></span>
+          <span className="text-[12px] text-slate-700 ml-auto">Premium <b className="tabular-nums text-primary text-[13px]">{m.subtotal.toFixed(2)}</b></span>
         </div>
       )}
-      {m && <p className="text-[10.5px] text-slate-400 mt-1.5">Computed by running the insurer&rsquo;s own workbook — compare against their spreadsheet to confirm.</p>}
-    </div>
+      <p className="text-[10.5px] text-slate-400">Computed by pm-calc.ts from the rate table &amp; rules above — this is exactly what a real quote will compute, with no network call.</p>
+    </section>
   )
 }
-
-function SelOrText({ value, opts, placeholder, onChange }: { value: string; opts?: string[]; placeholder?: string; onChange: (v: string) => void }) {
-  if (opts && opts.length) return (
-    <select value={value} onChange={e => onChange(e.target.value)} className="text-[11px] border border-slate-100 rounded px-1 py-0.5 bg-background focus:outline-none">
-      <option value="">—</option>{opts.map(o => <option key={o} value={o}>{o}</option>)}
-    </select>
-  )
-  return <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className="w-20 text-[11px] border border-slate-100 rounded px-1 py-0.5 bg-background focus:outline-none" />
-}
-
-const fmt = (n: number | null | undefined) => (typeof n === 'number' ? n.toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—')

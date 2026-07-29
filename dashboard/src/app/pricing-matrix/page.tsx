@@ -68,6 +68,7 @@ export default function PricingMatrixPage() {
       <div className="flex items-center gap-4 text-[12.5px] border-b border-border mt-4">
         <span className="pb-2 border-b-2 border-primary text-foreground font-medium">Calculators</span>
         <Link href="/pricing-matrix/quote" className="pb-2 border-b-2 border-transparent text-muted-foreground hover:text-foreground">Quotes</Link>
+        <Link href="/pricing-matrix/compare" className="pb-2 border-b-2 border-transparent text-muted-foreground hover:text-foreground">Compare coverage</Link>
       </div>
 
       <div className="mt-5">
