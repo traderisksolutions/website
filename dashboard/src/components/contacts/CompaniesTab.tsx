@@ -72,7 +72,7 @@ export function CompaniesTab({ onSwitchToContacts }: { onSwitchToContacts: () =>
               )}
               {!loading && companies.map(c => (
                 <tr key={c.id} onClick={() => setSelectedId(c.id)} className="border-b border-[--border-subtle] hover:bg-accent/40 cursor-pointer">
-                  <td className="px-4 py-2.5 font-medium flex items-center gap-1.5"><Building2 size={13} className="text-muted-foreground/50" /> {c.name}</td>
+                  <td className="px-4 py-2.5 font-medium flex items-center gap-1.5"><Building2 size={13} className="text-muted-foreground/50" /> <span className="uppercase">{c.name}</span></td>
                   <td className="px-3 py-2.5 text-muted-foreground truncate max-w-[280px]">{c.address ?? '—'}</td>
                   <td className="px-3 py-2.5 text-muted-foreground">{c.type ?? '—'}</td>
                 </tr>
@@ -107,7 +107,7 @@ function CompanyDetailPanel({ id, onClose }: { id: string; onClose: () => void }
       ) : (
         <>
           <DetailSection>
-            <p className="text-[14px] font-semibold text-foreground">{data.company.name}</p>
+            <p className="text-[14px] font-semibold text-foreground uppercase">{data.company.name}</p>
             {data.company.address && <p className="text-[12px] text-muted-foreground mt-0.5">{data.company.address}</p>}
           </DetailSection>
 

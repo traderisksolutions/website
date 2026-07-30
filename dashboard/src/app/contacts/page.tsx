@@ -322,8 +322,8 @@ export default function ContactsPage() {
                                     ? <ChevronRight size={11} strokeWidth={2.5} />
                                     : <ChevronDown  size={11} strokeWidth={2.5} />}
                                 </span>
-                                <span className="text-[12.5px] font-semibold text-foreground tracking-tight">
-                                  {group.company ?? <span className="text-muted-foreground/35 font-normal italic text-[12px]">No company</span>}
+                                <span className="text-[12.5px] font-semibold text-foreground tracking-tight uppercase">
+                                  {group.company ?? <span className="text-muted-foreground/35 font-normal italic text-[12px] normal-case">No company</span>}
                                 </span>
                                 <span className="inline-flex items-center text-[10.5px] font-semibold text-muted-foreground/55 bg-muted/70 rounded px-1.5 py-px leading-none">
                                   {group.contacts.length}
@@ -429,7 +429,7 @@ export default function ContactsPage() {
                   )}
                 </div>
                 {resolvedCompany(selected) && (
-                  <p className="text-[12px] text-muted-foreground mb-1.5">{resolvedCompany(selected)}</p>
+                  <p className="text-[12px] text-muted-foreground mb-1.5 uppercase">{resolvedCompany(selected)}</p>
                 )}
                 <StatusBadge status={(selected.isCC ? 'cc' : selected.status) as AppStatus} />
               </div>

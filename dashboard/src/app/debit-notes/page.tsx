@@ -115,7 +115,7 @@ function DebitNotesContent() {
                       <td colSpan={8} className="px-4 py-2">
                         <div className="flex items-center gap-2">
                           {isCollapsed ? <ChevronRight size={12} className="text-muted-foreground/50" /> : <ChevronDown size={12} className="text-muted-foreground/50" />}
-                          <span className="text-[12.5px] font-semibold text-foreground">{company}</span>
+                          <span className="text-[12.5px] font-semibold text-foreground uppercase">{company}</span>
                           <span className="text-[10.5px] font-semibold text-muted-foreground/55 bg-muted rounded px-1.5 py-px">{companyRows.length}</span>
                         </div>
                       </td>
@@ -307,7 +307,7 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
         ) : (
           <div className="flex flex-col">
             <DetailSection label="Client">
-              <DetailField label="Company">{detail.companies?.name ?? '—'}</DetailField>
+              <DetailField label="Company"><span className="uppercase">{detail.companies?.name ?? '—'}</span></DetailField>
               {editing && form ? (
                 <>
                   <div className="grid grid-cols-2 gap-3 mb-3">

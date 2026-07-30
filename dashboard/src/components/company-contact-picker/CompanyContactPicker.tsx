@@ -160,7 +160,7 @@ export function CompanyContactPicker({ value, onChange, className }: {
               {!searching && suggestions.map(c => (
                 <button key={c.id} onClick={() => pickCompany(c)} className="w-full text-left px-3 py-2 hover:bg-accent flex items-center gap-2 text-[12.5px]">
                   <Building2 size={13} className="text-muted-foreground/60 flex-shrink-0" />
-                  <span className="truncate">{c.name}</span>
+                  <span className="truncate uppercase">{c.name}</span>
                 </button>
               ))}
               {!searching && query.trim().length > 0 && (
@@ -178,7 +178,7 @@ export function CompanyContactPicker({ value, onChange, className }: {
       ) : (
         <div className="flex items-center gap-2 rounded-md border border-[--border-subtle] px-2.5 py-1.5 bg-muted/30">
           <Building2 size={13} className="text-muted-foreground/60 flex-shrink-0" />
-          <span className="text-[12.5px] font-medium flex-1 truncate">{value.companyName}</span>
+          <span className="text-[12.5px] font-medium flex-1 truncate uppercase">{value.companyName}</span>
           <button onClick={clearCompany} className="text-muted-foreground/60 hover:text-foreground" title="Change company"><X size={13} /></button>
         </div>
       )}
