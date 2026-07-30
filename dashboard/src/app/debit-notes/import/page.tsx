@@ -301,6 +301,10 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
         <Field label="Description" className="col-span-3"><input value={description} onChange={e => setDescription(e.target.value)} className={inp} /></Field>
       </div>
 
+      <div className="text-[13px] flex justify-end">
+        <span>Gross premium collected: <b>{currency} {(grossPremium + gstAmount).toLocaleString('en-SG', { minimumFractionDigits: 2 })}</b></span>
+      </div>
+
       {err && <p className="text-[11.5px] text-rose-600">{err}</p>}
 
       <div className="flex justify-end gap-2">
