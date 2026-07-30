@@ -14,6 +14,12 @@ import AdmZip                        from 'adm-zip'
 
 export const maxDuration = 60
 
+// Insurer-supplied filenames routinely carry brackets/spaces/parens (e.g. "SP123 - PI[Tax
+// Invoice] (1).pdf") that Supabase Storage's S3-compatible backend rejects as an invalid key.
+// Same sanitiser as the single-file upload path — only the storage key is sanitised;
+// original_filename keeps the real name for display.
+const sanitise = (s: string) => s.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 150)
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient()
@@ -36,7 +42,7 @@ export async function POST(req: NextRequest) {
 
     for (const entry of pdfEntries) {
       const filename = entry.entryName.split('/').pop() ?? entry.entryName
-      const path = `imports/zip-${randomUUID()}/${filename}`
+      const path = `imports/zip-${randomUUID()}/${sanitise(filename)}`
       await uploadPdf(path, entry.getData())
       await fetch(`${SB_URL}/rest/v1/pdf_import_items`, {
         method: 'POST', headers: sbH(),

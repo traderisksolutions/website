@@ -16,6 +16,11 @@ import { SB_URL, sbH, uploadPdf }    from '@/lib/debit-note-storage'
 import { getGraphToken, listChildren, downloadItem, type OneDriveItem } from '@/lib/onedrive'
 import { randomUUID } from 'node:crypto'
 
+// OneDrive filenames routinely carry brackets/spaces/parens that Supabase Storage's
+// S3-compatible backend rejects as an invalid key. Same sanitiser used everywhere else a raw
+// filename becomes part of a storage path — original_filename keeps the real name for display.
+const sanitise = (s: string) => s.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 150)
+
 async function pullFolderAsBundle(folderPath: string, token: string): Promise<{ id: string } | { error: string; path: string }> {
   const children = await listChildren(folderPath, token)
   const files = children.filter(c => !c.folder && c.file?.mimeType === 'application/pdf')
@@ -29,7 +34,7 @@ async function pullFolderAsBundle(folderPath: string, token: string): Promise<{ 
 
   for (const f of files) {
     const bytes = await downloadItem(f.id, token)
-    const storagePath = `imports/onedrive-${randomUUID()}/${f.name}`
+    const storagePath = `imports/onedrive-${randomUUID()}/${sanitise(f.name)}`
     await uploadPdf(storagePath, bytes)
     await fetch(`${SB_URL}/rest/v1/pdf_import_items`, {
       method: 'POST', headers: sbH(),
