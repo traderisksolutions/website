@@ -114,26 +114,39 @@ export type PolicyInput =
 
 async function resolvePolicy(input: PolicyInput, customerId: string): Promise<string> {
   if ('policyId' in input) return input.policyId
-  const created = await pg('policies', {
-    method: 'POST',
-    body: JSON.stringify({
-      customer_id: customerId,
-      policy_number: input.policyNumber ?? null,
-      insurer: input.insurer,
-      product_type: input.productType ?? null,
-      class_of_insurance: input.classOfInsurance ?? null,
-      cover_note_no: input.coverNoteNo ?? null,
-      description: input.description ?? null,
-      broker: input.broker ?? null,
-      currency: input.currency ?? 'SGD',
-      sum_insured: input.sumInsured ?? null,
-      premium: input.premium ?? null,
-      start_date: input.startDate ?? null,
-      end_date: input.endDate ?? null,
-      status: 'active',
-      source: input.source,
-    }),
-  })
+
+  const fields = {
+    customer_id: customerId,
+    policy_number: input.policyNumber ?? null,
+    insurer: input.insurer,
+    product_type: input.productType ?? null,
+    class_of_insurance: input.classOfInsurance ?? null,
+    cover_note_no: input.coverNoteNo ?? null,
+    description: input.description ?? null,
+    broker: input.broker ?? null,
+    currency: input.currency ?? 'SGD',
+    sum_insured: input.sumInsured ?? null,
+    premium: input.premium ?? null,
+    start_date: input.startDate ?? null,
+    end_date: input.endDate ?? null,
+    status: 'active',
+    source: input.source,
+  }
+
+  // policy_number is UNIQUE in the schema — re-processing the same policy (retrying after an
+  // error, re-importing a renewal, backfilling after a debit note under it was deleted) must
+  // reuse that row rather than fail on the constraint. Refresh it with whatever's on hand now.
+  const policyNumber = input.policyNumber?.trim()
+  if (policyNumber) {
+    const existing = await pg(`policies?policy_number=eq.${enc(policyNumber)}&select=id&limit=1`)
+    if (existing[0]) {
+      const id = existing[0].id as string
+      await pg(`policies?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify(fields) })
+      return id
+    }
+  }
+
+  const created = await pg('policies', { method: 'POST', body: JSON.stringify(fields) })
   return created[0].id as string
 }
 

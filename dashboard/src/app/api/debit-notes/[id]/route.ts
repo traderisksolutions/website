@@ -144,7 +144,17 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
     if (before.pdf_storage_url) await deleteObject(before.pdf_storage_url)
 
-    void logActivity({ action: 'debit_note.deleted', resource_type: 'debit_note', resource_id: id, old_value: { debit_note_no: before.debit_note_no, gross_amount: before.gross_amount } })
+    // policy_number is UNIQUE — a policy left behind with no debit notes on it can never be
+    // re-approved into (the insert 409s on that same number), so clean it up once this was the
+    // last debit note referencing it. Company/contact are never touched here: those are shared
+    // CRM identity that outlives any single policy.
+    const siblings = await fetch(`${SB_URL}/rest/v1/debit_notes?policy_id=eq.${before.policy_id}&select=id&limit=1`, { headers: sbH(), cache: 'no-store' })
+    const hasSiblings = siblings.ok && (await siblings.json()).length > 0
+    if (!hasSiblings) {
+      await fetch(`${SB_URL}/rest/v1/policies?id=eq.${before.policy_id}`, { method: 'DELETE', headers: sbH() }).catch(() => {})
+    }
+
+    void logActivity({ action: 'debit_note.deleted', resource_type: 'debit_note', resource_id: id, old_value: { debit_note_no: before.debit_note_no, gross_amount: before.gross_amount, policy_also_deleted: !hasSiblings } })
 
     return NextResponse.json({ ok: true })
   } catch (e) {

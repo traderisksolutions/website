@@ -295,7 +295,7 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
         ) : confirmDelete ? (
           <div className="px-4 py-4">
             <p className="text-[13px] mb-1">Delete debit note {detail.debit_note_no}?</p>
-            <p className="text-[11.5px] text-muted-foreground mb-4">This removes this debit note and its generated PDF. The policy and any other debit notes under it are not affected. This cannot be undone.</p>
+            <p className="text-[11.5px] text-muted-foreground mb-4">This removes this debit note and its generated PDF. If no other debit notes are linked to its policy, the policy is removed too — the company and its contacts are never affected. This cannot be undone.</p>
             {error && <p className="text-[11.5px] text-rose-600 mb-2">{error}</p>}
             <div className="flex justify-end gap-2">
               <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(false)} disabled={deleting}>Cancel</Button>
