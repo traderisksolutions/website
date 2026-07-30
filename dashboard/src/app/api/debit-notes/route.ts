@@ -45,6 +45,9 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json() as {
       company: CompanyInput; contact: ContactInput; policy: PolicyInput; debitNote: DebitNoteInput
+      /** Historical backfill: attach a PDF you already have instead of generating one from the
+       *  typed fields. Must already be uploaded (same signed-URL flow as everywhere else). */
+      existingPdf?: { storageUrl: string; filename: string } | null
     }
     if (!body.company || !body.policy || !body.debitNote?.lineItems?.length) {
       return NextResponse.json({ error: 'company, policy and at least one line item are required' }, { status: 400 })
@@ -64,32 +67,41 @@ export async function POST(req: NextRequest) {
     const company = companyRes.ok ? (await companyRes.json())[0] : null
     const policy  = policyRes.ok ? (await policyRes.json())[0] : null
 
-    const pdfBuffer = await renderDebitNotePdf({
-      debitNoteNo:  result.debitNoteNo,
-      issueDate:    body.debitNote.issueDate,
-      coverNoteNo:  policy?.cover_note_no ?? null,
-      policyNumber: policy?.policy_number ?? null,
-      clientName:   company?.name ?? '—',
-      clientAddress: company?.address ?? null,
-      classOfInsurance: policy?.class_of_insurance ?? null,
-      periodStart:  policy?.start_date ?? null,
-      periodEnd:    policy?.end_date ?? null,
-      insurer:      body.debitNote.insurer ?? policy?.insurer ?? null,
-      description:  policy?.description ?? null,
-      currency:     body.debitNote.currency,
-      lineItems:    body.debitNote.lineItems,
-      gstAmount:    body.debitNote.gstAmount ?? null,
-      total:        result.grossAmount,
-      paymentDueDate: body.debitNote.paymentDueDate ?? null,
-    })
+    let pdfPath: string
+    if (body.existingPdf) {
+      // Historical backfill with a real document on hand — use it as-is, don't regenerate.
+      pdfPath = body.existingPdf.storageUrl
+    } else {
+      const pdfBuffer = await renderDebitNotePdf({
+        debitNoteNo:  result.debitNoteNo,
+        issueDate:    body.debitNote.issueDate,
+        coverNoteNo:  policy?.cover_note_no ?? null,
+        policyNumber: policy?.policy_number ?? null,
+        clientName:   company?.name ?? '—',
+        clientAddress: company?.address ?? null,
+        classOfInsurance: policy?.class_of_insurance ?? null,
+        periodStart:  policy?.start_date ?? null,
+        periodEnd:    policy?.end_date ?? null,
+        insurer:      body.debitNote.insurer ?? policy?.insurer ?? null,
+        description:  policy?.description ?? null,
+        currency:     body.debitNote.currency,
+        lineItems:    body.debitNote.lineItems,
+        gstAmount:    body.debitNote.gstAmount ?? null,
+        total:        result.grossAmount,
+        paymentDueDate: body.debitNote.paymentDueDate ?? null,
+      })
+      pdfPath = `${result.companyId}/${result.debitNoteNo}.pdf`
+      await uploadPdf(pdfPath, pdfBuffer)
+    }
 
-    const pdfPath = `${result.companyId}/${result.debitNoteNo}.pdf`
-    await uploadPdf(pdfPath, pdfBuffer)
     await fetch(`${SB_URL}/rest/v1/debit_notes?id=eq.${result.debitNoteId}`, {
       method: 'PATCH', headers: sbH(),
       body: JSON.stringify({
         pdf_storage_url: pdfPath,
-        attachment_files: [{ filename: `${result.debitNoteNo}.pdf`, storage_url: pdfPath, source: 'generated' }],
+        attachment_files: [{
+          filename: body.existingPdf?.filename ?? `${result.debitNoteNo}.pdf`, storage_url: pdfPath,
+          source: body.existingPdf ? 'trs_debit_note' : 'generated',
+        }],
       }),
     })
     const downloadUrl = await signRead(pdfPath)

@@ -5,12 +5,12 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { UploadCloud, Plus, Download, Send, Loader2, ChevronRight, ChevronDown, FolderOpen } from 'lucide-react'
 import { AppSplitLayout, AppMainPanel, AppPageHeader, AppPageBody } from '@/components/app-shell'
-import { DataTableToolbar, DataTableSearch, DataTableFilter, DataTableSpacer } from '@/components/data-table/toolbar'
+import { DataTableToolbar, DataTableSearch } from '@/components/data-table/toolbar'
 import { StatusBadge } from '@/components/status-badge'
 import { DetailSection, DetailField } from '@/components/detail-section'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { openEngagementCompose } from '@/lib/engagement-handoff'
+import { SendDocumentsModal, type SendableAttachment } from '@/components/debit-notes/SendDocumentsModal'
 
 type Row = {
   id: string; debit_note_no: string; issue_date: string; payment_due_date: string | null
@@ -39,7 +39,6 @@ function DebitNotesContent() {
   const [rows, setRows] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
   const [q, setQ] = useState('')
-  const [status, setStatus] = useState<'all' | 'unpaid' | 'partially_paid' | 'paid'>('all')
   const [openId, setOpenId] = useState<string | null>(search.get('open'))
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
 
@@ -53,13 +52,9 @@ function DebitNotesContent() {
   useEffect(load, [companyId])
 
   const filtered = useMemo(() => rows.filter(r => {
-    if (status !== 'all' && r.status !== status) return false
     if (!q.trim()) return true
-    const lower = q.toLowerCase()
-    return [r.companies?.name, r.policies?.policy_number, r.insurer, r.debit_note_no].some(v => v?.toLowerCase().includes(lower))
-  }), [rows, q, status])
-
-  const counts = { unpaid: rows.filter(r => r.status === 'unpaid').length, partially_paid: rows.filter(r => r.status === 'partially_paid').length, paid: rows.filter(r => r.status === 'paid').length }
+    return r.companies?.name?.toLowerCase().includes(q.toLowerCase())
+  }), [rows, q])
 
   const groups = useMemo(() => {
     const map = new Map<string, Row[]>()
@@ -83,17 +78,13 @@ function DebitNotesContent() {
           description="Every debit note sent to a client — generated here or bulk-imported from PDFs."
           actions={(
             <>
-              <Link href="/debit-notes/import"><Button variant="outline" size="sm"><UploadCloud size={14} className="mr-1.5" /> Upload PDFs</Button></Link>
-              <Link href="/debit-notes/new"><Button size="sm"><Plus size={14} className="mr-1.5" /> Generate Debit Note</Button></Link>
+              <Link href="/debit-notes/historical"><Button variant="outline" size="sm"><UploadCloud size={14} className="mr-1.5" /> Generate Historical Debit Note</Button></Link>
+              <Link href="/debit-notes/new"><Button size="sm"><Plus size={14} className="mr-1.5" /> Generate new debit note</Button></Link>
             </>
           )}
         />
         <DataTableToolbar>
-          <DataTableSearch value={q} onChange={setQ} placeholder="Search company, policy, insurer, DN #…" />
-          <DataTableFilter label="Unpaid" active={status === 'unpaid'} count={counts.unpaid} onClick={() => setStatus(s => s === 'unpaid' ? 'all' : 'unpaid')} />
-          <DataTableFilter label="Partial" active={status === 'partially_paid'} count={counts.partially_paid} onClick={() => setStatus(s => s === 'partially_paid' ? 'all' : 'partially_paid')} />
-          <DataTableFilter label="Paid" active={status === 'paid'} count={counts.paid} onClick={() => setStatus(s => s === 'paid' ? 'all' : 'paid')} />
-          <DataTableSpacer />
+          <DataTableSearch value={q} onChange={setQ} placeholder="Search company…" />
         </DataTableToolbar>
         <AppPageBody padded={false}>
           <table className="w-full text-[12.5px]">
@@ -154,11 +145,7 @@ function DebitNotesContent() {
   )
 }
 
-type AttachmentFile = { filename: string; storage_url: string; source: 'client_invoice' | 'commission_statement' | 'trs_debit_note' | 'generated' | 'other' }
-const SOURCE_LABEL: Record<AttachmentFile['source'], string> = {
-  client_invoice: 'Client invoice', commission_statement: 'Commission statement (internal)',
-  trs_debit_note: 'TRS debit note', generated: 'TRS debit note', other: 'Document',
-}
+type AttachmentFile = SendableAttachment
 
 type Detail = Row & {
   line_items: { description: string; amount: number }[]
@@ -258,67 +245,16 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
       </DialogContent>
 
       {sendPickerOpen && detail && (
-        <SendDocumentsModal detail={detail} onClose={() => setSendPickerOpen(false)} />
+        <SendDocumentsModal
+          target={{
+            debitNoteId: detail.id, debitNoteNo: detail.debit_note_no, companyName: detail.companies?.name ?? null,
+            contactEmail: detail.contacts?.email ?? null,
+            contactName: [detail.contacts?.first_name, detail.contacts?.last_name].filter(Boolean).join(' ') || null,
+            attachmentFiles: detail.attachment_files,
+          }}
+          onClose={() => setSendPickerOpen(false)}
+        />
       )}
-    </Dialog>
-  )
-}
-
-function SendDocumentsModal({ detail, onClose }: { detail: Detail; onClose: () => void }) {
-  const [checked, setChecked] = useState<Set<string>>(new Set())
-  const [sending, setSending] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  function toggle(url: string) {
-    setChecked(prev => { const next = new Set(prev); next.has(url) ? next.delete(url) : next.add(url); return next })
-  }
-
-  async function send() {
-    if (checked.size === 0) { setError('Select at least one document to send.'); return }
-    setSending(true); setError(null)
-    try {
-      const res = await fetch(`/api/debit-notes/${detail.id}/zip-attachment`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ storageUrls: Array.from(checked) }),
-      })
-      const att = await res.json()
-      if (!res.ok) throw new Error(att.error ?? 'Could not prepare attachment')
-      const name = [detail.contacts?.first_name, detail.contacts?.last_name].filter(Boolean).join(' ')
-      openEngagementCompose({
-        toEmail: detail.contacts?.email ?? '',
-        toName: name || undefined,
-        subject: `Debit Note ${detail.debit_note_no} — ${detail.companies?.name ?? ''}`,
-        body: `Dear ${name || 'Sir/Madam'},\n\nPlease find attached the document(s) for Debit Note ${detail.debit_note_no}.\n\nThank you.`,
-        attachment: att,
-      })
-      onClose()
-    } catch (e) { setError(e instanceof Error ? e.message : 'Could not send'); setSending(false) }
-  }
-
-  return (
-    <Dialog open onOpenChange={v => !v && onClose()}>
-      <DialogContent className="sm:max-w-[420px]">
-        <DialogHeader><DialogTitle>Send documents</DialogTitle></DialogHeader>
-        <p className="text-[11.5px] text-muted-foreground -mt-2 mb-1">Nothing is pre-selected — choose exactly what {detail.contacts?.email} should receive.</p>
-        <div className="flex flex-col gap-1.5">
-          {detail.attachment_files.map(f => (
-            <label key={f.storage_url} className="flex items-center gap-2.5 rounded-md border border-[--border-subtle] px-2.5 py-2 cursor-pointer hover:bg-accent/40">
-              <input type="checkbox" checked={checked.has(f.storage_url)} onChange={() => toggle(f.storage_url)} className="accent-primary" />
-              <div className="flex flex-col min-w-0">
-                <span className="text-[12.5px] truncate">{f.filename}</span>
-                <span className="text-[10.5px] text-muted-foreground">{SOURCE_LABEL[f.source]}</span>
-              </div>
-            </label>
-          ))}
-        </div>
-        {error && <p className="text-[11.5px] text-rose-600">{error}</p>}
-        <div className="flex justify-end gap-2 pt-2">
-          <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
-          <Button size="sm" onClick={send} disabled={sending || checked.size === 0}>
-            {sending ? <Loader2 size={13} className="animate-spin mr-1.5" /> : <Send size={13} className="mr-1.5" />} Send
-          </Button>
-        </div>
-      </DialogContent>
     </Dialog>
   )
 }

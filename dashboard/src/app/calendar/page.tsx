@@ -218,7 +218,7 @@ function RenewalCard({ e }: { e: Extract<CalendarEvent, { type: 'renewal' }> }) 
         <Button variant="outline" size="xs" onClick={generateRenewalEmail} disabled={sending}>
           <Send size={11} className="mr-1.5" /> Generate renewal email
         </Button>
-        <Link href={`/debit-notes/new?policy_id=${e.policyId}`}>
+        <Link href={`/debit-notes/historical?policy_id=${e.policyId}`}>
           <Button variant="outline" size="xs"><FileText size={11} className="mr-1.5" /> Generate Debit Note</Button>
         </Link>
         {e.companyId && (
