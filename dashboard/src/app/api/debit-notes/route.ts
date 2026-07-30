@@ -66,6 +66,8 @@ export async function POST(req: NextRequest) {
     ])
     const company = companyRes.ok ? (await companyRes.json())[0] : null
     const policy  = policyRes.ok ? (await policyRes.json())[0] : null
+    const contact = contactRes && 'ok' in contactRes && contactRes.ok ? (await contactRes.json())[0] : null
+    const contactName = contact ? [contact.first_name, contact.last_name].filter(Boolean).join(' ') || null : null
 
     let pdfPath: string
     if (body.existingPdf) {
@@ -79,6 +81,7 @@ export async function POST(req: NextRequest) {
         policyNumber: policy?.policy_number ?? null,
         clientName:   company?.name ?? '—',
         clientAddress: company?.address ?? null,
+        clientContactName: contactName,
         classOfInsurance: policy?.class_of_insurance ?? null,
         periodStart:  policy?.start_date ?? null,
         periodEnd:    policy?.end_date ?? null,
@@ -113,7 +116,7 @@ export async function POST(req: NextRequest) {
       pdfPath,
       downloadUrl,
       companyName: company?.name ?? null,
-      contactEmail: contactRes && 'ok' in contactRes && contactRes.ok ? (await contactRes.json())[0]?.email ?? null : null,
+      contactEmail: contact?.email ?? null,
     })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })

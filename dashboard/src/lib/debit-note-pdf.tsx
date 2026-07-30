@@ -1,7 +1,8 @@
 /**
- * Renders a TRS-branded debit note PDF, matching the existing paper template (see the
- * "DEBIT NOTE" sample) — logo/letterhead, client + policy details, an itemized premium
- * table with optional GST, static bank/PayNow details, and the standard footer notes.
+ * Renders a TRS-branded debit note PDF — a 1:1 layout match of the real paper template
+ * (verified against TRS DN260607, Propelo Aviation) — logo/letterhead, client + policy details,
+ * an itemized premium table with optional GST, static bank/PayNow details, and the exact
+ * footer notes wording (including the template's quirky double "please make payment by" line).
  *
  * NOTE: the real TRS logo and the bank's PayNow QR code image are not available in this
  * repo (public/ is empty). Both are optional image assets — if
@@ -10,28 +11,29 @@
  * generated — scanning a wrong code would misdirect a real payment).
  */
 import { Document, Page, Text, View, StyleSheet, Image, renderToBuffer } from '@react-pdf/renderer'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 
 export type DebitNotePdfLineItem = { description: string; amount: number }
 
 export interface DebitNotePdfData {
-  debitNoteNo:       string
-  issueDate:         string
-  coverNoteNo?:       string | null
-  policyNumber?:      string | null
-  clientName:        string
-  clientAddress?:     string | null
-  classOfInsurance?:  string | null
-  periodStart?:       string | null
-  periodEnd?:         string | null
-  insurer?:           string | null
-  description?:       string | null
-  currency:          string
-  lineItems:         DebitNotePdfLineItem[]
-  gstAmount?:         number | null
-  total:             number
-  paymentDueDate?:    string | null
+  debitNoteNo:        string
+  issueDate:          string
+  coverNoteNo?:        string | null
+  policyNumber?:       string | null
+  clientName:         string
+  clientAddress?:      string | null
+  clientContactName?:  string | null   // renders as "ATTN: {name}" under the address, if present
+  classOfInsurance?:   string | null
+  periodStart?:        string | null
+  periodEnd?:          string | null
+  insurer?:            string | null
+  description?:        string | null
+  currency:           string
+  lineItems:          DebitNotePdfLineItem[]
+  gstAmount?:          number | null
+  total:              number
+  paymentDueDate?:     string | null
 }
 
 export const TRS_LETTERHEAD = {
@@ -51,13 +53,14 @@ export const TRS_LETTERHEAD = {
 
 const styles = StyleSheet.create({
   page:     { padding: 32, fontSize: 9, fontFamily: 'Helvetica', color: '#111' },
-  headerRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  logo:       { width: 90, height: 42, objectFit: 'contain' },
-  logoText:   { fontSize: 13, fontWeight: 700, textAlign: 'right' },
+  headerRow:  { alignItems: 'center', marginBottom: 4 },
+  logo:       { width: 90, height: 90, objectFit: 'contain' },
+  logoText:   { fontSize: 13, fontWeight: 700, textAlign: 'center' },
   coReg:      { textAlign: 'center', fontSize: 8, borderBottom: '1pt solid #111', paddingBottom: 6, marginBottom: 10 },
   title:      { fontSize: 16, fontWeight: 700, textAlign: 'center', marginBottom: 14 },
   topGrid:    { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
   addrBlock:  { width: '50%' },
+  attn:       { marginTop: 6 },
   metaBlock:  { width: '46%' },
   metaRow:    { flexDirection: 'row', marginBottom: 2 },
   metaLabel:  { width: 90, color: '#444' },
@@ -73,6 +76,9 @@ const styles = StyleSheet.create({
   totalLabel: { flex: 1, fontWeight: 700, fontSize: 11 },
   totalAmt:   { width: 90, textAlign: 'right', fontWeight: 700, fontSize: 11 },
   noteBlock:  { marginTop: 18, fontSize: 8, color: '#333', lineHeight: 1.5 },
+  paymentByRow: { flexDirection: 'row', marginTop: 4 },
+  paymentByLabel: { width: 130 },
+  paymentByValue: { fontWeight: 700 },
   bankBlock:  { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16 },
   bankRows:   { flex: 1 },
   bankRow:    { flexDirection: 'row', marginBottom: 2 },
@@ -84,6 +90,11 @@ const styles = StyleSheet.create({
 
 const fmt = (n: number, currency: string) => `${currency} ${n.toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 const fmtDate = (iso?: string | null) => iso ? new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'
+const fmtSlashDate = (iso?: string | null) => {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
+}
 
 function assetPath(name: string): string | null {
   const p = join(process.cwd(), 'public', 'debit-note', name)
@@ -99,7 +110,6 @@ export function DebitNotePdfDocument({ data }: { data: DebitNotePdfData }) {
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.headerRow}>
-          <View />
           {logoPath ? <Image src={logoPath} style={styles.logo} /> : <Text style={styles.logoText}>TRADE RISK{'\n'}SOLUTIONS</Text>}
         </View>
         <Text style={styles.coReg}>Co Reg No {TRS_LETTERHEAD.coRegNo}</Text>
@@ -109,21 +119,20 @@ export function DebitNotePdfDocument({ data }: { data: DebitNotePdfData }) {
           <View style={styles.addrBlock}>
             <Text style={{ fontWeight: 700 }}>{data.clientName}</Text>
             {(data.clientAddress ?? '').split('\n').filter(Boolean).map((l, i) => <Text key={i}>{l}</Text>)}
+            {data.clientContactName && <Text style={styles.attn}>ATTN: {data.clientContactName}</Text>}
           </View>
           <View style={styles.metaBlock}>
             <View style={styles.metaRow}><Text style={styles.metaLabel}>Date:</Text><Text style={styles.metaValue}>{fmtDate(data.issueDate)}</Text></View>
-            <View style={styles.metaRow}><Text style={styles.metaLabel}>Debit Note No</Text><Text style={styles.metaValue}>{data.debitNoteNo}</Text></View>
-            <View style={styles.metaRow}><Text style={styles.metaLabel}>Cover Note No:</Text><Text style={styles.metaValue}>{data.coverNoteNo || '—'}</Text></View>
+            <View style={styles.metaRow}><Text style={styles.metaLabel}>Debit Note No:</Text><Text style={styles.metaValue}>{data.debitNoteNo}</Text></View>
+            <View style={styles.metaRow}><Text style={styles.metaLabel}>Cover Note No:</Text><Text style={styles.metaValue}>{data.coverNoteNo || ''}</Text></View>
             <View style={styles.metaRow}><Text style={styles.metaLabel}>Policy No:</Text><Text style={styles.metaValue}>{data.policyNumber || '—'}</Text></View>
           </View>
         </View>
 
-        <View style={styles.section}><Text style={styles.sectionLabel}>Class of Insurance</Text><Text style={styles.sectionValue}>{data.classOfInsurance || '—'}</Text></View>
-        <View style={styles.section}><Text style={styles.sectionLabel}>Period of Insurance</Text><Text style={styles.sectionValue}>{fmtDate(data.periodStart)} to {fmtDate(data.periodEnd)} (both dates inclusive)</Text></View>
-        <View style={styles.section}><Text style={styles.sectionLabel}>Insurance Company</Text><Text style={styles.sectionValue}>{data.insurer || '—'}</Text></View>
-        {data.description && (
-          <View style={styles.section}><Text style={styles.sectionLabel}>Description</Text><Text style={styles.sectionValue}>{data.description}</Text></View>
-        )}
+        <View style={styles.section}><Text style={styles.sectionLabel}>Class of Insurance</Text><Text style={styles.sectionValue}>{data.classOfInsurance || ''}</Text></View>
+        <View style={styles.section}><Text style={styles.sectionLabel}>Period of Insurance</Text><Text style={styles.sectionValue}>{fmtSlashDate(data.periodStart)} to {fmtSlashDate(data.periodEnd)}</Text></View>
+        <View style={styles.section}><Text style={styles.sectionLabel}>Insurance Company</Text><Text style={styles.sectionValue}>{data.insurer || ''}</Text></View>
+        <View style={styles.section}><Text style={styles.sectionLabel}>Description</Text><Text style={styles.sectionValue}>{data.description || ''}</Text></View>
 
         <View style={styles.table}>
           {data.lineItems.map((li, i) => (
@@ -150,10 +159,18 @@ export function DebitNotePdfDocument({ data }: { data: DebitNotePdfData }) {
           <Text style={styles.totalAmt}>{fmt(data.total, data.currency)}</Text>
         </View>
 
+        {/* Matches the real template's exact wording, including the two separate
+            "please make payment by" mentions — the first trails off the Warranty sentence,
+            the second is its own labelled row with the actual date. */}
         <View style={styles.noteBlock}>
-          <Text>Note: This is not a tax invoice. The insurance company&apos;s tax invoice is attached or will be sent to you shortly.</Text>
-          <Text>Premium Payment Warranty is imposed by the insurer. To avoid automatic termination of policy, please make payment by {fmtDate(data.paymentDueDate)}.</Text>
-          <Text>Quote debit note no. on the remittance advice and email document to {TRS_LETTERHEAD.remittanceEmail}</Text>
+          <Text>Note:    This is not a tax invoice. The insurance company&apos;s tax invoice is attached or will be sent to you shortly.</Text>
+          <Text>              Premium Payment Warranty is imposed by the insurer. To avoid automatic termination of policy,</Text>
+          <Text>                 please make payment by</Text>
+          <View style={styles.paymentByRow}>
+            <Text style={styles.paymentByLabel}>Please make payment by</Text>
+            <Text style={styles.paymentByValue}>{fmtSlashDate(data.paymentDueDate)}</Text>
+          </View>
+          <Text style={{ marginTop: 4 }}>Quote debit note no. on the remittance advice and email document to {TRS_LETTERHEAD.remittanceEmail}</Text>
         </View>
 
         <View style={styles.bankBlock}>

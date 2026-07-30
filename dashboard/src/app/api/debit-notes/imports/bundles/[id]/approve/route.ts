@@ -64,12 +64,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const companyRes = await fetch(`${SB_URL}/rest/v1/companies?id=eq.${result.companyId}&select=name:company_name,address&limit=1`, { headers: sbH(), cache: 'no-store' })
     const companyRow = companyRes.ok ? (await companyRes.json())[0] : null
     const companyName = companyRow?.name ?? 'Unknown company'
+    const contactName = body.contact && 'name' in body.contact ? (body.contact.name ?? null)
+      : result.contactId
+        ? await fetch(`${SB_URL}/rest/v1/contacts?id=eq.${result.contactId}&select=first_name,last_name&limit=1`, { headers: sbH(), cache: 'no-store' })
+            .then(r => r.ok ? r.json() : null)
+            .then(rows => rows?.[0] ? [rows[0].first_name, rows[0].last_name].filter(Boolean).join(' ') || null : null)
+        : null
 
     // Generate the TRS-branded PDF from the confirmed fields.
     const pdfBuffer = await renderDebitNotePdf({
       debitNoteNo: result.debitNoteNo, issueDate: body.debitNote.issueDate,
       coverNoteNo: body.policy.coverNoteNo ?? null, policyNumber: body.policy.policyNumber ?? null,
       clientName: companyName, clientAddress: companyRow?.address ?? null,
+      clientContactName: contactName,
       classOfInsurance: body.policy.classOfInsurance ?? null,
       periodStart: body.policy.startDate ?? null, periodEnd: body.policy.endDate ?? null,
       insurer: body.debitNote.insurer ?? body.policy.insurer, description: body.policy.description ?? null,

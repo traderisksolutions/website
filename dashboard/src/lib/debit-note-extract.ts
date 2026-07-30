@@ -54,7 +54,10 @@ const SCHEMA_HINT = `Return ONLY a JSON object (no markdown fences, no prose) wi
     // other: anything else.
   "client_name": string|null,        // the insured / billed party's name
   "client_address": string|null,     // full mailing address, newline-joined if multi-line
-  "debit_note_no": string|null,      // or the invoice/document number if it's a tax invoice
+  "debit_note_no": string|null,      // ONLY the TRS debit note's own number (format "DN######",
+    // e.g. "DN260607" or "DN 260607") — this appears exclusively on a trs_debit_note document.
+    // Never fill this from an insurer's own invoice/reference number (e.g. "HO/MR1362216") —
+    // leave it null on client_invoice and commission_statement documents.
   "cover_note_no": string|null,
   "policy_number": string|null,
   "class_of_insurance": string|null, // e.g. "Contractors' All Risk", "Work Injury Compensation"
@@ -72,11 +75,21 @@ const SCHEMA_HINT = `Return ONLY a JSON object (no markdown fences, no prose) wi
 }
 All dates must be normalised to YYYY-MM-DD regardless of the source format (e.g. "2-Jun-26" → "2026-06-02").`
 
+// Hard requirement, not just a prompt hint: a debit note number is always "DN" + digits (TRS's
+// own numbering convention). Anything else — an insurer's own invoice/reference number, a cover
+// note number, etc. — is discarded rather than trusted, regardless of what the model returns.
+const DN_PATTERN = /^DN\s?\d+/i
+export function normalizeDebitNoteNo(raw: string | null | undefined): string | null {
+  if (!raw) return null
+  const trimmed = raw.trim()
+  return DN_PATTERN.test(trimmed) ? trimmed : null
+}
+
 function safeParse(text: string): ExtractedDebitNote {
   try {
     const cleaned = text.replace(/^```(json)?/i, '').replace(/```$/, '').trim()
     const parsed = JSON.parse(cleaned)
-    return { ...EMPTY, ...parsed }
+    return { ...EMPTY, ...parsed, debit_note_no: normalizeDebitNoteNo(parsed.debit_note_no) }
   } catch { return EMPTY }
 }
 
@@ -123,6 +136,7 @@ export function mergeBundleExtractions(files: { docType: DocType; data: Extracte
   const merged: ExtractedDebitNote = { ...EMPTY }
   for (const cand of priorityOrder) {
     for (const key of Object.keys(merged) as (keyof ExtractedDebitNote)[]) {
+      if (key === 'debit_note_no') continue // sourced only from the TRS debit note itself, below
       if ((merged[key] === null || merged[key] === undefined) && cand[key] != null) {
         (merged as Record<string, unknown>)[key] = cand[key]
       }
@@ -131,6 +145,9 @@ export function mergeBundleExtractions(files: { docType: DocType; data: Extracte
   // Commission always comes from the commission statement specifically, if one was provided.
   if (commissionDoc?.commission_rate   != null) merged.commission_rate   = commissionDoc.commission_rate
   if (commissionDoc?.commission_amount != null) merged.commission_amount = commissionDoc.commission_amount
+  // The debit note number only ever comes from an actual TRS debit note document — never from an
+  // insurer's own invoice/reference number — and only if it passes the "DN######" hard check.
+  merged.debit_note_no = normalizeDebitNoteNo(trsDn?.debit_note_no)
 
   const policyNumbers = Array.from(new Set(files.map(f => f.data.policy_number).filter((p): p is string => !!p)))
   const warning = policyNumbers.length > 1

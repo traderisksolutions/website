@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { mergeBundleExtractions, type ExtractedDebitNote, type DocType } from '@/lib/debit-note-extract'
+import { mergeBundleExtractions, normalizeDebitNoteNo, type ExtractedDebitNote, type DocType } from '@/lib/debit-note-extract'
 
 const EMPTY: ExtractedDebitNote = {
   doc_type: 'other', client_name: null, client_address: null, debit_note_no: null,
@@ -65,5 +65,38 @@ describe('mergeBundleExtractions', () => {
     const { merged, warning } = mergeBundleExtractions([])
     expect(merged.client_name).toBeNull()
     expect(warning).toBeNull()
+  })
+
+  it('only sources debit_note_no from the TRS debit note, never an insurer invoice number', () => {
+    const { merged } = mergeBundleExtractions([
+      file('client_invoice', { debit_note_no: 'HO/MR1362216' }), // the insurer's own invoice number — must be ignored
+      file('trs_debit_note', { debit_note_no: 'DN260607' }),
+    ])
+    expect(merged.debit_note_no).toBe('DN260607')
+  })
+
+  it('drops debit_note_no entirely when no TRS debit note file was uploaded', () => {
+    const { merged } = mergeBundleExtractions([
+      file('client_invoice', { debit_note_no: 'HO/MR1362216' }),
+      file('commission_statement', { debit_note_no: 'HO/MR1362216A' }),
+    ])
+    expect(merged.debit_note_no).toBeNull()
+  })
+})
+
+describe('normalizeDebitNoteNo', () => {
+  it('accepts "DN" followed by digits, with or without a space', () => {
+    expect(normalizeDebitNoteNo('DN260607')).toBe('DN260607')
+    expect(normalizeDebitNoteNo('DN 260607')).toBe('DN 260607')
+    expect(normalizeDebitNoteNo('dn260607')).toBe('dn260607')
+  })
+
+  it('rejects an insurer invoice number that is not DN-formatted', () => {
+    expect(normalizeDebitNoteNo('HO/MR1362216')).toBeNull()
+  })
+
+  it('rejects null/empty input', () => {
+    expect(normalizeDebitNoteNo(null)).toBeNull()
+    expect(normalizeDebitNoteNo('')).toBeNull()
   })
 })
