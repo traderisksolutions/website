@@ -40,7 +40,7 @@ function DebitNotesContent() {
   const [loading, setLoading] = useState(true)
   const [q, setQ] = useState('')
   const [status, setStatus] = useState<'all' | 'unpaid' | 'partially_paid' | 'paid'>('all')
-  const [openId, setOpenId] = useState<string | null>(null)
+  const [openId, setOpenId] = useState<string | null>(search.get('open'))
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
 
   function load() {
