@@ -1,5 +1,5 @@
 /**
- * POST /api/debit-notes/imports/bundles/from-zip  { storageUrl, originalFilename }
+ * POST /api/debit-notes/imports/bundles/from-zip  { storage_url, original_filename }
  * A renewal event's 2-3 files are often already zipped together — this unpacks the uploaded
  * zip (already staged via the same signed-URL flow individual PDFs use) into its member PDFs,
  * registers them as one bundle exactly like the manual multi-file picker does, and discards the
@@ -20,8 +20,8 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
-    const { storageUrl } = await req.json() as { storageUrl?: string; originalFilename?: string }
-    if (!storageUrl) return NextResponse.json({ error: 'storageUrl required' }, { status: 400 })
+    const { storage_url: storageUrl } = await req.json() as { storage_url?: string; original_filename?: string }
+    if (!storageUrl) return NextResponse.json({ error: 'storage_url required' }, { status: 400 })
 
     const zipBytes = await downloadObject(storageUrl)
     const zip = new AdmZip(zipBytes)
