@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, UploadCloud, Loader2, CheckCircle2, XCircle, AlertTriangle, FileText, Folder, ChevronRight, Cloud } from 'lucide-react'
+import { ArrowLeft, UploadCloud, Loader2, CheckCircle2, XCircle, AlertTriangle, FileText, Folder, ChevronRight, Cloud, Save } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
@@ -43,21 +43,47 @@ export default function DebitNoteImportPage() {
     await fetch(`/api/debit-notes/imports/bundles/${id}/extract`, { method: 'POST' })
   }
 
+  async function uploadOne(file: File): Promise<{ storage_url: string; original_filename: string }> {
+    const supabase = createClient()
+    const uu = await fetch('/api/debit-notes/imports/upload-url', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filename: file.name }) })
+    const ud = await uu.json()
+    if (!uu.ok) throw new Error(ud.error ?? `Could not start upload for ${file.name}`)
+    const { error: upErr } = await supabase.storage.from('debit-notes').uploadToSignedUrl(ud.path, ud.token, file, { contentType: file.type || 'application/octet-stream' })
+    if (upErr) throw new Error(`Upload failed: ${upErr.message}`)
+    return { storage_url: ud.path, original_filename: file.name }
+  }
+
   async function onAddBundle(files: FileList | null) {
     if (!files || files.length === 0) return
-    const list = Array.from(files).slice(0, 3).filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'))
-    if (!list.length) { setError('Only PDF files are accepted.'); return }
+    const all = Array.from(files)
+
+    // A single .zip is a whole bundle already packed together — unpack it server-side instead
+    // of asking for its files individually.
+    if (all.length === 1 && (all[0].type === 'application/zip' || all[0].name.toLowerCase().endsWith('.zip'))) {
+      setError(null); setProgress({ total: 1, done: 0 })
+      try {
+        const uploaded = await uploadOne(all[0])
+        setProgress({ total: 1, done: 1 })
+        const created = await fetch('/api/debit-notes/imports/bundles/from-zip', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(uploaded) })
+        const bundle = await created.json()
+        if (!created.ok) throw new Error(bundle.error ?? 'Could not unpack the zip')
+        await extractBundle(bundle.id)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Upload failed')
+      } finally {
+        setProgress(null)
+        loadBundles()
+      }
+      return
+    }
+
+    const list = all.slice(0, 3).filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'))
+    if (!list.length) { setError('Only PDF (or a single .zip containing them) are accepted.'); return }
     setError(null); setProgress({ total: list.length, done: 0 })
-    const supabase = createClient()
     try {
       const uploaded: { storage_url: string; original_filename: string }[] = []
       for (const file of list) {
-        const uu = await fetch('/api/debit-notes/imports/upload-url', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filename: file.name }) })
-        const ud = await uu.json()
-        if (!uu.ok) throw new Error(ud.error ?? `Could not start upload for ${file.name}`)
-        const { error: upErr } = await supabase.storage.from('debit-notes').uploadToSignedUrl(ud.path, ud.token, file, { contentType: 'application/pdf' })
-        if (upErr) throw new Error(`Upload failed: ${upErr.message}`)
-        uploaded.push({ storage_url: ud.path, original_filename: file.name })
+        uploaded.push(await uploadOne(file))
         setProgress(p => p && { ...p, done: p.done + 1 })
       }
       const created = await fetch('/api/debit-notes/imports/bundles', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ files: uploaded }) })
@@ -88,10 +114,10 @@ export default function DebitNoteImportPage() {
 
       <div className="flex items-center gap-3 mb-6">
         <label className="flex-1">
-          <input ref={fileInputRef} type="file" accept=".pdf,application/pdf" multiple className="hidden"
+          <input ref={fileInputRef} type="file" accept=".pdf,application/pdf,.zip,application/zip" multiple className="hidden"
             onChange={e => { onAddBundle(e.target.files); e.target.value = '' }} />
           <Button onClick={() => fileInputRef.current?.click()} className="w-full" disabled={!!progress}>
-            <UploadCloud size={14} className="mr-1.5" /> + Add renewal bundle (up to 3 files)
+            <UploadCloud size={14} className="mr-1.5" /> + Add renewal bundle (up to 3 PDFs, or one .zip)
           </Button>
         </label>
         <Button variant="outline" onClick={() => setShowOneDrive(s => !s)}>
@@ -208,6 +234,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
   const [recipient, setRecipient] = useState<PickerValue | null>(
     bundle.companies ? { companyId: bundle.companies.id, companyName: bundle.companies.name, contactId: null, contactEmail: null, contactName: null } : null,
   )
+  const [debitNoteNo, setDebitNoteNo] = useState(m?.debit_note_no ?? '')
   const [policyNumber, setPolicyNumber] = useState(m?.policy_number ?? '')
   const [coverNoteNo, setCoverNoteNo] = useState(m?.cover_note_no ?? '')
   const [insurer, setInsurer] = useState(m?.insurer ?? '')
@@ -223,7 +250,35 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
   const [issueDate, setIssueDate] = useState(m?.issue_date ?? '')
   const [paymentDueDate, setPaymentDueDate] = useState(m?.payment_due_date ?? '')
   const [busy, setBusy] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+
+  function currentMerged(): ExtractedDebitNote {
+    return {
+      doc_type: m?.doc_type ?? 'other', debit_note_no: debitNoteNo || null,
+      policy_number: policyNumber || null, cover_note_no: coverNoteNo || null,
+      insurer: insurer || null, class_of_insurance: classOfInsurance || null,
+      currency, description: description || null, period_start: periodStart || null, period_end: periodEnd || null,
+      gross_premium: grossPremium || null, gst_amount: gstAmount || null,
+      commission_rate: commissionRate || null, commission_amount: commissionAmount || null,
+      client_name: m?.client_name ?? null, client_address: m?.client_address ?? null,
+      issue_date: issueDate || null, payment_due_date: paymentDueDate || null,
+    }
+  }
+
+  async function saveDraft() {
+    setSaving(true); setErr(null); setSaved(false)
+    try {
+      const res = await fetch(`/api/debit-notes/imports/bundles/${bundle.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ merged: currentMerged() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Could not save draft')
+      setSaved(true); setTimeout(() => setSaved(false), 2500)
+    } catch (e) { setErr(e instanceof Error ? e.message : 'Could not save draft') } finally { setSaving(false) }
+  }
 
   async function approve() {
     if (!recipient?.companyId || !insurer.trim() || !grossPremium) { setErr('Company, insurer and a premium amount are required.'); return }
@@ -242,6 +297,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
           debitNote: {
             currency, lineItems: [{ description: 'Gross Premium collected on behalf of Insurance Company', amount: grossPremium }],
             gstAmount: gstAmount || null, commissionRate: commissionRate || null, commission: commissionAmount || null,
+            debitNoteNo: debitNoteNo || null,
             issueDate: issueDate || new Date().toISOString().slice(0, 10), paymentDueDate: paymentDueDate || null, insurer,
           },
         }),
@@ -284,6 +340,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
       <CompanyContactPicker value={recipient} onChange={setRecipient} />
 
       <div className="grid grid-cols-3 gap-2">
+        <Field label="Debit note no."><input value={debitNoteNo} onChange={e => setDebitNoteNo(e.target.value)} placeholder="Auto-generated if left blank" className={inp} /></Field>
         <Field label="Policy number"><input value={policyNumber} onChange={e => setPolicyNumber(e.target.value)} className={inp} /></Field>
         <Field label="Cover note no."><input value={coverNoteNo} onChange={e => setCoverNoteNo(e.target.value)} className={inp} /></Field>
         <Field label="Insurer (required)"><input value={insurer} onChange={e => setInsurer(e.target.value)} className={inp} /></Field>
@@ -307,9 +364,13 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
 
       {err && <p className="text-[11.5px] text-rose-600">{err}</p>}
 
-      <div className="flex justify-end gap-2">
-        <Button variant="ghost" size="sm" onClick={reject} disabled={busy}><XCircle size={13} className="mr-1.5" /> Reject</Button>
-        <Button size="sm" onClick={approve} disabled={busy}>{busy ? <Loader2 size={13} className="animate-spin mr-1.5" /> : <CheckCircle2 size={13} className="mr-1.5" />} Approve</Button>
+      <div className="flex items-center justify-end gap-2">
+        {saved && <span className="text-[11.5px] text-emerald-600 mr-auto">Draft saved</span>}
+        <Button variant="ghost" size="sm" onClick={reject} disabled={busy || saving}><XCircle size={13} className="mr-1.5" /> Reject</Button>
+        <Button variant="outline" size="sm" onClick={saveDraft} disabled={busy || saving}>
+          {saving ? <Loader2 size={13} className="animate-spin mr-1.5" /> : <Save size={13} className="mr-1.5" />} Save draft
+        </Button>
+        <Button size="sm" onClick={approve} disabled={busy || saving}>{busy ? <Loader2 size={13} className="animate-spin mr-1.5" /> : <CheckCircle2 size={13} className="mr-1.5" />} Approve</Button>
       </div>
     </div>
   )

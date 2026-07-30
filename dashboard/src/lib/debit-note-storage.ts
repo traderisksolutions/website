@@ -53,3 +53,17 @@ export async function signRead(path: string, expiresIn = 3600): Promise<string> 
 }
 
 export const bareObjectPath = (path: string) => `${SB_URL}/storage/v1/object/${BUCKET}/${path}`
+
+/** Downloads a stored object's raw bytes (service key — private bucket). */
+export async function downloadObject(path: string): Promise<Buffer> {
+  const res = await fetch(`${SB_URL}/storage/v1/object/${BUCKET}/${path}`, { headers: stH() })
+  if (!res.ok) throw new Error(`Download failed: ${(await res.text()).slice(0, 300)}`)
+  return Buffer.from(await res.arrayBuffer())
+}
+
+/** Best-effort cleanup of a temp object (e.g. an uploaded zip once it's been unpacked). Never throws. */
+export async function deleteObject(path: string): Promise<void> {
+  await fetch(`${SB_URL}/storage/v1/object/${BUCKET}`, {
+    method: 'DELETE', headers: sbH(), body: JSON.stringify({ prefixes: [path] }),
+  }).catch(() => {})
+}

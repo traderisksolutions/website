@@ -27,6 +27,7 @@ type Body = {
   debitNote: {
     currency: string; lineItems: { description: string; amount: number }[]
     gstAmount?: number | null; commissionRate?: number | null; commission?: number | null
+    debitNoteNo?: string | null
     issueDate: string; paymentDueDate?: string | null; insurer?: string | null
   }
 }

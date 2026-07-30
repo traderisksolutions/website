@@ -172,6 +172,10 @@ export type DebitNoteInput = {
   feeRebate?:         number | null
   commission?:        number | null
   commissionRate?:    number | null
+  /** Preserve the original number when backfilling a historical debit note (e.g. "DN 260610"
+   *  read off the TRS PDF itself) instead of minting a new DN+date one. Auto-generated when
+   *  omitted, which is always the case for a brand-new manual debit note. */
+  debitNoteNo?:       string | null
   issueDate:          string
   paymentDueDate?:    string | null
   insurer?:           string | null
@@ -207,7 +211,12 @@ export async function commitDebitNote(input: {
   const policyId    = await resolvePolicy(input.policy, customerId)
 
   const grossAmount   = input.debitNote.lineItems.reduce((s, l) => s + l.amount, 0) + (input.debitNote.gstAmount ?? 0)
-  const debitNoteNo   = await generateDebitNoteNumber(input.debitNote.issueDate)
+  const explicitNo    = input.debitNote.debitNoteNo?.trim() || null
+  if (explicitNo) {
+    const clash = await pg(`debit_notes?debit_note_no=eq.${enc(explicitNo)}&select=id&limit=1`)
+    if (clash[0]) throw new Error(`Debit note number "${explicitNo}" is already in use`)
+  }
+  const debitNoteNo = explicitNo || await generateDebitNoteNumber(input.debitNote.issueDate)
 
   const created = await pg('debit_notes', {
     method: 'POST',
