@@ -6,6 +6,7 @@ import SignaturePanel          from '@/components/SignaturePanel'
 import InsurerDirectoryPanel   from '@/components/InsurerDirectoryPanel'
 import MasterEmailTemplatePanel from '@/components/MasterEmailTemplatePanel'
 import ClientRecoTemplatePanel  from '@/components/ClientRecoTemplatePanel'
+import DebitNoteEmailTemplatePanel from '@/components/DebitNoteEmailTemplatePanel'
 import RfqOpsPanel              from '@/components/RfqOpsPanel'
 import HighlightBackfillPanel   from '@/components/HighlightBackfillPanel'
 import ThreadContactBackfillPanel from '@/components/ThreadContactBackfillPanel'
@@ -156,6 +157,7 @@ function SettingsContent() {
           <>
             <MasterEmailTemplatePanel />
             <ClientRecoTemplatePanel />
+            <DebitNoteEmailTemplatePanel />
           </>
         )}
       </div>

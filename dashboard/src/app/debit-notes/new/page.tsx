@@ -244,6 +244,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
         companyName: detail.companies?.name ?? null, contactEmail: detail.contacts?.email ?? null,
         contactName: [detail.contacts?.first_name, detail.contacts?.last_name].filter(Boolean).join(' ') || null,
         attachmentFiles: detail.attachment_files ?? [],
+        companyId: detail.company_id ?? null, amount: detail.gross_amount ?? null, currency: detail.currency ?? null, insurer: detail.insurer ?? null,
       })
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not load debit note') } finally { setBusy(false) }
   }

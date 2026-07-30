@@ -5,6 +5,7 @@ import { Send, Loader2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { openEngagementCompose } from '@/lib/engagement-handoff'
+import { DEBIT_NOTE_TEMPLATE_KEY } from '@/components/DebitNoteEmailTemplatePanel'
 
 export type SendableAttachment = {
   filename: string; storage_url: string
@@ -20,6 +21,16 @@ export type SendDocumentsTarget = {
   debitNoteId: string; debitNoteNo: string; companyName: string | null
   contactEmail: string | null; contactName: string | null
   attachmentFiles: SendableAttachment[]
+  /** Threaded through so the eventual send can auto-link the To/Cc address(es) to this company
+   *  in Active Contacts, and so placeholders in the debit note email template can be filled. */
+  companyId?: string | null
+  amount?: number | null; currency?: string | null; insurer?: string | null
+}
+
+type Template = { subject: string; body: string }
+
+function fillPlaceholders(text: string, vars: Record<string, string>): string {
+  return Object.entries(vars).reduce((s, [k, v]) => s.replaceAll(`{${k}}`, v), text)
 }
 
 /**
@@ -47,12 +58,29 @@ export function SendDocumentsModal({ target, onClose }: { target: SendDocumentsT
       })
       const att = await res.json()
       if (!res.ok) throw new Error(att.error ?? 'Could not prepare attachment')
+
+      const tplRes = await fetch(`/api/settings?key=${DEBIT_NOTE_TEMPLATE_KEY}`, { cache: 'no-store' })
+      const tplRow = tplRes.ok ? await tplRes.json() : null
+      let tpl: Template = {
+        subject: `Debit Note ${target.debitNoteNo} — ${target.companyName ?? ''}`,
+        body: `Dear ${target.contactName || 'Sir/Madam'},\n\nPlease find attached the document(s) for Debit Note ${target.debitNoteNo}.\n\nThank you.`,
+      }
+      if (tplRow?.value) {
+        try { tpl = { ...tpl, ...JSON.parse(tplRow.value) } } catch { /* fall back to default above */ }
+      }
+      const vars = {
+        debit_note_no: target.debitNoteNo, company_name: target.companyName ?? '',
+        contact_name: target.contactName || 'Sir/Madam', amount: target.amount != null ? target.amount.toLocaleString('en-SG', { minimumFractionDigits: 2 }) : '',
+        currency: target.currency ?? '', insurer: target.insurer ?? '',
+      }
+
       openEngagementCompose({
         toEmail: target.contactEmail ?? '',
         toName: target.contactName || undefined,
-        subject: `Debit Note ${target.debitNoteNo} — ${target.companyName ?? ''}`,
-        body: `Dear ${target.contactName || 'Sir/Madam'},\n\nPlease find attached the document(s) for Debit Note ${target.debitNoteNo}.\n\nThank you.`,
+        subject: fillPlaceholders(tpl.subject, vars),
+        body: fillPlaceholders(tpl.body, vars),
         attachment: att,
+        companyId: target.companyId ?? undefined,
       })
       onClose()
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not send'); setSending(false) }

@@ -15,7 +15,12 @@ type Sender    = { email: string; label: string; type: string }
 type SigOption = { id: string; name: string; title: string | null; phone: string | null; email: string | null }
 
 export type EmailAttachmentRef = { filename: string; mime_type?: string; storage_url: string }
-export type NewEmailDraft = { toEmail: string; toName?: string; subject: string; body: string; attachment?: EmailAttachmentRef }
+export type NewEmailDraft = {
+  toEmail: string; toName?: string; subject: string; body: string; attachment?: EmailAttachmentRef
+  /** When set (e.g. sending a debit note), whatever address ends up in To/Cc at send time gets
+   *  saved/linked to this company in Active Contacts — best-effort, never blocks the send. */
+  companyId?: string
+}
 
 export function NewEmailComposeModal({ initial, onClose, onSent }: {
   initial: NewEmailDraft
@@ -82,6 +87,17 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
       })
       const sendData = await sendRes.json()
       if (!sendRes.ok) throw new Error(sendData.error || 'Send failed')
+
+      if (initial.companyId) {
+        const addresses = [to.trim(), ...ccList].filter(e => e.includes('@'))
+        void Promise.all(addresses.map(email =>
+          fetch(`/api/companies/${initial.companyId}/contacts`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, name: email === to.trim() ? initial.toName : undefined, role: 'stakeholder' }),
+          }).catch(() => {})
+        ))
+      }
+
       onSent?.(sendData.threadDbId ?? null)
       onClose()
     } catch (e) {
