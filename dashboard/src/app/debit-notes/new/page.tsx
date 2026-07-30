@@ -39,6 +39,14 @@ export default function NewDebitNotePage() {
   }, [])
   useEffect(loadBundles, [loadBundles])
 
+  // Extraction runs server-side after the upload response returns, so without this the screen
+  // would show "still extracting" forever until the user manually reloads the page.
+  useEffect(() => {
+    if (!bundles.some(b => b.status === 'pending' || b.status === 'extracting')) return
+    const t = setInterval(loadBundles, 4000)
+    return () => clearInterval(t)
+  }, [bundles, loadBundles])
+
   async function extractBundle(id: string) {
     await fetch(`/api/debit-notes/imports/bundles/${id}/extract`, { method: 'POST' })
   }
@@ -99,6 +107,15 @@ export default function NewDebitNotePage() {
 
   const needsReview = bundles.filter(b => b.status === 'needs_review' || b.status === 'error')
   const inFlight = bundles.filter(b => b.status === 'pending' || b.status === 'extracting')
+  const [cancelling, setCancelling] = useState<string | null>(null)
+
+  async function cancelBundle(id: string) {
+    setCancelling(id)
+    try {
+      await fetch(`/api/debit-notes/imports/bundles/${id}/reject`, { method: 'POST' })
+      loadBundles()
+    } finally { setCancelling(null) }
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-6">
@@ -126,7 +143,25 @@ export default function NewDebitNotePage() {
         </div>
       )}
       {error && <p className="mb-6 text-[11.5px] text-rose-600 whitespace-pre-wrap">{error}</p>}
-      {inFlight.length > 0 && <p className="mb-4 text-[11.5px] text-muted-foreground flex items-center gap-1.5"><Loader2 size={11} className="animate-spin" /> {inFlight.length} still extracting…</p>}
+      {inFlight.length > 0 && (
+        <div className="mb-4 flex flex-col gap-1.5">
+          {inFlight.map(b => (
+            <div key={b.id} className="flex items-center justify-between gap-2 rounded-lg border border-[--border-subtle] px-3 py-1.5 text-[11.5px] text-muted-foreground">
+              <span className="flex items-center gap-1.5 truncate">
+                <Loader2 size={11} className="animate-spin flex-shrink-0" />
+                {b.pdf_import_items.map(it => it.original_filename).filter(Boolean).join(', ') || 'Extracting…'}
+              </span>
+              <button
+                onClick={() => cancelBundle(b.id)}
+                disabled={cancelling === b.id}
+                className="flex-shrink-0 text-[11px] text-rose-600 hover:underline disabled:opacity-50"
+              >
+                {cancelling === b.id ? 'Cancelling…' : 'Cancel'}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       <h2 className="text-[13px] font-semibold mb-2">Review queue {needsReview.length > 0 && `(${needsReview.length})`}</h2>
       {loadingBundles ? (
