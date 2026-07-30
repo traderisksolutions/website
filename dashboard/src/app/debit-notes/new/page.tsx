@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Loader2, Plus, Trash2, FileText, Download, Send } from 'lucide-react'
 import { CompanyContactPicker, type PickerValue } from '@/components/company-contact-picker/CompanyContactPicker'
+import { Field } from '@/components/ui/field'
 import { openEngagementCompose } from '@/lib/engagement-handoff'
 
 const inp = 'text-[12.5px] border border-border rounded-md px-2 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-primary/25 w-full'
@@ -197,24 +198,26 @@ function NewDebitNoteForm() {
             </select>
           ) : (
             <div className="grid grid-cols-2 gap-3">
-              <input value={policyNumber} onChange={e => setPolicyNumber(e.target.value)} placeholder="Policy number" className={inp} />
-              <input value={coverNoteNo} onChange={e => setCoverNoteNo(e.target.value)} placeholder="Cover note no." className={inp} />
-              <input value={insurer} onChange={e => setInsurer(e.target.value)} placeholder="Insurance company (required)" className={inp} />
-              <input value={classOfInsurance} onChange={e => setClassOfInsurance(e.target.value)} placeholder="Class of insurance" className={inp} />
-              <select value={broker} onChange={e => setBroker(e.target.value)} className={inp}>
-                <option value="">Broker…</option>
-                {employees.map(e => <option key={e.id} value={e.name}>{e.name}</option>)}
-              </select>
-              <select value={currency} onChange={e => setCurrency(e.target.value)} className={inp}>
-                {['SGD', 'USD', 'MYR', 'IDR'].map(c => <option key={c}>{c}</option>)}
-              </select>
-              <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Period start
-                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={inp} />
-              </label>
-              <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Period end
-                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={inp} />
-              </label>
-              <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description (site address / project)" rows={2} className={`${inp} col-span-2`} />
+              <Field label="Policy number"><input value={policyNumber} onChange={e => setPolicyNumber(e.target.value)} className={inp} /></Field>
+              <Field label="Cover note no."><input value={coverNoteNo} onChange={e => setCoverNoteNo(e.target.value)} className={inp} /></Field>
+              <Field label="Insurance company (required)"><input value={insurer} onChange={e => setInsurer(e.target.value)} className={inp} /></Field>
+              <Field label="Class of insurance"><input value={classOfInsurance} onChange={e => setClassOfInsurance(e.target.value)} className={inp} /></Field>
+              <Field label="Broker">
+                <select value={broker} onChange={e => setBroker(e.target.value)} className={inp}>
+                  <option value="">Select…</option>
+                  {employees.map(e => <option key={e.id} value={e.name}>{e.name}</option>)}
+                </select>
+              </Field>
+              <Field label="Currency">
+                <select value={currency} onChange={e => setCurrency(e.target.value)} className={inp}>
+                  {['SGD', 'USD', 'MYR', 'IDR'].map(c => <option key={c}>{c}</option>)}
+                </select>
+              </Field>
+              <Field label="Period start"><input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={inp} /></Field>
+              <Field label="Period end"><input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={inp} /></Field>
+              <Field label="Description (site address / project)" className="col-span-2">
+                <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} className={inp} />
+              </Field>
             </div>
           )}
 
@@ -247,7 +250,7 @@ function NewDebitNoteForm() {
             <label className="flex items-center gap-2 text-[12.5px]">
               <input type="checkbox" checked={gstEnabled} onChange={e => { setGstEnabled(e.target.checked); if (e.target.checked && !gstAmount) setGstAmount(Math.round(lineTotal * 0.09 * 100) / 100) }} className="accent-primary" /> Add GST
             </label>
-            {gstEnabled && <input type="number" value={gstAmount} onChange={e => setGstAmount(Number(e.target.value))} placeholder="GST amount" className={inp} />}
+            {gstEnabled && <Field label="GST amount"><input type="number" value={gstAmount} onChange={e => setGstAmount(Number(e.target.value))} className={inp} /></Field>}
           </div>
 
           <div className="grid grid-cols-3 gap-3 max-w-2xl">

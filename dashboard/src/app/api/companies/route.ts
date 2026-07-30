@@ -42,8 +42,16 @@ export async function POST(req: NextRequest) {
     if (!name) return NextResponse.json({ error: 'name required' }, { status: 400 })
 
     const companyId = await resolveCompany({ companyName: name, address: body.address ?? null, type: body.type ?? null })
-    void logActivity({ action: 'company.created', resource_type: 'company', resource_id: companyId, new_value: { name } })
-    return NextResponse.json({ id: companyId, name })
+
+    // resolveCompany silently reuses a case-insensitive name match instead of creating a
+    // duplicate — fetch the row back so the caller shows the company's real stored name (which
+    // may differ in casing/spelling from what was typed) rather than echoing the input blind.
+    const res = await fetch(`${SB_URL}/rest/v1/companies?id=eq.${companyId}&select=id,name:company_name&limit=1`, { headers: sbH(), cache: 'no-store' })
+    const row = res.ok ? (await res.json())[0] : null
+    const matchedExisting = row?.name && row.name.toLowerCase() !== name.toLowerCase()
+
+    void logActivity({ action: 'company.created', resource_type: 'company', resource_id: companyId, new_value: { name: row?.name ?? name, typed_as: name } })
+    return NextResponse.json({ id: companyId, name: row?.name ?? name, matchedExisting })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }

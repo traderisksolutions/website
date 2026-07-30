@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Building2, Search, Plus, X, Loader2, Mail, Check, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Field } from '@/components/ui/field'
 import { cn } from '@/lib/utils'
 
 /**
@@ -48,6 +49,7 @@ export function CompanyContactPicker({ value, onChange, className }: {
   const [newPhone, setNewPhone] = useState('')
   const [savingContact, setSavingContact] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const boxRef = useRef<HTMLDivElement>(null)
 
   // Debounced company search.
@@ -93,12 +95,13 @@ export function CompanyContactPicker({ value, onChange, className }: {
   async function createCompany() {
     const name = query.trim()
     if (!name) return
-    setCreating(true); setError(null)
+    setCreating(true); setError(null); setNotice(null)
     try {
       const res = await fetch('/api/companies', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Could not create company')
       setOpen(false); setQuery('')
+      if (data.matchedExisting) setNotice(`Matched an existing company: "${data.name}" — not a duplicate.`)
       onChange({ companyId: data.id, companyName: data.name, contactId: null, contactEmail: null, contactName: null })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not create company')
@@ -131,7 +134,7 @@ export function CompanyContactPicker({ value, onChange, className }: {
   }
 
   function clearCompany() {
-    onChange(null); setContacts([]); setAddingContact(false)
+    onChange(null); setContacts([]); setAddingContact(false); setNotice(null)
   }
 
   const inp = 'text-[12.5px] border border-[--border-subtle] rounded-md px-2.5 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-primary/25 w-full'
@@ -209,10 +212,10 @@ export function CompanyContactPicker({ value, onChange, className }: {
                 </button>
               ) : (
                 <div className="flex flex-col gap-1.5 rounded-md border border-[--border-subtle] p-2.5 bg-muted/20">
-                  <input value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="Email (required)" className={inp} />
+                  <Field label="Email (required)"><input value={newEmail} onChange={e => setNewEmail(e.target.value)} className={inp} /></Field>
                   <div className="grid grid-cols-2 gap-1.5">
-                    <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Name (optional)" className={inp} />
-                    <input value={newPhone} onChange={e => setNewPhone(e.target.value)} placeholder="Phone (optional)" className={inp} />
+                    <Field label="Name (optional)"><input value={newName} onChange={e => setNewName(e.target.value)} className={inp} /></Field>
+                    <Field label="Phone (optional)"><input value={newPhone} onChange={e => setNewPhone(e.target.value)} className={inp} /></Field>
                   </div>
                   <div className="flex items-center gap-2 justify-end">
                     {contacts.length > 0 && <Button variant="ghost" size="xs" onClick={() => setAddingContact(false)}>Cancel</Button>}
@@ -227,6 +230,7 @@ export function CompanyContactPicker({ value, onChange, className }: {
         </div>
       )}
 
+      {notice && <p className="text-[11px] text-muted-foreground">{notice}</p>}
       {error && <p className="text-[11px] text-rose-600">{error}</p>}
     </div>
   )

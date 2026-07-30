@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowLeft, UploadCloud, Loader2, CheckCircle2, XCircle, AlertTriangle, FileText, Folder, ChevronRight, Cloud } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
+import { Field } from '@/components/ui/field'
 import { CompanyContactPicker, type PickerValue } from '@/components/company-contact-picker/CompanyContactPicker'
 import type { ExtractedDebitNote, DocType } from '@/lib/debit-note-extract'
 
@@ -201,15 +202,6 @@ function OneDriveBrowser({ onPulled }: { onPulled: () => void }) {
 
 // ── Bundle review card ──────────────────────────────────────────────────────────────────────
 const inp = 'text-[12.5px] border border-border rounded-md px-2 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-primary/25 w-full'
-
-function Field({ label, className, children }: { label: string; className?: string; children: React.ReactNode }) {
-  return (
-    <label className={`flex flex-col gap-1 ${className ?? ''}`}>
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">{label}</span>
-      {children}
-    </label>
-  )
-}
 
 function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: () => void }) {
   const m = bundle.merged
