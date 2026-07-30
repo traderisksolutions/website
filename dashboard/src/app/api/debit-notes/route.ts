@@ -86,7 +86,11 @@ export async function POST(req: NextRequest) {
     const pdfPath = `${result.companyId}/${result.debitNoteNo}.pdf`
     await uploadPdf(pdfPath, pdfBuffer)
     await fetch(`${SB_URL}/rest/v1/debit_notes?id=eq.${result.debitNoteId}`, {
-      method: 'PATCH', headers: sbH(), body: JSON.stringify({ pdf_storage_url: pdfPath }),
+      method: 'PATCH', headers: sbH(),
+      body: JSON.stringify({
+        pdf_storage_url: pdfPath,
+        attachment_files: [{ filename: `${result.debitNoteNo}.pdf`, storage_url: pdfPath, source: 'generated' }],
+      }),
     })
     const downloadUrl = await signRead(pdfPath)
 

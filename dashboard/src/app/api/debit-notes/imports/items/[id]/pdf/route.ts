@@ -1,4 +1,4 @@
-/** GET /api/debit-notes/imports/[id]/pdf → signed read URL for the uploaded (not yet approved) PDF, for the review queue's preview link. */
+/** GET /api/debit-notes/imports/items/[id]/pdf → signed read URL for one bundle member file, for the review card's per-file preview link. */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { SB_URL, sbH, signRead }     from '@/lib/debit-note-storage'

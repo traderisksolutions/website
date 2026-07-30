@@ -171,6 +171,7 @@ export type DebitNoteInput = {
   gstAmount?:         number | null
   feeRebate?:         number | null
   commission?:        number | null
+  commissionRate?:    number | null
   issueDate:          string
   paymentDueDate?:    string | null
   insurer?:           string | null
@@ -221,6 +222,7 @@ export async function commitDebitNote(input: {
       gross_amount: grossAmount,
       fee_rebate: input.debitNote.feeRebate ?? 0,
       commission: input.debitNote.commission ?? null,
+      commission_rate: input.debitNote.commissionRate ?? null,
       paid_amount: input.debitNote.paidAmount ?? 0,
       paid_direct_amount: input.debitNote.paidDirectAmount ?? 0,
       status: input.debitNote.status ?? 'unpaid',
@@ -243,4 +245,17 @@ export async function attachDebitNotePdf(debitNoteId: string, pdfStoragePath: st
   await pg(`debit_notes?id=eq.${debitNoteId}`, {
     method: 'PATCH', body: JSON.stringify({ pdf_storage_url: pdfStoragePath }),
   })
+}
+
+export type AttachmentFileRef = { filename: string; storage_url: string; source: 'client_invoice' | 'commission_statement' | 'trs_debit_note' | 'generated' }
+
+/** Records the Drive archival folder + the set of files available for the "send documents"
+ *  picker, and links the debit note back to the bundle it came from. */
+export async function attachDebitNoteArchival(debitNoteId: string, opts: { driveFolderUrl?: string | null; attachmentFiles?: AttachmentFileRef[]; bundleId?: string | null }): Promise<void> {
+  const patch: Record<string, unknown> = {}
+  if (opts.driveFolderUrl !== undefined) patch.drive_folder_url = opts.driveFolderUrl
+  if (opts.attachmentFiles !== undefined) patch.attachment_files = opts.attachmentFiles
+  if (opts.bundleId !== undefined) patch.bundle_id = opts.bundleId
+  if (Object.keys(patch).length === 0) return
+  await pg(`debit_notes?id=eq.${debitNoteId}`, { method: 'PATCH', body: JSON.stringify(patch) })
 }

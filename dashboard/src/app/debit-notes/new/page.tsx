@@ -52,6 +52,7 @@ function NewDebitNoteForm() {
   const [gstAmount, setGstAmount] = useState(0)
   const [feeRebate, setFeeRebate] = useState(0)
   const [commission, setCommission] = useState<string>('')
+  const [commissionRate, setCommissionRate] = useState<string>('')
   const [issueDate, setIssueDate] = useState(today())
   const [paymentDueDate, setPaymentDueDate] = useState('')
 
@@ -121,6 +122,7 @@ function NewDebitNoteForm() {
           debitNote: {
             currency, lineItems: lineItems.filter(l => l.description.trim()),
             gstAmount: gstEnabled ? gstAmount : null, feeRebate, commission: commission ? Number(commission) : null,
+            commissionRate: commissionRate ? Number(commissionRate) : null,
             issueDate, paymentDueDate: paymentDueDate || null, insurer: insurer || undefined, source: 'manual',
           },
         }),
@@ -252,10 +254,12 @@ function NewDebitNoteForm() {
             <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Fee rebate
               <input type="number" value={feeRebate} onChange={e => setFeeRebate(Number(e.target.value))} className={inp} />
             </label>
-            <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Commission (manual — no auto formula yet)
+            <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Commission rate (%)
+              <input type="number" value={commissionRate} onChange={e => setCommissionRate(e.target.value)} className={inp} />
+            </label>
+            <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Commission amount
               <input type="number" value={commission} onChange={e => setCommission(e.target.value)} className={inp} />
             </label>
-            <div />
             <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Issue date
               <input type="date" value={issueDate} onChange={e => setIssueDate(e.target.value)} className={inp} />
             </label>
