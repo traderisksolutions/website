@@ -111,6 +111,15 @@ export default function DebitNoteImportPage() {
 
 const inp = 'text-[12.5px] border border-border rounded-md px-2 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-primary/25 w-full'
 
+function Field({ label, className, children }: { label: string; className?: string; children: React.ReactNode }) {
+  return (
+    <label className={`flex flex-col gap-1 ${className ?? ''}`}>
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">{label}</span>
+      {children}
+    </label>
+  )
+}
+
 function ReviewCard({ item, onResolved }: { item: ImportItem; onResolved: () => void }) {
   const ex = item.extracted
   const [recipient, setRecipient] = useState<PickerValue | null>(
@@ -179,18 +188,18 @@ function ReviewCard({ item, onResolved }: { item: ImportItem; onResolved: () => 
       <CompanyContactPicker value={recipient} onChange={setRecipient} />
 
       <div className="grid grid-cols-3 gap-2">
-        <input value={policyNumber} onChange={e => setPolicyNumber(e.target.value)} placeholder="Policy number" className={inp} />
-        <input value={coverNoteNo} onChange={e => setCoverNoteNo(e.target.value)} placeholder="Cover note no." className={inp} />
-        <input value={insurer} onChange={e => setInsurer(e.target.value)} placeholder="Insurer (required)" className={inp} />
-        <input value={classOfInsurance} onChange={e => setClassOfInsurance(e.target.value)} placeholder="Class of insurance" className={inp} />
-        <input type="date" value={periodStart} onChange={e => setPeriodStart(e.target.value)} title="Period start" className={inp} />
-        <input type="date" value={periodEnd} onChange={e => setPeriodEnd(e.target.value)} title="Period end (renewal date)" className={inp} />
-        <input type="number" value={grossPremium} onChange={e => setGrossPremium(Number(e.target.value))} placeholder="Gross premium (required)" className={inp} />
-        <input type="number" value={gstAmount} onChange={e => setGstAmount(Number(e.target.value))} placeholder="GST" className={inp} />
-        <select value={currency} onChange={e => setCurrency(e.target.value)} className={inp}>{['SGD', 'USD', 'MYR', 'IDR'].map(c => <option key={c}>{c}</option>)}</select>
-        <input type="date" value={issueDate} onChange={e => setIssueDate(e.target.value)} title="Issue date" className={inp} />
-        <input type="date" value={paymentDueDate} onChange={e => setPaymentDueDate(e.target.value)} title="Payment due date" className={inp} />
-        <input value={description} onChange={e => setDescription(e.target.value)} placeholder="Description" className={`${inp} col-span-3`} />
+        <Field label="Policy number"><input value={policyNumber} onChange={e => setPolicyNumber(e.target.value)} className={inp} /></Field>
+        <Field label="Cover note no."><input value={coverNoteNo} onChange={e => setCoverNoteNo(e.target.value)} className={inp} /></Field>
+        <Field label="Insurer (required)"><input value={insurer} onChange={e => setInsurer(e.target.value)} className={inp} /></Field>
+        <Field label="Class of insurance"><input value={classOfInsurance} onChange={e => setClassOfInsurance(e.target.value)} className={inp} /></Field>
+        <Field label="Period start"><input type="date" value={periodStart} onChange={e => setPeriodStart(e.target.value)} className={inp} /></Field>
+        <Field label="Period end (renewal date)"><input type="date" value={periodEnd} onChange={e => setPeriodEnd(e.target.value)} className={inp} /></Field>
+        <Field label="Gross premium (required)"><input type="number" value={grossPremium} onChange={e => setGrossPremium(Number(e.target.value))} className={inp} /></Field>
+        <Field label="GST"><input type="number" value={gstAmount} onChange={e => setGstAmount(Number(e.target.value))} className={inp} /></Field>
+        <Field label="Currency"><select value={currency} onChange={e => setCurrency(e.target.value)} className={inp}>{['SGD', 'USD', 'MYR', 'IDR'].map(c => <option key={c}>{c}</option>)}</select></Field>
+        <Field label="Issue date"><input type="date" value={issueDate} onChange={e => setIssueDate(e.target.value)} className={inp} /></Field>
+        <Field label="Payment due date"><input type="date" value={paymentDueDate} onChange={e => setPaymentDueDate(e.target.value)} className={inp} /></Field>
+        <Field label="Description" className="col-span-3"><input value={description} onChange={e => setDescription(e.target.value)} className={inp} /></Field>
       </div>
 
       {err && <p className="text-[11.5px] text-rose-600">{err}</p>}
