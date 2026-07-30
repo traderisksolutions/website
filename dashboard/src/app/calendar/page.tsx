@@ -27,6 +27,21 @@ function eventColor(e: CalendarEvent): string {
   return overdue ? 'bg-orange-500' : 'bg-blue-500'
 }
 
+// Same categories as eventColor, but as a chip (dot + tinted background) for the month grid's
+// stacked "invite" rows — Google Calendar-style, so a busy day reads at a glance.
+function eventChipStyle(e: CalendarEvent): { dot: string; bg: string; text: string } {
+  if (e.type === 'renewal') {
+    const days = Math.ceil((new Date(e.date).getTime() - Date.now()) / 86_400_000)
+    if (days < 7)  return { dot: 'bg-rose-500',  bg: 'bg-rose-50',   text: 'text-rose-700' }
+    if (days < 30) return { dot: 'bg-amber-500', bg: 'bg-amber-50',  text: 'text-amber-700' }
+    return { dot: 'bg-slate-400', bg: 'bg-slate-100', text: 'text-slate-600' }
+  }
+  const overdue = new Date(e.date).getTime() < new Date(new Date().toDateString()).getTime()
+  return overdue
+    ? { dot: 'bg-orange-500', bg: 'bg-orange-50', text: 'text-orange-700' }
+    : { dot: 'bg-blue-500',   bg: 'bg-blue-50',   text: 'text-blue-700' }
+}
+
 const LEGEND = [
   { color: 'bg-rose-500',   label: 'Renewal due within 7 days' },
   { color: 'bg-amber-500',  label: 'Renewal due within 30 days' },
@@ -103,20 +118,33 @@ export default function CalendarPage() {
               {cells.map((d, i) => {
                 const dayEvents = d ? byDay.get(toISODate(d)) ?? [] : []
                 const isToday = d && isSameDay(d, today)
+                const visible = dayEvents.slice(0, 3)
+                const overflow = dayEvents.length - visible.length
                 return (
                   <button
                     key={i}
                     disabled={!d}
                     onClick={() => d && setSelectedDate(d)}
-                    className={`flex flex-col items-center gap-1 py-2.5 rounded-xl transition-colors duration-150 ${d ? 'hover:bg-accent/50 cursor-pointer' : ''}`}
+                    className={`flex flex-col items-stretch gap-1 py-2 px-1 rounded-xl text-left transition-colors duration-150 min-h-[92px] ${d ? 'hover:bg-accent/50 cursor-pointer' : ''}`}
                   >
                     {d && (
                       <>
-                        <span className={`w-7 h-7 flex items-center justify-center rounded-full text-[13px] transition-colors duration-150 ${isToday ? 'bg-primary/10 text-primary font-medium' : 'text-foreground/80 font-normal'}`}>
+                        <span className={`w-6 h-6 flex items-center justify-center rounded-full text-[12.5px] self-center transition-colors duration-150 ${isToday ? 'bg-primary/10 text-primary font-medium' : 'text-foreground/80 font-normal'}`}>
                           {d.getDate()}
                         </span>
-                        <div className="flex items-center gap-0.5 h-1.5">
-                          {dayEvents.slice(0, 3).map(e => <span key={e.id} className={`w-1.5 h-1.5 rounded-full ${eventColor(e)}`} />)}
+                        <div className="flex flex-col gap-0.5">
+                          {visible.map(e => {
+                            const style = eventChipStyle(e)
+                            return (
+                              <span key={e.id} className={`flex items-center gap-1 rounded px-1 py-[3px] text-[10px] font-medium leading-none ${style.bg} ${style.text}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${style.dot}`} />
+                                <span className="truncate">{e.companyName ?? '—'}</span>
+                              </span>
+                            )
+                          })}
+                          {overflow > 0 && (
+                            <span className="text-[10px] text-muted-foreground/70 px-1">+{overflow} more</span>
+                          )}
                         </div>
                       </>
                     )}
