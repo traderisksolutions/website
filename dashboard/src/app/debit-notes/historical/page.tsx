@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
   ArrowLeft, Loader2, FileText, UploadCloud, CheckCircle2,
-  XCircle, AlertTriangle, Folder, ChevronRight, Cloud, Save, RefreshCw,
+  XCircle, AlertTriangle, Save, RefreshCw,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -22,8 +22,8 @@ export default function HistoricalDebitNotePage() {
       </div>
       <p className="text-[12.5px] text-muted-foreground mb-4">
         For backfilling records from before this system existed — bulk-upload old PDFs (one .zip
-        per event, several at once, or pull straight from OneDrive) with all three document
-        types, including a pre-existing TRS debit note.
+        per event, several at once) with all three document types, including a pre-existing TRS
+        debit note.
       </p>
 
       <BulkUploadSection />
@@ -32,8 +32,8 @@ export default function HistoricalDebitNotePage() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════════════════════
-// Bulk upload — 2-3 file bundles (PDFs, zips, or OneDrive). Each .zip is one event's worth of
-// files; selecting several zips at once processes each as its own bundle.
+// Bulk upload — 2-3 file bundles (PDFs or zips). Each .zip is one event's worth of files;
+// selecting several zips at once processes each as its own bundle.
 // ════════════════════════════════════════════════════════════════════════════════════════════
 
 type MemberFile = { id: string; storage_url: string; original_filename: string | null; doc_type: DocType | null; status: string; error_message: string | null }
@@ -56,7 +56,6 @@ function BulkUploadSection() {
   const [loadingBundles, setLoadingBundles] = useState(true)
   const [progress, setProgress] = useState<{ total: number; done: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [showOneDrive, setShowOneDrive] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const loadBundles = useCallback(() => {
@@ -161,12 +160,7 @@ function BulkUploadSection() {
             <UploadCloud size={14} className="mr-1.5" /> + Add renewal bundle (up to 3 PDFs, or one or more .zip files)
           </Button>
         </label>
-        <Button variant="outline" onClick={() => setShowOneDrive(s => !s)}>
-          <Cloud size={14} className="mr-1.5" /> Pull from OneDrive
-        </Button>
       </div>
-
-      {showOneDrive && <OneDriveBrowser onPulled={loadBundles} />}
 
       {progress && (
         <div className="mb-6 flex items-center gap-2 text-[12.5px] text-muted-foreground">
@@ -204,83 +198,6 @@ function BulkUploadSection() {
           {needsReview.map(b => <BundleReviewCard key={b.id} bundle={b} onResolved={loadBundles} />)}
         </div>
       )}
-    </div>
-  )
-}
-
-// ── OneDrive folder browser ──────────────────────────────────────────────────────────────────
-type OneDriveEntry = { id: string; name: string; isFolder: boolean; mimeType: string | null; size: number | null }
-
-function OneDriveBrowser({ onPulled }: { onPulled: () => void }) {
-  const [path, setPath] = useState('')
-  const [entries, setEntries] = useState<OneDriveEntry[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [pulling, setPulling] = useState(false)
-
-  const load = useCallback((p: string) => {
-    setLoading(true); setError(null)
-    fetch(`/api/onedrive/browse?path=${encodeURIComponent(p)}`, { cache: 'no-store' })
-      .then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error ?? 'Could not browse OneDrive'); return d })
-      .then(setEntries)
-      .catch(e => setError(e instanceof Error ? e.message : 'Could not browse OneDrive'))
-      .finally(() => setLoading(false))
-  }, [])
-  useEffect(() => load(path), [path, load])
-
-  async function pull(mode: 'folder' | 'subfolders') {
-    setPulling(true); setError(null)
-    try {
-      const res = await fetch('/api/onedrive/pull', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path, mode }) })
-      const data = await res.json() as { results?: ({ id: string } | { error: string; path: string })[]; error?: string }
-      if (!res.ok) throw new Error(data.error ?? 'Pull failed')
-      const created = (data.results ?? []).filter((r): r is { id: string } => 'id' in r)
-      const failed = (data.results ?? []).filter((r): r is { error: string; path: string } => 'error' in r)
-      await Promise.all(created.map(c => fetch(`/api/debit-notes/imports/bundles/${c.id}/extract`, { method: 'POST' })))
-      if (failed.length) setError(failed.map(f => `${f.path}: ${f.error}`).join('\n'))
-      onPulled()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Pull failed')
-    } finally { setPulling(false) }
-  }
-
-  const crumbs = path.split('/').filter(Boolean)
-
-  return (
-    <div className="mb-6 border border-[--border-subtle] rounded-xl p-3.5">
-      <div className="flex items-center gap-1 text-[11.5px] text-muted-foreground mb-2 flex-wrap">
-        <button onClick={() => setPath('')} className="hover:text-foreground hover:underline">Root</button>
-        {crumbs.map((c, i) => (
-          <span key={i} className="flex items-center gap-1">
-            <ChevronRight size={10} />
-            <button onClick={() => setPath(crumbs.slice(0, i + 1).join('/'))} className="hover:text-foreground hover:underline">{c}</button>
-          </span>
-        ))}
-      </div>
-
-      {loading && <p className="text-[12px] text-muted-foreground">Loading…</p>}
-      {error && <p className="text-[11.5px] text-rose-600 whitespace-pre-wrap mb-2">{error}</p>}
-      {!loading && (
-        <div className="flex flex-col gap-1 mb-3 max-h-56 overflow-y-auto">
-          {entries.map(e => (
-            <button key={e.id} disabled={!e.isFolder} onClick={() => e.isFolder && setPath(path ? `${path}/${e.name}` : e.name)}
-              className="flex items-center gap-2 text-left px-2 py-1.5 rounded-md hover:bg-accent text-[12.5px] disabled:hover:bg-transparent">
-              {e.isFolder ? <Folder size={13} className="text-muted-foreground/60" /> : <FileText size={13} className="text-muted-foreground/40" />}
-              {e.name}
-            </button>
-          ))}
-          {entries.length === 0 && <p className="text-[11.5px] text-muted-foreground/60 px-2">Empty folder.</p>}
-        </div>
-      )}
-
-      <div className="flex items-center gap-2">
-        <Button size="sm" variant="outline" onClick={() => pull('folder')} disabled={pulling || !path}>
-          {pulling ? <Loader2 size={12} className="animate-spin mr-1.5" /> : null} Pull this folder as one bundle
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => pull('subfolders')} disabled={pulling || !path}>
-          Pull every sub-folder as separate bundles
-        </Button>
-      </div>
     </div>
   )
 }
