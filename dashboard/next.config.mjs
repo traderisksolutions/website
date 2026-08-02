@@ -9,5 +9,12 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['pdf-parse', '@napi-rs/canvas'],
   },
+  // Vercel sets VERCEL_GIT_COMMIT_SHA at build time but doesn't expose it to the client bundle
+  // on its own — this re-exposes it under NEXT_PUBLIC_ so any page can render "which build is
+  // this" directly, instead of having to curl-probe routes to tell whether a deploy actually
+  // shipped or the browser is just showing a stale cache.
+  env: {
+    NEXT_PUBLIC_COMMIT_SHA: process.env.VERCEL_GIT_COMMIT_SHA ?? 'dev',
+  },
 };
 export default nextConfig;

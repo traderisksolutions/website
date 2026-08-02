@@ -120,7 +120,10 @@ export default function NewDebitNotePage() {
   return (
     <div className="max-w-4xl mx-auto px-6 py-6">
       <Link href="/debit-notes" className="inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground hover:text-foreground mb-3"><ArrowLeft size={14} /> Debit Notes</Link>
-      <h1 className="text-[18px] font-semibold text-foreground mb-1">Generate a new debit note</h1>
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="text-[18px] font-semibold text-foreground">Generate a new debit note</h1>
+        <span className="text-[10px] text-muted-foreground/40 font-mono">build {process.env.NEXT_PUBLIC_COMMIT_SHA?.slice(0, 7) ?? 'dev'}</span>
+      </div>
       <p className="text-[12.5px] text-muted-foreground mb-4">
         A new renewal or new-business event is 2 files from the insurer: the tax invoice
         addressed to the client, and the commission statement addressed to TRS. Upload both — AI
@@ -350,6 +353,15 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
         {bundle.match_confidence != null && (
           <span className="text-[10.5px] text-muted-foreground ml-auto">match confidence {(bundle.match_confidence * 100).toFixed(0)}%</span>
         )}
+      </div>
+
+      <div className="rounded-md border border-dashed border-muted-foreground/30 p-2 flex flex-col gap-1 font-mono text-[10.5px] text-muted-foreground">
+        <span>bundle status: <b>{bundle.status}</b>{bundle.consistency_warning ? ` · warning: ${bundle.consistency_warning}` : ''}</span>
+        {bundle.pdf_import_items.map(it => (
+          <span key={it.id}>
+            {it.original_filename ?? 'document.pdf'} — status: <b>{it.status}</b>, doc_type: <b>{it.doc_type ?? 'null'}</b>, error: <b className={it.error_message ? 'text-rose-700' : ''}>{it.error_message ?? 'null'}</b>
+          </span>
+        ))}
       </div>
 
       {bundle.pdf_import_items.some(it => it.error_message) && (
