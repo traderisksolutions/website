@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
   ArrowLeft, Loader2, FileText, UploadCloud, CheckCircle2,
-  XCircle, AlertTriangle, Folder, ChevronRight, Cloud, Save,
+  XCircle, AlertTriangle, Folder, ChevronRight, Cloud, Save, RefreshCw,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -314,6 +314,17 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const [retrying, setRetrying] = useState(false)
+
+  async function retryExtraction() {
+    setRetrying(true); setErr(null)
+    try {
+      const res = await fetch(`/api/debit-notes/imports/bundles/${bundle.id}/extract`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Extraction failed again')
+      onResolved()
+    } catch (e) { setErr(e instanceof Error ? e.message : 'Could not retry extraction') } finally { setRetrying(false) }
+  }
 
   // Auto-suggest "Endorsement" when this policy number already has a debit note on record and
   // the period hasn't changed (same term being billed again — e.g. an employee added mid-year),
@@ -399,6 +410,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
       <div className="flex flex-wrap items-center gap-2">
         {bundle.pdf_import_items.map(it => (
           <a key={it.id} href={`/api/debit-notes/imports/items/${it.id}/pdf`} target="_blank" rel="noreferrer"
+            title={it.error_message ?? undefined}
             className="flex items-center gap-1.5 text-[11.5px] px-2 py-1 rounded-md border border-[--border-subtle] hover:bg-accent">
             <FileText size={11} className="text-muted-foreground/60" />
             {it.original_filename ?? 'document.pdf'}
@@ -410,6 +422,22 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
           <span className="text-[10.5px] text-muted-foreground ml-auto">match confidence {(bundle.match_confidence * 100).toFixed(0)}%</span>
         )}
       </div>
+
+      {bundle.pdf_import_items.some(it => it.error_message) && (
+        <div className="flex flex-col gap-1">
+          {bundle.pdf_import_items.filter(it => it.error_message).map(it => (
+            <p key={it.id} className="text-[11px] text-rose-700 bg-rose-50 border border-rose-200 rounded-md px-2 py-1">
+              <b>{it.original_filename ?? 'document.pdf'}</b>: {it.error_message}
+            </p>
+          ))}
+        </div>
+      )}
+
+      {bundle.status === 'error' && (
+        <Button variant="outline" size="sm" onClick={retryExtraction} disabled={retrying} className="self-start">
+          {retrying ? <Loader2 size={13} className="animate-spin mr-1.5" /> : <RefreshCw size={13} className="mr-1.5" />} Retry extraction
+        </Button>
+      )}
 
       {bundle.consistency_warning && (
         <div className="flex items-start gap-1.5 text-[11.5px] text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2.5 py-1.5">

@@ -31,11 +31,13 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     for (const item of items) {
       const pdfRes = await fetch(`${SB_URL}/storage/v1/object/debit-notes/${item.storage_url}`, { headers: stH() })
       if (!pdfRes.ok) {
+        console.error(`[debit-note-extract] bundle ${id} item ${item.id} (${item.storage_url}): could not read PDF from storage (${pdfRes.status})`)
         await fetch(`${SB_URL}/rest/v1/pdf_import_items?id=eq.${item.id}`, { method: 'PATCH', headers: sbH(), body: JSON.stringify({ status: 'error', error_message: 'Could not read the uploaded PDF' }) })
         continue
       }
       const pdfBase64 = Buffer.from(await pdfRes.arrayBuffer()).toString('base64')
       const { data, error } = await extractDebitNoteFromPdf(pdfBase64)
+      if (error) console.error(`[debit-note-extract] bundle ${id} item ${item.id} (${item.storage_url}): ${error}`)
       await fetch(`${SB_URL}/rest/v1/pdf_import_items?id=eq.${item.id}`, {
         method: 'PATCH', headers: sbH(),
         body: JSON.stringify({ status: error ? 'error' : 'needs_review', doc_type: data.doc_type, extracted: data, error_message: error ?? null }),
@@ -44,6 +46,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     }
 
     if (!extracted.length) {
+      console.error(`[debit-note-extract] bundle ${id}: every file failed to extract`)
       await fetch(`${SB_URL}/rest/v1/debit_note_bundles?id=eq.${id}`, { method: 'PATCH', headers: sbH(), body: JSON.stringify({ status: 'error' }) })
       return NextResponse.json({ error: 'Every file in this bundle failed to extract' }, { status: 502 })
     }

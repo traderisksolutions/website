@@ -85,12 +85,16 @@ export function normalizeDebitNoteNo(raw: string | null | undefined): string | n
   return DN_PATTERN.test(trimmed) ? trimmed : null
 }
 
-function safeParse(text: string): ExtractedDebitNote {
+// Returns null (rather than silently falling back to EMPTY) when Gemini's response isn't valid
+// JSON, so the caller can surface that as a real error instead of it looking like an ordinary
+// "other/unclassified" document — a truncated/refused/malformed response is a different failure
+// mode than "this file genuinely has none of the fields we asked for".
+function safeParse(text: string): ExtractedDebitNote | null {
   try {
     const cleaned = text.replace(/^```(json)?/i, '').replace(/```$/, '').trim()
     const parsed = JSON.parse(cleaned)
     return { ...EMPTY, ...parsed, debit_note_no: normalizeDebitNoteNo(parsed.debit_note_no) }
-  } catch { return EMPTY }
+  } catch { return null }
 }
 
 export async function extractDebitNoteFromPdf(pdfBase64: string): Promise<{ data: ExtractedDebitNote; raw: string; error?: string }> {
@@ -111,7 +115,9 @@ export async function extractDebitNoteFromPdf(pdfBase64: string): Promise<{ data
     const j = await res.json()
     const text = j?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? ''
     void logAiUsage({ provider: 'gemini', model: GEMINI_FLASH, feature: 'debit_note_extract', inputTokens: j.usageMetadata?.promptTokenCount ?? 0, outputTokens: j.usageMetadata?.candidatesTokenCount ?? 0 })
-    return { data: safeParse(text), raw: text }
+    const parsed = safeParse(text)
+    if (parsed === null) return { data: EMPTY, raw: text, error: `Gemini response wasn't valid JSON: ${text.slice(0, 300)}` }
+    return { data: parsed, raw: text }
   } catch (e) {
     return { data: EMPTY, raw: '', error: e instanceof Error ? e.message : 'gemini extraction failed' }
   }
