@@ -37,6 +37,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 }
 
 type PayStatus = 'unpaid' | 'partially_paid' | 'paid'
+type EventType = 'new_business' | 'renewal' | 'endorsement'
 
 type Patch = {
   lineItems?: DebitNotePdfLineItem[]; gstAmount?: number; feeRebate?: number
@@ -45,6 +46,7 @@ type Patch = {
   status?: PayStatus; paidAmount?: number
   paidDirectAmount?: number; paidDirectStatus?: PayStatus
   payDirectToInsurer?: boolean; payToTrsOps?: boolean
+  eventType?: EventType; endorsementEffectiveDate?: string | null
   policy?: {
     policyNumber?: string | null; classOfInsurance?: string | null; coverNoteNo?: string | null
     description?: string | null; startDate?: string | null; endDate?: string | null; broker?: string | null
@@ -83,6 +85,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       paid_direct_status: patch.paidDirectStatus ?? before.paid_direct_status,
       pay_direct_to_insurer: patch.payDirectToInsurer ?? before.pay_direct_to_insurer,
       pay_to_trs_ops: patch.payToTrsOps ?? before.pay_to_trs_ops,
+      event_type: patch.eventType ?? before.event_type,
+      endorsement_effective_date: patch.endorsementEffectiveDate !== undefined ? patch.endorsementEffectiveDate : before.endorsement_effective_date,
       updated_at: new Date().toISOString(),
     }
     const res = await fetch(`${SB_URL}/rest/v1/debit_notes?id=eq.${id}`, { method: 'PATCH', headers: sbH(), body: JSON.stringify(update) })
@@ -113,6 +117,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       insurer: update.insurer, description: policy?.description ?? null,
       currency: update.currency, lineItems, gstAmount, total: grossAmount,
       paymentDueDate: update.payment_due_date,
+      eventType: update.event_type as EventType, endorsementEffectiveDate: update.endorsement_effective_date,
     })
     const pdfPath = before.pdf_storage_url ?? `${before.company_id}/${before.debit_note_no}.pdf`
     await uploadPdf(pdfPath, pdfBuffer)

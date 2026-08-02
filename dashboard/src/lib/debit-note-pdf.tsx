@@ -34,6 +34,12 @@ export interface DebitNotePdfData {
   gstAmount?:          number | null
   total:              number
   paymentDueDate?:     string | null
+  /** endorsement means this debit note bills a mid-term change (e.g. an employee added partway
+   *  through the year) rather than the policy's own period_start/period_end — without calling
+   *  that out, the payment due date lands well inside (or near the end of) the shown Period of
+   *  Insurance and reads as a mismatch/error to the client. */
+  eventType?:                  'new_business' | 'renewal' | 'endorsement'
+  endorsementEffectiveDate?:   string | null
 }
 
 export const TRS_LETTERHEAD = {
@@ -68,6 +74,9 @@ const styles = StyleSheet.create({
   section:    { flexDirection: 'row', marginBottom: 5 },
   sectionLabel: { width: 130, color: '#444' },
   sectionValue: { flex: 1 },
+  endorsementBanner: { backgroundColor: '#fff7ed', border: '0.75pt solid #fdba74', borderRadius: 3, padding: 6, marginBottom: 10 },
+  endorsementLabel:  { fontSize: 8, fontWeight: 700, color: '#c2410c', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+  endorsementText:   { fontSize: 9, color: '#7c2d12' },
   table:      { marginTop: 10, borderTop: '1pt solid #111' },
   tableRow:   { flexDirection: 'row', paddingVertical: 4, borderBottom: '0.5pt solid #ccc' },
   tableDesc:  { flex: 1 },
@@ -132,7 +141,15 @@ export function DebitNotePdfDocument({ data }: { data: DebitNotePdfData }) {
         <View style={styles.section}><Text style={styles.sectionLabel}>Class of Insurance</Text><Text style={styles.sectionValue}>{data.classOfInsurance || ''}</Text></View>
         <View style={styles.section}><Text style={styles.sectionLabel}>Period of Insurance</Text><Text style={styles.sectionValue}>{fmtSlashDate(data.periodStart)} to {fmtSlashDate(data.periodEnd)}</Text></View>
         <View style={styles.section}><Text style={styles.sectionLabel}>Insurance Company</Text><Text style={styles.sectionValue}>{data.insurer || ''}</Text></View>
-        <View style={styles.section}><Text style={styles.sectionLabel}>Description</Text><Text style={styles.sectionValue}>{data.description || ''}</Text></View>
+
+        {data.eventType === 'endorsement' ? (
+          <View style={styles.endorsementBanner}>
+            <Text style={styles.endorsementLabel}>Mid-Term Endorsement — Effective {fmtSlashDate(data.endorsementEffectiveDate)}</Text>
+            <Text style={styles.endorsementText}>{data.description || ''}</Text>
+          </View>
+        ) : (
+          <View style={styles.section}><Text style={styles.sectionLabel}>Description</Text><Text style={styles.sectionValue}>{data.description || ''}</Text></View>
+        )}
 
         <View style={styles.table}>
           {data.lineItems.map((li, i) => (

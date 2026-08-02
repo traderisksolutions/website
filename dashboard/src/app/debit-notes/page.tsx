@@ -147,6 +147,7 @@ function DebitNotesContent() {
 
 type AttachmentFile = SendableAttachment
 type PayStatus = 'unpaid' | 'partially_paid' | 'paid'
+type EventType = 'new_business' | 'renewal' | 'endorsement'
 
 type DetailPolicy = {
   policy_number: string | null; class_of_insurance: string | null; cover_note_no: string | null
@@ -163,6 +164,7 @@ type Detail = {
   paid_direct_amount: number; paid_direct_status: PayStatus
   pay_direct_to_insurer: boolean; pay_to_trs_ops: boolean
   commission: number | null; commission_rate: number | null
+  event_type: EventType; endorsement_effective_date: string | null
   attachment_files: AttachmentFile[]
   drive_folder_url: string | null
   companies: { name: string } | null
@@ -177,6 +179,7 @@ type EditForm = {
   gstAmount: number; feeRebate: number; commission: number; commissionRate: number
   policyNumber: string; classOfInsurance: string; coverNoteNo: string; description: string
   startDate: string; endDate: string; broker: string
+  eventType: EventType; endorsementEffectiveDate: string
 }
 
 function toEditForm(d: Detail): EditForm {
@@ -186,6 +189,7 @@ function toEditForm(d: Detail): EditForm {
     gstAmount: d.gst_amount ?? 0, feeRebate: d.fee_rebate ?? 0, commission: d.commission ?? 0, commissionRate: d.commission_rate ?? 0,
     policyNumber: d.policies?.policy_number ?? '', classOfInsurance: d.policies?.class_of_insurance ?? '', coverNoteNo: d.policies?.cover_note_no ?? '',
     description: d.policies?.description ?? '', startDate: d.policies?.start_date ?? '', endDate: d.policies?.end_date ?? '', broker: d.policies?.broker ?? '',
+    eventType: d.event_type ?? 'new_business', endorsementEffectiveDate: d.endorsement_effective_date ?? '',
   }
 }
 
@@ -247,6 +251,7 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
           currency: form.currency, issueDate: form.issueDate, paymentDueDate: form.paymentDueDate || null,
           insurer: form.insurer, lineItems: form.lineItems.filter(l => l.description || l.amount),
           gstAmount: form.gstAmount, feeRebate: form.feeRebate, commission: form.commission, commissionRate: form.commissionRate,
+          eventType: form.eventType, endorsementEffectiveDate: form.eventType === 'endorsement' ? (form.endorsementEffectiveDate || null) : null,
           policy: {
             policyNumber: form.policyNumber || null, classOfInsurance: form.classOfInsurance || null,
             coverNoteNo: form.coverNoteNo || null, description: form.description || null,
@@ -308,8 +313,28 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
           <div className="flex flex-col">
             <DetailSection label="Client">
               <DetailField label="Company"><span className="uppercase">{detail.companies?.name ?? '—'}</span></DetailField>
+              {!editing && detail.event_type === 'endorsement' && (
+                <div className="mb-3 rounded-md border border-orange-200 bg-orange-50/60 px-2.5 py-1.5">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-orange-700">Mid-term endorsement</p>
+                  <p className="text-[11.5px] text-orange-900">Effective {fmtDate(detail.endorsement_effective_date)}</p>
+                </div>
+              )}
               {editing && form ? (
                 <>
+                  <div className="rounded-md border border-[--border-subtle] p-2.5 mb-3 flex items-center gap-3">
+                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground flex-1">Debit note type
+                      <select value={form.eventType} onChange={e => setForm({ ...form, eventType: e.target.value as EventType })} className={inputCls}>
+                        <option value="new_business">New business</option>
+                        <option value="renewal">Renewal</option>
+                        <option value="endorsement">Mid-term endorsement</option>
+                      </select>
+                    </label>
+                    {form.eventType === 'endorsement' && (
+                      <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground flex-1">Effective date
+                        <input type="date" value={form.endorsementEffectiveDate} onChange={e => setForm({ ...form, endorsementEffectiveDate: e.target.value })} className={inputCls} />
+                      </label>
+                    )}
+                  </div>
                   <div className="grid grid-cols-2 gap-3 mb-3">
                     <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Policy number
                       <input value={form.policyNumber} onChange={e => setForm({ ...form, policyNumber: e.target.value })} className={inputCls} />

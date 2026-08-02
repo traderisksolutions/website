@@ -29,6 +29,7 @@ type Body = {
     gstAmount?: number | null; commissionRate?: number | null; commission?: number | null
     debitNoteNo?: string | null
     issueDate: string; paymentDueDate?: string | null; insurer?: string | null
+    eventType?: 'new_business' | 'renewal' | 'endorsement'; endorsementEffectiveDate?: string | null
   }
 }
 
@@ -83,6 +84,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       currency: body.debitNote.currency, lineItems: body.debitNote.lineItems,
       gstAmount: body.debitNote.gstAmount ?? null, total: result.grossAmount,
       paymentDueDate: body.debitNote.paymentDueDate ?? null,
+      eventType: body.debitNote.eventType, endorsementEffectiveDate: body.debitNote.endorsementEffectiveDate ?? null,
     })
     const pdfPath = `${result.companyId}/${result.debitNoteNo}.pdf`
     await uploadPdf(pdfPath, pdfBuffer)

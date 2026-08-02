@@ -195,6 +195,13 @@ export type DebitNoteInput = {
   status?:            'unpaid' | 'partially_paid' | 'paid'
   paidAmount?:        number | null
   paidDirectAmount?:  number | null
+  /** new_business/renewal read the policy's own period_start/period_end as the coverage term
+   *  this debit note is for. endorsement means this debit note bills a mid-term change (e.g. an
+   *  employee added partway through the year) — the policy period shown is still the master
+   *  term, so endorsementEffectiveDate carries the date the change actually takes effect, kept
+   *  distinct so the PDF can explain why the two dates don't have to match. */
+  eventType?:                  'new_business' | 'renewal' | 'endorsement'
+  endorsementEffectiveDate?:   string | null
   source:             'manual' | 'pdf_import'
 }
 
@@ -249,6 +256,8 @@ export async function commitDebitNote(input: {
       paid_direct_amount: input.debitNote.paidDirectAmount ?? 0,
       status: input.debitNote.status ?? 'unpaid',
       insurer: input.debitNote.insurer ?? null,
+      event_type: input.debitNote.eventType ?? 'new_business',
+      endorsement_effective_date: input.debitNote.endorsementEffectiveDate ?? null,
       source: input.debitNote.source,
     }),
   })

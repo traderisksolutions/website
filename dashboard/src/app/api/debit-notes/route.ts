@@ -92,6 +92,7 @@ export async function POST(req: NextRequest) {
         gstAmount:    body.debitNote.gstAmount ?? null,
         total:        result.grossAmount,
         paymentDueDate: body.debitNote.paymentDueDate ?? null,
+        eventType: body.debitNote.eventType, endorsementEffectiveDate: body.debitNote.endorsementEffectiveDate ?? null,
       })
       pdfPath = `${result.companyId}/${result.debitNoteNo}.pdf`
       await uploadPdf(pdfPath, pdfBuffer)

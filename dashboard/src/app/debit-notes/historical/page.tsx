@@ -284,6 +284,8 @@ function OneDriveBrowser({ onPulled }: { onPulled: () => void }) {
 
 // ── Bundle review card ──────────────────────────────────────────────────────────────────────
 const inp = 'text-[12.5px] border border-border rounded-md px-2 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-primary/25 w-full'
+type EventType = 'new_business' | 'renewal' | 'endorsement'
+type PolicyLookup = { id: string; startDate: string | null; endDate: string | null; hasDebitNotes: boolean } | null
 
 function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: () => void }) {
   const m = bundle.merged
@@ -305,10 +307,30 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
   const [commissionAmount, setCommissionAmount] = useState(m?.commission_amount ?? 0)
   const [issueDate, setIssueDate] = useState(m?.issue_date ?? '')
   const [paymentDueDate, setPaymentDueDate] = useState(m?.payment_due_date ?? '')
+  const [eventType, setEventType] = useState<EventType>('new_business')
+  const [eventTypeTouched, setEventTypeTouched] = useState(false)
+  const [endorsementEffectiveDate, setEndorsementEffectiveDate] = useState('')
   const [busy, setBusy] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+
+  // Auto-suggest "Endorsement" when this policy number already has a debit note on record and
+  // the period hasn't changed (same term being billed again — e.g. an employee added mid-year),
+  // vs. "Renewal" when the period has moved on. Never overrides a manual pick.
+  useEffect(() => {
+    if (eventTypeTouched || !policyNumber.trim()) return
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/policies/lookup?policy_number=${encodeURIComponent(policyNumber.trim())}`, { cache: 'no-store' })
+        const found = res.ok ? await res.json() as PolicyLookup : null
+        if (!found?.hasDebitNotes) return
+        const samePeriod = found.startDate === (periodStart || null) && found.endDate === (periodEnd || null)
+        setEventType(samePeriod ? 'endorsement' : 'renewal')
+      } catch { /* best-effort suggestion only */ }
+    }, 500)
+    return () => clearTimeout(t)
+  }, [policyNumber, periodStart, periodEnd, eventTypeTouched])
 
   function currentMerged(): ExtractedDebitNote {
     return {
@@ -338,6 +360,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
 
   async function approve() {
     if (!recipient?.companyId || !insurer.trim() || !grossPremium) { setErr('Company, insurer and a premium amount are required.'); return }
+    if (eventType === 'endorsement' && !endorsementEffectiveDate) { setErr('Effective date is required for a mid-term endorsement.'); return }
     setBusy(true); setErr(null)
     try {
       const res = await fetch(`/api/debit-notes/imports/bundles/${bundle.id}/approve`, {
@@ -355,6 +378,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
             gstAmount: gstAmount || null, commissionRate: commissionRate || null, commission: commissionAmount || null,
             debitNoteNo: debitNoteNo || null,
             issueDate: issueDate || new Date().toISOString().slice(0, 10), paymentDueDate: paymentDueDate || null, insurer,
+            eventType, endorsementEffectiveDate: eventType === 'endorsement' ? endorsementEffectiveDate : null,
           },
         }),
       })
@@ -394,6 +418,32 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
       )}
 
       <CompanyContactPicker value={recipient} onChange={setRecipient} />
+
+      <div className={`rounded-md border p-2.5 flex flex-col gap-2 ${eventType === 'endorsement' ? 'border-orange-200 bg-orange-50/40' : 'border-[--border-subtle]'}`}>
+        <div className="flex items-center gap-2">
+          <Field label="Debit note type" className="flex-1">
+            <select
+              value={eventType}
+              onChange={e => { setEventType(e.target.value as EventType); setEventTypeTouched(true) }}
+              className={inp}
+            >
+              <option value="new_business">New business</option>
+              <option value="renewal">Renewal</option>
+              <option value="endorsement">Mid-term endorsement</option>
+            </select>
+          </Field>
+          {eventType === 'endorsement' && (
+            <Field label="Effective date (required)" className="flex-1">
+              <input type="date" value={endorsementEffectiveDate} onChange={e => setEndorsementEffectiveDate(e.target.value)} className={inp} />
+            </Field>
+          )}
+        </div>
+        {eventType === 'endorsement' && (
+          <p className="text-[11px] text-orange-800">
+            This bills a mid-term change (e.g. an employee added partway through the year) rather than the full policy term shown below — the PDF will call out the effective date separately so the payment due date doesn&apos;t look mismatched against the period of insurance.
+          </p>
+        )}
+      </div>
 
       <div className="grid grid-cols-3 gap-2">
         <Field label="Debit note no."><input value={debitNoteNo} onChange={e => setDebitNoteNo(e.target.value)} placeholder="Auto-generated if left blank" className={inp} /></Field>
