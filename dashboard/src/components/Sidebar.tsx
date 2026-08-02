@@ -8,7 +8,7 @@ import {
   Users, BarChart2,
   ChevronRight, ChevronDown, ChevronLeft,
   Bot, Table2, UsersRound,
-  LogOut, BookOpen, Cpu, FolderOpen,
+  LogOut, BookOpen, Cpu, FolderOpen, BookMarked, Radar, History,
   Telescope, Megaphone, Settings, FlaskConical,
   LayoutDashboard, TrendingUp, ScrollText, Network, HeartPulse, Car,
   Receipt, CalendarDays,
@@ -51,6 +51,7 @@ export default function Sidebar() {
   const [outboundOpen,  setOutboundOpen]  = useState(true)
   const [engageOpen,    setEngageOpen]    = useState(true)
   const [roadplusOpen,  setRoadplusOpen]  = useState(true)
+  const [knowledgeOpen, setKnowledgeOpen] = useState(true)
   const [analyticsOpen, setAnalyticsOpen] = useState(true)
   const [vendorOpen,    setVendorOpen]    = useState(true)
   const [collapsed,     setCollapsed]     = useState(false)
@@ -125,6 +126,7 @@ export default function Sidebar() {
           <CollapsedIcon icon={Inbox} href="/inbound/email" isActive={active('/inbound/email') || active('/inbound/whatsapp')} label="Inbound Leads" hasBadge={inbound.totalNew > 0} />
           <IconDivider />
           <CollapsedIcon icon={Telescope}     href="/outbound/agent"     isActive={active('/outbound/agent')}     label="Lead Discovery" />
+          <CollapsedIcon icon={Radar}         href="/outbound/signals"   isActive={active('/outbound/signals')}   label="Signal Library" />
           <CollapsedIcon icon={Table2}        href="/outbound/leads"     isActive={active('/outbound/leads')}     label="Lead Database" />
           <CollapsedIcon icon={Megaphone}     href="/outbound/campaigns" isActive={active('/outbound/campaigns')} label="Campaigns" />
           <CollapsedIcon icon={MessageCircle} href="/outbound/replies"   isActive={active('/outbound/replies')}   label="Reply Review" />
@@ -138,14 +140,18 @@ export default function Sidebar() {
           <IconDivider />
           <CollapsedIcon icon={Car} href="/roadplus" isActive={active('/roadplus')} label="RoadPlus Reconciliation" />
           <IconDivider />
+          <CollapsedIcon icon={BookMarked}  href="/outbound/knowledge"  isActive={active('/outbound/knowledge')}  label="Knowledge Base" />
+          <CollapsedIcon icon={FolderOpen}  href="/analytics/rag-index" isActive={active('/analytics/rag-index')} label="RAG Index" />
+          <IconDivider />
+          <CollapsedIcon icon={History}      href="/analytics/activity" isActive={active('/analytics/activity')} label="Activity Log" />
           <CollapsedIcon icon={Cpu}          href="/analytics/ai-usage"  isActive={active('/analytics/ai-usage')}  label="AI Usage" />
-          <CollapsedIcon icon={FolderOpen}   href="/analytics/rag-index" isActive={active('/analytics/rag-index')} label="RAG Index" />
           <CollapsedIcon icon={FlaskConical} href="/analytics/eval"      isActive={active('/analytics/eval')}      label="Email Evaluation" />
           <IconDivider />
           <CollapsedIcon icon={TrendingUp} href="/kyn-roi"     isActive={active('/kyn-roi') && !active('/kyn-roi-log')} label="Kyn ROI" />
           <CollapsedIcon icon={ScrollText} href="/kyn-roi-log" isActive={active('/kyn-roi-log')} label="Dev Logs" />
           <IconDivider />
-          <CollapsedIcon icon={Settings} href="/settings" isActive={active('/settings')} label="Settings" />
+          <CollapsedIcon icon={UsersRound} href="/team"     isActive={active('/team')}     label="Team" />
+          <CollapsedIcon icon={Settings}   href="/settings" isActive={active('/settings')} label="Settings" />
         </nav>
 
         {/* Footer */}
@@ -215,6 +221,7 @@ export default function Sidebar() {
         {outboundOpen && (
           <div className="space-y-px">
             <NavItem label="Lead Discovery" href="/outbound/agent"     icon={Telescope}     isActive={active('/outbound/agent')} />
+            <NavItem label="Signal Library" href="/outbound/signals"   icon={Radar}         isActive={active('/outbound/signals')} />
             <NavItem label="Lead Database"  href="/outbound/leads"     icon={Table2}        isActive={active('/outbound/leads')} />
             <NavItem label="Campaigns"      href="/outbound/campaigns" icon={Megaphone}     isActive={active('/outbound/campaigns')} />
             <NavItem label="Reply Review"   href="/outbound/replies"   icon={MessageCircle} isActive={active('/outbound/replies')} />
@@ -250,13 +257,22 @@ export default function Sidebar() {
 
         <SectionDivider />
 
+        <SectionHeader label="Knowledge" open={knowledgeOpen} onToggle={() => setKnowledgeOpen(o => !o)} />
+        {knowledgeOpen && (
+          <div className="space-y-px">
+            <NavItem label="Knowledge Base" href="/outbound/knowledge"  icon={BookMarked} isActive={active('/outbound/knowledge')} />
+            <NavItem label="RAG Index"      href="/analytics/rag-index" icon={FolderOpen} isActive={active('/analytics/rag-index')} />
+          </div>
+        )}
+
+        <SectionDivider />
+
         <SectionHeader label="Analytics" open={analyticsOpen} onToggle={() => setAnalyticsOpen(o => !o)} />
         {analyticsOpen && (
           <div className="space-y-px">
             <NavItem label="Funnel"           href="/analytics"           icon={BarChart2}    isActive={active('/analytics') && !active('/analytics/ai-usage') && !active('/analytics/activity') && !active('/analytics/eval') && !active('/analytics/rag-index')} disabled />
-            <NavItem label="Activity Log"     href="/analytics/activity"  icon={UsersRound}   isActive={active('/analytics/activity')} />
+            <NavItem label="Activity Log"     href="/analytics/activity"  icon={History}      isActive={active('/analytics/activity')} />
             <NavItem label="AI Usage"         href="/analytics/ai-usage"  icon={Cpu}          isActive={active('/analytics/ai-usage')} />
-            <NavItem label="RAG Index"        href="/analytics/rag-index" icon={FolderOpen}   isActive={active('/analytics/rag-index')} />
             <NavItem label="Email Evaluation" href="/analytics/eval"      icon={FlaskConical} isActive={active('/analytics/eval')} />
           </div>
         )}
@@ -274,6 +290,7 @@ export default function Sidebar() {
         <SectionDivider />
 
         <NavItem label="Claims"   href="/claims"   icon={AlertCircle} isActive={active('/claims')}   disabled />
+        <NavItem label="Team"     href="/team"     icon={UsersRound}  isActive={active('/team')} />
         <NavItem label="Settings" href="/settings" icon={Settings}    isActive={active('/settings')} />
 
       </nav>
