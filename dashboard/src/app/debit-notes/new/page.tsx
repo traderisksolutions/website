@@ -204,8 +204,10 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
   const [gstAmount, setGstAmount] = useState(m?.gst_amount ?? 0)
   const [commissionRate, setCommissionRate] = useState(m?.commission_rate ?? 0)
   const [commissionAmount, setCommissionAmount] = useState(m?.commission_amount ?? 0)
-  const [issueDate, setIssueDate] = useState(m?.issue_date ?? '')
+  const [issueDate, setIssueDate] = useState(m?.issue_date || new Date().toISOString().slice(0, 10))
   const [paymentDueDate, setPaymentDueDate] = useState(m?.payment_due_date ?? '')
+  const [debitNoteNo, setDebitNoteNo] = useState('')
+  const [debitNoteNoTouched, setDebitNoteNoTouched] = useState(false)
   const [eventType, setEventType] = useState<EventType>('new_business')
   const [eventTypeTouched, setEventTypeTouched] = useState(false)
   const [endorsementEffectiveDate, setEndorsementEffectiveDate] = useState('')
@@ -243,6 +245,22 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
     }, 500)
     return () => clearTimeout(t)
   }, [policyNumber, periodStart, periodEnd, eventTypeTouched])
+
+  // Preview the debit note number this will actually generate as — a live suggestion the
+  // reviewer can confirm or override before approving, not just found out after the fact.
+  // Never overrides a manual edit; re-suggests when the issue date changes since the number is
+  // date-based.
+  useEffect(() => {
+    if (debitNoteNoTouched || !issueDate) return
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/debit-notes/next-number?issueDate=${encodeURIComponent(issueDate)}`, { cache: 'no-store' })
+        const data = res.ok ? await res.json() as { debitNoteNo?: string } : null
+        if (data?.debitNoteNo) setDebitNoteNo(data.debitNoteNo)
+      } catch { /* best-effort suggestion only */ }
+    }, 400)
+    return () => clearTimeout(t)
+  }, [issueDate, debitNoteNoTouched])
 
   function currentMerged(): ExtractedDebitNote {
     return {
@@ -288,6 +306,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
           debitNote: {
             currency, lineItems: [{ description: 'Gross Premium collected on behalf of Insurance Company', amount: grossPremium }],
             gstAmount: gstAmount || null, commissionRate: commissionRate || null, commission: commissionAmount || null,
+            debitNoteNo: debitNoteNo.trim() || null,
             issueDate: issueDate || new Date().toISOString().slice(0, 10), paymentDueDate: paymentDueDate || null, insurer,
             eventType, endorsementEffectiveDate: eventType === 'endorsement' ? endorsementEffectiveDate : null,
           },
@@ -327,6 +346,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
       <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4 flex flex-col items-center gap-3 text-center">
         <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center"><CheckCircle2 size={20} className="text-emerald-600" /></div>
         <p className="text-[14px] font-semibold">Debit Note {approved.debitNoteNo} generated</p>
+        <p className="text-[11.5px] text-emerald-700 -mt-1.5">This debit note and its documents are now saved in your Debit Notes records.</p>
         <div className="flex items-center gap-2">
           <a href={approved.downloadUrl} target="_blank" rel="noreferrer" className="inline-flex"><Button variant="outline" size="sm"><Download size={13} className="mr-1.5" /> Download PDF</Button></a>
           <Button size="sm" onClick={openSend} disabled={busy}>{busy ? <Loader2 size={13} className="animate-spin mr-1.5" /> : <Send size={13} className="mr-1.5" />} Send documents</Button>
@@ -415,6 +435,14 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
       </div>
 
       <div className="grid grid-cols-3 gap-2">
+        <Field label="Debit note no.">
+          <input
+            value={debitNoteNo}
+            onChange={e => { setDebitNoteNo(e.target.value); setDebitNoteNoTouched(true) }}
+            placeholder="Suggesting…"
+            className={inp}
+          />
+        </Field>
         <Field label="Policy number"><input value={policyNumber} onChange={e => setPolicyNumber(e.target.value)} className={inp} /></Field>
         <Field label="Cover note no."><input value={coverNoteNo} onChange={e => setCoverNoteNo(e.target.value)} className={inp} /></Field>
         <Field label="Insurer (required)"><input value={insurer} onChange={e => setInsurer(e.target.value)} className={inp} /></Field>
