@@ -5,9 +5,15 @@
  * (write) scope instead of `drive.readonly` — the JWT-signing technique itself mirrors
  * gdrive-knowledge.ts's getServiceAccountToken().
  *
- * Setup required (one-time, not code): create a root "Debit Notes" folder in Google Drive,
- * share it with this service account's client_email as Editor, and set
- * GDRIVE_DEBIT_NOTES_ROOT_FOLDER_ID to that folder's id.
+ * Setup required (one-time, not code): create a "Debit Notes" **Shared Drive** (not a regular
+ * My Drive folder — service accounts have zero storage quota of their own, so uploads into a
+ * regular folder fail with storageQuotaExceeded even though folder creation itself succeeds;
+ * Shared Drives use the organization's pooled storage instead), add this service account's
+ * client_email as a member with Content Manager access, and set
+ * GDRIVE_DEBIT_NOTES_ROOT_FOLDER_ID to either the Shared Drive's own id or a folder id inside it.
+ * Every request below passes supportsAllDrives=true (and includeItemsFromAllDrives=true for
+ * listing) — required by the Drive API for any operation touching a Shared Drive, silently
+ * ignored otherwise.
  */
 import { createSign } from 'node:crypto'
 
@@ -55,14 +61,14 @@ export function rootFolderId(): string {
 export async function findOrCreateFolder(name: string, parentId: string, token: string): Promise<string> {
   const escaped = name.replace(/'/g, "\\'")
   const q = encodeURIComponent(`name='${escaped}' and mimeType='${FOLDER_MIME}' and '${parentId}' in parents and trashed=false`)
-  const listRes = await fetch(`${DRIVE_API}/files?q=${q}&fields=files(id,name)&pageSize=1`, {
+  const listRes = await fetch(`${DRIVE_API}/files?q=${q}&fields=files(id,name)&pageSize=1&supportsAllDrives=true&includeItemsFromAllDrives=true`, {
     headers: { Authorization: `Bearer ${token}` },
   })
   const listData = await listRes.json()
   const existing = listData.files?.[0]?.id as string | undefined
   if (existing) return existing
 
-  const createRes = await fetch(`${DRIVE_API}/files?fields=id,webViewLink`, {
+  const createRes = await fetch(`${DRIVE_API}/files?fields=id,webViewLink&supportsAllDrives=true`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, mimeType: FOLDER_MIME, parents: [parentId] }),
@@ -73,7 +79,7 @@ export async function findOrCreateFolder(name: string, parentId: string, token: 
 }
 
 export async function getFolderWebLink(folderId: string, token: string): Promise<string> {
-  const res = await fetch(`${DRIVE_API}/files/${folderId}?fields=webViewLink`, {
+  const res = await fetch(`${DRIVE_API}/files/${folderId}?fields=webViewLink&supportsAllDrives=true`, {
     headers: { Authorization: `Bearer ${token}` },
   })
   const data = await res.json()
@@ -90,7 +96,7 @@ export async function uploadFileToDrive(name: string, mimeType: string, bytes: B
     bytes,
     Buffer.from(`\r\n--${boundary}--`),
   ])
-  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id&supportsAllDrives=true', {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': `multipart/related; boundary=${boundary}` },
     body: body as unknown as BodyInit,
