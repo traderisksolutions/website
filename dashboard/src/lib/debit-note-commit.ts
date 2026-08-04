@@ -205,6 +205,10 @@ export type DebitNoteInput = {
    *  distinct so the PDF can explain why the two dates don't have to match. */
   eventType?:                  'new_business' | 'renewal' | 'endorsement'
   endorsementEffectiveDate?:   string | null
+  /** Which upload flow created this — "Generate new debit note" vs "Generate Historical Debit
+   *  Note" — both save source: 'pdf_import' so this is the only way to tell them apart. Used to
+   *  group the Drive archival folder structure. Defaults to 'new' when omitted. */
+  origin?:            'new' | 'historical'
   source:             'manual' | 'pdf_import'
 }
 
@@ -261,6 +265,7 @@ export async function commitDebitNote(input: {
       insurer: input.debitNote.insurer ?? null,
       event_type: input.debitNote.eventType ?? 'new_business',
       endorsement_effective_date: input.debitNote.endorsementEffectiveDate ?? null,
+      origin: input.debitNote.origin ?? 'new',
       source: input.debitNote.source,
     }),
   })

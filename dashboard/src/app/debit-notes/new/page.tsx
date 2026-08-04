@@ -309,6 +309,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
             debitNoteNo: debitNoteNo.trim() || null,
             issueDate: issueDate || new Date().toISOString().slice(0, 10), paymentDueDate: paymentDueDate || null, insurer,
             eventType, endorsementEffectiveDate: eventType === 'endorsement' ? endorsementEffectiveDate : null,
+            origin: 'new' as const,
           },
         }),
       })

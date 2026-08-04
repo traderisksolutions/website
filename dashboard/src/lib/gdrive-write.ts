@@ -100,14 +100,17 @@ export async function uploadFileToDrive(name: string, mimeType: string, bytes: B
   return data.id as string
 }
 
-/** Convenience: ensure companyName/policyLabel folders exist under the configured root, upload
- *  every given file into the policy folder, and return the policy folder's web link. */
+/** Convenience: ensure originLabel/companyName/policyLabel folders exist under the configured
+ *  root (originLabel groups by which upload flow created the debit note — "New" vs
+ *  "Historical" — so the two don't mix in the same company folder), upload every given file
+ *  into the policy folder, and return the policy folder's web link. */
 export async function archiveDebitNoteToDrive(
-  companyName: string, policyLabel: string,
+  originLabel: string, companyName: string, policyLabel: string,
   files: { name: string; mimeType: string; bytes: Buffer }[],
 ): Promise<string> {
   const token = await getDriveWriteToken()
-  const companyFolderId = await findOrCreateFolder(companyName, rootFolderId(), token)
+  const originFolderId = await findOrCreateFolder(originLabel, rootFolderId(), token)
+  const companyFolderId = await findOrCreateFolder(companyName, originFolderId, token)
   const policyFolderId = await findOrCreateFolder(policyLabel, companyFolderId, token)
   for (const f of files) {
     await uploadFileToDrive(f.name, f.mimeType, f.bytes, policyFolderId, token)

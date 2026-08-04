@@ -30,6 +30,7 @@ type Body = {
     debitNoteNo?: string | null
     issueDate: string; paymentDueDate?: string | null; insurer?: string | null
     eventType?: 'new_business' | 'renewal' | 'endorsement'; endorsementEffectiveDate?: string | null
+    origin?: 'new' | 'historical'
   }
 }
 
@@ -104,7 +105,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         Promise.resolve({ name: `${result.debitNoteNo}.pdf`, mimeType: 'application/pdf', bytes: pdfBuffer }),
       ])
       const policyLabel = body.policy.policyNumber ? `${body.policy.policyNumber} - ${body.policy.classOfInsurance ?? ''}`.trim() : result.debitNoteNo
-      driveFolderUrl = await archiveDebitNoteToDrive(companyName, policyLabel, driveFiles)
+      const originLabel = body.debitNote.origin === 'historical' ? 'Historical' : 'New'
+      driveFolderUrl = await archiveDebitNoteToDrive(originLabel, companyName, policyLabel, driveFiles)
     } catch (e) {
       // Drive archival is best-effort — most likely cause is GDRIVE_* env vars not configured yet.
       console.error('Drive archival failed (approval still succeeds):', e)
