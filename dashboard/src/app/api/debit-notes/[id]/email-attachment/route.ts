@@ -7,7 +7,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
-import { SB_URL, sbH as debitSbH }   from '@/lib/debit-note-storage'
+import { SB_URL, sbH as debitSbH, storageKeySegment } from '@/lib/debit-note-storage'
 import { randomUUID }                from 'node:crypto'
 
 const EMAIL_BUCKET = 'email-attachments'
@@ -34,7 +34,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     const bytes = Buffer.from(await pdfRes.arrayBuffer())
 
     const filename = `${dn.debit_note_no}.pdf`
-    const path = `outgoing/${randomUUID()}/${filename}`
+    const path = `outgoing/${randomUUID()}/${storageKeySegment(filename)}`
     const upRes = await fetch(`${SB_URL}/storage/v1/object/${EMAIL_BUCKET}/${path}`, {
       method: 'POST', headers: { ...emailStH(), 'Content-Type': 'application/pdf' },
       body: bytes as unknown as BodyInit,

@@ -8,7 +8,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
-import { SB_URL, sbH, uploadPdf, signRead } from '@/lib/debit-note-storage'
+import { SB_URL, sbH, uploadPdf, signRead, storageKeySegment } from '@/lib/debit-note-storage'
 import {
   commitDebitNote, type CompanyInput, type ContactInput, type PolicyInput, type DebitNoteInput,
 } from '@/lib/debit-note-commit'
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
         paymentDueDate: body.debitNote.paymentDueDate ?? null,
         eventType: body.debitNote.eventType, endorsementEffectiveDate: body.debitNote.endorsementEffectiveDate ?? null,
       })
-      pdfPath = `${result.companyId}/${result.debitNoteNo}.pdf`
+      pdfPath = `${result.companyId}/${storageKeySegment(result.debitNoteNo)}.pdf`
       await uploadPdf(pdfPath, pdfBuffer)
     }
 

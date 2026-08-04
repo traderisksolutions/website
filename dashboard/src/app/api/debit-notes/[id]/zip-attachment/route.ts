@@ -8,7 +8,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
-import { SB_URL, sbH as debitSbH }   from '@/lib/debit-note-storage'
+import { SB_URL, sbH as debitSbH, storageKeySegment } from '@/lib/debit-note-storage'
 import { randomUUID }                from 'node:crypto'
 import AdmZip                        from 'adm-zip'
 
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const zipBuffer = zip.toBuffer()
 
     const filename = `${dn.debit_note_no}-documents.zip`
-    const uploadPath = `outgoing/${randomUUID()}/${filename}`
+    const uploadPath = `outgoing/${randomUUID()}/${storageKeySegment(filename)}`
     const upRes = await fetch(`${SB_URL}/storage/v1/object/${EMAIL_BUCKET}/${uploadPath}`, {
       method: 'POST', headers: { ...emailStH(), 'Content-Type': 'application/zip' },
       body: zipBuffer as unknown as BodyInit,

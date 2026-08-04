@@ -10,7 +10,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
-import { SB_URL, sbH, stH, uploadPdf, signRead } from '@/lib/debit-note-storage'
+import { SB_URL, sbH, stH, uploadPdf, signRead, storageKeySegment } from '@/lib/debit-note-storage'
 import { commitDebitNote, attachDebitNoteArchival, type CompanyInput, type ContactInput, type AttachmentFileRef } from '@/lib/debit-note-commit'
 import { renderDebitNotePdf } from '@/lib/debit-note-pdf'
 import { archiveDebitNoteToDrive } from '@/lib/gdrive-write'
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       paymentDueDate: body.debitNote.paymentDueDate ?? null,
       eventType: body.debitNote.eventType, endorsementEffectiveDate: body.debitNote.endorsementEffectiveDate ?? null,
     })
-    const pdfPath = `${result.companyId}/${result.debitNoteNo}.pdf`
+    const pdfPath = `${result.companyId}/${storageKeySegment(result.debitNoteNo)}.pdf`
     await uploadPdf(pdfPath, pdfBuffer)
 
     const attachmentFiles: AttachmentFileRef[] = [

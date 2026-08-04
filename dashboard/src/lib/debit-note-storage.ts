@@ -6,6 +6,13 @@
 export const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 export const BUCKET  = 'debit-notes'
 
+/** debit_note_no is "DN 260805" (space, for display/PDF/email) — a raw space in a storage
+ *  object key isn't URL-encoded by the plain template-string fetch() calls this file uses, and
+ *  can break the upload the same way bracket-filled insurer filenames did. Strip whitespace
+ *  only when building the actual storage key; keep the spaced string everywhere it's shown to
+ *  a person (PDF, filename metadata, email subject). */
+export const storageKeySegment = (s: string) => s.replace(/\s+/g, '')
+
 export function serviceKey(): string {
   const k = process.env.SUPABASE_SERVICE_KEY
   if (!k) throw new Error('SUPABASE_SERVICE_KEY not set')

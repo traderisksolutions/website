@@ -11,7 +11,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
-import { SB_URL, sbH, uploadPdf, signRead, deleteObject } from '@/lib/debit-note-storage'
+import { SB_URL, sbH, uploadPdf, signRead, deleteObject, storageKeySegment } from '@/lib/debit-note-storage'
 import { renderDebitNotePdf, type DebitNotePdfLineItem } from '@/lib/debit-note-pdf'
 import { logActivity } from '@/lib/log-activity'
 
@@ -119,7 +119,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       paymentDueDate: update.payment_due_date,
       eventType: update.event_type as EventType, endorsementEffectiveDate: update.endorsement_effective_date,
     })
-    const pdfPath = before.pdf_storage_url ?? `${before.company_id}/${before.debit_note_no}.pdf`
+    const pdfPath = before.pdf_storage_url ?? `${before.company_id}/${storageKeySegment(before.debit_note_no)}.pdf`
     await uploadPdf(pdfPath, pdfBuffer)
     if (!before.pdf_storage_url) {
       await fetch(`${SB_URL}/rest/v1/debit_notes?id=eq.${id}`, { method: 'PATCH', headers: sbH(), body: JSON.stringify({ pdf_storage_url: pdfPath }) })
