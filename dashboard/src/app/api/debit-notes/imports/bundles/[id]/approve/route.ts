@@ -107,8 +107,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         }),
         Promise.resolve({ name: `${result.debitNoteNo}.pdf`, mimeType: 'application/pdf', bytes: pdfBuffer }),
       ])
-      const originLabel = body.debitNote.origin === 'historical' ? 'Historical' : 'New'
-      driveFolderUrl = await archiveDebitNoteToDrive(originLabel, companyName, driveFiles)
+      driveFolderUrl = await archiveDebitNoteToDrive(companyName, driveFiles)
     } catch (e) {
       // Drive archival is best-effort — most likely cause is GDRIVE_* env vars not configured yet.
       console.error('Drive archival failed (approval still succeeds):', e)
