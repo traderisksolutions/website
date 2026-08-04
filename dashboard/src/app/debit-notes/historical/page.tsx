@@ -362,7 +362,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
           <a href={approved.downloadUrl} target="_blank" rel="noreferrer" className="inline-flex"><Button variant="outline" size="sm"><Download size={13} className="mr-1.5" /> Download PDF</Button></a>
           <Button size="sm" onClick={openSend} disabled={busy}>{busy ? <Loader2 size={13} className="animate-spin mr-1.5" /> : <Send size={13} className="mr-1.5" />} Send documents</Button>
         </div>
-        <button onClick={onResolved} className="text-[11.5px] text-muted-foreground hover:text-foreground">Done</button>
+        <Link href="/debit-notes" className="text-[11.5px] text-muted-foreground hover:text-foreground">Done</Link>
         {sendTarget && <SendDocumentsModal target={sendTarget} onClose={() => setSendTarget(null)} />}
       </div>
     )
