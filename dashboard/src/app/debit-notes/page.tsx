@@ -78,6 +78,9 @@ function DebitNotesContent() {
           description="Every debit note sent to a client — generated here or bulk-imported from PDFs."
           actions={(
             <>
+              <a href="https://drive.google.com/drive/folders/1WUKRz4O2Z38dh3JFgCORcJtaJzO59fXr" target="_blank" rel="noreferrer">
+                <Button variant="outline" size="sm"><FolderOpen size={14} className="mr-1.5" /> Open GDrive</Button>
+              </a>
               <Link href="/debit-notes/historical"><Button variant="outline" size="sm"><UploadCloud size={14} className="mr-1.5" /> Generate Historical Debit Note</Button></Link>
               <Link href="/debit-notes/new"><Button size="sm"><Plus size={14} className="mr-1.5" /> Generate new debit note</Button></Link>
             </>
