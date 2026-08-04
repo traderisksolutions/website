@@ -97,16 +97,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     let driveFolderUrl: string | null = null
     try {
+      // Files land flat in the company folder (no per-policy subfolder), so every filename is
+      // prefixed with the debit note number — otherwise two renewals both handing over a
+      // "Tax Invoice.pdf" would sit side by side with no way to tell them apart.
       const driveFiles = await Promise.all([
         ...members.map(async m => {
           const res = await fetch(`${SB_URL}/storage/v1/object/debit-notes/${m.storage_url}`, { headers: stH() })
-          return { name: m.original_filename ?? 'document.pdf', mimeType: 'application/pdf', bytes: Buffer.from(await res.arrayBuffer()) }
+          return { name: `${result.debitNoteNo} - ${m.original_filename ?? 'document.pdf'}`, mimeType: 'application/pdf', bytes: Buffer.from(await res.arrayBuffer()) }
         }),
         Promise.resolve({ name: `${result.debitNoteNo}.pdf`, mimeType: 'application/pdf', bytes: pdfBuffer }),
       ])
-      const policyLabel = body.policy.policyNumber ? `${body.policy.policyNumber} - ${body.policy.classOfInsurance ?? ''}`.trim() : result.debitNoteNo
       const originLabel = body.debitNote.origin === 'historical' ? 'Historical' : 'New'
-      driveFolderUrl = await archiveDebitNoteToDrive(originLabel, companyName, policyLabel, driveFiles)
+      driveFolderUrl = await archiveDebitNoteToDrive(originLabel, companyName, driveFiles)
     } catch (e) {
       // Drive archival is best-effort — most likely cause is GDRIVE_* env vars not configured yet.
       console.error('Drive archival failed (approval still succeeds):', e)

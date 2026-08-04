@@ -4,12 +4,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
   ArrowLeft, Loader2, FileText, UploadCloud, CheckCircle2,
-  XCircle, AlertTriangle, Save, RefreshCw,
+  XCircle, AlertTriangle, Save, RefreshCw, Download, Send,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { CompanyContactPicker, type PickerValue } from '@/components/company-contact-picker/CompanyContactPicker'
+import { SendDocumentsModal, type SendDocumentsTarget } from '@/components/debit-notes/SendDocumentsModal'
 import type { ExtractedDebitNote, DocType } from '@/lib/debit-note-extract'
 
 export default function HistoricalDebitNotePage() {
@@ -206,6 +207,7 @@ function BulkUploadSection() {
 const inp = 'text-[12.5px] border border-border rounded-md px-2 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-primary/25 w-full'
 type EventType = 'new_business' | 'renewal' | 'endorsement'
 type PolicyLookup = { id: string; startDate: string | null; endDate: string | null; hasDebitNotes: boolean } | null
+type ApprovedResult = { debitNoteId: string; debitNoteNo: string; downloadUrl: string; driveFolderUrl: string | null }
 
 function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: () => void }) {
   const m = bundle.merged
@@ -235,6 +237,8 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
   const [saved, setSaved] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const [retrying, setRetrying] = useState(false)
+  const [approved, setApproved] = useState<ApprovedResult | null>(null)
+  const [sendTarget, setSendTarget] = useState<SendDocumentsTarget | null>(null)
 
   async function retryExtraction() {
     setRetrying(true); setErr(null)
@@ -316,7 +320,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Could not approve')
-      onResolved()
+      setApproved({ debitNoteId: data.debitNoteId, debitNoteNo: data.debitNoteNo, downloadUrl: data.downloadUrl, driveFolderUrl: data.driveFolderUrl ?? null })
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not approve') } finally { setBusy(false) }
   }
 
@@ -324,6 +328,44 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
     setBusy(true)
     await fetch(`/api/debit-notes/imports/bundles/${bundle.id}/reject`, { method: 'POST' })
     setBusy(false); onResolved()
+  }
+
+  async function openSend() {
+    if (!approved) return
+    setBusy(true); setErr(null)
+    try {
+      const res = await fetch(`/api/debit-notes/${approved.debitNoteId}`, { cache: 'no-store' })
+      const detail = await res.json()
+      if (!res.ok) throw new Error(detail.error ?? 'Could not load debit note')
+      setSendTarget({
+        debitNoteId: approved.debitNoteId, debitNoteNo: approved.debitNoteNo,
+        companyName: detail.companies?.name ?? null, contactEmail: detail.contacts?.email ?? null,
+        contactName: [detail.contacts?.first_name, detail.contacts?.last_name].filter(Boolean).join(' ') || null,
+        attachmentFiles: detail.attachment_files ?? [],
+        companyId: detail.company_id ?? null, amount: detail.gross_amount ?? null, currency: detail.currency ?? null, insurer: detail.insurer ?? null,
+      })
+    } catch (e) { setErr(e instanceof Error ? e.message : 'Could not load debit note') } finally { setBusy(false) }
+  }
+
+  if (approved) {
+    return (
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4 flex flex-col items-center gap-3 text-center">
+        <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center"><CheckCircle2 size={20} className="text-emerald-600" /></div>
+        <p className="text-[14px] font-semibold">Debit Note {approved.debitNoteNo} generated</p>
+        <p className="text-[11.5px] text-emerald-700 -mt-1.5">
+          This debit note and its documents are now saved in your Debit Notes records
+          {approved.driveFolderUrl ? (
+            <> and <a href={approved.driveFolderUrl} target="_blank" rel="noreferrer" className="underline hover:no-underline">archived to Google Drive</a>.</>
+          ) : '.'}
+        </p>
+        <div className="flex items-center gap-2">
+          <a href={approved.downloadUrl} target="_blank" rel="noreferrer" className="inline-flex"><Button variant="outline" size="sm"><Download size={13} className="mr-1.5" /> Download PDF</Button></a>
+          <Button size="sm" onClick={openSend} disabled={busy}>{busy ? <Loader2 size={13} className="animate-spin mr-1.5" /> : <Send size={13} className="mr-1.5" />} Send documents</Button>
+        </div>
+        <button onClick={onResolved} className="text-[11.5px] text-muted-foreground hover:text-foreground">Done</button>
+        {sendTarget && <SendDocumentsModal target={sendTarget} onClose={() => setSendTarget(null)} />}
+      </div>
+    )
   }
 
   return (

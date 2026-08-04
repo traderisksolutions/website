@@ -183,7 +183,7 @@ export default function NewDebitNotePage() {
 // ── Bundle review card ──────────────────────────────────────────────────────────────────────
 const inp = 'text-[12.5px] border border-border rounded-md px-2 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-primary/25 w-full'
 
-type ApprovedResult = { debitNoteId: string; debitNoteNo: string; downloadUrl: string }
+type ApprovedResult = { debitNoteId: string; debitNoteNo: string; downloadUrl: string; driveFolderUrl: string | null }
 type EventType = 'new_business' | 'renewal' | 'endorsement'
 type PolicyLookup = { id: string; startDate: string | null; endDate: string | null; hasDebitNotes: boolean } | null
 
@@ -315,7 +315,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Could not approve')
-      setApproved({ debitNoteId: data.debitNoteId, debitNoteNo: data.debitNoteNo, downloadUrl: data.downloadUrl })
+      setApproved({ debitNoteId: data.debitNoteId, debitNoteNo: data.debitNoteNo, downloadUrl: data.downloadUrl, driveFolderUrl: data.driveFolderUrl ?? null })
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not approve') } finally { setBusy(false) }
   }
 
@@ -347,7 +347,12 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
       <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4 flex flex-col items-center gap-3 text-center">
         <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center"><CheckCircle2 size={20} className="text-emerald-600" /></div>
         <p className="text-[14px] font-semibold">Debit Note {approved.debitNoteNo} generated</p>
-        <p className="text-[11.5px] text-emerald-700 -mt-1.5">This debit note and its documents are now saved in your Debit Notes records.</p>
+        <p className="text-[11.5px] text-emerald-700 -mt-1.5">
+          This debit note and its documents are now saved in your Debit Notes records
+          {approved.driveFolderUrl ? (
+            <> and <a href={approved.driveFolderUrl} target="_blank" rel="noreferrer" className="underline hover:no-underline">archived to Google Drive</a>.</>
+          ) : '.'}
+        </p>
         <div className="flex items-center gap-2">
           <a href={approved.downloadUrl} target="_blank" rel="noreferrer" className="inline-flex"><Button variant="outline" size="sm"><Download size={13} className="mr-1.5" /> Download PDF</Button></a>
           <Button size="sm" onClick={openSend} disabled={busy}>{busy ? <Loader2 size={13} className="animate-spin mr-1.5" /> : <Send size={13} className="mr-1.5" />} Send documents</Button>
