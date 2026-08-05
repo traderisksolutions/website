@@ -57,7 +57,12 @@ function headerVal(headers: { name: string; value: string }[], name: string): st
   return headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value ?? ''
 }
 
-type MimePart = { mimeType: string; body: { data?: string }; parts?: unknown[] }
+type MimePart = {
+  mimeType: string
+  headers?: { name: string; value: string }[]
+  body: { data?: string; attachmentId?: string }
+  parts?: unknown[]
+}
 
 function stripHtml(html: string): string {
   return html
@@ -94,6 +99,50 @@ function decodeHtml(parts: MimePart[]): string {
     if (part.parts) { const n = decodeHtml(part.parts as MimePart[]); if (n) return n }
   }
   return ''
+}
+
+// Inline images (a pasted screenshot, a signature logo) show up in Gmail's HTML as
+// <img src="cid:xxxx">, a reference into this same message's own MIME parts — not a URL a
+// browser can ever resolve on its own. Finds every part carrying a Content-ID header, fetches
+// its bytes (inline in the part itself if small, otherwise a separate attachment fetch), and
+// rewrites each cid: reference actually used in the HTML into a data: URI.
+function collectContentIdParts(parts: MimePart[], out: Map<string, { mimeType: string; data?: string; attachmentId?: string }>) {
+  for (const part of parts) {
+    const cidHeader = part.headers?.find(h => h.name.toLowerCase() === 'content-id')?.value
+    if (cidHeader) {
+      const cid = cidHeader.replace(/^<|>$/g, '')
+      out.set(cid, { mimeType: part.mimeType, data: part.body?.data, attachmentId: part.body?.attachmentId })
+    }
+    if (part.parts) collectContentIdParts(part.parts as MimePart[], out)
+  }
+}
+
+async function fetchGmailAttachment(token: string, messageId: string, attachmentId: string): Promise<string | null> {
+  const res = await fetch(`${GMAIL_API}/messages/${messageId}/attachments/${attachmentId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) return null
+  const data = await res.json()
+  return data.data ?? null
+}
+
+async function resolveInlineImages(html: string, parts: MimePart[], messageId: string, token: string): Promise<string> {
+  const cidsInHtml = new Set(Array.from(html.matchAll(/src=["']cid:([^"']+)["']/gi), m => m[1]))
+  if (!cidsInHtml.size) return html
+
+  const byId = new Map<string, { mimeType: string; data?: string; attachmentId?: string }>()
+  collectContentIdParts(parts, byId)
+
+  let out = html
+  for (const cid of Array.from(cidsInHtml)) {
+    const part = byId.get(cid)
+    if (!part) continue
+    const base64url = part.data ?? (part.attachmentId ? await fetchGmailAttachment(token, messageId, part.attachmentId) : null)
+    if (!base64url) continue
+    const dataUri = `data:${part.mimeType};base64,${Buffer.from(base64url, 'base64url').toString('base64')}`
+    out = out.split(`cid:${cid}`).join(dataUri)
+  }
+  return out
 }
 
 // Collects ALL text content from ALL MIME parts — including embedded message/rfc822 attachments
@@ -443,8 +492,11 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
 
   const parts    = msg.payload?.parts ?? [msg.payload]
   const bodyText = decodeBody(parts)
-  const bodyHtml = decodeHtml(parts)
-  const highlights = extractHighlights(bodyHtml)          // client-highlighted text (#2)
+  const rawBodyHtml = decodeHtml(parts)
+  const highlights = extractHighlights(rawBodyHtml)          // client-highlighted text (#2)
+  // Resolve cid: inline images (pasted screenshots, signature logos) into data: URIs a browser
+  // can actually render — done after highlight extraction since that only cares about text.
+  const bodyHtml = await resolveInlineImages(rawBodyHtml, parts, gmailMsgId, token)
   const direction: 'inbound' | 'outbound' = isInternal(fromEmail) ? 'outbound' : 'inbound'
 
   // Identify the primary external (non-TRS) contact for this thread
