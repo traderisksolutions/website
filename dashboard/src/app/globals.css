@@ -649,3 +649,14 @@ select:focus-visible {
 .rte-content p  { margin: 0 0 0.5em; }
 .rte-content a  { color: #2563eb; text-decoration: underline; }
 .rte-content:empty::before { content: attr(data-placeholder); color: #9ca3af; }
+
+/* Inbound email HTML (Engagement thread view) — Tailwind's preflight strips table/image
+   defaults entirely, and most sender HTML doesn't bring its own borders/spacing, so a real
+   table would otherwise render with no visible grid at all. */
+.email-html-body table { border-collapse: collapse; margin: 0.5em 0; }
+.email-html-body td, .email-html-body th { border: 1px solid var(--border-subtle, #e5e7eb); padding: 4px 8px; text-align: left; }
+.email-html-body th { font-weight: 600; background: rgba(0,0,0,0.03); }
+.email-html-body img { max-width: 100%; height: auto; }
+.email-html-body p { margin: 0 0 0.6em; }
+.email-html-body a { color: #2563eb; text-decoration: underline; }
+.email-html-body blockquote { border-left: 2px solid var(--border-subtle, #e5e7eb); padding-left: 0.75em; margin: 0.5em 0; color: rgba(0,0,0,0.6); }

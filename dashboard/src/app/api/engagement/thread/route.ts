@@ -134,6 +134,7 @@ export async function GET(req: NextRequest) {
       from_address: m.from_address,
       subject:      m.subject,
       body_text:    m.body_text,
+      body_html:    m.body_html ?? null,
       highlights:   m.highlights ?? null,
       sent_at:      m.sent_at,
       to:           recipMap[m.id as string]?.to ?? [],

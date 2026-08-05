@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import type { RealMsg } from '@/components/engagement/types'
 import { fmtDateTime, stripQuotedContent } from '@/components/engagement/helpers'
 import { cleanEmailBody } from '@/lib/clean-email-body'
+import { sanitizeEmailHtml } from '@/lib/sanitize-email-html'
 
 interface EngagementMessageCardProps {
   msg:         RealMsg
@@ -77,6 +78,10 @@ export function EngagementMessageCard({ msg, defaultOpen, onOpen }: EngagementMe
 
   // ── Expanded: full readable card ──────────────────────────────────────────
   const bodyText = showFull ? fullBody : stripped
+  // Only emails ingested from 2026-07-10 onward have body_html stored — older rows only ever
+  // had the flattened plain text saved, so this falls back to that unchanged for them. When
+  // present, the real HTML (tables, formatting) renders instead of one-cell-per-line text.
+  const bodyHtml = msg.body_html ? sanitizeEmailHtml(msg.body_html) : null
 
   return (
     <div className={cn(
@@ -157,9 +162,16 @@ export function EngagementMessageCard({ msg, defaultOpen, onOpen }: EngagementMe
         )}
 
         {/* Email body — no artificial height cap; EaMessageArea handles scroll */}
-        <div className="text-[13.5px] text-foreground/85 leading-[1.85] whitespace-pre-wrap break-words">
-          {bodyText}
-        </div>
+        {bodyHtml ? (
+          <div
+            className="email-html-body text-[13.5px] text-foreground/85 leading-[1.85] break-words max-w-full overflow-x-auto"
+            dangerouslySetInnerHTML={{ __html: bodyHtml }}
+          />
+        ) : (
+          <div className="text-[13.5px] text-foreground/85 leading-[1.85] whitespace-pre-wrap break-words">
+            {bodyText}
+          </div>
+        )}
 
         {/* Quoted content toggle */}
         {hasQuoted && (
