@@ -120,10 +120,7 @@ export default function NewDebitNotePage() {
   return (
     <div className="max-w-4xl mx-auto px-6 py-6">
       <Link href="/debit-notes" className="inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground hover:text-foreground mb-3"><ArrowLeft size={14} /> Debit Notes</Link>
-      <div className="flex items-center justify-between mb-1">
-        <h1 className="text-[18px] font-semibold text-foreground">Generate a new debit note</h1>
-        <span className="text-[10px] text-muted-foreground/40 font-mono">build {process.env.NEXT_PUBLIC_COMMIT_SHA?.slice(0, 7) ?? 'dev'}</span>
-      </div>
+      <h1 className="text-[18px] font-semibold text-foreground mb-1">Generate a new debit note</h1>
       <p className="text-[12.5px] text-muted-foreground mb-4">
         A new renewal or new-business event is 2 files from the insurer: the tax invoice
         addressed to the client, and the commission statement addressed to TRS. Upload both — AI

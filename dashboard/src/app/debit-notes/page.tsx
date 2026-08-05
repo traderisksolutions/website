@@ -78,7 +78,6 @@ function DebitNotesContent() {
           description="Every debit note sent to a client — generated here or bulk-imported from PDFs."
           actions={(
             <>
-              <span className="text-[10px] text-muted-foreground/40 font-mono self-center">build {process.env.NEXT_PUBLIC_COMMIT_SHA?.slice(0, 7) ?? 'dev'}</span>
               <a href="https://drive.google.com/drive/folders/0AFj0Q_QusETkUk9PVA" target="_blank" rel="noreferrer">
                 <Button variant="outline" size="sm"><FolderOpen size={14} className="mr-1.5" /> Open GDrive</Button>
               </a>
