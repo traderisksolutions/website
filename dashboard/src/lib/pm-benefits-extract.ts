@@ -34,12 +34,28 @@ states as a plan feature. Use the insurer's OWN wording/labels — do not force 
 taxonomy or invent a category that isn't meaningfully present. Never invent a value that isn't stated.
 
 Return ONLY this JSON (no prose, no markdown fence):
-{ "terms": [ { "plan_code": "<matches a rate-table plan code where applicable, or omit for a
-    policy-wide term>", "category": "<short grouping, e.g. Hospitalization, Panel, Waiting Period,
-    Maternity, Dental, Exclusions>", "label": "<the specific feature, in the insurer's own words>",
-    "value": "<the stated value/limit/description, verbatim or lightly cleaned up>",
-    "notes": "<caveats/conditions, or omit>",
+{ "terms": [ { "plan_code": "<the plan tier this value belongs to, or omit ONLY for a genuinely
+    policy-wide value — see the mandatory rule below>", "category": "<short grouping, e.g.
+    Hospitalization, Panel, Waiting Period, Maternity, Dental, Exclusions>", "label": "<the specific
+    feature, in the insurer's own words — the SAME label/category across every plan tier that has
+    this benefit, so rows align for comparison>", "value": "<the stated value/limit/description for
+    THAT plan tier, verbatim or lightly cleaned up>", "notes": "<caveats/conditions, or omit>",
     "plan_code_inferred": true | omit } ] }
+
+MANDATORY plan_code rule (this is the most common mistake — read carefully): most brochures present
+their benefit schedule as a table with one column per plan tier (e.g. "Plan 1 | Plan 2 | Plan 3 |
+Plan 4 | Plan 5", or an Annual Policy Limit row reading "$300,000 | $150,000 | $80,000 | $60,000 |
+$30,000"). Whenever a value sits under a specific plan-tier column — or is otherwise explicitly tied
+to one tier — you MUST emit ONE SEPARATE term per tier, each with that tier's own plan_code set,
+using the SAME category and label across all of them (only plan_code and value differ). NEVER leave
+plan_code blank for a table-column value, and NEVER collapse several plan tiers' values into a
+single unscoped term — that makes the values impossible to tell apart or compare. Only omit
+plan_code for a value that is genuinely stated ONCE for the whole policy regardless of which plan is
+chosen (e.g. a GST rate, a claims-notification deadline). Example — a row reading
+"Annual Policy Limit (APL): $300,000 / $150,000 / $80,000 / $60,000 / $30,000" under columns
+Plan 1-5 must become FIVE terms: {plan_code:"Plan 1", category:"Hospitalization",
+label:"Annual Policy Limit (APL)", value:"$300,000"}, {plan_code:"Plan 2", ..., value:"$150,000"},
+and so on — never one term with plan_code omitted and only one of the five values.
 
 Be thorough — this is used to answer "why would a client pick this insurer over another" for the
 SAME plan tier, so granularity matters (e.g. "Room & Board" and "ICU limit" are separate terms, not
@@ -49,8 +65,9 @@ Set "plan_code_inferred": true when you had to INFER which plan tier a term belo
 prose paragraph only discussing one tier by context, or elimination) rather than it being
 EXPLICITLY stated (a table column for that tier, an explicit "Plan X:" reference next to the
 value). Omit it entirely (do not write false) when the tier was explicitly stated, or when the term
-is policy-wide (no plan_code). This is a reviewer signal, not a confidence score on the value
-itself — the value must still be copied verbatim either way, never guessed.`
+is genuinely policy-wide (no plan_code, per the mandatory rule above). This is a reviewer signal,
+not a confidence score on the value itself — the value must still be copied verbatim either way,
+never guessed.`
 
 function extractJson(text: string): { terms: BenefitTerm[] } | null {
   const t = text.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim()

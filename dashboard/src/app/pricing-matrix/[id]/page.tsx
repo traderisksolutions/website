@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Loader2, Wand2, Save, CheckCircle2, Plus, Trash2, FileSpreadsheet, AlertTriangle, Table2, ArrowRight, Pencil, ListChecks } from 'lucide-react'
@@ -78,25 +78,34 @@ export default function CalculatorReviewPage() {
   }, [id])
 
   const runExtract = useCallback(async () => {
-    // Two phases (rate table, then benefit terms) called in sequence — split out of one long
-    // request because a single call covering both AI passes could exceed the platform's actual
-    // function timeout on a slow/complex workbook, coming back as a bare gateway 504 with no
-    // useful error. Each phase is its own independent AI pass, so splitting them roughly halves
-    // what any one request has to finish within.
+    // The extract route kicks the AI pipeline off in the background (Vercel `waitUntil`) and
+    // returns almost immediately — the browser's own fetch is no longer what can time out.
+    // Progress + completion are read entirely by polling /map-status, same as the progress bar
+    // already did; we just also watch `status` here to know when the whole thing is done.
     setExtracting(true); setError(null); setProgress({ label: 'Starting…', step: 0, total: 5 })
-    const poll = setInterval(async () => {
-      const s = await fetch(`/api/pricing-matrix/calculators/${id}/map-status`, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null)
-      if (s?.map_progress) setProgress(s.map_progress)
-    }, 1800)
-    try {
-      const r1 = await fetch(`/api/pricing-matrix/calculators/${id}/extract/rates`, { method: 'POST' })
-      const d1 = await safeJson<{ error?: string }>(r1)
-      if (!r1.ok) { setError(d1.error ?? 'Rate extraction failed'); return }
+    const res = await fetch(`/api/pricing-matrix/calculators/${id}/extract`, { method: 'POST' })
+    const d = await safeJson<{ error?: string }>(res)
+    if (!res.ok) { setError(d.error ?? 'Could not start extraction'); setExtracting(false); setProgress(null); return }
 
-      const r2 = await fetch(`/api/pricing-matrix/calculators/${id}/extract/terms`, { method: 'POST' })
-      const d2 = await safeJson<{ error?: string }>(r2)
-      if (!r2.ok) setError(d2.error ?? 'Coverage-term extraction failed')
-    } finally { clearInterval(poll); setExtracting(false); setProgress(null); await load() }
+    const STALL_AFTER_MS = 5 * 60 * 1000   // give up watching (not the same as the job itself failing) after 5 minutes
+    const startedAt = Date.now()
+    await new Promise<void>(resolve => {
+      const poll = setInterval(async () => {
+        const s = await fetch(`/api/pricing-matrix/calculators/${id}/map-status`, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null)
+        if (s?.map_progress) setProgress(s.map_progress)
+        if (s?.status && s.status !== 'extracting') {
+          clearInterval(poll)
+          if (s.status === 'draft' && s.map_progress?.error) setError(s.map_progress.label)
+          resolve()
+        } else if (Date.now() - startedAt > STALL_AFTER_MS) {
+          clearInterval(poll)
+          setError('Still processing — this workbook is taking unusually long. Refresh in a minute to check, or try Re-extract again.')
+          resolve()
+        }
+      }, 1800)
+    })
+    setExtracting(false); setProgress(null)
+    await load()
   }, [id, load])
 
   useEffect(() => { load() }, [load])
@@ -264,7 +273,7 @@ export default function CalculatorReviewPage() {
             {/* 2 — Rate table + rules. */}
             <div className="flex flex-col gap-5">
               <RateTableEditor rt={rt} setRt={setRt} disabled={approved} />
-              <BenefitTermsEditor terms={terms} setTerms={setTerms} disabled={approved} />
+              <BenefitTermsEditor terms={terms} setTerms={setTerms} rt={rt} disabled={approved} />
               <WorkbookSummary dump={calc.workbook_summary} />
             </div>
             {/* 3 — Worked example, computed locally by pm-calc.ts. */}
@@ -481,38 +490,111 @@ function CoverageEditor({ cov, onChange, onRemove, disabled }: { cov: Coverage; 
 }
 
 // ── Step 3 — coverage / benefit terms (Level 2 comparison data) ─────────────────
-function BenefitTermsEditor({ terms, setTerms, disabled }: { terms: BenefitTerm[]; setTerms: (t: BenefitTerm[]) => void; disabled: boolean }) {
-  const upTerm = (i: number, patch: Partial<BenefitTerm>) => { const t = [...terms]; t[i] = { ...t[i], ...patch }; setTerms(t) }
-  const addTerm = () => setTerms([...terms, { category: '', label: '', value: '', source: 'pdf' }])
-  const removeTerm = (i: number) => setTerms(terms.filter((_, j) => j !== i))
+const normText = (s: unknown) => String(s ?? '').toLowerCase().replace(/[^a-z0-9]/g, '')
+const POLICY_COL = '__policy__'
+
+/** Benefit terms rendered as an actual table — one row per benefit line, one column per plan tier
+ *  (matching how every brochure actually presents this), instead of a flat list of individually-
+ *  flagged cards. Grouping is purely presentational: the underlying data is still just BenefitTerm[]
+ *  (see pm-benefits-extract.ts) — a table cell maps 1:1 to one term keyed by (category, label, plan_code). */
+function BenefitTermsEditor({ terms, setTerms, rt, disabled }: { terms: BenefitTerm[]; setTerms: (t: BenefitTerm[]) => void; rt: RateTable; disabled: boolean }) {
+  const cols = useMemo(() => {
+    const seen = new Map<string, string>()
+    for (const cov of rt.coverages ?? []) for (const p of cov.plans ?? []) if (!seen.has(p.code)) seen.set(p.code, p.label || p.code)
+    return [...Array.from(seen, ([code, label]) => ({ code, label })), { code: POLICY_COL, label: 'Policy-wide' }]
+  }, [rt])
+
+  const rows = useMemo(() => {
+    const order: string[] = []
+    const byKey = new Map<string, { category: string; label: string; cells: Map<string, number> }>()
+    terms.forEach((t, i) => {
+      const k = `${normText(t.category)}|${normText(t.label)}`
+      let row = byKey.get(k)
+      if (!row) { row = { category: t.category, label: t.label, cells: new Map() }; byKey.set(k, row); order.push(k) }
+      const col = t.plan_code || POLICY_COL
+      if (!row.cells.has(col)) row.cells.set(col, i)
+    })
+    return order.map(k => byKey.get(k)!)
+  }, [terms])
+
+  function setCell(category: string, label: string, col: string, value: string) {
+    const idx = terms.findIndex(t => normText(t.category) === normText(category) && normText(t.label) === normText(label) && (t.plan_code || POLICY_COL) === col)
+    if (idx >= 0) {
+      if (!value.trim()) { setTerms(terms.filter((_, j) => j !== idx)); return }
+      const copy = [...terms]; copy[idx] = { ...copy[idx], value }; setTerms(copy)
+    } else if (value.trim()) {
+      setTerms([...terms, { category, label, value, plan_code: col === POLICY_COL ? undefined : col, source: 'pdf' }])
+    }
+  }
+  function renameRow(category: string, label: string, newCategory: string, newLabel: string) {
+    setTerms(terms.map(t => (normText(t.category) === normText(category) && normText(t.label) === normText(label)) ? { ...t, category: newCategory, label: newLabel } : t))
+  }
+  function removeRow(category: string, label: string) {
+    setTerms(terms.filter(t => !(normText(t.category) === normText(category) && normText(t.label) === normText(label))))
+  }
+
+  const [newCat, setNewCat] = useState(''); const [newLabel, setNewLabel] = useState('')
+  function addRow() {
+    if (!newCat.trim() || !newLabel.trim()) return
+    setTerms([...terms, { category: newCat.trim(), label: newLabel.trim(), value: '', source: 'pdf' }])
+    setNewCat(''); setNewLabel('')
+  }
+
+  const cellCls = (inferred?: boolean) => `${txtInput} w-full ${inferred ? 'border-amber-300 bg-amber-50/60' : ''}`
 
   return (
     <section className={card + ' p-4 flex flex-col gap-3'}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-[11px] font-bold">3</span>
-          <h2 className="text-[13px] font-semibold text-slate-800">Coverage terms <span className="font-normal text-slate-400">— what&rsquo;s actually covered, for comparison</span></h2>
-        </div>
-        {!disabled && <button onClick={addTerm} className="text-[11px] text-primary flex items-center gap-1 hover:underline"><Plus size={11} /> add</button>}
+      <div className="flex items-center gap-2">
+        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-[11px] font-bold">3</span>
+        <h2 className="text-[13px] font-semibold text-slate-800">Coverage terms <span className="font-normal text-slate-400">— what&rsquo;s actually covered, one row per benefit, one column per plan</span></h2>
       </div>
       {terms.length === 0 ? (
         <p className="text-[12px] text-slate-400">No coverage terms yet — Extract reads them from the brochure.</p>
       ) : (
-        <div className="flex flex-col gap-1.5 max-h-[420px] overflow-auto">
+        <div className="flex flex-col gap-1.5">
           {terms.some(t => t.plan_code_inferred) && (
-            <p className="text-[10.5px] text-amber-700/80 -mt-1 mb-0.5">Amber plan field = the AI inferred which tier this applies to rather than reading it explicitly — worth a second look.</p>
+            <p className="text-[10.5px] text-amber-700/80">Amber cell = the AI inferred which tier this applies to rather than reading it explicitly — worth a second look.</p>
           )}
-          {terms.map((t, i) => (
-            <div key={i} className="grid grid-cols-[70px_100px_1fr_1fr_20px] gap-1.5 items-center">
-              <input value={t.plan_code ?? ''} disabled={disabled} onChange={e => upTerm(i, { plan_code: e.target.value || undefined })}
-                title={t.plan_code_inferred ? 'Plan tier was inferred by the AI, not explicitly stated in the source — double-check this one' : undefined}
-                className={`${txtInput} ${t.plan_code_inferred ? 'border-amber-300 bg-amber-50/60' : ''}`} placeholder="plan" />
-              <input value={t.category} disabled={disabled} onChange={e => upTerm(i, { category: e.target.value })} className={txtInput} placeholder="category" />
-              <input value={t.label} disabled={disabled} onChange={e => upTerm(i, { label: e.target.value })} className={txtInput} placeholder="label" />
-              <input value={t.value} disabled={disabled} onChange={e => upTerm(i, { value: e.target.value })} className={txtInput} placeholder="value" />
-              {!disabled && <button onClick={() => removeTerm(i)} className="text-slate-300 hover:text-rose-500"><Trash2 size={12} /></button>}
-            </div>
-          ))}
+          <div className="overflow-x-auto max-h-[420px]">
+            <table className="w-full text-[12px] border-collapse">
+              <thead>
+                <tr className="text-left text-[10.5px] uppercase tracking-wide text-slate-400 sticky top-0 bg-white">
+                  <th className="py-1.5 pr-2 font-medium min-w-[180px]">Benefit</th>
+                  {cols.map(c => <th key={c.code} className="py-1.5 px-1.5 font-medium min-w-[110px]">{c.label}</th>)}
+                  <th className="w-5" />
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, i) => (
+                  <tr key={i} className="border-t border-slate-100">
+                    <td className="py-1 pr-2 align-top">
+                      <input value={row.category} disabled={disabled} onChange={e => renameRow(row.category, row.label, e.target.value, row.label)} className={`${txtInput} w-full mb-1`} placeholder="category" />
+                      <input value={row.label} disabled={disabled} onChange={e => renameRow(row.category, row.label, row.category, e.target.value)} className={`${txtInput} w-full`} placeholder="label" />
+                    </td>
+                    {cols.map(c => {
+                      const idx = row.cells.get(c.code)
+                      const t = idx !== undefined ? terms[idx] : undefined
+                      return (
+                        <td key={c.code} className="py-1 px-1.5 align-top">
+                          <input value={t?.value ?? ''} disabled={disabled} onChange={e => setCell(row.category, row.label, c.code, e.target.value)}
+                            title={t?.plan_code_inferred ? 'Plan tier was inferred by the AI, not explicitly stated in the source — double-check this one' : undefined}
+                            className={cellCls(t?.plan_code_inferred)} placeholder="—" />
+                        </td>
+                      )
+                    })}
+                    <td className="align-top pt-1.5">{!disabled && <button onClick={() => removeRow(row.category, row.label)} className="text-slate-300 hover:text-rose-500"><Trash2 size={12} /></button>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      {!disabled && (
+        <div className="flex items-center gap-1.5 pt-1 border-t border-slate-100">
+          <input value={newCat} onChange={e => setNewCat(e.target.value)} placeholder="category" className={`${txtInput} w-32`} />
+          <input value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder="new benefit label" className={`${txtInput} flex-1`} />
+          <button onClick={addRow} disabled={!newCat.trim() || !newLabel.trim()} className="text-[11px] text-primary flex items-center gap-1 hover:underline disabled:opacity-40 disabled:hover:no-underline shrink-0"><Plus size={11} /> add row</button>
         </div>
       )}
     </section>
