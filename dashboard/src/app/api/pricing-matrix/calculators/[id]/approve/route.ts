@@ -9,6 +9,9 @@ import { logActivity }               from '@/lib/log-activity'
 import { SB_URL, sbH }               from '@/lib/pm-storage'
 import { rateTableIsRunnable, runnableIssues } from '@/lib/pm-rates'
 import type { RateTable }            from '@/lib/pm-rates'
+import type { BenefitTerm }          from '@/lib/pm-benefits-extract'
+import { diffRateTable, diffBenefitTerms } from '@/lib/pm-diff'
+import { buildWorkbookAnalysisSummary, renderChangeSummary } from '@/lib/pm-summary'
 
 async function requireUser() {
   const supabase = await createClient()
@@ -27,13 +30,10 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     if (!calc) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     const rt = await fetch(`${SB_URL}/rest/v1/pm_rate_tables?calculator_id=eq.${id}&select=age_basis,coverages,rules,accuracy&limit=1`, { headers: sbH(), cache: 'no-store' })
-      .then(r => (r.ok ? r.json() : [])).then(rows => rows[0] ?? null) as (RateTable & { accuracy?: { rule_conflicts?: unknown[] } }) | null
+      .then(r => (r.ok ? r.json() : [])).then(rows => rows[0] ?? null) as RateTable | null
     if (!rateTableIsRunnable(rt)) return NextResponse.json({ error: runnableIssues(rt)[0] ?? 'Rate table is incomplete' }, { status: 400 })
-    const openRuleItems = rt?.accuracy?.rule_conflicts?.length ?? 0
-    const termAcc = await fetch(`${SB_URL}/rest/v1/pm_benefit_terms?calculator_id=eq.${id}&select=accuracy&limit=1`, { headers: sbH(), cache: 'no-store' })
-      .then(r => (r.ok ? r.json() : [])).then(rows => rows[0]?.accuracy as { conflicts?: unknown[] } | undefined)
-    const openTermItems = termAcc?.conflicts?.length ?? 0
-    const openItems = openRuleItems + openTermItems
+    const openItems = await fetch(`${SB_URL}/rest/v1/pm_reconciliation_issues?calculator_id=eq.${id}&status=eq.open&select=id`, { headers: sbH(), cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : [])).then((rows: unknown[]) => rows.length)
     if (openItems > 0) return NextResponse.json({ error: `Resolve ${openItems} flagged item${openItems === 1 ? '' : 's'} before approving` }, { status: 400 })
 
     // Archive prior approved calculators for the same insurer (match on id, else on name).
@@ -46,9 +46,29 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       await fetch(`${SB_URL}/rest/v1/pm_calculators?id=eq.${p.id}`, { method: 'PATCH', headers: sbH('return=minimal'), body: JSON.stringify({ status: 'archived' }) })
     }
 
+    // Deterministic, templated summaries — no AI, no re-reading the source files. The workbook
+    // summary always regenerates; the "what changed" summary only exists when a prior approved
+    // version of this insurer is being superseded.
+    const analysis_summary = buildWorkbookAnalysisSummary(rt as RateTable)
+    let change_summary: { text: string; rate_diff: unknown; term_diff: unknown } | null = null
+    const prev = priorApproved.find(p => p.id !== id && p.version === maxVersion)
+    if (prev) {
+      const [prevRt, prevBt, newBt] = await Promise.all([
+        fetch(`${SB_URL}/rest/v1/pm_rate_tables?calculator_id=eq.${prev.id}&select=age_basis,coverages,rules&limit=1`, { headers: sbH(), cache: 'no-store' }).then(r => r.ok ? r.json() : []).then(rows => rows[0] ?? null) as Promise<RateTable | null>,
+        fetch(`${SB_URL}/rest/v1/pm_benefit_terms?calculator_id=eq.${prev.id}&select=terms&limit=1`, { headers: sbH(), cache: 'no-store' }).then(r => r.ok ? r.json() : []).then(rows => rows[0]?.terms ?? null) as Promise<BenefitTerm[] | null>,
+        fetch(`${SB_URL}/rest/v1/pm_benefit_terms?calculator_id=eq.${id}&select=terms&limit=1`, { headers: sbH(), cache: 'no-store' }).then(r => r.ok ? r.json() : []).then(rows => rows[0]?.terms ?? null) as Promise<BenefitTerm[] | null>,
+      ])
+      const rateDiff = diffRateTable(prevRt, rt as RateTable)
+      const termDiff = diffBenefitTerms(prevBt, newBt)
+      change_summary = { text: renderChangeSummary(rateDiff, termDiff), rate_diff: rateDiff, term_diff: termDiff }
+    }
+
     await fetch(`${SB_URL}/rest/v1/pm_calculators?id=eq.${id}`, {
       method: 'PATCH', headers: sbH('return=minimal'),
-      body: JSON.stringify({ status: 'approved', version: Math.max(maxVersion + 1, calc.version ?? 1), approved_by: user.id, approved_at: new Date().toISOString() }),
+      body: JSON.stringify({
+        status: 'approved', version: Math.max(maxVersion + 1, calc.version ?? 1), approved_by: user.id, approved_at: new Date().toISOString(),
+        analysis_summary, change_summary,
+      }),
     })
     void logActivity({ action: 'pm.calculator_approved', resource_type: 'pm_calculator', resource_id: id, new_value: { insurer: calc.insurer_name } })
     return NextResponse.json({ ok: true })

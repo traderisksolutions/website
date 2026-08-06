@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Loader2, Wand2, Save, CheckCircle2, Plus, Trash2, FileSpreadsheet, AlertTriangle, Table2, ArrowRight, Pencil, ListChecks } from 'lucide-react'
-import type { RateTable, Coverage, RatePlan } from '@/lib/pm-rates'
+import type { RateTable, Coverage, RatePlan, ReconciliationIssue } from '@/lib/pm-rates'
 import { runnableIssues, rateTableIsRunnable, EMPTY_RATE_TABLE } from '@/lib/pm-rates'
 import type { RuleConflict } from '@/lib/pm-rates-extract'
 import type { BenefitTerm, TermConflict } from '@/lib/pm-benefits-extract'
@@ -19,14 +19,22 @@ type Dump = {
   previews: Record<string, { top_rows: { row: number; cells: Record<string, string> }[] }>
   values?: Record<string, Record<string, string>>
 }
-type Accuracy = { extractors?: string[]; total_rates?: number; agreed?: number; conflicts?: number; adjudicated?: number; single_source?: number; rule_conflicts?: RuleConflict[] }
+type Accuracy = { extractors?: string[]; total_rates?: number; agreed?: number; conflicts?: number; adjudicated?: number; single_source?: number }
 type Calc = {
   id: string; insurer_name: string | null; label: string | null; status: string
   xlsx_filename: string | null; brochure_filename: string | null; effective_date: string | null; version: number
   workbook_summary: Dump | null
   rate_table: (RateTable & { accuracy?: Accuracy }) | null
-  benefit_terms: { terms: BenefitTerm[]; accuracy?: { total: number; conflicts: TermConflict[] } } | null
+  benefit_terms: { terms: BenefitTerm[]; accuracy?: { total: number; conflicts: number } } | null
+  issues: ReconciliationIssue[]
+  analysis_summary?: string | null
+  change_summary?: { text?: string } | null
 }
+
+/** A reconciliation issue joined with its live value shape, so resolving it can both mutate the
+ *  in-memory rate table/terms (as before) AND persist the decision (who/when) via the new endpoint. */
+type RuleIssue = RuleConflict & { issueId: string }
+type TermIssue = TermConflict & { issueId: string }
 
 async function safeJson<T>(r: Response): Promise<T & { error?: string }> {
   try { return await r.json() } catch { return { error: `HTTP ${r.status}` } as T & { error?: string } }
@@ -39,8 +47,8 @@ export default function CalculatorReviewPage() {
   const [calc, setCalc] = useState<Calc | null>(null)
   const [rt, setRt] = useState<RateTable | null>(null)
   const [terms, setTerms] = useState<BenefitTerm[]>([])
-  const [ruleConflicts, setRuleConflicts] = useState<RuleConflict[]>([])
-  const [termConflicts, setTermConflicts] = useState<TermConflict[]>([])
+  const [ruleConflicts, setRuleConflicts] = useState<RuleIssue[]>([])
+  const [termConflicts, setTermConflicts] = useState<TermIssue[]>([])
   const [loading, setLoading] = useState(true)
   const [extracting, setExtracting] = useState(false)
   const [progress, setProgress] = useState<{ label: string; step: number; total: number } | null>(null)
@@ -61,25 +69,34 @@ export default function CalculatorReviewPage() {
       setCalc(row)
       setRt(row.rate_table ?? null)
       setTerms(row.benefit_terms?.terms ?? [])
-      setRuleConflicts(row.rate_table?.accuracy?.rule_conflicts ?? [])
-      setTermConflicts(row.benefit_terms?.accuracy?.conflicts ?? [])
+      const open = (row.issues ?? []).filter(i => i.status === 'open')
+      setRuleConflicts(open.filter(i => i.kind === 'rule').map(i => ({ issueId: i.id, field: i.field ?? '', opus: i.opus_value, gemini: i.gemini_value })))
+      setTermConflicts(open.filter(i => i.kind === 'term').map(i => ({ issueId: i.id, key: i.dedupe_key ?? '', category: i.category ?? '', label: i.label ?? '', opus: i.opus_value as string | undefined, gemini: i.gemini_value as string | undefined, note: i.note ?? '' })))
     }
     setLoading(false)
     return row
   }, [id])
 
   const runExtract = useCallback(async () => {
+    // Two phases (rate table, then benefit terms) called in sequence — split out of one long
+    // request because a single call covering both AI passes could exceed the platform's actual
+    // function timeout on a slow/complex workbook, coming back as a bare gateway 504 with no
+    // useful error. Each phase is its own independent AI pass, so splitting them roughly halves
+    // what any one request has to finish within.
     setExtracting(true); setError(null); setProgress({ label: 'Starting…', step: 0, total: 5 })
     const poll = setInterval(async () => {
       const s = await fetch(`/api/pricing-matrix/calculators/${id}/map-status`, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null)
       if (s?.map_progress) setProgress(s.map_progress)
     }, 1800)
     try {
-      const res = await fetch(`/api/pricing-matrix/calculators/${id}/extract`, { method: 'POST' })
-      const d = await safeJson<{ error?: string }>(res)
-      if (!res.ok) setError(d.error ?? 'Extraction failed')
-      await load()
-    } finally { clearInterval(poll); setExtracting(false); setProgress(null) }
+      const r1 = await fetch(`/api/pricing-matrix/calculators/${id}/extract/rates`, { method: 'POST' })
+      const d1 = await safeJson<{ error?: string }>(r1)
+      if (!r1.ok) { setError(d1.error ?? 'Rate extraction failed'); return }
+
+      const r2 = await fetch(`/api/pricing-matrix/calculators/${id}/extract/terms`, { method: 'POST' })
+      const d2 = await safeJson<{ error?: string }>(r2)
+      if (!r2.ok) setError(d2.error ?? 'Coverage-term extraction failed')
+    } finally { clearInterval(poll); setExtracting(false); setProgress(null); await load() }
   }, [id, load])
 
   useEffect(() => { load() }, [load])
@@ -97,8 +114,8 @@ export default function CalculatorReviewPage() {
     const res = await fetch(`/api/pricing-matrix/calculators/${id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        rate_table: { ...rt, accuracy: { ...rt.accuracy, rule_conflicts: ruleConflicts } },
-        benefit_terms: { terms, accuracy: { total: terms.length, conflicts: termConflicts } },
+        rate_table: rt,
+        benefit_terms: { terms, accuracy: { total: terms.length, conflicts: termConflicts.length } },
       }),
     })
     if (!res.ok) setError((await safeJson<{ error?: string }>(res)).error ?? 'Save failed')
@@ -112,14 +129,21 @@ export default function CalculatorReviewPage() {
     await load(); setSaving(false)
   }
 
-  function resolveRule(rc: RuleConflict, value: unknown) {
+  const resolveIssue = (issueId: string, body: Record<string, unknown>) =>
+    fetch(`/api/pricing-matrix/calculators/${id}/issues/${issueId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(() => {})
+
+  function resolveRule(rc: RuleIssue, value: unknown) {
     if (!rt) return
     setRt({ ...rt, rules: { ...rt.rules, [rc.field]: value } })
     setRuleConflicts(cs => cs.filter(c => c !== rc))
+    void resolveIssue(rc.issueId, { resolution: value })
   }
-  function dismissRule(rc: RuleConflict) { setRuleConflicts(cs => cs.filter(c => c !== rc)) }
+  function dismissRule(rc: RuleIssue) {
+    setRuleConflicts(cs => cs.filter(c => c !== rc))
+    void resolveIssue(rc.issueId, { dismiss: true })
+  }
 
-  function resolveTerm(tc: TermConflict, value: string | undefined) {
+  function resolveTerm(tc: TermIssue, value: string | undefined) {
     setTerms(ts => {
       const idx = ts.findIndex(t => termKeyOf(t) === tc.key)
       if (value === undefined) return idx >= 0 ? ts.filter((_, i) => i !== idx) : ts // "remove"
@@ -127,6 +151,7 @@ export default function CalculatorReviewPage() {
       return ts
     })
     setTermConflicts(cs => cs.filter(c => c !== tc))
+    void resolveIssue(tc.issueId, value === undefined ? { dismiss: true } : { resolution: value })
   }
 
   if (loading) return <div className="flex items-center gap-2 text-[13px] text-muted-foreground py-24 justify-center"><Loader2 size={15} className="animate-spin" /> Loading…</div>
@@ -215,6 +240,21 @@ export default function CalculatorReviewPage() {
         </div>
       )}
 
+      {approved && calc.analysis_summary && (
+        <div className="mb-5 flex flex-col gap-2">
+          <div className={card + ' p-4'}>
+            <h2 className="text-[12px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">How this calculator prices</h2>
+            <p className="text-[12.5px] text-slate-700 leading-relaxed">{calc.analysis_summary}</p>
+          </div>
+          {calc.change_summary?.text && (
+            <div className={card + ' p-4 border-indigo-100'}>
+              <h2 className="text-[12px] font-semibold text-indigo-500 uppercase tracking-wide mb-1.5">Changed since the previous approved version</h2>
+              <p className="text-[12.5px] text-slate-700 leading-relaxed">{calc.change_summary.text}</p>
+            </div>
+          )}
+        </div>
+      )}
+
       {rt && (
         <div className="flex flex-col gap-5">
           {/* 1 — Flagged items + readiness. */}
@@ -245,9 +285,9 @@ const termKeyOf = (t: Pick<BenefitTerm, 'plan_code' | 'category' | 'label'>) => 
 
 // ── Step 1 — readiness + flagged items to resolve ───────────────────────────────
 function ReviewPanel({ issues, ruleConflicts, termConflicts, onResolveRule, onDismissRule, onResolveTerm, disabled }: {
-  issues: string[]; ruleConflicts: RuleConflict[]; termConflicts: TermConflict[]
-  onResolveRule: (c: RuleConflict, value: unknown) => void; onDismissRule: (c: RuleConflict) => void
-  onResolveTerm: (c: TermConflict, value: string | undefined) => void; disabled: boolean
+  issues: string[]; ruleConflicts: RuleIssue[]; termConflicts: TermIssue[]
+  onResolveRule: (c: RuleIssue, value: unknown) => void; onDismissRule: (c: RuleIssue) => void
+  onResolveTerm: (c: TermIssue, value: string | undefined) => void; disabled: boolean
 }) {
   const allDone = ruleConflicts.length === 0 && termConflicts.length === 0
   return (
@@ -459,9 +499,14 @@ function BenefitTermsEditor({ terms, setTerms, disabled }: { terms: BenefitTerm[
         <p className="text-[12px] text-slate-400">No coverage terms yet — Extract reads them from the brochure.</p>
       ) : (
         <div className="flex flex-col gap-1.5 max-h-[420px] overflow-auto">
+          {terms.some(t => t.plan_code_inferred) && (
+            <p className="text-[10.5px] text-amber-700/80 -mt-1 mb-0.5">Amber plan field = the AI inferred which tier this applies to rather than reading it explicitly — worth a second look.</p>
+          )}
           {terms.map((t, i) => (
             <div key={i} className="grid grid-cols-[70px_100px_1fr_1fr_20px] gap-1.5 items-center">
-              <input value={t.plan_code ?? ''} disabled={disabled} onChange={e => upTerm(i, { plan_code: e.target.value || undefined })} className={txtInput} placeholder="plan" />
+              <input value={t.plan_code ?? ''} disabled={disabled} onChange={e => upTerm(i, { plan_code: e.target.value || undefined })}
+                title={t.plan_code_inferred ? 'Plan tier was inferred by the AI, not explicitly stated in the source — double-check this one' : undefined}
+                className={`${txtInput} ${t.plan_code_inferred ? 'border-amber-300 bg-amber-50/60' : ''}`} placeholder="plan" />
               <input value={t.category} disabled={disabled} onChange={e => upTerm(i, { category: e.target.value })} className={txtInput} placeholder="category" />
               <input value={t.label} disabled={disabled} onChange={e => upTerm(i, { label: e.target.value })} className={txtInput} placeholder="label" />
               <input value={t.value} disabled={disabled} onChange={e => upTerm(i, { value: e.target.value })} className={txtInput} placeholder="value" />

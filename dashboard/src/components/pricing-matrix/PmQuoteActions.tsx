@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Download, Sparkles, Loader2, Trophy, ThumbsUp, ThumbsDown, Reply } from 'lucide-react'
+import { Download, Sparkles, Loader2, Trophy, ThumbsUp, ThumbsDown, Reply, FileText, ListChecks } from 'lucide-react'
 import { ThreadSelectorModal } from '@/components/pricing-matrix/ThreadSelectorModal'
 import type { QuoteResult } from '@/lib/pm-quote'
 import type { Recommendation } from '@/lib/pm-recommend'
@@ -61,6 +61,18 @@ export function PmQuoteActions({ quoteId, results, initialRecommendation, initia
               <Download size={13} /> {ins.insurer_name}.csv
             </a>
           ))}
+          {priced.length > 0 && (
+            <a href={`/api/pricing-matrix/quote/${quoteId}/export-comparison`}
+              className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold px-3 py-1.5 rounded-lg border border-primary/30 text-primary hover:bg-primary/5">
+              <FileText size={13} /> Client comparison (PDF)
+            </a>
+          )}
+          {priced.length > 0 && (
+            <a href={`/api/pricing-matrix/quote/${quoteId}/export-audit`}
+              className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50">
+              <ListChecks size={13} /> Audit trail (PDF)
+            </a>
+          )}
         </div>
         <p className="text-[10.5px] text-muted-foreground/40 mt-2">Reply attaches one CSV per insurer + the comparison in the email body; pick which thread to reply to.</p>
       </section>

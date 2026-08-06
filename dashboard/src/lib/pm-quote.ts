@@ -58,6 +58,20 @@ export function buildMembers(census: CensusMember[], selection: Selection, codes
 
 // ── Result shapes ────────────────────────────────────────────────────────────────
 export type RunMember = { row: number; name: string | null; lines: Record<string, number | null>; subtotal: number }
+
+/** The deterministic "why" behind a computed premium — which rules actually fired and why, surfaced
+ *  from values pm-calc.ts already computes internally. Pure data, no AI — powers the quote audit
+ *  trail (pm-quote-audit.ts) without re-deriving anything. */
+export type QuoteAudit = {
+  age_basis: 'ANB' | 'ALB' | null
+  quote_basis: 'new_business' | 'renewal'
+  effective_date: string
+  headcount: number
+  loading: { pct: number; excluded_codes: string[] } | null
+  gst: { inclusive: boolean; rate: number } | null
+  basis_excluded_bands: string[] | null
+}
+
 export type InsurerResult = {
   calculator_id: string
   insurer_name: string
@@ -68,6 +82,7 @@ export type InsurerResult = {
   member_count: number
   avg_per_life: number | null
   members: RunMember[]
+  audit?: QuoteAudit
   error?: string
 }
 export type QuoteResult = {
@@ -109,6 +124,7 @@ export function toInsurerResult(
   calculator_id: string, insurer_name: string, effective_date: string | null,
   coverage_lines: { code: string; label: string }[],
   run: { members: RunMember[]; totals: { by_line: Record<string, number | null>; grand: number | null } },
+  audit?: QuoteAudit,
 ): InsurerResult {
   const count = run.members.length
   return {
@@ -119,5 +135,6 @@ export function toInsurerResult(
     member_count: count,
     avg_per_life: avgPerLife(run.totals?.grand ?? null, count),
     members: run.members ?? [],
+    ...(audit ? { audit } : {}),
   }
 }

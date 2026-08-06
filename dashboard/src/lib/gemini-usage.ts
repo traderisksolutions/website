@@ -50,6 +50,7 @@ export type AiFeature =
   | 'pm_recommend'
   | 'pm_rate_extract'
   | 'pm_benefit_extract'
+  | 'pm_plan_match'
   | 'debit_note_extract'
 
 export interface GeminiUsageMeta {

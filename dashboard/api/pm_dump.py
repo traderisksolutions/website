@@ -24,12 +24,28 @@ from http.server import BaseHTTPRequestHandler
 import openpyxl
 
 NOTES_HINTS = ("note", "instruction", "readme", "read me", "guide", "how to")
+# Sheets whose name suggests the actual rate/premium/plan matrix — filled into `values` first, so a
+# large scratch/working sheet earlier in the file can't burn the global cap before the real rate
+# table (possibly hidden, possibly later in the workbook) is reached.
+RATE_HINTS = ("rate", "premium", "price", "pricing", "plan", "benefit", "schedule", "cover")
+SCRATCH_HINTS = ("working", "calc", "scratch", "temp", "draft", "helper", "summary")
 MAX_TOP_ROWS = 20
 MAX_FORMULA_SAMPLES = 24
 MAX_SUM_CELLS = 40
 CELL_TEXT_CAP = 60
 MAX_VALUES_PER_SHEET = 3000
 MAX_VALUES_TOTAL = 12000
+
+
+def _sheet_priority(name: str) -> int:
+    """Lower = filled first. Rate/premium/plan-like names win, scratch/working sheets lose,
+    everything else is neutral — order among equal-priority sheets stays file order (stable sort)."""
+    n = name.lower()
+    if any(h in n for h in RATE_HINTS):
+        return 0
+    if any(h in n for h in SCRATCH_HINTS):
+        return 2
+    return 1
 
 
 def _short(v):
@@ -146,10 +162,13 @@ def dump(data: bytes) -> dict:
                     notes_chunks.append(line)
 
     # Full cached values per sheet (for the pricing extractor to read every rate, and for the UI to
-    # let a human open any sheet). Capped so the payload stays reasonable.
+    # let a human open any sheet). Capped so the payload stays reasonable — filled in relevance
+    # order (see _sheet_priority) so a rate-like sheet is never the one left truncated because a
+    # scratch/working sheet happened to come first in the file.
     values = {}
     total = 0
-    for ws in wb_v.worksheets:
+    ordered = sorted(wb_v.worksheets, key=lambda ws: _sheet_priority(ws.title))
+    for ws in ordered:
         m = {}
         for row in ws.iter_rows():
             for c in row:

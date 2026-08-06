@@ -11,6 +11,7 @@ type Calc = {
   xlsx_filename: string | null; brochure_filename: string | null
   effective_date: string | null; version: number; status: string
   created_at: string; approved_at: string | null
+  change_summary: { text?: string } | null
 }
 
 const STATUS: Record<string, { label: string; cls: string }> = {
@@ -104,7 +105,12 @@ export default function PricingMatrixPage() {
                   <td className="py-2.5 pr-3 text-muted-foreground/80"><span className="inline-flex items-center gap-1.5"><FileSpreadsheet size={13} className="text-emerald-600/70" />{r.xlsx_filename || '—'}</span></td>
                   <td className="py-2.5 pr-3 text-muted-foreground/60">{r.brochure_filename ? <span className="inline-flex items-center gap-1.5"><FileText size={13} className="text-rose-500/60" />{r.brochure_filename}</span> : '—'}</td>
                   <td className="py-2.5 pr-3 text-muted-foreground/70">{r.effective_date ?? '—'}</td>
-                  <td className="py-2.5 pr-3 text-muted-foreground/70">v{r.version}</td>
+                  <td className="py-2.5 pr-3 text-muted-foreground/70">
+                    v{r.version}
+                    {r.change_summary?.text && (
+                      <Link href={`/pricing-matrix/${r.id}`} title={r.change_summary.text} className="ml-1.5 inline-flex text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100">changed</Link>
+                    )}
+                  </td>
                   <td className="py-2.5 pr-3"><span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${STATUS[r.status]?.cls ?? 'bg-slate-100 text-slate-500'}`}>{STATUS[r.status]?.label ?? r.status}</span></td>
                   <td className="py-2.5 pr-3 text-muted-foreground/50">{new Date(r.created_at).toLocaleDateString('en-SG')}</td>
                   <td className="py-2.5 text-right">

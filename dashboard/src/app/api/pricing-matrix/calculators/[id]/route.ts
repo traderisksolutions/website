@@ -8,6 +8,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
 import { SB_URL, sbH }               from '@/lib/pm-storage'
+import { diffRateTable, diffBenefitTerms } from '@/lib/pm-diff'
+import type { DiffEntry } from '@/lib/pm-diff'
+import type { RateTable } from '@/lib/pm-rates'
+import type { BenefitTerm } from '@/lib/pm-benefits-extract'
+
+const bySide = (diff: DiffEntry[], side: 'from' | 'to') => Object.fromEntries(diff.map(d => [d.path, d[side]]))
 
 async function requireUser() {
   const supabase = await createClient()
@@ -19,16 +25,18 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params
   try {
     if (!await requireUser()) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-    const [calcRes, rtRes, btRes] = await Promise.all([
+    const [calcRes, rtRes, btRes, issuesRes] = await Promise.all([
       fetch(`${SB_URL}/rest/v1/pm_calculators?id=eq.${id}&limit=1`, { headers: sbH(), cache: 'no-store' }),
       fetch(`${SB_URL}/rest/v1/pm_rate_tables?calculator_id=eq.${id}&limit=1`, { headers: sbH(), cache: 'no-store' }),
       fetch(`${SB_URL}/rest/v1/pm_benefit_terms?calculator_id=eq.${id}&limit=1`, { headers: sbH(), cache: 'no-store' }),
+      fetch(`${SB_URL}/rest/v1/pm_reconciliation_issues?calculator_id=eq.${id}&order=created_at.asc`, { headers: sbH(), cache: 'no-store' }),
     ])
     const row = calcRes.ok ? (await calcRes.json())[0] : null
     if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     const rate_table = rtRes.ok ? (await rtRes.json())[0] ?? null : null
     const benefit_terms = btRes.ok ? (await btRes.json())[0] ?? null : null
-    return NextResponse.json({ ...row, rate_table, benefit_terms })
+    const issues = issuesRes.ok ? await issuesRes.json() : []
+    return NextResponse.json({ ...row, rate_table, benefit_terms, issues })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
@@ -46,6 +54,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     // Editing the rate table / benefit terms after review keeps the calculator in review.
     if (('rate_table' in b || 'benefit_terms' in b) && !('status' in b)) calcBody.status = 'in_review'
     if ('status' in b && typeof b.status === 'string') calcBody.status = b.status
+
+    // Fetch what's currently stored BEFORE overwriting, so a human edit (as opposed to the AI's own
+    // extraction write) gets a from -> to trail via logActivity — separate from the AI-vs-AI
+    // disagreements tracked in pm_reconciliation_issues, this is provenance on values a person typed.
+    const [prevRt, prevBt] = await Promise.all([
+      b.rate_table ? fetch(`${SB_URL}/rest/v1/pm_rate_tables?calculator_id=eq.${id}&select=age_basis,coverages,rules&limit=1`, { headers: sbH(), cache: 'no-store' }).then(r => r.ok ? r.json() : []).then(rows => rows[0] ?? null) as Promise<RateTable | null> : Promise.resolve(null),
+      b.benefit_terms ? fetch(`${SB_URL}/rest/v1/pm_benefit_terms?calculator_id=eq.${id}&select=terms&limit=1`, { headers: sbH(), cache: 'no-store' }).then(r => r.ok ? r.json() : []).then(rows => rows[0]?.terms ?? null) as Promise<BenefitTerm[] | null> : Promise.resolve(null),
+    ])
 
     const writes: Promise<Response>[] = []
     if (Object.keys(calcBody).length > 0) {
@@ -73,6 +89,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const failed = results.find(r => !r.ok)
     if (failed) return NextResponse.json({ error: await failed.text() }, { status: 500 })
 
+    const rtDiff = b.rate_table ? diffRateTable(prevRt, b.rate_table as RateTable) : []
+    const btDiff = b.benefit_terms ? diffBenefitTerms(prevBt, (b.benefit_terms as { terms?: BenefitTerm[] }).terms) : []
+    if (rtDiff.length || btDiff.length) {
+      void logActivity({
+        action: 'pm.rate_table_edited', resource_type: 'pm_calculator', resource_id: id,
+        old_value: { rate_table: bySide(rtDiff, 'from'), benefit_terms: bySide(btDiff, 'from') },
+        new_value: { rate_table: bySide(rtDiff, 'to'), benefit_terms: bySide(btDiff, 'to') },
+      })
+    }
     void logActivity({ action: 'pm.calculator_saved', resource_type: 'pm_calculator', resource_id: id })
     return NextResponse.json({ ok: true })
   } catch (e) {

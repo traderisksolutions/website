@@ -56,6 +56,28 @@ export type RateTable = {
   accuracy?: Accuracy
 }
 
+/** One row in pm_reconciliation_issues — a single Opus-vs-Gemini disagreement (rule or benefit
+ *  term) needing a human decision, with a real resolved_by/resolved_at trail instead of being
+ *  overwritten in place. See pm-rates-extract.ts (RuleConflict) / pm-benefits-extract.ts
+ *  (TermConflict) for how these get raised at extraction time. */
+export type ReconciliationIssue = {
+  id: string
+  calculator_id: string
+  kind: 'rule' | 'term'
+  field?: string | null
+  category?: string | null
+  label?: string | null
+  dedupe_key?: string | null
+  opus_value?: unknown
+  gemini_value?: unknown
+  note?: string | null
+  status: 'open' | 'resolved' | 'dismissed'
+  resolution?: unknown
+  resolved_by?: string | null
+  resolved_at?: string | null
+  created_at: string
+}
+
 /** Empty scaffold for a freshly-created row. */
 export const EMPTY_RATE_TABLE: Omit<RateTable, 'calculator_id'> = {
   age_basis: null,

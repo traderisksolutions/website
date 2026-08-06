@@ -5,6 +5,8 @@
  * insurer's own wording under one row per benefit so a client can see "why pick A over B" directly.
  */
 import type { BenefitTerm } from '@/lib/pm-benefits-extract'
+import type { RateTable } from '@/lib/pm-rates'
+import type { Selection } from '@/lib/pm-quote'
 
 export type CompareInsurer = { calculator_id: string; insurer_name: string; terms: BenefitTerm[] }
 export type CompareRow = { key: string; category: string; label: string; per_insurer: Record<string, string> }
@@ -29,6 +31,52 @@ export function alignTerms(insurers: CompareInsurer[]): CompareRow[] {
     }
   }
   return rows
+}
+
+const normCat = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+
+/** Best-effort match of a benefit term's freeform category to the coverage code it's about, by
+ *  normalised category vs that coverage's full_name/code (substring either direction) — terms
+ *  don't carry an explicit coverage link (see pm-benefits-extract.ts), so this is the same signal
+ *  a human reviewer would use. Picks the longest/most specific label match. */
+function coverageForCategory(rt: RateTable, category: string): string | null {
+  const c = normCat(category)
+  if (!c) return null
+  let best: { code: string; len: number } | null = null
+  for (const cov of rt.coverages ?? []) {
+    for (const label of [cov.full_name, cov.code]) {
+      if (!label) continue
+      const l = normCat(label)
+      if (!l) continue
+      if (c === l || c.includes(l) || l.includes(c)) {
+        if (!best || l.length > best.len) best = { code: cov.code, len: l.length }
+      }
+    }
+  }
+  return best?.code ?? null
+}
+
+export type SelectedCompareInsurer = { calculator_id: string; insurer_name: string; rate_table: RateTable; terms: BenefitTerm[] }
+
+/** Same alignment as alignTerms, but scoped to what was actually SELECTED for this quote — a term
+ *  is kept only if it's policy-wide (no plan_code) or its plan_code matches the plan selected for
+ *  the coverage its category belongs to. If a term's category can't be confidently matched to a
+ *  coverage, it's dropped rather than risked against the wrong tier — this is what makes the
+ *  benefit schedule reflect the actual quote instead of every extracted tier (unlike alignTerms /
+ *  PmCompareTable, which intentionally shows everything for full transparency). */
+export function alignSelectedTerms(insurers: SelectedCompareInsurer[], selections: Record<string, Selection>): CompareRow[] {
+  const scoped: CompareInsurer[] = insurers.map(ins => {
+    const sel = selections[ins.calculator_id] ?? {}
+    const terms = ins.terms.filter(t => {
+      if (!t.plan_code) return true
+      const covCode = coverageForCategory(ins.rate_table, t.category)
+      if (!covCode) return false
+      const selectedPlan = sel[covCode]?.plan
+      return !!selectedPlan && selectedPlan === t.plan_code
+    })
+    return { calculator_id: ins.calculator_id, insurer_name: ins.insurer_name, terms }
+  })
+  return alignTerms(scoped)
 }
 
 /** Rows where insurers actually differ (or one has it and another doesn't) — the interesting rows

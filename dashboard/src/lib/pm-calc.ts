@@ -10,7 +10,7 @@
 import type { RateTable, Coverage } from '@/lib/pm-rates'
 import { bandContains, coverageCodes } from '@/lib/pm-rates'
 import { buildMembers, toInsurerResult } from '@/lib/pm-quote'
-import type { CensusMember, Selection, InsurerResult, RunMember, EngineMember } from '@/lib/pm-quote'
+import type { CensusMember, Selection, InsurerResult, RunMember, EngineMember, QuoteAudit } from '@/lib/pm-quote'
 
 export type CalcGlobals = { effective_date?: string | null; quote_basis?: 'new_business' | 'renewal' }
 
@@ -105,5 +105,12 @@ export function computeInsurerQuote(
   for (const code of codes) by_line[code] = round2(runMembers.reduce((s, m) => s + (m.lines[code] ?? 0), 0))
   const grand = round2(runMembers.reduce((s, m) => s + m.subtotal, 0))
 
-  return toInsurerResult(calculator_id, insurer_name, effective_date, coverageCodes(rt), { members: runMembers, totals: { by_line, grand } })
+  const audit: QuoteAudit = {
+    age_basis: rt.age_basis, quote_basis: basis, effective_date: asOf.toISOString().slice(0, 10), headcount: members.length,
+    loading: loadingPct ? { pct: loadingPct, excluded_codes: Array.from(excludes) } : null,
+    gst: rt.rules.gst ?? null,
+    basis_excluded_bands: (basis === 'renewal' ? rt.rules.quote_basis_exclusions?.renewal : rt.rules.quote_basis_exclusions?.new_business) ?? null,
+  }
+
+  return toInsurerResult(calculator_id, insurer_name, effective_date, coverageCodes(rt), { members: runMembers, totals: { by_line, grand } }, audit)
 }

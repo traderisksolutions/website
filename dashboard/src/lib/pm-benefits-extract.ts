@@ -14,7 +14,15 @@ import { GEMINI_PRO, geminiUrl } from '@/lib/gemini-models'
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
 const OPUS = 'claude-opus-4-8'
 
-export type BenefitTerm = { plan_code?: string; category: string; label: string; value: string; notes?: string; source: 'xlsx' | 'pdf' }
+export type BenefitTerm = {
+  plan_code?: string; category: string; label: string; value: string; notes?: string; source: 'xlsx' | 'pdf'
+  /** true when plan_code was INFERRED (e.g. only one tier discussed in that paragraph, or by
+   *  elimination) rather than explicitly stated (a table column, an explicit "Plan X:" reference)
+   *  — surfaced to the reviewer as a "double-check this" signal, mainly relevant for prose-heavy
+   *  brochures where a table-style anchor isn't available. Never set for policy-wide terms
+   *  (no plan_code) — inference doesn't apply there. */
+  plan_code_inferred?: boolean
+}
 export type TermConflict = { key: string; category: string; label: string; opus?: string; gemini?: string; note: string }
 
 const SYSTEM = `You extract an insurer group-benefits plan's COVERAGE TERMS / WORDINGS — what is actually
@@ -30,11 +38,19 @@ Return ONLY this JSON (no prose, no markdown fence):
     policy-wide term>", "category": "<short grouping, e.g. Hospitalization, Panel, Waiting Period,
     Maternity, Dental, Exclusions>", "label": "<the specific feature, in the insurer's own words>",
     "value": "<the stated value/limit/description, verbatim or lightly cleaned up>",
-    "notes": "<caveats/conditions, or omit>" } ] }
+    "notes": "<caveats/conditions, or omit>",
+    "plan_code_inferred": true | omit } ] }
 
 Be thorough — this is used to answer "why would a client pick this insurer over another" for the
 SAME plan tier, so granularity matters (e.g. "Room & Board" and "ICU limit" are separate terms, not
-one combined "Hospitalization" term).`
+one combined "Hospitalization" term).
+
+Set "plan_code_inferred": true when you had to INFER which plan tier a term belongs to (e.g. a
+prose paragraph only discussing one tier by context, or elimination) rather than it being
+EXPLICITLY stated (a table column for that tier, an explicit "Plan X:" reference next to the
+value). Omit it entirely (do not write false) when the tier was explicitly stated, or when the term
+is policy-wide (no plan_code). This is a reviewer signal, not a confidence score on the value
+itself — the value must still be copied verbatim either way, never guessed.`
 
 function extractJson(text: string): { terms: BenefitTerm[] } | null {
   const t = text.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim()

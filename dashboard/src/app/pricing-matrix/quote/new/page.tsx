@@ -1,16 +1,26 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2, Plus, Trash2, Play, Upload } from 'lucide-react'
+import { ArrowLeft, Loader2, Plus, Trash2, Save, Download, Upload, Wand2 } from 'lucide-react'
 import { PmComparison } from '@/components/pricing-matrix/PmComparison'
-import type { CensusMember, Selection, QuoteResult } from '@/lib/pm-quote'
+import { PmLiveBenefitPreview } from '@/components/pricing-matrix/PmLiveBenefitPreview'
+import { computeInsurerQuote } from '@/lib/pm-calc'
+import { alignLines } from '@/lib/pm-quote'
+import type { CensusMember, Selection, QuoteResult, InsurerResult } from '@/lib/pm-quote'
+import { coverageCodes } from '@/lib/pm-rates'
+import type { RateTable } from '@/lib/pm-rates'
+import type { BenefitTerm } from '@/lib/pm-benefits-extract'
+import { alignSelectedTerms } from '@/lib/pm-compare'
+import type { CompareRow } from '@/lib/pm-compare'
 
 type Avail = {
   id: string; insurer_name: string; effective_date: string | null; version: number
   coverage_lines: { code: string; label: string; fields: string[] }[]
   dropdowns: Record<string, string[]>
+  rate_table: RateTable | null
+  benefit_terms: BenefitTerm[]
 }
 const REL = ['Self', 'Spouse', 'Child']
 const inp = 'text-[12.5px] border border-border rounded-md px-2 py-1 bg-background focus:outline-none focus:ring-2 focus:ring-primary/25'
@@ -39,15 +49,47 @@ export default function NewQuotePage() {
   const [avail, setAvail] = useState<Avail[]>([])
   const [selected, setSelected] = useState<Record<string, boolean>>({})
   const [selections, setSelections] = useState<Record<string, Selection>>({})
-  const [result, setResult] = useState<QuoteResult | null>(null)
-  const [quoteId, setQuoteId] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
+  const [targets, setTargets] = useState<Record<string, string>>({})
+  const [matchNotes, setMatchNotes] = useState<Record<string, string>>({})   // `${calcId}.${code}` -> reason
+  const [matching, setMatching] = useState(false)
+  const [matchError, setMatchError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [downloading, setDownloading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => { fetch('/api/pricing-matrix/quote/available', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).then(setAvail) }, [])
 
   const namedCount = census.filter(m => (m.name ?? '').trim() || m.date_of_birth || m.age != null).length
   const selectedIds = useMemo(() => avail.filter(a => selected[a.id]).map(a => a.id), [avail, selected])
+  const selectedCoverages = useMemo(() => {
+    const seen = new Map<string, string>()
+    for (const a of avail) if (selected[a.id]) for (const l of a.coverage_lines) if (!seen.has(l.code)) seen.set(l.code, l.label)
+    return Array.from(seen, ([code, label]) => ({ code, label }))
+  }, [avail, selected])
+
+  // Live, client-side pricing — pm-calc.ts is pure math (no AI, no network), so this recomputes
+  // instantly on every dropdown toggle with no round-trip to the server.
+  const liveResult: QuoteResult = useMemo(() => {
+    const globals = { effective_date: effDate || null }
+    const insurers: InsurerResult[] = avail.filter(a => selected[a.id]).map((a): InsurerResult => {
+      if (!a.rate_table) return { calculator_id: a.id, insurer_name: a.insurer_name, effective_date: a.effective_date, coverage_lines: [], by_line: {}, grand: null, member_count: 0, avg_per_life: null, members: [], error: 'No approved rate table for this insurer' }
+      try {
+        return computeInsurerQuote(a.id, a.insurer_name, a.effective_date, a.rate_table, census, selections[a.id] ?? {}, globals)
+      } catch (e) {
+        return { calculator_id: a.id, insurer_name: a.insurer_name, effective_date: a.effective_date, coverage_lines: coverageCodes(a.rate_table), by_line: {}, grand: null, member_count: 0, avg_per_life: null, members: [], error: String(e) }
+      }
+    })
+    return { insurers, lines_union: alignLines(insurers), census_size: namedCount }
+  }, [avail, selected, census, selections, effDate, namedCount])
+
+  // Live benefit-schedule preview, scoped to the plan tiers currently toggled (alignSelectedTerms —
+  // built for the client-comparison PDF, reused here verbatim).
+  const liveBenefitRows: CompareRow[] = useMemo(() => {
+    const insurersForTerms = avail.filter(a => selected[a.id] && a.rate_table).map(a => ({ calculator_id: a.id, insurer_name: a.insurer_name, rate_table: a.rate_table!, terms: a.benefit_terms }))
+    return alignSelectedTerms(insurersForTerms, selections)
+  }, [avail, selected, selections])
+
+  const selectedInsurerMeta = useMemo(() => avail.filter(a => selected[a.id]).map(a => ({ calculator_id: a.id, insurer_name: a.insurer_name })), [avail, selected])
 
   function toggleInsurer(a: Avail) {
     setSelected(s => ({ ...s, [a.id]: !s[a.id] }))
@@ -64,19 +106,48 @@ export default function NewQuotePage() {
   const setSel = (calcId: string, code: string, field: string, value: string) =>
     setSelections(prev => ({ ...prev, [calcId]: { ...prev[calcId], [code]: { ...prev[calcId]?.[code], [field]: value } } }))
 
-  async function run() {
-    setBusy(true); setError(null)
+  async function runMatch() {
+    setMatching(true); setMatchError(null)
+    const res = await fetch('/api/pricing-matrix/quote/match', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ calculator_ids: selectedIds, targets }),
+    })
+    const d = await safeJson<{ suggestions?: { calculator_id: string; code: string; plan_code: string; reason: string }[] }>(res)
+    if (!res.ok || !d.suggestions) { setMatchError(d.error ?? 'Auto-match failed'); setMatching(false); return }
+    const notes: Record<string, string> = {}
+    for (const s of d.suggestions) { setSel(s.calculator_id, s.code, 'plan', s.plan_code); notes[`${s.calculator_id}.${s.code}`] = s.reason }
+    setMatchNotes(prev => ({ ...prev, ...notes }))
+    setMatching(false)
+  }
+
+  async function saveQuote() {
+    setSaving(true); setError(null)
     const res = await fetch('/api/pricing-matrix/quote', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ company_name: company, effective_date: effDate, census, calculator_ids: selectedIds, selections }),
     })
     const d = await safeJson<{ id?: string; results?: QuoteResult }>(res)
-    if (!res.ok || !d.results) setError(d.error ?? 'Quote failed')
-    else { setResult(d.results); setQuoteId(d.id ?? null); setStep(2) }
-    setBusy(false)
+    if (!res.ok || !d.id) { setError(d.error ?? 'Save failed'); setSaving(false); return }
+    router.push(`/pricing-matrix/quote/${d.id}`)
   }
 
-  const steps = ['Census', 'Insurers & plans', 'Comparison']
+  async function downloadComparisonPdf() {
+    setDownloading(true); setError(null)
+    const res = await fetch('/api/pricing-matrix/quote/export-comparison-preview', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ company_name: company, effective_date: effDate, census, calculator_ids: selectedIds, selections }),
+    })
+    if (!res.ok) { setError((await safeJson<{ error?: string }>(res)).error ?? 'PDF failed'); setDownloading(false); return }
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = `${(company || 'comparison').replace(/[^\w -]+/g, '')}_coverage-comparison.pdf`
+    a.click()
+    URL.revokeObjectURL(url)
+    setDownloading(false)
+  }
+
+  const steps = ['Census', 'Insurers, plans & comparison']
   return (
     <div className="max-w-5xl mx-auto px-6 py-6">
       <Link href="/pricing-matrix" className="inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground hover:text-foreground mb-3"><ArrowLeft size={14} /> Pricing Matrix</Link>
@@ -131,6 +202,26 @@ export default function NewQuotePage() {
 
       {step === 1 && (
         <div className="flex flex-col gap-4">
+          {selectedCoverages.length > 0 && (
+            <div className="border border-border rounded-xl p-3 flex flex-col gap-2.5">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-[12.5px] font-semibold text-foreground/80">Client&rsquo;s target requirements <span className="font-normal text-muted-foreground/50">(optional — used to auto-pick a plan tier per insurer)</span></h2>
+                <button onClick={runMatch} disabled={matching || !Object.values(targets).some(t => t?.trim())} className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-primary/30 text-primary hover:bg-primary/5 disabled:opacity-50 shrink-0">
+                  {matching ? <Loader2 size={13} className="animate-spin" /> : <Wand2 size={13} />} Auto-match plan tiers
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {selectedCoverages.map(c => (
+                  <label key={c.code} className="flex items-center gap-2 text-[12px]">
+                    <span className="w-32 shrink-0 text-muted-foreground/70">{c.label}</span>
+                    <input value={targets[c.code] ?? ''} onChange={e => setTargets(t => ({ ...t, [c.code]: e.target.value }))}
+                      placeholder="e.g. $200k annual limit, private hospital, 1-bed" className="flex-1 text-[12px] border border-border rounded-md px-2 py-1 bg-background focus:outline-none focus:ring-2 focus:ring-primary/25" />
+                  </label>
+                ))}
+              </div>
+              {matchError && <p className="text-[11.5px] text-rose-600">{matchError}</p>}
+            </div>
+          )}
           {avail.length === 0 ? (
             <p className="text-[13px] text-muted-foreground py-8 text-center border border-dashed border-border rounded-xl">No approved calculators yet. Add + approve an insurer calculator first.</p>
           ) : avail.map(a => (
@@ -143,20 +234,23 @@ export default function NewQuotePage() {
               {selected[a.id] && (
                 <div className="mt-2.5 pl-6 flex flex-col gap-2">
                   {a.coverage_lines.map(l => (
-                    <div key={l.code} className="flex items-center gap-2 flex-wrap text-[11.5px]">
-                      <span className="w-40 text-muted-foreground/80">{l.label}</span>
-                      {l.fields.map(f => {
-                        const opts = a.dropdowns[`${l.code}.${f}`]
-                        const val = selections[a.id]?.[l.code]?.[f] ?? ''
-                        return (
-                          <label key={f} className="flex items-center gap-1">
-                            <span className="text-muted-foreground/50">{f}</span>
-                            {opts?.length
-                              ? <select value={val} onChange={e => setSel(a.id, l.code, f, e.target.value)} className="text-[11px] border border-border rounded px-1 py-0.5 bg-background"><option value="">—</option>{opts.map(o => <option key={o}>{o}</option>)}</select>
-                              : <input value={val} onChange={e => setSel(a.id, l.code, f, e.target.value)} className="w-20 text-[11px] border border-border rounded px-1 py-0.5 bg-background" />}
-                          </label>
-                        )
-                      })}
+                    <div key={l.code} className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-2 flex-wrap text-[11.5px]">
+                        <span className="w-40 text-muted-foreground/80">{l.label}</span>
+                        {l.fields.map(f => {
+                          const opts = a.dropdowns[`${l.code}.${f}`]
+                          const val = selections[a.id]?.[l.code]?.[f] ?? ''
+                          return (
+                            <label key={f} className="flex items-center gap-1">
+                              <span className="text-muted-foreground/50">{f}</span>
+                              {opts?.length
+                                ? <select value={val} onChange={e => setSel(a.id, l.code, f, e.target.value)} className="text-[11px] border border-border rounded px-1 py-0.5 bg-background"><option value="">—</option>{opts.map(o => <option key={o}>{o}</option>)}</select>
+                                : <input value={val} onChange={e => setSel(a.id, l.code, f, e.target.value)} className="w-20 text-[11px] border border-border rounded px-1 py-0.5 bg-background" />}
+                            </label>
+                          )
+                        })}
+                      </div>
+                      {matchNotes[`${a.id}.${l.code}`] && <p className="text-[10.5px] text-primary/70 pl-40 flex items-center gap-1"><Wand2 size={10} className="shrink-0" /> {matchNotes[`${a.id}.${l.code}`]}</p>}
                     </div>
                   ))}
                   <p className="text-[10.5px] text-muted-foreground/40">Applied to all {namedCount} lives (dependants priced on their own age).</p>
@@ -164,23 +258,25 @@ export default function NewQuotePage() {
               )}
             </div>
           ))}
+
+          {selectedIds.length > 0 && namedCount > 0 && (
+            <div className="flex flex-col gap-3 pt-2 border-t border-border/60">
+              <h2 className="text-[12.5px] font-semibold text-foreground/80">Live comparison <span className="font-normal text-muted-foreground/50">— updates instantly as you toggle plans above</span></h2>
+              <PmComparison result={liveResult} />
+              <PmLiveBenefitPreview rows={liveBenefitRows} insurers={selectedInsurerMeta} />
+            </div>
+          )}
+
           <div className="flex justify-between">
             <button onClick={() => setStep(0)} className="text-[13px] px-4 py-1.5 rounded-lg border border-border hover:bg-muted">← Back</button>
-            <button onClick={run} disabled={busy || selectedIds.length === 0 || !effDate} title={!effDate ? 'Set a policy effective date (Census step) — ages are computed from it' : ''} className="flex items-center gap-1.5 text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-              {busy ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}{busy ? 'Running…' : `Run ${selectedIds.length} insurer${selectedIds.length === 1 ? '' : 's'}`}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {step === 2 && result && (
-        <div className="flex flex-col gap-4">
-          <PmComparison result={result} />
-          <div className="flex justify-between">
-            <button onClick={() => setStep(1)} className="text-[13px] px-4 py-1.5 rounded-lg border border-border hover:bg-muted">← Adjust</button>
-            <button onClick={() => router.push(quoteId ? `/pricing-matrix/quote/${quoteId}` : '/pricing-matrix/quote')} className="text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90">
-              Downloads &amp; recommendation →
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={downloadComparisonPdf} disabled={downloading || selectedIds.length === 0} className="flex items-center gap-1.5 text-[13px] px-4 py-1.5 rounded-lg border border-primary/30 text-primary hover:bg-primary/5 disabled:opacity-50">
+                {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} Download comparison (PDF)
+              </button>
+              <button onClick={saveQuote} disabled={saving || selectedIds.length === 0 || !effDate} title={!effDate ? 'Set a policy effective date (Census step) — ages are computed from it' : ''} className="flex items-center gap-1.5 text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+                {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}{saving ? 'Saving…' : 'Save quote'}
+              </button>
+            </div>
           </div>
         </div>
       )}

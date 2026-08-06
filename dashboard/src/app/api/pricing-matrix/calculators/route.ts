@@ -19,7 +19,7 @@ async function requireUser() {
 export async function GET() {
   try {
     if (!await requireUser()) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-    const url = `${SB_URL}/rest/v1/pm_calculators?select=id,insurer_id,insurer_name,label,xlsx_filename,brochure_filename,effective_date,version,status,created_at,approved_at,updated_at&order=created_at.desc&limit=200`
+    const url = `${SB_URL}/rest/v1/pm_calculators?select=id,insurer_id,insurer_name,label,xlsx_filename,brochure_filename,effective_date,version,status,created_at,approved_at,updated_at,change_summary&order=created_at.desc&limit=200`
     const res = await fetch(url, { headers: sbH(), cache: 'no-store' })
     return NextResponse.json(res.ok ? await res.json() : [])
   } catch (e) {
