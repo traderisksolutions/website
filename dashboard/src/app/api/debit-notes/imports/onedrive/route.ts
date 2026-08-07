@@ -1,8 +1,13 @@
 /**
- * POST /api/debit-notes/imports/onedrive   { folderPath: string }
+ * POST /api/debit-notes/imports/onedrive   { shareUrl: string }
  *
- * Pulls every file under a OneDrive folder (recursively) into the `debit-notes` storage bucket
- * and groups them into bundles by their immediate parent subfolder — one subfolder = one
+ * `shareUrl` is a link to the shared folder (copied from OneDrive/SharePoint's "Copy link"), not
+ * a path — this works identically whether the 120+ files live in the connected user's own OneDrive
+ * or in a shared/team (SharePoint-backed) drive, since Graph resolves the link straight to the
+ * right drive (see resolveShareUrl in lib/onedrive.ts) instead of us needing a drive/site id.
+ *
+ * Pulls every file under that folder (recursively) into the `debit-notes` storage bucket and
+ * groups them into bundles by their immediate parent subfolder — one subfolder = one
  * renewal/new-business event = one bundle, the natural OneDrive equivalent of "one .zip per
  * event" in the existing manual-upload flow (mirrors the bundle+item creation in
  * imports/bundles/route.ts, just tagged source='onedrive' with source_ref = the subfolder path).
@@ -38,10 +43,10 @@ async function createBundle(files: { storage_url: string; original_filename: str
   if (!itemsRes.ok) throw new Error(await itemsRes.text())
 }
 
-async function runImport(userId: string, folderPath: string): Promise<void> {
+async function runImport(userId: string, shareUrl: string): Promise<void> {
   try {
     const accessToken = await getOnedriveAccessToken(userId)
-    const files = await listOnedriveFolderRecursive(accessToken, folderPath)
+    const files = await listOnedriveFolderRecursive(accessToken, shareUrl)
 
     const byFolder = new Map<string, OnedriveFile[]>()
     for (const f of files) {
@@ -61,7 +66,7 @@ async function runImport(userId: string, folderPath: string): Promise<void> {
           console.error(`[onedrive import] file failed "${folder}/${f.name}":`, e)
         }
       }
-      if (uploaded.length) await createBundle(uploaded, folder).catch(e => console.error(`[onedrive import] bundle failed "${folder}":`, e))
+      if (uploaded.length) await createBundle(uploaded, folder || '(root)').catch(e => console.error(`[onedrive import] bundle failed "${folder}":`, e))
     }
   } catch (e) {
     console.error('[onedrive import] failed:', e)
@@ -74,14 +79,14 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
-    const { folderPath } = await req.json().catch(() => ({})) as { folderPath?: string }
-    if (!folderPath?.trim()) return NextResponse.json({ error: 'folderPath required' }, { status: 400 })
+    const { shareUrl } = await req.json().catch(() => ({})) as { shareUrl?: string }
+    if (!shareUrl?.trim()) return NextResponse.json({ error: 'shareUrl required' }, { status: 400 })
 
     // Fail fast with a clear message if OneDrive isn't connected/has expired, rather than
     // discovering that only in the background job's server logs.
     await getOnedriveAccessToken(user.id)
 
-    waitUntil(runImport(user.id, folderPath.trim()))
+    waitUntil(runImport(user.id, shareUrl.trim()))
     return NextResponse.json({ ok: true, started: true })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 400 })

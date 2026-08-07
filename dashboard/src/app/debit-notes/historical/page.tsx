@@ -58,7 +58,7 @@ function BulkUploadSection() {
 
   // ── OneDrive connect + bulk import ─────────────────────────────────────────────────────────
   const [onedrive, setOnedrive] = useState<{ connected: boolean; email: string | null } | null>(null)
-  const [onedriveFolder, setOnedriveFolder] = useState('')
+  const [onedriveShareUrl, setOnedriveShareUrl] = useState('')
   const [onedriveImporting, setOnedriveImporting] = useState(false)
   const [onedriveMsg, setOnedriveMsg] = useState<string | null>(null)
 
@@ -71,11 +71,11 @@ function BulkUploadSection() {
   }, [])
 
   async function startOnedriveImport() {
-    if (!onedriveFolder.trim()) return
+    if (!onedriveShareUrl.trim()) return
     setOnedriveImporting(true); setOnedriveMsg(null); setError(null)
     try {
       const res = await fetch('/api/debit-notes/imports/onedrive', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ folderPath: onedriveFolder.trim() }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ shareUrl: onedriveShareUrl.trim() }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Could not start the import')
@@ -197,14 +197,14 @@ function BulkUploadSection() {
         </div>
         {onedrive?.connected && (
           <div className="flex items-center gap-2">
-            <input value={onedriveFolder} onChange={e => setOnedriveFolder(e.target.value)} placeholder="Folder path, e.g. Debit Notes/Historical"
+            <input value={onedriveShareUrl} onChange={e => setOnedriveShareUrl(e.target.value)} placeholder="Paste the shared folder's link (Copy link from OneDrive/SharePoint)"
               className="flex-1 text-[12.5px] border border-border rounded-md px-2.5 py-1.5" disabled={onedriveImporting} />
-            <Button onClick={startOnedriveImport} disabled={onedriveImporting || !onedriveFolder.trim()} size="sm">
+            <Button onClick={startOnedriveImport} disabled={onedriveImporting || !onedriveShareUrl.trim()} size="sm">
               {onedriveImporting ? <Loader2 size={13} className="mr-1.5 animate-spin" /> : <Cloud size={13} className="mr-1.5" />} Import from OneDrive
             </Button>
           </div>
         )}
-        <p className="text-[10.5px] text-muted-foreground mt-1.5">Each subfolder inside the folder path is treated as one renewal/new-business event (its files become one bundle) — organize your 120+ files as one subfolder per event before importing.</p>
+        <p className="text-[10.5px] text-muted-foreground mt-1.5">In OneDrive/SharePoint, open the folder holding all 120+ files, click Share → Copy link, and paste it above. Each subfolder inside it is treated as one renewal/new-business event (its files become one bundle) — organize as one subfolder per event before importing. Works the same whether the folder lives in your own OneDrive or a shared/team drive.</p>
         {onedriveMsg && <p className="text-[11.5px] mt-2 text-foreground/80">{onedriveMsg}</p>}
       </div>
 
