@@ -97,7 +97,7 @@ function DebitNotesContent() {
                 <th className="text-left px-3 py-2 font-semibold">Policy #</th>
                 <th className="text-left px-3 py-2 font-semibold">Insurer</th>
                 <th className="text-left px-3 py-2 font-semibold">DN #</th>
-                <th className="text-left px-3 py-2 font-semibold">Issued</th>
+                <th className="text-left px-3 py-2 font-semibold">Policy due</th>
                 <th className="text-right px-3 py-2 font-semibold">Amount</th>
                 <th className="text-right px-3 py-2 font-semibold">Commission</th>
                 <th className="text-left px-3 py-2 font-semibold">Status</th>
@@ -129,7 +129,7 @@ function DebitNotesContent() {
                         <td className="px-3 py-2.5 text-muted-foreground">{r.policies?.policy_number || '—'}</td>
                         <td className="px-3 py-2.5 text-muted-foreground">{r.insurer ?? '—'}</td>
                         <td className="px-3 py-2.5 font-mono text-[11.5px]">{r.debit_note_no}</td>
-                        <td className="px-3 py-2.5 text-muted-foreground">{fmtDate(r.issue_date)}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{fmtDate(r.policies?.end_date ?? null)}</td>
                         <td className="px-3 py-2.5 text-right font-medium">{fmt(r.gross_amount, r.currency)}</td>
                         <td className="px-3 py-2.5 text-right text-muted-foreground">{r.commission != null ? fmt(r.commission, r.currency) : '—'}</td>
                         <td className="px-3 py-2.5"><StatusBadge status={r.status} /></td>
@@ -177,6 +177,7 @@ type Detail = {
 }
 
 type EditForm = {
+  debitNoteNo: string
   currency: string; issueDate: string; paymentDueDate: string; insurer: string
   lineItems: { description: string; amount: number }[]
   gstAmount: number; feeRebate: number; commission: number; commissionRate: number
@@ -187,6 +188,7 @@ type EditForm = {
 
 function toEditForm(d: Detail): EditForm {
   return {
+    debitNoteNo: d.debit_note_no ?? '',
     currency: d.currency, issueDate: d.issue_date ?? '', paymentDueDate: d.payment_due_date ?? '', insurer: d.insurer ?? '',
     lineItems: d.line_items?.length ? d.line_items.map(l => ({ ...l })) : [{ description: '', amount: 0 }],
     gstAmount: d.gst_amount ?? 0, feeRebate: d.fee_rebate ?? 0, commission: d.commission ?? 0, commissionRate: d.commission_rate ?? 0,
@@ -251,6 +253,7 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
       }
       if (editing && form) {
         Object.assign(body, {
+          debitNoteNo: form.debitNoteNo.trim(),
           currency: form.currency, issueDate: form.issueDate, paymentDueDate: form.paymentDueDate || null,
           insurer: form.insurer, lineItems: form.lineItems.filter(l => l.description || l.amount),
           gstAmount: form.gstAmount, feeRebate: form.feeRebate, commission: form.commission, commissionRate: form.commissionRate,
@@ -287,7 +290,14 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
       <DialogContent className="sm:max-w-[600px] max-h-[88vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between pr-6">
-            <DialogTitle>{detail?.debit_note_no ?? 'Loading…'}</DialogTitle>
+            {editing && form ? (
+              <DialogTitle asChild>
+                <input value={form.debitNoteNo} onChange={e => setForm(f => f && { ...f, debitNoteNo: e.target.value })}
+                  placeholder="Debit note no." className="text-[18px] font-semibold leading-none border border-border rounded-md px-2 py-1 w-[220px]" />
+              </DialogTitle>
+            ) : (
+              <DialogTitle>{detail?.debit_note_no ?? 'Loading…'}</DialogTitle>
+            )}
             {detail && !editing && (
               <div className="flex items-center gap-1.5">
                 <Button variant="outline" size="sm" onClick={startEditing}><Pencil size={12} className="mr-1.5" /> Edit</Button>
@@ -380,7 +390,11 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
                 <>
                   <DetailField label="Policy">{detail.policies?.policy_number || '—'} · {detail.policies?.class_of_insurance || '—'}</DetailField>
                   <DetailField label="Cover note no.">{detail.policies?.cover_note_no || '—'}</DetailField>
-                  <DetailField label="Period">{fmtDate(detail.policies?.start_date ?? null)} – {fmtDate(detail.policies?.end_date ?? null)}</DetailField>
+                  <DetailField label="Period (renewal)">{fmtDate(detail.policies?.start_date ?? null)} – {fmtDate(detail.policies?.end_date ?? null)}</DetailField>
+                  <div className="grid grid-cols-2 gap-3">
+                    <DetailField label="Issue date">{fmtDate(detail.issue_date)}</DetailField>
+                    <DetailField label="Payment due">{detail.payment_due_date ? fmtDate(detail.payment_due_date) : '—'}</DetailField>
+                  </div>
                   <DetailField label="Insurer">{detail.insurer ?? '—'}</DetailField>
                   <DetailField label="Recipient">{detail.contacts?.email ?? 'No contact on file'}</DetailField>
                 </>

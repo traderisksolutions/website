@@ -40,6 +40,7 @@ type PayStatus = 'unpaid' | 'partially_paid' | 'paid'
 type EventType = 'new_business' | 'renewal' | 'endorsement'
 
 type Patch = {
+  debitNoteNo?: string
   lineItems?: DebitNotePdfLineItem[]; gstAmount?: number; feeRebate?: number
   commission?: number; commissionRate?: number
   issueDate?: string; paymentDueDate?: string; insurer?: string; currency?: string
@@ -64,11 +65,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const before = await loadFull(id)
     if (!before) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
+    const debitNoteNo = patch.debitNoteNo?.trim() || before.debit_note_no
+    const renumbering = debitNoteNo !== before.debit_note_no
+    if (renumbering) {
+      const dupe = await fetch(`${SB_URL}/rest/v1/debit_notes?debit_note_no=eq.${encodeURIComponent(debitNoteNo)}&id=neq.${id}&select=id&limit=1`, { headers: sbH(), cache: 'no-store' })
+        .then(r => (r.ok ? r.json() : [])) as { id: string }[]
+      if (dupe.length > 0) return NextResponse.json({ error: `${debitNoteNo} is already in use by another debit note` }, { status: 400 })
+    }
+
     const lineItems = patch.lineItems ?? before.line_items
     const gstAmount  = patch.gstAmount  ?? before.gst_amount ?? 0
     const grossAmount = (lineItems as DebitNotePdfLineItem[]).reduce((s, l) => s + l.amount, 0) + gstAmount
 
     const update = {
+      debit_note_no: debitNoteNo,
       line_items: lineItems,
       gst_amount: gstAmount,
       gross_amount: grossAmount,
@@ -108,7 +118,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     // Regenerate the PDF so it never drifts from the numbers now on record.
     const pdfBuffer = await renderDebitNotePdf({
-      debitNoteNo: before.debit_note_no, issueDate: update.issue_date,
+      debitNoteNo, issueDate: update.issue_date,
       coverNoteNo: policy?.cover_note_no ?? null, policyNumber: policy?.policy_number ?? null,
       clientName: before.companies?.name ?? '—', clientAddress: before.companies?.address ?? null,
       clientContactName: [before.contacts?.first_name, before.contacts?.last_name].filter(Boolean).join(' ') || null,
@@ -119,13 +129,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       paymentDueDate: update.payment_due_date,
       eventType: update.event_type as EventType, endorsementEffectiveDate: update.endorsement_effective_date,
     })
-    const pdfPath = before.pdf_storage_url ?? `${before.company_id}/${storageKeySegment(before.debit_note_no)}.pdf`
+    // Renumbering moves the file to a path matching the new number, rather than reusing the old
+    // path, so the stored filename never disagrees with the number printed on the PDF/DB record.
+    const pdfPath = renumbering || !before.pdf_storage_url
+      ? `${before.company_id}/${storageKeySegment(debitNoteNo)}.pdf`
+      : before.pdf_storage_url
     await uploadPdf(pdfPath, pdfBuffer)
-    if (!before.pdf_storage_url) {
+    if (pdfPath !== before.pdf_storage_url) {
       await fetch(`${SB_URL}/rest/v1/debit_notes?id=eq.${id}`, { method: 'PATCH', headers: sbH(), body: JSON.stringify({ pdf_storage_url: pdfPath }) })
+      if (before.pdf_storage_url) await deleteObject(before.pdf_storage_url)
     }
 
-    void logActivity({ action: 'debit_note.updated', resource_type: 'debit_note', resource_id: id, old_value: { status: before.status, gross_amount: before.gross_amount }, new_value: { status: update.status, gross_amount: grossAmount } })
+    void logActivity({ action: 'debit_note.updated', resource_type: 'debit_note', resource_id: id, old_value: { status: before.status, gross_amount: before.gross_amount, debit_note_no: before.debit_note_no }, new_value: { status: update.status, gross_amount: grossAmount, debit_note_no: debitNoteNo } })
 
     const downloadUrl = await signRead(pdfPath)
     return NextResponse.json({ ok: true, downloadUrl })

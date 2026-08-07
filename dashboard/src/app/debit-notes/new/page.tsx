@@ -349,12 +349,16 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
           {approved.driveFolderUrl ? (
             <> and <a href={approved.driveFolderUrl} target="_blank" rel="noreferrer" className="underline hover:no-underline">archived to Google Drive</a>.</>
           ) : '.'}
+          {' '}If you close this or the email doesn&rsquo;t go through, it&rsquo;s not lost — you can always come back and resend from here.
         </p>
         <div className="flex items-center gap-2">
           <a href={approved.downloadUrl} target="_blank" rel="noreferrer" className="inline-flex"><Button variant="outline" size="sm"><Download size={13} className="mr-1.5" /> Download PDF</Button></a>
           <Button size="sm" onClick={openSend} disabled={busy}>{busy ? <Loader2 size={13} className="animate-spin mr-1.5" /> : <Send size={13} className="mr-1.5" />} Send documents</Button>
         </div>
-        <Link href="/debit-notes" className="text-[11.5px] text-muted-foreground hover:text-foreground">Done</Link>
+        <Link href={`/debit-notes?open=${approved.debitNoteId}`} className="text-[11.5px] text-primary hover:underline">
+          View {approved.debitNoteNo} in Debit Notes →
+        </Link>
+        <Link href="/debit-notes" className="text-[11px] text-muted-foreground hover:text-foreground">Done</Link>
         {sendTarget && <SendDocumentsModal target={sendTarget} onClose={() => setSendTarget(null)} />}
       </div>
     )

@@ -64,7 +64,7 @@ async function fetchThread(
 
 // ── Tab types ─────────────────────────────────────────────────────────────────
 
-type EngagementTab = 'all' | 'prospects' | 'clients'
+type EngagementTab = 'all' | 'prospects' | 'clients' | 'drafts'
 
 // ── Page inner ────────────────────────────────────────────────────────────────
 
@@ -315,6 +315,7 @@ function EngagementPageInner() {
             onSearch={setSearch}
             onTab={setActiveTab}
             onGroupToggle={() => setGroupByCompany(v => !v)}
+            onOpenDraft={draft => setNewCompose(draft)}
             onRefresh={() => {
               // Show spinner immediately, wait for Gmail sync to finish, THEN reload so
               // newly ingested emails are already in Supabase when the list re-reads.

@@ -11,18 +11,28 @@ import type { CalendarEvent } from '@/app/api/calendar/events/route'
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-function toISODate(d: Date) { return d.toISOString().slice(0, 10) }
+// Local calendar date as YYYY-MM-DD — NOT d.toISOString().slice(0,10), which converts to UTC first
+// and silently shifts the date by a day in any timezone ahead of UTC (e.g. SGT/UTC+8: local
+// midnight on the 1st is 16:00 UTC the day before). That bug made month-boundary events (like a
+// policy renewing on the 31st) appear under the wrong month, and misaligned day-cell lookups too.
+function toISODate(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 function isSameDay(a: Date, b: Date) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate() }
 
 // ── Dot color per event category — kept as a single lookup so the legend below and the day
-// cells can never drift out of sync with each other. ─────────────────────────────────────────
+// cells can never drift out of sync with each other. Renewal color is a direct lookup on the
+// fixed milestone (0/14/30/60 days-to-go), not a live "days until today" computation — the
+// milestone date itself is what's fixed, so the color shouldn't drift as today changes. ────────
+function milestoneStyle(milestone: 0 | 14 | 30 | 60): { dot: string; bg: string; text: string } {
+  if (milestone === 0)  return { dot: 'bg-rose-600',  bg: 'bg-rose-50',   text: 'text-rose-700' }
+  if (milestone === 14) return { dot: 'bg-rose-500',  bg: 'bg-rose-50',   text: 'text-rose-700' }
+  if (milestone === 30) return { dot: 'bg-amber-500', bg: 'bg-amber-50',  text: 'text-amber-700' }
+  return { dot: 'bg-slate-400', bg: 'bg-slate-100', text: 'text-slate-600' }
+}
+
 function eventColor(e: CalendarEvent): string {
-  if (e.type === 'renewal') {
-    const days = Math.ceil((new Date(e.date).getTime() - Date.now()) / 86_400_000)
-    if (days < 7) return 'bg-rose-500'
-    if (days < 30) return 'bg-amber-500'
-    return 'bg-slate-400'
-  }
+  if (e.type === 'renewal') return milestoneStyle(e.milestone).dot
   const overdue = new Date(e.date).getTime() < new Date(new Date().toDateString()).getTime()
   return overdue ? 'bg-orange-500' : 'bg-blue-500'
 }
@@ -30,12 +40,7 @@ function eventColor(e: CalendarEvent): string {
 // Same categories as eventColor, but as a chip (dot + tinted background) for the month grid's
 // stacked "invite" rows — Google Calendar-style, so a busy day reads at a glance.
 function eventChipStyle(e: CalendarEvent): { dot: string; bg: string; text: string } {
-  if (e.type === 'renewal') {
-    const days = Math.ceil((new Date(e.date).getTime() - Date.now()) / 86_400_000)
-    if (days < 7)  return { dot: 'bg-rose-500',  bg: 'bg-rose-50',   text: 'text-rose-700' }
-    if (days < 30) return { dot: 'bg-amber-500', bg: 'bg-amber-50',  text: 'text-amber-700' }
-    return { dot: 'bg-slate-400', bg: 'bg-slate-100', text: 'text-slate-600' }
-  }
+  if (e.type === 'renewal') return milestoneStyle(e.milestone)
   const overdue = new Date(e.date).getTime() < new Date(new Date().toDateString()).getTime()
   return overdue
     ? { dot: 'bg-orange-500', bg: 'bg-orange-50', text: 'text-orange-700' }
@@ -43,9 +48,10 @@ function eventChipStyle(e: CalendarEvent): { dot: string; bg: string; text: stri
 }
 
 const LEGEND = [
-  { color: 'bg-rose-500',   label: 'Renewal due within 7 days' },
-  { color: 'bg-amber-500',  label: 'Renewal due within 30 days' },
-  { color: 'bg-slate-400',  label: 'Renewal due later' },
+  { color: 'bg-rose-600',   label: 'Renews today (D-Day)' },
+  { color: 'bg-rose-500',   label: 'Renewal in 14 days' },
+  { color: 'bg-amber-500',  label: 'Renewal in 30 days' },
+  { color: 'bg-slate-400',  label: 'Renewal in 60 days' },
   { color: 'bg-orange-500', label: 'Debit note payment overdue' },
   { color: 'bg-blue-500',   label: 'Debit note payment upcoming' },
 ]
@@ -93,6 +99,7 @@ export default function CalendarPage() {
   function gotoToday() { const d = new Date(); d.setDate(1); setViewDate(d) }
 
   return (
+    <div className="min-h-screen bg-white">
     <div className="max-w-4xl mx-auto px-6 py-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-[19px] font-semibold tracking-tight text-foreground">{MONTHS[viewDate.getMonth()]} <span className="font-normal text-muted-foreground/70">{viewDate.getFullYear()}</span></h1>
@@ -195,6 +202,7 @@ export default function CalendarPage() {
         />
       )}
     </div>
+    </div>
   )
 }
 
@@ -232,9 +240,9 @@ function RenewalCard({ e }: { e: Extract<CalendarEvent, { type: 'renewal' }> }) 
   return (
     <div className="rounded-lg border border-[--border-subtle] p-3 flex flex-col gap-1.5">
       <div className="flex items-center gap-1.5 text-[13px] font-semibold">
-        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 flex-shrink-0" />
+        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${milestoneStyle(e.milestone).dot}`} />
         <Building2 size={13} className="text-muted-foreground/60" /> {e.companyName ?? 'Unknown company'}
-        <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/50">Renewal</span>
+        <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/50">{e.label}</span>
       </div>
       <div className="text-[11.5px] text-muted-foreground grid grid-cols-2 gap-x-3 gap-y-0.5">
         <span>Policy: {e.policyNumber || '—'}</span>

@@ -4,10 +4,18 @@ import { useEffect, useRef, useState } from 'react'
 import {
   Bold, Italic, Underline as ULIcon,
   AlignLeft, AlignCenter, AlignRight,
-  List, ListOrdered, Link2, ImageIcon, Upload,
+  List, ListOrdered, Link2, ImageIcon, Upload, Table2,
 } from 'lucide-react'
 import type React from 'react'
 import 'quill/dist/quill.snow.css'
+import 'quill-table-better/dist/quill-table-better.css'
+
+/** The subset of quill-table-better's module API this editor actually calls — see
+ *  node_modules/quill-table-better/dist/quill-table-better.d.ts for the full surface. */
+interface TableBetterModule {
+  insertTable(rows: number, columns: number): void
+  hideTools(): void
+}
 
 interface RichEditorProps {
   initialHtml: string
@@ -40,23 +48,36 @@ export function RichEditor({
     let alive = true
 
     ;(async () => {
-      const [{ default: Quill }, { AlignStyle }] = await Promise.all([
+      const [{ default: Quill }, { AlignStyle }, { default: QuillTableBetter }] = await Promise.all([
         import('quill'),
         import('quill/formats/align'),
+        import('quill-table-better'),
       ])
       if (!alive || !mountRef.current) return
 
       // Use inline style attributor so alignment renders in emails without external CSS
       Quill.register({ 'attributors/style/align': AlignStyle }, true)
+      Quill.register({ 'modules/table-better': QuillTableBetter }, true)
 
       const q = new Quill(mountRef.current, {
         theme: 'snow',
         modules: {
           toolbar: false,
           history: { delay: 1000, maxStack: 100, userOnly: true },
+          table: false,
+          'table-better': { menus: ['column', 'row', 'merge', 'table', 'cell', 'wrap', 'copy', 'delete'] },
         },
         placeholder,
-        formats: ['bold', 'italic', 'underline', 'align', 'list', 'link', 'image'],
+        // Quill's `formats` is a blot-name allowlist, not a module-name one — 'table-better' (the
+        // module name) wouldn't allowlist anything; these are the actual blot names the table
+        // module registers (verified against its compiled bundle), needed or table content gets
+        // silently stripped on input/paste the same way an unlisted format always would.
+        formats: [
+          'bold', 'italic', 'underline', 'align', 'list', 'link', 'image',
+          'table-body', 'table-cell', 'table-cell-block', 'table-col', 'table-colgroup',
+          'table-container', 'table-header', 'table-list', 'table-list-container', 'table-row',
+          'table-temporary', 'table-th', 'table-th-block', 'table-th-row', 'table-thead',
+        ],
       })
 
       // mountRef.current IS the .ql-container element after Quill initialises
@@ -91,6 +112,9 @@ export function RichEditor({
       q.on('selection-change', syncFmt)
       q.on('text-change', () => {
         syncFmt()
+        // Per quill-table-better's docs: hide its contextual row/column menu before serializing,
+        // so that internal UI markup never leaks into the saved/sent HTML.
+        ;(q.getModule('table-better') as TableBetterModule | undefined)?.hideTools()
         onChangeRef.current(q.getSemanticHTML())
       })
 
@@ -231,6 +255,17 @@ export function RichEditor({
             }
           }}>
           <Link2 size={12} />
+        </button>
+
+        <Sep />
+
+        <button type="button" title="Insert table" style={s(false)}
+          onMouseDown={e => {
+            e.preventDefault()
+            const table = quillRef.current?.getModule('table-better') as TableBetterModule | undefined
+            table?.insertTable(3, 3)
+          }}>
+          <Table2 size={12} />
         </button>
 
         <Sep />

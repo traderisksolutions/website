@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
   ArrowLeft, Loader2, FileText, UploadCloud, CheckCircle2,
-  XCircle, AlertTriangle, Save, RefreshCw, Download, Send,
+  XCircle, AlertTriangle, Save, RefreshCw, Download, Send, Cloud, CloudOff,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -55,6 +55,41 @@ function BulkUploadSection() {
   const [progress, setProgress] = useState<{ total: number; done: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // ── OneDrive connect + bulk import ─────────────────────────────────────────────────────────
+  const [onedrive, setOnedrive] = useState<{ connected: boolean; email: string | null } | null>(null)
+  const [onedriveFolder, setOnedriveFolder] = useState('')
+  const [onedriveImporting, setOnedriveImporting] = useState(false)
+  const [onedriveMsg, setOnedriveMsg] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/auth/onedrive/status', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(setOnedrive)
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('onedrive_connected')) setOnedriveMsg('OneDrive connected.')
+    if (params.get('onedrive_error')) setOnedriveMsg(`Could not connect OneDrive (${params.get('onedrive_error')}) — try again.`)
+    if (params.has('onedrive_connected') || params.has('onedrive_error')) window.history.replaceState({}, '', window.location.pathname)
+  }, [])
+
+  async function startOnedriveImport() {
+    if (!onedriveFolder.trim()) return
+    setOnedriveImporting(true); setOnedriveMsg(null); setError(null)
+    try {
+      const res = await fetch('/api/debit-notes/imports/onedrive', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ folderPath: onedriveFolder.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Could not start the import')
+      setOnedriveMsg('Import started — bundles will appear below as they’re downloaded and processed. This can take a while for 100+ files.')
+      // The bundle list only auto-polls once a pending bundle already exists (see the effect
+      // below) — nudge a few reloads early on so the first bundles the background job creates
+      // show up without a manual refresh.
+      ;[5000, 15000, 30000, 60000].forEach(ms => setTimeout(loadBundles, ms))
+    } catch (e) {
+      setOnedriveMsg(e instanceof Error ? e.message : 'Could not start the import')
+    } finally {
+      setOnedriveImporting(false)
+    }
+  }
 
   const loadBundles = useCallback(() => {
     setLoadingBundles(true)
@@ -150,6 +185,29 @@ function BulkUploadSection() {
 
   return (
     <div>
+      <div className="mb-6 rounded-lg border border-[--border-subtle] p-3">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-1.5 text-[12.5px] font-medium">
+            {onedrive?.connected ? <Cloud size={14} className="text-blue-600" /> : <CloudOff size={14} className="text-muted-foreground" />}
+            OneDrive {onedrive?.connected ? `— connected (${onedrive.email ?? 'unknown account'})` : '— not connected'}
+          </div>
+          {!onedrive?.connected && (
+            <a href="/api/auth/onedrive/connect"><Button variant="outline" size="sm">Connect OneDrive</Button></a>
+          )}
+        </div>
+        {onedrive?.connected && (
+          <div className="flex items-center gap-2">
+            <input value={onedriveFolder} onChange={e => setOnedriveFolder(e.target.value)} placeholder="Folder path, e.g. Debit Notes/Historical"
+              className="flex-1 text-[12.5px] border border-border rounded-md px-2.5 py-1.5" disabled={onedriveImporting} />
+            <Button onClick={startOnedriveImport} disabled={onedriveImporting || !onedriveFolder.trim()} size="sm">
+              {onedriveImporting ? <Loader2 size={13} className="mr-1.5 animate-spin" /> : <Cloud size={13} className="mr-1.5" />} Import from OneDrive
+            </Button>
+          </div>
+        )}
+        <p className="text-[10.5px] text-muted-foreground mt-1.5">Each subfolder inside the folder path is treated as one renewal/new-business event (its files become one bundle) — organize your 120+ files as one subfolder per event before importing.</p>
+        {onedriveMsg && <p className="text-[11.5px] mt-2 text-foreground/80">{onedriveMsg}</p>}
+      </div>
+
       <div className="flex items-center gap-3 mb-6">
         <label className="flex-1">
           <input ref={fileInputRef} type="file" accept=".pdf,application/pdf,.zip,application/zip" multiple className="hidden"

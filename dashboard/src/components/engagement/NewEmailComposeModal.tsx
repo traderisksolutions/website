@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { X, Loader2, Send, Paperclip } from 'lucide-react'
+import { X, Loader2, Send, Paperclip, Save } from 'lucide-react'
 import { plainToHtml, htmlToPlain } from '@/components/RichEditor'
 import { useAutocomplete, SuggestionList } from '@/components/engagement/RecipientAutocomplete'
 
@@ -16,10 +16,13 @@ type SigOption = { id: string; name: string; title: string | null; phone: string
 
 export type EmailAttachmentRef = { filename: string; mime_type?: string; storage_url: string }
 export type NewEmailDraft = {
-  toEmail: string; toName?: string; subject: string; body: string; attachment?: EmailAttachmentRef
+  toEmail: string; toName?: string; cc?: string; subject: string; body: string; attachment?: EmailAttachmentRef
   /** When set (e.g. sending a debit note), whatever address ends up in To/Cc at send time gets
    *  saved/linked to this company in Active Contacts — best-effort, never blocks the send. */
   companyId?: string
+  /** Set when reopening a previously saved draft (see /api/engagement/drafts) — "Save as draft"
+   *  updates this same row instead of creating a duplicate, and it's cleaned up once actually sent. */
+  draftId?: string
 }
 
 export function NewEmailComposeModal({ initial, onClose, onSent }: {
@@ -28,7 +31,7 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
   onSent?: (threadId: string | null) => void
 }) {
   const [to,       setTo]       = useState(initial.toEmail)
-  const [cc,       setCc]       = useState('')
+  const [cc,       setCc]       = useState(initial.cc ?? '')
   const [subject,  setSubject]  = useState(initial.subject)
   const [body,     setBody]     = useState(initial.body)
   const [senders,  setSenders]  = useState<Sender[]>([])
@@ -36,6 +39,9 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
   const [fromEmail, setFromEmail] = useState('')
   const [sigId,    setSigId]    = useState('')
   const [sending,  setSending]  = useState(false)
+  const [savingDraft, setSavingDraft] = useState(false)
+  const [draftId,  setDraftId]  = useState(initial.draftId)
+  const [draftSaved, setDraftSaved] = useState(false)
   const [error,    setError]    = useState<string | null>(null)
 
   // Recipient typeahead — same source as the reply editor (contacts + employees).
@@ -61,14 +67,34 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
 
   const personal = senders.find(s => s.email === fromEmail)?.type === 'personal'
 
+  async function saveAsDraft() {
+    if (!to.trim()) { setError('A recipient is required to save a draft.'); return }
+    setSavingDraft(true); setError(null); setDraftSaved(false)
+    try {
+      const res = await fetch('/api/engagement/drafts', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: draftId, toEmail: to.trim(), toName: initial.toName, cc, subject, body, attachment: initial.attachment, companyId: initial.companyId }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.id) throw new Error(data.error || 'Could not save the draft')
+      setDraftId(data.id); setDraftSaved(true)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not save the draft')
+    } finally { setSavingDraft(false) }
+  }
+
   async function send() {
     if (!to.trim() || !htmlToPlain(plainToHtml(body)).trim()) { setError('Recipient and a message are required.'); return }
     setSending(true); setError(null)
     try {
       const plain = body
+      // The original AI-drafted text (before any broker edits) — captured from `initial`,
+      // which never changes after mount, NOT from `plain`/`body` which reflects live edits.
+      // Sending the edited text as its own "original" would make the eval comparison
+      // self-referential (draft vs itself) and produce no learning signal.
       const draftRes = await fetch('/api/nexus/draft-create', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ thread_id: null, body: plain, email_type: 'NEXUS', to_email: to.trim() }),
+        body: JSON.stringify({ thread_id: null, body: initial.body, email_type: 'NEXUS', to_email: to.trim() }),
       })
       const draftData = await draftRes.json()
       if (!draftRes.ok || !draftData.draftId) throw new Error(draftData.error || 'Could not prepare the draft')
@@ -79,7 +105,7 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
       const sendRes = await fetch('/api/email/send', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          draftId: draftData.draftId, htmlBody: plainToHtml(plain), originalAiBody: plain,
+          draftId: draftData.draftId, htmlBody: plainToHtml(plain), originalAiBody: initial.body,
           toEmail: to.trim(), cc: ccList, customSubject: subject, fromEmail: fromEmail || null,
           signatureId: sigId || null,   // server appends the signature
           attachments: initial.attachment ? [initial.attachment] : undefined,
@@ -98,6 +124,8 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
         ))
       }
 
+      if (draftId) void fetch(`/api/engagement/drafts/${draftId}`, { method: 'DELETE' }).catch(() => {})
+
       onSent?.(sendData.threadDbId ?? null)
       onClose()
     } catch (e) {
@@ -107,9 +135,11 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
 
   const inp = 'flex-1 text-[13px] bg-background border border-[--border-subtle] rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/30 min-w-0'
 
+  // No onClick on the backdrop below, on purpose — an accidental click used to silently discard
+  // the whole in-progress email with zero confirmation. Cancel/X remain the only ways out.
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-2xl max-h-[88vh] overflow-y-auto rounded-xl bg-card shadow-2xl" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-2xl max-h-[88vh] overflow-y-auto rounded-xl bg-card shadow-2xl">
         <div className="sticky top-0 bg-card border-b border-[--border-subtle] px-5 py-3.5 flex items-center justify-between">
           <div>
             <h3 className="text-[14px] font-semibold text-foreground">New email{initial.toName ? ` to ${initial.toName}` : ''}</h3>
@@ -178,7 +208,13 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
         </div>
 
         <div className="sticky bottom-0 bg-card border-t border-[--border-subtle] px-5 py-3 flex items-center justify-end gap-2">
+          {draftSaved && <span className="text-[11px] text-muted-foreground/60 mr-auto">Saved to Drafts</span>}
           <button onClick={onClose} className="text-[12px] text-muted-foreground hover:text-foreground px-3 py-1.5">Cancel</button>
+          <button onClick={saveAsDraft} disabled={savingDraft || sending}
+            className="flex items-center gap-1.5 text-[12px] font-medium px-3.5 py-1.5 rounded-md border border-[--border-subtle] text-foreground hover:bg-accent/40 disabled:opacity-50">
+            {savingDraft ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+            {savingDraft ? 'Saving…' : 'Save as draft'}
+          </button>
           <button onClick={send} disabled={sending}
             className="flex items-center gap-1.5 text-[12px] font-semibold px-4 py-1.5 rounded-md bg-primary text-primary-foreground disabled:opacity-50">
             {sending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}

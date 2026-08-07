@@ -1,14 +1,23 @@
 'use client'
 
-import { Fragment } from 'react'
-import { Search, RefreshCw, X, Building2 } from 'lucide-react'
+import { Fragment, useEffect, useState } from 'react'
+import type { MouseEvent } from 'react'
+import { Search, RefreshCw, X, Building2, FileEdit } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Lead, ThreadState } from './types'
 import { EMAIL_SOURCES, PERSONAL_DOMAINS } from './types'
 import { EngagementThreadRow } from '@/components/engagement-agent/engagement-thread-row'
 import { domainOf, companyLabel, needsReply as calcNeedsReply } from './helpers'
+import type { NewEmailDraft } from './NewEmailComposeModal'
 
-type EngagementTab = 'all' | 'prospects' | 'clients'
+type EngagementTab = 'all' | 'prospects' | 'clients' | 'drafts'
+
+/** One saved threadless "new compose" draft — shape returned by GET /api/engagement/drafts. */
+export type DraftRow = {
+  id: string; to_email: string | null; cc: string | null; subject: string | null; body: string | null
+  attachments: { filename: string; mime_type?: string; storage_url: string }[] | null
+  created_at: string
+}
 
 interface ConversationListProps {
   leads:          Lead[]
@@ -27,12 +36,14 @@ interface ConversationListProps {
   onTab:          (t: EngagementTab) => void
   onGroupToggle:  () => void
   onRefresh:      () => void
+  onOpenDraft:    (draft: NewEmailDraft) => void
 }
 
 const TABS: { key: EngagementTab; label: string }[] = [
   { key: 'all',       label: 'All'       },
   { key: 'prospects', label: 'Prospects' },
   { key: 'clients',   label: 'Clients'   },
+  { key: 'drafts',    label: 'Drafts'    },
 ]
 
 export function ConversationList({
@@ -40,15 +51,35 @@ export function ConversationList({
   search, activeTab, groupByCompany,
   loading, refreshing,
   prospectsCount, clientsCount,
-  onSelect, onSearch, onTab, onGroupToggle, onRefresh,
+  onSelect, onSearch, onTab, onGroupToggle, onRefresh, onOpenDraft,
 }: ConversationListProps) {
   const needsReplyCount = Object.values(threadMap)
     .filter(t => calcNeedsReply(t.messages)).length
 
+  const [drafts, setDrafts] = useState<DraftRow[]>([])
+  const [draftsLoading, setDraftsLoading] = useState(false)
+  const loadDrafts = () => {
+    setDraftsLoading(true)
+    fetch('/api/engagement/drafts', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : [])
+      .then(rows => setDrafts(Array.isArray(rows) ? rows : []))
+      .finally(() => setDraftsLoading(false))
+  }
+  useEffect(loadDrafts, [])
+  useEffect(() => { if (activeTab === 'drafts') loadDrafts() }, [activeTab])
+
+  async function discardDraft(id: string, e: MouseEvent) {
+    e.stopPropagation()
+    if (!window.confirm('Discard this draft?')) return
+    await fetch(`/api/engagement/drafts/${id}`, { method: 'DELETE' })
+    loadDrafts()
+  }
+
   const tabCount = (key: EngagementTab) => {
     if (key === 'all')       return leads.length
     if (key === 'prospects') return prospectsCount
-    return clientsCount
+    if (key === 'clients')   return clientsCount
+    return drafts.length
   }
 
   return (
@@ -143,40 +174,81 @@ export function ConversationList({
 
       {/* List */}
       <div className="flex-1 overflow-y-auto">
-        {loading && (
-          <div className="flex items-center justify-center py-12">
-            <span className="text-[12px] text-muted-foreground">Loading conversations…</span>
-          </div>
-        )}
-
-        {!loading && visible.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12 px-4 gap-2">
-            <p className="text-[12px] text-muted-foreground text-center">
-              {search ? 'No conversations match your search.' : 'No conversations yet.'}
-            </p>
-            {search && (
-              <button
-                onClick={() => onSearch('')}
-                className="text-[11px] text-primary hover:underline"
-              >
-                Clear search
-              </button>
+        {activeTab === 'drafts' ? (
+          <>
+            {draftsLoading && (
+              <div className="flex items-center justify-center py-12">
+                <span className="text-[12px] text-muted-foreground">Loading drafts…</span>
+              </div>
             )}
-          </div>
-        )}
+            {!draftsLoading && drafts.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 px-4 gap-2">
+                <p className="text-[12px] text-muted-foreground text-center">No saved drafts.</p>
+              </div>
+            )}
+            {!draftsLoading && drafts.map(d => (
+              <div
+                key={d.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => onOpenDraft({
+                  toEmail: d.to_email ?? '', cc: d.cc ?? '', subject: d.subject ?? '', body: d.body ?? '',
+                  attachment: d.attachments?.[0], draftId: d.id,
+                })}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') onOpenDraft({ toEmail: d.to_email ?? '', cc: d.cc ?? '', subject: d.subject ?? '', body: d.body ?? '', attachment: d.attachments?.[0], draftId: d.id }) }}
+                className="w-full flex items-start gap-2.5 px-3 py-2.5 border-b border-[--border-subtle] text-left hover:bg-accent/40 transition-colors cursor-pointer"
+              >
+                <FileEdit size={13} className="text-muted-foreground/60 mt-0.5 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[12px] font-medium text-foreground truncate">{d.subject || '(no subject)'}</span>
+                    <span className="text-[10px] text-muted-foreground/50 flex-shrink-0">{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground truncate">To: {d.to_email || '—'}</p>
+                  <p className="text-[11px] text-muted-foreground/70 truncate">{(d.body ?? '').slice(0, 80) || 'No message yet'}</p>
+                </div>
+                <button onClick={e => discardDraft(d.id, e)} className="text-muted-foreground/40 hover:text-rose-500 flex-shrink-0"><X size={13} /></button>
+              </div>
+            ))}
+          </>
+        ) : (
+          <>
+            {loading && (
+              <div className="flex items-center justify-center py-12">
+                <span className="text-[12px] text-muted-foreground">Loading conversations…</span>
+              </div>
+            )}
 
-        {!loading && visible.length > 0 && (
-          groupByCompany
-            ? <GroupedList visible={visible} threadMap={threadMap} selectedId={selectedId} onSelect={onSelect} />
-            : visible.map(lead => (
-                <EngagementThreadRow
-                  key={lead.id}
-                  lead={lead}
-                  isActive={lead.id === selectedId}
-                  threadState={threadMap[lead.id]}
-                  onClick={() => onSelect(lead.id)}
-                />
-              ))
+            {!loading && visible.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 px-4 gap-2">
+                <p className="text-[12px] text-muted-foreground text-center">
+                  {search ? 'No conversations match your search.' : 'No conversations yet.'}
+                </p>
+                {search && (
+                  <button
+                    onClick={() => onSearch('')}
+                    className="text-[11px] text-primary hover:underline"
+                  >
+                    Clear search
+                  </button>
+                )}
+              </div>
+            )}
+
+            {!loading && visible.length > 0 && (
+              groupByCompany
+                ? <GroupedList visible={visible} threadMap={threadMap} selectedId={selectedId} onSelect={onSelect} />
+                : visible.map(lead => (
+                    <EngagementThreadRow
+                      key={lead.id}
+                      lead={lead}
+                      isActive={lead.id === selectedId}
+                      threadState={threadMap[lead.id]}
+                      onClick={() => onSelect(lead.id)}
+                    />
+                  ))
+            )}
+          </>
         )}
       </div>
     </div>

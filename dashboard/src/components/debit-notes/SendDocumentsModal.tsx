@@ -88,7 +88,9 @@ export function SendDocumentsModal({ target, onClose }: { target: SendDocumentsT
 
   return (
     <Dialog open onOpenChange={v => !v && onClose()}>
-      <DialogContent className="sm:max-w-[420px]">
+      {/* An accidental outside click shouldn't silently drop the picker mid-selection — the X/
+          Cancel affordances remain the only intentional way to close. */}
+      <DialogContent className="sm:max-w-[420px]" onInteractOutside={e => e.preventDefault()}>
         <DialogHeader><DialogTitle>Send documents</DialogTitle></DialogHeader>
         <p className="text-[11.5px] text-muted-foreground -mt-2 mb-1">Nothing is pre-selected — choose exactly what {target.contactEmail} should receive.</p>
         <div className="flex flex-col gap-1.5">
