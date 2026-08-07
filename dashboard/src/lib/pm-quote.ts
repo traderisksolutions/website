@@ -6,6 +6,19 @@
  * per-insurer results into a side-by-side comparison. Pricing itself happens in pm-calc.ts; this
  * module only shapes inputs and aligns outputs.
  */
+import type { RateTable } from '@/lib/pm-rates'
+import type { BenefitTerm } from '@/lib/pm-benefits-extract'
+
+/** One approved calculator as returned by GET /api/pricing-matrix/quote/available — everything the
+ *  quote wizard (and quote-editing) needs to render plan-selection controls and price/compare
+ *  client-side: coverage_lines/dropdowns for the UI, rate_table/benefit_terms for live compute. */
+export type AvailableCalculator = {
+  id: string; insurer_name: string; effective_date: string | null; version: number
+  coverage_lines: { code: string; label: string; fields: string[] }[]
+  dropdowns: Record<string, string[]>
+  rate_table: RateTable | null
+  benefit_terms: BenefitTerm[]
+}
 
 export type CensusMember = {
   name?: string

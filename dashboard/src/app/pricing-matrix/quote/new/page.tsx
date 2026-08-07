@@ -3,41 +3,22 @@
 import { useMemo, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2, Plus, Trash2, Save, Download, Upload, Wand2 } from 'lucide-react'
+import { ArrowLeft, Loader2, Save, Download, Wand2 } from 'lucide-react'
 import { PmComparison } from '@/components/pricing-matrix/PmComparison'
 import { PmLiveBenefitPreview } from '@/components/pricing-matrix/PmLiveBenefitPreview'
+import { CensusEditor } from '@/components/pricing-matrix/CensusEditor'
+import { PlanSelectionEditor } from '@/components/pricing-matrix/PlanSelectionEditor'
 import { computeInsurerQuote } from '@/lib/pm-calc'
 import { alignLines } from '@/lib/pm-quote'
-import type { CensusMember, Selection, QuoteResult, InsurerResult } from '@/lib/pm-quote'
+import type { CensusMember, Selection, QuoteResult, InsurerResult, AvailableCalculator } from '@/lib/pm-quote'
 import { coverageCodes } from '@/lib/pm-rates'
-import type { RateTable } from '@/lib/pm-rates'
-import type { BenefitTerm } from '@/lib/pm-benefits-extract'
 import { alignSelectedTerms } from '@/lib/pm-compare'
 import type { CompareRow } from '@/lib/pm-compare'
 
-type Avail = {
-  id: string; insurer_name: string; effective_date: string | null; version: number
-  coverage_lines: { code: string; label: string; fields: string[] }[]
-  dropdowns: Record<string, string[]>
-  rate_table: RateTable | null
-  benefit_terms: BenefitTerm[]
-}
-const REL = ['Self', 'Spouse', 'Child']
 const inp = 'text-[12.5px] border border-border rounded-md px-2 py-1 bg-background focus:outline-none focus:ring-2 focus:ring-primary/25'
 
 async function safeJson<T>(r: Response): Promise<T & { error?: string }> {
   try { return await r.json() } catch { return { error: `HTTP ${r.status}` } as T & { error?: string } }
-}
-function parseCensus(text: string): CensusMember[] {
-  const lines = text.trim().split(/\r?\n/).filter(Boolean)
-  if (!lines.length) return []
-  const head = lines[0].toLowerCase().split(',').map(s => s.trim())
-  const ci = (n: string) => head.indexOf(n)
-  const [ni, di, ai, ri] = [ci('name'), ci('dob') >= 0 ? ci('dob') : ci('date_of_birth'), ci('age'), ci('relationship')]
-  return lines.slice(1).map(l => {
-    const c = l.split(',').map(s => s.trim())
-    return { name: ni >= 0 ? c[ni] : c[0], date_of_birth: di >= 0 ? (c[di] || null) : null, age: ai >= 0 && c[ai] ? Number(c[ai]) : null, relationship: ri >= 0 ? (c[ri] || 'Self') : 'Self' }
-  })
 }
 
 export default function NewQuotePage() {
@@ -46,7 +27,7 @@ export default function NewQuotePage() {
   const [company, setCompany] = useState('')
   const [effDate, setEffDate] = useState('2026-01-01')
   const [census, setCensus] = useState<CensusMember[]>([{ name: '', relationship: 'Self', date_of_birth: null, age: null }])
-  const [avail, setAvail] = useState<Avail[]>([])
+  const [avail, setAvail] = useState<AvailableCalculator[]>([])
   const [selected, setSelected] = useState<Record<string, boolean>>({})
   const [selections, setSelections] = useState<Record<string, Selection>>({})
   const [targets, setTargets] = useState<Record<string, string>>({})
@@ -91,7 +72,7 @@ export default function NewQuotePage() {
 
   const selectedInsurerMeta = useMemo(() => avail.filter(a => selected[a.id]).map(a => ({ calculator_id: a.id, insurer_name: a.insurer_name })), [avail, selected])
 
-  function toggleInsurer(a: Avail) {
+  function toggleInsurer(a: AvailableCalculator) {
     setSelected(s => ({ ...s, [a.id]: !s[a.id] }))
     setSelections(prev => {
       if (prev[a.id]) return prev
@@ -171,28 +152,7 @@ export default function NewQuotePage() {
             <input type="date" value={effDate} onChange={e => setEffDate(e.target.value)} title="Policy effective date" className={inp} />
           </div>
 
-          <div className="border border-border rounded-xl overflow-hidden">
-            <div className="grid grid-cols-[1fr_130px_70px_110px_32px] gap-2 px-3 py-2 bg-muted/40 text-[11px] font-medium text-muted-foreground/70">
-              <span>Name</span><span>Date of birth</span><span>Age</span><span>Relationship</span><span />
-            </div>
-            {census.map((m, i) => (
-              <div key={i} className="grid grid-cols-[1fr_130px_70px_110px_32px] gap-2 px-3 py-1.5 border-t border-border/40 items-center">
-                <input value={m.name ?? ''} onChange={e => setCensus(c => c.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} placeholder="Full name" className={inp} />
-                <input type="date" value={m.date_of_birth ?? ''} onChange={e => setCensus(c => c.map((x, j) => j === i ? { ...x, date_of_birth: e.target.value || null } : x))} className={inp} />
-                <input type="number" value={m.age ?? ''} onChange={e => setCensus(c => c.map((x, j) => j === i ? { ...x, age: e.target.value ? Number(e.target.value) : null } : x))} placeholder="—" className={inp} title="Used only if no DOB" />
-                <select value={m.relationship ?? 'Self'} onChange={e => setCensus(c => c.map((x, j) => j === i ? { ...x, relationship: e.target.value } : x))} className={inp}>{REL.map(r => <option key={r}>{r}</option>)}</select>
-                {census.length > 1 && <button onClick={() => setCensus(c => c.filter((_, j) => j !== i))} className="text-rose-400 hover:text-rose-600"><Trash2 size={13} /></button>}
-              </div>
-            ))}
-            <div className="flex items-center gap-3 px-3 py-2 border-t border-border/40">
-              <button onClick={() => setCensus(c => [...c, { name: '', relationship: 'Self', date_of_birth: null, age: null }])} className="text-[12px] text-primary flex items-center gap-1 hover:underline"><Plus size={12} /> add life</button>
-              <label className="text-[12px] text-muted-foreground flex items-center gap-1 cursor-pointer hover:text-foreground">
-                <Upload size={12} /> upload CSV
-                <input type="file" accept=".csv,text/csv" className="hidden" onChange={async e => { const f = e.target.files?.[0]; if (f) setCensus(parseCensus(await f.text())) }} />
-              </label>
-              <span className="text-[11px] text-muted-foreground/50 ml-auto">CSV headers: name, dob, age, relationship</span>
-            </div>
-          </div>
+          <CensusEditor census={census} setCensus={setCensus} />
 
           <div className="flex justify-end">
             <button onClick={() => setStep(1)} disabled={namedCount === 0} className="text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">Next: insurers →</button>
@@ -222,42 +182,8 @@ export default function NewQuotePage() {
               {matchError && <p className="text-[11.5px] text-rose-600">{matchError}</p>}
             </div>
           )}
-          {avail.length === 0 ? (
-            <p className="text-[13px] text-muted-foreground py-8 text-center border border-dashed border-border rounded-xl">No approved calculators yet. Add + approve an insurer calculator first.</p>
-          ) : avail.map(a => (
-            <div key={a.id} className={`border rounded-xl p-3 ${selected[a.id] ? 'border-primary/40 bg-primary/5' : 'border-border'}`}>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={!!selected[a.id]} onChange={() => toggleInsurer(a)} className="accent-primary" />
-                <span className="text-[13.5px] font-semibold">{a.insurer_name}</span>
-                <span className="text-[11px] text-muted-foreground/50">v{a.version}{a.effective_date ? ` · eff. ${a.effective_date}` : ''}</span>
-              </label>
-              {selected[a.id] && (
-                <div className="mt-2.5 pl-6 flex flex-col gap-2">
-                  {a.coverage_lines.map(l => (
-                    <div key={l.code} className="flex flex-col gap-0.5">
-                      <div className="flex items-center gap-2 flex-wrap text-[11.5px]">
-                        <span className="w-40 text-muted-foreground/80">{l.label}</span>
-                        {l.fields.map(f => {
-                          const opts = a.dropdowns[`${l.code}.${f}`]
-                          const val = selections[a.id]?.[l.code]?.[f] ?? ''
-                          return (
-                            <label key={f} className="flex items-center gap-1">
-                              <span className="text-muted-foreground/50">{f}</span>
-                              {opts?.length
-                                ? <select value={val} onChange={e => setSel(a.id, l.code, f, e.target.value)} className="text-[11px] border border-border rounded px-1 py-0.5 bg-background"><option value="">—</option>{opts.map(o => <option key={o}>{o}</option>)}</select>
-                                : <input value={val} onChange={e => setSel(a.id, l.code, f, e.target.value)} className="w-20 text-[11px] border border-border rounded px-1 py-0.5 bg-background" />}
-                            </label>
-                          )
-                        })}
-                      </div>
-                      {matchNotes[`${a.id}.${l.code}`] && <p className="text-[10.5px] text-primary/70 pl-40 flex items-center gap-1"><Wand2 size={10} className="shrink-0" /> {matchNotes[`${a.id}.${l.code}`]}</p>}
-                    </div>
-                  ))}
-                  <p className="text-[10.5px] text-muted-foreground/40">Applied to all {namedCount} lives (dependants priced on their own age).</p>
-                </div>
-              )}
-            </div>
-          ))}
+
+          <PlanSelectionEditor avail={avail} selected={selected} selections={selections} toggleInsurer={toggleInsurer} setSel={setSel} namedCount={namedCount} matchNotes={matchNotes} />
 
           {selectedIds.length > 0 && namedCount > 0 && (
             <div className="flex flex-col gap-3 pt-2 border-t border-border/60">
@@ -274,7 +200,7 @@ export default function NewQuotePage() {
                 {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} Download comparison (PDF)
               </button>
               <button onClick={saveQuote} disabled={saving || selectedIds.length === 0 || !effDate} title={!effDate ? 'Set a policy effective date (Census step) — ages are computed from it' : ''} className="flex items-center gap-1.5 text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-                {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}{saving ? 'Saving…' : 'Save quote'}
+                {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}{saving ? 'Saving…' : 'Save to draft'}
               </button>
             </div>
           </div>

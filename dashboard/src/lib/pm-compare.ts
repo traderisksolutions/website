@@ -58,21 +58,26 @@ function coverageForCategory(rt: RateTable, category: string): string | null {
 
 export type SelectedCompareInsurer = { calculator_id: string; insurer_name: string; rate_table: RateTable; terms: BenefitTerm[] }
 
-/** Same alignment as alignTerms, but scoped to what was actually SELECTED for this quote — a term
- *  is kept only if it's policy-wide (no plan_code) or its plan_code matches the plan selected for
- *  the coverage its category belongs to. If a term's category can't be confidently matched to a
- *  coverage, it's dropped rather than risked against the wrong tier — this is what makes the
- *  benefit schedule reflect the actual quote instead of every extracted tier (unlike alignTerms /
- *  PmCompareTable, which intentionally shows everything for full transparency). */
+/** Prefix marker for a term whose plan-tier match couldn't be confirmed — see alignSelectedTerms.
+ *  Exported so renderers (PDF, live preview) can key a legend/caveat off it. */
+export const UNCONFIRMED_TAG = '[unconfirmed] '
+
+/** Same alignment as alignTerms, but scoped to what was actually SELECTED for this quote:
+ *  - A term whose category CAN be matched to a coverage keeps only the value for the plan
+ *    actually selected under that coverage — a confirmed wrong-tier value is dropped outright.
+ *  - A term whose category CAN'T be confidently matched to any coverage is still shown (rather
+ *    than silently disappearing), tagged with UNCONFIRMED_TAG so the reviewer can see it exists
+ *    but hasn't been verified against the selected tier.
+ *  - Policy-wide terms (no plan_code) are always kept as-is. */
 export function alignSelectedTerms(insurers: SelectedCompareInsurer[], selections: Record<string, Selection>): CompareRow[] {
   const scoped: CompareInsurer[] = insurers.map(ins => {
     const sel = selections[ins.calculator_id] ?? {}
-    const terms = ins.terms.filter(t => {
-      if (!t.plan_code) return true
+    const terms = ins.terms.flatMap((t): BenefitTerm[] => {
+      if (!t.plan_code) return [t]
       const covCode = coverageForCategory(ins.rate_table, t.category)
-      if (!covCode) return false
+      if (!covCode) return [{ ...t, value: `${UNCONFIRMED_TAG}${t.value}` }]
       const selectedPlan = sel[covCode]?.plan
-      return !!selectedPlan && selectedPlan === t.plan_code
+      return selectedPlan === t.plan_code ? [t] : []
     })
     return { calculator_id: ins.calculator_id, insurer_name: ins.insurer_name, terms }
   })
