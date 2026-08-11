@@ -13,6 +13,7 @@ import { buildMembers, toInsurerResult } from '@/lib/pm-quote'
 import type { CensusMember, Selection, CategoryOverrides, InsurerResult, RunMember, EngineMember, QuoteAudit } from '@/lib/pm-quote'
 import type { RuleStep } from '@/lib/pm-rules-extract'
 import { runComputationRules } from '@/lib/pm-compute-rules'
+import { nowSGT, todaySGT } from '@/lib/sgt-time'
 
 export { coverageFor } from '@/lib/pm-rates'
 
@@ -76,7 +77,10 @@ export function computeInsurerQuote(
 ): InsurerResult {
   const codes = Array.from(new Set(rt.coverages.map(c => c.code)))
   const members = buildMembers(census, selection, codes, categoryOverrides)
-  const asOf = globals.effective_date ? new Date(globals.effective_date) : new Date()
+  // `new Date()` on Vercel is the server's UTC clock — up to 8h behind SGT, which during SGT
+  // 00:00-07:59 would silently price "as of" the wrong (previous) calendar day whenever no
+  // explicit effective_date is given. nowSGT() anchors the fallback to Singapore time instead.
+  const asOf = globals.effective_date ? new Date(globals.effective_date) : nowSGT()
   const basis = globals.quote_basis ?? 'new_business'
   const usingRules = !!computationRules?.length
   const loadingPct = usingRules ? 0 : loadingPctFor(rt, members.length)
@@ -102,8 +106,11 @@ export function computeInsurerQuote(
   for (const code of codes) by_line[code] = round2(runMembers.reduce((s, m) => s + (m.lines[code] ?? 0), 0))
   const grand = round2(runMembers.reduce((s, m) => s + m.subtotal, 0))
 
+  // Use the original input string (or todaySGT() for the fallback) rather than re-deriving from
+  // `asOf` via toISOString() — that always converts through UTC first, which would reintroduce
+  // the exact day-shift this function's asOf fallback above was just fixed to avoid.
   const audit: QuoteAudit = {
-    age_basis: rt.age_basis, quote_basis: basis, effective_date: asOf.toISOString().slice(0, 10), headcount: members.length,
+    age_basis: rt.age_basis, quote_basis: basis, effective_date: globals.effective_date ?? todaySGT(), headcount: members.length,
     loading: loadingPct ? { pct: loadingPct, excluded_codes: Array.from(excludes) } : null,
     gst: rt.rules.gst ?? null,
     basis_excluded_bands: (basis === 'renewal' ? rt.rules.quote_basis_exclusions?.renewal : rt.rules.quote_basis_exclusions?.new_business) ?? null,

@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Loader2, Send, FileText, Building2, Receipt 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { openEngagementCompose } from '@/lib/engagement-handoff'
+import { nowSGT, todaySGT } from '@/lib/sgt-time'
 import type { CalendarEvent } from '@/app/api/calendar/events/route'
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -17,6 +18,13 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 // policy renewing on the 31st) appear under the wrong month, and misaligned day-cell lookups too.
 function toISODate(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+// Inverse of toISODate — parses via local Y/M/D components, NOT `new Date(isoString)`, which
+// treats a bare YYYY-MM-DD as UTC midnight and can render as the wrong day once formatted back
+// through the runtime's local timezone (same class of bug as the toISODate comment above).
+function fromISODate(key: string): Date {
+  const [y, m, d] = key.split('-').map(Number)
+  return new Date(y, m - 1, d)
 }
 function isSameDay(a: Date, b: Date) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate() }
 
@@ -33,7 +41,7 @@ function milestoneStyle(milestone: 0 | 14 | 30 | 60): { dot: string; bg: string;
 
 function eventColor(e: CalendarEvent): string {
   if (e.type === 'renewal') return milestoneStyle(e.milestone).dot
-  const overdue = new Date(e.date).getTime() < new Date(new Date().toDateString()).getTime()
+  const overdue = e.date.slice(0, 10) < todaySGT()
   return overdue ? 'bg-orange-500' : 'bg-blue-500'
 }
 
@@ -41,7 +49,7 @@ function eventColor(e: CalendarEvent): string {
 // stacked "invite" rows — Google Calendar-style, so a busy day reads at a glance.
 function eventChipStyle(e: CalendarEvent): { dot: string; bg: string; text: string } {
   if (e.type === 'renewal') return milestoneStyle(e.milestone)
-  const overdue = new Date(e.date).getTime() < new Date(new Date().toDateString()).getTime()
+  const overdue = e.date.slice(0, 10) < todaySGT()
   return overdue
     ? { dot: 'bg-orange-500', bg: 'bg-orange-50', text: 'text-orange-700' }
     : { dot: 'bg-blue-500',   bg: 'bg-blue-50',   text: 'text-blue-700' }
@@ -57,7 +65,7 @@ const LEGEND = [
 ]
 
 export default function CalendarPage() {
-  const [viewDate, setViewDate] = useState(() => { const d = new Date(); d.setDate(1); return d })
+  const [viewDate, setViewDate] = useState(() => { const d = nowSGT(); d.setDate(1); return d })
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
@@ -82,7 +90,7 @@ export default function CalendarPage() {
     return map
   }, [events])
 
-  const today = new Date()
+  const today = nowSGT()
   const monthStart = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1)
   const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate()
   const leadingBlanks = monthStart.getDay()
@@ -96,7 +104,7 @@ export default function CalendarPage() {
   const monthKey = `${viewDate.getFullYear()}-${viewDate.getMonth()}`
 
   function goto(delta: number) { setViewDate(d => new Date(d.getFullYear(), d.getMonth() + delta, 1)) }
-  function gotoToday() { const d = new Date(); d.setDate(1); setViewDate(d) }
+  function gotoToday() { const d = nowSGT(); d.setDate(1); setViewDate(d) }
 
   return (
     <div className="min-h-screen bg-white">
@@ -165,7 +173,7 @@ export default function CalendarPage() {
           <div className="sm:hidden flex flex-col gap-2">
             {daysWithEvents.length === 0 && <p className="text-[12.5px] text-muted-foreground py-8 text-center">No policies or debit notes due this month.</p>}
             {daysWithEvents.map(key => {
-              const d = new Date(key)
+              const d = fromISODate(key)
               const dayEvents = byDay.get(key)!
               return (
                 <button key={key} onClick={() => setSelectedDate(d)} className="flex items-center justify-between rounded-xl px-3 py-2.5 text-left hover:bg-accent/50 transition-colors duration-150">
@@ -232,7 +240,7 @@ function RenewalCard({ e }: { e: Extract<CalendarEvent, { type: 'renewal' }> }) 
       openEngagementCompose({
         toEmail: '', // recipient email not resolved here — user picks in the composer
         subject: `Policy renewal — ${e.policyNumber ?? e.classOfInsurance ?? 'your policy'} (${e.companyName ?? ''})`,
-        body: `Dear Sir/Madam,\n\nThis is a reminder that your ${e.classOfInsurance ?? 'insurance'} policy${e.policyNumber ? ` (${e.policyNumber})` : ''} with ${e.insurer ?? 'your insurer'} is due for renewal on ${new Date(e.date).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}.\n\nPlease let us know if you would like us to proceed with the renewal.\n\nThank you.`,
+        body: `Dear Sir/Madam,\n\nThis is a reminder that your ${e.classOfInsurance ?? 'insurance'} policy${e.policyNumber ? ` (${e.policyNumber})` : ''} with ${e.insurer ?? 'your insurer'} is due for renewal on ${fromISODate(e.date.slice(0, 10)).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}.\n\nPlease let us know if you would like us to proceed with the renewal.\n\nThank you.`,
       })
     } finally { setSending(false) }
   }
@@ -266,7 +274,7 @@ function RenewalCard({ e }: { e: Extract<CalendarEvent, { type: 'renewal' }> }) 
 }
 
 function DebitDueCard({ e }: { e: Extract<CalendarEvent, { type: 'debit_due' }> }) {
-  const overdue = new Date(e.date).getTime() < new Date(new Date().toDateString()).getTime()
+  const overdue = e.date.slice(0, 10) < todaySGT()
   return (
     <div className="rounded-lg border border-[--border-subtle] p-3 flex flex-col gap-1.5">
       <div className="flex items-center gap-1.5 text-[13px] font-semibold">
