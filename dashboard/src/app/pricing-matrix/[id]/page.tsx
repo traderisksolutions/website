@@ -107,26 +107,28 @@ export default function CalculatorReviewPage() {
     return row
   }, [id])
 
-  // Four SEPARATE synchronous requests (dump -> rate -> benefits -> rules), not one long
-  // backgrounded chain — on Vercel's free plan a single function's real execution ceiling is
-  // ~60s no matter what maxDuration claims, and the old one-request pipeline (up to 4 sequential
-  // AI calls) reliably exceeded that on anything but a trivial workbook. Each stage below is
-  // its own request, comfortably under that limit on its own — see pm-extract-shared.ts.
+  // Five SEPARATE synchronous requests, not one long backgrounded chain — on Vercel's free plan a
+  // single function's real execution ceiling is ~60s no matter what maxDuration claims. The rate
+  // stage is split into two (read, then reconcile+judge) because the judge call running
+  // SEQUENTIALLY after the parallel Opus+Gemini read was, on its own, enough to blow the combined
+  // request past that ceiling even after the outer pipeline was split into 4 stages — see
+  // pm-extract-shared.ts and pm-rates-extract.ts's readRateTables/finalizeRateTable.
   const runExtract = useCallback(async () => {
     setExtracting(true); setError(null)
     const stages: { path: string; label: string; step: number }[] = [
-      { path: 'dump',     label: 'Reading the workbook',       step: 1 },
-      { path: 'rate',     label: 'Extracting rate tables',     step: 2 },
-      { path: 'benefits', label: 'Extracting coverage terms',  step: 3 },
-      { path: 'rules',    label: 'Reading calculation logic',  step: 4 },
+      { path: 'dump',           label: 'Reading the workbook',       step: 1 },
+      { path: 'rate',           label: 'Reading rates — Opus & Gemini', step: 2 },
+      { path: 'rate-finalize',  label: 'Cross-checking every rate',  step: 3 },
+      { path: 'benefits',       label: 'Extracting coverage terms',  step: 4 },
+      { path: 'rules',          label: 'Reading calculation logic',  step: 5 },
     ]
     for (const s of stages) {
       setProgress({ label: s.label, step: s.step, total: stages.length })
       const res = await fetch(`/api/pricing-matrix/calculators/${id}/extract/${s.path}`, { method: 'POST' })
       const d = await safeJson<{ error?: string }>(res)
       if (!res.ok) {
-        // rate is the only stage that must succeed — dump validates itself, benefits/rules are
-        // best-effort and always return ok:true even on internal failure (see their routes).
+        // rate/rate-finalize are the only stages that must succeed — dump validates itself,
+        // benefits/rules are best-effort and always return ok:true even on internal failure.
         setError(d.error ?? `${s.label} failed`)
         setExtracting(false); setProgress(null)
         await load()

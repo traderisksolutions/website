@@ -17,7 +17,7 @@
  */
 import { SB_URL, sbH, signRead } from '@/lib/pm-storage'
 
-export type CalcRow = { xlsx_path: string | null; brochure_path: string | null; insurer_id: string | null; workbook_summary: unknown }
+export type CalcRow = { xlsx_path: string | null; brochure_path: string | null; insurer_id: string | null; workbook_summary: unknown; pricing: unknown }
 
 export const patchCalc = (id: string, body: Record<string, unknown>) =>
   fetch(`${SB_URL}/rest/v1/pm_calculators?id=eq.${id}`, { method: 'PATCH', headers: sbH('return=minimal'), body: JSON.stringify(body) })
@@ -34,7 +34,7 @@ export async function failExtraction(id: string, label: string, step: number, to
 }
 
 export async function loadCalc(id: string): Promise<CalcRow | null> {
-  return fetch(`${SB_URL}/rest/v1/pm_calculators?id=eq.${id}&select=xlsx_path,brochure_path,insurer_id,workbook_summary&limit=1`, { headers: sbH(), cache: 'no-store' })
+  return fetch(`${SB_URL}/rest/v1/pm_calculators?id=eq.${id}&select=xlsx_path,brochure_path,insurer_id,workbook_summary,pricing&limit=1`, { headers: sbH(), cache: 'no-store' })
     .then(r => (r.ok ? r.json() : [])).then(rows => rows[0] ?? null)
 }
 

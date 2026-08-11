@@ -217,12 +217,34 @@ async function adjudicate(dump: unknown, brochureBase64: string | undefined, con
 }
 
 // ── Ensemble ──────────────────────────────────────────────────────────────────────
-export async function extractRateTable(
+// Split into two exported halves (readRateTables / finalizeRateTable) instead of one
+// extractRateTable, so the extract/rate API route (see pm-extract-shared.ts) can run them as TWO
+// separate ~60s-budgeted requests: the parallel Opus+Gemini read, then reconcile+adjudicate+merge.
+// On Vercel's free plan, the SEQUENTIAL judge call after the parallel reads was pushing the
+// combined request past the platform's real execution ceiling even after splitting the pipeline's
+// 4 outer stages apart — this splits the rate stage's own two internal phases too.
+
+export type RateReadings = { opus: ExtractedRateTable | null; gemini: ExtractedRateTable | null; opusError?: string; geminiError?: string }
+
+/** Phase 1: the parallel Opus + Gemini read only — no reconciliation, no judge call. */
+export async function readRateTables(
   dump: unknown, brochureBase64: string | undefined, categoryPromptList: string, onStep?: StepFn,
-): Promise<{ table: ExtractedRateTable | null; accuracy?: Accuracy; ruleConflicts?: RuleConflict[]; error?: string }> {
+): Promise<RateReadings> {
   const system = buildSystem(categoryPromptList)
-  await onStep?.('Reading rates — Opus & Gemini', 1, 3)
+  await onStep?.('Reading rates — Opus & Gemini', 1, 2)
   const [o, g] = await Promise.all([opusExtract(system, dump, brochureBase64), geminiExtract(system, dump, brochureBase64)])
+  return { opus: o.table, gemini: g.table, opusError: o.error, geminiError: g.error }
+}
+
+/** Phase 2: reconcile the two readings, run the judge on any disputed cells, merge rules. Takes
+ *  the SAME dump/brochure as phase 1 (re-supplied by the caller — see extract/rate/route.ts,
+ *  which stashes both readings in pm_calculators.pricing, a dead v1-era scratch column, between
+ *  the two requests) since the judge call needs the raw source material to adjudicate against. */
+export async function finalizeRateTable(
+  readings: RateReadings, dump: unknown, brochureBase64: string | undefined, onStep?: StepFn,
+): Promise<{ table: ExtractedRateTable | null; accuracy?: Accuracy; ruleConflicts?: RuleConflict[]; error?: string }> {
+  const o = { table: readings.opus, error: readings.opusError }
+  const g = { table: readings.gemini, error: readings.geminiError }
   const base = o.table ?? g.table
   if (!base) {
     const msg = [o.error && `opus: ${o.error}`, g.error && `gemini: ${g.error}`].filter(Boolean).join('; ')
@@ -233,12 +255,12 @@ export async function extractRateTable(
     return { table: base, accuracy: { extractors: [o.table ? 'opus' : 'gemini'], total_rates: flatten(base).size, agreed: 0, conflicts: 0, adjudicated: 0, single_source: flatten(base).size } }
   }
 
-  await onStep?.('Cross-checking every rate', 2, 3)
+  await onStep?.('Cross-checking every rate', 1, 2)
   const { conflicts, agreed, single_source: single, total } = reconcile(o.table, g.table)
   const ruleConflicts = reconcileRules(o.table.rules ?? {}, g.table.rules ?? {})
 
   const resolved = conflicts.length ? await adjudicate(dump, brochureBase64, conflicts) : new Map<string, number | string>()
-  await onStep?.('Reconciling', 3, 3)
+  await onStep?.('Reconciling', 2, 2)
   let adjudicated = 0
   for (const cov of o.table.coverages) {
     for (const row of cov.rates ?? []) {

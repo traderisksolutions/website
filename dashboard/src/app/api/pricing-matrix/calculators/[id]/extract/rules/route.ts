@@ -27,7 +27,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     const calc = await loadCalc(id)
     if (!calc) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    await patchCalc(id, { map_progress: { label: 'Reading calculation logic', step: 4, total: 4, at: new Date().toISOString() } })
+    await patchCalc(id, { map_progress: { label: 'Reading calculation logic', step: 5, total: 5, at: new Date().toISOString() } })
     const brochureBase64 = await fetchBrochureBase64(calc.brochure_path)
 
     let steps = 0

@@ -28,7 +28,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     if (!calc) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     if (!calc.xlsx_path && !calc.brochure_path) return NextResponse.json({ error: 'Calculator has no uploaded xlsx or brochure' }, { status: 400 })
 
-    await patchCalc(id, { status: 'extracting', map_progress: { label: 'Reading the workbook', step: 1, total: 4, at: new Date().toISOString() } })
+    await patchCalc(id, { status: 'extracting', map_progress: { label: 'Reading the workbook', step: 1, total: 5, at: new Date().toISOString() } })
     await fetch(`${SB_URL}/rest/v1/pm_reconciliation_issues?calculator_id=eq.${id}`, { method: 'DELETE', headers: sbH('return=minimal') }).catch(() => {})
 
     let dump: unknown = null
