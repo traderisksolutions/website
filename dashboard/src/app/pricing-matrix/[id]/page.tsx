@@ -129,7 +129,9 @@ export default function CalculatorReviewPage() {
       if (!res.ok) {
         // rate/rate-finalize are the only stages that must succeed — dump validates itself,
         // benefits/rules are best-effort and always return ok:true even on internal failure.
-        setError(d.error ?? `${s.label} failed`)
+        // Stage name always prefixed — a raw 504 body isn't JSON, so d.error alone (e.g. "HTTP
+        // 504") would otherwise hide WHICH stage timed out, the one thing worth knowing to debug it.
+        setError(`${s.path} stage failed: ${d.error ?? `HTTP ${res.status}`}`)
         setExtracting(false); setProgress(null)
         await load()
         return

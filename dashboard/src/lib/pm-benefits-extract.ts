@@ -102,7 +102,10 @@ async function opusExtract(system: string, dump: unknown, brochureBase64?: strin
   try {
     const res = await fetch(ANTHROPIC_URL, {
       method: 'POST', headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: OPUS, max_tokens: 20000, thinking: { type: 'adaptive' }, system, messages: [{ role: 'user', content }] }),
+      // No extended thinking — see pm-rates-extract.ts's opusExtract for why: this is a
+      // transcription task, and "adaptive" thinking's unbounded reasoning budget was risking
+      // Vercel's free-plan execution ceiling on large/complex brochures.
+      body: JSON.stringify({ model: OPUS, max_tokens: 20000, system, messages: [{ role: 'user', content }] }),
     })
     const j = await res.json()
     if (!res.ok) return { terms: null, error: `Anthropic ${res.status}` }

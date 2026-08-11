@@ -93,7 +93,13 @@ async function opusExtract(system: string, dump: unknown, brochureBase64?: strin
   try {
     const res = await fetch(ANTHROPIC_URL, {
       method: 'POST', headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: OPUS, max_tokens: 20000, thinking: { type: 'adaptive' }, system,
+      // No extended thinking — this is a transcription task ("copy numbers verbatim"), and
+      // "adaptive" thinking lets the model choose its own reasoning budget with no upper bound,
+      // which on a large/complex workbook was pushing wall-clock time past Vercel's free-plan
+      // execution ceiling on its own, even after every other stage in the pipeline was split
+      // apart. Deterministic latency matters more here than the marginal accuracy extended
+      // reasoning might add on a genuinely ambiguous cell.
+      body: JSON.stringify({ model: OPUS, max_tokens: 20000, system,
         messages: [{ role: 'user', content: buildUserContent(dump, brochureBase64, false) }] }),
     })
     const j = await res.json()
@@ -202,7 +208,9 @@ async function adjudicate(dump: unknown, brochureBase64: string | undefined, con
     content.push({ type: 'text', text: JSON.stringify({ disputes: batch.map((c, i) => ({ i, coverage: c.coverage, member_type: c.member_type, plan: c.plan, band: c.band, opus: c.opus, gemini: c.gemini })), workbook_values: (dump as { values?: unknown } | undefined)?.values }) })
     const res = await fetch(ANTHROPIC_URL, {
       method: 'POST', headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: OPUS, max_tokens: 6000, thinking: { type: 'adaptive' },
+      // No extended thinking — see opusExtract's comment above; this is the sequential call that
+      // was, on its own, tipping the rate stage over the free-plan execution ceiling.
+      body: JSON.stringify({ model: OPUS, max_tokens: 6000,
         system: 'Two readings of the same insurer material disagree on some rate cells. Using the raw workbook values and/or brochure PDF provided, return the CORRECT value for each disputed cell exactly as printed/computed. Return ONLY a JSON array: [{"i": <index>, "value": <number or "N/A">}]. Never invent — if you cannot confirm, return the "opus" value.',
         messages: [{ role: 'user', content }] }),
     })

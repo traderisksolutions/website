@@ -158,7 +158,11 @@ async function opusExtract(dump: unknown, brochureBase64?: string): Promise<{ ru
   try {
     const res = await fetch(ANTHROPIC_URL, {
       method: 'POST', headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: OPUS, max_tokens: 16000, thinking: { type: 'adaptive' }, system: SYSTEM,
+      // No extended thinking — see pm-rates-extract.ts's opusExtract for why. Translating formula
+      // logic genuinely benefits more from reasoning than plain transcription does, but this
+      // stage is already best-effort (never fails the pipeline) and reliability on the free plan
+      // matters more right now than the accuracy this might cost on a genuinely complex formula.
+      body: JSON.stringify({ model: OPUS, max_tokens: 16000, system: SYSTEM,
         messages: [{ role: 'user', content: buildUserContent(dump, brochureBase64, false) }] }),
     })
     const j = await res.json()
