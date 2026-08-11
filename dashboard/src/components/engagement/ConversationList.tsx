@@ -1,13 +1,12 @@
 'use client'
 
-import { Fragment, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { MouseEvent } from 'react'
 import { RefreshCw, X, FileEdit } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Lead, ThreadState } from './types'
-import { PERSONAL_DOMAINS } from './types'
 import { EngagementThreadRow } from '@/components/engagement-agent/engagement-thread-row'
-import { domainOf, companyLabel, needsReply as calcNeedsReply } from './helpers'
+import { needsReply as calcNeedsReply } from './helpers'
 import type { NewEmailDraft } from './NewEmailComposeModal'
 import { useEngagementNav } from '@/providers/engagement-nav-provider'
 import type { EngagementTab } from '@/providers/engagement-nav-provider'
@@ -26,7 +25,6 @@ interface ConversationListProps {
   selectedId:     string | null
   activeTab:      EngagementTab
   search:         string
-  groupByCompany: boolean
   loading:        boolean
   refreshing:     boolean
   onSelect:       (id: string) => void
@@ -46,7 +44,7 @@ interface ConversationListProps {
  *  nav context so the Drafts tab shows a live count. */
 export function ConversationList({
   leads, visible, threadMap, selectedId,
-  activeTab, search, groupByCompany,
+  activeTab, search,
   loading, refreshing,
   onSelect, onRefresh, onOpenDraft, hideHeader,
 }: ConversationListProps) {
@@ -163,65 +161,18 @@ export function ConversationList({
               </div>
             )}
 
-            {!loading && visible.length > 0 && (
-              groupByCompany
-                ? <GroupedList visible={visible} threadMap={threadMap} selectedId={selectedId} onSelect={onSelect} />
-                : visible.map(lead => (
-                    <EngagementThreadRow
-                      key={lead.id}
-                      lead={lead}
-                      isActive={lead.id === selectedId}
-                      threadState={threadMap[lead.id]}
-                      onClick={() => onSelect(lead.id)}
-                    />
-                  ))
-            )}
+            {!loading && visible.length > 0 && visible.map(lead => (
+              <EngagementThreadRow
+                key={lead.id}
+                lead={lead}
+                isActive={lead.id === selectedId}
+                threadState={threadMap[lead.id]}
+                onClick={() => onSelect(lead.id)}
+              />
+            ))}
           </>
         )}
       </div>
     </div>
-  )
-}
-
-function GroupedList({ visible, threadMap, selectedId, onSelect }: {
-  visible:   Lead[]
-  threadMap: Record<string, ThreadState>
-  selectedId: string | null
-  onSelect:  (id: string) => void
-}) {
-  const groups = new Map<string, Lead[]>()
-  for (const lead of visible) {
-    const d   = domainOf(lead.email)
-    const key = PERSONAL_DOMAINS.has(d) ? '__personal__' : d
-    if (!groups.has(key)) groups.set(key, [])
-    groups.get(key)!.push(lead)
-  }
-
-  return (
-    <>
-      {Array.from(groups.entries()).map(([key, group]) => (
-        <Fragment key={key}>
-          <div className="flex items-center justify-between px-3 py-1.5 bg-muted/60 border-b border-[--border-subtle]">
-            <span className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground">
-              {companyLabel(key)}
-            </span>
-            {group.length > 1 && (
-              <span className="text-[9.5px] text-muted-foreground/60 tabular-nums">
-                {group.length}
-              </span>
-            )}
-          </div>
-          {group.map(lead => (
-            <EngagementThreadRow
-              key={lead.id}
-              lead={lead}
-              isActive={lead.id === selectedId}
-              threadState={threadMap[lead.id]}
-              onClick={() => onSelect(lead.id)}
-            />
-          ))}
-        </Fragment>
-      ))}
-    </>
   )
 }

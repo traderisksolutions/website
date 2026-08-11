@@ -76,7 +76,7 @@ function EngagementPageInner() {
   // column, not a folder-nav beside a separate list panel); this page owns fetching/realtime and
   // mirrors its state up for Sidebar to render, same cross-component pattern as ChatDockProvider.
   const {
-    activeTab, search, groupByCompany, setCounts, setRefreshing: setNavRefreshing, setOnRefresh,
+    activeTab, search, setCounts, setRefreshing: setNavRefreshing, setOnRefresh,
     setLeads: setNavLeads, setVisible: setNavVisible, setThreadMap: setNavThreadMap,
     setSelectedId: setNavSelectedId, setLoading: setNavLoading, setOnSelect, setOnOpenDraft: setNavOnOpenDraft,
   } = useEngagementNav()
@@ -344,7 +344,6 @@ function EngagementPageInner() {
       selectedId={selectedId}
       activeTab={activeTab}
       search={search}
-      groupByCompany={groupByCompany}
       loading={loading}
       refreshing={refreshing}
       onSelect={handleSelect}

@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, X, RefreshCw, Building2, Inbox, Users, UserCheck, FileEdit } from 'lucide-react'
+import { Search, X, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useEngagementNav } from '@/providers/engagement-nav-provider'
 import type { EngagementTab } from '@/providers/engagement-nav-provider'
@@ -12,16 +12,16 @@ import { ConversationList } from '@/components/engagement/ConversationList'
  * list column. Filter chrome (tabs/search/group) stays fixed; the list below it scrolls on its
  * own, fed by the same context page.tsx mirrors its real leads/threadMap/selectedId into.
  */
-const TABS: { key: EngagementTab; label: string; icon: React.ElementType }[] = [
-  { key: 'all',       label: 'All',       icon: Inbox },
-  { key: 'prospects', label: 'Prospects', icon: Users },
-  { key: 'clients',   label: 'Clients',   icon: UserCheck },
-  { key: 'drafts',    label: 'Drafts',    icon: FileEdit },
+const TABS: { key: EngagementTab; label: string }[] = [
+  { key: 'all',       label: 'All'       },
+  { key: 'prospects', label: 'Prospects' },
+  { key: 'clients',   label: 'Clients'   },
+  { key: 'drafts',    label: 'Drafts'    },
 ]
 
 export function EngagementFolderNav() {
   const {
-    activeTab, setActiveTab, search, setSearch, groupByCompany, setGroupByCompany, counts, refreshing, onRefresh,
+    activeTab, setActiveTab, search, setSearch, counts, refreshing, onRefresh,
     leads, visible, threadMap, selectedId, loading, onSelect, onOpenDraft,
   } = useEngagementNav()
 
@@ -30,6 +30,14 @@ export function EngagementFolderNav() {
       <div className="flex flex-col gap-3 px-2 pb-3 flex-shrink-0">
         <div className="flex items-center justify-between px-1">
           <span className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">Engagement</span>
+          <button
+            onClick={() => onRefresh?.()}
+            disabled={!onRefresh || refreshing}
+            title="Refresh"
+            className="p-1.5 -m-1.5 rounded-md text-muted-foreground/60 hover:text-muted-foreground hover:bg-accent transition-colors disabled:opacity-40"
+          >
+            <RefreshCw size={12} strokeWidth={2} className={cn(refreshing && 'animate-spin')} />
+          </button>
         </div>
 
         <div className="flex items-center gap-2 h-8 px-2.5 rounded-lg bg-muted border border-transparent focus-within:border-border focus-within:bg-background transition-colors">
@@ -47,52 +55,28 @@ export function EngagementFolderNav() {
           )}
         </div>
 
-        <div className="flex flex-col gap-0.5">
+        <div className="flex items-center rounded-lg bg-muted p-0.5">
           {TABS.map(tab => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={cn(
-                'flex items-center gap-2 h-8 px-2.5 rounded-md text-left transition-colors',
-                'text-[12px]',
+                'flex-1 min-w-0 flex items-center justify-center gap-1 h-7 px-1 rounded-md transition-colors',
+                'text-[10.5px] font-medium',
                 activeTab === tab.key
-                  ? 'bg-accent text-accent-foreground font-medium'
-                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
               )}
             >
-              <tab.icon size={13} strokeWidth={activeTab === tab.key ? 2.2 : 1.8} className="flex-shrink-0" />
-              <span className="flex-1 truncate">{tab.label}</span>
+              <span className="truncate">{tab.label}</span>
               <span className={cn(
-                'text-[9.5px] font-bold px-1.5 py-0.5 rounded-full tabular-nums flex-shrink-0',
-                activeTab === tab.key ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
+                'text-[9px] font-bold tabular-nums flex-shrink-0',
+                activeTab === tab.key ? 'text-primary' : 'text-muted-foreground/70',
               )}>
                 {counts[tab.key]}
               </span>
             </button>
           ))}
-        </div>
-
-        <div className="flex items-center justify-between gap-2">
-          <button
-            onClick={() => setGroupByCompany(v => !v)}
-            className={cn(
-              'flex items-center gap-2 h-7 px-2.5 rounded-md text-[11.5px] transition-colors',
-              groupByCompany
-                ? 'bg-primary/8 text-primary font-medium'
-                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-            )}
-          >
-            <Building2 size={12} strokeWidth={groupByCompany ? 2.2 : 1.8} className="flex-shrink-0" />
-            Group
-          </button>
-          <button
-            onClick={() => onRefresh?.()}
-            disabled={!onRefresh || refreshing}
-            title="Refresh"
-            className="p-1.5 rounded-md text-muted-foreground/60 hover:text-muted-foreground hover:bg-accent transition-colors disabled:opacity-40"
-          >
-            <RefreshCw size={12} strokeWidth={2} className={cn(refreshing && 'animate-spin')} />
-          </button>
         </div>
       </div>
 
@@ -105,7 +89,6 @@ export function EngagementFolderNav() {
           selectedId={selectedId}
           activeTab={activeTab}
           search={search}
-          groupByCompany={groupByCompany}
           loading={loading}
           refreshing={refreshing}
           onSelect={id => onSelect?.(id)}

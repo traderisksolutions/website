@@ -27,8 +27,6 @@ interface EngagementNavContextValue {
   setActiveTab: Dispatch<SetStateAction<EngagementTab>>
   search: string
   setSearch: Dispatch<SetStateAction<string>>
-  groupByCompany: boolean
-  setGroupByCompany: Dispatch<SetStateAction<boolean>>
   counts: EngagementNavCounts
   setCounts: Dispatch<SetStateAction<EngagementNavCounts>>
   refreshing: boolean
@@ -67,7 +65,6 @@ export function useEngagementNav(): EngagementNavContextValue {
 export function EngagementNavProvider({ children }: { children: ReactNode }) {
   const [activeTab, setActiveTab] = useState<EngagementTab>('all')
   const [search, setSearch] = useState('')
-  const [groupByCompany, setGroupByCompany] = useState(false)
   const [counts, setCounts] = useState<EngagementNavCounts>(EMPTY_COUNTS)
   const [refreshing, setRefreshing] = useState(false)
   const [onRefresh, setOnRefresh] = useState<(() => void) | null>(null)
@@ -82,7 +79,7 @@ export function EngagementNavProvider({ children }: { children: ReactNode }) {
 
   return (
     <EngagementNavContext.Provider value={{
-      activeTab, setActiveTab, search, setSearch, groupByCompany, setGroupByCompany,
+      activeTab, setActiveTab, search, setSearch,
       counts, setCounts, refreshing, setRefreshing, onRefresh, setOnRefresh,
       leads, setLeads, visible, setVisible, threadMap, setThreadMap,
       selectedId, setSelectedId, loading, setLoading, onSelect, setOnSelect, onOpenDraft, setOnOpenDraft,
