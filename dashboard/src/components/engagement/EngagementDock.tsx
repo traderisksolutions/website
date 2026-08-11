@@ -44,17 +44,13 @@ export function EngagementDock({
 
   return (
     <div
-      className={cn(
-        'flex flex-col min-h-0 border-t border-[--border-subtle] bg-card shadow-[0_-8px_20px_-8px_rgba(15,23,42,0.16)]',
-        // When a tab is open, this dock claims an EQUAL flex share against the sibling
-        // EaMessageArea (also flex-1) — a true 50/50 split of the remaining column height, so
-        // the email stays readable instead of being squeezed to a sliver by a fixed vh-based
-        // dock height. Collapsed, it shrinks to just the tab strip.
-        active ? 'flex-1' : 'flex-shrink-0',
-      )}
+      className="flex flex-col min-h-0 flex-shrink-0 border-t border-[--border-subtle] bg-card shadow-[0_-8px_20px_-8px_rgba(15,23,42,0.16)]"
+      style={{ height: active ? 'min(38vh, 380px)' : undefined }}
     >
       {/* Active panel — always in the DOM (opened, but display:none when not the active tab)
-          so state is preserved across tab switches (a half-written reply survives). */}
+          so state is preserved across tab switches (a half-written reply survives). Capped at
+          38vh/380px above (not a 50/50 flex split against the message area) — the thread needs
+          to stay the dominant reading surface even with a reply open. */}
       <div className={cn('min-h-0 overflow-y-auto', active ? 'flex-1' : 'h-0 overflow-hidden')}>
         {opened.has('reply')    && <div className={cn('h-full', active !== 'reply'    && 'hidden')}>{reply}</div>}
         {opened.has('analysis') && <div className={cn(active !== 'analysis' && 'hidden')}>{analysis}</div>}
