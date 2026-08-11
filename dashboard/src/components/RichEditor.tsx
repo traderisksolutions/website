@@ -309,12 +309,16 @@ export function RichEditor({
       {/* ── Quill mount ── */}
       <div ref={mountRef} />
 
-      {/* ── Signature preview (non-editable) — visually separated from the live typing area ── */}
+      {/* ── Signature preview (non-editable) — visually separated from the live typing area.
+          sigHtml carries its own leading <br><hr> because the same string is reused verbatim
+          for the actual sent-email HTML (which has none of this wrapper's CSS). In this
+          in-app preview that divider would double up with the border-top below, so it's
+          stripped here only — the prop itself, and every other consumer of it, is untouched. */}
       {sigHtml && (
         <div
           style={{ pointerEvents: 'none', userSelect: 'none', opacity: 0.7 }}
           className={borderless ? 'mt-1 pt-3 px-0 pb-2 border-t border-[--border-subtle]' : 'px-3 pb-3 pt-2 border-t border-[--border-subtle]'}
-          dangerouslySetInnerHTML={{ __html: sigHtml }}
+          dangerouslySetInnerHTML={{ __html: sigHtml.replace(/^\s*(<br\s*\/?>)?\s*<hr[^>]*>/i, '') }}
         />
       )}
 
