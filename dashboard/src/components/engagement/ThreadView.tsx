@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { ChevronLeft } from 'lucide-react'
 import { useAuditLog } from '@/hooks/useAuditLog'
 import type { Lead, RealMsg, ThreadState, StoredSummary, RagSource } from './types'
 import { fullName, extractEmail } from './helpers'
@@ -16,6 +15,7 @@ import { AiAnalysisPanel } from '@/components/engagement-agent/ai-analysis-panel
 import { EngagementDock } from './EngagementDock'
 import ThreadRfqWorkflow from './ThreadRfqWorkflow'
 import ThreadGbQuote from './ThreadGbQuote'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 
 interface ThreadViewProps {
   lead:            Lead
@@ -63,7 +63,9 @@ export function ThreadView({
   const [ragDraft,         setRagDraft]         = useState<{ content: string; sources: RagSource[] } | null>(null)
 
   // Right context sidebar collapse
-  const [contextOpen,      setContextOpen]      = useState(true)
+  // Closed by default — was a perpetually-visible column; now an on-demand Sheet opened from
+  // the info button in EngagementThreadHeader, so the reading pane keeps the full width.
+  const [contextOpen,      setContextOpen]      = useState(false)
 
   // RFQ context — is this thread an insurer's quotation conversation?
   const [rfqContext, setRfqContext] = useState<{ is_insurer_rfq: boolean; case_id?: string | null; insurer_name?: string | null; insured?: string | null } | null>(null)
@@ -274,6 +276,7 @@ export function ThreadView({
           onBack={onBack}
           onDelete={handleDelete}
           onCancelDelete={() => setConfirmDelete(false)}
+          onOpenInfo={() => setContextOpen(true)}
         />
 
         {/* Only offer "Add to Nexus case" when the thread isn't already in one —
@@ -394,29 +397,28 @@ export function ThreadView({
         />
       </EaWorkspaceColumn>
 
-      {/* ── Right context panel (collapsible) ── */}
-      {contextOpen ? (
-        <EngagementContextPanel
-          lead={lead}
-          messages={messages}
-          threadId={threadId}
-          conversationThreadId={propThreadId}
-          activeThreadId={threadId}
-          onSelectThread={setActiveThreadId}
-          onStatus={onStatus}
-          onTransfer={onTransfer}
-          onRestoreDraft={(body, generatedBy) => setPendingRestore({ body, generatedBy, stamp: Date.now() })}
-          onCollapse={() => setContextOpen(false)}
-        />
-      ) : (
-        <button
-          onClick={() => setContextOpen(true)}
-          title="Show details"
-          className="flex-shrink-0 w-7 border-l border-[--border-subtle] bg-card flex items-start justify-center pt-3 text-muted-foreground/50 hover:text-foreground transition-colors"
-        >
-          <ChevronLeft size={15} />
-        </button>
-      )}
+      {/* ── Contact/status/notes info — a Sheet, not a perpetual column (see EngagementThreadHeader's
+           info button) — reclaims the ~244px this used to occupy on every thread view. ── */}
+      <Sheet open={contextOpen} onOpenChange={setContextOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-sm p-0">
+          <SheetHeader className="border-b border-[--border-subtle] pb-3">
+            <SheetTitle>Thread details</SheetTitle>
+          </SheetHeader>
+          <div style={{ '--ea-context-w': '100%' } as React.CSSProperties} className="flex-1 min-h-0 overflow-y-auto">
+            <EngagementContextPanel
+              lead={lead}
+              messages={messages}
+              threadId={threadId}
+              conversationThreadId={propThreadId}
+              activeThreadId={threadId}
+              onSelectThread={setActiveThreadId}
+              onStatus={onStatus}
+              onTransfer={onTransfer}
+              onRestoreDraft={(body, generatedBy) => { setPendingRestore({ body, generatedBy, stamp: Date.now() }); setContextOpen(false) }}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

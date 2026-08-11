@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeft, Trash2, FileText } from 'lucide-react'
+import { ArrowLeft, Trash2, FileText, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Lead } from '@/components/engagement/types'
 import { fullName } from '@/components/engagement/helpers'
@@ -20,12 +20,15 @@ interface EngagementThreadHeaderProps {
   onCancelDelete: () => void
   /** Manually launch the RFQ workflow when auto-detection missed it. */
   onStartRfq?:    () => void
+  /** Opens the contact/status/notes info panel (a Sheet, see ThreadView) — replaces what used
+   *  to be a perpetually-visible right-hand column. */
+  onOpenInfo?:    () => void
 }
 
 export function EngagementThreadHeader({
   subject, lead, messageCount, needsReply,
   statusKey, confirmDelete, deleting,
-  onBack, onDelete, onCancelDelete, onStartRfq,
+  onBack, onDelete, onCancelDelete, onStartRfq, onOpenInfo,
 }: EngagementThreadHeaderProps) {
   const contactName    = fullName(lead)
   const displaySubject = subject ?? contactName
@@ -89,6 +92,17 @@ export function EngagementThreadHeader({
             </button>
           )}
           <EngagementStatusBadge status={statusKey} />
+
+          {onOpenInfo && !confirmDelete && (
+            <button
+              onClick={onOpenInfo}
+              aria-label="Show contact & thread details"
+              title="Details"
+              className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-accent transition-colors"
+            >
+              <Info size={14} strokeWidth={1.8} />
+            </button>
+          )}
 
           {confirmDelete ? (
             <div className="flex items-center gap-1.5">

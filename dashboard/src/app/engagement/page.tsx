@@ -12,6 +12,18 @@ import { ThreadView } from '@/components/engagement/ThreadView'
 import { NewEmailComposeModal, type NewEmailDraft } from '@/components/engagement/NewEmailComposeModal'
 import { EngagementShell } from '@/components/engagement/shell'
 import { EaListPanel, EaWorkspaceArea, EaWorkspaceEmptyState } from '@/components/engagement/EaLayout'
+import { useEngagementNav } from '@/providers/engagement-nav-provider'
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable'
+import { useDefaultLayout } from 'react-resizable-panels'
+import { useNarrowViewport } from '@/hooks/useNarrowViewport'
+
+// react-resizable-panels' Group sizes children by inline flex-basis %, which fights the existing
+// mobile "list OR thread, full width" show/hide (max-lg:hidden + max-lg:w-full on
+// EaListPanel/EaWorkspaceArea). Rather than fight that, only use the resizable split when
+// Sidebar.tsx also has room to show EngagementFolderNav (the SAME useNarrowViewport breakpoint —
+// they must agree, or e.g. Sidebar could hide the tab/search controls while this page still
+// renders the wide desktop split that has no other way to reach them). Below it, the original
+// simple flex stack (with its proven mobile behavior) renders unchanged.
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 
@@ -62,26 +74,26 @@ async function fetchThread(
   }
 }
 
-// ── Tab types ─────────────────────────────────────────────────────────────────
-
-type EngagementTab = 'all' | 'prospects' | 'clients' | 'drafts'
-
 // ── Page inner ────────────────────────────────────────────────────────────────
 
 function EngagementPageInner() {
   const searchParams = useSearchParams()
   const initLeadId   = searchParams.get('lead')
 
+  // Tab/search/group-by-company filter state lives in EngagementNavProvider now — Sidebar.tsx
+  // renders the actual controls (EngagementFolderNav) since it swapped in as this route's
+  // folder-nav; this page just reads the current filter and pushes counts back up.
+  const { activeTab, search, groupByCompany, setCounts, setRefreshing: setNavRefreshing, setOnRefresh } = useEngagementNav()
+
   const [leads,           setLeads]           = useState<Lead[]>([])
   const [loading,         setLoading]         = useState(true)
-  const [refreshing,      setRefreshing]      = useState(false)
+  const [refreshing,      setRefreshingState] = useState(false)
   const [selectedId,      setSelectedId]      = useState<string | null>(null)
-  const [search,          setSearch]          = useState('')
-  const [groupByCompany,  setGroupByCompany]  = useState(false)
   const [threadMap,       setThreadMap]       = useState<Record<string, ThreadState>>({})
   const [mobilePanelView, setMobilePanelView] = useState<'list' | 'thread'>('list')
-  const [activeTab,       setActiveTab]       = useState<EngagementTab>('all')
   const [newCompose,      setNewCompose]      = useState<NewEmailDraft | null>(null)
+
+  const setRefreshing = useCallback((v: boolean) => { setRefreshingState(v); setNavRefreshing(v) }, [setNavRefreshing])
 
   // A Nexus step targeting a recipient with no thread hands over a new-email
   // draft here (compose-only) — open the composer so it lands in Engagement.
@@ -103,6 +115,12 @@ function EngagementPageInner() {
 
   const prospectsCount = useMemo(() => leads.filter(isProspect).length, [leads]) // eslint-disable-line react-hooks/exhaustive-deps
   const clientsCount   = useMemo(() => leads.filter(isClient).length,   [leads]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Push the all/prospects/clients counts up to Sidebar's EngagementFolderNav — `drafts` is
+  // merged in separately by ConversationList (which owns loading the drafts list).
+  useEffect(() => {
+    setCounts(c => ({ ...c, all: leads.length, prospects: prospectsCount, clients: clientsCount }))
+  }, [leads.length, prospectsCount, clientsCount, setCounts])
 
   // Sorted + filtered list
   const visible = useMemo(() => {
@@ -290,69 +308,83 @@ function EngagementPageInner() {
   // Update ref on every render so the interval always sees fresh selectedId + leads
   refreshSelectedThreadRef.current = refreshSelectedThread
 
+  // Show spinner immediately, wait for Gmail sync to finish, THEN reload so newly ingested
+  // emails are already in Supabase when the list re-reads. Also registered into
+  // EngagementNavProvider so the Refresh button in Sidebar's folder-nav can trigger it.
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true)
+    fetch('/api/email/ingest-trigger', { method: 'POST' })
+      .catch(() => {})
+      .finally(() => { load(); refreshSelectedThreadRef.current() })
+  }, [load, setRefreshing])
+  useEffect(() => { setOnRefresh(() => handleRefresh) }, [handleRefresh, setOnRefresh])
+
   const selectedLead   = leads.find(l => l.id === selectedId) ?? null
   const selectedThread = selectedId ? threadMap[selectedId] : undefined
+  const isDesktop = !useNarrowViewport()
+  const { defaultLayout, onLayoutChanged } = useDefaultLayout({ id: 'ea-split', panelIds: ['ea-list', 'ea-workspace'] })
+
+  const listContent = (
+    <ConversationList
+      leads={leads}
+      visible={visible}
+      threadMap={threadMap}
+      selectedId={selectedId}
+      activeTab={activeTab}
+      search={search}
+      groupByCompany={groupByCompany}
+      loading={loading}
+      refreshing={refreshing}
+      onSelect={id => { setSelectedId(id); setMobilePanelView('thread') }}
+      onOpenDraft={draft => setNewCompose(draft)}
+      onRefresh={handleRefresh}
+    />
+  )
+  const workspaceContent = selectedLead ? (
+    <ThreadView
+      lead={selectedLead}
+      threadState={selectedThread ?? { loading: true, thread: null, messages: [], error: null }}
+      onStatus={handleStatus}
+      onTransfer={handleTransfer}
+      onDelete={handleDelete}
+      onThreadRefresh={refreshSelectedThread}
+      onBack={() => setMobilePanelView('list')}
+    />
+  ) : (
+    <EaWorkspaceEmptyState
+      title="Select a conversation"
+      body={
+        loading
+          ? 'Loading…'
+          : leads.length === 0
+            ? 'No engaged leads yet. Change a lead status to Contacted or above.'
+            : 'Choose from the list on the left.'
+      }
+    />
+  )
 
   return (
     <EngagementShell>
-      <div className="flex flex-1 overflow-hidden">
-
-        {/* ── Left panel ── */}
-        <EaListPanel mobileHidden={mobilePanelView === 'thread'}>
-          <ConversationList
-            leads={leads}
-            visible={visible}
-            threadMap={threadMap}
-            selectedId={selectedId}
-            search={search}
-            activeTab={activeTab}
-            groupByCompany={groupByCompany}
-            loading={loading}
-            refreshing={refreshing}
-            prospectsCount={prospectsCount}
-            clientsCount={clientsCount}
-            onSelect={id => { setSelectedId(id); setMobilePanelView('thread') }}
-            onSearch={setSearch}
-            onTab={setActiveTab}
-            onGroupToggle={() => setGroupByCompany(v => !v)}
-            onOpenDraft={draft => setNewCompose(draft)}
-            onRefresh={() => {
-              // Show spinner immediately, wait for Gmail sync to finish, THEN reload so
-              // newly ingested emails are already in Supabase when the list re-reads.
-              setRefreshing(true)
-              fetch('/api/email/ingest-trigger', { method: 'POST' })
-                .catch(() => {})
-                .finally(() => { load(); refreshSelectedThread() })
-            }}
-          />
-        </EaListPanel>
-
-        {/* ── Thread workspace ── */}
-        <EaWorkspaceArea mobileHidden={mobilePanelView === 'list'}>
-          {selectedLead ? (
-            <ThreadView
-              lead={selectedLead}
-              threadState={selectedThread ?? { loading: true, thread: null, messages: [], error: null }}
-              onStatus={handleStatus}
-              onTransfer={handleTransfer}
-              onDelete={handleDelete}
-              onThreadRefresh={refreshSelectedThread}
-              onBack={() => setMobilePanelView('list')}
-            />
-          ) : (
-            <EaWorkspaceEmptyState
-              title="Select a conversation"
-              body={
-                loading
-                  ? 'Loading…'
-                  : leads.length === 0
-                    ? 'No engaged leads yet. Change a lead status to Contacted or above.'
-                    : 'Choose from the list on the left.'
-              }
-            />
-          )}
-        </EaWorkspaceArea>
-      </div>
+      {isDesktop ? (
+        <ResizablePanelGroup orientation="horizontal" defaultLayout={defaultLayout} onLayoutChanged={onLayoutChanged} className="flex-1 overflow-hidden">
+          <ResizablePanel id="ea-list" defaultSize="22%" minSize="16%" maxSize="40%" className="flex flex-col overflow-hidden bg-card">
+            {listContent}
+          </ResizablePanel>
+          <ResizableHandle />
+          <ResizablePanel id="ea-workspace" minSize="35%" className="flex min-w-0 overflow-hidden">
+            {workspaceContent}
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      ) : (
+        <div className="flex flex-1 overflow-hidden">
+          <EaListPanel mobileHidden={mobilePanelView === 'thread'}>
+            {listContent}
+          </EaListPanel>
+          <EaWorkspaceArea mobileHidden={mobilePanelView === 'list'}>
+            {workspaceContent}
+          </EaWorkspaceArea>
+        </div>
+      )}
       {newCompose && (
         <NewEmailComposeModal
           initial={newCompose}

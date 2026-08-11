@@ -47,6 +47,7 @@
     "quill-table-better": "^1.2.3",
     "react": "^18",
     "react-dom": "^18",
+    "react-resizable-panels": "^4.12.2",
     "reactflow": "^11.11.4",
     "recharts": "^3.8.1",
     "tailwind-merge": "^3.6.0",

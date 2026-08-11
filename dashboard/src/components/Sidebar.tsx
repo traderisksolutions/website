@@ -11,24 +11,30 @@ import {
   LogOut, BookOpen, Cpu, FolderOpen, BookMarked, Radar, History,
   Telescope, Megaphone, Settings, FlaskConical,
   LayoutDashboard, TrendingUp, ScrollText, Network, HeartPulse, Car,
-  Receipt, CalendarDays, PanelLeftClose, PanelLeft,
+  Receipt, CalendarDays, PanelLeftClose, PanelLeft, ArrowLeft,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
+import { EngagementFolderNav } from '@/components/engagement/EngagementFolderNav'
+import { useNarrowViewport } from '@/hooks/useNarrowViewport'
 
 type InboundCounts = { totalNew: number }
 type StageCounts   = { engaged: number; qualified: number; proposal: number; converted: number }
 
 // Routes with their own list+detail sub-navigation (a conversation/record list next to a
 // detail view). Entering one of these auto-collapses the primary rail to icons-only so the
-// list column gets the horizontal room it needs. Add more route prefixes here as other
-// sections grow a list+detail layout.
-const LIST_DETAIL_ROUTES = ['/engagement']
+// list column gets the horizontal room it needs. /engagement is handled separately (see
+// ENGAGEMENT_ROUTE below) — instead of collapsing, its rail content is swapped for
+// EngagementFolderNav, so this array is currently empty but kept as the extension point for a
+// future section that DOES want the plain auto-collapse behavior.
+const LIST_DETAIL_ROUTES: string[] = []
 
-// Below this viewport width the rail is icon-only regardless of route or pin state — there
-// just isn't room for a labeled rail + list + detail + context panel side by side.
-const NARROW_BREAKPOINT = 1280
+// On this route the rail stays expanded but its content swaps to EngagementFolderNav (a
+// filtered-view switcher for the conversation list) instead of the normal nav sections —
+// mirrors TFE's email view swapping its sidebar content, adapted to this app's actual nav
+// (which auto-collapses to icons elsewhere, unlike TFE's).
+const ENGAGEMENT_ROUTE = '/engagement'
 
 type SidebarMode = 'auto' | 'expanded' | 'collapsed'
 
@@ -78,21 +84,13 @@ export default function Sidebar() {
   // 'expanded'  — user pinned the labeled rail open, overriding auto-collapse everywhere.
   // 'collapsed' — user explicitly collapsed the rail, stays collapsed everywhere.
   const [mode,   setMode]   = useState<SidebarMode>('auto')
-  const [narrow, setNarrow] = useState(false)
+  const narrow = useNarrowViewport()
   const [hydrated, setHydrated] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem('sidebar-mode')
     if (stored === 'expanded' || stored === 'collapsed' || stored === 'auto') setMode(stored)
     setHydrated(true)
-  }, [])
-
-  useEffect(() => {
-    const mq = window.matchMedia(`(max-width: ${NARROW_BREAKPOINT - 1}px)`)
-    const update = () => setNarrow(mq.matches)
-    update()
-    mq.addEventListener('change', update)
-    return () => mq.removeEventListener('change', update)
   }, [])
 
   useEffect(() => {
@@ -110,6 +108,7 @@ export default function Sidebar() {
   }, [])
 
   const onListDetailRoute = isListDetailRoute(pathname)
+  const onEngagement = pathname === ENGAGEMENT_ROUTE || pathname.startsWith(ENGAGEMENT_ROUTE + '/')
   const collapsed = !hydrated
     ? onListDetailRoute
     : narrow
@@ -194,7 +193,15 @@ export default function Sidebar() {
 
         {/* ── Nav ── */}
         <nav className={cn('flex-1 overflow-y-auto overflow-x-hidden py-3 space-y-px', collapsed ? 'px-2 flex flex-col items-center' : 'px-2')}>
-
+          {onEngagement && !collapsed ? (
+            <>
+              <Link href="/" className="flex items-center gap-1.5 h-7 px-2.5 mb-2 rounded-md text-[11.5px] text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors no-underline">
+                <ArrowLeft size={12} strokeWidth={2} /> Dashboard
+              </Link>
+              <EngagementFolderNav />
+            </>
+          ) : (
+          <>
           {/* Top-level items */}
           <NavItem label="Home"     href="/"        icon={LayoutDashboard} isActive={pathname === '/'} collapsed={collapsed} />
           <NavItem label="Overview" href="/overview" icon={BookOpen}        isActive={active('/overview')} collapsed={collapsed} />
@@ -281,7 +288,8 @@ export default function Sidebar() {
           <NavItem label="Claims"   href="/claims"   icon={AlertCircle} isActive={active('/claims')}   disabled collapsed={collapsed} />
           <NavItem label="Team"     href="/team"     icon={UsersRound}  isActive={active('/team')} collapsed={collapsed} />
           <NavItem label="Settings" href="/settings" icon={Settings}    isActive={active('/settings')} collapsed={collapsed} />
-
+          </>
+          )}
         </nav>
 
         {/* ── Footer ── */}
