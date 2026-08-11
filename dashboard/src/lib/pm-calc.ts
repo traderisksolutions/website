@@ -7,21 +7,18 @@
  * and assembles the same InsurerResult shape the rest of the app (export/reply/recommend/
  * comparison UI) already consumes.
  */
-import type { RateTable, Coverage } from '@/lib/pm-rates'
-import { bandContains, coverageCodes } from '@/lib/pm-rates'
+import type { RateTable } from '@/lib/pm-rates'
+import { bandContains, coverageCodes, coverageFor } from '@/lib/pm-rates'
 import { buildMembers, toInsurerResult } from '@/lib/pm-quote'
-import type { CensusMember, Selection, InsurerResult, RunMember, EngineMember, QuoteAudit } from '@/lib/pm-quote'
+import type { CensusMember, Selection, CategoryOverrides, InsurerResult, RunMember, EngineMember, QuoteAudit } from '@/lib/pm-quote'
+import type { RuleStep } from '@/lib/pm-rules-extract'
+import { runComputationRules } from '@/lib/pm-compute-rules'
+
+export { coverageFor } from '@/lib/pm-rates'
 
 export type CalcGlobals = { effective_date?: string | null; quote_basis?: 'new_business' | 'renewal' }
 
 const round2 = (v: number) => Math.round(v * 100) / 100
-
-const canonMember = (s?: string | null): 'EE' | 'DEP' | null => {
-  const t = (s ?? '').toLowerCase()
-  if (t.startsWith('emp')) return 'EE'
-  if (t.startsWith('dep') || t.startsWith('spou') || t.startsWith('chil')) return 'DEP'
-  return null
-}
 
 /** Standard "age today" calc (Age Last Birthday) as of a given date. */
 function ageLastBirthday(dob: Date, asOf: Date): number {
@@ -40,16 +37,6 @@ export function ageForBasis(member: Pick<EngineMember, 'date_of_birth' | 'age'>,
     }
   }
   return member.age ?? null
-}
-
-/** Pick the Coverage entry (member-type variant) applicable to this life, for a given code.
- *  Insurers that price Employee/Dependant differently split one code into two Coverage entries
- *  (see pm-rates.ts); an unscoped entry (no member_type) applies to everyone. */
-export function coverageFor(rt: RateTable, code: string, category: string | undefined): Coverage | undefined {
-  const variants = rt.coverages.filter(c => c.code === code)
-  if (variants.length <= 1) return variants[0]
-  const wanted = canonMember(category)
-  return variants.find(c => canonMember(c.member_type) === wanted) ?? variants.find(c => !c.member_type) ?? variants[0]
 }
 
 function loadingPctFor(rt: RateTable, headcount: number): number {
@@ -77,25 +64,35 @@ function priceLine(rt: RateTable, code: string, m: EngineMember, age: number | n
   return gst?.inclusive && gst.rate > 0 ? round2(v / (1 + gst.rate)) : round2(v)
 }
 
-/** Compute one insurer's InsurerResult for a census — the sole source of every quoted number. */
+/** Compute one insurer's InsurerResult for a census — the sole source of every quoted number.
+ *  `computationRules`, when given a non-empty approved rule set (pm_computation_rules.rules — see
+ *  pm-rules-extract.ts/pm-compute-rules.ts), REPLACES the flat age-band lookup + external loading/
+ *  GST below with the calculator's own translated calculation logic; every calculator without one
+ *  (still the common case — most are genuinely just a flat rate grid) runs exactly as before. */
 export function computeInsurerQuote(
   calculator_id: string, insurer_name: string, effective_date: string | null,
   rt: RateTable, census: CensusMember[], selection: Selection, globals: CalcGlobals,
+  categoryOverrides?: CategoryOverrides, computationRules?: RuleStep[],
 ): InsurerResult {
   const codes = Array.from(new Set(rt.coverages.map(c => c.code)))
-  const members = buildMembers(census, selection, codes)
+  const members = buildMembers(census, selection, codes, categoryOverrides)
   const asOf = globals.effective_date ? new Date(globals.effective_date) : new Date()
   const basis = globals.quote_basis ?? 'new_business'
-  const loadingPct = loadingPctFor(rt, members.length)
+  const usingRules = !!computationRules?.length
+  const loadingPct = usingRules ? 0 : loadingPctFor(rt, members.length)
   const excludes = new Set(rt.rules.loading_excludes ?? [])
 
   const runMembers: RunMember[] = members.map((m, i) => {
     const age = ageForBasis(m, rt.age_basis, asOf)
-    const lines: Record<string, number | null> = {}
-    for (const code of codes) {
-      const base = priceLine(rt, code, m, age, basis)
-      if (base == null) continue
-      lines[code] = loadingPct && !excludes.has(code) ? round2(base * (1 + loadingPct / 100)) : base
+    let lines: Record<string, number | null> = {}
+    if (usingRules && age !== null) {
+      lines = runComputationRules(computationRules!, rt, { age, category: m.category, selection: m.coverage, headcount: members.length })
+    } else {
+      for (const code of codes) {
+        const base = priceLine(rt, code, m, age, basis)
+        if (base == null) continue
+        lines[code] = loadingPct && !excludes.has(code) ? round2(base * (1 + loadingPct / 100)) : base
+      }
     }
     const subtotal = round2(Object.values(lines).reduce<number>((s, v) => s + (v ?? 0), 0))
     return { row: i + 1, name: m.name, lines, subtotal }

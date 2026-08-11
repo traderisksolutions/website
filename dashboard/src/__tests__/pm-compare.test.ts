@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { alignTerms, differingRows } from '@/lib/pm-compare'
-import type { CompareInsurer } from '@/lib/pm-compare'
+import { alignTerms, differingRows, alignSelectedTerms, UNCONFIRMED_TAG } from '@/lib/pm-compare'
+import type { CompareInsurer, SelectedCompareInsurer } from '@/lib/pm-compare'
+import type { RateTable } from '@/lib/pm-rates'
 
 const A: CompareInsurer = {
   calculator_id: 'a', insurer_name: 'Raffles',
@@ -42,6 +43,36 @@ describe('alignTerms', () => {
     }
     const rows = alignTerms([multi])
     expect(rows[0].per_insurer.a).toBe('S$150k (Plan 1) / S$300k (Plan 2)')
+  })
+})
+
+describe('alignSelectedTerms — canonical_category matching', () => {
+  const rt: RateTable = {
+    age_basis: null,
+    coverages: [
+      { code: 'OPC', full_name: 'Group Outpatient Clinical (GP Outpatient)', canonical_category: 'Outpatient GP', plans: [{ code: 'Plan 1', label: 'Plan 1' }], age_bands: [], rates: [] },
+    ],
+    rules: {},
+  }
+  const insurers: SelectedCompareInsurer[] = [{
+    calculator_id: 'a', insurer_name: 'A', rate_table: rt,
+    terms: [
+      // category is worded nothing like full_name/code, so the old substring heuristic would miss it —
+      // canonical_category is the same bucket as the coverage, so it should still resolve cleanly.
+      { plan_code: 'Plan 1', category: 'Primary Care Visits', canonical_category: 'Outpatient GP', label: 'Consultation cap', value: '$500', source: 'pdf' },
+    ],
+  }]
+
+  it('resolves the plan-tier match via canonical_category even when category text does not overlap the coverage label', () => {
+    const rows = alignSelectedTerms(insurers, { a: { OPC: { plan: 'Plan 1' } } })
+    const row = rows.find(r => r.label === 'Consultation cap')!
+    expect(row.per_insurer.a).toBe('$500 (Plan 1)')  // resolved cleanly, not tagged unconfirmed
+    expect(row.per_insurer.a).not.toContain(UNCONFIRMED_TAG)
+  })
+
+  it('drops the term when the selected plan does not match', () => {
+    const rows = alignSelectedTerms(insurers, { a: { OPC: { plan: 'Plan 2' } } })
+    expect(rows.find(r => r.label === 'Consultation cap')).toBeUndefined()
   })
 })
 

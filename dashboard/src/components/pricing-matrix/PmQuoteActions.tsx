@@ -2,22 +2,27 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Download, Sparkles, Loader2, Trophy, ThumbsUp, ThumbsDown, Reply, FileText, ListChecks } from 'lucide-react'
+import { Download, Sparkles, Loader2, Reply, FileText, ListChecks, RefreshCw } from 'lucide-react'
 import { ThreadSelectorModal } from '@/components/pricing-matrix/ThreadSelectorModal'
 import type { QuoteResult } from '@/lib/pm-quote'
-import type { Recommendation } from '@/lib/pm-recommend'
+import type { Recommendation, LegacyRecommendation } from '@/lib/pm-recommend'
 
 async function safeJson<T>(r: Response): Promise<T & { error?: string }> {
   try { return await r.json() } catch { return { error: `HTTP ${r.status}` } as T & { error?: string } }
 }
 
+/** Old quotes stored the pre-redesign shape (single winner + per-insurer pros/cons) — detect it by
+ *  the absence of `narrative` rather than crashing on missing fields, and offer a one-click
+ *  regenerate (cheap, on-demand, no backfill migration needed for the jsonb column). */
+const isLegacy = (r: Recommendation | LegacyRecommendation): r is LegacyRecommendation => !('narrative' in r)
+
 export function PmQuoteActions({ quoteId, results, initialRecommendation, initialPriorities }: {
   quoteId: string; results: QuoteResult
-  initialRecommendation?: Recommendation | null; initialPriorities?: string | null
+  initialRecommendation?: Recommendation | LegacyRecommendation | null; initialPriorities?: string | null
 }) {
   const router = useRouter()
   const [priorities, setPriorities] = useState(initialPriorities ?? '')
-  const [rec, setRec] = useState<Recommendation | null>(initialRecommendation ?? null)
+  const [rec, setRec] = useState<Recommendation | LegacyRecommendation | null>(initialRecommendation ?? null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showThreadPick, setShowThreadPick] = useState(false)
@@ -92,24 +97,34 @@ export function PmQuoteActions({ quoteId, results, initialRecommendation, initia
 
         {error && <p className="text-[12px] text-rose-600">{error}</p>}
 
-        {rec && (
+        {rec && isLegacy(rec) && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 flex items-center justify-between gap-3">
+            <p className="text-[12px] text-amber-800">This quote has an older-style recommendation (a single pick with pros/cons). Recompute it for the current side-by-side comparison format.</p>
+            <button onClick={getRec} disabled={busy} className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 shrink-0">
+              {busy ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Recompute
+            </button>
+          </div>
+        )}
+
+        {rec && !isLegacy(rec) && (
           <div className="flex flex-col gap-3 mt-1">
-            <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2.5">
-              <div className="flex items-center gap-2 text-[13px] font-semibold text-emerald-800"><Trophy size={15} /> {rec.recommendation}</div>
-              {rec.headline && <p className="text-[12.5px] text-emerald-900/80 mt-0.5">{rec.headline}</p>}
-              {rec.rationale && <p className="text-[12px] text-foreground/70 mt-1.5">{rec.rationale}</p>}
+            <div className="rounded-lg bg-primary/5 border border-primary/20 px-3 py-2.5">
+              <div className="flex items-center gap-2 text-[13px] font-semibold text-foreground"><Sparkles size={14} className="text-primary" /> {rec.headline}</div>
+              <div className="flex flex-col gap-2 mt-2">
+                {rec.narrative.split(/\n\n+/).map((para, i) => <p key={i} className="text-[12.5px] text-foreground/80 leading-relaxed">{para}</p>)}
+              </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-              {rec.per_insurer?.map(p => (
-                <div key={p.insurer} className={`border rounded-lg p-2.5 ${p.insurer === rec.recommendation ? 'border-emerald-300 bg-emerald-50/40' : 'border-border'}`}>
-                  <p className="text-[12.5px] font-semibold">{p.insurer}</p>
-                  {p.best_for && <p className="text-[11px] text-muted-foreground/70 mb-1.5">Best for: {p.best_for}</p>}
-                  {p.pros?.length > 0 && <ul className="flex flex-col gap-0.5 mb-1.5">{p.pros.map((x, i) => <li key={i} className="text-[11px] text-emerald-800/90 flex items-start gap-1"><ThumbsUp size={11} className="mt-0.5 flex-shrink-0" />{x}</li>)}</ul>}
-                  {p.cons?.length > 0 && <ul className="flex flex-col gap-0.5">{p.cons.map((x, i) => <li key={i} className="text-[11px] text-rose-700/80 flex items-start gap-1"><ThumbsDown size={11} className="mt-0.5 flex-shrink-0" />{x}</li>)}</ul>}
-                </div>
-              ))}
-            </div>
-            <p className="text-[10.5px] text-muted-foreground/40">Premium figures come from each insurer&rsquo;s own calculator; the recommendation is Opus&rsquo;s qualitative read.</p>
+            {rec.highlights?.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {rec.highlights.map(h => (
+                  <div key={h.insurer} className="flex items-center gap-1.5 border border-border rounded-lg px-2.5 py-1.5">
+                    <span className="text-[12px] font-semibold">{h.insurer}</span>
+                    <span className="text-[11px] text-muted-foreground/70">— {h.note}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="text-[10.5px] text-muted-foreground/40">Premium figures come from each insurer&rsquo;s own calculator; the comparison narrative is Opus&rsquo;s qualitative read.</p>
           </div>
         )}
       </section>

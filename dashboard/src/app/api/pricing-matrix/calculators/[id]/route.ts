@@ -25,18 +25,20 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params
   try {
     if (!await requireUser()) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-    const [calcRes, rtRes, btRes, issuesRes] = await Promise.all([
+    const [calcRes, rtRes, btRes, issuesRes, rulesRes] = await Promise.all([
       fetch(`${SB_URL}/rest/v1/pm_calculators?id=eq.${id}&limit=1`, { headers: sbH(), cache: 'no-store' }),
       fetch(`${SB_URL}/rest/v1/pm_rate_tables?calculator_id=eq.${id}&limit=1`, { headers: sbH(), cache: 'no-store' }),
       fetch(`${SB_URL}/rest/v1/pm_benefit_terms?calculator_id=eq.${id}&limit=1`, { headers: sbH(), cache: 'no-store' }),
       fetch(`${SB_URL}/rest/v1/pm_reconciliation_issues?calculator_id=eq.${id}&order=created_at.asc`, { headers: sbH(), cache: 'no-store' }),
+      fetch(`${SB_URL}/rest/v1/pm_computation_rules?calculator_id=eq.${id}&limit=1`, { headers: sbH(), cache: 'no-store' }),
     ])
     const row = calcRes.ok ? (await calcRes.json())[0] : null
     if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     const rate_table = rtRes.ok ? (await rtRes.json())[0] ?? null : null
     const benefit_terms = btRes.ok ? (await btRes.json())[0] ?? null : null
     const issues = issuesRes.ok ? await issuesRes.json() : []
-    return NextResponse.json({ ...row, rate_table, benefit_terms, issues })
+    const computation_rules = rulesRes.ok ? (await rulesRes.json())[0] ?? null : null
+    return NextResponse.json({ ...row, rate_table, benefit_terms, issues, computation_rules })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
@@ -82,6 +84,23 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       writes.push(fetch(`${SB_URL}/rest/v1/pm_benefit_terms?on_conflict=calculator_id`, {
         method: 'POST', headers: sbH('return=minimal,resolution=merge-duplicates'),
         body: JSON.stringify({ calculator_id: id, terms: bt.terms, accuracy: bt.accuracy }),
+      }))
+    }
+    // Computation rules have their OWN approval lifecycle (independent from the calculator's
+    // rate-table status). Editing the content after it was already approved must knock the
+    // status back to 'in_review' (an approved-but-silently-edited rule set would otherwise keep
+    // being trusted at quote time with no re-review) — but editing while still draft/in_review
+    // just stays as-is, so `status` is only set here when it needs to actively change.
+    if (b.computation_rules && typeof b.computation_rules === 'object') {
+      const cr = b.computation_rules as Record<string, unknown>
+      const curCrRes = await fetch(`${SB_URL}/rest/v1/pm_computation_rules?calculator_id=eq.${id}&select=status&limit=1`, { headers: sbH(), cache: 'no-store' })
+      const curCr = curCrRes.ok ? (await curCrRes.json())[0] : null
+      writes.push(fetch(`${SB_URL}/rest/v1/pm_computation_rules?on_conflict=calculator_id`, {
+        method: 'POST', headers: sbH('return=minimal,resolution=merge-duplicates'),
+        body: JSON.stringify({
+          calculator_id: id, source: cr.source, rules: cr.rules, variables: cr.variables ?? {}, accuracy: cr.accuracy,
+          ...(curCr?.status === 'approved' ? { status: 'in_review' } : {}),
+        }),
       }))
     }
     if (writes.length === 0) return NextResponse.json({ error: 'nothing to update' }, { status: 400 })

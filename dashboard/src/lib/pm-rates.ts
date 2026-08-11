@@ -22,6 +22,14 @@ export type Coverage = {
   rates: RateRow[]
   derivation?: string
   notes?: string
+  /** Taxonomy classification (pm_taxonomy_categories, see pm-taxonomy.ts) used to align this
+   *  coverage with the equivalent benefit at other insurers even when their own code/full_name
+   *  wording differs — see alignLines in pm-quote.ts. Never used as an identifier; code/full_name
+   *  remain that. `canonical_category_id` is the exact-match join key once resolved; the plain-text
+   *  `canonical_category` name stays for display and as the fuzzy-match fallback for older data
+   *  extracted before taxonomy resolution existed. */
+  canonical_category?: string
+  canonical_category_id?: string
 }
 
 export type LoadingBand = { min: number; max: number | null; loading_pct: number }
@@ -54,6 +62,11 @@ export type RateTable = {
   coverages: Coverage[]
   rules: Rules
   accuracy?: Accuracy
+  /** Provenance of these numbers, now that the brochure PDF is the primary numeric source for most
+   *  insurers rather than the xlsx: 'pdf' (workbook has no real rate table of its own), 'xlsx' (only
+   *  a workbook was provided, or it's the richer source), 'hybrid' (both have their own populated
+   *  numbers, cross-checked). Nullable — extractions predating this distinction leave it unset. */
+  source?: 'pdf' | 'xlsx' | 'hybrid'
 }
 
 /** One row in pm_reconciliation_issues — a single Opus-vs-Gemini disagreement (rule or benefit
@@ -86,11 +99,12 @@ export const EMPTY_RATE_TABLE: Omit<RateTable, 'calculator_id'> = {
 }
 
 /** Distinct coverage codes, one entry per code even when member-type variants share it — for
- *  building plan-selection UI / the quote wizard. */
-export function coverageCodes(rt: RateTable | null | undefined): { code: string; label: string }[] {
-  const seen = new Map<string, string>()
-  for (const c of rt?.coverages ?? []) if (!seen.has(c.code)) seen.set(c.code, c.full_name || c.code)
-  return Array.from(seen, ([code, label]) => ({ code, label }))
+ *  building plan-selection UI / the quote wizard. Carries canonical_category through so alignLines
+ *  (pm-quote.ts) can group equivalent benefits across insurers regardless of wording differences. */
+export function coverageCodes(rt: RateTable | null | undefined): { code: string; label: string; canonical_category?: string }[] {
+  const seen = new Map<string, { label: string; canonical_category?: string }>()
+  for (const c of rt?.coverages ?? []) if (!seen.has(c.code)) seen.set(c.code, { label: c.full_name || c.code, canonical_category: c.canonical_category })
+  return Array.from(seen, ([code, v]) => ({ code, label: v.label, canonical_category: v.canonical_category }))
 }
 
 /** Plan codes/labels offered under a coverage code (union across its member-type variants). */
@@ -115,6 +129,25 @@ export function parseBand(band: string): { min: number; max: number | null } {
 export function bandContains(band: string, age: number): boolean {
   const { min, max } = parseBand(band)
   return age >= min && (max === null || age <= max)
+}
+
+const canonMember = (s?: string | null): 'EE' | 'DEP' | null => {
+  const t = (s ?? '').toLowerCase()
+  if (t.startsWith('emp')) return 'EE'
+  if (t.startsWith('dep') || t.startsWith('spou') || t.startsWith('chil')) return 'DEP'
+  return null
+}
+
+/** Pick the Coverage entry (member-type variant) applicable to this life, for a given code.
+ *  Insurers that price Employee/Dependant differently split one code into two Coverage entries;
+ *  an unscoped entry (no member_type) applies to everyone. Shared by pm-calc.ts's priceLine() and
+ *  pm-compute-rules.ts's age_band_lookup/flat_rate steps — lives here (not pm-calc.ts) so
+ *  pm-compute-rules.ts importing it doesn't create a pm-calc.ts <-> pm-compute-rules.ts cycle. */
+export function coverageFor(rt: RateTable, code: string, category: string | undefined): Coverage | undefined {
+  const variants = rt.coverages.filter(c => c.code === code)
+  if (variants.length <= 1) return variants[0]
+  const wanted = canonMember(category)
+  return variants.find(c => canonMember(c.member_type) === wanted) ?? variants.find(c => !c.member_type) ?? variants[0]
 }
 
 /** Human-readable reasons a rate table isn't ready to approve — empty when it is. Used both to

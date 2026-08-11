@@ -11,7 +11,7 @@ import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
 import { SB_URL, sbH }               from '@/lib/pm-storage'
 import { computeQuoteResultForCalculators } from '@/lib/pm-quote-server'
-import type { CensusMember, Selection } from '@/lib/pm-quote'
+import type { CensusMember, Selection, CategoryOverrides } from '@/lib/pm-quote'
 
 export const maxDuration = 60
 
@@ -38,20 +38,22 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
     const b = await req.json() as {
-      company_name?: string; effective_date?: string
+      company_name?: string; company_id?: string | null; effective_date?: string
       census?: CensusMember[]; calculator_ids?: string[]; selections?: Record<string, Selection>
+      category_overrides?: Record<string, CategoryOverrides>
     }
     const census = (b.census ?? []).filter(m => (m.name ?? '').trim() || m.date_of_birth || m.age != null)
     const ids = b.calculator_ids ?? []
     if (census.length === 0) return NextResponse.json({ error: 'census is empty' }, { status: 400 })
     if (ids.length === 0) return NextResponse.json({ error: 'select at least one insurer' }, { status: 400 })
 
-    const results = await computeQuoteResultForCalculators(ids, census, b.selections ?? {}, { effective_date: b.effective_date || null })
+    const results = await computeQuoteResultForCalculators(ids, census, b.selections ?? {}, { effective_date: b.effective_date || null }, b.category_overrides ?? {})
 
     // Persist.
     const row = {
-      company_name: b.company_name || null, effective_date: b.effective_date || null,
-      census, calculator_ids: ids, selections: b.selections ?? {}, results, member_count: census.length, created_by: user.id,
+      company_name: b.company_name || null, company_id: b.company_id || null, effective_date: b.effective_date || null,
+      census, calculator_ids: ids, selections: b.selections ?? {}, category_overrides: b.category_overrides ?? {},
+      results, member_count: census.length, created_by: user.id,
     }
     const ins = await fetch(`${SB_URL}/rest/v1/pm_quotations`, { method: 'POST', headers: sbH('return=representation'), body: JSON.stringify(row) })
     const created = ins.ok ? (await ins.json())[0] : null

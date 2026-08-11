@@ -16,6 +16,8 @@ const EMBED_URL   = 'https://generativelanguage.googleapis.com/v1beta/models/gem
 
 import { logGeminiUsage } from '@/lib/gemini-usage'
 import { fetchAttachmentContext } from '@/lib/thread-attachment-context'
+import { createSupabaseDB, createGeminiComposer, EvalStore, ExampleStore, SkillSynthesizer, type EvalRecord, type SkillExample } from '@/lib/ai-learning-loop'
+import { EMAIL_TYPE_BASE_INSTRUCTIONS } from '@/lib/email-surface-instructions'
 
 function sbHeaders(prefer = 'return=minimal') {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -154,36 +156,26 @@ Reply with one word only.`
   }
 
   // 5. Few-shots + anti-patterns + lead profile + synthesised override — parallel
-  const [fewShotRows, apRows, leadRows, overrideRows] = await Promise.all([
-    fetch(
-      `${SB_URL}/rest/v1/prompt_examples?email_type=eq.${emailType}&order=score.desc,created_at.desc&limit=2&select=context_summary,ideal_reply`,
-      { headers: sbHeaders(), cache: 'no-store' }
-    ).then(r => r.ok ? r.json() : []).catch(() => []),
-    fetch(
-      `${SB_URL}/rest/v1/draft_evaluations?email_type=eq.${emailType}&score=lte.3&order=created_at.desc&limit=6&select=eval_json`,
-      { headers: sbHeaders(), cache: 'no-store' }
-    ).then(r => r.ok ? r.json() : []).catch(() => []),
+  const learningLoopDb = createSupabaseDB()
+  const [fewShots, learnings, leadRows, effectiveSkill] = await Promise.all([
+    new ExampleStore(learningLoopDb).topForSurface(emailType, 2).catch((): SkillExample[] => []),
+    new EvalStore(learningLoopDb).listLearnings(emailType, { maxScore: 3, limit: 6 }).catch((): EvalRecord[] => []),
     ctx?.outbound_lead_id
       ? fetch(
           `${SB_URL}/rest/v1/outbound_leads?id=eq.${ctx.outbound_lead_id}&select=title,headline,current_company,industry,employee_count&limit=1`,
           { headers: sbHeaders(), cache: 'no-store' }
         ).then(r => r.ok ? r.json() : []).catch(() => [])
       : Promise.resolve([]),
-    fetch(
-      `${SB_URL}/rest/v1/prompt_overrides?email_type=eq.${emailType}&order=synthesized_at.desc&limit=1&select=override_text`,
-      { headers: sbHeaders(), cache: 'no-store' }
-    ).then(r => r.ok ? r.json() : []).catch(() => []),
+    new SkillSynthesizer(learningLoopDb, createGeminiComposer(undefined), EMAIL_TYPE_BASE_INSTRUCTIONS)
+      .getEffective(emailType).catch(() => null),
   ])
 
   // Few-shot section
   let fewShotSection = ''
-  const fewShots = Array.isArray(fewShotRows)
-    ? (fewShotRows as { context_summary?: string; ideal_reply: string }[])
-    : []
   if (fewShots.length > 0) {
     fewShotSection = `\n━━ EXAMPLES OF EXCELLENT ${emailType} REPLIES — learn the pattern, match this quality ━━\n` +
       fewShots.map((ex, i) =>
-        `[Example ${i + 1}]${ex.context_summary ? `\nContext: ${ex.context_summary}` : ''}\nReply:\n${ex.ideal_reply.slice(0, 1200)}`
+        `[Example ${i + 1}]${ex.contextSummary ? `\nContext: ${ex.contextSummary}` : ''}\nReply:\n${ex.idealOutput.slice(0, 1200)}`
       ).join('\n\n') + '\n'
   }
 
@@ -208,9 +200,7 @@ Reply with one word only.`
   // 6. Type-specific instructions — use synthesised override if available (replaces hardcoded block entirely),
   //    otherwise use hardcoded baseline + inject raw learnings as anti-patterns.
   //    Override = clean, no accumulation. Baseline + raw = fallback until first synthesis run.
-  const synthesisedOverride = Array.isArray(overrideRows) && (overrideRows as { override_text?: string }[])[0]?.override_text
-    ? (overrideRows as { override_text: string }[])[0].override_text
-    : null
+  const synthesisedOverride = effectiveSkill?.instructionText?.trim() ? effectiveSkill.instructionText : null
 
   const chunkSources = Array.from(new Set(sources.map(s => s.file_name))).join(', ')
 
@@ -275,14 +265,14 @@ Retrieved knowledge: ${chunkSources} — reference if the conversation touches o
     }
 
     // Inject raw learnings as anti-patterns (only when no synthesised override exists)
-    const learnings = (Array.isArray(apRows) ? apRows as { eval_json: { key_learning?: string } | null }[] : [])
-      .map(r => r.eval_json?.key_learning)
-      .filter((l): l is string => typeof l === 'string' && l.length > 15)
+    const antiPatterns = learnings
+      .map(r => r.keyLearning)
+      .filter(l => l.length > 15)
       .filter((l, i, arr) => arr.indexOf(l) === i)
       .slice(0, 4)
-    if (learnings.length > 0) {
+    if (antiPatterns.length > 0) {
       antiPatternSection = `\n━━ AVOID THESE PATTERNS (learned from heavily-edited or rejected ${emailType} drafts — do NOT repeat these mistakes) ━━\n` +
-        learnings.map((l, i) => `${i + 1}. ${l}`).join('\n') + '\n'
+        antiPatterns.map((l, i) => `${i + 1}. ${l}`).join('\n') + '\n'
     }
   }
 

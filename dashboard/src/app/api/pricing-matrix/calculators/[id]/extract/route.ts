@@ -25,6 +25,9 @@ import { waitUntil }                 from '@vercel/functions'
 import { SB_URL, sbH, signRead }     from '@/lib/pm-storage'
 import { extractRateTable }          from '@/lib/pm-rates-extract'
 import { extractBenefitTerms }       from '@/lib/pm-benefits-extract'
+import { extractComputationRules }   from '@/lib/pm-rules-extract'
+import { activeCategoryPromptList, resolveExtractedCategories } from '@/lib/pm-taxonomy'
+import type { ExtractedItem }        from '@/lib/pm-taxonomy'
 
 export const maxDuration = 300
 
@@ -58,11 +61,12 @@ async function fetchBase64(path: string): Promise<string> {
   return Buffer.from(await res.arrayBuffer()).toString('base64')
 }
 
-async function runPipeline(id: string, calc: { xlsx_path: string | null; brochure_path: string | null }, origin: string) {
+async function runPipeline(id: string, calc: { xlsx_path: string | null; brochure_path: string | null; insurer_id: string | null }, origin: string) {
   const t0 = Date.now()
   try {
     const progress = async (label: string, step: number, total: number): Promise<void> => { await patch(id, { map_progress: { label, step, total, at: new Date().toISOString() } }) }
     await progress('Reading the workbook', 1, 5)
+    const categoryPromptList = await activeCategoryPromptList()
 
     // Mechanical xlsx dump (Python, no AI) — best-effort, extraction still proceeds on the
     // brochure alone if this fails or there's no xlsx.
@@ -80,42 +84,81 @@ async function runPipeline(id: string, calc: { xlsx_path: string | null; brochur
     const brochureBase64 = calc.brochure_path ? await fetchBase64(calc.brochure_path).catch(() => undefined) : undefined
     if (calc.brochure_path && !brochureBase64) void logRun(id, { kind: 'dump', ok: false, error: 'could not fetch brochure PDF' })
 
-    // 1) Rate table (the number that actually prices a quote).
+    // 1) Rate table (the number that actually prices a quote). PDF is now the primary numeric
+    // source (see pm-rates-extract.ts) — the xlsx fills gaps or is flagged if it disagrees.
     await progress('Extracting rate tables', 2, 5)
     const rateT0 = Date.now()
-    const { table, accuracy, ruleConflicts, error: rateError } = await extractRateTable(dump, brochureBase64, progress)
+    const { table, accuracy, ruleConflicts, error: rateError } = await extractRateTable(dump, brochureBase64, categoryPromptList, progress)
     if (!table) {
       void logRun(id, { kind: 'rate_extract', ok: false, error: rateError, duration_ms: Date.now() - rateT0 })
       await fail(id, `Rate extraction failed: ${rateError ?? 'unknown error'}`)
       return
     }
+    // Resolve each coverage's AI-guessed canonical_category against the live taxonomy — exact
+    // matches get canonical_category_id directly; anything else is queued in pm_taxonomy_synonyms
+    // for a human (see the calculator review page's "New terminology" card / /pricing-matrix/taxonomy).
+    const covResolved = await resolveExtractedCategories(
+      table.coverages.map((c, i): ExtractedItem => ({ i, source: 'coverage', term: c.full_name || c.code, canonical_category: c.canonical_category })),
+      calc.insurer_id, id,
+    )
+    table.coverages = table.coverages.map((c, i) => covResolved.has(i) ? { ...c, canonical_category: covResolved.get(i)!.name, canonical_category_id: covResolved.get(i)!.id } : c)
+
     // Dollar-value rate conflicts are already auto-adjudicated by the Opus judge inside
     // extractRateTable; only the rule-level conflicts (age basis / GST / loading bands, which have
     // no automatic judge pass) need a human decision — persisted as pm_reconciliation_issues rows.
     await fetch(`${SB_URL}/rest/v1/pm_rate_tables?on_conflict=calculator_id`, {
       method: 'POST', headers: sbH('return=minimal,resolution=merge-duplicates'),
-      body: JSON.stringify({ calculator_id: id, age_basis: table.age_basis, coverages: table.coverages, rules: table.rules, accuracy }),
+      body: JSON.stringify({ calculator_id: id, age_basis: table.age_basis, coverages: table.coverages, rules: table.rules, source: table.source, accuracy }),
     })
     void writeIssues((ruleConflicts ?? []).map(rc => ({ calculator_id: id, kind: 'rule', field: rc.field, opus_value: rc.opus, gemini_value: rc.gemini })))
-    void logRun(id, { kind: 'rate_extract', model: 'claude-opus-4-8+gemini', ok: true, duration_ms: Date.now() - rateT0, output: { coverages: table.coverages.length, accuracy, rule_conflicts: ruleConflicts?.length ?? 0 } })
+    void logRun(id, { kind: 'rate_extract', model: 'claude-opus-4-8+gemini', ok: true, duration_ms: Date.now() - rateT0, output: { coverages: table.coverages.length, accuracy, rule_conflicts: ruleConflicts?.length ?? 0, source: table.source } })
 
     // 2) Coverage/benefit wordings (Level 2 comparison data) — best-effort, doesn't block approval
     // on its own but a calculator without any terms can't be usefully compared later.
     await progress('Extracting coverage terms', 4, 5)
     const benT0 = Date.now()
-    const { terms, conflicts: termConflicts, error: benError } = await extractBenefitTerms(dump, brochureBase64, progress)
+    const { terms, conflicts: termConflicts, error: benError } = await extractBenefitTerms(dump, brochureBase64, categoryPromptList, progress)
     if (terms) {
+      const termResolved = await resolveExtractedCategories(
+        terms.map((t, i): ExtractedItem => ({ i, source: 'benefit_term', term: t.label, canonical_category: t.canonical_category })),
+        calc.insurer_id, id,
+      )
+      const resolvedTerms = terms.map((t, i) => termResolved.has(i) ? { ...t, canonical_category: termResolved.get(i)!.name, canonical_category_id: termResolved.get(i)!.id } : t)
       await fetch(`${SB_URL}/rest/v1/pm_benefit_terms?on_conflict=calculator_id`, {
         method: 'POST', headers: sbH('return=minimal,resolution=merge-duplicates'),
-        body: JSON.stringify({ calculator_id: id, terms, accuracy: { total: terms.length, conflicts: termConflicts.length } }),
+        body: JSON.stringify({ calculator_id: id, terms: resolvedTerms, accuracy: { total: resolvedTerms.length, conflicts: termConflicts.length } }),
       })
       void writeIssues(termConflicts.map(tc => ({ calculator_id: id, kind: 'term', category: tc.category, label: tc.label, dedupe_key: tc.key, opus_value: tc.opus ?? null, gemini_value: tc.gemini ?? null, note: tc.note })))
-      void logRun(id, { kind: 'benefit_extract', model: 'claude-opus-4-8+gemini', ok: true, duration_ms: Date.now() - benT0, output: { terms: terms.length, conflicts: termConflicts.length } })
+      void logRun(id, { kind: 'benefit_extract', model: 'claude-opus-4-8+gemini', ok: true, duration_ms: Date.now() - benT0, output: { terms: resolvedTerms.length, conflicts: termConflicts.length } })
     } else {
       void logRun(id, { kind: 'benefit_extract', ok: false, error: benError, duration_ms: Date.now() - benT0 })
     }
 
-    await progress('Done', 5, 5)
+    // 3) Calculation logic (loadings/tier-selection/GST as the workbook's own formulas, not just a
+    // flat lookup) — best-effort and non-blocking: a calculator with no translatable logic (the
+    // common case, a plain rate grid) simply gets no pm_computation_rules row, and pm-calc.ts's
+    // flat age-band lookup keeps pricing it exactly as before. Independent approval gate (§ decision).
+    await progress('Reading calculation logic', 5, 5)
+    const rulesT0 = Date.now()
+    try {
+      const { rules, source: excelShape, structurallyDisputed, error: rulesError } = await extractComputationRules(dump, brochureBase64)
+      if (rules?.length) {
+        await fetch(`${SB_URL}/rest/v1/pm_computation_rules?on_conflict=calculator_id`, {
+          method: 'POST', headers: sbH('return=minimal,resolution=merge-duplicates'),
+          body: JSON.stringify({ calculator_id: id, source: excelShape, rules, status: 'draft' }),
+        })
+        if (structurallyDisputed) {
+          void writeIssues([{ calculator_id: id, kind: 'computation_rule', note: 'Opus and Gemini produced different calculation-logic structures — review both readings before approving.' }])
+        }
+        void logRun(id, { kind: 'rules_extract', model: 'claude-opus-4-8+gemini', ok: true, duration_ms: Date.now() - rulesT0, output: { steps: rules.length, source: excelShape, disputed: structurallyDisputed } })
+      } else {
+        void logRun(id, { kind: 'rules_extract', ok: false, error: rulesError, duration_ms: Date.now() - rulesT0 })
+      }
+    } catch (e) {
+      // Never fails the whole extraction — computation rules are a bonus on top of the rate table.
+      void logRun(id, { kind: 'rules_extract', ok: false, error: String(e), duration_ms: Date.now() - rulesT0 })
+    }
+
     await patch(id, { status: 'in_review' })
     void logActivity({ action: 'pm.calculator_extracted', resource_type: 'pm_calculator', resource_id: id, new_value: { coverages: table.coverages.length, terms: terms?.length ?? 0 } })
   } catch (e) {
@@ -128,7 +171,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     if (!await requireUser()) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
-    const calc = await fetch(`${SB_URL}/rest/v1/pm_calculators?id=eq.${id}&select=xlsx_path,brochure_path,insurer_name&limit=1`, { headers: sbH(), cache: 'no-store' })
+    const calc = await fetch(`${SB_URL}/rest/v1/pm_calculators?id=eq.${id}&select=xlsx_path,brochure_path,insurer_name,insurer_id&limit=1`, { headers: sbH(), cache: 'no-store' })
       .then(r => (r.ok ? r.json() : [])).then(rows => rows[0] ?? null)
     if (!calc) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     if (!calc.xlsx_path && !calc.brochure_path) return NextResponse.json({ error: 'Calculator has no uploaded xlsx or brochure' }, { status: 400 })

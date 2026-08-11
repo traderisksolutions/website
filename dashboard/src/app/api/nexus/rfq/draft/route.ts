@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logGeminiUsage }            from '@/lib/gemini-usage'
 import { productLineLabel }          from '@/lib/product-lines'
+import { createSupabaseDB, createGeminiComposer, SkillSynthesizer } from '@/lib/ai-learning-loop'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
@@ -94,8 +95,8 @@ Placeholder map: {insured}=client name, {product_line}=line of insurance, {insur
     // past RFQ drafts (Settings → Evals feed prompt_overrides for RFQ_INSURER).
     let overrideBlock = ''
     try {
-      const oRes = await fetch(`${SB_URL}/rest/v1/prompt_overrides?email_type=eq.RFQ_INSURER&order=synthesized_at.desc&limit=1&select=override_text`, { headers: sbH(), cache: 'no-store' })
-      const oTxt = oRes.ok ? (await oRes.json())[0]?.override_text : null
+      const synth = new SkillSynthesizer(createSupabaseDB(), createGeminiComposer(undefined))
+      const oTxt = (await synth.getEffective('RFQ_INSURER'))?.instructionText
       if (oTxt) overrideBlock = `\nLEARNED IMPROVEMENTS (from how our brokers edited past RFQ drafts — apply these):\n${oTxt}\n`
     } catch { /* optional */ }
 

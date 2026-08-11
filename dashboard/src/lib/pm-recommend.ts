@@ -1,10 +1,13 @@
 /**
- * Pricing Matrix — Phase 3: context-aware recommendation.
+ * Pricing Matrix — comparison narrative.
  *
  * Opus compares the insurers on PRICE (fixed — from their own calculators, never changed) AND on
  * what each plan selection implies (hospital type, bed, plan tier, co-insurance), weighted by the
- * client's stated priorities (e.g. "private hospital access"). It recommends the best-value insurer
- * for THIS client and gives per-insurer pros/cons. Numbers are quoted verbatim, never invented.
+ * client's stated priorities (e.g. "private hospital access"). Deliberately NOT a single-winner
+ * pick with per-insurer pros/cons lists — this is what differentiates the tool from a bare price
+ * table: one continuous narrative that compares all N insurers together (3-5 typical), the way a
+ * broker would actually talk a client through the options, with short standout tags per insurer
+ * for the at-a-glance view. Numbers are quoted verbatim, never invented.
  */
 import { logAiUsage } from '@/lib/gemini-usage'
 import type { QuoteResult, Selection } from '@/lib/pm-quote'
@@ -13,7 +16,20 @@ const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
 const OPUS = 'claude-opus-4-8'
 
 export type Recommendation = {
-  recommendation: string           // insurer name
+  headline: string
+  /** One continuous multi-paragraph comparison of every priced insurer together — no declared
+   *  winner, no per-insurer pros/cons split. Line breaks (\n\n) separate paragraphs. */
+  narrative: string
+  /** Short "stands out for X" tags, one per priced insurer, for a scannable summary above the
+   *  narrative — not a verdict, just what's distinctive about each option. */
+  highlights: { insurer: string; note: string }[]
+}
+
+/** Legacy shape (recommendation/rationale/per_insurer), stored before this narrative redesign —
+ *  kept only so old quotes can be detected and offered a one-click "Recompute" instead of crashing
+ *  the page. Never written going forward. */
+export type LegacyRecommendation = {
+  recommendation: string
   headline: string
   rationale: string
   per_insurer: { insurer: string; best_for?: string; pros: string[]; cons: string[] }[]
@@ -31,22 +47,30 @@ function summarise(results: QuoteResult, selections: Record<string, Selection>) 
   }))
 }
 
-const SYSTEM = `You are a Singapore group-employee-benefits broker advising a client on which insurer
-to choose. You are given a price comparison produced by each insurer's OWN calculator — the premium
-numbers are final and correct; quote them verbatim and NEVER change or invent a number.
+const SYSTEM = `You are a Singapore group-employee-benefits broker walking a client through a price
+comparison produced by each insurer's OWN calculator — the premium numbers are final and correct;
+quote them verbatim and NEVER change or invent a number.
 
 Compare the insurers on BOTH total price AND what each plan selection implies about coverage
 (hospital type: private vs government; ward/bed type; plan tier / annual limit; co-insurance;
-panel vs non-panel). Weight your recommendation by the client's stated priorities — if they care
-about private-hospital access, favour the option giving the best value for THAT, not just the
-cheapest headline. If no priorities are given, optimise for overall value (cover per dollar).
+panel vs non-panel). Weight the comparison by the client's stated priorities — if they care about
+private-hospital access, spend more of the narrative on how the options differ on THAT, not just
+the cheapest headline. If no priorities are given, compare on overall value (cover per dollar).
+
+DO NOT declare a single winner or split insurers into a rigid pros/cons list — write ONE continuous
+narrative that discusses all the priced insurers together, the way a broker would actually talk a
+client through the options out loud: where they cluster on price, which trade real coverage for a
+lower premium, which is worth the extra spend and for what reason, any material gap in what's
+covered. It is fine to end with a clear steer if the data genuinely points that way (e.g. "X and Y
+are close on price, but Y's private-hospital access make it worth the difference if that matters to
+you") — the constraint is the FORMAT (prose, not a picked-winner verdict + pro/con bullets per
+insurer), not that you must stay neutral when the numbers and priorities clearly favour one option.
 
 Return ONLY this JSON (no prose, no markdown fence):
 {
-  "recommendation": "<the insurer you recommend, exact name from the data>",
-  "headline": "<one-sentence bottom line>",
-  "rationale": "<2-4 sentences: why this insurer for THIS client; reference the priorities and the actual premium figures>",
-  "per_insurer": [ { "insurer": "<name>", "best_for": "<who/what it suits>", "pros": ["…"], "cons": ["…"] } ]
+  "headline": "<one sentence framing what this comparison is about, e.g. 'All three options land within $2,400 of each other, but differ sharply on hospital access.'>",
+  "narrative": "<2-5 paragraphs (separate with \\n\\n), comparing every priced insurer together as described above — reference the actual premium figures and the client's stated priorities>",
+  "highlights": [ { "insurer": "<name>", "note": "<one short phrase — what stands out about this option, not a verdict, e.g. 'lowest total premium' or 'only one with panel-free specialist access'>" } ]
 }`
 
 function extractJson(text: string): Recommendation | null {

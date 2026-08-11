@@ -15,23 +15,33 @@ import type { Coverage, Rules, Accuracy, RateTable } from '@/lib/pm-rates'
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
 const OPUS = 'claude-opus-4-8'
 
-export type ExtractedRateTable = { age_basis: RateTable['age_basis']; coverages: Coverage[]; rules: Rules }
+export type ExtractedRateTable = { age_basis: RateTable['age_basis']; coverages: Coverage[]; rules: Rules; source?: RateTable['source'] }
 export type StepFn = (label: string, step: number, total: number) => void | Promise<void>
 
-const SYSTEM = `You extract an insurer group-benefits calculator's RATE TABLES and PRICING RULES for
+function buildSystem(categoryPromptList: string) { return `You extract an insurer group-benefits calculator's RATE TABLES and PRICING RULES for
 transparent, computable pricing. You are given (a) a structured dump of the insurer's Excel
 calculator (sheets/values/formulas) and/or (b) the insurer's brochure PDF. Cross-reference both when
-both are present — the brochure often states rules in prose that the workbook only encodes as a
-formula, and the workbook usually has the complete rate matrix the brochure only summarises.
+both are present.
+
+The BROCHURE is the primary source for the actual premium numbers and rules — most insurers print
+the client-facing rate tables there. The workbook varies per insurer: some embed their own populated
+rate tables too (in which case cross-check them against the brochure and flag any cell that
+genuinely disagrees rather than silently preferring one), others are a near-blank calculation shell
+(input cells + formulas, no populated numbers) whose numbers you must read from the brochure. Judge
+which situation this is from what you're given, and set "source" accordingly: "pdf" (workbook has no
+real populated rate table of its own), "xlsx" (only a workbook was provided, or it's clearly the
+richer/only numeric source), or "hybrid" (both have their own populated numbers).
 You ONLY read numbers/rules that are actually present in the material — NEVER invent, round, guess,
 or interpolate a rate or a rule.
 
 Return ONLY this JSON (no prose, no markdown fence):
 {
   "age_basis": "ANB" | "ALB" | null,   // Age Next Birthday vs Age Last Birthday — from a footnote/column header
+  "source": "pdf" | "xlsx" | "hybrid",
   "coverages": [
     { "code": "<short form as printed, e.g. GHS>", "full_name": "<spelled out, e.g. Group Hospital & Surgical>",
       "member_type": "<Employee | Dependant | omit if the coverage doesn't split by member type>",
+      "canonical_category": "<the closest match from: ${categoryPromptList} — pick by what the coverage actually IS, not its printed name. If NONE of these fit well (not even a vague fit), OMIT this field entirely rather than forcing a bad guess — it gets queued for a human to classify instead of being mis-tagged>",
       "derivation": "<one or two plain sentences: age basis, how the plan is chosen, loadings/co-insurance/panel effects, discounts, GST>",
       "plans": [ { "code": "Plan 1", "label": "Plan 1", "attrs": "<e.g. S$300k limit, 1-bed private, or omit>" } ],
       "age_bands": [ "0-25", ... ],
@@ -45,9 +55,9 @@ Return ONLY this JSON (no prose, no markdown fence):
 }
 
 Rules:
-- Read the rate matrices from the workbook's rate/table sheets (often hidden) and/or the brochure's
-  premium tables. Include EVERY plan and EVERY age band — never sample. Copy each rate EXACTLY
-  (keep decimals; "N/A" where the sheet/brochure shows it).
+- Read the rate matrices from the brochure's premium tables and/or the workbook's rate/table sheets
+  (often hidden) per the source guidance above. Include EVERY plan and EVERY age band — never
+  sample. Copy each rate EXACTLY (keep decimals; "N/A" where the sheet/brochure shows it).
 - Expand abbreviations to full names (GHS -> Group Hospital & Surgical, GTL -> Group Term Life, GACI ->
   Group Additional Critical Illness, GPA -> Group Personal Accident, GP -> General Practitioner
   (Outpatient), SP -> Specialist (Outpatient)). Keep the printed short form in "code".
@@ -55,7 +65,7 @@ Rules:
   coverage entries or plan labels — never lose rows.
 - Pricing RULES (loadings, exclusions, GST) are usually stated in a notes section, footnote, or a
   "Notes"/instructions sheet — read them carefully and encode them structurally. If a rule isn't
-  stated anywhere, omit that field entirely rather than guessing a default.`
+  stated anywhere, omit that field entirely rather than guessing a default.` }
 
 function extractJson<T>(text: string): T | null {
   const t = text.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim()
@@ -77,13 +87,13 @@ function buildUserContent(dump: unknown, brochureBase64?: string, forGemini = fa
 }
 
 // ── A. Opus extractor ───────────────────────────────────────────────────────────
-async function opusExtract(dump: unknown, brochureBase64?: string): Promise<{ table: ExtractedRateTable | null; error?: string }> {
+async function opusExtract(system: string, dump: unknown, brochureBase64?: string): Promise<{ table: ExtractedRateTable | null; error?: string }> {
   const key = process.env.ANTHROPIC_API_KEY
   if (!key) return { table: null, error: 'ANTHROPIC_API_KEY not set' }
   try {
     const res = await fetch(ANTHROPIC_URL, {
       method: 'POST', headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: OPUS, max_tokens: 20000, thinking: { type: 'adaptive' }, system: SYSTEM,
+      body: JSON.stringify({ model: OPUS, max_tokens: 20000, thinking: { type: 'adaptive' }, system,
         messages: [{ role: 'user', content: buildUserContent(dump, brochureBase64, false) }] }),
     })
     const j = await res.json()
@@ -96,14 +106,14 @@ async function opusExtract(dump: unknown, brochureBase64?: string): Promise<{ ta
 }
 
 // ── B. Gemini extractor ─────────────────────────────────────────────────────────
-async function geminiExtract(dump: unknown, brochureBase64?: string): Promise<{ table: ExtractedRateTable | null; error?: string }> {
+async function geminiExtract(system: string, dump: unknown, brochureBase64?: string): Promise<{ table: ExtractedRateTable | null; error?: string }> {
   const key = process.env.GEMINI_API_KEY_EMAIL_ANALYSIS || process.env.GEMINI_API_KEY_DRAFT_EMAIL
   if (!key) return { table: null, error: 'GEMINI key not set' }
   try {
     const res = await fetch(`${geminiUrl(GEMINI_PRO)}?key=${key}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: SYSTEM }, ...buildUserContent(dump, brochureBase64, true)] }],
+        contents: [{ parts: [{ text: system }, ...buildUserContent(dump, brochureBase64, true)] }],
         generationConfig: { temperature: 0, maxOutputTokens: 32000, responseMimeType: brochureBase64 ? undefined : 'application/json' },
       }),
     })
@@ -208,10 +218,11 @@ async function adjudicate(dump: unknown, brochureBase64: string | undefined, con
 
 // ── Ensemble ──────────────────────────────────────────────────────────────────────
 export async function extractRateTable(
-  dump: unknown, brochureBase64: string | undefined, onStep?: StepFn,
+  dump: unknown, brochureBase64: string | undefined, categoryPromptList: string, onStep?: StepFn,
 ): Promise<{ table: ExtractedRateTable | null; accuracy?: Accuracy; ruleConflicts?: RuleConflict[]; error?: string }> {
+  const system = buildSystem(categoryPromptList)
   await onStep?.('Reading rates — Opus & Gemini', 1, 3)
-  const [o, g] = await Promise.all([opusExtract(dump, brochureBase64), geminiExtract(dump, brochureBase64)])
+  const [o, g] = await Promise.all([opusExtract(system, dump, brochureBase64), geminiExtract(system, dump, brochureBase64)])
   const base = o.table ?? g.table
   if (!base) {
     const msg = [o.error && `opus: ${o.error}`, g.error && `gemini: ${g.error}`].filter(Boolean).join('; ')
@@ -241,6 +252,7 @@ export async function extractRateTable(
   // Merge rules: prefer Opus, fall back to Gemini field-by-field where Opus omitted it.
   o.table.rules = { ...g.table.rules, ...o.table.rules }
   o.table.age_basis = o.table.age_basis ?? g.table.age_basis
+  o.table.source = o.table.source ?? g.table.source
 
   return { table: o.table, accuracy: { extractors: ['opus', 'gemini'], total_rates: total, agreed, conflicts: conflicts.length, adjudicated, single_source: single }, ruleConflicts }
 }

@@ -8,12 +8,16 @@ import { PmComparison } from '@/components/pricing-matrix/PmComparison'
 import { PmLiveBenefitPreview } from '@/components/pricing-matrix/PmLiveBenefitPreview'
 import { CensusEditor } from '@/components/pricing-matrix/CensusEditor'
 import { PlanSelectionEditor } from '@/components/pricing-matrix/PlanSelectionEditor'
+import { CategoryOverrideEditor } from '@/components/pricing-matrix/CategoryOverrideEditor'
+import { CompanyContactPicker } from '@/components/company-contact-picker/CompanyContactPicker'
+import type { PickerValue } from '@/components/company-contact-picker/CompanyContactPicker'
 import { computeInsurerQuote } from '@/lib/pm-calc'
-import { alignLines } from '@/lib/pm-quote'
-import type { CensusMember, Selection, QuoteResult, InsurerResult, AvailableCalculator } from '@/lib/pm-quote'
+import { alignLines, quoteSpreadStats } from '@/lib/pm-quote'
+import type { CensusMember, Selection, CategoryOverrides, QuoteResult, InsurerResult, AvailableCalculator } from '@/lib/pm-quote'
 import { coverageCodes } from '@/lib/pm-rates'
 import { alignSelectedTerms } from '@/lib/pm-compare'
 import type { CompareRow } from '@/lib/pm-compare'
+import { MetricCard, MetricGrid } from '@/components/shared/metric-card'
 
 const inp = 'text-[12.5px] border border-border rounded-md px-2 py-1 bg-background focus:outline-none focus:ring-2 focus:ring-primary/25'
 
@@ -24,12 +28,14 @@ async function safeJson<T>(r: Response): Promise<T & { error?: string }> {
 export default function NewQuotePage() {
   const router = useRouter()
   const [step, setStep] = useState(0)
-  const [company, setCompany] = useState('')
+  const [companyPick, setCompanyPick] = useState<PickerValue | null>(null)
+  const company = companyPick?.companyName ?? ''
   const [effDate, setEffDate] = useState('2026-01-01')
   const [census, setCensus] = useState<CensusMember[]>([{ name: '', relationship: 'Self', date_of_birth: null, age: null }])
   const [avail, setAvail] = useState<AvailableCalculator[]>([])
   const [selected, setSelected] = useState<Record<string, boolean>>({})
   const [selections, setSelections] = useState<Record<string, Selection>>({})
+  const [categoryOverrides, setCategoryOverrides] = useState<Record<string, CategoryOverrides>>({})
   const [targets, setTargets] = useState<Record<string, string>>({})
   const [matchNotes, setMatchNotes] = useState<Record<string, string>>({})   // `${calcId}.${code}` -> reason
   const [matching, setMatching] = useState(false)
@@ -55,13 +61,13 @@ export default function NewQuotePage() {
     const insurers: InsurerResult[] = avail.filter(a => selected[a.id]).map((a): InsurerResult => {
       if (!a.rate_table) return { calculator_id: a.id, insurer_name: a.insurer_name, effective_date: a.effective_date, coverage_lines: [], by_line: {}, grand: null, member_count: 0, avg_per_life: null, members: [], error: 'No approved rate table for this insurer' }
       try {
-        return computeInsurerQuote(a.id, a.insurer_name, a.effective_date, a.rate_table, census, selections[a.id] ?? {}, globals)
+        return computeInsurerQuote(a.id, a.insurer_name, a.effective_date, a.rate_table, census, selections[a.id] ?? {}, globals, categoryOverrides[a.id], a.computation_rules ?? undefined)
       } catch (e) {
         return { calculator_id: a.id, insurer_name: a.insurer_name, effective_date: a.effective_date, coverage_lines: coverageCodes(a.rate_table), by_line: {}, grand: null, member_count: 0, avg_per_life: null, members: [], error: String(e) }
       }
     })
     return { insurers, lines_union: alignLines(insurers), census_size: namedCount }
-  }, [avail, selected, census, selections, effDate, namedCount])
+  }, [avail, selected, census, selections, categoryOverrides, effDate, namedCount])
 
   // Live benefit-schedule preview, scoped to the plan tiers currently toggled (alignSelectedTerms —
   // built for the client-comparison PDF, reused here verbatim).
@@ -86,6 +92,23 @@ export default function NewQuotePage() {
   }
   const setSel = (calcId: string, code: string, field: string, value: string) =>
     setSelections(prev => ({ ...prev, [calcId]: { ...prev[calcId], [code]: { ...prev[calcId]?.[code], [field]: value } } }))
+  const setOverride = (calcId: string, category: string, code: string, field: string, value: string) =>
+    setCategoryOverrides(prev => ({
+      ...prev,
+      [calcId]: { ...prev[calcId], [category]: { ...prev[calcId]?.[category], [code]: { ...prev[calcId]?.[category]?.[code], [field]: value } } },
+    }))
+  // CensusEditor owns the tier list but not category_overrides — cascade a rename here so an
+  // override keyed by the old tier name isn't silently orphaned.
+  function renameOverrideCategory(oldName: string, newName: string) {
+    setCategoryOverrides(prev => {
+      const next: typeof prev = {}
+      for (const [calcId, byCat] of Object.entries(prev)) {
+        const { [oldName]: moved, ...rest } = byCat
+        next[calcId] = moved ? { ...rest, [newName]: moved } : byCat
+      }
+      return next
+    })
+  }
 
   async function runMatch() {
     setMatching(true); setMatchError(null)
@@ -105,7 +128,7 @@ export default function NewQuotePage() {
     setSaving(true); setError(null)
     const res = await fetch('/api/pricing-matrix/quote', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ company_name: company, effective_date: effDate, census, calculator_ids: selectedIds, selections }),
+      body: JSON.stringify({ company_name: company, company_id: companyPick?.companyId ?? null, effective_date: effDate, census, calculator_ids: selectedIds, selections, category_overrides: categoryOverrides }),
     })
     const d = await safeJson<{ id?: string; results?: QuoteResult }>(res)
     if (!res.ok || !d.id) { setError(d.error ?? 'Save failed'); setSaving(false); return }
@@ -147,12 +170,12 @@ export default function NewQuotePage() {
 
       {step === 0 && (
         <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-3 max-w-lg">
-            <input value={company} onChange={e => setCompany(e.target.value)} placeholder="Company name" className={inp} />
+          <div className="grid grid-cols-2 gap-3 max-w-lg items-start">
+            <CompanyContactPicker value={companyPick} onChange={setCompanyPick} hideContact />
             <input type="date" value={effDate} onChange={e => setEffDate(e.target.value)} title="Policy effective date" className={inp} />
           </div>
 
-          <CensusEditor census={census} setCensus={setCensus} />
+          <CensusEditor census={census} setCensus={setCensus} companyId={companyPick?.companyId ?? null} onRenameTier={renameOverrideCategory} />
 
           <div className="flex justify-end">
             <button onClick={() => setStep(1)} disabled={namedCount === 0} className="text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">Next: insurers →</button>
@@ -185,9 +208,21 @@ export default function NewQuotePage() {
 
           <PlanSelectionEditor avail={avail} selected={selected} selections={selections} toggleInsurer={toggleInsurer} setSel={setSel} namedCount={namedCount} matchNotes={matchNotes} />
 
+          <CategoryOverrideEditor avail={avail} selected={selected} census={census} overrides={categoryOverrides} setOverride={setOverride} />
+
           {selectedIds.length > 0 && namedCount > 0 && (
             <div className="flex flex-col gap-3 pt-2 border-t border-border/60">
               <h2 className="text-[12.5px] font-semibold text-foreground/80">Live comparison <span className="font-normal text-muted-foreground/50">— updates instantly as you toggle plans above</span></h2>
+              {(() => {
+                const { cheapest, priciest, spread } = quoteSpreadStats(liveResult.insurers)
+                return cheapest && (
+                  <MetricGrid className="md:grid-cols-3">
+                    <MetricCard label="Cheapest" value={`$${cheapest.grand!.toLocaleString()}`} sub={cheapest.insurer_name} />
+                    <MetricCard label="Most expensive" value={priciest ? `$${priciest.grand!.toLocaleString()}` : '—'} sub={priciest?.insurer_name} />
+                    <MetricCard label="Spread" value={spread != null ? `$${spread.toLocaleString()}` : '—'} sub={spread != null ? 'across selected insurers' : undefined} />
+                  </MetricGrid>
+                )
+              })()}
               <PmComparison result={liveResult} />
               <PmLiveBenefitPreview rows={liveBenefitRows} insurers={selectedInsurerMeta} />
             </div>

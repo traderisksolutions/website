@@ -12,6 +12,7 @@ import {
 import { cn } from '@/lib/utils'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
 import RfqPanel from '@/components/nexus/RfqPanel'
+import { NexusPhasedAnalysisModal } from '@/components/nexus/NexusPhasedAnalysisModal'
 import { ActivityFeed, LastHandledBy } from '@/components/ActivityFeed'
 import { logClient } from '@/lib/log-client'
 import { relTime } from '@/lib/activity-labels'
@@ -545,6 +546,8 @@ function CaseDetailPanel({
   const [analyzeProgress, setAnalyzeProgress] = useState<AnalysisProgress | null>(null)
   const analyzeStartRef   = useRef<number | null>(null)
   const [composeState,  setComposeState]  = useState<ComposeState | null>(null)
+  const [phasedModalOpen,       setPhasedModalOpen]       = useState(false)
+  const [phasedModalThreadIds,  setPhasedModalThreadIds]  = useState<string[] | null>(null)
 
   useEffect(() => {
     createClient().auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null))
@@ -688,34 +691,18 @@ function CaseDetailPanel({
     onRefresh()
   }
 
-  async function runAnalysis(threadIds?: string[]) {
-    setAnalyzing(true); setAnalyzeError(null)
-    analyzeStartRef.current = Date.now()
-    localStorage.setItem(LS_KEY, Date.now().toString())
-    try {
-      const res  = await fetch(`/api/nexus/cases/${caseData.id}/analyze`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ triggered_by: userEmail, ...(threadIds && threadIds.length > 0 ? { thread_ids: threadIds } : {}) }),
-      })
-      const data = await res.json().catch(() => ({ error: '' }))
-      if (!res.ok) {
-        const msg = data?.error ?? ''
-        const timedOut = res.status === 504 ||
-          msg.toLowerCase().includes('timeout') ||
-          msg.toLowerCase().includes('function_invocation')
-        throw new Error(timedOut ? '__TIMEOUT__' : (msg || 'Analysis failed'))
-      }
-      setDetail(prev => prev ? { ...prev, analysis: data.analysis } : prev)
-      setView('mission')
-      onRefresh()
-      loadRuns()
-    } catch (e) {
-      setAnalyzeError(e instanceof Error ? e.message : 'Analysis failed')
-    } finally {
-      setAnalyzing(false)
-      localStorage.removeItem(LS_KEY)
-    }
+  // Opens the phased analysis modal (3 short requests instead of one long one — see
+  // NexusPhasedAnalysisModal) rather than firing the single long-running request directly.
+  function runAnalysis(threadIds?: string[]) {
+    setPhasedModalThreadIds(threadIds && threadIds.length > 0 ? threadIds : null)
+    setPhasedModalOpen(true)
+  }
+
+  function onPhasedAnalysisComplete() {
+    setPhasedModalOpen(false)
+    setView('mission')
+    load()
+    onRefresh()
   }
 
   async function pinRun(runId: string, pinned: boolean) {
@@ -862,6 +849,15 @@ function CaseDetailPanel({
           linkedThreads={threads}
           onLink={() => { load(); onRefresh() }}
           onClose={() => setLinkOpen(false)}
+        />
+      )}
+      {phasedModalOpen && (
+        <NexusPhasedAnalysisModal
+          caseId={caseData.id}
+          userEmail={userEmail}
+          initialThreadIds={phasedModalThreadIds}
+          onClose={() => setPhasedModalOpen(false)}
+          onComplete={onPhasedAnalysisComplete}
         />
       )}
     </div>

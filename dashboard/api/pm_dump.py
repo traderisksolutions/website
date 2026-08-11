@@ -35,6 +35,12 @@ MAX_SUM_CELLS = 40
 CELL_TEXT_CAP = 60
 MAX_VALUES_PER_SHEET = 3000
 MAX_VALUES_TOTAL = 12000
+# Comprehensive per-cell formula capture (pm-rules-extract.ts's calculation-logic source — distinct
+# from formula_samples/sum_cells above, which are small previews for the rate extractor's context).
+# Same cap shape as values: filled in `_sheet_priority` order so a calculation-heavy sheet is never
+# the one left truncated because a scratch sheet came first in the file.
+MAX_FORMULAS_PER_SHEET = 3000
+MAX_FORMULAS_TOTAL = 12000
 
 
 def _sheet_priority(name: str) -> int:
@@ -162,29 +168,44 @@ def dump(data: bytes) -> dict:
                     notes_chunks.append(line)
 
     # Full cached values per sheet (for the pricing extractor to read every rate, and for the UI to
-    # let a human open any sheet). Capped so the payload stays reasonable — filled in relevance
-    # order (see _sheet_priority) so a rate-like sheet is never the one left truncated because a
-    # scratch/working sheet happened to come first in the file.
-    values = {}
-    total = 0
-    ordered = sorted(wb_v.worksheets, key=lambda ws: _sheet_priority(ws.title))
+    # let a human open any sheet), plus every FORMULA cell's raw text (for pm-rules-extract.ts to
+    # translate the calculator's actual calculation logic — loadings, tier selection, GST — not
+    # just its populated numbers). Both capped so the payload stays reasonable — filled in
+    # relevance order (see _sheet_priority) so a rate/calc-like sheet is never the one left
+    # truncated because a scratch/working sheet happened to come first in the file. Iterated
+    # together (one pass over wb_f, cross-referencing wb_v for the computed value of non-formula
+    # cells) rather than twice, since a formula cell's raw text and its computed value never both
+    # belong in `values` — `formulas` is formula cells, `values` is everything else.
+    values, formulas = {}, {}
+    values_total, formulas_total = 0, 0
+    ordered = sorted(wb_f.worksheets, key=lambda ws: _sheet_priority(ws.title))
     for ws in ordered:
-        m = {}
+        wsv = wb_v[ws.title]
+        vm, fm = {}, {}
         for row in ws.iter_rows():
             for c in row:
-                if c.value is not None:
-                    m[c.coordinate] = _short(c.value)
-                    total += 1
-            if len(m) >= MAX_VALUES_PER_SHEET or total >= MAX_VALUES_TOTAL:
-                m["_truncated"] = "true"
+                fx = _formula_text(c)
+                if fx is not None:
+                    if len(fm) < MAX_FORMULAS_PER_SHEET and formulas_total < MAX_FORMULAS_TOTAL:
+                        fm[c.coordinate] = fx[:CELL_TEXT_CAP]
+                        formulas_total += 1
+                    continue
+                if c.value is not None and len(vm) < MAX_VALUES_PER_SHEET and values_total < MAX_VALUES_TOTAL:
+                    vm[c.coordinate] = _short(wsv[c.coordinate].value)
+                    values_total += 1
+            if (len(vm) >= MAX_VALUES_PER_SHEET or values_total >= MAX_VALUES_TOTAL) and \
+               (len(fm) >= MAX_FORMULAS_PER_SHEET or formulas_total >= MAX_FORMULAS_TOTAL):
+                vm["_truncated"] = "true"
                 break
-        if m:
-            values[ws.title] = m
-        if total >= MAX_VALUES_TOTAL:
+        if vm:
+            values[ws.title] = vm
+        if fm:
+            formulas[ws.title] = fm
+        if values_total >= MAX_VALUES_TOTAL and formulas_total >= MAX_FORMULAS_TOTAL:
             break
 
     return {"sheets": sheets, "validations": validations, "previews": previews,
-            "values": values, "notes_text": "\n".join(notes_chunks)[:8000]}
+            "values": values, "formulas": formulas, "notes_text": "\n".join(notes_chunks)[:8000]}
 
 
 # ── Vercel handler ────────────────────────────────────────────────────────────────

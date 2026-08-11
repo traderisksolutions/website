@@ -1,29 +1,20 @@
 import { NextResponse } from 'next/server'
 import { synthesizeAllPromptOverrides } from '@/lib/synthesize-prompt-override'
+import { createSupabaseDB, createGeminiComposer, SkillSynthesizer } from '@/lib/ai-learning-loop'
 
-const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-
-function sbH(prefer = 'return=minimal') {
-  const k = process.env.SUPABASE_SERVICE_KEY
-  if (!k) throw new Error('SUPABASE_SERVICE_KEY not set')
-  return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: prefer }
-}
-
-// GET — current synthesised instruction overrides (latest per type; older rows kept as history)
+// GET — the currently-effective instruction override per surface (pinned version if pinned,
+// else the newest active one — deprecated/superseded versions are excluded). Full version
+// history per surface is available at /api/engagement/skill-timeline.
 export async function GET() {
   try {
-    const res = await fetch(
-      `${SB_URL}/rest/v1/prompt_overrides?order=synthesized_at.desc&select=id,email_type,override_text,synthesized_at,source_eval_count`,
-      { headers: sbH('return=representation'), cache: 'no-store' }
-    )
-    const rows = res.ok ? await res.json() : []
-    const seen = new Set<string>()
-    const latest = (Array.isArray(rows) ? rows : []).filter((r: { email_type: string }) => {
-      if (seen.has(r.email_type)) return false
-      seen.add(r.email_type)
-      return true
-    })
-    return NextResponse.json(latest)
+    const synth = new SkillSynthesizer(createSupabaseDB(), createGeminiComposer(undefined))
+    const history = await synth.history()
+    const surfaces = Array.from(new Set(history.map(v => v.surface)))
+    const effective = (await Promise.all(surfaces.map(s => synth.getEffective(s))))
+      .filter((v): v is NonNullable<typeof v> => v !== null)
+      .sort((a, b) => b.synthesizedAt.localeCompare(a.synthesizedAt))
+      .map(v => ({ id: v.id, email_type: v.surface, override_text: v.instructionText, synthesized_at: v.synthesizedAt, source_eval_count: v.sourceEvalCount, status: v.status }))
+    return NextResponse.json(effective)
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Failed' }, { status: 500 })
   }

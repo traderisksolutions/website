@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runDraftEvaluation }         from '@/lib/run-draft-evaluation'
+import { createSupabaseDB, EvalStore, ExampleStore } from '@/lib/ai-learning-loop'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -77,31 +78,25 @@ export async function GET(req: NextRequest) {
     const sp    = new URL(req.url).searchParams
     const limit = Math.min(parseInt(sp.get('limit') ?? '100'), 200)
 
-    const [evalsRes, examplesRes] = await Promise.all([
-      fetch(`${SB_URL}/rest/v1/draft_evaluations?order=created_at.desc&limit=${limit}&select=id,draft_id,thread_id,email_type,score,eval_json,created_at`, { headers: sbHeaders(), cache: 'no-store' }),
-      fetch(`${SB_URL}/rest/v1/prompt_examples?order=created_at.desc&limit=50&select=id,email_type,context_summary,ideal_reply,score,created_at`, { headers: sbHeaders(), cache: 'no-store' }),
+    const db = createSupabaseDB()
+    const [evalRecords, exampleRecords, stats] = await Promise.all([
+      new EvalStore(db).listRecent({ limit }),
+      new ExampleStore(db).listRecent(50),
+      new EvalStore(db).aggregateBySurface({ limit }),
     ])
 
-    const evaluations: EvalRow[] = evalsRes.ok     ? await evalsRes.json()    : []
-    const examples:    ExRow[]   = examplesRes.ok   ? await examplesRes.json() : []
+    // Map back to the wire shape the /analytics/eval dashboard expects.
+    const evaluations: EvalRow[] = evalRecords.map(e => ({
+      id: e.id, draft_id: e.draftId ?? '', thread_id: e.threadId, email_type: e.surface, score: e.score,
+      eval_json: { what_human_changed: e.whatChanged, why_better: e.whyBetter, key_learning: e.keyLearning, context_summary: e.contextSummary },
+      created_at: e.createdAt,
+    }))
+    const examples: ExRow[] = exampleRecords.map(ex => ({
+      id: ex.id, email_type: ex.surface, context_summary: ex.contextSummary, ideal_reply: ex.idealOutput, score: ex.score, created_at: ex.createdAt,
+    }))
+    const statsOut = stats.map(s => ({ email_type: s.surface, count: s.count, avg_score: s.avgScore }))
 
-    // Aggregate stats per email type
-    const byType: Record<string, { count: number; total: number; scores: number[] }> = {}
-    for (const e of Array.isArray(evaluations) ? evaluations : []) {
-      const t = e.email_type ?? 'UNKNOWN'
-      if (!byType[t]) byType[t] = { count: 0, total: 0, scores: [] }
-      byType[t].count++
-      byType[t].total += e.score ?? 0
-      byType[t].scores.push(e.score ?? 0)
-    }
-    const stats = Object.entries(byType).map(([type, d]) => ({
-      email_type: type,
-      count:      d.count,
-      avg_score:  d.count ? Math.round((d.total / d.count) * 10) / 10 : 0,
-      scores:     d.scores,
-    })).sort((a, b) => b.count - a.count)
-
-    return NextResponse.json({ evaluations, examples, stats })
+    return NextResponse.json({ evaluations, examples, stats: statsOut })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }

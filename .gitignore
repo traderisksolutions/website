@@ -3,3 +3,6 @@
 # Python bytecode (rate-compiler tool + api/*.py functions)
 __pycache__/
 *.pyc
+
+# Deploy credentials — never commit, see .trs-deploy/tokens.env
+.trs-deploy/

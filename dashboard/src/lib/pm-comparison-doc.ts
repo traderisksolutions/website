@@ -83,7 +83,10 @@ export function buildComparisonDoc(input: ComparisonDocInput): ComparisonDoc {
   }))
 
   // Benefit schedule — every extracted term for the SELECTED tier only (alignSelectedTerms),
-  // grouped by category in first-seen order.
+  // grouped by the SHARED taxonomy category (see pm-taxonomy.ts) rather than each insurer's own
+  // free-text category wording, so the same benefit doesn't fracture into separate sections when
+  // insurers word it differently. Falls back to the row's own category (then 'Other') for rows
+  // that never resolved to the taxonomy — same coexistence stance as the rest of this rebuild.
   const scoped: SelectedCompareInsurer[] = input.insurers
     .filter(i => insurer_ids.includes(i.calculator_id))
     .map(i => ({ calculator_id: i.calculator_id, insurer_name: i.insurer_name, rate_table: i.rate_table, terms: i.benefit_terms }))
@@ -91,7 +94,7 @@ export function buildComparisonDoc(input: ComparisonDocInput): ComparisonDoc {
   const aligned = alignSelectedTerms(scoped, selections)
   const byCategory = new Map<string, ComparisonRow[]>()
   for (const r of aligned) {
-    const cat = r.category || 'Other'
+    const cat = r.canonical_category || r.category || 'Other'
     const rows = byCategory.get(cat) ?? []
     rows.push({ label: r.label, per_insurer: Object.fromEntries(insurer_ids.map(id => [id, r.per_insurer[id] ?? '—'])) })
     byCategory.set(cat, rows)

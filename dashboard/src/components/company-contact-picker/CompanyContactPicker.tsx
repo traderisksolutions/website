@@ -31,12 +31,18 @@ function contactLabel(c: CompanyContact) {
   return name ? `${name} <${c.email}>` : (c.email ?? c.phone ?? 'Unknown')
 }
 
-export function CompanyContactPicker({ value, onChange, className }: {
+export function CompanyContactPicker({ value, onChange, className, hideContact, initialQuery }: {
   value: PickerValue | null
   onChange: (v: PickerValue | null) => void
   className?: string
+  /** Skip the recipient/email half entirely — for callers (e.g. the Pricing Matrix quote wizard)
+   *  that only need companyId/companyName and have no use for a contact selection. */
+  hideContact?: boolean
+  /** Pre-fills the search box unpicked (e.g. a legacy quote's stored company_name with no linked
+   *  company_id yet) — makes re-linking a one-click "Create/search" instead of retyping the name. */
+  initialQuery?: string
 }) {
-  const [query,       setQuery]       = useState('')
+  const [query,       setQuery]       = useState(initialQuery ?? '')
   const [suggestions, setSuggestions] = useState<CompanySuggestion[]>([])
   const [open,        setOpen]        = useState(false)
   const [searching,   setSearching]   = useState(false)
@@ -78,7 +84,7 @@ export function CompanyContactPicker({ value, onChange, className }: {
 
   // Once a company is picked, load its linked contacts for the recipient dropdown.
   useEffect(() => {
-    if (!value?.companyId) { setContacts([]); return }
+    if (!value?.companyId || hideContact) { setContacts([]); return }
     setLoadingContacts(true)
     fetch(`/api/companies/${value.companyId}`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
@@ -184,7 +190,7 @@ export function CompanyContactPicker({ value, onChange, className }: {
       )}
 
       {/* ── Contact / recipient ── */}
-      {value && (
+      {!hideContact && value && (
         <div className="pl-1">
           {value.contactId && !addingContact ? (
             <div className="flex items-center gap-2 rounded-md border border-[--border-subtle] px-2.5 py-1.5">

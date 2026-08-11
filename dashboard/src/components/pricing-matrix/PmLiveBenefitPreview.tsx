@@ -10,7 +10,7 @@ import type { CompareRow } from '@/lib/pm-compare'
  *  here we always want to see what the currently selected tiers actually cover. */
 export function PmLiveBenefitPreview({ rows, insurers }: { rows: CompareRow[]; insurers: { calculator_id: string; insurer_name: string }[] }) {
   const byCategory = new Map<string, CompareRow[]>()
-  for (const r of rows) { const k = r.category || '—'; (byCategory.get(k) ?? byCategory.set(k, []).get(k)!).push(r) }
+  for (const r of rows) { const k = r.canonical_category || r.category || '—'; (byCategory.get(k) ?? byCategory.set(k, []).get(k)!).push(r) }
   const anyUnconfirmed = rows.some(r => Object.values(r.per_insurer).some(v => v.startsWith(UNCONFIRMED_TAG)))
 
   if (insurers.length === 0) return null

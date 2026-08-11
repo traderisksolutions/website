@@ -14,6 +14,7 @@
 import { logGeminiUsage, logAnthropicUsage } from '@/lib/gemini-usage'
 import { fetchKnowledgeDocs } from '@/lib/gdrive-knowledge'
 import { buildQuoteDecision, type QuoteDecisionV1 } from '@/lib/rfq-quote-decision'
+import { caseChatContext } from '@/lib/nexus-chat-learnings'
 
 const SB_URL          = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const STORAGE_BUCKET  = 'email-attachments'
@@ -819,6 +820,7 @@ async function draftEmailsFromBriefs(
   caseBrief: unknown,
   partyContactsJson: string,
   apiKey: string,
+  chatContext?: string,
 ): Promise<DraftArtifact[]> {
   const prompt = `You are a drafting assistant at Trade Risk Solutions (TRS), a Singapore insurance brokerage. A senior strategist has produced communication briefs. Write the full email for each brief. Do not invent facts beyond the brief and the case context below.
 
@@ -827,7 +829,7 @@ ${JSON.stringify(caseBrief, null, 2)}
 
 ━━ PARTY CONTACTS (use for To/CC) ━━
 ${partyContactsJson}
-
+${chatContext ? `\n━━ ALREADY ESTABLISHED (from the broker's prior AI-consultant conversations about this case — use these facts directly, don't imply they're unknown) ━━\n${chatContext}\n` : ''}
 ━━ COMMUNICATION BRIEFS ━━
 ${JSON.stringify(briefs, null, 2)}
 
@@ -864,19 +866,93 @@ Return ONLY a JSON array (no markdown fences), one object per brief IN THE SAME 
   return Array.isArray(parsed) ? (parsed as DraftArtifact[]) : []
 }
 
-// ── Main export ───────────────────────────────────────────────────────────────
+// ── Phased execution ─────────────────────────────────────────────────────────
+//
+// The single long-running analysis below is split into 3 independently-invocable phases
+// so each HTTP request stays well under serverless time limits (the whole thing declares
+// maxDuration=300, but actual platform ceilings are often lower and can be silently
+// clamped). Each phase persists its output (see src/app/api/nexus/cases/[id]/analyze/
+// phase{1,2,3}/route.ts + the nexus_analysis_runs table) so a dropped connection or page
+// reload between phases doesn't lose work already paid for in AI calls.
+//
+// Phase 1 — gather every linked thread/attachment/knowledge doc, then Gemini evidence
+//           synthesis. The most I/O-heavy phase (attachment extraction touches every
+//           message with attachments).
+// Phase 2 — Claude Opus strategic layer, built from Phase 1's synthesis.
+// Phase 3 — Gemini drafts the communication briefs, Opus re-verifies the timeline over
+//           the raw corpus, post-processing/id-linking, then the final save.
+//
+// runNexusAnalysis() below composes all three in one call — unchanged signature/behaviour
+// — for existing single-shot callers (rescan-reanalyze, chat-triggered re-analysis).
 
-export async function runNexusAnalysis(
+export type NexusSynthesisV1 = {
+  case_brief:      NexusAnalysisV1['case_brief']
+  stakeholder_map: NexusAnalysisV1['stakeholder_map']
+  timeline:        NexusAnalysisV1['timeline']
+  evidence_ledger: NexusAnalysisV1['evidence_ledger']
+  open_questions:  NexusAnalysisV1['open_questions']
+  missing_items:   NexusAnalysisV1['missing_items']
+  citations:       NexusAnalysisV1['citations']
+}
+
+export type NexusPhase1State = {
+  caseThreads:       { thread_id: string; party_type: string; party_label: string | null }[]
+  threadIds:         string[]
+  synthesis:         NexusSynthesisV1
+  partyContactsJson: string
+  entityCatalog:     EntityCatalog
+  threadSections:    string
+  attachmentText:    string
+  attachmentMeta:    { filename: string; method: string }[]
+  gdriveDocNames:    string[]
+  synthesisTokens:   number | null
+  messagesIncluded:  number
+  instructions:      string | null
+  // Snapshot of this case's Ask-Opus chat learnings at Phase 1 time — reused by Phase 2/3
+  // rather than re-fetched, so one analysis run sees a consistent picture.
+  chatContext:       string
+}
+
+export type NexusPhase2State = {
+  scenarioAnalysis:      NexusAnalysisV1['scenario_analysis']
+  recommendedNextSteps:  NexusAnalysisV1['recommended_next_steps']
+  communicationBriefs:   CommunicationBrief[]
+  reserveGuidance:       NexusAnalysisV1['reserve_guidance']
+  strategyTokens:        number
+  strategySkippedReason: string | null
+  strategyModelName:     string
+}
+
+// Record a failed run so operators can see it in the History tab — shared by the phase
+// routes and the legacy single-shot wrapper.
+export async function recordFailedNexusAnalysis(
+  caseId: string, triggeredBy: string | null | undefined, runDurationMs: number, errMsg: string,
+): Promise<void> {
+  await fetch(`${SB_URL}/rest/v1/case_analyses`, {
+    method:  'POST',
+    headers: sbHeaders('return=minimal'),
+    body: JSON.stringify({
+      case_id:        caseId,
+      schema_version: 'v1',
+      run_status:     'failed',
+      run_duration_ms: runDurationMs,
+      triggered_by:   triggeredBy ?? null,
+      error_message:  errMsg.slice(0, 2000),
+    }),
+  }).catch(() => {})
+}
+
+// ── PHASE 1 ──────────────────────────────────────────────────────────────────
+export async function runNexusAnalysisPhase1(
   caseId: string,
-  triggeredBy?: string | null,
   instructions?: string | null,
   opts?: { origin?: string; threadIds?: string[] },
-): Promise<NexusAnalysis> {
-  const runStart  = Date.now()
+): Promise<{
+  state: NexusPhase1State
+  preview: { stakeholders: number; timelineEvents: number; openQuestions: number; missingItems: number; caseSummary: string }
+}> {
   const geminiKey = process.env.GEMINI_API_KEY_DRAFT_EMAIL
   if (!geminiKey) throw new Error('GEMINI_API_KEY_DRAFT_EMAIL not set')
-
-  try {
 
   // 1. Fetch all case_threads with messages
   const ctRes = await fetch(
@@ -1085,6 +1161,11 @@ ${threadMsgs || '(no messages yet)'}`
 
   // ── PASS 1: Gemini 2.5 Pro — Evidence synthesis (7 sections) ────────────────
 
+  // Facts already established via the broker's Ask-Opus chat about THIS case (nightly
+  // extraction — see src/lib/nexus-chat-learnings.ts) so the synthesis doesn't treat them
+  // as unknown and the broker isn't prompted to re-ask the same thing.
+  const chatContext = await caseChatContext(caseId).catch(() => '')
+
   const synthesisPrompt = `You are a senior insurance analyst at Trade Risk Solutions (TRS), a Singapore insurance brokerage.
 
 You are reading ALL email threads linked to a single case simultaneously. Each thread is a conversation between TRS and a different party (client, insurer, lawyers, etc.).
@@ -1110,7 +1191,7 @@ ${attachmentText ? `━━ EXTRACTED ATTACHMENT TEXT ━━\n${attachmentText}\n
 
 ━━ PARTY CONTACTS ━━
 ${partyContactsJson}
-
+${chatContext ? `\n━━ ALREADY ESTABLISHED (from the broker's prior AI-consultant chat about this case — treat as known, don't flag as an open question) ━━\n${chatContext}\n` : ''}
 ━━ OUTPUT ━━
 
 Return ONLY valid JSON (no markdown fences) with this exact structure:
@@ -1248,34 +1329,54 @@ Return [] for sections with no items; never omit a section`
                    ?? synthParts2.find(p => p.text)?.text
   if (!synthText) throw new Error('Gemini returned empty synthesis')
 
-  type SynthesisV1 = {
-    case_brief:      NexusAnalysisV1['case_brief']
-    stakeholder_map: NexusAnalysisV1['stakeholder_map']
-    timeline:        NexusAnalysisV1['timeline']
-    evidence_ledger: NexusAnalysisV1['evidence_ledger']
-    open_questions:  NexusAnalysisV1['open_questions']
-    missing_items:   NexusAnalysisV1['missing_items']
-    citations:       NexusAnalysisV1['citations']
-  }
-
-  let synthesis: SynthesisV1
+  let synthesis: NexusSynthesisV1
   try {
-    synthesis = parseJsonSafe(synthText) as SynthesisV1
+    synthesis = parseJsonSafe(synthText) as NexusSynthesisV1
   } catch {
     throw new Error(`Synthesis JSON parse failed: ${synthText.slice(0, 300)}`)
   }
 
-  // ── PASS 2: Strategic layer (Claude Opus or Gemini fallback) ──────────────
+  const state: NexusPhase1State = {
+    caseThreads, threadIds, synthesis, partyContactsJson, entityCatalog,
+    threadSections, attachmentText, attachmentMeta,
+    gdriveDocNames:    gdriveDocs.map(d => d.name),
+    synthesisTokens:   synthData.usageMetadata?.totalTokenCount ?? null,
+    messagesIncluded:  Array.isArray(allMessages) ? allMessages.length : 0,
+    instructions:      instructions ?? null,
+    chatContext,
+  }
+
+  return {
+    state,
+    preview: {
+      stakeholders:   synthesis.stakeholder_map?.length ?? 0,
+      timelineEvents: synthesis.timeline?.length ?? 0,
+      openQuestions:  synthesis.open_questions?.length ?? 0,
+      missingItems:   synthesis.missing_items?.length ?? 0,
+      caseSummary:    synthesis.case_brief?.summary ?? '',
+    },
+  }
+}
+
+// ── PHASE 2 ──────────────────────────────────────────────────────────────────
+export async function runNexusAnalysisPhase2(
+  caseId: string,
+  phase1: NexusPhase1State,
+  instructionsOverride?: string | null,
+): Promise<{
+  state: NexusPhase2State
+  preview: { scenarios: number; nextSteps: number; briefs: number; reserveEstimate: string | null }
+}> {
+  const { synthesis, partyContactsJson, chatContext } = phase1
+  const instructions = instructionsOverride !== undefined ? instructionsOverride : phase1.instructions
 
   const anthropicKey = process.env.ANTHROPIC_API_KEY
   let scenarioAnalysis:     NexusAnalysisV1['scenario_analysis']      = []
   let recommendedNextSteps: NexusAnalysisV1['recommended_next_steps'] = []
-  let draftArtifacts:       NexusAnalysisV1['draft_artifacts']        = []
   let reserveGuidance:      NexusAnalysisV1['reserve_guidance']       = null
   let communicationBriefs:  CommunicationBrief[]                      = []
   let strategyTokens = 0
   let strategySkippedReason: string | null = null
-  let draftModelName:        string | null = null
 
   // Build a "recently completed actions" summary to feed into the hygiene rules
   const recentEvents = (synthesis.timeline ?? []).slice(-6).map(e => `${e.date}: ${e.event}`).join('\n')
@@ -1310,7 +1411,7 @@ ${JSON.stringify(synthesis.citations, null, 2)}
 
 ━━ RECENTLY COMPLETED ACTIONS (last 6 timeline events) ━━
 ${recentEvents || '(none)'}
-
+${chatContext ? `\n━━ ALREADY ESTABLISHED (from the broker's prior AI-consultant chat about this case — factor into next_steps/communication_briefs directly, don't recommend re-asking) ━━\n${chatContext}\n` : ''}
 ━━ YOUR TASK ━━
 
 Produce four strategic sections grounded in the evidence above. Return ONLY valid JSON (no markdown fences):
@@ -1449,10 +1550,52 @@ COMMUNICATION BRIEFS (you plan the emails; a separate drafting model writes them
     console.log('[nexus]', strategySkippedReason, '— skipping strategy + drafting')
   }
 
+  const strategyModelName = anthropicKey ? 'claude-opus-4-8' : 'not_configured'
+
+  const state: NexusPhase2State = {
+    scenarioAnalysis, recommendedNextSteps, communicationBriefs, reserveGuidance,
+    strategyTokens, strategySkippedReason, strategyModelName,
+  }
+
+  return {
+    state,
+    preview: {
+      scenarios:       scenarioAnalysis.length,
+      nextSteps:       recommendedNextSteps.length,
+      briefs:          communicationBriefs.length,
+      reserveEstimate: reserveGuidance?.recommended_reserve ?? null,
+    },
+  }
+}
+
+// ── PHASE 3 ──────────────────────────────────────────────────────────────────
+export async function runNexusAnalysisPhase3(
+  caseId: string,
+  phase1: NexusPhase1State,
+  phase2: NexusPhase2State,
+  triggeredBy: string | null | undefined,
+  runStartedAtMs: number,
+): Promise<{ analysis: NexusAnalysis; caseAnalysisId: string | null }> {
+  const geminiKey = process.env.GEMINI_API_KEY_DRAFT_EMAIL
+  if (!geminiKey) throw new Error('GEMINI_API_KEY_DRAFT_EMAIL not set')
+  const anthropicKey = process.env.ANTHROPIC_API_KEY
+
+  const {
+    synthesis, partyContactsJson, entityCatalog, threadSections, attachmentText,
+    attachmentMeta, gdriveDocNames, synthesisTokens, messagesIncluded, caseThreads, chatContext,
+  } = phase1
+  const {
+    scenarioAnalysis, recommendedNextSteps, communicationBriefs, reserveGuidance,
+    strategyTokens, strategySkippedReason, strategyModelName,
+  } = phase2
+
+  let draftArtifacts: NexusAnalysisV1['draft_artifacts'] = []
+  let draftModelName: string | null = null
+
   // ── PASS 3: Drafting — Gemini expands Opus briefs into full emails ───────────
   if (communicationBriefs.length > 0) {
     try {
-      draftArtifacts  = await draftEmailsFromBriefs(communicationBriefs, synthesis.case_brief, partyContactsJson, geminiKey)
+      draftArtifacts  = await draftEmailsFromBriefs(communicationBriefs, synthesis.case_brief, partyContactsJson, geminiKey, chatContext)
       draftModelName  = 'gemini-3.6-flash'
       console.log('[nexus] Gemini drafting complete —', draftArtifacts.length, 'drafts from', communicationBriefs.length, 'briefs')
     } catch (e) {
@@ -1479,8 +1622,7 @@ COMMUNICATION BRIEFS (you plan the emails; a separate drafting model writes them
   const cleanedScenarios = normalizeScenarios(scenarioAnalysis ?? [])
 
   const truncationFlags: string[] = []
-  const allMsgsTotal = Array.isArray(allMessages) ? allMessages.length : 0
-  if (allMsgsTotal > 200) truncationFlags.push(`messages: ${allMsgsTotal} total — body truncated at 15k chars each`)
+  if (messagesIncluded > 200) truncationFlags.push(`messages: ${messagesIncluded} total — body truncated at 15k chars each`)
   if ((synthesis.citations ?? []).length === 0) truncationFlags.push('synthesis returned no citations — evidence grounding may be weak')
   if (cleanedSteps.length === 0) truncationFlags.push('strategy pass returned no recommended steps')
 
@@ -1488,21 +1630,20 @@ COMMUNICATION BRIEFS (you plan the emails; a separate drafting model writes them
 
   if (strategySkippedReason) truncationFlags.push(strategySkippedReason)
 
-  const strategyModelName = anthropicKey ? 'claude-opus-4-8' : 'not_configured'
   const analysisMetadata: AnalysisMetadata = {
     analysis_ts:          new Date().toISOString(),
     synthesis_model:      'gemini-3.6-flash',
     strategy_model:       strategyModelName,
     draft_model:          draftModelName,
-    synthesis_tokens:     synthData.usageMetadata?.totalTokenCount ?? null,
+    synthesis_tokens:     synthesisTokens,
     strategy_tokens:      strategyTokens || null,
     threads_included:     caseThreads.length,
-    messages_included:    allMsgsTotal,
+    messages_included:    messagesIncluded,
     attachments_included: [
       ...attachmentMeta,
-      ...gdriveDocs.map(d => ({ filename: d.name, method: 'gdrive' })),
+      ...gdriveDocNames.map(name => ({ filename: name, method: 'gdrive' })),
     ],
-    gdrive_docs:          gdriveDocs.map(d => d.name),
+    gdrive_docs:          gdriveDocNames,
     truncation_flags:     truncationFlags,
   }
 
@@ -1593,11 +1734,11 @@ COMMUNICATION BRIEFS (you plan the emails; a separate drafting model writes them
 
   // ── Save to case_analyses ────────────────────────────────────────────────────
 
-  const runDurationMs = Date.now() - runStart
+  const runDurationMs = Date.now() - runStartedAtMs
 
-  await fetch(`${SB_URL}/rest/v1/case_analyses`, {
+  const saveRes = await fetch(`${SB_URL}/rest/v1/case_analyses`, {
     method:  'POST',
-    headers: sbHeaders('return=minimal'),
+    headers: sbHeaders('return=representation'),
     body: JSON.stringify({
       case_id:             caseId,
       structured_analysis: structuredAnalysis,
@@ -1609,13 +1750,16 @@ COMMUNICATION BRIEFS (you plan the emails; a separate drafting model writes them
       legal_research:      null,
       synthesis_model:     'gemini-3.6-flash',
       strategy_model:      strategyModelName,
-      gemini_tokens:       synthData.usageMetadata?.totalTokenCount ?? null,
+      gemini_tokens:       synthesisTokens,
       claude_tokens:       strategyTokens || null,
       run_status:          'completed',
       run_duration_ms:     runDurationMs,
       triggered_by:        triggeredBy ?? null,
     }),
-  }).catch(e => console.error('[nexus] analysis save failed (non-fatal):', e))
+  }).catch(e => { console.error('[nexus] analysis save failed (non-fatal):', e); return null })
+
+  const savedRows: { id?: string }[] = saveRes && saveRes.ok ? await saveRes.json().catch(() => []) : []
+  const caseAnalysisId = Array.isArray(savedRows) && savedRows[0]?.id ? savedRows[0].id : null
 
   // Prune old unpinned runs (best effort — silent on error)
   await pruneOldRuns(caseId).catch(() => {})
@@ -1627,24 +1771,29 @@ COMMUNICATION BRIEFS (you plan the emails; a separate drafting model writes them
     body:    JSON.stringify({ updated_at: new Date().toISOString() }),
   }).catch(() => {})
 
-  return analysis
+  return { analysis, caseAnalysisId }
+}
 
+// ── Legacy single-shot composition ────────────────────────────────────────────
+// Unchanged signature/behaviour for existing callers that still want one call to do
+// everything (rescan-reanalyze, chat-triggered re-analysis) — runs all 3 phases back to
+// back within one invocation, so those callers still need the full maxDuration budget.
+export async function runNexusAnalysis(
+  caseId: string,
+  triggeredBy?: string | null,
+  instructions?: string | null,
+  opts?: { origin?: string; threadIds?: string[] },
+): Promise<NexusAnalysis> {
+  const runStart = Date.now()
+  try {
+    const { state: phase1 } = await runNexusAnalysisPhase1(caseId, instructions, opts)
+    const { state: phase2 } = await runNexusAnalysisPhase2(caseId, phase1, instructions)
+    const { analysis }      = await runNexusAnalysisPhase3(caseId, phase1, phase2, triggeredBy, runStart)
+    return analysis
   } catch (e) {
-    // Record the failure so operators can see it in the History tab
     const runDurationMs = Date.now() - runStart
     const errMsg = e instanceof Error ? e.message : String(e)
-    await fetch(`${SB_URL}/rest/v1/case_analyses`, {
-      method:  'POST',
-      headers: sbHeaders('return=minimal'),
-      body: JSON.stringify({
-        case_id:        caseId,
-        schema_version: 'v1',
-        run_status:     'failed',
-        run_duration_ms: runDurationMs,
-        triggered_by:   triggeredBy ?? null,
-        error_message:  errMsg.slice(0, 2000),
-      }),
-    }).catch(() => {})
+    await recordFailedNexusAnalysis(caseId, triggeredBy, runDurationMs, errMsg)
     throw e
   }
 }

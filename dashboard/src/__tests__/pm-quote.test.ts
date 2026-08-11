@@ -35,6 +35,19 @@ describe('buildMembers', () => {
     expect(m[0].coverage).toEqual({ OPGP: { plan: 'Plan 2' } })
     expect(m[0].coverage.HS).toBeUndefined()
   })
+
+  it('applies a category override only to matching members, per coverage code, falling back to default elsewhere', () => {
+    const mixedCensus = [
+      { name: 'Boss', relationship: 'Self', age: 45, employee_category: 'Management' },
+      { name: 'Staffer', relationship: 'Self', age: 30, employee_category: 'Employee' },
+      { name: 'Untagged', relationship: 'Self', age: 35 },
+    ]
+    const categoryOverrides = { Management: { HS: { plan: 'Plan Elite' } } }   // OPGP left unset -> inherits default
+    const m = buildMembers(mixedCensus, selection, CODES, categoryOverrides)
+    expect(m[0].coverage).toEqual({ HS: { plan: 'Plan Elite' }, OPGP: { plan: 'Plan 1' } })   // Management: HS overridden, OPGP default
+    expect(m[1].coverage).toEqual({ HS: { plan: 'Plan 1', hospital: 'Private Hospital', beds: '1-bedded', coinsurance: '0%' }, OPGP: { plan: 'Plan 1' } })
+    expect(m[2].coverage).toEqual(m[1].coverage)   // untagged member prices identically to a category with no override
+  })
 })
 
 describe('avgPerLife', () => {
@@ -72,5 +85,36 @@ describe('toInsurerResult + alignLines', () => {
     const dental = rows.find(r => r.label === 'Dental')!
     expect(dental.per_insurer).toEqual({ c2: 'DENT' })
     expect(rows).toHaveLength(3) // H&S, OPGP, Dental
+  })
+
+  it('aligns by canonical_category when set, merging insurers whose own wording differs entirely', () => {
+    const a: InsurerResult = {
+      calculator_id: 'c1', insurer_name: 'A', effective_date: null,
+      coverage_lines: [{ code: 'OPD1', label: 'Group Outpatient Primary Care', canonical_category: 'Outpatient GP' }],
+      by_line: {}, grand: null, member_count: 1, avg_per_life: null, members: [],
+    }
+    const b: InsurerResult = {
+      calculator_id: 'c2', insurer_name: 'B', effective_date: null,
+      coverage_lines: [{ code: 'OPC', label: 'Group Outpatient Clinical (GP Outpatient)', canonical_category: 'Outpatient GP' }],
+      by_line: {}, grand: null, member_count: 1, avg_per_life: null, members: [],
+    }
+    const rows = alignLines([a, b])
+    expect(rows).toHaveLength(1)
+    expect(rows[0].per_insurer).toEqual({ c1: 'OPD1', c2: 'OPC' })
+  })
+
+  it('does not merge across canonical_category "Other" or when unset — falls back to label matching', () => {
+    const a: InsurerResult = {
+      calculator_id: 'c1', insurer_name: 'A', effective_date: null,
+      coverage_lines: [{ code: 'X1', label: 'Something Unusual', canonical_category: 'Other' }],
+      by_line: {}, grand: null, member_count: 1, avg_per_life: null, members: [],
+    }
+    const b: InsurerResult = {
+      calculator_id: 'c2', insurer_name: 'B', effective_date: null,
+      coverage_lines: [{ code: 'X2', label: 'Something Else Entirely', canonical_category: 'Other' }],
+      by_line: {}, grand: null, member_count: 1, avg_per_life: null, members: [],
+    }
+    const rows = alignLines([a, b])
+    expect(rows).toHaveLength(2)   // "Other" never merges, even between two insurers that both used it
   })
 })

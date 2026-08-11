@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logGeminiUsage }           from '@/lib/gemini-usage'
+import { createSupabaseDB, EvalStore, ExampleStore, type EvalRecord, type SkillExample } from '@/lib/ai-learning-loop'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
@@ -118,16 +119,11 @@ export async function POST(req: NextRequest) {
     const queryText = [topic, message].filter(Boolean).join('\n')
 
     // Vector RAG + few-shots + anti-patterns — all in parallel
-    const [chunks, examplesData, antiPatternData] = await Promise.all([
+    const learningLoopDb = createSupabaseDB()
+    const [chunks, examples, antiPatternRows] = await Promise.all([
       searchInboundChunks(queryText, geminiKey),
-      fetch(
-        `${SB_URL}/rest/v1/prompt_examples?email_type=eq.CONVERSATION&order=score.desc,created_at.desc&limit=2&select=context_summary,ideal_reply`,
-        { headers: sbH(), cache: 'no-store' }
-      ).then(r => r.ok ? r.json() : []).catch(() => []),
-      fetch(
-        `${SB_URL}/rest/v1/draft_evaluations?email_type=eq.CONVERSATION&score=lte.3&order=created_at.desc&limit=6&select=eval_json`,
-        { headers: sbH(), cache: 'no-store' }
-      ).then(r => r.ok ? r.json() : []).catch(() => []),
+      new ExampleStore(learningLoopDb).topForSurface('CONVERSATION', 2).catch((): SkillExample[] => []),
+      new EvalStore(learningLoopDb).listLearnings('CONVERSATION', { maxScore: 3, limit: 6 }).catch((): EvalRecord[] => []),
     ])
 
     // Build knowledge section from vector chunks
@@ -141,20 +137,18 @@ export async function POST(req: NextRequest) {
 
     // Few-shot examples
     let fewShotSection = ''
-    const examples: { context_summary?: string; ideal_reply: string }[] = Array.isArray(examplesData) ? examplesData : []
     if (examples.length > 0) {
       fewShotSection = `\n━━ EXAMPLES OF EXCELLENT FIRST-CONTACT REPLIES — learn the tone and pattern ━━\n` +
         examples.map((ex, i) =>
-          `[Example ${i + 1}]${ex.context_summary ? `\nContext: ${ex.context_summary}` : ''}\nReply:\n${ex.ideal_reply.slice(0, 800)}`
+          `[Example ${i + 1}]${ex.contextSummary ? `\nContext: ${ex.contextSummary}` : ''}\nReply:\n${ex.idealOutput.slice(0, 800)}`
         ).join('\n\n') + '\n'
     }
 
     // Anti-patterns from low-scoring drafts
     let antiPatternSection = ''
-    const apRows: { eval_json: { key_learning?: string } | null }[] = Array.isArray(antiPatternData) ? antiPatternData : []
-    const learnings = apRows
-      .map(r => r.eval_json?.key_learning)
-      .filter((l): l is string => typeof l === 'string' && l.length > 15)
+    const learnings = antiPatternRows
+      .map(r => r.keyLearning)
+      .filter(l => l.length > 15)
       .filter((l, i, arr) => arr.indexOf(l) === i)
       .slice(0, 3)
     if (learnings.length > 0) {

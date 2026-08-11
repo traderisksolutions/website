@@ -22,25 +22,39 @@ export type BenefitTerm = {
    *  brochures where a table-style anchor isn't available. Never set for policy-wide terms
    *  (no plan_code) — inference doesn't apply there. */
   plan_code_inferred?: boolean
+  /** Taxonomy classification (pm_taxonomy_categories, see pm-taxonomy.ts) of which top-level
+   *  benefit this term belongs to (e.g. "Panel"/"Waiting Period" terms about Hospital & Surgical
+   *  both get canonical_category "Hospital & Surgical") — lets coverageForCategory (pm-compare.ts)
+   *  link a term back to its rate-table coverage by exact match instead of fuzzy label substring-
+   *  matching. Distinct from `category` above, which stays the insurer's own fine-grained grouping
+   *  label. `canonical_category_id` is the exact-match join key once resolved. */
+  canonical_category?: string
+  canonical_category_id?: string
 }
 export type TermConflict = { key: string; category: string; label: string; opus?: string; gemini?: string; note: string }
 
-const SYSTEM = `You extract an insurer group-benefits plan's COVERAGE TERMS / WORDINGS — what is actually
+function buildSystem(categoryPromptList: string) { return `You extract an insurer group-benefits plan's COVERAGE TERMS / WORDINGS — what is actually
 covered, not the price — for a side-by-side comparison against other insurers. Read every plan tier's
 benefit schedule: hospitalization limits, room/bed class, panel vs non-panel, co-insurance/deductible,
 pre/post-hospitalization days, waiting periods, pre-existing condition treatment, maternity, dental
 annual caps, sums assured for critical illness/PA/life, exclusions, and anything else the brochure
-states as a plan feature. Use the insurer's OWN wording/labels — do not force terms into a fixed
-taxonomy or invent a category that isn't meaningfully present. Never invent a value that isn't stated.
+states as a plan feature. Use the insurer's OWN wording/labels for "category"/"label" — do not force
+those two fields into a fixed taxonomy or invent a category that isn't meaningfully present. The
+separate "canonical_category" field below IS a fixed classification (that's its purpose) — set it
+independently of how free-form "category" reads. Never invent a value that isn't stated.
 
 Return ONLY this JSON (no prose, no markdown fence):
 { "terms": [ { "plan_code": "<the plan tier this value belongs to, or omit ONLY for a genuinely
     policy-wide value — see the mandatory rule below>", "category": "<short grouping, e.g.
-    Hospitalization, Panel, Waiting Period, Maternity, Dental, Exclusions>", "label": "<the specific
-    feature, in the insurer's own words — the SAME label/category across every plan tier that has
-    this benefit, so rows align for comparison>", "value": "<the stated value/limit/description for
-    THAT plan tier, verbatim or lightly cleaned up>", "notes": "<caveats/conditions, or omit>",
-    "plan_code_inferred": true | omit } ] }
+    Hospitalization, Panel, Waiting Period, Maternity, Dental, Exclusions>",
+    "canonical_category": "<the closest match from: ${categoryPromptList} — which top-level benefit
+    this term is actually about (e.g. a 'Panel'/'Waiting Period' term about hospitalization is still
+    'Hospital & Surgical'). If NONE of these fit well, OMIT this field entirely rather than forcing
+    a bad guess — it gets queued for a human to classify instead of being mis-tagged>", "label": "<the
+    specific feature, in the insurer's own words — the SAME label/category across every plan tier
+    that has this benefit, so rows align for comparison>", "value": "<the stated value/limit/
+    description for THAT plan tier, verbatim or lightly cleaned up>", "notes": "<caveats/conditions,
+    or omit>", "plan_code_inferred": true | omit } ] }
 
 MANDATORY plan_code rule (this is the most common mistake — read carefully): most brochures present
 their benefit schedule as a table with one column per plan tier (e.g. "Plan 1 | Plan 2 | Plan 3 |
@@ -67,7 +81,7 @@ EXPLICITLY stated (a table column for that tier, an explicit "Plan X:" reference
 value). Omit it entirely (do not write false) when the tier was explicitly stated, or when the term
 is genuinely policy-wide (no plan_code, per the mandatory rule above). This is a reviewer signal,
 not a confidence score on the value itself — the value must still be copied verbatim either way,
-never guessed.`
+never guessed.` }
 
 function extractJson(text: string): { terms: BenefitTerm[] } | null {
   const t = text.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim()
@@ -79,7 +93,7 @@ function extractJson(text: string): { terms: BenefitTerm[] } | null {
   } catch { return null }
 }
 
-async function opusExtract(dump: unknown, brochureBase64?: string): Promise<{ terms: BenefitTerm[] | null; error?: string }> {
+async function opusExtract(system: string, dump: unknown, brochureBase64?: string): Promise<{ terms: BenefitTerm[] | null; error?: string }> {
   const key = process.env.ANTHROPIC_API_KEY
   if (!key) return { terms: null, error: 'ANTHROPIC_API_KEY not set' }
   const content: unknown[] = []
@@ -88,7 +102,7 @@ async function opusExtract(dump: unknown, brochureBase64?: string): Promise<{ te
   try {
     const res = await fetch(ANTHROPIC_URL, {
       method: 'POST', headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: OPUS, max_tokens: 20000, thinking: { type: 'adaptive' }, system: SYSTEM, messages: [{ role: 'user', content }] }),
+      body: JSON.stringify({ model: OPUS, max_tokens: 20000, thinking: { type: 'adaptive' }, system, messages: [{ role: 'user', content }] }),
     })
     const j = await res.json()
     if (!res.ok) return { terms: null, error: `Anthropic ${res.status}` }
@@ -99,10 +113,10 @@ async function opusExtract(dump: unknown, brochureBase64?: string): Promise<{ te
   } catch (e) { return { terms: null, error: String(e) } }
 }
 
-async function geminiExtract(dump: unknown, brochureBase64?: string): Promise<{ terms: BenefitTerm[] | null; error?: string }> {
+async function geminiExtract(system: string, dump: unknown, brochureBase64?: string): Promise<{ terms: BenefitTerm[] | null; error?: string }> {
   const key = process.env.GEMINI_API_KEY_EMAIL_ANALYSIS || process.env.GEMINI_API_KEY_DRAFT_EMAIL
   if (!key) return { terms: null, error: 'GEMINI key not set' }
-  const parts: unknown[] = [{ text: SYSTEM }]
+  const parts: unknown[] = [{ text: system }]
   if (brochureBase64) parts.push({ inline_data: { mime_type: 'application/pdf', data: brochureBase64 } })
   parts.push({ text: dump ? `Workbook notes:\n${JSON.stringify(dump)}` : 'No workbook dump — brochure PDF is the only source.' })
   try {
@@ -151,10 +165,11 @@ export function mergeTerms(opus: BenefitTerm[], gemini: BenefitTerm[]): { terms:
 export type StepFn = (label: string, step: number, total: number) => void | Promise<void>
 
 export async function extractBenefitTerms(
-  dump: unknown, brochureBase64: string | undefined, onStep?: StepFn,
+  dump: unknown, brochureBase64: string | undefined, categoryPromptList: string, onStep?: StepFn,
 ): Promise<{ terms: BenefitTerm[] | null; conflicts: TermConflict[]; error?: string }> {
+  const system = buildSystem(categoryPromptList)
   await onStep?.('Reading coverage terms — Opus & Gemini', 1, 2)
-  const [o, g] = await Promise.all([opusExtract(dump, brochureBase64), geminiExtract(dump, brochureBase64)])
+  const [o, g] = await Promise.all([opusExtract(system, dump, brochureBase64), geminiExtract(system, dump, brochureBase64)])
   if (!o.terms && !g.terms) {
     const msg = [o.error && `opus: ${o.error}`, g.error && `gemini: ${g.error}`].filter(Boolean).join('; ')
     return { terms: null, conflicts: [], error: msg || 'no terms extracted' }

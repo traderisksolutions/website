@@ -7,13 +7,20 @@
  * CHAT_CONSULTANT), then synthesises those learnings into a CHAT_CONSULTANT
  * prompt_override that /api/chat appends to its system prompt. Self-improvement,
  * inferred from the conversation itself (no thumbs required).
+ *
+ * Storage/synthesis goes through the ai-learning-loop library (src/lib/ai-learning-loop/)
+ * so this surface's overrides are versioned (superseded, not deleted) the same as every
+ * other surface — this previously DELETEd the prior override outright, losing history.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { createSupabaseDB, createGeminiComposer, EvalStore, SkillSynthesizer } from '@/lib/ai-learning-loop'
 
 export const maxDuration = 300
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
+const SURFACE     = 'CHAT_CONSULTANT'
+const MIN_LEARNINGS_TO_SYNTHESIZE = 3
 
 function sbH(prefer = 'return=minimal') {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -40,6 +47,9 @@ export async function GET(req: NextRequest) {
     const key = process.env.GEMINI_API_KEY_EMAIL_ANALYSIS
     if (!key) return NextResponse.json({ error: 'GEMINI_API_KEY_EMAIL_ANALYSIS not set' }, { status: 500 })
 
+    const db = createSupabaseDB()
+    const evalStore = new EvalStore(db)
+
     // Last 24h of chat messages, grouped into conversations.
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
     const mRes = await fetch(`${SB_URL}/rest/v1/chat_messages?created_at=gte.${since}&order=thread_id.asc,created_at.asc&select=thread_id,role,content,metadata_json&limit=2000`, { headers: sbH('return=representation'), cache: 'no-store' })
@@ -49,7 +59,7 @@ export async function GET(req: NextRequest) {
     for (const r of rows) { if (!convos.has(r.thread_id)) convos.set(r.thread_id, []); convos.get(r.thread_id)!.push(r) }
 
     let evaluated = 0
-    for (const [threadId, msgs] of Array.from(convos.entries()).slice(0, 40)) {
+    for (const [, msgs] of Array.from(convos.entries()).slice(0, 40)) {
       if (!msgs.some(m => m.role === 'assistant')) continue
       const transcript = msgs.map(m => {
         const done = m.role === 'assistant' && m.metadata_json?.action_done ? ' [broker applied a proposed action]' : ''
@@ -73,38 +83,35 @@ ${transcript}`
       const score = typeof p.score === 'number' ? Math.min(5, Math.max(1, Math.round(p.score))) : 0
       if (!score) continue
 
-      await fetch(`${SB_URL}/rest/v1/draft_evaluations`, {
-        method: 'POST', headers: sbH(),
-        body: JSON.stringify({ draft_id: null, thread_id: threadId, email_type: 'CHAT_CONSULTANT', ai_body: transcript.slice(0, 4000), human_body: '', score, eval_json: { key_learning: p.key_learning ?? '', summary: p.summary ?? '' } }),
+      const keyLearning = p.key_learning ?? ''
+      await evalStore.record({
+        surface: SURFACE,
+        aiOutput: transcript.slice(0, 4000),
+        humanOutput: '', // no human-authored "ideal" reply for a chat conversation
+        substance: score,
+        style: score,
+        editType: score <= 4 && keyLearning.trim().length > 0 ? 'substance' : 'none',
+        whatChanged: '',
+        whyBetter: '',
+        keyLearning,
+        contextSummary: p.summary ?? '',
       }).catch(() => {})
       evaluated++
     }
 
     // Synthesise recent CHAT_CONSULTANT learnings into one override the chat applies.
-    let synthesised = false
-    const eRes = await fetch(`${SB_URL}/rest/v1/draft_evaluations?email_type=eq.CHAT_CONSULTANT&score=lte.4&order=created_at.desc&limit=60&select=score,eval_json`, { headers: sbH('return=representation'), cache: 'no-store' })
-    const evals: { score: number; eval_json: { key_learning?: string } | null }[] = eRes.ok ? await eRes.json() : []
-    const learnings = evals.map(e => e.eval_json?.key_learning?.trim()).filter((l): l is string => !!l && l.length > 8)
-    if (learnings.length >= 3) {
-      const synthPrompt = `You improve the system instructions of an AI insurance-strategy consultant (a chat assistant for brokers at TRS). Below are concrete learnings from reviewing recent chats where it under-performed.
+    // Unconditional nightly resynthesis (not throttled like the email-type auto-trigger) —
+    // matches this cron's original behaviour of always refreshing from the latest signal.
+    const composer = createGeminiComposer(key)
+    const synth = new SkillSynthesizer(db, composer, {
+      [SURFACE]: 'General guidance for an AI insurance-strategy consultant chatting with brokers at TRS: give accurate, grounded answers; use available data/tools correctly; propose useful next actions.',
+    })
+    const learnings = await evalStore.listLearnings(SURFACE, { maxScore: 4, limit: 60 })
+    const synthResult = learnings.length >= MIN_LEARNINGS_TO_SYNTHESIZE
+      ? await synth.synthesize(SURFACE)
+      : { synthesized: false, count: learnings.length, reason: 'not enough signal yet' }
 
-LEARNINGS:
-${learnings.slice(0, 40).map(l => `- ${l}`).join('\n')}
-
-Write a single, clean instruction block of concrete, specific guidance the consultant should follow. Imperative style, max 8 lines, no preamble. Output ONLY the block.`
-      const r = await fetch(`${GEMINI_URL}?key=${key}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: synthPrompt }] }], generationConfig: { temperature: 0.15, maxOutputTokens: 400 } }),
-      })
-      const override = r.ok ? ((await r.json())?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim() : ''
-      if (override && override.length > 20) {
-        await fetch(`${SB_URL}/rest/v1/prompt_overrides?email_type=eq.CHAT_CONSULTANT`, { method: 'DELETE', headers: sbH() })
-        await fetch(`${SB_URL}/rest/v1/prompt_overrides`, { method: 'POST', headers: sbH(), body: JSON.stringify({ email_type: 'CHAT_CONSULTANT', override_text: override, source_eval_count: learnings.length }) })
-        synthesised = true
-      }
-    }
-
-    return NextResponse.json({ ok: true, conversations: convos.size, evaluated, synthesised })
+    return NextResponse.json({ ok: true, conversations: convos.size, evaluated, synthesised: synthResult.synthesized })
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e) }, { status: 500 })
   }

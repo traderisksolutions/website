@@ -6,13 +6,13 @@
  * sending; the per-insurer CSVs ride along as attachments.
  */
 import type { QuoteResult } from '@/lib/pm-quote'
-import type { Recommendation } from '@/lib/pm-recommend'
+import type { Recommendation, LegacyRecommendation } from '@/lib/pm-recommend'
 
 export type ReplyQuote = {
   company_name: string | null
   effective_date: string | null
   results: QuoteResult | null
-  recommendation?: Recommendation | null
+  recommendation?: Recommendation | LegacyRecommendation | null
 }
 
 const sgd = (n: number | null | undefined) =>
@@ -37,7 +37,11 @@ export function buildReplyBody(quote: ReplyQuote): string {
   }
 
   const rec = quote.recommendation
-  if (rec?.recommendation) {
+  if (rec && 'narrative' in rec) {
+    if (rec.headline) lines.push(rec.headline)
+    lines.push(rec.narrative)
+    lines.push('')
+  } else if (rec?.recommendation) {
     lines.push(`Our recommendation: ${rec.recommendation}`)
     if (rec.headline) lines.push(rec.headline)
     if (rec.rationale) lines.push(rec.rationale)

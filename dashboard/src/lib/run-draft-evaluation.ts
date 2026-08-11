@@ -2,12 +2,16 @@
  * Async, non-blocking evaluation of an AI draft vs the email the human actually sent.
  * Called fire-and-forget from /api/email/send — never blocks the send response.
  *
- * Stores results in draft_evaluations.
- * If score >= 4, also stores in prompt_examples for future few-shot injection.
+ * The judge call + context-gathering below are domain-specific (email threads, attachments,
+ * quote-stripping) and stay here. Once we have a verdict, storage/promotion/resynthesis is
+ * delegated to the ai-learning-loop LearningLoopEngine — see src/lib/ai-learning-loop/.
  */
 
 import { fetchAttachmentContext } from '@/lib/thread-attachment-context'
-import { maybeAutoSynthesize }    from '@/lib/synthesize-prompt-override'
+import { createSupabaseDB, createGeminiComposer, LearningLoopEngine, wordJaccard } from '@/lib/ai-learning-loop'
+import { EMAIL_TYPE_BASE_INSTRUCTIONS } from '@/lib/email-surface-instructions'
+import { AUTO_SYNTH_THRESHOLD } from '@/lib/synthesize-prompt-override'
+import { createEngagementChatLearningSource } from '@/lib/nexus-chat-learnings'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
@@ -29,18 +33,14 @@ async function sb<T>(path: string): Promise<{ ok: boolean; data: T[]; status: nu
   return { ok: res.ok, status: res.status, data: Array.isArray(data) ? data : [] }
 }
 
-// Word-set Jaccard similarity — robust to insertions/reordering (unlike positional char match,
-// where a single early edit tanks the score and forces a needless Gemini call).
-function wordSet(s: string): Set<string> {
-  return new Set(s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean))
-}
-function wordJaccard(a: string, b: string): number {
-  const sa = wordSet(a), sb = wordSet(b)
-  if (sa.size === 0 && sb.size === 0) return 1
-  let inter = 0
-  for (const w of Array.from(sa)) if (sb.has(w)) inter++
-  const union = sa.size + sb.size - inter
-  return union > 0 ? inter / union : 1
+function engine() {
+  const db = createSupabaseDB()
+  const composer = createGeminiComposer(process.env.GEMINI_API_KEY_DRAFT_EMAIL)
+  return new LearningLoopEngine(db, composer, {
+    baseInstructions: EMAIL_TYPE_BASE_INSTRUCTIONS,
+    autoSynthThreshold: AUTO_SYNTH_THRESHOLD,
+    additionalLearningSources: [createEngagementChatLearningSource()],
+  })
 }
 
 // humanBodyOverride: the plain-text body of what was actually sent, passed directly from the
@@ -157,13 +157,15 @@ export async function runDraftEvaluation(
     const similarity = wordJaccard(aiBody, humanBody)
     if (similarity > 0.9) {
       console.log(`[eval] ${Math.round(similarity*100)}% word-overlap — storing 5/5 (sent as-is) without Gemini call`)
-      await storeEval(draftId, tid ?? '', emailType, aiBody, humanBody,
-        { substance: 5, style: 5, editType: 'none' }, {
-          what_human_changed: 'No meaningful changes — sent almost as-is.',
-          why_better:         'AI draft was high quality.',
-          key_learning:       '',
-          context_summary:    `${emailType} email handled well as drafted.`,
-        }, true)
+      await engine().recordAndLearn({
+        surface: emailType, aiOutput: aiBody, humanOutput: humanBody,
+        substance: 5, style: 5, editType: 'none',
+        whatChanged: 'No meaningful changes — sent almost as-is.',
+        whyBetter:   'AI draft was high quality.',
+        keyLearning: '',
+        contextSummary: `${emailType} email handled well as drafted.`,
+        draftId, threadId: tid,
+      })
       return
     }
 
@@ -231,65 +233,19 @@ Return ONLY valid JSON (no markdown fences):
     const substance = clamp(parsed.substance_score)
     const style     = clamp(parsed.style_score)
     if (!substance && !style) return
-    const editType  = ['none', 'style', 'substance', 'both'].includes(String(parsed.edit_type)) ? String(parsed.edit_type) : 'both'
+    const editType  = (['none', 'style', 'substance', 'both'].includes(String(parsed.edit_type)) ? String(parsed.edit_type) : 'both') as 'none' | 'style' | 'substance' | 'both'
 
-    // Store the sent reply as a few-shot ideal example when the AI was substantively strong.
-    await storeEval(draftId, tid ?? '', emailType, aiBody, humanBody,
-      { substance: substance || style, style: style || substance, editType }, {
-        what_human_changed: String(parsed.what_human_changed ?? ''),
-        why_better:         String(parsed.why_better ?? ''),
-        key_learning:       String(parsed.key_learning ?? ''),
-        context_summary:    String(parsed.context_summary ?? ''),
-      }, (substance || style) >= 4)
-
-    // Fully-automatic self-improvement: a substantive miss with a real learning may trigger a
-    // resynthesis of this email type's drafting instructions (throttled inside).
-    if ((editType === 'substance' || editType === 'both') && String(parsed.key_learning ?? '').trim().length >= 10) {
-      await maybeAutoSynthesize(emailType)
-    }
+    await engine().recordAndLearn({
+      surface: emailType, aiOutput: aiBody, humanOutput: humanBody,
+      substance: substance || style, style: style || substance, editType,
+      whatChanged: String(parsed.what_human_changed ?? ''),
+      whyBetter:   String(parsed.why_better ?? ''),
+      keyLearning: String(parsed.key_learning ?? ''),
+      contextSummary: String(parsed.context_summary ?? ''),
+      draftId, threadId: tid,
+    })
 
   } catch {
     // Never surface — evaluation is non-critical
-  }
-}
-
-async function storeEval(
-  draftId: string,
-  threadId: string,
-  emailType: string,
-  aiBody: string,
-  humanBody: string,
-  scores: { substance: number; style: number; editType: string },
-  evalJson: Record<string, string>,
-  storeExample: boolean,
-) {
-  const h = sbH()
-
-  // score (legacy, for existing UI/thresholds) mirrors the substance axis — the one that matters.
-  await fetch(`${SB_URL}/rest/v1/draft_evaluations`, {
-    method: 'POST', headers: h,
-    body: JSON.stringify({
-      draft_id: draftId, thread_id: threadId || null, email_type: emailType,
-      ai_body: aiBody, human_body: humanBody,
-      score: scores.substance, substance_score: scores.substance, style_score: scores.style, edit_type: scores.editType,
-      eval_json: evalJson,
-    }),
-  })
-
-  if (storeExample) {
-    // Dedup: don't store a near-identical ideal reply we already have for this type — keeps the
-    // few-shot pool diverse rather than repeating the same template.
-    const exRes = await fetch(
-      `${SB_URL}/rest/v1/prompt_examples?email_type=eq.${encodeURIComponent(emailType)}&order=created_at.desc&limit=20&select=ideal_reply`,
-      { headers: { apikey: h.apikey, Authorization: h.Authorization }, cache: 'no-store' }
-    )
-    const existing: { ideal_reply: string | null }[] = exRes.ok ? await exRes.json() : []
-    const dup = existing.some(e => e.ideal_reply && wordJaccard(e.ideal_reply, humanBody) > 0.85)
-    if (!dup) {
-      await fetch(`${SB_URL}/rest/v1/prompt_examples`, {
-        method: 'POST', headers: h,
-        body: JSON.stringify({ email_type: emailType, context_summary: evalJson.context_summary, ideal_reply: humanBody, score: scores.substance }),
-      })
-    }
   }
 }

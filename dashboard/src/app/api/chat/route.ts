@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { logAnthropicUsage }         from '@/lib/gemini-usage'
+import { createSupabaseDB, createGeminiComposer, SkillSynthesizer } from '@/lib/ai-learning-loop'
 
 export const maxDuration = 300
 
@@ -200,8 +201,8 @@ export async function POST(req: NextRequest) {
     // Learned improvements distilled nightly from past chats.
     let learned = ''
     try {
-      const oRes = await fetch(`${SB_URL}/rest/v1/prompt_overrides?email_type=eq.CHAT_CONSULTANT&order=synthesized_at.desc&limit=1&select=override_text`, { headers: sbH(), cache: 'no-store' })
-      const oTxt = oRes.ok ? (await oRes.json())[0]?.override_text : null
+      const synth = new SkillSynthesizer(createSupabaseDB(), createGeminiComposer(undefined))
+      const oTxt = (await synth.getEffective('CHAT_CONSULTANT'))?.instructionText
       if (oTxt) learned = `LEARNED IMPROVEMENTS (from reviewing past chats — apply these):\n${oTxt}`
     } catch { /* optional */ }
 

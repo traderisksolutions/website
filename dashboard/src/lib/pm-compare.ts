@@ -9,7 +9,15 @@ import type { RateTable } from '@/lib/pm-rates'
 import type { Selection } from '@/lib/pm-quote'
 
 export type CompareInsurer = { calculator_id: string; insurer_name: string; terms: BenefitTerm[] }
-export type CompareRow = { key: string; category: string; label: string; per_insurer: Record<string, string> }
+export type CompareRow = {
+  key: string; category: string; label: string; per_insurer: Record<string, string>
+  /** The shared taxonomy category this row's terms resolved to (see pm-taxonomy.ts) — set from the
+   *  first term merged into the row that has one. Rows are still keyed/aligned by each insurer's own
+   *  (category, label) wording (unchanged); this is purely an additional display-grouping field so
+   *  pm-comparison-doc.ts's benefit schedule can group by the shared taxonomy name instead of
+   *  whichever insurer's free-text category happened to create the row first. */
+  canonical_category?: string
+}
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
 
@@ -25,6 +33,7 @@ export function alignTerms(insurers: CompareInsurer[]): CompareRow[] {
       const key = `${norm(t.category)}|${norm(t.label)}`
       let idx = byKey.get(key)
       if (idx === undefined) { idx = rows.length; byKey.set(key, idx); rows.push({ key, category: t.category, label: t.label, per_insurer: {} }) }
+      if (!rows[idx].canonical_category && t.canonical_category && t.canonical_category !== 'Other') rows[idx].canonical_category = t.canonical_category
       const entry = t.plan_code ? `${t.value} (${t.plan_code})` : t.value
       const cur = rows[idx].per_insurer[ins.calculator_id]
       rows[idx].per_insurer[ins.calculator_id] = cur ? `${cur} / ${entry}` : entry
@@ -35,11 +44,25 @@ export function alignTerms(insurers: CompareInsurer[]): CompareRow[] {
 
 const normCat = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
 
-/** Best-effort match of a benefit term's freeform category to the coverage code it's about, by
- *  normalised category vs that coverage's full_name/code (substring either direction) — terms
- *  don't carry an explicit coverage link (see pm-benefits-extract.ts), so this is the same signal
- *  a human reviewer would use. Picks the longest/most specific label match. */
-function coverageForCategory(rt: RateTable, category: string): string | null {
+/** Match a benefit term to the coverage code it's about — three-tier cascade, most reliable first:
+ *   1. exact canonical_category_id match (pm_taxonomy_categories join key, resolved by extraction
+ *      or the taxonomy manager — see pm-taxonomy.ts). Both sides must have gone through taxonomy
+ *      resolution for this to fire.
+ *   2. exact canonical_category NAME match — the id/name pair are always written together (see
+ *      resolveExtractedCategories/applySynonymRetroactively), but one side may predate taxonomy
+ *      resolution and only carry the plain-text name; this catches that case without a re-extract.
+ *   3. best-effort substring match against full_name/code — the original fallback, now scoped to
+ *      terms/coverages that were never run through taxonomy resolution at all (both id and name
+ *      absent, or name is the 'Other' catch-all). */
+function coverageForCategory(rt: RateTable, category: string, canonicalCategory?: string, canonicalCategoryId?: string): string | null {
+  if (canonicalCategoryId) {
+    const hit = (rt.coverages ?? []).find(cov => cov.canonical_category_id === canonicalCategoryId)
+    if (hit) return hit.code
+  }
+  if (canonicalCategory && canonicalCategory !== 'Other') {
+    const hit = (rt.coverages ?? []).find(cov => cov.canonical_category === canonicalCategory)
+    if (hit) return hit.code
+  }
   const c = normCat(category)
   if (!c) return null
   let best: { code: string; len: number } | null = null
@@ -74,7 +97,7 @@ export function alignSelectedTerms(insurers: SelectedCompareInsurer[], selection
     const sel = selections[ins.calculator_id] ?? {}
     const terms = ins.terms.flatMap((t): BenefitTerm[] => {
       if (!t.plan_code) return [t]
-      const covCode = coverageForCategory(ins.rate_table, t.category)
+      const covCode = coverageForCategory(ins.rate_table, t.category, t.canonical_category, t.canonical_category_id)
       if (!covCode) return [{ ...t, value: `${UNCONFIRMED_TAG}${t.value}` }]
       const selectedPlan = sel[covCode]?.plan
       return selectedPlan === t.plan_code ? [t] : []

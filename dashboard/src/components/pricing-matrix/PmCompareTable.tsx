@@ -3,6 +3,7 @@
 import { Fragment, useMemo, useState } from 'react'
 import { alignTerms, differingRows } from '@/lib/pm-compare'
 import type { CompareInsurer } from '@/lib/pm-compare'
+import { TableShell, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/shared/table-shell'
 
 /** Level 2 — side-by-side coverage/wordings comparison across insurers, grouped by normalised
  *  (category, label) so each insurer's own terms line up under one row per benefit. */
@@ -13,7 +14,7 @@ export function PmCompareTable({ insurers }: { insurers: CompareInsurer[] }) {
   const rows = useMemo(() => (onlyDiff ? differingRows(allRows, ids) : allRows), [allRows, onlyDiff, ids])
 
   const byCategory = new Map<string, typeof rows>()
-  for (const r of rows) { const k = r.category || '—'; (byCategory.get(k) ?? byCategory.set(k, []).get(k)!).push(r) }
+  for (const r of rows) { const k = r.canonical_category || r.category || '—'; (byCategory.get(k) ?? byCategory.set(k, []).get(k)!).push(r) }
 
   return (
     <div className="flex flex-col gap-3">
@@ -22,38 +23,38 @@ export function PmCompareTable({ insurers }: { insurers: CompareInsurer[] }) {
         Show only where insurers differ
       </label>
 
-      <div className="overflow-x-auto border border-border rounded-xl">
-        <table className="w-full text-[13px] border-collapse">
-          <thead>
-            <tr className="bg-muted/40 border-b border-border">
-              <th className="text-left py-2.5 px-3 font-semibold text-foreground/80 w-[26%]">Coverage term</th>
-              {insurers.map(ins => <th key={ins.calculator_id} className="text-left py-2.5 px-3 font-semibold text-foreground/80">{ins.insurer_name}</th>)}
-            </tr>
-          </thead>
-          <tbody>
+      <div className="border border-border rounded-xl overflow-hidden">
+        <TableShell matrix>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[26%]">Coverage term</TableHead>
+              {insurers.map(ins => <TableHead key={ins.calculator_id}>{ins.insurer_name}</TableHead>)}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {rows.length === 0 ? (
-              <tr><td colSpan={insurers.length + 1} className="py-8 text-center text-muted-foreground/60 text-[12.5px]">
+              <TableRow><TableCell colSpan={insurers.length + 1} className="py-8 text-center text-muted-foreground/60 text-[12.5px]">
                 {allRows.length === 0 ? 'No coverage terms extracted for these insurers yet.' : 'No differences found across the selected insurers.'}
-              </td></tr>
+              </TableCell></TableRow>
             ) : Array.from(byCategory.entries()).map(([cat, catRows]) => (
               <Fragment key={cat}>
-                <tr className="bg-slate-50/70">
-                  <td colSpan={insurers.length + 1} className="py-1.5 px-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">{cat}</td>
-                </tr>
+                <TableRow className="group-row">
+                  <TableCell colSpan={insurers.length + 1}>{cat}</TableCell>
+                </TableRow>
                 {catRows.map(r => (
-                  <tr key={r.key} className="border-b border-border/40">
-                    <td className="py-2 px-3 text-foreground/80">{r.label}</td>
+                  <TableRow key={r.key}>
+                    <TableCell className="text-foreground/80">{r.label}</TableCell>
                     {insurers.map(ins => (
-                      <td key={ins.calculator_id} className="py-2 px-3 text-muted-foreground/90">
+                      <TableCell key={ins.calculator_id} className="text-muted-foreground/90">
                         {r.per_insurer[ins.calculator_id] ?? <span className="text-muted-foreground/30">not stated</span>}
-                      </td>
+                      </TableCell>
                     ))}
-                  </tr>
+                  </TableRow>
                 ))}
               </Fragment>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </TableShell>
       </div>
     </div>
   )

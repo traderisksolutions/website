@@ -3,8 +3,11 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { FileSpreadsheet, FileText, Loader2, Plus, X, Calculator, Trash2 } from 'lucide-react'
+import { FileSpreadsheet, FileText, Loader2, Plus, X, Calculator, Trash2, ShieldCheck, Hourglass, Tags } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { MetricCard, MetricGrid } from '@/components/shared/metric-card'
+import { StatusPill, CALCULATOR_STATUS } from '@/components/shared/status-pill'
+import { TableShell, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/shared/table-shell'
 
 type Calc = {
   id: string; insurer_name: string | null; label: string | null
@@ -14,30 +17,31 @@ type Calc = {
   change_summary: { text?: string } | null
 }
 
-const STATUS: Record<string, { label: string; cls: string }> = {
-  draft:     { label: 'Draft',      cls: 'bg-slate-100 text-slate-600' },
-  mapping:   { label: 'Mapping…',   cls: 'bg-amber-100 text-amber-700' },
-  in_review: { label: 'In review',  cls: 'bg-indigo-100 text-indigo-700' },
-  approved:  { label: 'Approved',   cls: 'bg-emerald-100 text-emerald-700' },
-  archived:  { label: 'Archived',   cls: 'bg-slate-100 text-slate-400' },
-}
-
 async function safeJson<T>(r: Response): Promise<T & { error?: string }> {
   try { return await r.json() } catch { return { error: `HTTP ${r.status}` } as T & { error?: string } }
 }
 
 export default function PricingMatrixPage() {
   const [rows, setRows] = useState<Calc[]>([])
+  const [pendingTerms, setPendingTerms] = useState(0)
   const [loading, setLoading] = useState(true)
   const [showUpload, setShowUpload] = useState(false)
 
   async function load() {
     setLoading(true)
-    const res = await fetch('/api/pricing-matrix/calculators', { cache: 'no-store' })
-    setRows(res.ok ? await res.json() : [])
+    const [calcRes, termsRes] = await Promise.all([
+      fetch('/api/pricing-matrix/calculators', { cache: 'no-store' }),
+      fetch('/api/pricing-matrix/taxonomy/synonyms?status=pending', { cache: 'no-store' }),
+    ])
+    setRows(calcRes.ok ? await calcRes.json() : [])
+    setPendingTerms(termsRes.ok ? (await termsRes.json()).length : 0)
     setLoading(false)
   }
   useEffect(() => { load() }, [])
+
+  const approvedCount = rows.filter(r => r.status === 'approved').length
+  const inReviewCount = rows.filter(r => r.status === 'in_review' || r.status === 'extracting').length
+  const insurerCount = new Set(rows.filter(r => r.status === 'approved').map(r => r.insurer_name || r.label)).size
 
   const [deletingId, setDeletingId] = useState<string | null>(null)
   async function del(id: string, name: string) {
@@ -70,7 +74,17 @@ export default function PricingMatrixPage() {
         <span className="pb-2 border-b-2 border-primary text-foreground font-medium">Calculators</span>
         <Link href="/pricing-matrix/quote" className="pb-2 border-b-2 border-transparent text-muted-foreground hover:text-foreground">Quotes</Link>
         <Link href="/pricing-matrix/compare" className="pb-2 border-b-2 border-transparent text-muted-foreground hover:text-foreground">Compare coverage</Link>
+        <Link href="/pricing-matrix/taxonomy" className="pb-2 border-b-2 border-transparent text-muted-foreground hover:text-foreground">Terminology{pendingTerms > 0 && <span className="ml-1.5 inline-flex text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">{pendingTerms}</span>}</Link>
       </div>
+
+      {!loading && rows.length > 0 && (
+        <MetricGrid className="mt-5">
+          <MetricCard label="Approved insurers" value={insurerCount} icon={ShieldCheck} />
+          <MetricCard label="In review" value={inReviewCount} icon={Hourglass} sub={inReviewCount > 0 ? 'awaiting approval' : undefined} />
+          <MetricCard label="Pending terminology" value={pendingTerms} icon={Tags} sub={pendingTerms > 0 ? 'needs mapping' : 'all mapped'} />
+          <MetricCard label="Total calculators" value={rows.length} icon={FileSpreadsheet} />
+        </MetricGrid>
+      )}
 
       <div className="mt-5">
         {loading ? (
@@ -81,48 +95,48 @@ export default function PricingMatrixPage() {
             <p className="text-sm">No calculators yet. Add an insurer&rsquo;s Excel calculator to begin.</p>
           </div>
         ) : (
-          <table className="w-full border-collapse text-[13px]">
-            <thead>
-              <tr className="text-left text-[11px] uppercase tracking-wide text-muted-foreground/60 border-b border-border">
-                <th className="py-2 pr-3 font-medium">Insurer</th>
-                <th className="py-2 pr-3 font-medium">Calculator file</th>
-                <th className="py-2 pr-3 font-medium">Brochure</th>
-                <th className="py-2 pr-3 font-medium">Effective</th>
-                <th className="py-2 pr-3 font-medium">Ver.</th>
-                <th className="py-2 pr-3 font-medium">Status</th>
-                <th className="py-2 pr-3 font-medium">Added</th>
-                <th className="py-2 font-medium" />
-              </tr>
-            </thead>
-            <tbody>
+          <TableShell>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Insurer</TableHead>
+                <TableHead>Calculator file</TableHead>
+                <TableHead>Brochure</TableHead>
+                <TableHead>Effective</TableHead>
+                <TableHead>Ver.</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Added</TableHead>
+                <TableHead />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {rows.map(r => (
-                <tr key={r.id} className="group border-b border-border/50 hover:bg-muted/40">
-                  <td className="py-2.5 pr-3">
+                <TableRow key={r.id} className="group">
+                  <TableCell>
                     <Link href={`/pricing-matrix/${r.id}`} className="font-medium text-foreground hover:text-primary">
                       {r.insurer_name || r.label || 'Untitled'}
                     </Link>
-                  </td>
-                  <td className="py-2.5 pr-3 text-muted-foreground/80"><span className="inline-flex items-center gap-1.5"><FileSpreadsheet size={13} className="text-emerald-600/70" />{r.xlsx_filename || '—'}</span></td>
-                  <td className="py-2.5 pr-3 text-muted-foreground/60">{r.brochure_filename ? <span className="inline-flex items-center gap-1.5"><FileText size={13} className="text-rose-500/60" />{r.brochure_filename}</span> : '—'}</td>
-                  <td className="py-2.5 pr-3 text-muted-foreground/70">{r.effective_date ?? '—'}</td>
-                  <td className="py-2.5 pr-3 text-muted-foreground/70">
+                  </TableCell>
+                  <TableCell className="text-muted-foreground/80"><span className="inline-flex items-center gap-1.5"><FileSpreadsheet size={13} className="text-emerald-600/70" />{r.xlsx_filename || '—'}</span></TableCell>
+                  <TableCell className="text-muted-foreground/60">{r.brochure_filename ? <span className="inline-flex items-center gap-1.5"><FileText size={13} className="text-rose-500/60" />{r.brochure_filename}</span> : '—'}</TableCell>
+                  <TableCell className="text-muted-foreground/70">{r.effective_date ?? '—'}</TableCell>
+                  <TableCell className="text-muted-foreground/70">
                     v{r.version}
                     {r.change_summary?.text && (
                       <Link href={`/pricing-matrix/${r.id}`} title={r.change_summary.text} className="ml-1.5 inline-flex text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100">changed</Link>
                     )}
-                  </td>
-                  <td className="py-2.5 pr-3"><span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${STATUS[r.status]?.cls ?? 'bg-slate-100 text-slate-500'}`}>{STATUS[r.status]?.label ?? r.status}</span></td>
-                  <td className="py-2.5 pr-3 text-muted-foreground/50">{new Date(r.created_at).toLocaleDateString('en-SG')}</td>
-                  <td className="py-2.5 text-right">
+                  </TableCell>
+                  <TableCell><StatusPill status={r.status} config={CALCULATOR_STATUS} /></TableCell>
+                  <TableCell className="text-muted-foreground/50">{new Date(r.created_at).toLocaleDateString('en-SG')}</TableCell>
+                  <TableCell className="text-right">
                     <button onClick={() => del(r.id, r.insurer_name || r.label || 'this calculator')} disabled={deletingId === r.id}
                       title="Delete calculator" className="text-muted-foreground/30 hover:text-rose-500 disabled:opacity-50 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       {deletingId === r.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                     </button>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </TableShell>
         )}
       </div>
 

@@ -3,13 +3,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, Wand2, Save, CheckCircle2, Plus, Trash2, FileSpreadsheet, AlertTriangle, Table2, ArrowRight, Pencil, ListChecks } from 'lucide-react'
+import { ArrowLeft, Loader2, Wand2, Save, CheckCircle2, Plus, Trash2, FileSpreadsheet, AlertTriangle, Table2, ArrowRight, Pencil, ListChecks, Tags } from 'lucide-react'
 import type { RateTable, Coverage, RatePlan, ReconciliationIssue } from '@/lib/pm-rates'
 import { runnableIssues, rateTableIsRunnable, EMPTY_RATE_TABLE } from '@/lib/pm-rates'
 import type { RuleConflict } from '@/lib/pm-rates-extract'
 import type { BenefitTerm, TermConflict } from '@/lib/pm-benefits-extract'
+import type { RuleStep, ExcelShape } from '@/lib/pm-rules-extract'
 import { computeInsurerQuote } from '@/lib/pm-calc'
 import type { InsurerResult } from '@/lib/pm-quote'
+import { MetricCard, MetricGrid } from '@/components/shared/metric-card'
+import { StatusPill, CALCULATOR_STATUS, RULES_STATUS } from '@/components/shared/status-pill'
 
 /** Card surface — white cards with a subtle border + shadow so they read on the white page. */
 const card = 'bg-white border border-slate-100 rounded-xl shadow-sm'
@@ -29,12 +32,16 @@ type Calc = {
   issues: ReconciliationIssue[]
   analysis_summary?: string | null
   change_summary?: { text?: string } | null
+  computation_rules: { id: string; source: ExcelShape; status: 'draft' | 'in_review' | 'approved' | 'archived'; rules: RuleStep[] } | null
 }
 
 /** A reconciliation issue joined with its live value shape, so resolving it can both mutate the
  *  in-memory rate table/terms (as before) AND persist the decision (who/when) via the new endpoint. */
 type RuleIssue = RuleConflict & { issueId: string }
 type TermIssue = TermConflict & { issueId: string }
+
+type TaxCategory = { id: string; name: string; status: 'active' | 'archived' }
+type NewTerm = { id: string; term: string; source: 'coverage' | 'benefit_term' }
 
 async function safeJson<T>(r: Response): Promise<T & { error?: string }> {
   try { return await r.json() } catch { return { error: `HTTP ${r.status}` } as T & { error?: string } }
@@ -56,6 +63,29 @@ export default function CalculatorReviewPage() {
   const [error, setError] = useState<string | null>(null)
   const [editingName, setEditingName] = useState(false)
   const [nameDraft, setNameDraft] = useState('')
+  const [classifying, setClassifying] = useState(false)
+  const [classifyMsg, setClassifyMsg] = useState<string | null>(null)
+  const [newTerms, setNewTerms] = useState<NewTerm[]>([])
+  const [taxCategories, setTaxCategories] = useState<TaxCategory[]>([])
+
+  const loadTerminology = useCallback(async () => {
+    const [nRes, cRes] = await Promise.all([
+      fetch(`/api/pricing-matrix/taxonomy/synonyms?status=pending&calculator_id=${id}`, { cache: 'no-store' }),
+      fetch('/api/pricing-matrix/taxonomy/categories', { cache: 'no-store' }),
+    ])
+    setNewTerms(nRes.ok ? await nRes.json() : [])
+    setTaxCategories(cRes.ok ? await cRes.json() : [])
+  }, [id])
+
+  async function approveTerm(synonymId: string, categoryId: string) {
+    if (!categoryId) return
+    await fetch(`/api/pricing-matrix/taxonomy/synonyms/${synonymId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ category_id: categoryId }) })
+    await loadTerminology()
+  }
+  async function rejectTerm(synonymId: string) {
+    await fetch(`/api/pricing-matrix/taxonomy/synonyms/${synonymId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reject: true }) })
+    await loadTerminology()
+  }
 
   async function patchMeta(body: Record<string, unknown>) {
     await fetch(`/api/pricing-matrix/calculators/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
@@ -108,7 +138,18 @@ export default function CalculatorReviewPage() {
     await load()
   }, [id, load])
 
+  async function runClassify() {
+    setClassifying(true); setError(null); setClassifyMsg(null)
+    const res = await fetch(`/api/pricing-matrix/calculators/${id}/classify-categories`, { method: 'POST' })
+    const d = await safeJson<{ coverages_classified?: number; terms_classified?: number; error?: string }>(res)
+    if (!res.ok) { setError(d.error ?? 'Could not sync benefit categories'); setClassifying(false); return }
+    setClassifyMsg(`Tagged ${d.coverages_classified ?? 0} coverage line(s), ${d.terms_classified ?? 0} benefit term(s).`)
+    setClassifying(false)
+    await load()
+  }
+
   useEffect(() => { load() }, [load])
+  useEffect(() => { loadTerminology() }, [loadTerminology])
   // Auto-extract right after upload.
   useEffect(() => {
     if (calc && calc.status === 'draft' && !calc.rate_table && search.get('automap') === '1' && !extracting) {
@@ -136,6 +177,14 @@ export default function CalculatorReviewPage() {
     const res = await fetch(`/api/pricing-matrix/calculators/${id}/approve`, { method: 'POST' })
     if (!res.ok) setError((await safeJson<{ error?: string }>(res)).error ?? 'Approve failed')
     await load(); setSaving(false)
+  }
+
+  const [approvingRules, setApprovingRules] = useState(false)
+  async function approveRules() {
+    setApprovingRules(true); setError(null)
+    const res = await fetch(`/api/pricing-matrix/calculators/${id}/rules/approve`, { method: 'POST' })
+    if (!res.ok) setError((await safeJson<{ error?: string }>(res)).error ?? 'Could not approve calculation logic')
+    await load(); setApprovingRules(false)
   }
 
   const resolveIssue = (issueId: string, body: Record<string, unknown>) =>
@@ -171,11 +220,6 @@ export default function CalculatorReviewPage() {
   const approved = calc.status === 'approved'
   const openItems = ruleConflicts.length + termConflicts.length
 
-  const statusStyle: Record<string, string> = {
-    draft: 'bg-slate-100 text-slate-600', extracting: 'bg-amber-100 text-amber-700',
-    in_review: 'bg-indigo-100 text-indigo-700', approved: 'bg-emerald-100 text-emerald-700', archived: 'bg-slate-100 text-slate-400',
-  }
-
   return (
     <div className="max-w-6xl mx-auto px-6 py-6">
       <Link href="/pricing-matrix" className="inline-flex items-center gap-1.5 text-[12.5px] text-slate-500 hover:text-slate-900 mb-3"><ArrowLeft size={14} /> Pricing Matrix</Link>
@@ -195,7 +239,7 @@ export default function CalculatorReviewPage() {
                 {!approved && <button onClick={() => { setNameDraft(calc.insurer_name ?? ''); setEditingName(true) }} title="Rename insurer" className="text-slate-300 hover:text-slate-600 shrink-0"><Pencil size={13} /></button>}
               </span>
             )}
-            <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full shrink-0 ${statusStyle[calc.status] ?? 'bg-slate-100 text-slate-500'}`}>{calc.status.replace('_', ' ')}</span>
+            <StatusPill status={calc.status} config={CALCULATOR_STATUS} className="shrink-0" />
             <span className="text-[11px] text-slate-400 shrink-0">v{calc.version}</span>
           </div>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5 text-[11.5px] text-slate-500">
@@ -214,12 +258,27 @@ export default function CalculatorReviewPage() {
           <button onClick={() => { if (rt && !window.confirm('Re-extracting replaces the current rate table, rules, and coverage terms with a fresh AI proposal. Continue?')) return; runExtract() }} disabled={extracting} className="flex items-center gap-1.5 text-[12.5px] px-3 py-1.5 rounded-lg border border-slate-100 text-slate-700 hover:bg-slate-50 disabled:opacity-50">
             {extracting ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}{rt ? 'Re-extract' : 'Extract'}
           </button>
+          {rt && (
+            <button onClick={runClassify} disabled={classifying} title="Tag each coverage/benefit term with a shared canonical category, so it aligns correctly against other insurers in the comparison table — doesn't touch rates, rules, or approval status." className="flex items-center gap-1.5 text-[12.5px] px-3 py-1.5 rounded-lg border border-slate-100 text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+              {classifying ? <Loader2 size={14} className="animate-spin" /> : <Tags size={14} />} Sync benefit categories
+            </button>
+          )}
           {!approved && <button onClick={save} disabled={saving || !rt} className="flex items-center gap-1.5 text-[12.5px] px-3 py-1.5 rounded-lg border border-slate-100 text-slate-700 hover:bg-slate-50 disabled:opacity-50"><Save size={14} /> Save</button>}
           {!approved && <button onClick={approve} disabled={saving || !runnable || openItems > 0} title={openItems > 0 ? `Resolve ${openItems} flagged item${openItems === 1 ? '' : 's'} first` : (!runnable ? issues[0] : '')} className="flex items-center gap-1.5 text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"><CheckCircle2 size={14} /> Approve{openItems > 0 ? ` · ${openItems} left` : ''}</button>}
         </div>
       </div>
 
+      {rt && (
+        <MetricGrid className="mb-5">
+          <MetricCard label="Coverages" value={rt.coverages.length} />
+          <MetricCard label="Plans" value={new Set(rt.coverages.flatMap(c => c.plans.map(p => p.code))).size} />
+          <MetricCard label="Flagged items" value={openItems} sub={openItems > 0 ? 'need review' : 'all resolved'} />
+          <MetricCard label="Cross-check agreement" value={calc.rate_table?.accuracy?.total_rates ? `${Math.round((calc.rate_table.accuracy.agreed! / calc.rate_table.accuracy.total_rates) * 100)}%` : '—'} sub={calc.rate_table?.accuracy?.extractors?.join(' + ')} />
+        </MetricGrid>
+      )}
+
       {error && <div className="mb-4 text-[12.5px] text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{error}</div>}
+      {classifyMsg && <div className="mb-4 text-[12.5px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">{classifyMsg}</div>}
       {extracting && (
         <div className="mb-4 rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3">
           <div className="flex items-center gap-2 text-[12.5px] text-indigo-800 mb-2">
@@ -268,6 +327,19 @@ export default function CalculatorReviewPage() {
         <div className="flex flex-col gap-5">
           {/* 1 — Flagged items + readiness. */}
           <ReviewPanel issues={issues} ruleConflicts={ruleConflicts} termConflicts={termConflicts} onResolveRule={resolveRule} onDismissRule={dismissRule} onResolveTerm={resolveTerm} disabled={approved} />
+
+          {/* New terminology this calculator surfaced — wording that didn't exactly match the
+              shared taxonomy (see /pricing-matrix/taxonomy). Approving here is retroactive: it
+              also fixes every other calculator that used the same wording. */}
+          {newTerms.length > 0 && (
+            <NewTerminologyPanel terms={newTerms} categories={taxCategories.filter(c => c.status === 'active')} onApprove={approveTerm} onReject={rejectTerm} disabled={approved} />
+          )}
+
+          {/* Translated calculation logic (see pm-rules-extract.ts) — independent approval gate
+              from the calculator/rate-table status, only shown when there's something to review. */}
+          {!!calc.computation_rules?.rules?.length && (
+            <ComputationRulesPanel computationRules={calc.computation_rules} onApprove={approveRules} approving={approvingRules} />
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
             {/* 2 — Rate table + rules. */}
@@ -339,6 +411,93 @@ function ReviewPanel({ issues, ruleConflicts, termConflicts, onResolveRule, onDi
           ))}
         </div>
       )}
+    </section>
+  )
+}
+
+// ── New terminology — wording that didn't exactly match the shared taxonomy ─────
+function NewTerminologyPanel({ terms, categories, onApprove, onReject, disabled }: {
+  terms: NewTerm[]; categories: TaxCategory[]
+  onApprove: (id: string, categoryId: string) => void; onReject: (id: string) => void; disabled: boolean
+}) {
+  return (
+    <section className={card + ' p-4'}>
+      <div className="flex items-center gap-2 mb-3">
+        <Tags size={14} className="text-primary" />
+        <h2 className="text-[13px] font-semibold text-slate-800">New terminology <span className="font-normal text-slate-400">— wording not yet in the shared taxonomy</span></h2>
+      </div>
+      <div className="flex flex-col gap-2">
+        {terms.map(t => (
+          <div key={t.id} className="rounded-lg border border-slate-100 bg-slate-50/60 p-2.5 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[12.5px] font-medium text-slate-800 truncate">{t.term}</p>
+              <p className="text-[11px] text-slate-400">{t.source === 'coverage' ? 'Coverage' : 'Benefit term'}</p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <select disabled={disabled} defaultValue="" onChange={e => e.target.value && onApprove(t.id, e.target.value)}
+                className="text-[12px] border border-slate-200 rounded-md px-2 py-1 bg-white disabled:opacity-50">
+                <option value="" disabled>Assign category…</option>
+                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <button disabled={disabled} onClick={() => onReject(t.id)} className="text-[11.5px] text-slate-400 hover:text-rose-500 disabled:opacity-50">Reject</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+// ── Translated calculation logic — its own approval lifecycle ───────────────────
+const SHAPE_LABEL: Record<ExcelShape, string> = {
+  embedded_table: 'Workbook has its own rate table',
+  formula_shell: 'Workbook is a calculation shell (numbers from the brochure)',
+  hybrid: 'Workbook has both its own numbers and formulas',
+}
+const STEP_LABEL: Record<RuleStep['type'], string> = {
+  age_band_lookup: 'Age-band lookup', flat_rate: 'Flat rate', percentage_loading: 'Percentage loading',
+  conditional_tier_selection: 'Conditional tier selection', combine: 'Combine', gst_adjustment: 'GST adjustment',
+}
+function describeStep(s: RuleStep): string {
+  switch (s.type) {
+    case 'age_band_lookup': return `${s.coverage_code} — look up by age band × ${s.plan_field}`
+    case 'flat_rate': return `${s.coverage_code} — flat rate (${s.plan_field})`
+    case 'percentage_loading': return `Loading on ${s.applies_to === 'all' ? 'all coverages' : s.applies_to.join(', ')} by ${s.basis}${s.excludes?.length ? `, excludes ${s.excludes.join(', ')}` : ''}`
+    case 'conditional_tier_selection': return `Pick ${s.output} based on ${s.variable}`
+    case 'combine': return `${s.output} = ${s.inputs.join(` ${s.op === 'add' ? '+' : s.op === 'subtract' ? '−' : '×'} `)}`
+    case 'gst_adjustment': return `GST ${s.inclusive ? `inclusive @ ${(s.rate * 100).toFixed(0)}%` : 'not applied'} on ${s.input_ref}`
+  }
+}
+function ComputationRulesPanel({ computationRules, onApprove, approving }: {
+  computationRules: NonNullable<Calc['computation_rules']>; onApprove: () => void; approving: boolean
+}) {
+  const approved = computationRules.status === 'approved'
+  return (
+    <section className={card + ' p-4'}>
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="flex items-center gap-2">
+          <Table2 size={14} className="text-primary" />
+          <h2 className="text-[13px] font-semibold text-slate-800">Computation rules <span className="font-normal text-slate-400">— {SHAPE_LABEL[computationRules.source]}</span></h2>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <StatusPill status={computationRules.status} config={RULES_STATUS} />
+          {!approved && (
+            <button onClick={onApprove} disabled={approving} className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">
+              {approving ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />} Approve logic
+            </button>
+          )}
+        </div>
+      </div>
+      <p className="text-[11.5px] text-slate-400 mb-2.5">Translated from the workbook&rsquo;s own formulas — check each step against its source cell before approving. Runs at quote time instead of the flat rate lookup once approved.</p>
+      <div className="flex flex-col gap-1.5">
+        {computationRules.rules.map((s, i) => (
+          <div key={i} className="flex items-start gap-2 rounded-lg border border-slate-100 bg-slate-50/60 px-2.5 py-2 text-[12px]">
+            <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-slate-400 w-[130px]">{STEP_LABEL[s.type]}</span>
+            <span className="text-slate-700 flex-1">{describeStep(s)}</span>
+            {s.source_ref && <span className="shrink-0 font-mono text-[10.5px] text-slate-400">{s.source_ref}</span>}
+          </div>
+        ))}
+      </div>
     </section>
   )
 }

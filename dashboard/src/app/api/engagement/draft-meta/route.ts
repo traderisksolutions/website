@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createSupabaseDB, EvalStore, ExampleStore } from '@/lib/ai-learning-loop'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -43,22 +44,16 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ emailType: null, generatedBy, draftId, examples: [], watchOuts: [] } satisfies DraftMeta)
     }
 
+    const learningLoopDb = createSupabaseDB()
+
     // Top 2 approved examples for this email_type
-    const exFetch = await fetch(
-      `${SB_URL}/rest/v1/prompt_examples?email_type=eq.${emailType}&order=score.desc,created_at.desc&limit=2&select=id,context_summary,ideal_reply,score`,
-      { headers: sbHeaders(), cache: 'no-store' }
-    )
-    const examples = exFetch.ok ? await exFetch.json() : []
+    const examples = (await new ExampleStore(learningLoopDb).topForSurface(emailType, 2))
+      .map(ex => ({ id: ex.id, context_summary: ex.contextSummary || null, ideal_reply: ex.idealOutput, score: ex.score }))
 
     // Key learnings from low-scoring evals for this email_type
-    const apFetch = await fetch(
-      `${SB_URL}/rest/v1/draft_evaluations?email_type=eq.${emailType}&score=lte.3&order=created_at.desc&limit=8&select=eval_json`,
-      { headers: sbHeaders(), cache: 'no-store' }
-    )
-    const apRows: { eval_json: { key_learning?: string } | null }[] = apFetch.ok ? await apFetch.json() : []
-    const watchOuts = (Array.isArray(apRows) ? apRows : [])
-      .map(r => r.eval_json?.key_learning)
-      .filter((l): l is string => typeof l === 'string' && l.length > 15)
+    const watchOuts = (await new EvalStore(learningLoopDb).listLearnings(emailType, { maxScore: 3, limit: 8 }))
+      .map(r => r.keyLearning)
+      .filter(l => l.length > 15)
       .filter((l, i, arr) => arr.indexOf(l) === i)
       .slice(0, 4)
 
@@ -66,7 +61,7 @@ export async function GET(req: NextRequest) {
       emailType,
       generatedBy,
       draftId,
-      examples: Array.isArray(examples) ? examples : [],
+      examples,
       watchOuts,
     } satisfies DraftMeta)
   } catch (e) {

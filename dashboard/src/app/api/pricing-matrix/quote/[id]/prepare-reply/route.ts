@@ -15,7 +15,7 @@ import { SB_URL, sbH, stH }          from '@/lib/pm-storage'
 import { buildInsurerCsv }           from '@/lib/pm-export'
 import type { QuoteRow }             from '@/lib/pm-export'
 import { buildReplyBody }            from '@/lib/pm-reply'
-import type { Recommendation }       from '@/lib/pm-recommend'
+import type { Recommendation, LegacyRecommendation } from '@/lib/pm-recommend'
 
 export const maxDuration = 120
 
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     // Load the quote (inputs + results + recommendation).
     const quote = await fetch(`${SB_URL}/rest/v1/pm_quotations?id=eq.${id}&select=company_name,effective_date,census,selections,results,recommendation&limit=1`, { headers: sbH(), cache: 'no-store' })
-      .then(r => (r.ok ? r.json() : [])).then(rows => rows[0] ?? null) as (QuoteRow & { recommendation: Recommendation | null }) | null
+      .then(r => (r.ok ? r.json() : [])).then(rows => rows[0] ?? null) as (QuoteRow & { recommendation: Recommendation | LegacyRecommendation | null }) | null
     if (!quote?.results) return NextResponse.json({ error: 'Quote has no results' }, { status: 400 })
 
     // Resolve the lead → thread + contact + email (draft target).

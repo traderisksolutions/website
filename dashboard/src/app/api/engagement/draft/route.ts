@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { logGeminiUsage }           from '@/lib/gemini-usage'
 import { fetchKnowledgeDocs }       from '@/lib/gdrive-knowledge'
 import { fetchAttachmentContext }   from '@/lib/thread-attachment-context'
+import { createSupabaseDB, createGeminiComposer, EvalStore, ExampleStore, SkillSynthesizer } from '@/lib/ai-learning-loop'
+import { EMAIL_TYPE_BASE_INSTRUCTIONS } from '@/lib/email-surface-instructions'
 
 const SB_URL    = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
@@ -203,19 +205,17 @@ Reply with one word only.`
     }
     console.log('[engagement/draft] email type:', emailType)
 
+    const learningLoopDb = createSupabaseDB()
+
     // Fetch up to 2 high-scoring human-approved examples for this email type
     // and inject them as few-shot examples so the AI learns from past edits
     let fewShotSection = ''
     try {
-      const exRes = await fetch(
-        `${SB_URL}/rest/v1/prompt_examples?email_type=eq.${emailType}&order=score.desc,created_at.desc&limit=2&select=context_summary,ideal_reply`,
-        { headers: sbHeaders(), cache: 'no-store' }
-      )
-      const examples: { context_summary?: string; ideal_reply: string }[] = exRes.ok ? await exRes.json() : []
-      if (Array.isArray(examples) && examples.length > 0) {
+      const examples = await new ExampleStore(learningLoopDb).topForSurface(emailType, 2)
+      if (examples.length > 0) {
         fewShotSection = `\n━━ EXAMPLES OF EXCELLENT ${emailType} REPLIES — learn the pattern, match this quality ━━\n` +
           examples.map((ex, i) =>
-            `[Example ${i + 1}]${ex.context_summary ? `\nContext: ${ex.context_summary}` : ''}\nReply:\n${ex.ideal_reply.slice(0, 1200)}`
+            `[Example ${i + 1}]${ex.contextSummary ? `\nContext: ${ex.contextSummary}` : ''}\nReply:\n${ex.idealOutput.slice(0, 1200)}`
           ).join('\n\n') + '\n'
       }
     } catch { /* non-fatal */ }
@@ -224,14 +224,10 @@ Reply with one word only.`
     // AVOID patterns — closes the feedback loop end-to-end so past human edits improve future drafts
     let antiPatternSection = ''
     try {
-      const apRes = await fetch(
-        `${SB_URL}/rest/v1/draft_evaluations?email_type=eq.${emailType}&score=lte.3&order=created_at.desc&limit=6&select=eval_json`,
-        { headers: sbHeaders(), cache: 'no-store' }
-      )
-      const apRows: { eval_json: { key_learning?: string } | null }[] = apRes.ok ? await apRes.json() : []
-      const learnings = (Array.isArray(apRows) ? apRows : [])
-        .map(r => r.eval_json?.key_learning)
-        .filter((l): l is string => typeof l === 'string' && l.length > 15)
+      const apRows = await new EvalStore(learningLoopDb).listLearnings(emailType, { maxScore: 3, limit: 6 })
+      const learnings = apRows
+        .map(r => r.keyLearning)
+        .filter(l => l.length > 15)
         .filter((l, i, arr) => arr.indexOf(l) === i) // deduplicate
         .slice(0, 4)
       if (learnings.length > 0) {
@@ -240,15 +236,14 @@ Reply with one word only.`
       }
     } catch { /* non-fatal */ }
 
-    // Self-improvement: the auto-synthesised instruction override for this email type (newest).
-    // Appended as authoritative refinements on top of the doc-aware base instructions.
+    // Self-improvement: the currently-effective synthesised instruction override for this
+    // email type (pinned version if one is pinned, else the newest active one — deprecated
+    // and superseded versions are never injected). Appended as authoritative refinements on
+    // top of the doc-aware base instructions.
     let learnedRefinements = ''
     try {
-      const ovRes = await fetch(
-        `${SB_URL}/rest/v1/prompt_overrides?email_type=eq.${emailType}&order=synthesized_at.desc&limit=1&select=override_text`,
-        { headers: sbHeaders(), cache: 'no-store' }
-      )
-      const ov = (ovRes.ok ? await ovRes.json() : [])[0]?.override_text
+      const synth = new SkillSynthesizer(learningLoopDb, createGeminiComposer(undefined), EMAIL_TYPE_BASE_INSTRUCTIONS)
+      const ov = (await synth.getEffective(emailType))?.instructionText
       if (ov && ov.trim().length > 20) {
         learnedRefinements = `\n━━ LEARNED REFINEMENTS (apply these on top — synthesised from past human edits) ━━\n${ov.trim()}\n`
       }

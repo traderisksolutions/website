@@ -13,7 +13,7 @@ import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
 import { SB_URL, sbH }               from '@/lib/pm-storage'
 import { computeQuoteResultForCalculators } from '@/lib/pm-quote-server'
-import type { CensusMember, Selection } from '@/lib/pm-quote'
+import type { CensusMember, Selection, CategoryOverrides } from '@/lib/pm-quote'
 
 export const maxDuration = 60
 
@@ -40,28 +40,31 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
     const b = await req.json() as {
-      company_name?: string; effective_date?: string
+      company_name?: string; company_id?: string | null; effective_date?: string
       census?: CensusMember[]; calculator_ids?: string[]; selections?: Record<string, Selection>
+      category_overrides?: Record<string, CategoryOverrides>
     }
 
-    const current = await fetch(`${SB_URL}/rest/v1/pm_quotations?id=eq.${id}&select=company_name,effective_date,census,calculator_ids,selections&limit=1`, { headers: sbH(), cache: 'no-store' })
-      .then(r => (r.ok ? r.json() : [])).then(rows => rows[0] ?? null) as { company_name: string | null; effective_date: string | null; census: CensusMember[]; calculator_ids: string[]; selections: Record<string, Selection> } | null
+    const current = await fetch(`${SB_URL}/rest/v1/pm_quotations?id=eq.${id}&select=company_name,company_id,effective_date,census,calculator_ids,selections,category_overrides&limit=1`, { headers: sbH(), cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : [])).then(rows => rows[0] ?? null) as { company_name: string | null; company_id: string | null; effective_date: string | null; census: CensusMember[]; calculator_ids: string[]; selections: Record<string, Selection>; category_overrides: Record<string, CategoryOverrides> } | null
     if (!current) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     const company_name = b.company_name !== undefined ? (b.company_name || null) : current.company_name
+    const company_id = b.company_id !== undefined ? (b.company_id || null) : current.company_id
     const effective_date = b.effective_date !== undefined ? (b.effective_date || null) : current.effective_date
     const calculator_ids = b.calculator_ids ?? current.calculator_ids ?? []
     const selections = b.selections ?? current.selections ?? {}
+    const category_overrides = b.category_overrides ?? current.category_overrides ?? {}
     const census = (b.census ?? current.census ?? []).filter(m => (m.name ?? '').trim() || m.date_of_birth || m.age != null)
 
     if (census.length === 0) return NextResponse.json({ error: 'census is empty' }, { status: 400 })
     if (calculator_ids.length === 0) return NextResponse.json({ error: 'select at least one insurer' }, { status: 400 })
 
-    const results = await computeQuoteResultForCalculators(calculator_ids, census, selections, { effective_date })
+    const results = await computeQuoteResultForCalculators(calculator_ids, census, selections, { effective_date }, category_overrides)
 
     await fetch(`${SB_URL}/rest/v1/pm_quotations?id=eq.${id}`, {
       method: 'PATCH', headers: sbH('return=minimal'),
-      body: JSON.stringify({ company_name, effective_date, census, calculator_ids, selections, results, member_count: census.length }),
+      body: JSON.stringify({ company_name, company_id, effective_date, census, calculator_ids, selections, category_overrides, results, member_count: census.length }),
     })
     void logActivity({ action: 'pm.quote_edited', resource_type: 'pm_quotation', resource_id: id, new_value: { insurers: results.insurers.length, members: census.length } })
     return NextResponse.json({ ok: true, results })

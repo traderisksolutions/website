@@ -13,7 +13,7 @@ import { computeQuoteResultForCalculators } from '@/lib/pm-quote-server'
 import { buildComparisonDoc }        from '@/lib/pm-comparison-doc'
 import type { ComparisonDocInsurer } from '@/lib/pm-comparison-doc'
 import { renderComparisonPdf }       from '@/lib/pm-comparison-pdf'
-import type { CensusMember, Selection } from '@/lib/pm-quote'
+import type { CensusMember, Selection, CategoryOverrides } from '@/lib/pm-quote'
 import type { RateTable }            from '@/lib/pm-rates'
 import type { BenefitTerm }          from '@/lib/pm-benefits-extract'
 
@@ -28,13 +28,14 @@ export async function POST(req: NextRequest) {
     const b = await req.json() as {
       company_name?: string; effective_date?: string
       census?: CensusMember[]; calculator_ids?: string[]; selections?: Record<string, Selection>
+      category_overrides?: Record<string, CategoryOverrides>
     }
     const census = (b.census ?? []).filter(m => (m.name ?? '').trim() || m.date_of_birth || m.age != null)
     const ids = b.calculator_ids ?? []
     if (census.length === 0) return NextResponse.json({ error: 'census is empty' }, { status: 400 })
     if (ids.length === 0) return NextResponse.json({ error: 'select at least one insurer' }, { status: 400 })
 
-    const results = await computeQuoteResultForCalculators(ids, census, b.selections ?? {}, { effective_date: b.effective_date || null })
+    const results = await computeQuoteResultForCalculators(ids, census, b.selections ?? {}, { effective_date: b.effective_date || null }, b.category_overrides ?? {})
 
     const inList = ids.map(cid => `"${cid}"`).join(',')
     const [calcRes, rtRes, termsRes] = await Promise.all([
