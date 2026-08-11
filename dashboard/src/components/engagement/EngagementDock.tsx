@@ -43,24 +43,27 @@ export function EngagementDock({
   ]
 
   return (
-    <div className="flex-shrink-0 border-t border-[--border-subtle] bg-card shadow-[0_-8px_20px_-8px_rgba(15,23,42,0.16)]">
-      {/* Active panel — always in the DOM (height 0 when collapsed) so state is preserved.
-          Taller than before so the compose editor can show several lines without scrolling
-          the moment a reply opens. */}
-      <div
-        className="overflow-hidden transition-[height] duration-200 ease-in-out"
-        style={{ height: active ? 'min(calc(62vh / var(--ui-zoom)), 620px)' : 0 }}
-      >
-        <div className="h-full overflow-y-auto">
-          {opened.has('reply')    && <div className={cn('h-full', active !== 'reply'    && 'hidden')}>{reply}</div>}
-          {opened.has('analysis') && <div className={cn(active !== 'analysis' && 'hidden')}>{analysis}</div>}
-          {opened.has('rfq')      && <div className={cn(active !== 'rfq'      && 'hidden')}>{rfq}</div>}
-          {opened.has('gbquote')  && <div className={cn(active !== 'gbquote'  && 'hidden')}>{gbquote}</div>}
-        </div>
+    <div
+      className={cn(
+        'flex flex-col min-h-0 border-t border-[--border-subtle] bg-card shadow-[0_-8px_20px_-8px_rgba(15,23,42,0.16)]',
+        // When a tab is open, this dock claims an EQUAL flex share against the sibling
+        // EaMessageArea (also flex-1) — a true 50/50 split of the remaining column height, so
+        // the email stays readable instead of being squeezed to a sliver by a fixed vh-based
+        // dock height. Collapsed, it shrinks to just the tab strip.
+        active ? 'flex-1' : 'flex-shrink-0',
+      )}
+    >
+      {/* Active panel — always in the DOM (opened, but display:none when not the active tab)
+          so state is preserved across tab switches (a half-written reply survives). */}
+      <div className={cn('min-h-0 overflow-y-auto', active ? 'flex-1' : 'h-0 overflow-hidden')}>
+        {opened.has('reply')    && <div className={cn('h-full', active !== 'reply'    && 'hidden')}>{reply}</div>}
+        {opened.has('analysis') && <div className={cn(active !== 'analysis' && 'hidden')}>{analysis}</div>}
+        {opened.has('rfq')      && <div className={cn(active !== 'rfq'      && 'hidden')}>{rfq}</div>}
+        {opened.has('gbquote')  && <div className={cn(active !== 'gbquote'  && 'hidden')}>{gbquote}</div>}
       </div>
 
       {/* Tab strip */}
-      <div className="flex items-center gap-1 px-3 py-1.5 border-t border-[--border-subtle]/60">
+      <div className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 border-t border-[--border-subtle]/60">
         {tabs.map(t => {
           const on = active === t.key
           return (

@@ -119,10 +119,14 @@ export default function Sidebar() {
           ? true
           : onListDetailRoute   // mode === 'auto'
 
+  // Wider than the standard 256px nav when hosting the actual conversation list (name +
+  // timestamp + preview + status badges need more room than a plain nav label does).
+  const sidebarWidth = collapsed ? 56 : onEngagement ? 340 : 256
+
   useEffect(() => {
-    document.documentElement.style.setProperty('--sidebar-width', collapsed ? '56px' : '256px')
+    document.documentElement.style.setProperty('--sidebar-width', `${sidebarWidth}px`)
     document.documentElement.dataset.sidebarCollapsed = collapsed ? 'true' : 'false'
-  }, [collapsed])
+  }, [collapsed, sidebarWidth])
 
   function toggle() {
     if (narrow) return
@@ -147,7 +151,7 @@ export default function Sidebar() {
       <aside
         className="hidden lg:flex fixed inset-y-0 left-0 flex-col z-40 glass-sidebar overflow-x-hidden"
         style={{
-          width: collapsed ? 56 : 256,
+          width: sidebarWidth,
           transition: 'width 220ms cubic-bezier(0.4,0,0.2,1)',
         }}
       >
@@ -191,11 +195,22 @@ export default function Sidebar() {
           </button>
         )}
 
-        {/* ── Nav ── */}
-        <nav className={cn('flex-1 overflow-y-auto overflow-x-hidden py-3 space-y-px', collapsed ? 'px-2 flex flex-col items-center' : 'px-2')}>
+        {/* ── Nav ──
+             The engagement branch is its own flex-col with NO scroll at the <nav> level — the
+             back-link stays fixed and EngagementFolderNav owns its own internal split (fixed
+             filter chrome + a flex-1 scrollable conversation list), since that list can be much
+             longer than the filter chrome above it. Every other route keeps the simple
+             whole-nav-scrolls behavior. */}
+        <nav className={cn(
+          onEngagement && !collapsed
+            ? 'flex-1 min-h-0 flex flex-col overflow-hidden pt-3'
+            : 'flex-1 overflow-y-auto overflow-x-hidden py-3 space-y-px',
+          collapsed && 'px-2 flex flex-col items-center',
+          !collapsed && !onEngagement && 'px-2',
+        )}>
           {onEngagement && !collapsed ? (
             <>
-              <Link href="/" className="flex items-center gap-1.5 h-7 px-2.5 mb-2 rounded-md text-[11.5px] text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors no-underline">
+              <Link href="/" className="flex-shrink-0 flex items-center gap-1.5 h-7 px-2.5 mx-2 mb-2 rounded-md text-[11.5px] text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors no-underline">
                 <ArrowLeft size={12} strokeWidth={2} /> Dashboard
               </Link>
               <EngagementFolderNav />

@@ -32,18 +32,23 @@ interface ConversationListProps {
   onSelect:       (id: string) => void
   onRefresh:      () => void
   onOpenDraft:    (draft: NewEmailDraft) => void
+  /** Sidebar's EngagementFolderNav already has its own title/refresh chrome above this list —
+   *  skip this component's own header so they don't stack. The mobile fallback (EaListPanel)
+   *  still wants it, so this defaults to shown. */
+  hideHeader?:    boolean
 }
 
-/** Tabs/search/group-toggle now render in Sidebar.tsx (EngagementFolderNav) — this component
- *  is just the header (title + "awaiting reply" badge + refresh) and the actual scrollable
- *  rows for whichever set the folder-nav's filters resolve to (`visible`, computed in
- *  page.tsx). It still owns loading the drafts list (that data isn't needed anywhere else)
- *  and pushes its count into the shared nav context so the Drafts tab shows a live count. */
+/** Tabs/search/group-toggle render in Sidebar.tsx (EngagementFolderNav) on desktop — this
+ *  component is the actual scrollable rows for whichever set the folder-nav's filters resolve to
+ *  (`visible`, computed in page.tsx), plus (unless hideHeader) a title/"awaiting reply"/refresh
+ *  header for the mobile fallback layout, which renders this standalone. It still owns loading
+ *  the drafts list (that data isn't needed anywhere else) and pushes its count into the shared
+ *  nav context so the Drafts tab shows a live count. */
 export function ConversationList({
   leads, visible, threadMap, selectedId,
   activeTab, search, groupByCompany,
   loading, refreshing,
-  onSelect, onRefresh, onOpenDraft,
+  onSelect, onRefresh, onOpenDraft, hideHeader,
 }: ConversationListProps) {
   const { setCounts, setSearch } = useEngagementNav()
   const needsReplyCount = Object.values(threadMap)
@@ -72,26 +77,28 @@ export function ConversationList({
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex-shrink-0 flex items-center justify-between px-4 h-11 border-b border-[--border-subtle]">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-[13px] font-semibold text-foreground tracking-tight truncate">
-            {activeTab === 'all' ? 'All conversations' : activeTab === 'prospects' ? 'Prospects' : activeTab === 'clients' ? 'Clients' : 'Drafts'}
-          </span>
-          {!loading && needsReplyCount > 0 && (
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[--warning-bg] text-[--warning] flex-shrink-0">
-              {needsReplyCount} awaiting reply
+      {!hideHeader && (
+        <div className="flex-shrink-0 flex items-center justify-between px-4 h-11 border-b border-[--border-subtle]">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-[13px] font-semibold text-foreground tracking-tight truncate">
+              {activeTab === 'all' ? 'All conversations' : activeTab === 'prospects' ? 'Prospects' : activeTab === 'clients' ? 'Clients' : 'Drafts'}
             </span>
-          )}
+            {!loading && needsReplyCount > 0 && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[--warning-bg] text-[--warning] flex-shrink-0">
+                {needsReplyCount} awaiting reply
+              </span>
+            )}
+          </div>
+          <button
+            onClick={onRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-1 px-2 py-1 text-[10.5px] font-medium rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50 flex-shrink-0"
+          >
+            <RefreshCw size={10} strokeWidth={2} className={cn(refreshing && 'animate-spin')} />
+            {refreshing ? 'Syncing…' : 'Refresh'}
+          </button>
         </div>
-        <button
-          onClick={onRefresh}
-          disabled={refreshing}
-          className="flex items-center gap-1 px-2 py-1 text-[10.5px] font-medium rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50 flex-shrink-0"
-        >
-          <RefreshCw size={10} strokeWidth={2} className={cn(refreshing && 'animate-spin')} />
-          {refreshing ? 'Syncing…' : 'Refresh'}
-        </button>
-      </div>
+      )}
 
       {/* List */}
       <div className="flex-1 overflow-y-auto">

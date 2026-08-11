@@ -13,17 +13,7 @@ import { NewEmailComposeModal, type NewEmailDraft } from '@/components/engagemen
 import { EngagementShell } from '@/components/engagement/shell'
 import { EaListPanel, EaWorkspaceArea, EaWorkspaceEmptyState } from '@/components/engagement/EaLayout'
 import { useEngagementNav } from '@/providers/engagement-nav-provider'
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable'
-import { useDefaultLayout } from 'react-resizable-panels'
 import { useNarrowViewport } from '@/hooks/useNarrowViewport'
-
-// react-resizable-panels' Group sizes children by inline flex-basis %, which fights the existing
-// mobile "list OR thread, full width" show/hide (max-lg:hidden + max-lg:w-full on
-// EaListPanel/EaWorkspaceArea). Rather than fight that, only use the resizable split when
-// Sidebar.tsx also has room to show EngagementFolderNav (the SAME useNarrowViewport breakpoint —
-// they must agree, or e.g. Sidebar could hide the tab/search controls while this page still
-// renders the wide desktop split that has no other way to reach them). Below it, the original
-// simple flex stack (with its proven mobile behavior) renders unchanged.
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 
@@ -80,10 +70,16 @@ function EngagementPageInner() {
   const searchParams = useSearchParams()
   const initLeadId   = searchParams.get('lead')
 
-  // Tab/search/group-by-company filter state lives in EngagementNavProvider now — Sidebar.tsx
-  // renders the actual controls (EngagementFolderNav) since it swapped in as this route's
-  // folder-nav; this page just reads the current filter and pushes counts back up.
-  const { activeTab, search, groupByCompany, setCounts, setRefreshing: setNavRefreshing, setOnRefresh } = useEngagementNav()
+  // Tab/search/group-by-company filter state AND the list feed itself live in
+  // EngagementNavProvider now — Sidebar.tsx renders the actual conversation list (see
+  // EngagementFolderNav) since the sidebar itself becomes the thread list on this route (one
+  // column, not a folder-nav beside a separate list panel); this page owns fetching/realtime and
+  // mirrors its state up for Sidebar to render, same cross-component pattern as ChatDockProvider.
+  const {
+    activeTab, search, groupByCompany, setCounts, setRefreshing: setNavRefreshing, setOnRefresh,
+    setLeads: setNavLeads, setVisible: setNavVisible, setThreadMap: setNavThreadMap,
+    setSelectedId: setNavSelectedId, setLoading: setNavLoading, setOnSelect, setOnOpenDraft: setNavOnOpenDraft,
+  } = useEngagementNav()
 
   const [leads,           setLeads]           = useState<Lead[]>([])
   const [loading,         setLoading]         = useState(true)
@@ -94,6 +90,14 @@ function EngagementPageInner() {
   const [newCompose,      setNewCompose]      = useState<NewEmailDraft | null>(null)
 
   const setRefreshing = useCallback((v: boolean) => { setRefreshingState(v); setNavRefreshing(v) }, [setNavRefreshing])
+
+  // Mirror this page's real state into the shared context so Sidebar's EngagementFolderNav can
+  // render the actual list — page.tsx stays the single source of truth (all the fetch/realtime
+  // effects below still operate on the local state), this is purely a one-way sync.
+  useEffect(() => { setNavLeads(leads) }, [leads, setNavLeads])
+  useEffect(() => { setNavThreadMap(threadMap) }, [threadMap, setNavThreadMap])
+  useEffect(() => { setNavSelectedId(selectedId) }, [selectedId, setNavSelectedId])
+  useEffect(() => { setNavLoading(loading) }, [loading, setNavLoading])
 
   // A Nexus step targeting a recipient with no thread hands over a new-email
   // draft here (compose-only) — open the composer so it lands in Engagement.
@@ -136,6 +140,7 @@ function EngagementPageInner() {
       return new Date(tb).getTime() - new Date(ta).getTime()
     })
   }, [leads, activeTab, search, threadMap]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setNavVisible(visible) }, [visible, setNavVisible])
 
   // Load leads
   const load = useCallback(async (spinner = false) => {
@@ -319,10 +324,17 @@ function EngagementPageInner() {
   }, [load, setRefreshing])
   useEffect(() => { setOnRefresh(() => handleRefresh) }, [handleRefresh, setOnRefresh])
 
+  const handleSelect = useCallback((id: string) => { setSelectedId(id); setMobilePanelView('thread') }, [])
+  useEffect(() => { setOnSelect(() => handleSelect) }, [handleSelect, setOnSelect])
+  const handleOpenDraft = useCallback((draft: NewEmailDraft) => setNewCompose(draft), [])
+  useEffect(() => { setNavOnOpenDraft(() => handleOpenDraft) }, [handleOpenDraft, setNavOnOpenDraft])
+
   const selectedLead   = leads.find(l => l.id === selectedId) ?? null
   const selectedThread = selectedId ? threadMap[selectedId] : undefined
+  // Below the breakpoint where Sidebar can host the list (see useNarrowViewport), this page
+  // falls back to its own EaListPanel + ConversationList — the sidebar collapses to icons there
+  // and has no room for it.
   const isDesktop = !useNarrowViewport()
-  const { defaultLayout, onLayoutChanged } = useDefaultLayout({ id: 'ea-split', panelIds: ['ea-list', 'ea-workspace'] })
 
   const listContent = (
     <ConversationList
@@ -335,8 +347,8 @@ function EngagementPageInner() {
       groupByCompany={groupByCompany}
       loading={loading}
       refreshing={refreshing}
-      onSelect={id => { setSelectedId(id); setMobilePanelView('thread') }}
-      onOpenDraft={draft => setNewCompose(draft)}
+      onSelect={handleSelect}
+      onOpenDraft={handleOpenDraft}
       onRefresh={handleRefresh}
     />
   )
@@ -366,15 +378,12 @@ function EngagementPageInner() {
   return (
     <EngagementShell>
       {isDesktop ? (
-        <ResizablePanelGroup orientation="horizontal" defaultLayout={defaultLayout} onLayoutChanged={onLayoutChanged} className="flex-1 overflow-hidden">
-          <ResizablePanel id="ea-list" defaultSize="22%" minSize="16%" maxSize="40%" className="flex flex-col overflow-hidden bg-card">
-            {listContent}
-          </ResizablePanel>
-          <ResizableHandle />
-          <ResizablePanel id="ea-workspace" minSize="35%" className="flex min-w-0 overflow-hidden">
-            {workspaceContent}
-          </ResizablePanel>
-        </ResizablePanelGroup>
+        // The conversation list itself renders in Sidebar.tsx (EngagementFolderNav, fed by the
+        // context mirror above) — one column on the left, not a folder-nav beside a separate
+        // list panel. This workspace area gets the full remaining width.
+        <div className="flex flex-1 min-w-0 overflow-hidden">
+          {workspaceContent}
+        </div>
       ) : (
         <div className="flex flex-1 overflow-hidden">
           <EaListPanel mobileHidden={mobilePanelView === 'thread'}>
