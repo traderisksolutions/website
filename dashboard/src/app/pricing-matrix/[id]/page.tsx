@@ -107,33 +107,32 @@ export default function CalculatorReviewPage() {
     return row
   }, [id])
 
+  // Four SEPARATE synchronous requests (dump -> rate -> benefits -> rules), not one long
+  // backgrounded chain — on Vercel's free plan a single function's real execution ceiling is
+  // ~60s no matter what maxDuration claims, and the old one-request pipeline (up to 4 sequential
+  // AI calls) reliably exceeded that on anything but a trivial workbook. Each stage below is
+  // its own request, comfortably under that limit on its own — see pm-extract-shared.ts.
   const runExtract = useCallback(async () => {
-    // The extract route kicks the AI pipeline off in the background (Vercel `waitUntil`) and
-    // returns almost immediately — the browser's own fetch is no longer what can time out.
-    // Progress + completion are read entirely by polling /map-status, same as the progress bar
-    // already did; we just also watch `status` here to know when the whole thing is done.
-    setExtracting(true); setError(null); setProgress({ label: 'Starting…', step: 0, total: 5 })
-    const res = await fetch(`/api/pricing-matrix/calculators/${id}/extract`, { method: 'POST' })
-    const d = await safeJson<{ error?: string }>(res)
-    if (!res.ok) { setError(d.error ?? 'Could not start extraction'); setExtracting(false); setProgress(null); return }
-
-    const STALL_AFTER_MS = 5 * 60 * 1000   // give up watching (not the same as the job itself failing) after 5 minutes
-    const startedAt = Date.now()
-    await new Promise<void>(resolve => {
-      const poll = setInterval(async () => {
-        const s = await fetch(`/api/pricing-matrix/calculators/${id}/map-status`, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null)
-        if (s?.map_progress) setProgress(s.map_progress)
-        if (s?.status && s.status !== 'extracting') {
-          clearInterval(poll)
-          if (s.status === 'draft' && s.map_progress?.error) setError(s.map_progress.label)
-          resolve()
-        } else if (Date.now() - startedAt > STALL_AFTER_MS) {
-          clearInterval(poll)
-          setError('Still processing — this workbook is taking unusually long. Refresh in a minute to check, or try Re-extract again.')
-          resolve()
-        }
-      }, 1800)
-    })
+    setExtracting(true); setError(null)
+    const stages: { path: string; label: string; step: number }[] = [
+      { path: 'dump',     label: 'Reading the workbook',       step: 1 },
+      { path: 'rate',     label: 'Extracting rate tables',     step: 2 },
+      { path: 'benefits', label: 'Extracting coverage terms',  step: 3 },
+      { path: 'rules',    label: 'Reading calculation logic',  step: 4 },
+    ]
+    for (const s of stages) {
+      setProgress({ label: s.label, step: s.step, total: stages.length })
+      const res = await fetch(`/api/pricing-matrix/calculators/${id}/extract/${s.path}`, { method: 'POST' })
+      const d = await safeJson<{ error?: string }>(res)
+      if (!res.ok) {
+        // rate is the only stage that must succeed — dump validates itself, benefits/rules are
+        // best-effort and always return ok:true even on internal failure (see their routes).
+        setError(d.error ?? `${s.label} failed`)
+        setExtracting(false); setProgress(null)
+        await load()
+        return
+      }
+    }
     setExtracting(false); setProgress(null)
     await load()
   }, [id, load])
