@@ -7,6 +7,7 @@ import {
   List, ListOrdered, Link2, ImageIcon, Upload, Table2,
 } from 'lucide-react'
 import type React from 'react'
+import { cn } from '@/lib/utils'
 import 'quill/dist/quill.snow.css'
 import 'quill-table-better/dist/quill-table-better.css'
 
@@ -108,7 +109,7 @@ export function RichEditor({
         // Apply editor content styles
         const editorEl = mountRef.current.querySelector<HTMLElement>('.ql-editor')
         if (editorEl) {
-          const editorPadding = borderless ? '8px 0 4px' : '10px 12px'
+          const editorPadding = borderless ? '14px 0 8px' : '12px 14px'
           editorEl.style.cssText +=
             `;font-size:13px;line-height:1.65;color:#1e3a5f;font-family:inherit;min-height:${minHeight}px;padding:${editorPadding};outline:none`
           // Inject responsive image style so inserted images don't overflow the editor
@@ -185,86 +186,80 @@ export function RichEditor({
     }
   }
 
-  function s(active: boolean): React.CSSProperties {
-    return borderless ? {
-      padding: '4px 6px', border: '1px solid',
-      borderColor: active ? '#2563eb' : 'transparent',
-      borderRadius: 5, background: active ? '#eff6ff' : 'transparent',
-      color: active ? '#2563eb' : '#888', cursor: 'pointer',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
-    } : {
-      padding: '4px 6px', border: '1px solid',
-      borderColor: active ? '#2563eb' : '#e5e7eb',
-      borderRadius: 5, background: active ? '#eff6ff' : '#fff',
-      color: active ? '#2563eb' : '#555', cursor: 'pointer',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
-    }
+  function btnClass(active: boolean) {
+    return cn(
+      'flex items-center justify-center rounded-md w-8 h-8 leading-none transition-colors',
+      active
+        ? 'bg-primary/10 text-primary'
+        : 'text-muted-foreground/70 hover:bg-black/[.04] hover:text-foreground',
+    )
   }
 
-  const Sep = () => <div style={{ width: 1, height: 16, background: borderless ? 'transparent' : '#e5e7eb', margin: '0 3px' }} />
+  const Sep = () => <div className="w-px h-5 bg-[--border-subtle] mx-1.5 flex-shrink-0" />
 
   return (
-    <div style={borderless
-      ? { overflow: 'hidden' }
-      : { border: '1px solid #bfdbfe', borderRadius: 8, background: '#fff', overflow: 'hidden' }
+    <div className={borderless
+      ? 'overflow-hidden'
+      : 'border border-[--border-subtle] rounded-lg bg-card overflow-hidden'
     }>
 
-      {/* ── Toolbar ── */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 2,
-        padding: borderless ? '5px 0' : '5px 8px',
-        borderBottom: borderless ? 'none' : '1px solid #e5e7eb',
-        background: borderless ? 'transparent' : '#f8fafc',
-        flexWrap: 'wrap',
-      }}>
+      {/* ── Toolbar — grouped: text style | alignment | lists | insert ── */}
+      <div className={cn(
+        'flex items-center gap-0.5 flex-wrap',
+        borderless ? 'px-1 py-1.5 rounded-lg bg-muted/50' : 'px-2 py-1.5 border-b border-[--border-subtle] bg-muted/40',
+      )}>
 
-        <button type="button" title="Bold" style={s(!!fmt.bold)}
+        {/* Text style */}
+        <button type="button" title="Bold" className={btnClass(!!fmt.bold)}
           onMouseDown={e => { e.preventDefault(); apply('bold', !fmt.bold) }}>
-          <Bold size={12} strokeWidth={2.5} />
+          <Bold size={14} strokeWidth={2.5} />
         </button>
 
-        <button type="button" title="Italic" style={s(!!fmt.italic)}
+        <button type="button" title="Italic" className={btnClass(!!fmt.italic)}
           onMouseDown={e => { e.preventDefault(); apply('italic', !fmt.italic) }}>
-          <Italic size={12} strokeWidth={2} />
+          <Italic size={14} strokeWidth={2} />
         </button>
 
-        <button type="button" title="Underline" style={s(!!fmt.underline)}
+        <button type="button" title="Underline" className={btnClass(!!fmt.underline)}
           onMouseDown={e => { e.preventDefault(); apply('underline', !fmt.underline) }}>
-          <ULIcon size={12} strokeWidth={2} />
+          <ULIcon size={14} strokeWidth={2} />
         </button>
 
         <Sep />
 
-        <button type="button" title="Align left" style={s(hasSel && !fmt.align)}
+        {/* Alignment */}
+        <button type="button" title="Align left" className={btnClass(hasSel && !fmt.align)}
           onMouseDown={e => { e.preventDefault(); apply('align', false) }}>
-          <AlignLeft size={12} />
+          <AlignLeft size={14} />
         </button>
 
-        <button type="button" title="Align center" style={s(fmt.align === 'center')}
+        <button type="button" title="Align center" className={btnClass(fmt.align === 'center')}
           onMouseDown={e => { e.preventDefault(); apply('align', fmt.align === 'center' ? false : 'center') }}>
-          <AlignCenter size={12} />
+          <AlignCenter size={14} />
         </button>
 
-        <button type="button" title="Align right" style={s(fmt.align === 'right')}
+        <button type="button" title="Align right" className={btnClass(fmt.align === 'right')}
           onMouseDown={e => { e.preventDefault(); apply('align', fmt.align === 'right' ? false : 'right') }}>
-          <AlignRight size={12} />
+          <AlignRight size={14} />
         </button>
 
         <Sep />
 
-        <button type="button" title="Bullet list" style={s(fmt.list === 'bullet')}
+        {/* Lists */}
+        <button type="button" title="Bullet list" className={btnClass(fmt.list === 'bullet')}
           onMouseDown={e => { e.preventDefault(); apply('list', fmt.list === 'bullet' ? false : 'bullet') }}>
-          <List size={12} />
+          <List size={14} />
         </button>
 
-        <button type="button" title="Numbered list" style={s(fmt.list === 'ordered')}
+        <button type="button" title="Numbered list" className={btnClass(fmt.list === 'ordered')}
           onMouseDown={e => { e.preventDefault(); apply('list', fmt.list === 'ordered' ? false : 'ordered') }}>
-          <ListOrdered size={12} />
+          <ListOrdered size={14} />
         </button>
 
         <Sep />
 
-        <button type="button" title={fmt.link ? 'Remove link' : 'Insert link'} style={s(!!fmt.link)}
+        {/* Insert */}
+        <button type="button" title={fmt.link ? 'Remove link' : 'Insert link'} className={btnClass(!!fmt.link)}
           onMouseDown={e => {
             e.preventDefault()
             const q = quillRef.current
@@ -276,34 +271,30 @@ export function RichEditor({
               if (url?.trim()) q.format('link', url.trim(), 'user')
             }
           }}>
-          <Link2 size={12} />
+          <Link2 size={14} />
         </button>
 
-        <Sep />
-
-        <button type="button" title="Insert table" style={s(false)}
+        <button type="button" title="Insert table" className={btnClass(false)}
           onMouseDown={e => {
             e.preventDefault()
             const table = quillRef.current?.getModule('table-better') as TableBetterModule | undefined
             table?.insertTable(3, 3)
           }}>
-          <Table2 size={12} />
+          <Table2 size={14} />
         </button>
 
-        <Sep />
-
         {/* Image: paste URL */}
-        <button type="button" title="Insert image from URL" style={s(false)}
+        <button type="button" title="Insert image from URL" className={btnClass(false)}
           onMouseDown={e => { e.preventDefault(); handleInsertImageUrl() }}>
-          <ImageIcon size={12} />
+          <ImageIcon size={14} />
         </button>
 
         {/* Image: upload from device */}
         <label
           title={imgUploading ? 'Uploading…' : 'Upload image from device'}
-          style={{ ...s(false), cursor: imgUploading ? 'wait' : 'pointer', opacity: imgUploading ? 0.5 : 1 }}
+          className={cn(btnClass(false), imgUploading ? 'cursor-wait opacity-50' : 'cursor-pointer')}
         >
-          <Upload size={12} />
+          <Upload size={14} />
           <input
             ref={fileInputRef}
             type="file"
@@ -318,10 +309,11 @@ export function RichEditor({
       {/* ── Quill mount ── */}
       <div ref={mountRef} />
 
-      {/* ── Signature preview (non-editable) ── */}
+      {/* ── Signature preview (non-editable) — visually separated from the live typing area ── */}
       {sigHtml && (
         <div
-          style={{ borderTop: borderless ? 'none' : '1px solid #e5e7eb', padding: borderless ? '2px 0 8px' : '0 12px 10px', pointerEvents: 'none', userSelect: 'none', opacity: 0.7 }}
+          style={{ pointerEvents: 'none', userSelect: 'none', opacity: 0.7 }}
+          className={borderless ? 'mt-1 pt-3 px-0 pb-2 border-t border-[--border-subtle]' : 'px-3 pb-3 pt-2 border-t border-[--border-subtle]'}
           dangerouslySetInnerHTML={{ __html: sigHtml }}
         />
       )}

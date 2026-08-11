@@ -44,13 +44,15 @@ export function EngagementDock({
 
   return (
     <div className="flex-shrink-0 border-t border-[--border-subtle] bg-card shadow-[0_-8px_20px_-8px_rgba(15,23,42,0.16)]">
-      {/* Active panel — always in the DOM (height 0 when collapsed) so state is preserved */}
+      {/* Active panel — always in the DOM (height 0 when collapsed) so state is preserved.
+          Taller than before so the compose editor can show several lines without scrolling
+          the moment a reply opens. */}
       <div
-        className="overflow-hidden transition-[height] duration-150"
-        style={{ height: active ? 'min(calc(46vh / var(--ui-zoom)), 460px)' : 0 }}
+        className="overflow-hidden transition-[height] duration-200 ease-in-out"
+        style={{ height: active ? 'min(calc(62vh / var(--ui-zoom)), 620px)' : 0 }}
       >
         <div className="h-full overflow-y-auto">
-          {opened.has('reply')    && <div className={cn(active !== 'reply'    && 'hidden')}>{reply}</div>}
+          {opened.has('reply')    && <div className={cn('h-full', active !== 'reply'    && 'hidden')}>{reply}</div>}
           {opened.has('analysis') && <div className={cn(active !== 'analysis' && 'hidden')}>{analysis}</div>}
           {opened.has('rfq')      && <div className={cn(active !== 'rfq'      && 'hidden')}>{rfq}</div>}
           {opened.has('gbquote')  && <div className={cn(active !== 'gbquote'  && 'hidden')}>{gbquote}</div>}

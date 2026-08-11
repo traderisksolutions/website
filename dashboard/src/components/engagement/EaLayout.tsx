@@ -37,7 +37,8 @@ export function EaListPanel({ children, mobileHidden, className }: EaListPanelPr
     <div
       // Inline style for the CSS-var-driven width: Tailwind can't resolve
       // arbitrary CSS vars in w-[] at build time, so style= is the safe path.
-      style={{ width: 'var(--ea-list-w, 300px)' }}
+      // Transition keeps the sidebar-collapse-triggered resize (tokens.css) from snapping.
+      style={{ width: 'var(--ea-list-w, 300px)', transition: 'width 220ms cubic-bezier(0.4,0,0.2,1)' }}
       className={cn(
         // Layout
         'flex-shrink-0 flex flex-col overflow-hidden',

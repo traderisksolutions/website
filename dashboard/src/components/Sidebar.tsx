@@ -11,13 +11,30 @@ import {
   LogOut, BookOpen, Cpu, FolderOpen, BookMarked, Radar, History,
   Telescope, Megaphone, Settings, FlaskConical,
   LayoutDashboard, TrendingUp, ScrollText, Network, HeartPulse, Car,
-  Receipt, CalendarDays,
+  Receipt, CalendarDays, PanelLeftClose, PanelLeft,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 
 type InboundCounts = { totalNew: number }
 type StageCounts   = { engaged: number; qualified: number; proposal: number; converted: number }
+
+// Routes with their own list+detail sub-navigation (a conversation/record list next to a
+// detail view). Entering one of these auto-collapses the primary rail to icons-only so the
+// list column gets the horizontal room it needs. Add more route prefixes here as other
+// sections grow a list+detail layout.
+const LIST_DETAIL_ROUTES = ['/engagement']
+
+// Below this viewport width the rail is icon-only regardless of route or pin state — there
+// just isn't room for a labeled rail + list + detail + context panel side by side.
+const NARROW_BREAKPOINT = 1280
+
+type SidebarMode = 'auto' | 'expanded' | 'collapsed'
+
+function isListDetailRoute(pathname: string) {
+  return LIST_DETAIL_ROUTES.some(r => pathname === r || pathname.startsWith(r + '/'))
+}
 
 async function fetchInboundCounts(): Promise<InboundCounts> {
   try {
@@ -54,8 +71,29 @@ export default function Sidebar() {
   const [knowledgeOpen, setKnowledgeOpen] = useState(true)
   const [analyticsOpen, setAnalyticsOpen] = useState(true)
   const [vendorOpen,    setVendorOpen]    = useState(true)
-  const [collapsed,     setCollapsed]     = useState(false)
   const [userEmail,     setUserEmail]     = useState<string | null>(null)
+
+  // ── Collapse mode ────────────────────────────────────────────────────────
+  // 'auto'      (default) — expanded normally, auto-collapses on list+detail routes.
+  // 'expanded'  — user pinned the labeled rail open, overriding auto-collapse everywhere.
+  // 'collapsed' — user explicitly collapsed the rail, stays collapsed everywhere.
+  const [mode,   setMode]   = useState<SidebarMode>('auto')
+  const [narrow, setNarrow] = useState(false)
+  const [hydrated, setHydrated] = useState(false)
+
+  useEffect(() => {
+    const stored = localStorage.getItem('sidebar-mode')
+    if (stored === 'expanded' || stored === 'collapsed' || stored === 'auto') setMode(stored)
+    setHydrated(true)
+  }, [])
+
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${NARROW_BREAKPOINT - 1}px)`)
+    const update = () => setNarrow(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
 
   useEffect(() => {
     const load = () => {
@@ -71,14 +109,28 @@ export default function Sidebar() {
     createClient().auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null))
   }, [])
 
-  useEffect(() => {
-    if (localStorage.getItem('sidebar-collapsed') === 'true') setCollapsed(true)
-  }, [])
+  const onListDetailRoute = isListDetailRoute(pathname)
+  const collapsed = !hydrated
+    ? onListDetailRoute
+    : narrow
+      ? true
+      : mode === 'expanded'
+        ? false
+        : mode === 'collapsed'
+          ? true
+          : onListDetailRoute   // mode === 'auto'
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--sidebar-width', collapsed ? '52px' : '256px')
-    localStorage.setItem('sidebar-collapsed', String(collapsed))
+    document.documentElement.style.setProperty('--sidebar-width', collapsed ? '56px' : '256px')
+    document.documentElement.dataset.sidebarCollapsed = collapsed ? 'true' : 'false'
   }, [collapsed])
+
+  function toggle() {
+    if (narrow) return
+    const next: SidebarMode = collapsed ? 'expanded' : 'collapsed'
+    setMode(next)
+    localStorage.setItem('sidebar-mode', next)
+  }
 
   async function signOut() {
     await createClient().auth.signOut()
@@ -91,242 +143,205 @@ export default function Sidebar() {
 
   const totalEngaged = stages.engaged + stages.qualified + stages.proposal + stages.converted
 
-  // ── Collapsed (icon-rail) mode ─────────────────────────────────────────────
-  if (collapsed) {
-    return (
+  return (
+    <TooltipProvider delayDuration={200}>
       <aside
-        className="hidden lg:flex fixed inset-y-0 left-0 flex-col z-40 glass-sidebar"
-        style={{ width: 52, overflowY: 'hidden' }}
+        className="hidden lg:flex fixed inset-y-0 left-0 flex-col z-40 glass-sidebar overflow-x-hidden"
+        style={{
+          width: collapsed ? 56 : 256,
+          transition: 'width 220ms cubic-bezier(0.4,0,0.2,1)',
+        }}
       >
-        {/* Logo */}
-        <div className="h-14 flex items-center justify-center flex-shrink-0">
+        {/* ── Logo / Brand ── */}
+        <div className={cn('flex items-center h-14 flex-shrink-0', collapsed ? 'justify-center px-0' : 'gap-3 px-4')}>
           <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: 'hsl(var(--sidebar-ring))', boxShadow: '0 0 0 2px var(--primary-focus-ring)' }}
+            className="flex items-center justify-center rounded-lg flex-shrink-0"
+            style={{ width: 32, height: 32, background: 'hsl(var(--sidebar-ring))', boxShadow: '0 0 0 2px var(--primary-focus-ring)' }}
           >
             <span className="text-[10px] font-black text-white tracking-tight">TRS</span>
           </div>
+          <Label collapsed={collapsed} className="flex flex-col min-w-0 flex-1">
+            <span className="text-[13px] font-semibold leading-tight tracking-tight text-foreground whitespace-nowrap">
+              Trade Risk Solutions
+            </span>
+            <span className="text-[10.5px] leading-tight text-muted-foreground/70 whitespace-nowrap">
+              Internal Dashboard
+            </span>
+          </Label>
+          {!collapsed && !narrow && (
+            <button
+              onClick={toggle}
+              title="Collapse sidebar"
+              aria-label="Collapse sidebar"
+              className="p-1.5 rounded-md text-muted-foreground/60 hover:text-muted-foreground hover:bg-accent transition-all flex-shrink-0"
+            >
+              <PanelLeftClose size={14} strokeWidth={2} />
+            </button>
+          )}
         </div>
 
-        {/* Expand button */}
-        <button
-          onClick={() => setCollapsed(false)}
-          title="Expand sidebar"
-          aria-label="Expand sidebar"
-          className="flex-shrink-0 h-8 w-full flex items-center justify-center cursor-pointer text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-        >
-          <ChevronRight size={13} strokeWidth={2} />
-        </button>
+        {/* Pinned expand affordance — only shown collapsed, sits at the top of the icon rail */}
+        {collapsed && !narrow && (
+          <button
+            onClick={toggle}
+            title="Pin sidebar open"
+            aria-label="Pin sidebar open"
+            className="flex-shrink-0 h-8 w-full flex items-center justify-center cursor-pointer text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+          >
+            <PanelLeft size={13} strokeWidth={2} />
+          </button>
+        )}
 
-        {/* Icon-only nav */}
-        <nav className="flex-1 overflow-y-auto py-2 flex flex-col items-center gap-px">
-          <CollapsedIcon icon={LayoutDashboard} href="/" isActive={pathname === '/'}       label="Home" />
-          <CollapsedIcon icon={BookOpen}        href="/overview" isActive={active('/overview')} label="Overview" />
-          <IconDivider />
-          <CollapsedIcon icon={Inbox} href="/inbound/email" isActive={active('/inbound/email') || active('/inbound/whatsapp')} label="Inbound Leads" hasBadge={inbound.totalNew > 0} />
-          <IconDivider />
-          <CollapsedIcon icon={Telescope}     href="/outbound/agent"     isActive={active('/outbound/agent')}     label="Lead Discovery" />
-          <CollapsedIcon icon={Radar}         href="/outbound/signals"   isActive={active('/outbound/signals')}   label="Signal Library" />
-          <CollapsedIcon icon={Table2}        href="/outbound/leads"     isActive={active('/outbound/leads')}     label="Lead Database" />
-          <CollapsedIcon icon={Megaphone}     href="/outbound/campaigns" isActive={active('/outbound/campaigns')} label="Campaigns" />
-          <CollapsedIcon icon={MessageCircle} href="/outbound/replies"   isActive={active('/outbound/replies')}   label="Reply Review" />
-          <IconDivider />
-          <CollapsedIcon icon={Users}   href="/contacts"   isActive={active('/contacts')}   label="Active Contacts"  hasBadge={totalEngaged > 0} />
-          <CollapsedIcon icon={Bot}    href="/engagement" isActive={active('/engagement')} label="Engagement Agent" />
-          <CollapsedIcon icon={Network} href="/nexus"      isActive={active('/nexus')}      label="Nexus" />
-          <CollapsedIcon icon={HeartPulse} href="/pricing-matrix" isActive={active('/pricing-matrix')} label="Pricing Matrix" />
-          <CollapsedIcon icon={Receipt} href="/debit-notes" isActive={active('/debit-notes')} label="Debit Notes" />
-          <CollapsedIcon icon={CalendarDays} href="/calendar" isActive={active('/calendar')} label="Calendar" />
-          <IconDivider />
-          <CollapsedIcon icon={Car} href="/roadplus" isActive={active('/roadplus')} label="RoadPlus Reconciliation" />
-          <IconDivider />
-          <CollapsedIcon icon={BookMarked}  href="/outbound/knowledge"  isActive={active('/outbound/knowledge')}  label="Knowledge Base" />
-          <CollapsedIcon icon={FolderOpen}  href="/analytics/rag-index" isActive={active('/analytics/rag-index')} label="RAG Index" />
-          <IconDivider />
-          <CollapsedIcon icon={History}      href="/analytics/activity" isActive={active('/analytics/activity')} label="Activity Log" />
-          <CollapsedIcon icon={Cpu}          href="/analytics/ai-usage"  isActive={active('/analytics/ai-usage')}  label="AI Usage" />
-          <CollapsedIcon icon={FlaskConical} href="/analytics/eval"      isActive={active('/analytics/eval')}      label="Email Evaluation" />
-          <IconDivider />
-          <CollapsedIcon icon={TrendingUp} href="/kyn-roi"     isActive={active('/kyn-roi') && !active('/kyn-roi-log')} label="Kyn ROI" />
-          <CollapsedIcon icon={ScrollText} href="/kyn-roi-log" isActive={active('/kyn-roi-log')} label="Dev Logs" />
-          <IconDivider />
-          <CollapsedIcon icon={UsersRound} href="/team"     isActive={active('/team')}     label="Team" />
-          <CollapsedIcon icon={Settings}   href="/settings" isActive={active('/settings')} label="Settings" />
+        {/* ── Nav ── */}
+        <nav className={cn('flex-1 overflow-y-auto overflow-x-hidden py-3 space-y-px', collapsed ? 'px-2 flex flex-col items-center' : 'px-2')}>
+
+          {/* Top-level items */}
+          <NavItem label="Home"     href="/"        icon={LayoutDashboard} isActive={pathname === '/'} collapsed={collapsed} />
+          <NavItem label="Overview" href="/overview" icon={BookOpen}        isActive={active('/overview')} collapsed={collapsed} />
+
+          <SectionDivider collapsed={collapsed} />
+
+          <NavItem label="Inbound Leads" href="/inbound/email" icon={Inbox} badge={inbound.totalNew || undefined} isActive={active('/inbound/email') || active('/inbound/whatsapp')} collapsed={collapsed} />
+
+          <SectionDivider collapsed={collapsed} />
+
+          <SectionHeader label="Outbound Leads" open={outboundOpen} onToggle={() => setOutboundOpen(o => !o)} collapsed={collapsed} />
+          {(outboundOpen || collapsed) && (
+            <div className={cn('space-y-px', collapsed && 'flex flex-col items-center')}>
+              <NavItem label="Lead Discovery" href="/outbound/agent"     icon={Telescope}     isActive={active('/outbound/agent')}     collapsed={collapsed} />
+              <NavItem label="Signal Library" href="/outbound/signals"   icon={Radar}         isActive={active('/outbound/signals')}   collapsed={collapsed} />
+              <NavItem label="Lead Database"  href="/outbound/leads"     icon={Table2}        isActive={active('/outbound/leads')}     collapsed={collapsed} />
+              <NavItem label="Campaigns"      href="/outbound/campaigns" icon={Megaphone}     isActive={active('/outbound/campaigns')} collapsed={collapsed} />
+              <NavItem label="Reply Review"   href="/outbound/replies"   icon={MessageCircle} isActive={active('/outbound/replies')}   collapsed={collapsed} />
+            </div>
+          )}
+
+          <SectionDivider collapsed={collapsed} />
+
+          <SectionHeader
+            label="Engagement"
+            open={engageOpen}
+            onToggle={() => setEngageOpen(o => !o)}
+            collapsed={collapsed}
+          />
+          {(engageOpen || collapsed) && (
+            <div className={cn('space-y-px', collapsed && 'flex flex-col items-center')}>
+              <NavItem label="Active Contacts" href="/contacts"   icon={Users} isActive={active('/contacts')} collapsed={collapsed} hasBadge={totalEngaged > 0} />
+              <NavItem label="Engagement Agent" href="/engagement" icon={Bot} isActive={active('/engagement')} collapsed={collapsed} />
+              <NavItem label="Nexus" href="/nexus" icon={Network} isActive={active('/nexus')} collapsed={collapsed} />
+              <NavItem label="Pricing Matrix" href="/pricing-matrix" icon={HeartPulse} isActive={active('/pricing-matrix')} collapsed={collapsed} />
+              <NavItem label="Debit Notes" href="/debit-notes" icon={Receipt} isActive={active('/debit-notes')} collapsed={collapsed} />
+              <NavItem label="Calendar" href="/calendar" icon={CalendarDays} isActive={active('/calendar')} collapsed={collapsed} />
+            </div>
+          )}
+
+          <SectionDivider collapsed={collapsed} />
+
+          <SectionHeader label="RoadPlus" open={roadplusOpen} onToggle={() => setRoadplusOpen(o => !o)} collapsed={collapsed} />
+          {(roadplusOpen || collapsed) && (
+            <div className={cn('space-y-px', collapsed && 'flex flex-col items-center')}>
+              <NavItem label="Reconciliation" href="/roadplus" icon={Car} isActive={active('/roadplus')} collapsed={collapsed} />
+            </div>
+          )}
+
+          <SectionDivider collapsed={collapsed} />
+
+          <SectionHeader label="Knowledge" open={knowledgeOpen} onToggle={() => setKnowledgeOpen(o => !o)} collapsed={collapsed} />
+          {(knowledgeOpen || collapsed) && (
+            <div className={cn('space-y-px', collapsed && 'flex flex-col items-center')}>
+              <NavItem label="Knowledge Base" href="/outbound/knowledge"  icon={BookMarked} isActive={active('/outbound/knowledge')} collapsed={collapsed} />
+              <NavItem label="RAG Index"      href="/analytics/rag-index" icon={FolderOpen} isActive={active('/analytics/rag-index')} collapsed={collapsed} />
+            </div>
+          )}
+
+          <SectionDivider collapsed={collapsed} />
+
+          <SectionHeader label="Analytics" open={analyticsOpen} onToggle={() => setAnalyticsOpen(o => !o)} collapsed={collapsed} />
+          {(analyticsOpen || collapsed) && (
+            <div className={cn('space-y-px', collapsed && 'flex flex-col items-center')}>
+              <NavItem label="Funnel"           href="/analytics"           icon={BarChart2}    isActive={active('/analytics') && !active('/analytics/ai-usage') && !active('/analytics/activity') && !active('/analytics/eval') && !active('/analytics/rag-index')} disabled collapsed={collapsed} />
+              <NavItem label="Activity Log"     href="/analytics/activity"  icon={History}      isActive={active('/analytics/activity')} collapsed={collapsed} />
+              <NavItem label="AI Usage"         href="/analytics/ai-usage"  icon={Cpu}          isActive={active('/analytics/ai-usage')} collapsed={collapsed} />
+              <NavItem label="Email Evaluation" href="/analytics/eval"      icon={FlaskConical} isActive={active('/analytics/eval')} collapsed={collapsed} />
+            </div>
+          )}
+
+          <SectionDivider collapsed={collapsed} />
+
+          <SectionHeader label="Vendor Analytics" open={vendorOpen} onToggle={() => setVendorOpen(o => !o)} collapsed={collapsed} />
+          {(vendorOpen || collapsed) && (
+            <div className={cn('space-y-px', collapsed && 'flex flex-col items-center')}>
+              <NavItem label="Kyn ROI"  href="/kyn-roi"     icon={TrendingUp} isActive={active('/kyn-roi') && !active('/kyn-roi-log')} collapsed={collapsed} />
+              <NavItem label="Dev Logs" href="/kyn-roi-log" icon={ScrollText} isActive={active('/kyn-roi-log')} collapsed={collapsed} />
+            </div>
+          )}
+
+          <SectionDivider collapsed={collapsed} />
+
+          <NavItem label="Claims"   href="/claims"   icon={AlertCircle} isActive={active('/claims')}   disabled collapsed={collapsed} />
+          <NavItem label="Team"     href="/team"     icon={UsersRound}  isActive={active('/team')} collapsed={collapsed} />
+          <NavItem label="Settings" href="/settings" icon={Settings}    isActive={active('/settings')} collapsed={collapsed} />
+
         </nav>
 
-        {/* Footer */}
-        <div className="py-3 flex flex-col items-center gap-2 flex-shrink-0">
-          <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-[11px] font-bold text-accent-foreground">
+        {/* ── Footer ── */}
+        <div className={cn('flex items-center flex-shrink-0 py-3', collapsed ? 'flex-col gap-2 px-0' : 'gap-2.5 px-3')}>
+          <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-[11px] font-bold text-accent-foreground flex-shrink-0">
             {userEmail ? userEmail[0].toUpperCase() : '?'}
           </div>
+          <Label collapsed={collapsed} className="flex-1 min-w-0">
+            <span className="text-[11.5px] block overflow-hidden text-ellipsis whitespace-nowrap text-muted-foreground">
+              {userEmail ?? '—'}
+            </span>
+          </Label>
           <button
             onClick={signOut}
             title="Sign out"
             aria-label="Sign out"
-            className="p-1.5 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+            className="p-1.5 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors flex-shrink-0"
           >
             <LogOut size={13} strokeWidth={2} />
           </button>
         </div>
       </aside>
-    )
-  }
-
-  // ── Expanded mode ──────────────────────────────────────────────────────────
-  return (
-    <aside
-      className="hidden lg:flex fixed inset-y-0 left-0 flex-col z-40 overflow-y-auto glass-sidebar"
-      style={{ width: 'var(--sidebar-width)' }}
-    >
-      {/* ── Logo / Brand ── */}
-      <div className="flex items-center gap-3 px-4 h-14 flex-shrink-0">
-        <div
-          className="flex items-center justify-center rounded-lg flex-shrink-0"
-          style={{ width: 32, height: 32, background: 'hsl(var(--sidebar-ring))', boxShadow: '0 0 0 2px var(--primary-focus-ring)' }}
-        >
-          <span className="text-[10px] font-black text-white tracking-tight">TRS</span>
-        </div>
-        <div className="flex flex-col min-w-0 flex-1">
-          <span className="text-[13px] font-semibold leading-tight tracking-tight text-foreground">
-            Trade Risk Solutions
-          </span>
-          <span className="text-[10.5px] leading-tight text-muted-foreground/70">
-            Internal Dashboard
-          </span>
-        </div>
-        <button
-          onClick={() => setCollapsed(true)}
-          title="Collapse sidebar"
-          aria-label="Collapse sidebar"
-          className="p-1.5 rounded-md text-muted-foreground/60 hover:text-muted-foreground hover:bg-accent transition-all flex-shrink-0"
-        >
-          <ChevronLeft size={14} strokeWidth={2} />
-        </button>
-      </div>
-
-      {/* ── Nav ── */}
-      <nav className="flex-1 px-2 py-3 space-y-px">
-
-        {/* Top-level items */}
-        <NavItem label="Home"     href="/"        icon={LayoutDashboard} isActive={pathname === '/'} />
-        <NavItem label="Overview" href="/overview" icon={BookOpen}        isActive={active('/overview')} />
-
-        <SectionDivider />
-
-        <NavItem label="Inbound Leads" href="/inbound/email" icon={Inbox} badge={inbound.totalNew || undefined} isActive={active('/inbound/email') || active('/inbound/whatsapp')} />
-
-        <SectionDivider />
-
-        <SectionHeader label="Outbound Leads" open={outboundOpen} onToggle={() => setOutboundOpen(o => !o)} />
-        {outboundOpen && (
-          <div className="space-y-px">
-            <NavItem label="Lead Discovery" href="/outbound/agent"     icon={Telescope}     isActive={active('/outbound/agent')} />
-            <NavItem label="Signal Library" href="/outbound/signals"   icon={Radar}         isActive={active('/outbound/signals')} />
-            <NavItem label="Lead Database"  href="/outbound/leads"     icon={Table2}        isActive={active('/outbound/leads')} />
-            <NavItem label="Campaigns"      href="/outbound/campaigns" icon={Megaphone}     isActive={active('/outbound/campaigns')} />
-            <NavItem label="Reply Review"   href="/outbound/replies"   icon={MessageCircle} isActive={active('/outbound/replies')} />
-          </div>
-        )}
-
-        <SectionDivider />
-
-        <SectionHeader
-          label="Engagement"
-          open={engageOpen}
-          onToggle={() => setEngageOpen(o => !o)}
-        />
-        {engageOpen && (
-          <div className="space-y-px">
-            <NavItem label="Active Contacts" href="/contacts"   icon={Users} isActive={active('/contacts')} />
-            <NavItem label="Engagement Agent" href="/engagement" icon={Bot} isActive={active('/engagement')} />
-            <NavItem label="Nexus" href="/nexus" icon={Network} isActive={active('/nexus')} />
-            <NavItem label="Pricing Matrix" href="/pricing-matrix" icon={HeartPulse} isActive={active('/pricing-matrix')} />
-            <NavItem label="Debit Notes" href="/debit-notes" icon={Receipt} isActive={active('/debit-notes')} />
-            <NavItem label="Calendar" href="/calendar" icon={CalendarDays} isActive={active('/calendar')} />
-          </div>
-        )}
-
-        <SectionDivider />
-
-        <SectionHeader label="RoadPlus" open={roadplusOpen} onToggle={() => setRoadplusOpen(o => !o)} />
-        {roadplusOpen && (
-          <div className="space-y-px">
-            <NavItem label="Reconciliation" href="/roadplus" icon={Car} isActive={active('/roadplus')} />
-          </div>
-        )}
-
-        <SectionDivider />
-
-        <SectionHeader label="Knowledge" open={knowledgeOpen} onToggle={() => setKnowledgeOpen(o => !o)} />
-        {knowledgeOpen && (
-          <div className="space-y-px">
-            <NavItem label="Knowledge Base" href="/outbound/knowledge"  icon={BookMarked} isActive={active('/outbound/knowledge')} />
-            <NavItem label="RAG Index"      href="/analytics/rag-index" icon={FolderOpen} isActive={active('/analytics/rag-index')} />
-          </div>
-        )}
-
-        <SectionDivider />
-
-        <SectionHeader label="Analytics" open={analyticsOpen} onToggle={() => setAnalyticsOpen(o => !o)} />
-        {analyticsOpen && (
-          <div className="space-y-px">
-            <NavItem label="Funnel"           href="/analytics"           icon={BarChart2}    isActive={active('/analytics') && !active('/analytics/ai-usage') && !active('/analytics/activity') && !active('/analytics/eval') && !active('/analytics/rag-index')} disabled />
-            <NavItem label="Activity Log"     href="/analytics/activity"  icon={History}      isActive={active('/analytics/activity')} />
-            <NavItem label="AI Usage"         href="/analytics/ai-usage"  icon={Cpu}          isActive={active('/analytics/ai-usage')} />
-            <NavItem label="Email Evaluation" href="/analytics/eval"      icon={FlaskConical} isActive={active('/analytics/eval')} />
-          </div>
-        )}
-
-        <SectionDivider />
-
-        <SectionHeader label="Vendor Analytics" open={vendorOpen} onToggle={() => setVendorOpen(o => !o)} />
-        {vendorOpen && (
-          <div className="space-y-px">
-            <NavItem label="Kyn ROI"  href="/kyn-roi"     icon={TrendingUp} isActive={active('/kyn-roi') && !active('/kyn-roi-log')} />
-            <NavItem label="Dev Logs" href="/kyn-roi-log" icon={ScrollText} isActive={active('/kyn-roi-log')} />
-          </div>
-        )}
-
-        <SectionDivider />
-
-        <NavItem label="Claims"   href="/claims"   icon={AlertCircle} isActive={active('/claims')}   disabled />
-        <NavItem label="Team"     href="/team"     icon={UsersRound}  isActive={active('/team')} />
-        <NavItem label="Settings" href="/settings" icon={Settings}    isActive={active('/settings')} />
-
-      </nav>
-
-      {/* ── Footer ── */}
-      <div className="flex items-center gap-2.5 px-3 py-3 flex-shrink-0">
-        <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-[11px] font-bold text-accent-foreground flex-shrink-0">
-          {userEmail ? userEmail[0].toUpperCase() : '?'}
-        </div>
-        <span className="text-[11.5px] flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-muted-foreground">
-          {userEmail ?? '—'}
-        </span>
-        <button
-          onClick={signOut}
-          title="Sign out"
-          aria-label="Sign out"
-          className="p-1.5 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors flex-shrink-0"
-        >
-          <LogOut size={13} strokeWidth={2} />
-        </button>
-      </div>
-    </aside>
+    </TooltipProvider>
   )
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
-function SectionDivider() {
-  return <div className="my-2 h-px bg-[--border-subtle]" />
+/** Fades/shrinks a label out when the rail collapses, rather than unmounting it — keeps the
+ *  transition smooth instead of an instant snap between two different DOM trees. */
+function Label({ collapsed, children, className }: { collapsed: boolean; children: React.ReactNode; className?: string }) {
+  return (
+    <div
+      className={className}
+      style={{
+        opacity: collapsed ? 0 : 1,
+        maxWidth: collapsed ? 0 : 220,
+        marginLeft: collapsed ? 0 : undefined,
+        overflow: 'hidden',
+        transition: 'opacity 140ms ease, max-width 200ms ease, margin-left 200ms ease',
+        pointerEvents: collapsed ? 'none' : undefined,
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
+function SectionDivider({ collapsed }: { collapsed: boolean }) {
+  return collapsed
+    ? <div className="w-7 h-px my-1.5 bg-[--border-subtle]" />
+    : <div className="my-2 h-px bg-[--border-subtle]" />
 }
 
 function SectionHeader({
-  label, open, onToggle, badge,
+  label, open, onToggle, badge, collapsed,
 }: {
-  label: string; open: boolean; onToggle: () => void; badge?: number
+  label: string; open: boolean; onToggle: () => void; badge?: number; collapsed: boolean
 }) {
+  if (collapsed) return null   // collapsed rail shows all items flat — no section chrome to toggle
   return (
     <button
       onClick={onToggle}
@@ -346,11 +361,43 @@ function SectionHeader({
 }
 
 function NavItem({
-  label, href, icon: Icon, badge, isActive, disabled,
+  label, href, icon: Icon, badge, isActive, disabled, collapsed, hasBadge,
 }: {
   label: string; href: string; icon: React.ElementType
-  badge?: number; isActive: boolean; disabled?: boolean
+  badge?: number; isActive: boolean; disabled?: boolean; collapsed: boolean; hasBadge?: boolean
 }) {
+  if (collapsed) {
+    const inner = (
+      <span
+        className={cn(
+          'relative flex items-center justify-center rounded-lg transition-colors',
+          isActive
+            ? 'bg-accent text-accent-foreground'
+            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+          disabled && 'opacity-35 pointer-events-none',
+        )}
+        style={{ width: 36, height: 36 }}
+      >
+        <Icon size={16} strokeWidth={isActive ? 2.2 : 1.8} className="flex-shrink-0" />
+        {(hasBadge || (badge !== undefined && badge > 0)) && (
+          <span className="absolute top-[7px] right-[7px] w-1.5 h-1.5 rounded-full bg-primary border-2 border-white" />
+        )}
+      </span>
+    )
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {disabled ? (
+            <div>{inner}</div>
+          ) : (
+            <Link href={href} className="no-underline" aria-current={isActive ? 'page' : undefined}>{inner}</Link>
+          )}
+        </TooltipTrigger>
+        <TooltipContent side="right">{label}</TooltipContent>
+      </Tooltip>
+    )
+  }
+
   const row = (
     <span
       className={cn(
@@ -401,45 +448,4 @@ function NavBadge({ count }: { count: number }) {
       {count > 99 ? '99+' : count}
     </span>
   )
-}
-
-
-// ── Collapsed-mode icon components ─────────────────────────────────────────────
-
-function CollapsedIcon({
-  icon: Icon, href, isActive, label, hasBadge, disabled,
-}: {
-  icon: React.ElementType; href: string; isActive: boolean
-  label: string; hasBadge?: boolean; disabled?: boolean
-}) {
-  const inner = (
-    <span
-      title={label}
-      className={cn(
-        'relative flex items-center justify-center rounded-lg transition-colors',
-        isActive
-          ? 'bg-accent text-accent-foreground'
-          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-        disabled && 'opacity-35 pointer-events-none',
-      )}
-      style={{ width: 36, height: 36 }}
-    >
-      <Icon
-        size={16}
-        strokeWidth={isActive ? 2.2 : 1.8}
-        className="flex-shrink-0"
-      />
-      {hasBadge && (
-        <span className="absolute top-[7px] right-[7px] w-1.5 h-1.5 rounded-full bg-primary border-2 border-white" />
-      )}
-    </span>
-  )
-
-  return disabled
-    ? <div>{inner}</div>
-    : <Link href={href} className="no-underline" aria-current={isActive ? 'page' : undefined}>{inner}</Link>
-}
-
-function IconDivider() {
-  return <div className="w-7 h-px my-0.5 bg-[--border-subtle]" />
 }

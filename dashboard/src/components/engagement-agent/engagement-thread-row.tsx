@@ -38,7 +38,7 @@ export function EngagementThreadRow({
       aria-pressed={isActive}
       className={cn(
         'w-full text-left border-b border-[--border-subtle]',
-        'flex items-start gap-2.5 px-3 py-2.5',
+        'flex items-start gap-3 px-3.5 py-3',
         'border-l-2 outline-none transition-colors',
         'focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary/30',
         // Active
@@ -75,18 +75,18 @@ export function EngagementThreadRow({
               {name || lead.email?.split('@')[0] || '—'}
             </span>
             {context && (
-              <span className="text-[10.5px] text-muted-foreground/60 font-normal flex-shrink-0 truncate max-w-[80px]">
+              <span className="text-[10.5px] text-muted-foreground/60 font-normal flex-shrink-0 truncate max-w-[140px]">
                 {context}
               </span>
             )}
           </div>
-          <span className="text-[10px] text-muted-foreground/60 tabular-nums flex-shrink-0 leading-tight">
+          <span className="text-[10.5px] text-muted-foreground/60 tabular-nums flex-shrink-0 leading-tight whitespace-nowrap">
             {timeAgo(timestamp)}
           </span>
         </div>
 
         {/* Row 2: Subject snippet + state indicators */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           <p className="flex-1 text-[11px] text-muted-foreground/65 truncate leading-snug m-0">
             {snippet}
           </p>
@@ -98,7 +98,7 @@ export function EngagementThreadRow({
 
           {/* Triage category badge — rfq / claim / renewal only (badge, not action) */}
           {lead.category && CATEGORY_BADGE[lead.category] && (
-            <span className="flex-shrink-0 text-[8.5px] font-bold uppercase tracking-wide px-1.5 py-[1px] rounded-sm"
+            <span className="flex-shrink-0 text-[8.5px] font-bold uppercase tracking-wide px-2 py-[2px] rounded-sm whitespace-nowrap"
               style={{ background: CATEGORY_BADGE[lead.category].bg, color: CATEGORY_BADGE[lead.category].color }}>
               {CATEGORY_BADGE[lead.category].label}
             </span>
@@ -106,7 +106,7 @@ export function EngagementThreadRow({
 
           {/* Campaign tag — present but minimal, not a loud chip */}
           {isCampaign && (
-            <span className="flex-shrink-0 text-[8.5px] font-bold px-1.5 py-[1px] rounded-sm bg-[--warning-bg] text-[--warning]">
+            <span className="flex-shrink-0 text-[8.5px] font-bold px-2 py-[2px] rounded-sm bg-[--warning-bg] text-[--warning]">
               C
             </span>
           )}
