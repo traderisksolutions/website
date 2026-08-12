@@ -1,5 +1,5 @@
 /**
- * POST /api/pricing-matrix/calculators/[id]/extract/rules — STAGE 4 of 4 (final).
+ * POST /api/pricing-matrix/calculators/[id]/extract/rules — STAGE 6 of 6 (final).
  * Reads the dump the first stage persisted, detects the Excel's shape and translates its
  * calculation logic (see pm-rules-extract.ts) — best-effort, a calculator with no translatable
  * logic (the common case, a plain rate grid) simply gets no pm_computation_rules row. This is the
@@ -27,7 +27,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     const calc = await loadCalc(id)
     if (!calc) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    await patchCalc(id, { map_progress: { label: 'Reading calculation logic', step: 5, total: 5, at: new Date().toISOString() } })
+    await patchCalc(id, { map_progress: { label: 'Reading calculation logic', step: 6, total: 6, at: new Date().toISOString() } })
     const brochureBase64 = await fetchBrochureBase64(calc.brochure_path)
 
     let steps = 0

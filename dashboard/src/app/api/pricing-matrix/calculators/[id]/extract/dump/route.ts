@@ -1,12 +1,12 @@
 /**
- * POST /api/pricing-matrix/calculators/[id]/extract/dump — STAGE 1 of 4.
+ * POST /api/pricing-matrix/calculators/[id]/extract/dump — STAGE 1 of 6.
  *
  * Resets the calculator for a fresh extraction (status='extracting', clears old reconciliation
  * issues) and runs the mechanical xlsx dump (Python, no AI — typically a few seconds). Persists
- * the dump to pm_calculators.workbook_summary so stages 2-4 (rate/benefits/rules) read it back
- * instead of re-invoking the Python service each time. The review page (runExtract) calls this,
- * then rate, then benefits, then rules, each a normal synchronous request — see pm-extract-shared.ts
- * for why this is 4 short calls instead of one long backgrounded one.
+ * the dump to pm_calculators.workbook_summary so every later stage reads it back instead of
+ * re-invoking the Python service. The review page (runExtract) calls this, then rate-plan, then
+ * rate once per sheet-batch, then rate-finalize, then benefits, then rules — each a normal
+ * synchronous request comfortably under Vercel's free-plan ~60s ceiling — see pm-extract-shared.ts.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
@@ -28,7 +28,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     if (!calc) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     if (!calc.xlsx_path && !calc.brochure_path) return NextResponse.json({ error: 'Calculator has no uploaded xlsx or brochure' }, { status: 400 })
 
-    await patchCalc(id, { status: 'extracting', map_progress: { label: 'Reading the workbook', step: 1, total: 5, at: new Date().toISOString() } })
+    await patchCalc(id, { status: 'extracting', map_progress: { label: 'Reading the workbook', step: 1, total: 6, at: new Date().toISOString() } })
     await fetch(`${SB_URL}/rest/v1/pm_reconciliation_issues?calculator_id=eq.${id}`, { method: 'DELETE', headers: sbH('return=minimal') }).catch(() => {})
 
     let dump: unknown = null

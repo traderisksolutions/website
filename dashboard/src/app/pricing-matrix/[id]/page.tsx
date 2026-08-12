@@ -115,28 +115,55 @@ export default function CalculatorReviewPage() {
   // pm-extract-shared.ts and pm-rates-extract.ts's readRateTables/finalizeRateTable.
   const runExtract = useCallback(async () => {
     setExtracting(true); setError(null)
-    const stages: { path: string; label: string; step: number }[] = [
-      { path: 'dump',           label: 'Reading the workbook',       step: 1 },
-      { path: 'rate',           label: 'Reading rates — Opus & Gemini', step: 2 },
-      { path: 'rate-finalize',  label: 'Cross-checking every rate',  step: 3 },
-      { path: 'benefits',       label: 'Extracting coverage terms',  step: 4 },
-      { path: 'rules',          label: 'Reading calculation logic',  step: 5 },
-    ]
-    for (const s of stages) {
-      setProgress({ label: s.label, step: s.step, total: stages.length })
-      const res = await fetch(`/api/pricing-matrix/calculators/${id}/extract/${s.path}`, { method: 'POST' })
-      const d = await safeJson<{ error?: string }>(res)
-      if (!res.ok) {
-        // rate/rate-finalize are the only stages that must succeed — dump validates itself,
-        // benefits/rules are best-effort and always return ok:true even on internal failure.
-        // Stage name always prefixed — a raw 504 body isn't JSON, so d.error alone (e.g. "HTTP
-        // 504") would otherwise hide WHICH stage timed out, the one thing worth knowing to debug it.
-        setError(`${s.path} stage failed: ${d.error ?? `HTTP ${res.status}`}`)
-        setExtracting(false); setProgress(null)
-        await load()
-        return
-      }
+    const TOTAL = 6
+    const call = async (path: string, body?: Record<string, unknown>) =>
+      fetch(`/api/pricing-matrix/calculators/${id}/extract/${path}`, {
+        method: 'POST', headers: body ? { 'Content-Type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined,
+      })
+    const fail = async (path: string, d: { error?: string }, res: Response) => {
+      // Stage name always prefixed — a raw 504 body isn't JSON, so d.error alone (e.g. "HTTP 504")
+      // would otherwise hide WHICH stage timed out, the one thing worth knowing to debug it.
+      setError(`${path} stage failed: ${d.error ?? `HTTP ${res.status}`}`)
+      setExtracting(false); setProgress(null)
+      await load()
     }
+
+    setProgress({ label: 'Reading the workbook', step: 1, total: TOTAL })
+    let res = await call('dump')
+    let d = await safeJson<{ error?: string }>(res)
+    if (!res.ok) { await fail('dump', d, res); return }
+
+    // Rate extraction is split by workbook sheet (see extract/rate-plan) so no single AI call ever
+    // has to embed the whole workbook as inline JSON text — the thing that was pushing extraction
+    // past Vercel's free-plan execution ceiling on larger calculators.
+    setProgress({ label: 'Planning rate extraction', step: 2, total: TOTAL })
+    res = await call('rate-plan')
+    const plan = await safeJson<{ batches?: string[][]; error?: string }>(res)
+    if (!res.ok) { await fail('rate-plan', plan, res); return }
+    const batches = plan.batches ?? [[]]
+
+    for (let i = 0; i < batches.length; i++) {
+      setProgress({ label: batches.length > 1 ? `Reading rates — sheet batch ${i + 1} of ${batches.length}` : 'Reading rates — Opus & Gemini', step: 3, total: TOTAL })
+      res = await call('rate', { sheets: batches[i], batchIndex: i, batchTotal: batches.length })
+      d = await safeJson<{ error?: string }>(res)
+      if (!res.ok) { await fail('rate', d, res); return }
+    }
+
+    setProgress({ label: 'Cross-checking every rate', step: 4, total: TOTAL })
+    res = await call('rate-finalize')
+    d = await safeJson<{ error?: string }>(res)
+    if (!res.ok) { await fail('rate-finalize', d, res); return }
+
+    setProgress({ label: 'Extracting coverage terms', step: 5, total: TOTAL })
+    res = await call('benefits')
+    d = await safeJson<{ error?: string }>(res)
+    if (!res.ok) { await fail('benefits', d, res); return }
+
+    setProgress({ label: 'Reading calculation logic', step: 6, total: TOTAL })
+    res = await call('rules')
+    d = await safeJson<{ error?: string }>(res)
+    if (!res.ok) { await fail('rules', d, res); return }
+
     setExtracting(false); setProgress(null)
     await load()
   }, [id, load])

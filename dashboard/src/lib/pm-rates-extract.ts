@@ -234,6 +234,31 @@ async function adjudicate(dump: unknown, brochureBase64: string | undefined, con
 
 export type RateReadings = { opus: ExtractedRateTable | null; gemini: ExtractedRateTable | null; opusError?: string; geminiError?: string }
 
+/** Combines one RateReadings per sheet-batch (see pm-extract-shared.ts's planSheetBatches) into a
+ *  single reading per model, so the existing reconcile/adjudicate/merge logic below runs exactly
+ *  once against the full picture regardless of how many batches the read was split into. Each
+ *  batch covers different sheets, so this is a concatenation, not a comparison — the rate/rule
+ *  fields that DO need cross-model comparison still happen downstream in finalizeRateTable. */
+export function mergeRateReadings(batches: RateReadings[]): RateReadings {
+  const mergeTables = (tables: ExtractedRateTable[]): ExtractedRateTable | null => {
+    if (!tables.length) return null
+    return {
+      age_basis: tables.find(t => t.age_basis)?.age_basis ?? null,
+      source: tables.find(t => t.source)?.source,
+      coverages: tables.flatMap(t => t.coverages ?? []),
+      rules: tables.reduce((acc, t) => ({ ...acc, ...t.rules }), {} as Rules),
+    }
+  }
+  const opusTables = batches.map(b => b.opus).filter((t): t is ExtractedRateTable => !!t)
+  const geminiTables = batches.map(b => b.gemini).filter((t): t is ExtractedRateTable => !!t)
+  return {
+    opus: mergeTables(opusTables),
+    gemini: mergeTables(geminiTables),
+    opusError: opusTables.length ? undefined : batches.map(b => b.opusError).filter(Boolean).join('; ') || undefined,
+    geminiError: geminiTables.length ? undefined : batches.map(b => b.geminiError).filter(Boolean).join('; ') || undefined,
+  }
+}
+
 /** Phase 1: the parallel Opus + Gemini read only — no reconciliation, no judge call. */
 export async function readRateTables(
   dump: unknown, brochureBase64: string | undefined, categoryPromptList: string, onStep?: StepFn,

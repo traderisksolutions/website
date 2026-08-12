@@ -47,3 +47,61 @@ export async function fetchBrochureBase64(path: string | null): Promise<string |
     return Buffer.from(await res.arrayBuffer()).toString('base64')
   } catch { return undefined }
 }
+
+/**
+ * Sheet-batch planning for the rate stage. Even with pm_dump.py's caps, a workbook with several
+ * dense rate sheets still puts the WHOLE dump (embedded as inline JSON text) into one AI call —
+ * that alone can be enough to blow Vercel's free-plan ~60s ceiling on a large workbook. This
+ * splits extraction so each AI call only ever sees the cells from a small group of sheets, never
+ * the full dump — see extract/rate-plan and extract/rate/route.ts.
+ */
+type DumpSheet = { name: string }
+type DumpShape = {
+  sheets?: DumpSheet[]
+  values?: Record<string, Record<string, unknown>>
+  formulas?: Record<string, Record<string, unknown>>
+  previews?: Record<string, unknown>
+  validations?: Record<string, unknown>
+  notes_text?: string
+}
+
+/** Groups sheets that actually carry data into batches capped at ~maxCellsPerBatch cells each
+ *  (values + formulas combined). A single oversized sheet still gets its own solo batch — never
+ *  dropped, just not merged with anything else. Order follows pm_dump.py's own priority order
+ *  (rate-hinted sheets already sorted first), so the first batch is the one most likely to matter. */
+export function planSheetBatches(dump: unknown, maxCellsPerBatch = 700): string[][] {
+  const d = dump as DumpShape | null
+  if (!d) return []
+  const sized = (d.sheets ?? [])
+    .map(s => ({ name: s.name, cells: Object.keys(d.values?.[s.name] ?? {}).length + Object.keys(d.formulas?.[s.name] ?? {}).length }))
+    .filter(s => s.cells > 0)
+  if (!sized.length) return []
+
+  const batches: string[][] = []
+  let current: string[] = []
+  let currentCells = 0
+  for (const s of sized) {
+    if (current.length && currentCells + s.cells > maxCellsPerBatch) { batches.push(current); current = []; currentCells = 0 }
+    current.push(s.name); currentCells += s.cells
+  }
+  if (current.length) batches.push(current)
+  return batches
+}
+
+/** A dump narrowed to only the given sheet names — same shape, so it drops straight into the
+ *  same extraction prompt as the full dump, just with far less inline JSON text per call. */
+export function subDump(dump: unknown, sheetNames: string[]): unknown {
+  const d = dump as DumpShape | null
+  if (!d) return null
+  const names = new Set(sheetNames)
+  const pick = <T,>(obj: Record<string, T> | undefined) =>
+    obj ? Object.fromEntries(Object.entries(obj).filter(([k]) => names.has(k))) : undefined
+  return {
+    sheets: (d.sheets ?? []).filter(s => names.has(s.name)),
+    values: pick(d.values),
+    formulas: pick(d.formulas),
+    previews: pick(d.previews),
+    validations: pick(d.validations),
+    notes_text: d.notes_text,
+  }
+}

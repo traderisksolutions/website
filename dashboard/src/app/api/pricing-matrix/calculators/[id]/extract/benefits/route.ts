@@ -1,5 +1,5 @@
 /**
- * POST /api/pricing-matrix/calculators/[id]/extract/benefits — STAGE 3 of 4.
+ * POST /api/pricing-matrix/calculators/[id]/extract/benefits — STAGE 5 of 6.
  * Reads the dump the first stage persisted, runs the coverage/benefit-wordings extraction
  * (Opus + Gemini), and persists pm_benefit_terms + any term conflicts. Best-effort — unlike the
  * rate stage, a failure here doesn't fail the whole extraction (a calculator without terms just
@@ -26,7 +26,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     const calc = await loadCalc(id)
     if (!calc) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    await patchCalc(id, { map_progress: { label: 'Extracting coverage terms', step: 4, total: 5, at: new Date().toISOString() } })
+    await patchCalc(id, { map_progress: { label: 'Extracting coverage terms', step: 5, total: 6, at: new Date().toISOString() } })
     const [brochureBase64, categoryPromptList] = await Promise.all([
       fetchBrochureBase64(calc.brochure_path),
       activeCategoryPromptList(),

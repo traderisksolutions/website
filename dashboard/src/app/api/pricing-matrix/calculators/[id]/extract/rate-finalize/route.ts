@@ -1,13 +1,15 @@
 /**
- * POST /api/pricing-matrix/calculators/[id]/extract/rate-finalize — STAGE 2b of 5.
- * Reads the two raw readings the previous stage stashed in pm_calculators.pricing, reconciles
- * them, runs the judge on any disputed cells, merges rules, resolves taxonomy categories, and
+ * POST /api/pricing-matrix/calculators/[id]/extract/rate-finalize — STAGE 2c of 6.
+ * Reads back every per-sheet-batch reading the rate stage appended to pm_calculators.pricing,
+ * merges them into one combined reading per model (see mergeRateReadings — different batches
+ * cover different sheets, so this is concatenation, not comparison), then reconciles Opus vs
+ * Gemini, runs the judge on any disputed cells, merges rules, resolves taxonomy categories, and
  * persists the final pm_rate_tables. Clears the scratch column when done either way.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { SB_URL, sbH }               from '@/lib/pm-storage'
-import { finalizeRateTable }         from '@/lib/pm-rates-extract'
+import { finalizeRateTable, mergeRateReadings } from '@/lib/pm-rates-extract'
 import type { RateReadings }         from '@/lib/pm-rates-extract'
 import { resolveExtractedCategories } from '@/lib/pm-taxonomy'
 import type { ExtractedItem }        from '@/lib/pm-taxonomy'
@@ -25,17 +27,18 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
     const calc = await loadCalc(id)
     if (!calc) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    const readings = calc.pricing as RateReadings | null
-    if (!readings) return NextResponse.json({ error: 'No rate readings to finalize — run the rate stage first' }, { status: 400 })
+    const batchReadings = calc.pricing as RateReadings[] | null
+    if (!batchReadings || !batchReadings.length) return NextResponse.json({ error: 'No rate readings to finalize — run the rate stage first' }, { status: 400 })
+    const readings = mergeRateReadings(batchReadings)
 
-    await patchCalc(id, { map_progress: { label: 'Cross-checking every rate', step: 3, total: 5, at: new Date().toISOString() } })
+    await patchCalc(id, { map_progress: { label: 'Cross-checking every rate', step: 4, total: 6, at: new Date().toISOString() } })
     const brochureBase64 = await fetchBrochureBase64(calc.brochure_path)
 
     const { table, accuracy, ruleConflicts, error: rateError } = await finalizeRateTable(readings, calc.workbook_summary, brochureBase64)
     await patchCalc(id, { pricing: null })   // clear the scratch column either way
     if (!table) {
       void logRun(id, { kind: 'rate_extract', ok: false, error: rateError, duration_ms: Date.now() - t0 })
-      await failExtraction(id, `Rate extraction failed: ${rateError ?? 'unknown error'}`, 3, 5)
+      await failExtraction(id, `Rate extraction failed: ${rateError ?? 'unknown error'}`, 4, 6)
       return NextResponse.json({ error: rateError ?? 'Rate extraction failed' }, { status: 502 })
     }
 
@@ -58,7 +61,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ ok: true, coverages: table.coverages.length })
   } catch (e) {
     await patchCalc(id, { pricing: null }).catch(() => {})
-    await failExtraction(id, `Rate extraction failed: ${String(e)}`, 3, 5)
+    await failExtraction(id, `Rate extraction failed: ${String(e)}`, 4, 6)
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
 }

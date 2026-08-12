@@ -33,14 +33,21 @@ MAX_TOP_ROWS = 20
 MAX_FORMULA_SAMPLES = 24
 MAX_SUM_CELLS = 40
 CELL_TEXT_CAP = 60
-MAX_VALUES_PER_SHEET = 3000
-MAX_VALUES_TOTAL = 12000
+# Cut from 3000/12000 — the full dump.values blob is embedded as inline JSON text in EVERY
+# extraction call that reads it (rate, benefits, rules), and at the old cap could be several
+# hundred KB of text on its own. That's real, fixed input-processing latency paid on top of
+# whatever the model actually needs to think about or generate — independent of "adaptive"
+# thinking (already removed from these calls) and a likely contributor to hitting Vercel's
+# free-plan execution ceiling. A typical insurer rate grid (a handful of coverages × plans ×
+# age bands) needs nowhere near the old cap; _truncated flags the rare case that does.
+MAX_VALUES_PER_SHEET = 1200
+MAX_VALUES_TOTAL = 5000
 # Comprehensive per-cell formula capture (pm-rules-extract.ts's calculation-logic source — distinct
 # from formula_samples/sum_cells above, which are small previews for the rate extractor's context).
 # Same cap shape as values: filled in `_sheet_priority` order so a calculation-heavy sheet is never
 # the one left truncated because a scratch sheet came first in the file.
-MAX_FORMULAS_PER_SHEET = 3000
-MAX_FORMULAS_TOTAL = 12000
+MAX_FORMULAS_PER_SHEET = 1200
+MAX_FORMULAS_TOTAL = 5000
 
 
 def _sheet_priority(name: str) -> int:
