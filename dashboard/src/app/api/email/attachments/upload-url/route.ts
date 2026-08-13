@@ -30,7 +30,16 @@ export async function POST(req: NextRequest) {
     // Ensure the private bucket exists (this call has a JSON body).
     await fetch(`${SB_URL}/storage/v1/bucket`, {
       method: 'POST', headers: { ...auth, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: BUCKET, name: BUCKET, public: false }),
+      body: JSON.stringify({ id: BUCKET, name: BUCKET, public: false, allowed_mime_types: null, file_size_limit: null }),
+    }).catch(() => {})
+    // The create call above is a no-op once the bucket already exists, so it can never clear a
+    // restrictive allowed_mime_types/file_size_limit set at some earlier point (a stricter
+    // default, a manual dashboard edit, whatever) — this is any-file-type attachments (PDF,
+    // xlsx, docx, zip, ...), not just images, so explicitly re-assert "unrestricted" on every
+    // call rather than only at first creation.
+    await fetch(`${SB_URL}/storage/v1/bucket/${BUCKET}`, {
+      method: 'PUT', headers: { ...auth, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ public: false, allowed_mime_types: null, file_size_limit: null }),
     }).catch(() => {})
 
     // Create the signed upload URL. This POST has NO body, so we must NOT send a JSON
