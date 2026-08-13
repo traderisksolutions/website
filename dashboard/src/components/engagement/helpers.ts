@@ -51,10 +51,16 @@ export function matchesSearch(lead: Lead, q: string): boolean {
     .some(v => v?.toLowerCase().includes(lower))
 }
 
+/** Returns '' (not the raw text) when `addr` isn't actually an email — e.g. a bare display name
+ *  like `"Soon Teng"` with no resolved `<...>` address, which some Exchange/Outlook senders emit
+ *  for a recipient that failed to resolve. Callers already treat '' as "skip this one"; without
+ *  this guard that garbage text was being used as a real address, including on outgoing Cc lists
+ *  where Gmail's API rejects it outright ("Invalid Cc header"). */
 export function extractEmail(addr: string): string {
   if (!addr) return ''
   const match = addr.match(/<([^>]+)>/)
-  return (match ? match[1] : addr).trim().toLowerCase()
+  const email = (match ? match[1] : addr).trim().toLowerCase().replace(/^"|"$/g, '')
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : ''
 }
 
 export function stripQuotedContent(body: string): string {

@@ -359,16 +359,24 @@ export async function POST(req: NextRequest) {
       }))).filter((a): a is EmailAttachment => a !== null)
     }
 
+    // Belt-and-braces: a bad address here (e.g. a bare display-name string like "Soon Teng" that
+    // slipped in from an older auto-populated Reply-All list, before this got filtered upstream)
+    // makes Gmail's API reject the ENTIRE send with "Invalid Cc header" — better to silently drop
+    // the one bad entry than fail the whole message over it.
+    const isValidEmail = (a: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a.trim())
+    const cleanCc  = (cc ?? []).filter(isValidEmail)
+    const cleanBcc = (bcc ?? []).filter(isValidEmail)
+
     // Every non-ops send CC's operations@ so the shared mailbox (Engagement)
     // captures it — a thread appears there whoever sent it.
     const isOpsSender = FROM_EMAIL.toLowerCase() === DEFAULT_OPS_EMAIL.toLowerCase()
-    const finalCc = [...(cc ?? [])]
+    const finalCc = [...cleanCc]
     if (!isOpsSender && !finalCc.some(c => c.toLowerCase() === DEFAULT_OPS_EMAIL.toLowerCase())) finalCc.push(DEFAULT_OPS_EMAIL)
     // Personal sends also Reply-To operations@ so the recipient's reply routes back
     // to the shared mailbox (Engagement) rather than the employee's personal inbox.
     const replyTo = isOpsSender ? undefined : DEFAULT_OPS_EMAIL
 
-    const rawEmail = buildRawEmail(recipientEmail, subject, finalPlain, finalHtml, finalCc, bcc, replyTo, FROM_EMAIL, emailAttachments, threading)
+    const rawEmail = buildRawEmail(recipientEmail, subject, finalPlain, finalHtml, finalCc, cleanBcc, replyTo, FROM_EMAIL, emailAttachments, threading)
 
     const sendPayload: Record<string, unknown> = { raw: rawEmail }
     // A Gmail threadId is mailbox-specific. It belongs to the shared ops mailbox that

@@ -221,12 +221,17 @@ function parseForwardedSender(body: string): { email: string; name: string | nul
 
 function parseAddresses(raw: string): { email: string; name: string | null }[] {
   if (!raw.trim()) return []
-  return raw.split(',').map(s => s.trim()).filter(Boolean).map(addr => {
+  const parsed = raw.split(',').map(s => s.trim()).filter(Boolean).map(addr => {
     const m     = addr.match(/<(.+?)>/)
-    const email = m ? m[1].trim() : addr.trim()
+    const email = (m ? m[1] : addr).trim().replace(/^"|"$/g, '')
     const name  = addr.includes('<') ? addr.split('<')[0].trim().replace(/^"|"$/g, '') : null
     return { email, name }
   })
+  // Some Exchange/Outlook senders emit a bare quoted display name with no resolved address
+  // (e.g. `"Soon Teng"` with no `<...>`) when a recipient fails to resolve — without this filter
+  // that display-name text gets stored as the "email", and later reused verbatim as a Cc header
+  // value on a reply, which Gmail's API rejects with "Invalid Cc header".
+  return parsed.filter(p => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email))
 }
 
 // Read the last stored Gmail history ID from DB
