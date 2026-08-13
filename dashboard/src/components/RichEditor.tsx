@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   Bold, Italic, Underline as ULIcon,
   AlignLeft, AlignCenter, AlignRight,
-  List, ListOrdered, Link2, ImageIcon, Upload, Table2,
+  List, ListOrdered, Link2, ImageIcon, Upload, Table2, Paperclip,
 } from 'lucide-react'
 import type React from 'react'
 import { cn } from '@/lib/utils'
@@ -25,6 +25,13 @@ interface RichEditorProps {
   minHeight?:   number
   sigHtml?:     string
   borderless?:  boolean
+  /** Renders a paperclip button in the toolbar, next to the image icons, that calls straight
+   *  into the caller's own file-attach flow (any file type — a document, not an inline image).
+   *  Optional so RichEditor's other call sites (which have no attach flow of their own) are
+   *  unaffected. Exists because the toolbar's adjacent "Upload image from device" button
+   *  (image-only accept) kept getting clicked by users expecting a generic attach — this gives
+   *  them a correctly-labeled, unrestricted option right where they're already looking instead. */
+  onAttachClick?: () => void
 }
 
 export function RichEditor({
@@ -34,6 +41,7 @@ export function RichEditor({
   minHeight = 180,
   sigHtml,
   borderless = false,
+  onAttachClick,
 }: RichEditorProps) {
   const mountRef    = useRef<HTMLDivElement>(null)
   const quillRef    = useRef<import('quill').default | null>(null)
@@ -291,7 +299,7 @@ export function RichEditor({
 
         {/* Image: upload from device */}
         <label
-          title={imgUploading ? 'Uploading…' : 'Upload image from device'}
+          title={imgUploading ? 'Uploading…' : 'Insert a picture into this email (JPG/PNG/GIF/WebP)'}
           className={cn(btnClass(false), imgUploading ? 'cursor-wait opacity-50' : 'cursor-pointer')}
         >
           <Upload size={14} />
@@ -303,6 +311,16 @@ export function RichEditor({
             onChange={handleImageUpload}
           />
         </label>
+
+        {onAttachClick && (
+          <>
+            <Sep />
+            <button type="button" title="Attach a file — any type, e.g. PDF, Word, Excel" className={btnClass(false)}
+              onMouseDown={e => { e.preventDefault(); onAttachClick() }}>
+              <Paperclip size={14} />
+            </button>
+          </>
+        )}
 
       </div>
 

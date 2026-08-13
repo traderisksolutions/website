@@ -518,6 +518,7 @@ export function EngagementComposePanel({
                     : `Write your reply to ${lead.email ?? 'the client'}…`
               }
               minHeight={200}
+              onAttachClick={() => fileInputRef.current?.click()}
             />
           </div>
 
