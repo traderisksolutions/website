@@ -24,7 +24,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
-import { NAV_SECTIONS, type NavLink, type NavSection } from './nav-sections'
+import { NAV_SECTIONS, type NavLink, type NavGroup, type NavSection } from './nav-sections'
 
 type InboundCounts = { totalNew: number }
 type StageCounts   = { engaged: number; qualified: number; proposal: number; converted: number }
@@ -58,9 +58,34 @@ function active(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + '/')
 }
 
+function sectionItems(section: NavSection): NavLink[] {
+  if (section.items) return section.items
+  if (section.groups) return section.groups.flatMap(g => g.items)
+  return []
+}
+
 function sectionActive(pathname: string, section: NavSection) {
   if (section.href) return active(pathname, section.href)
-  return section.items?.some(i => active(pathname, i.href)) ?? false
+  return sectionItems(section).some(i => active(pathname, i.href))
+}
+
+/** Sum of badge counts across a section's children — shown on the dropdown trigger itself now
+ *  that items like "Email Inbox" / "Active Contacts" live inside a menu, not as their own
+ *  top-level link (which is where their badge used to render in the old sidebar). */
+function sectionBadge(section: NavSection, badgeFor: (href: string) => number | undefined): number | undefined {
+  const total = sectionItems(section).reduce((sum, i) => sum + (badgeFor(i.href) ?? 0), 0)
+  return total || undefined
+}
+
+const GROUP_COLS: Record<number, string> = {
+  1: 'md:grid-cols-1',
+  2: 'md:grid-cols-2',
+  3: 'md:grid-cols-3',
+}
+const GROUP_WIDTH: Record<number, string> = {
+  1: 'md:w-[260px]',
+  2: 'md:w-[480px]',
+  3: 'md:w-[700px]',
 }
 
 function NavBadge({ count }: { count: number }) {
@@ -115,7 +140,7 @@ export function TopNavbar() {
       style={{ borderRight: 'none' }}
     >
       <div className="flex h-14 items-center gap-2 px-3 md:px-4">
-        <Link href="/" className="flex items-center gap-2.5 flex-shrink-0 no-underline mr-2">
+        <Link href="/" className="flex items-center gap-2.5 flex-shrink-0 no-underline mr-2" aria-label="Home">
           <div
             className="flex items-center justify-center rounded-lg flex-shrink-0"
             style={{ width: 32, height: 32, background: 'hsl(var(--sidebar-ring))', boxShadow: '0 0 0 2px var(--primary-focus-ring)' }}
@@ -127,66 +152,82 @@ export function TopNavbar() {
           </span>
         </Link>
 
-        {/* ── Desktop nav ── */}
-        <NavigationMenu className="hidden lg:flex max-w-none flex-1 justify-start">
-          <NavigationMenuList className="gap-0.5 flex-wrap">
-            {NAV_SECTIONS.map((section) => {
-              const Icon = section.icon
-              const isActive = sectionActive(pathname, section)
+        {/* ── Desktop nav — no-wrap; scrolls horizontally in the rare case it doesn't fit rather
+             than breaking into an unreadable second row. ── */}
+        <div className="hidden lg:block flex-1 min-w-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <NavigationMenu className="max-w-none justify-start">
+            <NavigationMenuList className="gap-0.5 flex-nowrap w-max">
+              {NAV_SECTIONS.map((section) => {
+                const Icon = section.icon
+                const isActive = sectionActive(pathname, section)
+                const items = sectionItems(section)
 
-              if (!section.items) {
-                const badge = badgeFor(section.href!)
-                return (
-                  <NavigationMenuItem key={section.label}>
-                    {section.disabled ? (
-                      <span
-                        className="flex items-center gap-1.5 rounded-md px-2.5 py-2 text-[12.5px] font-medium text-muted-foreground/35 cursor-default"
-                        aria-disabled="true"
-                      >
-                        <Icon className="h-4 w-4" />
-                        {section.label}
-                        <span className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-muted text-muted-foreground/50">Soon</span>
-                      </span>
-                    ) : (
-                      <NavigationMenuLink asChild>
-                        <Link
-                          href={section.href!}
-                          aria-current={isActive ? 'page' : undefined}
-                          className={cn(
-                            'flex items-center gap-1.5 rounded-md px-2.5 py-2 text-[12.5px] font-medium no-underline transition-colors hover:bg-accent hover:text-accent-foreground',
-                            isActive && 'bg-accent text-accent-foreground'
-                          )}
+                if (!items.length) {
+                  const badge = badgeFor(section.href!)
+                  return (
+                    <NavigationMenuItem key={section.label}>
+                      {section.disabled ? (
+                        <span
+                          className="flex items-center gap-1.5 rounded-md px-2.5 py-2 text-[12.5px] font-medium text-muted-foreground/35 cursor-default whitespace-nowrap"
+                          aria-disabled="true"
                         >
                           <Icon className="h-4 w-4" />
                           {section.label}
-                          {badge !== undefined && <NavBadge count={badge} />}
-                        </Link>
-                      </NavigationMenuLink>
-                    )}
+                          <span className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-muted text-muted-foreground/50">Soon</span>
+                        </span>
+                      ) : (
+                        <NavigationMenuLink asChild>
+                          <Link
+                            href={section.href!}
+                            aria-current={isActive ? 'page' : undefined}
+                            className={cn(
+                              'flex items-center gap-1.5 rounded-md px-2.5 py-2 text-[12.5px] font-medium no-underline transition-colors hover:bg-accent hover:text-accent-foreground whitespace-nowrap',
+                              isActive && 'bg-accent text-accent-foreground'
+                            )}
+                          >
+                            <Icon className="h-4 w-4" />
+                            {section.label}
+                            {badge !== undefined && <NavBadge count={badge} />}
+                          </Link>
+                        </NavigationMenuLink>
+                      )}
+                    </NavigationMenuItem>
+                  )
+                }
+
+                const badge = sectionBadge(section, badgeFor)
+                const cols = section.groups?.length ?? 1
+
+                return (
+                  <NavigationMenuItem key={section.label}>
+                    <NavigationMenuTrigger
+                      className={cn('gap-1.5 text-[12.5px] px-2.5', isActive && 'bg-accent text-accent-foreground')}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {section.label}
+                      {badge !== undefined && <NavBadge count={badge} />}
+                    </NavigationMenuTrigger>
+                    <NavigationMenuContent>
+                      {section.groups ? (
+                        <div className={cn('grid gap-1 p-3 w-[320px]', GROUP_COLS[Math.min(cols, 3)], GROUP_WIDTH[Math.min(cols, 3)])}>
+                          {section.groups.map((group) => (
+                            <GroupColumn key={group.heading} group={group} pathname={pathname} badgeFor={badgeFor} />
+                          ))}
+                        </div>
+                      ) : (
+                        <ul className="grid w-[320px] gap-1 p-3">
+                          {section.items!.map((item) => (
+                            <ListItem key={item.href} {...item} badge={badgeFor(item.href)} isActive={active(pathname, item.href)} />
+                          ))}
+                        </ul>
+                      )}
+                    </NavigationMenuContent>
                   </NavigationMenuItem>
                 )
-              }
-
-              return (
-                <NavigationMenuItem key={section.label}>
-                  <NavigationMenuTrigger
-                    className={cn('gap-1.5 text-[12.5px] px-2.5', isActive && 'bg-accent text-accent-foreground')}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {section.label}
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <ul className="grid w-[420px] gap-1 p-3 md:w-[520px] md:grid-cols-2">
-                      {section.items.map((item) => (
-                        <ListItem key={item.href} {...item} badge={badgeFor(item.href)} isActive={active(pathname, item.href)} />
-                      ))}
-                    </ul>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-              )
-            })}
-          </NavigationMenuList>
-        </NavigationMenu>
+              })}
+            </NavigationMenuList>
+          </NavigationMenu>
+        </div>
 
         {/* ── Right slot: search/notifications placeholder + profile + mobile trigger ── */}
         <div className="ml-auto flex items-center gap-1.5 flex-shrink-0">
@@ -257,21 +298,42 @@ export function TopNavbar() {
   )
 }
 
+function GroupColumn({
+  group, pathname, badgeFor,
+}: {
+  group: NavGroup
+  pathname: string
+  badgeFor: (href: string) => number | undefined
+}) {
+  return (
+    <div className="min-w-0">
+      <div className="px-3 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground/70">
+        {group.heading}
+      </div>
+      <ul className="space-y-1">
+        {group.items.map((item) => (
+          <ListItem key={item.href} {...item} badge={badgeFor(item.href)} isActive={active(pathname, item.href)} />
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 function ListItem({
   title, href, description, icon: Icon, disabled, badge, isActive,
 }: NavLink & { badge?: number; isActive?: boolean }) {
   const inner = (
-    <span className="flex select-none flex-row items-start gap-3 rounded-md p-3 leading-none">
-      <span className={cn('mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted', isActive && 'bg-accent')}>
-        <Icon className="h-4 w-4" />
+    <span className="flex select-none flex-row items-start gap-3 rounded-md p-2.5 leading-none">
+      <span className={cn('mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted', isActive && 'bg-accent')}>
+        <Icon className="h-3.5 w-3.5" />
       </span>
-      <span className="flex flex-col gap-1 min-w-0">
-        <span className="flex items-center gap-2 text-sm font-medium leading-none">
+      <span className="flex flex-col gap-0.5 min-w-0">
+        <span className="flex items-center gap-2 text-[13px] font-medium leading-none">
           {title}
           {disabled && <span className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-muted text-muted-foreground/50">Soon</span>}
           {badge !== undefined && <NavBadge count={badge} />}
         </span>
-        <span className="line-clamp-2 text-xs leading-snug text-muted-foreground">{description}</span>
+        <span className="line-clamp-2 text-[11px] leading-snug text-muted-foreground">{description}</span>
       </span>
     </span>
   )
@@ -306,8 +368,9 @@ function MobileSection({
   badgeFor: (href: string) => number | undefined
 }) {
   const Icon = section.icon
+  const items = sectionItems(section)
 
-  if (!section.items) {
+  if (!items.length) {
     const isActive = active(pathname, section.href!)
     const badge = badgeFor(section.href!)
     if (section.disabled) {
@@ -335,42 +398,53 @@ function MobileSection({
     )
   }
 
+  const groups: NavGroup[] = section.groups ?? [{ heading: section.label, items: section.items! }]
+
   return (
     <div className="pt-2">
       <div className="flex items-center gap-2 px-2.5 h-7 text-[10.5px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">
         <Icon className="h-3.5 w-3.5" />
         {section.label}
       </div>
-      <div className="space-y-0.5">
-        {section.items.map((item) => {
-          const isActive = active(pathname, item.href)
-          const badge = badgeFor(item.href)
-          if (item.disabled) {
-            return (
-              <span key={item.href} className="flex items-center gap-2.5 h-9 pl-6 pr-2.5 rounded-md text-[13px] text-muted-foreground/35 cursor-default">
-                <item.icon className="h-3.5 w-3.5" />
-                {item.title}
-                <span className="ml-auto text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-muted text-muted-foreground/50">Soon</span>
-              </span>
-            )
-          }
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={isActive ? 'page' : undefined}
-              className={cn(
-                'flex items-center gap-2.5 h-9 pl-6 pr-2.5 rounded-md text-[13px] no-underline transition-colors hover:bg-accent hover:text-accent-foreground',
-                isActive ? 'bg-accent text-accent-foreground font-medium' : 'text-muted-foreground'
-              )}
-            >
-              <item.icon className="h-3.5 w-3.5" />
-              {item.title}
-              {badge !== undefined && <span className="ml-auto"><NavBadge count={badge} /></span>}
-            </Link>
-          )
-        })}
-      </div>
+      {groups.map((group) => (
+        <div key={group.heading} className="mb-1.5 last:mb-0">
+          {section.groups && (
+            <div className="px-2.5 h-6 flex items-center text-[9.5px] font-semibold uppercase tracking-[0.07em] text-muted-foreground/60">
+              {group.heading}
+            </div>
+          )}
+          <div className="space-y-0.5">
+            {group.items.map((item) => {
+              const isActive = active(pathname, item.href)
+              const badge = badgeFor(item.href)
+              if (item.disabled) {
+                return (
+                  <span key={item.href} className="flex items-center gap-2.5 h-9 pl-6 pr-2.5 rounded-md text-[13px] text-muted-foreground/35 cursor-default">
+                    <item.icon className="h-3.5 w-3.5" />
+                    {item.title}
+                    <span className="ml-auto text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-muted text-muted-foreground/50">Soon</span>
+                  </span>
+                )
+              }
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={cn(
+                    'flex items-center gap-2.5 h-9 pl-6 pr-2.5 rounded-md text-[13px] no-underline transition-colors hover:bg-accent hover:text-accent-foreground',
+                    isActive ? 'bg-accent text-accent-foreground font-medium' : 'text-muted-foreground'
+                  )}
+                >
+                  <item.icon className="h-3.5 w-3.5" />
+                  {item.title}
+                  {badge !== undefined && <span className="ml-auto"><NavBadge count={badge} /></span>}
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
