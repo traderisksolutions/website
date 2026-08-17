@@ -139,8 +139,46 @@ export function TopNavbar() {
       className="sticky top-0 z-50 w-full h-14 flex-shrink-0 border-b border-[--border-subtle] glass-sidebar"
       style={{ borderRight: 'none' }}
     >
-      <div className="flex h-14 items-center gap-2 px-3 md:px-4">
-        <Link href="/" className="flex items-center gap-2.5 flex-shrink-0 no-underline mr-2" aria-label="Home">
+      <div className="flex h-14 items-center gap-1.5 px-3 md:px-4">
+        {/* ── Mobile trigger — left side, opens the same NAV_SECTIONS as a drawer ── */}
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="xl:hidden -ml-1.5 flex-shrink-0" aria-label="Open navigation">
+              <Menu className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-72 p-0 flex flex-col">
+            <SheetHeader className="border-b border-[--border-subtle] pb-3">
+              <SheetTitle>Trade Risk Solutions</SheetTitle>
+            </SheetHeader>
+            <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
+              {NAV_SECTIONS.map((section) => (
+                <MobileSection
+                  key={section.label}
+                  section={section}
+                  pathname={pathname}
+                  badgeFor={badgeFor}
+                />
+              ))}
+            </nav>
+            <div className="flex items-center gap-2.5 px-4 py-3 border-t border-[--border-subtle] flex-shrink-0">
+              <span className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-[11px] font-bold text-accent-foreground flex-shrink-0">
+                {userEmail ? userEmail[0].toUpperCase() : '?'}
+              </span>
+              <span className="text-[11.5px] flex-1 truncate text-muted-foreground">{userEmail ?? '—'}</span>
+              <button
+                onClick={signOut}
+                title="Sign out"
+                aria-label="Sign out"
+                className="p-1.5 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors flex-shrink-0"
+              >
+                <LogOut size={14} strokeWidth={2} />
+              </button>
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        <Link href="/" className="flex items-center gap-2.5 flex-shrink-0 no-underline mr-1.5" aria-label="Home">
           <div
             className="flex items-center justify-center rounded-lg flex-shrink-0"
             style={{ width: 32, height: 32, background: 'hsl(var(--sidebar-ring))', boxShadow: '0 0 0 2px var(--primary-focus-ring)' }}
@@ -152,13 +190,14 @@ export function TopNavbar() {
           </span>
         </Link>
 
-        {/* ── Desktop nav — no-wrap; scrolls horizontally in the rare case it doesn't fit rather
-             than breaking into an unreadable second row. ── */}
-        <div className="hidden lg:block flex-1 min-w-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {/* ── Desktop nav — only shown once there's comfortable room for it (xl+); below that
+             the hamburger drawer takes over entirely rather than squeezing or clipping. No-wrap,
+             no overflow scrolling — a scroll container here would clip the dropdown panels that
+             pop out of it, so headroom comes from the breakpoint and compact sizing instead. ── */}
+        <div className="hidden xl:flex flex-1 min-w-0">
           <NavigationMenu className="max-w-none justify-start">
-            <NavigationMenuList className="gap-0.5 flex-nowrap w-max">
+            <NavigationMenuList className="gap-0 flex-nowrap">
               {NAV_SECTIONS.map((section) => {
-                const Icon = section.icon
                 const isActive = sectionActive(pathname, section)
                 const items = sectionItems(section)
 
@@ -168,10 +207,9 @@ export function TopNavbar() {
                     <NavigationMenuItem key={section.label}>
                       {section.disabled ? (
                         <span
-                          className="flex items-center gap-1.5 rounded-md px-2.5 py-2 text-[12.5px] font-medium text-muted-foreground/35 cursor-default whitespace-nowrap"
+                          className="flex items-center gap-1 rounded-md px-2 py-1.5 text-[11.5px] font-medium text-muted-foreground/35 cursor-default whitespace-nowrap"
                           aria-disabled="true"
                         >
-                          <Icon className="h-4 w-4" />
                           {section.label}
                           <span className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-muted text-muted-foreground/50">Soon</span>
                         </span>
@@ -181,11 +219,10 @@ export function TopNavbar() {
                             href={section.href!}
                             aria-current={isActive ? 'page' : undefined}
                             className={cn(
-                              'flex items-center gap-1.5 rounded-md px-2.5 py-2 text-[12.5px] font-medium no-underline transition-colors hover:bg-accent hover:text-accent-foreground whitespace-nowrap',
+                              'flex items-center gap-1 rounded-md px-2 py-1.5 text-[11.5px] font-medium no-underline transition-colors hover:bg-accent hover:text-accent-foreground whitespace-nowrap',
                               isActive && 'bg-accent text-accent-foreground'
                             )}
                           >
-                            <Icon className="h-4 w-4" />
                             {section.label}
                             {badge !== undefined && <NavBadge count={badge} />}
                           </Link>
@@ -201,9 +238,8 @@ export function TopNavbar() {
                 return (
                   <NavigationMenuItem key={section.label}>
                     <NavigationMenuTrigger
-                      className={cn('gap-1.5 text-[12.5px] px-2.5', isActive && 'bg-accent text-accent-foreground')}
+                      className={cn('h-8 gap-1 text-[11.5px] px-2', isActive && 'bg-accent text-accent-foreground')}
                     >
-                      <Icon className="h-4 w-4" />
                       {section.label}
                       {badge !== undefined && <NavBadge count={badge} />}
                     </NavigationMenuTrigger>
@@ -229,7 +265,7 @@ export function TopNavbar() {
           </NavigationMenu>
         </div>
 
-        {/* ── Right slot: search/notifications placeholder + profile + mobile trigger ── */}
+        {/* ── Right slot: search/notifications placeholder + profile ── */}
         <div className="ml-auto flex items-center gap-1.5 flex-shrink-0">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -254,44 +290,6 @@ export function TopNavbar() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-
-          {/* ── Mobile trigger ── */}
-          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open navigation">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-72 p-0 flex flex-col">
-              <SheetHeader className="border-b border-[--border-subtle] pb-3">
-                <SheetTitle>Trade Risk Solutions</SheetTitle>
-              </SheetHeader>
-              <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
-                {NAV_SECTIONS.map((section) => (
-                  <MobileSection
-                    key={section.label}
-                    section={section}
-                    pathname={pathname}
-                    badgeFor={badgeFor}
-                  />
-                ))}
-              </nav>
-              <div className="flex items-center gap-2.5 px-4 py-3 border-t border-[--border-subtle] flex-shrink-0">
-                <span className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-[11px] font-bold text-accent-foreground flex-shrink-0">
-                  {userEmail ? userEmail[0].toUpperCase() : '?'}
-                </span>
-                <span className="text-[11.5px] flex-1 truncate text-muted-foreground">{userEmail ?? '—'}</span>
-                <button
-                  onClick={signOut}
-                  title="Sign out"
-                  aria-label="Sign out"
-                  className="p-1.5 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors flex-shrink-0"
-                >
-                  <LogOut size={14} strokeWidth={2} />
-                </button>
-              </div>
-            </SheetContent>
-          </Sheet>
         </div>
       </div>
     </header>
