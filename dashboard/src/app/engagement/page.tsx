@@ -71,10 +71,10 @@ function EngagementPageInner() {
   const initLeadId   = searchParams.get('lead')
 
   // Tab/search/group-by-company filter state AND the list feed itself live in
-  // EngagementNavProvider now — Sidebar.tsx renders the actual conversation list (see
-  // EngagementFolderNav) since the sidebar itself becomes the thread list on this route (one
-  // column, not a folder-nav beside a separate list panel); this page owns fetching/realtime and
-  // mirrors its state up for Sidebar to render, same cross-component pattern as ChatDockProvider.
+  // EngagementNavProvider now — EngagementRail.tsx renders the actual conversation list (see
+  // EngagementFolderNav) as a dedicated left column on this route (one column, not a folder-nav
+  // beside a separate list panel); this page owns fetching/realtime and mirrors its state up for
+  // EngagementRail to render, same cross-component pattern as ChatDockProvider.
   const {
     activeTab, search, setCounts, setRefreshing: setNavRefreshing, setOnRefresh,
     setLeads: setNavLeads, setVisible: setNavVisible, setThreadMap: setNavThreadMap,
@@ -91,8 +91,8 @@ function EngagementPageInner() {
 
   const setRefreshing = useCallback((v: boolean) => { setRefreshingState(v); setNavRefreshing(v) }, [setNavRefreshing])
 
-  // Mirror this page's real state into the shared context so Sidebar's EngagementFolderNav can
-  // render the actual list — page.tsx stays the single source of truth (all the fetch/realtime
+  // Mirror this page's real state into the shared context so EngagementRail's EngagementFolderNav
+  // can render the actual list — page.tsx stays the single source of truth (all the fetch/realtime
   // effects below still operate on the local state), this is purely a one-way sync.
   useEffect(() => { setNavLeads(leads) }, [leads, setNavLeads])
   useEffect(() => { setNavThreadMap(threadMap) }, [threadMap, setNavThreadMap])
@@ -120,7 +120,7 @@ function EngagementPageInner() {
   const prospectsCount = useMemo(() => leads.filter(isProspect).length, [leads]) // eslint-disable-line react-hooks/exhaustive-deps
   const clientsCount   = useMemo(() => leads.filter(isClient).length,   [leads]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Push the all/prospects/clients counts up to Sidebar's EngagementFolderNav — `drafts` is
+  // Push the all/prospects/clients counts up to EngagementRail's EngagementFolderNav — `drafts` is
   // merged in separately by ConversationList (which owns loading the drafts list).
   useEffect(() => {
     setCounts(c => ({ ...c, all: leads.length, prospects: prospectsCount, clients: clientsCount }))
@@ -315,7 +315,7 @@ function EngagementPageInner() {
 
   // Show spinner immediately, wait for Gmail sync to finish, THEN reload so newly ingested
   // emails are already in Supabase when the list re-reads. Also registered into
-  // EngagementNavProvider so the Refresh button in Sidebar's folder-nav can trigger it.
+  // EngagementNavProvider so the Refresh button in EngagementRail's folder-nav can trigger it.
   const handleRefresh = useCallback(() => {
     setRefreshing(true)
     fetch('/api/email/ingest-trigger', { method: 'POST' })
@@ -331,9 +331,9 @@ function EngagementPageInner() {
 
   const selectedLead   = leads.find(l => l.id === selectedId) ?? null
   const selectedThread = selectedId ? threadMap[selectedId] : undefined
-  // Below the breakpoint where Sidebar can host the list (see useNarrowViewport), this page
-  // falls back to its own EaListPanel + ConversationList — the sidebar collapses to icons there
-  // and has no room for it.
+  // Below the breakpoint where EngagementRail can host the list (see useNarrowViewport), this
+  // page falls back to its own EaListPanel + ConversationList — EngagementRail hides there and
+  // has no room for it.
   const isDesktop = !useNarrowViewport()
 
   const listContent = (
@@ -377,8 +377,8 @@ function EngagementPageInner() {
   return (
     <EngagementShell>
       {isDesktop ? (
-        // The conversation list itself renders in Sidebar.tsx (EngagementFolderNav, fed by the
-        // context mirror above) — one column on the left, not a folder-nav beside a separate
+        // The conversation list itself renders in EngagementRail.tsx (EngagementFolderNav, fed by
+        // the context mirror above) — one column on the left, not a folder-nav beside a separate
         // list panel. This workspace area gets the full remaining width.
         <div className="flex flex-1 min-w-0 overflow-hidden">
           {workspaceContent}

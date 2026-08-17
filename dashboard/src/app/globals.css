@@ -62,9 +62,12 @@
     --sidebar-ring:          219 83% 28%;
 
     /* ── Layout dimensions ── */
-    --sidebar-width:         256px;
     --topnav-height:         52px;
-    --mobile-nav-h:          0px;
+    /* Fixed height of the sticky TopNavbar (see components/nav/top-navbar.tsx, h-14) — full-
+       height pages (engagement/shell.tsx, nexus) subtract this from 100vh since the navbar is
+       sticky/in-flow, not overlaid. Same variable name/shape at every breakpoint now that the
+       top nav (not just its mobile fallback) always occupies this space. */
+    --mobile-nav-h:          56px;
     --content-bg:            hsl(216 22% 95%);
     --card-bg:               #ffffff;
     --card-border:           hsl(216 16% 84%);
@@ -188,9 +191,10 @@
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(16,24,40,0.14); border-radius: 4px; }
 
-/* ── Responsive layout — desktop: sidebar pushes content; mobile: top nav ── */
+/* ── Responsive layout — top nav at every breakpoint; content-area margin only shifts for the
+   /engagement conversation-list rail (see components/nav/engagement-rail.tsx), set inline by
+   ConditionalShell since it's route-conditional, not a fixed per-breakpoint value. ── */
 .main-content {
-  margin-left: var(--sidebar-width, 240px);
   transition: margin-left 220ms cubic-bezier(0.4,0,0.2,1);
 }
 
@@ -201,13 +205,6 @@
 }
 
 @media (max-width: 1023px) {
-  :root {
-    --mobile-nav-h: 88px;
-  }
-  .main-content {
-    margin-left: 0;
-    padding-top: 88px;
-  }
   .contact-panel-wrapper {
     display: none;
   }

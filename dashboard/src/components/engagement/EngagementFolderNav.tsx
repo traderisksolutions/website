@@ -7,10 +7,10 @@ import type { EngagementTab } from '@/providers/engagement-nav-provider'
 import { ConversationList } from '@/components/engagement/ConversationList'
 
 /**
- * Renders in place of the normal nav sections when Sidebar.tsx is on /engagement — the sidebar
- * itself becomes the conversation list (one column), not a filter bar sitting beside a separate
- * list column. Filter chrome (tabs/search/group) stays fixed; the list below it scrolls on its
- * own, fed by the same context page.tsx mirrors its real leads/threadMap/selectedId into.
+ * Renders inside EngagementRail.tsx on /engagement — the rail itself becomes the conversation
+ * list (one column), not a filter bar sitting beside a separate list column. Filter chrome
+ * (tabs/search/group) stays fixed; the list below it scrolls on its own, fed by the same context
+ * page.tsx mirrors its real leads/threadMap/selectedId into.
  */
 const TABS: { key: EngagementTab; label: string }[] = [
   { key: 'all',       label: 'All'       },

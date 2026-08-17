@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react'
 
 /**
- * Single source of truth for the "not enough room for a labeled rail + list + detail" breakpoint
- * — Sidebar.tsx auto-collapses to icons below this width, and any list+detail page (currently
- * just /engagement) needs to agree with that exact threshold, or the two can disagree at some
- * width (e.g. Sidebar hides its list-detail nav while the page still renders the wide desktop
- * layout that nav was supposed to control).
+ * Single source of truth for the "not enough room for a list + detail column" breakpoint —
+ * EngagementRail.tsx hides below this width, and any list+detail page (currently just
+ * /engagement) needs to agree with that exact threshold, or the two can disagree at some width
+ * (e.g. EngagementRail hides while the page still renders the wide desktop layout that rail was
+ * supposed to host).
  */
 export const NARROW_BREAKPOINT = 1280
 

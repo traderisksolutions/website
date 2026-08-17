@@ -2,16 +2,17 @@
 
 /**
  * Shares the Engagement Agent's entire conversation-list feed (filter state + the actual
- * leads/threads data) between /engagement/page.tsx (owns fetching/realtime) and Sidebar.tsx
- * (renders the list itself when on that route — see EngagementFolderNav) — the two are siblings
- * under ConditionalShell, not parent/child, so this is the same cross-component-state pattern
- * ChatDockProvider already uses for the Nexus chat dock.
+ * leads/threads data) between /engagement/page.tsx (owns fetching/realtime) and
+ * EngagementRail.tsx (renders the list itself as a dedicated rail on that route — see
+ * EngagementFolderNav) — the two are siblings under ConditionalShell, not parent/child, so this
+ * is the same cross-component-state pattern ChatDockProvider already uses for the Nexus chat
+ * dock.
  *
  * Originally just filter state (tab/search/group); expanded to carry the list data itself once
- * it became clear "the sidebar becomes the thread list" means literally that — one column, not a
- * folder-nav sitting beside a separate list column. Mounted app-wide (harmless no-op state on
- * every other page) rather than conditionally by pathname, so Sidebar.tsx never has to handle
- * "no provider mounted".
+ * it became clear the rail becomes the thread list literally — one column, not a folder-nav
+ * sitting beside a separate list column. Mounted app-wide (harmless no-op state on every other
+ * page) rather than conditionally by pathname, so EngagementRail.tsx never has to handle "no
+ * provider mounted".
  */
 import { createContext, useContext, useState, type Dispatch, type SetStateAction, type ReactNode } from 'react'
 import type { Lead, ThreadState } from '@/components/engagement/types'
@@ -34,7 +35,7 @@ interface EngagementNavContextValue {
   onRefresh: (() => void) | null
   setOnRefresh: Dispatch<SetStateAction<(() => void) | null>>
 
-  // ── The list feed itself — pushed down by page.tsx, rendered by Sidebar's EngagementFolderNav.
+  // ── The list feed itself — pushed down by page.tsx, rendered by EngagementRail's EngagementFolderNav.
   leads: Lead[]
   setLeads: Dispatch<SetStateAction<Lead[]>>
   visible: Lead[]

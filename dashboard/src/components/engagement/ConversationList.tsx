@@ -30,13 +30,13 @@ interface ConversationListProps {
   onSelect:       (id: string) => void
   onRefresh:      () => void
   onOpenDraft:    (draft: NewEmailDraft) => void
-  /** Sidebar's EngagementFolderNav already has its own title/refresh chrome above this list —
+  /** EngagementRail's EngagementFolderNav already has its own title/refresh chrome above this list —
    *  skip this component's own header so they don't stack. The mobile fallback (EaListPanel)
    *  still wants it, so this defaults to shown. */
   hideHeader?:    boolean
 }
 
-/** Tabs/search/group-toggle render in Sidebar.tsx (EngagementFolderNav) on desktop — this
+/** Tabs/search/group-toggle render in EngagementRail.tsx (EngagementFolderNav) on desktop — this
  *  component is the actual scrollable rows for whichever set the folder-nav's filters resolve to
  *  (`visible`, computed in page.tsx), plus (unless hideHeader) a title/"awaiting reply"/refresh
  *  header for the mobile fallback layout, which renders this standalone. It still owns loading
