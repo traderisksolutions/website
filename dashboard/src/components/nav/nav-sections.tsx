@@ -1,3 +1,4 @@
+import type { LucideIcon } from 'lucide-react'
 import {
   Inbox, MessageCircle, AlertCircle,
   Users, BarChart2,
@@ -12,13 +13,13 @@ export type NavLink = {
   title: string
   href: string
   description: string
-  icon: React.ComponentType<{ className?: string; size?: number; strokeWidth?: number }>
+  icon: LucideIcon
   disabled?: boolean
 }
 
 export type NavSection = {
   label: string
-  icon: React.ComponentType<{ className?: string; size?: number; strokeWidth?: number }>
+  icon: LucideIcon
   href?: string    // direct link — no dropdown
   disabled?: boolean
   items?: NavLink[] // dropdown children (2-6)
