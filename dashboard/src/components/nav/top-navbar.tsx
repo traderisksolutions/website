@@ -26,33 +26,6 @@ import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { NAV_SECTIONS, type NavLink, type NavGroup, type NavSection } from './nav-sections'
 
-type InboundCounts = { totalNew: number }
-type StageCounts   = { engaged: number; qualified: number; proposal: number; converted: number }
-
-async function fetchInboundCounts(): Promise<InboundCounts> {
-  try {
-    const res = await fetch('/api/leads', { cache: 'no-store' })
-    if (!res.ok) return { totalNew: 0 }
-    const raw = await res.json()
-    const data: { status: string }[] = Array.isArray(raw) ? raw : []
-    return { totalNew: data.filter(l => l.status === 'new').length }
-  } catch { return { totalNew: 0 } }
-}
-
-async function fetchStageCounts(): Promise<StageCounts> {
-  try {
-    const res = await fetch('/api/contacts/counts', { cache: 'no-store' })
-    if (!res.ok) return { engaged: 0, qualified: 0, proposal: 0, converted: 0 }
-    const data = await res.json()
-    return {
-      engaged:   data.engaged   ?? 0,
-      qualified: data.qualified ?? 0,
-      proposal:  data.proposal  ?? 0,
-      converted: data.converted ?? 0,
-    }
-  } catch { return { engaged: 0, qualified: 0, proposal: 0, converted: 0 } }
-}
-
 function active(pathname: string, href: string) {
   if (href === '/') return pathname === '/'
   return pathname === href || pathname.startsWith(href + '/')
@@ -69,14 +42,6 @@ function sectionActive(pathname: string, section: NavSection) {
   return sectionItems(section).some(i => active(pathname, i.href))
 }
 
-/** Sum of badge counts across a section's children — shown on the dropdown trigger itself now
- *  that items like "Email Inbox" / "Active Contacts" live inside a menu, not as their own
- *  top-level link (which is where their badge used to render in the old sidebar). */
-function sectionBadge(section: NavSection, badgeFor: (href: string) => number | undefined): number | undefined {
-  const total = sectionItems(section).reduce((sum, i) => sum + (badgeFor(i.href) ?? 0), 0)
-  return total || undefined
-}
-
 const GROUP_COLS: Record<number, string> = {
   1: 'md:grid-cols-1',
   2: 'md:grid-cols-2',
@@ -88,31 +53,20 @@ const GROUP_WIDTH: Record<number, string> = {
   3: 'md:w-[700px]',
 }
 
-function NavBadge({ count }: { count: number }) {
-  return (
-    <span className="flex items-center justify-center text-[10px] font-bold rounded-full px-1.5 min-w-[18px] h-[18px] flex-shrink-0 bg-primary text-primary-foreground">
-      {count > 99 ? '99+' : count}
-    </span>
-  )
+// Radix's NavigationMenu opens/closes on hover by default (in addition to click), which reads as
+// twitchy for a dense work app — preventDefault on these pointer handlers suppresses that hover
+// path entirely (Radix composes user handlers before its own and bails if defaultPrevented),
+// leaving click/keyboard as the only way to open or close a menu.
+function suppressHover(event: React.PointerEvent) {
+  if (event.pointerType === 'touch') return
+  event.preventDefault()
 }
 
 export function TopNavbar() {
   const pathname = usePathname()
   const router   = useRouter()
-  const [inbound,   setInbound]   = useState<InboundCounts>({ totalNew: 0 })
-  const [stages,    setStages]    = useState<StageCounts>({ engaged: 0, qualified: 0, proposal: 0, converted: 0 })
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [mobileOpen, setMobileOpen] = useState(false)
-
-  useEffect(() => {
-    const load = () => {
-      fetchInboundCounts().then(setInbound)
-      fetchStageCounts().then(setStages)
-    }
-    load()
-    const t = setInterval(load, 30_000)
-    return () => clearInterval(t)
-  }, [])
 
   useEffect(() => {
     createClient().auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null))
@@ -124,14 +78,6 @@ export function TopNavbar() {
   async function signOut() {
     await createClient().auth.signOut()
     router.push('/login')
-  }
-
-  const totalEngaged = stages.engaged + stages.qualified + stages.proposal + stages.converted
-
-  function badgeFor(href: string): number | undefined {
-    if (href === '/inbound/email') return inbound.totalNew || undefined
-    if (href === '/contacts')      return totalEngaged || undefined
-    return undefined
   }
 
   return (
@@ -153,12 +99,7 @@ export function TopNavbar() {
             </SheetHeader>
             <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
               {NAV_SECTIONS.map((section) => (
-                <MobileSection
-                  key={section.label}
-                  section={section}
-                  pathname={pathname}
-                  badgeFor={badgeFor}
-                />
+                <MobileSection key={section.label} section={section} pathname={pathname} />
               ))}
             </nav>
             <div className="flex items-center gap-2.5 px-4 py-3 border-t border-[--border-subtle] flex-shrink-0">
@@ -191,9 +132,9 @@ export function TopNavbar() {
         </Link>
 
         {/* ── Desktop nav — only shown once there's comfortable room for it (xl+); below that
-             the hamburger drawer takes over entirely rather than squeezing or clipping. No-wrap,
-             no overflow scrolling — a scroll container here would clip the dropdown panels that
-             pop out of it, so headroom comes from the breakpoint and compact sizing instead. ── */}
+             the hamburger drawer takes over entirely rather than squeezing or clipping. Click-
+             only (see suppressHover) — a trigger only reads as highlighted when its section is
+             the current page, never merely for being open or hovered. ── */}
         <div className="hidden xl:flex flex-1 min-w-0">
           <NavigationMenu className="max-w-none justify-start">
             <NavigationMenuList className="gap-0 flex-nowrap">
@@ -202,7 +143,6 @@ export function TopNavbar() {
                 const items = sectionItems(section)
 
                 if (!items.length) {
-                  const badge = badgeFor(section.href!)
                   return (
                     <NavigationMenuItem key={section.label}>
                       {section.disabled ? (
@@ -219,12 +159,11 @@ export function TopNavbar() {
                             href={section.href!}
                             aria-current={isActive ? 'page' : undefined}
                             className={cn(
-                              'flex items-center gap-1 rounded-md px-2 py-1.5 text-[11.5px] font-medium no-underline transition-colors hover:bg-accent hover:text-accent-foreground whitespace-nowrap',
-                              isActive && 'bg-accent text-accent-foreground'
+                              'flex items-center gap-1 rounded-md px-2 py-1.5 text-[11.5px] font-medium no-underline transition-colors whitespace-nowrap',
+                              isActive ? 'bg-accent text-accent-foreground' : 'text-foreground'
                             )}
                           >
                             {section.label}
-                            {badge !== undefined && <NavBadge count={badge} />}
                           </Link>
                         </NavigationMenuLink>
                       )}
@@ -232,28 +171,28 @@ export function TopNavbar() {
                   )
                 }
 
-                const badge = sectionBadge(section, badgeFor)
                 const cols = section.groups?.length ?? 1
 
                 return (
                   <NavigationMenuItem key={section.label}>
                     <NavigationMenuTrigger
+                      onPointerMove={suppressHover}
+                      onPointerEnter={suppressHover}
                       className={cn('h-8 gap-1 text-[11.5px] px-2', isActive && 'bg-accent text-accent-foreground')}
                     >
                       {section.label}
-                      {badge !== undefined && <NavBadge count={badge} />}
                     </NavigationMenuTrigger>
-                    <NavigationMenuContent>
+                    <NavigationMenuContent onPointerEnter={suppressHover} onPointerLeave={suppressHover}>
                       {section.groups ? (
                         <div className={cn('grid gap-1 p-3 w-[320px]', GROUP_COLS[Math.min(cols, 3)], GROUP_WIDTH[Math.min(cols, 3)])}>
                           {section.groups.map((group) => (
-                            <GroupColumn key={group.heading} group={group} pathname={pathname} badgeFor={badgeFor} />
+                            <GroupColumn key={group.heading} group={group} pathname={pathname} />
                           ))}
                         </div>
                       ) : (
                         <ul className="grid w-[320px] gap-1 p-3">
                           {section.items!.map((item) => (
-                            <ListItem key={item.href} {...item} badge={badgeFor(item.href)} isActive={active(pathname, item.href)} />
+                            <ListItem key={item.href} {...item} isActive={active(pathname, item.href)} />
                           ))}
                         </ul>
                       )}
@@ -265,7 +204,7 @@ export function TopNavbar() {
           </NavigationMenu>
         </div>
 
-        {/* ── Right slot: search/notifications placeholder + profile ── */}
+        {/* ── Right slot: profile ── */}
         <div className="ml-auto flex items-center gap-1.5 flex-shrink-0">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -296,13 +235,7 @@ export function TopNavbar() {
   )
 }
 
-function GroupColumn({
-  group, pathname, badgeFor,
-}: {
-  group: NavGroup
-  pathname: string
-  badgeFor: (href: string) => number | undefined
-}) {
+function GroupColumn({ group, pathname }: { group: NavGroup; pathname: string }) {
   return (
     <div className="min-w-0">
       <div className="px-3 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground/70">
@@ -310,7 +243,7 @@ function GroupColumn({
       </div>
       <ul className="space-y-1">
         {group.items.map((item) => (
-          <ListItem key={item.href} {...item} badge={badgeFor(item.href)} isActive={active(pathname, item.href)} />
+          <ListItem key={item.href} {...item} isActive={active(pathname, item.href)} />
         ))}
       </ul>
     </div>
@@ -318,8 +251,8 @@ function GroupColumn({
 }
 
 function ListItem({
-  title, href, description, icon: Icon, disabled, badge, isActive,
-}: NavLink & { badge?: number; isActive?: boolean }) {
+  title, href, description, icon: Icon, disabled, isActive,
+}: NavLink & { isActive?: boolean }) {
   const inner = (
     <span className="flex select-none flex-row items-start gap-3 rounded-md p-2.5 leading-none">
       <span className={cn('mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted', isActive && 'bg-accent')}>
@@ -329,7 +262,6 @@ function ListItem({
         <span className="flex items-center gap-2 text-[13px] font-medium leading-none">
           {title}
           {disabled && <span className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-muted text-muted-foreground/50">Soon</span>}
-          {badge !== undefined && <NavBadge count={badge} />}
         </span>
         <span className="line-clamp-2 text-[11px] leading-snug text-muted-foreground">{description}</span>
       </span>
@@ -358,19 +290,12 @@ function ListItem({
   )
 }
 
-function MobileSection({
-  section, pathname, badgeFor,
-}: {
-  section: NavSection
-  pathname: string
-  badgeFor: (href: string) => number | undefined
-}) {
+function MobileSection({ section, pathname }: { section: NavSection; pathname: string }) {
   const Icon = section.icon
   const items = sectionItems(section)
 
   if (!items.length) {
     const isActive = active(pathname, section.href!)
-    const badge = badgeFor(section.href!)
     if (section.disabled) {
       return (
         <span className="flex items-center gap-2.5 h-9 px-2.5 rounded-md text-[13px] text-muted-foreground/35 cursor-default">
@@ -391,7 +316,6 @@ function MobileSection({
       >
         <Icon className="h-4 w-4" />
         {section.label}
-        {badge !== undefined && <span className="ml-auto"><NavBadge count={badge} /></span>}
       </Link>
     )
   }
@@ -414,7 +338,6 @@ function MobileSection({
           <div className="space-y-0.5">
             {group.items.map((item) => {
               const isActive = active(pathname, item.href)
-              const badge = badgeFor(item.href)
               if (item.disabled) {
                 return (
                   <span key={item.href} className="flex items-center gap-2.5 h-9 pl-6 pr-2.5 rounded-md text-[13px] text-muted-foreground/35 cursor-default">
@@ -436,7 +359,6 @@ function MobileSection({
                 >
                   <item.icon className="h-3.5 w-3.5" />
                   {item.title}
-                  {badge !== undefined && <span className="ml-auto"><NavBadge count={badge} /></span>}
                 </Link>
               )
             })}
