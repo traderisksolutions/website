@@ -33,14 +33,14 @@ interface ReplyEvent {
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const card: React.CSSProperties = {
-  background: '#fff', border: '1px solid #e8e8e8', borderRadius: 12, padding: '16px 20px',
+  background: 'hsl(var(--card))', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '16px 20px',
 }
 
 const LABEL_META: Record<ReplyLabel, { label: string; color: string; bg: string }> = {
   positive:      { label: 'Positive',       color: '#166534', bg: '#f0fdf4' },
   meeting_intent:{ label: 'Meeting Intent', color: '#065f46', bg: '#d1fae5' },
   question:      { label: 'Question',       color: '#1e40af', bg: '#dbeafe' },
-  neutral:       { label: 'Neutral',        color: '#555',    bg: '#f4f4f5' },
+  neutral:       { label: 'Neutral',        color: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--muted))' },
   negative:      { label: 'Not Interested', color: '#991b1b', bg: '#fef2f2' },
   unsubscribe:   { label: 'Unsubscribe',    color: '#7c3aed', bg: '#ede9fe' },
   out_of_office: { label: 'Out of Office',  color: '#92400e', bg: '#fef3c7' },
@@ -129,15 +129,15 @@ function RepliesInner() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#111', letterSpacing: '-0.02em' }}>
+          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'hsl(var(--foreground))', letterSpacing: '-0.02em' }}>
             Reply Review
           </h1>
-          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#888' }}>
+          <p style={{ margin: '4px 0 0', fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>
             AI-classified inbound replies. Confirm or override the label.
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#555', cursor: 'pointer' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'hsl(var(--muted-foreground))', cursor: 'pointer' }}>
             <input
               type="checkbox"
               checked={needsReview}
@@ -146,7 +146,7 @@ function RepliesInner() {
             />
             Needs review only
             {pendingCount > 0 && (
-              <span style={{ background: '#f59e0b', color: '#fff', borderRadius: 8, padding: '0 6px', fontSize: 11, fontWeight: 600 }}>
+              <span style={{ background: '#f59e0b', color: 'hsl(var(--card))', borderRadius: 8, padding: '0 6px', fontSize: 11, fontWeight: 600 }}>
                 {pendingCount}
               </span>
             )}
@@ -156,16 +156,16 @@ function RepliesInner() {
 
       {/* Info banner */}
       <div style={{
-        background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10,
+        background: 'var(--primary-light-bg)', border: '1px solid var(--primary-light-border)', borderRadius: 10,
         padding: '14px 18px', marginBottom: 16,
       }}>
-        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#1e40af' }}>What is Reply Review?</p>
-        <p style={{ margin: '6px 0 0', fontSize: 12, color: '#374151', lineHeight: 1.65 }}>
+        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--primary-hex)' }}>What is Reply Review?</p>
+        <p style={{ margin: '6px 0 0', fontSize: 12, color: 'hsl(var(--muted-foreground))', lineHeight: 1.65 }}>
           When leads reply to your outbound campaigns via Instantly, those replies arrive here automatically via webhook.
           The AI reads each reply and classifies it as <strong>Positive</strong>, <strong>Meeting Intent</strong>, <strong>Question</strong>,{' '}
           <strong>Neutral</strong>, <strong>Not Interested</strong>, <strong>Unsubscribe</strong>, <strong>Out of Office</strong>, or <strong>Wrong Person</strong>.
         </p>
-        <p style={{ margin: '6px 0 0', fontSize: 12, color: '#374151', lineHeight: 1.65 }}>
+        <p style={{ margin: '6px 0 0', fontSize: 12, color: 'hsl(var(--muted-foreground))', lineHeight: 1.65 }}>
           <strong>Your job:</strong> Confirm the AI label (click it to tick it) or select a different one if the AI got it wrong.
           Reviewed labels keep your pipeline data accurate and help train the classification over time.
           Replies highlighted in <span style={{ background: '#fef3c7', padding: '0 4px', borderRadius: 3, fontWeight: 600, color: '#92400e' }}>amber</span> have not been reviewed yet.
@@ -178,9 +178,9 @@ function RepliesInner() {
           onClick={() => setLabelFilter('all')}
           style={{
             padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500,
-            border: `1px solid ${labelFilter === 'all' ? '#111' : '#e5e5e5'}`,
-            background: labelFilter === 'all' ? '#111' : '#fff',
-            color: labelFilter === 'all' ? '#fff' : '#666', cursor: 'pointer',
+            border: `1px solid ${labelFilter === 'all' ? 'hsl(var(--foreground))' : 'var(--border-subtle)'}`,
+            background: labelFilter === 'all' ? 'hsl(var(--foreground))' : 'hsl(var(--card))',
+            color: labelFilter === 'all' ? 'hsl(var(--card))' : 'hsl(var(--muted-foreground))', cursor: 'pointer',
           }}
         >
           All
@@ -193,9 +193,9 @@ function RepliesInner() {
               onClick={() => setLabelFilter(l)}
               style={{
                 padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500,
-                border: `1px solid ${labelFilter === l ? m.color : '#e5e5e5'}`,
-                background: labelFilter === l ? m.bg : '#fff',
-                color: labelFilter === l ? m.color : '#666', cursor: 'pointer',
+                border: `1px solid ${labelFilter === l ? m.color : 'var(--border-subtle)'}`,
+                background: labelFilter === l ? m.bg : 'hsl(var(--card))',
+                color: labelFilter === l ? m.color : 'hsl(var(--muted-foreground))', cursor: 'pointer',
               }}
             >
               {m.label}
@@ -223,11 +223,11 @@ function RepliesInner() {
       {/* Replies */}
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
-          <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: '#ccc' }} />
+          <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: 'hsl(var(--muted-foreground))' }} />
         </div>
       ) : filtered.length === 0 ? (
         <div style={{ ...card, textAlign: 'center', padding: '48px 24px' }}>
-          <p style={{ fontSize: 14, color: '#aaa', margin: 0 }}>
+          <p style={{ fontSize: 14, color: 'hsl(var(--muted-foreground))', margin: 0 }}>
             {needsReview ? 'All replies have been reviewed.' : 'No replies yet.'}
           </p>
         </div>
@@ -245,7 +245,7 @@ function RepliesInner() {
             return (
               <div key={reply.id} style={{
                 ...card,
-                border: `1px solid ${isReviewed ? '#e8e8e8' : cl && !humLabel ? '#fcd34d' : '#e8e8e8'}`,
+                border: `1px solid ${isReviewed ? 'var(--border-subtle)' : cl && !humLabel ? '#fcd34d' : 'var(--border-subtle)'}`,
               }}>
                 {/* Header row */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>
@@ -260,24 +260,24 @@ function RepliesInner() {
                         </span>
                       )}
                       {cl?.ai_confidence != null && (
-                        <span style={{ fontSize: 11, color: '#aaa' }}>
+                        <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>
                           {Math.round(cl.ai_confidence * 100)}% confidence
                         </span>
                       )}
                       {!cl && (
-                        <span style={{ fontSize: 11, color: '#aaa', fontStyle: 'italic' }}>Not yet classified</span>
+                        <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', fontStyle: 'italic' }}>Not yet classified</span>
                       )}
                     </div>
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#111' }}>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'hsl(var(--foreground))' }}>
                       {reply.lead_email ?? '—'}
                     </p>
                     {reply.subject && (
-                      <p style={{ margin: '2px 0 0', fontSize: 12, color: '#888' }}>
+                      <p style={{ margin: '2px 0 0', fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>
                         Re: {reply.subject}
                       </p>
                     )}
                   </div>
-                  <span style={{ fontSize: 11, color: '#ccc', flexShrink: 0 }}>
+                  <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', flexShrink: 0 }}>
                     {new Date(reply.received_at).toLocaleDateString()}
                   </span>
                 </div>
@@ -285,10 +285,10 @@ function RepliesInner() {
                 {/* Preview */}
                 {reply.body_preview && (
                   <div style={{
-                    padding: '8px 12px', borderRadius: 7, background: '#f8f8f8',
-                    border: '1px solid #f0f0f0', marginBottom: 10,
+                    padding: '8px 12px', borderRadius: 7, background: 'hsl(var(--muted))',
+                    border: '1px solid var(--border-subtle)', marginBottom: 10,
                   }}>
-                    <p style={{ margin: 0, fontSize: 12, color: '#444', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>
+                    <p style={{ margin: 0, fontSize: 12, color: 'hsl(var(--muted-foreground))', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>
                       {reply.body_preview}
                     </p>
                   </div>
@@ -304,7 +304,7 @@ function RepliesInner() {
                 {/* Human label selector */}
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                   {isSaving ? (
-                    <Loader2 size={14} style={{ animation: 'spin 1s linear infinite', color: '#ccc' }} />
+                    <Loader2 size={14} style={{ animation: 'spin 1s linear infinite', color: 'hsl(var(--muted-foreground))' }} />
                   ) : (
                     ALL_LABELS.map(l => {
                       const m = LABEL_META[l]
@@ -315,9 +315,9 @@ function RepliesInner() {
                           onClick={() => applyLabel(reply.id, l)}
                           style={{
                             padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 500,
-                            border: `1px solid ${selected ? m.color : '#e5e5e5'}`,
-                            background: selected ? m.bg : '#fff',
-                            color: selected ? m.color : '#888',
+                            border: `1px solid ${selected ? m.color : 'var(--border-subtle)'}`,
+                            background: selected ? m.bg : 'hsl(var(--card))',
+                            color: selected ? m.color : 'hsl(var(--muted-foreground))',
                             cursor: 'pointer',
                           }}
                         >
@@ -329,7 +329,7 @@ function RepliesInner() {
                   {reply.campaign_id && (
                     <a
                       href={`/outbound/campaigns/${reply.campaign_id}`}
-                      style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#1d4ed8', textDecoration: 'none' }}
+                      style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--primary-hex)', textDecoration: 'none' }}
                     >
                       <ExternalLink size={10} /> Campaign
                     </a>

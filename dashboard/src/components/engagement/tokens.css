@@ -107,7 +107,8 @@
 
   --ea-pill-h:      18px;
   --ea-pill-px:     7px;
-  --ea-pill-radius: 20px;
+  /* rounded-[6px], matching the chip/badge convention everywhere else — not a full capsule */
+  --ea-pill-radius: 6px;
   --ea-pill-size:   10px;
   --ea-pill-weight: 600;
 
@@ -126,11 +127,4 @@
   /* Needs-reply indicator — reuse semantic warning token */
   --ea-needs-reply-color: var(--warning);
   --ea-needs-reply-bg:    var(--warning-bg);
-}
-
-/* When the primary nav rail is collapsed to icons-only (auto-collapses on this route), give
-   the freed-up horizontal space to the conversation list so sender name, timestamp, and tag
-   badges stop truncating — see Sidebar.tsx's `data-sidebar-collapsed` attribute. */
-:root[data-sidebar-collapsed="true"] [data-ea] {
-  --ea-list-w: 372px;
 }

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
-  Mail, MessageCircle, Telescope, Megaphone, Bot, Users, BookOpen,
+  Mail, MessageCircle, Telescope, Megaphone, Bot, Users,
   Inbox, FileEdit, MessageSquare, BarChart2, ArrowRight,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -30,7 +30,6 @@ const QUICK_LINKS: { label: string; href: string; icon: React.ElementType; desc:
   { label: 'Campaigns',        href: '/outbound/campaigns', icon: Megaphone,     desc: 'Outbound email campaign sequences'          },
   { label: 'Engagement Agent', href: '/engagement',         icon: Bot,           desc: 'AI-assisted reply drafting for live threads' },
   { label: 'Active Contacts',  href: '/contacts',           icon: Users,         desc: 'Pipeline view by stage'                    },
-  { label: 'Overview',         href: '/overview',           icon: BookOpen,      desc: 'Platform guide, workflow map, and AI agent docs' },
 ]
 
 // ── Page ───────────────────────────────────────────────────────────────────────
@@ -148,10 +147,6 @@ export default function HomePage() {
             TRS AI Platform — end-to-end sales automation from inbound capture to pipeline conversion.
           </p>
           <div className="flex items-center gap-4">
-            <Link href="/overview"
-              className="text-[11.5px] font-medium text-muted-foreground hover:text-foreground no-underline transition-colors">
-              Overview
-            </Link>
             <Link href="/settings"
               className="text-[11.5px] font-medium text-muted-foreground hover:text-foreground no-underline transition-colors">
               Settings

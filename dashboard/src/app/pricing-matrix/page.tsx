@@ -74,7 +74,7 @@ export default function PricingMatrixPage() {
         <span className="pb-2 border-b-2 border-primary text-foreground font-medium">Calculators</span>
         <Link href="/pricing-matrix/quote" className="pb-2 border-b-2 border-transparent text-muted-foreground hover:text-foreground">Quotes</Link>
         <Link href="/pricing-matrix/compare" className="pb-2 border-b-2 border-transparent text-muted-foreground hover:text-foreground">Compare coverage</Link>
-        <Link href="/pricing-matrix/taxonomy" className="pb-2 border-b-2 border-transparent text-muted-foreground hover:text-foreground">Terminology{pendingTerms > 0 && <span className="ml-1.5 inline-flex text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">{pendingTerms}</span>}</Link>
+        <Link href="/pricing-matrix/taxonomy" className="pb-2 border-b-2 border-transparent text-muted-foreground hover:text-foreground">Terminology{pendingTerms > 0 && <span className="ml-1.5 inline-flex text-[10px] font-semibold px-1.5 py-0.5 rounded-[6px] bg-amber-100 text-amber-700">{pendingTerms}</span>}</Link>
       </div>
 
       {!loading && rows.length > 0 && (
@@ -122,7 +122,7 @@ export default function PricingMatrixPage() {
                   <TableCell className="text-muted-foreground/70">
                     v{r.version}
                     {r.change_summary?.text && (
-                      <Link href={`/pricing-matrix/${r.id}`} title={r.change_summary.text} className="ml-1.5 inline-flex text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100">changed</Link>
+                      <Link href={`/pricing-matrix/${r.id}`} title={r.change_summary.text} className="ml-1.5 inline-flex text-[10px] font-medium px-1.5 py-0.5 rounded-[6px] bg-indigo-50 text-indigo-600 hover:bg-indigo-100">changed</Link>
                     )}
                   </TableCell>
                   <TableCell><StatusPill status={r.status} config={CALCULATOR_STATUS} /></TableCell>

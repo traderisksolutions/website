@@ -95,7 +95,7 @@ function StatusPill({ s }: { s: string | null }) {
       : v === 'failed' || v === 'fail'
         ? 'bg-rose-100 text-rose-700'
         : 'bg-amber-100 text-amber-700'
-  return <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${cls}`}>{s ?? '—'}</span>
+  return <span className={`inline-block rounded-[6px] px-2 py-0.5 text-[11px] font-medium ${cls}`}>{s ?? '—'}</span>
 }
 
 export default function RoadplusReconPage() {

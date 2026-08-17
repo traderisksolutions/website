@@ -56,7 +56,7 @@ function KpiCard({
   icon: React.ElementType; color: string
 }) {
   return (
-    <div style={{ background: '#fff', border: '1px solid #e8e8e8', borderRadius: 12, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+    <div style={{ background: 'hsl(var(--card))', boxShadow: 'var(--card-shadow)', borderRadius: 12, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 6 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#aaa' }}>{label}</span>
         <span style={{ width: 28, height: 28, borderRadius: 8, background: `${color}12`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -89,7 +89,7 @@ function FunnelBar({
       {/* Bar */}
       <div style={{ flex: 1, position: 'relative' }}>
         {/* Background track */}
-        <div style={{ height: 36, background: '#f4f4f5', borderRadius: 6, overflow: 'hidden' }}>
+        <div style={{ height: 36, background: 'hsl(var(--muted))', borderRadius: 6, overflow: 'hidden' }}>
           {/* Fill */}
           <div style={{
             height: '100%',
@@ -150,7 +150,7 @@ function BreakdownBar({ label, count, total, color }: { label: string; count: nu
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
       <span style={{ width: 120, fontSize: 12, color: '#555', flexShrink: 0, textAlign: 'right' }}>{label}</span>
-      <div style={{ flex: 1, height: 8, background: '#f4f4f5', borderRadius: 4, overflow: 'hidden' }}>
+      <div style={{ flex: 1, height: 8, background: 'hsl(var(--muted))', borderRadius: 4, overflow: 'hidden' }}>
         <div style={{ height: '100%', width: w, background: color, borderRadius: 4 }} />
       </div>
       <span style={{ width: 60, fontSize: 12, fontWeight: 600, color: '#333', textAlign: 'right' }}>
@@ -172,7 +172,7 @@ function JourneyStep({
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <div style={{
           width: 80, padding: '10px 8px', borderRadius: 10, textAlign: 'center',
-          background: '#fff', border: `2px solid ${color}`,
+          background: 'hsl(var(--card))', border: `2px solid ${color}`,
         }}>
           <div style={{ fontSize: 16, fontWeight: 700, color, marginBottom: 4 }}>{step}</div>
           <div style={{ fontSize: 10, fontWeight: 600, color: '#333', lineHeight: 1.3 }}>{label}</div>
@@ -247,7 +247,7 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div style={{ minHeight: 'calc(100vh / var(--ui-zoom))', background: '#f9f9f9', padding: '28px 32px 48px' }}>
+    <div style={{ minHeight: 'calc(100vh / var(--ui-zoom))', background: 'hsl(var(--background))', padding: '28px 32px 48px' }}>
 
       {/* ── Page header ── */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
@@ -259,7 +259,7 @@ export default function AnalyticsPage() {
         </div>
         <button
           onClick={() => load(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#888', background: '#fff', border: '1px solid #e8e8e8', borderRadius: 8, padding: '6px 12px', cursor: 'pointer' }}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#888', background: 'hsl(var(--card))', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer' }}
         >
           <RefreshCw size={13} strokeWidth={2} style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }} />
           Refresh
@@ -280,7 +280,7 @@ export default function AnalyticsPage() {
           </div>
 
           {/* ── SMB Funnel ── */}
-          <div style={{ background: '#fff', border: '1px solid #e8e8e8', borderRadius: 14, padding: '24px 24px 16px', marginBottom: 20 }}>
+          <div style={{ background: 'hsl(var(--card))', boxShadow: 'var(--card-shadow)', borderRadius: 14, padding: '24px 24px 16px', marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
               <div>
                 <p style={{ margin: 0, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#3b82f6', marginBottom: 4 }}>
@@ -291,14 +291,14 @@ export default function AnalyticsPage() {
                   Small-medium businesses that contact us via email and decide on purchasing a policy.
                 </p>
               </div>
-              <div style={{ display: 'flex', gap: 8, flexShrink: 0, background: '#f9f9f9', border: '1px solid #e8e8e8', borderRadius: 8, padding: '6px 12px' }}>
+              <div style={{ display: 'flex', gap: 8, flexShrink: 0, background: 'hsl(var(--muted))', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: '6px 12px' }}>
                 <span style={{ fontSize: 11, color: '#888' }}>Overall conversion:</span>
                 <span style={{ fontSize: 11, fontWeight: 700, color: converted > 0 ? '#111' : '#bbb' }}>{convRate}</span>
               </div>
             </div>
 
             {/* Funnel bars */}
-            <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 8 }}>
+            <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }}>
               {smb.map((stage, i) => (
                 <div key={stage.key}>
                   <FunnelBar
@@ -308,7 +308,7 @@ export default function AnalyticsPage() {
                     isLast={i === smb.length - 1}
                   />
                   {i < smb.length - 1 && (
-                    <div style={{ height: 1, background: '#f4f4f5', margin: '0 126px' }} />
+                    <div style={{ height: 1, background: 'var(--border-subtle)', margin: '0 126px' }} />
                   )}
                 </div>
               ))}
@@ -326,7 +326,7 @@ export default function AnalyticsPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
 
             {/* By department */}
-            <div style={{ background: '#fff', border: '1px solid #e8e8e8', borderRadius: 14, padding: '20px 24px' }}>
+            <div style={{ background: 'hsl(var(--card))', boxShadow: 'var(--card-shadow)', borderRadius: 14, padding: '20px 24px' }}>
               <SectionHeader title="By Department" sub="Which team owns the most leads" />
               {depts.map(d => (
                 <BreakdownBar
@@ -341,7 +341,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* By source */}
-            <div style={{ background: '#fff', border: '1px solid #e8e8e8', borderRadius: 14, padding: '20px 24px' }}>
+            <div style={{ background: 'hsl(var(--card))', boxShadow: 'var(--card-shadow)', borderRadius: 14, padding: '20px 24px' }}>
               <SectionHeader title="By Source" sub="Where leads are coming from" />
               {sources.map(s => (
                 <BreakdownBar
@@ -357,7 +357,7 @@ export default function AnalyticsPage() {
           </div>
 
           {/* ── B2C Journey ── */}
-          <div style={{ background: '#fff', border: '1px solid #e8e8e8', borderRadius: 14, padding: '24px', marginBottom: 20 }}>
+          <div style={{ background: 'hsl(var(--card))', boxShadow: 'var(--card-shadow)', borderRadius: 14, padding: '24px', marginBottom: 20 }}>
             <div style={{ marginBottom: 20 }}>
               <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#f59e0b' }}>
                 Journey 2 — Individual / B2C Direct Purchase
@@ -402,7 +402,7 @@ export default function AnalyticsPage() {
           </div>
 
           {/* ── Suggestions ── */}
-          <div style={{ background: '#fff', border: '1px solid #e8e8e8', borderRadius: 14, padding: '24px' }}>
+          <div style={{ background: 'hsl(var(--card))', boxShadow: 'var(--card-shadow)', borderRadius: 14, padding: '24px' }}>
             <SectionHeader
               title="Recommended Metrics to Track"
               sub="Based on your two customer journeys — what to measure next"
@@ -423,7 +423,7 @@ export default function AnalyticsPage() {
                   { metric: 'Renewal rate (12-month)',why: 'SMB policies renew annually. Track to measure true LTV.' },
                   { metric: 'Lead source quality',    why: 'Website form vs direct email — which source converts better and faster?' },
                 ].map((r, i) => (
-                  <div key={i} style={{ padding: '10px 0', borderBottom: i < 5 ? '1px solid #f4f4f5' : 'none', display: 'flex', gap: 12 }}>
+                  <div key={i} style={{ padding: '10px 0', borderBottom: i < 5 ? '1px solid var(--border-subtle)' : 'none', display: 'flex', gap: 12 }}>
                     <span style={{ width: 20, height: 20, borderRadius: 5, background: 'rgba(59,130,246,0.10)', color: '#3b82f6', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
                       {i + 1}
                     </span>
@@ -448,7 +448,7 @@ export default function AnalyticsPage() {
                   { metric: 'Product mix',            why: 'Motor vs Travel vs Home — which products drive the most revenue?' },
                   { metric: 'Avg order value',        why: 'Premium per transaction. Drives revenue forecasting and CAC target.' },
                 ].map((r, i) => (
-                  <div key={i} style={{ padding: '10px 0', borderBottom: i < 5 ? '1px solid #f4f4f5' : 'none', display: 'flex', gap: 12 }}>
+                  <div key={i} style={{ padding: '10px 0', borderBottom: i < 5 ? '1px solid var(--border-subtle)' : 'none', display: 'flex', gap: 12 }}>
                     <span style={{ width: 20, height: 20, borderRadius: 5, background: 'rgba(245,158,11,0.10)', color: '#f59e0b', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
                       {i + 1}
                     </span>

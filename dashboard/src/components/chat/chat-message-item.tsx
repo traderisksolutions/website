@@ -82,12 +82,12 @@ export function ChatMessageItem({ message, confirming, onConfirm, onUndo, onRege
           {citations.map((c, i) => (
             c.kind === 'email' && c.ref ? (
               <a key={i} href={`/engagement?lead=${c.ref}`}
-                className="inline-flex items-center gap-1 text-[10px] rounded-full border border-primary/25 bg-primary/5 px-1.5 py-0.5 text-primary hover:bg-primary/10 transition-colors"
+                className="inline-flex items-center gap-1 text-[10px] rounded-[6px] border border-primary/25 bg-primary/5 px-1.5 py-0.5 text-primary hover:bg-primary/10 transition-colors"
                 title="Open the source conversation">
                 <LinkIcon size={9} /> {c.label}
               </a>
             ) : (
-              <span key={i} className="text-[10px] rounded-full border border-[--border-subtle] bg-card px-1.5 py-0.5 text-muted-foreground/70">
+              <span key={i} className="text-[10px] rounded-[6px] border border-[--border-subtle] bg-card px-1.5 py-0.5 text-muted-foreground/70">
                 {c.label}
               </span>
             )

@@ -1,13 +1,23 @@
 # TRS Dashboard — Design System
 
+The page is white. Fills are for badges, tinted table headers, and hover
+states only — never a full section. Separation between surfaces reads as a
+hairline border (or a border expressed as a `box-shadow` ring — see below),
+not a drop shadow or a distinct background color. One navy accent
+(`--primary`) is spent on links, active state, and calls to action; it is not
+decorative. This mirrors the Keluarga Timur demo's "no boxes, no tinted
+panels" rule, adapted to this app's own navy/enterprise identity rather than
+importing Keluarga's literal palette.
+
 ## Surface tokens
 
 | Token | Value | Used for |
 |---|---|---|
-| `surface-0` | `hsl(216 22% 95%)` | Page background (`bg-background`) |
-| `surface-1` | `white` | Panels, sidebars (`bg-card`) |
-| `surface-2` | `white` + `--card-shadow` | Floating cards (Card component) |
-| `surface-3` | `white` + `--shadow-modal` | Modals, popovers |
+| `surface-0` | `white` | Page background (`bg-background`) |
+| `surface-1` | `white` | Panels, sidebars (`bg-card`) — same as the page; a hairline ring is what separates it |
+| `surface-2` | `white` + `--card-shadow` (hairline ring) | Resting cards (Card component) |
+| `surface-3` | `white` + `--shadow-panel` | Genuinely floating panels — open dropdowns, hover-lifted cards |
+| `surface-4` | `white` + `--shadow-modal` | Modals, popovers — the only surfaces that keep real elevation |
 
 ## CSS custom properties
 
@@ -16,11 +26,20 @@
 --border-subtle:   rgba(16,24,40,0.08)  /* structural seams and dividers */
 --border-input:    hsl(var(--border))   /* interactive form controls */
 
-/* Shadows */
---card-shadow:     0 1px 4px rgba(16,24,40,0.09), 0 2px 6px rgba(16,24,40,0.05)
---shadow-panel:    0 4px 16px rgba(16,24,40,0.08), 0 2px 8px rgba(16,24,40,0.04)
---shadow-modal:    0 8px 24px rgba(16,24,40,0.12), 0 4px 12px rgba(16,24,40,0.06)
+/* Shadows — hairline first. A resting card is a 1px ring, not a blurred
+   drop shadow; real elevation (blur) is reserved for things that actually
+   float above the page (dropdowns, modals). */
+--card-shadow:     0 0 0 1px var(--border-subtle)
+--shadow-panel:    0 0 0 1px var(--border-mid), 0 6px 16px rgba(16,24,40,0.07)
+--shadow-modal:    0 0 0 1px var(--border-mid), 0 16px 40px rgba(16,24,40,0.14)
 ```
+
+The former "Apple Liquid Glass" material system (`.glass-sidebar`,
+`.glass-thin`, `.glass-regular`, `.glass-modal`, `.glass`, backdrop blur, and
+the `.btn-glass` shimmer animation on the primary button) has been retired.
+Those class names still exist for compatibility with existing markup, but
+now resolve to flat white + hairline border, with `--shadow-panel` /
+`--shadow-modal` reserved for surfaces that are genuinely floating.
 
 ---
 
@@ -124,12 +143,29 @@ All informational banners (error, success, warning, info) use:
 
 ## Chip / pill rules
 
+Two distinct patterns, both `rounded-[6px]` — never `rounded-full` on a
+chip that contains text (reserve `rounded-full` for avatars, dots, and
+step circles).
+
+**Status badges / tags** (non-interactive, e.g. `.st-badge`) — fill-only,
+no border:
+
 | State | Style |
 |---|---|
-| Default inactive | `bg-muted text-muted-foreground rounded-[6px]` |
-| Active (colored) | `bg-{color}/[0.12] text-{color} rounded-[6px]` |
-| Active (primary) | `bg-primary/[0.08] text-primary rounded-[6px]` |
-| Never | outlined border as primary signal |
+| Default | `bg-muted text-muted-foreground rounded-[6px]` |
+| Colored | `bg-{color}/[0.12] text-{color} rounded-[6px]` |
+| Primary | `bg-primary/[0.08] text-primary rounded-[6px]` |
+
+**Filter / toggle pills** (interactive, e.g. `.filter-pill`, top-nav
+triggers) — a hairline border at rest, filled only when selected. This is
+the segmented-control pattern borrowed from Keluarga Timur: a tonal fill
+reads as "selected" without an invert-to-solid-black/blue look.
+
+| State | Style |
+|---|---|
+| Idle | `border border-[--border-subtle] bg-transparent text-muted-foreground` |
+| Hover | `bg-muted border-[--border-mid] text-foreground` |
+| Active/selected | `bg-[--primary-light-bg] border-[--primary-light-border] text-[--primary-hex]` |
 
 ---
 

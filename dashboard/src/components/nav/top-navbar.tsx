@@ -160,7 +160,7 @@ export function TopNavbar() {
                             aria-current={isActive ? 'page' : undefined}
                             className={cn(
                               'flex items-center gap-1 rounded-md px-2 py-1.5 text-[11.5px] font-medium no-underline transition-colors whitespace-nowrap',
-                              isActive ? 'bg-accent text-accent-foreground' : 'text-foreground'
+                              isActive ? 'bg-accent text-accent-foreground hover:bg-accent' : 'text-foreground hover:bg-muted'
                             )}
                           >
                             {section.label}
@@ -178,7 +178,7 @@ export function TopNavbar() {
                     <NavigationMenuTrigger
                       onPointerMove={suppressHover}
                       onPointerEnter={suppressHover}
-                      className={cn('h-8 gap-1 text-[11.5px] px-2', isActive && 'bg-accent text-accent-foreground')}
+                      className={cn('h-8 gap-1 text-[11.5px] px-2', isActive && 'bg-accent text-accent-foreground hover:bg-accent')}
                     >
                       {section.label}
                     </NavigationMenuTrigger>

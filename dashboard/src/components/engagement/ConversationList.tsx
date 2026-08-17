@@ -82,7 +82,7 @@ export function ConversationList({
               {activeTab === 'all' ? 'All conversations' : activeTab === 'prospects' ? 'Prospects' : activeTab === 'clients' ? 'Clients' : 'Drafts'}
             </span>
             {!loading && needsReplyCount > 0 && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[--warning-bg] text-[--warning] flex-shrink-0">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-[6px] bg-[--warning-bg] text-[--warning] flex-shrink-0">
                 {needsReplyCount} awaiting reply
               </span>
             )}

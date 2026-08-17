@@ -30,7 +30,7 @@ const ACTION_CONFIG: Record<string, { label: string; color: string; bg: string; 
   'draft.rejected':       { label: 'Rejected draft',      color: '#b45309', bg: '#fffbeb', group: 'AI' },
   'status.changed':       { label: 'Status changed',      color: '#7c3aed', bg: '#f5f3ff', group: 'Lead' },
   'note.saved':           { label: 'Note saved',          color: '#0891b2', bg: '#ecfeff', group: 'Lead' },
-  'thread.viewed':        { label: 'Viewed thread',       color: '#6b7280', bg: '#f9fafb', group: 'Navigation' },
+  'thread.viewed':        { label: 'Viewed thread',       color: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--muted))', group: 'Navigation' },
   // Nexus
   'nexus.case_renamed':        { label: 'Renamed case',        color: '#7c3aed', bg: '#f5f3ff', group: 'Nexus' },
   'nexus.case_status_changed': { label: 'Changed case status', color: '#7c3aed', bg: '#f5f3ff', group: 'Nexus' },
@@ -39,7 +39,7 @@ const ACTION_CONFIG: Record<string, { label: string; color: string; bg: string; 
   'nexus.analysis_edited':     { label: 'Edited analysis',     color: '#6d28d9', bg: '#f5f3ff', group: 'Nexus' },
   'nexus.thread_linked':       { label: 'Linked thread',       color: '#4f46e5', bg: '#eef2ff', group: 'Nexus' },
   'nexus.thread_unlinked':     { label: 'Unlinked thread',     color: '#b45309', bg: '#fffbeb', group: 'Nexus' },
-  'nexus.case_viewed':         { label: 'Opened case',         color: '#6b7280', bg: '#f9fafb', group: 'Navigation' },
+  'nexus.case_viewed':         { label: 'Opened case',         color: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--muted))', group: 'Navigation' },
   // RFQ
   'rfq.dispatched':            { label: 'Sent RFQ to insurer', color: '#4f46e5', bg: '#eef2ff', group: 'RFQ' },
   'contacts.bulk_import':      { label: 'Imported contacts',   color: '#0891b2', bg: '#ecfeff', group: 'Lead' },
@@ -48,7 +48,7 @@ const ALL_ACTION_TYPES = Object.keys(ACTION_CONFIG)
 const ACTION_GROUPS = ['Email', 'AI', 'Nexus', 'RFQ', 'Lead', 'Navigation']
 
 function actionCfg(action: string) {
-  return ACTION_CONFIG[action] ?? { label: action, color: '#6b7280', bg: '#f9fafb', group: 'Other' }
+  return ACTION_CONFIG[action] ?? { label: action, color: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--muted))', group: 'Other' }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -116,8 +116,8 @@ function JsonBlock({ label, data }: { label: string; data: Record<string, unknow
   if (!data || Object.keys(data).length === 0) return null
   return (
     <div style={{ marginTop: 8 }}>
-      <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af' }}>{label}</p>
-      <pre style={{ margin: 0, padding: '8px 10px', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 6, fontSize: 11, color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: 200, overflowY: 'auto', fontFamily: 'ui-monospace, monospace' }}>
+      <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'hsl(var(--muted-foreground))' }}>{label}</p>
+      <pre style={{ margin: 0, padding: '8px 10px', background: 'hsl(var(--muted))', border: '1px solid var(--border-subtle)', borderRadius: 6, fontSize: 11, color: 'hsl(var(--foreground))', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: 200, overflowY: 'auto', fontFamily: 'ui-monospace, monospace' }}>
         {JSON.stringify(data, null, 2)}
       </pre>
     </div>
@@ -128,9 +128,9 @@ function RowDetail({ row }: { row: LogRow }) {
   const hasDetail = row.old_value || row.new_value || row.metadata || row.resource_id
   if (!hasDetail) return null
   return (
-    <div style={{ padding: '10px 16px 14px 58px', background: '#fafafa', borderTop: '1px solid #f0f0f0' }}>
+    <div style={{ padding: '10px 16px 14px 58px', background: 'hsl(var(--muted))', borderTop: '1px solid var(--border-subtle)' }}>
       {row.resource_type && row.resource_id && (
-        <p style={{ margin: '0 0 8px', fontSize: 11, color: '#9ca3af' }}>
+        <p style={{ margin: '0 0 8px', fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>
           {row.resource_type} · <code style={{ fontFamily: 'ui-monospace, monospace', fontSize: 10 }}>{row.resource_id}</code>
         </p>
       )}
@@ -203,15 +203,15 @@ export default function ActivityLogPage() {
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#111', letterSpacing: '-0.02em' }}>Activity Log</h1>
-          <p style={{ margin: '3px 0 0', fontSize: 13, color: '#888' }}>
+          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'hsl(var(--foreground))', letterSpacing: '-0.02em' }}>Activity Log</h1>
+          <p style={{ margin: '3px 0 0', fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>
             {logs.length} event{logs.length !== 1 ? 's' : ''} · {days > 0 ? `last ${days} days` : 'all time'}
           </p>
         </div>
         <button
           onClick={() => load(true)}
           title="Refresh"
-          style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 7, padding: '6px 10px', cursor: 'pointer', color: '#888', display: 'flex', alignItems: 'center', gap: 5 }}
+          style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: 7, padding: '6px 10px', cursor: 'pointer', color: 'hsl(var(--muted-foreground))', display: 'flex', alignItems: 'center', gap: 5 }}
         >
           <RefreshCw size={13} strokeWidth={2} style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }} />
           <span style={{ fontSize: 12 }}>Refresh</span>
@@ -257,7 +257,7 @@ export default function ActivityLogPage() {
         {(filterUser || filterAction || days !== 30) && (
           <button
             onClick={() => { setFilterUser(''); setFilterAction(''); setDays(30) }}
-            style={{ fontSize: 11, color: '#6b7280', background: 'none', border: '1px solid #e5e7eb', borderRadius: 6, padding: '5px 10px', cursor: 'pointer' }}
+            style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', background: 'none', border: '1px solid var(--border-subtle)', borderRadius: 6, padding: '5px 10px', cursor: 'pointer' }}
           >
             Clear
           </button>
@@ -266,18 +266,18 @@ export default function ActivityLogPage() {
 
       {/* ── Feed ───────────────────────────────────────────────────────────── */}
       {loading ? (
-        <p style={{ fontSize: 13, color: '#bbb', textAlign: 'center', padding: '48px 0' }}>Loading…</p>
+        <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', textAlign: 'center', padding: '48px 0' }}>Loading…</p>
       ) : logs.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '48px 0' }}>
-          <p style={{ fontSize: 13, color: '#bbb' }}>No activity in this period.</p>
-          {days > 0 && <button onClick={() => setDays(0)} style={{ marginTop: 8, fontSize: 12, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>View all time</button>}
+          <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>No activity in this period.</p>
+          {days > 0 && <button onClick={() => setDays(0)} style={{ marginTop: 8, fontSize: 12, color: 'var(--primary-hex)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>View all time</button>}
         </div>
       ) : (
         Object.entries(grouped).map(([day, rows]) => (
           <div key={day} style={{ marginBottom: 28 }}>
-            <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{day}</p>
+            <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{day}</p>
 
-            <div style={{ border: '1px solid #e8e8e8', borderRadius: 12, overflow: 'hidden', background: '#fff' }}>
+            <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 12, overflow: 'hidden', background: 'hsl(var(--card))' }}>
               {rows.map((row, i) => {
                 const cfg   = actionCfg(row.action)
                 const isExp = expanded === row.id
@@ -285,7 +285,7 @@ export default function ActivityLogPage() {
                 const color = avatarColor(row.user_email)
 
                 return (
-                  <div key={row.id} style={{ borderBottom: i < rows.length - 1 ? '1px solid #f0f0f0' : 'none' }}>
+                  <div key={row.id} style={{ borderBottom: i < rows.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
                     <button
                       onClick={() => hasDetail ? setExpanded(isExp ? null : row.id) : undefined}
                       style={{
@@ -296,29 +296,29 @@ export default function ActivityLogPage() {
                     >
                       {/* Avatar */}
                       <div style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, background: color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: '#fff' }}>{initials(row.user_email)}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: 'hsl(var(--card))' }}>{initials(row.user_email)}</span>
                       </div>
 
                       {/* Content */}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginBottom: 2 }}>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: '#111' }}>{displayName(row)}</span>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--foreground))' }}>{displayName(row)}</span>
                           <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 7px', borderRadius: 20, color: cfg.color, background: cfg.bg, whiteSpace: 'nowrap' }}>
                             {cfg.label}
                           </span>
                         </div>
-                        <p style={{ margin: 0, fontSize: 12, color: '#555', lineHeight: 1.4 }}>{describeAction(row)}</p>
+                        <p style={{ margin: 0, fontSize: 12, color: 'hsl(var(--muted-foreground))', lineHeight: 1.4 }}>{describeAction(row)}</p>
                       </div>
 
                       {/* Right side */}
                       <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: 11, color: '#bbb' }} title={fmtFull(row.created_at)}>
+                        <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }} title={fmtFull(row.created_at)}>
                           {timeAgo(row.created_at)}
                         </span>
                         {hasDetail && (
                           isExp
-                            ? <ChevronDown size={12} strokeWidth={2} style={{ color: '#9ca3af', flexShrink: 0 }} />
-                            : <ChevronRight size={12} strokeWidth={2} style={{ color: '#d1d5db', flexShrink: 0 }} />
+                            ? <ChevronDown size={12} strokeWidth={2} style={{ color: 'hsl(var(--muted-foreground))', flexShrink: 0 }} />
+                            : <ChevronRight size={12} strokeWidth={2} style={{ color: 'hsl(var(--muted-foreground))', flexShrink: 0 }} />
                         )}
                       </div>
                     </button>
@@ -338,7 +338,7 @@ export default function ActivityLogPage() {
 }
 
 const selStyle: React.CSSProperties = {
-  fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 7,
-  padding: '5px 10px', color: '#374151', background: '#fff',
+  fontSize: 12, border: '1px solid var(--border-subtle)', borderRadius: 7,
+  padding: '5px 10px', color: 'hsl(var(--foreground))', background: 'hsl(var(--card))',
   outline: 'none', cursor: 'pointer',
 }

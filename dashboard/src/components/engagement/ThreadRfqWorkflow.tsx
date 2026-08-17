@@ -304,7 +304,7 @@ export default function ThreadRfqWorkflow({
           <div className="flex flex-wrap items-center gap-1.5">
             {suggestedOpen.map(line => (
               <button key={line} onClick={() => openLineInsurers(line)}
-                className="flex items-center gap-1 text-[11px] rounded-full border border-primary/30 bg-primary/5 px-2.5 py-1 font-medium text-primary hover:bg-primary/10">
+                className="flex items-center gap-1 text-[11px] rounded-[6px] border border-primary/30 bg-primary/5 px-2.5 py-1 font-medium text-primary hover:bg-primary/10">
                 <Plus size={10} /> {productLineLabel(line)}
               </button>
             ))}
@@ -352,13 +352,13 @@ function SentLine({ request, onChange }: { request: RfqRequest; onChange: () => 
           const replied = d.status === 'replied'
           const waited  = daysSince(d.updated_at || d.created_at)
           return (
-            <span key={d.id} className={cn('inline-flex items-center gap-1 text-[10.5px] rounded-full pl-2 pr-1 py-0.5 border',
+            <span key={d.id} className={cn('inline-flex items-center gap-1 text-[10.5px] rounded-[6px] pl-2 pr-1 py-0.5 border',
               replied ? 'text-indigo-700 bg-indigo-50 border-indigo-200 font-semibold' : 'text-emerald-700 bg-emerald-50 border-emerald-200')}>
               {replied ? '↩ replied' : '✓ sent'} · {d.insurer_name || d.to_email}
               {!replied && <span className="opacity-70">· ⏳{waited}d</span>}
               {!replied && (
                 <button onClick={() => chase(d.id)} disabled={chasingId === d.id}
-                  className="ml-0.5 rounded-full px-1.5 py-0.5 text-[9.5px] font-semibold bg-white/70 hover:bg-white border border-current/20 disabled:opacity-50">
+                  className="ml-0.5 rounded-[4px] px-1.5 py-0.5 text-[9.5px] font-semibold bg-white/70 hover:bg-white border border-current/20 disabled:opacity-50">
                   {chasingId === d.id ? '…' : 'Chase'}
                 </button>
               )}

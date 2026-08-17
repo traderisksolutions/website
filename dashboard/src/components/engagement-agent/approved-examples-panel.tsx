@@ -43,7 +43,7 @@ export function ApprovedExamplesPanel({ examples }: ApprovedExamplesPanelProps) 
                 onClick={() => setOpenIdx(openIdx === i ? null : i)}
                 className="w-full flex items-start gap-2 px-2.5 py-2 text-left hover:bg-accent/30 transition-colors"
               >
-                <span className="text-[8px] font-bold text-[--success] bg-[--success]/10 px-1.5 py-[2px] rounded-full flex-shrink-0 mt-0.5">
+                <span className="text-[8px] font-bold text-[--success] bg-[--success]/10 px-1.5 py-[2px] rounded-[6px] flex-shrink-0 mt-0.5">
                   {ex.score}/5
                 </span>
                 <p className="text-[9.5px] text-foreground/65 leading-[1.5] line-clamp-2 m-0 flex-1">

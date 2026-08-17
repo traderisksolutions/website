@@ -79,7 +79,7 @@ function LeadCard({ lead, onStatus }: { lead: Lead; onStatus: (id: string, s: st
 
   return (
     <div style={{
-      background: '#fff', border: '1px solid #e8e8e8',
+      background: 'hsl(var(--card))', border: '1px solid var(--border-subtle)',
       borderLeft: `3px solid ${CLAIM_COLOR}`, borderRadius: 10,
     }}>
       <div
@@ -119,8 +119,8 @@ function LeadCard({ lead, onStatus }: { lead: Lead; onStatus: (id: string, s: st
             {statusMenu && (
               <div style={{
                 position: 'absolute', right: 0, top: 'calc(100% + 4px)',
-                background: '#fff', border: '1px solid #e8e8e8', borderRadius: 10,
-                boxShadow: '0 4px 24px rgba(0,0,0,0.10)', minWidth: 140, zIndex: 50, padding: '4px 0',
+                background: 'hsl(var(--card))', border: '1px solid var(--border-mid)', borderRadius: 10,
+                boxShadow: 'var(--shadow-panel)', minWidth: 140, zIndex: 50, padding: '4px 0',
               }}>
                 {ALL_STATUSES.map(s => {
                   const sc = STATUS[s]
@@ -139,7 +139,7 @@ function LeadCard({ lead, onStatus }: { lead: Lead; onStatus: (id: string, s: st
       </div>
 
       {open && (
-        <div style={{ borderTop: '1px solid #f0f0f0', padding: 16 }} onClick={e => e.stopPropagation()}>
+        <div style={{ borderTop: '1px solid var(--border-subtle)', padding: 16 }} onClick={e => e.stopPropagation()}>
           {body && (
             <div style={{ marginBottom: 16 }}>
               <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#bbb' }}>Claim Details</p>
@@ -172,7 +172,7 @@ function LeadCard({ lead, onStatus }: { lead: Lead; onStatus: (id: string, s: st
               </div>
             )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingTop: 12, borderTop: '1px solid #f0f0f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingTop: 12, borderTop: '1px solid var(--border-subtle)' }}>
             {waPhone && (
               <a href={`https://wa.me/${waPhone}`} target="_blank" rel="noopener noreferrer"
                 style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 8, background: '#22c55e', color: '#fff', textDecoration: 'none' }}>
@@ -181,19 +181,19 @@ function LeadCard({ lead, onStatus }: { lead: Lead; onStatus: (id: string, s: st
             )}
             {lead.email && (
               <a href={`mailto:${lead.email}`}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 500, padding: '6px 12px', borderRadius: 8, border: '1px solid #e8e8e8', color: '#555', textDecoration: 'none', background: '#fff' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 500, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border-subtle)', color: '#555', textDecoration: 'none', background: 'hsl(var(--card))' }}>
                 <Mail size={12} strokeWidth={2} /> Email
               </a>
             )}
             {lead.phone && (
               <a href={`tel:${waPhone}`}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 500, padding: '6px 12px', borderRadius: 8, border: '1px solid #e8e8e8', color: '#555', textDecoration: 'none', background: '#fff' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 500, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border-subtle)', color: '#555', textDecoration: 'none', background: 'hsl(var(--card))' }}>
                 <Phone size={12} strokeWidth={2} /> Call
               </a>
             )}
             {lead.status === 'new' && (
               <button onClick={() => onStatus(lead.id, 'contacted')}
-                style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 500, padding: '6px 12px', borderRadius: 8, border: '1px solid #e8e8e8', color: '#555', background: '#fff', cursor: 'pointer' }}>
+                style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 500, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border-subtle)', color: '#555', background: 'hsl(var(--card))', cursor: 'pointer' }}>
                 Mark contacted →
               </button>
             )}
@@ -244,7 +244,7 @@ export default function ClaimsPage() {
       <div style={{
         height: 52, padding: '0 24px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        background: '#fff', borderBottom: '1px solid #e8e8e8', flexShrink: 0,
+        background: 'hsl(var(--card))', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <h1 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#111' }}>Claims</h1>
@@ -268,13 +268,13 @@ export default function ClaimsPage() {
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 fontSize: 12, fontWeight: 500, padding: '5px 12px', borderRadius: 8,
-                background: filter === f ? '#111' : '#fff',
-                color: filter === f ? '#fff' : '#666',
-                border: filter === f ? '1px solid #111' : '1px solid #e8e8e8',
+                background: filter === f ? 'var(--primary-light-bg)' : 'hsl(var(--card))',
+                color: filter === f ? 'var(--primary-hex)' : '#666',
+                border: filter === f ? '1px solid var(--primary-light-border)' : '1px solid var(--border-subtle)',
                 cursor: 'pointer',
               }}>
               {f === 'all' ? 'All' : 'New'}
-              <span style={{ fontSize: 11, fontWeight: 600, padding: '1px 6px', borderRadius: 5, background: filter === f ? 'rgba(255,255,255,0.18)' : '#f4f4f5', color: filter === f ? '#fff' : '#888' }}>
+              <span style={{ fontSize: 11, fontWeight: 600, padding: '1px 6px', borderRadius: 5, background: filter === f ? 'hsl(var(--card))' : 'hsl(var(--muted))', color: filter === f ? 'var(--primary-hex)' : '#888' }}>
                 {f === 'all' ? leads.length : newCount}
               </span>
             </button>

@@ -160,7 +160,7 @@ export default function NewQuotePage() {
       <div className="flex items-center gap-2 text-[12px] mb-5">
         {steps.map((s, i) => (
           <div key={s} className="flex items-center gap-2">
-            <span className={`px-2 py-0.5 rounded-full font-medium ${i === step ? 'bg-primary text-primary-foreground' : i < step ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>{i + 1}. {s}</span>
+            <span className={`px-2 py-0.5 rounded-[6px] font-medium ${i === step ? 'bg-primary text-primary-foreground' : i < step ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>{i + 1}. {s}</span>
             {i < steps.length - 1 && <span className="text-muted-foreground/30">›</span>}
           </div>
         ))}

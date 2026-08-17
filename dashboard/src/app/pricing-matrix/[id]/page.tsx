@@ -805,7 +805,7 @@ function WorkbookSummary({ dump }: { dump: Dump | null }) {
       <div className="flex flex-wrap gap-1.5 mb-3">
         {dump.sheets.map(s => (
           <button key={s.name} onClick={() => setOpen(s.name)}
-            className={`text-[11px] px-2 py-0.5 rounded-full transition-colors ${s.name === sheet ? 'bg-primary/10 text-primary font-medium ring-1 ring-primary/20' : s.visible ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>
+            className={`text-[11px] px-2 py-0.5 rounded-[6px] transition-colors ${s.name === sheet ? 'bg-primary/10 text-primary font-medium ring-1 ring-primary/20' : s.visible ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>
             {s.name}{!s.visible ? ' (hidden)' : ''}
           </button>
         ))}

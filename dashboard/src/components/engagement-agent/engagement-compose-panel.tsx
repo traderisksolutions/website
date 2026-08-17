@@ -762,7 +762,7 @@ function ChipInput({
       {chips.map(email => (
         <span
           key={email}
-          className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-primary/8 text-primary border border-primary/15"
+          className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-[6px] bg-primary/8 text-primary border border-primary/15"
         >
           {email}
           <button

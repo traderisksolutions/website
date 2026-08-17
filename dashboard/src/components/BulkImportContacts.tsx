@@ -216,7 +216,7 @@ function RowCard({ r, onEdit, onAction }: { r: Row; onEdit: (f: typeof FIELDS[nu
   return (
     <div className={`rounded-lg border p-2.5 flex flex-col gap-2 ${tone} ${r.action === 'skip' ? 'opacity-55' : ''}`}>
       <div className="flex items-center justify-between gap-2">
-        <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full flex items-center gap-1
+        <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-[6px] flex items-center gap-1
           ${r.status === 'invalid' ? 'text-rose-700 bg-rose-100' : r.status === 'duplicate' ? 'text-amber-700 bg-amber-100' : 'text-emerald-700 bg-emerald-100'}`}>
           {r.status === 'invalid' && <AlertTriangle size={9} />}{r.status === 'duplicate' && <Copy size={9} />}
           {r.status === 'invalid' ? 'Needs email or phone' : r.status === 'duplicate' ? 'Already exists' : 'New'}

@@ -17,7 +17,7 @@ export function EmailTypeBadge({ type, size = 'sm', className }: EmailTypeBadgeP
   return (
     <span
       className={cn(
-        'inline-flex items-center font-bold rounded-full whitespace-nowrap flex-shrink-0 tracking-wide uppercase',
+        'inline-flex items-center font-bold rounded-[6px] whitespace-nowrap flex-shrink-0 tracking-wide uppercase',
         size === 'xs' && 'text-[8.5px] px-2 py-[2px]',
         size === 'sm' && 'text-[9.5px] px-2.5 py-[3px]',
         size === 'md' && 'text-[11px] px-3 py-[4px]',

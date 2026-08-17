@@ -82,7 +82,7 @@ export function XlsxTab({ tables, loading, onChanged }: { tables: Table[]; loadi
                     <td className="text-muted-foreground max-w-[320px] truncate">{t.product_code}</td>
                     <td className="text-muted-foreground capitalize">{t.status.replace('_', ' ')}</td>
                     <td>
-                      <span className={cn('text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full', RULES_TONE[rs] ?? 'bg-muted')}>{RULES_LABEL[rs] ?? rs}</span>
+                      <span className={cn('text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-[6px]', RULES_TONE[rs] ?? 'bg-muted')}>{RULES_LABEL[rs] ?? rs}</span>
                       {t.calculator_filename && <span className="ml-2 text-[11px] text-muted-foreground/60">{t.calculator_filename}</span>}
                     </td>
                     <td className="text-right pr-4" onClick={e => e.stopPropagation()}>

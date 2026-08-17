@@ -115,7 +115,7 @@ export function CensusEditor({ census, setCensus, companyId = null, onRenameTier
           {!companyId && <p className="text-[11px] text-muted-foreground/70">Pick a company above to save custom tiers for future quotes — for now, changes here are only for this quote.</p>}
           <div className="flex flex-wrap gap-1.5">
             {tiers.map(t => (
-              <div key={t.id} className="flex items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5">
+              <div key={t.id} className="flex items-center gap-1 rounded-[6px] border border-border bg-background px-2 py-0.5">
                 {editingTierId === t.id ? (
                   <>
                     <input autoFocus value={editingValue} onChange={e => setEditingValue(e.target.value)}

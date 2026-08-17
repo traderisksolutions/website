@@ -353,7 +353,7 @@ export default function ContactsPage() {
                                     {fullName(contact)}
                                   </span>
                                   {contact.isCC && (
-                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-muted/80 text-muted-foreground/50 uppercase tracking-widest leading-none">
+                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-[6px] bg-muted/80 text-muted-foreground/50 uppercase tracking-widest leading-none">
                                       CC
                                     </span>
                                   )}

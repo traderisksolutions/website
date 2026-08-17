@@ -42,11 +42,11 @@ NavigationMenuList.displayName = NavigationMenuPrimitive.List.displayName
 
 const NavigationMenuItem = NavigationMenuPrimitive.Item
 
-// No hover:/data-[state=open]: background here on purpose — this app only wants a trigger to
-// read as "highlighted" when it's the actual current page (isActive, applied by the caller),
-// not merely because it's open or being pointed at.
+// Idle triggers are transparent, not a filled box — only the current page reads as
+// "highlighted" (isActive, applied by the caller). A quiet hover tint gives pointer
+// feedback without the trigger opening on hover (see suppressHover in top-navbar.tsx).
 const navigationMenuTriggerStyle = cva(
-  "group inline-flex h-9 w-max items-center justify-center rounded-md bg-background px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+  "group inline-flex h-9 w-max items-center justify-center rounded-md bg-transparent px-3 py-2 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
 )
 
 const NavigationMenuTrigger = React.forwardRef<

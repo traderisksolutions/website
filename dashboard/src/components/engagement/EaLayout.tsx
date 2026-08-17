@@ -124,16 +124,19 @@ export function EaWorkspaceColumn({ children, className }: EaWorkspaceColumnProp
 // EaMessageArea
 //
 // The scrollable reading surface in the center column.
-// Background is deliberately hsl(var(--background)) — the same light blue-grey
-// used by the app shell — NOT white. This creates a visual surface hierarchy:
+// Background is deliberately hsl(var(--muted)) — a quiet neutral-grey canvas,
+// NOT white. This creates a visual surface hierarchy:
 //
 //   Left pane  (white, chrome)
 //   ↓
-//   Message area  (light blue-grey, reading surface — slightly recessed)
+//   Message area  (light grey canvas — slightly recessed)
 //   ↓
 //   Right pane (white, chrome)
 //
-// The center area reads as "content space" rather than another chrome pane.
+// Individual message cards are white with a hairline border, floating on this
+// canvas — the same "card on a quiet ground" pattern most email clients use,
+// now in the same neutral-grey the rest of the app uses for tinted surfaces
+// (table headers, zebra rows) rather than the old blue-tinted app background.
 // flex-1 + min-h-0 pair is required for overflow-y-auto to scroll correctly
 // inside a flex-col parent.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -149,7 +152,7 @@ export function EaMessageArea({ children, className }: EaMessageAreaProps) {
       className={cn(
         'flex-1 min-h-0 overflow-y-auto',
         // Explicit reading surface — differs from the white chrome panels
-        'bg-[hsl(var(--background))]',
+        'bg-[hsl(var(--muted))]',
         className,
       )}
     >
@@ -184,7 +187,7 @@ export function EaWorkspaceEmptyState({
       className={cn(
         'flex-1 flex items-center justify-center',
         // Same reading surface background as EaMessageArea
-        'bg-[hsl(var(--background))]',
+        'bg-[hsl(var(--muted))]',
       )}
     >
       <div className="flex flex-col items-center gap-1.5 text-center px-8">

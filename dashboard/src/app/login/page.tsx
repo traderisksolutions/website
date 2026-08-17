@@ -29,50 +29,42 @@ function LoginCard() {
   }
 
   return (
-    <div style={{
-      minHeight: 'calc(100vh / var(--ui-zoom))', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: '#f7f7f7', fontFamily: 'var(--font-archivo, system-ui, sans-serif)',
-    }}>
-      <div style={{
-        width: 380, background: '#fff', borderRadius: 16,
-        border: '1px solid #e8e8e8', boxShadow: '0 4px 32px rgba(0,0,0,0.07)',
-        padding: '40px 36px',
-      }}>
+    <div
+      className="flex items-center justify-center px-4"
+      style={{ minHeight: 'calc(100vh / var(--ui-zoom))', background: 'hsl(var(--background))' }}
+    >
+      <div
+        className="w-[380px] bg-card rounded-xl border border-[--border-subtle] px-9 py-10"
+        style={{ boxShadow: 'var(--shadow-modal)' }}
+      >
         {/* Logo / wordmark */}
-        <div style={{ marginBottom: 32, textAlign: 'center' }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: 48, height: 48, borderRadius: 12, background: '#111', marginBottom: 14,
-          }}>
-            <span style={{ color: '#fff', fontSize: 18, fontWeight: 800, letterSpacing: '-0.04em' }}>TRS</span>
+        <div className="mb-8 text-center">
+          <div
+            className="inline-flex items-center justify-center rounded-lg mb-3.5"
+            style={{ width: 48, height: 48, background: 'hsl(var(--sidebar-ring))', boxShadow: '0 0 0 2px var(--primary-focus-ring)' }}
+          >
+            <span className="text-white text-[18px] font-extrabold tracking-tight">TRS</span>
           </div>
-          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#111', letterSpacing: '-0.02em' }}>
+          <h1 className="text-[18px] font-bold text-foreground tracking-tight m-0">
             Trade Risk Solutions
           </h1>
-          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#888' }}>Internal Dashboard</p>
+          <p className="text-[13px] text-muted-foreground mt-1 m-0">Internal Dashboard</p>
         </div>
 
         {/* Error */}
         {error && (
-          <div style={{
-            marginBottom: 20, padding: '10px 14px', borderRadius: 8,
-            background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.20)',
-          }}>
-            <p style={{ margin: 0, fontSize: 12, color: '#dc2626' }}>{error}</p>
+          <div className="mb-5 px-3.5 py-2.5 rounded-md" style={{ background: 'var(--error-bg)', border: '1px solid rgba(192,51,71,0.22)' }}>
+            <p className="m-0 text-[12px]" style={{ color: 'var(--error)' }}>{error}</p>
           </div>
         )}
 
         {/* Sign in button */}
         <button
           onClick={signInWithGoogle}
-          style={{
-            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-            padding: '12px 20px', borderRadius: 10, border: '1px solid #e0e0e0',
-            background: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: '#111',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.08)', transition: 'box-shadow 0.15s',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.12)')}
-          onMouseLeave={e => (e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)')}
+          className="w-full flex items-center justify-center gap-2.5 px-5 py-3 rounded-md border border-[--border-subtle] bg-card text-[14px] font-semibold text-foreground transition-shadow"
+          style={{ boxShadow: 'var(--card-shadow)' }}
+          onMouseEnter={e => (e.currentTarget.style.boxShadow = 'var(--shadow-panel)')}
+          onMouseLeave={e => (e.currentTarget.style.boxShadow = 'var(--card-shadow)')}
         >
           {/* Google icon */}
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -84,8 +76,8 @@ function LoginCard() {
           Sign in with Google
         </button>
 
-        <p style={{ margin: '20px 0 0', textAlign: 'center', fontSize: 11, color: '#bbb', lineHeight: 1.5 }}>
-          Only <strong style={{ color: '#888' }}>@trade-risksol.com</strong> accounts can access this dashboard.
+        <p className="mt-5 text-center text-[11px] text-muted-foreground/70 leading-relaxed">
+          Only <strong className="text-muted-foreground">@trade-risksol.com</strong> accounts can access this dashboard.
         </p>
       </div>
     </div>

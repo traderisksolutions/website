@@ -184,7 +184,7 @@ export default function GbReviewPage() {
         <div className="flex items-center gap-0.5 flex-shrink-0">
           {dirty && <span className="text-[11px] font-medium text-amber-600 mr-2">Unsaved changes</span>}
           {msg && !dirty && <span className={cn('text-[12px] mr-2', /fail/i.test(msg) ? 'text-rose-600' : 'text-emerald-600')}>{msg}</span>}
-          {status === 'approved' && !editing && <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 mr-1.5">Approved</span>}
+          {status === 'approved' && !editing && <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-[6px] bg-emerald-100 text-emerald-700 mr-1.5">Approved</span>}
           <a href={`/api/group-benefits/rate-tables/${id}/pdf`} target="_blank" rel="noopener noreferrer" className={btn}><FileText size={13} /> PDF</a>
           {status !== 'extracting' && !editing && <button onClick={reExtract} disabled={!!saving} className={btn} title="Re-run extraction"><RefreshCw size={13} /> Re-run</button>}
           {!editing && <button onClick={del} className={cn(btn, 'text-rose-500 hover:text-rose-600 hover:bg-rose-50')} title="Delete"><Trash2 size={13} /></button>}
@@ -274,7 +274,7 @@ export default function GbReviewPage() {
                 const e = d.extractors![k]
                 if (!e) return null
                 return (
-                  <span key={k} className={cn('px-2 py-0.5 rounded-full font-medium',
+                  <span key={k} className={cn('px-2 py-0.5 rounded-[6px] font-medium',
                     e.error ? 'bg-rose-100 text-rose-700' : 'bg-muted text-muted-foreground')}
                     title={e.error ?? ''}>
                     {k}: {e.error ? 'failed' : `${e.rates} cells`}

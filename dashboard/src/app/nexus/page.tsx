@@ -412,7 +412,7 @@ export default function NexusPage() {
                     <div className="flex items-center justify-between gap-1.5 min-w-0">
                       <span className="text-[12px] font-semibold text-foreground truncate flex-1">{c.name}</span>
                       <span className={cn(
-                        'text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full flex-shrink-0',
+                        'text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-[6px] flex-shrink-0',
                         c.status === 'open'
                           ? 'bg-primary/10 text-primary'
                           : 'bg-muted text-muted-foreground',
@@ -932,7 +932,7 @@ function MissionHeader({
               </>
             )}
             <span className={cn(
-              'text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full flex-shrink-0',
+              'text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-[6px] flex-shrink-0',
               caseData.status === 'open' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
             )}>
               {caseData.status}
@@ -1277,7 +1277,7 @@ function PreAnalysisState({
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-bold uppercase tracking-widest text-foreground/45">Linked Threads</span>
-            <span className="text-[9.5px] font-bold text-muted-foreground/40 bg-muted/70 px-1.5 py-0.5 rounded-full">
+            <span className="text-[9.5px] font-bold text-muted-foreground/40 bg-muted/70 px-1.5 py-0.5 rounded-[6px]">
               {threads.length}
             </span>
           </div>
@@ -1356,7 +1356,7 @@ function SectionLabel({
       <div className="flex items-center gap-2">
         <span className="text-[10px] font-bold uppercase tracking-widest text-foreground/45">{title}</span>
         {count !== undefined && (
-          <span className="text-[9.5px] font-bold text-muted-foreground/40 bg-muted/70 px-1.5 py-0.5 rounded-full">
+          <span className="text-[9.5px] font-bold text-muted-foreground/40 bg-muted/70 px-1.5 py-0.5 rounded-[6px]">
             {count}
           </span>
         )}
@@ -1445,7 +1445,7 @@ function QuoteDecisionSection({ decision }: { decision: V1QuoteDecision }) {
                     isRec ? 'border-emerald-300 bg-emerald-50/50' : 'border-border/60 bg-card')}>
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-[12px] font-semibold text-foreground">{o.insurer_name}</span>
-                      {isRec && <span className="text-[9px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-100 rounded-full px-1.5 py-0.5">Broker pick</span>}
+                      {isRec && <span className="text-[9px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-100 rounded-[6px] px-1.5 py-0.5">Broker pick</span>}
                     </div>
                     <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10.5px] text-muted-foreground">
                       {o.premium && <span><span className="text-muted-foreground/60">Premium</span> <b className="text-foreground/80">{o.premium}</b></span>}
@@ -1726,7 +1726,7 @@ function StakeholderMapSection({
                           {r.s.company && <div className="text-[10px] text-muted-foreground/50">{r.s.company}</div>}
                         </td>
                         <td className="py-2.5 px-3 align-top">
-                          {r.st ? <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ color: r.st.color, background: r.st.bg }} title={r.st.full}>{r.st.label}</span> : <span className="text-muted-foreground/40">—</span>}
+                          {r.st ? <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-[6px] whitespace-nowrap" style={{ color: r.st.color, background: r.st.bg }} title={r.st.full}>{r.st.label}</span> : <span className="text-muted-foreground/40">—</span>}
                         </td>
                         <td className="py-2.5 px-3 align-top">
                           <span className={cn('text-[10.5px] font-medium whitespace-nowrap',
@@ -1872,8 +1872,8 @@ function AttachmentsSection({ threads, attachmentRecords }: { threads: CaseThrea
                     <span className="ml-auto flex items-center gap-2 flex-shrink-0">
                       {f.created_at && <span className="text-[10px] text-muted-foreground/50">{new Date(f.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>}
                       {f.parsed_at
-                        ? <span className="text-[9px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-1.5 py-0.5">read</span>
-                        : <span className="text-[9px] font-bold uppercase tracking-wide text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-1.5 py-0.5">pending</span>}
+                        ? <span className="text-[9px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-[6px] px-1.5 py-0.5">read</span>
+                        : <span className="text-[9px] font-bold uppercase tracking-wide text-amber-700 bg-amber-50 border border-amber-200 rounded-[6px] px-1.5 py-0.5">pending</span>}
                     </span>
                   </div>
                 ))}
@@ -1920,7 +1920,7 @@ function ScenarioSection({ scenarios }: { scenarios: V1Scenario[] }) {
                     {/* Disposition chip + scenario name + strategic implication */}
                     <td className="py-3 px-4">
                       {disp && (
-                        <span className="inline-block text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full mb-1" style={{ color: disp.color, background: disp.bg }}>
+                        <span className="inline-block text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-[6px] mb-1" style={{ color: disp.color, background: disp.bg }}>
                           {disp.label}
                         </span>
                       )}
@@ -2097,7 +2097,7 @@ function EvidencePanelSection({ items, citations }: { items: V1Evidence[]; citat
               >
                 {label}
                 {count > 0 && (
-                  <span className="text-[9px] font-bold bg-muted/80 rounded-full px-1.5 py-0.5 text-muted-foreground/55">
+                  <span className="text-[9px] font-bold bg-muted/80 rounded-[6px] px-1.5 py-0.5 text-muted-foreground/55">
                     {count}
                   </span>
                 )}
@@ -2127,7 +2127,7 @@ function EvidencePanelSection({ items, citations }: { items: V1Evidence[]; citat
                           {item.filename_or_label}
                         </span>
                         {item.coverage_relevant && (
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 flex-shrink-0">
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-[6px] bg-emerald-50 text-emerald-700 border border-emerald-100 flex-shrink-0">
                             Coverage
                           </span>
                         )}
@@ -2334,7 +2334,7 @@ function NextStepsSection({
                 <div className="flex items-start justify-between gap-2 mb-1.5">
                   <span className="text-[12.5px] font-semibold text-foreground leading-[1.4]">{step.action}</span>
                   <span
-                    className="text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                    className="text-[9px] font-bold px-2 py-0.5 rounded-[6px] flex-shrink-0"
                     style={{ background: ps.bg, color: ps.color }}
                   >
                     {step.priority?.toUpperCase()}
@@ -2350,7 +2350,7 @@ function NextStepsSection({
                     </span>
                   )}
                   {lastSent && (
-                    <span className="text-[9.5px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-1.5 py-0.5 flex items-center gap-1"
+                    <span className="text-[9.5px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-[6px] px-1.5 py-0.5 flex items-center gap-1"
                       title={`An email to this recipient was already sent on ${new Date(lastSent).toLocaleString('en-SG')}. Check the thread before re-sending.`}>
                       <CheckCircle2 size={9} strokeWidth={2.5} /> emailed {relTime(lastSent)}
                     </span>
@@ -2601,7 +2601,7 @@ function RunComparisonBanner({
             ) : (
               <div className="flex flex-wrap gap-1.5">
                 {diffs.map((d, i) => (
-                  <span key={i} className="text-[10.5px] px-2 py-0.5 rounded-full bg-primary/[0.06] text-primary/70 border border-primary/10 font-medium">
+                  <span key={i} className="text-[10.5px] px-2 py-0.5 rounded-[6px] bg-primary/[0.06] text-primary/70 border border-primary/10 font-medium">
                     {d}
                   </span>
                 ))}
@@ -2759,12 +2759,12 @@ function RunHistoryView({
               <div className="flex items-start justify-between gap-3 mb-2.5">
                 <div className="flex items-center gap-2 min-w-0">
                   {isCurrent && (
-                    <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-primary/10 text-primary flex-shrink-0">
+                    <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-[6px] bg-primary/10 text-primary flex-shrink-0">
                       Current
                     </span>
                   )}
                   {run.pinned && !isCurrent && (
-                    <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-primary/8 text-primary/70 flex-shrink-0 flex items-center gap-0.5">
+                    <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-[6px] bg-primary/8 text-primary/70 flex-shrink-0 flex items-center gap-0.5">
                       <Pin size={7} strokeWidth={2.5} /> Pinned
                     </span>
                   )}
@@ -2775,10 +2775,10 @@ function RunHistoryView({
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   {run.run_status === 'failed' && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-50 text-red-500 border border-red-200">failed</span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-[6px] bg-red-50 text-red-500 border border-red-200">failed</span>
                   )}
                   {run.run_status === 'partial' && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-500 border border-amber-200">partial</span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-[6px] bg-amber-50 text-amber-500 border border-amber-200">partial</span>
                   )}
                   {durationS && (
                     <span className="text-[10px] text-muted-foreground/40">{durationS}</span>
@@ -2832,7 +2832,7 @@ function RunHistoryView({
               {diffs.length > 0 && (
                 <div className="flex flex-wrap gap-1 mb-2.5">
                   {diffs.map((d, di) => (
-                    <span key={di} className="text-[9.5px] px-1.5 py-0.5 rounded-full bg-muted/60 text-muted-foreground/60 border border-[--border-subtle]">
+                    <span key={di} className="text-[9.5px] px-1.5 py-0.5 rounded-[6px] bg-muted/60 text-muted-foreground/60 border border-[--border-subtle]">
                       {d}
                     </span>
                   ))}
@@ -2923,7 +2923,7 @@ function AnalysisMetadataCard({ meta }: { meta: AnalysisMetadata }) {
           <Database size={11} strokeWidth={2} className="text-muted-foreground/40" />
           <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40">Analysis Metadata</span>
           {(meta.truncation_flags?.length ?? 0) > 0 && (
-            <span className="text-[9px] font-bold text-amber-500 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
+            <span className="text-[9px] font-bold text-amber-500 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-[6px]">
               {meta.truncation_flags.length} flag{meta.truncation_flags.length > 1 ? 's' : ''}
             </span>
           )}
@@ -3048,7 +3048,7 @@ function ThreadsOverviewCard({
               const pc   = partyColor(ct.party_type)
               const name = ct.thread?.contact ? contactName(ct.thread.contact) : ct.party_label ?? ct.party_type
               return (
-                <span key={ct.id} className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: pc.bg, color: pc.text }}>
+                <span key={ct.id} className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-[6px]" style={{ background: pc.bg, color: pc.text }}>
                   <span className="w-1.5 h-1.5 rounded-full" style={{ background: pc.dot }} />
                   {name.length > 16 ? name.slice(0, 16) + '…' : name}
                 </span>
@@ -3261,7 +3261,7 @@ function AttachmentCoverageCard({
           <Paperclip size={10} strokeWidth={2} /> Attachment Coverage
         </span>
         {pendingThreads.length > 0 && (
-          <span className="text-[9.5px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full font-medium">
+          <span className="text-[9.5px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-[6px] font-medium">
             {pendingThreads.length} thread{pendingThreads.length > 1 ? 's' : ''} pending extraction
           </span>
         )}
@@ -3283,11 +3283,11 @@ function AttachmentCoverageCard({
           )}
           {ext > 0 && (
             <div className="flex flex-wrap gap-1.5 ml-auto">
-              {byType.pdf   > 0 && <span className="text-[10px] px-2 py-0.5 bg-red-50 text-red-700 rounded-full border border-red-100 font-medium">PDF ×{byType.pdf}</span>}
-              {byType.docx  > 0 && <span className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full border border-blue-100 font-medium">DOCX ×{byType.docx}</span>}
-              {byType.xlsx  > 0 && <span className="text-[10px] px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-100 font-medium">XLSX ×{byType.xlsx}</span>}
-              {byType.image > 0 && <span className="text-[10px] px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full border border-purple-100 font-medium">Image ×{byType.image}</span>}
-              {other        > 0 && <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-full border border-[--border-subtle] font-medium">Other ×{other}</span>}
+              {byType.pdf   > 0 && <span className="text-[10px] px-2 py-0.5 bg-red-50 text-red-700 rounded-[6px] border border-red-100 font-medium">PDF ×{byType.pdf}</span>}
+              {byType.docx  > 0 && <span className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-700 rounded-[6px] border border-blue-100 font-medium">DOCX ×{byType.docx}</span>}
+              {byType.xlsx  > 0 && <span className="text-[10px] px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-[6px] border border-emerald-100 font-medium">XLSX ×{byType.xlsx}</span>}
+              {byType.image > 0 && <span className="text-[10px] px-2 py-0.5 bg-purple-50 text-purple-700 rounded-[6px] border border-purple-100 font-medium">Image ×{byType.image}</span>}
+              {other        > 0 && <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-[6px] border border-[--border-subtle] font-medium">Other ×{other}</span>}
             </div>
           )}
         </div>
@@ -3371,7 +3371,7 @@ function PlaybookStepCard({ step, threads }: { step: PlaybookStep; threads: Case
             <span className="text-[12px] font-bold text-foreground truncate">{step.action}</span>
           </div>
           <span
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-bold flex-shrink-0"
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] text-[9.5px] font-bold flex-shrink-0"
             style={{ background: pm.bg, color: pm.color }}
           >
             <PIcon size={8} strokeWidth={2.5} />
@@ -3382,7 +3382,7 @@ function PlaybookStepCard({ step, threads }: { step: PlaybookStep; threads: Case
         {/* Party */}
         <div className="flex items-center gap-1.5 mb-2">
           <span
-            className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+            className="text-[10px] font-bold px-2 py-0.5 rounded-[6px]"
             style={{ background: pc.bg, color: pc.text }}
           >
             {step.party_type.toUpperCase()}

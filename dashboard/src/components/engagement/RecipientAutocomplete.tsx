@@ -108,7 +108,7 @@ export function SuggestionList({
             <span className="flex items-center gap-1.5">
               <span className="truncate text-[12px] font-medium text-foreground">{c.name}</span>
               {c.is_employee && (
-                <span className="flex-shrink-0 rounded-full bg-primary/10 px-1.5 py-px text-[8.5px] font-bold uppercase tracking-wide text-primary">Team</span>
+                <span className="flex-shrink-0 rounded-[6px] bg-primary/10 px-1.5 py-px text-[8.5px] font-bold uppercase tracking-wide text-primary">Team</span>
               )}
             </span>
             <span className="block truncate text-[10.5px] text-muted-foreground/70">{c.email}</span>

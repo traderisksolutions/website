@@ -16,38 +16,39 @@
 
     /* ── shadcn/ui base tokens (HSL triplets, no hsl() wrapper) ── */
 
-    /* App shell: distinctly blue-grey — clear contrast against white cards */
-    --background:            216 22% 95%;    /* #EDF1F8 */
+    /* App shell: the page IS white. Fills are for cards and zebra rows only,
+       never for a full section — see docs/design-system.md. */
+    --background:            0 0% 100%;      /* #FFFFFF */
     --foreground:            215 44% 11%;    /* #101828 */
 
-    --card:                  0 0% 100%;      /* #FFFFFF solid surface */
+    --card:                  0 0% 100%;      /* #FFFFFF — same as page; a hairline border/ring is what separates it, not a fill */
     --card-foreground:       215 44% 11%;
 
     --popover:               0 0% 100%;
     --popover-foreground:    215 44% 11%;
 
-    /* Deep refined navy — primary CTAs, active tabs, selected state */
+    /* Deep refined navy — the one accent. Used for CTAs, active tabs, links,
+       selected state. Not spent on decoration. */
     --primary:               219 83% 28%;    /* #0C338A */
     --primary-foreground:    0 0% 100%;
 
-    /* Secondary / muted — stronger blue-grey */
-    --secondary:             216 18% 90%;    /* #E2E7F2 */
+    /* Secondary / muted — hairline-grey, not a blue-tinted box */
+    --secondary:             220 14% 96%;    /* #F2F3F5 */
     --secondary-foreground:  215 44% 11%;
 
-    --muted:                 216 18% 90%;    /* #E2E7F2 */
+    --muted:                 220 14% 96%;    /* #F2F3F5 */
     --muted-foreground:      215 20% 40%;    /* #506078 — 5.7:1 on white */
 
-    /* Accent — visible primary-blue tint for hover / selected states */
-    --accent:                219 65% 95%;    /* #EBF2FC — stronger than before */
+    /* Accent — soft navy tint for hover / selected states, earned not decorative */
+    --accent:                219 70% 96%;    /* #EDF3FD */
     --accent-foreground:     219 83% 28%;    /* primary blue text */
 
     --destructive:           354 55% 46%;    /* #C03347 */
     --destructive-foreground: 0 0% 100%;
 
-    /* Border — clearly visible decorative divider */
-    --border:                216 16% 84%;    /* #D0D8EA */
-    /* Input — stronger border for interactive controls, 3.2:1 on white */
-    --input:                 215 12% 55%;    /* #7E8BA0 */
+    /* Border — hairline, structural. Reserve --input for stronger interactive affordance. */
+    --border:                220 16% 90%;    /* #E4E7EC */
+    --input:                 217 15% 65%;    /* #99A2B1 */
     --ring:                  219 83% 28%;    /* primary blue focus ring */
     --radius:                0.625rem;
 
@@ -68,10 +69,13 @@
        sticky/in-flow, not overlaid. Same variable name/shape at every breakpoint now that the
        top nav (not just its mobile fallback) always occupies this space. */
     --mobile-nav-h:          56px;
-    --content-bg:            hsl(216 22% 95%);
+    --content-bg:            hsl(0 0% 100%);
     --card-bg:               #ffffff;
-    --card-border:           hsl(216 16% 84%);
-    --card-shadow:           0 1px 4px rgba(16,24,40,0.09), 0 2px 6px rgba(16,24,40,0.05);
+    --card-border:           hsl(220 16% 90%);
+    /* A hairline ring, not a drop shadow — the "no boxes, no tinted panels"
+       rule means separation reads as a border, so every place that already
+       spends `boxShadow: var(--card-shadow)` gets the new look for free. */
+    --card-shadow:           0 0 0 1px var(--border-subtle);
     --card-radius:           0.625rem;
 
     /* ── Chart palette — updated to match new primary ── */
@@ -122,23 +126,19 @@
     --neutral-status-bg:     rgba(16,24,40,0.07);
     --neutral-status-fg:     #445868;
 
-    /* Table / list surface tokens */
-    --table-header-bg:       hsl(216 18% 93%);    /* #E9EEF6 */
-    --group-header-bg:       hsl(216 22% 88%);    /* #D4DCEE — clearly distinct */
+    /* Table / list surface tokens — light hairline-grey tints, not blue boxes */
+    --table-header-bg:       hsl(220 14% 97%);    /* #F5F6F8 */
+    --group-header-bg:       hsl(220 14% 93%);    /* #EBECEF — distinct but quiet */
     --group-header-fg:       hsl(215 32% 28%);    /* #2C3F64 */
     --selected-row-bg:       rgba(12,51,138,0.07);
     --hover-row-bg:          rgba(12,51,138,0.035);
 
-    /* Glass material shadows */
-    --glass-specular:        inset 0 1px 0 rgba(255,255,255,0.68);
-    --glass-shadow-sm:       1px 0 0 rgba(16,24,40,0.05), 4px 0 20px rgba(16,24,40,0.06);
-    --glass-shadow-md:       0 8px 32px rgba(16,24,40,0.07), 0 2px 8px rgba(16,24,40,0.05);
-    --glass-shadow-lg:       0 0 0 1px rgba(16,24,40,0.06), 0 28px 72px rgba(16,24,40,0.11), 0 8px 20px rgba(16,24,40,0.06);
-
-    /* Elevation system — 3 levels, one language */
-    --shadow-card:           0 1px 4px rgba(16,24,40,0.09), 0 2px 6px rgba(16,24,40,0.05);
-    --shadow-panel:          0 4px 16px rgba(16,24,40,0.08), 0 1px 4px rgba(16,24,40,0.04);
-    --shadow-modal:          0 8px 24px rgba(16,24,40,0.12), 0 2px 8px rgba(16,24,40,0.06);
+    /* Elevation system — hairline first. A resting card is a 1px ring, not a
+       drop shadow; only genuinely floating overlays (open dropdowns, modals)
+       earn real elevation on top of that ring. */
+    --shadow-card:           0 0 0 1px var(--border-subtle);
+    --shadow-panel:          0 0 0 1px var(--border-mid), 0 6px 16px rgba(16,24,40,0.07);
+    --shadow-modal:          0 0 0 1px var(--border-mid), 0 16px 40px rgba(16,24,40,0.14);
 
     /* Content padding */
     --content-px:            1.5rem;
@@ -172,9 +172,6 @@
        layouts divide by it so they don't overflow. */
     zoom: var(--ui-zoom);
     background-color: hsl(var(--background));
-    background-image:
-      radial-gradient(ellipse 80% 50% at 15% -5%, rgba(12,51,138,0.05) 0%, transparent 65%),
-      radial-gradient(ellipse 50% 40% at 85% 108%, rgba(160,190,230,0.04) 0%, transparent 60%);
     min-height: calc(100vh / var(--ui-zoom));
     color: hsl(var(--foreground));
     -webkit-font-smoothing: antialiased;
@@ -253,72 +250,49 @@
 .dd-panel { animation: dd-in 0.16s cubic-bezier(0.22,1,0.36,1) forwards; }
 
 /* ════════════════════════════════════════════════════════════════
-   Apple Liquid Glass Material System
+   Chrome surfaces — flat white + hairline border
    ──────────────────────────────────────────────────────────────
-   Applied to chrome ONLY: sidebar, modals, floating controls,
-   filter bars, summary cards. NOT tables or dense data regions.
+   Applied to chrome: top navbar, modals, floating controls, filter
+   bars, dropdown panels. Formerly a blurred "liquid glass" material;
+   replaced with the same flat, hairline-bordered treatment used for
+   cards everywhere else, so chrome and content read as one system.
+   NOT tables or dense data regions.
    ════════════════════════════════════════════════════════════════ */
 
-/* ── Sidebar — regular glass, white base ── */
+/* ── Top navbar ── */
 .glass-sidebar {
-  background: var(--surface-elevated, rgba(255,255,255,0.88));
-  backdrop-filter: blur(20px) saturate(155%) brightness(101%);
-  -webkit-backdrop-filter: blur(20px) saturate(155%) brightness(101%);
-  border-right: 1px solid var(--border-subtle, rgba(20,30,50,0.07));
-  box-shadow: var(--glass-shadow-sm);
+  background: #ffffff;
+  border-right: 1px solid var(--border-subtle);
+  box-shadow: none;
 }
 
-/* ── Search / filter controls — thin glass ── */
+/* ── Search / filter controls ── */
 .glass-thin {
-  background: rgba(255,255,255,0.80);
-  backdrop-filter: blur(12px) saturate(150%);
-  -webkit-backdrop-filter: blur(12px) saturate(150%);
-  border: 1px solid var(--border-subtle, rgba(20,30,50,0.07));
-  box-shadow: var(--glass-specular), var(--glass-shadow-md);
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  box-shadow: none;
 }
 
-/* ── Floating panels / overlapping surfaces ── */
+/* ── Floating panels / dropdowns — genuinely overlapping content, so they
+   keep a faint lift on top of the hairline ring ── */
 .glass-regular {
-  background: rgba(255,255,255,0.84);
-  backdrop-filter: blur(18px) saturate(155%);
-  -webkit-backdrop-filter: blur(18px) saturate(155%);
-  border: 1px solid var(--border-subtle, rgba(20,30,50,0.08));
-  box-shadow: var(--glass-specular), var(--glass-shadow-md);
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-panel);
 }
 
-/* ── Modals / sheets / dialogs — thick glass ── */
+/* ── Modals / sheets / dialogs — true overlays keep real elevation ── */
 .glass-modal {
-  background: rgba(255,255,255,0.94);
-  backdrop-filter: blur(32px) saturate(140%);
-  -webkit-backdrop-filter: blur(32px) saturate(140%);
-  border: 1px solid var(--border-mid, rgba(20,30,50,0.10));
-  box-shadow: var(--glass-shadow-lg);
+  background: #ffffff;
+  border: 1px solid var(--border-mid);
+  box-shadow: var(--shadow-modal);
 }
 
-/* ── Generic glass surface utility ── */
+/* ── Generic surface utility ── */
 .glass {
-  background: var(--surface, rgba(255,255,255,0.72));
-  backdrop-filter: blur(18px) saturate(150%);
-  -webkit-backdrop-filter: blur(18px) saturate(150%);
-  border: 1px solid var(--border-subtle, rgba(20,30,50,0.08));
-}
-
-/* ── Fallback: no backdrop-filter support (Firefox < 103, old Edge) ── */
-@supports not (backdrop-filter: blur(1px)) {
-  .glass-sidebar  { background: #ffffff;                border-right-color: hsl(var(--border)); }
-  .glass-thin     { background: hsl(var(--background)); border-color: hsl(var(--border)); box-shadow: var(--glass-shadow-md); }
-  .glass-regular  { background: hsl(var(--background)); border-color: hsl(var(--border)); box-shadow: var(--glass-shadow-md); }
-  .glass-modal    { background: #ffffff;                border-color: hsl(var(--border)); box-shadow: var(--glass-shadow-lg); }
-  .glass          { background: hsl(var(--background)); border-color: hsl(var(--border)); }
-}
-
-/* ── Accessibility: user prefers reduced transparency ── */
-@media (prefers-reduced-transparency: reduce) {
-  .glass-sidebar  { background: #ffffff;                backdrop-filter: none; -webkit-backdrop-filter: none; }
-  .glass-thin     { background: hsl(var(--background)); backdrop-filter: none; -webkit-backdrop-filter: none; }
-  .glass-regular  { background: hsl(var(--background)); backdrop-filter: none; -webkit-backdrop-filter: none; }
-  .glass-modal    { background: #ffffff;                backdrop-filter: none; -webkit-backdrop-filter: none; }
-  .glass          { background: hsl(var(--background)); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  box-shadow: none;
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -462,26 +436,28 @@ select:focus-visible {
   background: hsl(var(--card));
 }
 
-/* Filter pill button */
+/* Filter pill button — hairline border at rest, soft accent tint when
+   active. Borrowed from the segmented-control pattern: a tonal fill reads as
+   "selected" without the heavy-handed invert-to-black a filled pill implies. */
 .filter-pill {
   display: inline-flex; align-items: center; gap: 5px;
   font-size: 12px; font-weight: 500;
   padding: 4px 12px; border-radius: 6px;
-  border: none;
-  background: hsl(var(--muted));
+  border: 1px solid var(--border-subtle);
+  background: transparent;
   color: hsl(var(--muted-foreground));
   cursor: pointer; white-space: nowrap;
-  transition: background 0.12s, color 0.12s;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
-.filter-pill:hover { background: hsl(var(--muted-foreground) / 0.15); color: hsl(var(--foreground)); }
-.filter-pill.active { background: hsl(var(--foreground)); color: hsl(var(--background)); }
+.filter-pill:hover { background: hsl(var(--muted)); border-color: var(--border-mid); color: hsl(var(--foreground)); }
+.filter-pill.active { background: var(--primary-light-bg); border-color: var(--primary-light-border); color: var(--primary-hex); font-weight: 600; }
 .filter-pill-count {
   font-size: 10px; font-weight: 700;
   padding: 0 5px; border-radius: 4px;
-  background: rgba(16,24,40,0.10);
+  background: rgba(16,24,40,0.08);
   color: inherit;
 }
-.filter-pill.active .filter-pill-count { background: rgba(255,255,255,0.2); }
+.filter-pill.active .filter-pill-count { background: rgba(12,51,138,0.12); }
 
 /* Search box in filter bar */
 .filter-search {
@@ -591,52 +567,6 @@ select:focus-visible {
   margin: 0 0 3px;
 }
 .detail-field-value { font-size: 12px; color: hsl(var(--foreground) / 0.85); line-height: 1.5; margin: 0; }
-
-/* ── Glass refraction button shimmer ── */
-@keyframes glass-shimmer {
-  0%   { transform: translateX(-100%) skewX(-15deg); opacity: 0; }
-  10%  { opacity: 1; }
-  90%  { opacity: 1; }
-  100% { transform: translateX(300%)  skewX(-15deg); opacity: 0; }
-}
-
-.btn-glass {
-  position: relative;
-  overflow: hidden;
-  border-top: 1px solid rgba(255,255,255,0.22) !important;
-  box-shadow: 0 1px 3px rgba(20,30,50,0.22), inset 0 1px 0 rgba(255,255,255,0.16) !important;
-}
-
-.btn-glass::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(255,255,255,0.12) 0%,
-    rgba(255,255,255,0.02) 55%,
-    rgba(0,0,0,0.04) 100%
-  );
-  pointer-events: none;
-  border-radius: inherit;
-}
-
-.btn-glass::after {
-  content: '';
-  position: absolute;
-  top: -10%;
-  left: -60%;
-  width: 40%;
-  height: 120%;
-  background: linear-gradient(
-    90deg,
-    rgba(255,255,255,0)    0%,
-    rgba(255,255,255,0.20) 50%,
-    rgba(255,255,255,0)    100%
-  );
-  animation: glass-shimmer 5s ease-in-out 0.8s infinite;
-  pointer-events: none;
-}
 
 /* Rich-text editor (RFQ draft) — restore list/heading rendering inside the
    contentEditable that Tailwind's preflight strips. */

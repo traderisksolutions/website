@@ -130,7 +130,7 @@ export default function QuoteDetailPage() {
           <div key={r.insurer_name} className={cn('rounded-xl border p-4', i === 0 ? 'border-emerald-300 bg-emerald-50/40' : 'border-border bg-card')}>
             <div className="flex items-center justify-between">
               <span className="text-[13px] font-bold text-foreground">{r.insurer_name}</span>
-              {i === 0 && <span className="text-[9px] font-bold uppercase bg-emerald-600 text-white px-1.5 py-0.5 rounded-full">Lowest</span>}
+              {i === 0 && <span className="text-[9px] font-bold uppercase bg-emerald-600 text-white px-1.5 py-0.5 rounded-[6px]">Lowest</span>}
             </div>
             <p className="text-[22px] font-bold text-foreground mt-1">{money(r.total)}</p>
             <p className="text-[10.5px] text-muted-foreground/70">incl. {money(r.gst)} GST · ex-GST {money(r.subtotal)}</p>

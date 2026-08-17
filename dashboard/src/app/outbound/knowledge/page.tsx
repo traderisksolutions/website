@@ -33,7 +33,7 @@ interface KnowledgeEntry {
 }
 
 const card: React.CSSProperties = {
-  background: '#fff', border: '1px solid #e8e8e8', borderRadius: 10, padding: '16px 18px',
+  background: 'hsl(var(--card))', boxShadow: 'var(--card-shadow)', borderRadius: 10, padding: '16px 18px',
 }
 
 export default function KnowledgePage() {
@@ -194,8 +194,8 @@ export default function KnowledgePage() {
             disabled={syncing}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '7px 13px', borderRadius: 7, border: '1px solid #e5e5e5',
-              background: '#fff', color: '#444', fontSize: 12, fontWeight: 500, cursor: syncing ? 'default' : 'pointer',
+              padding: '7px 13px', borderRadius: 7, border: '1px solid var(--border-subtle)',
+              background: 'hsl(var(--card))', color: '#444', fontSize: 12, fontWeight: 500, cursor: syncing ? 'default' : 'pointer',
               opacity: syncing ? 0.6 : 1,
             }}
           >
@@ -234,7 +234,7 @@ export default function KnowledgePage() {
           }
         </span>
         <span style={{ fontSize: 11, color: '#aaa' }}>
-          Folder ID: <code style={{ fontFamily: 'monospace', background: '#f4f4f5', padding: '1px 4px', borderRadius: 3 }}>
+          Folder ID: <code style={{ fontFamily: 'monospace', background: 'hsl(var(--muted))', padding: '1px 4px', borderRadius: 3 }}>
             {process.env.NEXT_PUBLIC_GDRIVE_FOLDER_HINT ?? 'GDRIVE_KNOWLEDGE_FOLDER_ID env var'}
           </code>
         </span>
@@ -272,9 +272,9 @@ export default function KnowledgePage() {
               key={pt}
               onClick={() => setFilterPt(pt)}
               style={{
-                padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: active ? 600 : 400,
-                border: `1px solid ${active ? '#111' : '#e5e5e5'}`,
-                background: active ? '#111' : '#fafafa',
+                padding: '4px 12px', borderRadius: 6, fontSize: 12, fontWeight: active ? 600 : 400,
+                border: `1px solid ${active ? '#111' : 'var(--border-subtle)'}`,
+                background: active ? '#111' : 'hsl(var(--muted))',
                 color: active ? '#fff' : '#555', cursor: 'pointer',
               }}
             >
@@ -307,7 +307,7 @@ export default function KnowledgePage() {
               <div key={entry.id} style={{
                 ...card,
                 opacity: entry.is_active ? 1 : 0.5,
-                borderLeft: `3px solid ${entry.is_active ? ptColor.color : '#e5e5e5'}`,
+                borderLeft: `3px solid ${entry.is_active ? ptColor.color : 'var(--border-subtle)'}`,
               }}>
                 {isEditing ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -315,24 +315,24 @@ export default function KnowledgePage() {
                       <select
                         value={editPt}
                         onChange={e => setEditPt(e.target.value as ProductType)}
-                        style={{ fontSize: 12, padding: '4px 8px', borderRadius: 6, border: '1px solid #e5e5e5', background: '#fafafa', color: '#111' }}
+                        style={{ fontSize: 12, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'hsl(var(--muted))', color: '#111' }}
                       >
                         {PRODUCT_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
                       </select>
                       <input
                         value={editTitle}
                         onChange={e => setEditTitle(e.target.value)}
-                        style={{ flex: 1, fontSize: 13, fontWeight: 600, padding: '5px 8px', borderRadius: 6, border: '1px solid #e5e5e5', background: '#fafafa', color: '#111' }}
+                        style={{ flex: 1, fontSize: 13, fontWeight: 600, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'hsl(var(--muted))', color: '#111' }}
                       />
                     </div>
                     <textarea
                       value={editContent}
                       onChange={e => setEditContent(e.target.value)}
                       rows={8}
-                      style={{ width: '100%', fontSize: 12, padding: '8px 10px', borderRadius: 6, border: '1px solid #e5e5e5', background: '#fafafa', color: '#333', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6, boxSizing: 'border-box' }}
+                      style={{ width: '100%', fontSize: 12, padding: '8px 10px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'hsl(var(--muted))', color: '#333', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6, boxSizing: 'border-box' }}
                     />
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                      <button onClick={() => setEditId(null)} style={{ padding: '5px 12px', fontSize: 12, borderRadius: 6, border: '1px solid #e5e5e5', background: '#fff', color: '#555', cursor: 'pointer' }}>
+                      <button onClick={() => setEditId(null)} style={{ padding: '5px 12px', fontSize: 12, borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'hsl(var(--card))', color: '#555', cursor: 'pointer' }}>
                         Cancel
                       </button>
                       <button
@@ -410,7 +410,7 @@ export default function KnowledgePage() {
       {/* New entry modal */}
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: '#fff', borderRadius: 14, padding: '28px 30px', maxWidth: 520, width: '92%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+          <div style={{ background: 'hsl(var(--card))', border: '1px solid var(--border-mid)', borderRadius: 14, padding: '28px 30px', maxWidth: 520, width: '92%', boxShadow: 'var(--shadow-modal)' }}>
             <p style={{ margin: '0 0 18px', fontSize: 15, fontWeight: 700, color: '#111' }}>New Knowledge Entry</p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -422,7 +422,7 @@ export default function KnowledgePage() {
                   <select
                     value={newPt}
                     onChange={e => setNewPt(e.target.value as ProductType)}
-                    style={{ width: '100%', padding: '8px 10px', fontSize: 13, borderRadius: 7, border: '1px solid #e5e5e5', background: '#fafafa', color: '#111' }}
+                    style={{ width: '100%', padding: '8px 10px', fontSize: 13, borderRadius: 7, border: '1px solid var(--border-subtle)', background: 'hsl(var(--muted))', color: '#111' }}
                   >
                     {PRODUCT_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
                   </select>
@@ -436,7 +436,7 @@ export default function KnowledgePage() {
                     value={newTitle}
                     onChange={e => setNewTitle(e.target.value)}
                     placeholder="e.g. Marine Cargo Key Selling Points"
-                    style={{ width: '100%', padding: '8px 10px', fontSize: 13, borderRadius: 7, border: '1px solid #e5e5e5', background: '#fafafa', color: '#111', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '8px 10px', fontSize: 13, borderRadius: 7, border: '1px solid var(--border-subtle)', background: 'hsl(var(--muted))', color: '#111', boxSizing: 'border-box' }}
                   />
                 </div>
               </div>
@@ -449,7 +449,7 @@ export default function KnowledgePage() {
                   onChange={e => setNewContent(e.target.value)}
                   rows={7}
                   placeholder="Paste product knowledge, selling points, coverage details, key differentiators…"
-                  style={{ width: '100%', padding: '8px 10px', fontSize: 12, borderRadius: 7, border: '1px solid #e5e5e5', background: '#fafafa', color: '#333', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6, boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 10px', fontSize: 12, borderRadius: 7, border: '1px solid var(--border-subtle)', background: 'hsl(var(--muted))', color: '#333', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6, boxSizing: 'border-box' }}
                 />
               </div>
               <p style={{ margin: 0, fontSize: 11, color: '#aaa', lineHeight: 1.5 }}>
@@ -458,7 +458,7 @@ export default function KnowledgePage() {
             </div>
 
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
-              <button onClick={() => { setShowModal(false); setNewTitle(''); setNewContent('') }} style={{ padding: '6px 12px', borderRadius: 7, border: '1px solid #e5e5e5', background: '#fff', color: '#333', fontSize: 12, cursor: 'pointer' }}>
+              <button onClick={() => { setShowModal(false); setNewTitle(''); setNewContent('') }} style={{ padding: '6px 12px', borderRadius: 7, border: '1px solid var(--border-subtle)', background: 'hsl(var(--card))', color: '#333', fontSize: 12, cursor: 'pointer' }}>
                 Cancel
               </button>
               <button

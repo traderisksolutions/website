@@ -234,7 +234,7 @@ function VerifyModal({ data, acknowledged, setAcknowledged, onClose, onProceed }
             <div key={r.dispatch_id} className="rounded-lg border border-border/70 p-3">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-[12.5px] font-semibold text-foreground">{r.insurer_name ?? 'Insurer'}</span>
-                <span className={cn('text-[9.5px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5',
+                <span className={cn('text-[9.5px] font-bold uppercase tracking-wide rounded-[6px] px-2 py-0.5',
                   r.ok ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' : 'text-amber-700 bg-amber-50 border border-amber-200')}>
                   {r.ok ? 'verified' : 'review'}
                 </span>
@@ -410,14 +410,14 @@ export default function RfqPanel({ caseId }: { caseId: string }) {
                 return (
                   <div key={d.id} className="flex items-center justify-between gap-3 py-2 text-[12px]">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className={cn('text-[9.5px] font-bold uppercase tracking-wide rounded-full px-1.5 py-0.5 border flex-shrink-0',
+                      <span className={cn('text-[9.5px] font-bold uppercase tracking-wide rounded-[6px] px-1.5 py-0.5 border flex-shrink-0',
                         replied ? 'text-indigo-700 bg-indigo-50 border-indigo-200' : 'text-emerald-700 bg-emerald-50 border-emerald-200')}>
                         {replied ? 'replied' : 'sent'}
                       </span>
                       <span className="font-medium text-foreground truncate">{d.insurer_name || d.to_email}</span>
                       {!replied && (
                         overdue
-                          ? <span className="text-[10px] font-bold uppercase tracking-wide text-rose-600 bg-rose-50 border border-rose-200 rounded-full px-1.5 py-0.5 flex-shrink-0">overdue · {waited}d</span>
+                          ? <span className="text-[10px] font-bold uppercase tracking-wide text-rose-600 bg-rose-50 border border-rose-200 rounded-[6px] px-1.5 py-0.5 flex-shrink-0">overdue · {waited}d</span>
                           : <span className="text-[10.5px] text-muted-foreground/60 flex-shrink-0">⏳ {waited}d</span>
                       )}
                     </div>

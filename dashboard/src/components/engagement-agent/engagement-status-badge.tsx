@@ -16,7 +16,7 @@ export function EngagementStatusBadge({
   return (
     <span
       className={cn(
-        'inline-flex items-center font-semibold rounded-full whitespace-nowrap flex-shrink-0',
+        'inline-flex items-center font-semibold rounded-[6px] whitespace-nowrap flex-shrink-0',
         size === 'sm' ? 'text-[10.5px] px-2.5 py-[3px]' : 'text-[11.5px] px-3 py-1',
         className,
       )}

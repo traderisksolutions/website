@@ -158,7 +158,7 @@ function Avatar({ initial, isOut, size }: { initial: string; isOut: boolean; siz
 function DirectionChip({ isOut }: { isOut: boolean }) {
   return (
     <span className={cn(
-      'text-[10px] font-semibold px-2 py-0.5 rounded-full',
+      'text-[10px] font-semibold px-2 py-0.5 rounded-[6px]',
       isOut
         ? 'bg-primary/8 text-primary'
         : 'bg-muted text-muted-foreground',

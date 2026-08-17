@@ -478,7 +478,7 @@ function CampaignBanner({ ctx }: { ctx: CampaignCtx }) {
               <p className="text-[11px] font-bold text-[--warning] flex items-center gap-2 m-0 mb-1">
                 Step {seq.step_number}{seq.subject ? `: ${seq.subject}` : ''}
                 {ctx.step_replied_to === seq.step_number && (
-                  <span className="text-[9.5px] bg-[--warning] text-white px-1.5 py-0.5 rounded-full">
+                  <span className="text-[9.5px] bg-[--warning] text-white px-1.5 py-0.5 rounded-[6px]">
                     replied here
                   </span>
                 )}

@@ -32,8 +32,8 @@ export function ConversationRow({ lead, isActive, threadState, onClick }: Conver
         'flex items-start gap-3 cursor-pointer',
         'border-l-2',
         isActive  && 'bg-accent border-l-primary',
-        !isActive && hasReply  && 'bg-white border-l-[--warning] hover:bg-accent/40',
-        !isActive && !hasReply && 'bg-white border-l-transparent hover:bg-accent/30',
+        !isActive && hasReply  && 'bg-card border-l-[--warning] hover:bg-accent/40',
+        !isActive && !hasReply && 'bg-card border-l-transparent hover:bg-accent/30',
       )}
     >
       {/* Avatar */}
@@ -72,17 +72,17 @@ export function ConversationRow({ lead, isActive, threadState, onClick }: Conver
 
           {/* Source chip — only show for non-obvious sources */}
           {isCampaign && (
-            <span className="flex-shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[--warning-bg] text-[--warning]">
+            <span className="flex-shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-[6px] bg-[--warning-bg] text-[--warning]">
               Campaign
             </span>
           )}
           {!isCampaign && isThread && (
-            <span className="flex-shrink-0 text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+            <span className="flex-shrink-0 text-[9px] font-medium px-1.5 py-0.5 rounded-[6px] bg-muted text-muted-foreground">
               FWD
             </span>
           )}
           {!isCampaign && isForm && (
-            <span className="flex-shrink-0 text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-primary/8 text-primary">
+            <span className="flex-shrink-0 text-[9px] font-medium px-1.5 py-0.5 rounded-[6px] bg-primary/8 text-primary">
               Form
             </span>
           )}

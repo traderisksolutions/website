@@ -64,7 +64,7 @@ export function EngagementThreadHeader({
               <span className="text-muted-foreground/45"> · {lead.company}</span>
             )}
             {messageCount > 0 && (
-              <span className="ml-1.5 text-[10.5px] bg-muted text-muted-foreground px-1.5 py-[1px] rounded-full tabular-nums inline-flex">
+              <span className="ml-1.5 text-[10.5px] bg-muted text-muted-foreground px-1.5 py-[1px] rounded-[6px] tabular-nums inline-flex">
                 {messageCount}
               </span>
             )}

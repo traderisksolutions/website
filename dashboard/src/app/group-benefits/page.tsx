@@ -98,7 +98,7 @@ export default function GroupBenefitsPage() {
                     <td className="pl-4 font-medium text-foreground whitespace-nowrap">{t.insurer_name || 'Unknown insurer'}{t.version > 1 && <span className="text-muted-foreground/50 font-normal"> · v{t.version}</span>}</td>
                     <td className="text-muted-foreground max-w-[380px] truncate">{t.product_code}</td>
                     <td className="text-muted-foreground">{t.plan_year ?? '—'}</td>
-                    <td><span className={cn('text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full', STATUS_TONE[t.status] ?? 'bg-muted')}>{t.status.replace('_', ' ')}</span></td>
+                    <td><span className={cn('text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-[6px]', STATUS_TONE[t.status] ?? 'bg-muted')}>{t.status.replace('_', ' ')}</span></td>
                     <td className="text-right pr-4 text-muted-foreground/70 whitespace-nowrap">{new Date(t.created_at).toLocaleDateString('en-SG')}</td>
                   </tr>
                 ))}

@@ -34,7 +34,7 @@ export function StatCard({
     <div
       className={cn(
         'relative rounded-lg bg-card px-5 py-4 transition-shadow',
-        href && 'hover:shadow-[0_2px_8px_rgba(16,24,40,0.12),0_4px_12px_rgba(16,24,40,0.06)]',
+        href && 'hover:shadow-[var(--shadow-panel)]',
         className,
       )}
       style={{

@@ -202,7 +202,7 @@ export default function TaxonomyManagerPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${c.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>
+                      <span className={`text-[11px] font-medium px-2 py-0.5 rounded-[6px] ${c.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>
                         {c.status === 'active' ? 'Active' : 'Archived'}
                       </span>
                       {c.is_protected && <span className="ml-1.5 text-[10.5px] text-muted-foreground/60">protected</span>}
