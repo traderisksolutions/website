@@ -1025,9 +1025,21 @@ var FOOTER_HTML = `
     });
   }
 
-  window.trsOpenContactPopover = function (msg, trigger, dept) {
+  window.trsOpenContactPopover = function (msg, trigger, dept, slug) {
     if (msg) { msgInput.value = msg; eMsgInput.value = msg; }
     openCard(trigger || null, dept || null);
+    // Pre-select the matching taxonomy option when the caller already knows the topic (e.g.
+    // the homepage hero's prompt pills) — dispatching 'change' reuses the same handler a
+    // manual pick would trigger, so the heading label updates too.
+    if (slug) {
+      [topicSelectWa, topicSelectEmail].forEach(function (sel) {
+        var hasOption = Array.prototype.some.call(sel.options, function (o) { return o.value === slug; });
+        if (hasOption) {
+          sel.value = slug;
+          sel.dispatchEvent(new Event('change'));
+        }
+      });
+    }
   };
 
   document.getElementById('nav-ctac-send').addEventListener('click', sendWaMessage);

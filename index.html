@@ -77,11 +77,12 @@
 
       <!-- Prompt pills -->
       <div class="cta-pill-row">
-        <button class="cta-pill" data-prompt="We need cyber insurance coverage for our company. Can you help structure the right programme?">🛡️ Cyber Insurance</button>
-        <button class="cta-pill" data-prompt="I am a director or board member looking for D&amp;O liability insurance. What does the right coverage look like?">⚖️ Directors &amp; Officers</button>
-        <button class="cta-pill" data-prompt="We need commercial property insurance for our business premises and assets. What should we cover?">🏢 Commercial Property</button>
-        <button class="cta-pill" data-prompt="We are looking to set up employee benefits and group health insurance for our team. What are our options?">👥 Employee Benefits</button>
-        <button class="cta-pill" data-prompt="We need Work Injury Compensation (WICA) insurance for our workers. How do we ensure MOM compliance?">🏗️ Work Injury (WICA)</button>
+        <button class="cta-pill" data-slug="trade_credit" data-prompt="We want to protect our accounts receivable against customer insolvency. Can you help structure a trade credit insurance programme?">💳 Trade Credit</button>
+        <button class="cta-pill" data-slug="cyber" data-prompt="We need cyber insurance coverage for our company. Can you help structure the right programme?">🛡️ Cyber Insurance</button>
+        <button class="cta-pill" data-slug="do" data-prompt="I am a director or board member looking for D&amp;O liability insurance. What does the right coverage look like?">⚖️ Directors &amp; Officers</button>
+        <button class="cta-pill" data-slug="iar_fire" data-prompt="We need commercial property insurance for our business premises and assets. What should we cover?">🏢 Commercial Property</button>
+        <button class="cta-pill" data-slug="employee_benefits" data-prompt="We are looking to set up employee benefits and group health insurance for our team. What are our options?">👥 Employee Benefits</button>
+        <button class="cta-pill" data-slug="wica" data-prompt="We need Work Injury Compensation (WICA) insurance for our workers. How do we ensure MOM compliance?">🏗️ Work Injury (WICA)</button>
       </div>
 
     </div>
@@ -601,11 +602,13 @@
 
       function firePrompt(trigger) {
         if (selectedDept === 'Claims') { window.location.href = '/claims'; return; }
-        var msg = input.value.trim();
+        var msg  = input.value.trim();
+        var slug = input.dataset.slug || null;
         if (typeof window.trsOpenContactPopover === 'function') {
-          window.trsOpenContactPopover(msg, trigger || null, selectedDept);
+          window.trsOpenContactPopover(msg, trigger || null, selectedDept, slug);
         }
         input.value = '';
+        delete input.dataset.slug;
       }
 
       btn.addEventListener('click', function (e) {
@@ -688,9 +691,18 @@
       var ctaInput = document.getElementById('cta-input');
       document.querySelectorAll('.cta-pill').forEach(function (pill) {
         pill.addEventListener('click', function () {
-          if (ctaInput) { ctaInput.value = pill.dataset.prompt; ctaInput.focus(); }
+          if (!ctaInput) return;
+          ctaInput.value = pill.dataset.prompt;
+          ctaInput.dataset.slug = pill.dataset.slug || '';
+          ctaInput.focus();
         });
       });
+      // A pill's topic only applies until the visitor actually edits the text themselves —
+      // real typing (not the programmatic .value set above, which doesn't fire 'input')
+      // means they may no longer be asking about that pill's topic.
+      if (ctaInput) {
+        ctaInput.addEventListener('input', function () { delete ctaInput.dataset.slug; });
+      }
     })();
 
     /* ── Deep Industry Expertise ── */
