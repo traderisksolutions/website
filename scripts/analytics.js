@@ -120,6 +120,10 @@
     sbInsert('inbound_leads', record);
   };
 
+  // Exposed so other scripts (e.g. nav.js's contact popover, which posts to /api/lead
+  // instead of inserting directly) can tag their own submissions with the same session id.
+  window.trsSessionId = function () { return sessionId; };
+
   /* ── Button / link click tracking ──
    * Listens for clicks on any element with data-track="label"
    * Logs to Supabase events table + fires Vercel custom event

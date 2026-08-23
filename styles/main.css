@@ -433,37 +433,45 @@ h1, h2, h3, h4, h5, h6 {
   75%       { transform: translateX(6px); }
 }
 
-/* Topic chips */
-.nav-ctac-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.nav-ctac-chips.nav-ctac-chips-error .nav-ctac-chip {
-  border-color: #ef4444;
-  animation: ctac-shake 0.3s;
-}
-.nav-ctac-chip {
-  padding: 7px 14px;
-  border-radius: 100px;
+/* Topic picker — grouped <select> (full product taxonomy), replaces the old flat chip row */
+.nav-ctac-select {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 12px;
   border: 1.5px solid rgba(0,0,0,0.1);
-  background: rgba(255,255,255,0.55);
+  background: rgba(255,255,255,0.6);
   font-family: var(--font);
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text);
+  outline: none;
+  box-sizing: border-box;
   cursor: pointer;
-  white-space: nowrap;
-  transition: none;
+  transition: border-color 0.15s, background 0.15s;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 34px;
 }
-.nav-ctac-chip:hover {
-  background: rgba(0,0,0,0.05);
-  border-color: rgba(0,0,0,0.18);
+.nav-ctac-select:focus { border-color: rgba(0,0,0,0.3); background-color: rgba(255,255,255,0.85); }
+.nav-ctac-select.nav-ctac-error { border-color: #ef4444; animation: ctac-shake 0.3s; }
+
+/* Honeypot — off-screen but not display:none, so basic bots that skip hidden fields
+   still fill it while real visitors never encounter it. */
+.nav-ctac-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+/* Inline submit-error text */
+.nav-ctac-submit-error {
+  font-family: var(--font);
+  font-size: 12px;
+  color: #ef4444;
+  margin: -4px 0 0;
 }
-.nav-ctac-chip.active {
-  background: #111;
-  border-color: #111;
-  color: #fff;
-}
+
+/* Send button — loading state */
+.nav-ctac-send:disabled { cursor: default; }
+.nav-ctac-send--loading { opacity: 0.7; }
 
 /* Send button */
 .nav-ctac-send {

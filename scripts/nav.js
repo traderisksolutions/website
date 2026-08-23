@@ -664,21 +664,28 @@ var FOOTER_HTML = `
 
 /* ── Contact us popover (global — all pages) ── */
 (function () {
-  var TOPICS = [
-    { emoji: '🛡️', label: 'Cyber Insurance' },
-    { emoji: '⚖️', label: 'Directors & Officers' },
-    { emoji: '🏢', label: 'Commercial Property' },
-    { emoji: '👥', label: 'Employee Benefits' },
-    { emoji: '🏗️', label: 'Work Injury (WICA)' }
-  ];
+  // Full grouped taxonomy (scripts/product-taxonomy.js, loaded just before this file on
+  // every page) — mirrors dashboard/src/lib/product-lines.ts exactly, so the slug captured
+  // here is one the dashboard can use directly, not a guess inferred from free text.
+  var TAXONOMY = window.TRS_PRODUCT_TAXONOMY;
 
   var WA_ICON    = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.118.554 4.102 1.523 5.824L.057 23.882a.5.5 0 0 0 .614.667l6.288-1.65A11.94 11.94 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.94 9.94 0 0 1-5.073-1.383l-.364-.218-3.768.988.999-3.645-.236-.374A9.96 9.96 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>';
   var EMAIL_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>';
 
-  function buildChips(form) {
-    return TOPICS.map(function (t) {
-      return '<button class="nav-ctac-chip" data-topic="' + t.label + '" data-form="' + form + '">' + t.emoji + ' ' + t.label + '</button>';
-    }).join('');
+  function buildTopicSelect(form) {
+    var html = '<select class="nav-ctac-select" id="nav-ctac-topic-' + form + '" data-form="' + form + '">';
+    html += '<option value="">What can we help with?</option>';
+    TAXONOMY.grouped().forEach(function (group) {
+      html += '<optgroup label="' + group.label + '">';
+      group.sections.forEach(function (section) {
+        section.lines.forEach(function (line) {
+          html += '<option value="' + line.slug + '">' + line.label + '</option>';
+        });
+      });
+      html += '</optgroup>';
+    });
+    html += '</select>';
+    return html;
   }
 
   var card = document.createElement('div');
@@ -718,17 +725,18 @@ var FOOTER_HTML = `
     '  <p class="nav-ctac-heading-topic" id="nav-ctac-topic-label">...</p>',
     '</div>',
     '<div class="nav-ctac-form nav-ctac-panel--hidden" id="nav-ctac-form-wa">',
-    '  <div class="nav-ctac-field"><div class="nav-ctac-chips" id="nav-ctac-chips-wa">' + buildChips('wa') + '</div></div>',
+    '  <div class="nav-ctac-field">' + buildTopicSelect('wa') + '</div>',
     '  <div class="nav-ctac-field-row">',
     '    <div class="nav-ctac-field"><label class="nav-ctac-label" for="nav-ctac-fname">First name</label><input class="nav-ctac-field-input" id="nav-ctac-fname" type="text" placeholder="Sarah" autocomplete="given-name" /></div>',
     '    <div class="nav-ctac-field"><label class="nav-ctac-label" for="nav-ctac-lname">Last name</label><input class="nav-ctac-field-input" id="nav-ctac-lname" type="text" placeholder="Lim" autocomplete="family-name" /></div>',
     '  </div>',
     '  <div class="nav-ctac-field"><label class="nav-ctac-label" for="nav-ctac-wa-phone">Phone number</label><input class="nav-ctac-field-input" id="nav-ctac-wa-phone" type="tel" placeholder="91234567" autocomplete="tel" /></div>',
     '  <div class="nav-ctac-field"><label class="nav-ctac-label" for="nav-ctac-msg">More details</label><input class="nav-ctac-field-input" id="nav-ctac-msg" type="text" placeholder="e.g. renewing in June, fleet of 3 cars…" /></div>',
+    '  <div class="nav-ctac-hp" aria-hidden="true"><input type="text" id="nav-ctac-website" name="website" tabindex="-1" autocomplete="off" /></div>',
     '  <button class="nav-ctac-send" id="nav-ctac-send" data-track="nav_contact_send"><span>Send on WhatsApp</span></button>',
     '</div>',
     '<div class="nav-ctac-form nav-ctac-panel--hidden" id="nav-ctac-form-email">',
-    '  <div class="nav-ctac-field"><div class="nav-ctac-chips" id="nav-ctac-chips-email">' + buildChips('email') + '</div></div>',
+    '  <div class="nav-ctac-field">' + buildTopicSelect('email') + '</div>',
     '  <div class="nav-ctac-field-row">',
     '    <div class="nav-ctac-field"><label class="nav-ctac-label" for="nav-ctac-e-fname">First name</label><input class="nav-ctac-field-input" id="nav-ctac-e-fname" type="text" placeholder="Sarah" autocomplete="given-name" /></div>',
     '    <div class="nav-ctac-field"><label class="nav-ctac-label" for="nav-ctac-e-lname">Last name</label><input class="nav-ctac-field-input" id="nav-ctac-e-lname" type="text" placeholder="Lim" autocomplete="family-name" /></div>',
@@ -737,6 +745,8 @@ var FOOTER_HTML = `
     '  <div class="nav-ctac-field"><label class="nav-ctac-label" for="nav-ctac-e-email">Email</label><input class="nav-ctac-field-input" id="nav-ctac-e-email" type="email" placeholder="e.g. sarah@company.com" autocomplete="email" /></div>',
     '  <div class="nav-ctac-field"><label class="nav-ctac-label" for="nav-ctac-e-phone">Phone</label><input class="nav-ctac-field-input" id="nav-ctac-e-phone" type="tel" placeholder="91234567" autocomplete="tel" /></div>',
     '  <div class="nav-ctac-field"><label class="nav-ctac-label" for="nav-ctac-e-msg">More details</label><input class="nav-ctac-field-input" id="nav-ctac-e-msg" type="text" placeholder="e.g. fleet renewal, 50 employees…" /></div>',
+    '  <div class="nav-ctac-hp" aria-hidden="true"><input type="text" id="nav-ctac-e-website" name="website" tabindex="-1" autocomplete="off" /></div>',
+    '  <p class="nav-ctac-submit-error nav-ctac-panel--hidden" id="nav-ctac-e-error">Something went wrong — please try again.</p>',
     '  <button class="nav-ctac-send" id="nav-ctac-e-send" data-track="nav_email_send"><span>Submit</span></button>',
     '</div>',
     '<p class="nav-ctac-wa-note" id="nav-ctac-note-wa">' + WA_ICON + ' We\'ll reply on WhatsApp</p>',
@@ -766,8 +776,13 @@ var FOOTER_HTML = `
   var eEmailInput     = document.getElementById('nav-ctac-e-email');
   var ePhoneInput     = document.getElementById('nav-ctac-e-phone');
   var eMsgInput       = document.getElementById('nav-ctac-e-msg');
-  var selectedTopicWa    = '';
-  var selectedTopicEmail = '';
+  var waWebsiteInput  = document.getElementById('nav-ctac-website');
+  var eWebsiteInput   = document.getElementById('nav-ctac-e-website');
+  var eErrorMsg       = document.getElementById('nav-ctac-e-error');
+  // Hold the taxonomy SLUG (select.value), not the display label — read directly from the
+  // <select> elements rather than tracked separately, so there's one source of truth.
+  var topicSelectWa    = document.getElementById('nav-ctac-topic-wa');
+  var topicSelectEmail = document.getElementById('nav-ctac-topic-email');
   var selectedDept       = '';
   var activeTab = 'wa';
 
@@ -811,9 +826,9 @@ var FOOTER_HTML = `
       document.getElementById('nav-ctac-form-email').classList.toggle('nav-ctac-panel--hidden', showWa);
       document.getElementById('nav-ctac-note-wa').classList.toggle('nav-ctac-panel--hidden', !showWa);
       document.getElementById('nav-ctac-note-email').classList.toggle('nav-ctac-panel--hidden', showWa);
-      var topic = showWa ? selectedTopicWa : selectedTopicEmail;
-      topicLabel.textContent = topic || '...';
-      topicLabel.style.color = topic ? 'var(--text)' : '';
+      var slug  = showWa ? topicSelectWa.value : topicSelectEmail.value;
+      topicLabel.textContent = slug ? TAXONOMY.labelForSlug(slug) : '...';
+      topicLabel.style.color = slug ? 'var(--text)' : '';
       setTimeout(function () { (showWa ? firstNameInput : eFirstNameInput).focus(); }, 50);
     });
   });
@@ -892,9 +907,10 @@ var FOOTER_HTML = `
   }
   function resetForm() {
     [firstNameInput, lastNameInput, waPhoneInput, msgInput, eFirstNameInput, eLastNameInput, eCompanyInput, eEmailInput, ePhoneInput, eMsgInput].forEach(function (el) { el.value = ''; el.classList.remove('nav-ctac-error'); });
-    selectedTopicWa = ''; selectedTopicEmail = '';
+    topicSelectWa.value = ''; topicSelectEmail.value = '';
+    topicSelectWa.classList.remove('nav-ctac-error'); topicSelectEmail.classList.remove('nav-ctac-error');
     topicLabel.textContent = '...'; topicLabel.style.color = '';
-    card.querySelectorAll('.nav-ctac-chip').forEach(function (c) { c.classList.remove('active'); });
+    eErrorMsg.classList.add('nav-ctac-panel--hidden');
   }
 
   document.addEventListener('click', function (e) {
@@ -914,35 +930,64 @@ var FOOTER_HTML = `
   backBtn.addEventListener('click', function (e) { e.stopPropagation(); showDeptScreen(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeCard(); });
 
-  card.querySelectorAll('.nav-ctac-chip').forEach(function (chip) {
-    chip.addEventListener('click', function () {
-      var form = chip.dataset.form;
-      card.querySelectorAll('.nav-ctac-chip[data-form="' + form + '"]').forEach(function (c) { c.classList.remove('active'); });
-      chip.classList.add('active');
-      if (form === 'wa') { selectedTopicWa = chip.dataset.topic; msgInput.focus(); }
-      else { selectedTopicEmail = chip.dataset.topic; eMsgInput.focus(); }
-      topicLabel.textContent = chip.dataset.topic;
-      topicLabel.style.color = 'var(--text)';
+  [topicSelectWa, topicSelectEmail].forEach(function (sel) {
+    sel.addEventListener('change', function () {
+      sel.classList.remove('nav-ctac-error');
+      var label = sel.value ? TAXONOMY.labelForSlug(sel.value) : '...';
+      topicLabel.textContent = label;
+      topicLabel.style.color = sel.value ? 'var(--text)' : '';
+      (sel === topicSelectWa ? msgInput : eMsgInput).focus();
     });
   });
+
+  // POST /api/lead — server-side validated write (replaces the old direct-to-Supabase
+  // anon-key insert from trsCaptureLead). `website` is a honeypot: real visitors never see
+  // or fill it, so a non-empty value means a bot and the server drops it silently.
+  function submitLead(payload, source, cb) {
+    var body = {};
+    for (var k in payload) if (Object.prototype.hasOwnProperty.call(payload, k)) body[k] = payload[k];
+    body.source     = source;
+    body.page_url   = window.location.pathname;
+    body.session_id = (typeof window.trsSessionId === 'function') ? window.trsSessionId() : null;
+    fetch('/api/lead', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(body),
+    }).then(function (res) {
+      cb(res.ok);
+    }).catch(function () {
+      cb(false);
+    });
+  }
+
+  function setSending(button, isSending, idleLabel, sendingLabel) {
+    button.disabled = isSending;
+    button.classList.toggle('nav-ctac-send--loading', isSending);
+    button.querySelector('span').textContent = isSending ? sendingLabel : idleLabel;
+  }
 
   function sendWaMessage() {
     var firstName = firstNameInput.value.trim();
     var lastName  = lastNameInput.value.trim();
     var waPhone   = waPhoneInput.value.trim();
     var extra     = msgInput.value.trim();
+    var topicSlug = topicSelectWa.value;
     if (!firstName) { firstNameInput.focus(); firstNameInput.classList.add('nav-ctac-error'); return; }
     if (!lastName)  { lastNameInput.focus();  lastNameInput.classList.add('nav-ctac-error');  return; }
-    if (!selectedTopicWa) {
-      document.getElementById('nav-ctac-chips-wa').classList.add('nav-ctac-chips-error');
-      setTimeout(function () { document.getElementById('nav-ctac-chips-wa').classList.remove('nav-ctac-chips-error'); }, 600);
-      return;
-    }
+    if (!topicSlug) { topicSelectWa.focus(); topicSelectWa.classList.add('nav-ctac-error'); return; }
     if (!extra) { msgInput.focus(); msgInput.classList.add('nav-ctac-error'); return; }
     firstNameInput.classList.remove('nav-ctac-error'); lastNameInput.classList.remove('nav-ctac-error'); msgInput.classList.remove('nav-ctac-error');
+    var topicLabelText = TAXONOMY.labelForSlug(topicSlug);
     var fullName = firstName + ' ' + lastName;
-    var msg = 'Hi, I\'m ' + fullName + '. I want to know more about ' + selectedTopicWa + '. ' + extra;
-    if (typeof window.trsCaptureLead === 'function') window.trsCaptureLead({ first_name: firstName, last_name: lastName, phone: waPhone || null, department: selectedDept || null, contact_type: 'Individual', topic: selectedTopicWa, details: extra, message: msg }, 'whatsapp_click');
+    var msg = 'Hi, I\'m ' + fullName + '. I want to know more about ' + topicLabelText + '. ' + extra;
+    // WhatsApp handoff is instant/synchronous — a visitor expects wa.me to open right away,
+    // so the lead-capture write happens in the background rather than blocking that.
+    submitLead({
+      first_name: firstName, last_name: lastName, phone: waPhone || null,
+      department: selectedDept || null, contact_type: 'Individual',
+      topic: topicLabelText, product_line: topicSlug, details: extra, message: msg,
+      website: waWebsiteInput.value,
+    }, 'whatsapp_click', function () {});
     window.open('https://wa.me/6589386813?text=' + encodeURIComponent(msg), '_blank', 'noopener');
     resetForm(); showSuccess('Your message is on its way!');
   }
@@ -951,19 +996,33 @@ var FOOTER_HTML = `
     var eFirstName = eFirstNameInput.value.trim(); var eLastName = eLastNameInput.value.trim();
     var eCompany = eCompanyInput.value.trim(); var eEmail = eEmailInput.value.trim();
     var ePhone = ePhoneInput.value.trim(); var eMsg = eMsgInput.value.trim();
+    var eTopicSlug = topicSelectEmail.value;
     var ok = true;
     if (!eFirstName) { eFirstNameInput.classList.add('nav-ctac-error'); ok = false; }
     if (!eLastName)  { eLastNameInput.classList.add('nav-ctac-error');  ok = false; }
     if (!eEmail || !eEmail.includes('@')) { eEmailInput.classList.add('nav-ctac-error'); ok = false; }
-    if (!selectedTopicEmail) {
-      document.getElementById('nav-ctac-chips-email').classList.add('nav-ctac-chips-error');
-      setTimeout(function () { document.getElementById('nav-ctac-chips-email').classList.remove('nav-ctac-chips-error'); }, 600);
-      ok = false;
-    }
+    if (!eTopicSlug) { topicSelectEmail.classList.add('nav-ctac-error'); ok = false; }
     if (!eMsg) { eMsgInput.classList.add('nav-ctac-error'); ok = false; }
     if (!ok) return;
-    if (typeof window.trsCaptureLead === 'function') window.trsCaptureLead({ first_name: eFirstName, last_name: eLastName, email: eEmail, phone: ePhone || null, company: eCompany || null, department: selectedDept || null, contact_type: eCompany ? 'Business' : 'Individual', topic: selectedTopicEmail, details: eMsg, message: null }, 'website_form');
-    resetForm(); showSuccess('Your enquiry has been received.');
+
+    var sendBtn = document.getElementById('nav-ctac-e-send');
+    eErrorMsg.classList.add('nav-ctac-panel--hidden');
+    setSending(sendBtn, true, 'Submit', 'Sending…');
+
+    submitLead({
+      first_name: eFirstName, last_name: eLastName, email: eEmail, phone: ePhone || null,
+      company: eCompany || null, department: selectedDept || null,
+      contact_type: eCompany ? 'Business' : 'Individual',
+      topic: TAXONOMY.labelForSlug(eTopicSlug), product_line: eTopicSlug, details: eMsg, message: null,
+      website: eWebsiteInput.value,
+    }, 'website_form', function (success) {
+      setSending(sendBtn, false, 'Submit', 'Sending…');
+      if (success) {
+        resetForm(); showSuccess('Your enquiry has been received.');
+      } else {
+        eErrorMsg.classList.remove('nav-ctac-panel--hidden');
+      }
+    });
   }
 
   window.trsOpenContactPopover = function (msg, trigger, dept) {
