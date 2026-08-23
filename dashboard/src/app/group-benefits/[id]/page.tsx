@@ -10,7 +10,10 @@ type Plan    = { product_code: string; plan_code: string; plan_name: string | nu
 type Benefit = { product_code: string; plan_code: string | null; category: string | null; benefit_name: string; value_text: string | null; value_numeric: number | null; unit: string | null; notes: string | null }
 type Coverage = { product_title: string | null; member_type: string | null; plan_code: string | null; item_label: string; value_numeric: number | null; value_text: string | null; unit: string | null }
 type Conflict = { product_title: string; member_type: string | null; plan_code: string; band_label: string; opus: number | null; gemini: number | null; parser_seen: boolean; note?: string; judge?: { price: number | null; confidence: number; reason: string } | null }
-type Detail  = { table: Record<string, unknown>; plans: Plan[]; rates: Rate[]; benefits: Benefit[]; coverage: Coverage[]; conflicts: Conflict[]; confidence: number | null; extractors?: Record<string, { error: string | null; rates: number }> }
+/** One changed/added/removed benefit term between the previous approved wording and this
+ *  re-extraction — see gb-diff.ts's diffBenefits (Sales Loop v2, Phase 6c). */
+type WordingChange = { path: string; from: unknown; to: unknown }
+type Detail  = { table: Record<string, unknown>; plans: Plan[]; rates: Rate[]; benefits: Benefit[]; coverage: Coverage[]; conflicts: Conflict[]; wordingDiff?: WordingChange[]; confidence: number | null; extractors?: Record<string, { error: string | null; rates: number }> }
 
 // Keyed by product title + member type + plan + band (matches the judge's conflict keys).
 const cKey = (c: { product_title?: string; product_code?: string; member_type: string | null; plan_code: string; band_label: string }) =>
@@ -291,6 +294,21 @@ export default function GbReviewPage() {
             {d.confidence != null && <span className="font-semibold">{d.confidence}% agreement</span>}
             <span>· {d.conflicts.length} cell{d.conflicts.length === 1 ? '' : 's'} to verify (highlighted below){rates.length ? ` · ${rates.length} rates` : ''}</span>
           </div>
+
+          {/* Wording changes vs the last approved version (Sales Loop v2, Phase 6c) — only ever
+              non-empty on a re-extraction, since there's nothing to diff against the first time. */}
+          {(d.wordingDiff?.length ?? 0) > 0 && (
+            <div className="rounded-lg px-4 py-3 mb-5 text-[12.5px] bg-indigo-50 border border-indigo-200 text-indigo-900">
+              <p className="font-semibold mb-1.5 flex items-center gap-1.5"><AlertTriangle size={14} /> {d.wordingDiff!.length} benefit term{d.wordingDiff!.length === 1 ? '' : 's'} changed since the last approved version</p>
+              <ul className="flex flex-col gap-0.5">
+                {d.wordingDiff!.map((w, i) => (
+                  <li key={i} className="text-indigo-800/90">
+                    <span className="font-medium">{w.path}</span>: {w.from == null ? <em>added</em> : w.to == null ? <em>removed</em> : <>&ldquo;{String(w.from)}&rdquo; → &ldquo;{String(w.to)}&rdquo;</>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {rates.length === 0 && (
             <div className="text-center py-12 text-muted-foreground text-[13px]">

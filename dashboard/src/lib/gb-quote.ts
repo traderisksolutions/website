@@ -2,6 +2,8 @@
  * Group Benefits quote computation (Phase 2) — pure functions so they're unit-tested.
  * Runs a census across selected approved rate tables and returns per-insurer totals.
  */
+import { runGbComputationRules } from '@/lib/gb-compute-rules'
+import type { RuleStep } from '@/lib/pm-rules-extract'
 
 export type Relationship = 'self' | 'spouse' | 'child' | string
 export type Member = { name: string; category: string; relationship: Relationship; dob?: string | null; age?: number | null; occupation_class?: string | null }
@@ -24,7 +26,17 @@ export type AppliedRules = {
 // A member's relationship maps to which premium table applies (employee vs dependant).
 export const memberTypeFor = (relationship: string): 'employee' | 'dependant' =>
   /spouse|child|dependa|dependent|son|daughter|wife|husband|partner/i.test(relationship) ? 'dependant' : 'employee'
-export type RateTableInfo = { rate_table_id: string; insurer_id?: string | null; insurer_name: string; age_basis: 'next_birthday' | 'last_birthday'; rates: RateRow[]; rules?: AppliedRules | null }
+export type RateTableInfo = {
+  rate_table_id: string; insurer_id?: string | null; insurer_name: string
+  age_basis: 'next_birthday' | 'last_birthday'; rates: RateRow[]; rules?: AppliedRules | null
+  /** Approved gb_computation_rules.rules (Sales Loop v2, Phase 6d) — set ONLY when an
+   *  administrator has explicitly approved a richer rule set for this table; every table
+   *  without one keeps running the AppliedRules path below completely unchanged. When set,
+   *  `rules` (AppliedRules) is ignored for this table — the rich rules already encode
+   *  loading/GST wherever the calculator's own formulas apply them, so applying both would
+   *  double-count. See gb-compute-rules.ts's header comment. */
+  richRules?: RuleStep[] | null
+}
 
 // ── Rule appliers (defensive: no-op unless the rule is in its structured form) ──────
 export function groupFactor(rules: AppliedRules | null | undefined, lives: number): number {
@@ -120,6 +132,26 @@ export function computeQuote(
 
     members.forEach((m, i) => {
       const age = memberAge(m, effDate, table.age_basis)
+
+      // Sales Loop v2, Phase 6d: an approved richer rule set replaces BOTH the flat findRate
+      // lookup and the AppliedRules pass below for every product on this table — the rules
+      // already encode whatever loading/GST/eligibility the calculator's own formulas apply.
+      if (table.richRules?.length && age != null) {
+        const selection = Object.fromEntries(products.map(p => [p, tMap[p]?.[m.category] ?? undefined]))
+        const result = runGbComputationRules(table.richRules, table.rates, { age, relationship: m.relationship, selection, headcount: members.length })
+        for (const product of products) {
+          const plan = tMap[product]?.[m.category] ?? null
+          if (!plan) continue
+          const premium = result[product] ?? null
+          const note = premium == null ? 'not covered by approved rules' : null
+          lines.push({ member_index: i, member_name: m.name, relationship: m.relationship, category: m.category, age, rate_table_id: table.rate_table_id, insurer_id: table.insurer_id ?? null, insurer_name: table.insurer_name, product_code: product, plan_code: plan, premium, note })
+          if (premium == null) { missing++; continue }
+          byProduct[product] = round2((byProduct[product] ?? 0) + premium)
+          subtotal = round2(subtotal + premium)
+        }
+        return
+      }
+
       for (const product of products) {
         const plan = tMap[product]?.[m.category] ?? null
         // Skip products the category isn't mapped to (e.g. staff without a GOS rider).
@@ -143,8 +175,12 @@ export function computeQuote(
     })
 
     const gst = round2(subtotal * gstRate)
-    per_insurer.push({ rate_table_id: table.rate_table_id, insurer_id: table.insurer_id ?? null, insurer_name: table.insurer_name, by_product: byProduct, subtotal, gst, total: round2(subtotal + gst), missing,
-      applied: rules ? { group_factor: gFactor, gst_treatment: typeof rules.gst_treatment === 'object' && rules.gst_treatment ? rules.gst_treatment.treatment ?? null : null } : undefined })
+    // richRules bypasses AppliedRules entirely (see the branch above) — report that plainly
+    // rather than showing gFactor/rules.gst_treatment values that were never actually applied.
+    const applied = table.richRules?.length
+      ? { group_factor: 1, gst_treatment: 'approved computation rules' }
+      : rules ? { group_factor: gFactor, gst_treatment: typeof rules.gst_treatment === 'object' && rules.gst_treatment ? rules.gst_treatment.treatment ?? null : null } : undefined
+    per_insurer.push({ rate_table_id: table.rate_table_id, insurer_id: table.insurer_id ?? null, insurer_name: table.insurer_name, by_product: byProduct, subtotal, gst, total: round2(subtotal + gst), missing, applied })
   }
 
   per_insurer.sort((a, b) => a.total - b.total)   // cheapest first

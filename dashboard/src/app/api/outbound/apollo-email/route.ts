@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
+import { findEmailByLinkedIn } from '@/lib/netrows'
+import { autoEnrollLead } from '@/lib/auto-enroll'
 
 const APOLLO = 'https://api.apollo.io/v1'
 
@@ -23,6 +26,9 @@ interface PersonRow {
 // POST /api/outbound/apollo-email
 // Body: { personIds: string[] } | { leadId: string }
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const body = await req.json() as { personIds?: string[]; leadId?: string }
 
@@ -74,6 +80,7 @@ export async function POST(req: NextRequest) {
           body: JSON.stringify({ email_requested: true, email_status: 'valid', outbound_lead_id: outboundLeadId }),
         })
         results.push({ id: person.id, email: person.email, email_status: 'valid', outbound_lead_id: outboundLeadId })
+        if (outboundLeadId) void autoEnrollLead(outboundLeadId).catch(() => {})
         continue
       }
 
@@ -107,6 +114,18 @@ export async function POST(req: NextRequest) {
           emailStatus = matched?.email_status ?? (email ? 'valid' : 'not_found')
         }
 
+        // Apollo's free-tier match doesn't always reveal an email — fall back to Netrows
+        // (LinkedIn-URL email finder) rather than leaving the person unreachable. This is
+        // the automatic version of what used to require a human noticing the gap and running
+        // the standalone Netrows lookup tool separately.
+        if (!email && person.linkedin_url) {
+          const netrowsHit = await findEmailByLinkedIn(person.linkedin_url)
+          if (netrowsHit) {
+            email       = netrowsHit.email
+            emailStatus = netrowsHit.status
+          }
+        }
+
         let outboundLeadId: string | null = person.outbound_lead_id
 
         if (email) {
@@ -118,6 +137,7 @@ export async function POST(req: NextRequest) {
           } else {
             outboundLeadId = await promoteToLeads(person, email, emailStatus)
           }
+          if (outboundLeadId) void autoEnrollLead(outboundLeadId).catch(() => {})
         }
 
         await fetch(`${SB_URL}/rest/v1/ob_people_dump?id=eq.${person.id}`, {

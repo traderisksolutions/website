@@ -23,7 +23,7 @@ function MainContent({ children }: { children: React.ReactNode }) {
 
 export default function ConditionalShell({ children }: { children: React.ReactNode }) {
   const pathname   = usePathname()
-  const isAuthPage = pathname === '/login' || pathname.startsWith('/auth/')
+  const isAuthPage = pathname === '/login' || pathname.startsWith('/auth/') || pathname === '/unsubscribed'
 
   if (isAuthPage) return <>{children}</>
 

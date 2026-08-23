@@ -10,6 +10,7 @@ import DebitNoteEmailTemplatePanel from '@/components/DebitNoteEmailTemplatePane
 import RfqOpsPanel              from '@/components/RfqOpsPanel'
 import HighlightBackfillPanel   from '@/components/HighlightBackfillPanel'
 import ThreadContactBackfillPanel from '@/components/ThreadContactBackfillPanel'
+import CompanyBackfillPanel      from '@/components/CompanyBackfillPanel'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -149,7 +150,7 @@ function SettingsContent() {
       <p className="text-[13px] text-muted-foreground -mt-2">{active.blurb}</p>
 
       <div className="flex flex-col gap-6">
-        {tab === 'account'    && <><GmailSection profile={profile} onProfileChange={loadProfile} /><HighlightBackfillPanel /><ThreadContactBackfillPanel /></>}
+        {tab === 'account'    && <><GmailSection profile={profile} onProfileChange={loadProfile} /><HighlightBackfillPanel /><ThreadContactBackfillPanel /><CompanyBackfillPanel /></>}
         {tab === 'signatures' && <SignaturePanel profile={profile} />}
         {tab === 'insurers'   && <InsurerDirectoryPanel />}
         {tab === 'rfq'        && <RfqOpsPanel />}

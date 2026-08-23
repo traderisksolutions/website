@@ -33,7 +33,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       q(`gb_rates?rate_table_id=eq.${id}&select=*&order=product_code,member_type,plan_code,age_min`),
       q(`gb_benefits?rate_table_id=eq.${id}&select=*&order=product_code,sort_order,id`),
       q(`gb_coverage?rate_table_id=eq.${id}&select=*&order=product_title,member_type,sort_order`),
-      q(`gb_extraction_runs?rate_table_id=eq.${id}&extractor=eq.judge&select=conflicts,confidence,created_at&order=created_at.desc&limit=1`),
+      q(`gb_extraction_runs?rate_table_id=eq.${id}&extractor=eq.judge&select=conflicts,confidence,raw_json,created_at&order=created_at.desc&limit=1`),
       q(`gb_extraction_runs?rate_table_id=eq.${id}&extractor=in.(opus,gemini,parser)&select=extractor,error,raw_json,created_at&order=created_at.desc`),
     ])
     const t = Array.isArray(table) ? table[0] : null
@@ -46,7 +46,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       const cells = r.extractor === 'parser' ? (rj?.rows?.length ?? 0) : (rj?.pricing?.length ?? 0)
       extractors[r.extractor] = { error: r.error ?? null, rates: cells }
     }
-    return NextResponse.json({ table: t, plans, rates, benefits, coverage, conflicts: judgeRun?.[0]?.conflicts ?? [], confidence: judgeRun?.[0]?.confidence ?? null, extractors })
+    const judgeRaw = judgeRun?.[0]?.raw_json as { wording_diff?: unknown[] } | null
+    return NextResponse.json({ table: t, plans, rates, benefits, coverage, conflicts: judgeRun?.[0]?.conflicts ?? [], wordingDiff: judgeRaw?.wording_diff ?? [], confidence: judgeRun?.[0]?.confidence ?? null, extractors })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }

@@ -6,7 +6,7 @@ import {
   Cpu, FolderOpen, BookMarked, Radar, History,
   Telescope, Megaphone, Settings, FlaskConical,
   TrendingUp, ScrollText, Network, HeartPulse, Car,
-  Receipt, CalendarDays,
+  Receipt, CalendarDays, Waypoints, Calculator,
 } from 'lucide-react'
 
 export type NavLink = {
@@ -42,6 +42,8 @@ export type NavSection = {
 // only which menu it lives under changed. `/` (Home) is reachable via the logo, same convention
 // as almost every top-nav app; it doesn't need its own slot next to Overview.
 export const NAV_SECTIONS: NavSection[] = [
+  { label: 'Pipeline', href: '/pipeline', icon: Waypoints },
+
   {
     label: 'Leads',
     icon: Inbox,
@@ -82,6 +84,7 @@ export const NAV_SECTIONS: NavSection[] = [
         heading: 'Policy & Ops',
         items: [
           { title: 'Pricing Matrix', href: '/pricing-matrix', icon: HeartPulse,   description: 'Insurer calculators and quotes' },
+          { title: 'Group Benefits', href: '/group-benefits', icon: Calculator,   description: 'Census quoting and rate tables' },
           { title: 'Debit Notes',    href: '/debit-notes',    icon: Receipt,      description: 'Issued debit notes' },
           { title: 'Calendar',       href: '/calendar',       icon: CalendarDays, description: 'Meetings and scheduling' },
           { title: 'Claims',         href: '/claims',         icon: AlertCircle,  description: 'Claims handling', disabled: true },

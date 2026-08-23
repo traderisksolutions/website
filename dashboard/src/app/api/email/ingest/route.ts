@@ -311,19 +311,41 @@ async function getNewMessageIds(token: string): Promise<string[]> {
   return (listData.messages ?? []).map((m: { id: string }) => m.id)
 }
 
+// A recipient asking to stop hearing from us, in whatever words they use — checked against
+// the reply body before anything else, since it should win regardless of which branch below
+// resolves the lead. Deliberately phrase-based rather than a bare "stop" match (a reply that
+// mentions stopping by an event, say, shouldn't trip this).
+const UNSUBSCRIBE_INTENT = /\b(unsubscribe|opt[- ]?out|remove me|take me off|stop (?:the )?email|no longer (?:interested|wish)|do not (?:contact|email) me|please stop)\b/i
+
+async function applyOptOut(leadId: string): Promise<void> {
+  const h  = sbHeaders('return=minimal')
+  const now = new Date().toISOString()
+  await fetch(`${SB_URL}/rest/v1/outbound_leads?id=eq.${leadId}`, {
+    method: 'PATCH', headers: h, body: JSON.stringify({ opt_out: true, opt_out_at: now }),
+  })
+  // Halt every enrollment for this lead, not just the campaign this reply came from.
+  await fetch(`${SB_URL}/rest/v1/ob_campaign_leads?lead_id=eq.${leadId}&send_status=in.(queued,sent)`, {
+    method: 'PATCH', headers: h, body: JSON.stringify({ send_status: 'unsubscribed', send_scheduled_at: null }),
+  })
+  console.log('[ingest] unsubscribe intent detected in reply — opted out lead', leadId)
+}
+
 // If the sender is an outbound campaign lead, tag the thread and mark the lead as replied.
 // Non-blocking — called fire-and-forget inside ingestMessage. Never throws.
-async function tagThreadWithCampaignContext(email: string, threadId: string): Promise<void> {
+async function tagThreadWithCampaignContext(email: string, threadId: string, bodyText: string): Promise<void> {
   const h = sbHeaders('return=minimal')
+  const wantsOut = UNSUBSCRIBE_INTENT.test(bodyText)
 
   // Check if this Gmail thread was sent by our outbound cron (ob_campaign_leads.gmail_thread_id)
   const obLeadRes = await fetch(
-    `${SB_URL}/rest/v1/ob_campaign_leads?gmail_thread_id=eq.${encodeURIComponent(threadId)}&select=id,campaign_id,send_status&limit=1`,
+    `${SB_URL}/rest/v1/ob_campaign_leads?gmail_thread_id=eq.${encodeURIComponent(threadId)}&select=id,campaign_id,send_status,lead_id,current_step&limit=1`,
     { headers: h, cache: 'no-store' }
   )
-  const obLeads: { id: string; campaign_id: string; send_status: string }[] = obLeadRes.ok ? await obLeadRes.json() : []
+  const obLeads: { id: string; campaign_id: string; send_status: string; lead_id: string; current_step: number }[] = obLeadRes.ok ? await obLeadRes.json() : []
 
   if (obLeads.length > 0 && obLeads[0].send_status !== 'replied') {
+    if (wantsOut) await applyOptOut(obLeads[0].lead_id).catch(() => {})
+
     // Mark the lead as replied
     await fetch(`${SB_URL}/rest/v1/ob_campaign_leads?id=eq.${obLeads[0].id}`, {
       method:  'PATCH',
@@ -361,6 +383,8 @@ async function tagThreadWithCampaignContext(email: string, threadId: string): Pr
             campaign_id:      obLeads[0].campaign_id,
             campaign_name:    camps[0].name,
             product_type:     camps[0].product_type ?? 'General',
+            outbound_lead_id: obLeads[0].lead_id,
+            step_replied_to:  obLeads[0].current_step || null,
           },
         }),
       })
@@ -378,11 +402,13 @@ async function tagThreadWithCampaignContext(email: string, threadId: string): Pr
   if (!leads.length) return
 
   const leadId = leads[0].id
+  if (wantsOut) await applyOptOut(leadId).catch(() => {})
+
   const clRes = await fetch(
-    `${SB_URL}/rest/v1/ob_campaign_leads?lead_id=eq.${leadId}&send_status=in.(queued,sent)&select=id,campaign_id&order=created_at.desc&limit=1`,
+    `${SB_URL}/rest/v1/ob_campaign_leads?lead_id=eq.${leadId}&send_status=in.(queued,sent)&select=id,campaign_id,current_step&order=created_at.desc&limit=1`,
     { headers: h, cache: 'no-store' }
   )
-  const cls: { id: string; campaign_id: string }[] = clRes.ok ? await clRes.json() : []
+  const cls: { id: string; campaign_id: string; current_step: number }[] = clRes.ok ? await clRes.json() : []
   if (!cls.length) return
 
   await fetch(`${SB_URL}/rest/v1/ob_campaign_leads?id=eq.${cls[0].id}`, {
@@ -403,9 +429,11 @@ async function tagThreadWithCampaignContext(email: string, threadId: string): Pr
     headers: h,
     body:    JSON.stringify({
       campaign_context: {
-        campaign_id:   cls[0].campaign_id,
-        campaign_name: camps[0].name,
-        product_type:  camps[0].product_type ?? 'General',
+        campaign_id:      cls[0].campaign_id,
+        campaign_name:    camps[0].name,
+        product_type:     camps[0].product_type ?? 'General',
+        outbound_lead_id: leadId,
+        step_replied_to:  cls[0].current_step || null,
       },
     }),
   })
@@ -735,7 +763,7 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
   if (direction === 'inbound') {
     // Tag thread with campaign context if sender is an outbound campaign lead (non-blocking)
     if (resolvedParty && !isInternal(fromEmail)) {
-      tagThreadWithCampaignContext(fromEmail, thread.id).catch(() => {})
+      tagThreadWithCampaignContext(fromEmail, thread.id, decodeFullText(parts)).catch(() => {})
     }
     // NOTE: No auto-generation on inbound by design.
     //  • AI Analysis — generated on demand via the Refresh button.

@@ -1,9 +1,10 @@
 'use client'
 
 import React, { useState } from 'react'
-import { UploadCloud, Loader2, CheckCircle2, FileSpreadsheet, ChevronDown, ChevronRight, Trash2, Plus } from 'lucide-react'
+import { UploadCloud, Loader2, CheckCircle2, FileSpreadsheet, ChevronDown, ChevronRight, Trash2, Plus, Sparkles, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
+import type { RuleStep } from '@/lib/pm-rules-extract'
 
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 const NOT_DETECTED = 'NOT DETECTED — requires human input'
@@ -93,6 +94,7 @@ export function XlsxTab({ tables, loading, onChanged }: { tables: Table[]; loadi
                     <tr><td colSpan={6} className="!p-0">
                       {/* key on rules_updated_at so the panel refetches after a re-analysis/save */}
                       <RulesPanel key={t.rules_updated_at ?? t.id} tableId={t.id} onChanged={onChanged} />
+                      <RichRulesPanel tableId={t.id} />
                     </td></tr>
                   )}
                 </React.Fragment>
@@ -232,6 +234,150 @@ function RulesPanel({ tableId, onChanged }: { tableId: string; onChanged: () => 
           <RiderEditor value={rules.rider_dependencies} onChange={v => setRule('rider_dependencies', v)} />
         </RuleCard>
       </div>
+    </div>
+  )
+}
+
+// ── Richer optional rules VM (Sales Loop v2, Phase 6d) ─────────────────────────────
+// Separate from RulesPanel above on purpose — this never touches the mechanical AppliedRules
+// path (rules/rules_status), it's an independent, optional, opt-in extraction that only starts
+// affecting a live quote once a human explicitly approves it (gb_computation_rules.status).
+
+function stepSummary(s: RuleStep): string {
+  switch (s.type) {
+    case 'age_band_lookup': return `Look up ${s.coverage_code} from the selected plan by member age`
+    case 'flat_rate': return `${s.coverage_code}: flat rate (${s.value_ref})`
+    case 'percentage_loading': {
+      const target = s.applies_to === 'all' ? 'all coverages' : s.applies_to.join(', ')
+      const bands = s.bands.map(b => `${b.pct >= 0 ? '+' : ''}${b.pct}% for ${b.min}-${b.max ?? '+'} ${s.basis === 'headcount' ? 'lives' : s.variable}`).join('; ')
+      return `Apply loading to ${target}: ${bands}`
+    }
+    case 'conditional_tier_selection': return `Pick ${s.variable} based on ${s.when.length} condition(s)`
+    case 'combine': return `${s.output} = ${s.inputs.join(` ${s.op} `)}`
+    case 'gst_adjustment': return `Strip ${Math.round(s.rate * 100)}% GST from ${s.input_ref}`
+    default: return JSON.stringify(s)
+  }
+}
+
+type Verification = { samples: { product_code: string; plan_code: string; age: number | null; oldPremium: number | null; newPremium: number | null; delta: number | null }[]; maxAbsDelta: number }
+type RichRow = { rules: RuleStep[]; source: string | null; status: 'draft' | 'in_review' | 'approved' | 'archived'; verification: Verification | null }
+
+function RichRulesPanel({ tableId }: { tableId: string }) {
+  const [row, setRow] = useState<RichRow | null>(null)
+  const [verification, setVerification] = useState<Verification | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [extracting, setExtracting] = useState(false)
+  const [approving, setApproving] = useState(false)
+  const [ack, setAck] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState(false)
+
+  const load = React.useCallback(async () => {
+    setLoading(true)
+    const res = await fetch(`/api/group-benefits/rate-tables/${tableId}/rich-rules`, { cache: 'no-store' })
+    const d = await safeJson<{ row?: RichRow; verification?: Verification }>(res)
+    setRow(d.row ?? null); setVerification(d.verification ?? null); setAck(false)
+    setLoading(false)
+  }, [tableId])
+  React.useEffect(() => { load() }, [load])
+
+  async function extract() {
+    setExtracting(true); setErr(null)
+    const res = await fetch(`/api/group-benefits/rate-tables/${tableId}/rich-rules/extract`, { method: 'POST' })
+    const d = await safeJson(res)
+    setExtracting(false)
+    if (!res.ok) { setErr(d.error ?? 'Extraction failed'); return }
+    await load()
+  }
+
+  async function approve() {
+    if (!verification) return
+    setApproving(true); setErr(null)
+    const res = await fetch(`/api/group-benefits/rate-tables/${tableId}/rich-rules`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ approved: true, verification }),
+    })
+    setApproving(false)
+    if (!res.ok) { const d = await safeJson(res); setErr(d.error ?? 'Approval failed'); return }
+    await load()
+  }
+
+  if (loading) return null
+
+  return (
+    <div className="px-6 py-4 bg-indigo-50/30 border-t border-indigo-100">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h4 className="text-[12.5px] font-bold text-foreground flex items-center gap-1.5"><Sparkles size={13} className="text-indigo-600" /> Richer calculation logic <span className="text-[10px] font-semibold uppercase text-indigo-500 bg-indigo-100 px-1.5 py-0.5 rounded">Beta</span></h4>
+          <p className="text-[11px] text-muted-foreground/70 mt-0.5 max-w-[560px]">
+            {row?.rules?.length
+              ? 'Reads the calculator\'s actual formulas — beyond the 5 fixed rule types above — for loadings, tiers, and combinations those can\'t express. Independent from the rules above; only used once approved.'
+              : 'Optional — for calculators whose logic goes beyond the fixed rule types above (multi-step loadings, conditional tiers). Most calculators don\'t need this.'}
+          </p>
+        </div>
+        <button onClick={extract} disabled={extracting} className="shrink-0 text-[11.5px] font-semibold px-3 py-1.5 rounded-lg border border-indigo-300 text-indigo-700 hover:bg-indigo-100/60 disabled:opacity-50">
+          {extracting ? <Loader2 size={12} className="animate-spin inline mr-1" /> : null}
+          {extracting ? 'Reading…' : row?.rules?.length ? 'Re-extract' : 'Try richer extraction'}
+        </button>
+      </div>
+
+      {err && <p className="text-[11px] text-rose-600 mt-2">{err}</p>}
+
+      {row?.rules && row.rules.length > 0 && (
+        <div className="mt-3 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <span className={cn('text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-[6px]',
+              row.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700')}>
+              {row.status === 'approved' ? 'Approved — live in quotes' : 'Draft — not yet used in quotes'}
+            </span>
+            <button onClick={() => setExpanded(v => !v)} className="text-[11px] text-muted-foreground/60 hover:text-primary">
+              {expanded ? 'hide' : 'show'} {row.rules.length} step{row.rules.length === 1 ? '' : 's'}
+            </button>
+          </div>
+
+          {expanded && (
+            <ol className="flex flex-col gap-1 text-[11.5px] text-foreground/80 bg-white rounded-lg border border-border px-3 py-2.5">
+              {row.rules.map((s, i) => <li key={i} className="flex gap-2"><span className="text-muted-foreground/40 tabular-nums">{i + 1}.</span> {stepSummary(s)}</li>)}
+            </ol>
+          )}
+
+          {/* Verification — required reading before approval; this is the money-touching step. */}
+          {verification && (
+            <div className="rounded-lg border border-border bg-white px-3 py-2.5">
+              <p className="text-[11px] font-bold text-foreground/80 mb-1.5 flex items-center gap-1.5">
+                <AlertTriangle size={12} className={verification.maxAbsDelta > 0.01 ? 'text-amber-600' : 'text-emerald-600'} />
+                Sample premiums: current rules vs these richer rules
+              </p>
+              <table className="w-full text-[11px] border-collapse">
+                <thead><tr className="text-muted-foreground/60">
+                  <th className="text-left font-medium py-0.5">Product</th><th className="text-left font-medium">Plan</th><th className="text-left font-medium">Age</th>
+                  <th className="text-right font-medium">Current</th><th className="text-right font-medium">Richer rules</th><th className="text-right font-medium">Δ</th>
+                </tr></thead>
+                <tbody>
+                  {verification.samples.map((s, i) => (
+                    <tr key={i} className="border-t border-border/50">
+                      <td className="py-1">{s.product_code}</td><td>{s.plan_code}</td><td>{s.age}</td>
+                      <td className="text-right tabular-nums">{s.oldPremium ?? '—'}</td>
+                      <td className="text-right tabular-nums">{s.newPremium ?? '—'}</td>
+                      <td className={cn('text-right tabular-nums font-semibold', s.delta && Math.abs(s.delta) > 0.01 ? 'text-amber-700' : 'text-muted-foreground/50')}>{s.delta ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {row.status !== 'approved' && (
+                <div className="mt-2.5 pt-2.5 border-t border-border/50">
+                  <label className="flex items-start gap-1.5 text-[11px] text-muted-foreground cursor-pointer">
+                    <input type="checkbox" checked={ack} onChange={e => setAck(e.target.checked)} className="mt-0.5" />
+                    I&apos;ve reviewed the premium comparison above{verification.maxAbsDelta > 0.01 ? ' — the delta is understood and expected (e.g. these rules capture a loading the current rules miss)' : ''}.
+                  </label>
+                  <button onClick={approve} disabled={!ack || approving} className="mt-2 text-[11.5px] font-semibold px-3.5 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40">
+                    {approving ? 'Approving…' : 'Approve — use in quotes'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

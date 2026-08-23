@@ -1,57 +1,44 @@
--- ── Inbound Auto-Draft Migration ──────────────────────────────────────────────
--- Run this in your Supabase SQL Editor (Dashboard → SQL Editor → New query)
-
--- 1. Add columns to ai_drafts
---    inbound_lead_id: links the draft back to the lead row
---    knowledge_docs:  stores which FAQ doc names were used to generate the draft
-ALTER TABLE ai_drafts
-  ADD COLUMN IF NOT EXISTS inbound_lead_id uuid REFERENCES inbound_leads(id) ON DELETE SET NULL,
-  ADD COLUMN IF NOT EXISTS knowledge_docs  jsonb;
-
--- 2. Add columns to inbound_leads
---    ai_draft_id:  points to the ai_drafts row (null until auto-draft runs)
---    ai_draft_at:  timestamp of when the draft was generated
-ALTER TABLE inbound_leads
-  ADD COLUMN IF NOT EXISTS ai_draft_id  uuid,
-  ADD COLUMN IF NOT EXISTS ai_draft_at  timestamptz;
-
--- 3. Optional: index for quick lookup of unprocessed leads (used by the Supabase webhook)
-CREATE INDEX IF NOT EXISTS idx_inbound_leads_no_draft
-  ON inbound_leads (id)
-  WHERE ai_draft_id IS NULL;
-
--- ── Supabase pg_net Webhook (optional — for near-real-time triggering) ─────────
--- If you want drafts generated instantly on lead arrival (rather than waiting for
--- the user to open the lead), enable pg_net and run the trigger below.
--- The webhook calls /api/inbound/auto-draft when a new email lead is inserted.
+-- ── Inbound Auto-Draft — Instant Trigger Setup ──────────────────────────────────
+-- Run this manually in the Supabase SQL Editor (Dashboard → SQL Editor → New query).
+-- This file is NOT applied automatically and is NOT part of supabase/migrations/ — it embeds
+-- your CRON_SECRET value, which must never be committed to git. Fill in the two placeholders
+-- below with your real values before running, then do not commit your filled-in version.
 --
--- BEFORE running: replace the two placeholder values below.
+-- The column additions this file used to contain (ai_drafts.inbound_lead_id/knowledge_docs,
+-- inbound_leads.ai_draft_id/ai_draft_at/priority/product_line) are now tracked properly in
+-- supabase/migrations/20260817_inbound_auto_draft_columns.sql — apply that first if you
+-- haven't already (safe to re-run even if these columns already exist on your database).
+--
+-- What this does: gives drafts near-instant generation on lead arrival instead of waiting for
+-- a human to open the lead or for the hourly catch-up cron (api/cron/inbound-draft-catchup) to
+-- notice it. The catch-up cron stays on as a safety net in case this trigger ever fails on a
+-- specific row (e.g. the app is redeploying at the exact moment the row lands).
 
--- Step A: enable pg_net
--- CREATE EXTENSION IF NOT EXISTS pg_net;
+-- Step A: enable pg_net (Postgres extension for outbound HTTP calls from a trigger)
+CREATE EXTENSION IF NOT EXISTS pg_net;
 
 -- Step B: create the trigger function
--- CREATE OR REPLACE FUNCTION trigger_inbound_auto_draft()
--- RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
--- BEGIN
---   IF NEW.source IS DISTINCT FROM 'whatsapp_click'
---      AND NEW.email IS NOT NULL
---      AND NEW.email != '' THEN
---     PERFORM net.http_post(
---       url     := 'YOUR_DASHBOARD_URL/api/inbound/auto-draft',
---       headers := jsonb_build_object(
---         'Content-Type',      'application/json',
---         'x-internal-secret', 'YOUR_CRON_SECRET'
---       ),
---       body    := jsonb_build_object('leadId', NEW.id)::text
---     );
---   END IF;
---   RETURN NEW;
--- END;
--- $$;
+CREATE OR REPLACE FUNCTION trigger_inbound_auto_draft()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  IF NEW.source IS DISTINCT FROM 'whatsapp_click'
+     AND NEW.email IS NOT NULL
+     AND NEW.email != '' THEN
+    PERFORM net.http_post(
+      url     := 'YOUR_DASHBOARD_URL/api/inbound/auto-draft',       -- e.g. https://your-app.vercel.app
+      headers := jsonb_build_object(
+        'Content-Type',  'application/json',
+        'Authorization', 'Bearer YOUR_CRON_SECRET'                  -- must match the CRON_SECRET env var exactly
+      ),
+      body    := jsonb_build_object('leadId', NEW.id)::text
+    );
+  END IF;
+  RETURN NEW;
+END;
+$$;
 
 -- Step C: attach trigger
--- DROP TRIGGER IF EXISTS on_inbound_lead_created ON inbound_leads;
--- CREATE TRIGGER on_inbound_lead_created
---   AFTER INSERT ON inbound_leads
---   FOR EACH ROW EXECUTE FUNCTION trigger_inbound_auto_draft();
+DROP TRIGGER IF EXISTS on_inbound_lead_created ON inbound_leads;
+CREATE TRIGGER on_inbound_lead_created
+  AFTER INSERT ON inbound_leads
+  FOR EACH ROW EXECUTE FUNCTION trigger_inbound_auto_draft();

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 const APOLLO = 'https://api.apollo.io/api/v1'
 const GEMINI = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
@@ -16,6 +17,9 @@ const HEADCOUNT_LABELS: Record<string, string> = {
 // Step 2: Apollo organizations/enrich validates each and returns the Apollo org ID.
 // Step 3: Companies saved to ob_company_dump for people lookup in next step.
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { sector, locations, headcountRanges, cronPreference, perPage } = await req.json()
 

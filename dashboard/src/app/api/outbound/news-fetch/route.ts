@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 // POST /api/outbound/news-fetch
 // Body: { industry, locations: string[], newsUrl?: string }
 // Returns: { headline, summary, url, source }
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { industry, locations, newsUrl } = await req.json()
 

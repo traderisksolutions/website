@@ -45,6 +45,8 @@ async function patchNotes(id: string, notes: string) {
 function InboundLeadsPage() {
   const searchParams = useSearchParams()
   const initFilter   = (searchParams.get('filter') as Filter | null) ?? 'all'
+  // Deep-link from Pipeline (?lead=<inbound_leads.id>) — pre-selects that lead on load.
+  const initLead      = searchParams.get('lead')
 
   const [leads,      setLeads]      = useState<Lead[]>([])
   const [loading,    setLoading]    = useState(true)
@@ -52,7 +54,7 @@ function InboundLeadsPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [filter,     setFilter]     = useState<Filter>(initFilter)
   const [search,     setSearch]     = useState('')
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(initLead)
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const load = useCallback(async (spinner = false) => {

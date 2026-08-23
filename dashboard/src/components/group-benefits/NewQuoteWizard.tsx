@@ -1,9 +1,10 @@
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
-import { UploadCloud, Loader2, ArrowRight, ArrowLeft, Download, Reply, Sparkles, Trash2, Plus } from 'lucide-react'
+import { UploadCloud, Loader2, ArrowRight, ArrowLeft, Download, Reply, Sparkles, Trash2, Plus, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { plainToHtml } from '@/components/RichEditor'
+import type { Recommendation, LegacyRecommendation } from '@/lib/gb-recommend'
 
 // ── Types mirrored from the API ────────────────────────────────────────────────
 type Member = { name: string; category: string; relationship: string; dob?: string | null; age?: number | null; occupation_class?: string | null }
@@ -11,7 +12,11 @@ type Plan   = { rate_table_id: string; product_code: string; plan_code: string; 
 type Avail  = { rate_table_id: string; insurer_id: string | null; insurer_name: string; product_title: string; age_basis: string; plan_year: number | null; member_types: string[]; plans: Plan[] }
 type InsurerResult = { rate_table_id: string; insurer_id: string | null; insurer_name: string; by_product: Record<string, number>; subtotal: number; gst: number; total: number; missing: number }
 type Line = { member_index: number; member_name: string; category: string; relationship: string; age: number | null; insurer_name: string; product_code: string; plan_code: string | null; premium: number | null; note: string | null }
-type Analysis = { comparison: { benefit: string; by_insurer: Record<string, string> }[]; insurers: { insurer: string; pros: string[]; cons: string[] }[]; recommendation: string }
+type Analysis = Recommendation | LegacyRecommendation
+
+/** Old quotes stored the pre-redesign shape — detect by the absence of `narrative` rather than
+ *  crashing. Mirrors PmQuoteActions.tsx's isLegacy. */
+const isLegacy = (r: Analysis): r is LegacyRecommendation => !('narrative' in r)
 
 const TEMPLATE ='name,category,relationship,dob,age,occupation_class\nJane Tan,Manager,self,1985-04-12,,1\nJohn Tan,Manager,spouse,1987-09-01,,\nBaby Tan,Manager,child,,3,\n'
 const money = (n: number) => n.toLocaleString('en-SG', { style: 'currency', currency: 'SGD' })
@@ -68,11 +73,18 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
   // categoryMap[rate_table_id][product_title][category] = plan_code
   const [map, setMap] = useState<Record<string, Record<string, Record<string, string>>>>({})
+  // What the client wants per product (e.g. "GHS: private hospital, 1-bed") — Phase 6b plan
+  // matching applies one target across every category for that product; the broker can still
+  // override any individual cell afterward.
+  const [targets, setTargets] = useState<Record<string, string>>({})
+  const [matchingProduct, setMatchingProduct] = useState<string | null>(null)
+  const [matchError, setMatchError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<{ per_insurer: InsurerResult[]; lines: Line[]; quotation_id?: string | null } | null>(null)
   const [quotationId, setQuotationId] = useState<string | null>(null)
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
+  const [priorities, setPriorities] = useState('')
   const [analyzing, setAnalyzing] = useState(false)
 
   const categories = useMemo(() => Array.from(new Set(members.filter(m => m.name.trim()).map(m => m.category))), [members])
@@ -115,6 +127,36 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
     setMap(prev => ({ ...prev, [tableId]: { ...prev[tableId], [title]: { ...(prev[tableId]?.[title] ?? {}), [category]: plan } } }))
   }
 
+  // Applies the AI's suggested plan_code (per insurer, for this product) across every category
+  // mapped to that product — same as picking each one manually, just pre-filled.
+  async function suggestPlans(productTitle: string) {
+    const target = targets[productTitle]?.trim()
+    if (!target) return
+    setMatchingProduct(productTitle); setMatchError(null)
+    try {
+      const selected = avail.filter(t => selectedKeys.has(entryKey(t)))
+      const entries = selected.map(t => ({ rate_table_id: t.rate_table_id, insurer_name: t.insurer_name, product_title: t.product_title, plans: t.plans }))
+      const res = await fetch('/api/group-benefits/quote/suggest-plans', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productTitle, target, entries }),
+      })
+      const d = await res.json()
+      if (!res.ok) { setMatchError(d.error ?? 'Plan matching failed'); return }
+      const suggestions: { rate_table_id: string; plan_code: string }[] = d.suggestions ?? []
+      if (suggestions.length === 0) { setMatchError('No matching plans found for that requirement'); return }
+      setMap(prev => {
+        const next = { ...prev }
+        for (const s of suggestions) {
+          const forCats = Object.fromEntries(categories.map(c => [c, s.plan_code]))
+          next[s.rate_table_id] = { ...next[s.rate_table_id], [productTitle]: { ...(next[s.rate_table_id]?.[productTitle] ?? {}), ...forCats } }
+        }
+        return next
+      })
+    } catch (e) {
+      setMatchError(e instanceof Error ? e.message : 'Plan matching failed')
+    } finally { setMatchingProduct(null) }
+  }
+
   async function compute() {
     setBusy(true); setError(null)
     try {
@@ -135,9 +177,11 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
     if (!quotationId) return
     setAnalyzing(true); setError(null)
     try {
-      const res = await fetch(`/api/group-benefits/quote/${quotationId}/compare-benefits`, { method: 'POST' })
+      const res = await fetch(`/api/group-benefits/quote/${quotationId}/compare-benefits`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ priorities }),
+      })
       const d = await res.json()
-      if (res.ok && d.analysis) setAnalysis(d.analysis); else setError(d.error ?? 'Comparison failed')
+      if (res.ok && d.recommendation) setAnalysis(d.recommendation); else setError(d.error ?? 'Comparison failed')
     } finally { setAnalyzing(false) }
   }
 
@@ -153,7 +197,8 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
     out.push('')
     const prods = Array.from(new Set(list.flatMap(r => Object.keys(r.by_product))))
     out.push(`Covering ${members.length} member(s) across ${prods.join(', ')}. Premiums exclude prevailing GST unless otherwise stated.`)
-    if (analysis?.recommendation) { out.push(''); out.push(`Our recommendation: ${analysis.recommendation}`) }
+    if (analysis && !isLegacy(analysis)) { out.push(''); out.push(`Our recommendation: ${analysis.headline} ${analysis.narrative}`) }
+    else if (analysis && isLegacy(analysis) && analysis.recommendation) { out.push(''); out.push(`Our recommendation: ${analysis.recommendation}`) }
     return out.join('\n')
   }
 
@@ -171,8 +216,6 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
     }
     return Array.from(m.values()).sort((a, b) => a.total - b.total)
   }, [result])
-
-  const insurerNames = useMemo(() => analysis ? Array.from(new Set((analysis.comparison ?? []).flatMap(r => Object.keys(r.by_insurer ?? {})))) : [], [analysis])
 
   const stepTitles = ['Census', 'Setup', 'Insurer products', 'Map plans', 'Comparison']
   const inp = 'text-[13px] border border-border rounded-md px-2.5 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-primary/25'
@@ -307,21 +350,38 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
       {/* Step 3 — category → plan mapping per selected insurer product */}
       {step === 3 && (
         <div className="flex flex-col gap-4">
-          <p className="text-[12px] text-muted-foreground">Map each employee category to a plan for every insurer product. Dependants are priced automatically from the dependant table.</p>
-          {avail.filter(t => selectedKeys.has(entryKey(t))).map(t => (
-            <div key={entryKey(t)} className="border border-border rounded-lg overflow-hidden">
-              <div className="px-3 py-1.5 bg-muted/40 text-[12px] font-semibold">{t.insurer_name} · {t.product_title}</div>
-              <div className="divide-y divide-border/60">
-                {categories.map(cat => (
-                  <div key={cat} className="flex items-center gap-3 px-3 py-1.5 text-[12px]">
-                    <span className="w-28 text-muted-foreground/80">{cat}</span>
-                    <select value={map[t.rate_table_id]?.[t.product_title]?.[cat] ?? ''} onChange={e => setPlan(t.rate_table_id, t.product_title, cat, e.target.value)} className={inp}>
-                      <option value="">— none —</option>
-                      {t.plans.map(p => <option key={p.plan_code} value={p.plan_code}>{p.plan_code}{p.beds ? ` · ${p.beds}` : ''}{p.hospital_type ? ` · ${p.hospital_type}` : ''}</option>)}
-                    </select>
-                  </div>
-                ))}
+          <p className="text-[12px] text-muted-foreground">Map each employee category to a plan for every insurer product — or state what the client wants per product and let Opus suggest the closest match at each insurer. Dependants are priced automatically from the dependant table.</p>
+          {matchError && <p className="text-[11.5px] text-rose-600">{matchError}</p>}
+          {Array.from(new Set(avail.filter(t => selectedKeys.has(entryKey(t))).map(t => t.product_title))).map(title => (
+            <div key={title} className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <input
+                  value={targets[title] ?? ''}
+                  onChange={e => setTargets(prev => ({ ...prev, [title]: e.target.value }))}
+                  placeholder={`What does the client want for ${title}? (e.g. private hospital, 1-bed ward)`}
+                  className={cn(inp, 'flex-1')}
+                />
+                <button onClick={() => suggestPlans(title)} disabled={matchingProduct === title || !targets[title]?.trim()}
+                  className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-primary/30 text-primary hover:bg-primary/5 disabled:opacity-50 whitespace-nowrap">
+                  {matchingProduct === title ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />} Suggest plans
+                </button>
               </div>
+              {avail.filter(t => selectedKeys.has(entryKey(t)) && t.product_title === title).map(t => (
+                <div key={entryKey(t)} className="border border-border rounded-lg overflow-hidden">
+                  <div className="px-3 py-1.5 bg-muted/40 text-[12px] font-semibold">{t.insurer_name} · {t.product_title}</div>
+                  <div className="divide-y divide-border/60">
+                    {categories.map(cat => (
+                      <div key={cat} className="flex items-center gap-3 px-3 py-1.5 text-[12px]">
+                        <span className="w-28 text-muted-foreground/80">{cat}</span>
+                        <select value={map[t.rate_table_id]?.[t.product_title]?.[cat] ?? ''} onChange={e => setPlan(t.rate_table_id, t.product_title, cat, e.target.value)} className={inp}>
+                          <option value="">— none —</option>
+                          {t.plans.map(p => <option key={p.plan_code} value={p.plan_code}>{p.plan_code}{p.beds ? ` · ${p.beds}` : ''}{p.hospital_type ? ` · ${p.hospital_type}` : ''}</option>)}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           ))}
           <Nav back={() => setStep(2)} next={compute} nextLabel="Compute comparison" busy={busy} />
@@ -375,46 +435,43 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
           <div className="border border-border rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-[13px] font-bold text-foreground">Coverage comparison & recommendation</h3>
-              {!analysis && (
-                <button onClick={compareBenefits} disabled={analyzing || !quotationId} className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-primary/30 text-primary hover:bg-primary/5 disabled:opacity-50">
-                  {analyzing ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}{analyzing ? 'Analysing coverage…' : 'Compare benefits with Opus'}
-                </button>
-              )}
+              <button onClick={compareBenefits} disabled={analyzing || !quotationId} className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-primary/30 text-primary hover:bg-primary/5 disabled:opacity-50">
+                {analyzing ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}{analyzing ? 'Analysing coverage…' : analysis ? 'Regenerate' : 'Compare benefits with Opus'}
+              </button>
             </div>
-            {!analysis && !analyzing && <p className="text-[11.5px] text-muted-foreground/70">Opus aligns each plan&apos;s benefits, lists pros/cons per insurer, and recommends the best value (coverage vs price).</p>}
-            {analysis && (
-              <div className="flex flex-col gap-4">
-                <div className="rounded-lg bg-primary/5 border-l-2 border-primary/40 px-3 py-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-primary mb-1">Recommendation</p>
-                  <p className="text-[12px] text-foreground/80 leading-relaxed m-0">{analysis.recommendation}</p>
+            <label className="text-[12px] flex flex-col gap-1 mb-2">
+              <span className="text-muted-foreground/70">What matters to this client? <span className="text-muted-foreground/40">(optional)</span></span>
+              <textarea value={priorities} onChange={e => setPriorities(e.target.value)} rows={2} className={cn(inp, 'resize-y')} placeholder="Leave blank to optimise for overall value" />
+            </label>
+            {!analysis && !analyzing && <p className="text-[11.5px] text-muted-foreground/70">Opus compares price against what each plan actually covers, and writes one narrative weighing the trade-offs.</p>}
+
+            {analysis && isLegacy(analysis) && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 flex items-center justify-between gap-3">
+                <p className="text-[12px] text-amber-800">This quote has an older-style recommendation. Recompute it for the current format.</p>
+                <button onClick={compareBenefits} disabled={analyzing} className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 shrink-0">
+                  {analyzing ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Recompute
+                </button>
+              </div>
+            )}
+
+            {analysis && !isLegacy(analysis) && (
+              <div className="flex flex-col gap-3">
+                <div className="rounded-lg bg-primary/5 border border-primary/20 px-3 py-2.5">
+                  <div className="flex items-center gap-2 text-[13px] font-semibold text-foreground"><Sparkles size={14} className="text-primary" /> {analysis.headline}</div>
+                  <div className="flex flex-col gap-2 mt-2">
+                    {analysis.narrative.split(/\n\n+/).map((para, i) => <p key={i} className="text-[12.5px] text-foreground/80 leading-relaxed">{para}</p>)}
+                  </div>
                 </div>
-                {(analysis.comparison?.length ?? 0) > 0 && (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-[11px] border-collapse">
-                      <thead><tr>
-                        <th className="text-left px-2 py-1 border-b border-border text-muted-foreground/70 font-semibold">Benefit</th>
-                        {insurerNames.map(n => <th key={n} className="text-left px-2 py-1 border-b border-border text-muted-foreground/70 font-semibold">{n}</th>)}
-                      </tr></thead>
-                      <tbody>
-                        {analysis.comparison.map((row, i) => (
-                          <tr key={i}>
-                            <td className="px-2 py-1 border-b border-border/50 font-medium text-foreground/80">{row.benefit}</td>
-                            {insurerNames.map(n => <td key={n} className="px-2 py-1 border-b border-border/50 text-muted-foreground">{row.by_insurer?.[n] ?? '—'}</td>)}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                {analysis.highlights?.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {analysis.highlights.map(h => (
+                      <div key={h.insurer} className="flex items-center gap-1.5 border border-border rounded-lg px-2.5 py-1.5">
+                        <span className="text-[12px] font-semibold">{h.insurer}</span>
+                        <span className="text-[11px] text-muted-foreground/70">— {h.note}</span>
+                      </div>
+                    ))}
                   </div>
                 )}
-                <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min((analysis.insurers ?? []).length, 3)},minmax(0,1fr))` }}>
-                  {(analysis.insurers ?? []).map(ins => (
-                    <div key={ins.insurer} className="rounded-lg border border-border p-3">
-                      <p className="text-[12px] font-bold text-foreground mb-1.5">{ins.insurer}</p>
-                      {ins.pros?.map((p, i) => <p key={`p${i}`} className="text-[11px] text-emerald-700 flex gap-1 m-0"><span>+</span>{p}</p>)}
-                      {ins.cons?.map((c, i) => <p key={`c${i}`} className="text-[11px] text-rose-600 flex gap-1 m-0"><span>−</span>{c}</p>)}
-                    </div>
-                  ))}
-                </div>
               </div>
             )}
           </div>

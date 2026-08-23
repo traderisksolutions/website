@@ -104,6 +104,33 @@ def dump_workbook(data: bytes) -> dict:
             "cell_values": values, "notes_text": "\n".join(notes_chunks)}
 
 
+# Sales Loop v2, Phase 6d — pm-rules-extract.ts's Dump shape is {sheets, values, formulas}, not
+# this file's own {all_sheets, cell_values, cell_formulas} (kept as-is above — the mechanical
+# DETECTORS below need those uncapped and untouched, this is a SEPARATE, capped derivation only
+# for the optional richer-rules extraction path, so it can never affect the reliable mechanical
+# detection this business already depends on daily). Same tuned caps as api/pm_dump.py, learned
+# from that file's own Vercel free-plan timeout incident earlier this project.
+_RICH_MAX_PER_SHEET = 1200
+_RICH_MAX_TOTAL = 5000
+
+
+def _capped_for_rich_extraction(dump: dict) -> dict:
+    def cap(by_sheet):
+        out, total = {}, 0
+        for name, cells in by_sheet.items():
+            if total >= _RICH_MAX_TOTAL:
+                break
+            items = list(cells.items())[: min(_RICH_MAX_PER_SHEET, _RICH_MAX_TOTAL - total)]
+            out[name] = dict(items)
+            total += len(items)
+        return out
+    return {
+        "sheets": [{"name": s["name"], "state": s["state"], "visible": s["visible"]} for s in dump["all_sheets"]],
+        "values": cap(dump["cell_values"]),
+        "formulas": cap(dump["cell_formulas"]),
+    }
+
+
 # ── STEP 1: structural map ────────────────────────────────────────────────────────
 def classify_sheets(dump):
     out = []
@@ -248,6 +275,9 @@ def analyze(data: bytes, insurer_name=None) -> dict:
         "detection_log": detection_log,
         "rules": rules,
         "warnings": warnings,
+        # Additive — only consumed by the optional richer-rules extraction (Sales Loop v2,
+        # Phase 6d); every existing caller ignores an unknown key and is unaffected.
+        "rich_dump": _capped_for_rich_extraction(dump),
     }
 
 

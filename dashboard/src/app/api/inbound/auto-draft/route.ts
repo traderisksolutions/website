@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logGeminiUsage }           from '@/lib/gemini-usage'
 import { createSupabaseDB, EvalStore, ExampleStore, type EvalRecord, type SkillExample } from '@/lib/ai-learning-loop'
+import { requireStaffOrCron } from '@/lib/api-auth'
+import { getAppSetting } from '@/lib/app-settings'
+import { sendGmailNotification } from '@/lib/gmail-send'
+import { mapInboundTopicToProductLine } from '@/lib/inbound-topic-mapping'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
@@ -50,6 +54,9 @@ async function searchInboundChunks(queryText: string, apiKey: string): Promise<C
 // GET /api/inbound/auto-draft?leadId=X
 // Returns existing draft body + id for UI pre-load.
 export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const leadId = new URL(req.url).searchParams.get('leadId')
     if (!leadId) return NextResponse.json({ content: null, draftId: null })
@@ -80,6 +87,9 @@ export async function GET(req: NextRequest) {
 // Body: { leadId, force? }
 // Called by Supabase webhook on INSERT, or by the UI's Generate/Regenerate button.
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { leadId, force } = await req.json() as { leadId: string; force?: boolean }
     if (!leadId) return NextResponse.json({ error: 'leadId required' }, { status: 400 })
@@ -89,7 +99,7 @@ export async function POST(req: NextRequest) {
 
     // Fetch lead
     const leadRes = await fetch(
-      `${SB_URL}/rest/v1/inbound_leads?id=eq.${leadId}&select=id,first_name,last_name,email,topic,message,details,source,ai_draft_id&limit=1`,
+      `${SB_URL}/rest/v1/inbound_leads?id=eq.${leadId}&select=id,first_name,last_name,email,topic,message,details,source,ai_draft_id,product_line&limit=1`,
       { headers: sbH(), cache: 'no-store' }
     )
     const leads = leadRes.ok ? await leadRes.json() : []
@@ -179,7 +189,9 @@ INSTRUCTIONS:
 - Do NOT include a subject line, closing line, sign-off, or signature
 - Plain text only
 
-Write only the email body.`
+OUTPUT FORMAT — exactly two parts, in this order:
+1. A single line: "PRIORITY: high" or "PRIORITY: medium" or "PRIORITY: low" — rate how urgent/valuable this enquiry looks (high = clear buying intent / large company / time-sensitive; low = vague or clearly not a fit; medium = everything else).
+2. A blank line, then the email body only.`
 
     const gemRes = await fetch(`${GEMINI_URL}?key=${geminiKey}`, {
       method:  'POST',
@@ -197,8 +209,20 @@ Write only the email body.`
 
     const gemData = await gemRes.json()
     void logGeminiUsage('inbound_auto_draft', gemData.usageMetadata ?? {}, undefined, 'gemini-3.1-flash-lite')
-    const content = (gemData?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim()
+    const raw = (gemData?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim()
+    if (!raw) return NextResponse.json({ error: 'Gemini returned no content' }, { status: 502 })
+
+    // Split the piggybacked "PRIORITY: high" line off the top of the response — no separate
+    // AI call needed for a priority signal, it rides along with the draft generation itself.
+    const priorityMatch = raw.match(/^PRIORITY:\s*(high|medium|low)\s*\n+/i)
+    const priority = (priorityMatch?.[1]?.toLowerCase() ?? 'medium') as 'high' | 'medium' | 'low'
+    const content  = (priorityMatch ? raw.slice(priorityMatch[0].length) : raw).trim()
     if (!content) return NextResponse.json({ error: 'Gemini returned no content' }, { status: 502 })
+
+    // The revamped website form now sends a canonical taxonomy slug directly
+    // (inbound_leads.product_line) — only fall back to guessing from the free-text topic
+    // label for older leads captured before that change shipped.
+    const productLine = (lead.product_line as string | null) ?? mapInboundTopicToProductLine(topic)
 
     // Upsert a minimal contact record — ai_drafts.contact_id is NOT NULL so we need one
     const encoded    = encodeURIComponent(lead.email as string)
@@ -252,15 +276,37 @@ Write only the email body.`
     const draft     = Array.isArray(draftRows) ? draftRows[0] : draftRows
     const draftId   = (draft?.id ?? null) as string | null
 
-    if (draftId) {
-      await fetch(`${SB_URL}/rest/v1/inbound_leads?id=eq.${leadId}`, {
-        method:  'PATCH',
-        headers: sbH('return=minimal'),
-        body:    JSON.stringify({ ai_draft_id: draftId, ai_draft_at: new Date().toISOString() }),
-      })
-    }
+    await fetch(`${SB_URL}/rest/v1/inbound_leads?id=eq.${leadId}`, {
+      method:  'PATCH',
+      headers: sbH('return=minimal'),
+      body:    JSON.stringify({
+        ...(draftId ? { ai_draft_id: draftId, ai_draft_at: new Date().toISOString() } : {}),
+        priority:     priority,
+        product_line: productLine,
+      }),
+    })
 
-    return NextResponse.json({ content, draftId })
+    // Best-effort internal notification — never let a notification failure fail the draft
+    // itself, the draft is the part that actually matters.
+    try {
+      const notifyTo = await getAppSetting('inbound_notify_email', 'operations@trade-risksol.com')
+      const origin = process.env.NEXT_PUBLIC_APP_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+      await sendGmailNotification({
+        from:    'operations@trade-risksol.com',
+        to:      notifyTo,
+        subject: `[${priority.toUpperCase()}] New inbound lead: ${fullName}${topic ? ` — ${topic}` : ''}`,
+        htmlBody: [
+          `<p>New inbound lead just arrived and an AI first-reply draft is ready for review.</p>`,
+          `<p><strong>${fullName}</strong> (${lead.email})<br>`,
+          `Topic: ${topic || 'General enquiry'}${productLine ? ` (${productLine})` : ''}<br>`,
+          `Priority: ${priority}</p>`,
+          message ? `<p>Message:<br>${message.replace(/</g, '&lt;')}</p>` : '',
+          `<p><a href="${origin}/inbound/email">Open in dashboard</a></p>`,
+        ].join(''),
+      })
+    } catch { /* notification is best-effort, never block on it */ }
+
+    return NextResponse.json({ content, draftId, priority, productLine })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Server error'
     return NextResponse.json({ error: msg }, { status: 500 })

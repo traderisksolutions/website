@@ -10,7 +10,13 @@ export type CampaignStatus =
 
 export type DebitNoteStatus = 'unpaid' | 'partially_paid' | 'paid'
 
-export type AppStatus = ContactStatus | CampaignStatus | DebitNoteStatus
+export type PipelineStatusBucket = 'in_progress' | 'closed' | 'spam'
+export type PriorityLevel = 'high' | 'medium' | 'low'
+export type ReplyLabel =
+  | 'positive' | 'neutral' | 'negative' | 'unsubscribe'
+  | 'out_of_office' | 'wrong_person' | 'meeting_intent' | 'question'
+
+export type AppStatus = ContactStatus | CampaignStatus | DebitNoteStatus | PipelineStatusBucket | PriorityLevel | ReplyLabel
 
 type StatusConfig = { label: string; bg: string; color: string }
 
@@ -37,6 +43,25 @@ export const STATUS_MAP: Record<AppStatus, StatusConfig> = {
   unpaid:         { label: 'Unpaid',    bg: 'rgba(192,51,71,0.09)', color: '#C03347' },
   partially_paid: { label: 'Partial',   bg: 'rgba(138,66,0,0.09)',  color: '#8A4200' },
   paid:           { label: 'Paid',      bg: 'rgba(9,104,66,0.09)',  color: '#096842' },
+  // Pipeline status bucket (new/closed reuse the contact-pipeline colors above)
+  in_progress: { label: 'In Progress', bg: 'rgba(138,66,0,0.09)',  color: '#8A4200' },
+  closed:      { label: 'Closed',      bg: 'rgba(9,104,66,0.09)',  color: '#096842' },
+  spam:        { label: 'Spam',        bg: 'rgba(16,24,40,0.07)',  color: '#445868' },
+  // Priority
+  high:   { label: 'High',   bg: 'rgba(192,51,71,0.09)', color: '#C03347' },
+  medium: { label: 'Medium', bg: 'rgba(138,66,0,0.09)',  color: '#8A4200' },
+  low:    { label: 'Low',    bg: 'rgba(16,24,40,0.07)',  color: '#445868' },
+  // Outbound reply classification — folded onto the same 5-hue system as everything else above
+  // (green=good, blue=informational, gray=neutral, red=bad, amber=needs follow-up) rather than
+  // introducing more one-off hues; the label text still differentiates all 8 categories.
+  positive:       { label: 'Positive',       bg: 'rgba(9,104,66,0.09)',  color: '#096842' },
+  meeting_intent: { label: 'Meeting Intent', bg: 'rgba(9,104,66,0.09)',  color: '#096842' },
+  question:       { label: 'Question',       bg: 'rgba(12,51,138,0.09)', color: '#0C338A' },
+  neutral:        { label: 'Neutral',        bg: 'rgba(16,24,40,0.07)',  color: '#445868' },
+  negative:       { label: 'Not Interested', bg: 'rgba(192,51,71,0.09)', color: '#C03347' },
+  unsubscribe:    { label: 'Unsubscribe',    bg: 'rgba(192,51,71,0.09)', color: '#C03347' },
+  out_of_office:  { label: 'Out of Office',  bg: 'rgba(138,66,0,0.09)',  color: '#8A4200' },
+  wrong_person:   { label: 'Wrong Person',   bg: 'rgba(138,66,0,0.09)',  color: '#8A4200' },
 }
 
 interface StatusBadgeProps {

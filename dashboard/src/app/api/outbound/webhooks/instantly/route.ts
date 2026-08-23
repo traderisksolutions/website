@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders, logEvent } from '@/lib/sb'
+import { resolveCompany } from '@/lib/debit-note-commit'
 
 // POST /api/outbound/webhooks/instantly
 // Receives Instantly.ai webhook events, saves to ob_reply_events, classifies replies with Gemini
@@ -116,6 +117,15 @@ export async function POST(req: NextRequest) {
             body:    JSON.stringify({ send_status: newSendStatus, last_synced_at: new Date().toISOString() }),
           }
         )
+      }
+      // Lead-level opt-out, not just this campaign's enrollment — mirrors the same
+      // guard applied in the Gmail-reply path (api/email/ingest) and the human-review path
+      // (api/outbound/replies/[id]).
+      if (mappedType === 'unsubscribe') {
+        await fetch(`${SB_URL}/rest/v1/outbound_leads?id=eq.${leadId}`, {
+          method: 'PATCH', headers: sbHeaders(),
+          body: JSON.stringify({ opt_out: true, opt_out_at: new Date().toISOString() }),
+        })
       }
     }
 
@@ -251,21 +261,29 @@ async function promoteOutboundToContact({
     })
   }
 
+  // Resolve/create the real companies row now, at reply-promotion time, rather than waiting
+  // until a Debit Note is raised — see debit-note-commit.ts's resolveCompany, reused verbatim
+  // (Sales Loop v2, Phase 5 / F3). contacts.company (free text) stays as the display fallback.
+  const companyName = leadCompany?.trim() || null
+  const companyId    = companyName ? await resolveCompany({ companyName }).catch(() => null) : null
+
   // Check if contact already exists by email
   const encoded    = encodeURIComponent(leadEmail)
   const existRes   = await fetch(
-    `${SB_URL}/rest/v1/contacts?email=eq.${encoded}&select=id,engagement_stage&limit=1`,
+    `${SB_URL}/rest/v1/contacts?email=eq.${encoded}&select=id,engagement_stage,outbound_lead_id,company_id&limit=1`,
     { headers: sbHeaders() }
   )
   const existRows  = existRes.ok ? await existRes.json() : []
   const existing   = Array.isArray(existRows) ? existRows[0] : null
 
   if (existing) {
-    // Only add FK linkage — never downgrade an existing pipeline stage
+    // Only add FK linkage — never downgrade an existing pipeline stage or overwrite an
+    // already-linked company
     const patch: Record<string, unknown> = {}
     if (leadId && !existing.outbound_lead_id) patch.outbound_lead_id = leadId
     if (campaignId)                           patch.campaign_id      = campaignId
     if (!existing.engagement_stage)           patch.engagement_stage = 'engaged'
+    if (companyId && !existing.company_id)    patch.company_id       = companyId
     if (Object.keys(patch).length > 0) {
       await fetch(`${SB_URL}/rest/v1/contacts?id=eq.${existing.id}`, {
         method:  'PATCH',
@@ -282,6 +300,7 @@ async function promoteOutboundToContact({
         email:            leadEmail,
         full_name:        leadName,
         company:          leadCompany,
+        company_id:       companyId,
         source:           'outbound_campaign',
         engagement_stage: 'engaged',
         outbound_lead_id: leadId,

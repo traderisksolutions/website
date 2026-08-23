@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import React from 'react'
 import { Loader2, Table2 } from 'lucide-react'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
@@ -8,10 +9,15 @@ import { cn } from '@/lib/utils'
 import { statusMeta } from '@/lib/status'
 import { AppPageHeader } from '@/components/app-shell'
 import { DataTableToolbar, DataTableSearch, DataTableSpacer } from '@/components/data-table/toolbar'
+import { MetricCard, MetricGrid } from '@/components/shared/metric-card'
 
 type Status     = 'new' | 'contacted' | 'replied' | 'qualified' | 'disqualified'
 type RecordType = 'person' | 'company'
 type Source     = 'url_lookup' | 'people_search' | 'company_search'
+
+// LinkedIn's own brand blue — deliberately outside the app palette, used only for the outbound
+// link to a lead's LinkedIn profile so it reads as "going to LinkedIn," not an app accent color.
+const LINKEDIN_BLUE = '#0a66c2'
 
 interface OutboundLead {
   id:                 string
@@ -45,13 +51,39 @@ const SOURCE_LABEL: Record<Source, string> = {
   company_search: 'Co. Search',
 }
 
-export default function OutboundLeadsPage() {
+function initials(name: string | null): string {
+  if (!name?.trim()) return '·'
+  const parts = name.trim().split(/\s+/)
+  return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase()
+}
+
+/** Photo when Apollo has one; otherwise initials on a flat tinted tile — reads as an enterprise
+ *  directory entry rather than the emoji placeholder this replaced. */
+function LeadAvatar({ lead, size = 32 }: { lead: OutboundLead; size?: number }) {
+  const src = lead.profile_picture ?? lead.logo_url
+  const radius = lead.record_type === 'person' ? '50%' : 6
+  if (src) return <img src={src} alt="" className="object-cover bg-muted flex-shrink-0" style={{ width: size, height: size, borderRadius: radius }} />
+  return (
+    <div
+      className="flex items-center justify-center flex-shrink-0 font-semibold text-primary bg-primary/10"
+      style={{ width: size, height: size, borderRadius: radius, fontSize: size * 0.36 }}
+    >
+      {initials(lead.full_name ?? lead.current_company)}
+    </div>
+  )
+}
+
+function OutboundLeadsPageInner() {
+  // Deep-link from Pipeline (?lead=<outbound_leads.id>) — pre-expands that lead's row on load.
+  const searchParams = useSearchParams()
+  const initLead      = searchParams.get('lead')
+
   const [leads,         setLeads]         = useState<OutboundLead[]>([])
   const [loading,       setLoading]       = useState(true)
   const [q,             setQ]             = useState('')
   const [statusFilter,  setStatusFilter]  = useState<Status | 'all'>('all')
   const [typeFilter,    setTypeFilter]    = useState<RecordType | 'all'>('all')
-  const [expandedId,        setExpandedId]        = useState<string | null>(null)
+  const [expandedId,        setExpandedId]        = useState<string | null>(initLead)
   const [notes,             setNotes]             = useState<Record<string, string>>({})
   const [saving,            setSaving]            = useState<string | null>(null)
   const [fetchingEmailLead, setFetchingEmailLead] = useState<Set<string>>(new Set())
@@ -184,10 +216,18 @@ export default function OutboundLeadsPage() {
   return (
     <div className="flex flex-col h-[calc(100vh/var(--ui-zoom))] overflow-hidden bg-background">
 
-      <AppPageHeader
-        title="Outbound Leads"
-        description={loading ? 'Loading…' : `${leads.length} total · ${leads.filter(l => l.status === 'new').length} new`}
-      />
+      <AppPageHeader title="Outbound Leads" description={loading ? 'Loading…' : undefined} />
+
+      {!loading && leads.length > 0 && (
+        <div className="px-6 pt-4 pb-1 flex-shrink-0">
+          <MetricGrid className="grid-cols-2 sm:grid-cols-4">
+            <MetricCard label="Total leads" value={leads.length} />
+            <MetricCard label="New" value={leads.filter(l => l.status === 'new').length} />
+            <MetricCard label="Contacted" value={leads.filter(l => l.status === 'contacted' || l.status === 'replied').length} />
+            <MetricCard label="Qualified" value={leads.filter(l => l.status === 'qualified').length} />
+          </MetricGrid>
+        </div>
+      )}
 
       {/* Toolbar */}
       <DataTableToolbar>
@@ -295,7 +335,6 @@ export default function OutboundLeadsPage() {
                   {filtered.map(lead => {
                     const expanded = expandedId === lead.id
                     const s        = statusMeta(lead.status)
-                    const avatar   = lead.profile_picture ?? lead.logo_url
                     const date     = new Date(lead.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
                     return (
                       <React.Fragment key={lead.id}>
@@ -311,22 +350,14 @@ export default function OutboundLeadsPage() {
                             />
                           </TableCell>
                           <TableCell className="py-2.5 px-2 pl-3.5 w-11">
-                            {avatar ? (
-                              <img src={avatar} alt="" className="w-8 h-8 object-cover bg-muted"
-                                style={{ borderRadius: lead.record_type === 'person' ? '50%' : 6 }} />
-                            ) : (
-                              <div className="w-8 h-8 bg-muted text-[15px] flex items-center justify-center"
-                                style={{ borderRadius: lead.record_type === 'person' ? '50%' : 6 }}>
-                                {lead.record_type === 'person' ? '👤' : '🏢'}
-                              </div>
-                            )}
+                            <LeadAvatar lead={lead} size={32} />
                           </TableCell>
                           <TableCell className="min-w-[160px]">
                             <p className="text-[13px] font-medium text-foreground tracking-tight">{lead.full_name ?? '—'}</p>
                             {lead.linkedin_url && (
                               <a href={lead.linkedin_url} target="_blank" rel="noopener noreferrer"
                                 onClick={e => e.stopPropagation()}
-                                className="text-[11px] text-[#0a66c2] no-underline">LinkedIn ↗</a>
+                                className="text-[11px] no-underline" style={{ color: LINKEDIN_BLUE }}>LinkedIn ↗</a>
                             )}
                           </TableCell>
                           <TableCell className="max-w-[200px]">
@@ -349,7 +380,7 @@ export default function OutboundLeadsPage() {
                                 ? <Loader2 size={12} className="animate-spin text-muted-foreground" />
                                 : (
                                   <button onClick={e => { e.stopPropagation(); fetchEmailForLead(lead.id) }}
-                                    className="text-[11px] px-2 py-0.5 rounded border-0 cursor-pointer bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+                                    className="text-[11px] px-2 py-0.5 rounded border-0 cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
                                     Get Email
                                   </button>
                                 )
@@ -362,7 +393,7 @@ export default function OutboundLeadsPage() {
                           </TableCell>
                           <TableCell onClick={e => e.stopPropagation()}>
                             <select value={lead.status} onChange={e => updateStatus(lead.id, e.target.value as Status)}
-                              className="text-[11px] font-semibold px-2 py-1 rounded border-0 cursor-pointer"
+                              className="text-[11px] font-semibold px-2.5 py-1 rounded-full border-0 cursor-pointer appearance-none"
                               style={{ background: s.bg, color: s.color }}>
                               <option value="new">New</option>
                               <option value="contacted">Contacted</option>
@@ -441,7 +472,6 @@ export default function OutboundLeadsPage() {
               {filtered.map(lead => {
                 const expanded = expandedId === lead.id
                 const s        = statusMeta(lead.status)
-                const avatar   = lead.profile_picture ?? lead.logo_url
                 const date     = new Date(lead.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
                 return (
                   <div key={lead.id} className={cn('px-4 py-3', expanded && 'bg-muted/20')}>
@@ -455,15 +485,7 @@ export default function OutboundLeadsPage() {
                         onClick={e => e.stopPropagation()}
                       />
                     <div className="flex items-center gap-3 flex-1" onClick={() => { setExpandedId(expanded ? null : lead.id); ensureCampaigns() }}>
-                      {avatar ? (
-                        <img src={avatar} alt="" className="w-9 h-9 flex-shrink-0 object-cover bg-muted"
-                          style={{ borderRadius: lead.record_type === 'person' ? '50%' : 6 }} />
-                      ) : (
-                        <div className="w-9 h-9 flex-shrink-0 bg-muted text-[16px] flex items-center justify-center"
-                          style={{ borderRadius: lead.record_type === 'person' ? '50%' : 6 }}>
-                          {lead.record_type === 'person' ? '👤' : '🏢'}
-                        </div>
-                      )}
+                      <LeadAvatar lead={lead} size={36} />
                       <div className="flex-1 min-w-0">
                         <p className="text-[13px] font-semibold text-foreground truncate">{lead.full_name ?? '—'}</p>
                         <p className="text-[11px] text-muted-foreground truncate">
@@ -492,7 +514,7 @@ export default function OutboundLeadsPage() {
                           ? <Loader2 size={12} className="animate-spin text-muted-foreground" />
                           : (
                             <button onClick={() => fetchEmailForLead(lead.id)}
-                              className="text-[11px] px-2 py-0.5 rounded border-0 cursor-pointer bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+                              className="text-[11px] px-2 py-0.5 rounded border-0 cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
                               Get Email
                             </button>
                           )
@@ -503,7 +525,7 @@ export default function OutboundLeadsPage() {
                     {/* Status row */}
                     <div className="flex items-center gap-2">
                       <select value={lead.status} onChange={e => updateStatus(lead.id, e.target.value as Status)}
-                        className="text-[11px] font-semibold px-2 py-1 rounded border-0 cursor-pointer flex-1"
+                        className="text-[11px] font-semibold px-2.5 py-1 rounded-full border-0 cursor-pointer appearance-none flex-1"
                         style={{ background: s.bg, color: s.color }}>
                         <option value="new">New</option>
                         <option value="contacted">Contacted</option>
@@ -516,7 +538,7 @@ export default function OutboundLeadsPage() {
                       </span>
                       {lead.linkedin_url && (
                         <a href={lead.linkedin_url} target="_blank" rel="noopener noreferrer"
-                          className="text-[11px] text-[#0a66c2] no-underline">LinkedIn ↗</a>
+                          className="text-[11px] no-underline" style={{ color: LINKEDIN_BLUE }}>LinkedIn ↗</a>
                       )}
                     </div>
 
@@ -573,5 +595,13 @@ export default function OutboundLeadsPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function OutboundLeadsPage() {
+  return (
+    <Suspense>
+      <OutboundLeadsPageInner />
+    </Suspense>
   )
 }

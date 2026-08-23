@@ -3,6 +3,17 @@ import { SB_URL, sbHeaders, logEvent } from '@/lib/sb'
 
 const PIPELINE_LABELS = new Set(['positive', 'meeting_intent'])
 
+async function applyOptOut(leadId: string): Promise<void> {
+  const h  = sbHeaders('return=minimal')
+  const now = new Date().toISOString()
+  await fetch(`${SB_URL}/rest/v1/outbound_leads?id=eq.${leadId}`, {
+    method: 'PATCH', headers: h, body: JSON.stringify({ opt_out: true, opt_out_at: now }),
+  })
+  await fetch(`${SB_URL}/rest/v1/ob_campaign_leads?lead_id=eq.${leadId}&send_status=in.(queued,sent)`, {
+    method: 'PATCH', headers: h, body: JSON.stringify({ send_status: 'unsubscribed', send_scheduled_at: null }),
+  })
+}
+
 type Params = { params: Promise<{ id: string }> }
 
 type ReplyLabel =
@@ -35,6 +46,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     )
     const existing = existingRes.ok ? await existingRes.json() : []
     const classRow = Array.isArray(existing) ? (existing[0] ?? null) : null
+    let optOutLeadId: string | null = classRow?.lead_id ?? null
 
     if (classRow) {
       // Update existing classification
@@ -57,6 +69,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       )
       const events = eventRes.ok ? await eventRes.json() : []
       const event  = Array.isArray(events) ? (events[0] ?? null) : null
+      optOutLeadId = event?.lead_id ?? null
 
       await fetch(`${SB_URL}/rest/v1/ob_reply_classifications`, {
         method:  'POST',
@@ -69,6 +82,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
           human_reviewed_at: new Date().toISOString(),
         }),
       })
+    }
+
+    if (human_label === 'unsubscribe' && optOutLeadId) {
+      await applyOptOut(optOutLeadId).catch(() => {})
     }
 
     await logEvent({

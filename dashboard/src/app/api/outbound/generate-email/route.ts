@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
+import { findEmailByLinkedIn } from '@/lib/netrows'
 
 const NETROWS = 'https://api.netrows.com/v1'
 
@@ -9,33 +11,26 @@ function netHead() {
 
 // POST /api/outbound/generate-email
 // Body: { url: string }  — a LinkedIn /in/ person URL
+// Standalone ad-hoc lookup tool (for a person not found via the Apollo wizard at all) — the
+// Apollo pipeline itself now falls back to this same Netrows call automatically inside
+// apollo-email when Apollo's own reveal misses (see src/lib/netrows.ts), so this route no
+// longer needs to be run manually just to cover that specific gap.
 // 1. Find email via Netrows
 // 2. If found: fetch profile, save to outbound_leads with email, return result
 // 3. If not found: return { found: false }
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { url } = await req.json() as { url: string }
     if (!url) return NextResponse.json({ error: 'url required' }, { status: 400 })
 
-    const key = process.env.NETROWS_API_KEY
-    if (!key) return NextResponse.json({ error: 'NETROWS_API_KEY not set' }, { status: 500 })
+    if (!process.env.NETROWS_API_KEY) return NextResponse.json({ error: 'NETROWS_API_KEY not set' }, { status: 500 })
 
-    const emailRes = await fetch(
-      `${NETROWS}/email-finder/by-linkedin?linkedin_url=${encodeURIComponent(url)}`,
-      { headers: netHead() as HeadersInit }
-    )
-
-    if (emailRes.status === 402) {
-      return NextResponse.json({ error: 'Insufficient Netrows credits' }, { status: 402 })
-    }
-
-    if (!emailRes.ok) {
-      return NextResponse.json({ found: false, name: null })
-    }
-
-    const emailData = await emailRes.json()
-    const email       = emailData.valid_email ?? emailData.email ?? null
-    const emailStatus = emailData.email_status ?? (email ? 'valid' : 'not_found')
+    const hit = await findEmailByLinkedIn(url)
+    const email       = hit?.email ?? null
+    const emailStatus = hit?.status ?? 'not_found'
 
     if (!email) {
       const profRes = await fetch(

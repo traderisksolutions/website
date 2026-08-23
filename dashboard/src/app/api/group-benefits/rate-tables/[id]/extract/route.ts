@@ -9,9 +9,10 @@ import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
 import {
   extractWithOpus, extractWithGemini, parseRatesFromText, judgeExtractions,
-  adjudicateWithOpus, conflictKey, type GbExtraction,
+  adjudicateWithOpus, conflictKey, type GbExtraction, type GbBenefit,
 } from '@/lib/gb-extract'
 import { GEMINI_FLASH } from '@/lib/gemini-models'
+import { diffBenefits } from '@/lib/gb-diff'
 
 export const maxDuration = 300
 
@@ -83,13 +84,21 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     }
     const conflictsOut = judged.conflicts.map(c => ({ ...c, judge: adjud[conflictKey(c)] ?? null }))
 
+    // Wording diff (Sales Loop v2, Phase 6c): gb_benefits gets deleted and re-inserted below
+    // (step 5) with no history table behind it, so the "before" snapshot has to be read now,
+    // ahead of that delete, and compared against the new reading computed here.
+    const beforeBenefitsRes = await fetch(`${SB_URL}/rest/v1/gb_benefits?rate_table_id=eq.${id}&select=plan_code,category,benefit_name,value_text,value_numeric`, { headers: sbH(), cache: 'no-store' })
+    const beforeBenefits: GbBenefit[] = beforeBenefitsRes.ok ? await beforeBenefitsRes.json() : []
+    const newBenefits: GbBenefit[] = (merged.benefits ?? []).filter(b => b.benefit_name)
+    const wordingDiff = diffBenefits(beforeBenefits, newBenefits)
+
     await setStage('saving')
     // 4. Record every run for audit.
     const runs = [
       { extractor: 'opus',   model: 'claude-opus-4-8',      raw_json: opus.data,   error: opus.error ?? null },
       { extractor: 'gemini', model: GEMINI_FLASH, raw_json: gemini.data, error: gemini.error ?? null },
       { extractor: 'parser', model: 'pdf-parse',            raw_json: { rows: parserRows }, error: null },
-      { extractor: 'judge',  model: 'claude-opus-4-8',      raw_json: merged, conflicts: conflictsOut, confidence: judged.confidence, error: null },
+      { extractor: 'judge',  model: 'claude-opus-4-8',      raw_json: { ...merged, wording_diff: wordingDiff }, conflicts: conflictsOut, confidence: judged.confidence, error: null },
     ]
     await fetch(`${SB_URL}/rest/v1/gb_extraction_runs`, { method: 'POST', headers: sbH(), body: JSON.stringify(runs.map(r => ({ rate_table_id: id, ...r }))) }).catch(() => {})
 
@@ -123,7 +132,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       const k = `${p.product_title}|${p.plan_code}`; if (seenPlan.has(k)) return false; seenPlan.add(k); return true
     }).map(p => ({ rate_table_id: id, product_code: p.product_title, plan_code: p.plan_code, plan_name: p.plan_name ?? null, hospital_type: p.hospital_type ?? null, beds: p.beds ?? null, co_payment: p.co_payment ?? null }))
 
-    const benefits = (merged.benefits ?? []).filter(b => b.benefit_name).map(b => ({ rate_table_id: id, product_code: b.product_title ?? '', plan_code: b.plan_code ?? null, category: b.category ?? null, benefit_name: b.benefit_name, value_text: b.value_text ?? null, value_numeric: b.value_numeric ?? null, unit: b.unit ?? null, notes: b.notes ?? null }))
+    const benefits = newBenefits.map(b => ({ rate_table_id: id, product_code: b.product_title ?? '', plan_code: b.plan_code ?? null, category: b.category ?? null, benefit_name: b.benefit_name, value_text: b.value_text ?? null, value_numeric: b.value_numeric ?? null, unit: b.unit ?? null, notes: b.notes ?? null }))
 
     const coverage = (merged.coverage ?? []).filter(c => c.item_label).map((c, i) => ({ rate_table_id: id, product_title: c.product_title, member_type: c.member_type ?? null, plan_code: c.plan_code ?? null, item_label: c.item_label, value_numeric: c.value_numeric ?? null, value_text: c.value_text ?? null, unit: c.unit ?? null, sort_order: i }))
 
@@ -147,7 +156,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     await fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=eq.${id}`, { method: 'PATCH', headers: sbH(), body: JSON.stringify({ extract_stage: null }) }).catch(() => {})
 
     void logActivity({ action: 'gb.extracted', resource_type: 'gb_rate_table', resource_id: id, new_value: { rates: rates.length, conflicts: conflictsOut.length, confidence: judged.confidence } })
-    return NextResponse.json({ ok: true, rates: rates.length, plans: plans.length, benefits: benefits.length, conflicts: conflictsOut.length, confidence: judged.confidence, errors: { opus: opus.error ?? null, gemini: gemini.error ?? null } })
+    return NextResponse.json({ ok: true, rates: rates.length, plans: plans.length, benefits: benefits.length, conflicts: conflictsOut.length, wording_changes: wordingDiff.length, confidence: judged.confidence, errors: { opus: opus.error ?? null, gemini: gemini.error ?? null } })
   } catch (e) {
     await fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=eq.${id}`, { method: 'PATCH', headers: sbH(), body: JSON.stringify({ status: 'draft' }) }).catch(() => {})
     return NextResponse.json({ error: String(e) }, { status: 500 })

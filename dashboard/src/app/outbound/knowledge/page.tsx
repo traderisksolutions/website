@@ -6,16 +6,22 @@ import {
   Pencil, Trash2, Check, X, ToggleLeft, ToggleRight,
   CloudOff, Cloud,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { AppScrollPage, AppPageHeader } from '@/components/app-shell'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 
 const PRODUCT_TYPES = ['Business Assets', 'Business Liabilities', 'Workforce', 'API', 'General'] as const
 type ProductType = typeof PRODUCT_TYPES[number]
 
+// A categorical tag legend (not a status vocabulary), kept local and centralized here rather
+// than scattered inline hex per usage.
 const PT_COLORS: Record<ProductType, { color: string; bg: string }> = {
   'Business Assets':      { color: '#92400e', bg: '#fef3c7' },
   'Business Liabilities': { color: '#1e40af', bg: '#dbeafe' },
   'Workforce':            { color: '#5b21b6', bg: '#ede9fe' },
   'API':                  { color: '#065f46', bg: '#d1fae5' },
-  'General':              { color: '#555',    bg: '#f4f4f5' },
+  'General':              { color: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--muted))' },
 }
 
 interface KnowledgeEntry {
@@ -30,10 +36,6 @@ interface KnowledgeEntry {
   sort_order: number
   created_at: string
   updated_at: string
-}
-
-const card: React.CSSProperties = {
-  background: 'hsl(var(--card))', boxShadow: 'var(--card-shadow)', borderRadius: 10, padding: '16px 18px',
 }
 
 export default function KnowledgePage() {
@@ -175,226 +177,157 @@ export default function KnowledgePage() {
     : null
 
   return (
-    <div className="px-4 py-5 sm:px-8 sm:py-7" style={{ maxWidth: 900, margin: '0 auto' }}>
-
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#111', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <BookMarked size={18} style={{ color: '#888' }} />
-            Product Knowledge
-          </h1>
-          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#aaa' }}>
-            AI uses these docs when drafting campaign emails. Source from Google Drive or add manually.
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button
-            onClick={syncFromDrive}
-            disabled={syncing}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '7px 13px', borderRadius: 7, border: '1px solid var(--border-subtle)',
-              background: 'hsl(var(--card))', color: '#444', fontSize: 12, fontWeight: 500, cursor: syncing ? 'default' : 'pointer',
-              opacity: syncing ? 0.6 : 1,
-            }}
-          >
-            {syncing
-              ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
-              : <RefreshCw size={12} />
-            }
-            {syncing ? 'Syncing…' : 'Sync from Drive'}
-          </button>
-          <button
-            onClick={() => setShowModal(true)}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '8px 14px', borderRadius: 8, border: 'none',
-              background: '#111', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-            }}
-          >
-            <Plus size={13} /> New Entry
-          </button>
-        </div>
-      </div>
+    <AppScrollPage maxWidth="900px">
+      <AppPageHeader
+        title="Product Knowledge"
+        description="AI uses these docs when drafting campaign emails. Source from Google Drive or add manually."
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={syncFromDrive} disabled={syncing} className="gap-1.5">
+              {syncing ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+              {syncing ? 'Syncing…' : 'Sync from Drive'}
+            </Button>
+            <Button size="sm" onClick={() => setShowModal(true)} className="gap-1.5">
+              <Plus size={13} /> New Entry
+            </Button>
+          </div>
+        }
+      />
 
       {/* GDrive status bar */}
-      <div style={{
-        ...card, padding: '12px 16px', marginBottom: 16,
-        display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
-      }}>
+      <div className="flex items-center gap-2.5 flex-wrap rounded-[10px] px-4 py-3 mb-4 bg-card" style={{ boxShadow: 'var(--card-shadow)' }}>
         {gdriveDocs.length > 0
-          ? <Cloud size={14} style={{ color: '#22c55e', flexShrink: 0 }} />
-          : <CloudOff size={14} style={{ color: '#ccc', flexShrink: 0 }} />
+          ? <Cloud size={14} className="flex-shrink-0" style={{ color: 'var(--success)' }} />
+          : <CloudOff size={14} className="flex-shrink-0 text-muted-foreground/40" />
         }
-        <span style={{ fontSize: 12, color: '#555', flex: 1 }}>
+        <span className="text-[12px] text-muted-foreground flex-1">
           {gdriveDocs.length > 0
             ? `${gdriveDocs.length} doc${gdriveDocs.length !== 1 ? 's' : ''} synced from Google Drive${lastSynced ? ` · Last sync: ${new Date(lastSynced).toLocaleString('en-SG', { dateStyle: 'medium', timeStyle: 'short' })}` : ''}`
             : 'No Google Drive docs synced yet.'
           }
         </span>
-        <span style={{ fontSize: 11, color: '#aaa' }}>
-          Folder ID: <code style={{ fontFamily: 'monospace', background: 'hsl(var(--muted))', padding: '1px 4px', borderRadius: 3 }}>
+        <span className="text-[11px] text-muted-foreground/60">
+          Folder ID: <code className="font-mono bg-muted px-1 rounded-[3px]">
             {process.env.NEXT_PUBLIC_GDRIVE_FOLDER_HINT ?? 'GDRIVE_KNOWLEDGE_FOLDER_ID env var'}
           </code>
         </span>
       </div>
 
       {error && (
-        <div style={{
-          display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 14px', marginBottom: 14,
-          borderRadius: 8, background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', fontSize: 13,
-        }}>
-          <AlertCircle size={14} style={{ marginTop: 1, flexShrink: 0 }} />
-          <span style={{ flex: 1 }}>{error}</span>
-          <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#991b1b' }}>×</button>
+        <div className="flex items-start gap-2 px-3.5 py-2.5 mb-3.5 rounded-lg text-[13px]" style={{ background: 'var(--error-bg)', border: '1px solid var(--error-border, var(--error))', color: 'var(--error)' }}>
+          <AlertCircle size={14} className="mt-px flex-shrink-0" />
+          <span className="flex-1">{error}</span>
+          <button onClick={() => setError(null)} className="bg-transparent border-none cursor-pointer" style={{ color: 'var(--error)' }}><X size={14} /></button>
         </div>
       )}
 
       {syncResult && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', marginBottom: 14,
-          borderRadius: 8, background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', fontSize: 13,
-        }}>
+        <div className="flex items-center gap-2 px-3.5 py-2.5 mb-3.5 rounded-lg text-[13px]" style={{ background: 'var(--success-bg)', border: '1px solid var(--success-border)', color: 'var(--success)' }}>
           <Check size={14} />
-          <span style={{ flex: 1 }}>{syncResult}</span>
-          <button onClick={() => setSyncResult(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#166534' }}>×</button>
+          <span className="flex-1">{syncResult}</span>
+          <button onClick={() => setSyncResult(null)} className="bg-transparent border-none cursor-pointer" style={{ color: 'var(--success)' }}><X size={14} /></button>
         </div>
       )}
 
       {/* Filter chips */}
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+      <div className="flex flex-wrap gap-1.5 mb-4">
         {['all', ...PRODUCT_TYPES].map(pt => {
-          const count  = pt === 'all' ? entries.length : entries.filter(e => e.product_type === pt).length
-          const active = filterPt === pt
+          const count = pt === 'all' ? entries.length : entries.filter(e => e.product_type === pt).length
           return (
-            <button
-              key={pt}
-              onClick={() => setFilterPt(pt)}
-              style={{
-                padding: '4px 12px', borderRadius: 6, fontSize: 12, fontWeight: active ? 600 : 400,
-                border: `1px solid ${active ? '#111' : 'var(--border-subtle)'}`,
-                background: active ? '#111' : 'hsl(var(--muted))',
-                color: active ? '#fff' : '#555', cursor: 'pointer',
-              }}
-            >
-              {pt === 'all' ? 'All' : pt} {count > 0 && <span style={{ opacity: 0.6 }}>({count})</span>}
+            <button key={pt} onClick={() => setFilterPt(pt)} aria-pressed={filterPt === pt} className={cn('filter-pill', filterPt === pt && 'active')}>
+              {pt === 'all' ? 'All' : pt} {count > 0 && <span className="opacity-60">({count})</span>}
             </button>
           )
         })}
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
-          <Loader2 size={20} style={{ animation: 'spin 1s linear infinite', color: '#ccc' }} />
+        <div className="flex justify-center py-12">
+          <Loader2 size={20} className="animate-spin text-muted-foreground/40" />
         </div>
       ) : filtered.length === 0 ? (
-        <div style={{ ...card, textAlign: 'center', padding: '40px 24px' }}>
-          <BookMarked size={28} style={{ color: '#e5e5e5', marginBottom: 10 }} />
-          <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 600, color: '#555' }}>
-            {filterPt === 'all' ? 'No knowledge entries yet' : `No entries for ${filterPt}`}
-          </p>
-          <p style={{ margin: 0, fontSize: 12, color: '#aaa' }}>
-            Sync from Google Drive or add manually. Gemini will use these when drafting emails.
-          </p>
+        <div className="empty-state">
+          <div className="empty-icon-wrap"><BookMarked size={20} /></div>
+          <p className="empty-title">{filterPt === 'all' ? 'No knowledge entries yet' : `No entries for ${filterPt}`}</p>
+          <p className="empty-desc">Sync from Google Drive or add manually. Gemini will use these when drafting emails.</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="flex flex-col gap-2">
           {filtered.map(entry => {
             const isEditing = editId === entry.id
             const ptColor   = PT_COLORS[entry.product_type] ?? PT_COLORS.General
             return (
-              <div key={entry.id} style={{
-                ...card,
-                opacity: entry.is_active ? 1 : 0.5,
-                borderLeft: `3px solid ${entry.is_active ? ptColor.color : 'var(--border-subtle)'}`,
-              }}>
+              <div
+                key={entry.id}
+                className="rounded-[10px] px-[18px] py-4 bg-card"
+                style={{ boxShadow: 'var(--card-shadow)', opacity: entry.is_active ? 1 : 0.5, borderLeft: `3px solid ${entry.is_active ? ptColor.color : 'var(--border-subtle)'}` }}
+              >
                 {isEditing ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <div className="flex flex-col gap-2.5">
+                    <div className="flex gap-2 items-center">
                       <select
                         value={editPt}
                         onChange={e => setEditPt(e.target.value as ProductType)}
-                        style={{ fontSize: 12, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'hsl(var(--muted))', color: '#111' }}
+                        className="text-[12px] px-2 py-1 rounded-md bg-muted text-foreground"
+                        style={{ border: '1px solid var(--border-subtle)' }}
                       >
                         {PRODUCT_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
                       </select>
                       <input
                         value={editTitle}
                         onChange={e => setEditTitle(e.target.value)}
-                        style={{ flex: 1, fontSize: 13, fontWeight: 600, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'hsl(var(--muted))', color: '#111' }}
+                        className="flex-1 text-[13px] font-semibold px-2 py-1.5 rounded-md bg-muted text-foreground"
+                        style={{ border: '1px solid var(--border-subtle)' }}
                       />
                     </div>
                     <textarea
                       value={editContent}
                       onChange={e => setEditContent(e.target.value)}
                       rows={8}
-                      style={{ width: '100%', fontSize: 12, padding: '8px 10px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'hsl(var(--muted))', color: '#333', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6, boxSizing: 'border-box' }}
+                      className="w-full text-[12px] px-2.5 py-2 rounded-md bg-muted text-foreground/90 resize-y font-[inherit] leading-relaxed box-border"
+                      style={{ border: '1px solid var(--border-subtle)' }}
                     />
-                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                      <button onClick={() => setEditId(null)} style={{ padding: '5px 12px', fontSize: 12, borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'hsl(var(--card))', color: '#555', cursor: 'pointer' }}>
-                        Cancel
-                      </button>
-                      <button
-                        onClick={() => saveEdit(entry.id)}
-                        disabled={saving}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', fontSize: 12, fontWeight: 600, borderRadius: 6, border: 'none', background: '#111', color: '#fff', cursor: 'pointer' }}
-                      >
-                        {saving ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <Check size={11} />}
+                    <div className="flex gap-2 justify-end">
+                      <Button variant="outline" size="sm" onClick={() => setEditId(null)}>Cancel</Button>
+                      <Button size="sm" onClick={() => saveEdit(entry.id)} disabled={saving} className="gap-1.5">
+                        {saving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
                         Save
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
-                      <span style={{
-                        padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600, flexShrink: 0,
-                        color: ptColor.color, background: ptColor.bg,
-                      }}>
+                    <div className="flex items-start gap-2 mb-1.5">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold flex-shrink-0" style={{ color: ptColor.color, background: ptColor.bg }}>
                         {entry.product_type}
                       </span>
                       {entry.source === 'gdrive' && (
-                        <span style={{ padding: '2px 7px', borderRadius: 4, fontSize: 10, fontWeight: 500, color: '#2563eb', background: '#dbeafe', flexShrink: 0 }}>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0" style={{ color: '#2563eb', background: '#dbeafe' }}>
                           Drive
                         </span>
                       )}
-                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#111', flex: 1 }}>{entry.title}</p>
-                      <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                        <button
-                          onClick={() => toggleActive(entry)}
-                          title={entry.is_active ? 'Deactivate' : 'Activate'}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 3, color: entry.is_active ? '#22c55e' : '#ccc' }}
-                        >
+                      <p className="m-0 text-[13px] font-semibold text-foreground flex-1">{entry.title}</p>
+                      <div className="flex gap-1 flex-shrink-0">
+                        <button onClick={() => toggleActive(entry)} title={entry.is_active ? 'Deactivate' : 'Activate'} className="bg-transparent border-none cursor-pointer p-[3px]" style={{ color: entry.is_active ? 'var(--success)' : 'hsl(var(--muted-foreground) / 0.4)' }}>
                           {entry.is_active ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
                         </button>
-                        <button
-                          onClick={() => startEdit(entry)}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 3, color: '#888' }}
-                        >
+                        <button onClick={() => startEdit(entry)} className="bg-transparent border-none cursor-pointer p-[3px] text-muted-foreground">
                           <Pencil size={13} />
                         </button>
-                        <button
-                          onClick={() => deleteEntry(entry.id)}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 3, color: '#f87171' }}
-                        >
+                        <button onClick={() => deleteEntry(entry.id)} className="bg-transparent border-none cursor-pointer p-[3px]" style={{ color: 'var(--error)' }}>
                           <Trash2 size={13} />
                         </button>
                       </div>
                     </div>
                     {entry.content ? (
-                      <p style={{
-                        margin: 0, fontSize: 12, color: '#666', lineHeight: 1.6,
-                        overflow: 'hidden', display: '-webkit-box',
-                        WebkitLineClamp: 3, WebkitBoxOrient: 'vertical',
-                      }}>
+                      <p className="m-0 text-[12px] text-muted-foreground leading-relaxed overflow-hidden line-clamp-3">
                         {entry.content}
                       </p>
                     ) : (
-                      <p style={{ margin: 0, fontSize: 12, color: '#ccc', fontStyle: 'italic' }}>No content yet — click edit to add.</p>
+                      <p className="m-0 text-[12px] text-muted-foreground/40 italic">No content yet — click edit to add.</p>
                     )}
                     {entry.source === 'gdrive' && entry.gdrive_last_synced_at && (
-                      <p style={{ margin: '6px 0 0', fontSize: 10, color: '#bbb' }}>
+                      <p className="mt-1.5 mb-0 text-[10px] text-muted-foreground/50">
                         Last synced {new Date(entry.gdrive_last_synced_at).toLocaleString('en-SG', { dateStyle: 'medium', timeStyle: 'short' })}
                         {entry.gdrive_doc_name ? ` · ${entry.gdrive_doc_name}` : ''}
                       </p>
@@ -408,84 +341,62 @@ export default function KnowledgePage() {
       )}
 
       {/* New entry modal */}
-      {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: 'hsl(var(--card))', border: '1px solid var(--border-mid)', borderRadius: 14, padding: '28px 30px', maxWidth: 520, width: '92%', boxShadow: 'var(--shadow-modal)' }}>
-            <p style={{ margin: '0 0 18px', fontSize: 15, fontWeight: 700, color: '#111' }}>New Knowledge Entry</p>
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle>New Knowledge Entry</DialogTitle>
+          </DialogHeader>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: 11, fontWeight: 600, color: '#666', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Product Type *
-                  </label>
-                  <select
-                    value={newPt}
-                    onChange={e => setNewPt(e.target.value as ProductType)}
-                    style={{ width: '100%', padding: '8px 10px', fontSize: 13, borderRadius: 7, border: '1px solid var(--border-subtle)', background: 'hsl(var(--muted))', color: '#111' }}
-                  >
-                    {PRODUCT_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
-                  </select>
-                </div>
-                <div style={{ flex: 2 }}>
-                  <label style={{ fontSize: 11, fontWeight: 600, color: '#666', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Title *
-                  </label>
-                  <input
-                    autoFocus
-                    value={newTitle}
-                    onChange={e => setNewTitle(e.target.value)}
-                    placeholder="e.g. Marine Cargo Key Selling Points"
-                    style={{ width: '100%', padding: '8px 10px', fontSize: 13, borderRadius: 7, border: '1px solid var(--border-subtle)', background: 'hsl(var(--muted))', color: '#111', boxSizing: 'border-box' }}
-                  />
-                </div>
+          <div className="flex flex-col gap-3">
+            <div className="flex gap-2.5">
+              <div className="flex-1">
+                <label className="text-[11px] font-semibold text-muted-foreground block mb-1 uppercase tracking-wide">Product Type *</label>
+                <select
+                  value={newPt}
+                  onChange={e => setNewPt(e.target.value as ProductType)}
+                  className="w-full px-2.5 py-2 text-[13px] rounded-[7px] bg-muted text-foreground"
+                  style={{ border: '1px solid var(--border-subtle)' }}
+                >
+                  {PRODUCT_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
+                </select>
               </div>
-              <div>
-                <label style={{ fontSize: 11, fontWeight: 600, color: '#666', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Content
-                </label>
-                <textarea
-                  value={newContent}
-                  onChange={e => setNewContent(e.target.value)}
-                  rows={7}
-                  placeholder="Paste product knowledge, selling points, coverage details, key differentiators…"
-                  style={{ width: '100%', padding: '8px 10px', fontSize: 12, borderRadius: 7, border: '1px solid var(--border-subtle)', background: 'hsl(var(--muted))', color: '#333', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6, boxSizing: 'border-box' }}
+              <div className="flex-[2]">
+                <label className="text-[11px] font-semibold text-muted-foreground block mb-1 uppercase tracking-wide">Title *</label>
+                <input
+                  autoFocus
+                  value={newTitle}
+                  onChange={e => setNewTitle(e.target.value)}
+                  placeholder="e.g. Marine Cargo Key Selling Points"
+                  className="w-full px-2.5 py-2 text-[13px] rounded-[7px] bg-muted text-foreground box-border"
+                  style={{ border: '1px solid var(--border-subtle)' }}
                 />
               </div>
-              <p style={{ margin: 0, fontSize: 11, color: '#aaa', lineHeight: 1.5 }}>
-                Tip: for bulk import, add Google Docs to your Drive folder and use <strong>Sync from Drive</strong>.
-              </p>
             </div>
-
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
-              <button onClick={() => { setShowModal(false); setNewTitle(''); setNewContent('') }} style={{ padding: '6px 12px', borderRadius: 7, border: '1px solid var(--border-subtle)', background: 'hsl(var(--card))', color: '#333', fontSize: 12, cursor: 'pointer' }}>
-                Cancel
-              </button>
-              <button
-                onClick={createEntry}
-                disabled={creating || !newTitle.trim()}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                  padding: '8px 16px', borderRadius: 8, border: 'none',
-                  background: '#111', color: '#fff', fontSize: 13, fontWeight: 600,
-                  cursor: creating || !newTitle.trim() ? 'default' : 'pointer',
-                  opacity: creating || !newTitle.trim() ? 0.45 : 1,
-                }}
-              >
-                {creating ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Plus size={13} />}
-                {creating ? 'Saving…' : 'Save Entry'}
-              </button>
+            <div>
+              <label className="text-[11px] font-semibold text-muted-foreground block mb-1 uppercase tracking-wide">Content</label>
+              <textarea
+                value={newContent}
+                onChange={e => setNewContent(e.target.value)}
+                rows={7}
+                placeholder="Paste product knowledge, selling points, coverage details, key differentiators…"
+                className="w-full px-2.5 py-2 text-[12px] rounded-[7px] bg-muted text-foreground/90 resize-y font-[inherit] leading-relaxed box-border"
+                style={{ border: '1px solid var(--border-subtle)' }}
+              />
             </div>
+            <p className="m-0 text-[11px] text-muted-foreground/60 leading-relaxed">
+              Tip: for bulk import, add Google Docs to your Drive folder and use <strong>Sync from Drive</strong>.
+            </p>
           </div>
-        </div>
-      )}
 
-      <style>{`
-        @keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
-        textarea { outline: none; }
-        input { outline: none; }
-        select { outline: none; }
-      `}</style>
-    </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowModal(false); setNewTitle(''); setNewContent('') }}>Cancel</Button>
+            <Button onClick={createEntry} disabled={creating || !newTitle.trim()} className="gap-1.5">
+              {creating ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+              {creating ? 'Saving…' : 'Save Entry'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </AppScrollPage>
   )
 }

@@ -2,14 +2,20 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2, Sparkles, Download, Reply } from 'lucide-react'
+import { ArrowLeft, Loader2, Sparkles, Download, Reply, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ThreadSelectorModal } from '@/components/group-benefits/ThreadSelectorModal'
+import type { Recommendation, LegacyRecommendation } from '@/lib/gb-recommend'
 
 type InsurerResult = { rate_table_id: string; insurer_id: string | null; insurer_name: string; by_product: Record<string, number>; subtotal: number; gst: number; total: number; missing: number }
 type Line = { member_name: string; relationship: string; category: string; age: number | null; insurer_name: string; product_code: string; plan_code: string | null; premium: number | null; note: string | null }
-type Analysis = { comparison: { benefit: string; by_insurer: Record<string, string> }[]; insurers: { insurer: string; pros: string[]; cons: string[] }[]; recommendation: string }
-type Quotation = { id: string; company_name: string | null; effective_date: string | null; product_codes: string[]; member_count: number; results: InsurerResult[]; benefits_analysis: Analysis | null; created_at: string; source: string }
+type Analysis = Recommendation | LegacyRecommendation
+type Quotation = { id: string; company_name: string | null; effective_date: string | null; product_codes: string[]; member_count: number; results: InsurerResult[]; benefits_analysis: Analysis | null; priorities: string | null; created_at: string; source: string }
+
+/** Old quotes stored the pre-redesign shape (single winner + per-insurer pros/cons) — detect it
+ *  by the absence of `narrative` rather than crashing, and offer a one-click regenerate. Mirrors
+ *  PmQuoteActions.tsx's isLegacy exactly. */
+const isLegacy = (r: Analysis): r is LegacyRecommendation => !('narrative' in r)
 
 const money = (n: number) => n.toLocaleString('en-SG', { style: 'currency', currency: 'SGD' })
 
@@ -19,6 +25,7 @@ export default function QuoteDetailPage() {
   const [q, setQ] = useState<Quotation | null>(null)
   const [lines, setLines] = useState<Line[]>([])
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
+  const [priorities, setPriorities] = useState('')
   const [analyzing, setAnalyzing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [attachFormat, setAttachFormat] = useState<'xlsx' | 'csv'>('xlsx')
@@ -45,6 +52,7 @@ export default function QuoteDetailPage() {
     if (!res.ok) return
     const d = await res.json()
     setQ(d.quotation); setLines(d.lines ?? []); setAnalysis(d.quotation?.benefits_analysis ?? null)
+    setPriorities(d.quotation?.priorities ?? '')
   }, [id])
   useEffect(() => { load() }, [load])
 
@@ -61,14 +69,14 @@ export default function QuoteDetailPage() {
     return Array.from(m.values()).sort((a, b) => a.total - b.total)
   }, [q])
 
-  const insurerNames = useMemo(() => analysis ? Array.from(new Set((analysis.comparison ?? []).flatMap(r => Object.keys(r.by_insurer ?? {})))) : [], [analysis])
-
   async function compareBenefits() {
     setAnalyzing(true); setError(null)
     try {
-      const res = await fetch(`/api/group-benefits/quote/${id}/compare-benefits`, { method: 'POST' })
+      const res = await fetch(`/api/group-benefits/quote/${id}/compare-benefits`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ priorities }),
+      })
       const d = await res.json()
-      if (res.ok && d.analysis) setAnalysis(d.analysis); else setError(d.error ?? 'Comparison failed')
+      if (res.ok && d.recommendation) setAnalysis(d.recommendation); else setError(d.error ?? 'Comparison failed')
     } finally { setAnalyzing(false) }
   }
 
@@ -146,47 +154,45 @@ export default function QuoteDetailPage() {
       <div className="border border-border rounded-lg p-4 mb-6">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-[13px] font-bold text-foreground">Coverage comparison & recommendation</h3>
-          {!analysis && (
-            <button onClick={compareBenefits} disabled={analyzing} className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-primary/30 text-primary hover:bg-primary/5 disabled:opacity-50">
-              {analyzing ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}{analyzing ? 'Analysing coverage…' : 'Compare benefits with Opus'}
-            </button>
-          )}
+          <button onClick={compareBenefits} disabled={analyzing} className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-primary/30 text-primary hover:bg-primary/5 disabled:opacity-50">
+            {analyzing ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}{analyzing ? 'Analysing coverage…' : analysis ? 'Regenerate' : 'Compare benefits with Opus'}
+          </button>
         </div>
+        <label className="text-[12px] flex flex-col gap-1 mb-2">
+          <span className="text-muted-foreground/70">What matters to this client? <span className="text-muted-foreground/40">(optional — e.g. &ldquo;private hospital access, budget-conscious on outpatient&rdquo;)</span></span>
+          <textarea value={priorities} onChange={e => setPriorities(e.target.value)} rows={2} className="text-[12.5px] border border-border rounded-md px-2.5 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-primary/25 resize-y" placeholder="Leave blank to optimise for overall value" />
+        </label>
         {error && <p className="text-[11.5px] text-rose-600 mb-2">{error}</p>}
-        {!analysis && !analyzing && <p className="text-[11.5px] text-muted-foreground/70">Opus aligns each plan&apos;s benefits, lists pros/cons per insurer, and recommends the best value.</p>}
-        {analysis && (
-          <div className="flex flex-col gap-4">
-            <div className="rounded-lg bg-primary/5 border-l-2 border-primary/40 px-3 py-2">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-primary mb-1">Recommendation</p>
-              <p className="text-[12px] text-foreground/80 leading-relaxed m-0">{analysis.recommendation}</p>
+        {!analysis && !analyzing && <p className="text-[11.5px] text-muted-foreground/70">Opus compares price against what each plan actually covers, and writes one narrative weighing the trade-offs.</p>}
+
+        {analysis && isLegacy(analysis) && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 flex items-center justify-between gap-3">
+            <p className="text-[12px] text-amber-800">This quote has an older-style recommendation (a single pick with pros/cons). Recompute it for the current side-by-side comparison format.</p>
+            <button onClick={compareBenefits} disabled={analyzing} className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 shrink-0">
+              {analyzing ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Recompute
+            </button>
+          </div>
+        )}
+
+        {analysis && !isLegacy(analysis) && (
+          <div className="flex flex-col gap-3 mt-1">
+            <div className="rounded-lg bg-primary/5 border border-primary/20 px-3 py-2.5">
+              <div className="flex items-center gap-2 text-[13px] font-semibold text-foreground"><Sparkles size={14} className="text-primary" /> {analysis.headline}</div>
+              <div className="flex flex-col gap-2 mt-2">
+                {analysis.narrative.split(/\n\n+/).map((para, i) => <p key={i} className="text-[12.5px] text-foreground/80 leading-relaxed">{para}</p>)}
+              </div>
             </div>
-            {(analysis.comparison?.length ?? 0) > 0 && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-[11px] border-collapse">
-                  <thead><tr>
-                    <th className="text-left px-2 py-1 border-b border-border text-muted-foreground/70 font-semibold">Benefit</th>
-                    {insurerNames.map(n => <th key={n} className="text-left px-2 py-1 border-b border-border text-muted-foreground/70 font-semibold">{n}</th>)}
-                  </tr></thead>
-                  <tbody>
-                    {analysis.comparison.map((row, i) => (
-                      <tr key={i}>
-                        <td className="px-2 py-1 border-b border-border/50 font-medium text-foreground/80">{row.benefit}</td>
-                        {insurerNames.map(n => <td key={n} className="px-2 py-1 border-b border-border/50 text-muted-foreground">{row.by_insurer?.[n] ?? '—'}</td>)}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {analysis.highlights?.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {analysis.highlights.map(h => (
+                  <div key={h.insurer} className="flex items-center gap-1.5 border border-border rounded-lg px-2.5 py-1.5">
+                    <span className="text-[12px] font-semibold">{h.insurer}</span>
+                    <span className="text-[11px] text-muted-foreground/70">— {h.note}</span>
+                  </div>
+                ))}
               </div>
             )}
-            <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min((analysis.insurers ?? []).length, 3)},minmax(0,1fr))` }}>
-              {(analysis.insurers ?? []).map(ins => (
-                <div key={ins.insurer} className="rounded-lg border border-border p-3">
-                  <p className="text-[12px] font-bold text-foreground mb-1.5">{ins.insurer}</p>
-                  {ins.pros?.map((p, i) => <p key={`p${i}`} className="text-[11px] text-emerald-700 flex gap-1 m-0"><span>+</span>{p}</p>)}
-                  {ins.cons?.map((c, i) => <p key={`c${i}`} className="text-[11px] text-rose-600 flex gap-1 m-0"><span>−</span>{c}</p>)}
-                </div>
-              ))}
-            </div>
+            <p className="text-[10.5px] text-muted-foreground/40">Premium figures come from each insurer&rsquo;s own approved rate table; the comparison narrative is Opus&rsquo;s qualitative read.</p>
           </div>
         )}
       </div>

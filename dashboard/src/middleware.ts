@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PUBLIC_PATHS = ['/login', '/auth/callback', '/api/']
+const PUBLIC_PATHS = ['/login', '/auth/callback', '/api/', '/unsubscribed']
 const TRS_DOMAIN   = 'trade-risksol.com'
 
 export async function middleware(request: NextRequest) {

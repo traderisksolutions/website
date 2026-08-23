@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders } from '@/lib/sb'
+import { buildUnsubscribeUrl } from '@/lib/unsubscribe-token'
 
 export const maxDuration = 60
+
+const APP_ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
 
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me'
 
@@ -137,7 +140,8 @@ export async function GET(req: NextRequest) {
       const rawBody      = substituteTokens(step.body,    firstName, company)
       const campMeta     = campMetaMap.get(d.campaign_id) ?? {}
       const sig          = sigMap.get(String(campMeta.signature_id ?? '')) ?? null
-      const htmlBody     = formatEmailBody(rawBody) + (sig ? buildSignatureHtml(sig) : '')
+      const unsubUrl     = buildUnsubscribeUrl(APP_ORIGIN, d.lead_id)
+      const htmlBody     = formatEmailBody(rawBody) + (sig ? buildSignatureHtml(sig) : '') + buildUnsubscribeFooter(unsubUrl)
       const fromEmail    = d.from_email ?? 'operations@trade-risksol.com'
 
       const { threadId } = await sendGmailMessage({
@@ -206,6 +210,12 @@ function formatEmailBody(text: string): string {
   return paragraphs.map(p =>
     `<p style="margin:0 0 12px 0">${p.trim().replace(/\n/g, '<br>')}</p>`
   ).join('')
+}
+
+function buildUnsubscribeFooter(unsubUrl: string): string {
+  return `<p style="margin:20px 0 0;font-size:11px;color:#999;line-height:1.6">` +
+    `You're receiving this because we believe it's relevant to your business. ` +
+    `<a href="${unsubUrl}" style="color:#999;text-decoration:underline">Unsubscribe</a></p>`
 }
 
 function buildSignatureHtml(sig: {

@@ -102,10 +102,13 @@ function SkeletonRows() {
 // Manually create a person in Active Contacts. All fields optional, but the
 // contacts table needs at least one of email / phone.
 
-const EMPTY_PERSON = { first_name: '', last_name: '', email: '', phone: '', company: '' }
+const EMPTY_PERSON = { first_name: '', last_name: '', email: '', phone: '', company: '', notes: '' }
 
-function AddContactDialog({ open, onOpenChange, onSaved }: {
+function AddContactDialog({ open, onOpenChange, onSaved, referral = false }: {
   open: boolean; onOpenChange: (v: boolean) => void; onSaved: () => void
+  /** Opens straight into "log a referral" mode — also creates an inbound_leads row (source
+   *  'referral') so the referral gets a trackable status lifecycle, not just a bare contact. */
+  referral?: boolean
 }) {
   const [form,   setForm]   = useState(EMPTY_PERSON)
   const [saving, setSaving] = useState(false)
@@ -122,7 +125,7 @@ function AddContactDialog({ open, onOpenChange, onSaved }: {
       const res = await fetch('/api/contacts', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(form),
+        body:    JSON.stringify({ ...form, isReferral: referral }),
       })
       if (!res.ok) { setError((await res.json()).error ?? 'Failed to save'); return }
       onSaved()
@@ -134,8 +137,12 @@ function AddContactDialog({ open, onOpenChange, onSaved }: {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add contact</DialogTitle>
-          <DialogDescription>Add a person to Active Contacts. Provide at least an email or phone.</DialogDescription>
+          <DialogTitle>{referral ? 'Log a referral' : 'Add contact'}</DialogTitle>
+          <DialogDescription>
+            {referral
+              ? 'Log a person referred to TRS by the team. Tracked in Pipeline like any other lead. Provide at least an email or phone.'
+              : 'Add a person to Active Contacts. Provide at least an email or phone.'}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-2">
@@ -146,12 +153,22 @@ function AddContactDialog({ open, onOpenChange, onSaved }: {
           <Input placeholder="Email" value={form.email} onChange={e => set('email', e.target.value)} />
           <Input placeholder="Phone" value={form.phone} onChange={e => set('phone', e.target.value)} />
           <Input placeholder="Company" value={form.company} onChange={e => set('company', e.target.value)} />
+          {referral && (
+            <textarea
+              placeholder="Who referred them, and what do they need? (optional)"
+              value={form.notes}
+              onChange={e => set('notes', e.target.value)}
+              rows={3}
+              className="w-full text-[13px] px-2.5 py-2 rounded-md bg-background resize-y font-[inherit]"
+              style={{ border: '1px solid var(--border-subtle)' }}
+            />
+          )}
           {error && <p className="text-xs text-destructive">{error}</p>}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={save} disabled={saving || !canSave}>{saving ? 'Saving…' : 'Add contact'}</Button>
+          <Button onClick={save} disabled={saving || !canSave}>{saving ? 'Saving…' : referral ? 'Log referral' : 'Add contact'}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -167,6 +184,7 @@ export default function ContactsPage() {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [copied,    setCopied]    = useState<string | null>(null)
   const [addOpen,   setAddOpen]   = useState(false)
+  const [referralOpen, setReferralOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [view,      setView]      = useState<'contacts' | 'companies'>('contacts')
 
@@ -234,11 +252,14 @@ export default function ContactsPage() {
           actions={
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted mr-1">
-                <button onClick={() => setView('contacts')} className="text-[11.5px] font-semibold px-2.5 py-1 rounded bg-card shadow-sm text-foreground">Contacts</button>
+                <button onClick={() => setView('contacts')} className="text-[11.5px] font-semibold px-2.5 py-1 rounded bg-card text-foreground" style={{ boxShadow: 'var(--card-shadow)' }}>Contacts</button>
                 <button onClick={() => setView('companies')} className="text-[11.5px] font-medium px-2.5 py-1 rounded text-muted-foreground hover:text-foreground">Companies</button>
               </div>
               <Button size="sm" variant="outline" onClick={() => setImportOpen(true)} className="gap-1.5">
                 <UploadCloud size={14} /> Import CSV
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setReferralOpen(true)} className="gap-1.5">
+                <Users size={14} /> Log referral
               </Button>
               <Button size="sm" onClick={() => setAddOpen(true)} className="gap-1.5">
                 <Plus size={14} /> Add contact
@@ -248,6 +269,7 @@ export default function ContactsPage() {
         />
 
         <AddContactDialog open={addOpen} onOpenChange={setAddOpen} onSaved={load} />
+        <AddContactDialog open={referralOpen} onOpenChange={setReferralOpen} onSaved={load} referral />
         <BulkImportContacts open={importOpen} onOpenChange={setImportOpen} onImported={load} />
 
         {/* Table card */}

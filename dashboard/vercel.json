@@ -21,6 +21,14 @@
       "schedule": "0 4 * * *"
     },
     {
+      "path": "/api/cron/daily-lead-discovery",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/daily-signal-scan",
+      "schedule": "30 2 * * *"
+    },
+    {
       "path": "/api/email/ingest?window=1440",
       "schedule": "0 1 * * *"
     },

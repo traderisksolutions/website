@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders, logEvent } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 // GET /api/outbound/signals
 // Query params: status (pending|active|rejected|archived), scope, sector, limit
@@ -37,6 +38,9 @@ export async function GET(req: NextRequest) {
 // Body: { scope, sector?, signal_type, headline, summary?, source_url, source_domain?,
 //         published_at?, relevance_notes?, corroboration_group_id?, created_by_agent? }
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const body = await req.json() as {
       scope:                  'sector' | 'company'

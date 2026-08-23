@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { resolveCompany } from '@/lib/debit-note-commit'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -83,23 +84,34 @@ export async function PATCH(req: NextRequest) {
         const lead     = Array.isArray(leadRows) ? leadRows[0] : null
 
         if (lead?.email) {
+          // Resolve/create the real companies row now, at lead-promotion time, rather than
+          // waiting until a Debit Note is raised — see debit-note-commit.ts's resolveCompany,
+          // reused verbatim (Sales Loop v2, Phase 5 / F3). contacts.company (free text) stays
+          // as the display fallback either way.
+          const companyName = lead.company?.trim() || null
+          const companyId   = companyName ? await resolveCompany({ companyName }).catch(() => null) : null
+
           const encoded  = encodeURIComponent(lead.email)
           const exRes    = await fetch(
-            `${SB_URL}/rest/v1/contacts?email=eq.${encoded}&select=id,engagement_stage&limit=1`,
+            `${SB_URL}/rest/v1/contacts?email=eq.${encoded}&select=id,engagement_stage,company_id&limit=1`,
             { headers: headers() }
           )
           const exRows   = exRes.ok ? await exRes.json() : []
           const existing = Array.isArray(exRows) ? exRows[0] : null
 
           if (existing) {
-            // Only advance the stage — never downgrade
+            // Only advance the stage — never downgrade. company_id only ever fills in when
+            // missing — never overwrites an already-linked company.
             const currentIdx = STAGE_ORDER.indexOf(existing.engagement_stage ?? '')
             const newIdx     = STAGE_ORDER.indexOf(newStage)
-            if (newIdx > currentIdx) {
+            const patch: Record<string, unknown> = {}
+            if (newIdx > currentIdx) patch.engagement_stage = newStage
+            if (companyId && !existing.company_id) patch.company_id = companyId
+            if (Object.keys(patch).length > 0) {
               await fetch(`${SB_URL}/rest/v1/contacts?id=eq.${existing.id}`, {
                 method:  'PATCH',
                 headers: headers(),
-                body:    JSON.stringify({ engagement_stage: newStage }),
+                body:    JSON.stringify(patch),
               })
             }
           } else {
@@ -112,6 +124,7 @@ export async function PATCH(req: NextRequest) {
                 last_name:        lead.last_name  ?? null,
                 email:            lead.email,
                 company:          lead.company ?? null,
+                company_id:       companyId,
                 source:           'website',
                 engagement_stage: newStage,
                 inbound_lead_id:  id,

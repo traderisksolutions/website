@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { AppScrollPage } from '@/components/app-shell'
 import { PageHeader } from '@/components/page-header'
+import { MetricCard, MetricGrid } from '@/components/shared/metric-card'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -70,17 +71,17 @@ function TBadge({ label, color, bg }: { label: string; color: string; bg: string
   )
 }
 
-function Th({ children, w }: { children?: React.ReactNode; w?: number }) {
+function Th({ children, w, right }: { children?: React.ReactNode; w?: number; right?: boolean }) {
   return (
-    <th className="h-9 px-3 text-left align-middle text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/30 whitespace-nowrap" style={{ width: w }}>
+    <th className={cn('h-9 px-3 align-middle text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/30 whitespace-nowrap', right ? 'text-right' : 'text-left')} style={{ width: w }}>
       {children}
     </th>
   )
 }
 
-function Td({ children, className }: { children?: React.ReactNode; className?: string }) {
+function Td({ children, className, right }: { children?: React.ReactNode; className?: string; right?: boolean }) {
   return (
-    <td className={cn('px-3 py-2.5 align-middle border-b border-[--border-subtle] text-[13px]', className)}>
+    <td className={cn('px-3 py-2.5 align-middle border-b border-[--border-subtle] text-[13px]', right && 'text-right tabular-nums', className)}>
       {children}
     </td>
   )
@@ -411,7 +412,7 @@ export default function OutboundAgentPage() {
                 <table className="w-full border-collapse text-[12px]">
                   <thead>
                     <tr>
-                      {['Date', 'Sector', 'Locations', 'Type', 'Companies', ''].map(h => <Th key={h}>{h}</Th>)}
+                      <Th>Date</Th><Th>Sector</Th><Th>Locations</Th><Th>Type</Th><Th right>Companies</Th><Th>{''}</Th>
                     </tr>
                   </thead>
                   <tbody>
@@ -425,7 +426,7 @@ export default function OutboundAgentPage() {
                         <Td>
                           <TBadge label={s.product_type ?? 'General'} color="hsl(var(--muted-foreground))" bg="hsl(var(--muted))" />
                         </Td>
-                        <Td className="font-semibold text-foreground">{s.company_count}</Td>
+                        <Td right className="font-semibold text-foreground">{s.company_count}</Td>
                         <Td>
                           <Button variant="outline" size="sm" className="text-[11px] h-7 px-2.5" onClick={() => viewHistorySearch(s)}>View</Button>
                         </Td>
@@ -448,9 +449,9 @@ export default function OutboundAgentPage() {
             </Button>
             <div className="flex-1 min-w-0">
               <p className="text-[14px] font-bold text-foreground m-0">
-                {companies.length} companies{' '}
+                {currentSearch.sector}{' '}
                 <span className="font-normal text-muted-foreground">
-                  — {currentSearch.sector} · {(currentSearch.locations ?? [currentSearch.location]).join(', ')}
+                  — {(currentSearch.locations ?? [currentSearch.location]).join(', ')}
                 </span>
               </p>
               {skipped > 0 && <p className="text-[11px] text-amber-600 mt-0.5 mb-0">{skipped} duplicate(s) excluded</p>}
@@ -472,13 +473,20 @@ export default function OutboundAgentPage() {
             }
           </div>
 
+          <MetricGrid className="mb-4 grid-cols-3 md:grid-cols-3">
+            <MetricCard label="Companies found" value={companies.length} icon={Building2} />
+            <MetricCard label="People fetched" value={companies.filter(c => c.people_fetched).length} icon={CheckCircle}
+              sub={`of ${companies.length}`} />
+            <MetricCard label="Total people" value={companies.reduce((n, c) => n + c.people_count, 0)} icon={Users} />
+          </MetricGrid>
+
           <Card>
             <CardContent className="p-0">
               <table className="w-full border-collapse">
                 <thead>
                   <tr>
                     {!isHistory && <Th w={36}><input type="checkbox" checked={selCompanies.size === companies.length && companies.length > 0} onChange={e => setSelCompanies(e.target.checked ? new Set(companies.map(c => c.id)) : new Set())} /></Th>}
-                    {['#', 'Company', 'Industry', 'Headcount', 'People Status', 'Count'].map(h => <Th key={h}>{h}</Th>)}
+                    <Th w={36}>#</Th><Th>Company</Th><Th>Industry</Th><Th right>Headcount</Th><Th>People Status</Th><Th right>Count</Th>
                   </tr>
                 </thead>
                 <tbody>
@@ -490,14 +498,14 @@ export default function OutboundAgentPage() {
                       <Td className="text-muted-foreground/40 text-[11px] w-9">{c.source_rank}</Td>
                       <Td className="font-medium text-foreground">{c.name}</Td>
                       <Td className="text-muted-foreground text-[12px]">{c.industry ?? '—'}</Td>
-                      <Td className="text-muted-foreground text-[12px]">{c.employee_count ? c.employee_count.toLocaleString() : '—'}</Td>
+                      <Td right className="text-muted-foreground text-[12px]">{c.employee_count ? c.employee_count.toLocaleString() : '—'}</Td>
                       <Td>
                         {c.people_fetched
-                          ? <TBadge label="Fetched" color="#166534" bg="#f0fdf4" />
+                          ? <TBadge label="Fetched" color="var(--success)" bg="var(--success-bg)" />
                           : <TBadge label="Pending" color="hsl(var(--muted-foreground))" bg="hsl(var(--muted))" />
                         }
                       </Td>
-                      <Td className={c.people_count > 0 ? 'font-semibold text-foreground' : 'text-muted-foreground/30'}>
+                      <Td right className={c.people_count > 0 ? 'font-semibold text-foreground' : 'text-muted-foreground/30'}>
                         {c.people_count > 0 ? c.people_count : '—'}
                       </Td>
                     </tr>
@@ -535,6 +543,13 @@ export default function OutboundAgentPage() {
             </div>
             {isHistory && <span className="text-[12px] text-muted-foreground/50 italic">Read-only — history</span>}
           </div>
+
+          <MetricGrid className="mb-4 grid-cols-3 md:grid-cols-3">
+            <MetricCard label="People found" value={people.length} icon={Users} />
+            <MetricCard label="From companies" value={new Set(people.map(p => p.company_id)).size} icon={Building2} />
+            <MetricCard label="Emails found" value={people.filter(p => p.email).length} icon={Mail}
+              sub={people.some(p => p.email_requested) ? `of ${people.filter(p => p.email_requested).length} requested` : undefined} />
+          </MetricGrid>
 
           <Card>
             <CardContent className="p-0">
@@ -625,11 +640,16 @@ export default function OutboundAgentPage() {
               </p>
             </div>
             <Link href="/outbound/leads" className="no-underline">
-              <Button size="sm" className="gap-1.5" style={{ background: '#166534' }}>
+              <Button size="sm" className="gap-1.5">
                 <CheckCircle size={12} /> View Lead Database →
               </Button>
             </Link>
           </div>
+
+          <MetricGrid className="mb-4 grid-cols-2 md:grid-cols-2">
+            <MetricCard label="Emails found" value={people.filter(p => p.email).length} icon={CheckCircle} />
+            <MetricCard label="Not found" value={people.filter(p => p.email_requested && !p.email).length} icon={AlertCircle} />
+          </MetricGrid>
 
           <Card>
             <CardContent className="p-0">
@@ -649,8 +669,8 @@ export default function OutboundAgentPage() {
                       <Td>
                         <TBadge
                           label={p.email_status ?? (p.email ? 'valid' : 'not_found')}
-                          color={p.email ? '#166534' : '#991b1b'}
-                          bg={p.email ? '#f0fdf4' : '#fef2f2'}
+                          color={p.email ? 'var(--success)' : 'var(--error)'}
+                          bg={p.email ? 'var(--success-bg)' : 'var(--error-bg)'}
                         />
                       </Td>
                       <Td className="text-muted-foreground">{p.company_name}</Td>

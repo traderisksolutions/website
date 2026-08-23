@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 const APOLLO = 'https://api.apollo.io/api/v1'
 
@@ -50,6 +51,9 @@ async function promotePersonToLead(person: Record<string, unknown>): Promise<str
 // Body: { searchId, companyIds: string[] }
 // Calls mixed_people/organization_top_people for each company using stored apollo_id.
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { searchId, companyIds } = await req.json()
     if (!searchId || !Array.isArray(companyIds) || companyIds.length === 0) {

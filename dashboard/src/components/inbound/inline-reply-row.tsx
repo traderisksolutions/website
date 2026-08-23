@@ -235,7 +235,7 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
           ) : (
             <>
               {/* Rich editor */}
-              <div style={{ border: '1px solid var(--primary-light-border)', borderRadius: 8, overflow: 'hidden', background: '#fff' }}>
+              <div style={{ border: '1px solid var(--primary-light-border)', borderRadius: 8, overflow: 'hidden', background: 'hsl(var(--card))' }}>
                 <RichEditor
                   key={draftEditorKey}
                   initialHtml={draftHtml}

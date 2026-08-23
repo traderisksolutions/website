@@ -55,6 +55,8 @@ export type AiFeature =
   | 'pm_plan_match'
   | 'pm_classify_categories'
   | 'debit_note_extract'
+  | 'gb_recommend'
+  | 'gb_plan_match'
 
 export interface GeminiUsageMeta {
   promptTokenCount?:     number
