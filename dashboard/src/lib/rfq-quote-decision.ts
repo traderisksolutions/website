@@ -12,6 +12,7 @@
  */
 import { productLineLabel } from '@/lib/product-lines'
 import { logAnthropicUsage, logGeminiUsage } from '@/lib/gemini-usage'
+import { logError } from '@/lib/error-log'
 
 const SB_URL        = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
@@ -89,6 +90,8 @@ async function reason(prompt: string): Promise<{ lines?: ModelLine[] } | null> {
         const text = ((data?.content ?? []) as { type?: string; text?: string }[]).find(b => b.type === 'text')?.text ?? ''
         const parsed = parseJson(text) as { lines?: ModelLine[] } | null
         if (parsed?.lines) return parsed
+      } else {
+        void logError({ source: 'anthropic', feature: 'rfq_quote_decision', statusCode: res.status, message: await res.text() })
       }
     } catch { /* fall through to Gemini */ }
   }
@@ -103,6 +106,8 @@ async function reason(prompt: string): Promise<{ lines?: ModelLine[] } | null> {
         const data = await res.json()
         void logGeminiUsage('rfq_quote_decision', data?.usageMetadata ?? {}, null, 'gemini-3.1-pro-preview')
         return parseJson((data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim()) as { lines?: ModelLine[] } | null
+      } else {
+        void logError({ source: 'gemini', feature: 'rfq_quote_decision', statusCode: res.status, message: await res.text() })
       }
     } catch { /* noop */ }
   }

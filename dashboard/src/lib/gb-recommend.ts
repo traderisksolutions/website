@@ -14,6 +14,7 @@
  */
 import { logAnthropicUsage } from '@/lib/gemini-usage'
 import { benefitKey }        from '@/lib/gb-diff'
+import { logError }          from '@/lib/error-log'
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
 const OPUS = 'claude-opus-4-8'
@@ -116,7 +117,10 @@ export async function recommend(
       body: JSON.stringify({ model: OPUS, max_tokens: 4000, thinking: { type: 'adaptive' }, system: SYSTEM, messages: [{ role: 'user', content: [{ type: 'text', text: userText }] }] }),
     })
     const j = await res.json()
-    if (!res.ok) return { recommendation: null, error: `Anthropic ${res.status}: ${JSON.stringify(j).slice(0, 200)}` }
+    if (!res.ok) {
+      void logError({ source: 'anthropic', feature: 'gb_recommend', statusCode: res.status, message: JSON.stringify(j), metadata: { companyName } })
+      return { recommendation: null, error: `Anthropic ${res.status}: ${JSON.stringify(j).slice(0, 200)}` }
+    }
     void logAnthropicUsage('gb_recommend', j.usage, null)
     const text = (j.content ?? []).filter((b: { type: string }) => b.type === 'text').map((b: { text: string }) => b.text).join('\n')
     const rec = extractJson(text)

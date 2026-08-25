@@ -11,6 +11,7 @@
  */
 import { logAiUsage } from '@/lib/gemini-usage'
 import type { QuoteResult, Selection } from '@/lib/pm-quote'
+import { logError } from '@/lib/error-log'
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
 const OPUS = 'claude-opus-4-8'
@@ -98,7 +99,10 @@ export async function recommend(
       body: JSON.stringify({ model: OPUS, max_tokens: 4000, thinking: { type: 'adaptive' }, system: SYSTEM, messages: [{ role: 'user', content: [{ type: 'text', text: userText }] }] }),
     })
     const j = await res.json()
-    if (!res.ok) return { recommendation: null, error: `Anthropic ${res.status}: ${JSON.stringify(j).slice(0, 200)}` }
+    if (!res.ok) {
+      void logError({ source: 'anthropic', feature: 'pm_recommend', statusCode: res.status, message: JSON.stringify(j) })
+      return { recommendation: null, error: `Anthropic ${res.status}: ${JSON.stringify(j).slice(0, 200)}` }
+    }
     void logAiUsage({ provider: 'anthropic', model: OPUS, feature: 'pm_recommend', inputTokens: j.usage?.input_tokens ?? 0, outputTokens: j.usage?.output_tokens ?? 0, metadata: { pm: 'recommend' } })
     const text = (j.content ?? []).filter((b: { type: string }) => b.type === 'text').map((b: { text: string }) => b.text).join('\n')
     const rec = extractJson(text)

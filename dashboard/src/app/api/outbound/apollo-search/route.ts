@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders } from '@/lib/sb'
 import { requireStaffOrCron } from '@/lib/api-auth'
+import { logError } from '@/lib/error-log'
 
 const APOLLO = 'https://api.apollo.io/api/v1'
 const GEMINI = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
@@ -85,6 +86,7 @@ Return ONLY valid JSON — no markdown, no commentary:
     })
 
     if (!geminiRes.ok) {
+      void logError({ source: 'gemini', feature: 'outbound_search', statusCode: geminiRes.status, message: await geminiRes.text().catch(() => '') })
       return NextResponse.json({ error: `AI discovery failed (${geminiRes.status})` }, { status: 502 })
     }
 

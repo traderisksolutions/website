@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { logGeminiUsage }            from '@/lib/gemini-usage'
 import { productLineLabel }          from '@/lib/product-lines'
 import { createSupabaseDB, createGeminiComposer, SkillSynthesizer } from '@/lib/ai-learning-loop'
+import { logError }                  from '@/lib/error-log'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
@@ -127,7 +128,11 @@ Return ONLY JSON: { "subject": "<email subject>", "body": "<plain-text email bod
         generationConfig: { temperature: 0.4, responseMimeType: 'application/json' },
       }),
     })
-    if (!gRes.ok) return NextResponse.json({ error: `gemini error: ${await gRes.text()}` }, { status: 502 })
+    if (!gRes.ok) {
+      const errText = await gRes.text()
+      void logError({ source: 'gemini', feature: 'rfq_draft', statusCode: gRes.status, message: errText, resourceType: 'rfq_request', resourceId: rfq_request_id })
+      return NextResponse.json({ error: `gemini error: ${errText}` }, { status: 502 })
+    }
     const data = await gRes.json()
     if (data?.usageMetadata) logGeminiUsage('draft_email', data.usageMetadata).catch(() => {})
 

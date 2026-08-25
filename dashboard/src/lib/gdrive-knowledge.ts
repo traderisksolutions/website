@@ -6,6 +6,7 @@
  */
 
 import { createSign } from 'crypto'
+import { logError } from './error-log'
 
 const GEMINI_UPLOAD = 'https://generativelanguage.googleapis.com/upload/v1beta/files'
 const DRIVE_API     = 'https://www.googleapis.com/drive/v3'
@@ -84,6 +85,10 @@ async function uploadToGemini(pdf: Buffer, filename: string, apiKey: string): Pr
     },
     body,
   })
+  if (!res.ok) {
+    void logError({ source: 'gemini', feature: 'gdrive_knowledge_upload', statusCode: res.status, message: await res.text(), resourceType: 'file', resourceId: filename })
+    return null
+  }
   const data = await res.json()
   return data?.file?.uri ?? null
 }

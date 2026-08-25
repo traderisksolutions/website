@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders, logEvent } from '@/lib/sb'
+import { logError } from '@/lib/error-log'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -178,7 +179,10 @@ Return ONLY valid JSON:
       }
     )
 
-    if (!geminiRes.ok) return NextResponse.json({ error: 'AI generation failed' }, { status: 502 })
+    if (!geminiRes.ok) {
+      void logError({ source: 'gemini', feature: 'campaign_variants', statusCode: geminiRes.status, message: await geminiRes.text().catch(() => ''), resourceType: 'ob_campaign', resourceId: id })
+      return NextResponse.json({ error: 'AI generation failed' }, { status: 502 })
+    }
 
     const geminiData = await geminiRes.json()
     const rawText    = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}'

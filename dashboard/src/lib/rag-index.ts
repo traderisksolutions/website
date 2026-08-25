@@ -5,6 +5,7 @@
 
 import { createSign }       from 'crypto'
 import { logEmbeddingUsage } from '@/lib/gemini-usage'
+import { logError } from '@/lib/error-log'
 
 const SB_URL    = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const DRIVE_API = 'https://www.googleapis.com/drive/v3'
@@ -150,6 +151,7 @@ async function embedText(text: string, apiKey: string): Promise<number[]> {
   const data = await res.json()
   if (!res.ok || !data.embedding?.values) {
     const reason = data.error?.message ?? data.error?.status ?? JSON.stringify(data).slice(0, 300)
+    void logError({ source: 'gemini', feature: 'rag_index', statusCode: res.status, message: reason })
     throw new Error(`Gemini embedding failed (${res.status}): ${reason}`)
   }
   return data.embedding.values

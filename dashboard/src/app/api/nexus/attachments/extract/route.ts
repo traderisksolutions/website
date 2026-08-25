@@ -19,6 +19,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { parseEmlSmart }             from '@/lib/parse-eml'
+import { logError }                  from '@/lib/error-log'
 
 export const maxDuration = 300
 
@@ -175,9 +176,16 @@ Be specific. Use factual, professional language. Return plain text only.`,
         generationConfig: { maxOutputTokens: 1024, temperature: 0.1 },
       }),
     })
+    if (!res.ok) {
+      void logError({ source: 'gemini', feature: 'nexus_attachment_describe_image', statusCode: res.status, message: await res.text() })
+      return ''
+    }
     const d = await res.json()
     return d?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-  } catch { return '' }
+  } catch (e) {
+    void logError({ source: 'gemini', feature: 'nexus_attachment_describe_image', message: String(e) })
+    return ''
+  }
 }
 
 // ── PDF text extraction ───────────────────────────────────────────────────────
@@ -221,9 +229,16 @@ Return plain text only. If a value is unclear, write it as best you can read it 
         generationConfig: { maxOutputTokens: 8192, temperature: 0 },
       }),
     })
+    if (!res.ok) {
+      void logError({ source: 'gemini', feature: 'nexus_attachment_pdf', statusCode: res.status, message: await res.text() })
+      return ''
+    }
     const d = await res.json()
     return d?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-  } catch { return '' }
+  } catch (e) {
+    void logError({ source: 'gemini', feature: 'nexus_attachment_pdf', message: String(e) })
+    return ''
+  }
 }
 
 async function extractPdfText(data: Buffer, apiKey: string): Promise<string | null> {

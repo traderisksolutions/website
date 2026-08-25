@@ -11,6 +11,7 @@
  */
 import { logGeminiUsage } from '@/lib/gemini-usage'
 import { logRfqEvent }    from '@/lib/rfq-log'
+import { logError }       from '@/lib/error-log'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const geminiUrl  = (model: string) => `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
@@ -96,7 +97,10 @@ ${corpus.slice(0, 30_000)}`
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0, responseMimeType: 'application/json' } }),
   })
-  if (!res.ok) return null
+  if (!res.ok) {
+    void logError({ source: 'gemini', feature: 'rfq_quote_extract', statusCode: res.status, message: await res.text() })
+    return null
+  }
   const data = await res.json()
   if (data?.usageMetadata) logGeminiUsage('email_analysis', data.usageMetadata, null, model).catch(() => {})
   const raw = (data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim()

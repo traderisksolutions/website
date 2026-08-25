@@ -15,6 +15,7 @@ const GEMINI_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/gem
 const EMBED_URL   = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent'
 
 import { logGeminiUsage } from '@/lib/gemini-usage'
+import { logError } from '@/lib/error-log'
 import { fetchAttachmentContext } from '@/lib/thread-attachment-context'
 import { createSupabaseDB, createGeminiComposer, EvalStore, ExampleStore, SkillSynthesizer, type EvalRecord, type SkillExample } from '@/lib/ai-learning-loop'
 import { EMAIL_TYPE_BASE_INSTRUCTIONS } from '@/lib/email-surface-instructions'
@@ -43,6 +44,10 @@ async function embedText(text: string, apiKey: string): Promise<number[]> {
       outputDimensionality: 768,
     }),
   })
+  if (!res.ok) {
+    void logError({ source: 'gemini', feature: 'rag_draft_embed', statusCode: res.status, message: await res.text() })
+    return []
+  }
   const data = await res.json()
   return data.embedding?.values ?? []
 }
@@ -317,7 +322,9 @@ Write only the email body starting with "${salutation}". End after the last para
     }),
   })
   if (!geminiRes.ok) {
-    throw new Error(`Gemini ${geminiRes.status}: ${await geminiRes.text()}`)
+    const errText = await geminiRes.text()
+    void logError({ source: 'gemini', feature: 'rag_draft_reply', statusCode: geminiRes.status, message: errText, threadId: thread_id })
+    throw new Error(`Gemini ${geminiRes.status}: ${errText}`)
   }
   const geminiData = await geminiRes.json()
   void logGeminiUsage('rag_draft_reply', geminiData.usageMetadata ?? {}, thread_id)

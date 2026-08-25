@@ -10,6 +10,7 @@
  */
 import { logAiUsage } from '@/lib/gemini-usage'
 import { GEMINI_PRO, geminiUrl } from '@/lib/gemini-models'
+import { logError } from '@/lib/error-log'
 import type { Coverage, Rules, Accuracy, RateTable } from '@/lib/pm-rates'
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
@@ -103,7 +104,10 @@ async function opusExtract(system: string, dump: unknown, brochureBase64?: strin
         messages: [{ role: 'user', content: buildUserContent(dump, brochureBase64, false) }] }),
     })
     const j = await res.json()
-    if (!res.ok) return { table: null, error: `Anthropic ${res.status}` }
+    if (!res.ok) {
+      void logError({ source: 'anthropic', feature: 'pm_rate_extract', statusCode: res.status, message: JSON.stringify(j) })
+      return { table: null, error: `Anthropic ${res.status}` }
+    }
     void logAiUsage({ provider: 'anthropic', model: OPUS, feature: 'pm_rate_extract', inputTokens: j.usage?.input_tokens ?? 0, outputTokens: j.usage?.output_tokens ?? 0, metadata: { pm: 'rates_opus' } })
     const text = (j.content ?? []).filter((b: { type: string }) => b.type === 'text').map((b: { text: string }) => b.text).join('\n')
     const table = extractJson<ExtractedRateTable>(text)
@@ -123,7 +127,10 @@ async function geminiExtract(system: string, dump: unknown, brochureBase64?: str
         generationConfig: { temperature: 0, maxOutputTokens: 32000, responseMimeType: brochureBase64 ? undefined : 'application/json' },
       }),
     })
-    if (!res.ok) return { table: null, error: `Gemini ${res.status}` }
+    if (!res.ok) {
+      void logError({ source: 'gemini', feature: 'pm_rate_extract', statusCode: res.status, message: await res.text() })
+      return { table: null, error: `Gemini ${res.status}` }
+    }
     const j = await res.json()
     void logAiUsage({ provider: 'gemini', model: GEMINI_PRO, feature: 'pm_rate_extract', inputTokens: j.usageMetadata?.promptTokenCount ?? 0, outputTokens: j.usageMetadata?.candidatesTokenCount ?? 0, metadata: { pm: 'rates_gemini' } })
     const text = j?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? ''
@@ -215,7 +222,10 @@ async function adjudicate(dump: unknown, brochureBase64: string | undefined, con
         messages: [{ role: 'user', content }] }),
     })
     const j = await res.json()
-    if (!res.ok) return out
+    if (!res.ok) {
+      void logError({ source: 'anthropic', feature: 'pm_rate_extract_adjudicate', statusCode: res.status, message: JSON.stringify(j) })
+      return out
+    }
     void logAiUsage({ provider: 'anthropic', model: OPUS, feature: 'pm_rate_extract', inputTokens: j.usage?.input_tokens ?? 0, outputTokens: j.usage?.output_tokens ?? 0, metadata: { pm: 'rates_judge' } })
     const text = (j.content ?? []).filter((b: { type: string }) => b.type === 'text').map((b: { text: string }) => b.text).join('\n')
     const arr = extractJson<{ i: number; value: number | string }[]>(text.replace(/^[^[]*/, '').replace(/[^\]]*$/, '')) as unknown as { i: number; value: number | string }[] | null

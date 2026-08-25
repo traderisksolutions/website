@@ -6,6 +6,7 @@
  * badge. Badge only — no drafting, no case, no send. Always 200.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { logError } from '@/lib/error-log'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
@@ -55,7 +56,10 @@ ${text}`
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0, responseMimeType: 'application/json' } }),
     })
-    if (!gRes.ok) return NextResponse.json({ ok: true, skipped: 'gemini error' })
+    if (!gRes.ok) {
+      void logError({ source: 'gemini', feature: 'email_classify', statusCode: gRes.status, message: await gRes.text(), threadId: thread_id })
+      return NextResponse.json({ ok: true, skipped: 'gemini error' })
+    }
     const data = await gRes.json()
     const raw  = (data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim()
     let parsed: { category?: string; confidence?: number }

@@ -14,6 +14,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseDB, createGeminiComposer, EvalStore, SkillSynthesizer } from '@/lib/ai-learning-loop'
+import { logError } from '@/lib/error-log'
 
 export const maxDuration = 300
 
@@ -33,7 +34,10 @@ async function gemini(prompt: string, key: string): Promise<string> {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.1, maxOutputTokens: 800, responseMimeType: 'application/json' } }),
   })
-  if (!r.ok) return ''
+  if (!r.ok) {
+    void logError({ source: 'gemini', feature: 'chat_evals', statusCode: r.status, message: await r.text() })
+    return ''
+  }
   const d = await r.json()
   return (d?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim()
 }

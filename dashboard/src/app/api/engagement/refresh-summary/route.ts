@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logGeminiUsage }           from '@/lib/gemini-usage'
 import { fetchAttachmentContext }   from '@/lib/thread-attachment-context'
+import { logError }                 from '@/lib/error-log'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
@@ -91,6 +92,7 @@ Return ONLY a valid JSON object. If the email is purely internal (TRS-to-TRS) wi
   if (!gemRes.ok) {
     const errText = await gemRes.text()
     console.error('[refresh-summary] Gemini error:', gemRes.status, errText)
+    void logError({ source: 'gemini', feature: 'refresh_summary', statusCode: gemRes.status, message: errText, threadId: thread_id })
     return NextResponse.json({ error: `Gemini ${gemRes.status}: ${errText}` }, { status: 502 })
   }
 

@@ -13,6 +13,7 @@ import { createClient }              from '@/lib/supabase/server'
 import { productLineLabel }          from '@/lib/product-lines'
 import { logAnthropicUsage, logGeminiUsage } from '@/lib/gemini-usage'
 import { logRfqEvent }         from '@/lib/rfq-log'
+import { logError }            from '@/lib/error-log'
 
 const SB_URL        = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
@@ -43,7 +44,10 @@ async function draftWithOpus(prompt: string): Promise<{ subject?: string; body?:
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({ model: 'claude-opus-4-8', max_tokens: 4000, thinking: { type: 'adaptive' }, messages: [{ role: 'user', content: prompt }] }),
     })
-    if (!res.ok) return null
+    if (!res.ok) {
+      void logError({ source: 'anthropic', feature: 'rfq_recommend', statusCode: res.status, message: await res.text() })
+      return null
+    }
     const data = await res.json()
     void logAnthropicUsage('rfq_recommend', data?.usage)
     const text = ((data?.content ?? []) as { type?: string; text?: string }[]).find(b => b.type === 'text')?.text ?? ''
@@ -60,7 +64,10 @@ async function draftWithGemini(prompt: string): Promise<{ subject?: string; body
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.3, responseMimeType: 'application/json' } }),
     })
-    if (!res.ok) return null
+    if (!res.ok) {
+      void logError({ source: 'gemini', feature: 'rfq_recommend', statusCode: res.status, message: await res.text() })
+      return null
+    }
     const data = await res.json()
     void logGeminiUsage('rfq_recommend', data?.usageMetadata ?? {}, null, 'gemini-3.1-pro-preview')
     return parseJson((data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim())

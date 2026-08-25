@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logGeminiUsage }            from '@/lib/gemini-usage'
 import { productLineLabel }          from '@/lib/product-lines'
+import { logError }                  from '@/lib/error-log'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
@@ -53,6 +54,9 @@ export async function POST(req: NextRequest) {
         if (data?.usageMetadata) logGeminiUsage('draft_email', data.usageMetadata, null, 'gemini-3.1-flash-lite').catch(() => {})
         const raw = (data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim()
         try { const p = JSON.parse(raw.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim()); if (p.body) body = p.body } catch { /* keep fallback */ }
+      } else {
+        // Non-fatal — falls back to the templated chaser body above — but still worth a row.
+        void logError({ source: 'gemini', feature: 'rfq_chase', statusCode: g.status, message: await g.text(), resourceType: 'rfq_dispatch', resourceId: dispatch_id })
       }
     }
 

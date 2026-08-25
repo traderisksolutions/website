@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logError } from '@/lib/error-log'
 
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
 
@@ -68,6 +69,7 @@ NEXT ACTION
 
     if (!res.ok) {
       const err = await res.text()
+      void logError({ source: 'gemini', feature: 'summarize', statusCode: res.status, message: err })
       return NextResponse.json({ error: err }, { status: res.status })
     }
 

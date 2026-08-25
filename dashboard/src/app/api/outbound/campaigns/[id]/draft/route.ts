@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders, logEvent } from '@/lib/sb'
+import { logError } from '@/lib/error-log'
 
 interface Lead {
   full_name: string | null
@@ -151,6 +152,7 @@ Return ONLY valid JSON — no markdown, no extra text:
 
     if (!geminiRes.ok) {
       const errText = await geminiRes.text()
+      void logError({ source: 'gemini', feature: 'campaign_draft', statusCode: geminiRes.status, message: errText, resourceType: 'ob_campaign', resourceId: id })
       return NextResponse.json({ error: `AI drafting failed (${geminiRes.status}): ${errText.slice(0, 200)}` }, { status: 502 })
     }
 

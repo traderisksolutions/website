@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logGeminiUsage }           from '@/lib/gemini-usage'
+import { logError }                 from '@/lib/error-log'
 
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
 
@@ -48,6 +49,7 @@ Write only the email body. End after the last paragraph — no closing line or s
 
     if (!gemRes.ok) {
       const err = await gemRes.text()
+      void logError({ source: 'gemini', feature: 'email_analysis', statusCode: gemRes.status, message: err })
       return NextResponse.json({ error: `Gemini error: ${err}` }, { status: 502 })
     }
 
@@ -55,7 +57,10 @@ Write only the email body. End after the last paragraph — no closing line or s
     void logGeminiUsage('email_analysis', data.usageMetadata ?? {})
     const content = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
 
-    if (!content) return NextResponse.json({ error: 'Gemini returned no content' }, { status: 502 })
+    if (!content) {
+      void logError({ source: 'gemini', feature: 'email_analysis', message: 'Gemini returned no content', metadata: { data } })
+      return NextResponse.json({ error: 'Gemini returned no content' }, { status: 502 })
+    }
 
     return NextResponse.json({ content })
   } catch (e) {

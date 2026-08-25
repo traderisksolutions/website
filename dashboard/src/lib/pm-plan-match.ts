@@ -8,6 +8,7 @@
  * pre-fills the quote wizard's existing plan dropdowns; the broker can still override any pick.
  */
 import { logAiUsage } from '@/lib/gemini-usage'
+import { logError } from '@/lib/error-log'
 import type { RateTable } from '@/lib/pm-rates'
 import { plansFor } from '@/lib/pm-rates'
 import type { BenefitTerm } from '@/lib/pm-benefits-extract'
@@ -85,7 +86,10 @@ export async function suggestPlanMatch(
       }),
     })
     const j = await res.json()
-    if (!res.ok) return { suggestions: [], error: `Anthropic ${res.status}: ${JSON.stringify(j).slice(0, 200)}` }
+    if (!res.ok) {
+      void logError({ source: 'anthropic', feature: 'pm_plan_match', statusCode: res.status, message: JSON.stringify(j) })
+      return { suggestions: [], error: `Anthropic ${res.status}: ${JSON.stringify(j).slice(0, 200)}` }
+    }
     void logAiUsage({ provider: 'anthropic', model: OPUS, feature: 'pm_plan_match', inputTokens: j.usage?.input_tokens ?? 0, outputTokens: j.usage?.output_tokens ?? 0, metadata: { pm: 'plan_match' } })
     const text = (j.content ?? []).filter((b: { type: string }) => b.type === 'text').map((b: { text: string }) => b.text).join('\n')
     const parsed = extractJson(text)

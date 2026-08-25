@@ -15,6 +15,7 @@ import { logGeminiUsage, logAnthropicUsage } from '@/lib/gemini-usage'
 import { fetchKnowledgeDocs } from '@/lib/gdrive-knowledge'
 import { buildQuoteDecision, type QuoteDecisionV1 } from '@/lib/rfq-quote-decision'
 import { caseChatContext } from '@/lib/nexus-chat-learnings'
+import { logError } from '@/lib/error-log'
 
 const SB_URL          = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const STORAGE_BUCKET  = 'email-attachments'
@@ -298,6 +299,10 @@ async function uploadToGemini(data: Buffer, filename: string, mimeType: string, 
       },
       body,
     })
+    if (!res.ok) {
+      void logError({ source: 'gemini', feature: 'nexus_analysis_upload', statusCode: res.status, message: await res.text(), resourceType: 'file', resourceId: filename })
+      return null
+    }
     const json = await res.json()
     return json?.file?.uri ?? null
   } catch { return null }
@@ -595,7 +600,10 @@ ${corpus.slice(0, 120_000)}`
       headers: { 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({ model: 'claude-opus-4-8', max_tokens: 8000, thinking: { type: 'adaptive' }, messages: [{ role: 'user', content: prompt }] }),
     })
-    if (!res.ok) return []
+    if (!res.ok) {
+      void logError({ source: 'anthropic', feature: 'nexus_timeline', statusCode: res.status, message: await res.text() })
+      return []
+    }
     const data = await res.json()
     void logAnthropicUsage('nexus_strategy', data?.usage)
     const text = ((data?.content ?? []) as { type?: string; text?: string }[]).find(b => b.type === 'text')?.text ?? ''
@@ -857,7 +865,11 @@ Return ONLY a JSON array (no markdown fences), one object per brief IN THE SAME 
       generationConfig: { temperature: 0.3, maxOutputTokens: 8192, responseMimeType: 'application/json' },
     }),
   })
-  if (!res.ok) throw new Error(`Gemini drafting failed ${res.status}`)
+  if (!res.ok) {
+    const errText = await res.text()
+    void logError({ source: 'gemini', feature: 'nexus_draft_from_briefs', statusCode: res.status, message: errText })
+    throw new Error(`Gemini drafting failed ${res.status}`)
+  }
   const data = await res.json()
   void logGeminiUsage('draft_email', data.usageMetadata ?? {})
   const text = ((data?.candidates?.[0]?.content?.parts ?? []) as { text?: string }[])
@@ -1319,6 +1331,7 @@ Return [] for sections with no items; never omit a section`
 
   if (!synthRes.ok) {
     const err = await synthRes.text()
+    void logError({ source: 'gemini', feature: 'nexus_synthesis', statusCode: synthRes.status, message: err, resourceType: 'nexus_case', resourceId: caseId })
     throw new Error(`Gemini synthesis failed ${synthRes.status}: ${err}`)
   }
   const synthData = await synthRes.json()
@@ -1539,6 +1552,7 @@ COMMUNICATION BRIEFS (you plan the emails; a separate drafting model writes them
         const err = await claudeRes.text().catch(() => '')
         strategySkippedReason = `Opus call failed (${claudeRes.status})`
         console.warn('[nexus]', strategySkippedReason, err.slice(0, 300))
+        void logError({ source: 'anthropic', feature: 'nexus_strategy', statusCode: claudeRes.status, message: err, resourceType: 'nexus_case', resourceId: caseId })
       }
     } catch (e) {
       strategySkippedReason = 'Opus call error'

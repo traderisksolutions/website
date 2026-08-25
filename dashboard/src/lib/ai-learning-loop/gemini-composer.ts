@@ -1,4 +1,5 @@
 import type { InstructionComposer } from './skill-synthesizer'
+import { logError } from '@/lib/error-log'
 
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
 
@@ -40,7 +41,10 @@ Output ONLY the rewritten instruction block:`
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.15, maxOutputTokens: 512 } }),
       })
-      if (!res.ok) return null
+      if (!res.ok) {
+        void logError({ source: 'gemini', feature: 'skill_synthesis', statusCode: res.status, message: await res.text(), resourceType: 'surface', resourceId: surface })
+        return null
+      }
       const data = await res.json()
       const text = (data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim()
       return text || null

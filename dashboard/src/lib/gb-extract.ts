@@ -12,6 +12,7 @@
  */
 import { logAiUsage } from './gemini-usage'
 import { GEMINI_FLASH, geminiUrl } from './gemini-models'
+import { logError } from './error-log'
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
 const OPUS = 'claude-opus-4-8'
@@ -98,7 +99,11 @@ export async function extractWithOpus(pdfBase64: string, profileHint: string): P
         ] }],
       }),
     })
-    if (!res.ok) return { data: EMPTY, raw: '', error: `Opus ${res.status}: ${(await res.text()).slice(0, 300)}` }
+    if (!res.ok) {
+      const errText = await res.text()
+      void logError({ source: 'anthropic', feature: 'gb_extract_opus', statusCode: res.status, message: errText })
+      return { data: EMPTY, raw: '', error: `Opus ${res.status}: ${errText.slice(0, 300)}` }
+    }
     const j = await res.json()
     const text = (j.content ?? []).filter((c: { type: string }) => c.type === 'text').map((c: { text: string }) => c.text).join('')
     void logAiUsage({ provider: 'anthropic', model: OPUS, feature: 'nexus_strategy', inputTokens: j.usage?.input_tokens ?? 0, outputTokens: j.usage?.output_tokens ?? 0, metadata: { gb: 'extract_opus' } })
@@ -123,7 +128,11 @@ export async function extractWithGemini(pdfBase64: string, profileHint: string):
         generationConfig: { temperature: 0, maxOutputTokens: 60000 },
       }),
     })
-    if (!res.ok) return { data: EMPTY, raw: '', error: `Gemini ${res.status}: ${(await res.text()).slice(0, 300)}` }
+    if (!res.ok) {
+      const errText = await res.text()
+      void logError({ source: 'gemini', feature: 'gb_extract_gemini', statusCode: res.status, message: errText })
+      return { data: EMPTY, raw: '', error: `Gemini ${res.status}: ${errText.slice(0, 300)}` }
+    }
     const j = await res.json()
     const text = j?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? ''
     void logAiUsage({ provider: 'gemini', model: GEMINI_FLASH, feature: 'email_analysis', inputTokens: j.usageMetadata?.promptTokenCount ?? 0, outputTokens: j.usageMetadata?.candidatesTokenCount ?? 0, metadata: { gb: 'extract_gemini' } })
@@ -260,7 +269,10 @@ export async function adjudicateWithOpus(pdfBase64: string, conflicts: Conflict[
         ] }],
       }),
     })
-    if (!res.ok) return {}
+    if (!res.ok) {
+      void logError({ source: 'anthropic', feature: 'gb_extract_adjudicate', statusCode: res.status, message: await res.text() })
+      return {}
+    }
     const j = await res.json()
     const text = (j.content ?? []).filter((c: { type: string }) => c.type === 'text').map((c: { text: string }) => c.text).join('')
     void logAiUsage({ provider: 'anthropic', model: OPUS, feature: 'nexus_strategy', inputTokens: j.usage?.input_tokens ?? 0, outputTokens: j.usage?.output_tokens ?? 0, metadata: { gb: 'judge' } })

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders, logEvent } from '@/lib/sb'
 import { resolveCompany } from '@/lib/debit-note-commit'
+import { logError } from '@/lib/error-log'
 
 // POST /api/outbound/webhooks/instantly
 // Receives Instantly.ai webhook events, saves to ob_reply_events, classifies replies with Gemini
@@ -199,7 +200,10 @@ Return: { "label": "<one of the above>", "confidence": <0.0–1.0>, "reasoning":
       }
     )
 
-    if (!res.ok) return
+    if (!res.ok) {
+      void logError({ source: 'gemini', feature: 'reply_classify', statusCode: res.status, message: await res.text(), resourceType: 'ob_reply', resourceId: replyEvent.id })
+      return
+    }
 
     const data    = await res.json()
     const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}'

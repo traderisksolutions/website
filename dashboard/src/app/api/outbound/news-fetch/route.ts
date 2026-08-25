@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffOrCron } from '@/lib/api-auth'
+import { logError } from '@/lib/error-log'
 
 // POST /api/outbound/news-fetch
 // Body: { industry, locations: string[], newsUrl?: string }
@@ -48,6 +49,8 @@ export async function POST(req: NextRequest) {
           summary  = parsed.summary  ?? null
           source   = parsed.source   ?? null
         } catch { /* keep nulls */ }
+      } else {
+        void logError({ source: 'gemini', feature: 'news_fetch_url', statusCode: res.status, message: await res.text() })
       }
     } else {
       // Auto-fetch: find relevant insurance-angle news for the industry + location
@@ -84,6 +87,8 @@ export async function POST(req: NextRequest) {
           url      = parsed.url      ?? null
           source   = parsed.source   ?? null
         } catch { /* keep nulls */ }
+      } else {
+        void logError({ source: 'gemini', feature: 'news_fetch_auto', statusCode: res.status, message: await res.text(), metadata: { industry } })
       }
     }
 

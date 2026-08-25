@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders } from '@/lib/sb'
+import { logError } from '@/lib/error-log'
 import { getActiveTargetIndustries } from '@/lib/active-campaign-industries'
 
 export const maxDuration = 120
@@ -42,7 +43,10 @@ If nothing genuinely relevant and recent exists, return {"found": false}. Do not
       generationConfig: { responseMimeType: 'application/json' },
     }),
   })
-  if (!res.ok) return null
+  if (!res.ok) {
+    void logError({ source: 'gemini', feature: 'daily_signal_scan', statusCode: res.status, message: await res.text(), resourceType: 'industry', resourceId: industry })
+    return null
+  }
   const data = await res.json()
   const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}'
   try {

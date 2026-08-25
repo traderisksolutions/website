@@ -15,6 +15,7 @@
  */
 import { logAiUsage } from '@/lib/gemini-usage'
 import { GEMINI_PRO, geminiUrl } from '@/lib/gemini-models'
+import { logError } from '@/lib/error-log'
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
 const OPUS = 'claude-opus-4-8'
@@ -72,7 +73,10 @@ export async function detectExcelShape(dump: unknown): Promise<ExcelShape> {
       }),
     })
     const j = await res.json()
-    if (!res.ok) return formulaRatio > 0.3 ? 'formula_shell' : 'hybrid'
+    if (!res.ok) {
+      void logError({ source: 'anthropic', feature: 'pm_shape_detect', statusCode: res.status, message: JSON.stringify(j) })
+      return formulaRatio > 0.3 ? 'formula_shell' : 'hybrid'
+    }
     void logAiUsage({ provider: 'anthropic', model: OPUS, feature: 'pm_shape_detect', inputTokens: j.usage?.input_tokens ?? 0, outputTokens: j.usage?.output_tokens ?? 0, metadata: {} })
     const text = ((j.content ?? []).find((b: { type: string }) => b.type === 'text')?.text ?? '').trim().toLowerCase()
     if (text.includes('embedded_table')) return 'embedded_table'
@@ -166,7 +170,10 @@ async function opusExtract(dump: unknown, brochureBase64?: string): Promise<{ ru
         messages: [{ role: 'user', content: buildUserContent(dump, brochureBase64, false) }] }),
     })
     const j = await res.json()
-    if (!res.ok) return { rules: null, error: `Anthropic ${res.status}` }
+    if (!res.ok) {
+      void logError({ source: 'anthropic', feature: 'pm_rules_extract', statusCode: res.status, message: JSON.stringify(j) })
+      return { rules: null, error: `Anthropic ${res.status}` }
+    }
     void logAiUsage({ provider: 'anthropic', model: OPUS, feature: 'pm_rules_extract', inputTokens: j.usage?.input_tokens ?? 0, outputTokens: j.usage?.output_tokens ?? 0, metadata: { pm: 'rules_opus' } })
     const text = (j.content ?? []).filter((b: { type: string }) => b.type === 'text').map((b: { text: string }) => b.text).join('\n')
     const parsed = extractJson<{ rules: RuleStep[] }>(text)
@@ -185,7 +192,10 @@ async function geminiExtract(dump: unknown, brochureBase64?: string): Promise<{ 
         generationConfig: { temperature: 0, maxOutputTokens: 24000, responseMimeType: brochureBase64 ? undefined : 'application/json' },
       }),
     })
-    if (!res.ok) return { rules: null, error: `Gemini ${res.status}` }
+    if (!res.ok) {
+      void logError({ source: 'gemini', feature: 'pm_rules_extract', statusCode: res.status, message: await res.text() })
+      return { rules: null, error: `Gemini ${res.status}` }
+    }
     const j = await res.json()
     void logAiUsage({ provider: 'gemini', model: GEMINI_PRO, feature: 'pm_rules_extract', inputTokens: j.usageMetadata?.promptTokenCount ?? 0, outputTokens: j.usageMetadata?.candidatesTokenCount ?? 0, metadata: { pm: 'rules_gemini' } })
     const text = j?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? ''

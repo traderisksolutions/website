@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { logAnthropicUsage }         from '@/lib/gemini-usage'
+import { logError }                  from '@/lib/error-log'
 import { createSupabaseDB, createGeminiComposer, SkillSynthesizer } from '@/lib/ai-learning-loop'
 
 export const maxDuration = 300
@@ -310,7 +311,10 @@ export async function POST(req: NextRequest) {
           void logAnthropicUsage('chat_consultant', { input_tokens: totalIn, output_tokens: totalOut }, effCaseId ?? null)
           emit({ type: 'done', message: saved })
         } catch (e) {
-          if (!ac.signal.aborted) emit({ type: 'error', error: String(e) })
+          if (!ac.signal.aborted) {
+            emit({ type: 'error', error: String(e) })
+            void logError({ source: 'anthropic', feature: 'chat_consultant', message: String(e), threadId: thread_id, resourceType: 'nexus_case', resourceId: effCaseId })
+          }
         } finally {
           try { controller.close() } catch { /* already closed */ }
         }

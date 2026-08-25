@@ -5,6 +5,7 @@ import { requireStaffOrCron } from '@/lib/api-auth'
 import { getAppSetting } from '@/lib/app-settings'
 import { sendGmailNotification } from '@/lib/gmail-send'
 import { mapInboundTopicToProductLine } from '@/lib/inbound-topic-mapping'
+import { logError } from '@/lib/error-log'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
@@ -29,6 +30,10 @@ async function searchInboundChunks(queryText: string, apiKey: string): Promise<C
         outputDimensionality: 768,
       }),
     })
+    if (!embedRes.ok) {
+      void logError({ source: 'gemini', feature: 'inbound_auto_draft_embed', statusCode: embedRes.status, message: await embedRes.text() })
+      return []
+    }
     const embedData = await embedRes.json()
     const embedding: number[] = embedData.embedding?.values ?? []
     if (embedding.length === 0) return []
@@ -204,6 +209,7 @@ OUTPUT FORMAT — exactly two parts, in this order:
 
     if (!gemRes.ok) {
       const err = await gemRes.text()
+      void logError({ source: 'gemini', feature: 'inbound_auto_draft', statusCode: gemRes.status, message: err, resourceType: 'inbound_lead', resourceId: leadId })
       return NextResponse.json({ error: `Gemini error: ${err}` }, { status: 502 })
     }
 

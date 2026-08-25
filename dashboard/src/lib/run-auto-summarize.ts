@@ -1,4 +1,5 @@
 import { logGeminiUsage }       from '@/lib/gemini-usage'
+import { logError }             from '@/lib/error-log'
 import { runRagDraft }           from '@/lib/run-rag-draft'
 import { fetchKnowledgeDocs }    from '@/lib/gdrive-knowledge'
 
@@ -124,6 +125,7 @@ Rules for draft_reply:
 
   if (!geminiRes.ok) {
     const errText = await geminiRes.text()
+    void logError({ source: 'gemini', feature: 'auto_summarize', statusCode: geminiRes.status, message: errText, threadId: thread_id })
     throw new Error(`Gemini ${geminiRes.status}: ${errText}`)
   }
 

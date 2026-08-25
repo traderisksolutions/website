@@ -14,6 +14,7 @@
  * broker can still override any pick. Zero effect on computed premiums.
  */
 import { logAnthropicUsage } from '@/lib/gemini-usage'
+import { logError } from '@/lib/error-log'
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
 const OPUS = 'claude-opus-4-8'
@@ -85,7 +86,10 @@ export async function suggestPlanMatch(
       }),
     })
     const j = await res.json()
-    if (!res.ok) return { suggestions: [], error: `Anthropic ${res.status}: ${JSON.stringify(j).slice(0, 200)}` }
+    if (!res.ok) {
+      void logError({ source: 'anthropic', feature: 'gb_plan_match', statusCode: res.status, message: JSON.stringify(j), resourceType: 'product', resourceId: productTitle })
+      return { suggestions: [], error: `Anthropic ${res.status}: ${JSON.stringify(j).slice(0, 200)}` }
+    }
     void logAnthropicUsage('gb_plan_match', j.usage, null)
     const text = (j.content ?? []).filter((b: { type: string }) => b.type === 'text').map((b: { text: string }) => b.text).join('\n')
     const parsed = extractJson(text)

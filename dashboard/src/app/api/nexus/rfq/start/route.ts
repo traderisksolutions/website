@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { logGeminiUsage }            from '@/lib/gemini-usage'
 import { logRfqEvent }               from '@/lib/rfq-log'
+import { logError }                  from '@/lib/error-log'
 import { PRODUCT_LINES, isValidProductLine, productLineLabel } from '@/lib/product-lines'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
@@ -92,6 +93,8 @@ ${String(msg.body_text).slice(0, 12000)}`
             const parsed = JSON.parse(raw.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim()) as { requests?: { product_line: string; summary: string }[] }
             suggested = (parsed.requests ?? []).filter(r => r.product_line && isValidProductLine(r.product_line))
           } catch { /* best-effort */ }
+        } else {
+          void logError({ source: 'gemini', feature: 'rfq_start_suggest', statusCode: gRes.status, message: await gRes.text(), threadId: body.thread_id })
         }
       }
       return NextResponse.json({ suggested_lines: suggested, insured_name: insured })

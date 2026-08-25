@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { SB_URL, sbH }               from '@/lib/pm-storage'
 import { logAiUsage }                from '@/lib/gemini-usage'
+import { logError }                  from '@/lib/error-log'
 import { PM_CANONICAL_CATEGORIES_PROMPT_LIST } from '@/lib/pm-canonical-categories'
 import type { Coverage }             from '@/lib/pm-rates'
 import type { BenefitTerm }          from '@/lib/pm-benefits-extract'
@@ -58,7 +59,10 @@ Return ONLY this JSON (no prose, no markdown fence):
     }),
   })
   const j = await res.json()
-  if (!res.ok) return empty
+  if (!res.ok) {
+    void logError({ source: 'anthropic', feature: 'pm_classify_categories', statusCode: res.status, message: JSON.stringify(j) })
+    return empty
+  }
   void logAiUsage({ provider: 'anthropic', model: OPUS, feature: 'pm_classify_categories', inputTokens: j.usage?.input_tokens ?? 0, outputTokens: j.usage?.output_tokens ?? 0, metadata: {} })
   const text = (j.content ?? []).filter((b: { type: string }) => b.type === 'text').map((b: { text: string }) => b.text).join('\n')
   const parsed = extractJson<{ coverages?: { i: number; canonical_category: string }[]; terms?: { i: number; canonical_category: string }[] }>(text)

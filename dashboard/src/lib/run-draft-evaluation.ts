@@ -12,6 +12,7 @@ import { createSupabaseDB, createGeminiComposer, LearningLoopEngine, wordJaccard
 import { EMAIL_TYPE_BASE_INSTRUCTIONS } from '@/lib/email-surface-instructions'
 import { AUTO_SYNTH_THRESHOLD } from '@/lib/synthesize-prompt-override'
 import { createEngagementChatLearningSource } from '@/lib/nexus-chat-learnings'
+import { logError } from '@/lib/error-log'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
@@ -217,6 +218,7 @@ Return ONLY valid JSON (no markdown fences):
     })
     if (!evalRes.ok) {
       console.error(`[eval] Gemini call failed status=${evalRes.status}`)
+      void logError({ source: 'gemini', feature: 'draft_evaluation', statusCode: evalRes.status, message: await evalRes.text(), threadId: tid, resourceType: 'ai_draft', resourceId: draftId })
       return
     }
 
