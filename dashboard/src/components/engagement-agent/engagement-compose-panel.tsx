@@ -59,6 +59,8 @@ export function EngagementComposePanel({
   const [genStep,         setGenStep]         = useState<'analyze' | 'draft' | null>(null)
   const [sent,            setSent]            = useState(false)
   const [error,           setError]           = useState<string | null>(null)
+  const [errorOpen,       setErrorOpen]       = useState(false)
+  const errorRef = useRef<HTMLDivElement>(null)
   const [aiDraftChecked,  setAiDraftChecked]  = useState(false)
   const [showCc,          setShowCc]          = useState(ccList.length > 0)
   const [showBcc,         setShowBcc]         = useState(bccList.length > 0)
@@ -90,6 +92,19 @@ export function EngagementComposePanel({
 
   // Reveal the CC row whenever it gets populated (e.g. Reply All fills it after mount).
   useEffect(() => { if (ccList.length > 0) setShowCc(true) }, [ccList.length])
+
+  // Close the expanded error detail on an outside click.
+  useEffect(() => {
+    if (!errorOpen) return
+    const h = (e: MouseEvent) => {
+      if (errorRef.current && !errorRef.current.contains(e.target as Node)) setErrorOpen(false)
+    }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [errorOpen])
+
+  // Collapse the error detail whenever the error itself changes or clears.
+  useEffect(() => { setErrorOpen(false) }, [error])
 
   // ── All helpers preserved verbatim ────────────────────────────────────────
 
@@ -660,7 +675,37 @@ export function EngagementComposePanel({
             {/* Right: error + generate + send */}
             <div className="flex items-center gap-2 flex-shrink-0">
               {error && (
-                <span title={error} className="text-[10.5px] text-[--error] max-w-[220px] truncate cursor-help">{error}</span>
+                <div className="relative" ref={errorRef}>
+                  <button
+                    type="button"
+                    onClick={() => setErrorOpen(v => !v)}
+                    title="Click for full error"
+                    className="text-[10.5px] text-[--error] max-w-[220px] truncate cursor-pointer underline decoration-dotted underline-offset-2"
+                  >
+                    {error}
+                  </button>
+
+                  {errorOpen && (
+                    <div className="absolute bottom-full right-0 z-50 mb-2 w-[380px] max-h-[260px] overflow-auto rounded-lg border border-[--border-subtle] bg-background p-3 shadow-lg">
+                      <div className="mb-1.5 flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50">Error detail</span>
+                        <div className="flex items-center gap-2.5">
+                          <button
+                            type="button"
+                            onClick={() => navigator.clipboard?.writeText(error)}
+                            className="text-[10px] font-medium text-primary hover:underline"
+                          >
+                            Copy
+                          </button>
+                          <button type="button" onClick={() => setErrorOpen(false)} className="text-muted-foreground/60 hover:text-foreground">
+                            <X size={12} strokeWidth={2} />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="whitespace-pre-wrap break-words text-[11px] text-[--error]">{error}</div>
+                    </div>
+                  )}
+                </div>
               )}
 
               {/* Generate AI Reply — secondary: subtle outline, no fill */}

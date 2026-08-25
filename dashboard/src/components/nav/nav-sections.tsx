@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import {
-  Inbox, MessageCircle, AlertCircle,
+  Inbox, MessageCircle, AlertCircle, AlertTriangle,
   Users, BarChart2,
   Bot, Table2, UsersRound,
   Cpu, FolderOpen, BookMarked, Radar, History,
@@ -109,10 +109,11 @@ export const NAV_SECTIONS: NavSection[] = [
       {
         heading: 'Reporting',
         items: [
-          { title: 'Funnel',           href: '/analytics',          icon: BarChart2,    description: 'Lead-to-close funnel', disabled: true },
-          { title: 'Activity Log',     href: '/analytics/activity', icon: History,      description: 'Audit trail of system activity' },
-          { title: 'AI Usage',         href: '/analytics/ai-usage', icon: Cpu,          description: 'Model spend and usage' },
-          { title: 'Email Evaluation', href: '/analytics/eval',     icon: FlaskConical, description: 'Outbound email quality checks' },
+          { title: 'Funnel',           href: '/analytics',           icon: BarChart2,     description: 'Lead-to-close funnel', disabled: true },
+          { title: 'Activity Log',     href: '/analytics/activity',  icon: History,       description: 'Audit trail of system activity' },
+          { title: 'Error Log',        href: '/analytics/error-log', icon: AlertTriangle, description: 'AI/API failures, auto-logged as they happen' },
+          { title: 'AI Usage',         href: '/analytics/ai-usage',  icon: Cpu,           description: 'Model spend and usage' },
+          { title: 'Email Evaluation', href: '/analytics/eval',      icon: FlaskConical,  description: 'Outbound email quality checks' },
         ],
       },
       {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logGeminiUsage }           from '@/lib/gemini-usage'
+import { logError }                 from '@/lib/error-log'
 import { fetchKnowledgeDocs }       from '@/lib/gdrive-knowledge'
 import { fetchAttachmentContext }   from '@/lib/thread-attachment-context'
 import { createSupabaseDB, createGeminiComposer, EvalStore, ExampleStore, SkillSynthesizer } from '@/lib/ai-learning-loop'
@@ -155,8 +156,14 @@ export async function POST(req: NextRequest) {
                 }).catch(() => {})
               }
             }
+          } else {
+            // Non-fatal — falls back to the raw contactName/'Dear Sir/Madam' salutation below —
+            // but still worth a row so a quiet Gemini outage isn't invisible.
+            void logError({ source: 'gemini', feature: 'name_resolution', statusCode: nameRes.status, message: await nameRes.text(), threadId })
           }
-        } catch { /* non-fatal */ }
+        } catch (err) {
+          void logError({ source: 'gemini', feature: 'name_resolution', message: String(err), threadId })
+        }
       }
     }
 
@@ -191,6 +198,12 @@ Reply with one word only.`
     const VALID_TYPES = ['PRICING', 'COVERAGE', 'RENEWAL', 'DOCUMENT', 'CLAIMS', 'CONVERSATION'] as const
     type EmailType = typeof VALID_TYPES[number]
     let emailType: EmailType = 'CONVERSATION'
+
+    if (!classifyRes.ok) {
+      // Non-fatal — falls back to the CONVERSATION default below — but still worth a row so a
+      // quiet Gemini outage isn't invisible.
+      void logError({ source: 'gemini', feature: 'email_classify', statusCode: classifyRes.status, message: await classifyRes.text(), threadId })
+    }
 
     if (classifyRes.ok) {
       const classifyData = await classifyRes.json()
@@ -460,13 +473,15 @@ Write only the email body starting with "${salutation}". End after the last para
     if (!drafterRes.ok) {
       const errText = await drafterRes.text()
       console.error('[engagement/draft] Gemini drafter error:', drafterRes.status, errText)
-      return NextResponse.json({ error: `Gemini ${drafterRes.status}: ${errText.slice(0, 300)}` }, { status: 502 })
+      void logError({ source: 'gemini', feature: 'draft_reply_drafter', statusCode: drafterRes.status, message: errText, threadId })
+      return NextResponse.json({ error: `Gemini ${drafterRes.status}: ${errText.slice(0, 2000)}` }, { status: 502 })
     }
     const drafterData = await drafterRes.json()
     void logGeminiUsage('draft_reply_drafter', drafterData.usageMetadata ?? {}, threadId)
     const content = drafterData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? ''
     if (!content) {
       const reason = drafterData?.candidates?.[0]?.finishReason ?? JSON.stringify(drafterData).slice(0, 200)
+      void logError({ source: 'gemini', feature: 'draft_reply_drafter', message: `Gemini drafter returned no content (${reason})`, threadId, metadata: { drafterData } })
       return NextResponse.json({ error: `Gemini drafter returned no content (${reason})` }, { status: 502 })
     }
 
