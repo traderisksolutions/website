@@ -3,14 +3,21 @@ import { GEMINI_DEFAULT } from './gemini-models'
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
 // Per-model token pricing (USD per 1M tokens → per token). Base input / output.
-//   Gemini 3.6 Flash:      $1.50 in / $7.50 out — FLASH tier (drafting/analysis/extraction)
-//   Gemini 3.1 Pro:        $2.00 in / $12.00 out — PRO tier (heavy reasoning, ≤200k context)
+// Verified against ai.google.dev/gemini-api/docs/pricing and Anthropic's pricing page (25 Aug 2026).
+//   Gemini 3.6 Flash:      $0.75 in / $3.75 out — FLASH tier (drafting/analysis/extraction), the
+//                          DEFAULT model. Promotional rate through 31 Dec 2026 — steps up to
+//                          $1.50/$7.50 on 1 Jan 2027; bump this row then.
+//   Gemini 3.1 Pro:        $2.00 in / $12.00 out — PRO tier (heavy reasoning), for prompts
+//                          <=200k tokens. Google charges $4.00/$18.00 above 200k tokens; we don't
+//                          have a per-call token count at pricing time, so this under-bills the
+//                          (currently rare) long-prompt calls — flagged, not fixed, since fixing it
+//                          means threading promptTokenCount into logAiUsage's cost calc.
 //   Gemini 3.1 Flash-Lite: $0.25 in / $1.50 out — LITE tier (high-volume classification/chase/bulk)
-//   Gemini 3.5 Flash:      $1.50 in / $9.00 out — kept for historical log rows.
+//   Gemini 3.5 Flash:      $1.50 in / $9.00 out — retired, kept for historical log rows.
 //   Gemini 2.5 Flash/Pro kept for historical log rows.
 //   Claude Opus 4.8:       $5.00 in / $25.00 out
 const PRICING: Record<string, { in: number; out: number }> = {
-  'gemini-3.6-flash':       { in: 1.50 / 1e6, out: 7.50 / 1e6 },
+  'gemini-3.6-flash':       { in: 0.75 / 1e6, out: 3.75 / 1e6 },
   'gemini-3.1-pro-preview': { in: 2.00 / 1e6, out: 12.0 / 1e6 },
   'gemini-3.1-flash-lite':  { in: 0.25 / 1e6, out: 1.50 / 1e6 },
   'gemini-3.5-flash':       { in: 1.50 / 1e6, out: 9.00 / 1e6 },
@@ -20,8 +27,11 @@ const PRICING: Record<string, { in: number; out: number }> = {
 }
 const DEFAULT_MODEL = GEMINI_DEFAULT
 
-// gemini-embedding-001 pricing: $0.000025 per 1,000 characters
-const EMBED_COST_PER_CHAR = 0.000025 / 1_000
+// gemini-embedding-001 pricing: $0.15 per 1M INPUT TOKENS (not characters — Google prices this
+// model by token, but logEmbeddingUsage below only has a character count to work with, since the
+// three call sites don't read usageMetadata off the embed response). Converted to a per-character
+// rate assuming ~4 characters/token for English business text — an approximation, not exact.
+const EMBED_COST_PER_CHAR = 0.15 / 1e6 / 4
 
 export type Provider = 'gemini' | 'anthropic'
 
