@@ -2,36 +2,61 @@ import { GEMINI_DEFAULT } from './gemini-models'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
-// Per-model token pricing (USD per 1M tokens → per token). Base input / output.
-// Verified against ai.google.dev/gemini-api/docs/pricing and Anthropic's pricing page (25 Aug 2026).
-//   Gemini 3.6 Flash:      $0.75 in / $3.75 out — FLASH tier (drafting/analysis/extraction), the
-//                          DEFAULT model. Promotional rate through 31 Dec 2026 — steps up to
-//                          $1.50/$7.50 on 1 Jan 2027; bump this row then.
-//   Gemini 3.1 Pro:        $2.00 in / $12.00 out — PRO tier (heavy reasoning), for prompts
-//                          <=200k tokens. Google charges $4.00/$18.00 above 200k tokens; we don't
-//                          have a per-call token count at pricing time, so this under-bills the
-//                          (currently rare) long-prompt calls — flagged, not fixed, since fixing it
-//                          means threading promptTokenCount into logAiUsage's cost calc.
-//   Gemini 3.1 Flash-Lite: $0.25 in / $1.50 out — LITE tier (high-volume classification/chase/bulk)
-//   Gemini 3.5 Flash:      $1.50 in / $9.00 out — retired, kept for historical log rows.
-//   Gemini 2.5 Flash/Pro kept for historical log rows.
-//   Claude Opus 4.8:       $5.00 in / $25.00 out
-const PRICING: Record<string, { in: number; out: number }> = {
-  'gemini-3.6-flash':       { in: 0.75 / 1e6, out: 3.75 / 1e6 },
-  'gemini-3.1-pro-preview': { in: 2.00 / 1e6, out: 12.0 / 1e6 },
-  'gemini-3.1-flash-lite':  { in: 0.25 / 1e6, out: 1.50 / 1e6 },
-  'gemini-3.5-flash':       { in: 1.50 / 1e6, out: 9.00 / 1e6 },
-  'gemini-2.5-flash':       { in: 0.30 / 1e6, out: 2.50 / 1e6 },
-  'gemini-2.5-pro':         { in: 1.25 / 1e6, out: 10.0 / 1e6 },
-  'claude-opus-4-8':        { in: 5.00 / 1e6, out: 25.0 / 1e6 },
+// Per-model pricing (USD per 1M tokens). Verified against ai.google.dev/gemini-api/docs/pricing
+// and Anthropic's pricing page (25 Aug 2026). Three shapes, resolved by resolveRates() below:
+//   - flat:   a single { inputPerMillion, outputPerMillion } — most models.
+//   - dated:  flat + `next` — a scheduled price change (gemini-3.6-flash's promo rate stepping
+//             up to $1.50/$7.50 on 1 Jan 2027). Resolved by comparing against `next.startsAt`.
+//   - tiered: `tiers[]`, picked by inputTokens against each tier's `maxInputTokens` (the last
+//             tier, with no `maxInputTokens`, is the catch-all above every bound). Used for
+//             gemini-3.1-pro-preview, which doubles in price above 200k input tokens.
+interface FlatRate  { inputPerMillion: number; outputPerMillion: number }
+interface DatedRate extends FlatRate { validUntil: string; next: FlatRate & { startsAt: string } }
+interface TieredRate { tiers: Array<FlatRate & { maxInputTokens?: number }> }
+type ModelPricing = FlatRate | DatedRate | TieredRate
+
+const PRICING: Record<string, ModelPricing> = {
+  'claude-opus-4-8': { inputPerMillion: 5.00, outputPerMillion: 25.00 },
+
+  'gemini-3.6-flash': {
+    // Promo rate through 31 Dec 2026 — the DEFAULT model, so this is the rate most usage rows use.
+    inputPerMillion: 0.75, outputPerMillion: 3.75, validUntil: '2026-12-31',
+    next: { inputPerMillion: 1.50, outputPerMillion: 7.50, startsAt: '2027-01-01' },
+  },
+
+  'gemini-3.1-pro-preview': {
+    tiers: [
+      { maxInputTokens: 200_000, inputPerMillion: 2.00, outputPerMillion: 12.00 },
+      { inputPerMillion: 4.00, outputPerMillion: 18.00 },
+    ],
+  },
+
+  'gemini-3.1-flash-lite': { inputPerMillion: 0.25, outputPerMillion: 1.50 },
+
+  // Retired — kept so historical log rows still price correctly.
+  'gemini-3.5-flash': { inputPerMillion: 1.50, outputPerMillion: 9.00 },
+  'gemini-2.5-flash':  { inputPerMillion: 0.30, outputPerMillion: 2.50 },
+  'gemini-2.5-pro':    { inputPerMillion: 1.25, outputPerMillion: 10.0 },
+
+  // Priced per token like every other row here, but logEmbeddingUsage only has a character count
+  // to work with (none of the 3 embed call sites read usageMetadata off the response) — converted
+  // there via an approximate ~4 characters/token, not exact.
+  'gemini-embedding-001': { inputPerMillion: 0.15, outputPerMillion: 0 },
 }
 const DEFAULT_MODEL = GEMINI_DEFAULT
 
-// gemini-embedding-001 pricing: $0.15 per 1M INPUT TOKENS (not characters — Google prices this
-// model by token, but logEmbeddingUsage below only has a character count to work with, since the
-// three call sites don't read usageMetadata off the embed response). Converted to a per-character
-// rate assuming ~4 characters/token for English business text — an approximation, not exact.
-const EMBED_COST_PER_CHAR = 0.15 / 1e6 / 4
+function resolveRates(pricing: ModelPricing, inputTokens: number, now: Date): FlatRate {
+  if ('tiers' in pricing) {
+    return pricing.tiers.find(t => t.maxInputTokens === undefined || inputTokens <= t.maxInputTokens)
+      ?? pricing.tiers[pricing.tiers.length - 1]
+  }
+  if ('next' in pricing && now >= new Date(pricing.next.startsAt)) return pricing.next
+  return pricing
+}
+
+const CHARS_PER_TOKEN_APPROX = 4
+const EMBED_COST_PER_CHAR =
+  resolveRates(PRICING['gemini-embedding-001'], 0, new Date()).inputPerMillion / 1e6 / CHARS_PER_TOKEN_APPROX
 
 export type Provider = 'gemini' | 'anthropic'
 
@@ -88,8 +113,9 @@ export async function logAiUsage(p: {
   try {
     const k = process.env.SUPABASE_SERVICE_KEY
     if (!k) return
-    const price   = PRICING[p.model] ?? PRICING[DEFAULT_MODEL]
-    const costUsd = (p.inputTokens || 0) * price.in + (p.outputTokens || 0) * price.out
+    const pricing = PRICING[p.model] ?? PRICING[DEFAULT_MODEL]
+    const rates   = resolveRates(pricing, p.inputTokens || 0, new Date())
+    const costUsd = (p.inputTokens || 0) * (rates.inputPerMillion / 1e6) + (p.outputTokens || 0) * (rates.outputPerMillion / 1e6)
     await fetch(`${SB_URL}/rest/v1/gemini_usage_log`, {
       method:  'POST',
       headers: { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
