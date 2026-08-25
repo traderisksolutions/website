@@ -6,7 +6,7 @@ import {
   Cpu, FolderOpen, BookMarked, Radar, History,
   Telescope, Megaphone, Settings, FlaskConical,
   TrendingUp, ScrollText, Network, HeartPulse, Car,
-  Receipt, CalendarDays, Waypoints, Calculator,
+  Receipt, CalendarDays, Waypoints,
 } from 'lucide-react'
 
 export type NavLink = {
@@ -84,7 +84,6 @@ export const NAV_SECTIONS: NavSection[] = [
         heading: 'Policy & Ops',
         items: [
           { title: 'Pricing Matrix', href: '/pricing-matrix', icon: HeartPulse,   description: 'Insurer calculators and quotes' },
-          { title: 'Group Benefits', href: '/group-benefits', icon: Calculator,   description: 'Census quoting and rate tables' },
           { title: 'Debit Notes',    href: '/debit-notes',    icon: Receipt,      description: 'Issued debit notes' },
           { title: 'Calendar',       href: '/calendar',       icon: CalendarDays, description: 'Meetings and scheduling' },
           { title: 'Claims',         href: '/claims',         icon: AlertCircle,  description: 'Claims handling', disabled: true },

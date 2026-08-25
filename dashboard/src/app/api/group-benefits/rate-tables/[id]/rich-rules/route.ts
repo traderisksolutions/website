@@ -5,10 +5,13 @@
  *   path (reusing gb-quote.ts's real computeQuote() for both — zero duplicated pricing logic,
  *   so the comparison can't drift from what production actually does), so a reviewer sees a real
  *   premium delta before approving, not just the rule steps in the abstract.
- * PATCH /api/group-benefits/rate-tables/[id]/rich-rules   { rules?, approved?, verification? }
- *   approved=true REQUIRES verification to be the exact object this GET just returned — stored
- *   verbatim as the durable audit record of what was actually reviewed at approval time (Sales
- *   Loop v2, Phase 6d: "this is the one sub-phase that touches money").
+ * PATCH /api/group-benefits/rate-tables/[id]/rich-rules   { rules?, approved? }
+ *   approved=true RECOMPUTES verification server-side (same runVerification() the GET above
+ *   uses) against the exact rules being approved, and stores that as the durable audit record —
+ *   never trusts a client-submitted verification object, which would let a caller approve with a
+ *   fabricated/stale one (e.g. rules edited in the same request as approval, "verified" against
+ *   whatever was reviewed a minute ago rather than what's actually being saved). Sales Loop v2,
+ *   Phase 6d: "this is the one sub-phase that touches money."
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
@@ -101,14 +104,30 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
-    const { rules, approved, verification } = await req.json() as { rules?: RuleStep[]; approved?: boolean; verification?: unknown }
+    const { rules, approved } = await req.json() as { rules?: RuleStep[]; approved?: boolean }
     const body: Record<string, unknown> = { updated_at: new Date().toISOString() }
     if (rules) body.rules = rules
 
     if (approved === true) {
-      if (!verification) return NextResponse.json({ error: 'Approval requires the verification comparison — reload and review it first.' }, { status: 400 })
+      let effectiveRules: RuleStep[] | undefined = rules
+      if (!effectiveRules) {
+        const existingRes  = await fetch(`${SB_URL}/rest/v1/gb_computation_rules?rate_table_id=eq.${id}&select=rules&limit=1`, { headers: sbH(), cache: 'no-store' })
+        const existingRows = existingRes.ok ? await existingRes.json() : []
+        effectiveRules = Array.isArray(existingRows) ? existingRows[0]?.rules : undefined
+      }
+      if (!Array.isArray(effectiveRules) || effectiveRules.length === 0) {
+        return NextResponse.json({ error: 'No rules to approve' }, { status: 400 })
+      }
+
+      const { t, rates } = await loadTableAndRates(id)
+      if (!t) return NextResponse.json({ error: 'Rate table not found' }, { status: 404 })
+      const table: Omit<RateTableInfo, 'richRules'> = {
+        rate_table_id: t.id, insurer_id: t.insurer_id, insurer_name: t.insurer_name,
+        age_basis: t.age_basis === 'last_birthday' ? 'last_birthday' : 'next_birthday', rates, rules: t.rules ?? null,
+      }
+
       body.status = 'approved'
-      body.verification = verification
+      body.verification = runVerification(table, rates, effectiveRules)
       body.reviewed_by = user.id
       body.reviewed_at = new Date().toISOString()
     } else if (approved === false) {
