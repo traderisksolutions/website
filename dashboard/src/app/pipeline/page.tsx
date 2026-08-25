@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Waypoints, Loader2, Trash2 } from 'lucide-react'
+import { Waypoints, Loader2, Trash2, AlertCircle, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AppSplitLayout, AppMainPanel, AppPageHeader } from '@/components/app-shell'
 import { DataTableToolbar, DataTableSearch } from '@/components/data-table/toolbar'
@@ -55,24 +55,40 @@ export default function PipelinePage() {
   const router = useRouter()
   const [rows, setRows] = useState<PipelineRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [origin, setOrigin] = useState<typeof ORIGIN_OPTIONS[number]>('all')
   const [status, setStatus] = useState<typeof STATUS_OPTIONS[number]>('all')
   const [search, setSearch] = useState('')
+  const [searchInput, setSearchInput] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState(false)
+  const debounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const requestSeq = useRef(0)
+
+  useEffect(() => {
+    if (debounce.current) clearTimeout(debounce.current)
+    debounce.current = setTimeout(() => setSearch(searchInput), 250)
+    return () => { if (debounce.current) clearTimeout(debounce.current) }
+  }, [searchInput])
 
   const load = useCallback(async () => {
     setLoading(true)
+    setError(null)
+    const seq = ++requestSeq.current
     const params = new URLSearchParams()
     if (origin !== 'all') params.set('origin', origin)
     if (status !== 'all') params.set('status', status)
     if (search) params.set('q', search)
     try {
       const res = await fetch(`/api/pipeline?${params.toString()}`, { cache: 'no-store' })
-      const data = res.ok ? await res.json() : []
+      if (seq !== requestSeq.current) return   // a newer request already landed — drop this one
+      if (!res.ok) throw new Error('Failed to load pipeline')
+      const data = await res.json()
       setRows(Array.isArray(data) ? data : [])
+    } catch {
+      if (seq === requestSeq.current) setError('Failed to load pipeline')
     } finally {
-      setLoading(false); setSelected(new Set())
+      if (seq === requestSeq.current) { setLoading(false); setSelected(new Set()) }
     }
   }, [origin, status, search])
 
@@ -101,7 +117,13 @@ export default function PipelinePage() {
         method: 'DELETE', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rows: targets.map(r => ({ origin: r.origin, id: r.id })) }),
       })
-      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error ?? 'Delete failed'); return }
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        alert(d.partial ? `Only ${d.deleted} of ${targets.length} deleted — ${d.error}` : (d.error ?? 'Delete failed'))
+        // Some rows may have actually been removed even on a partial failure — refresh either way.
+        await load()
+        return
+      }
       await load()
     } finally {
       setDeleting(false)
@@ -140,12 +162,21 @@ export default function PipelinePage() {
                 ))}
               </div>
               <DataTableSearch
-                value={search}
-                onChange={setSearch}
+                value={searchInput}
+                onChange={setSearchInput}
                 placeholder="Search pipeline…"
                 className="flex-shrink-0"
               />
             </DataTableToolbar>
+
+            {error && (
+              <div className="flex items-center gap-2 px-5 py-2.5 flex-shrink-0 text-[13px]" style={{ background: 'var(--error-bg)', border: '1px solid var(--error-border, var(--error))', color: 'var(--error)' }}>
+                <AlertCircle size={14} className="flex-shrink-0" />
+                <span className="flex-1">{error}</span>
+                <button onClick={() => load()} className="text-[12px] font-semibold underline bg-transparent border-0 cursor-pointer" style={{ color: 'var(--error)' }}>Retry</button>
+                <button onClick={() => setError(null)} className="bg-transparent border-none cursor-pointer leading-none" style={{ color: 'var(--error)' }}><X size={14} /></button>
+              </div>
+            )}
 
             {selected.size > 0 && (
               <div className="sticky top-0 z-10 flex items-center gap-3 px-5 py-2.5 bg-foreground text-background text-[13px] flex-shrink-0">

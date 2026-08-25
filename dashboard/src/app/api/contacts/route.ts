@@ -104,16 +104,24 @@ export async function POST(req: NextRequest) {
     void logActivity({ action: 'contact.created', resource_type: 'contact', resource_id: row?.id, new_value: { email, source: 'manual' } })
 
     if (body.isReferral) {
-      void fetch(`${SB_URL}/rest/v1/inbound_leads`, {
-        method:  'POST',
-        headers: sbHeaders('return=minimal'),
-        body:    JSON.stringify({
-          contact_id: row?.id ?? null, company_id: companyId, source: 'referral', status: 'new',
-          first_name, last_name, email, phone, company,
-          details: body.notes?.trim() || null,
-        }),
-      }).catch(() => {})
-      void logActivity({ action: 'lead.referral_logged', resource_type: 'contact', resource_id: row?.id, new_value: { email, company } })
+      try {
+        const referralRes = await fetch(`${SB_URL}/rest/v1/inbound_leads`, {
+          method:  'POST',
+          headers: sbHeaders('return=minimal'),
+          body:    JSON.stringify({
+            contact_id: row?.id ?? null, company_id: companyId, source: 'referral', status: 'new',
+            first_name, last_name, email, phone, company,
+            details: body.notes?.trim() || null,
+          }),
+        })
+        if (referralRes.ok) {
+          void logActivity({ action: 'lead.referral_logged', resource_type: 'contact', resource_id: row?.id, new_value: { email, company } })
+        } else {
+          console.error('[contacts] referral lead insert failed', await referralRes.text())
+        }
+      } catch (e) {
+        console.error('[contacts] referral lead insert failed', e)
+      }
     }
 
     return NextResponse.json(shape(row))

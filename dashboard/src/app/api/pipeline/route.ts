@@ -56,17 +56,27 @@ export async function DELETE(req: NextRequest) {
     const inboundIds  = rows.filter(r => r.origin === 'inbound').map(r => r.id)
     const outboundIds = rows.filter(r => r.origin === 'outbound').map(r => r.id)
 
-    const results = await Promise.all([
+    const [inboundRes, outboundRes] = await Promise.all([
       inboundIds.length
-        ? fetch(`${SB_URL}/rest/v1/inbound_leads?id=in.(${inboundIds.join(',')})`, { method: 'DELETE', headers: sbHeaders() })
+        ? fetch(`${SB_URL}/rest/v1/inbound_leads?id=in.(${inboundIds.map(encodeURIComponent).join(',')})`, { method: 'DELETE', headers: sbHeaders() })
         : null,
       outboundIds.length
-        ? fetch(`${SB_URL}/rest/v1/outbound_leads?id=in.(${outboundIds.join(',')})`, { method: 'DELETE', headers: sbHeaders() })
+        ? fetch(`${SB_URL}/rest/v1/outbound_leads?id=in.(${outboundIds.map(encodeURIComponent).join(',')})`, { method: 'DELETE', headers: sbHeaders() })
         : null,
     ])
 
-    for (const r of results) {
-      if (r && !r.ok) return NextResponse.json({ error: await r.text() }, { status: r.status })
+    // The two deletes hit independent tables with no shared transaction — report exactly which
+    // side failed and how many rows actually went through, rather than a single opaque error
+    // that could describe only half of what happened.
+    const failures: string[] = []
+    if (inboundRes && !inboundRes.ok)   failures.push(`inbound: ${await inboundRes.text()}`)
+    if (outboundRes && !outboundRes.ok) failures.push(`outbound: ${await outboundRes.text()}`)
+
+    if (failures.length) {
+      const deleted = rows.length
+        - (inboundRes && !inboundRes.ok ? inboundIds.length : 0)
+        - (outboundRes && !outboundRes.ok ? outboundIds.length : 0)
+      return NextResponse.json({ error: failures.join('; '), deleted, partial: deleted > 0 }, { status: 500 })
     }
 
     return NextResponse.json({ ok: true, deleted: rows.length })

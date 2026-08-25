@@ -10,8 +10,13 @@ export const STATUS_MAP: Record<string, { label: string; color: string; bg: stri
   proposal:  { label: 'Proposal',  color: '#d97706', bg: 'rgba(217,119,6,0.10)'   },
   converted: { label: 'Converted', color: '#7e22ce', bg: 'rgba(168,85,247,0.10)'  },
   dropped:   { label: 'Dropped',   color: '#4b5563', bg: 'rgba(107,114,128,0.10)' },
+  // inbound_leads.status also allows these two (see unified_pipeline_view.sql's status_bucket
+  // CASE) — missing here meant a closed/spam lead silently rendered as "New" in this dropdown
+  // while showing correctly everywhere else (Pipeline, lead-detail-panel).
+  closed:    { label: 'Closed',    color: '#096842', bg: 'rgba(9,104,66,0.10)'    },
+  spam:      { label: 'Spam',      color: '#445868', bg: 'rgba(16,24,40,0.10)'    },
 }
 
 export const ALL_STATUSES = [
-  'new', 'contacted', 'engaged', 'qualified', 'proposal', 'converted', 'dropped',
+  'new', 'contacted', 'engaged', 'qualified', 'proposal', 'converted', 'dropped', 'closed', 'spam',
 ]
