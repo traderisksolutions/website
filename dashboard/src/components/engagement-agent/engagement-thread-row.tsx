@@ -100,9 +100,9 @@ export function EngagementThreadRow({
       <div className="flex-1 min-w-0">
         {/* Row 1: Name (+ company inline) + timestamp */}
         <div className="flex items-baseline justify-between gap-2 mb-[3px]">
-          <div className="flex items-baseline gap-1.5 min-w-0">
+          <div className="flex items-baseline gap-1.5 min-w-0 flex-1">
             <span className={cn(
-              'text-[12.5px] truncate leading-tight',
+              'text-[12.5px] truncate leading-tight min-w-0',
               hasReply
                 ? 'font-semibold text-foreground'
                 : 'font-medium text-foreground/90',
@@ -110,7 +110,7 @@ export function EngagementThreadRow({
               {name || lead.email?.split('@')[0] || '—'}
             </span>
             {context && (
-              <span className="text-[10.5px] text-muted-foreground/60 font-normal flex-shrink-0 truncate max-w-[140px]">
+              <span className="text-[10.5px] text-muted-foreground/60 font-normal flex-shrink truncate min-w-0 max-w-[140px]">
                 {context}
               </span>
             )}

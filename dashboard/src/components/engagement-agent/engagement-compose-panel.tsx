@@ -6,7 +6,7 @@
 // ComposePanel.tsx. Only the visual shell (JSX structure + CSS classes)
 // has been updated. If you need to add logic, do it here.
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { RefreshCw, ChevronDown, Sparkles, Paperclip, Upload, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
@@ -74,6 +74,14 @@ export function EngagementComposePanel({
 
   // Editor height — drag-resizable via the handle below it, persisted across the session.
   const { height: editorHeight, min: editorMin, max: editorMax, step: editorStep, startDrag: startEditorDrag, nudge: nudgeEditor, setAbsolute: setEditorHeight } = useResizableComposerHeight()
+  // Content-driven growth (e.g. repeatedly pressing Enter) — only ever grows, up to editorMax;
+  // never auto-shrinks, so a manual drag-resize larger than the content is never fought.
+  const editorHeightRef = useRef(editorHeight)
+  editorHeightRef.current = editorHeight
+  const onEditorContentHeight = useCallback((contentH: number) => {
+    const needed = Math.min(editorMax, contentH + 24)   // + the editor wrapper's own py-3 (12px top + 12px bottom)
+    if (needed > editorHeightRef.current) setEditorHeight(needed)
+  }, [editorMax, setEditorHeight])
 
   const [signatures,      setSignatures]      = useState<SigOption[]>([])
   const [selectedSigId,   setSelectedSigId]   = useState<string>('')
@@ -544,6 +552,7 @@ export function EngagementComposePanel({
               }
               minHeight={200}
               onAttachClick={() => fileInputRef.current?.click()}
+              onContentHeightChange={onEditorContentHeight}
             />
           </div>
 

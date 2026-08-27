@@ -32,6 +32,12 @@ interface RichEditorProps {
    *  (image-only accept) kept getting clicked by users expecting a generic attach — this gives
    *  them a correctly-labeled, unrestricted option right where they're already looking instead. */
   onAttachClick?: () => void
+  /** Fires with the editor content's natural (unclipped) scrollHeight on every change, so a
+   *  caller wrapping this in a fixed-height, resizable box (e.g. the reply composer) can grow
+   *  that box to fit instead of just scrolling inside it — e.g. repeatedly pressing Enter should
+   *  push the box taller, not hide new lines behind a scrollbar. Optional; RichEditor itself
+   *  never resizes anything — it only reports the number. */
+  onContentHeightChange?: (h: number) => void
 }
 
 export function RichEditor({
@@ -42,12 +48,15 @@ export function RichEditor({
   sigHtml,
   borderless = false,
   onAttachClick,
+  onContentHeightChange,
 }: RichEditorProps) {
   const mountRef    = useRef<HTMLDivElement>(null)
   const quillRef    = useRef<import('quill').default | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
+  const onContentHeightChangeRef = useRef(onContentHeightChange)
+  onContentHeightChangeRef.current = onContentHeightChange
 
   const [fmt,         setFmt]         = useState<Record<string, unknown>>({})
   const [hasSel,      setHasSel]      = useState(false)
@@ -144,6 +153,11 @@ export function RichEditor({
           // so that internal UI markup never leaks into the saved/sent HTML.
           ;(q.getModule('table-better') as TableBetterModule | undefined)?.hideTools()
           onChangeRef.current(q.getSemanticHTML())
+          // .ql-editor is the actual scrollable content element Quill creates inside the
+          // container we mounted into — its scrollHeight is the content's true (unclipped)
+          // height, which is what a caller wrapping this in a fixed-height box needs to grow it.
+          const contentEl = mountRef.current?.querySelector<HTMLElement>('.ql-editor')
+          if (contentEl) onContentHeightChangeRef.current?.(contentEl.scrollHeight)
         })
 
         quillRef.current = q

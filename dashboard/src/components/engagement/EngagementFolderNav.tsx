@@ -54,7 +54,7 @@ export function EngagementFolderNav({ iconOnly, compact }: { iconOnly?: boolean;
                   title="Search"
                   aria-label="Search conversations"
                   className={cn(
-                    'flex items-center justify-center h-8 w-8 mx-auto rounded-lg border transition-colors',
+                    'flex items-center justify-center h-8 w-full rounded-lg border transition-colors',
                     search
                       ? 'border-primary/40 bg-primary/10 text-primary'
                       : 'border-transparent bg-muted text-muted-foreground hover:text-foreground',
@@ -63,7 +63,7 @@ export function EngagementFolderNav({ iconOnly, compact }: { iconOnly?: boolean;
                   <Search size={13} strokeWidth={2} />
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-56 p-1.5" align="start">
+              <PopoverContent className="w-56 p-1.5" side="right" align="start">
                 <div className="flex items-center gap-2 h-8 px-2.5 rounded-lg bg-muted border border-transparent focus-within:border-border focus-within:bg-background transition-colors">
                   <Search size={12} className="text-muted-foreground flex-shrink-0" strokeWidth={2} />
                   <input
@@ -108,7 +108,7 @@ export function EngagementFolderNav({ iconOnly, compact }: { iconOnly?: boolean;
                   <span className="text-[9.5px] font-bold tabular-nums text-primary">{counts[activeTab]}</span>
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-44 p-1" align="start">
+              <PopoverContent className="w-44 p-1" side="right" align="start">
                 <div className="flex flex-col gap-0.5">
                   {TABS.map(tab => (
                     <button

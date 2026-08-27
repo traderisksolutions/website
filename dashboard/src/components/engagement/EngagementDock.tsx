@@ -45,13 +45,16 @@ export function EngagementDock({
   return (
     <div
       className="flex flex-col min-h-0 flex-shrink-0 border-t border-[--border-subtle] bg-card shadow-[0_-8px_20px_-8px_rgba(15,23,42,0.16)]"
-      style={{ height: active ? 'min(38vh, 380px)' : undefined }}
+      style={{ maxHeight: active ? 'min(38vh, 380px)' : undefined }}
     >
       {/* Active panel — always in the DOM (opened, but display:none when not the active tab)
           so state is preserved across tab switches. Capped at 38vh/380px above (not a 50/50
           flex split against the message area) — the thread needs to stay the dominant reading
-          surface even with a panel open. */}
-      <div className={cn('min-h-0 overflow-y-auto', active ? 'flex-1' : 'h-0 overflow-hidden')}>
+          surface even with a panel open. maxHeight (not a fixed height) so short content (e.g.
+          AI Analysis, usually a couple of sentences) sizes to itself instead of always reserving
+          the full cap and leaving dead white space above the tab strip — longer panels (RFQ,
+          Pricing Quote) still hit the cap and scroll internally via overflow-y-auto below. */}
+      <div className={cn('min-h-0 overflow-y-auto', active ? '' : 'h-0 overflow-hidden')}>
         {opened.has('analysis') && <div className={cn(active !== 'analysis' && 'hidden')}>{analysis}</div>}
         {opened.has('rfq')      && <div className={cn(active !== 'rfq'      && 'hidden')}>{rfq}</div>}
         {opened.has('gbquote')  && <div className={cn(active !== 'gbquote'  && 'hidden')}>{gbquote}</div>}
