@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { EngagementFolderNav } from '@/components/engagement/EngagementFolderNav'
 import { useNarrowViewport } from '@/hooks/useNarrowViewport'
-import { useResizableRailWidth, RAIL_ICON_THRESHOLD } from '@/hooks/useResizableRailWidth'
+import { useResizableRailWidth, RAIL_ICON_THRESHOLD, RAIL_COMPACT_THRESHOLD } from '@/hooks/useResizableRailWidth'
 import { cn } from '@/lib/utils'
 
 const ENGAGEMENT_ROUTE = '/engagement'
@@ -46,6 +46,7 @@ export function EngagementRail() {
   if (!showRail) return null
 
   const iconOnly = width < RAIL_ICON_THRESHOLD
+  const compact  = !iconOnly && width < RAIL_COMPACT_THRESHOLD
 
   return (
     <aside
@@ -62,7 +63,7 @@ export function EngagementRail() {
       >
         <ArrowLeft size={12} strokeWidth={2} /> {!iconOnly && 'Dashboard'}
       </Link>
-      <EngagementFolderNav iconOnly={iconOnly} />
+      <EngagementFolderNav iconOnly={iconOnly} compact={compact} />
 
       {/* Drag handle — the aside's own `fixed` positioning already establishes the containing
           block for this absolute child, so it tracks the rail's right edge as it resizes. */}

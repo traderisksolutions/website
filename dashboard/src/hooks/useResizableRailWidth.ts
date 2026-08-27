@@ -11,13 +11,18 @@ import { useResizableDimension, clampDimension } from './useResizableDimension'
  * RAIL_MIN is deliberately narrow (not just "small text") — below RAIL_ICON_THRESHOLD the rail
  * switches to an icon-only rendering mode (avatar circles, no text/search/tabs — see
  * EngagementRail/EngagementFolderNav/ConversationList/EngagementThreadRow's `iconOnly` prop)
- * rather than trying to cram full rows into an unreadably narrow column.
+ * rather than trying to cram full rows into an unreadably narrow column. Between that and
+ * RAIL_COMPACT_THRESHOLD, the search box and tab pills collapse to icon buttons that open a
+ * popover on click (see EngagementFolderNav's `compact` prop) — full labels ("Prospects",
+ * "Clients") start truncating well before RAIL_ICON_THRESHOLD, so that gap needs its own mode
+ * rather than just squeezing the full-width chrome.
  */
-export const RAIL_MIN            = 64
-export const RAIL_ICON_THRESHOLD = 88
-export const RAIL_MAX            = 520
-export const RAIL_DEFAULT        = 340
-export const RAIL_STEP           = 10
+export const RAIL_MIN             = 64
+export const RAIL_ICON_THRESHOLD  = 88
+export const RAIL_COMPACT_THRESHOLD = 200
+export const RAIL_MAX             = 520
+export const RAIL_DEFAULT         = 340
+export const RAIL_STEP            = 10
 
 export function clampRailWidth(n: number): number {
   return clampDimension(n, RAIL_MIN, RAIL_MAX)
