@@ -248,7 +248,11 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
         clientAddress: company?.address ?? null,
         clientContactName: recipient?.contactName ?? null,
         classOfInsurance, periodStart, periodEnd, insurer, description, currency,
-        lineItems: [{ description: 'Gross Premium collected on behalf of Insurance Company', amount: grossPremium }],
+        // GST-inclusive — GST itself is never printed (the client isn't GST-registered, see
+        // debit-note-pdf.tsx's top comment), but the line item must still show what it actually
+        // collects so the printed lines sum to Premium Total instead of silently being short by
+        // the GST amount folded invisibly into the total.
+        lineItems: [{ description: 'Gross Premium collected on behalf of Insurance Company', amount: grossPremium + gstAmount }],
         gstAmount, feeRebate: feeRebateEnabled ? feeRebate : null, total: net,
         bankProfile, paymentDueDate, eventType,
         endorsementEffectiveDate: eventType === 'endorsement' ? endorsementEffectiveDate : null,
@@ -347,7 +351,10 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
             startDate: periodStart || null, endDate: periodEnd || null,
           },
           debitNote: {
-            currency, lineItems: [{ description: 'Gross Premium collected on behalf of Insurance Company', amount: grossPremium }],
+            // GST-inclusive line — see the matching comment on the preview builder above; must
+            // stay identical to it, or the live preview would show a different number than the
+            // real PDF this actually generates.
+            currency, lineItems: [{ description: 'Gross Premium collected on behalf of Insurance Company', amount: grossPremium + gstAmount }],
             gstAmount: gstAmount || null, feeRebate: feeRebateEnabled ? (feeRebate || null) : null,
             commissionRate: commissionRate || null, commission: commissionAmount || null,
             debitNoteNo: debitNoteNo.trim() || null,

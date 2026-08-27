@@ -77,7 +77,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const lineItems = patch.lineItems ?? before.line_items
     const gstAmount  = patch.gstAmount  ?? before.gst_amount ?? 0
-    const grossAmount = (lineItems as DebitNotePdfLineItem[]).reduce((s, l) => s + l.amount, 0) + gstAmount
+    // Line items are GST-inclusive as of the debit-notes/new creation flow (the printed premium
+    // line already has its GST folded in — see that page's comment) — gstAmount is tracked here
+    // purely for internal accounting/reporting, never added again on top of the line items it's
+    // already part of. NOTE: a debit note created before that change has GST-EXCLUSIVE stored
+    // line_items, so re-saving one of those through this edit route will under-count GST in the
+    // recomputed total by exactly gstAmount — a one-time migration gap for historical records,
+    // not something this route can detect from the data alone.
+    const grossAmount = (lineItems as DebitNotePdfLineItem[]).reduce((s, l) => s + l.amount, 0)
 
     const update = {
       debit_note_no: debitNoteNo,
