@@ -368,7 +368,7 @@ export function EngagementComposePanel({
   // ── Sent state ─────────────────────────────────────────────────────────────
   if (sent) {
     return (
-      <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 rounded-t-xl border border-[--border-subtle] bg-card shadow-[0_-4px_24px_-8px_rgba(16,24,40,0.14)]">
+      <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-t border-[--border-subtle] bg-card">
         <div className="flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-[--success]" />
           <span className="text-[12.5px] font-medium text-[--success]">Reply sent</span>
@@ -384,8 +384,10 @@ export function EngagementComposePanel({
   }
 
   // ── Compose shell ──────────────────────────────────────────────────────────
+  // Flat, in-flow treatment — this is the last item in the thread's own scroll region now, not
+  // a panel floating up from a fixed-height dock, so no rounded corners / upward shadow / h-full.
   return (
-    <div className="flex-shrink-0 flex flex-col h-full rounded-t-xl border border-[--border-subtle] bg-card shadow-[0_-4px_24px_-8px_rgba(16,24,40,0.14)] overflow-hidden">
+    <div className="flex-shrink-0 flex flex-col border-t border-[--border-subtle] bg-card">
 
       {/* ── Addressing header ── */}
       <div className="flex-shrink-0 border-b border-[--border-subtle]">
@@ -396,7 +398,7 @@ export function EngagementComposePanel({
             type="button"
             onClick={() => setHeaderExpanded(true)}
             aria-expanded={false}
-            className="w-full flex items-center gap-2.5 px-6 py-3.5 text-left hover:bg-muted/30 transition-colors"
+            className="w-full flex items-center gap-2.5 px-6 py-2.5 text-left hover:bg-muted/30 transition-colors"
           >
             <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/55 flex-shrink-0">
               To
@@ -517,8 +519,10 @@ export function EngagementComposePanel({
 
       {(
         <>
-          {/* ── Editor ── */}
-          <div className="px-6 py-3 flex-1 min-h-0 overflow-y-auto">
+          {/* ── Editor — grows naturally with content; the outer thread scroll region (not this
+               div) is the single scroll surface, so this only caps very long drafts rather than
+               being its own independent scroll container. ── */}
+          <div className="px-6 py-3 max-h-[50vh] overflow-y-auto">
             <RichEditor
               key={draftEditorKey}
               initialHtml={draftHtml}

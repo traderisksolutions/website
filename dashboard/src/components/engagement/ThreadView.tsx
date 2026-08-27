@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuditLog } from '@/hooks/useAuditLog'
 import type { Lead, RealMsg, ThreadState, StoredSummary, RagSource } from './types'
 import { fullName, extractEmail } from './helpers'
-import { EaWorkspaceColumn, EaMessageArea } from './EaLayout'
+import { EaWorkspaceColumn, EaMessageArea, ScrollToLatestButton } from './EaLayout'
 import { EngagementThreadHeader } from '@/components/engagement-agent/engagement-thread-header'
 import { AddToCaseControl } from '@/components/engagement/AddToCaseControl'
 import { EngagementMessageCard } from '@/components/engagement-agent/engagement-message-card'
@@ -70,8 +70,34 @@ export function ThreadView({
   // RFQ context — is this thread an insurer's quotation conversation?
   const [rfqContext, setRfqContext] = useState<{ is_insurer_rfq: boolean; case_id?: string | null; insurer_name?: string | null; insured?: string | null } | null>(null)
 
-  // Dock imperative open (e.g. a draft arriving from a Nexus roadmap step)
-  const [dockSignal, setDockSignal] = useState<{ tab: 'reply' | 'analysis' | 'rfq' | 'gbquote'; stamp: number } | undefined>(undefined)
+  // Dock imperative open (e.g. an RFQ/analysis step wanting its own tab open). Reply is no
+  // longer a dock tab — it's always visible in-flow — so a draft arriving from elsewhere now
+  // scrolls the composer into view instead (see scrollComposerIntoView below).
+  const [dockSignal, setDockSignal] = useState<{ tab: 'analysis' | 'rfq' | 'gbquote'; stamp: number } | undefined>(undefined)
+
+  // ── Thread scroll region ─────────────────────────────────────────────────────────────────
+  const messageAreaRef  = useRef<HTMLDivElement>(null)
+  const composerRef     = useRef<HTMLDivElement>(null)
+  const [showScrollToLatest, setShowScrollToLatest] = useState(false)
+  const scrolledInitRef = useRef<string | null>(null)   // threadId we've already auto-scrolled on open
+  const pendingSendScrollRef = useRef(false)             // set by a successful send, consumed once messages refresh
+
+  const scrollToBottom = useCallback((smooth: boolean) => {
+    const el = messageAreaRef.current
+    if (!el) return
+    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' })
+  }, [])
+
+  const scrollComposerIntoView = useCallback(() => {
+    composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [])
+
+  function handleMessageAreaScroll() {
+    const el = messageAreaRef.current
+    if (!el) return
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
+    setShowScrollToLatest(distanceFromBottom > 120)
+  }
 
   // ── Party switcher: a conversation can span several threads (client, employee, insurer…).
   //    The page loads the primary thread; picking another party in the right panel overrides
@@ -167,10 +193,32 @@ export function ThreadView({
   }
 
   // A send should refresh the page thread AND (if a party override is active) re-pull it.
+  // Also flags that the next messages-settled effect run should scroll to the newly-sent
+  // message (see the scroll-management effect below) — a genuine round-trip refetch, not an
+  // optimistic append (see EngagementComposePanel.handleSend), so we can't scroll immediately.
   function handleThreadRefresh() {
+    pendingSendScrollRef.current = true
     onThreadRefresh()
     if (isOverriding) setRefreshNonce(n => n + 1)
   }
+
+  // Auto-scroll rules: (1) instantly to the bottom once when a thread first finishes loading
+  // (switching threads/opening one should start you at the latest message, matching the
+  // existing defaultOpen assumption below), (2) smoothly to the bottom after a send completes.
+  // Never auto-scrolls on message expand/collapse or sidebar resize — those don't touch
+  // scrolledInitRef/pendingSendScrollRef at all.
+  useEffect(() => {
+    if (loading || !threadId) return
+    if (pendingSendScrollRef.current) {
+      pendingSendScrollRef.current = false
+      scrollToBottom(true)
+      return
+    }
+    if (scrolledInitRef.current !== threadId) {
+      scrolledInitRef.current = threadId
+      scrollToBottom(false)
+    }
+  }, [threadId, loading, messages.length, scrollToBottom])
 
   // Read any existing summary when the thread changes (display only — never generates).
   // The reply draft is NOT auto-loaded; it appears only when the employee clicks Generate.
@@ -203,7 +251,8 @@ export function ThreadView({
   }, [threadId])
 
   // Pending reply handed over from a Nexus roadmap step (via sessionStorage) →
-  // load it into Reply and open the dock's Reply tab.
+  // load it into the composer and scroll it into view (Reply is always visible in-flow now,
+  // so there's no dock tab to open — just bring the composer into the viewport).
   useEffect(() => {
     if (!threadId || typeof window === 'undefined') return
     const raw = window.sessionStorage.getItem('trs_pending_reply')
@@ -215,9 +264,9 @@ export function ThreadView({
       if (p.subject) setCustomSubject(p.subject)
       if (p.toEmail) setToAddress(p.toEmail)
       if (p.body) setPendingRestore({ body: p.body, generatedBy: 'nexus-step', stamp: Date.now() })
-      setDockSignal({ tab: 'reply', stamp: Date.now() })
+      scrollComposerIntoView()
     } catch { /* ignore */ }
-  }, [threadId])
+  }, [threadId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // NOTE: AI Analysis is generated ON DEMAND only (the Refresh button →
   // refreshSummaries below). It no longer auto-polls or auto-generates when a new
@@ -284,8 +333,13 @@ export function ThreadView({
             below), so the two would otherwise contradict each other. */}
         {!rfqContext?.case_id && <AddToCaseControl threadId={threadId} />}
 
-        {/* ── Messages scroll region ── */}
-        <EaMessageArea>
+        {/* Wraps just the scrollable reading viewport (not the dock below) so the floating
+            "scroll to latest" button pins to the visible message area regardless of whether
+            the dock below is collapsed (tab strip only) or expanded (up to 380px). */}
+        <div className="relative flex-1 min-h-0 flex flex-col">
+        {/* ── Messages scroll region — the composer lives inside it too, as the last item in
+             the same flow, so scrolling to the bottom of the thread naturally reveals it. ── */}
+        <EaMessageArea ref={messageAreaRef} onScroll={handleMessageAreaScroll}>
 
           {/* Campaign banner */}
           {lead.campaign_context && (
@@ -306,7 +360,7 @@ export function ThreadView({
             </div>
           )}
 
-          <div className="flex flex-col gap-4 p-5">
+          <div className="flex flex-col">
             {loading && (
               <div className="flex items-center justify-center py-12">
                 <span className="text-[12px] text-muted-foreground">Loading email thread…</span>
@@ -318,7 +372,7 @@ export function ThreadView({
               </div>
             )}
             {!loading && !error && messages.length === 0 && (
-              <div className="flex flex-col gap-4 py-8">
+              <div className="flex flex-col gap-4 px-4 py-8">
                 <p className="text-center text-[12px] text-muted-foreground">
                   No email thread found for {lead.email ?? 'this contact'}.
                 </p>
@@ -339,36 +393,44 @@ export function ThreadView({
                 key={msg.id}
                 msg={msg}
                 defaultOpen={i === messages.length - 1 || i === lastInboundIdx}
+                isLatest={i === messages.length - 1}
               />
             ))}
           </div>
+
+          {/* ── Reply composer — part of the thread flow, not a detached panel ── */}
+          {!loading && (
+            <div ref={composerRef}>
+              <EngagementComposePanel
+                lead={lead}
+                thread={thread}
+                messages={messages}
+                toAddress={toAddress}
+                ccList={ccList}
+                bccList={bccList}
+                customSubject={customSubject}
+                setToAddress={setToAddress}
+                setCcList={setCcList}
+                setBccList={setBccList}
+                setCustomSubject={setCustomSubject}
+                replyAll={replyAll}
+                onToggleReplyAll={toggleReplyAll}
+                storedDraft={summaries[0]?.draft_reply ?? null}
+                storedRagDraft={ragDraft?.content ?? null}
+                storedRagSources={ragDraft?.sources ?? []}
+                onThreadRefresh={handleThreadRefresh}
+                onAnalyze={runAnalysis}
+                pendingRestore={pendingRestore}
+              />
+            </div>
+          )}
         </EaMessageArea>
 
-        {/* ── Bottom dock: Reply · AI Analysis · RFQ ── */}
+        <ScrollToLatestButton visible={showScrollToLatest} onClick={() => scrollToBottom(true)} />
+        </div>
+
+        {/* ── Bottom dock: AI Analysis · RFQ · Pricing Quote ── */}
         <EngagementDock
-          reply={
-            <EngagementComposePanel
-              lead={lead}
-              thread={thread}
-              messages={messages}
-              toAddress={toAddress}
-              ccList={ccList}
-              bccList={bccList}
-              customSubject={customSubject}
-              setToAddress={setToAddress}
-              setCcList={setCcList}
-              setBccList={setBccList}
-              setCustomSubject={setCustomSubject}
-              replyAll={replyAll}
-              onToggleReplyAll={toggleReplyAll}
-              storedDraft={summaries[0]?.draft_reply ?? null}
-              storedRagDraft={ragDraft?.content ?? null}
-              storedRagSources={ragDraft?.sources ?? []}
-              onThreadRefresh={handleThreadRefresh}
-              onAnalyze={runAnalysis}
-              pendingRestore={pendingRestore}
-            />
-          }
           analysis={
             <AiAnalysisPanel
               summaries={summaries}
@@ -389,7 +451,7 @@ export function ThreadView({
               ? <ThreadGbQuote
                   threadId={threadId}
                   defaultCompany={lead.company ?? fullName(lead) ?? ''}
-                  onDraftReply={(body) => { setPendingRestore({ body, generatedBy: 'gb-quote', stamp: Date.now() }); setDockSignal({ tab: 'reply', stamp: Date.now() }) }}
+                  onDraftReply={(body) => { setPendingRestore({ body, generatedBy: 'gb-quote', stamp: Date.now() }); scrollComposerIntoView() }}
                 />
               : <div className="p-5 text-[12px] text-muted-foreground/60">Open an email thread to quote a census.</div>
           }

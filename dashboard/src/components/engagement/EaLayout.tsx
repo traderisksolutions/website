@@ -11,7 +11,8 @@
  */
 
 import { cn } from '@/lib/utils'
-import type { ReactNode } from 'react'
+import { forwardRef, type ReactNode, type UIEvent } from 'react'
+import { ArrowDown } from 'lucide-react'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // EaListPanel
@@ -144,11 +145,19 @@ export function EaWorkspaceColumn({ children, className }: EaWorkspaceColumnProp
 interface EaMessageAreaProps {
   children:   ReactNode
   className?: string
+  onScroll?:  (e: UIEvent<HTMLDivElement>) => void
 }
 
-export function EaMessageArea({ children, className }: EaMessageAreaProps) {
+// forwardRef so callers (ThreadView) can hold the actual scroll-container node — needed for
+// scroll-position tracking (the "scroll to latest" affordance) and imperative scrollTo calls
+// (auto-scroll on send / thread open) without a second, redundant scroll region.
+export const EaMessageArea = forwardRef<HTMLDivElement, EaMessageAreaProps>(function EaMessageArea(
+  { children, className, onScroll }, ref,
+) {
   return (
     <div
+      ref={ref}
+      onScroll={onScroll}
       className={cn(
         'flex-1 min-h-0 overflow-y-auto',
         // Explicit reading surface — differs from the white chrome panels
@@ -159,7 +168,7 @@ export function EaMessageArea({ children, className }: EaMessageAreaProps) {
       {children}
     </div>
   )
-}
+})
 
 // ─────────────────────────────────────────────────────────────────────────────
 // EaWorkspaceEmptyState
@@ -195,5 +204,33 @@ export function EaWorkspaceEmptyState({
         <p className="text-[11.5px] text-muted-foreground/60 leading-relaxed max-w-[260px] m-0">{body}</p>
       </div>
     </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ScrollToLatestButton
+//
+// A subtle floating affordance shown while reading older messages (scrolled
+// away from the bottom of EaMessageArea) — positioned relative to
+// EaWorkspaceColumn (which is `relative`), not the viewport, so it stays
+// pinned to the reading pane rather than the whole page.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function ScrollToLatestButton({ visible, onClick }: { visible: boolean; onClick: () => void }) {
+  if (!visible) return null
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'absolute bottom-4 right-4 z-10',
+        'flex items-center gap-1.5 text-[11px] font-semibold',
+        'px-3 py-1.5 rounded-full border border-[--border-subtle]',
+        'bg-card text-foreground shadow-[0_2px_10px_rgba(15,23,42,0.12)]',
+        'hover:bg-accent transition-colors',
+      )}
+    >
+      <ArrowDown size={12} strokeWidth={2.5} />
+      Latest message
+    </button>
   )
 }

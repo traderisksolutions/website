@@ -2,19 +2,22 @@
 
 import { usePathname } from 'next/navigation'
 import { TopNavbar } from '@/components/nav/top-navbar'
-import { EngagementRail, ENGAGEMENT_RAIL_WIDTH, useShowEngagementRail } from '@/components/nav/engagement-rail'
+import { EngagementRail, useShowEngagementRail } from '@/components/nav/engagement-rail'
 import { ChatDockProvider } from '@/providers/chat-dock-provider'
 import { FloatingChatDock } from '@/components/chat/floating-chat-dock'
 import { EngagementNavProvider } from '@/providers/engagement-nav-provider'
 
 function MainContent({ children }: { children: React.ReactNode }) {
   // /engagement renders its conversation list as a fixed left rail (see EngagementRail) instead
-  // of a nav dropdown — push content right so it doesn't sit underneath that rail.
+  // of a nav dropdown — push content right so it doesn't sit underneath that rail. Reads the same
+  // --engagement-rail-w CSS var the rail itself resizes (see useResizableRailWidth), so dragging
+  // the rail wider/narrower resizes this margin too without any prop-threading between the two
+  // sibling components.
   const showEngagementRail = useShowEngagementRail()
   return (
     <div
       className="main-content min-h-[calc(100vh/var(--ui-zoom))] flex flex-col"
-      style={{ background: 'hsl(var(--background))', marginLeft: showEngagementRail ? ENGAGEMENT_RAIL_WIDTH : 0 }}
+      style={{ background: 'hsl(var(--background))', marginLeft: showEngagementRail ? 'var(--engagement-rail-w, 340px)' : 0 }}
     >
       {children}
     </div>

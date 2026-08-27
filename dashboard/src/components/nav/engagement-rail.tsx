@@ -5,17 +5,17 @@ import { usePathname } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { EngagementFolderNav } from '@/components/engagement/EngagementFolderNav'
 import { useNarrowViewport } from '@/hooks/useNarrowViewport'
+import { useResizableRailWidth } from '@/hooks/useResizableRailWidth'
 
 const ENGAGEMENT_ROUTE = '/engagement'
-export const ENGAGEMENT_RAIL_WIDTH = 340
 
 function onEngagementRoute(pathname: string) {
   return pathname === ENGAGEMENT_ROUTE || pathname.startsWith(ENGAGEMENT_ROUTE + '/')
 }
 
 /** True when the engagement conversation list is showing as a rail (see EngagementRail below) —
- *  ConditionalShell uses this to push page content right by ENGAGEMENT_RAIL_WIDTH so it doesn't
- *  sit underneath the fixed rail. */
+ *  ConditionalShell uses this to push page content right by the rail's current width (the
+ *  --engagement-rail-w CSS var) so it doesn't sit underneath the fixed rail. */
 export function useShowEngagementRail() {
   const pathname = usePathname()
   const narrow = useNarrowViewport()
@@ -30,16 +30,22 @@ export function useShowEngagementRail() {
  * now that the primary nav is a top bar with no vertical rail, it gets its own fixed column below
  * the navbar instead, using the exact same NARROW_BREAKPOINT so the two can't disagree about
  * which layout is showing. Below that breakpoint engagement/page.tsx renders its own inline list
- * (EaListPanel), so this renders nothing.
+ * (EaListPanel, not resizable — dragging is a desktop-only affordance here), so this renders
+ * nothing.
+ *
+ * Width is drag-resizable (260–520px, default 340) via a handle on the right edge, persisted to
+ * localStorage and shared with ConditionalShell's MainContent margin through the
+ * --engagement-rail-w CSS custom property — see useResizableRailWidth.
  */
 export function EngagementRail() {
   const showRail = useShowEngagementRail()
+  const { width, min, max, step, startDrag, nudge, setAbsolute } = useResizableRailWidth()
   if (!showRail) return null
 
   return (
     <aside
       className="fixed left-0 flex flex-col z-30 glass-sidebar border-r border-[--border-subtle] overflow-hidden"
-      style={{ top: 56, bottom: 0, width: ENGAGEMENT_RAIL_WIDTH }}
+      style={{ top: 56, bottom: 0, width: 'var(--engagement-rail-w, 340px)' }}
     >
       <Link
         href="/"
@@ -48,6 +54,28 @@ export function EngagementRail() {
         <ArrowLeft size={12} strokeWidth={2} /> Dashboard
       </Link>
       <EngagementFolderNav />
+
+      {/* Drag handle — the aside's own `fixed` positioning already establishes the containing
+          block for this absolute child, so it tracks the rail's right edge as it resizes. */}
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize conversation list"
+        aria-valuenow={width}
+        aria-valuemin={min}
+        aria-valuemax={max}
+        tabIndex={0}
+        onPointerDown={e => { e.preventDefault(); startDrag(e.clientX, width) }}
+        onKeyDown={e => {
+          if (e.key === 'ArrowLeft')       { e.preventDefault(); nudge(-step) }
+          else if (e.key === 'ArrowRight') { e.preventDefault(); nudge(step) }
+          else if (e.key === 'Home')       { e.preventDefault(); setAbsolute(min) }
+          else if (e.key === 'End')        { e.preventDefault(); setAbsolute(max) }
+        }}
+        className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize z-10 flex items-center justify-center group focus-visible:outline-none"
+      >
+        <div className="w-px h-full bg-transparent group-hover:bg-primary/40 group-focus-visible:bg-primary/60 transition-colors" />
+      </div>
     </aside>
   )
 }

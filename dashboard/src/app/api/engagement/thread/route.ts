@@ -135,6 +135,23 @@ export async function GET(req: NextRequest) {
       if (r.role === 'cc') recipMap[r.message_id].cc.push(r.email)
     }
 
+    // 6. Fetch attachments for this thread's messages (email-attachments bucket; only rows with
+    // a storage_url are actually downloadable — ingest sometimes records a row before the file
+    // upload completes).
+    const attRes = await fetch(
+      `${SB_URL}/rest/v1/email_attachments?thread_id=eq.${thread.id}&storage_url=not.is.null&select=id,message_id,filename,mime_type,size_bytes`,
+      { headers: sbHeaders() }
+    )
+    const atts: { id: string; message_id: string; filename: string; mime_type: string | null; size_bytes: number | null }[] =
+      attRes.ok ? await attRes.json() : []
+
+    // 7. Join attachments onto messages
+    const attMap: Record<string, { id: string; filename: string; mime_type: string | null; size_bytes: number | null }[]> = {}
+    for (const a of (Array.isArray(atts) ? atts : [])) {
+      if (!attMap[a.message_id]) attMap[a.message_id] = []
+      attMap[a.message_id].push({ id: a.id, filename: a.filename, mime_type: a.mime_type, size_bytes: a.size_bytes })
+    }
+
     const messages = msgs.map(m => ({
       id:           m.id,
       direction:    m.direction,
@@ -146,6 +163,7 @@ export async function GET(req: NextRequest) {
       sent_at:      m.sent_at,
       to:           recipMap[m.id as string]?.to ?? [],
       cc:           recipMap[m.id as string]?.cc ?? [],
+      attachments:  attMap[m.id as string] ?? [],
     }))
 
     return NextResponse.json({ thread, messages })

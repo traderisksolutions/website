@@ -18,6 +18,13 @@ export type Lead = {
   } | null
 }
 
+export type MsgAttachment = {
+  id:         string
+  filename:   string
+  mime_type:  string | null
+  size_bytes: number | null
+}
+
 export type RealMsg = {
   id: string
   direction: 'inbound' | 'outbound'
@@ -29,6 +36,7 @@ export type RealMsg = {
   sent_at: string | null
   to: string[]
   cc: string[]
+  attachments?: MsgAttachment[]
 }
 
 export type ThreadState = {

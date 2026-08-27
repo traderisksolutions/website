@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Paperclip, Download } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { RealMsg } from '@/components/engagement/types'
 import { fmtDateTime, stripQuotedContent } from '@/components/engagement/helpers'
@@ -11,10 +11,14 @@ import { sanitizeEmailHtml } from '@/lib/sanitize-email-html'
 interface EngagementMessageCardProps {
   msg:         RealMsg
   defaultOpen: boolean
+  /** The most recent message in the thread gets a subtle accent — same left-border language
+   *  EngagementThreadRow already uses for its active state, so the "you are here" cue reads the
+   *  same way in the list and in the reading pane. */
+  isLatest?:   boolean
   onOpen?:     (id: string) => void
 }
 
-export function EngagementMessageCard({ msg, defaultOpen, onOpen }: EngagementMessageCardProps) {
+export function EngagementMessageCard({ msg, defaultOpen, isLatest, onOpen }: EngagementMessageCardProps) {
   const [open,     setOpen]     = useState(defaultOpen)
   const [showFull, setShowFull] = useState(false)
 
@@ -33,6 +37,8 @@ export function EngagementMessageCard({ msg, defaultOpen, onOpen }: EngagementMe
     onOpen?.(msg.id)
   }
 
+  const accent = isLatest ? 'border-l-2 border-l-primary/40' : 'border-l-2 border-l-transparent'
+
   // ── Collapsed: clean single-row preview ───────────────────────────────────
   if (!open) {
     const preview = (() => {
@@ -46,10 +52,11 @@ export function EngagementMessageCard({ msg, defaultOpen, onOpen }: EngagementMe
         aria-expanded={false}
         aria-label={`Expand message from ${senderLabel}`}
         className={cn(
-          'w-full text-left flex items-center gap-3 px-4 py-2.5 rounded-xl',
-          'border border-[--border-subtle] bg-card',
-          'hover:bg-muted/30 transition-colors group',
-          'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/30',
+          'w-full text-left flex items-center gap-3 px-4 py-2',
+          'border-b border-[--border-subtle]/60 bg-card',
+          'hover:bg-muted/40 transition-colors group',
+          'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/30 focus-visible:ring-inset',
+          accent,
         )}
       >
         <CardAvatar initial={initial} isOut={isOut} size="sm" />
@@ -63,6 +70,9 @@ export function EngagementMessageCard({ msg, defaultOpen, onOpen }: EngagementMe
           <span className="text-[11.5px] text-muted-foreground/70 truncate flex-1 leading-snug">
             {preview}
           </span>
+          {!!msg.attachments?.length && (
+            <Paperclip size={11} strokeWidth={2} className="text-muted-foreground/45 flex-shrink-0" />
+          )}
         </div>
         <span className="text-[10px] text-muted-foreground/55 tabular-nums flex-shrink-0">
           {fmtDateTime(msg.sent_at)}
@@ -76,7 +86,7 @@ export function EngagementMessageCard({ msg, defaultOpen, onOpen }: EngagementMe
     )
   }
 
-  // ── Expanded: full readable card ──────────────────────────────────────────
+  // ── Expanded: full readable block ──────────────────────────────────────────
   const bodyText = showFull ? fullBody : stripped
   // Only emails ingested from 2026-07-10 onward have body_html stored — older rows only ever
   // had the flattened plain text saved, so this falls back to that unchanged for them. When
@@ -84,12 +94,7 @@ export function EngagementMessageCard({ msg, defaultOpen, onOpen }: EngagementMe
   const bodyHtml = msg.body_html ? sanitizeEmailHtml(msg.body_html) : null
 
   return (
-    <div className={cn(
-      'rounded-xl border overflow-hidden bg-card',
-      isOut
-        ? 'border-primary/12 shadow-[0_1px_2px_rgba(12,51,138,0.05),0_4px_16px_rgba(12,51,138,0.06)]'
-        : 'border-[--border-subtle] shadow-[0_1px_2px_rgba(20,30,50,0.04),0_3px_10px_rgba(20,30,50,0.04)]',
-    )}>
+    <div className={cn('bg-card border-b border-[--border-subtle]/60', accent)}>
 
       {/* Header — click to collapse */}
       <button
@@ -97,10 +102,9 @@ export function EngagementMessageCard({ msg, defaultOpen, onOpen }: EngagementMe
         aria-expanded={true}
         aria-label={`Collapse message from ${senderLabel}`}
         className={cn(
-          'w-full flex items-start gap-3.5 px-5 py-3.5 text-left',
-          'border-b transition-colors cursor-pointer',
-          'hover:bg-muted/15 focus-visible:outline-none',
-          isOut ? 'border-primary/8' : 'border-[--border-subtle]',
+          'w-full flex items-start gap-3 px-4 py-2.5 text-left',
+          'hover:bg-muted/15 transition-colors cursor-pointer',
+          'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/30 focus-visible:ring-inset',
         )}
       >
         <CardAvatar initial={initial} isOut={isOut} size="md" />
@@ -138,16 +142,16 @@ export function EngagementMessageCard({ msg, defaultOpen, onOpen }: EngagementMe
       </button>
 
       {/* Body */}
-      <div className="px-5 pt-4 pb-5">
+      <div className="px-4 pb-4">
         {/* To / CC metadata */}
         {(msg.to.length > 0 || msg.cc.length > 0) && (
-          <div className="flex flex-col gap-1 mb-4 pb-3.5 border-b border-[--border-subtle]/50">
+          <div className="flex flex-col gap-1 mb-3 pb-3 border-b border-[--border-subtle]/40">
             {msg.to.length > 0 && <CardMetaRow label="To" value={msg.to.join(', ')} />}
             {msg.cc.length > 0 && <CardMetaRow label="CC" value={msg.cc.join(', ')} />}
           </div>
         )}
 
-        {/* Highlights the sender marked in this email (#2) */}
+        {/* Highlights the sender marked in this email */}
         {msg.highlights && msg.highlights.length > 0 && (
           <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2">
             <span className="text-[9.5px] font-bold uppercase tracking-wider text-amber-700/70">Highlighted by sender</span>
@@ -178,7 +182,7 @@ export function EngagementMessageCard({ msg, defaultOpen, onOpen }: EngagementMe
           <button
             onClick={() => setShowFull(v => !v)}
             className={cn(
-              'mt-3.5 flex items-center gap-1.5',
+              'mt-3 flex items-center gap-1.5',
               'text-[10.5px] text-muted-foreground/55 hover:text-muted-foreground',
               'border border-[--border-subtle] rounded-md px-2.5 py-1 transition-colors',
             )}
@@ -191,6 +195,9 @@ export function EngagementMessageCard({ msg, defaultOpen, onOpen }: EngagementMe
             {showFull ? 'Hide quoted' : 'Show full thread'}
           </button>
         )}
+
+        {/* Attachments — inline below the body */}
+        {!!msg.attachments?.length && <MessageAttachments attachments={msg.attachments} />}
       </div>
     </div>
   )
@@ -220,6 +227,38 @@ function CardMetaRow({ label, value }: { label: string; value: string }) {
         {label}
       </span>
       <span className="text-[11px] text-muted-foreground/65 break-all">{value}</span>
+    </div>
+  )
+}
+
+function formatBytes(n: number | null): string {
+  if (!n || n <= 0) return ''
+  if (n < 1024) return `${n} B`
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function MessageAttachments({ attachments }: { attachments: NonNullable<RealMsg['attachments']> }) {
+  return (
+    <div className="mt-3.5 flex flex-wrap gap-1.5">
+      {attachments.map(a => (
+        <a
+          key={a.id}
+          href={`/api/engagement/attachments/${a.id}/download`}
+          target="_blank"
+          rel="noreferrer"
+          className={cn(
+            'inline-flex items-center gap-1.5 text-[11px] text-foreground/80',
+            'border border-[--border-subtle] rounded-md pl-2 pr-2.5 py-1',
+            'hover:bg-muted/50 hover:text-foreground transition-colors group',
+          )}
+        >
+          <Paperclip size={11} strokeWidth={2} className="text-muted-foreground/55 flex-shrink-0" />
+          <span className="truncate max-w-[220px]">{a.filename}</span>
+          {!!a.size_bytes && <span className="text-muted-foreground/50 flex-shrink-0">{formatBytes(a.size_bytes)}</span>}
+          <Download size={10} strokeWidth={2} className="text-muted-foreground/35 group-hover:text-muted-foreground/60 flex-shrink-0" />
+        </a>
+      ))}
     </div>
   )
 }
