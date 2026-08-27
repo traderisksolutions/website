@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders, logEvent } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 // GET /api/outbound/campaigns — list all campaigns
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const res = await fetch(
       `${SB_URL}/rest/v1/ob_campaigns?order=created_at.desc&limit=100`,
@@ -26,6 +30,9 @@ const PRODUCT_CODE_MAP: Record<string, string> = {
 // POST /api/outbound/campaigns — create a new campaign
 // Body: { name, leadIds?: string[], searchId?, newsUrl?, productType?, variant_mode? }
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { name, leadIds, searchId, newsUrl, productType, variant_mode } = await req.json()
     if (!name?.trim()) {

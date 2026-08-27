@@ -1,13 +1,17 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getGDriveToken, listDocsInFolder, exportDocText, parseDocName } from '@/lib/gdrive'
 import { SB_URL, sbHeaders } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 // POST /api/outbound/knowledge/sync
 // Syncs Google Docs, TXT, and PDF files from GOOGLE_DRIVE_OUTBOUND_FOLDER_ID into ob_knowledge_base.
 // Uses GOOGLE_SERVICE_ACC_OUTBOUND_JSON service account — isolated from the engagement GDrive.
 // Upserts by gdrive_doc_id — existing entries keep their is_active / sort_order.
 // Returns { synced, errors[] }
-export async function POST() {
+export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   const folderId = process.env.GOOGLE_DRIVE_OUTBOUND_FOLDER_ID
   if (!folderId) {
     return NextResponse.json(

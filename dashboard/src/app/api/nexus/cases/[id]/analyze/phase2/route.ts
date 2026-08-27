@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runNexusAnalysisPhase2, recordFailedNexusAnalysis } from '@/lib/run-nexus-analysis'
 import { getNexusRun, updateNexusRun } from '@/lib/nexus-run-store'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 export const maxDuration = 180 // Opus adaptive-thinking call — the slowest single step
 
@@ -13,6 +14,9 @@ type Params = { params: { id: string } }
 // if provided it overrides (and is persisted as) the run's instructions for this and any
 // later resynthesis.
 export async function POST(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   const caseId = params.id
   const body = await req.json().catch(() => ({})) as { run_id?: string; instructions?: string }
   if (!body.run_id) return NextResponse.json({ error: 'run_id required' }, { status: 400 })

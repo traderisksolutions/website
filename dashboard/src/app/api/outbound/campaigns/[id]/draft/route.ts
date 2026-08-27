@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders, logEvent } from '@/lib/sb'
 import { logError } from '@/lib/error-log'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 interface Lead {
   full_name: string | null
@@ -13,6 +14,9 @@ interface Lead {
 // Drafts 3-step email sequences using Gemini, saves to ob_campaign_sequences
 // Body: { leadIds: string[] } — sample leads used for personalisation context
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id }      = await params
     const { leadIds } = await req.json()

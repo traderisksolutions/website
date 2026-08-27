@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -18,7 +19,10 @@ function sbHeaders() {
 
 type Params = { params: { id: string; runId: string } }
 
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const res = await fetch(
       `${SB_URL}/rest/v1/case_analyses` +

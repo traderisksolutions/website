@@ -7,6 +7,7 @@
  * Powers the Nexus RFQ reply panel (pick insurers → draft → send).
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -23,6 +24,9 @@ type Contact = {
 }
 
 export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const caseId = new URL(req.url).searchParams.get('case_id')
     if (!caseId) return NextResponse.json({ error: 'case_id required' }, { status: 400 })

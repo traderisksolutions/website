@@ -9,6 +9,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { logActivity }               from '@/lib/log-activity'
+import { requireStaffOrCron }        from '@/lib/api-auth'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -19,6 +20,9 @@ function sbH(prefer = 'return=representation') {
 }
 
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { rfq_request_id, contact_id, ai_draft_id, gmail_thread_id } = await req.json() as {
       rfq_request_id?: string; contact_id?: string; ai_draft_id?: string; gmail_thread_id?: string

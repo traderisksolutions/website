@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders, logEvent } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 type Params = { params: Promise<{ id: string }> }
 
 // GET /api/outbound/signals/[id]
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id } = await params
     const res = await fetch(
@@ -25,6 +29,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
 // or edit editable fields (relevance_notes, summary, sector)
 // Body: { action?: 'approve'|'reject'|'archive', relevance_notes?, summary?, sector? }
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id }  = await params
     const body    = await req.json() as {

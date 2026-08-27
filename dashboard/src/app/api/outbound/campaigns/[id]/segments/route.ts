@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 type Params = { params: Promise<{ id: string }> }
 
 // GET /api/outbound/campaigns/[id]/segments
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id } = await params
     const res = await fetch(
@@ -21,6 +25,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
 // POST /api/outbound/campaigns/[id]/segments
 // Body: segment fields
 export async function POST(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id }  = await params
     const body    = await req.json()
@@ -42,6 +49,9 @@ export async function POST(req: NextRequest, { params }: Params) {
 // PATCH /api/outbound/campaigns/[id]/segments
 // Body: { segment_id, ...fields }
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id }        = await params
     const { segment_id, ...rest } = await req.json() as { segment_id: string; [k: string]: unknown }
@@ -67,6 +77,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 // DELETE /api/outbound/campaigns/[id]/segments
 // Body: { segment_id }
 export async function DELETE(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id }        = await params
     const { segment_id } = await req.json() as { segment_id: string }

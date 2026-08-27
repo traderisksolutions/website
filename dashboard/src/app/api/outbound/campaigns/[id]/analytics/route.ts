@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 type Params = { params: Promise<{ id: string }> }
 
 // GET /api/outbound/campaigns/[id]/analytics
 // Returns aggregated performance data for the campaign
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id } = await params
 

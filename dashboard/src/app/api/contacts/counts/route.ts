@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { requireStaffOrCron }        from '@/lib/api-auth'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -14,7 +15,10 @@ function sbHeaders() {
 
 type StageRow = { engagement_stage: string | null }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   const zero = { engaged: 0, qualified: 0, proposal: 0, converted: 0 }
   try {
     const res = await fetch(

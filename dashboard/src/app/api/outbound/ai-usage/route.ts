@@ -1,9 +1,13 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 // GET /api/outbound/ai-usage
 // Returns AI draft usage summary from ob_outbound_events (event_type = 'ai_draft')
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   const res = await fetch(
     `${SB_URL}/rest/v1/ob_outbound_events` +
     `?event_type=eq.ai_draft` +

@@ -102,9 +102,12 @@ async function getTokenForSender(fromEmail: string, userId: string | null): Prom
 // If draftId is provided, updates ai_drafts and triggers an eval so the system learns from edits.
 export async function POST(req: NextRequest) {
   try {
+    // Was optional (userId fell through to null and the send still went out as ops@) — meaning
+    // an unauthenticated caller could trigger a real Gmail send. Now hard-gated.
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    const userId = user?.id ?? null
+    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    const userId = user.id
 
     const { leadId, name, email, company, topic, originalMessage, htmlBody, fromEmail: requestedFrom, draftId } =
       await req.json() as {

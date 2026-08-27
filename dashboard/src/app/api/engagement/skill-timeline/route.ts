@@ -10,8 +10,12 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseDB, SkillSynthesizer, createGeminiComposer, recommendForAllSurfaces } from '@/lib/ai-learning-loop'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const emailType = req.nextUrl.searchParams.get('email_type') ?? undefined
     const db = createSupabaseDB()
@@ -34,6 +38,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const body = await req.json().catch(() => ({})) as { action?: string; id?: string; email_type?: string }
     if (!body.id || !body.action) return NextResponse.json({ error: 'id and action required' }, { status: 400 })

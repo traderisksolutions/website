@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireStaffOrCron }        from '@/lib/api-auth'
 import {
   HOURLY_RATE_SGD,
   GEMINI_FEATURE_CONFIG,
@@ -60,6 +61,9 @@ type WorkflowAccum = {
 
 // GET /api/analytics/kyn-roi?since=ISO_DATE
 export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const since = req.nextUrl.searchParams.get('since')
     const dateFilter = since ? `&created_at=gte.${encodeURIComponent(since)}` : ''

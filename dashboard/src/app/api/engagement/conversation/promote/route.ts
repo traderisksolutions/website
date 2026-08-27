@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logActivity }               from '@/lib/log-activity'
+import { requireStaffOrCron }        from '@/lib/api-auth'
 
 // POST /api/engagement/conversation/promote
 // Body: { thread_id: string, name?: string }
@@ -30,6 +31,9 @@ function contactLabel(c: ContactRow | undefined): string | null {
 }
 
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { thread_id, name } = await req.json() as { thread_id?: string; name?: string }
     if (!thread_id) return NextResponse.json({ error: 'thread_id required' }, { status: 400 })

@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { productLineLabel }          from '@/lib/product-lines'
 import { extractAndStoreQuote }      from '@/lib/rfq-quote-extract'
+import { requireStaffOrCron }        from '@/lib/api-auth'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -18,6 +19,9 @@ function sbH() {
 }
 
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { case_id } = await req.json() as { case_id?: string }
     if (!case_id) return NextResponse.json({ error: 'case_id required' }, { status: 400 })

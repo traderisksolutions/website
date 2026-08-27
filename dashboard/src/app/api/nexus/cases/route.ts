@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -9,7 +10,10 @@ function sbHeaders(prefer = 'return=representation') {
 }
 
 // GET /api/nexus/cases — list all cases with thread count + last activity
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const res = await fetch(
       `${SB_URL}/rest/v1/cases?order=updated_at.desc&select=*`,
@@ -48,6 +52,9 @@ export async function GET() {
 
 // POST /api/nexus/cases — create a new case
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { name, description } = await req.json() as { name: string; description?: string }
     if (!name?.trim()) return NextResponse.json({ error: 'name required' }, { status: 400 })

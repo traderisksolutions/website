@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 // GET — list all schedules
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   const res = await fetch(
     `${SB_URL}/rest/v1/outbound_schedules?select=*&deleted_at=is.null&order=created_at.desc`,
     { headers: sbHeaders(), cache: 'no-store' }
@@ -14,6 +18,9 @@ export async function GET() {
 // Body: { sector, locations, headcount_ranges, product_type, frequency }
 // These match the apollo-search params so the cron can call it directly.
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   const body = await req.json()
   const row = {
     sector:           body.sector           ?? body.query ?? '',
@@ -34,6 +41,9 @@ export async function POST(req: NextRequest) {
 
 // PATCH — update schedule (toggle is_active, change next_run_at, etc.)
 export async function PATCH(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   const { id, ...updates } = await req.json()
   if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
   await fetch(`${SB_URL}/rest/v1/outbound_schedules?id=eq.${id}`, {
@@ -46,6 +56,9 @@ export async function PATCH(req: NextRequest) {
 
 // DELETE — soft-delete a schedule
 export async function DELETE(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   const { id } = await req.json()
   await fetch(`${SB_URL}/rest/v1/outbound_schedules?id=eq.${id}`, {
     method: 'PATCH', headers: sbHeaders(),

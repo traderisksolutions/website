@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders, logEvent } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -23,7 +24,10 @@ async function syncLeadCount(campaignId: string) {
 
 // GET /api/outbound/campaigns/[id]/leads
 // Returns all ob_campaign_leads for this campaign, joined with lead + segment + score data
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id } = await params
 
@@ -77,6 +81,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
 // Body: { lead_ids: string[], segment_id?: string, source_type?: string }
 // Adds leads to the campaign (idempotent — ignores duplicates)
 export async function POST(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id } = await params
     const body = await req.json() as { lead_ids: string[]; segment_id?: string; source_type?: string }
@@ -129,6 +136,9 @@ export async function POST(req: NextRequest, { params }: Params) {
 // Body: { lead_id: string, segment_id?: string, approval_status?: string, send_status?: string }
 // Update a specific campaign lead membership row
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id } = await params
     const body = await req.json() as {
@@ -163,6 +173,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 // Body: { lead_id: string }
 // Soft-removes a lead from the campaign (sets approval_status = 'excluded', removed_at = now)
 export async function DELETE(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id } = await params
     const { lead_id } = await req.json() as { lead_id: string }

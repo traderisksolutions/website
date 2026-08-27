@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders, logEvent } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 type Params = { params: Promise<{ id: string }> }
 
 // GET /api/outbound/campaigns/[id]/brief
 // Returns the current active brief (draft or approved), plus approved signals snapshot
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id } = await params
 
@@ -52,6 +56,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
 // If an existing approved brief exists, it is marked 'superseded'.
 // Body: { products, target_segments, approved_signal_ids, messaging_goals, constraints }
 export async function POST(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id }  = await params
     const body    = await req.json()
@@ -111,6 +118,9 @@ export async function POST(req: NextRequest, { params }: Params) {
 // PATCH /api/outbound/campaigns/[id]/brief
 // Update brief fields while in draft, OR approve (body: { approve: true })
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id }  = await params
     const body    = await req.json() as {

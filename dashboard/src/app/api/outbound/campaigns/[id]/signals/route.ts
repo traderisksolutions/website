@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders, logEvent } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 type Params = { params: Promise<{ id: string }> }
 
 // GET /api/outbound/campaigns/[id]/signals
 // Returns all signals attached to this campaign, joined with signal library details
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id } = await params
 
@@ -29,6 +33,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
 // Body: { signal_id: string, notes?: string }
 // Attaches a signal from the library to this campaign
 export async function POST(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id } = await params
     const { signal_id, notes } = await req.json() as { signal_id: string; notes?: string }
@@ -66,6 +73,9 @@ export async function POST(req: NextRequest, { params }: Params) {
 // Body: { signal_id: string }
 // Soft-detaches a signal from this campaign (sets deleted_at)
 export async function DELETE(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id } = await params
     const { signal_id } = await req.json() as { signal_id: string }

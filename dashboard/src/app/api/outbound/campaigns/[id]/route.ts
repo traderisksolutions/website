@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 // GET /api/outbound/campaigns/[id] — campaign + sequences
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id } = await params
 
@@ -24,6 +28,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
 // PATCH /api/outbound/campaigns/[id] — update campaign fields
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id }  = await params
     const updates = await req.json()

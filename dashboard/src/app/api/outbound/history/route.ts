@@ -1,9 +1,13 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 // GET /api/outbound/history           → search log (last 30 days)
 // GET /api/outbound/history?id=<uuid> → companies + people for that search
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { searchParams } = new URL(req.url)
     const id = searchParams.get('id')

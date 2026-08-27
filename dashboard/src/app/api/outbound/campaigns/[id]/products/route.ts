@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders, logEvent } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -7,7 +8,10 @@ const VALID_CODES = ['assets', 'liabilities', 'workforce', 'api', 'general'] as 
 type ProductCode = typeof VALID_CODES[number]
 
 // GET /api/outbound/campaigns/[id]/products
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id } = await params
     const res = await fetch(
@@ -24,6 +28,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
 // POST /api/outbound/campaigns/[id]/products
 // Body: { product_code, product_name, priority?, notes? }
 export async function POST(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id }  = await params
     const body    = await req.json() as {
@@ -69,6 +76,9 @@ export async function POST(req: NextRequest, { params }: Params) {
 // Body: { product_code, notes?, priority?, is_active? }
 // Used for product overrides while campaign is paused
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id }  = await params
     const body    = await req.json() as {

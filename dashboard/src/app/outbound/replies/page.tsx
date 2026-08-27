@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Loader2, AlertCircle, CheckCircle, ExternalLink, X } from 'lucide-react'
+import { Loader2, AlertCircle, CheckCircle, ExternalLink, X, Sparkles, Send, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AppScrollPage, AppPageHeader } from '@/components/app-shell'
 import { StatusBadge, STATUS_MAP } from '@/components/status-badge'
@@ -19,6 +19,8 @@ interface Classification {
   human_reviewed_at: string | null
 }
 
+type DraftStatus = 'none' | 'drafted' | 'sent'
+
 interface ReplyEvent {
   id:              string
   campaign_id:     string | null
@@ -28,6 +30,10 @@ interface ReplyEvent {
   body_preview:    string | null
   received_at:     string
   classification:  Classification | null
+  draft_body:      string | null
+  draft_status:    DraftStatus
+  sent_at:         string | null
+  sent_from_email: string | null
 }
 
 const ALL_LABELS: ReplyLabel[] = [
@@ -48,6 +54,9 @@ function RepliesInner() {
   const [needsReview,  setNeedsReview]  = useState(false)
   const [labelFilter,  setLabelFilter]  = useState<ReplyLabel | 'all'>('all')
   const [saving,       setSaving]       = useState<string | null>(null)
+  const [editingDraft, setEditingDraft] = useState<Record<string, string>>({})
+  const [drafting,     setDrafting]     = useState<string | null>(null)
+  const [sending,      setSending]      = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -96,6 +105,43 @@ function RepliesInner() {
     }
   }
 
+  async function generateDraft(replyId: string) {
+    setDrafting(replyId)
+    setError(null)
+    try {
+      const res = await fetch(`/api/outbound/replies/${replyId}/draft`, { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error ?? 'Failed to generate a draft')
+      setEditingDraft(prev => ({ ...prev, [replyId]: data.draft_body }))
+      setReplies(prev => prev.map(r => r.id === replyId ? { ...r, draft_body: data.draft_body, draft_status: 'drafted' } : r))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to generate a draft')
+    } finally {
+      setDrafting(null)
+    }
+  }
+
+  async function sendReply(replyId: string) {
+    const body = editingDraft[replyId]?.trim()
+    if (!body) return
+    if (!confirm('Send this reply to the prospect now? This cannot be undone.')) return
+    setSending(replyId)
+    setError(null)
+    try {
+      const res = await fetch(`/api/outbound/replies/${replyId}/send`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ body }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error ?? 'Failed to send')
+      setReplies(prev => prev.map(r => r.id === replyId ? { ...r, draft_body: body, draft_status: 'sent', sent_at: new Date().toISOString() } : r))
+      setSuccessMsg('Reply sent')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to send')
+    } finally {
+      setSending(null)
+    }
+  }
+
   const filtered = replies.filter(r => {
     if (labelFilter === 'all') return true
     const effective = r.classification?.human_label ?? r.classification?.ai_label
@@ -110,7 +156,7 @@ function RepliesInner() {
     <AppScrollPage maxWidth="900px">
       <AppPageHeader
         title="Reply Review"
-        description="AI-classified inbound replies. Confirm or override the label."
+        description="AI-classified inbound replies. Confirm the label, then generate, edit, and send a response."
         actions={
           <label className="flex items-center gap-1.5 text-[13px] text-muted-foreground cursor-pointer">
             <input type="checkbox" checked={needsReview} onChange={e => setNeedsReview(e.target.checked)} className="cursor-pointer" />
@@ -136,6 +182,10 @@ function RepliesInner() {
           <strong>Your job:</strong> Confirm the AI label (click it to tick it) or select a different one if the AI got it wrong.
           Reviewed labels keep your pipeline data accurate and help train the classification over time.
           Replies highlighted in <span className="px-1 rounded-[3px] font-semibold" style={{ background: 'var(--warning-bg)', color: 'var(--warning)' }}>amber</span> have not been reviewed yet.
+        </p>
+        <p className="mt-1.5 mb-0 text-[12px] text-muted-foreground leading-relaxed">
+          Worth a response? Click <strong>Generate reply</strong> for an AI-drafted response — edit it however you like, then <strong>Send</strong>.
+          Nothing goes out without you clicking Send.
         </p>
       </div>
 
@@ -267,6 +317,65 @@ function RepliesInner() {
                     </a>
                   )}
                 </div>
+
+                {/* Reply drafting — a human always decides whether to respond and always approves
+                    the exact text before it sends; nothing here ever sends automatically. */}
+                {reply.lead_email && (
+                  <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                    {reply.draft_status === 'sent' ? (
+                      <div className="flex items-start gap-2">
+                        <CheckCircle size={13} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--success)' }} />
+                        <div className="flex-1 min-w-0">
+                          <p className="m-0 text-[11px] font-semibold" style={{ color: 'var(--success)' }}>
+                            Sent{reply.sent_from_email ? ` as ${reply.sent_from_email}` : ''}{reply.sent_at ? ` · ${new Date(reply.sent_at).toLocaleString()}` : ''}
+                          </p>
+                          <p className="mt-1 mb-0 text-[12px] text-muted-foreground whitespace-pre-wrap">{reply.draft_body}</p>
+                        </div>
+                      </div>
+                    ) : editingDraft[reply.id] !== undefined || reply.draft_body ? (
+                      <div className="flex flex-col gap-2">
+                        <textarea
+                          value={editingDraft[reply.id] ?? reply.draft_body ?? ''}
+                          onChange={e => setEditingDraft(prev => ({ ...prev, [reply.id]: e.target.value }))}
+                          rows={4}
+                          className="w-full text-[12.5px] leading-relaxed rounded-[7px] px-3 py-2 resize-y"
+                          style={{ border: '1px solid var(--border-subtle)', background: 'hsl(var(--card))' }}
+                          placeholder="Reply text — review and edit before sending"
+                        />
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => sendReply(reply.id)}
+                            disabled={sending === reply.id || !(editingDraft[reply.id] ?? reply.draft_body)?.trim()}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold text-white disabled:opacity-40"
+                            style={{ background: 'var(--primary-hex)' }}
+                          >
+                            {sending === reply.id ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+                            Send
+                          </button>
+                          <button
+                            onClick={() => generateDraft(reply.id)}
+                            disabled={drafting === reply.id}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] font-medium text-muted-foreground disabled:opacity-40"
+                            style={{ border: '1px solid var(--border-subtle)', background: 'transparent' }}
+                          >
+                            {drafting === reply.id ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
+                            Regenerate
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => generateDraft(reply.id)}
+                        disabled={drafting === reply.id}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium disabled:opacity-40"
+                        style={{ border: '1px solid var(--border-subtle)', color: 'var(--primary-hex)', background: 'transparent' }}
+                      >
+                        {drafting === reply.id ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                        Generate reply
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             )
           })}

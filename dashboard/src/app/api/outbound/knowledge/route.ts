@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 // GET /api/outbound/knowledge?product_type=Business+Assets
 // Returns all active knowledge entries, optionally filtered by product_type.
 export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { searchParams } = new URL(req.url)
     const pt = searchParams.get('product_type')
@@ -22,6 +26,9 @@ export async function GET(req: NextRequest) {
 // POST /api/outbound/knowledge — create manual entry
 // Body: { product_type, title, content, sort_order? }
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { product_type, title, content, sort_order } = await req.json()
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logActivity }               from '@/lib/log-activity'
+import { requireStaffOrCron }        from '@/lib/api-auth'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -13,6 +14,9 @@ type Params = { params: { id: string } }
 
 // POST /api/nexus/cases/[id]/threads — link a thread to this case
 export async function POST(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { thread_id, party_type, party_label } =
       await req.json() as { thread_id: string; party_type: string; party_label?: string }
@@ -52,6 +56,9 @@ export async function POST(req: NextRequest, { params }: Params) {
 
 // PATCH /api/nexus/cases/[id]/threads — update party_type or party_label for a linked thread
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { thread_id, party_type, party_label } =
       await req.json() as { thread_id: string; party_type?: string; party_label?: string }
@@ -75,6 +82,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
 // DELETE /api/nexus/cases/[id]/threads?thread_id=X — unlink a thread from this case
 export async function DELETE(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const threadId = new URL(req.url).searchParams.get('thread_id')
     if (!threadId) return NextResponse.json({ error: 'thread_id required' }, { status: 400 })

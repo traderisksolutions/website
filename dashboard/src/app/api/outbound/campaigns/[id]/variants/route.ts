@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders, logEvent } from '@/lib/sb'
 import { logError } from '@/lib/error-log'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -20,7 +21,10 @@ interface GeneratedVariant {
 
 // GET /api/outbound/campaigns/[id]/variants
 // Returns all sequence variants with their steps
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id } = await params
 
@@ -69,6 +73,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
 // Generates sequence variant(s) using Gemini and saves to ob_sequence_variants + steps
 // Body: { variant_count?: 1|2, ab_dimension?: AbDimension, segment_id?: string }
 export async function POST(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id }  = await params
     const body    = await req.json() as {
@@ -253,6 +260,9 @@ Return ONLY valid JSON:
 // PATCH /api/outbound/campaigns/[id]/variants
 // Body: { variant_id, action: 'approve'|'archive' }
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id }   = await params
     const { variant_id, action } = await req.json() as { variant_id: string; action: 'approve' | 'archive' }

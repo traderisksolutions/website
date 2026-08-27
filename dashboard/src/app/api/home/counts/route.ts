@@ -1,10 +1,14 @@
-import { NextResponse } from 'next/server'
-import { SB_URL, sbHeaders } from '@/lib/sb'
+import { NextRequest, NextResponse } from 'next/server'
+import { SB_URL, sbHeaders }         from '@/lib/sb'
+import { requireStaffOrCron }        from '@/lib/api-auth'
 
 // GET /api/home/counts
 // Returns 4 KPI counts for the homepage in a single server roundtrip.
 // Uses PostgREST HEAD + Prefer: count=exact so no row data is transferred.
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   async function headCount(path: string): Promise<number> {
     try {
       const res = await fetch(`${SB_URL}/rest/v1/${path}`, {

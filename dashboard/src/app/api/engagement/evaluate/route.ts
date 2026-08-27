@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runDraftEvaluation }         from '@/lib/run-draft-evaluation'
 import { createSupabaseDB, EvalStore, ExampleStore } from '@/lib/ai-learning-loop'
+import { requireStaffOrCron }         from '@/lib/api-auth'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -15,6 +16,9 @@ function sbHeaders() {
 // Runs evaluation synchronously and returns a full step-by-step trace.
 // If draftId is omitted, uses the most recently sent ai_draft.
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   const trace: string[] = []
   const step = (msg: string) => { trace.push(msg); console.log('[eval-debug]', msg) }
 
@@ -74,6 +78,9 @@ export async function POST(req: NextRequest) {
 // GET /api/engagement/evaluate
 // Returns recent evaluations + examples + aggregate stats for the /analytics/eval dashboard.
 export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const sp    = new URL(req.url).searchParams
     const limit = Math.min(parseInt(sp.get('limit') ?? '100'), 200)

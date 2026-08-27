@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireStaffOrCron }        from '@/lib/api-auth'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -10,7 +11,13 @@ function sbHeaders() {
 
 // GET /api/analytics/error-log?limit=500&source=gemini&days=30
 // days=30 is the default (last 30 days). Pass days=0 for all-time.
+// Reads with the service key (bypasses RLS) and error-log.ts deliberately never truncates
+// message/metadata — this can carry internal identifiers or fragments of request/response
+// content, so (like /api/pipeline) it must never be reachable anonymously.
 export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const params      = req.nextUrl.searchParams
     const limit       = Math.min(parseInt(params.get('limit') ?? '500'), 1000)

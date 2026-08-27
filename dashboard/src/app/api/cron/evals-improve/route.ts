@@ -23,7 +23,11 @@ export async function GET(req: NextRequest) {
     }
 
     const origin = new URL(req.url).origin
-    const res = await fetch(`${origin}/api/engagement/improve-prompt`, { method: 'POST' })
+    // improve-prompt now requires requireStaffOrCron — forward the same cron secret this route
+    // was itself authorized with, or the call 401s.
+    const res = await fetch(`${origin}/api/engagement/improve-prompt`, {
+      method: 'POST', headers: { Authorization: `Bearer ${secret}` },
+    })
     const data = await res.json().catch(() => ({}))
     return NextResponse.json({ ok: res.ok, ...data })
   } catch (e) {

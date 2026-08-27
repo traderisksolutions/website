@@ -74,6 +74,7 @@ export type GeminiFeature =
   | 'draft_email'
   | 'inbound_auto_draft'
   | 'nexus_synthesis'
+  | 'outbound_reply_draft'
 
 // Opus / cross-provider features layered on top of the original Gemini ones.
 export type AiFeature =

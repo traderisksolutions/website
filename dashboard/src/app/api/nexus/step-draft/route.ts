@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logGeminiUsage }            from '@/lib/gemini-usage'
 import { logError }                  from '@/lib/error-log'
+import { requireStaffOrCron }        from '@/lib/api-auth'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
@@ -41,6 +42,9 @@ async function resolveThreadForEmail(email: string): Promise<string | null> {
 }
 
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { case_id, action, rationale, party_type, to_email } = await req.json() as {
       case_id?: string; action?: string; rationale?: string; party_type?: string; to_email?: string

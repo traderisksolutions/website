@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireStaffOrCron }        from '@/lib/api-auth'
 
 const SB_URL    = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const BUCKET    = 'email-images'
@@ -28,6 +29,9 @@ async function ensureBucket() {
 // Accepts multipart/form-data with a single "file" field (image).
 // Uploads to Supabase Storage and returns { url: string }.
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const formData = await req.formData()
     const file     = formData.get('file') as File | null

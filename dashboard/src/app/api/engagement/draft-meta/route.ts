@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseDB, EvalStore, ExampleStore } from '@/lib/ai-learning-loop'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -25,6 +26,9 @@ export type DraftMeta = {
 // Returns classification + approved examples + watch-outs for the latest draft in a thread.
 // Pure read — no AI calls, no mutations.
 export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   const thread_id = req.nextUrl.searchParams.get('thread_id')
   if (!thread_id) return NextResponse.json({ error: 'thread_id required' }, { status: 400 })
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { logGeminiUsage }           from '@/lib/gemini-usage'
 import { fetchAttachmentContext }   from '@/lib/thread-attachment-context'
 import { logError }                 from '@/lib/error-log'
+import { requireStaffOrCron }       from '@/lib/api-auth'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
@@ -13,8 +14,12 @@ function sbHeaders() {
 }
 
 // POST /api/engagement/refresh-summary
-// Manually trigger AI analysis for a thread (no internal HTTP, Supabase middleware protects this route).
+// Manually trigger AI analysis for a thread. middleware.ts excludes /api/* from the app-wide
+// login gate, so this route self-checks auth via requireStaffOrCron below.
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   let thread_id: string, message_id: string
   try {
     ;({ thread_id, message_id } = await req.json())

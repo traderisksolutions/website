@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 // GET /api/engagement/conversation?thread_id=X
 // Returns every thread grouped into the same conversation as X (the anchor client thread
@@ -29,6 +30,9 @@ function partyName(c: ContactRow | undefined, fallbackEmail: string | null): str
 }
 
 export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const threadId = new URL(req.url).searchParams.get('thread_id')
     if (!threadId) return NextResponse.json({ error: 'thread_id required' }, { status: 400 })

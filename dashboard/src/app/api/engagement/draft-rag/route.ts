@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runRagDraft } from '@/lib/run-rag-draft'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -11,6 +12,9 @@ function sbHeaders(prefer = 'return=representation') {
 
 // POST — generate a RAG draft for a thread on demand
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { thread_id, message_id, contactName } = await req.json()
     if (!thread_id) return NextResponse.json({ error: 'thread_id required' }, { status: 400 })
@@ -41,6 +45,9 @@ export async function POST(req: NextRequest) {
 
 // GET — fetch latest RAG draft + sources for a thread
 export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   const thread_id = req.nextUrl.searchParams.get('thread_id')
   if (!thread_id) return NextResponse.json({ error: 'thread_id required' }, { status: 400 })
 

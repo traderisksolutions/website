@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 // GET /api/outbound/leads
 // ?urls=true  → returns [{ linkedin_url }] for all rows — used for CRM dedup
 // default     → returns full rows, newest first, limit 500
 export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const urlsOnly = req.nextUrl.searchParams.get('urls') === 'true'
     const query = urlsOnly
@@ -24,6 +28,9 @@ export async function GET(req: NextRequest) {
 
 // PATCH /api/outbound/leads — update status and/or notes
 export async function PATCH(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id, status, notes } = await req.json()
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })

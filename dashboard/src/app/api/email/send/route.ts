@@ -201,10 +201,13 @@ export async function POST(req: NextRequest) {
       await req.json() as { draftId: string; htmlBody?: string; signatureId?: string; toEmail?: string; cc?: string[]; bcc?: string[]; customSubject?: string; fromEmail?: string; originalAiBody?: string; attachments?: { filename: string; mime_type?: string; storage_url: string }[] }
     if (!draftId) return NextResponse.json({ error: 'draftId required' }, { status: 400 })
 
-    // Identify the logged-in employee so we can use their Gmail token if they've connected one
+    // Identify the logged-in employee so we can use their Gmail token if they've connected one.
+    // This used to be optional (userId just fell through to null and the send went out as ops@
+    // regardless) — meaning an unauthenticated caller could trigger a real Gmail send. Now hard-gated.
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    const userId = user?.id ?? null
+    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    const userId = user.id
 
     const FROM_EMAIL = (requestedFrom && requestedFrom.includes('@')) ? requestedFrom : DEFAULT_OPS_EMAIL
 

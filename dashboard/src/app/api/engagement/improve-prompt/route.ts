@@ -1,11 +1,15 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { synthesizeAllPromptOverrides } from '@/lib/synthesize-prompt-override'
 import { createSupabaseDB, createGeminiComposer, SkillSynthesizer } from '@/lib/ai-learning-loop'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 // GET — the currently-effective instruction override per surface (pinned version if pinned,
 // else the newest active one — deprecated/superseded versions are excluded). Full version
 // history per surface is available at /api/engagement/skill-timeline.
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const synth = new SkillSynthesizer(createSupabaseDB(), createGeminiComposer(undefined))
     const history = await synth.history()
@@ -22,7 +26,10 @@ export async function GET() {
 
 // POST — manual "synthesise now": rebuild every email type that currently has signal.
 // (Synthesis also runs automatically after each substantive miss — see run-draft-evaluation.)
-export async function POST() {
+export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const r = await synthesizeAllPromptOverrides()
     return NextResponse.json(r)

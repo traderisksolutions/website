@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logActivity }               from '@/lib/log-activity'
+import { requireStaffOrCron }        from '@/lib/api-auth'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -12,7 +13,10 @@ function sbHeaders(prefer = 'return=representation') {
 type Params = { params: { id: string } }
 
 // GET /api/nexus/cases/[id] — full case with linked threads, their messages, and latest analysis
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const caseId = params.id
 
@@ -131,6 +135,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
 // PATCH /api/nexus/cases/[id] — update name / description / status
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const body = await req.json()
     const allowed = ['name', 'description', 'status']
@@ -152,7 +159,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 // DELETE /api/nexus/cases/[id] — delete case (cascades to case_threads + case_analyses)
-export async function DELETE(_req: NextRequest, { params }: Params) {
+export async function DELETE(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const res = await fetch(`${SB_URL}/rest/v1/cases?id=eq.${params.id}`, {
       method:  'DELETE',

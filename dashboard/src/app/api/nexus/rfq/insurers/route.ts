@@ -5,6 +5,7 @@
  * staging UI to pick insurers before any Nexus case exists.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -21,6 +22,9 @@ type Contact = {
 }
 
 export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const line = new URL(req.url).searchParams.get('product_line')
     if (!line) return NextResponse.json([])

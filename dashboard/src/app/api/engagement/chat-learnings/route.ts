@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 // GET /api/engagement/chat-learnings?limit=50
 // Pooled Nexus chat learnings (across all cases) for the /analytics/eval dashboard's Chat
@@ -7,6 +8,9 @@ import { SB_URL, sbHeaders } from '@/lib/sb'
 // (src/app/api/cron/nexus-chat-learnings/route.ts) has captured. Joined with case names so
 // each row is legible without a second round-trip from the client.
 export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const limit = Math.min(parseInt(req.nextUrl.searchParams.get('limit') ?? '50'), 200)
 

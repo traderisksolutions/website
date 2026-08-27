@@ -12,6 +12,7 @@ import { logGeminiUsage }            from '@/lib/gemini-usage'
 import { productLineLabel }          from '@/lib/product-lines'
 import { createSupabaseDB, createGeminiComposer, SkillSynthesizer } from '@/lib/ai-learning-loop'
 import { logError }                  from '@/lib/error-log'
+import { requireStaffOrCron }        from '@/lib/api-auth'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
@@ -23,6 +24,9 @@ function sbH() {
 }
 
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     // Accept EITHER a persisted request (rfq_request_id) OR a staged line
     // (product_line + insured_name) so drafting works before a case exists.

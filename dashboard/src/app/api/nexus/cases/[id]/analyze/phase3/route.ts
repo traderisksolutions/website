@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runNexusAnalysisPhase3, recordFailedNexusAnalysis } from '@/lib/run-nexus-analysis'
 import { getNexusRun, updateNexusRun } from '@/lib/nexus-run-store'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 export const maxDuration = 150
 
@@ -11,6 +12,9 @@ type Params = { params: { id: string } }
 // Phase 3 of 3: Gemini drafts the communication briefs, Opus re-verifies the timeline over
 // the raw corpus, post-processing/id-linking, then the final save to case_analyses.
 export async function POST(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   const caseId = params.id
   const body = await req.json().catch(() => ({})) as { run_id?: string }
   if (!body.run_id) return NextResponse.json({ error: 'run_id required' }, { status: 400 })

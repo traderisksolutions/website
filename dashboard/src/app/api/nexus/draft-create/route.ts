@@ -12,6 +12,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -22,6 +23,9 @@ function sbHeaders(prefer = 'return=representation') {
 }
 
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { thread_id, body, email_type, to_email, nexus_case_id, nexus_step_index } = await req.json() as {
       thread_id?:       string | null

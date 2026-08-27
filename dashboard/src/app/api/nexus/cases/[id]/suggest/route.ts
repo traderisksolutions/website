@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -14,6 +15,9 @@ type Params = { params: { id: string } }
 // ?all=1 → return all recent threads (for the thread linker modal browse view)
 // Strategy: match by shared contacts, similar subject keywords, or date proximity
 export async function GET(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   const isAll = new URL(req.url).searchParams.get('all') === '1'
   if (isAll) {
     // Return all recent threads for the browse view in the linker modal

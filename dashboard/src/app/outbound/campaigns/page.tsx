@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { Megaphone, Plus, Loader2, AlertCircle, ChevronRight, Newspaper } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Megaphone, Plus, Loader2, AlertCircle, ChevronRight, Newspaper, Sparkles, X } from 'lucide-react'
 import { Tip } from '@/components/Tip'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -18,6 +19,94 @@ interface Campaign {
   lead_count: number; sent_count: number; reply_count: number
   news_headline: string | null; instantly_campaign_id: string | null
   created_at: string
+}
+
+interface SegmentSuggestion {
+  industry:        string
+  wonCompanyCount: number
+  sampleCompanies: string[]
+  employeeMin:     number | null
+  employeeMax:     number | null
+  suggestedTitles: string[]
+  locations:       string[]
+}
+
+function SegmentSuggestions() {
+  const router = useRouter()
+  const [suggestions, setSuggestions] = useState<SegmentSuggestion[]>([])
+  const [loading,     setLoading]     = useState(true)
+  const [approving,   setApproving]   = useState<string | null>(null)
+  const [dismissed,   setDismissed]   = useState<Set<string>>(new Set())
+  const [error,       setError]       = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/outbound/segment-suggestions', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : { suggestions: [] })
+      .then(d => setSuggestions(Array.isArray(d.suggestions) ? d.suggestions : []))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  async function approve(s: SegmentSuggestion) {
+    setApproving(s.industry)
+    setError(null)
+    try {
+      const res = await fetch('/api/outbound/segment-suggestions/approve', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ industry: s.industry, employeeMin: s.employeeMin, employeeMax: s.employeeMax, locations: s.locations, suggestedTitles: s.suggestedTitles }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Failed to create campaign')
+      router.push(`/outbound/campaigns/${data.campaign.id}`)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to create campaign')
+      setApproving(null)
+    }
+  }
+
+  const visible = suggestions.filter(s => !dismissed.has(s.industry))
+  if (loading || visible.length === 0) return null
+
+  return (
+    <div className="flex flex-col gap-2 mb-5">
+      {error && (
+        <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-destructive/8 border border-destructive/20 text-[13px] text-destructive">
+          <AlertCircle size={14} strokeWidth={2} className="flex-shrink-0" />
+          <span className="flex-1">{error}</span>
+        </div>
+      )}
+      {visible.map(s => (
+        <Card key={s.industry} style={{ background: 'var(--primary-light-bg)', border: '1px solid var(--primary-light-border)' }}>
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="w-9 h-9 rounded-[9px] flex items-center justify-center flex-shrink-0" style={{ background: 'hsl(var(--card))' }}>
+              <Sparkles size={16} style={{ color: 'var(--primary-hex)' }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13.5px] font-semibold text-foreground mb-0.5">
+                Suggested next segment: <span style={{ color: 'var(--primary-hex)' }}>{s.industry}</span>
+              </p>
+              <p className="text-[12px] text-muted-foreground">
+                {s.wonCompanyCount} won customer{s.wonCompanyCount !== 1 ? 's' : ''} in this industry
+                {s.sampleCompanies.length > 0 && <> ({s.sampleCompanies.join(', ')})</>} — no active campaign targets it yet.
+                {s.employeeMin != null && s.employeeMax != null && <> Typical size: {s.employeeMin}–{s.employeeMax} employees.</>}
+                {s.suggestedTitles.length > 0 && <> Target roles seen: {s.suggestedTitles.join(', ')}.</>}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button size="sm" onClick={() => approve(s)} disabled={approving === s.industry} className="gap-1.5">
+                {approving === s.industry ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} strokeWidth={2.5} />}
+                Approve & create draft
+              </Button>
+              <button onClick={() => setDismissed(prev => new Set(prev).add(s.industry))}
+                className="w-7 h-7 flex items-center justify-center rounded-md bg-transparent border-0 cursor-pointer text-muted-foreground hover:text-foreground">
+                <X size={14} />
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  )
 }
 
 function Stat({ label, value, highlight = false }: { label: string; value: string | number; highlight?: boolean }) {
@@ -96,6 +185,8 @@ export default function CampaignsPage() {
           <button onClick={() => setError(null)} className="bg-transparent border-0 cursor-pointer text-destructive text-base leading-none">×</button>
         </div>
       )}
+
+      <SegmentSuggestions />
 
       {loading ? (
         <div className="flex justify-center py-12">

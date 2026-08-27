@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -83,7 +84,10 @@ type Params = { params: { id: string } }
 
 // ── GET — run list ────────────────────────────────────────────────────────────
 
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const res = await fetch(
       `${SB_URL}/rest/v1/case_analyses` +
@@ -138,6 +142,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
 // ── PATCH — pin/unpin a run ───────────────────────────────────────────────────
 
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { runId, pinned } = await req.json()
     if (!runId) return NextResponse.json({ error: 'runId required' }, { status: 400 })
@@ -160,6 +167,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 // ── DELETE — prune unpinned runs beyond keep-last-N ───────────────────────────
 
 export async function DELETE(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const keep = Math.max(1, parseInt(req.nextUrl.searchParams.get('keep') ?? '15', 10) || 15)
 

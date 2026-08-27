@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logError } from '@/lib/error-log'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
 
@@ -11,6 +12,9 @@ interface MsgSnippet {
 }
 
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { contactName, company, topic, leadStatus, messages } =
       await req.json() as {

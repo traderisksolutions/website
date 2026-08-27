@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders, logEvent } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 const DEFAULT_OPS_EMAIL = 'operations@trade-risksol.com'
 
@@ -23,6 +24,9 @@ async function getOpsEmail(): Promise<string> {
 // Body: { leadIds: string[] }
 // Queues approved leads for staggered Gmail delivery via the hourly cron.
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id }      = await params
     const { leadIds } = await req.json()

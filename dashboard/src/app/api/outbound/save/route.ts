@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 // POST /api/outbound/save  { record: object }
 // Upserts a lead (from search results) into outbound_leads.
 // On conflict of linkedin_url, updates the existing row.
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { record } = await req.json()
     if (!record) return NextResponse.json({ error: 'record required' }, { status: 400 })

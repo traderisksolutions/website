@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runNexusAnalysis } from '@/lib/run-nexus-analysis'
 import { logActivity }      from '@/lib/log-activity'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 export const maxDuration = 300
 
@@ -8,6 +9,9 @@ type Params = { params: { id: string } }
 
 // POST /api/nexus/cases/[id]/analyze — run grand analysis for a case
 export async function POST(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     let triggeredBy: string | null = null
     let instructions: string | null = null
@@ -31,7 +35,10 @@ export async function POST(req: NextRequest, { params }: Params) {
 }
 
 // GET /api/nexus/cases/[id]/analyze — fetch the latest stored analysis
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
   const k = process.env.SUPABASE_SERVICE_KEY
   if (!k) return NextResponse.json({ error: 'SUPABASE_SERVICE_KEY not set' }, { status: 500 })

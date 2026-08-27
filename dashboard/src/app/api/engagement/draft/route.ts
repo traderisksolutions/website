@@ -5,6 +5,7 @@ import { fetchKnowledgeDocs }       from '@/lib/gdrive-knowledge'
 import { fetchAttachmentContext }   from '@/lib/thread-attachment-context'
 import { createSupabaseDB, createGeminiComposer, EvalStore, ExampleStore, SkillSynthesizer } from '@/lib/ai-learning-loop'
 import { EMAIL_TYPE_BASE_INSTRUCTIONS } from '@/lib/email-surface-instructions'
+import { requireStaffOrCron }       from '@/lib/api-auth'
 
 const SB_URL    = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
@@ -30,6 +31,9 @@ interface MsgSnippet {
 // GET /api/engagement/draft?thread_id=X or ?contactId=X
 // Returns the latest pending/approved draft for a thread or contact.
 export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const sp       = new URL(req.url).searchParams
     const threadId = sp.get('thread_id')
@@ -58,6 +62,9 @@ export async function GET(req: NextRequest) {
 
 // POST /api/engagement/draft  → generate AI draft, upsert contact, save to ai_drafts
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { leadId, contactName, contactEmail, company, topic, threadId, messages, manualContent } =
       await req.json() as {
@@ -648,6 +655,9 @@ Write only the email body starting with "${salutation}". End after the last para
 
 // PATCH /api/engagement/draft  → approve or reject
 export async function PATCH(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { draftId, status, content, rejection_note } =
       await req.json() as {

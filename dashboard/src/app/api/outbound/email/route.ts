@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 const NETROWS = 'https://api.netrows.com/v1'
 
@@ -8,6 +9,9 @@ const NETROWS = 'https://api.netrows.com/v1'
 // Returns: { found: boolean; email?: string; email_status: string }
 // Updates outbound_leads row (by linkedin_url) if email is found
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   const { linkedin_url } = await req.json()
   if (!linkedin_url) return NextResponse.json({ error: 'linkedin_url required' }, { status: 400 })
 

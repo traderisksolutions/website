@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { runNexusAnalysisPhase1, recordFailedNexusAnalysis } from '@/lib/run-nexus-analysis'
 import { createNexusRun, updateNexusRun } from '@/lib/nexus-run-store'
 import { logActivity } from '@/lib/log-activity'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 export const maxDuration = 150
 
@@ -12,6 +13,9 @@ type Params = { params: { id: string } }
 // Phase 1 of 3: gather every linked thread/attachment/knowledge doc, then Gemini evidence
 // synthesis. Creates the run row; phase2/phase3 continue it via run_id.
 export async function POST(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   const caseId = params.id
   let runId: string | null = null
   let runCreatedAt = Date.now()

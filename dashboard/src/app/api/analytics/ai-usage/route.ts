@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireStaffOrCron }        from '@/lib/api-auth'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -10,6 +11,9 @@ function sbHeaders() {
 
 // GET /api/analytics/ai-usage?since=ISO_DATE
 export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const since = req.nextUrl.searchParams.get('since')
     const filter = since ? `&created_at=gte.${encodeURIComponent(since)}` : ''

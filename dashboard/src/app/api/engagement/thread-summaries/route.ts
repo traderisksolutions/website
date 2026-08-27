@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -15,6 +16,9 @@ function sbHeaders() {
 // GET /api/engagement/thread-summaries?thread_id=X
 // Returns all stored AI summaries for a thread, newest first.
 export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   const threadId = new URL(req.url).searchParams.get('thread_id')
   if (!threadId) return NextResponse.json([])
 
@@ -35,6 +39,9 @@ export async function GET(req: NextRequest) {
 // Body: { id: string; draft_reply: string }
 // Saves an edited draft back to the summary row (auto-save from the draft panel).
 export async function PATCH(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   let id: string, draft_reply: string
   try {
     ;({ id, draft_reply } = await req.json())

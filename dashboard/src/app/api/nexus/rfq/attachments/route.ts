@@ -6,6 +6,7 @@
  * insurer draft. Only rows with a storage_url are forwardable.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -16,6 +17,9 @@ function sbH() {
 }
 
 export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const threadId = new URL(req.url).searchParams.get('thread_id')
     if (!threadId) return NextResponse.json([])

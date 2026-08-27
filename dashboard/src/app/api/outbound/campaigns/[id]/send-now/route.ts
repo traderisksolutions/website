@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 export const maxDuration = 60
 
@@ -25,6 +26,9 @@ interface DueSend {
 // Immediately sends queued emails for this campaign only.
 // Body: { limit?: number } — max emails to send (default 50)
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   const { id } = await params
   const body = await req.json().catch(() => ({}))
   const limit: number = typeof body.limit === 'number' && body.limit > 0 ? body.limit : 50

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { resolveCompany } from '@/lib/debit-note-commit'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -19,7 +20,10 @@ function headers() {
 }
 
 // GET /api/leads — fetch all leads ordered by created_at desc
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const res = await fetch(
       `${SB_URL}/rest/v1/inbound_leads?select=*&order=created_at.desc&limit=200`,
@@ -50,6 +54,9 @@ const STAGE_ORDER = ['engaged', 'qualified', 'proposal', 'converted']
 
 // PATCH /api/leads — update status and/or notes for one lead
 export async function PATCH(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id, status, notes, segment, segment_note } = await req.json() as { id?: string; status?: string; notes?: string; segment?: string; segment_note?: string | null }
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })

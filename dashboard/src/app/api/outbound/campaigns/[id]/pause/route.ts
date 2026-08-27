@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders, logEvent } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 type Params = { params: Promise<{ id: string }> }
 
 // POST /api/outbound/campaigns/[id]/pause
 // Body: { action: 'pause' | 'resume', change_summary?: string }
 export async function POST(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id }   = await params
     const { action, change_summary } = await req.json() as {

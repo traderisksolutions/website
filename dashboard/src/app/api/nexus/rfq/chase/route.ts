@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { logGeminiUsage }            from '@/lib/gemini-usage'
 import { productLineLabel }          from '@/lib/product-lines'
 import { logError }                  from '@/lib/error-log'
+import { requireStaffOrCron }        from '@/lib/api-auth'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
@@ -20,6 +21,9 @@ function sbH() {
 }
 
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { dispatch_id } = await req.json() as { dispatch_id?: string }
     if (!dispatch_id) return NextResponse.json({ error: 'dispatch_id required' }, { status: 400 })

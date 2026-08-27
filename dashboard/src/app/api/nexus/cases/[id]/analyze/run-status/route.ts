@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getNexusRun, getLatestIncompleteNexusRun, previewFromPhase1, previewFromPhase2 } from '@/lib/nexus-run-store'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 type Params = { params: { id: string } }
 
@@ -9,6 +10,9 @@ type Params = { params: { id: string } }
 // reload/reopen, and to poll a phase that's still `_running` server-side even if the
 // browser's original request dropped.
 export async function GET(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   const caseId = params.id
   const runId = req.nextUrl.searchParams.get('run_id')
 

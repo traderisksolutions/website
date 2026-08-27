@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders, logEvent } from '@/lib/sb'
+import { requireStaffOrCron } from '@/lib/api-auth'
 
 const PIPELINE_LABELS = new Set(['positive', 'meeting_intent'])
 
@@ -24,6 +25,9 @@ type ReplyLabel =
 // [id] is the reply_event_id
 // Body: { human_label: ReplyLabel, human_note?: string }
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     const { id }  = await params
     const { human_label, human_note } = await req.json() as {

@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { requireStaffOrCron }        from '@/lib/api-auth'
 
 const SB_URL    = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const TRS_DOMAIN = 'trade-risksol.com'
@@ -11,7 +12,10 @@ function sbHeaders() {
 
 // GET /api/contacts/cc-participants
 // Returns unique external CC'd email addresses with name + company from contacts table
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+
   try {
     // 1. All distinct CC participants (external only)
     const epRes = await fetch(
