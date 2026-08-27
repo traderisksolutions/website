@@ -12,7 +12,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { SB_URL, sbH, uploadPdf, signRead, deleteObject, storageKeySegment } from '@/lib/debit-note-storage'
-import { renderDebitNotePdf, type DebitNotePdfLineItem } from '@/lib/debit-note-pdf'
+import { renderDebitNotePdf } from '@/lib/debit-note-pdf-server'
+import type { DebitNotePdfLineItem } from '@/lib/debit-note-pdf'
 import { getBankProfileForCurrency } from '@/lib/debit-note-bank-profile'
 import { logActivity } from '@/lib/log-activity'
 

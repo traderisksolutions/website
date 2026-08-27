@@ -12,7 +12,7 @@ import { SB_URL, sbH, uploadPdf, signRead, storageKeySegment } from '@/lib/debit
 import {
   commitDebitNote, type CompanyInput, type ContactInput, type PolicyInput, type DebitNoteInput,
 } from '@/lib/debit-note-commit'
-import { renderDebitNotePdf } from '@/lib/debit-note-pdf'
+import { renderDebitNotePdf } from '@/lib/debit-note-pdf-server'
 import { getBankProfileForCurrency } from '@/lib/debit-note-bank-profile'
 import { logActivity } from '@/lib/log-activity'
 

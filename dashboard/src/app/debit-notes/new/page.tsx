@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { CompanyContactPicker, type PickerValue } from '@/components/company-contact-picker/CompanyContactPicker'
 import { SendDocumentsModal, type SendDocumentsTarget } from '@/components/debit-notes/SendDocumentsModal'
+import { DebitNotePreviewPanel } from '@/components/debit-notes/DebitNotePreviewPanel'
 import type { ExtractedDebitNote, DocType } from '@/lib/debit-note-extract'
+import type { DebitNotePdfData, DebitNoteBankProfile } from '@/lib/debit-note-pdf'
 
 type MemberFile = { id: string; storage_url: string; original_filename: string | null; doc_type: DocType | null; status: string; error_message: string | null }
 type Bundle = {
@@ -217,6 +219,47 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
   const [approved, setApproved] = useState<ApprovedResult | null>(null)
   const [sendTarget, setSendTarget] = useState<SendDocumentsTarget | null>(null)
   const [retrying, setRetrying] = useState(false)
+
+  // Preview PDF — re-fetches bankProfile/company (currency- and recipient-dependent, both need
+  // the service key so can't be looked up client-side) whenever either changes, then rebuilds the
+  // PDF data. Debounced so typing a premium doesn't rebuild the PDF on every keystroke.
+  const [bankProfile, setBankProfile] = useState<DebitNoteBankProfile | null>(null)
+  const [company, setCompany] = useState<{ name: string; address: string | null } | null>(null)
+  const [previewData, setPreviewData] = useState<DebitNotePdfData | null>(null)
+
+  useEffect(() => {
+    const params = new URLSearchParams({ currency })
+    if (recipient?.companyId) params.set('companyId', recipient.companyId)
+    fetch(`/api/debit-notes/preview-context?${params}`, { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { setBankProfile(d?.bankProfile ?? null); setCompany(d?.company ?? null) })
+      .catch(() => {})
+  }, [currency, recipient?.companyId])
+
+  useEffect(() => {
+    if (!bankProfile) return
+    const net = grossPremium + gstAmount - (feeRebateEnabled ? feeRebate : 0)
+    const t = setTimeout(() => {
+      setPreviewData({
+        debitNoteNo: debitNoteNo || '(pending)',
+        issueDate: issueDate || new Date().toISOString().slice(0, 10),
+        coverNoteNo, policyNumber,
+        clientName: company?.name ?? recipient?.companyName ?? '',
+        clientAddress: company?.address ?? null,
+        clientContactName: recipient?.contactName ?? null,
+        classOfInsurance, periodStart, periodEnd, insurer, description, currency,
+        lineItems: [{ description: 'Gross Premium collected on behalf of Insurance Company', amount: grossPremium }],
+        gstAmount, feeRebate: feeRebateEnabled ? feeRebate : null, total: net,
+        bankProfile, paymentDueDate, eventType,
+        endorsementEffectiveDate: eventType === 'endorsement' ? endorsementEffectiveDate : null,
+      })
+    }, 400)
+    return () => clearTimeout(t)
+  }, [
+    bankProfile, company, recipient, debitNoteNo, issueDate, coverNoteNo, policyNumber,
+    classOfInsurance, periodStart, periodEnd, insurer, description, currency,
+    grossPremium, gstAmount, feeRebateEnabled, feeRebate, paymentDueDate, eventType, endorsementEffectiveDate,
+  ])
 
   async function retryExtraction() {
     setRetrying(true); setErr(null)
@@ -514,6 +557,16 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
 
       <div className="text-[13px] flex justify-end">
         <span>Premium Total: <b>{currency} {(grossPremium + gstAmount - (feeRebateEnabled ? feeRebate : 0)).toLocaleString('en-SG', { minimumFractionDigits: 2 })}</b></span>
+      </div>
+
+      {/* Preview — the exact document Approve will generate (same DebitNotePdfDocument, same
+          data shape), so this never drifts from the real output. Updates on any field change,
+          including currency (the bank/PayNow-vs-wire block at the bottom changes with it). */}
+      <div className="flex flex-col gap-1.5">
+        <span className="text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">Preview</span>
+        <div className="h-[600px] rounded-lg border border-[--border-subtle] overflow-hidden bg-muted/20">
+          <DebitNotePreviewPanel data={previewData} />
+        </div>
       </div>
 
       {err && <p className="text-[11.5px] text-rose-600">{err}</p>}

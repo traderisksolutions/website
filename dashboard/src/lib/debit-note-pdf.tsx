@@ -9,14 +9,16 @@
  * and come from `data.bankProfile`, looked up by the caller via getBankProfileForCurrency().
  *
  * NOTE: the real TRS logo and the bank's PayNow QR code image are not available in this
- * repo (public/ is empty). Both are optional image assets — if
- * public/debit-note/trs-logo.png / paynow-qr.png exist at render time they're embedded;
- * otherwise the layout gracefully falls back to text-only (no fake/broken QR is ever
- * generated — scanning a wrong code would misdirect a real payment).
+ * repo (public/ is empty). Both are optional image assets, passed in as `logoSrc`/`qrSrc`
+ * rather than resolved in this file — this component has no filesystem access of its own,
+ * which is what keeps it safe to import from a client component (the review form's live
+ * preview, see DebitNotePreviewPanel.tsx). The actual existsSync() presence check (never
+ * embed a src unless the file is confirmed to exist — no broken image, and no fake/broken QR
+ * that could misdirect a real payment) lives server-side in debit-note-pdf-server.tsx, the
+ * only caller that can resolve a real file path; the live preview always passes null for both
+ * (falls back to text-only), same as production renders today since neither asset exists yet.
  */
-import { Document, Page, Text, View, StyleSheet, Image, renderToBuffer } from '@react-pdf/renderer'
-import { existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
 
 export type DebitNotePdfLineItem = { description: string; amount: number }
 
@@ -133,21 +135,19 @@ const fmtSlashDate = (iso?: string | null) => {
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
 }
 
-function assetPath(name: string): string | null {
-  const p = join(process.cwd(), 'public', 'debit-note', name)
-  return existsSync(p) ? p : null
-}
-
-export function DebitNotePdfDocument({ data }: { data: DebitNotePdfData }) {
-  const logoPath = assetPath('trs-logo.png')
-  const qrPath    = assetPath('paynow-qr.png')
+export function DebitNotePdfDocument({ data, logoSrc = null, qrSrc = null }: {
+  data: DebitNotePdfData
+  /** Resolved server-side (debit-note-pdf-server.tsx) or omitted for the client-side preview. */
+  logoSrc?: string | null
+  qrSrc?:   string | null
+}) {
   const lineItemsTotal = data.lineItems.reduce((s, l) => s + l.amount, 0)
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.headerRow}>
-          {logoPath ? <Image src={logoPath} style={styles.logo} /> : <Text style={styles.logoText}>TRADE RISK{'\n'}SOLUTIONS</Text>}
+          {logoSrc ? <Image src={logoSrc} style={styles.logo} /> : <Text style={styles.logoText}>TRADE RISK{'\n'}SOLUTIONS</Text>}
         </View>
         <Text style={styles.coReg}>Co Reg No {TRS_LETTERHEAD.coRegNo}</Text>
         <Text style={styles.title}>DEBIT NOTE</Text>
@@ -244,7 +244,7 @@ export function DebitNotePdfDocument({ data }: { data: DebitNotePdfData }) {
                 </>
               )}
             </View>
-            {qrPath && data.bankProfile.payNowUen && <Image src={qrPath} style={styles.qr} />}
+            {qrSrc && data.bankProfile.payNowUen && <Image src={qrSrc} style={styles.qr} />}
           </View>
 
           <Text style={{ marginTop: 10, fontSize: 8 }}>Please call us at {TRS_LETTERHEAD.phone} should you require further clarification.</Text>
@@ -254,8 +254,4 @@ export function DebitNotePdfDocument({ data }: { data: DebitNotePdfData }) {
       </Page>
     </Document>
   )
-}
-
-export async function renderDebitNotePdf(data: DebitNotePdfData): Promise<Buffer> {
-  return renderToBuffer(<DebitNotePdfDocument data={data} />)
 }
