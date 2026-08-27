@@ -225,6 +225,10 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
   // PDF data. Debounced so typing a premium doesn't rebuild the PDF on every keystroke.
   const [bankProfile, setBankProfile] = useState<DebitNoteBankProfile | null>(null)
   const [company, setCompany] = useState<{ name: string; address: string | null } | null>(null)
+  // Whether the real logo/PayNow-QR assets exist server-side (public/debit-note/) — confirmed via
+  // existsSync on the server, since the browser can't check the filesystem itself. Currency-
+  // independent, but re-fetched alongside bankProfile/company since they share one request.
+  const [assets, setAssets] = useState<{ hasLogo: boolean; hasQr: boolean }>({ hasLogo: false, hasQr: false })
   const [previewData, setPreviewData] = useState<DebitNotePdfData | null>(null)
 
   useEffect(() => {
@@ -232,7 +236,11 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
     if (recipient?.companyId) params.set('companyId', recipient.companyId)
     fetch(`/api/debit-notes/preview-context?${params}`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
-      .then(d => { setBankProfile(d?.bankProfile ?? null); setCompany(d?.company ?? null) })
+      .then(d => {
+        setBankProfile(d?.bankProfile ?? null)
+        setCompany(d?.company ?? null)
+        setAssets(d?.assets ?? { hasLogo: false, hasQr: false })
+      })
       .catch(() => {})
   }, [currency, recipient?.companyId])
 
@@ -572,7 +580,11 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
       <div className="flex flex-col gap-1.5">
         <span className="text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">Preview</span>
         <div className="h-[600px] rounded-lg border border-[--border-subtle] overflow-hidden bg-muted/20">
-          <DebitNotePreviewPanel data={previewData} />
+          <DebitNotePreviewPanel
+            data={previewData}
+            logoSrc={assets.hasLogo ? '/debit-note/trs-logo.png' : null}
+            qrSrc={assets.hasQr ? '/debit-note/paynow-qr.png' : null}
+          />
         </div>
       </div>
 

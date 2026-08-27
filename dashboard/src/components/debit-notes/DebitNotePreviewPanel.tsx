@@ -27,7 +27,13 @@ const PDFViewer = dynamic(
  * changes; the caller (BundleReviewCard) is responsible for debouncing so this doesn't rebuild
  * the PDF on every keystroke.
  */
-export function DebitNotePreviewPanel({ data }: { data: DebitNotePdfData | null }) {
+export function DebitNotePreviewPanel({ data, logoSrc, qrSrc }: {
+  data: DebitNotePdfData | null
+  /** Browser-fetchable URLs (e.g. "/debit-note/trs-logo.png"), or null if the caller hasn't
+   *  confirmed the asset exists server-side (see the preview-context API route). */
+  logoSrc?: string | null
+  qrSrc?:   string | null
+}) {
   if (!data) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 h-full text-muted-foreground">
@@ -39,7 +45,7 @@ export function DebitNotePreviewPanel({ data }: { data: DebitNotePdfData | null 
 
   return (
     <PDFViewer width="100%" height="100%" showToolbar={false} className="rounded-lg">
-      <DebitNotePdfDocument data={data} />
+      <DebitNotePdfDocument data={data} logoSrc={logoSrc} qrSrc={qrSrc} />
     </PDFViewer>
   )
 }

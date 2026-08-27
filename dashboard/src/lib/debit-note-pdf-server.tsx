@@ -14,6 +14,13 @@ function assetPath(name: string): string | null {
   return existsSync(p) ? p : null
 }
 
+/** Same existence check as the real renderer above, for the preview-context API route to report
+ *  back to the client (which has no filesystem access of its own) — so the live preview shows
+ *  the same logo/QR the real PDF does instead of always assuming neither exists. */
+export function debitNoteAssetsPresent(): { hasLogo: boolean; hasQr: boolean } {
+  return { hasLogo: !!assetPath('trs-logo.png'), hasQr: !!assetPath('paynow-qr.png') }
+}
+
 export async function renderDebitNotePdf(data: DebitNotePdfData): Promise<Buffer> {
   const logoSrc = assetPath('trs-logo.png')
   const qrSrc   = assetPath('paynow-qr.png')
