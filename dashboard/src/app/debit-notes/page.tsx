@@ -350,36 +350,35 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
                       </label>
                     )}
                   </div>
+                  {/* Row 1 — reference numbers */}
                   <div className="grid grid-cols-2 gap-3 mb-3">
                     <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Policy number
                       <input value={form.policyNumber} onChange={e => setForm({ ...form, policyNumber: e.target.value })} className={inputCls} />
                     </label>
-                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Class of insurance
-                      <input value={form.classOfInsurance} onChange={e => setForm({ ...form, classOfInsurance: e.target.value })} className={inputCls} />
-                    </label>
                     <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Cover note no.
                       <input value={form.coverNoteNo} onChange={e => setForm({ ...form, coverNoteNo: e.target.value })} className={inputCls} />
+                    </label>
+                  </div>
+                  {/* Row 2 — insurer, class & broker */}
+                  <div className="grid grid-cols-3 gap-3 mb-3">
+                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Insurer
+                      <input value={form.insurer} onChange={e => setForm({ ...form, insurer: e.target.value })} className={inputCls} />
+                    </label>
+                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Class of insurance
+                      <input value={form.classOfInsurance} onChange={e => setForm({ ...form, classOfInsurance: e.target.value })} className={inputCls} />
                     </label>
                     <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Broker
                       <input value={form.broker} onChange={e => setForm({ ...form, broker: e.target.value })} className={inputCls} />
                     </label>
+                  </div>
+                  {/* Row 3 — dates (period + billing) — wraps to 2×2 in this narrower dialog */}
+                  <div className="grid grid-cols-2 gap-3 mb-3">
                     <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Period start
                       <input type="date" value={form.startDate} onChange={e => setForm({ ...form, startDate: e.target.value })} className={inputCls} />
                     </label>
                     <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Period end
                       <input type="date" value={form.endDate} onChange={e => setForm({ ...form, endDate: e.target.value })} className={inputCls} />
                     </label>
-                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Insurer
-                      <input value={form.insurer} onChange={e => setForm({ ...form, insurer: e.target.value })} className={inputCls} />
-                    </label>
-                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Currency
-                      <input value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value })} className={inputCls} />
-                    </label>
-                  </div>
-                  <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground mb-3">Description
-                    <input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className={inputCls} />
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
                     <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Issue date
                       <input type="date" value={form.issueDate} onChange={e => setForm({ ...form, issueDate: e.target.value })} className={inputCls} />
                     </label>
@@ -387,6 +386,9 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
                       <input type="date" value={form.paymentDueDate} onChange={e => setForm({ ...form, paymentDueDate: e.target.value })} className={inputCls} />
                     </label>
                   </div>
+                  <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Description
+                    <input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className={inputCls} />
+                  </label>
                 </>
               ) : (
                 <>
@@ -413,21 +415,35 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
                       <button onClick={() => removeLineItem(i)} className="text-muted-foreground hover:text-rose-600 flex-none"><X size={14} /></button>
                     </div>
                   ))}
-                  <button onClick={addLineItem} className="flex items-center gap-1.5 text-[11.5px] text-primary hover:underline mt-1 mb-2"><PlusCircle size={13} /> Add line item</button>
-                  <div className="grid grid-cols-2 gap-3">
-                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">GST amount
+                  <button onClick={addLineItem} className="flex items-center gap-1.5 text-[11.5px] text-primary hover:underline mt-1 mb-3"><PlusCircle size={13} /> Add line item</button>
+
+                  {/* Fee rebate toggle — sits above the price row it nets against */}
+                  <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground mb-2 max-w-[220px]">
+                    <span className="flex items-center gap-1.5">
+                      <input type="checkbox" checked={feeRebateEnabled}
+                        onChange={e => { setFeeRebateEnabled(e.target.checked); if (!e.target.checked) setForm(f => f && { ...f, feeRebate: 0 }) }} />
+                      Apply fee rebate
+                    </span>
+                  </label>
+                  {feeRebateEnabled && (
+                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground mb-2 max-w-[220px]">Fee rebate amount
+                      <input type="number" value={form.feeRebate} onChange={e => setForm({ ...form, feeRebate: Number(e.target.value) })} className={inputCls} />
+                    </label>
+                  )}
+
+                  {/* Price row — GST, currency, and the running total together */}
+                  <div className="flex flex-wrap items-end gap-3">
+                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground flex-1 min-w-[110px]">GST amount
                       <input type="number" value={form.gstAmount} onChange={e => setForm({ ...form, gstAmount: Number(e.target.value) })} className={inputCls} />
                     </label>
-                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">
-                      <span className="flex items-center gap-1.5">
-                        <input type="checkbox" checked={feeRebateEnabled}
-                          onChange={e => { setFeeRebateEnabled(e.target.checked); if (!e.target.checked) setForm(f => f && { ...f, feeRebate: 0 }) }} />
-                        Fee rebates
-                      </span>
-                      {feeRebateEnabled && (
-                        <input type="number" value={form.feeRebate} onChange={e => setForm({ ...form, feeRebate: Number(e.target.value) })} className={inputCls} />
-                      )}
+                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground flex-1 min-w-[110px]">Currency
+                      <input value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value })} className={inputCls} />
                     </label>
+                    <div className="flex flex-col gap-1 text-[10.5px] text-muted-foreground flex-1 min-w-[140px]">Premium Total
+                      <div className="text-[12.5px] border border-border rounded-md px-2 py-1 bg-muted/40 font-semibold flex items-center h-[30px]">
+                        {form.currency} {(form.lineItems.reduce((s, l) => s + l.amount, 0) + form.gstAmount - (feeRebateEnabled ? form.feeRebate : 0)).toLocaleString('en-SG', { minimumFractionDigits: 2 })}
+                      </div>
+                    </div>
                   </div>
                 </>
               ) : (

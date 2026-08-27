@@ -504,33 +504,64 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
-        <Field label="Debit note no."><input value={debitNoteNo} onChange={e => setDebitNoteNo(e.target.value)} placeholder="Auto-generated if left blank" className={inp} /></Field>
-        <Field label="Policy number"><input value={policyNumber} onChange={e => setPolicyNumber(e.target.value)} className={inp} /></Field>
-        <Field label="Cover note no."><input value={coverNoteNo} onChange={e => setCoverNoteNo(e.target.value)} className={inp} /></Field>
-        <Field label="Insurer (required)"><input value={insurer} onChange={e => setInsurer(e.target.value)} className={inp} /></Field>
-        <Field label="Class of insurance"><input value={classOfInsurance} onChange={e => setClassOfInsurance(e.target.value)} className={inp} /></Field>
-        <Field label="Period start"><input type="date" value={periodStart} onChange={e => setPeriodStart(e.target.value)} className={inp} /></Field>
-        <Field label="Period end (renewal date)"><input type="date" value={periodEnd} onChange={e => setPeriodEnd(e.target.value)} className={inp} /></Field>
-        <Field label="Gross premium (required)"><input type="number" value={grossPremium} onChange={e => setGrossPremium(Number(e.target.value))} className={inp} /></Field>
-        <Field label="GST"><input type="number" value={gstAmount} onChange={e => setGstAmount(Number(e.target.value))} className={inp} /></Field>
-        <Field label="Currency"><select value={currency} onChange={e => setCurrency(e.target.value)} className={inp}>{['SGD', 'USD', 'MYR', 'IDR'].map(c => <option key={c}>{c}</option>)}</select></Field>
-        <Field label="Fee rebates">
+      <div className="flex flex-col gap-2">
+        {/* Row 1 — reference numbers */}
+        <div className="grid grid-cols-3 gap-2">
+          <Field label="Debit note no."><input value={debitNoteNo} onChange={e => setDebitNoteNo(e.target.value)} placeholder="Auto-generated if left blank" className={inp} /></Field>
+          <Field label="Policy number"><input value={policyNumber} onChange={e => setPolicyNumber(e.target.value)} className={inp} /></Field>
+          <Field label="Cover note no."><input value={coverNoteNo} onChange={e => setCoverNoteNo(e.target.value)} className={inp} /></Field>
+        </div>
+
+        {/* Row 2 — insurer & class */}
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="Insurer (required)"><input value={insurer} onChange={e => setInsurer(e.target.value)} className={inp} /></Field>
+          <Field label="Class of insurance"><input value={classOfInsurance} onChange={e => setClassOfInsurance(e.target.value)} className={inp} /></Field>
+        </div>
+
+        {/* Row 3 — dates */}
+        <div className="grid grid-cols-4 gap-2">
+          <Field label="Period start"><input type="date" value={periodStart} onChange={e => setPeriodStart(e.target.value)} className={inp} /></Field>
+          <Field label="Period end (renewal date)"><input type="date" value={periodEnd} onChange={e => setPeriodEnd(e.target.value)} className={inp} /></Field>
+          <Field label="Issue date"><input type="date" value={issueDate} onChange={e => setIssueDate(e.target.value)} className={inp} /></Field>
+          <Field label="Payment due date"><input type="date" value={paymentDueDate} onChange={e => setPaymentDueDate(e.target.value)} className={inp} /></Field>
+        </div>
+
+        {/* Row 4 — fee rebate toggle */}
+        <Field label="Fee rebates" className="max-w-[220px]">
           <label className="flex items-center gap-1.5 text-[12.5px] h-[30px]">
             <input type="checkbox" checked={feeRebateEnabled}
               onChange={e => { setFeeRebateEnabled(e.target.checked); if (!e.target.checked) setFeeRebate(0) }} />
             Apply fee rebate
           </label>
         </Field>
+
+        {/* Row 5 — fee rebate amount (only when applied) — sits above the price row it nets against */}
         {feeRebateEnabled && (
-          <Field label="Fee rebate amount"><input type="number" value={feeRebate} onChange={e => setFeeRebate(Number(e.target.value))} className={inp} /></Field>
+          <Field label="Fee rebate amount" className="max-w-[220px]">
+            <input type="number" value={feeRebate} onChange={e => setFeeRebate(Number(e.target.value))} className={inp} />
+          </Field>
         )}
-        <Field label="Commission rate (%)"><input type="number" value={commissionRate} onChange={e => setCommissionRate(Number(e.target.value))} className={inp} /></Field>
-        <Field label="Commission amount"><input type="number" value={commissionAmount} onChange={e => setCommissionAmount(Number(e.target.value))} className={inp} /></Field>
-        <div />
-        <Field label="Issue date"><input type="date" value={issueDate} onChange={e => setIssueDate(e.target.value)} className={inp} /></Field>
-        <Field label="Payment due date"><input type="date" value={paymentDueDate} onChange={e => setPaymentDueDate(e.target.value)} className={inp} /></Field>
-        <Field label="Description" className="col-span-3"><input value={description} onChange={e => setDescription(e.target.value)} className={inp} /></Field>
+
+        {/* Row 6 — price, with the running total inline at the end of the row */}
+        <div className="flex flex-wrap items-end gap-2">
+          <Field label="Gross premium (required)" className="flex-1 min-w-[140px]"><input type="number" value={grossPremium} onChange={e => setGrossPremium(Number(e.target.value))} className={inp} /></Field>
+          <Field label="GST" className="flex-1 min-w-[140px]"><input type="number" value={gstAmount} onChange={e => setGstAmount(Number(e.target.value))} className={inp} /></Field>
+          <Field label="Currency" className="flex-1 min-w-[140px]"><select value={currency} onChange={e => setCurrency(e.target.value)} className={inp}>{['SGD', 'USD', 'MYR', 'IDR'].map(c => <option key={c}>{c}</option>)}</select></Field>
+          <Field label="Premium Total" className="flex-1 min-w-[160px]">
+            <div className="text-[12.5px] border border-border rounded-md px-2 py-1.5 bg-muted/40 font-semibold flex items-center h-[34px]">
+              {currency} {(grossPremium + gstAmount - (feeRebateEnabled ? feeRebate : 0)).toLocaleString('en-SG', { minimumFractionDigits: 2 })}
+            </div>
+          </Field>
+        </div>
+
+        {/* Row 7 — commission (broker's own figure, kept apart from the client-facing premium total above) */}
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="Commission rate (%)"><input type="number" value={commissionRate} onChange={e => setCommissionRate(Number(e.target.value))} className={inp} /></Field>
+          <Field label="Commission amount"><input type="number" value={commissionAmount} onChange={e => setCommissionAmount(Number(e.target.value))} className={inp} /></Field>
+        </div>
+
+        {/* Row 8 — description */}
+        <Field label="Description"><input value={description} onChange={e => setDescription(e.target.value)} className={inp} /></Field>
       </div>
 
       <div className="text-[13px] flex justify-end">
