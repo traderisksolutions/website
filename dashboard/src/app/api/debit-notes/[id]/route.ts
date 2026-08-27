@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { SB_URL, sbH, uploadPdf, signRead, deleteObject, storageKeySegment } from '@/lib/debit-note-storage'
 import { renderDebitNotePdf, type DebitNotePdfLineItem } from '@/lib/debit-note-pdf'
+import { getBankProfileForCurrency } from '@/lib/debit-note-bank-profile'
 import { logActivity } from '@/lib/log-activity'
 
 async function loadFull(id: string) {
@@ -117,6 +118,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     // Regenerate the PDF so it never drifts from the numbers now on record.
+    const bankProfile = await getBankProfileForCurrency(update.currency)
     const pdfBuffer = await renderDebitNotePdf({
       debitNoteNo, issueDate: update.issue_date,
       coverNoteNo: policy?.cover_note_no ?? null, policyNumber: policy?.policy_number ?? null,
@@ -125,7 +127,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       classOfInsurance: policy?.class_of_insurance ?? null,
       periodStart: policy?.start_date ?? null, periodEnd: policy?.end_date ?? null,
       insurer: update.insurer, description: policy?.description ?? null,
-      currency: update.currency, lineItems, gstAmount, total: grossAmount,
+      currency: update.currency, lineItems, gstAmount, feeRebate: update.fee_rebate,
+      total: grossAmount - (update.fee_rebate ?? 0),
+      bankProfile,
       paymentDueDate: update.payment_due_date,
       eventType: update.event_type as EventType, endorsementEffectiveDate: update.endorsement_effective_date,
     })

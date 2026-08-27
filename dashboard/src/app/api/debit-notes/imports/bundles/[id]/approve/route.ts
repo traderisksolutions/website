@@ -13,6 +13,7 @@ import { createClient }              from '@/lib/supabase/server'
 import { SB_URL, sbH, stH, uploadPdf, signRead, storageKeySegment } from '@/lib/debit-note-storage'
 import { commitDebitNote, attachDebitNoteArchival, type CompanyInput, type ContactInput, type AttachmentFileRef } from '@/lib/debit-note-commit'
 import { renderDebitNotePdf } from '@/lib/debit-note-pdf'
+import { getBankProfileForCurrency } from '@/lib/debit-note-bank-profile'
 import { archiveDebitNoteToDrive } from '@/lib/gdrive-write'
 import { logActivity } from '@/lib/log-activity'
 
@@ -26,7 +27,7 @@ type Body = {
   }
   debitNote: {
     currency: string; lineItems: { description: string; amount: number }[]
-    gstAmount?: number | null; commissionRate?: number | null; commission?: number | null
+    gstAmount?: number | null; feeRebate?: number | null; commissionRate?: number | null; commission?: number | null
     debitNoteNo?: string | null
     issueDate: string; paymentDueDate?: string | null; insurer?: string | null
     eventType?: 'new_business' | 'renewal' | 'endorsement'; endorsementEffectiveDate?: string | null
@@ -74,6 +75,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         : null
 
     // Generate the TRS-branded PDF from the confirmed fields.
+    const bankProfile = await getBankProfileForCurrency(body.debitNote.currency)
     const pdfBuffer = await renderDebitNotePdf({
       debitNoteNo: result.debitNoteNo, issueDate: body.debitNote.issueDate,
       coverNoteNo: body.policy.coverNoteNo ?? null, policyNumber: body.policy.policyNumber ?? null,
@@ -83,7 +85,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       periodStart: body.policy.startDate ?? null, periodEnd: body.policy.endDate ?? null,
       insurer: body.debitNote.insurer ?? body.policy.insurer, description: body.policy.description ?? null,
       currency: body.debitNote.currency, lineItems: body.debitNote.lineItems,
-      gstAmount: body.debitNote.gstAmount ?? null, total: result.grossAmount,
+      gstAmount: body.debitNote.gstAmount ?? null, feeRebate: body.debitNote.feeRebate ?? null,
+      total: result.grossAmount - (body.debitNote.feeRebate ?? 0),
+      bankProfile,
       paymentDueDate: body.debitNote.paymentDueDate ?? null,
       eventType: body.debitNote.eventType, endorsementEffectiveDate: body.debitNote.endorsementEffectiveDate ?? null,
     })

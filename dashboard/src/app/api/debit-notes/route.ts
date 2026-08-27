@@ -13,6 +13,7 @@ import {
   commitDebitNote, type CompanyInput, type ContactInput, type PolicyInput, type DebitNoteInput,
 } from '@/lib/debit-note-commit'
 import { renderDebitNotePdf } from '@/lib/debit-note-pdf'
+import { getBankProfileForCurrency } from '@/lib/debit-note-bank-profile'
 import { logActivity } from '@/lib/log-activity'
 
 export async function GET(req: NextRequest) {
@@ -74,6 +75,7 @@ export async function POST(req: NextRequest) {
       // Historical backfill with a real document on hand — use it as-is, don't regenerate.
       pdfPath = body.existingPdf.storageUrl
     } else {
+      const bankProfile = await getBankProfileForCurrency(body.debitNote.currency)
       const pdfBuffer = await renderDebitNotePdf({
         debitNoteNo:  result.debitNoteNo,
         issueDate:    body.debitNote.issueDate,
@@ -90,7 +92,9 @@ export async function POST(req: NextRequest) {
         currency:     body.debitNote.currency,
         lineItems:    body.debitNote.lineItems,
         gstAmount:    body.debitNote.gstAmount ?? null,
-        total:        result.grossAmount,
+        feeRebate:    body.debitNote.feeRebate ?? null,
+        total:        result.grossAmount - (body.debitNote.feeRebate ?? 0),
+        bankProfile,
         paymentDueDate: body.debitNote.paymentDueDate ?? null,
         eventType: body.debitNote.eventType, endorsementEffectiveDate: body.debitNote.endorsementEffectiveDate ?? null,
       })

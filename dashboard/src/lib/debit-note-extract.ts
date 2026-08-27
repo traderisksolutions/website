@@ -29,6 +29,10 @@ export type ExtractedDebitNote = {
   currency:           string | null
   gross_premium:      number | null
   gst_amount:         number | null
+  /** UI-set only (never AI-extracted — not part of SCHEMA_HINT/the Gemini prompt below); rides
+   *  along in the merged jsonb blob so the review screen's "Save draft" can persist the
+   *  "Fee rebates" checkbox state across reloads. */
+  fee_rebate?:        number | null
   commission_rate:    number | null   // percentage, e.g. 10 for 10%
   commission_amount:  number | null
   issue_date:         string | null   // YYYY-MM-DD

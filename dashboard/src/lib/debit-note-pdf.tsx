@@ -1,8 +1,12 @@
 /**
  * Renders a TRS-branded debit note PDF — a 1:1 layout match of the real paper template
  * (verified against TRS DN260607, Propelo Aviation) — logo/letterhead, client + policy details,
- * an itemized premium table with optional GST, static bank/PayNow details, and the exact
- * footer notes wording (including the template's quirky double "please make payment by" line).
+ * an itemized premium table (an optional negative "Fee rebate" line, never GST — GST is tracked
+ * internally only, per the client not being GST-registered), and a bank/PayNow details block
+ * pinned to a fixed position at the bottom of every page (react-pdf `fixed`) so it stays
+ * consistent regardless of how many line items are in the table above it. Bank details are
+ * currency-dependent (SGD: local DBS + PayNow; USD: wire transfer + correspondent agent bank)
+ * and come from `data.bankProfile`, looked up by the caller via getBankProfileForCurrency().
  *
  * NOTE: the real TRS logo and the bank's PayNow QR code image are not available in this
  * repo (public/ is empty). Both are optional image assets — if
@@ -15,6 +19,20 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 
 export type DebitNotePdfLineItem = { description: string; amount: number }
+
+export interface DebitNoteBankProfile {
+  bankName:            string
+  bankAccountName:     string
+  bankAccountNumber:   string
+  bankCode?:            string | null
+  branchCode?:          string | null
+  swiftCode?:           string | null
+  /** SGD-domestic only — a USD (or other wire-transfer) profile omits this, which also hides the PayNow QR. */
+  payNowUen?:           string | null
+  /** USD (wire transfer) only — the correspondent bank that clears the incoming USD payment. */
+  agentBankSwiftBic?:   string | null
+  agentBankName?:       string | null
+}
 
 export interface DebitNotePdfData {
   debitNoteNo:        string
@@ -31,8 +49,16 @@ export interface DebitNotePdfData {
   description?:        string | null
   currency:           string
   lineItems:          DebitNotePdfLineItem[]
+  /** Stored/tracked for internal accounting only — never printed on the PDF (the client isn't
+   *  GST-registered) — but still folded into `total` below. */
   gstAmount?:          number | null
+  /** Rendered as its own negative "Fee rebate" line item when truthy. */
+  feeRebate?:          number | null
+  /** "Premium Total" shown at the bottom — sum(lineItems) + gstAmount − feeRebate (the DB's
+   *  net_amount). Callers must pass the net figure; this component never recomputes it. */
   total:              number
+  /** Currency-dependent bank/PayNow-or-wire details — look up via getBankProfileForCurrency(). */
+  bankProfile:        DebitNoteBankProfile
   paymentDueDate?:     string | null
   /** endorsement means this debit note bills a mid-term change (e.g. an employee added partway
    *  through the year) rather than the policy's own period_start/period_end — without calling
@@ -42,23 +68,22 @@ export interface DebitNotePdfData {
   endorsementEffectiveDate?:   string | null
 }
 
+// Not currency-dependent — bank/PayNow/wire details now come from data.bankProfile
+// (getBankProfileForCurrency()) instead, so USD debit notes can show a different block.
 export const TRS_LETTERHEAD = {
   companyName: 'Trade Risk Solutions Pte Ltd',
   coRegNo:     '202022795H',
-  bankName:            'DBS Bank',
-  bankAccountName:     'Trade Risk Solutions Pte. Ltd.',
-  bankAccountNumber:   '072-928492-0',
-  bankCode:            '7171',
-  branchCode:          '072',
-  swiftCode:           'DBSSGSG',
-  payNowUen:           '202022795HSGD',
   remittanceEmail:     'admin@trade-risksol.com',
   phone:               '6238 0888',
   footerAddress:       '9 Temasek Boulevard, Suntec Tower 2 #32-01, Singapore 038989',
 }
 
 const styles = StyleSheet.create({
-  page:     { padding: 32, fontSize: 9, fontFamily: 'Helvetica', color: '#111' },
+  // paddingBottom is deliberately much larger than the other sides — it reserves room for the
+  // `fixed` footer block (sized for its tallest variant: the SGD PayNow QR), so normal-flow
+  // content (the line-items table) page-breaks before it ever reaches that zone instead of
+  // rendering underneath the footer that's absolutely positioned on top of it.
+  page:     { padding: 32, paddingBottom: 260, fontSize: 9, fontFamily: 'Helvetica', color: '#111' },
   headerRow:  { alignItems: 'center', marginBottom: 4 },
   logo:       { width: 90, height: 90, objectFit: 'contain' },
   logoText:   { fontSize: 13, fontWeight: 700, textAlign: 'center' },
@@ -84,7 +109,10 @@ const styles = StyleSheet.create({
   totalRow:   { flexDirection: 'row', paddingVertical: 6, borderTop: '1pt solid #111', marginTop: 2 },
   totalLabel: { flex: 1, fontWeight: 700, fontSize: 11 },
   totalAmt:   { width: 90, textAlign: 'right', fontWeight: 700, fontSize: 11 },
-  noteBlock:  { marginTop: 18, fontSize: 8, color: '#333', lineHeight: 1.5 },
+  // Pinned to the same position on every page (react-pdf `fixed`) so payment terms/bank details
+  // never drift with how many line items are in the table above — independent of normal flow.
+  footerFixed: { position: 'absolute', bottom: 30, left: 32, right: 32 },
+  noteBlock:  { fontSize: 8, color: '#333', lineHeight: 1.5 },
   paymentByRow: { flexDirection: 'row', marginTop: 4 },
   paymentByLabel: { width: 130 },
   paymentByValue: { fontWeight: 700 },
@@ -158,10 +186,10 @@ export function DebitNotePdfDocument({ data }: { data: DebitNotePdfData }) {
               <Text style={styles.tableAmt}>{fmt(li.amount, data.currency)}</Text>
             </View>
           ))}
-          {!!data.gstAmount && (
+          {!!data.feeRebate && (
             <View style={styles.tableRow}>
-              <Text style={styles.tableDesc}>GST</Text>
-              <Text style={styles.tableAmt}>{fmt(data.gstAmount, data.currency)}</Text>
+              <Text style={styles.tableDesc}>Fee rebate</Text>
+              <Text style={styles.tableAmt}>{`-${fmt(data.feeRebate, data.currency)}`}</Text>
             </View>
           )}
           {data.lineItems.length === 0 && (
@@ -172,41 +200,57 @@ export function DebitNotePdfDocument({ data }: { data: DebitNotePdfData }) {
           )}
         </View>
         <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>TOTAL</Text>
+          <Text style={styles.totalLabel}>Premium Total</Text>
           <Text style={styles.totalAmt}>{fmt(data.total, data.currency)}</Text>
         </View>
 
-        {/* Matches the real template's exact wording, including the two separate
-            "please make payment by" mentions — the first trails off the Warranty sentence,
-            the second is its own labelled row with the actual date. */}
-        <View style={styles.noteBlock}>
-          <Text>Note:    This is not a tax invoice. The insurance company&apos;s tax invoice is attached or will be sent to you shortly.</Text>
-          <Text>              Premium Payment Warranty is imposed by the insurer. To avoid automatic termination of policy,</Text>
-          <Text>                 please make payment by</Text>
-          <View style={styles.paymentByRow}>
-            <Text style={styles.paymentByLabel}>Please make payment by</Text>
-            <Text style={styles.paymentByValue}>{fmtSlashDate(data.paymentDueDate)}</Text>
+        {/* Pinned to a fixed bottom position on every page — see styles.footerFixed — so it
+            stays consistent regardless of how many line items pushed the table above it, and
+            still repeats if the table spills onto a second page. */}
+        <View style={styles.footerFixed} fixed>
+          {/* Matches the real template's exact wording, including the two separate
+              "please make payment by" mentions — the first trails off the Warranty sentence,
+              the second is its own labelled row with the actual date. */}
+          <View style={styles.noteBlock}>
+            <Text>Note:    This is not a tax invoice. The insurance company&apos;s tax invoice is attached or will be sent to you shortly.</Text>
+            <Text>              Premium Payment Warranty is imposed by the insurer. To avoid automatic termination of policy,</Text>
+            <Text>                 please make payment by</Text>
+            <View style={styles.paymentByRow}>
+              <Text style={styles.paymentByLabel}>Please make payment by</Text>
+              <Text style={styles.paymentByValue}>{fmtSlashDate(data.paymentDueDate)}</Text>
+            </View>
+            <Text style={{ marginTop: 4 }}>Quote debit note no. on the remittance advice and email document to {TRS_LETTERHEAD.remittanceEmail}</Text>
           </View>
-          <Text style={{ marginTop: 4 }}>Quote debit note no. on the remittance advice and email document to {TRS_LETTERHEAD.remittanceEmail}</Text>
-        </View>
 
-        <View style={styles.bankBlock}>
-          <View style={styles.bankRows}>
-            <View style={styles.bankRow}><Text style={styles.bankLabel}>Bank Name:</Text><Text style={styles.bankValue}>{TRS_LETTERHEAD.bankName}</Text></View>
-            <View style={styles.bankRow}><Text style={styles.bankLabel}>Bank Account Name:</Text><Text style={styles.bankValue}>{TRS_LETTERHEAD.bankAccountName}</Text></View>
-            <View style={styles.bankRow}><Text style={styles.bankLabel}>Bank Account Number:</Text><Text style={styles.bankValue}>{TRS_LETTERHEAD.bankAccountNumber}</Text></View>
-            <View style={styles.bankRow}><Text style={styles.bankLabel}>Bank Code:</Text><Text style={styles.bankValue}>{TRS_LETTERHEAD.bankCode}</Text></View>
-            <View style={styles.bankRow}><Text style={styles.bankLabel}>Branch Code:</Text><Text style={styles.bankValue}>{TRS_LETTERHEAD.branchCode}</Text></View>
-            <View style={styles.bankRow}><Text style={styles.bankLabel}>SWIFT Code:</Text><Text style={styles.bankValue}>{TRS_LETTERHEAD.swiftCode}</Text></View>
-            <View style={{ height: 6 }} />
-            <View style={styles.bankRow}><Text style={styles.bankLabel}>PayNow UEN No:</Text><Text style={styles.bankValue}>{TRS_LETTERHEAD.payNowUen}</Text></View>
+          <View style={styles.bankBlock}>
+            <View style={styles.bankRows}>
+              <View style={styles.bankRow}><Text style={styles.bankLabel}>Bank Name:</Text><Text style={styles.bankValue}>{data.bankProfile.bankName}</Text></View>
+              <View style={styles.bankRow}><Text style={styles.bankLabel}>Bank Account Name:</Text><Text style={styles.bankValue}>{data.bankProfile.bankAccountName}</Text></View>
+              <View style={styles.bankRow}><Text style={styles.bankLabel}>Bank Account Number:</Text><Text style={styles.bankValue}>{data.bankProfile.bankAccountNumber}</Text></View>
+              {data.bankProfile.bankCode && <View style={styles.bankRow}><Text style={styles.bankLabel}>Bank Code:</Text><Text style={styles.bankValue}>{data.bankProfile.bankCode}</Text></View>}
+              {data.bankProfile.branchCode && <View style={styles.bankRow}><Text style={styles.bankLabel}>Branch Code:</Text><Text style={styles.bankValue}>{data.bankProfile.branchCode}</Text></View>}
+              {data.bankProfile.swiftCode && <View style={styles.bankRow}><Text style={styles.bankLabel}>SWIFT Code:</Text><Text style={styles.bankValue}>{data.bankProfile.swiftCode}</Text></View>}
+              {data.bankProfile.agentBankSwiftBic && (
+                <>
+                  <View style={{ height: 6 }} />
+                  <View style={styles.bankRow}><Text style={styles.bankLabel}>Agent Bank Name:</Text><Text style={styles.bankValue}>{data.bankProfile.agentBankName}</Text></View>
+                  <View style={styles.bankRow}><Text style={styles.bankLabel}>Agent Bank SWIFT Code BIC:</Text><Text style={styles.bankValue}>{data.bankProfile.agentBankSwiftBic}</Text></View>
+                </>
+              )}
+              {data.bankProfile.payNowUen && (
+                <>
+                  <View style={{ height: 6 }} />
+                  <View style={styles.bankRow}><Text style={styles.bankLabel}>PayNow UEN No:</Text><Text style={styles.bankValue}>{data.bankProfile.payNowUen}</Text></View>
+                </>
+              )}
+            </View>
+            {qrPath && data.bankProfile.payNowUen && <Image src={qrPath} style={styles.qr} />}
           </View>
-          {qrPath && <Image src={qrPath} style={styles.qr} />}
+
+          <Text style={{ marginTop: 10, fontSize: 8 }}>Please call us at {TRS_LETTERHEAD.phone} should you require further clarification.</Text>
+
+          <Text style={styles.footer}>{TRS_LETTERHEAD.footerAddress}</Text>
         </View>
-
-        <Text style={{ marginTop: 10, fontSize: 8 }}>Please call us at {TRS_LETTERHEAD.phone} should you require further clarification.</Text>
-
-        <Text style={styles.footer}>{TRS_LETTERHEAD.footerAddress}</Text>
       </Page>
     </Document>
   )

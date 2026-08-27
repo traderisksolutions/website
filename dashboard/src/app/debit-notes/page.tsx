@@ -205,6 +205,7 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState<EditForm | null>(null)
 
+  const [feeRebateEnabled, setFeeRebateEnabled] = useState(false)
   const [payDirectToInsurer, setPayDirectToInsurer] = useState(false)
   const [payToTrsOps, setPayToTrsOps] = useState(false)
   const [paidDirectAmount, setPaidDirectAmount] = useState(0)
@@ -231,6 +232,7 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
   function startEditing() {
     if (!detail) return
     setForm(toEditForm(detail))
+    setFeeRebateEnabled((detail.fee_rebate ?? 0) > 0)
     setEditing(true)
   }
 
@@ -256,7 +258,7 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
           debitNoteNo: form.debitNoteNo.trim(),
           currency: form.currency, issueDate: form.issueDate, paymentDueDate: form.paymentDueDate || null,
           insurer: form.insurer, lineItems: form.lineItems.filter(l => l.description || l.amount),
-          gstAmount: form.gstAmount, feeRebate: form.feeRebate, commission: form.commission, commissionRate: form.commissionRate,
+          gstAmount: form.gstAmount, feeRebate: feeRebateEnabled ? form.feeRebate : 0, commission: form.commission, commissionRate: form.commissionRate,
           eventType: form.eventType, endorsementEffectiveDate: form.eventType === 'endorsement' ? (form.endorsementEffectiveDate || null) : null,
           policy: {
             policyNumber: form.policyNumber || null, classOfInsurance: form.classOfInsurance || null,
@@ -406,7 +408,7 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
                 <>
                   {form.lineItems.map((l, i) => (
                     <div key={i} className="flex items-center gap-2 mb-1.5">
-                      <input value={l.description} onChange={e => updateLineItem(i, { description: e.target.value })} placeholder="Description" className={inputCls} />
+                      <input value={l.description} onChange={e => updateLineItem(i, { description: e.target.value })} placeholder="Description" className={`${inputCls} flex-1 min-w-0`} />
                       <input type="number" value={l.amount} onChange={e => updateLineItem(i, { amount: Number(e.target.value) })} className={`${inputCls} w-28 flex-none`} />
                       <button onClick={() => removeLineItem(i)} className="text-muted-foreground hover:text-rose-600 flex-none"><X size={14} /></button>
                     </div>
@@ -416,8 +418,15 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
                     <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">GST amount
                       <input type="number" value={form.gstAmount} onChange={e => setForm({ ...form, gstAmount: Number(e.target.value) })} className={inputCls} />
                     </label>
-                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Fee rebate
-                      <input type="number" value={form.feeRebate} onChange={e => setForm({ ...form, feeRebate: Number(e.target.value) })} className={inputCls} />
+                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">
+                      <span className="flex items-center gap-1.5">
+                        <input type="checkbox" checked={feeRebateEnabled}
+                          onChange={e => { setFeeRebateEnabled(e.target.checked); if (!e.target.checked) setForm(f => f && { ...f, feeRebate: 0 }) }} />
+                        Fee rebates
+                      </span>
+                      {feeRebateEnabled && (
+                        <input type="number" value={form.feeRebate} onChange={e => setForm({ ...form, feeRebate: Number(e.target.value) })} className={inputCls} />
+                      )}
                     </label>
                   </div>
                 </>
@@ -426,8 +435,8 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
                   {detail.line_items?.map((l, i) => (
                     <div key={i} className="flex justify-between text-[12px] mb-1"><span>{l.description}</span><span>{fmt(l.amount, detail.currency)}</span></div>
                   ))}
-                  {!!detail.gst_amount && <div className="flex justify-between text-[12px] mb-1"><span>GST</span><span>{fmt(detail.gst_amount, detail.currency)}</span></div>}
-                  <div className="flex justify-between text-[13px] font-semibold border-t border-[--border-subtle] pt-1.5 mt-1"><span>Total</span><span>{fmt(detail.gross_amount, detail.currency)}</span></div>
+                  {!!detail.fee_rebate && <div className="flex justify-between text-[12px] mb-1"><span>Fee rebate</span><span>-{fmt(detail.fee_rebate, detail.currency)}</span></div>}
+                  <div className="flex justify-between text-[13px] font-semibold border-t border-[--border-subtle] pt-1.5 mt-1"><span>Premium Total</span><span>{fmt(detail.net_amount, detail.currency)}</span></div>
                 </>
               )}
             </DetailSection>

@@ -280,6 +280,8 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
   const [periodEnd, setPeriodEnd] = useState(m?.period_end ?? '')
   const [grossPremium, setGrossPremium] = useState(m?.gross_premium ?? 0)
   const [gstAmount, setGstAmount] = useState(m?.gst_amount ?? 0)
+  const [feeRebateEnabled, setFeeRebateEnabled] = useState(!!m?.fee_rebate)
+  const [feeRebate, setFeeRebate] = useState(m?.fee_rebate ?? 0)
   const [commissionRate, setCommissionRate] = useState(m?.commission_rate ?? 0)
   const [commissionAmount, setCommissionAmount] = useState(m?.commission_amount ?? 0)
   const [issueDate, setIssueDate] = useState(m?.issue_date ?? '')
@@ -329,6 +331,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
       insurer: insurer || null, class_of_insurance: classOfInsurance || null,
       currency, description: description || null, period_start: periodStart || null, period_end: periodEnd || null,
       gross_premium: grossPremium || null, gst_amount: gstAmount || null,
+      fee_rebate: feeRebateEnabled ? (feeRebate || null) : null,
       commission_rate: commissionRate || null, commission_amount: commissionAmount || null,
       client_name: m?.client_name ?? null, client_address: m?.client_address ?? null,
       issue_date: issueDate || null, payment_due_date: paymentDueDate || null,
@@ -365,7 +368,8 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
           },
           debitNote: {
             currency, lineItems: [{ description: 'Gross Premium collected on behalf of Insurance Company', amount: grossPremium }],
-            gstAmount: gstAmount || null, commissionRate: commissionRate || null, commission: commissionAmount || null,
+            gstAmount: gstAmount || null, feeRebate: feeRebateEnabled ? (feeRebate || null) : null,
+            commissionRate: commissionRate || null, commission: commissionAmount || null,
             debitNoteNo: debitNoteNo || null,
             issueDate: issueDate || new Date().toISOString().slice(0, 10), paymentDueDate: paymentDueDate || null, insurer,
             eventType, endorsementEffectiveDate: eventType === 'endorsement' ? endorsementEffectiveDate : null,
@@ -511,6 +515,16 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
         <Field label="Gross premium (required)"><input type="number" value={grossPremium} onChange={e => setGrossPremium(Number(e.target.value))} className={inp} /></Field>
         <Field label="GST"><input type="number" value={gstAmount} onChange={e => setGstAmount(Number(e.target.value))} className={inp} /></Field>
         <Field label="Currency"><select value={currency} onChange={e => setCurrency(e.target.value)} className={inp}>{['SGD', 'USD', 'MYR', 'IDR'].map(c => <option key={c}>{c}</option>)}</select></Field>
+        <Field label="Fee rebates">
+          <label className="flex items-center gap-1.5 text-[12.5px] h-[30px]">
+            <input type="checkbox" checked={feeRebateEnabled}
+              onChange={e => { setFeeRebateEnabled(e.target.checked); if (!e.target.checked) setFeeRebate(0) }} />
+            Apply fee rebate
+          </label>
+        </Field>
+        {feeRebateEnabled && (
+          <Field label="Fee rebate amount"><input type="number" value={feeRebate} onChange={e => setFeeRebate(Number(e.target.value))} className={inp} /></Field>
+        )}
         <Field label="Commission rate (%)"><input type="number" value={commissionRate} onChange={e => setCommissionRate(Number(e.target.value))} className={inp} /></Field>
         <Field label="Commission amount"><input type="number" value={commissionAmount} onChange={e => setCommissionAmount(Number(e.target.value))} className={inp} /></Field>
         <div />
@@ -520,7 +534,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
       </div>
 
       <div className="text-[13px] flex justify-end">
-        <span>Gross premium collected: <b>{currency} {(grossPremium + gstAmount).toLocaleString('en-SG', { minimumFractionDigits: 2 })}</b></span>
+        <span>Premium Total: <b>{currency} {(grossPremium + gstAmount - (feeRebateEnabled ? feeRebate : 0)).toLocaleString('en-SG', { minimumFractionDigits: 2 })}</b></span>
       </div>
 
       {err && <p className="text-[11.5px] text-rose-600">{err}</p>}
