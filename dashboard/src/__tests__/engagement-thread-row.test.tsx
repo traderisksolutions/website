@@ -86,4 +86,31 @@ describe('EngagementThreadRow', () => {
     render(<EngagementThreadRow lead={campaignLead} isActive={false} threadState={emptyThread} onClick={vi.fn()} />)
     expect(screen.getByText('C')).toBeInTheDocument()
   })
+
+  describe('iconOnly (collapsed rail)', () => {
+    it('renders just the avatar initial — no name, company, or subject text', () => {
+      render(<EngagementThreadRow lead={baseLead} isActive={false} threadState={emptyThread} onClick={vi.fn()} iconOnly />)
+      expect(screen.getByText('A')).toBeInTheDocument()
+      expect(screen.queryByText('Alice Tan')).toBeNull()
+      expect(screen.queryByText('Acme Corp')).toBeNull()
+      expect(screen.queryByText('Re: Marine insurance quotation')).toBeNull()
+    })
+
+    it('still calls onClick and exposes the full name/subject via the title attribute', () => {
+      const onClick = vi.fn()
+      render(<EngagementThreadRow lead={baseLead} isActive={false} threadState={emptyThread} onClick={onClick} iconOnly />)
+      const btn = screen.getByRole('button')
+      expect(btn).toHaveAttribute('title', expect.stringContaining('Alice Tan'))
+      fireEvent.click(btn)
+      expect(onClick).toHaveBeenCalledOnce()
+    })
+
+    it('still reflects active/needs-reply state via the left-accent border', () => {
+      const { rerender } = render(<EngagementThreadRow lead={baseLead} isActive={true} threadState={emptyThread} onClick={vi.fn()} iconOnly />)
+      expect(screen.getByRole('button').className).toContain('border-l-primary')
+
+      rerender(<EngagementThreadRow lead={baseLead} isActive={false} threadState={inboundThread} onClick={vi.fn()} iconOnly />)
+      expect(screen.getByRole('button').className).toContain('border-l-[--warning]')
+    })
+  })
 })

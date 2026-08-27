@@ -16,6 +16,7 @@ import type { Lead, RealMsg, RagSource, SigOption, Sender } from '@/components/e
 import { fullName } from '@/components/engagement/helpers'
 import { useAutocomplete, SuggestionList } from '@/components/engagement/RecipientAutocomplete'
 import { InlineProgress, useFauxProgress } from '@/components/engagement/InlineProgress'
+import { useResizableComposerHeight } from '@/hooks/useResizableComposerHeight'
 
 interface EngagementComposePanelProps {
   lead:              Lead
@@ -70,6 +71,9 @@ export function EngagementComposePanel({
   const [headerExpanded,  setHeaderExpanded]  = useState(false)
   const [ragSources,      setRagSources]      = useState<RagSource[]>(storedRagSources ?? [])
   const [showSources,     setShowSources]     = useState(false)
+
+  // Editor height — drag-resizable via the handle below it, persisted across the session.
+  const { height: editorHeight, min: editorMin, max: editorMax, step: editorStep, startDrag: startEditorDrag, nudge: nudgeEditor, setAbsolute: setEditorHeight } = useResizableComposerHeight()
 
   const [signatures,      setSignatures]      = useState<SigOption[]>([])
   const [selectedSigId,   setSelectedSigId]   = useState<string>('')
@@ -368,7 +372,7 @@ export function EngagementComposePanel({
   // ── Sent state ─────────────────────────────────────────────────────────────
   if (sent) {
     return (
-      <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-t border-[--border-subtle] bg-card">
+      <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-[--border-subtle] bg-card">
         <div className="flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-[--success]" />
           <span className="text-[12.5px] font-medium text-[--success]">Reply sent</span>
@@ -384,10 +388,12 @@ export function EngagementComposePanel({
   }
 
   // ── Compose shell ──────────────────────────────────────────────────────────
-  // Flat, in-flow treatment — this is the last item in the thread's own scroll region now, not
-  // a panel floating up from a fixed-height dock, so no rounded corners / upward shadow / h-full.
+  // Flat, in-flow treatment — this is the first item in the thread's own scroll region now (the
+  // stack is newest-first: composer, then newest message, then descending history), not a panel
+  // floating up from a fixed-height dock, so no rounded corners / shadow / h-full. border-b (not
+  // border-t) since it separates the composer FROM the messages below it, not above.
   return (
-    <div className="flex-shrink-0 flex flex-col border-t border-[--border-subtle] bg-card">
+    <div className="flex-shrink-0 flex flex-col border-b border-[--border-subtle] bg-card">
 
       {/* ── Addressing header ── */}
       <div className="flex-shrink-0 border-b border-[--border-subtle]">
@@ -519,10 +525,10 @@ export function EngagementComposePanel({
 
       {(
         <>
-          {/* ── Editor — grows naturally with content; the outer thread scroll region (not this
-               div) is the single scroll surface, so this only caps very long drafts rather than
-               being its own independent scroll container. ── */}
-          <div className="px-6 py-3 max-h-[50vh] overflow-y-auto">
+          {/* ── Editor — height is drag-resizable (handle below), not just capped, so a longer
+               draft has real room without the thread scroll region also having to grow past what
+               the reader wants visible at once. ── */}
+          <div className="px-6 py-3 overflow-y-auto" style={{ height: 'var(--engagement-composer-h, 220px)' }}>
             <RichEditor
               key={draftEditorKey}
               initialHtml={draftHtml}
@@ -539,6 +545,27 @@ export function EngagementComposePanel({
               minHeight={200}
               onAttachClick={() => fileInputRef.current?.click()}
             />
+          </div>
+
+          {/* ── Editor resize handle ── */}
+          <div
+            role="separator"
+            aria-orientation="horizontal"
+            aria-label="Resize the reply editor"
+            aria-valuenow={editorHeight}
+            aria-valuemin={editorMin}
+            aria-valuemax={editorMax}
+            tabIndex={0}
+            onPointerDown={e => { e.preventDefault(); startEditorDrag(e.clientY, editorHeight) }}
+            onKeyDown={e => {
+              if (e.key === 'ArrowUp')        { e.preventDefault(); nudgeEditor(-editorStep) }
+              else if (e.key === 'ArrowDown') { e.preventDefault(); nudgeEditor(editorStep) }
+              else if (e.key === 'Home')      { e.preventDefault(); setEditorHeight(editorMin) }
+              else if (e.key === 'End')       { e.preventDefault(); setEditorHeight(editorMax) }
+            }}
+            className="h-1.5 -my-0.5 cursor-row-resize flex items-center justify-center group focus-visible:outline-none flex-shrink-0"
+          >
+            <div className="w-8 h-px bg-[--border-subtle] group-hover:bg-primary/50 group-hover:h-0.5 group-focus-visible:bg-primary/60 group-focus-visible:h-0.5 transition-all" />
           </div>
 
           {/* ── Knowledge sources (RAG) ── */}

@@ -23,18 +23,26 @@ interface EngagementThreadHeaderProps {
   /** Opens the contact/status/notes info panel (a Sheet, see ThreadView) — replaces what used
    *  to be a perpetually-visible right-hand column. */
   onOpenInfo?:    () => void
+  /** True once the message area below has been scrolled away from the top — used to fade in a
+   *  shadow instead of always showing a flat border, so the header reads as "anchored above the
+   *  content" only when there's actually content sliding underneath it (avoids a permanent hard
+   *  line stacking with AddToCaseControl's own border right below). */
+  elevated?:      boolean
 }
 
 export function EngagementThreadHeader({
   subject, lead, messageCount, needsReply,
   statusKey, confirmDelete, deleting,
-  onBack, onDelete, onCancelDelete, onStartRfq, onOpenInfo,
+  onBack, onDelete, onCancelDelete, onStartRfq, onOpenInfo, elevated,
 }: EngagementThreadHeaderProps) {
   const contactName    = fullName(lead)
   const displaySubject = subject ?? contactName
 
   return (
-    <div className="flex-shrink-0 px-5 py-4 border-b border-[--border-subtle] bg-card">
+    <div className={cn(
+      'flex-shrink-0 px-5 py-4 bg-card sticky top-0 z-20 transition-shadow',
+      elevated ? 'shadow-[0_2px_8px_-2px_rgba(15,23,42,0.12)]' : 'border-b border-[--border-subtle]',
+    )}>
       {/* Mobile back button */}
       {onBack && (
         <button

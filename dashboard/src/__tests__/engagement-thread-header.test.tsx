@@ -95,4 +95,21 @@ describe('EngagementThreadHeader', () => {
     fireEvent.click(screen.getByText('Cancel'))
     expect(onCancel).toHaveBeenCalledOnce()
   })
+
+  it('is sticky-positioned so it stays anchored above the scrollable thread', () => {
+    render(<EngagementThreadHeader {...baseProps} />)
+    expect(screen.getByRole('heading', { level: 1 }).closest('div.sticky')).toHaveClass('top-0')
+  })
+
+  it('shows a flat border when not elevated, a shadow (no border) once elevated', () => {
+    const { container, rerender } = render(<EngagementThreadHeader {...baseProps} elevated={false} />)
+    const root = container.firstElementChild as HTMLElement
+    expect(root.className).toContain('border-b')
+    expect(root.className).not.toContain('shadow-[')
+
+    rerender(<EngagementThreadHeader {...baseProps} elevated={true} />)
+    const rootAfter = container.firstElementChild as HTMLElement
+    expect(rootAfter.className).toContain('shadow-[')
+    expect(rootAfter.className).not.toContain('border-b')
+  })
 })

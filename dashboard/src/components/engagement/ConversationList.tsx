@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import type { MouseEvent } from 'react'
-import { RefreshCw, X, FileEdit } from 'lucide-react'
+import { RefreshCw, X, FileEdit, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Lead, ThreadState } from './types'
 import { EngagementThreadRow } from '@/components/engagement-agent/engagement-thread-row'
@@ -34,6 +34,9 @@ interface ConversationListProps {
    *  skip this component's own header so they don't stack. The mobile fallback (EaListPanel)
    *  still wants it, so this defaults to shown. */
   hideHeader?:    boolean
+  /** Rail collapsed below the icon threshold — render avatar-only rows (see
+   *  EngagementThreadRow's iconOnly prop) instead of full name/subject/timestamp rows. */
+  iconOnly?:      boolean
 }
 
 /** Tabs/search/group-toggle render in EngagementRail.tsx (EngagementFolderNav) on desktop — this
@@ -46,7 +49,7 @@ export function ConversationList({
   leads, visible, threadMap, selectedId,
   activeTab, search,
   loading, refreshing,
-  onSelect, onRefresh, onOpenDraft, hideHeader,
+  onSelect, onRefresh, onOpenDraft, hideHeader, iconOnly,
 }: ConversationListProps) {
   const { setCounts, setSearch } = useEngagementNav()
   const needsReplyCount = Object.values(threadMap)
@@ -75,7 +78,7 @@ export function ConversationList({
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      {!hideHeader && (
+      {!hideHeader && !iconOnly && (
         <div className="flex-shrink-0 flex items-center justify-between px-4 h-11 border-b border-[--border-subtle]">
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-[13px] font-semibold text-foreground tracking-tight truncate">
@@ -112,7 +115,21 @@ export function ConversationList({
                 <p className="text-[12px] text-muted-foreground text-center">No saved drafts.</p>
               </div>
             )}
-            {!draftsLoading && drafts.map(d => (
+            {!draftsLoading && drafts.map(d => iconOnly ? (
+              <button
+                key={d.id}
+                title={d.subject || d.to_email || '(no subject)'}
+                onClick={() => onOpenDraft({
+                  toEmail: d.to_email ?? '', cc: d.cc ?? '', subject: d.subject ?? '', body: d.body ?? '',
+                  attachment: d.attachments?.[0], draftId: d.id,
+                })}
+                className="w-full flex items-center justify-center py-1.5"
+              >
+                <span className="w-8 h-8 rounded-full flex items-center justify-center bg-muted text-muted-foreground">
+                  <FileEdit size={13} />
+                </span>
+              </button>
+            ) : (
               <div
                 key={d.id}
                 role="button"
@@ -141,11 +158,13 @@ export function ConversationList({
           <>
             {loading && (
               <div className="flex items-center justify-center py-12">
-                <span className="text-[12px] text-muted-foreground">Loading conversations…</span>
+                {iconOnly
+                  ? <Loader2 size={14} className="animate-spin text-muted-foreground" />
+                  : <span className="text-[12px] text-muted-foreground">Loading conversations…</span>}
               </div>
             )}
 
-            {!loading && visible.length === 0 && (
+            {!loading && !iconOnly && visible.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 px-4 gap-2">
                 <p className="text-[12px] text-muted-foreground text-center">
                   {search ? 'No conversations match your search.' : 'No conversations yet.'}
@@ -168,6 +187,7 @@ export function ConversationList({
                 isActive={lead.id === selectedId}
                 threadState={threadMap[lead.id]}
                 onClick={() => onSelect(lead.id)}
+                iconOnly={iconOnly}
               />
             ))}
           </>

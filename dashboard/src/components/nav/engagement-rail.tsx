@@ -5,7 +5,8 @@ import { usePathname } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { EngagementFolderNav } from '@/components/engagement/EngagementFolderNav'
 import { useNarrowViewport } from '@/hooks/useNarrowViewport'
-import { useResizableRailWidth } from '@/hooks/useResizableRailWidth'
+import { useResizableRailWidth, RAIL_ICON_THRESHOLD } from '@/hooks/useResizableRailWidth'
+import { cn } from '@/lib/utils'
 
 const ENGAGEMENT_ROUTE = '/engagement'
 
@@ -33,14 +34,18 @@ export function useShowEngagementRail() {
  * (EaListPanel, not resizable — dragging is a desktop-only affordance here), so this renders
  * nothing.
  *
- * Width is drag-resizable (260–520px, default 340) via a handle on the right edge, persisted to
+ * Width is drag-resizable (64–520px, default 340) via a handle on the right edge, persisted to
  * localStorage and shared with ConditionalShell's MainContent margin through the
- * --engagement-rail-w CSS custom property — see useResizableRailWidth.
+ * --engagement-rail-w CSS custom property — see useResizableRailWidth. Below
+ * RAIL_ICON_THRESHOLD it collapses to an icon-only rail (avatar circles, no text) rather than
+ * cramming full rows into an unusably narrow column.
  */
 export function EngagementRail() {
   const showRail = useShowEngagementRail()
   const { width, min, max, step, startDrag, nudge, setAbsolute } = useResizableRailWidth()
   if (!showRail) return null
+
+  const iconOnly = width < RAIL_ICON_THRESHOLD
 
   return (
     <aside
@@ -49,11 +54,15 @@ export function EngagementRail() {
     >
       <Link
         href="/"
-        className="flex-shrink-0 flex items-center gap-1.5 h-7 px-2.5 mx-2 mt-2 mb-2 rounded-md text-[11.5px] text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors no-underline"
+        title="Dashboard"
+        className={cn(
+          'flex-shrink-0 flex items-center gap-1.5 h-7 rounded-md text-[11.5px] text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors no-underline',
+          iconOnly ? 'justify-center w-7 mx-auto mt-2 mb-2' : 'px-2.5 mx-2 mt-2 mb-2',
+        )}
       >
-        <ArrowLeft size={12} strokeWidth={2} /> Dashboard
+        <ArrowLeft size={12} strokeWidth={2} /> {!iconOnly && 'Dashboard'}
       </Link>
-      <EngagementFolderNav />
+      <EngagementFolderNav iconOnly={iconOnly} />
 
       {/* Drag handle — the aside's own `fixed` positioning already establishes the containing
           block for this absolute child, so it tracks the rail's right edge as it resizes. */}

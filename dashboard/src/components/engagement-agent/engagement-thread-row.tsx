@@ -16,10 +16,13 @@ interface EngagementThreadRowProps {
   isActive:    boolean
   threadState: ThreadState | undefined
   onClick:     () => void
+  /** Rail collapsed below the icon threshold — render just the avatar circle (name/subject/
+   *  timestamp/badges all hidden, no room for them), with the same active/needs-reply tinting. */
+  iconOnly?:   boolean
 }
 
 export function EngagementThreadRow({
-  lead, isActive, threadState, onClick,
+  lead, isActive, threadState, onClick, iconOnly,
 }: EngagementThreadRowProps) {
   const msgs      = threadState?.messages ?? []
   const hasReply  = calcNeedsReply(msgs)
@@ -31,6 +34,38 @@ export function EngagementThreadRow({
   const snippet   = lead.subject ?? lead.topic ?? '—'
   const timestamp = msgs.at(-1)?.sent_at ?? lead.created_at
   const isCampaign = !!lead.campaign_context
+
+  if (iconOnly) {
+    const label = [name || lead.email, snippet].filter(Boolean).join(' · ')
+    return (
+      <button
+        onClick={onClick}
+        aria-pressed={isActive}
+        title={label}
+        className={cn(
+          'w-full flex items-center justify-center py-1.5 border-l-2 outline-none transition-colors',
+          'focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary/30',
+          isActive  && 'bg-primary/[.04] border-l-primary',
+          !isActive && hasReply  && 'border-l-[--warning] hover:bg-[--warning-bg]/30',
+          !isActive && !hasReply && 'border-l-transparent hover:bg-muted/50',
+        )}
+      >
+        <span className={cn(
+          'relative w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold select-none',
+          isActive
+            ? 'bg-primary/12 text-primary'
+            : hasReply
+              ? 'bg-[--warning-bg] text-[--warning]'
+              : 'bg-muted text-muted-foreground',
+        )}>
+          {initial}
+          {hasReply && !isActive && (
+            <span className="absolute -top-0.5 -right-0.5 w-[7px] h-[7px] rounded-full bg-[--warning] ring-2 ring-card" />
+          )}
+        </span>
+      </button>
+    )
+  }
 
   return (
     <button

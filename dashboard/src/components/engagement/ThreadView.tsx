@@ -79,13 +79,16 @@ export function ThreadView({
   const messageAreaRef  = useRef<HTMLDivElement>(null)
   const composerRef     = useRef<HTMLDivElement>(null)
   const [showScrollToLatest, setShowScrollToLatest] = useState(false)
+  const [headerElevated, setHeaderElevated] = useState(false)
   const scrolledInitRef = useRef<string | null>(null)   // threadId we've already auto-scrolled on open
   const pendingSendScrollRef = useRef(false)             // set by a successful send, consumed once messages refresh
 
-  const scrollToBottom = useCallback((smooth: boolean) => {
+  // The composer + newest message sit at the TOP of the stack now (inverted order — see the
+  // render below), so "the latest" lives at scrollTop 0, not scrollHeight.
+  const scrollToTop = useCallback((smooth: boolean) => {
     const el = messageAreaRef.current
     if (!el) return
-    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' })
+    el.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' })
   }, [])
 
   const scrollComposerIntoView = useCallback(() => {
@@ -95,8 +98,8 @@ export function ThreadView({
   function handleMessageAreaScroll() {
     const el = messageAreaRef.current
     if (!el) return
-    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
-    setShowScrollToLatest(distanceFromBottom > 120)
+    setShowScrollToLatest(el.scrollTop > 120)
+    setHeaderElevated(el.scrollTop > 4)
   }
 
   // ── Party switcher: a conversation can span several threads (client, employee, insurer…).
@@ -202,23 +205,23 @@ export function ThreadView({
     if (isOverriding) setRefreshNonce(n => n + 1)
   }
 
-  // Auto-scroll rules: (1) instantly to the bottom once when a thread first finishes loading
-  // (switching threads/opening one should start you at the latest message, matching the
-  // existing defaultOpen assumption below), (2) smoothly to the bottom after a send completes.
-  // Never auto-scrolls on message expand/collapse or sidebar resize — those don't touch
-  // scrolledInitRef/pendingSendScrollRef at all.
+  // Auto-scroll rules: (1) instantly to the top once when a thread first finishes loading
+  // (switching threads/opening one should start you at the composer + newest message, which
+  // now render first), (2) smoothly to the top after a send completes (the just-sent message
+  // becomes the new newest, rendered right below the composer). Never auto-scrolls on message
+  // expand/collapse or sidebar resize — those don't touch scrolledInitRef/pendingSendScrollRef.
   useEffect(() => {
     if (loading || !threadId) return
     if (pendingSendScrollRef.current) {
       pendingSendScrollRef.current = false
-      scrollToBottom(true)
+      scrollToTop(true)
       return
     }
     if (scrolledInitRef.current !== threadId) {
       scrolledInitRef.current = threadId
-      scrollToBottom(false)
+      scrollToTop(false)
     }
-  }, [threadId, loading, messages.length, scrollToBottom])
+  }, [threadId, loading, messages.length, scrollToTop])
 
   // Read any existing summary when the thread changes (display only — never generates).
   // The reply draft is NOT auto-loaded; it appears only when the employee clicks Generate.
@@ -304,8 +307,9 @@ export function ThreadView({
   }
   function refreshSummaries() { void runAnalysis() }
 
-  // Auto-expand: last message + last inbound message
-  const lastInboundIdx = messages.reduce((found, m, i) => m.direction === 'inbound' ? i : found, -1)
+  // Newest-first for display — the composer sits above this list, so reading top-to-bottom is
+  // "reply, then newest message, then descending history," matching the inverted stack.
+  const messagesNewestFirst = [...messages].reverse()
 
   return (
     <div className="flex-1 flex min-w-0 overflow-hidden">
@@ -326,6 +330,7 @@ export function ThreadView({
           onDelete={handleDelete}
           onCancelDelete={() => setConfirmDelete(false)}
           onOpenInfo={() => setContextOpen(true)}
+          elevated={headerElevated}
         />
 
         {/* Only offer "Add to Nexus case" when the thread isn't already in one —
@@ -360,6 +365,34 @@ export function ThreadView({
             </div>
           )}
 
+          {/* ── Reply composer — pinned at the top of the stack, part of the thread flow ── */}
+          {!loading && (
+            <div ref={composerRef}>
+              <EngagementComposePanel
+                lead={lead}
+                thread={thread}
+                messages={messages}
+                toAddress={toAddress}
+                ccList={ccList}
+                bccList={bccList}
+                customSubject={customSubject}
+                setToAddress={setToAddress}
+                setCcList={setCcList}
+                setBccList={setBccList}
+                setCustomSubject={setCustomSubject}
+                replyAll={replyAll}
+                onToggleReplyAll={toggleReplyAll}
+                storedDraft={summaries[0]?.draft_reply ?? null}
+                storedRagDraft={ragDraft?.content ?? null}
+                storedRagSources={ragDraft?.sources ?? []}
+                onThreadRefresh={handleThreadRefresh}
+                onAnalyze={runAnalysis}
+                pendingRestore={pendingRestore}
+              />
+            </div>
+          )}
+
+          {/* ── Messages, newest → oldest descending below the composer ── */}
           <div className="flex flex-col">
             {loading && (
               <div className="flex items-center justify-center py-12">
@@ -388,45 +421,18 @@ export function ThreadView({
                 )}
               </div>
             )}
-            {!loading && messages.map((msg, i) => (
+            {!loading && messagesNewestFirst.map((msg, revIdx) => (
               <EngagementMessageCard
                 key={msg.id}
                 msg={msg}
-                defaultOpen={i === messages.length - 1 || i === lastInboundIdx}
-                isLatest={i === messages.length - 1}
+                defaultOpen={revIdx === 0}
+                isLatest={revIdx === 0}
               />
             ))}
           </div>
-
-          {/* ── Reply composer — part of the thread flow, not a detached panel ── */}
-          {!loading && (
-            <div ref={composerRef}>
-              <EngagementComposePanel
-                lead={lead}
-                thread={thread}
-                messages={messages}
-                toAddress={toAddress}
-                ccList={ccList}
-                bccList={bccList}
-                customSubject={customSubject}
-                setToAddress={setToAddress}
-                setCcList={setCcList}
-                setBccList={setBccList}
-                setCustomSubject={setCustomSubject}
-                replyAll={replyAll}
-                onToggleReplyAll={toggleReplyAll}
-                storedDraft={summaries[0]?.draft_reply ?? null}
-                storedRagDraft={ragDraft?.content ?? null}
-                storedRagSources={ragDraft?.sources ?? []}
-                onThreadRefresh={handleThreadRefresh}
-                onAnalyze={runAnalysis}
-                pendingRestore={pendingRestore}
-              />
-            </div>
-          )}
         </EaMessageArea>
 
-        <ScrollToLatestButton visible={showScrollToLatest} onClick={() => scrollToBottom(true)} />
+        <ScrollToLatestButton visible={showScrollToLatest} onClick={() => scrollToTop(true)} />
         </div>
 
         {/* ── Bottom dock: AI Analysis · RFQ · Pricing Quote ── */}
