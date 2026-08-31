@@ -3,14 +3,16 @@
 import { useEffect, useMemo, useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { UploadCloud, Plus, Download, Send, Loader2, ChevronRight, ChevronDown, FolderOpen, Pencil, Trash2, PlusCircle, X } from 'lucide-react'
+import { UploadCloud, Plus, Download, Send, Loader2, FolderOpen, Pencil, Trash2, PlusCircle, X, ArrowUp, ArrowDown, ArrowUpDown, ListFilter } from 'lucide-react'
 import { AppSplitLayout, AppMainPanel, AppPageHeader, AppPageBody } from '@/components/app-shell'
-import { DataTableToolbar, DataTableSearch } from '@/components/data-table/toolbar'
+import { DataTableToolbar, DataTableReset } from '@/components/data-table/toolbar'
 import { StatusBadge } from '@/components/status-badge'
 import { DetailSection, DetailField } from '@/components/detail-section'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { SendDocumentsModal, type SendableAttachment } from '@/components/debit-notes/SendDocumentsModal'
+import { cn } from '@/lib/utils'
 
 type Row = {
   id: string; debit_note_no: string; issue_date: string; payment_due_date: string | null
@@ -23,6 +25,113 @@ type Row = {
 
 const fmt = (n: number, c: string) => `${c} ${Number(n ?? 0).toLocaleString('en-SG', { minimumFractionDigits: 2 })}`
 const fmtDate = (iso: string | null) => iso ? new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
+
+const STATUS_OPTIONS: PayStatus[] = ['unpaid', 'partially_paid', 'paid']
+const STATUS_LABEL: Record<PayStatus, string> = { unpaid: 'Unpaid', partially_paid: 'Partially paid', paid: 'Paid' }
+
+type ColKey = 'company' | 'policyType' | 'policyNo' | 'insurer' | 'dnNo' | 'policyDue' | 'amount' | 'commission' | 'status'
+type SortDir = 'asc' | 'desc'
+
+interface Column {
+  key:     ColKey
+  label:   string
+  align?:  'right'
+  type:    'text' | 'status'
+  /** Sort value — number for numeric columns (commission/amount), string otherwise. */
+  value:   (r: Row) => string | number
+  /** Formatted display text, reused as the substring the text filter matches against. */
+  display: (r: Row) => string
+}
+
+// Company is now its own sortable/filterable column (was the collapsible group header before
+// the table was flattened) rather than a special case.
+const COLUMNS: Column[] = [
+  { key: 'company',    label: 'Company',     type: 'text', value: r => r.companies?.name ?? '', display: r => r.companies?.name ?? '—' },
+  { key: 'policyType', label: 'Policy type', type: 'text', value: r => r.policies?.class_of_insurance ?? '', display: r => r.policies?.class_of_insurance || '—' },
+  { key: 'policyNo',   label: 'Policy #',    type: 'text', value: r => r.policies?.policy_number ?? '', display: r => r.policies?.policy_number || '—' },
+  { key: 'insurer',    label: 'Insurer',     type: 'text', value: r => r.insurer ?? '', display: r => r.insurer ?? '—' },
+  { key: 'dnNo',       label: 'DN #',        type: 'text', value: r => r.debit_note_no ?? '', display: r => r.debit_note_no },
+  { key: 'policyDue',  label: 'Policy due',  type: 'text', value: r => r.policies?.end_date ?? '', display: r => fmtDate(r.policies?.end_date ?? null) },
+  { key: 'amount',     label: 'Amount',      type: 'text', align: 'right', value: r => r.gross_amount, display: r => fmt(r.gross_amount, r.currency) },
+  // null sorts to the bottom ascending / top descending, same convention as "no value" elsewhere.
+  { key: 'commission', label: 'Commission',  type: 'text', align: 'right', value: r => r.commission ?? -Infinity, display: r => r.commission != null ? fmt(r.commission, r.currency) : '—' },
+  { key: 'status',     label: 'Status',      type: 'status', value: r => r.status, display: r => STATUS_LABEL[r.status] },
+]
+
+function ColumnHeader({
+  col, sortKey, sortDir, onSort, filterValue, onFilterChange, statusFilter, onStatusFilterChange,
+}: {
+  col: Column
+  sortKey: ColKey | null
+  sortDir: SortDir
+  onSort: (key: ColKey) => void
+  filterValue?: string
+  onFilterChange?: (v: string) => void
+  statusFilter?: Set<PayStatus>
+  onStatusFilterChange?: (s: Set<PayStatus>) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const active   = col.type === 'status' ? (statusFilter?.size ?? 0) > 0 : !!filterValue?.trim()
+  const isSorted = sortKey === col.key
+  const SortIcon = !isSorted ? ArrowUpDown : sortDir === 'asc' ? ArrowUp : ArrowDown
+
+  return (
+    <th className={cn('px-3 py-2 font-semibold select-none', col.align === 'right' ? 'text-right' : 'text-left')}>
+      <div className={cn('flex items-center gap-1', col.align === 'right' && 'justify-end')}>
+        <button onClick={() => onSort(col.key)} className="flex items-center gap-1 hover:text-foreground transition-colors" title={`Sort by ${col.label}`}>
+          {col.label}
+          <SortIcon size={11} className={isSorted ? 'text-primary' : 'text-muted-foreground/40'} />
+        </button>
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <button
+              title={`Filter ${col.label}`}
+              className={cn('p-0.5 rounded hover:bg-accent transition-colors', active ? 'text-primary' : 'text-muted-foreground/40 hover:text-muted-foreground')}
+            >
+              <ListFilter size={11} />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-52 p-2" align={col.align === 'right' ? 'end' : 'start'}>
+            {col.type === 'status' ? (
+              <div className="flex flex-col gap-0.5">
+                {STATUS_OPTIONS.map(s => (
+                  <label key={s} className="flex items-center gap-2 text-[12px] px-1.5 py-1 rounded hover:bg-accent cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={statusFilter?.has(s) ?? false}
+                      onChange={e => {
+                        const next = new Set(statusFilter)
+                        if (e.target.checked) next.add(s); else next.delete(s)
+                        onStatusFilterChange?.(next)
+                      }}
+                    />
+                    {STATUS_LABEL[s]}
+                  </label>
+                ))}
+                {(statusFilter?.size ?? 0) > 0 && (
+                  <button onClick={() => onStatusFilterChange?.(new Set())} className="text-[11px] text-muted-foreground hover:text-foreground mt-1 text-left px-1.5">Clear</button>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <input
+                  autoFocus
+                  value={filterValue ?? ''}
+                  onChange={e => onFilterChange?.(e.target.value)}
+                  placeholder={`Filter ${col.label.toLowerCase()}…`}
+                  className="flex-1 min-w-0 text-[12px] border border-border rounded-md px-2 py-1 outline-none focus:ring-1 focus:ring-primary/30"
+                />
+                {filterValue && (
+                  <button onClick={() => onFilterChange?.('')} className="text-muted-foreground hover:text-foreground flex-shrink-0"><X size={12} /></button>
+                )}
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
+      </div>
+    </th>
+  )
+}
 
 export default function DebitNotesPage() {
   return (
@@ -38,9 +147,12 @@ function DebitNotesContent() {
 
   const [rows, setRows] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
-  const [q, setQ] = useState('')
   const [openId, setOpenId] = useState<string | null>(search.get('open'))
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+
+  const [sortKey, setSortKey] = useState<ColKey | null>(null)
+  const [sortDir, setSortDir] = useState<SortDir>('asc')
+  const [colFilters, setColFilters] = useState<Partial<Record<ColKey, string>>>({})
+  const [statusFilter, setStatusFilter] = useState<Set<PayStatus>>(new Set())
 
   function load() {
     setLoading(true)
@@ -51,24 +163,39 @@ function DebitNotesContent() {
   }
   useEffect(load, [companyId])
 
-  const filtered = useMemo(() => rows.filter(r => {
-    if (!q.trim()) return true
-    return r.companies?.name?.toLowerCase().includes(q.toLowerCase())
-  }), [rows, q])
-
-  const groups = useMemo(() => {
-    const map = new Map<string, Row[]>()
-    for (const r of filtered) {
-      const key = r.companies?.name ?? '—'
-      if (!map.has(key)) map.set(key, [])
-      map.get(key)!.push(r)
-    }
-    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b))
-  }, [filtered])
-
-  function toggleCollapse(company: string) {
-    setCollapsed(prev => { const next = new Set(prev); next.has(company) ? next.delete(company) : next.add(company); return next })
+  function toggleSort(key: ColKey) {
+    if (sortKey !== key) { setSortKey(key); setSortDir('asc'); return }
+    setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
   }
+
+  const activeFilterCount = Object.values(colFilters).filter(v => v?.trim()).length + (statusFilter.size > 0 ? 1 : 0)
+
+  function resetAll() {
+    setColFilters({}); setStatusFilter(new Set()); setSortKey(null); setSortDir('asc')
+  }
+
+  const filtered = useMemo(() => rows.filter(r => {
+    for (const col of COLUMNS) {
+      if (col.key === 'status') {
+        if (statusFilter.size > 0 && !statusFilter.has(r.status)) return false
+        continue
+      }
+      const f = colFilters[col.key]
+      if (f?.trim() && !col.display(r).toLowerCase().includes(f.trim().toLowerCase())) return false
+    }
+    return true
+  }), [rows, colFilters, statusFilter])
+
+  const sorted = useMemo(() => {
+    if (!sortKey) return filtered
+    const col = COLUMNS.find(c => c.key === sortKey)!
+    const dir = sortDir === 'asc' ? 1 : -1
+    return [...filtered].sort((a, b) => {
+      const va = col.value(a), vb = col.value(b)
+      if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir
+      return String(va).localeCompare(String(vb)) * dir
+    })
+  }, [filtered, sortKey, sortDir])
 
   return (
     <AppSplitLayout>
@@ -86,58 +213,55 @@ function DebitNotesContent() {
             </>
           )}
         />
-        <DataTableToolbar>
-          <DataTableSearch value={q} onChange={setQ} placeholder="Search company…" />
-        </DataTableToolbar>
+        {(activeFilterCount > 0 || sortKey) && (
+          <DataTableToolbar>
+            <span className="text-[11.5px] text-muted-foreground">
+              {sorted.length} of {rows.length} debit note{rows.length !== 1 ? 's' : ''}
+              {activeFilterCount > 0 && ` · ${activeFilterCount} filter${activeFilterCount !== 1 ? 's' : ''}`}
+              {sortKey && ` · sorted by ${COLUMNS.find(c => c.key === sortKey)?.label} (${sortDir === 'asc' ? 'ascending' : 'descending'})`}
+            </span>
+            <DataTableReset onReset={resetAll} />
+          </DataTableToolbar>
+        )}
         <AppPageBody padded={false}>
           <table className="w-full text-[12.5px]">
             <thead>
               <tr className="border-b border-[--border-subtle] text-[10.5px] uppercase tracking-wider text-muted-foreground/60">
-                <th className="text-left px-4 py-2 font-semibold">Policy type</th>
-                <th className="text-left px-3 py-2 font-semibold">Policy #</th>
-                <th className="text-left px-3 py-2 font-semibold">Insurer</th>
-                <th className="text-left px-3 py-2 font-semibold">DN #</th>
-                <th className="text-left px-3 py-2 font-semibold">Policy due</th>
-                <th className="text-right px-3 py-2 font-semibold">Amount</th>
-                <th className="text-right px-3 py-2 font-semibold">Commission</th>
-                <th className="text-left px-3 py-2 font-semibold">Status</th>
+                {COLUMNS.map(col => (
+                  <ColumnHeader
+                    key={col.key}
+                    col={col}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={toggleSort}
+                    filterValue={colFilters[col.key]}
+                    onFilterChange={v => setColFilters(f => ({ ...f, [col.key]: v }))}
+                    statusFilter={statusFilter}
+                    onStatusFilterChange={setStatusFilter}
+                  />
+                ))}
               </tr>
             </thead>
             <tbody>
               {loading && Array.from({ length: 6 }).map((_, i) => (
-                <tr key={i} className="border-b border-[--border-subtle]"><td colSpan={8} className="px-4 h-11"><div className="skeleton sk-cell" style={{ width: '80%', height: 10 }} /></td></tr>
+                <tr key={i} className="border-b border-[--border-subtle]"><td colSpan={9} className="px-4 h-11"><div className="skeleton sk-cell" style={{ width: '80%', height: 10 }} /></td></tr>
               ))}
-              {!loading && filtered.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">No debit notes yet.</td></tr>
+              {!loading && sorted.length === 0 && (
+                <tr><td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">{rows.length === 0 ? 'No debit notes yet.' : 'No debit notes match these filters.'}</td></tr>
               )}
-              {!loading && groups.map(([company, companyRows]) => {
-                const isCollapsed = !q.trim() && collapsed.has(company)
-                return (
-                  <>
-                    <tr key={`g-${company}`} onClick={() => toggleCollapse(company)} className="bg-muted/30 cursor-pointer select-none">
-                      <td colSpan={8} className="px-4 py-2">
-                        <div className="flex items-center gap-2">
-                          {isCollapsed ? <ChevronRight size={12} className="text-muted-foreground/50" /> : <ChevronDown size={12} className="text-muted-foreground/50" />}
-                          <span className="text-[12.5px] font-semibold text-foreground uppercase">{company}</span>
-                          <span className="text-[10.5px] font-semibold text-muted-foreground/55 bg-muted rounded px-1.5 py-px">{companyRows.length}</span>
-                        </div>
-                      </td>
-                    </tr>
-                    {!isCollapsed && companyRows.map(r => (
-                      <tr key={r.id} onClick={() => setOpenId(r.id)} className="border-b border-[--border-subtle] hover:bg-accent/40 cursor-pointer">
-                        <td className="pl-8 pr-3 py-2.5 font-medium truncate max-w-[220px] text-muted-foreground/70">{r.policies?.class_of_insurance || '—'}</td>
-                        <td className="px-3 py-2.5 text-muted-foreground">{r.policies?.policy_number || '—'}</td>
-                        <td className="px-3 py-2.5 text-muted-foreground">{r.insurer ?? '—'}</td>
-                        <td className="px-3 py-2.5 font-mono text-[11.5px]">{r.debit_note_no}</td>
-                        <td className="px-3 py-2.5 text-muted-foreground">{fmtDate(r.policies?.end_date ?? null)}</td>
-                        <td className="px-3 py-2.5 text-right font-medium">{fmt(r.gross_amount, r.currency)}</td>
-                        <td className="px-3 py-2.5 text-right text-muted-foreground">{r.commission != null ? fmt(r.commission, r.currency) : '—'}</td>
-                        <td className="px-3 py-2.5"><StatusBadge status={r.status} /></td>
-                      </tr>
-                    ))}
-                  </>
-                )
-              })}
+              {!loading && sorted.map(r => (
+                <tr key={r.id} onClick={() => setOpenId(r.id)} className="border-b border-[--border-subtle] hover:bg-accent/40 cursor-pointer">
+                  <td className="px-4 py-2.5 font-medium uppercase truncate max-w-[200px]">{r.companies?.name ?? '—'}</td>
+                  <td className="px-3 py-2.5 text-muted-foreground truncate max-w-[180px]">{r.policies?.class_of_insurance || '—'}</td>
+                  <td className="px-3 py-2.5 text-muted-foreground">{r.policies?.policy_number || '—'}</td>
+                  <td className="px-3 py-2.5 text-muted-foreground">{r.insurer ?? '—'}</td>
+                  <td className="px-3 py-2.5 font-mono text-[11.5px]">{r.debit_note_no}</td>
+                  <td className="px-3 py-2.5 text-muted-foreground">{fmtDate(r.policies?.end_date ?? null)}</td>
+                  <td className="px-3 py-2.5 text-right font-medium">{fmt(r.gross_amount, r.currency)}</td>
+                  <td className="px-3 py-2.5 text-right text-muted-foreground">{r.commission != null ? fmt(r.commission, r.currency) : '—'}</td>
+                  <td className="px-3 py-2.5"><StatusBadge status={r.status} /></td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </AppPageBody>
