@@ -452,8 +452,9 @@ export async function POST(req: NextRequest) {
           from_address:      FROM_EMAIL,
           subject,
           body_text:         sentBodyPlain,
+          body_html:         finalHtml,
           sent_at:           sentAt,
-          has_attachments:   false,
+          has_attachments:   emailAttachments.length > 0,
         }),
       })
 
@@ -489,7 +490,7 @@ export async function POST(req: NextRequest) {
         if (newThread?.id) {
           await fetch(`${SB_URL}/rest/v1/email_messages?on_conflict=gmail_message_id`, {
             method: 'POST', headers: sbHeaders('return=minimal,resolution=merge-duplicates'),
-            body: JSON.stringify({ thread_id: newThread.id, gmail_message_id: sent.id, rfc822_message_id: storedMessageId, direction: 'outbound', from_address: FROM_EMAIL, subject, body_text: sentBodyPlain, sent_at: sentAt, has_attachments: emailAttachments.length > 0 }),
+            body: JSON.stringify({ thread_id: newThread.id, gmail_message_id: sent.id, rfc822_message_id: storedMessageId, direction: 'outbound', from_address: FROM_EMAIL, subject, body_text: sentBodyPlain, body_html: finalHtml, sent_at: sentAt, has_attachments: emailAttachments.length > 0 }),
           }).catch(() => {})
         }
       } catch { /* best-effort — ingestion is the safety net */ }
@@ -518,7 +519,7 @@ export async function POST(req: NextRequest) {
         if (forkThread?.id) {
           await fetch(`${SB_URL}/rest/v1/email_messages?on_conflict=gmail_message_id`, {
             method: 'POST', headers: sbHeaders('return=minimal,resolution=merge-duplicates'),
-            body: JSON.stringify({ thread_id: forkThread.id, gmail_message_id: sent.id, rfc822_message_id: storedMessageId, direction: 'outbound', from_address: FROM_EMAIL, subject, body_text: sentBodyPlain, sent_at: sentAt, has_attachments: emailAttachments.length > 0 }),
+            body: JSON.stringify({ thread_id: forkThread.id, gmail_message_id: sent.id, rfc822_message_id: storedMessageId, direction: 'outbound', from_address: FROM_EMAIL, subject, body_text: sentBodyPlain, body_html: finalHtml, sent_at: sentAt, has_attachments: emailAttachments.length > 0 }),
           }).catch(() => {})
         }
       } catch { /* best-effort — ingestion is the safety net */ }

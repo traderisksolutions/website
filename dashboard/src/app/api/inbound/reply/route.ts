@@ -289,6 +289,7 @@ export async function POST(req: NextRequest) {
           from_address:      FROM_EMAIL,
           subject,
           body_text:         plainText,
+          body_html:         htmlToSend,
           sent_at:           sentAt,
           has_attachments:   false,
         }),
