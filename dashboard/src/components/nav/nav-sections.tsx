@@ -6,7 +6,7 @@ import {
   Cpu, FolderOpen, BookMarked, Radar, History,
   Telescope, Megaphone, Settings, FlaskConical,
   TrendingUp, ScrollText, Network, HeartPulse, Car,
-  Receipt, CalendarDays, Waypoints,
+  Receipt, CalendarDays, Waypoints, Building2,
 } from 'lucide-react'
 
 export type NavLink = {
@@ -42,7 +42,8 @@ export type NavSection = {
 // only which menu it lives under changed. `/` (Home) is reachable via the logo, same convention
 // as almost every top-nav app; it doesn't need its own slot next to Overview.
 export const NAV_SECTIONS: NavSection[] = [
-  { label: 'Pipeline', href: '/pipeline', icon: Waypoints },
+  { label: 'Pipeline',  href: '/pipeline',  icon: Waypoints },
+  { label: 'Companies', href: '/companies', icon: Building2 },
 
   {
     label: 'Leads',

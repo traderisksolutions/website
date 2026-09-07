@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, X, RefreshCw, Inbox, UserPlus, Users, FileEdit } from 'lucide-react'
+import { Search, X, RefreshCw, Inbox, UserPlus, Users, FileEdit, Unlink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useEngagementNav } from '@/providers/engagement-nav-provider'
 import type { EngagementTab } from '@/providers/engagement-nav-provider'
@@ -19,6 +19,7 @@ const TABS: { key: EngagementTab; label: string; icon: typeof Inbox }[] = [
   { key: 'prospects', label: 'Prospects', icon: UserPlus },
   { key: 'clients',   label: 'Clients',   icon: Users    },
   { key: 'drafts',    label: 'Drafts',    icon: FileEdit },
+  { key: 'unlinked',  label: 'Unlinked',  icon: Unlink   },
 ]
 
 export function EngagementFolderNav({ iconOnly, compact }: { iconOnly?: boolean; compact?: boolean }) {

@@ -18,10 +18,10 @@ import { createContext, useContext, useState, type Dispatch, type SetStateAction
 import type { Lead, ThreadState } from '@/components/engagement/types'
 import type { NewEmailDraft } from '@/components/engagement/NewEmailComposeModal'
 
-export type EngagementTab = 'all' | 'prospects' | 'clients' | 'drafts'
-export type EngagementNavCounts = { all: number; prospects: number; clients: number; drafts: number }
+export type EngagementTab = 'all' | 'prospects' | 'clients' | 'drafts' | 'unlinked'
+export type EngagementNavCounts = { all: number; prospects: number; clients: number; drafts: number; unlinked: number }
 
-const EMPTY_COUNTS: EngagementNavCounts = { all: 0, prospects: 0, clients: 0, drafts: 0 }
+const EMPTY_COUNTS: EngagementNavCounts = { all: 0, prospects: 0, clients: 0, drafts: 0, unlinked: 0 }
 
 interface EngagementNavContextValue {
   activeTab: EngagementTab
@@ -53,6 +53,10 @@ interface EngagementNavContextValue {
   setOnSelect: Dispatch<SetStateAction<((id: string) => void) | null>>
   onOpenDraft: ((draft: NewEmailDraft) => void) | null
   setOnOpenDraft: Dispatch<SetStateAction<((draft: NewEmailDraft) => void) | null>>
+  /** Manually link a thread to a company from the "Unlinked" tab's inline picker — registered by
+   *  page.tsx (which owns the real `leads` state) so the row updates without a full refetch. */
+  onLinkCompany: ((threadId: string, companyId: string, companyName: string) => void) | null
+  setOnLinkCompany: Dispatch<SetStateAction<((threadId: string, companyId: string, companyName: string) => void) | null>>
 }
 
 const EngagementNavContext = createContext<EngagementNavContextValue | null>(null)
@@ -77,6 +81,7 @@ export function EngagementNavProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [onSelect, setOnSelect] = useState<((id: string) => void) | null>(null)
   const [onOpenDraft, setOnOpenDraft] = useState<((draft: NewEmailDraft) => void) | null>(null)
+  const [onLinkCompany, setOnLinkCompany] = useState<((threadId: string, companyId: string, companyName: string) => void) | null>(null)
 
   return (
     <EngagementNavContext.Provider value={{
@@ -84,6 +89,7 @@ export function EngagementNavProvider({ children }: { children: ReactNode }) {
       counts, setCounts, refreshing, setRefreshing, onRefresh, setOnRefresh,
       leads, setLeads, visible, setVisible, threadMap, setThreadMap,
       selectedId, setSelectedId, loading, setLoading, onSelect, setOnSelect, onOpenDraft, setOnOpenDraft,
+      onLinkCompany, setOnLinkCompany,
     }}>
       {children}
     </EngagementNavContext.Provider>

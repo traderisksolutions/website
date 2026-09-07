@@ -1,11 +1,13 @@
 /**
- * GET /api/calendar/events?from=YYYY-MM-DD&to=YYYY-MM-DD
+ * GET /api/calendar/events?from=YYYY-MM-DD&to=YYYY-MM-DD&companyId=<uuid>
  * Two event categories for the visible month, merged into one list:
  *   - renewal:    up to 4 milestones per policy — 60/30/14 days before end_date, and end_date
  *                 itself ("D-Day") — see MILESTONE_DAYS. Replaces the old single end-date-only
  *                 event so a renewal gets progressively more visible as it approaches, not just a
  *                 single dot on the final day.
  *   - debit_due:  a debit note's payment_due_date (unchanged)
+ * `companyId` is optional — when present, scopes both categories to one company (used by the
+ * company page's Due Dates tab; the main /calendar page omits it for the site-wide view).
  * Refetch only when the visible month changes (caller's job).
  */
 import { NextRequest, NextResponse } from 'next/server'
@@ -67,14 +69,22 @@ export async function GET(req: NextRequest) {
     const from = req.nextUrl.searchParams.get('from')
     const to   = req.nextUrl.searchParams.get('to')
     if (!from || !to) return NextResponse.json({ error: 'from and to required' }, { status: 400 })
+    const companyId = req.nextUrl.searchParams.get('companyId')
 
     // A milestone lands in [from,to] only if end_date is in [from, to + 60d] (the largest
     // warning window) — widen the policy fetch accordingly, then filter precisely in JS below.
     const widenedTo = addDays(to, Math.max(...MILESTONE_DAYS))
 
+    // company_id lives on the embedded `customers` row, not on policies itself — a plain
+    // `customers.company_id=eq.` filter only trims which embedded customer is attached, not
+    // which policies come back, so the embed needs `!inner` to also restrict top-level rows
+    // (same PostgREST convention already used in api/nexus/step-draft/route.ts).
+    const policiesUrl = `${SB_URL}/rest/v1/policies?end_date=gte.${from}&end_date=lte.${widenedTo}&status=eq.active&select=id,policy_number,insurer,class_of_insurance,currency,premium,end_date,customers${companyId ? '!inner' : ''}(company_id,companies(id,name:company_name))${companyId ? `&customers.company_id=eq.${companyId}` : ''}&order=end_date.asc`
+    const debitNotesUrl = `${SB_URL}/rest/v1/debit_notes?payment_due_date=gte.${from}&payment_due_date=lte.${to}&status=in.(unpaid,partially_paid)${companyId ? `&company_id=eq.${companyId}` : ''}&select=id,debit_note_no,payment_due_date,currency,gross_amount,status,insurer,company_id,companies(id,name:company_name),policies(policy_number,class_of_insurance)&order=payment_due_date.asc`
+
     const [policiesRes, debitNotesRes] = await Promise.all([
-      fetch(`${SB_URL}/rest/v1/policies?end_date=gte.${from}&end_date=lte.${widenedTo}&status=eq.active&select=id,policy_number,insurer,class_of_insurance,currency,premium,end_date,customers(company_id,companies(id,name:company_name))&order=end_date.asc`, { headers: sbH(), cache: 'no-store' }),
-      fetch(`${SB_URL}/rest/v1/debit_notes?payment_due_date=gte.${from}&payment_due_date=lte.${to}&status=in.(unpaid,partially_paid)&select=id,debit_note_no,payment_due_date,currency,gross_amount,status,insurer,company_id,companies(id,name:company_name),policies(policy_number,class_of_insurance)&order=payment_due_date.asc`, { headers: sbH(), cache: 'no-store' }),
+      fetch(policiesUrl, { headers: sbH(), cache: 'no-store' }),
+      fetch(debitNotesUrl, { headers: sbH(), cache: 'no-store' }),
     ])
 
     const policies = policiesRes.ok ? await policiesRes.json() as PolicyRow[] : []

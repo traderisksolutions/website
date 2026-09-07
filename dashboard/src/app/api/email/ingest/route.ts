@@ -485,10 +485,15 @@ async function linkRfqDispatch(gmailThreadId: string, threadDbId: string, direct
       body:    JSON.stringify(patch),
     }).catch(() => {})
 
-    // Auto quote capture head-start (best-effort; "Compare quotes" re-extracts to
-    // pick up figures in attachments parsed after this point).
     if (nowReplied) {
       void logRfqEvent({ event_type: 'replied', case_id: rfq.case_id, rfq_request_id: d.rfq_request_id, dispatch_id: d.id, insurer_name: d.insurer_name, summary: `${d.insurer_name ?? 'Insurer'} replied` })
+    }
+    // Auto quote capture — re-extracts (upsert on dispatch_id, so this never duplicates or
+    // resets a decided status) on EVERY inbound message, not just the first reply. A round of
+    // negotiation often starts with an ack before the actual figures arrive in a later message;
+    // gating this to nowReplied-only left later messages relying entirely on a manual
+    // "Compare quotes" click to pick up a quote that had already arrived.
+    if (direction === 'inbound') {
       waitUntil(extractAndStoreQuote(d.id).catch(() => null).then(() => undefined))
     }
 
@@ -585,6 +590,7 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
 
   // 1. Upsert primary external contact (skip if no party resolved)
   let contactId: string | null = null
+  let contactCompanyId: string | null = null
   if (resolvedParty) {
     const { first_name: pFirst, last_name: pLast } = splitDisplayName(resolvedParty.name)
     const primaryBody: Record<string, unknown> = { email: resolvedParty.email, source: 'email' }
@@ -603,12 +609,13 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
     })
     if (!contactUpsert.ok) console.error('[ingest] contact upsert failed:', await contactUpsert.text())
     const contactFetch = await fetch(
-      `${SB_URL}/rest/v1/contacts?email=eq.${encodeURIComponent(resolvedParty.email)}&select=id,company,engagement_stage&limit=1`,
+      `${SB_URL}/rest/v1/contacts?email=eq.${encodeURIComponent(resolvedParty.email)}&select=id,company,company_id,engagement_stage&limit=1`,
       { headers: sbHeaders() }
     )
     const contactFetchRows = contactFetch.ok ? await contactFetch.json() : []
     const existingContact  = Array.isArray(contactFetchRows) ? contactFetchRows[0] : null
     contactId = existingContact?.id ?? null
+    contactCompanyId = existingContact?.company_id ?? null
 
     // Promote to 'engaged' if contact is new or still at prospect stage — but never for
     // staff (employees aren't leads and shouldn't enter the funnel).
@@ -646,6 +653,7 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
       last_message_at: sentAt,
       status:          'active',
       contact_id:      contactId,
+      company_id:      contactCompanyId,
     }),
   })
   if (!threadUpsert.ok) { console.error('[ingest] thread upsert failed:', await threadUpsert.text()); return }
@@ -653,12 +661,15 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
   const thread     = Array.isArray(threadRows) ? threadRows[0] : threadRows
   if (!thread?.id) { console.error('[ingest] thread has no id'); return }
 
-  // Ensure contact_id is set (merge-duplicates may have returned the old row without it)
-  if (contactId && !thread.contact_id) {
+  // Ensure contact_id/company_id are set (merge-duplicates may have returned the old row without them)
+  const threadPatch: Record<string, unknown> = {}
+  if (contactId && !thread.contact_id) threadPatch.contact_id = contactId
+  if (contactCompanyId && !thread.company_id) threadPatch.company_id = contactCompanyId
+  if (Object.keys(threadPatch).length > 0) {
     await fetch(`${SB_URL}/rest/v1/email_threads?id=eq.${thread.id}`, {
       method:  'PATCH',
       headers: sbHeaders('return=minimal'),
-      body:    JSON.stringify({ contact_id: contactId }),
+      body:    JSON.stringify(threadPatch),
     })
   }
 

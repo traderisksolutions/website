@@ -30,9 +30,12 @@ export async function GET(req: NextRequest) {
   try {
     // 1. Fetch all threads ordered by last activity
     type CampaignCtx = { campaign_id: string; campaign_name: string; product_type: string; step_replied_to: number | null } | null
-    type ThreadRow = { id: string; subject: string | null; snippet: string | null; last_message_at: string; contact_id: string | null; campaign_context: CampaignCtx; category: string | null }
+    type ThreadRow = {
+      id: string; subject: string | null; snippet: string | null; last_message_at: string; contact_id: string | null; campaign_context: CampaignCtx; category: string | null
+      company_id: string | null; companies: { id: string; name: string } | null
+    }
     const threadRes = await fetch(
-      `${SB_URL}/rest/v1/email_threads?select=id,subject,snippet,last_message_at,contact_id,campaign_context,category&deleted_at=is.null&order=last_message_at.desc&limit=200`,
+      `${SB_URL}/rest/v1/email_threads?select=id,subject,snippet,last_message_at,contact_id,campaign_context,category,company_id,companies(id,name:company_name)&deleted_at=is.null&order=last_message_at.desc&limit=200`,
       { headers: sbHeaders(), cache: 'no-store' }
     )
     const threads: ThreadRow[] = threadRes.ok ? await threadRes.json() : []
@@ -137,6 +140,8 @@ export async function GET(req: NextRequest) {
         status:           'contacted',
         campaign_context: t.campaign_context ?? null,
         category:         t.category ?? null,
+        companyId:        t.company_id ?? null,
+        companyName:      t.companies?.name ?? null,
       }]
     })
 

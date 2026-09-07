@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import type { Lead, ThreadState } from './types'
 import { EMAIL_SOURCES, STATUS_MAP } from './types'
 import { fullName, timeAgo, needsReply as calcNeedsReply } from './helpers'
+import { LinkCompanyPopover } from './LinkCompanyPopover'
 
 interface ConversationRowProps {
   lead:        Lead
@@ -23,10 +24,16 @@ export function ConversationRow({ lead, isActive, threadState, onClick }: Conver
   const isCampaign = !!lead.campaign_context
   const isForm     = lead.source === 'website_form'
   const isThread   = lead.source === 'thread'
+  // Only a real email_threads row can be linked — a 'thread'-sourced lead's own id IS the
+  // thread id; other lead sources (e.g. WhatsApp) have no thread to patch.
+  const linkableThreadId = lead.thread_id ?? (lead.source === 'thread' ? lead.id : null)
 
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') onClick() }}
       className={cn(
         'w-full text-left px-3 py-3 border-b border-[--border-subtle] transition-colors',
         'flex items-start gap-3 cursor-pointer',
@@ -86,8 +93,11 @@ export function ConversationRow({ lead, isActive, threadState, onClick }: Conver
               Form
             </span>
           )}
+          {!lead.companyId && linkableThreadId && (
+            <LinkCompanyPopover threadId={linkableThreadId} />
+          )}
         </div>
       </div>
-    </button>
+    </div>
   )
 }

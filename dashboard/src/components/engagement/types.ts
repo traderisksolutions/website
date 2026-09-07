@@ -8,6 +8,10 @@ export type Lead = {
   subject?: string | null
   thread_id?: string | null
   category?: string | null
+  /** Resolved companies-row link (email_threads.company_id) — distinct from the free-text
+   *  `company` field above, which is lead-intake display text and not a real FK. */
+  companyId?: string | null
+  companyName?: string | null
   segment?: string | null
   segment_note?: string | null
   campaign_context?: {

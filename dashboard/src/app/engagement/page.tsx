@@ -79,6 +79,7 @@ function EngagementPageInner() {
     activeTab, search, setCounts, setRefreshing: setNavRefreshing, setOnRefresh,
     setLeads: setNavLeads, setVisible: setNavVisible, setThreadMap: setNavThreadMap,
     setSelectedId: setNavSelectedId, setLoading: setNavLoading, setOnSelect, setOnOpenDraft: setNavOnOpenDraft,
+    setOnLinkCompany,
   } = useEngagementNav()
 
   const [leads,           setLeads]           = useState<Lead[]>([])
@@ -120,17 +121,20 @@ function EngagementPageInner() {
   const prospectsCount = useMemo(() => leads.filter(isProspect).length, [leads]) // eslint-disable-line react-hooks/exhaustive-deps
   const clientsCount   = useMemo(() => leads.filter(isClient).length,   [leads]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Push the all/prospects/clients counts up to EngagementRail's EngagementFolderNav — `drafts` is
-  // merged in separately by ConversationList (which owns loading the drafts list).
+  const unlinkedCount = useMemo(() => leads.filter(l => !l.companyId).length, [leads])
+
+  // Push the all/prospects/clients/unlinked counts up to EngagementRail's EngagementFolderNav —
+  // `drafts` is merged in separately by ConversationList (which owns loading the drafts list).
   useEffect(() => {
-    setCounts(c => ({ ...c, all: leads.length, prospects: prospectsCount, clients: clientsCount }))
-  }, [leads.length, prospectsCount, clientsCount, setCounts])
+    setCounts(c => ({ ...c, all: leads.length, prospects: prospectsCount, clients: clientsCount, unlinked: unlinkedCount }))
+  }, [leads.length, prospectsCount, clientsCount, unlinkedCount, setCounts])
 
   // Sorted + filtered list
   const visible = useMemo(() => {
     const filtered = leads.filter(l => {
       if (activeTab === 'prospects') return isProspect(l)
       if (activeTab === 'clients')   return isClient(l)
+      if (activeTab === 'unlinked')  return !l.companyId
       return true
     }).filter(l => matchesSearch(l, search))
 
@@ -328,6 +332,23 @@ function EngagementPageInner() {
   useEffect(() => { setOnSelect(() => handleSelect) }, [handleSelect, setOnSelect])
   const handleOpenDraft = useCallback((draft: NewEmailDraft) => setNewCompose(draft), [])
   useEffect(() => { setNavOnOpenDraft(() => handleOpenDraft) }, [handleOpenDraft, setNavOnOpenDraft])
+
+  // Manual "Link to company" action from the Unlinked tab's inline picker (ConversationRow) —
+  // PATCHes the thread then updates local state in place so the row leaves Unlinked without a
+  // full refetch. Only threads (thread_id set, or a 'thread'-sourced lead whose own id is the
+  // thread id) can be linked this way; other lead sources have no email_threads row to patch.
+  const handleLinkCompany = useCallback((threadId: string, companyId: string, companyName: string) => {
+    fetch(`/api/engagement/thread/${threadId}/company`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ companyId }),
+    }).then(res => {
+      if (!res.ok) return
+      setLeads(prev => prev.map(l =>
+        (l.thread_id === threadId || l.id === threadId) ? { ...l, companyId, companyName } : l
+      ))
+    }).catch(() => {})
+  }, [])
+  useEffect(() => { setOnLinkCompany(() => handleLinkCompany) }, [handleLinkCompany, setOnLinkCompany])
 
   const selectedLead   = leads.find(l => l.id === selectedId) ?? null
   const selectedThread = selectedId ? threadMap[selectedId] : undefined
