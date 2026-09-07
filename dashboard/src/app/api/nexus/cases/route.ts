@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffOrCron } from '@/lib/api-auth'
+import { resolveCompany } from '@/lib/debit-note-commit'
 
 const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
@@ -56,13 +57,20 @@ export async function POST(req: NextRequest) {
   if (unauthorized) return unauthorized
 
   try {
-    const { name, description } = await req.json() as { name: string; description?: string }
+    const { name, description, companyId, companyName } = await req.json() as {
+      name: string; description?: string; companyId?: string; companyName?: string
+    }
     if (!name?.trim()) return NextResponse.json({ error: 'name required' }, { status: 400 })
+    if (!companyId && !companyName?.trim()) return NextResponse.json({ error: 'company required' }, { status: 400 })
+
+    const resolvedCompanyId = await resolveCompany(
+      companyId ? { companyId } : { companyName: companyName!.trim() }
+    )
 
     const res = await fetch(`${SB_URL}/rest/v1/cases`, {
       method:  'POST',
       headers: sbHeaders('return=representation'),
-      body:    JSON.stringify({ name: name.trim(), description: description?.trim() ?? null, status: 'open' }),
+      body:    JSON.stringify({ name: name.trim(), description: description?.trim() ?? null, status: 'open', company_id: resolvedCompanyId }),
     })
     if (!res.ok) return NextResponse.json({ error: await res.text() }, { status: res.status })
     const rows = await res.json()

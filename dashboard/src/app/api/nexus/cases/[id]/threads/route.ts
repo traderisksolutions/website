@@ -40,11 +40,21 @@ export async function POST(req: NextRequest, { params }: Params) {
     if (!res.ok) return NextResponse.json({ error: await res.text() }, { status: res.status })
     const rows = await res.json()
 
-    // Bump case updated_at
+    // Bump case updated_at; backfill company_id from this thread if the case doesn't have one yet
+    // (covers cases created before this column existed, or the rare manual case with no company
+    // match at creation time).
+    const caseUpdate: Record<string, unknown> = { updated_at: new Date().toISOString() }
+    const caseRes = await fetch(`${SB_URL}/rest/v1/cases?id=eq.${params.id}&select=company_id&limit=1`, { headers: sbHeaders() })
+    const caseRow = caseRes.ok ? (await caseRes.json())[0] : null
+    if (caseRow && !caseRow.company_id) {
+      const threadRes = await fetch(`${SB_URL}/rest/v1/email_threads?id=eq.${thread_id}&select=company_id&limit=1`, { headers: sbHeaders() })
+      const threadRow = threadRes.ok ? (await threadRes.json())[0] : null
+      if (threadRow?.company_id) caseUpdate.company_id = threadRow.company_id
+    }
     await fetch(`${SB_URL}/rest/v1/cases?id=eq.${params.id}`, {
       method:  'PATCH',
       headers: sbHeaders('return=minimal'),
-      body:    JSON.stringify({ updated_at: new Date().toISOString() }),
+      body:    JSON.stringify(caseUpdate),
     }).catch(() => {})
 
     void logActivity({ action: 'nexus.thread_linked', resource_type: 'case', resource_id: params.id, metadata: { thread_id, party_type } })

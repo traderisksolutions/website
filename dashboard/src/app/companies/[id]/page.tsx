@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, Building2, Mail, FileText, Users, Receipt, CalendarDays, ExternalLink } from 'lucide-react'
+import { ArrowLeft, Loader2, Building2, Mail, FileText, Users, Receipt, CalendarDays, ExternalLink, Network, Plus } from 'lucide-react'
 import { AppScrollPage } from '@/components/app-shell'
 import { StatCard } from '@/components/stat-card'
 import { StatusBadge } from '@/components/status-badge'
@@ -28,8 +28,12 @@ type Thread = {
   status: string; contact_id: string | null; message_count: number
   contacts: { id: string; first_name: string | null; last_name: string | null; email: string | null } | null
 }
+type NexusCase = {
+  id: string; name: string; description: string | null; status: string
+  updated_at: string; thread_count: number; last_activity: string | null
+}
 
-type Tab = 'overview' | 'threads' | 'policies' | 'debit-notes' | 'due-dates'
+type Tab = 'overview' | 'threads' | 'policies' | 'debit-notes' | 'due-dates' | 'nexus'
 
 const fmtDate = (iso: string | null) => iso ? new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
 const fmt = (n: number, c: string) => `${c} ${Number(n ?? 0).toLocaleString('en-SG', { minimumFractionDigits: 2 })}`
@@ -46,6 +50,8 @@ export default function CompanyDetailPage() {
   const [threadsLoading, setThreadsLoading]  = useState(false)
   const [events, setEvents]                 = useState<CalendarEvent[] | null>(null)
   const [eventsLoading, setEventsLoading]    = useState(false)
+  const [cases, setCases]                   = useState<NexusCase[] | null>(null)
+  const [casesLoading, setCasesLoading]      = useState(false)
 
   useEffect(() => {
     setLoading(true)
@@ -75,10 +81,20 @@ export default function CompanyDetailPage() {
       .finally(() => setEventsLoading(false))
   }, [id, events])
 
+  const loadCases = useCallback(() => {
+    if (cases) return
+    setCasesLoading(true)
+    fetch(`/api/companies/${id}/cases`, { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : { cases: [] })
+      .then(d => setCases(Array.isArray(d.cases) ? d.cases : []))
+      .finally(() => setCasesLoading(false))
+  }, [id, cases])
+
   useEffect(() => {
     if (tab === 'threads') loadThreads()
     if (tab === 'due-dates') loadEvents()
-  }, [tab, loadThreads, loadEvents])
+    if (tab === 'nexus') loadCases()
+  }, [tab, loadThreads, loadEvents, loadCases])
 
   if (loading) {
     return (
@@ -129,6 +145,7 @@ export default function CompanyDetailPage() {
           { key: 'policies',    label: 'Policies',     icon: <FileText size={13} /> },
           { key: 'debit-notes', label: 'Debit Notes',  icon: <Receipt size={13} /> },
           { key: 'due-dates',   label: 'Due Dates',    icon: <CalendarDays size={13} /> },
+          { key: 'nexus',       label: 'Nexus',        icon: <Network size={13} /> },
         ] as { key: Tab; label: string; icon: React.ReactNode }[]).map(t => (
           <button
             key={t.key}
@@ -266,6 +283,38 @@ export default function CompanyDetailPage() {
               </div>
               <span className="text-[11.5px] text-muted-foreground flex-shrink-0">{fmtDate(e.date)}</span>
             </div>
+          ))}
+        </div>
+      )}
+
+      {tab === 'nexus' && (
+        <div className="flex flex-col">
+          <div className="flex justify-end mb-3">
+            <Link
+              href={`/nexus?newCase=1&companyId=${id}`}
+              className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-primary hover:underline"
+            >
+              <Plus size={13} /> New case
+            </Link>
+          </div>
+          {casesLoading && <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-muted-foreground" /></div>}
+          {!casesLoading && cases?.length === 0 && <p className="text-[12.5px] text-muted-foreground py-6 text-center">No Nexus cases for this company yet.</p>}
+          {!casesLoading && cases?.map(c => (
+            <Link
+              key={c.id}
+              href={`/nexus?case=${c.id}`}
+              className="flex items-start justify-between gap-3 px-3 py-3 border-b border-[--border-subtle] hover:bg-accent/40 no-underline text-foreground"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-semibold truncate">{c.name}</p>
+                {c.description && <p className="text-[11.5px] text-muted-foreground truncate mt-0.5">{c.description}</p>}
+                <p className="text-[11px] text-muted-foreground/60 mt-1">{c.thread_count} thread{c.thread_count !== 1 ? 's' : ''} · updated {fmtDate(c.updated_at)}</p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className="text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground/60 px-2 py-0.5 rounded bg-muted">{c.status}</span>
+                <ExternalLink size={12} className="text-muted-foreground/40" />
+              </div>
+            </Link>
           ))}
         </div>
       )}

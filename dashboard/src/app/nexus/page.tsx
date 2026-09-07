@@ -284,6 +284,7 @@ export default function NexusPage() {
   const [selectedId,    setSelectedId]    = useState<string | null>(null)
   const [search,        setSearch]        = useState('')
   const [createOpen,    setCreateOpen]    = useState(false)
+  const [prefillCompany, setPrefillCompany] = useState<{ id: string; name: string } | null>(null)
 
   const loadCases = useCallback(async () => {
     setLoading(true)
@@ -306,6 +307,17 @@ export default function NexusPage() {
     if (id) setSelectedId(id)
   }, [])
 
+  // Deep-link: /nexus?newCase=1&companyId=<id> (the company page's "+ New case" action) opens
+  // the create modal pre-filled with that company, skipping the typeahead below.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const companyId = params.get('newCase') === '1' ? params.get('companyId') : null
+    if (!companyId) return
+    fetch(`/api/companies/${companyId}`, { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.company) { setPrefillCompany({ id: d.company.id, name: d.company.name }); setCreateOpen(true) } })
+  }, [])
+
   // Keep ?case= in sync + broadcast the active case so the per-case Ask Opus dock
   // binds to it (and hides on the case list, where there is no active case).
   useEffect(() => {
@@ -321,17 +333,18 @@ export default function NexusPage() {
     !search || c.name.toLowerCase().includes(search.toLowerCase()) || (c.description ?? '').toLowerCase().includes(search.toLowerCase())
   )
 
-  async function handleCreate(name: string, description: string) {
+  async function handleCreate(name: string, description: string, companyId: string | null, companyName: string | null) {
     const res = await fetch('/api/nexus/cases', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ name, description }),
+      body:    JSON.stringify({ name, description, companyId: companyId ?? undefined, companyName: companyName ?? undefined }),
     })
     const newCase = await res.json()
     if (newCase?.id) {
       setCases(prev => [{ ...newCase, thread_count: 0, last_activity: null }, ...prev])
       setSelectedId(newCase.id)
       setCreateOpen(false)
+      setPrefillCompany(null)
     }
   }
 
@@ -454,7 +467,11 @@ export default function NexusPage() {
 
       {/* ── Create case modal ── */}
       {createOpen && (
-        <CreateCaseModal onCreate={handleCreate} onClose={() => setCreateOpen(false)} />
+        <CreateCaseModal
+          onCreate={handleCreate}
+          onClose={() => { setCreateOpen(false); setPrefillCompany(null) }}
+          prefillCompany={prefillCompany}
+        />
       )}
     </div>
   )
@@ -462,16 +479,47 @@ export default function NexusPage() {
 
 // ── Create Case Modal ─────────────────────────────────────────────────────────
 
-function CreateCaseModal({ onCreate, onClose }: { onCreate: (name: string, desc: string) => Promise<void>; onClose: () => void }) {
+function CreateCaseModal({ onCreate, onClose, prefillCompany }: {
+  onCreate: (name: string, desc: string, companyId: string | null, companyName: string | null) => Promise<void>
+  onClose: () => void
+  prefillCompany: { id: string; name: string } | null
+}) {
   const [name, setName]   = useState('')
   const [desc, setDesc]   = useState('')
   const [saving, setSaving] = useState(false)
 
+  // Company — required. Pre-filled (and locked) when opened from a company page's "+ New case";
+  // otherwise a debounced typeahead over the same /api/companies?search= LinkCompanyPopover uses,
+  // resolved server-side (find-or-create by name) so typing a brand-new name still works.
+  const [companyQuery, setCompanyQuery]     = useState('')
+  const [companyResults, setCompanyResults] = useState<{ id: string; name: string }[]>([])
+  const [companySearching, setCompanySearching] = useState(false)
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null)
+  const [companyPickerOpen, setCompanyPickerOpen]  = useState(false)
+
+  useEffect(() => {
+    if (prefillCompany || !companyPickerOpen) return
+    setCompanySearching(true)
+    const t = setTimeout(() => {
+      fetch(`/api/companies?search=${encodeURIComponent(companyQuery.trim())}`, { cache: 'no-store' })
+        .then(r => r.ok ? r.json() : [])
+        .then((rows: { id: string; name: string }[]) => setCompanyResults(Array.isArray(rows) ? rows : []))
+        .finally(() => setCompanySearching(false))
+    }, 200)
+    return () => clearTimeout(t)
+  }, [companyQuery, companyPickerOpen, prefillCompany])
+
+  const companyValid = !!prefillCompany || !!selectedCompanyId || companyQuery.trim().length > 0
+
   async function submit(e: React.FormEvent) {
     e.preventDefault()
-    if (!name.trim()) return
+    if (!name.trim() || !companyValid) return
     setSaving(true)
-    try { await onCreate(name.trim(), desc.trim()) }
+    try {
+      const companyId   = prefillCompany?.id ?? selectedCompanyId
+      const companyName = prefillCompany ? null : (selectedCompanyId ? null : companyQuery.trim())
+      await onCreate(name.trim(), desc.trim(), companyId, companyName)
+    }
     finally { setSaving(false) }
   }
 
@@ -499,6 +547,45 @@ function CreateCaseModal({ onCreate, onClose }: { onCreate: (name: string, desc:
           />
         </div>
         <div className="flex flex-col gap-1.5">
+          <label className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/70">Company</label>
+          {prefillCompany ? (
+            <div className="w-full px-3 py-2 text-[12.5px] border border-[--border-subtle] rounded-lg bg-muted/40 text-foreground flex items-center gap-1.5">
+              {prefillCompany.name}
+            </div>
+          ) : (
+            <div className="relative">
+              <input
+                value={companyQuery}
+                onChange={e => { setCompanyQuery(e.target.value); setSelectedCompanyId(null) }}
+                onFocus={() => setCompanyPickerOpen(true)}
+                onBlur={() => setTimeout(() => setCompanyPickerOpen(false), 150)}
+                placeholder="Search or type a new company name…"
+                className="w-full px-3 py-2 text-[12.5px] border border-[--border-subtle] rounded-lg bg-background outline-none focus:ring-1 focus:ring-primary/30 text-foreground"
+              />
+              {companyPickerOpen && (
+                <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-card border border-[--border-subtle] rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                  {companySearching && <div className="px-3 py-2 text-[11.5px] text-muted-foreground flex items-center gap-1.5"><Loader2 size={11} className="animate-spin" /> Searching…</div>}
+                  {!companySearching && companyResults.length === 0 && (
+                    <div className="px-3 py-2 text-[11.5px] text-muted-foreground">
+                      {companyQuery.trim() ? `No match — "${companyQuery.trim()}" will be created as a new company.` : 'Start typing to search companies…'}
+                    </div>
+                  )}
+                  {!companySearching && companyResults.map(c => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => { setSelectedCompanyId(c.id); setCompanyQuery(c.name); setCompanyPickerOpen(false) }}
+                      className="w-full text-left px-3 py-2 text-[12px] hover:bg-accent transition-colors"
+                    >
+                      {c.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col gap-1.5">
           <label className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/70">Description (optional)</label>
           <textarea
             value={desc}
@@ -514,7 +601,7 @@ function CreateCaseModal({ onCreate, onClose }: { onCreate: (name: string, desc:
           </button>
           <button
             type="submit"
-            disabled={!name.trim() || saving}
+            disabled={!name.trim() || !companyValid || saving}
             className="px-4 py-2 text-[12px] font-semibold bg-primary text-primary-foreground rounded-lg disabled:opacity-50 hover:opacity-90 transition-opacity"
           >
             {saving ? 'Creating…' : 'Create Case'}

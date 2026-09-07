@@ -15,6 +15,7 @@ import { logGeminiUsage }            from '@/lib/gemini-usage'
 import { logRfqEvent }               from '@/lib/rfq-log'
 import { logError }                  from '@/lib/error-log'
 import { PRODUCT_LINES, isValidProductLine, productLineLabel } from '@/lib/product-lines'
+import { resolveCompany } from '@/lib/debit-note-commit'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
@@ -105,6 +106,9 @@ ${String(msg.body_text).slice(0, 12000)}`
     if (chosen.length === 0) return NextResponse.json({ error: 'Pick at least one product line' }, { status: 400 })
 
     const insuredName = (body.insured_name?.trim() || insured || 'New client').slice(0, 120)
+    // Every case needs a real company from creation, not just this thread's contact — RFQ
+    // auto-creation is exactly the "no company yet" path find-or-create exists for.
+    const companyId = await resolveCompany({ companyName: insuredName })
 
     // ONE case per line of insurance (Jane's Cyber and D&O are separate cases).
     const caseIds: string[] = []
@@ -128,6 +132,7 @@ ${String(msg.body_text).slice(0, 12000)}`
           name:        `[RFQ] ${insuredName} — ${lineLabel}`,
           description: 'Quotation request.',
           status:      'open',
+          company_id:  companyId,
         }),
       })
       if (!caseRes.ok) return NextResponse.json({ error: `case create failed: ${await caseRes.text()}` }, { status: 500 })
