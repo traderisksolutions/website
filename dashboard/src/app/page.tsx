@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Reply, Receipt, CalendarClock, ListChecks, Sparkles, Link2, Building2, Waypoints, Bot, ArrowRight } from 'lucide-react'
+import { ArrowRight, Sparkles } from 'lucide-react'
 import { PageHeader } from '@/components/page-header'
-import { StatCard } from '@/components/stat-card'
 import { SectionCard, Chip, Empty, Spinner, StageBadge } from '@/components/crm/primitives'
 import { fmtMoney, fmtRelative, fmtDate } from '@/lib/crm/format'
 import { ACTION_KIND_LABEL, STAGES, STAGE_LABEL, type CompanyAction, type CompanySummaryRow, type PaymentDerived } from '@/lib/crm/types'
@@ -34,47 +33,42 @@ export default function HomePage() {
   const k = data?.kpis
   const sgdOverdue = k?.overdueMoney.find(m => m.currency === 'SGD')?.overdue ?? 0
 
+  const headline = k
+    ? [
+        k.needsReply ? `${k.needsReply} awaiting a reply` : null,
+        k.overdueCount ? `${fmtMoney(sgdOverdue, 'SGD', { compact: true })} overdue across ${k.overdueCount} debit note${k.overdueCount === 1 ? '' : 's'}` : null,
+        k.renewals60d ? `${k.renewals60d} renewal${k.renewals60d === 1 ? '' : 's'} within 60 days` : null,
+        k.proposedActions ? `${k.proposedActions} agent proposal${k.proposedActions === 1 ? '' : 's'} to review` : null,
+      ].filter(Boolean).join(' · ') || 'Nothing needs attention today.'
+    : 'What needs attention across every client.'
+
   return (
-    <div className="min-h-[calc(100vh/var(--ui-zoom))] bg-background">
-      <div className="max-w-[1240px] mx-auto px-6 py-6">
-        <PageHeader
-          title="Today"
-          description={data ? `${fmtDate(data.today)} · ${k!.companies} client compan${k!.companies === 1 ? 'y' : 'ies'} · ${STAGES.filter(s => (k!.byStage[s] ?? 0) > 0).map(s => `${k!.byStage[s]} ${STAGE_LABEL[s].toLowerCase()}`).join(', ')}` : 'What needs attention across every client.'}
-          className="mb-5"
-          actions={
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <Quick href="/companies" icon={Building2} label="Companies" />
-              <Quick href="/pipeline" icon={Waypoints} label="Pipeline" />
-              <Quick href="/engagement" icon={Bot} label="Inbox" />
-            </div>
-          }
-        />
+    <div className="min-h-full bg-background">
+      <div className="mx-auto max-w-[860px] px-6 py-6">
+        <PageHeader title="Today" description={data ? fmtDate(data.today) : undefined} className="mb-2" />
+        <p className="text-[13.5px] text-foreground/85 m-0">{headline}</p>
+        {k && (
+          <p className="text-[12px] text-muted-foreground mt-1 mb-1">
+            {k.companies} compan{k.companies === 1 ? 'y' : 'ies'} · {STAGES.filter(s => (k.byStage[s] ?? 0) > 0).map(s => `${k.byStage[s]} ${STAGE_LABEL[s].toLowerCase()}`).join(', ')}
+            {k.unlinkedThreads > 0 && <> · <Link href="/companies/triage" className="text-primary no-underline hover:underline">{k.unlinkedThreads} threads to link</Link></>}
+          </p>
+        )}
 
         {error && <p className="text-[12px] text-destructive">{error}</p>}
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-          <StatCard label="Awaiting reply" value={k?.needsReply ?? 0} sublabel="Client emails unanswered" href="/engagement" loading={!data} accent={k && k.needsReply > 0 ? 'amber' : undefined} icon={Reply} />
-          <StatCard label="Overdue" value={k?.overdueCount ?? 0} sublabel={sgdOverdue > 0 ? fmtMoney(sgdOverdue, 'SGD', { compact: true }) : 'Debit notes past due'} href="/debit-notes" loading={!data} accent={k && k.overdueCount > 0 ? 'red' : undefined} icon={Receipt} />
-          <StatCard label="Renewals" value={k?.renewals60d ?? 0} sublabel="Ending in 60 days" href="/calendar" loading={!data} icon={CalendarClock} />
-          <StatCard label="Actions due" value={k?.actionsDueWeek ?? 0} sublabel="This week" loading={!data} accent={k && k.actionsDueWeek > 0 ? 'blue' : undefined} icon={ListChecks} />
-          <StatCard label="To review" value={k?.proposedActions ?? 0} sublabel="Proposed by the agent" loading={!data} icon={Sparkles} />
-          <StatCard label="Threads to link" value={k?.unlinkedThreads ?? 0} sublabel="No company yet" href="/companies/triage" loading={!data} accent={k && k.unlinkedThreads > 0 ? 'amber' : undefined} icon={Link2} />
-        </div>
-
         {!data && !error && <Spinner label="Gathering today’s work…" />}
 
         {data && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-            <SectionCard title="Needs a reply" description="Latest message is from the client and nobody has answered." padded={false}>
+          <>
+            <SectionCard title="Needs a reply" description="Latest message is from the client and nobody has answered." actions={<Link href="/engagement" className="inline-flex items-center gap-1 text-[12px] font-semibold text-primary no-underline hover:underline">Inbox <ArrowRight size={11} /></Link>}>
               {data.needsReply.length === 0 && <Empty compact>Inbox is clear.</Empty>}
-              <ul className="m-0 p-0 list-none divide-y divide-[--border-subtle]">
-                {data.needsReply.slice(0, 10).map(t => (
-                  <li key={t.threadId}>
-                    <Link href={`/engagement?lead=${t.threadId}`} className="flex items-center gap-3 px-4 py-2.5 no-underline text-foreground hover:bg-muted/40">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[12.5px] font-medium m-0 truncate">{t.subject ?? '(no subject)'}</p>
-                        <p className="text-[11.5px] text-muted-foreground m-0 mt-0.5 truncate">{t.companyName ?? 'No company'} · {t.from}</p>
-                      </div>
+              <ul className="m-0 p-0 list-none flex flex-col">
+                {data.needsReply.slice(0, 8).map(t => (
+                  <li key={t.threadId} className="border-b border-[--border-subtle] last:border-b-0">
+                    <Link href={`/engagement?lead=${t.threadId}`} className="flex items-center gap-3 py-2 no-underline text-foreground hover:text-primary">
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[13px] truncate">{t.subject ?? '(no subject)'}</span>
+                        <span className="block text-[11.5px] text-muted-foreground truncate">{t.companyName ?? 'No company'} · {t.from}</span>
+                      </span>
                       {t.category && <Chip tone="neutral" className="capitalize hidden sm:inline-flex">{t.category}</Chip>}
                       <span className="text-[11px] text-muted-foreground whitespace-nowrap">{fmtRelative(t.at)}</span>
                     </Link>
@@ -83,17 +77,17 @@ export default function HomePage() {
               </ul>
             </SectionCard>
 
-            <SectionCard title="Money" description="Overdue first, then due in the next 14 days." padded={false}>
+            <SectionCard title="Money" description="Overdue first, then due within 14 days.">
               {data.overdue.length === 0 && data.dueSoon.length === 0 && <Empty compact>Nothing overdue or due soon.</Empty>}
-              <ul className="m-0 p-0 list-none divide-y divide-[--border-subtle]">
-                {[...data.overdue, ...data.dueSoon].slice(0, 10).map(d => (
-                  <li key={d.id}>
-                    <Link href={`/companies/${d.company_id}?tab=payments`} className="flex items-center gap-3 px-4 py-2.5 no-underline text-foreground hover:bg-muted/40">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[12.5px] font-medium m-0 truncate">{d.companyName ?? 'Unknown company'} · <span className="font-mono text-[11.5px]">{d.debit_note_no}</span></p>
-                        <p className="text-[11.5px] text-muted-foreground m-0 mt-0.5 truncate">{d.classOfInsurance ?? d.event_type ?? ''}{d.insurer ? ` · ${d.insurer}` : ''}</p>
-                      </div>
-                      <span className="text-[12.5px] font-semibold tabular-nums whitespace-nowrap">{fmtMoney(d.outstanding, d.currency)}</span>
+              <ul className="m-0 p-0 list-none flex flex-col">
+                {[...data.overdue, ...data.dueSoon].slice(0, 8).map(d => (
+                  <li key={d.id} className="border-b border-[--border-subtle] last:border-b-0">
+                    <Link href={`/companies/${d.company_id}?tab=quotation`} className="flex items-center gap-3 py-2 no-underline text-foreground hover:text-primary">
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[13px] truncate">{d.companyName ?? 'Unknown company'} · <span className="font-mono text-[11.5px]">{d.debit_note_no}</span></span>
+                        <span className="block text-[11.5px] text-muted-foreground truncate">{d.classOfInsurance ?? d.event_type ?? ''}{d.insurer ? ` · ${d.insurer}` : ''}</span>
+                      </span>
+                      <span className="text-[13px] font-semibold tabular-nums whitespace-nowrap">{fmtMoney(d.outstanding, d.currency)}</span>
                       <Chip tone={d.derived === 'overdue' ? 'red' : 'amber'}>{d.derived === 'overdue' ? `${d.daysOverdue}d late` : `due ${fmtRelative(d.payment_due_date)}`}</Chip>
                     </Link>
                   </li>
@@ -101,34 +95,36 @@ export default function HomePage() {
               </ul>
             </SectionCard>
 
-            <SectionCard title="Actions" description="Due this week, and proposals from the agent waiting for a decision." padded={false}>
-              {data.actionsDue.length === 0 && data.proposed.length === 0 && <Empty compact>No actions due. Open a company and ask the agent to find next actions.</Empty>}
-              <ul className="m-0 p-0 list-none divide-y divide-[--border-subtle]">
-                {[...data.actionsDue, ...data.proposed].slice(0, 10).map(a => (
-                  <li key={a.id}>
-                    <Link href={`/companies/${a.company_id}?tab=actions`} className="flex items-center gap-3 px-4 py-2.5 no-underline text-foreground hover:bg-muted/40">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[12.5px] font-medium m-0 truncate">{a.title}</p>
-                        <p className="text-[11.5px] text-muted-foreground m-0 mt-0.5 truncate">{a.companyName ?? ''} · {ACTION_KIND_LABEL[a.kind]}{a.owner_email ? ` · ${a.owner_email.split('@')[0]}` : ''}</p>
-                      </div>
-                      {a.status === 'proposed' ? <Chip tone="blue"><Sparkles size={10} /> Review</Chip> : a.due_date ? <Chip tone={a.due_date < data.today ? 'red' : 'neutral'}>{a.due_date < data.today ? 'Overdue' : fmtRelative(a.due_date)}</Chip> : null}
+            <SectionCard title="To do" description="Due this week, and proposals waiting on a decision.">
+              {data.actionsDue.length === 0 && data.proposed.length === 0 && <Empty compact>Nothing due. Open a company and ask the agent to find next actions.</Empty>}
+              <ul className="m-0 p-0 list-none flex flex-col">
+                {[...data.proposed, ...data.actionsDue].slice(0, 8).map(a => (
+                  <li key={a.id} className="border-b border-[--border-subtle] last:border-b-0">
+                    <Link href={`/companies/${a.company_id}`} className="flex items-center gap-3 py-2 no-underline text-foreground hover:text-primary">
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[13px] truncate">{a.title}</span>
+                        <span className="block text-[11.5px] text-muted-foreground truncate">{a.companyName ?? ''} · {ACTION_KIND_LABEL[a.kind]}{a.owner_email ? ` · ${a.owner_email.split('@')[0]}` : ''}</span>
+                      </span>
+                      {a.status === 'proposed'
+                        ? <Chip tone="blue"><Sparkles size={10} /> Review</Chip>
+                        : a.due_date ? <Chip tone={a.due_date < data.today ? 'red' : 'neutral'}>{a.due_date < data.today ? 'Overdue' : fmtRelative(a.due_date)}</Chip> : null}
                     </Link>
                   </li>
                 ))}
               </ul>
             </SectionCard>
 
-            <SectionCard title="Renewals in the next 60 days" padded={false}>
+            <SectionCard title="Renewals in the next 60 days" actions={<Link href="/calendar" className="inline-flex items-center gap-1 text-[12px] font-semibold text-primary no-underline hover:underline">Calendar <ArrowRight size={11} /></Link>}>
               {data.renewals.length === 0 && <Empty compact>No policies ending in the next 60 days.</Empty>}
-              <ul className="m-0 p-0 list-none divide-y divide-[--border-subtle]">
-                {data.renewals.slice(0, 10).map(r => (
-                  <li key={r.policyId}>
-                    <Link href={r.companyId ? `/companies/${r.companyId}?tab=policies` : '/calendar'} className="flex items-center gap-3 px-4 py-2.5 no-underline text-foreground hover:bg-muted/40">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[12.5px] font-medium m-0 truncate">{r.companyName ?? 'Unknown company'} · {r.classOfInsurance ?? 'Policy'}</p>
-                        <p className="text-[11.5px] text-muted-foreground m-0 mt-0.5 truncate">{r.insurer ?? ''}{r.policyNumber ? ` · ${r.policyNumber}` : ''}</p>
-                      </div>
-                      <span className="text-[11.5px] text-muted-foreground whitespace-nowrap">{fmtDate(r.endDate)}</span>
+              <ul className="m-0 p-0 list-none flex flex-col">
+                {data.renewals.slice(0, 8).map(r => (
+                  <li key={r.policyId} className="border-b border-[--border-subtle] last:border-b-0">
+                    <Link href={r.companyId ? `/companies/${r.companyId}?tab=policies` : '/calendar'} className="flex items-center gap-3 py-2 no-underline text-foreground hover:text-primary">
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[13px] truncate">{r.companyName ?? 'Unknown company'} · {r.classOfInsurance ?? 'Policy'}</span>
+                        <span className="block text-[11.5px] text-muted-foreground truncate">{r.insurer ?? ''}{r.policyNumber ? ` · ${r.policyNumber}` : ''}</span>
+                      </span>
+                      <span className="text-[11.5px] text-muted-foreground whitespace-nowrap hidden sm:block">{fmtDate(r.endDate)}</span>
                       <Chip tone="amber">{fmtRelative(r.endDate)}</Chip>
                     </Link>
                   </li>
@@ -136,27 +132,25 @@ export default function HomePage() {
               </ul>
             </SectionCard>
 
-            <SectionCard title="Most active companies" padded={false} className="lg:col-span-2" actions={<Link href="/companies" className="text-[12px] font-semibold text-primary no-underline hover:underline inline-flex items-center gap-1">All companies <ArrowRight size={12} /></Link>}>
+            <SectionCard title="Most active companies" actions={<Link href="/companies" className="inline-flex items-center gap-1 text-[12px] font-semibold text-primary no-underline hover:underline">All companies <ArrowRight size={11} /></Link>}>
               {data.companies.length === 0 && <Empty compact>No companies yet.</Empty>}
-              <ul className="m-0 p-0 list-none grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 divide-y sm:divide-y-0 divide-[--border-subtle]">
+              <ul className="m-0 p-0 list-none flex flex-col">
                 {data.companies.map(c => (
-                  <li key={c.id}>
-                    <Link href={`/companies/${c.id}`} className="flex flex-col gap-1 px-4 py-3 no-underline text-foreground hover:bg-muted/40 h-full">
-                      <p className="text-[12.5px] font-semibold m-0 truncate">{c.name}</p>
-                      <div className="flex items-center gap-1.5 flex-wrap"><StageBadge stage={c.stage} />{c.needsReply > 0 && <Chip tone="amber">{c.needsReply} awaiting reply</Chip>}{c.overdueCount > 0 && <Chip tone="red">{c.overdueCount} overdue</Chip>}</div>
-                      <p className="text-[11px] text-muted-foreground m-0">{fmtRelative(c.lastActivityAt)}</p>
+                  <li key={c.id} className="border-b border-[--border-subtle] last:border-b-0">
+                    <Link href={`/companies/${c.id}`} className="flex items-center gap-3 py-2 no-underline text-foreground hover:text-primary">
+                      <span className="text-[13px] font-medium min-w-0 flex-1 truncate">{c.name}</span>
+                      <StageBadge stage={c.stage} />
+                      {c.needsReply > 0 && <Chip tone="amber">{c.needsReply}</Chip>}
+                      {c.overdueCount > 0 && <Chip tone="red">{c.overdueCount} overdue</Chip>}
+                      <span className="text-[11px] text-muted-foreground whitespace-nowrap hidden sm:block">{fmtRelative(c.lastActivityAt)}</span>
                     </Link>
                   </li>
                 ))}
               </ul>
             </SectionCard>
-          </div>
+          </>
         )}
       </div>
     </div>
   )
-}
-
-function Quick({ href, icon: Icon, label }: { href: string; icon: React.ElementType; label: string }) {
-  return <Link href={href} className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-[12px] font-semibold border border-input no-underline text-foreground hover:bg-muted"><Icon size={13} /> {label}</Link>
 }

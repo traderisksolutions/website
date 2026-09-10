@@ -9,6 +9,9 @@ import { fmtMoney } from './format'
 
 type MsgRow = { id: string; thread_id: string; direction: 'inbound' | 'outbound'; from_address: string | null; subject: string | null; sent_at: string }
 type AuditRow = { id: string; action: string; created_at: string; user_name: string | null; old_value: Record<string, unknown> | null; new_value: Record<string, unknown> | null }
+type DraftRow = { id: string; thread_id: string | null; status: string; generated_by: string | null; email_type: string | null; subject: string | null; created_at: string; sent_at: string | null }
+
+const DRAFT_SOURCE: Record<string, string> = { auto: 'Agent drafted a reply automatically', gemini: 'Agent drafted a reply', gdrive: 'Agent drafted a reply from the knowledge base', rag: 'Agent drafted a reply from the knowledge base', manual: 'Staff wrote a draft' }
 
 export interface ActivityInputs {
   threadIds: string[]
@@ -19,14 +22,22 @@ export interface ActivityInputs {
 }
 
 export async function buildActivity(companyId: string, input: ActivityInputs, limit = 80): Promise<ActivityEvent[]> {
-  const [messages, audit] = await Promise.all([
+  const [messages, audit, drafts] = await Promise.all([
     input.threadIds.length
       ? inChunks(input.threadIds, 100, c => sbTry<MsgRow[]>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=id,thread_id,direction,from_address,subject,sent_at&order=sent_at.desc&limit=${limit}`, []))
       : Promise.resolve([] as MsgRow[]),
     sbTry<AuditRow[]>(`audit_logs?resource_type=eq.company&resource_id=eq.${enc(companyId)}&select=id,action,created_at,user_name,old_value,new_value&order=created_at.desc&limit=40`, []),
+    input.threadIds.length
+      ? inChunks(input.threadIds, 100, c => sbTry<DraftRow[]>(`ai_drafts?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=id,thread_id,status,generated_by,email_type,subject,created_at,sent_at&order=created_at.desc&limit=40`, []))
+      : Promise.resolve([] as DraftRow[]),
   ])
 
   const events: ActivityEvent[] = []
+
+  for (const d of drafts) {
+    const what = DRAFT_SOURCE[d.generated_by ?? ''] ?? 'A reply was drafted'
+    events.push({ id: `draft-${d.id}`, kind: 'ai_draft', at: d.created_at, title: `${what}${d.email_type ? ` (${d.email_type.replace(/_/g, ' ')})` : ''}`, detail: `${d.status === 'sent' ? 'Sent' : d.status === 'pending' ? 'Waiting for review' : d.status.charAt(0).toUpperCase() + d.status.slice(1)}${d.subject ? ` · ${d.subject}` : ''}`, href: d.thread_id ? `/engagement?lead=${d.thread_id}` : null })
+  }
 
   for (const m of messages) {
     const who = displayNameFromAddress(m.from_address) ?? bareEmail(m.from_address)
@@ -65,8 +76,12 @@ export async function buildActivity(companyId: string, input: ActivityInputs, li
   for (const r of audit) {
     if (r.action === 'company.stage') {
       events.push({ id: `audit-${r.id}`, kind: 'stage', at: r.created_at, title: `Stage changed to ${String(r.new_value?.stage ?? '?')}`, detail: `${r.old_value?.stage ? `from ${String(r.old_value.stage)} · ` : ''}${r.user_name ?? 'staff'}`, href: null })
-    } else if (r.action === 'company.created') {
-      events.push({ id: `audit-${r.id}`, kind: 'note', at: r.created_at, title: 'Company created', detail: r.user_name ?? null, href: null })
+    } else if (r.action === 'company.created' || r.action === 'company.from_lead') {
+      events.push({ id: `audit-${r.id}`, kind: 'note', at: r.created_at, title: r.action === 'company.from_lead' ? 'Company created from a lead' : 'Company created', detail: r.user_name ?? null, href: null })
+    } else if (r.action === 'thread.linked') {
+      events.push({ id: `audit-${r.id}`, kind: 'note', at: r.created_at, title: 'Thread linked to this company', detail: r.user_name ?? null, href: r.new_value?.thread_id ? `/engagement?lead=${String(r.new_value.thread_id)}` : null })
+    } else if (r.action === 'company.updated') {
+      events.push({ id: `audit-${r.id}`, kind: 'note', at: r.created_at, title: 'Company details updated', detail: r.user_name ?? null, href: null })
     }
   }
 

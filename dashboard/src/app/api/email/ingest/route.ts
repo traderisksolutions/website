@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getCompanyIndex, resolveThread } from '@/lib/crm/resolve'
+import { autofileThread } from '@/lib/crm/autofile'
 import { waitUntil }        from '@vercel/functions'
 import { extractAndStoreQuote } from '@/lib/rfq-quote-extract'
 import { extractHighlights }    from '@/lib/extract-highlights'
@@ -642,6 +644,31 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
     }
   }
 
+  // 1b. If the contact carries no company, resolve one from the participants' email domains or
+  // the client name in the subject — the same deterministic rules the bulk sweep uses
+  // (src/lib/crm/resolve.ts), so mail lands on its company the moment it arrives rather than
+  // waiting in the triage queue. Never for internal-only threads, and never a guess.
+  if (!contactCompanyId && !partyIsInternal) {
+    try {
+      const index = await getCompanyIndex()
+      const hit = resolveThread(
+        { subject, participantEmails: allParticipants.map(p => p.email), contactCompanyId: null },
+        index,
+      )
+      if (hit) {
+        contactCompanyId = hit.companyId
+        // Remember it on the contact so every later thread of theirs resolves by rule 1.
+        if (contactId) {
+          await fetch(`${SB_URL}/rest/v1/contacts?id=eq.${contactId}&company_id=is.null`, {
+            method:  'PATCH',
+            headers: sbHeaders('return=minimal'),
+            body:    JSON.stringify({ company_id: hit.companyId }),
+          }).catch(() => {})
+        }
+      }
+    } catch (e) { console.error('[ingest] company resolution failed:', e) }
+  }
+
   // 2. Upsert thread linked to external contact
   const threadUpsert = await fetch(`${SB_URL}/rest/v1/email_threads?on_conflict=gmail_thread_id`, {
     method:  'POST',
@@ -716,6 +743,17 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
     headers: sbHeaders('return=minimal,resolution=ignore-duplicates'),
     body:    JSON.stringify(participants),
   })
+
+  // 4b. Still unfiled? Give the thread a company from its domain, creating the organisation if
+  // we have not met it before (src/lib/crm/autofile.ts). Runs after the participants are stored
+  // so the resolver can see everyone on the thread, and never blocks ingest.
+  if (!contactCompanyId && !partyIsInternal) {
+    waitUntil(
+      autofileThread(thread.id)
+        .then(r => { if (r.companyId) console.log(`[ingest] filed thread ${thread.id} — ${r.via}`) })
+        .catch(e => console.error('[ingest] autofile failed:', e)),
+    )
+  }
 
   // 5. Upsert contacts for all other external participants (To + CC header addresses)
   const otherExternal = allParticipants.filter(

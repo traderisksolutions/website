@@ -82,8 +82,10 @@ export async function listCompanySummaries(opts: ListOptions = {}): Promise<Comp
       if (t.last_message_at && (!lastActivityAt || t.last_message_at > lastActivityAt)) lastActivityAt = t.last_message_at
     }
 
-    const notes = debitNotes.filter(d => d.company_id === co.id).map(d => derivePayment(d))
+    const myNotes = debitNotes.filter(d => d.company_id === co.id)
+    const notes = myNotes.map(d => derivePayment(d))
     const pay = summarizePayments(notes)
+    const lastBillingDate = myNotes.map(d => d.issue_date).filter(Boolean).sort().pop() ?? null
 
     const policies = customers.filter(c => c.company_id === co.id).flatMap(c => c.policies ?? [])
     const activeEnds = policies.filter(p => p.status === 'active' && p.end_date).map(p => p.end_date as string).sort()
@@ -95,7 +97,10 @@ export async function listCompanySummaries(opts: ListOptions = {}): Promise<Comp
     const openQuotes = cases.filter(c => c.company_id === co.id).reduce((n, c) => n + (openRfq.get(c.id) ?? 0), 0)
       + pmQuotes.filter(p => p.company_id === co.id && new Date(p.created_at).getTime() > freshCutoff).length
 
-    const suggestedStage = suggestStage({ activePolicies, nextRenewalDate: activeEnds[0] ?? null, openQuotes, openThreads, lastActivityAt, openDebitNotes: pay.openCount }, co.stage)
+    const suggestedStage = suggestStage({
+      activePolicies, nextRenewalDate: activeEnds[0] ?? null, openQuotes, openThreads, lastActivityAt,
+      openDebitNotes: pay.openCount, totalDebitNotes: myNotes.length, lastBillingDate,
+    }, co.stage)
 
     return {
       ...co,

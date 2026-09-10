@@ -29,21 +29,23 @@ export function StageBadge({ stage, className }: { stage: Stage; className?: str
   return <Chip tone={STAGE_TONE[stage]} className={className}>{STAGE_LABEL[stage]}</Chip>
 }
 
+/** A flat section: a small-caps heading, optional actions on the right, then content. No ring,
+ *  no fill — whitespace and one hairline above separate sections (minimalist by decision). */
 export function SectionCard({ title, description, actions, children, className, padded = true }: {
   title?: string; description?: string; actions?: React.ReactNode; children: React.ReactNode; className?: string; padded?: boolean
 }) {
   return (
-    <section className={cn('rounded-lg bg-card min-w-0', className)} style={{ boxShadow: 'var(--card-shadow)' }}>
+    <section className={cn('min-w-0 py-4 border-t border-[--border-subtle] first:border-t-0 first:pt-0', className)}>
       {(title || actions) && (
-        <header className="flex items-start justify-between gap-3 px-4 pt-3.5 pb-2.5 border-b border-[--border-subtle] flex-wrap">
+        <header className="flex items-start justify-between gap-3 mb-2 flex-wrap">
           <div className="min-w-0">
-            {title && <h2 className="text-[13px] font-semibold text-foreground leading-tight m-0">{title}</h2>}
-            {description && <p className="text-[11.5px] text-muted-foreground mt-0.5 leading-snug m-0">{description}</p>}
+            {title && <h2 className="text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground leading-tight m-0">{title}</h2>}
+            {description && <p className="text-[11.5px] text-muted-foreground/80 mt-0.5 leading-snug m-0">{description}</p>}
           </div>
           {actions && <div className="flex items-center gap-1.5 flex-wrap">{actions}</div>}
         </header>
       )}
-      <div className={cn(padded && 'px-4 py-3')}>{children}</div>
+      <div className={cn(padded ? '' : '-mx-4 sm:mx-0')}>{children}</div>
     </section>
   )
 }

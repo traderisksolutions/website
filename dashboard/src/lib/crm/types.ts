@@ -260,7 +260,40 @@ export interface CompanyThread {
 // ── Activity timeline ─────────────────────────────────────────────────────────────────────────
 
 export type ActivityKind =
-  | 'email_in' | 'email_out' | 'debit_note' | 'payment' | 'quote' | 'case' | 'action_done' | 'stage' | 'note'
+  | 'email_in' | 'email_out' | 'ai_draft' | 'debit_note' | 'payment' | 'quote' | 'case' | 'action_done' | 'stage' | 'note'
+
+// ── Overview (alerts + where we left off) ─────────────────────────────────────────────────────
+
+export type AlertKind = 'overdue' | 'awaiting_reply' | 'renewal' | 'policy_ended' | 'proposal' | 'summary_stale' | 'no_summary'
+export type AlertTone = 'red' | 'amber' | 'blue' | 'neutral'
+
+export interface Alert {
+  id: string
+  kind: AlertKind
+  tone: AlertTone
+  title: string
+  detail: string | null
+  href: string | null
+  at: string | null
+}
+
+export interface LeftOff {
+  lastOutbound: { at: string; by: string; subject: string | null; threadId: string } | null
+  lastInbound:  { at: string; from: string; subject: string | null; threadId: string } | null
+  lastActionDone: { at: string; title: string; by: string | null } | null
+  lastStageChange: { at: string; stage: string; by: string | null } | null
+}
+
+export interface CompanyOverview {
+  alerts: Alert[]
+  leftOff: LeftOff
+  actions: CompanyAction[]
+  lastThreads: CompanyThread[]
+  stakeholders: Person[]
+  needsReply: number
+  statusLine: string
+  summaryStale: boolean
+}
 
 export interface ActivityEvent {
   id: string
