@@ -1,5 +1,8 @@
 .vercel
 
+# macOS
+.DS_Store
+
 # Python bytecode (rate-compiler tool + api/*.py functions)
 __pycache__/
 *.pyc
