@@ -93,6 +93,11 @@ export type AiFeature =
   | 'debit_note_extract'
   | 'gb_recommend'
   | 'gb_plan_match'
+  // Companies-first CRM (10 Sep 2026)
+  | 'crm_brief'
+  | 'crm_actions'
+  | 'crm_triage'
+  | 'crm_chat'
 
 export interface GeminiUsageMeta {
   promptTokenCount?:     number

@@ -237,7 +237,11 @@ export async function commitDebitNote(input: {
   const customerId = await resolveCustomer(companyId, contactId)
   const policyId    = await resolvePolicy(input.policy, customerId)
 
-  const grossAmount   = input.debitNote.lineItems.reduce((s, l) => s + l.amount, 0) + (input.debitNote.gstAmount ?? 0)
+  // Line items are GST-inclusive (the debit-notes/new form folds GST into the printed premium
+  // line — see that page's comment) — gstAmount is tracked purely for internal reporting, never
+  // added again on top of line items it's already part of. Matches api/debit-notes/[id]/route.ts's
+  // edit-path convention exactly; this used to double-add GST here before both paths agreed.
+  const grossAmount   = input.debitNote.lineItems.reduce((s, l) => s + l.amount, 0)
   const explicitNo    = input.debitNote.debitNoteNo?.trim() || null
   if (explicitNo) {
     const clash = await pg(`debit_notes?debit_note_no=eq.${enc(explicitNo)}&select=id&limit=1`)

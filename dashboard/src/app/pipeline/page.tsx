@@ -1,304 +1,153 @@
 'use client'
 
-import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
-import { useRouter } from 'next/navigation'
-import { Waypoints, Loader2, Trash2, AlertCircle, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { Reply, ArrowRight, Plus, Building2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { AppSplitLayout, AppMainPanel, AppPageHeader } from '@/components/app-shell'
-import { DataTableToolbar, DataTableSearch } from '@/components/data-table/toolbar'
-import { StatusBadge } from '@/components/status-badge'
+import { AppScrollPage } from '@/components/app-shell'
+import { PageHeader } from '@/components/page-header'
+import { NewCompanyDialog } from '@/components/crm/dialogs'
+import { Btn, Chip, Spinner } from '@/components/crm/primitives'
+import { fmtMoney, fmtRelative, fmtDate } from '@/lib/crm/format'
+import { STAGES, STAGE_LABEL, STAGE_HELP, STAGE_TONE, type CompanySummaryRow, type Stage } from '@/lib/crm/types'
+import { TONE_STYLE } from '@/components/crm/primitives'
 
-interface PipelineRow {
-  origin:            'inbound' | 'outbound'
-  id:                 string
-  pipeline_id:        string
-  display_name:       string | null
-  email:              string | null
-  company:            string | null
-  source_detail:      string | null
-  raw_status:         string
-  status_bucket:      'new' | 'in_progress' | 'closed' | 'spam'
-  topic_or_industry:  string | null
-  priority:           'high' | 'medium' | 'low' | null
-  created_at:         string
-  last_activity_at:   string
-}
+type Lead = { id: string; first_name: string | null; last_name: string | null; email: string | null; company: string | null; topic: string | null; product_line: string | null; source: string | null; status: string; created_at: string; message: string | null }
+type Board = { columns: Record<Stage, CompanySummaryRow[]>; leads: Lead[] }
 
-const ORIGIN_OPTIONS = ['all', 'inbound', 'outbound'] as const
-const ORIGIN_LABELS: Record<string, string> = { all: 'All', inbound: 'Inbound', outbound: 'Outbound' }
+export default function PipelinePage() {
+  const [board, setBoard] = useState<Board | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [dragging, setDragging] = useState<string | null>(null)
+  const [over, setOver] = useState<Stage | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
 
-const STATUS_OPTIONS = ['all', 'new', 'in_progress', 'closed', 'spam'] as const
-const STATUS_LABELS: Record<string, string> = {
-  all: 'All', new: 'New', in_progress: 'In Progress', closed: 'Closed', spam: 'Spam',
-}
+  async function load() {
+    const res = await fetch('/api/companies/pipeline', { cache: 'no-store' })
+    const d = await res.json()
+    if (!res.ok) { setError(d.error ?? 'Could not load the pipeline.'); return }
+    setBoard(d)
+  }
+  useEffect(() => { load() }, [])
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })
-}
+  async function move(id: string, to: Stage) {
+    if (!board) return
+    const from = STAGES.find(s => board.columns[s].some(c => c.id === id))
+    if (!from || from === to) return
+    const card = board.columns[from].find(c => c.id === id)!
+    setBoard({ ...board, columns: { ...board.columns, [from]: board.columns[from].filter(c => c.id !== id), [to]: [{ ...card, stage: to, suggestedStage: null }, ...board.columns[to]] } })
+    setBusy(id)
+    try {
+      const res = await fetch(`/api/companies/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stage: to }) })
+      if (!res.ok) throw new Error((await res.json()).error ?? 'Could not move.')
+    } catch (e) { setError(e instanceof Error ? e.message : String(e)); load() }
+    finally { setBusy(null) }
+  }
 
-function SkeletonRows() {
+  async function convert(lead: Lead) {
+    setBusy(lead.id); setError(null)
+    try {
+      const res = await fetch('/api/companies/from-lead', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ leadId: lead.id }) })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error ?? 'Could not create the company.')
+      await load()
+    } catch (e) { setError(e instanceof Error ? e.message : String(e)) }
+    finally { setBusy(null) }
+  }
+
+  const total = board ? STAGES.reduce((n, s) => n + board.columns[s].length, 0) : 0
+
   return (
-    <>
-      {Array.from({ length: 8 }).map((_, i) => (
-        <tr key={i} className="border-b border-[--border-subtle]">
-          <td className="pl-8 pr-2 h-11" />
-          {[60, 45, 30, 20, 20, 25].map((w, j) => (
-            <td key={j} className="pr-3 h-11"><div className="skeleton sk-line" style={{ width: `${w}%` }} /></td>
-          ))}
-        </tr>
-      ))}
-    </>
+    <AppScrollPage maxWidth="100%" className="!px-0">
+      <div className="px-6">
+        <PageHeader title="Pipeline" description={board ? `${total} compan${total === 1 ? 'y' : 'ies'} by stage. Drag a card to move it, or use the menu on the card.` : 'Loading…'} className="mb-4" actions={<Btn level="primary" onClick={() => setCreating(true)}><Plus size={12} /> New company</Btn>} />
+        {error && <p className="text-[12px] text-destructive mb-2">{error}</p>}
+      </div>
+      {!board && <Spinner label="Loading pipeline…" />}
+      {board && (
+        <div className="flex gap-3 overflow-x-auto px-6 pb-6 snap-x snap-mandatory sm:snap-none" style={{ scrollbarWidth: 'thin' }}>
+          {/* New leads column */}
+          <section className="flex-shrink-0 w-[85vw] sm:w-[270px] snap-start rounded-lg bg-muted/40 flex flex-col max-h-[calc(100vh/var(--ui-zoom)-190px)]" aria-label="New leads">
+            <header className="px-3 pt-3 pb-2">
+              <p className="text-[12px] font-semibold m-0 flex items-center gap-1.5">New leads <span className="text-[10.5px] font-semibold rounded-[5px] px-1 leading-4 bg-white">{board.leads.length}</span></p>
+              <p className="text-[10.5px] text-muted-foreground m-0 mt-0.5">Website and WhatsApp enquiries not yet a company.</p>
+            </header>
+            <div className="px-2 pb-2 overflow-y-auto flex flex-col gap-2">
+              {board.leads.length === 0 && <p className="text-[11.5px] text-muted-foreground text-center py-6 m-0">No unconverted leads.</p>}
+              {board.leads.map(l => (
+                <article key={l.id} className="rounded-md bg-card px-3 py-2.5" style={{ boxShadow: 'var(--card-shadow)' }}>
+                  <p className="text-[12.5px] font-semibold m-0 leading-tight">{l.company || [l.first_name, l.last_name].filter(Boolean).join(' ') || l.email || 'Unknown'}</p>
+                  <p className="text-[11px] text-muted-foreground m-0 mt-0.5 line-clamp-2">{[l.first_name && l.company ? `${l.first_name} ${l.last_name ?? ''}`.trim() : null, l.topic ?? l.product_line, l.source].filter(Boolean).join(' · ')}</p>
+                  {l.message && <p className="text-[11px] text-muted-foreground/80 m-0 mt-1 line-clamp-2 italic">“{l.message}”</p>}
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <span className="text-[10.5px] text-muted-foreground">{fmtRelative(l.created_at)}</span>
+                    <Btn size="xs" level="secondary" onClick={() => convert(l)} loading={busy === l.id}><Building2 size={11} /> Make company</Btn>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          {STAGES.map(s => {
+            const cards = board.columns[s]
+            const money = cards.reduce((n, c) => n + (c.money.find(m => m.currency === 'SGD')?.outstanding ?? 0), 0)
+            return (
+              <section
+                key={s}
+                aria-label={STAGE_LABEL[s]}
+                onDragOver={e => { e.preventDefault(); if (over !== s) setOver(s) }}
+                onDragLeave={() => setOver(null)}
+                onDrop={e => { e.preventDefault(); const id = e.dataTransfer.getData('text/company'); setOver(null); setDragging(null); if (id) move(id, s) }}
+                className={cn('flex-shrink-0 w-[85vw] sm:w-[270px] snap-start rounded-lg flex flex-col max-h-[calc(100vh/var(--ui-zoom)-190px)] transition-colors', over === s ? 'bg-[--primary-light-bg]' : 'bg-muted/40')}
+              >
+                <header className="px-3 pt-3 pb-2">
+                  <p className="text-[12px] font-semibold m-0 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full" style={{ background: TONE_STYLE[STAGE_TONE[s]].color }} />
+                    {STAGE_LABEL[s]}
+                    <span className="text-[10.5px] font-semibold rounded-[5px] px-1 leading-4 bg-white">{cards.length}</span>
+                    {money > 0 && <span className="ml-auto text-[10.5px] text-muted-foreground tabular-nums">{fmtMoney(money, 'SGD', { compact: true })} open</span>}
+                  </p>
+                  <p className="text-[10.5px] text-muted-foreground m-0 mt-0.5">{STAGE_HELP[s]}</p>
+                </header>
+                <div className="px-2 pb-2 overflow-y-auto flex flex-col gap-2 min-h-[80px]">
+                  {cards.length === 0 && <p className="text-[11.5px] text-muted-foreground text-center py-6 m-0">Empty</p>}
+                  {cards.map(c => <Card key={c.id} c={c} dragging={dragging === c.id} busy={busy === c.id} onDragStart={e => { e.dataTransfer.setData('text/company', c.id); e.dataTransfer.effectAllowed = 'move'; setDragging(c.id) }} onDragEnd={() => { setDragging(null); setOver(null) }} onMove={to => move(c.id, to)} />)}
+                </div>
+              </section>
+            )
+          })}
+        </div>
+      )}
+      <NewCompanyDialog open={creating} onClose={() => setCreating(false)} onCreated={() => { setCreating(false); load() }} />
+    </AppScrollPage>
   )
 }
 
-export default function PipelinePage() {
-  const router = useRouter()
-  const [rows, setRows] = useState<PipelineRow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [origin, setOrigin] = useState<typeof ORIGIN_OPTIONS[number]>('all')
-  const [status, setStatus] = useState<typeof STATUS_OPTIONS[number]>('all')
-  const [search, setSearch] = useState('')
-  const [searchInput, setSearchInput] = useState('')
-  const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [deleting, setDeleting] = useState(false)
-  const debounce = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const requestSeq = useRef(0)
-
-  useEffect(() => {
-    if (debounce.current) clearTimeout(debounce.current)
-    debounce.current = setTimeout(() => setSearch(searchInput), 250)
-    return () => { if (debounce.current) clearTimeout(debounce.current) }
-  }, [searchInput])
-
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    const seq = ++requestSeq.current
-    const params = new URLSearchParams()
-    if (origin !== 'all') params.set('origin', origin)
-    if (status !== 'all') params.set('status', status)
-    if (search) params.set('q', search)
-    try {
-      const res = await fetch(`/api/pipeline?${params.toString()}`, { cache: 'no-store' })
-      if (seq !== requestSeq.current) return   // a newer request already landed — drop this one
-      if (!res.ok) throw new Error('Failed to load pipeline')
-      const data = await res.json()
-      setRows(Array.isArray(data) ? data : [])
-    } catch {
-      if (seq === requestSeq.current) setError('Failed to load pipeline')
-    } finally {
-      if (seq === requestSeq.current) { setLoading(false); setSelected(new Set()) }
-    }
-  }, [origin, status, search])
-
-  useEffect(() => { load() }, [load])
-
-  const counts = useMemo(() => ({
-    total:    rows.length,
-    inbound:  rows.filter(r => r.origin === 'inbound').length,
-    outbound: rows.filter(r => r.origin === 'outbound').length,
-  }), [rows])
-
-  function toggleOne(id: string) {
-    setSelected(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
-  }
-  function toggleAll() {
-    setSelected(prev => prev.size === rows.length ? new Set() : new Set(rows.map(r => r.pipeline_id)))
-  }
-
-  async function deleteSelected() {
-    const targets = rows.filter(r => selected.has(r.pipeline_id))
-    if (targets.length === 0) return
-    if (!confirm(`Delete ${targets.length} lead${targets.length === 1 ? '' : 's'}? This can't be undone.`)) return
-    setDeleting(true)
-    try {
-      const res = await fetch('/api/pipeline', {
-        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rows: targets.map(r => ({ origin: r.origin, id: r.id })) }),
-      })
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}))
-        alert(d.partial ? `Only ${d.deleted} of ${targets.length} deleted — ${d.error}` : (d.error ?? 'Delete failed'))
-        // Some rows may have actually been removed even on a partial failure — refresh either way.
-        await load()
-        return
-      }
-      await load()
-    } finally {
-      setDeleting(false)
-    }
-  }
-
+function Card({ c, dragging, busy, onDragStart, onDragEnd, onMove }: { c: CompanySummaryRow; dragging: boolean; busy: boolean; onDragStart: (e: React.DragEvent) => void; onDragEnd: () => void; onMove: (to: Stage) => void }) {
+  const sgd = c.money.find(m => m.currency === 'SGD') ?? c.money[0]
   return (
-    <AppSplitLayout>
-      <AppMainPanel>
-        <AppPageHeader
-          title="Pipeline"
-          description={loading
-            ? 'Loading pipeline…'
-            : `${counts.total} lead${counts.total !== 1 ? 's' : ''} · ${counts.inbound} inbound · ${counts.outbound} outbound`}
-        />
-
-        <div className="flex-1 overflow-hidden px-6 pb-6">
-          <div className="h-full flex flex-col rounded-xl bg-card overflow-hidden" style={{ boxShadow: 'var(--card-shadow)' }}>
-
-            <DataTableToolbar>
-              <div className="flex flex-wrap gap-1">
-                {ORIGIN_OPTIONS.map(o => (
-                  <button key={o} onClick={() => setOrigin(o)} aria-pressed={origin === o}
-                    className={cn('filter-pill', origin === o && 'active')}>
-                    {ORIGIN_LABELS[o]}
-                  </button>
-                ))}
-              </div>
-              <div className="w-px h-5 bg-[--border-subtle] mx-1" />
-              <div className="flex flex-wrap gap-1 flex-1 min-w-0">
-                {STATUS_OPTIONS.map(s => (
-                  <button key={s} onClick={() => setStatus(s)} aria-pressed={status === s}
-                    className={cn('filter-pill', status === s && 'active')}>
-                    {STATUS_LABELS[s]}
-                  </button>
-                ))}
-              </div>
-              <DataTableSearch
-                value={searchInput}
-                onChange={setSearchInput}
-                placeholder="Search pipeline…"
-                className="flex-shrink-0"
-              />
-            </DataTableToolbar>
-
-            {error && (
-              <div className="flex items-center gap-2 px-5 py-2.5 flex-shrink-0 text-[13px]" style={{ background: 'var(--error-bg)', border: '1px solid var(--error-border, var(--error))', color: 'var(--error)' }}>
-                <AlertCircle size={14} className="flex-shrink-0" />
-                <span className="flex-1">{error}</span>
-                <button onClick={() => load()} className="text-[12px] font-semibold underline bg-transparent border-0 cursor-pointer" style={{ color: 'var(--error)' }}>Retry</button>
-                <button onClick={() => setError(null)} className="bg-transparent border-none cursor-pointer leading-none" style={{ color: 'var(--error)' }}><X size={14} /></button>
-              </div>
-            )}
-
-            {selected.size > 0 && (
-              <div className="sticky top-0 z-10 flex items-center gap-3 px-5 py-2.5 bg-foreground text-background text-[13px] flex-shrink-0">
-                <span className="font-semibold">{selected.size} selected</span>
-                <div className="flex-1" />
-                <button
-                  onClick={deleteSelected}
-                  disabled={deleting}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold bg-background text-foreground rounded-md cursor-pointer disabled:opacity-40"
-                >
-                  {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
-                  {deleting ? 'Deleting…' : 'Delete'}
-                </button>
-                <button onClick={() => setSelected(new Set())} className="text-[12px] opacity-60 hover:opacity-100 cursor-pointer bg-transparent border-0 text-background">
-                  Clear
-                </button>
-              </div>
-            )}
-
-            <div className="flex-1 overflow-auto">
-              <table className="data-table w-full border-collapse text-[13px]">
-                <thead>
-                  <tr>
-                    <th className="pl-8 pr-2 w-8 text-left">
-                      <input
-                        type="checkbox"
-                        checked={rows.length > 0 && selected.size === rows.length}
-                        onChange={toggleAll}
-                        className="cursor-pointer"
-                        aria-label="Select all"
-                      />
-                    </th>
-                    <th className="pr-3 text-left">Name</th>
-                    <th className="text-left">Email / Company</th>
-                    <th className="text-left">Origin</th>
-                    <th className="text-left">Topic / Industry</th>
-                    <th className="text-left">Priority</th>
-                    <th className="text-left">Status</th>
-                    <th className="text-right pr-4">Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <SkeletonRows />
-                  ) : rows.length === 0 ? (
-                    <tr>
-                      <td colSpan={8}>
-                        <div className="empty-state">
-                          <div className="empty-icon-wrap">
-                            <Waypoints size={20} className="text-muted-foreground" />
-                          </div>
-                          <p className="empty-title">{search ? 'No leads found' : 'No leads yet'}</p>
-                          <p className="empty-desc">
-                            {search ? `No leads match "${search}"` : 'Inbound and outbound leads will appear here as they come in.'}
-                          </p>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    rows.map(r => {
-                      return (
-                        <tr key={r.pipeline_id}
-                          onClick={() => router.push(r.origin === 'inbound' ? `/inbound/email?lead=${r.id}` : `/outbound/leads?lead=${r.id}`)}
-                          className={cn('cursor-pointer border-b border-[--border-subtle] hover:bg-muted/40 transition-colors', selected.has(r.pipeline_id) && 'bg-primary/[0.04]')}>
-                          <td className="pl-8 pr-2 h-11" onClick={e => e.stopPropagation()}>
-                            <input
-                              type="checkbox"
-                              checked={selected.has(r.pipeline_id)}
-                              onChange={() => toggleOne(r.pipeline_id)}
-                              className="cursor-pointer"
-                              aria-label={`Select ${r.display_name ?? 'lead'}`}
-                            />
-                          </td>
-                          <td className="pr-3 h-11">
-                            <span className="text-[13px] font-medium text-foreground leading-none">
-                              {r.display_name || '—'}
-                            </span>
-                          </td>
-                          <td className="text-[12px] text-muted-foreground pr-3 max-w-[220px]">
-                            <span className="block overflow-hidden text-ellipsis whitespace-nowrap">
-                              {r.email ?? '—'}{r.company ? ` · ${r.company}` : ''}
-                            </span>
-                          </td>
-                          <td className="pr-3">
-                            <span className={cn(
-                              'text-[10.5px] font-semibold px-2 py-0.5 rounded-[6px] uppercase tracking-wide',
-                              r.origin === 'inbound' ? 'bg-primary/8 text-primary' : 'bg-muted text-muted-foreground',
-                            )}>
-                              {r.origin}
-                            </span>
-                          </td>
-                          <td className="text-[12px] text-muted-foreground pr-3">
-                            {r.topic_or_industry ?? '—'}
-                          </td>
-                          <td className="pr-3">
-                            {r.priority ? <StatusBadge status={r.priority} /> : <span className="text-muted-foreground/30">—</span>}
-                          </td>
-                          <td className="pr-3">
-                            <StatusBadge status={r.status_bucket} label={STATUS_LABELS[r.status_bucket] ?? r.status_bucket} />
-                          </td>
-                          <td className="text-[11px] text-muted-foreground/60 whitespace-nowrap text-right pr-4">
-                            {fmtDate(r.created_at)}
-                          </td>
-                        </tr>
-                      )
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {!loading && rows.length > 0 && (
-              <div className="px-4 py-2.5 border-t border-[--border-subtle] bg-muted/20 flex-shrink-0">
-                <span className="text-[11px] text-muted-foreground/60">
-                  {rows.length} lead{rows.length !== 1 ? 's' : ''}
-                  {(origin !== 'all' || status !== 'all') && ' · filtered'}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      </AppMainPanel>
-    </AppSplitLayout>
+    <article draggable onDragStart={onDragStart} onDragEnd={onDragEnd} className={cn('rounded-md bg-card px-3 py-2.5 cursor-grab active:cursor-grabbing', dragging && 'opacity-50', busy && 'opacity-60')} style={{ boxShadow: 'var(--card-shadow)' }}>
+      <div className="flex items-start justify-between gap-2">
+        <Link href={`/companies/${c.id}`} className="text-[12.5px] font-semibold no-underline text-foreground leading-tight hover:underline min-w-0 truncate">{c.name}</Link>
+        <select value={c.stage} onChange={e => onMove(e.target.value as Stage)} aria-label="Move to stage" className="h-5 text-[10.5px] rounded-[5px] border border-[--border-subtle] bg-transparent text-muted-foreground px-1 cursor-pointer flex-shrink-0" onClick={e => e.stopPropagation()}>
+          {STAGES.map(s => <option key={s} value={s}>{STAGE_LABEL[s]}</option>)}
+        </select>
+      </div>
+      <p className="text-[11px] text-muted-foreground m-0 mt-0.5">{c.owner_email ? c.owner_email.split('@')[0] : 'No owner'} · {fmtRelative(c.lastActivityAt)}</p>
+      <div className="mt-1.5 flex flex-wrap gap-1">
+        {c.needsReply > 0 && <Chip tone="amber"><Reply size={10} /> {c.needsReply}</Chip>}
+        {sgd && sgd.overdue > 0 && <Chip tone="red">{fmtMoney(sgd.overdue, sgd.currency, { compact: true })} overdue</Chip>}
+        {sgd && sgd.overdue === 0 && sgd.outstanding > 0 && <Chip tone="neutral">{fmtMoney(sgd.outstanding, sgd.currency, { compact: true })} open</Chip>}
+        {c.nextRenewalDate && <Chip tone="neutral" title={fmtDate(c.nextRenewalDate)}>Renews {fmtRelative(c.nextRenewalDate)}</Chip>}
+        {c.openQuotes > 0 && <Chip tone="blue">{c.openQuotes} quote{c.openQuotes === 1 ? '' : 's'}</Chip>}
+        {c.proposedActions > 0 && <Chip tone="blue">{c.proposedActions} to review</Chip>}
+      </div>
+      {c.suggestedStage && (
+        <button onClick={() => onMove(c.suggestedStage!)} className="mt-2 w-full inline-flex items-center justify-between gap-1 rounded-[6px] px-2 py-1 text-[11px] border-0 cursor-pointer" style={{ background: 'var(--primary-light-bg)', color: 'var(--primary-hex)' }}>
+          <span>Suggested: {STAGE_LABEL[c.suggestedStage]}</span><ArrowRight size={11} />
+        </button>
+      )}
+    </article>
   )
 }

@@ -12,6 +12,9 @@ export interface ChatThread {
   status: ThreadStatus
   kind: 'assistant' | 'support' | 'draft'
   case_id: string | null
+  /** Company-scoped chats (the company workspace's "Ask about this company"). Column added by
+   *  20260910_companies_crm.sql; undefined on rows read before the migration ran. */
+  company_id?: string | null
   last_message_at: string | null
   created_at: string
   updated_at: string
@@ -90,3 +93,9 @@ export interface ChatBootstrap {
 
 // Context the dock derives from the current route (case-aware).
 export interface ChatCaseContext { caseId: string; caseName: string | null }
+
+// What the dock is scoped to: a Nexus case, a client company, or nothing (general chat).
+export interface ChatScope { caseId: string | null; companyId: string | null; label: string | null }
+export const EMPTY_SCOPE: ChatScope = { caseId: null, companyId: null, label: null }
+export const sameScope = (a: { caseId?: string | null; companyId?: string | null }, b: { caseId?: string | null; companyId?: string | null }) =>
+  (a.caseId ?? null) === (b.caseId ?? null) && (a.companyId ?? null) === (b.companyId ?? null)

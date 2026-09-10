@@ -1,323 +1,217 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { useParams } from 'next/navigation'
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, Building2, Mail, FileText, Users, Receipt, CalendarDays, ExternalLink, Network, Plus } from 'lucide-react'
-import { AppScrollPage } from '@/components/app-shell'
-import { StatCard } from '@/components/stat-card'
-import { StatusBadge } from '@/components/status-badge'
-import { DetailSection, DetailField } from '@/components/detail-section'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import type { CalendarEvent } from '@/app/api/calendar/events/route'
+import { AppScrollPage } from '@/components/app-shell'
+import { CompanyHeader } from '@/components/crm/CompanyHeader'
+import { BriefCard } from '@/components/crm/BriefCard'
+import { ActionsPanel } from '@/components/crm/ActionsPanel'
+import { PeoplePanel } from '@/components/crm/PeoplePanel'
+import { PaymentsPanel } from '@/components/crm/PaymentsPanel'
+import { QuotesPanel } from '@/components/crm/QuotesPanel'
+import { ThreadsPanel } from '@/components/crm/ThreadsPanel'
+import { CasesPanel } from '@/components/crm/CasesPanel'
+import { CompanyTimeline } from '@/components/crm/CompanyTimeline'
+import { NewCaseDialog } from '@/components/crm/dialogs'
+import { SectionCard, Spinner, Empty } from '@/components/crm/primitives'
+import { fmtDate } from '@/lib/crm/format'
+import type { Company, CompanyAction, CompanyThread, Person, PaymentDerived, PaymentSummary, QuoteRow, CaseRow, ActivityEvent, AiBrief, Stage } from '@/lib/crm/types'
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-type Contact = { id: string; first_name: string | null; last_name: string | null; email: string | null; phone: string | null }
-type Policy = { id: string; policy_number: string | null; insurer: string | null; class_of_insurance: string | null; broker: string | null; currency: string | null; start_date: string | null; end_date: string | null; status: string | null }
-type DebitNote = { id: string; debit_note_no: string; issue_date: string; currency: string; gross_amount: number; status: 'unpaid' | 'partially_paid' | 'paid'; insurer: string | null }
-type CompanyDetail = {
-  company: { id: string; name: string; domain: string | null; type: string | null; industry: string | null; address: string | null; notes: string | null }
-  contacts: { id: string; role: string; is_primary: boolean; contacts: Contact | null }[]
-  policies: Policy[]
-  debitNotes: DebitNote[]
-  summary: { contactCount: number; nextRenewalDate: string | null; openDebitNoteCount: number }
+type Detail = {
+  company: Company
+  contactList: { id: string; name: string; email: string | null; phone: string | null }[]
+  policies: { id: string; policy_number: string | null; insurer: string | null; class_of_insurance: string | null; currency: string | null; premium: number | null; start_date: string | null; end_date: string | null; status: string | null }[]
+  payments: PaymentDerived[]
+  paymentSummary: PaymentSummary
+  summary: { contactCount: number; activePolicies: number; nextRenewalDate: string | null; openDebitNoteCount: number; overdueCount: number }
 }
-type Thread = {
-  id: string; subject: string | null; snippet: string | null; last_message_at: string | null
-  status: string; contact_id: string | null; message_count: number
-  contacts: { id: string; first_name: string | null; last_name: string | null; email: string | null } | null
+
+const TABS = [
+  { key: 'overview', label: 'Overview' }, { key: 'threads', label: 'Threads' }, { key: 'people', label: 'People' },
+  { key: 'quotes', label: 'Quotes' }, { key: 'payments', label: 'Payments' }, { key: 'cases', label: 'Cases' },
+  { key: 'actions', label: 'Actions' }, { key: 'activity', label: 'Activity' }, { key: 'policies', label: 'Policies' },
+] as const
+type Tab = typeof TABS[number]['key']
+
+export default function CompanyWorkspacePage() {
+  return <Suspense fallback={<Spinner />}><CompanyWorkspace /></Suspense>
 }
-type NexusCase = {
-  id: string; name: string; description: string | null; status: string
-  updated_at: string; thread_count: number; last_activity: string | null
-}
 
-type Tab = 'overview' | 'threads' | 'policies' | 'debit-notes' | 'due-dates' | 'nexus'
-
-const fmtDate = (iso: string | null) => iso ? new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
-const fmt = (n: number, c: string) => `${c} ${Number(n ?? 0).toLocaleString('en-SG', { minimumFractionDigits: 2 })}`
-const contactName = (c: Pick<Contact, 'first_name' | 'last_name' | 'email'> | null) => c ? [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || 'Contact' : 'Unknown contact'
-
-export default function CompanyDetailPage() {
+function CompanyWorkspace() {
   const { id } = useParams<{ id: string }>()
-  const [tab, setTab] = useState<Tab>('overview')
+  const router = useRouter()
+  const search = useSearchParams()
+  const tab = (TABS.some(t => t.key === search.get('tab')) ? search.get('tab') : 'overview') as Tab
+  const setTab = (t: Tab) => router.replace(`/companies/${id}${t === 'overview' ? '' : `?tab=${t}`}`)
 
-  const [detail, setDetail]   = useState<CompanyDetail | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [detail, setDetail] = useState<Detail | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [threads, setThreads] = useState<CompanyThread[] | null>(null)
+  const [people, setPeople] = useState<{ people: Person[]; observedDomains: { domain: string; count: number }[] } | null>(null)
+  const [quotes, setQuotes] = useState<QuoteRow[] | null>(null)
+  const [cases, setCases] = useState<CaseRow[] | null>(null)
+  const [actions, setActions] = useState<CompanyAction[] | null>(null)
+  const [activity, setActivity] = useState<ActivityEvent[] | null>(null)
+  const [caseDialog, setCaseDialog] = useState<{ open: boolean; threadIds: string[] }>({ open: false, threadIds: [] })
 
-  const [threads, setThreads]               = useState<Thread[] | null>(null)
-  const [threadsLoading, setThreadsLoading]  = useState(false)
-  const [events, setEvents]                 = useState<CalendarEvent[] | null>(null)
-  const [eventsLoading, setEventsLoading]    = useState(false)
-  const [cases, setCases]                   = useState<NexusCase[] | null>(null)
-  const [casesLoading, setCasesLoading]      = useState(false)
+  const j = useCallback(async <T,>(path: string, fallback: T): Promise<T> => {
+    try { const r = await fetch(path, { cache: 'no-store' }); return r.ok ? await r.json() : fallback } catch { return fallback }
+  }, [])
 
+  const loadAll = useCallback(async () => {
+    const d = await fetch(`/api/companies/${id}`, { cache: 'no-store' })
+    if (!d.ok) { setError(d.status === 404 ? 'Company not found.' : 'Could not load this company.'); return }
+    setDetail(await d.json())
+    void Promise.all([
+      j<{ threads: CompanyThread[] }>(`/api/companies/${id}/threads`, { threads: [] }).then(r => setThreads(r.threads)),
+      j<{ people: Person[]; observedDomains: { domain: string; count: number }[] }>(`/api/companies/${id}/people`, { people: [], observedDomains: [] }).then(setPeople),
+      j<{ quotes: QuoteRow[] }>(`/api/companies/${id}/quotes`, { quotes: [] }).then(r => setQuotes(r.quotes)),
+      j<{ cases: CaseRow[] }>(`/api/companies/${id}/cases`, { cases: [] }).then(r => setCases(r.cases)),
+      j<{ actions: CompanyAction[] }>(`/api/companies/${id}/actions`, { actions: [] }).then(r => setActions(r.actions)),
+      j<{ events: ActivityEvent[] }>(`/api/companies/${id}/activity`, { events: [] }).then(r => setActivity(r.events)),
+    ])
+  }, [id, j])
+
+  useEffect(() => { loadAll() }, [loadAll])
+
+  // Tell the chat dock which company is open so "Ask about this company" has the right scope.
   useEffect(() => {
-    setLoading(true)
-    fetch(`/api/companies/${id}`, { cache: 'no-store' })
-      .then(r => r.ok ? r.json() : null)
-      .then(setDetail)
-      .finally(() => setLoading(false))
-  }, [id])
+    if (!detail) return
+    window.dispatchEvent(new CustomEvent('crm:active-company', { detail: { companyId: detail.company.id, name: detail.company.name } }))
+    return () => { window.dispatchEvent(new CustomEvent('crm:active-company', { detail: { companyId: null, name: null } })) }
+  }, [detail])
 
-  const loadThreads = useCallback(() => {
-    if (threads) return
-    setThreadsLoading(true)
-    fetch(`/api/companies/${id}/threads`, { cache: 'no-store' })
-      .then(r => r.ok ? r.json() : { threads: [] })
-      .then(d => setThreads(Array.isArray(d.threads) ? d.threads : []))
-      .finally(() => setThreadsLoading(false))
-  }, [id, threads])
+  const needsReply = useMemo(() => threads?.filter(t => t.needsReply).length ?? 0, [threads])
+  const openActions = useMemo(() => actions?.filter(a => a.status === 'open').length ?? 0, [actions])
 
-  const loadEvents = useCallback(() => {
-    if (events) return
-    setEventsLoading(true)
-    const from = new Date().toISOString().slice(0, 10)
-    const to   = new Date(Date.now() + 180 * 86400000).toISOString().slice(0, 10)
-    fetch(`/api/calendar/events?from=${from}&to=${to}&companyId=${id}`, { cache: 'no-store' })
-      .then(r => r.ok ? r.json() : [])
-      .then(d => setEvents(Array.isArray(d) ? d : []))
-      .finally(() => setEventsLoading(false))
-  }, [id, events])
-
-  const loadCases = useCallback(() => {
-    if (cases) return
-    setCasesLoading(true)
-    fetch(`/api/companies/${id}/cases`, { cache: 'no-store' })
-      .then(r => r.ok ? r.json() : { cases: [] })
-      .then(d => setCases(Array.isArray(d.cases) ? d.cases : []))
-      .finally(() => setCasesLoading(false))
-  }, [id, cases])
-
-  useEffect(() => {
-    if (tab === 'threads') loadThreads()
-    if (tab === 'due-dates') loadEvents()
-    if (tab === 'nexus') loadCases()
-  }, [tab, loadThreads, loadEvents, loadCases])
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[calc(50vh/var(--ui-zoom))]">
-        <Loader2 size={20} className="animate-spin text-muted-foreground/40" />
-      </div>
-    )
+  async function patchCompany(body: Record<string, unknown>) {
+    const res = await fetch(`/api/companies/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    const d = await res.json()
+    if (!res.ok) throw new Error(d.error ?? 'Could not save.')
+    setDetail(prev => prev ? { ...prev, company: d.company } : prev)
+    return d.company as Company
   }
 
-  if (!detail) {
+  async function addActionFromBrief(item: AiBrief['open_items'][number]) {
+    const res = await fetch(`/api/companies/${id}/actions`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: item.title, detail: item.detail ?? null, kind: item.kind ?? 'general', due_date: item.due ?? null }) })
+    const d = await res.json()
+    if (res.ok) setActions(prev => [d.action, ...(prev ?? [])])
+  }
+
+  if (error) {
     return (
-      <div className="px-8 py-7">
-        <p className="text-[14px] text-destructive mb-2">Company not found.</p>
+      <AppScrollPage maxWidth="1240px">
+        <p className="text-[14px] text-destructive mb-2">{error}</p>
         <Link href="/companies" className="text-[13px] text-primary hover:underline">← Back to Companies</Link>
-      </div>
+      </AppScrollPage>
     )
   }
+  if (!detail) return <Spinner label="Loading company…" />
 
-  const { company, contacts, policies, debitNotes, summary } = detail
+  const { company } = detail
 
   return (
-    <AppScrollPage maxWidth="1000px">
-      <Link
-        href="/companies"
-        className="inline-flex items-center gap-1 text-[12px] text-muted-foreground/60 hover:text-muted-foreground no-underline mb-3"
-      >
-        <ArrowLeft size={12} /> Companies
-      </Link>
+    <AppScrollPage maxWidth="1240px">
+      <CompanyHeader
+        company={company}
+        summary={detail.summary}
+        paymentSummary={detail.paymentSummary}
+        needsReply={needsReply}
+        openActions={openActions}
+        onCompany={c => setDetail(prev => prev ? { ...prev, company: c } : prev)}
+        onStage={async (s: Stage) => { await patchCompany({ stage: s }) }}
+        onAskAi={() => window.dispatchEvent(new CustomEvent('chat:open'))}
+      />
 
-      <div className="flex items-center gap-3 flex-wrap mb-4">
-        <Building2 size={20} className="text-muted-foreground/50 flex-shrink-0" />
-        <h1 className="text-[20px] font-bold tracking-tight text-foreground uppercase flex-1 min-w-0 m-0">
-          {company.name}
-        </h1>
-        {company.type && <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide px-2 py-1 rounded bg-muted">{company.type}</span>}
-      </div>
-
-      <div className="flex items-center gap-6 px-4 py-3 mb-5 rounded-lg bg-muted/30 border border-[--border-subtle] flex-wrap">
-        <StatCard label="Contacts" value={summary.contactCount} icon={Users} />
-        <StatCard label="Next Renewal" value={fmtDate(summary.nextRenewalDate)} icon={CalendarDays} />
-        <StatCard label="Open Debit Notes" value={summary.openDebitNoteCount} urgent={summary.openDebitNoteCount > 0} icon={Receipt} />
-      </div>
-
-      <div className="flex border-b border-[--border-subtle] mb-5 overflow-x-auto">
-        {([
-          { key: 'overview',    label: 'Overview',     icon: <Building2 size={13} /> },
-          { key: 'threads',     label: 'Threads',      icon: <Mail size={13} /> },
-          { key: 'policies',    label: 'Policies',     icon: <FileText size={13} /> },
-          { key: 'debit-notes', label: 'Debit Notes',  icon: <Receipt size={13} /> },
-          { key: 'due-dates',   label: 'Due Dates',    icon: <CalendarDays size={13} /> },
-          { key: 'nexus',       label: 'Nexus',        icon: <Network size={13} /> },
-        ] as { key: Tab; label: string; icon: React.ReactNode }[]).map(t => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={cn(
-              'inline-flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap relative',
-              'px-4 py-2.5 border-0 bg-transparent cursor-pointer',
-              'text-[13px] transition-colors border-b-2 -mb-px',
-              tab === t.key
-                ? 'border-primary text-foreground font-semibold'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            )}
-          >
-            {t.icon} {t.label}
-          </button>
-        ))}
+      <div className="flex border-b border-[--border-subtle] mb-4 overflow-x-auto -mx-6 px-6 sm:mx-0 sm:px-0" role="tablist">
+        {TABS.map(t => {
+          const badge = t.key === 'threads' ? needsReply : t.key === 'actions' ? (actions?.filter(a => a.status === 'proposed').length ?? 0) : t.key === 'payments' ? detail.summary.overdueCount : 0
+          return (
+            <button
+              key={t.key}
+              role="tab"
+              aria-selected={tab === t.key}
+              onClick={() => setTab(t.key)}
+              className={cn('inline-flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap px-3.5 py-2.5 border-0 bg-transparent cursor-pointer text-[13px] border-b-2 -mb-px transition-colors',
+                tab === t.key ? 'border-primary text-foreground font-semibold' : 'border-transparent text-muted-foreground hover:text-foreground')}
+            >
+              {t.label}
+              {badge > 0 && <span className="text-[10px] font-semibold rounded-[5px] px-1 leading-4" style={{ background: t.key === 'payments' ? 'var(--error-bg)' : 'var(--primary-badge-bg)', color: t.key === 'payments' ? 'var(--error)' : 'var(--primary-hex)' }}>{badge}</span>}
+            </button>
+          )
+        })}
       </div>
 
       {tab === 'overview' && (
-        <div className="flex flex-col gap-4">
-          <DetailSection label="Company details">
-            <DetailField label="Address">{company.address ?? '—'}</DetailField>
-            <DetailField label="Industry">{company.industry ?? '—'}</DetailField>
-            <DetailField label="Domain">{company.domain ?? '—'}</DetailField>
-            {company.notes && <DetailField label="Notes">{company.notes}</DetailField>}
-          </DetailSection>
-
-          <DetailSection label={`Contacts (${contacts.length})`}>
-            {contacts.length === 0 && <p className="text-[11.5px] text-muted-foreground">None on file yet.</p>}
-            {contacts.map(cc => (
-              <DetailField key={cc.id} label={contactName(cc.contacts)}>
-                <span className="flex items-center gap-1.5"><Mail size={11} className="text-muted-foreground/50" /> {cc.contacts?.email ?? cc.contacts?.phone ?? '—'}</span>
-              </DetailField>
-            ))}
-          </DetailSection>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+          <div className="lg:col-span-2 flex flex-col gap-4 min-w-0">
+            <BriefCard company={company} onBrief={b => setDetail(prev => prev ? { ...prev, company: { ...prev.company, ai_brief: b, ai_brief_at: b.generated_at, ai_brief_model: b.model } } : prev)} onAddAction={addActionFromBrief} onApplyStage={async s => { await patchCompany({ stage: s }) }} />
+            {actions ? <ActionsPanel companyId={id} actions={actions} onChange={setActions} compact /> : <Spinner />}
+            {threads ? <ThreadsPanel threads={threads} compact /> : <Spinner />}
+          </div>
+          <div className="flex flex-col gap-4 min-w-0">
+            {people ? <PeoplePanel people={people.people} limit={4} /> : <Spinner />}
+            <PaymentsPanel companyId={id} notes={detail.payments} summary={detail.paymentSummary} compact />
+            {quotes ? <QuotesPanel companyId={id} quotes={quotes} compact /> : <Spinner />}
+            {cases ? <CasesPanel cases={cases} onNew={() => setCaseDialog({ open: true, threadIds: [] })} compact /> : <Spinner />}
+            {activity ? <CompanyTimeline events={activity} limit={8} /> : <Spinner />}
+          </div>
         </div>
       )}
 
-      {tab === 'threads' && (
-        <div className="flex flex-col">
-          {threadsLoading && <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-muted-foreground" /></div>}
-          {!threadsLoading && threads?.length === 0 && <p className="text-[12.5px] text-muted-foreground py-6 text-center">No email threads linked to this company yet.</p>}
-          {!threadsLoading && threads?.map(t => (
-            <Link
-              key={t.id}
-              href={`/engagement?lead=${t.id}`}
-              className="flex items-start justify-between gap-3 px-3 py-3 border-b border-[--border-subtle] hover:bg-accent/40 no-underline text-foreground"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-semibold truncate">{t.subject ?? '(no subject)'}</p>
-                <p className="text-[11.5px] text-muted-foreground truncate mt-0.5">{t.snippet ?? ''}</p>
-                <p className="text-[11px] text-muted-foreground/60 mt-1">{contactName(t.contacts)} · {t.message_count} message{t.message_count !== 1 ? 's' : ''}</p>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <span className="text-[11px] text-muted-foreground/60">{fmtDate(t.last_message_at)}</span>
-                <ExternalLink size={12} className="text-muted-foreground/40" />
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
+      {tab === 'threads' && (threads ? <ThreadsPanel threads={threads} onCombine={ids => setCaseDialog({ open: true, threadIds: ids })} /> : <Spinner />)}
+
+      {tab === 'people' && (people ? (
+        <PeoplePanel
+          people={people.people}
+          observedDomains={people.observedDomains}
+          knownDomains={company.domains}
+          onAddDomain={async d => { await patchCompany({ domains: [...company.domains, d] }) }}
+        />
+      ) : <Spinner />)}
+
+      {tab === 'quotes' && (quotes ? <QuotesPanel companyId={id} quotes={quotes} /> : <Spinner />)}
+      {tab === 'payments' && <PaymentsPanel companyId={id} notes={detail.payments} summary={detail.paymentSummary} />}
+      {tab === 'cases' && (cases ? <CasesPanel cases={cases} onNew={() => setCaseDialog({ open: true, threadIds: [] })} /> : <Spinner />)}
+      {tab === 'actions' && (actions ? <ActionsPanel companyId={id} actions={actions} onChange={setActions} /> : <Spinner />)}
+      {tab === 'activity' && (activity ? <CompanyTimeline events={activity} /> : <Spinner />)}
 
       {tab === 'policies' && (
-        <table className="w-full text-[12.5px]">
-          <thead>
-            <tr className="border-b border-[--border-subtle] text-[10.5px] uppercase tracking-wider text-muted-foreground/60">
-              <th className="text-left px-3 py-2 font-semibold">Policy #</th>
-              <th className="text-left px-3 py-2 font-semibold">Insurer</th>
-              <th className="text-left px-3 py-2 font-semibold">Class</th>
-              <th className="text-left px-3 py-2 font-semibold">Ends</th>
-              <th className="text-left px-3 py-2 font-semibold">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {policies.length === 0 && (
-              <tr><td colSpan={5} className="px-3 py-10 text-center text-muted-foreground">No policies yet.</td></tr>
-            )}
-            {policies.map(p => (
-              <tr key={p.id} className="border-b border-[--border-subtle]">
-                <td className="px-3 py-2.5 text-muted-foreground">{p.policy_number || '—'}</td>
-                <td className="px-3 py-2.5 text-muted-foreground">{p.insurer ?? '—'}</td>
-                <td className="px-3 py-2.5 text-muted-foreground">{p.class_of_insurance ?? '—'}</td>
-                <td className="px-3 py-2.5 text-muted-foreground">{fmtDate(p.end_date)}</td>
-                <td className="px-3 py-2.5 text-muted-foreground capitalize">{p.status ?? '—'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      {tab === 'debit-notes' && (
-        <>
-          <table className="w-full text-[12.5px]">
-            <thead>
-              <tr className="border-b border-[--border-subtle] text-[10.5px] uppercase tracking-wider text-muted-foreground/60">
-                <th className="text-left px-3 py-2 font-semibold">DN #</th>
-                <th className="text-left px-3 py-2 font-semibold">Insurer</th>
-                <th className="text-left px-3 py-2 font-semibold">Issued</th>
-                <th className="text-right px-3 py-2 font-semibold">Amount</th>
-                <th className="text-left px-3 py-2 font-semibold">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {debitNotes.length === 0 && (
-                <tr><td colSpan={5} className="px-3 py-10 text-center text-muted-foreground">No debit notes yet.</td></tr>
-              )}
-              {debitNotes.map(dn => (
-                <tr key={dn.id} className="border-b border-[--border-subtle]">
-                  <td className="px-3 py-2.5 font-mono text-[11.5px]">{dn.debit_note_no}</td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{dn.insurer ?? '—'}</td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{fmtDate(dn.issue_date)}</td>
-                  <td className="px-3 py-2.5 text-right font-medium">{fmt(dn.gross_amount, dn.currency)}</td>
-                  <td className="px-3 py-2.5"><StatusBadge status={dn.status} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <Link href={`/debit-notes?company_id=${id}`} className="inline-block mt-3 text-[11.5px] font-semibold text-primary hover:underline">View all debit notes →</Link>
-        </>
-      )}
-
-      {tab === 'due-dates' && (
-        <div className="flex flex-col">
-          {eventsLoading && <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-muted-foreground" /></div>}
-          {!eventsLoading && events?.length === 0 && <p className="text-[12.5px] text-muted-foreground py-6 text-center">Nothing due in the next 180 days.</p>}
-          {!eventsLoading && events?.map(e => (
-            <div key={e.id} className="flex items-center justify-between gap-3 px-3 py-3 border-b border-[--border-subtle]">
-              <div className="min-w-0">
-                <p className="text-[13px] font-semibold">
-                  {e.type === 'renewal' ? `${e.classOfInsurance ?? 'Policy'} — ${e.label}` : `Debit note ${e.debitNoteNo} due`}
-                </p>
-                <p className="text-[11.5px] text-muted-foreground mt-0.5">
-                  {e.type === 'renewal' ? (e.policyNumber ?? e.insurer ?? '') : (e.policyNumber ?? e.insurer ?? '')}
-                </p>
-              </div>
-              <span className="text-[11.5px] text-muted-foreground flex-shrink-0">{fmtDate(e.date)}</span>
+        <SectionCard title="Policies" description="Policies placed through TRS, from debit-note imports." padded={false}>
+          {detail.policies.length === 0 && <Empty compact>No policies on file.</Empty>}
+          {detail.policies.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-[12.5px] min-w-[600px]">
+                <thead><tr className="text-[10.5px] uppercase tracking-wider text-muted-foreground" style={{ background: 'var(--table-header-bg)' }}>
+                  <th className="text-left px-4 py-2 font-semibold">Policy</th><th className="text-left px-3 py-2 font-semibold">Insurer</th><th className="text-left px-3 py-2 font-semibold">Class</th><th className="text-left px-3 py-2 font-semibold">Period</th><th className="text-left px-3 py-2 font-semibold">Status</th>
+                </tr></thead>
+                <tbody>
+                  {detail.policies.map(p => (
+                    <tr key={p.id} className="border-b border-[--border-subtle]">
+                      <td className="px-4 py-2 font-mono text-[11.5px]">{p.policy_number ?? '—'}</td>
+                      <td className="px-3 py-2">{p.insurer ?? '—'}</td>
+                      <td className="px-3 py-2">{p.class_of_insurance ?? '—'}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">{fmtDate(p.start_date)} → {fmtDate(p.end_date)}</td>
+                      <td className="px-3 py-2 capitalize">{p.status ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          ))}
-        </div>
+          )}
+        </SectionCard>
       )}
 
-      {tab === 'nexus' && (
-        <div className="flex flex-col">
-          <div className="flex justify-end mb-3">
-            <Link
-              href={`/nexus?newCase=1&companyId=${id}`}
-              className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-primary hover:underline"
-            >
-              <Plus size={13} /> New case
-            </Link>
-          </div>
-          {casesLoading && <div className="flex justify-center py-10"><Loader2 size={16} className="animate-spin text-muted-foreground" /></div>}
-          {!casesLoading && cases?.length === 0 && <p className="text-[12.5px] text-muted-foreground py-6 text-center">No Nexus cases for this company yet.</p>}
-          {!casesLoading && cases?.map(c => (
-            <Link
-              key={c.id}
-              href={`/nexus?case=${c.id}`}
-              className="flex items-start justify-between gap-3 px-3 py-3 border-b border-[--border-subtle] hover:bg-accent/40 no-underline text-foreground"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-semibold truncate">{c.name}</p>
-                {c.description && <p className="text-[11.5px] text-muted-foreground truncate mt-0.5">{c.description}</p>}
-                <p className="text-[11px] text-muted-foreground/60 mt-1">{c.thread_count} thread{c.thread_count !== 1 ? 's' : ''} · updated {fmtDate(c.updated_at)}</p>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <span className="text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground/60 px-2 py-0.5 rounded bg-muted">{c.status}</span>
-                <ExternalLink size={12} className="text-muted-foreground/40" />
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
+      <NewCaseDialog
+        open={caseDialog.open}
+        onClose={() => setCaseDialog({ open: false, threadIds: [] })}
+        companyId={id}
+        companyName={company.name}
+        threadIds={caseDialog.threadIds}
+        onCreated={caseId => router.push(`/nexus?case=${caseId}`)}
+      />
     </AppScrollPage>
   )
 }

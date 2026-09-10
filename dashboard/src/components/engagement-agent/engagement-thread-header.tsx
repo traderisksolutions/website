@@ -1,10 +1,45 @@
 'use client'
 
-import { ArrowLeft, Trash2, FileText, Info } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ArrowLeft, Trash2, FileText, Info, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Lead } from '@/components/engagement/types'
 import { fullName } from '@/components/engagement/helpers'
 import { EngagementStatusBadge } from './engagement-status-badge'
+import type { CustomerProfile } from '@/lib/customer-profile'
+
+/** The zero-click "before you even open the thread" snapshot — see EngagementProfileTab for the
+ *  full detail view. Fetches once per contact; a genuinely cheap read (no AI calls, pure
+ *  aggregation — see src/lib/customer-profile.ts), so no caching layer needed for v1. */
+function CustomerSnapshotLine({ contactId }: { contactId: string }) {
+  const [profile, setProfile] = useState<CustomerProfile | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    setProfile(null)
+    fetch(`/api/customer-profile?contactId=${contactId}`, { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (!cancelled) setProfile(d) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [contactId])
+
+  if (!profile) return null
+  const activePolicies = profile.policies.filter(p => p.status === 'active')
+  const parts: string[] = []
+  if (activePolicies.length > 0) parts.push(`${activePolicies.length} active polic${activePolicies.length === 1 ? 'y' : 'ies'}`)
+  if (profile.company?.industry) parts.push(profile.company.industry)
+  if (profile.customerStatus === 'renewal_due') parts.push('renewal due')
+  if (profile.recentSummaries.length > 0) parts.push(`${profile.recentSummaries.length} prior thread${profile.recentSummaries.length === 1 ? '' : 's'}`)
+  if (parts.length === 0) return null
+
+  return (
+    <p className="flex items-center gap-1 text-[11px] text-[--primary-hex] m-0 mt-1 leading-snug">
+      <Sparkles size={10} strokeWidth={2} className="flex-shrink-0" />
+      {parts.join(' · ')}
+    </p>
+  )
+}
 
 interface EngagementThreadHeaderProps {
   subject?:       string | null
@@ -77,6 +112,8 @@ export function EngagementThreadHeader({
               </span>
             )}
           </p>
+
+          <CustomerSnapshotLine contactId={lead.id} />
 
           {/* Needs-reply — shown only as a small restrained inline indicator */}
           {needsReply && (

@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useReducer, useEffect, useRef, useCallback, useState } from 'react'
 import { chatDockReducer, initialChatDockState, type ChatDockState } from '@/stores/chat-dock-store'
 import { createClient } from '@/lib/supabase/client'
-import type { ChatMessage, ChatThread } from '@/lib/chat/chat-types'
+import { EMPTY_SCOPE, sameScope, type ChatMessage, type ChatThread, type ChatScope } from '@/lib/chat/chat-types'
 import {
   getChatBootstrapState, getOrCreateOpenThread, getThreadMessages,
   appendUserMessage, appendAssistantMessage, saveDraft, setThreadStatus, upsertChatUiState, updateMessageMeta,
@@ -13,6 +13,8 @@ import {
 interface ChatDockContextValue {
   state:         ChatDockState
   caseIdInRoute: string | null
+  /** What the dock is scoped to right now: a Nexus case, a client company, or nothing. */
+  scopeInRoute:  ChatScope
   open:          () => void
   minimize:      () => void
   restore:       () => void
@@ -38,11 +40,16 @@ export function useChatDock(): ChatDockContextValue {
   return ctx
 }
 
-// The Nexus case currently in view (case-aware context), read from the URL.
-function caseIdFromLocation(): string | null {
-  if (typeof window === 'undefined') return null
-  if (!window.location.pathname.startsWith('/nexus')) return null
-  return new URLSearchParams(window.location.search).get('case')
+// What is in view, read from the URL: a Nexus case (/nexus?case=) or a company workspace
+// (/companies/<uuid>). The page then keeps it current via the 'nexus:active-case' and
+// 'crm:active-company' events (the company one also carries the name for the dock title).
+function scopeFromLocation(): ChatScope {
+  if (typeof window === 'undefined') return EMPTY_SCOPE
+  const { pathname, search } = window.location
+  if (pathname.startsWith('/nexus')) return { caseId: new URLSearchParams(search).get('case'), companyId: null, label: null }
+  const m = /^\/companies\/([0-9a-f-]{36})/.exec(pathname)
+  if (m) return { caseId: null, companyId: m[1], label: null }
+  return EMPTY_SCOPE
 }
 
 // Tell an open Nexus case view to re-fetch after the chat changed its analysis.
@@ -58,20 +65,22 @@ function notifyAnalysisStarted(caseId: string) {
 
 export function ChatDockProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(chatDockReducer, initialChatDockState)
-  // The active Nexus case (Ask Opus is per-case). Seeded from the URL, then kept
-  // current by the 'nexus:active-case' event the case view broadcasts.
-  const [routeCaseId, setRouteCaseId] = useState<string | null>(() => caseIdFromLocation())
-  const routeCaseRef = useRef<string | null>(routeCaseId)
-  routeCaseRef.current = routeCaseId
+  // The active scope (case or company). Seeded from the URL, then kept current by the
+  // 'nexus:active-case' / 'crm:active-company' events the views broadcast.
+  const [routeScope, setRouteScope] = useState<ChatScope>(() => scopeFromLocation())
+  const routeCaseRef = useRef<ChatScope>(routeScope)
+  routeCaseRef.current = routeScope
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const stateRef = useRef(state)
   stateRef.current = state
 
   useEffect(() => {
-    const onCase = (e: Event) => setRouteCaseId((e as CustomEvent).detail?.caseId ?? null)
+    const onCase = (e: Event) => { const caseId = (e as CustomEvent).detail?.caseId ?? null; setRouteScope({ caseId, companyId: null, label: null }) }
+    const onCompany = (e: Event) => { const d = (e as CustomEvent).detail ?? {}; setRouteScope(d.companyId ? { caseId: null, companyId: d.companyId, label: d.name ?? null } : EMPTY_SCOPE) }
     window.addEventListener('nexus:active-case', onCase as EventListener)
-    return () => window.removeEventListener('nexus:active-case', onCase as EventListener)
+    window.addEventListener('crm:active-company', onCompany as EventListener)
+    return () => { window.removeEventListener('nexus:active-case', onCase as EventListener); window.removeEventListener('crm:active-company', onCompany as EventListener) }
   }, [])
 
   // ── Hydrate from Supabase once ──────────────────────────────────────────────
@@ -90,6 +99,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
             activeThreadId: boot.thread?.id ?? null,
             activeTitle:    boot.thread?.title ?? null,
             caseId:         boot.thread?.case_id ?? null,
+            companyId:      boot.thread?.company_id ?? null,
             messages:       boot.messages,
             draft:          boot.draft,
           },
@@ -101,21 +111,22 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
     return () => { cancelled = true }
   }, [])
 
-  const caseIdInRoute = routeCaseId
+  const caseIdInRoute = routeScope.caseId
+  const scopeInRoute  = routeScope
 
-  // Switching cases while the dock is in use → rebind to the new case's thread.
+  // Switching case or company while the dock is in use → rebind to that scope's thread.
   useEffect(() => {
     const cur = stateRef.current
-    if (!cur.bootstrapped || !routeCaseId) return
-    if ((cur.caseId ?? null) === routeCaseId) return
+    if (!cur.bootstrapped || (!routeScope.caseId && !routeScope.companyId)) return
+    if (sameScope(cur, routeScope)) return
     if (!cur.isOpen && !cur.isMinimized) return   // otherwise bind lazily on open()
     ;(async () => {
-      const thread = await getOrCreateOpenThread(routeCaseId)
+      const thread = await getOrCreateOpenThread(routeScope)
       if (!thread) return
       const messages = await getThreadMessages(thread.id)
-      dispatch({ type: 'SET_THREAD', threadId: thread.id, caseId: thread.case_id, messages, draft: '', title: thread.title })
+      dispatch({ type: 'SET_THREAD', threadId: thread.id, caseId: thread.case_id, companyId: thread.company_id ?? null, messages, draft: '', title: thread.title })
     })()
-  }, [routeCaseId])
+  }, [routeScope])
 
   // ── Realtime: cross-tab sync for the active thread's messages ────────────────
   useEffect(() => {
@@ -157,20 +168,28 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
   // ── Bind the dock to the right thread for the current case, then open ────────
   const open = useCallback(async () => {
     const cur = stateRef.current
-    const routeCase = routeCaseRef.current ?? caseIdFromLocation()
+    const scope = routeCaseRef.current
     dispatch({ type: 'OPEN' })
     upsertChatUiState({ is_open: true, is_minimized: false }).catch(() => {})
 
     // Already bound to the right context → nothing to load.
-    if (cur.activeThreadId && (cur.caseId ?? null) === (routeCase ?? null)) return
+    if (cur.activeThreadId && sameScope(cur, scope)) return
     try {
-      const thread = await getOrCreateOpenThread(routeCase)
+      const thread = await getOrCreateOpenThread(scope)
       if (!thread) return
       const messages = await getThreadMessages(thread.id)
-      dispatch({ type: 'SET_THREAD', threadId: thread.id, caseId: thread.case_id, messages, draft: '', title: thread.title })
+      dispatch({ type: 'SET_THREAD', threadId: thread.id, caseId: thread.case_id, companyId: thread.company_id ?? null, messages, draft: '', title: thread.title })
       upsertChatUiState({ active_thread_id: thread.id, is_open: true, is_minimized: false }).catch(() => {})
     } catch { /* keep dock open, empty */ }
   }, [])
+
+  // Pages can open the dock without holding the context (the company workspace's
+  // "Ask about this company" button lives outside the provider tree).
+  useEffect(() => {
+    const onOpen = () => { void open() }
+    window.addEventListener('chat:open', onOpen)
+    return () => window.removeEventListener('chat:open', onOpen)
+  }, [open])
 
   const minimize = useCallback(() => {
     dispatch({ type: 'MINIMIZE' })
@@ -196,7 +215,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
   // ── Streaming assistant run (shared by send + regenerate) ───────────────────
   // Passes the last user message; the API dedups against history, so it never
   // double-inserts. Aborting (Stop) persists whatever streamed so far.
-  const runAssistant = useCallback(async (threadId: string, caseId: string | null, userContent: string, attachments?: { filename: string; text: string }[]) => {
+  const runAssistant = useCallback(async (threadId: string, caseId: string | null, companyId: string | null, userContent: string, attachments?: { filename: string; text: string }[]) => {
     dispatch({ type: 'SET_SENDING', sending: true })
     dispatch({ type: 'SET_ERROR', error: null })
     const ac = new AbortController()
@@ -206,7 +225,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await fetch('/api/chat', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ thread_id: threadId, case_id: caseId, message: userContent, attachments: attachments ?? [] }),
+        body: JSON.stringify({ thread_id: threadId, case_id: caseId, company_id: companyId, message: userContent, attachments: attachments ?? [] }),
         signal: ac.signal,
       })
       if (!res.ok || !res.body) { const d = await res.json().catch(() => ({})); throw new Error(d.error ?? 'Assistant failed to respond') }
@@ -256,14 +275,15 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
     if ((!content && !(attachments?.length)) || cur.sending) return
     const msgText = content || '(see attached)'
     const files = (attachments ?? []).map(a => a.filename)
-    let threadId = cur.activeThreadId
-    let caseId   = cur.caseId
+    let threadId  = cur.activeThreadId
+    let caseId    = cur.caseId
+    let companyId = cur.companyId
     try {
       if (!threadId) {
-        const thread = await getOrCreateOpenThread(routeCaseRef.current ?? caseIdFromLocation())
+        const thread = await getOrCreateOpenThread(routeCaseRef.current)
         if (!thread) throw new Error('Could not start a chat')
-        threadId = thread.id; caseId = thread.case_id
-        dispatch({ type: 'SET_THREAD', threadId, caseId, messages: [], draft: '', title: thread.title })
+        threadId = thread.id; caseId = thread.case_id; companyId = thread.company_id ?? null
+        dispatch({ type: 'SET_THREAD', threadId, caseId, companyId, messages: [], draft: '', title: thread.title })
         upsertChatUiState({ active_thread_id: threadId, is_open: true }).catch(() => {})
       }
       const firstMessage = cur.messages.length === 0
@@ -277,7 +297,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'SET_ERROR', error: e instanceof Error ? e.message : 'Could not send' })
       return
     }
-    await runAssistant(threadId, caseId, msgText, attachments)
+    await runAssistant(threadId, caseId, companyId, msgText, attachments)
   }, [runAssistant])
 
   // Stop the in-flight streaming reply.
@@ -293,7 +313,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
     if (!lastUser) return
     if (!last.id.startsWith('tmp-')) deleteMessage(last.id).catch(() => {})
     dispatch({ type: 'REMOVE_MESSAGE', id: last.id })
-    await runAssistant(cur.activeThreadId, cur.caseId, lastUser.content)
+    await runAssistant(cur.activeThreadId, cur.caseId, cur.companyId, lastUser.content)
   }, [runAssistant])
 
   // ── Confirm-to-act: run a proposed action ───────────────────────────────────
@@ -408,23 +428,23 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
   const toggleHistory = useCallback(() => {
     const next = !stateRef.current.showHistory
     dispatch({ type: 'SET_HISTORY', show: next })
-    // Per-case history: only this case's conversations (general chats stay hidden).
+    // Scoped history: only this case's / company's conversations (general chats stay hidden).
     if (next) listThreads(routeCaseRef.current).then(threads => dispatch({ type: 'SET_THREADS', threads })).catch(() => {})
   }, [])
 
   const openThread = useCallback(async (thread: ChatThread) => {
     dispatch({ type: 'SET_HISTORY', show: false })
     const messages = await getThreadMessages(thread.id)
-    dispatch({ type: 'SET_THREAD', threadId: thread.id, caseId: thread.case_id, messages, draft: '', title: thread.title })
+    dispatch({ type: 'SET_THREAD', threadId: thread.id, caseId: thread.case_id, companyId: thread.company_id ?? null, messages, draft: '', title: thread.title })
     if (thread.status !== 'open') setThreadStatus(thread.id, 'open').catch(() => {})
     upsertChatUiState({ active_thread_id: thread.id, is_open: true, is_minimized: false }).catch(() => {})
   }, [])
 
   const newThread = useCallback(async () => {
     dispatch({ type: 'SET_HISTORY', show: false })
-    const thread = await createThread(routeCaseRef.current ?? caseIdFromLocation())
+    const thread = await createThread(routeCaseRef.current)
     if (!thread) return
-    dispatch({ type: 'SET_THREAD', threadId: thread.id, caseId: thread.case_id, messages: [], draft: '', title: thread.title })
+    dispatch({ type: 'SET_THREAD', threadId: thread.id, caseId: thread.case_id, companyId: thread.company_id ?? null, messages: [], draft: '', title: thread.title })
     upsertChatUiState({ active_thread_id: thread.id, is_open: true, is_minimized: false }).catch(() => {})
   }, [])
 
@@ -447,7 +467,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <ChatDockContext.Provider value={{ state, caseIdInRoute, open, minimize, restore, close, setDraft, send, stop, regenerate, confirmAction, undoAction, toggleHistory, openThread, newThread, archiveThread, renameThread }}>
+    <ChatDockContext.Provider value={{ state, caseIdInRoute, scopeInRoute, open, minimize, restore, close, setDraft, send, stop, regenerate, confirmAction, undoAction, toggleHistory, openThread, newThread, archiveThread, renameThread }}>
       {children}
     </ChatDockContext.Provider>
   )

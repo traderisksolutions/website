@@ -15,7 +15,7 @@ import { ChatThreadList } from './chat-thread-list'
  * minimized bar. Fixed bottom-right; never overlays/blocks the page.
  */
 export function FloatingChatDock() {
-  const { state, caseIdInRoute, open, minimize, restore, close, setDraft, send, stop, regenerate, confirmAction, undoAction, toggleHistory, openThread, newThread, archiveThread, renameThread } = useChatDock()
+  const { state, caseIdInRoute, scopeInRoute, open, minimize, restore, close, setDraft, send, stop, regenerate, confirmAction, undoAction, toggleHistory, openThread, newThread, archiveThread, renameThread } = useChatDock()
   const [attachments, setAttachments] = useState<{ filename: string; text: string }[]>([])
   const [attaching, setAttaching] = useState(false)
 
@@ -36,12 +36,13 @@ export function FloatingChatDock() {
   }
 
   if (!state.bootstrapped) return null
-  // Ask Opus is per-case: only show when a specific Nexus case is open.
-  if (!caseIdInRoute) return null
+  // Scoped: only show when a specific Nexus case or client company is open.
+  if (!caseIdInRoute && !scopeInRoute.companyId) return null
 
   const caseAware = true
-  const title     = 'Case consultant'
-  const subtitle  = 'Steering this case'
+  const companyScoped = !caseIdInRoute && !!scopeInRoute.companyId
+  const title     = companyScoped ? 'Company consultant' : 'Case consultant'
+  const subtitle  = companyScoped ? (scopeInRoute.label ? `About ${scopeInRoute.label}` : 'About this company') : 'Steering this case'
 
   // ── Closed → launcher pill ──────────────────────────────────────────────────
   if (!state.isOpen) {

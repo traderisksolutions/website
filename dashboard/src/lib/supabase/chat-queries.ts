@@ -1,9 +1,14 @@
 // Dedicated Supabase access layer for the floating chat. All calls run through
 // the browser client under RLS (owner-only), so no user_id spoofing is possible.
 // Grouped here so table queries never scatter across components.
+//
+// A chat thread is scoped to a Nexus case, to a client company, or to nothing (general chat).
+// The scope decides which threads the history drawer shows and which context the API loads.
 
 import { createClient } from '@/lib/supabase/client'
 import type { ChatBootstrap, ChatMessage, ChatMessageMeta, ChatThread, ChatUiState, ThreadStatus } from '@/lib/chat/chat-types'
+
+export type ThreadScope = { caseId?: string | null; companyId?: string | null }
 
 function db() { return createClient() }
 
@@ -12,8 +17,16 @@ async function currentUserId(): Promise<string | null> {
   return data.user?.id ?? null
 }
 
-// Most-recent non-closed thread for a case (if given) else global.
-export async function getOrCreateOpenThread(caseId?: string | null): Promise<ChatThread | null> {
+// PostgREST filter for one scope. `company_id` only exists after the 20260910 migration; when
+// it is missing we fall back to case-only filtering so the dock still works on Nexus.
+function scopeInsert(scope: ThreadScope): Record<string, unknown> {
+  const row: Record<string, unknown> = { case_id: scope.caseId ?? null }
+  if (scope.companyId) row.company_id = scope.companyId
+  return row
+}
+
+// Most-recent non-closed thread for the scope, else create one.
+export async function getOrCreateOpenThread(scope: ThreadScope = {}): Promise<ChatThread | null> {
   const supabase = db()
   const uid = await currentUserId()
   if (!uid) return null
@@ -21,36 +34,39 @@ export async function getOrCreateOpenThread(caseId?: string | null): Promise<Cha
   let q = supabase.from('chat_threads').select('*')
     .eq('user_id', uid).in('status', ['open', 'minimized'])
     .order('updated_at', { ascending: false }).limit(1)
-  q = caseId ? q.eq('case_id', caseId) : q.is('case_id', null)
+  if (scope.caseId) q = q.eq('case_id', scope.caseId)
+  else if (scope.companyId) q = q.eq('company_id', scope.companyId)
+  else q = q.is('case_id', null).is('company_id', null)
 
-  const { data: existing } = await q
-  if (existing && existing[0]) return existing[0] as ChatThread
+  const { data: existing, error: qErr } = await q
+  if (!qErr && existing && existing[0]) return existing[0] as ChatThread
+  if (qErr && !scope.companyId) return null
 
   const { data: created, error } = await supabase.from('chat_threads')
-    .insert({ user_id: uid, status: 'open', kind: 'assistant', case_id: caseId ?? null })
+    .insert({ user_id: uid, status: 'open', kind: 'assistant', ...scopeInsert(scope) })
     .select('*').single()
   if (error) return null
   return created as ChatThread
 }
 
-// All of the user's non-archived threads, newest first — for the history drawer.
-export async function listThreads(caseId?: string | null): Promise<ChatThread[]> {
+// All of the user's non-archived threads in this scope, newest first — for the history drawer.
+export async function listThreads(scope: ThreadScope = {}): Promise<ChatThread[]> {
   const uid = await currentUserId()
   if (!uid) return []
   let q = db().from('chat_threads').select('*')
     .eq('user_id', uid).neq('status', 'archived')
-  // Ask Opus is per-case: only this case's conversations (hides general chats).
-  if (caseId) q = q.eq('case_id', caseId)
+  if (scope.caseId) q = q.eq('case_id', scope.caseId)
+  else if (scope.companyId) q = q.eq('company_id', scope.companyId)
   const { data } = await q.order('updated_at', { ascending: false }).limit(50)
   return (data ?? []) as ChatThread[]
 }
 
 // A brand-new thread (distinct from getOrCreateOpenThread, which reuses one).
-export async function createThread(caseId?: string | null): Promise<ChatThread | null> {
+export async function createThread(scope: ThreadScope = {}): Promise<ChatThread | null> {
   const uid = await currentUserId()
   if (!uid) return null
   const { data, error } = await db().from('chat_threads')
-    .insert({ user_id: uid, status: 'open', kind: 'assistant', case_id: caseId ?? null })
+    .insert({ user_id: uid, status: 'open', kind: 'assistant', ...scopeInsert(scope) })
     .select('*').single()
   if (error) return null
   return data as ChatThread

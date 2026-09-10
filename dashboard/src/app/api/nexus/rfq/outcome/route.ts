@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
 
       const wRes = await fetch(`${SB_URL}/rest/v1/rfq_quotes?dispatch_id=eq.${dispatch_id}&select=id,insurer_name&limit=1`, { headers: sbH(), cache: 'no-store' })
       const winner = wRes.ok ? (await wRes.json())[0] : null
+      if (!winner) return NextResponse.json({ error: 'No captured quote for this dispatch yet — extract or enter the quote before selecting it as the winner.' }, { status: 409 })
 
       await fetch(`${SB_URL}/rest/v1/rfq_quotes?dispatch_id=eq.${dispatch_id}`, {
         method: 'PATCH', headers: sbH('return=minimal'), body: JSON.stringify({ status: 'selected', updated_at: now }),

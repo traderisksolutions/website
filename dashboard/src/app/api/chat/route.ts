@@ -13,6 +13,13 @@ import { createClient }              from '@/lib/supabase/server'
 import { logAnthropicUsage }         from '@/lib/gemini-usage'
 import { logError }                  from '@/lib/error-log'
 import { createSupabaseDB, createGeminiComposer, SkillSynthesizer } from '@/lib/ai-learning-loop'
+import { getCompany, getCompanyThreadIds, sbTry } from '@/lib/crm/db'
+import { buildCompanyContext } from '@/lib/crm/context'
+import { listCompanyThreads } from '@/lib/crm/threads'
+import { loadCompanyPayments } from '@/lib/crm/payments-server'
+import { listCompanyQuotes } from '@/lib/crm/quotes'
+import { rankPeople } from '@/lib/crm/people'
+import type { CompanyAction } from '@/lib/crm/types'
 
 export const maxDuration = 300
 
@@ -51,6 +58,70 @@ Latest analysis (summary — use get_case_analysis for the full JSON):
 ${compact ? JSON.stringify(compact, null, 2) : '(no analysis yet — the broker may want you to run one)'}\n`
 }
 
+// ── Company scope (the company workspace's "Ask about this company") ──────────
+// The same facts the brief and next-action extraction see, rendered once into the system
+// prompt; the tools below let Opus read deeper (a thread's messages, the full payment list)
+// without stuffing everything into context up front.
+async function companyContext(companyId: string): Promise<string> {
+  const company = await getCompany(companyId)
+  if (!company) return ''
+  const ctx = await buildCompanyContext(company, { withExcerpts: false })
+  return `━━ CURRENT COMPANY ━━\n${ctx.text}\n`
+}
+
+const COMPANY_TOOLS = [
+  { name: 'list_company_threads', description: 'List every email thread with this company: thread_id, subject, category, whether it awaits our reply, and the latest AI summary.', input_schema: { type: 'object', properties: {} } },
+  { name: 'get_thread_messages',  description: 'Get recent messages (direction, from, date, body) for one of this company\'s threads.', input_schema: { type: 'object', properties: { thread_id: { type: 'string' } }, required: ['thread_id'] } },
+  { name: 'get_company_payments', description: 'Every debit note for this company with amount, due date, outstanding balance and whether it is overdue.', input_schema: { type: 'object', properties: {} } },
+  { name: 'get_company_quotes',   description: 'RFQ lines and group benefits quotations for this company with status.', input_schema: { type: 'object', properties: {} } },
+  { name: 'get_company_people',   description: 'Who corresponds with us at this company, ranked by activity, with insurer contacts seen on the same threads.', input_schema: { type: 'object', properties: {} } },
+  { name: 'list_company_actions', description: 'Open and proposed next actions recorded for this company.', input_schema: { type: 'object', properties: {} } },
+] as const
+
+async function execCompanyTool(name: string, input: Record<string, unknown>, companyId: string): Promise<string> {
+  const cap = (s: string) => s.slice(0, 12_000)
+  try {
+    const company = await getCompany(companyId)
+    if (!company) return 'Company not found.'
+    if (name === 'list_company_threads') {
+      const threads = await listCompanyThreads(companyId)
+      return cap(JSON.stringify(threads.map(t => ({ thread_id: t.id, subject: t.subject, category: t.category, awaiting_our_reply: t.needsReply, last: t.last_message_at, with: t.contact?.email, summary: t.summary, next_action: t.nextAction }))))
+    }
+    if (name === 'get_thread_messages') {
+      const tid = String(input.thread_id ?? '')
+      const own = await getCompanyThreadIds(companyId)
+      if (!own.includes(tid)) return 'That thread does not belong to this company.'
+      const rows = await sbTry<{ direction: string; from_address: string; sent_at: string; body_text: string }[]>(`email_messages?thread_id=eq.${tid}&deleted_at=is.null&order=sent_at.desc&limit=15&select=direction,from_address,sent_at,body_text`, [])
+      return cap(JSON.stringify(rows.reverse().map(m => ({ direction: m.direction, from: m.from_address, date: m.sent_at, body: (m.body_text ?? '').slice(0, 1500) }))))
+    }
+    if (name === 'get_company_payments') {
+      const { notes, summary } = await loadCompanyPayments(companyId)
+      return cap(JSON.stringify({ summary, notes: notes.map(n => ({ debit_note_no: n.debit_note_no, issued: n.issue_date, due: n.payment_due_date, currency: n.currency, amount: n.net_amount ?? n.gross_amount, outstanding: n.outstanding, status: n.derived, days_overdue: n.daysOverdue, cover: n.classOfInsurance, policy: n.policyNumber, insurer: n.insurer })) }))
+    }
+    if (name === 'get_company_quotes') {
+      const quotes = await listCompanyQuotes(company, await getCompanyThreadIds(companyId))
+      return cap(JSON.stringify(quotes))
+    }
+    if (name === 'get_company_people') {
+      const { people } = await rankPeople(company)
+      return cap(JSON.stringify(people.map(p => ({ name: p.name, email: p.email, party: p.party, primary: p.isPrimary, wrote: p.sent, addressed: p.received, copied: p.cc, last_seen: p.lastSeen, topics: p.topics }))))
+    }
+    if (name === 'list_company_actions') {
+      const rows = await sbTry<CompanyAction[]>(`company_actions?company_id=eq.${companyId}&status=in.(open,proposed)&select=title,detail,kind,status,priority,due_date,owner_email&order=due_date.asc.nullslast`, [])
+      return cap(JSON.stringify(rows))
+    }
+  } catch (e) { return `Tool error: ${String(e)}` }
+  return 'Unknown tool.'
+}
+
+const SYSTEM_COMPANY = `You are a sharp, candid account consultant embedded in TRS (Trade Risk Solutions, a Singapore insurance brokerage). A broker is asking you about ONE client company. Answer from the facts in context and from what your read-tools return — list_company_threads, get_thread_messages, get_company_payments, get_company_quotes, get_company_people, list_company_actions. Prefer looking things up over guessing. Be concise and practical: what is going on, what is owed, what is unanswered, what to do next and who to contact.
+
+CONFIRM-TO-ACT: if — and only if — the broker asks you to write to someone, END your reply with a single fenced block:
+\`\`\`action
+{ "type": "draft_email", "to_email": "<address>", "subject": "<subject>", "intent": "<what the email must achieve>", "key_points": ["..."], "thread_id": "<thread_id when replying on an existing thread, else omit>" }
+\`\`\`
+You brief the email; a drafting model writes the body on confirm. Do not write the full body yourself. No other action types are available in company scope. Never fabricate figures, dates or coverage.`
+
 // ── Live read-tools (case-scoped) ─────────────────────────────────────────────
 const TOOLS = [
   { name: 'get_case_analysis',  description: 'Get the full latest structured analysis JSON for this case (fuller than the summary in context).', input_schema: { type: 'object', properties: {} } },
@@ -69,6 +140,11 @@ const TOOL_STATUS: Record<string, string> = {
   list_attachments:   'Checking the documents…',
   get_thread_messages:'Reading the emails…',
   rescan_attachment:  'Re-scanning a document…',
+  list_company_threads: 'Checking the threads…',
+  get_company_payments: 'Checking the payments…',
+  get_company_quotes:   'Checking the quotes…',
+  get_company_people:   'Checking who is who…',
+  list_company_actions: 'Checking open actions…',
 }
 function toolStatus(names: string[]): string {
   const known = names.map(n => TOOL_STATUS[n]).filter(Boolean)
@@ -173,13 +249,14 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
-    const { thread_id, case_id, message, attachments } = await req.json() as { thread_id?: string; case_id?: string; message?: string; attachments?: { filename: string; text: string }[] }
+    const { thread_id, case_id, company_id, message, attachments } = await req.json() as { thread_id?: string; case_id?: string | null; company_id?: string | null; message?: string; attachments?: { filename: string; text: string }[] }
     if (!thread_id || !message?.trim()) return NextResponse.json({ error: 'thread_id and message required' }, { status: 400 })
 
     const attachBlock = (attachments ?? []).filter(a => a.text?.trim()).map(a => `=== ATTACHED FILE: ${a.filename} ===\n${a.text.slice(0, 20_000)}`).join('\n\n')
     const messageWithAtt = attachBlock ? `${message}\n\n${attachBlock}` : message
 
-    const tRes = await fetch(`${SB_URL}/rest/v1/chat_threads?id=eq.${thread_id}&select=user_id,case_id&limit=1`, { headers: sbH(), cache: 'no-store' })
+    // select=* — chat_threads.company_id only exists once 20260910_companies_crm.sql has run.
+    const tRes = await fetch(`${SB_URL}/rest/v1/chat_threads?id=eq.${thread_id}&select=*&limit=1`, { headers: sbH(), cache: 'no-store' })
     const thread = tRes.ok ? (await tRes.json())[0] : null
     if (!thread || thread.user_id !== user.id) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
@@ -195,9 +272,10 @@ export async function POST(req: NextRequest) {
       msgs.push({ role: 'user', content: messageWithAtt })
     }
 
-    const effCaseId = (case_id ?? thread.case_id) as string | null
+    const effCaseId = (case_id ?? thread.case_id ?? null) as string | null
+    const effCompanyId = effCaseId ? null : ((company_id ?? thread.company_id ?? null) as string | null)
     const origin = new URL(req.url).origin
-    const ctx = effCaseId ? await caseContext(effCaseId) : ''
+    const ctx = effCaseId ? await caseContext(effCaseId) : effCompanyId ? await companyContext(effCompanyId) : ''
 
     // Learned improvements distilled nightly from past chats.
     let learned = ''
@@ -207,7 +285,7 @@ export async function POST(req: NextRequest) {
       if (oTxt) learned = `LEARNED IMPROVEMENTS (from reviewing past chats — apply these):\n${oTxt}`
     } catch { /* optional */ }
 
-    const system = [SYSTEM, ctx, learned].filter(Boolean).join('\n\n')
+    const system = [effCompanyId ? SYSTEM_COMPANY : SYSTEM, ctx, learned].filter(Boolean).join('\n\n')
 
     const key = process.env.ANTHROPIC_API_KEY
     if (!key) return NextResponse.json({ error: 'Assistant is not configured (ANTHROPIC_API_KEY missing).' }, { status: 500 })
@@ -223,8 +301,9 @@ export async function POST(req: NextRequest) {
         async function runTurn(): Promise<{ full: string; blocks: Block[]; stopReason: string }> {
           let uIn = 0, uOut = 0
           const body: Record<string, unknown> = { model: 'claude-opus-4-8', max_tokens: 2000, system, messages: msgs, stream: true }
-          if (effCaseId) body.tools = TOOLS           // read-tools when case-aware
-          else body.thinking = { type: 'adaptive' }   // deeper reasoning for general chat
+          if (effCaseId) body.tools = TOOLS                  // read-tools when case-aware
+          else if (effCompanyId) body.tools = COMPANY_TOOLS  // read-tools when company-aware
+          else body.thinking = { type: 'adaptive' }          // deeper reasoning for general chat
           const aRes = await fetch(ANTHROPIC_URL, {
             method: 'POST',
             headers: { 'x-api-key': key!, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
@@ -279,13 +358,16 @@ export async function POST(req: NextRequest) {
             full += turn.full
             if (ac.signal.aborted) { controller.close(); return }
             const toolUses = turn.blocks.filter(b => b.type === 'tool_use')
-            if (turn.stopReason === 'tool_use' && toolUses.length && effCaseId) {
+            if (turn.stopReason === 'tool_use' && toolUses.length && (effCaseId || effCompanyId)) {
               // Tell the UI what Opus is doing (progress feedback during the tool loop).
               emit({ type: 'status', text: toolStatus(toolUses.map(t => t.name ?? '')) })
               // Record the assistant turn, run the tools, feed results back, loop.
               msgs.push({ role: 'assistant', content: turn.blocks })
               const results = await Promise.all(toolUses.map(async t => ({
-                type: 'tool_result', tool_use_id: t.id, content: await execTool(t.name!, (t.input ?? {}) as Record<string, unknown>, effCaseId, origin),
+                type: 'tool_result', tool_use_id: t.id,
+                content: effCaseId
+                  ? await execTool(t.name!, (t.input ?? {}) as Record<string, unknown>, effCaseId, origin)
+                  : await execCompanyTool(t.name!, (t.input ?? {}) as Record<string, unknown>, effCompanyId!),
               })))
               msgs.push({ role: 'user', content: results as unknown as Block[] })
               continue
@@ -308,12 +390,12 @@ export async function POST(req: NextRequest) {
           })
           const saved = iRes.ok ? (await iRes.json())[0] : null
           fetch(`${SB_URL}/rest/v1/chat_threads?id=eq.${thread_id}`, { method: 'PATCH', headers: sbH('return=minimal'), body: JSON.stringify({ last_message_at: new Date().toISOString() }) }).catch(() => {})
-          void logAnthropicUsage('chat_consultant', { input_tokens: totalIn, output_tokens: totalOut }, effCaseId ?? null)
+          void logAnthropicUsage(effCompanyId ? 'crm_chat' : 'chat_consultant', { input_tokens: totalIn, output_tokens: totalOut }, effCaseId ?? effCompanyId ?? null)
           emit({ type: 'done', message: saved })
         } catch (e) {
           if (!ac.signal.aborted) {
             emit({ type: 'error', error: String(e) })
-            void logError({ source: 'anthropic', feature: 'chat_consultant', message: String(e), threadId: thread_id, resourceType: 'nexus_case', resourceId: effCaseId })
+            void logError({ source: 'anthropic', feature: effCompanyId ? 'crm_chat' : 'chat_consultant', message: String(e), threadId: thread_id, resourceType: effCompanyId ? 'company' : 'nexus_case', resourceId: effCaseId ?? effCompanyId })
           }
         } finally {
           try { controller.close() } catch { /* already closed */ }

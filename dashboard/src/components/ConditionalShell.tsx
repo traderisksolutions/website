@@ -30,9 +30,9 @@ export default function ConditionalShell({ children }: { children: React.ReactNo
 
   if (isAuthPage) return <>{children}</>
 
-  // Ask Opus is a per-case Nexus assistant — mount it ONLY on Nexus (not dashboard
-  // wide). The dock itself hides until a specific case is open.
-  const onNexus = pathname.startsWith('/nexus')
+  // The Opus dock is scoped: a Nexus case, or a client company's workspace. Mount it only on
+  // those routes; the dock itself stays hidden until a specific case or company is open.
+  const onNexus = pathname.startsWith('/nexus') || /^\/companies\/[0-9a-f-]{36}/.test(pathname)
 
   return (
     // EngagementNavProvider wraps TopNavbar/EngagementRail + children (siblings, not

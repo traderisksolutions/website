@@ -13,6 +13,7 @@ import { EngagementComposePanel } from '@/components/engagement-agent/engagement
 import { EngagementContextPanel } from '@/components/engagement-agent/engagement-context-panel'
 import { AiAnalysisPanel } from '@/components/engagement-agent/ai-analysis-panel'
 import { EngagementDock } from './EngagementDock'
+import { EngagementProfileTab } from './EngagementProfileTab'
 import ThreadRfqWorkflow from './ThreadRfqWorkflow'
 import ThreadGbQuote from './ThreadGbQuote'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
@@ -435,8 +436,9 @@ export function ThreadView({
         <ScrollToLatestButton visible={showScrollToLatest} onClick={() => scrollToTop(true)} />
         </div>
 
-        {/* ── Bottom dock: AI Analysis · RFQ · Pricing Quote ── */}
+        {/* ── Bottom dock: Customer · AI Analysis · RFQ · Pricing Quote ── */}
         <EngagementDock
+          profile={<EngagementProfileTab contactId={lead.id ?? null} />}
           analysis={
             <AiAnalysisPanel
               summaries={summaries}

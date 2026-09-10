@@ -10,6 +10,10 @@ import { SB_URL, sbH }               from '@/lib/pm-storage'
 
 export async function GET() {
   try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+
     const res = await fetch(`${SB_URL}/rest/v1/pm_taxonomy_categories?order=sort_order.asc`, { headers: sbH(), cache: 'no-store' })
     if (!res.ok) return NextResponse.json({ error: await res.text() }, { status: 502 })
     return NextResponse.json(await res.json())

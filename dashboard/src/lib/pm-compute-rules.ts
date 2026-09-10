@@ -123,8 +123,12 @@ export function runComputationRules(rules: RuleStep[], rt: RateTable, ctx: RuleC
       }
       case 'gst_adjustment': {
         const base = vars.get(step.input_ref)
-        if (typeof base !== 'number' || !step.inclusive || step.rate <= 0) break
-        const adjusted = round2(base / (1 + step.rate))
+        if (typeof base !== 'number' || step.rate <= 0) break
+        // inclusive: the base already has GST baked in — strip it to net.
+        // exclusive (inclusive: false): the base is net — add GST to reach the final premium.
+        // The exclusive branch was previously a no-op (this case only ever handled inclusive),
+        // silently under-quoting by the GST rate on any calculator whose formula needs it.
+        const adjusted = round2(step.inclusive ? base / (1 + step.rate) : base * (1 + step.rate))
         vars.set(step.output, adjusted)
         // If input_ref was itself a tracked coverage output, the adjusted value replaces it as
         // that coverage's final line; otherwise this is a standalone computed value only.

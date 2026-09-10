@@ -11,6 +11,7 @@ export interface ChatDockState {
   activeThreadId: string | null
   activeTitle:    string | null
   caseId:         string | null
+  companyId:      string | null
   messages:       ChatMessage[]
   threads:        ChatThread[]
   draft:          string
@@ -28,6 +29,7 @@ export const initialChatDockState: ChatDockState = {
   activeThreadId: null,
   activeTitle:    null,
   caseId:         null,
+  companyId:      null,
   messages:       [],
   threads:        [],
   draft:          '',
@@ -43,7 +45,7 @@ export type ChatDockAction =
   | { type: 'MINIMIZE' }
   | { type: 'RESTORE' }
   | { type: 'CLOSE' }
-  | { type: 'SET_THREAD'; threadId: string | null; caseId: string | null; messages: ChatMessage[]; draft: string; title?: string | null }
+  | { type: 'SET_THREAD'; threadId: string | null; caseId: string | null; companyId?: string | null; messages: ChatMessage[]; draft: string; title?: string | null }
   | { type: 'SET_ACTIVE_TITLE'; title: string | null }
   | { type: 'SET_DRAFT'; draft: string }
   | { type: 'ADD_MESSAGE'; message: ChatMessage }
@@ -65,7 +67,7 @@ export function chatDockReducer(state: ChatDockState, action: ChatDockAction): C
     case 'MINIMIZE':   return { ...state, isMinimized: true }
     case 'RESTORE':    return { ...state, isOpen: true, isMinimized: false }
     case 'CLOSE':      return { ...state, isOpen: false, isMinimized: false }
-    case 'SET_THREAD': return { ...state, activeThreadId: action.threadId, caseId: action.caseId, messages: action.messages, draft: action.draft, activeTitle: action.title ?? null, error: null }
+    case 'SET_THREAD': return { ...state, activeThreadId: action.threadId, caseId: action.caseId, companyId: action.companyId ?? null, messages: action.messages, draft: action.draft, activeTitle: action.title ?? null, error: null }
     case 'SET_ACTIVE_TITLE': return { ...state, activeTitle: action.title }
     case 'SET_DRAFT':  return { ...state, draft: action.draft }
     case 'ADD_MESSAGE':    return state.messages.some(m => m.id === action.message.id) ? state : { ...state, messages: [...state.messages, action.message] }

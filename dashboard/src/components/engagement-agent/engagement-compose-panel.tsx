@@ -54,6 +54,10 @@ export function EngagementComposePanel({
   // ── All state preserved verbatim ──────────────────────────────────────────
   const [draftId,         setDraftId]         = useState<string | null>(null)
   const [draftHtml,       setDraftHtml]       = useState('')
+  // What the draft route actually drew on from the customer profile (policies/history/notes) —
+  // built deterministically server-side, never LLM-self-reported — shown so staff can verify a
+  // draft rather than blindly trust or ignore it.
+  const [contextUsed,     setContextUsed]     = useState<string[]>([])
   const [draftLoaded,     setDraftLoaded]     = useState(false)
   const [draftEditorKey,  setDraftEditorKey]  = useState(0)
   const [loading,         setLoading]         = useState<'gen' | 'send' | null>(null)
@@ -160,7 +164,7 @@ export function EngagementComposePanel({
 
   useEffect(() => {
     setDraftId(null); setDraftHtml(''); setDraftLoaded(false)
-    setDraftEditorKey(0); setSent(false); setError(null)
+    setDraftEditorKey(0); setSent(false); setError(null); setContextUsed([])
     setRagSources([]); setAiDraftChecked(false)
     setSelectedFrom(senders[0]?.email ?? '')
     setAttachments([]); setAttachMenuOpen(false)
@@ -305,6 +309,7 @@ export function EngagementComposePanel({
       if (data.error) { setError(data.error); return }
       setDraftId(data.draftId)
       setDraftHtml(plainToHtml(data.content))
+      setContextUsed(Array.isArray(data.contextUsed) ? data.contextUsed : [])
       aiOriginalRef.current = data.content
       setDraftEditorKey(k => k + 1)
       log({
@@ -386,7 +391,7 @@ export function EngagementComposePanel({
           <span className="text-[12.5px] font-medium text-[--success]">Reply sent</span>
         </div>
         <button
-          onClick={() => { setSent(false); setDraftHtml(''); setDraftId(null) }}
+          onClick={() => { setSent(false); setDraftHtml(''); setDraftId(null); setContextUsed([]) }}
           className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
         >
           Compose another
@@ -533,6 +538,17 @@ export function EngagementComposePanel({
 
       {(
         <>
+          {/* Why this draft looks the way it does — deterministic, not LLM-self-reported (see
+              api/engagement/draft/route.ts) — so staff can verify rather than trust blindly. */}
+          {hasDraft && contextUsed.length > 0 && (
+            <div className="px-6 pt-2.5 flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider mr-0.5">Used:</span>
+              {contextUsed.map((c, i) => (
+                <span key={i} className="text-[10.5px] px-2 py-0.5 rounded-full bg-primary/[0.06] text-[--primary-hex]">{c}</span>
+              ))}
+            </div>
+          )}
+
           {/* ── Editor — height is drag-resizable (handle below), not just capped, so a longer
                draft has real room without the thread scroll region also having to grow past what
                the reader wants visible at once. ── */}

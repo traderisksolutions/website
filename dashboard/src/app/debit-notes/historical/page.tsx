@@ -367,7 +367,10 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
             startDate: periodStart || null, endDate: periodEnd || null,
           },
           debitNote: {
-            currency, lineItems: [{ description: 'Gross Premium collected on behalf of Insurance Company', amount: grossPremium }],
+            // GST-inclusive line — must match debit-notes/new's convention and the live preview
+            // above (net = grossPremium + gstAmount - feeRebate), since commitDebitNote() now
+            // sums line items as-is with no separate GST addition (see its own comment).
+            currency, lineItems: [{ description: 'Gross Premium collected on behalf of Insurance Company', amount: grossPremium + gstAmount }],
             gstAmount: gstAmount || null, feeRebate: feeRebateEnabled ? (feeRebate || null) : null,
             commissionRate: commissionRate || null, commission: commissionAmount || null,
             debitNoteNo: debitNoteNo || null,

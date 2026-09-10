@@ -6,6 +6,7 @@ import { fetchAttachmentContext }   from '@/lib/thread-attachment-context'
 import { createSupabaseDB, createGeminiComposer, EvalStore, ExampleStore, SkillSynthesizer } from '@/lib/ai-learning-loop'
 import { EMAIL_TYPE_BASE_INSTRUCTIONS } from '@/lib/email-surface-instructions'
 import { requireStaffOrCron }       from '@/lib/api-auth'
+import { getCustomerProfile }       from '@/lib/customer-profile'
 
 const SB_URL    = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
@@ -307,6 +308,58 @@ Reply with one word only.`
       } catch { /* non-fatal — proceed without context */ }
     }
 
+    // Customer profile — structured facts (policies, industry, deal stage) plus a rolled-up
+    // history across every past thread with this contact (see src/lib/customer-profile.ts).
+    // Resolved by email, not the client-supplied leadId, for the same reliability reason the
+    // post-generation contact upsert further below does the same lookup.
+    // contextUsed is built deterministically from what's actually interpolated below — never
+    // asked of the LLM — so it can't fabricate a reason divorced from what's really in the
+    // prompt; returned to the caller so the UI can show staff why a draft looks the way it does.
+    let customerProfileStr = ''
+    const contextUsed: string[] = []
+    if (contactEmail) {
+      try {
+        const emailLower = contactEmail.trim().toLowerCase()
+        const pcRes = await fetch(`${SB_URL}/rest/v1/contacts?email=ilike.${encodeURIComponent(emailLower)}&select=id&limit=1`, { headers: sbHeaders(), cache: 'no-store' })
+        const pcRows = pcRes.ok ? await pcRes.json() : []
+        const profileContactId = Array.isArray(pcRows) ? (pcRows[0]?.id ?? null) : null
+        const profile = profileContactId ? await getCustomerProfile(profileContactId) : null
+
+        if (profile) {
+          const factLines: string[] = []
+          const activePolicies = profile.policies.filter(p => p.status === 'active')
+          if (activePolicies.length > 0) {
+            const label = `${activePolicies.length} active polic${activePolicies.length === 1 ? 'y' : 'ies'} (${activePolicies.map(p => p.class_of_insurance || p.insurer || 'policy').join(', ')})`
+            factLines.push(label); contextUsed.push(label)
+          }
+          if (profile.company?.industry) {
+            factLines.push(`Industry: ${profile.company.industry}`); contextUsed.push(`Industry: ${profile.company.industry}`)
+          }
+          if (profile.customerStatus === 'renewal_due') {
+            factLines.push('Renewal due soon'); contextUsed.push('Renewal due soon')
+          }
+          if (profile.contact.notes?.trim()) {
+            factLines.push(`Staff note: ${profile.contact.notes.trim()}`); contextUsed.push(`Staff note (contact): ${profile.contact.notes.trim()}`)
+          }
+          if (profile.company?.notes?.trim()) {
+            factLines.push(`Account note: ${profile.company.notes.trim()}`); contextUsed.push(`Staff note (company): ${profile.company.notes.trim()}`)
+          }
+          // Skip the current thread's own summary — it's already covered in THREAD HISTORY below.
+          const historyLines = profile.recentSummaries
+            .filter(s => s.thread_id !== threadId)
+            .map(s => `- [${new Date(s.created_at).toLocaleDateString('en-SG')}] ${s.subject ?? 'Untitled'}: ${s.summary}`)
+          if (historyLines.length > 0) {
+            contextUsed.push(`${historyLines.length} prior thread${historyLines.length === 1 ? '' : 's'} referenced`)
+          }
+          if (factLines.length > 0 || historyLines.length > 0) {
+            customerProfileStr = `\nCUSTOMER PROFILE (what we know about this customer — use it, don't restate it verbatim):${
+              factLines.length ? '\n' + factLines.map(l => `- ${l}`).join('\n') : ''
+            }${historyLines.length ? `\nPrior interactions (most recent last):\n${historyLines.join('\n')}` : ''}`
+          }
+        }
+      } catch { /* non-fatal — proceed without profile enrichment */ }
+    }
+
     // Build thread context — last 15 messages, 1500 chars each, with dates
     const lastInbound = [...messages].reverse().find(m => m.direction === 'inbound')
     const recentMsgs  = messages.slice(-15)
@@ -454,7 +507,7 @@ ${learnedRefinements}${fewShotSection}${antiPatternSection}
 - Name: ${resolvedFirstName ?? (contactName && !contactName.includes('@') ? contactName : '(unknown)')}
 - Email: ${contactEmail ?? '—'}
 - Company: ${company || '(unknown)'}
-- Thread subject: ${threadSubject}${leadProfileStr}
+- Thread subject: ${threadSubject}${leadProfileStr}${customerProfileStr}
 
 ━━ CLIENT'S LATEST EMAIL (respond to this) ━━
 ${lastInboundText}
@@ -640,13 +693,14 @@ Write only the email body starting with "${salutation}". End after the last para
         status:       'pending',
         generated_by: 'gdrive',
         email_type:   emailType,
+        context_used: contextUsed.length ? contextUsed : null,
       }),
     })
 
     const saved = draftRes.ok ? await draftRes.json() : null
     const draft = Array.isArray(saved) ? saved[0] : saved
 
-    return NextResponse.json({ draftId: draft?.id ?? null, content, contactId })
+    return NextResponse.json({ draftId: draft?.id ?? null, content, contactId, contextUsed })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Server error'
     return NextResponse.json({ error: msg }, { status: 500 })

@@ -1,42 +1,53 @@
 /**
- * GET /api/companies/[id]/cases
- * Every Nexus case belonging to a company, for the company page's Nexus tab. Same
- * thread_count/last_activity enrichment as GET /api/nexus/cases, just pre-filtered to one
- * company instead of listing every case in the system.
+ * GET  /api/companies/[id]/cases → Nexus cases for the company (direct company_id plus any case
+ *                                  reached through the company's own threads).
+ * POST /api/companies/[id]/cases → { name, description?, threadIds? } creates a case for this
+ *                                  company and links the given threads as party_type "client".
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
-import { SB_URL, sbH }               from '@/lib/debit-note-storage'
+import { requireStaffOrCron }        from '@/lib/api-auth'
+import { getCompany, getCompanyThreadIds, sb, sbTry } from '@/lib/crm/db'
+import { listCompanyCases }          from '@/lib/crm/cases'
+import { logActivity }               from '@/lib/log-activity'
 
-type CaseRow = { id: string; name: string; description: string | null; status: string; created_at: string; updated_at: string }
-
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
   const { id } = await params
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    const threadIds = await getCompanyThreadIds(id)
+    const cases = await listCompanyCases(id, threadIds)
+    return NextResponse.json({ cases })
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 })
+  }
+}
 
-    const casesRes = await fetch(`${SB_URL}/rest/v1/cases?company_id=eq.${id}&order=updated_at.desc&select=*`, { headers: sbH(), cache: 'no-store' })
-    const cases: CaseRow[] = casesRes.ok ? await casesRes.json() : []
-    if (!Array.isArray(cases) || cases.length === 0) return NextResponse.json({ cases: [] })
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+  const { id } = await params
+  try {
+    const company = await getCompany(id)
+    if (!company) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    const { name, description, threadIds } = await req.json() as { name?: string; description?: string; threadIds?: string[] }
+    if (!name?.trim()) return NextResponse.json({ error: 'name required' }, { status: 400 })
 
-    const enriched = await Promise.all(cases.map(async c => {
-      const ctRes = await fetch(`${SB_URL}/rest/v1/case_threads?case_id=eq.${c.id}&select=thread_id`, { headers: sbH(), cache: 'no-store' })
-      const ctRows: { thread_id: string }[] = ctRes.ok ? await ctRes.json() : []
-      const threadIds = ctRows.map(r => r.thread_id)
+    let created: { id: string }[]
+    try {
+      created = await sb<{ id: string }[]>('cases', { method: 'POST', body: JSON.stringify({ name: name.trim(), description: description?.trim() || null, status: 'open', company_id: id }) })
+    } catch {
+      // cases.company_id arrives with the 20260910 migration; the case is still findable through its threads.
+      created = await sb<{ id: string }[]>('cases', { method: 'POST', body: JSON.stringify({ name: name.trim(), description: description?.trim() || null, status: 'open' }) })
+    }
+    const caseId = created[0].id
 
-      let last_activity: string | null = null
-      if (threadIds.length > 0) {
-        const tRes = await fetch(`${SB_URL}/rest/v1/email_threads?id=in.(${threadIds.join(',')})&select=last_message_at&order=last_message_at.desc&limit=1`, { headers: sbH(), cache: 'no-store' })
-        const tRows: { last_message_at: string | null }[] = tRes.ok ? await tRes.json() : []
-        last_activity = tRows[0]?.last_message_at ?? null
-      }
+    const allowed = new Set(await getCompanyThreadIds(id))
+    const links = (threadIds ?? []).filter(t => allowed.has(t)).map(thread_id => ({ case_id: caseId, thread_id, party_type: 'client', party_label: company.name }))
+    if (links.length) await sbTry('case_threads?on_conflict=case_id,thread_id', null, { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(links) })
 
-      return { ...c, thread_count: threadIds.length, last_activity }
-    }))
-
-    return NextResponse.json({ cases: enriched })
+    void logActivity({ action: 'case.created', resource_type: 'company', resource_id: id, new_value: { case_id: caseId, name: name.trim(), threads: links.length } })
+    return NextResponse.json({ id: caseId, linked: links.length })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }

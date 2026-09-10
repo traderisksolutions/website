@@ -14,6 +14,10 @@ import { normalizeTerm }             from '@/lib/pm-taxonomy'
 
 export async function GET(req: NextRequest) {
   try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+
     const status = req.nextUrl.searchParams.get('status')
     const calculatorId = req.nextUrl.searchParams.get('calculator_id')
     const select = 'select=*,pm_taxonomy_categories(name),pm_calculators(insurer_name)'

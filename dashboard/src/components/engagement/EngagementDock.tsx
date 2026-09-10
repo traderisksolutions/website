@@ -1,10 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Sparkles, FileText, HeartPulse } from 'lucide-react'
+import { Sparkles, FileText, HeartPulse, UserRound } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type Tab = 'analysis' | 'rfq' | 'gbquote'
+type Tab = 'analysis' | 'rfq' | 'gbquote' | 'profile'
 
 /**
  * Bottom tabbed dock for the engagement thread: AI Analysis · RFQ · Pricing Quote — the "bottom
@@ -14,11 +14,12 @@ type Tab = 'analysis' | 'rfq' | 'gbquote'
  * switches.
  */
 export function EngagementDock({
-  analysis, rfq, gbquote, openSignal,
+  analysis, rfq, gbquote, profile, openSignal,
 }: {
   analysis: React.ReactNode
   rfq:      React.ReactNode
   gbquote:  React.ReactNode
+  profile:  React.ReactNode
   /** Imperatively open a tab. */
   openSignal?: { tab: Tab; stamp: number }
 }) {
@@ -37,6 +38,7 @@ export function EngagementDock({
   }, [openSignal?.stamp]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
+    { key: 'profile',  label: 'Customer',      icon: <UserRound size={13} strokeWidth={2} /> },
     { key: 'analysis', label: 'AI Analysis',   icon: <Sparkles size={13} strokeWidth={2} /> },
     { key: 'rfq',      label: 'RFQ',           icon: <FileText size={13} strokeWidth={2} /> },
     { key: 'gbquote',  label: 'Pricing Quote', icon: <HeartPulse size={13} strokeWidth={2} /> },
@@ -58,6 +60,7 @@ export function EngagementDock({
         {opened.has('analysis') && <div className={cn(active !== 'analysis' && 'hidden')}>{analysis}</div>}
         {opened.has('rfq')      && <div className={cn(active !== 'rfq'      && 'hidden')}>{rfq}</div>}
         {opened.has('gbquote')  && <div className={cn(active !== 'gbquote'  && 'hidden')}>{gbquote}</div>}
+        {opened.has('profile')  && <div className={cn(active !== 'profile'  && 'hidden')}>{profile}</div>}
       </div>
 
       {/* Tab strip */}

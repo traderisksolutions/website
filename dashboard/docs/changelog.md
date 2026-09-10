@@ -4,6 +4,36 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-09-10 — Companies-first CRM (gut renovation)
+
+**Status:** code-complete, `tsc` + `next build` clean, 294/294 unit tests pass. Read paths dogfooded locally against the live database. **Migration `supabase/migrations/20260910_companies_crm.sql` must be run in the Supabase SQL editor** — it also re-applies `20260901_ai_drafts_context_used.sql` and `20260907_cases_company_id.sql`, which had not reached the hosted database. Every new read is migration-lag safe (`select=*`, `sbTry`), so the pages work before the SQL runs; actions, link suggestions and saved briefs need the new tables.
+
+### What changed
+
+The client company is now the hub. Threads, debit notes, quotes (RFQ + pricing matrix + group benefits), Nexus cases, contacts and AI live on the company page instead of in separate silos.
+
+- **Navigation** (`src/components/nav/nav-sections.tsx`): Home · Companies · Pipeline · Inbox · Work (client tools + lead sources) · RoadPlus · Analytics · Team · Settings. No route was deleted.
+- **Home** (`/`): what needs attention today across every client — emails awaiting our reply, overdue and due-soon debit notes, renewals in 60 days, actions due, agent proposals to review, threads still to link.
+- **Companies** (`/companies`): list with roll-ups (awaiting reply, outstanding / overdue by currency, next renewal, open actions, last activity), stage filter, search, new-company dialog. Cards on phones, table on tablet and up.
+- **Company workspace** (`/companies/[id]`, tabs via `?tab=`): header with stage select, owner, domains and five KPIs; Overview (AI brief, next actions, threads, people, payments, quotes, cases, timeline); Threads (filter by reply state / category, tick to combine into a Nexus case); People (ranked by correspondence, point person = most active client contact, add observed domains); Quotes; Payments (derived overdue, totals, one-click reminder draft into the Engagement composer); Cases; Actions; Activity; Policies.
+- **Pipeline** (`/pipeline`): kanban of companies by stage (drag or select), with a "New leads" column that converts inbound leads into companies.
+- **Link threads** (`/companies/triage`): exact-match linking (contact → company, or email domain), then agent suggestions (existing / new / not a client) reviewed by staff. Nothing is linked or created from an AI suggestion without a click.
+- **Company agent**: brief (Gemini Flash; Opus behind "Deep analysis"), next-action extraction into `company_actions` as proposals, triage suggestions, and the Opus chat dock re-scoped from case-only to case-or-company (`/api/chat` accepts `company_id` with company read-tools).
+- **Data model**: `companies.kind/stage/stage_changed_at/owner_email/domains/source/ai_brief*`, new `company_actions` and `company_link_suggestions`, `chat_threads.company_id`, plus backfill of `email_threads.company_id` / `contacts.company_id` by contact link and domain.
+- **Library**: `src/lib/crm/*` is the single vocabulary — aggregates, people ranking, payment maths, unified quotes, cases, threads, activity timeline, prompt context, brief, actions, triage, reminder, stage rules.
+
+### Decisions (asked and answered on 10 Sep)
+
+Companies-first including Leads, Pipeline and Group Benefits; RoadPlus, Analytics, KYN ROI and Team stay separate. The CRM lists clients only; insurers stay in the Settings directory. Point persons are derived from correspondence, not assigned. One lifecycle stage per company. Overdue is computed; reminders are drafted, never auto-sent. Backfill is exact-match automatic, AI-suggested with review. Gemini Flash by default, Opus for deep analysis and chat.
+
+### Not done / known limits
+
+- Opus paths (deep brief, company chat) were not exercised locally — no `ANTHROPIC_API_KEY` in `.env.local`.
+- `GET /api/companies/[id]` keeps the old `contacts` (junction) and `debitNotes` fields for `CompanyContactPicker` and the legacy Contacts → Companies tab; the workspace uses `contactList` and `payments`.
+- The "Not a client" triage decision hides a thread from the queue; it does not tag the sender as an insurer or partner company (insurers remain in the Settings directory by decision).
+
+---
+
 ## 2026-07-06 — RFQ Engagement Agent + Nexus analysis rewire + engagement UX
 
 **Author:** developer@trade-risksol.com  ·  **Status:** code-complete, tsc + `next build` clean, 52/52 unit tests pass. Runtime read-paths verified against live Supabase. Auth'd/send flows are prod-configured but not yet exercised end-to-end (need a staging run with a live thread).

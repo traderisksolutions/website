@@ -2,228 +2,161 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import {
-  Mail, MessageCircle, Telescope, Megaphone, Bot, Users,
-  Inbox, FileEdit, MessageSquare, BarChart2, ArrowRight,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Reply, Receipt, CalendarClock, ListChecks, Sparkles, Link2, Building2, Waypoints, Bot, ArrowRight } from 'lucide-react'
 import { PageHeader } from '@/components/page-header'
 import { StatCard } from '@/components/stat-card'
+import { SectionCard, Chip, Empty, Spinner, StageBadge } from '@/components/crm/primitives'
+import { fmtMoney, fmtRelative, fmtDate } from '@/lib/crm/format'
+import { ACTION_KIND_LABEL, STAGES, STAGE_LABEL, type CompanyAction, type CompanySummaryRow, type PaymentDerived } from '@/lib/crm/types'
 
-// ── Types ──────────────────────────────────────────────────────────────────────
-
-type HomeCounts = {
-  newLeads:        number
-  activeThreads:   number
-  pendingDrafts:   number
-  activeCampaigns: number
+type Home = {
+  today: string
+  kpis: { needsReply: number; overdueCount: number; overdueMoney: { currency: string; outstanding: number; overdue: number }[]; renewals60d: number; actionsDueWeek: number; proposedActions: number; unlinkedThreads: number; pendingDrafts: number; companies: number; byStage: Record<string, number> }
+  needsReply: { threadId: string; subject: string | null; category: string | null; companyId: string | null; companyName: string | null; from: string; at: string }[]
+  overdue: (PaymentDerived & { companyName: string | null })[]
+  dueSoon: (PaymentDerived & { companyName: string | null })[]
+  renewals: { policyId: string; policyNumber: string | null; insurer: string | null; classOfInsurance: string | null; endDate: string; companyId: string | null; companyName: string | null }[]
+  actionsDue: (CompanyAction & { companyName: string | null })[]
+  proposed: (CompanyAction & { companyName: string | null })[]
+  companies: CompanySummaryRow[]
 }
 
-const ZERO: HomeCounts = { newLeads: 0, activeThreads: 0, pendingDrafts: 0, activeCampaigns: 0 }
-
-// ── Quick-link definitions ─────────────────────────────────────────────────────
-
-const QUICK_LINKS: { label: string; href: string; icon: React.ElementType; desc: string }[] = [
-  { label: 'Email Inbox',      href: '/inbound/email',      icon: Mail,          desc: 'View and reply to new inbound leads'        },
-  { label: 'WhatsApp Inbox',   href: '/inbound/whatsapp',   icon: MessageCircle, desc: 'WhatsApp enquiries and leads'               },
-  { label: 'Lead Discovery',   href: '/outbound/agent',     icon: Telescope,     desc: 'Search and prospect via Apollo'             },
-  { label: 'Campaigns',        href: '/outbound/campaigns', icon: Megaphone,     desc: 'Outbound email campaign sequences'          },
-  { label: 'Engagement Agent', href: '/engagement',         icon: Bot,           desc: 'AI-assisted reply drafting for live threads' },
-  { label: 'Active Contacts',  href: '/contacts',           icon: Users,         desc: 'Pipeline view by stage'                    },
-]
-
-// ── Page ───────────────────────────────────────────────────────────────────────
-
 export default function HomePage() {
-  const [counts,  setCounts]  = useState<HomeCounts | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState<Home | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/home/counts', { cache: 'no-store' })
-      .then(r => r.ok ? r.json() as Promise<HomeCounts> : ZERO)
-      .then(data => { setCounts(data); setLoading(false) })
-      .catch(()  => { setCounts(ZERO); setLoading(false) })
+    fetch('/api/home/crm', { cache: 'no-store' })
+      .then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error ?? 'Could not load.'); setData(d) })
+      .catch(e => setError(e instanceof Error ? e.message : String(e)))
   }, [])
 
-  const c = counts ?? ZERO
+  const k = data?.kpis
+  const sgdOverdue = k?.overdueMoney.find(m => m.currency === 'SGD')?.overdue ?? 0
 
   return (
     <div className="min-h-[calc(100vh/var(--ui-zoom))] bg-background">
-      <div className="max-w-[900px] mx-auto px-6 py-8">
-
-        {/* ── Header ── */}
+      <div className="max-w-[1240px] mx-auto px-6 py-6">
         <PageHeader
-          title="Home"
-          description="TRS internal dashboard — your operational launchpad."
-          className="mb-7"
+          title="Today"
+          description={data ? `${fmtDate(data.today)} · ${k!.companies} client compan${k!.companies === 1 ? 'y' : 'ies'} · ${STAGES.filter(s => (k!.byStage[s] ?? 0) > 0).map(s => `${k!.byStage[s]} ${STAGE_LABEL[s].toLowerCase()}`).join(', ')}` : 'What needs attention across every client.'}
+          className="mb-5"
+          actions={
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Quick href="/companies" icon={Building2} label="Companies" />
+              <Quick href="/pipeline" icon={Waypoints} label="Pipeline" />
+              <Quick href="/engagement" icon={Bot} label="Inbox" />
+            </div>
+          }
         />
 
-        {/* ── KPI row ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-          <StatCard
-            label="New Leads"
-            value={c.newLeads}
-            sublabel="Awaiting first reply"
-            href="/inbound/email"
-            loading={loading}
-            urgent={c.newLeads > 0}
-          />
-          <StatCard
-            label="Active Threads"
-            value={c.activeThreads}
-            sublabel="Open conversations"
-            href="/engagement"
-            loading={loading}
-          />
-          <StatCard
-            label="Pending Drafts"
-            value={c.pendingDrafts}
-            sublabel="AI drafts to review"
-            href="/engagement"
-            loading={loading}
-            urgent={c.pendingDrafts > 0}
-          />
-          <StatCard
-            label="Live Campaigns"
-            value={c.activeCampaigns}
-            sublabel="Active or in review"
-            href="/outbound/campaigns"
-            loading={loading}
-          />
+        {error && <p className="text-[12px] text-destructive">{error}</p>}
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+          <StatCard label="Awaiting reply" value={k?.needsReply ?? 0} sublabel="Client emails unanswered" href="/engagement" loading={!data} accent={k && k.needsReply > 0 ? 'amber' : undefined} icon={Reply} />
+          <StatCard label="Overdue" value={k?.overdueCount ?? 0} sublabel={sgdOverdue > 0 ? fmtMoney(sgdOverdue, 'SGD', { compact: true }) : 'Debit notes past due'} href="/debit-notes" loading={!data} accent={k && k.overdueCount > 0 ? 'red' : undefined} icon={Receipt} />
+          <StatCard label="Renewals" value={k?.renewals60d ?? 0} sublabel="Ending in 60 days" href="/calendar" loading={!data} icon={CalendarClock} />
+          <StatCard label="Actions due" value={k?.actionsDueWeek ?? 0} sublabel="This week" loading={!data} accent={k && k.actionsDueWeek > 0 ? 'blue' : undefined} icon={ListChecks} />
+          <StatCard label="To review" value={k?.proposedActions ?? 0} sublabel="Proposed by the agent" loading={!data} icon={Sparkles} />
+          <StatCard label="Threads to link" value={k?.unlinkedThreads ?? 0} sublabel="No company yet" href="/companies/triage" loading={!data} accent={k && k.unlinkedThreads > 0 ? 'amber' : undefined} icon={Link2} />
         </div>
 
-        {/* ── Action queue ── */}
-        <div className="mb-8">
-          <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-muted-foreground mb-2.5">
-            Where to go next
-          </p>
-          <div className="bg-card rounded-xl overflow-hidden"
-            style={{ boxShadow: 'var(--card-shadow)' }}>
-            <ActionRow
-              icon={Inbox}
-              label="Leads awaiting first reply"
-              count={loading ? null : c.newLeads}
-              href="/inbound/email"
-              urgent={c.newLeads > 0}
-            />
-            <ActionRow
-              icon={FileEdit}
-              label="AI drafts pending your review"
-              count={loading ? null : c.pendingDrafts}
-              href="/engagement"
-              urgent={c.pendingDrafts > 0}
-              divider
-            />
-            <ActionRow
-              icon={MessageSquare}
-              label="Active conversation threads"
-              count={loading ? null : c.activeThreads}
-              href="/engagement"
-              divider
-            />
-            <ActionRow
-              icon={BarChart2}
-              label="Campaigns active or in review"
-              count={loading ? null : c.activeCampaigns}
-              href="/outbound/campaigns"
-              divider
-            />
+        {!data && !error && <Spinner label="Gathering today’s work…" />}
+
+        {data && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+            <SectionCard title="Needs a reply" description="Latest message is from the client and nobody has answered." padded={false}>
+              {data.needsReply.length === 0 && <Empty compact>Inbox is clear.</Empty>}
+              <ul className="m-0 p-0 list-none divide-y divide-[--border-subtle]">
+                {data.needsReply.slice(0, 10).map(t => (
+                  <li key={t.threadId}>
+                    <Link href={`/engagement?lead=${t.threadId}`} className="flex items-center gap-3 px-4 py-2.5 no-underline text-foreground hover:bg-muted/40">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[12.5px] font-medium m-0 truncate">{t.subject ?? '(no subject)'}</p>
+                        <p className="text-[11.5px] text-muted-foreground m-0 mt-0.5 truncate">{t.companyName ?? 'No company'} · {t.from}</p>
+                      </div>
+                      {t.category && <Chip tone="neutral" className="capitalize hidden sm:inline-flex">{t.category}</Chip>}
+                      <span className="text-[11px] text-muted-foreground whitespace-nowrap">{fmtRelative(t.at)}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </SectionCard>
+
+            <SectionCard title="Money" description="Overdue first, then due in the next 14 days." padded={false}>
+              {data.overdue.length === 0 && data.dueSoon.length === 0 && <Empty compact>Nothing overdue or due soon.</Empty>}
+              <ul className="m-0 p-0 list-none divide-y divide-[--border-subtle]">
+                {[...data.overdue, ...data.dueSoon].slice(0, 10).map(d => (
+                  <li key={d.id}>
+                    <Link href={`/companies/${d.company_id}?tab=payments`} className="flex items-center gap-3 px-4 py-2.5 no-underline text-foreground hover:bg-muted/40">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[12.5px] font-medium m-0 truncate">{d.companyName ?? 'Unknown company'} · <span className="font-mono text-[11.5px]">{d.debit_note_no}</span></p>
+                        <p className="text-[11.5px] text-muted-foreground m-0 mt-0.5 truncate">{d.classOfInsurance ?? d.event_type ?? ''}{d.insurer ? ` · ${d.insurer}` : ''}</p>
+                      </div>
+                      <span className="text-[12.5px] font-semibold tabular-nums whitespace-nowrap">{fmtMoney(d.outstanding, d.currency)}</span>
+                      <Chip tone={d.derived === 'overdue' ? 'red' : 'amber'}>{d.derived === 'overdue' ? `${d.daysOverdue}d late` : `due ${fmtRelative(d.payment_due_date)}`}</Chip>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </SectionCard>
+
+            <SectionCard title="Actions" description="Due this week, and proposals from the agent waiting for a decision." padded={false}>
+              {data.actionsDue.length === 0 && data.proposed.length === 0 && <Empty compact>No actions due. Open a company and ask the agent to find next actions.</Empty>}
+              <ul className="m-0 p-0 list-none divide-y divide-[--border-subtle]">
+                {[...data.actionsDue, ...data.proposed].slice(0, 10).map(a => (
+                  <li key={a.id}>
+                    <Link href={`/companies/${a.company_id}?tab=actions`} className="flex items-center gap-3 px-4 py-2.5 no-underline text-foreground hover:bg-muted/40">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[12.5px] font-medium m-0 truncate">{a.title}</p>
+                        <p className="text-[11.5px] text-muted-foreground m-0 mt-0.5 truncate">{a.companyName ?? ''} · {ACTION_KIND_LABEL[a.kind]}{a.owner_email ? ` · ${a.owner_email.split('@')[0]}` : ''}</p>
+                      </div>
+                      {a.status === 'proposed' ? <Chip tone="blue"><Sparkles size={10} /> Review</Chip> : a.due_date ? <Chip tone={a.due_date < data.today ? 'red' : 'neutral'}>{a.due_date < data.today ? 'Overdue' : fmtRelative(a.due_date)}</Chip> : null}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </SectionCard>
+
+            <SectionCard title="Renewals in the next 60 days" padded={false}>
+              {data.renewals.length === 0 && <Empty compact>No policies ending in the next 60 days.</Empty>}
+              <ul className="m-0 p-0 list-none divide-y divide-[--border-subtle]">
+                {data.renewals.slice(0, 10).map(r => (
+                  <li key={r.policyId}>
+                    <Link href={r.companyId ? `/companies/${r.companyId}?tab=policies` : '/calendar'} className="flex items-center gap-3 px-4 py-2.5 no-underline text-foreground hover:bg-muted/40">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[12.5px] font-medium m-0 truncate">{r.companyName ?? 'Unknown company'} · {r.classOfInsurance ?? 'Policy'}</p>
+                        <p className="text-[11.5px] text-muted-foreground m-0 mt-0.5 truncate">{r.insurer ?? ''}{r.policyNumber ? ` · ${r.policyNumber}` : ''}</p>
+                      </div>
+                      <span className="text-[11.5px] text-muted-foreground whitespace-nowrap">{fmtDate(r.endDate)}</span>
+                      <Chip tone="amber">{fmtRelative(r.endDate)}</Chip>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </SectionCard>
+
+            <SectionCard title="Most active companies" padded={false} className="lg:col-span-2" actions={<Link href="/companies" className="text-[12px] font-semibold text-primary no-underline hover:underline inline-flex items-center gap-1">All companies <ArrowRight size={12} /></Link>}>
+              {data.companies.length === 0 && <Empty compact>No companies yet.</Empty>}
+              <ul className="m-0 p-0 list-none grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 divide-y sm:divide-y-0 divide-[--border-subtle]">
+                {data.companies.map(c => (
+                  <li key={c.id}>
+                    <Link href={`/companies/${c.id}`} className="flex flex-col gap-1 px-4 py-3 no-underline text-foreground hover:bg-muted/40 h-full">
+                      <p className="text-[12.5px] font-semibold m-0 truncate">{c.name}</p>
+                      <div className="flex items-center gap-1.5 flex-wrap"><StageBadge stage={c.stage} />{c.needsReply > 0 && <Chip tone="amber">{c.needsReply} awaiting reply</Chip>}{c.overdueCount > 0 && <Chip tone="red">{c.overdueCount} overdue</Chip>}</div>
+                      <p className="text-[11px] text-muted-foreground m-0">{fmtRelative(c.lastActivityAt)}</p>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </SectionCard>
           </div>
-        </div>
-
-        {/* ── Quick links ── */}
-        <div className="mb-8">
-          <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-muted-foreground mb-2.5">
-            Quick access
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-            {QUICK_LINKS.map(l => <QuickLink key={l.href} {...l} />)}
-          </div>
-        </div>
-
-        {/* ── Orientation strip ── */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-5 border-t border-[--border-subtle]">
-          <p className="text-[11.5px] text-muted-foreground">
-            TRS AI Platform — end-to-end sales automation from inbound capture to pipeline conversion.
-          </p>
-          <div className="flex items-center gap-4">
-            <Link href="/settings"
-              className="text-[11.5px] font-medium text-muted-foreground hover:text-foreground no-underline transition-colors">
-              Settings
-            </Link>
-          </div>
-        </div>
-
+        )}
       </div>
     </div>
   )
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────────
-
-function QuickLink({
-  label, href, icon: Icon, desc,
-}: {
-  label: string; href: string; icon: React.ElementType; desc: string
-}) {
-  return (
-    <Link
-      href={href}
-      className="group flex items-start gap-3 px-3.5 py-3 rounded-lg bg-card no-underline hover:bg-accent/50 transition-all"
-      style={{ boxShadow: 'var(--card-shadow)' }}
-    >
-      <span
-        className="flex-shrink-0 w-7 h-7 rounded-md flex items-center justify-center mt-px"
-        style={{ background: 'hsl(var(--muted))' }}
-      >
-        <Icon size={14} strokeWidth={1.8} style={{ color: 'hsl(var(--muted-foreground))' }} />
-      </span>
-      <span className="flex flex-col gap-0.5 min-w-0">
-        <span className="text-[12.5px] font-semibold text-foreground leading-tight">{label}</span>
-        <span className="text-[11px] text-muted-foreground leading-snug line-clamp-2">{desc}</span>
-      </span>
-    </Link>
-  )
-}
-
-function ActionRow({
-  icon: Icon, label, count, href, urgent, divider,
-}: {
-  icon: React.ElementType; label: string
-  count: number | null; href: string; urgent?: boolean; divider?: boolean
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        'flex items-center gap-3 px-4 py-3 no-underline hover:bg-accent/50 transition-colors group',
-        divider && 'border-t border-[--border-subtle]',
-      )}
-    >
-      <Icon size={14} strokeWidth={1.8} className="flex-shrink-0 text-muted-foreground" />
-      <span className="flex-1 text-[12.5px] text-foreground">{label}</span>
-
-      {count === null ? (
-        /* skeleton while loading */
-        <span className="skeleton" style={{ width: 24, height: 18, borderRadius: 9999, display: 'inline-block' }} />
-      ) : count > 0 ? (
-        <span
-          className="text-[11px] font-bold px-2 py-px rounded-[5px] min-w-[22px] text-center"
-          style={urgent
-            ? { background: 'rgba(15,61,145,0.08)', color: '#0F3D91' }
-            : { background: 'hsl(var(--muted))',    color: 'hsl(var(--muted-foreground))' }
-          }
-        >
-          {count}
-        </span>
-      ) : (
-        <span className="text-[11px] text-muted-foreground/40">—</span>
-      )}
-
-      <ArrowRight
-        size={12} strokeWidth={2}
-        className="flex-shrink-0 text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors"
-      />
-    </Link>
-  )
+function Quick({ href, icon: Icon, label }: { href: string; icon: React.ElementType; label: string }) {
+  return <Link href={href} className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-[12px] font-semibold border border-input no-underline text-foreground hover:bg-muted"><Icon size={13} /> {label}</Link>
 }

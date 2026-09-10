@@ -57,15 +57,34 @@ export async function getNexusRun(runId: string): Promise<NexusRunRow | null> {
   return Array.isArray(rows) && rows[0] ? rows[0] : null
 }
 
+// Generous vs. every analyze/phase*'s own maxDuration (150-180s) — a run still sitting in a
+// *_running/*_pending state well past that has almost certainly been killed by a platform
+// function timeout (which bypasses our own catch-block "mark failed" logic) rather than
+// genuinely still being in flight.
+const STALE_RUN_MS = 10 * 60 * 1000
+
 // Latest run for a case that hasn't finished (successfully or not) — used to offer
-// "resume analysis" when the page is reopened mid-flow.
+// "resume analysis" when the page is reopened mid-flow. Reaps a stale (orphaned-by-timeout)
+// run lazily on read rather than via a dedicated cron — Vercel Hobby's cron count/frequency is
+// already tight (see cron/*'s history of being slowed to daily for exactly this reason).
 export async function getLatestIncompleteNexusRun(caseId: string): Promise<NexusRunRow | null> {
   const res = await fetch(
     `${SB_URL}/rest/v1/nexus_analysis_runs?case_id=eq.${caseId}&status=not.in.(completed,failed)&order=created_at.desc&limit=1&select=*`,
     { headers: sbH() }
   )
   const rows = res.ok ? await res.json() : []
-  return Array.isArray(rows) && rows[0] ? rows[0] : null
+  const run: NexusRunRow | null = Array.isArray(rows) && rows[0] ? rows[0] : null
+  if (!run) return null
+
+  const staleSinceMs = Date.now() - new Date(run.updated_at).getTime()
+  if (staleSinceMs > STALE_RUN_MS) {
+    await updateNexusRun(run.id, {
+      status: 'failed',
+      error_message: `Timed out — no progress for over ${Math.round(STALE_RUN_MS / 60000)} minutes (likely a serverless function timeout). Start a new analysis.`,
+    }).catch(() => {})
+    return null
+  }
+  return run
 }
 
 export async function updateNexusRun(

@@ -1,24 +1,31 @@
 /**
- * GET  /api/companies?search=term   → typeahead for the CompanyContactPicker (name ilike +
- *                                      trigram similarity ordering so near-misses still surface).
- * POST /api/companies               → { name, address?, type? } create a new company inline,
- *                                      exactly the "+ create company" step in the picker.
+ * GET  /api/companies?search=term        → typeahead rows (id, name, domain) — unchanged shape,
+ *                                          still used by the CompanyContactPicker and link popovers.
+ * GET  /api/companies?view=summary&stage= → every client company with its roll-ups (threads,
+ *                                          money, renewals, actions) for the Companies list.
+ * POST /api/companies                     → { name, domain?, stage?, owner_email?, industry?, address? }
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
+import { requireStaffOrCron }        from '@/lib/api-auth'
 import { SB_URL, sbH }               from '@/lib/debit-note-storage'
-import { resolveCompany }            from '@/lib/debit-note-commit'
 import { logActivity }               from '@/lib/log-activity'
+import { listCompanySummaries, summariseAll } from '@/lib/crm/aggregates'
+import { createClientCompany }       from '@/lib/crm/triage'
+import { isStage }                   from '@/lib/crm/stage'
+import { currentUserEmail }          from '@/lib/crm/auth'
+import { emailDomain }               from '@/lib/crm/db'
 
 export async function GET(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    const p = req.nextUrl.searchParams
+    if (p.get('view') === 'summary') {
+      const rows = await listCompanySummaries({ stage: p.get('stage'), search: p.get('search') })
+      return NextResponse.json({ rows, totals: summariseAll(rows) })
+    }
 
-    const q = (req.nextUrl.searchParams.get('search') ?? '').trim()
-    // The live companies table's name column is "company_name" — aliased back to "name" so
-    // every consumer of this route can keep using the simpler field name.
+    const q = (p.get('search') ?? '').trim()
     const select = 'id,name:company_name,address,type,domain'
     const url = q
       ? `${SB_URL}/rest/v1/companies?select=${select}&or=(company_name.ilike.*${encodeURIComponent(q)}*)&order=company_name.asc&limit=20`
@@ -32,26 +39,26 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
-    const body = await req.json() as { name?: string; address?: string; type?: 'institution' | 'sme' | 'corporate' }
+    const body = await req.json() as { name?: string; domain?: string | null; stage?: string; owner_email?: string | null; industry?: string | null; address?: string | null; type?: string | null }
     const name = body.name?.trim()
     if (!name) return NextResponse.json({ error: 'name required' }, { status: 400 })
+    const user = await currentUserEmail()
 
-    const companyId = await resolveCompany({ companyName: name, address: body.address ?? null, type: body.type ?? null })
+    const domainRaw = (body.domain ?? '').trim().toLowerCase()
+    const domain = domainRaw ? (domainRaw.includes('@') ? emailDomain(domainRaw) : domainRaw.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0]) : null
 
-    // resolveCompany silently reuses a case-insensitive name match instead of creating a
-    // duplicate — fetch the row back so the caller shows the company's real stored name (which
-    // may differ in casing/spelling from what was typed) rather than echoing the input blind.
-    const res = await fetch(`${SB_URL}/rest/v1/companies?id=eq.${companyId}&select=id,name:company_name&limit=1`, { headers: sbH(), cache: 'no-store' })
+    const id = await createClientCompany({
+      name, domain, stage: isStage(body.stage) ? body.stage : 'prospect', source: 'manual',
+      ownerEmail: body.owner_email ?? user, industry: body.industry ?? null, address: body.address ?? null,
+    })
+    const res = await fetch(`${SB_URL}/rest/v1/companies?id=eq.${id}&select=id,name:company_name&limit=1`, { headers: sbH(), cache: 'no-store' })
     const row = res.ok ? (await res.json())[0] : null
-    const matchedExisting = row?.name && row.name.toLowerCase() !== name.toLowerCase()
-
-    void logActivity({ action: 'company.created', resource_type: 'company', resource_id: companyId, new_value: { name: row?.name ?? name, typed_as: name } })
-    return NextResponse.json({ id: companyId, name: row?.name ?? name, matchedExisting })
+    const matchedExisting = !!row?.name && row.name.toLowerCase() !== name.toLowerCase()
+    void logActivity({ action: 'company.created', resource_type: 'company', resource_id: id, new_value: { name: row?.name ?? name, typed_as: name } })
+    return NextResponse.json({ id, name: row?.name ?? name, matchedExisting })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
