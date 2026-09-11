@@ -1,15 +1,20 @@
 /**
- * Payment maths for debit notes. The stored `status` is set by hand in the debit-note drawer;
- * this module derives what staff actually need to know: how much is still outstanding, whether
- * it is overdue, and by how many days. Pure functions, safe on the client.
+ * Payment maths for debit notes. What is still to collect is worked out from the amounts
+ * recorded against the note, so it cannot disagree with the stored status. Also derives
+ * whether it is past due and by how many days. Pure functions, safe on the client.
  */
 import type { DebitNoteRow, PaymentDerived, PaymentSummary, MoneyByCurrency } from './types'
 import { daysBetween, todaySGT } from './format'
 
 export function outstandingOf(row: Pick<DebitNoteRow, 'status' | 'gross_amount' | 'net_amount' | 'paid_amount' | 'paid_direct_amount'>): number {
-  if (row.status === 'paid') return 0
   const total = Number(row.net_amount ?? row.gross_amount ?? 0)
   const paid  = Number(row.paid_amount ?? 0) + Number(row.paid_direct_amount ?? 0)
+  // The amounts decide, not the stored status. A note is settled when the money recorded
+  // against it covers the bill — the finance reconciliation writes both, and the database
+  // trigger keeps the stored status derived from the same figures, so the two cannot drift.
+  // The one exception is a note marked paid by hand before any amount was entered, which we
+  // still honour so older records do not reappear as owing.
+  if (paid <= 0 && row.status === 'paid') return 0
   return Math.max(0, Math.round((total - paid) * 100) / 100)
 }
 
@@ -51,5 +56,5 @@ export function summarizePayments(rows: PaymentDerived[]): PaymentSummary {
 }
 
 export const PAYMENT_LABEL: Record<PaymentDerived['derived'], string> = {
-  paid: 'Paid', partial: 'Partly paid', unpaid: 'Unpaid', overdue: 'Overdue',
+  paid: 'Settled', partial: 'Part paid', unpaid: 'Awaiting payment', overdue: 'Past due',
 }

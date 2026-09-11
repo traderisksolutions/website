@@ -2,7 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   AlertTriangle, Users, BarChart2, Bot, UsersRound, Cpu, FolderOpen, BookMarked, History,
   Settings, FlaskConical, TrendingUp, ScrollText, Network, HeartPulse, Car,
-  Receipt, CalendarDays, Waypoints, Building2, Link2, Wrench, Home,
+  Receipt, CalendarDays, Waypoints, Building2, Link2, Wrench, Home, Landmark,
 } from 'lucide-react'
 
 export type NavLink = {
@@ -32,7 +32,8 @@ export type NavSection = {
 //
 // Companies-first. Client work lives inside each company page. The daily path reads left to
 // right: the client list, all mail, the sales journey, cases, the diary. Tools keeps the
-// global-only views that are not about one client. Group Benefits is deprecated (route kept,
+// global-only views that are not about one client. Finance is where a balance is cleared.
+// Group Benefits is deprecated (route kept,
 // hidden from the menu). RoadPlus, Analytics, Team and Settings stay separate.
 export const NAV_SECTIONS: NavSection[] = [
   { label: 'Home',           href: '/',           icon: Home },
@@ -41,12 +42,13 @@ export const NAV_SECTIONS: NavSection[] = [
   { label: 'Sales Outreach', href: '/pipeline',   icon: Waypoints },
   { label: 'Nexus',          href: '/nexus',      icon: Network },
   { label: 'Calendar',       href: '/calendar',   icon: CalendarDays },
+  { label: 'Finance',        href: '/finance',    icon: Landmark },
 
   {
     label: 'Tools',
     icon: Wrench,
     items: [
-      { title: 'Debit Notes',    href: '/debit-notes',      icon: Receipt,    description: 'All invoices and payments' },
+      { title: 'Debit Notes',    href: '/debit-notes',      icon: Receipt,    description: 'Raise and issue debit notes' },
       { title: 'Pricing Matrix', href: '/pricing-matrix',   icon: HeartPulse, description: 'Insurer calculators and quotes' },
       { title: 'Filing',         href: '/companies/triage', icon: Link2,      description: 'Decide who unmatched email belongs to' },
       { title: 'Contacts',       href: '/contacts',         icon: Users,      description: 'Every person on file' },

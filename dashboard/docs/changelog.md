@@ -4,6 +4,60 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-09-11 (later) — Finance reconciliation, and the engagement dock removed
+
+**Status:** `tsc` + `next build` clean, 339/339 tests pass. One migration to apply (below).
+
+### The engagement thread is just mail again
+
+The four tabs along the bottom — Customer, AI Analysis, RFQ, Pricing Quote — are gone, and so
+is the dock that held them. Everything they did now has a better home: the client record is the
+company page, RFQ starts from the company's Quotation tab, and quotations live in the pricing
+matrix. The dock was a second, narrower copy of each.
+
+The agent's read on a thread was the one thing worth keeping in the mail view, so it is now
+inline above the messages rather than hidden behind a tab. Reading the mail and reading the
+analysis are the same job.
+
+Removed with it: the deprecated group-benefits census quote, which was the last thing still
+reaching into the retired first-generation quoting flow.
+
+### Finance: clearing a balance by recording the payment
+
+Every debit note on file still read as outstanding, because the only way to record a payment
+was to type into three fields in the debit-note drawer and nobody ever had. The dashboard was
+reporting an entire historical import as money owed.
+
+**New Finance section in the main nav.** Every note with money against it, oldest first, with
+the client attached. Record what came in: amount, date, whether the client paid TRS, settled
+direct with the insurer, or it was written off, plus a reference. Part payments are fine and
+the balance carries. The page leads with how much of what was billed has been collected, not
+with a single red total.
+
+**Record payment sits on the client's page too**, in the tab now called Finance rather than
+Outstanding Payment.
+
+**A receipts ledger, not a status field.** Each payment is its own row in `debit_note_payments`
+and a trigger keeps the debit note's amounts and status derived from it, so the two can never
+disagree. A payment can be undone and the balance comes back. Before the migration is applied
+the screens still work and write straight to the debit note; a notice on the page says so.
+
+**Two long-standing faults fixed by the same change.** Settling direct with the insurer now
+counts toward the balance, where before the tick and its status were stored and never read. And
+what is still to collect is now worked out from the amounts everywhere, so the register and the
+company page can no longer show the same note as Unpaid in one place and Paid in the other.
+
+**Softer language throughout.** "Outstanding" is now "to collect", "overdue" is "past due", and
+the status words read Settled, Part paid, Awaiting payment and Past due.
+
+**Migration to apply:**
+
+```sql
+-- supabase/migrations/20260911_debit_note_payments.sql
+```
+
+---
+
 ## 2026-09-11 — Everyone is a client, the to-do list is gone
 
 **Status:** `tsc` + `next build` clean, 335/335 tests pass. One optional migration (see below).

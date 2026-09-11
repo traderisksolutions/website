@@ -44,7 +44,7 @@ const TABS = [
   { key: 'people',    label: 'People'              },
   { key: 'purchases', label: 'Purchase History'    },
   { key: 'quotation', label: 'Quotation'           },
-  { key: 'payments',  label: 'Outstanding Payment' },
+  { key: 'payments',  label: 'Finance'             },
   { key: 'activity',  label: 'Activity'            },
 ] as const
 type Tab = typeof TABS[number]['key']
@@ -89,6 +89,9 @@ function CompanyWorkspace() {
 
   const loadThreads = useCallback(() => j<{ threads: CompanyThread[] }>(`/api/companies/${id}/threads`, { threads: [] }).then(r => setThreads(r.threads)), [id, j])
   const loadCases = useCallback(() => j<{ cases: CaseRow[] }>(`/api/companies/${id}/cases`, { cases: [] }).then(r => setCases(r.cases)), [id, j])
+  const reloadDetail = useCallback(() => {
+    void j<Detail>(`/api/companies/${id}`, { contactList: [], policies: [], payments: [], paymentSummary: { byCurrency: [], overdueCount: 0, openCount: 0, nextDue: null } }).then(setDetail)
+  }, [id, j])
 
   // Everything else loads in the background so any tab is instant once open.
   useEffect(() => {
@@ -205,7 +208,7 @@ function CompanyWorkspace() {
         ) : <Spinner />)}
 
         {tab === 'payments' && (detail ? (
-          <CompanyPayments companyId={id} notes={detail.payments} summary={detail.paymentSummary} />
+          <CompanyPayments companyId={id} notes={detail.payments} summary={detail.paymentSummary} onChanged={reloadDetail} />
         ) : <Spinner />)}
 
         {tab === 'activity' && (activity ? <CompanyTimeline events={activity} /> : <Spinner />)}

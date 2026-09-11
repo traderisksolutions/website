@@ -33,7 +33,7 @@ export default function HomePage() {
   const headline = k
     ? [
         k.needsReply ? `${k.needsReply} awaiting a reply` : null,
-        k.overdueCount ? `${fmtMoney(sgdOverdue, 'SGD', { compact: true })} overdue across ${k.overdueCount} debit note${k.overdueCount === 1 ? '' : 's'}` : null,
+        k.overdueCount ? `${fmtMoney(sgdOverdue, 'SGD', { compact: true })} past due across ${k.overdueCount} debit note${k.overdueCount === 1 ? '' : 's'}` : null,
         k.renewals60d ? `${k.renewals60d} renewal${k.renewals60d === 1 ? '' : 's'} within 60 days` : null,
       ].filter(Boolean).join(' · ') || 'Nothing needs attention today.'
     : 'What needs attention across every client.'
@@ -74,7 +74,7 @@ export default function HomePage() {
             </SectionCard>
 
             <SectionCard title="Money" description="Overdue first, then due within 14 days.">
-              {data.overdue.length === 0 && data.dueSoon.length === 0 && <Empty compact>Nothing overdue or due soon.</Empty>}
+              {data.overdue.length === 0 && data.dueSoon.length === 0 && <Empty compact>Nothing past due or due soon.</Empty>}
               <ul className="m-0 p-0 list-none flex flex-col">
                 {[...data.overdue, ...data.dueSoon].slice(0, 8).map(d => (
                   <li key={d.id} className="border-b border-[--border-subtle] last:border-b-0">
@@ -118,7 +118,7 @@ export default function HomePage() {
                       <span className="text-[13px] font-medium min-w-0 flex-1 truncate">{c.name}</span>
                       <StageBadge stage={c.stage} />
                       {c.needsReply > 0 && <Chip tone="amber">{c.needsReply}</Chip>}
-                      {c.overdueCount > 0 && <Chip tone="red">{c.overdueCount} overdue</Chip>}
+                      {c.overdueCount > 0 && <Chip tone="red">{c.overdueCount} past due</Chip>}
                       <span className="text-[11px] text-muted-foreground whitespace-nowrap hidden sm:block">{fmtRelative(c.lastActivityAt)}</span>
                     </Link>
                   </li>

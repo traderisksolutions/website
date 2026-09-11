@@ -83,7 +83,7 @@ export default function CompaniesPage() {
                     <th className="text-left pr-3 py-2 font-semibold">Company</th>
                     <th className="text-left pr-3 py-2 font-semibold">Stage</th>
                     <th className="text-right pr-3 py-2 font-semibold">Threads</th>
-                    <th className="text-right pr-3 py-2 font-semibold">Outstanding</th>
+                    <th className="text-right pr-3 py-2 font-semibold">To collect</th>
                     <th className="text-left pr-3 py-2 font-semibold">Next renewal</th>
                     <th className="text-left py-2 font-semibold">Last activity</th>
                   </tr>
@@ -106,7 +106,7 @@ export default function CompaniesPage() {
                     <p className="text-[11.5px] text-muted-foreground m-0 mt-0.5">{r.owner_email ? r.owner_email.split('@')[0] : 'No owner'} · {r.openThreads} thread{r.openThreads === 1 ? '' : 's'} · {fmtRelative(r.lastActivityAt)}</p>
                     <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
                       {r.needsReply > 0 && <Chip tone="amber"><Reply size={10} /> {r.needsReply} awaiting reply</Chip>}
-                      {r.money.map(m => <Chip key={m.currency} tone={m.overdue > 0 ? 'red' : 'neutral'}>{fmtMoney(m.overdue > 0 ? m.overdue : m.outstanding, m.currency, { compact: true })} {m.overdue > 0 ? 'overdue' : 'outstanding'}</Chip>)}
+                      {r.money.map(m => <Chip key={m.currency} tone={m.overdue > 0 ? 'red' : 'neutral'}>{fmtMoney(m.overdue > 0 ? m.overdue : m.outstanding, m.currency, { compact: true })} {m.overdue > 0 ? 'past due' : 'to collect'}</Chip>)}
                       {r.nextRenewalDate && <Chip tone="neutral">Renews {fmtRelative(r.nextRenewalDate)}</Chip>}
                     </div>
                   </Link>
@@ -141,7 +141,7 @@ function Row({ r, onOpen }: { r: CompanySummaryRow; onOpen: () => void }) {
         {r.money.length === 0 ? <span className="text-muted-foreground">—</span> : r.money.map(m => (
           <span key={m.currency} className="block">
             {fmtMoney(m.outstanding, m.currency)}
-            {m.overdue > 0 && <span className="block text-[10.5px] font-semibold" style={{ color: 'var(--error)' }}>{fmtMoney(m.overdue, m.currency)} overdue</span>}
+            {m.overdue > 0 && <span className="block text-[10.5px] font-semibold" style={{ color: 'var(--error)' }}>{fmtMoney(m.overdue, m.currency)} past due</span>}
           </span>
         ))}
       </td>

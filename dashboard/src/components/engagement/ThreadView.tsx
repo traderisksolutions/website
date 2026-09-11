@@ -12,10 +12,6 @@ import { cleanEmailBody } from '@/lib/clean-email-body'
 import { EngagementComposePanel } from '@/components/engagement-agent/engagement-compose-panel'
 import { EngagementContextPanel } from '@/components/engagement-agent/engagement-context-panel'
 import { AiAnalysisPanel } from '@/components/engagement-agent/ai-analysis-panel'
-import { EngagementDock } from './EngagementDock'
-import { EngagementProfileTab } from './EngagementProfileTab'
-import ThreadRfqWorkflow from './ThreadRfqWorkflow'
-import ThreadGbQuote from './ThreadGbQuote'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 
 interface ThreadViewProps {
@@ -74,7 +70,6 @@ export function ThreadView({
   // Dock imperative open (e.g. an RFQ/analysis step wanting its own tab open). Reply is no
   // longer a dock tab — it's always visible in-flow — so a draft arriving from elsewhere now
   // scrolls the composer into view instead (see scrollComposerIntoView below).
-  const [dockSignal, setDockSignal] = useState<{ tab: 'analysis' | 'rfq' | 'gbquote'; stamp: number } | undefined>(undefined)
 
   // ── Thread scroll region ─────────────────────────────────────────────────────────────────
   const messageAreaRef  = useRef<HTMLDivElement>(null)
@@ -393,6 +388,17 @@ export function ThreadView({
             </div>
           )}
 
+          {/* ── What the agent makes of this thread. Inline, not a dock tab: reading the
+               mail and reading the analysis are the same job. ── */}
+          <AiAnalysisPanel
+            summaries={summaries}
+            loading={summariesLoading || analyzing}
+            threadId={threadId}
+            latestMessageId={latestMessageId}
+            ragSources={ragDraft?.sources ?? []}
+            onRefresh={refreshSummaries}
+          />
+
           {/* ── Messages, newest → oldest descending below the composer ── */}
           <div className="flex flex-col">
             {loading && (
@@ -436,35 +442,6 @@ export function ThreadView({
         <ScrollToLatestButton visible={showScrollToLatest} onClick={() => scrollToTop(true)} />
         </div>
 
-        {/* ── Bottom dock: Customer · AI Analysis · RFQ · Pricing Quote ── */}
-        <EngagementDock
-          profile={<EngagementProfileTab contactId={lead.id ?? null} />}
-          analysis={
-            <AiAnalysisPanel
-              summaries={summaries}
-              loading={summariesLoading || analyzing}
-              threadId={threadId}
-              latestMessageId={latestMessageId}
-              ragSources={ragDraft?.sources ?? []}
-              onRefresh={refreshSummaries}
-            />
-          }
-          rfq={
-            threadId
-              ? <ThreadRfqWorkflow threadId={threadId} messageId={latestMessageId} defaultInsured={lead.company ?? fullName(lead) ?? ''} />
-              : <div className="p-5 text-[12px] text-muted-foreground/60">Open an email thread to start an RFQ.</div>
-          }
-          gbquote={
-            threadId
-              ? <ThreadGbQuote
-                  threadId={threadId}
-                  defaultCompany={lead.company ?? fullName(lead) ?? ''}
-                  onDraftReply={(body) => { setPendingRestore({ body, generatedBy: 'gb-quote', stamp: Date.now() }); scrollComposerIntoView() }}
-                />
-              : <div className="p-5 text-[12px] text-muted-foreground/60">Open an email thread to quote a census.</div>
-          }
-          openSignal={dockSignal}
-        />
       </EaWorkspaceColumn>
 
       {/* ── Contact/status/notes info — a Sheet, not a perpetual column (see EngagementThreadHeader's

@@ -245,8 +245,8 @@ function CompanyList({ rows, busy, onStage, onApplyAll, empty, columns }: {
                   {r.needsReply > 0 && <Chip tone="amber"><Reply size={10} /> {r.needsReply} awaiting reply</Chip>}
                   {columns !== 'operations' && r.openQuotes > 0 && <Chip tone="blue">{r.openQuotes} open quote{r.openQuotes === 1 ? '' : 's'}</Chip>}
                   {columns === 'convert' && r.openQuotes === 0 && <Chip tone="neutral">No quote recorded</Chip>}
-                  {columns === 'operations' && sgd && sgd.overdue > 0 && <Chip tone="red">{fmtMoney(sgd.overdue, sgd.currency, { compact: true })} overdue</Chip>}
-                  {columns === 'operations' && sgd && sgd.overdue === 0 && sgd.outstanding > 0 && <Chip tone="neutral">{fmtMoney(sgd.outstanding, sgd.currency, { compact: true })} outstanding</Chip>}
+                  {columns === 'operations' && sgd && sgd.overdue > 0 && <Chip tone="red">{fmtMoney(sgd.overdue, sgd.currency, { compact: true })} past due</Chip>}
+                  {columns === 'operations' && sgd && sgd.overdue === 0 && sgd.outstanding > 0 && <Chip tone="neutral">{fmtMoney(sgd.outstanding, sgd.currency, { compact: true })} to collect</Chip>}
                   {columns === 'operations' && r.nextRenewalDate && <Chip tone="neutral" title={fmtDate(r.nextRenewalDate)}>Renews {fmtRelative(r.nextRenewalDate)}</Chip>}
                 </div>
               </div>
