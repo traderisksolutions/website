@@ -1,7 +1,8 @@
 /**
  * POST /api/companies/from-lead   { leadId, origin?: 'inbound' | 'outbound', name?, stage? }
- * Moves a lead into Sales: creates (or reuses) the company at stage "prospect" unless told
- * otherwise, creates or links the contact, and marks the lead as converted so it leaves Start.
+ * Turns a lead into a company: creates (or reuses) the company, creates or links the contact,
+ * and marks the lead converted so it leaves Start. New companies are clients unless told
+ * otherwise — "prospect" is for sales outreach, which is not connected yet.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffOrCron }        from '@/lib/api-auth'
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
     const { leadId, origin, name, stage } = await req.json() as { leadId?: string; origin?: 'inbound' | 'outbound'; name?: string; stage?: string }
     if (!leadId) return NextResponse.json({ error: 'leadId required' }, { status: 400 })
     const user = await currentUserEmail()
-    const targetStage = isStage(stage) ? stage : 'prospect'
+    const targetStage = isStage(stage) ? stage : 'client'
 
     if (origin === 'outbound') {
       const rows = await sbTry<OutboundLead[]>(`outbound_leads?id=eq.${enc(leadId)}&select=id,full_name,first_name,last_name,email,current_company,website,status&limit=1`, [])

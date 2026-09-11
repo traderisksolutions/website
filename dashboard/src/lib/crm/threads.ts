@@ -30,7 +30,11 @@ export async function listCompanyThreads(companyId: string, threadIds?: string[]
   ])
 
   const lastDir = new Map<string, MsgRow>()
-  for (const m of messages) if (!lastDir.has(m.thread_id)) lastDir.set(m.thread_id, m)
+  const counts = new Map<string, number>()
+  for (const m of messages) {
+    if (!lastDir.has(m.thread_id)) lastDir.set(m.thread_id, m)
+    counts.set(m.thread_id, (counts.get(m.thread_id) ?? 0) + 1)
+  }
   const latestSummary = new Map<string, SummaryRow>()
   for (const s of summaries) if (!latestSummary.has(s.thread_id)) latestSummary.set(s.thread_id, s)
   const casesByThread = new Map<string, string[]>()
@@ -42,7 +46,8 @@ export async function listCompanyThreads(companyId: string, threadIds?: string[]
       const sum  = latestSummary.get(t.id)
       return {
         id: t.id, subject: t.subject, snippet: t.snippet, category: t.category, status: t.status,
-        message_count: t.message_count ?? 0, last_message_at: t.last_message_at,
+        // email_threads.message_count is stale (0 everywhere), so count the real rows.
+        message_count: counts.get(t.id) ?? 0, last_message_at: t.last_message_at,
         lastDirection: last?.direction ?? null,
         needsReply: t.status === 'active' && last?.direction === 'inbound',
         contact: t.contacts ? { id: t.contacts.id, name: personName(t.contacts.first_name, t.contacts.last_name, null) === 'Unknown' ? null : personName(t.contacts.first_name, t.contacts.last_name), email: t.contacts.email } : null,

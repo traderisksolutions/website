@@ -4,6 +4,105 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-09-11 — Everyone is a client, the to-do list is gone
+
+**Status:** `tsc` + `next build` clean, 335/335 tests pass. One optional migration (see below).
+
+### Prospect is reserved for sales outreach
+
+Until Sales Outreach is wired in, we have no way of knowing whether somebody is a prospect
+rather than a client, so the distinction was noise. Everything that arrives in our mail is now
+filed as a client. Every place that created a company — the new-company dialog, the API, the
+automatic filing, triage, lead conversion — now opens it at **Client**.
+
+`suggestStage` was rewritten to match. It can still suggest **Quoting** when a quote is open,
+**Renewal due** inside the 60-day window and **Lapsed** after 550 days of genuine silence, but
+it will never suggest Lead or Prospect again. Those two stages stay in the list so that sales
+outreach can use them when it lands, and the help text on each says so.
+
+The 68 companies still sitting at Prospect in the live data were moved to Client. Every client
+company is now at stage Client bar the handful the agent suggests moving.
+
+### The to-do list has been removed
+
+It was a second place to look, it duplicated what Needs attention already said, and keeping it
+honest meant deciding on proposals that mostly restated the obvious. It is gone entirely:
+
+- The **To do** card on Home, and the accept/dismiss buttons with it.
+- The **To do** column on the companies table and the "to review" chips on the companies list,
+  the pipeline board and the company page.
+- The `company_actions` API routes, the next-action extraction, the agent's
+  `list_company_actions` tool and the `crm_actions` AI-usage bucket.
+- Finished actions no longer appear on the company timeline or in "where we left off".
+
+The company brief still lists open items in prose, which is where the useful part lived.
+
+**Optional migration.** Nothing reads the table any more; it can be dropped when convenient:
+
+```sql
+DROP TABLE IF EXISTS public.company_actions;
+```
+
+---
+
+## 2026-09-12 — Company page restructured, navigation renamed
+
+**Status:** `tsc` + `next build` clean, 334/334 tests pass. No migration.
+
+### The tab strip no longer scrolls
+
+The page was 860px wide with a scrollbar under the tabs. It is now 1200px and all eight tabs sit on one line from 1024px up, with the full words kept: **Overview · Nexus · Threads · People · Purchase History · Quotation · Outstanding Payment · Activity**. Only a phone or an iPad in portrait scrolls them.
+
+### Nexus is its own tab
+
+It opens with the whole-company summary, then the cases already opened, then a thread picker. Tick the threads that belong to one matter and press Generate: they become a case and the full analysis runs (the same phased Gemini-then-Opus run the Nexus workspace uses), with the brief, blocking issues, next steps and scenarios shown on the tab. Each case still links to the full workspace. A case is named from what you picked, so nothing is called "Untitled".
+
+### Threads is the mail reader
+
+Unchanged from yesterday, minus the checkboxes, which now belong on Nexus where combining happens.
+
+### Quotation runs the real RFQ flow in place
+
+Start RFQ opens a picker of this company's threads, ordered so the likely request is first. Choosing one runs the established flow without leaving the page: the agent reads the thread and works out the product lines, you pick the insurers for each line — one or many — review the drafted wording and send.
+
+### Outstanding Payment is its own tab
+
+Split out of Quotation. Shows what is owed with the reminder drafting, and hides settled debit notes behind a toggle.
+
+### Purchase History
+
+Policies renamed, and its sections now read "Active cover" and "Expired and cancelled".
+
+### Overview trimmed
+
+To do and Recent threads are gone. Overview is now Needs attention and Where we left off, nothing else.
+
+### Navigation
+
+`Home · Companies · All Inbox · Sales Outreach · Nexus · Calendar · Tools · RoadPlus · Analytics · Team · Settings`. Inbox sits beside Companies and is named All Inbox; Pipeline is Sales Outreach; Calendar is out of Tools and on the bar. Tools keeps Debit Notes, Pricing Matrix, Filing and Contacts.
+
+### One consequence worth knowing
+
+"Find next actions" lost its button when the To do block left the company page. Existing proposals stay actionable — Home's To do now accepts and dismisses in place — but nothing generates new ones. Say where it should live if you want it back.
+
+## 2026-09-11 (night) — Reading a company's mail on its own page
+
+**Status:** `tsc` + `next build` clean, 334/334 tests pass. No migration.
+
+The Threads tab was a list that sent you to the global Inbox and lost the company context. It is now the Inbox experience, scoped to one company: the conversation list on the left, the conversation itself on the right, and the real composer for replying — the same message cards (`EngagementMessageCard`) and composer (`EngagementComposePanel`) the Inbox uses, so drafting, signatures, attachments and sending behave identically. Nothing was duplicated or reimplemented.
+
+Wide screens show list and conversation side by side with the first thread already open. A phone shows the list, then the conversation with a way back. Reviewed at 390, 834 and 1440 px; no horizontal overflow.
+
+`src/components/crm/CompanyMail.tsx`. The old link out to `/engagement?lead=` is kept as a small icon for anyone who wants the full workspace with the AI analysis dock and RFQ tabs.
+
+### Bug fixed: every thread claimed to have "0 messages"
+
+`email_threads.message_count` is 0 on all 360 rows — nothing has ever maintained that column. The company thread list now counts the message rows it already loads, so a thread with fourteen messages says so. Guarded by a test.
+
+### Note on the Inbox stalling
+
+The Inbox was seen stuck on "Loading conversations…" with every count at zero. All three endpoints behind it (`/api/engagement/conversations`, `/api/leads`, `/api/engagement/thread`) return correct data locally in about two seconds, so this looks like a stale production deploy rather than a code fault. Reading a company's mail no longer depends on that page in any case.
+
 ## 2026-09-11 (late) — Filing corrections after the migration
 
 **Status:** `tsc` + `next build` clean, 333/333 tests pass. `20260911_company_identity.sql` applied. All corrections applied to live data.

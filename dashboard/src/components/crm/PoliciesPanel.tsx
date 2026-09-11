@@ -54,10 +54,10 @@ export function PoliciesPanel({ policies }: { policies: Policy[] }) {
 
   return (
     <>
-      <SectionCard title="Active policies" description="Placed through TRS. Created from debit-note imports.">
+      <SectionCard title="Active cover" description="What this client currently has in force, placed through TRS.">
         {active.length === 0 ? <Empty compact>No active policies on file.</Empty> : table(active)}
       </SectionCard>
-      {past.length > 0 && <SectionCard title="Past policies">{table(past)}</SectionCard>}
+      {past.length > 0 && <SectionCard title="Expired and cancelled">{table(past)}</SectionCard>}
     </>
   )
 }

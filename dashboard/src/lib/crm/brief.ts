@@ -7,8 +7,8 @@ import { sbTry } from './db'
 import { geminiJson, opusJson } from './ai'
 import { buildCompanyContext } from './context'
 import { isStage } from './stage'
-import { STAGE_LABEL, ACTION_KINDS } from './types'
-import type { AiBrief, Company, ActionKind } from './types'
+import { STAGE_LABEL } from './types'
+import type { AiBrief, Company } from './types'
 
 const SYSTEM = `You are the account analyst at Trade Risk Solutions (TRS), an insurance broker in Singapore. You write short, factual briefs for colleagues about one client company, using only the facts provided. Plain, professional English. No speculation presented as fact. Dates as YYYY-MM-DD. Amounts with currency.`
 
@@ -16,7 +16,7 @@ const SCHEMA = `Return one JSON object with exactly these keys:
 {
   "summary": "3 to 5 sentences: who they are to TRS, what is going on right now, what matters most this week.",
   "relationship": "One sentence on the state of the relationship and who the main contact is.",
-  "open_items": [ { "title": "short imperative", "detail": "one sentence with the evidence", "kind": "renewal|claim|rfq|payment|general", "due": "YYYY-MM-DD or null" } ],
+  "open_items": [ { "title": "short imperative", "detail": "one sentence with the evidence", "due": "YYYY-MM-DD or null" } ],
   "risks": [ "one sentence each — overdue money, unanswered emails, approaching expiry, unhappy tone" ],
   "upcoming": [ { "what": "renewal / due date / follow-up", "when": "YYYY-MM-DD or null" } ],
   "suggested_stage": "lead|prospect|quoting|client|renewal_due|lapsed or null if the current stage is right",
@@ -25,17 +25,15 @@ const SCHEMA = `Return one JSON object with exactly these keys:
 Keep open_items to the 3 to 7 that matter. Keep risks to at most 5.`
 
 function coerce(raw: Partial<AiBrief> & Record<string, unknown>, model: string, deep: boolean): AiBrief {
-  const kinds = new Set<string>(ACTION_KINDS)
   const items = Array.isArray(raw.open_items) ? raw.open_items : []
   return {
     summary:      String(raw.summary ?? '').trim(),
     relationship: String(raw.relationship ?? '').trim(),
     open_items:   items.filter(i => i && typeof i === 'object' && (i as { title?: unknown }).title).slice(0, 8).map(i => {
-      const it = i as { title: unknown; detail?: unknown; kind?: unknown; due?: unknown }
+      const it = i as { title: unknown; detail?: unknown; due?: unknown }
       return {
         title:  String(it.title).trim(),
         detail: it.detail ? String(it.detail).trim() : undefined,
-        kind:   kinds.has(String(it.kind)) ? String(it.kind) as ActionKind : 'general',
         due:    typeof it.due === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(it.due) ? it.due : null,
       }
     }),

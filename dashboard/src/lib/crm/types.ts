@@ -19,8 +19,10 @@ export const STAGE_LABEL: Record<Stage, string> = {
 }
 
 export const STAGE_HELP: Record<Stage, string> = {
-  lead:        'First contact. No quote yet.',
-  prospect:    'In conversation. We know what they need.',
+  // Lead and prospect are reserved for sales outreach, which is not connected yet. Anyone we
+  // already correspond with is a client.
+  lead:        'Reserved for sales outreach.',
+  prospect:    'Reserved for sales outreach.',
   quoting:     'A quote or RFQ is in progress.',
   client:      'Has at least one policy placed through TRS.',
   renewal_due: 'A policy ends within 60 days.',
@@ -71,8 +73,6 @@ export interface CompanySummaryRow extends Company {
   openDebitNotes: number
   nextRenewalDate: string | null
   activePolicies: number
-  openActions: number
-  proposedActions: number
   openQuotes: number
   suggestedStage: Stage | null
 }
@@ -159,43 +159,12 @@ export interface QuoteRow {
   caseId: string | null
 }
 
-// ── Actions (requests / next steps) ───────────────────────────────────────────────────────────
-
-export const ACTION_KINDS = ['renewal', 'claim', 'rfq', 'payment', 'general'] as const
-export type ActionKind = typeof ACTION_KINDS[number]
-export const ACTION_KIND_LABEL: Record<ActionKind, string> = {
-  renewal: 'Renewal', claim: 'Claim', rfq: 'Quote', payment: 'Payment', general: 'General',
-}
-
-export type ActionStatus = 'proposed' | 'open' | 'done' | 'dismissed'
-export type ActionPriority = 'high' | 'medium' | 'low'
-
-export interface CompanyAction {
-  id: string
-  company_id: string
-  title: string
-  detail: string | null
-  kind: ActionKind
-  status: ActionStatus
-  priority: ActionPriority
-  due_date: string | null
-  owner_email: string | null
-  thread_id: string | null
-  debit_note_id: string | null
-  source: 'manual' | 'ai' | 'system'
-  evidence: string | null
-  created_by: string | null
-  completed_at: string | null
-  created_at: string
-  updated_at: string
-}
-
 // ── AI brief ──────────────────────────────────────────────────────────────────────────────────
 
 export interface AiBrief {
   summary: string
   relationship: string
-  open_items: { title: string; detail?: string; kind?: ActionKind; due?: string | null }[]
+  open_items: { title: string; detail?: string; due?: string | null }[]
   risks: string[]
   upcoming: { what: string; when: string | null }[]
   suggested_stage: Stage | null
@@ -260,11 +229,11 @@ export interface CompanyThread {
 // ── Activity timeline ─────────────────────────────────────────────────────────────────────────
 
 export type ActivityKind =
-  | 'email_in' | 'email_out' | 'ai_draft' | 'debit_note' | 'payment' | 'quote' | 'case' | 'action_done' | 'stage' | 'note'
+  | 'email_in' | 'email_out' | 'ai_draft' | 'debit_note' | 'payment' | 'quote' | 'case' | 'stage' | 'note'
 
 // ── Overview (alerts + where we left off) ─────────────────────────────────────────────────────
 
-export type AlertKind = 'overdue' | 'awaiting_reply' | 'renewal' | 'policy_ended' | 'proposal' | 'summary_stale' | 'no_summary'
+export type AlertKind = 'overdue' | 'awaiting_reply' | 'renewal' | 'policy_ended' | 'summary_stale' | 'no_summary'
 export type AlertTone = 'red' | 'amber' | 'blue' | 'neutral'
 
 export interface Alert {
@@ -280,14 +249,12 @@ export interface Alert {
 export interface LeftOff {
   lastOutbound: { at: string; by: string; subject: string | null; threadId: string } | null
   lastInbound:  { at: string; from: string; subject: string | null; threadId: string } | null
-  lastActionDone: { at: string; title: string; by: string | null } | null
   lastStageChange: { at: string; stage: string; by: string | null } | null
 }
 
 export interface CompanyOverview {
   alerts: Alert[]
   leftOff: LeftOff
-  actions: CompanyAction[]
   lastThreads: CompanyThread[]
   stakeholders: Person[]
   needsReply: number

@@ -120,7 +120,9 @@ export async function createCompany(input: { name: string; kind: CompanyKind; do
   const domains = input.domains.filter(d => d && !PUBLIC_EMAIL_DOMAINS.has(d))
   const full = {
     company_name: input.name.trim(), kind: input.kind,
-    stage: input.kind === 'client' ? 'prospect' : 'client',
+    // Everyone we deal with is a client until sales outreach is wired up and can tell us
+    // otherwise; "prospect" belongs to that flow, not to a company we are already emailing.
+    stage: 'client',
     stage_changed_at: new Date().toISOString(),
     domains, domain: domains[0] ?? null, source: 'auto',
     auto_created: true, identity_note: `${input.note} (confidence ${input.confidence.toFixed(2)})`, identity_at: new Date().toISOString(),

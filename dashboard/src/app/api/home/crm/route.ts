@@ -1,7 +1,7 @@
 /**
  * GET /api/home/crm → what needs attention today, across every client company:
  * emails awaiting our reply, overdue and due-soon debit notes, renewals in the next 60 days,
- * actions due or proposed, and the size of the triage queue.
+ * and the size of the triage queue.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffOrCron }        from '@/lib/api-auth'
@@ -9,7 +9,7 @@ import { listCompanySummaries, summariseAll } from '@/lib/crm/aggregates'
 import { sbTry, inChunks, isInternal, isAutomated, bareEmail, displayNameFromAddress } from '@/lib/crm/db'
 import { derivePayment }             from '@/lib/crm/payments'
 import { todaySGT, addDays }         from '@/lib/crm/format'
-import type { CompanyAction, DebitNoteRow } from '@/lib/crm/types'
+import type { DebitNoteRow } from '@/lib/crm/types'
 
 type ThreadRow = { id: string; subject: string | null; company_id: string | null; contact_id: string | null; last_message_at: string | null; category: string | null; contacts: { company_id: string | null } | null }
 type MsgRow = { thread_id: string; direction: 'inbound' | 'outbound'; from_address: string | null; sent_at: string }
@@ -24,11 +24,10 @@ export async function GET(req: NextRequest) {
     const nameById = new Map(rows.map(r => [r.id, r.name]))
     const totals = summariseAll(rows)
 
-    const [threads, debitNotes, policies, actions, unlinked, drafts] = await Promise.all([
+    const [threads, debitNotes, policies, unlinked, drafts] = await Promise.all([
       sbTry<ThreadRow[]>(`email_threads?deleted_at=is.null&status=eq.active&select=id,subject,company_id,contact_id,last_message_at,category,contacts(company_id)&order=last_message_at.desc&limit=150`, []),
       sbTry<DebitNoteRow[]>(`debit_notes?status=in.(unpaid,partially_paid)&select=id,company_id,contact_id,policy_id,debit_note_no,issue_date,payment_due_date,currency,gross_amount,net_amount,paid_amount,paid_direct_amount,status,paid_direct_status,pay_direct_to_insurer,insurer,event_type,drive_folder_url,updated_at&order=payment_due_date.asc&limit=200`, []),
       sbTry<PolicyRow[]>(`policies?status=eq.active&end_date=gte.${today}&end_date=lte.${addDays(today, 60)}&select=id,policy_number,insurer,class_of_insurance,end_date,customers(company_id)&order=end_date.asc&limit=50`, []),
-      sbTry<CompanyAction[]>(`company_actions?status=in.(open,proposed)&select=*&order=due_date.asc.nullslast&limit=100`, []),
       sbTry<{ id: string }[]>(`email_threads?company_id=is.null&deleted_at=is.null&select=id&limit=1000`, []),
       sbTry<{ id: string }[]>(`ai_drafts?status=eq.pending&select=id&limit=500`, []),
     ])
@@ -51,10 +50,6 @@ export async function GET(req: NextRequest) {
 
     const renewals = policies.map(p => ({ policyId: p.id, policyNumber: p.policy_number, insurer: p.insurer, classOfInsurance: p.class_of_insurance, endDate: p.end_date, companyId: p.customers?.company_id ?? null, companyName: p.customers?.company_id ? nameById.get(p.customers.company_id) ?? null : null }))
 
-    const weekEnd = addDays(today, 7)
-    const actionsDue = actions.filter(a => a.status === 'open' && (a.due_date === null || a.due_date <= weekEnd)).slice(0, 20).map(a => ({ ...a, companyName: nameById.get(a.company_id) ?? null }))
-    const proposed   = actions.filter(a => a.status === 'proposed').slice(0, 20).map(a => ({ ...a, companyName: nameById.get(a.company_id) ?? null }))
-
     return NextResponse.json({
       today,
       kpis: {
@@ -62,14 +57,12 @@ export async function GET(req: NextRequest) {
         overdueCount: overdue.length,
         overdueMoney: totals.money,
         renewals60d: renewals.length,
-        actionsDueWeek: actionsDue.length,
-        proposedActions: proposed.length,
         unlinkedThreads: unlinked.length,
         pendingDrafts: drafts.length,
         companies: rows.length,
         byStage: totals.byStage,
       },
-      needsReply, overdue, dueSoon, renewals, actionsDue, proposed,
+      needsReply, overdue, dueSoon, renewals,
       companies: rows.slice(0, 8),
     })
   } catch (e) {

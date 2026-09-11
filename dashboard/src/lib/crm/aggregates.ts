@@ -15,7 +15,6 @@ type MsgRow = { thread_id: string; direction: 'inbound' | 'outbound'; sent_at: s
 type ContactRow = { id: string; company_id: string | null }
 type JunctionRow = { company_id: string; contact_id: string }
 type CustomerRow = { company_id: string; policies: { end_date: string | null; status: string | null }[] | null }
-type ActionRow = { company_id: string; status: string }
 type CaseRow = { id: string; company_id: string | null }
 type PmRow = { company_id: string | null; created_at: string }
 
@@ -33,13 +32,12 @@ export async function listCompanySummaries(opts: ListOptions = {}): Promise<Comp
   if (companies.length === 0) return []
   const ids = companies.map(c => c.id)
 
-  const [contacts, junction, threadsDirect, debitNotes, customers, actions, cases, pmQuotes] = await Promise.all([
+  const [contacts, junction, threadsDirect, debitNotes, customers, cases, pmQuotes] = await Promise.all([
     inChunks(ids, 100, c => sbTry<ContactRow[]>(`contacts?company_id=in.(${c.join(',')})&select=id,company_id`, [])),
     inChunks(ids, 100, c => sbTry<JunctionRow[]>(`company_contacts?company_id=in.(${c.join(',')})&select=company_id,contact_id`, [])),
     inChunks(ids, 100, c => sbTry<ThreadRow[]>(`email_threads?company_id=in.(${c.join(',')})&deleted_at=is.null&select=id,company_id,contact_id,last_message_at,status&limit=2000`, [])),
     inChunks(ids, 100, c => sbTry<DebitNoteRow[]>(`debit_notes?company_id=in.(${c.join(',')})&select=id,company_id,contact_id,policy_id,debit_note_no,issue_date,payment_due_date,currency,gross_amount,net_amount,paid_amount,paid_direct_amount,status,paid_direct_status,pay_direct_to_insurer,insurer,event_type,drive_folder_url,updated_at`, [])),
     inChunks(ids, 100, c => sbTry<CustomerRow[]>(`customers?company_id=in.(${c.join(',')})&select=company_id,policies(end_date,status)`, [])),
-    inChunks(ids, 100, c => sbTry<ActionRow[]>(`company_actions?company_id=in.(${c.join(',')})&status=in.(open,proposed)&select=company_id,status`, [])),
     inChunks(ids, 100, c => sbTry<CaseRow[]>(`cases?company_id=in.(${c.join(',')})&select=id,company_id`, [])),
     inChunks(ids, 100, c => sbTry<PmRow[]>(`pm_quotations?company_id=in.(${c.join(',')})&select=company_id,created_at`, [])),
   ])
@@ -91,7 +89,6 @@ export async function listCompanySummaries(opts: ListOptions = {}): Promise<Comp
     const activeEnds = policies.filter(p => p.status === 'active' && p.end_date).map(p => p.end_date as string).sort()
     const activePolicies = policies.filter(p => p.status === 'active').length
 
-    const myActions = actions.filter(a => a.company_id === co.id)
     const contactCount = new Set([...contacts.filter(c => c.company_id === co.id).map(c => c.id), ...junction.filter(j => j.company_id === co.id).map(j => j.contact_id)]).size
 
     const openQuotes = cases.filter(c => c.company_id === co.id).reduce((n, c) => n + (openRfq.get(c.id) ?? 0), 0)
@@ -107,8 +104,6 @@ export async function listCompanySummaries(opts: ListOptions = {}): Promise<Comp
       contactCount, openThreads, needsReply, lastActivityAt,
       money: pay.byCurrency, overdueCount: pay.overdueCount, openDebitNotes: pay.openCount,
       nextRenewalDate: activeEnds[0] ?? null, activePolicies,
-      openActions: myActions.filter(a => a.status === 'open').length,
-      proposedActions: myActions.filter(a => a.status === 'proposed').length,
       openQuotes, suggestedStage,
     }
   }).sort((a, b) => (b.lastActivityAt ?? '').localeCompare(a.lastActivityAt ?? '') || a.name.localeCompare(b.name))
@@ -116,18 +111,18 @@ export async function listCompanySummaries(opts: ListOptions = {}): Promise<Comp
 
 export function summariseAll(rows: CompanySummaryRow[]) {
   const byStage: Record<string, number> = {}
-  let overdueCount = 0, needsReply = 0, proposed = 0, openActions = 0
+  let overdueCount = 0, needsReply = 0
   const money = new Map<string, { outstanding: number; overdue: number }>()
   for (const r of rows) {
     byStage[r.stage] = (byStage[r.stage] ?? 0) + 1
-    overdueCount += r.overdueCount; needsReply += r.needsReply; proposed += r.proposedActions; openActions += r.openActions
+    overdueCount += r.overdueCount; needsReply += r.needsReply
     for (const m of r.money) {
       const cur = money.get(m.currency) ?? { outstanding: 0, overdue: 0 }
       cur.outstanding += m.outstanding; cur.overdue += m.overdue
       money.set(m.currency, cur)
     }
   }
-  return { byStage, overdueCount, needsReply, proposed, openActions, money: Array.from(money.entries()).map(([currency, v]) => ({ currency, ...v })) }
+  return { byStage, overdueCount, needsReply, money: Array.from(money.entries()).map(([currency, v]) => ({ currency, ...v })) }
 }
 
 export type { Company }

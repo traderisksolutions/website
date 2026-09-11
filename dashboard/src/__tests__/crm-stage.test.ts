@@ -12,7 +12,6 @@ describe('suggestStage', () => {
   it('returns null when the current stage already fits', () => {
     expect(suggestStage({ ...facts, activePolicies: 1 }, 'client', today)).toBeNull()
     expect(suggestStage({ ...facts, openQuotes: 1 }, 'quoting', today)).toBeNull()
-    expect(suggestStage(facts, 'lead', today)).toBeNull()
   })
 
   it('treats an active policy or any billing history as proof of being a client', () => {
@@ -32,14 +31,22 @@ describe('suggestStage', () => {
     expect(suggestStage({ ...facts, activePolicies: 1, nextRenewalDate: '2027-03-01' }, 'renewal_due', today)).toBe('client')
   })
 
-  it('suggests quoting when a quote is open and prospect when only threads exist', () => {
-    expect(suggestStage({ ...facts, openQuotes: 2 }, 'lead', today)).toBe('quoting')
-    expect(suggestStage({ ...facts, openThreads: 3, lastActivityAt: '2026-09-01T00:00:00Z' }, 'lead', today)).toBe('prospect')
+  it('suggests quoting when a quote is open', () => {
+    expect(suggestStage({ ...facts, openQuotes: 2 }, 'client', today)).toBe('quoting')
   })
 
-  it('never demotes a client to lead or prospect', () => {
+  it('never suggests lead or prospect — those belong to sales outreach, which is not connected', () => {
+    // Anyone already in our mail is a client, whatever else we do or do not know about them.
+    expect(suggestStage({ ...facts, openThreads: 3, lastActivityAt: '2026-09-01T00:00:00Z' }, 'lead', today)).toBe('client')
+    expect(suggestStage({ ...facts, openThreads: 3, lastActivityAt: '2026-09-01T00:00:00Z' }, 'prospect', today)).toBe('client')
+    expect(suggestStage({ ...facts, totalDebitNotes: 1, lastBillingDate: recent }, 'lead', today)).toBe('client')
+    // A company with nothing at all is still dormant, whatever it was called before.
+    expect(suggestStage(facts, 'prospect', today)).toBe('lapsed')
+  })
+
+  it('never demotes a client', () => {
     expect(suggestStage({ ...facts, openThreads: 1, lastActivityAt: '2026-09-01T00:00:00Z' }, 'client', today)).toBeNull()
-    expect(suggestStage({ ...facts, openThreads: 1, lastActivityAt: '2026-09-01T00:00:00Z' }, 'renewal_due', today)).toBeNull()
+    expect(suggestStage({ ...facts, openThreads: 1, lastActivityAt: '2026-09-01T00:00:00Z' }, 'renewal_due', today)).toBe('client')
   })
 
   it('suggests lapsed only for real dormancy: no policy, no recent billing, no recent talk', () => {

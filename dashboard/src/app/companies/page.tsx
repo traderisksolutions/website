@@ -85,7 +85,6 @@ export default function CompaniesPage() {
                     <th className="text-right pr-3 py-2 font-semibold">Threads</th>
                     <th className="text-right pr-3 py-2 font-semibold">Outstanding</th>
                     <th className="text-left pr-3 py-2 font-semibold">Next renewal</th>
-                    <th className="text-right pr-3 py-2 font-semibold">To do</th>
                     <th className="text-left py-2 font-semibold">Last activity</th>
                   </tr>
                 </thead>
@@ -109,7 +108,6 @@ export default function CompaniesPage() {
                       {r.needsReply > 0 && <Chip tone="amber"><Reply size={10} /> {r.needsReply} awaiting reply</Chip>}
                       {r.money.map(m => <Chip key={m.currency} tone={m.overdue > 0 ? 'red' : 'neutral'}>{fmtMoney(m.overdue > 0 ? m.overdue : m.outstanding, m.currency, { compact: true })} {m.overdue > 0 ? 'overdue' : 'outstanding'}</Chip>)}
                       {r.nextRenewalDate && <Chip tone="neutral">Renews {fmtRelative(r.nextRenewalDate)}</Chip>}
-                      {r.proposedActions > 0 && <Chip tone="blue">{r.proposedActions} to review</Chip>}
                     </div>
                   </Link>
                 </li>
@@ -148,10 +146,6 @@ function Row({ r, onOpen }: { r: CompanySummaryRow; onOpen: () => void }) {
         ))}
       </td>
       <td className="pr-3 py-2.5 whitespace-nowrap">{r.nextRenewalDate ? <>{fmtDate(r.nextRenewalDate)}<span className="block text-[10.5px] text-muted-foreground">{fmtRelative(r.nextRenewalDate)}</span></> : <span className="text-muted-foreground">—</span>}</td>
-      <td className="pr-3 py-2.5 text-right tabular-nums">
-        {r.openActions}
-        {r.proposedActions > 0 && <span className="block text-[10.5px] font-semibold" style={{ color: 'var(--primary-hex)' }}>{r.proposedActions} to review</span>}
-      </td>
       <td className="py-2.5 whitespace-nowrap text-muted-foreground">{fmtRelative(r.lastActivityAt)}</td>
     </tr>
   )

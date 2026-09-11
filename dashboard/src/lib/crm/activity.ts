@@ -1,10 +1,10 @@
 /**
  * A single timeline for a company: emails in and out, debit notes issued and paid, quotes,
- * cases, completed actions and stage changes — newest first. Read-only; each source keeps its
+ * cases and stage changes — newest first. Read-only; each source keeps its
  * own table, this just lines them up.
  */
 import { sbTry, inChunks, enc, displayNameFromAddress, bareEmail } from './db'
-import type { ActivityEvent, CompanyAction, CaseRow, PaymentDerived, QuoteRow } from './types'
+import type { ActivityEvent, CaseRow, PaymentDerived, QuoteRow } from './types'
 import { fmtMoney } from './format'
 
 type MsgRow = { id: string; thread_id: string; direction: 'inbound' | 'outbound'; from_address: string | null; subject: string | null; sent_at: string }
@@ -18,7 +18,6 @@ export interface ActivityInputs {
   payments: PaymentDerived[]
   quotes: QuoteRow[]
   cases: CaseRow[]
-  actions: CompanyAction[]
 }
 
 export async function buildActivity(companyId: string, input: ActivityInputs, limit = 80): Promise<ActivityEvent[]> {
@@ -54,10 +53,10 @@ export async function buildActivity(companyId: string, input: ActivityInputs, li
       id: `dn-${d.id}`, kind: 'debit_note', at: `${d.issue_date}T00:00:00Z`,
       title: `Debit note ${d.debit_note_no} issued`,
       detail: `${fmtMoney(d.net_amount ?? d.gross_amount, d.currency)} · ${d.insurer ?? 'insurer not recorded'}${d.payment_due_date ? ` · due ${d.payment_due_date}` : ''}`,
-      href: `/debit-notes?company_id=${companyId}`,
+      href: `/companies/${companyId}?tab=payments`,
     })
     if (d.derived === 'paid' && d.updated_at && d.updated_at.slice(0, 10) !== d.issue_date) {
-      events.push({ id: `paid-${d.id}`, kind: 'payment', at: d.updated_at, title: `Debit note ${d.debit_note_no} marked paid`, detail: fmtMoney(d.net_amount ?? d.gross_amount, d.currency), href: `/debit-notes?company_id=${companyId}` })
+      events.push({ id: `paid-${d.id}`, kind: 'payment', at: d.updated_at, title: `Debit note ${d.debit_note_no} marked paid`, detail: fmtMoney(d.net_amount ?? d.gross_amount, d.currency), href: `/companies/${companyId}?tab=payments` })
     }
   }
 
@@ -67,10 +66,6 @@ export async function buildActivity(companyId: string, input: ActivityInputs, li
 
   for (const c of input.cases) {
     events.push({ id: `case-${c.id}`, kind: 'case', at: c.created_at, title: `Case opened: ${c.name}`, detail: c.description, href: `/nexus?case=${c.id}` })
-  }
-
-  for (const a of input.actions) {
-    if (a.status === 'done' && a.completed_at) events.push({ id: `act-${a.id}`, kind: 'action_done', at: a.completed_at, title: `Done: ${a.title}`, detail: a.owner_email ? `by ${a.owner_email}` : null, href: null })
   }
 
   for (const r of audit) {

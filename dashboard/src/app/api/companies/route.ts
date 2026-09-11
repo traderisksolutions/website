@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     const domain = domainRaw ? (domainRaw.includes('@') ? emailDomain(domainRaw) : domainRaw.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0]) : null
 
     const id = await createClientCompany({
-      name, domain, stage: isStage(body.stage) ? body.stage : 'prospect', source: 'manual',
+      name, domain, stage: isStage(body.stage) ? body.stage : 'client', source: 'manual',
       ownerEmail: body.owner_email ?? user, industry: body.industry ?? null, address: body.address ?? null,
     })
     const res = await fetch(`${SB_URL}/rest/v1/companies?id=eq.${id}&select=id,name:company_name&limit=1`, { headers: sbH(), cache: 'no-store' })

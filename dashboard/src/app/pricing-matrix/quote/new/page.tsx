@@ -1,8 +1,8 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Loader2, Save, Download, Wand2 } from 'lucide-react'
 import { PmComparison } from '@/components/pricing-matrix/PmComparison'
 import { PmLiveBenefitPreview } from '@/components/pricing-matrix/PmLiveBenefitPreview'
@@ -25,10 +25,19 @@ async function safeJson<T>(r: Response): Promise<T & { error?: string }> {
   try { return await r.json() } catch { return { error: `HTTP ${r.status}` } as T & { error?: string } }
 }
 
-export default function NewQuotePage() {
+function NewQuoteInner() {
   const router = useRouter()
+  // Arriving from a company page carries the company with it, so the broker does not have to
+  // find the same company again in the picker.
+  const params = useSearchParams()
+  const preCompanyId = params.get('company_id')
+  const preCompanyName = params.get('company')
   const [step, setStep] = useState(0)
-  const [companyPick, setCompanyPick] = useState<PickerValue | null>(null)
+  const [companyPick, setCompanyPick] = useState<PickerValue | null>(
+    preCompanyId && preCompanyName
+      ? { companyId: preCompanyId, companyName: preCompanyName, contactId: null, contactEmail: null, contactName: null }
+      : null,
+  )
   const company = companyPick?.companyName ?? ''
   const [effDate, setEffDate] = useState('2026-01-01')
   const [census, setCensus] = useState<CensusMember[]>([{ name: '', relationship: 'Self', date_of_birth: null, age: null }])
@@ -242,5 +251,14 @@ export default function NewQuotePage() {
         </div>
       )}
     </div>
+  )
+}
+
+/** The page reads the company out of the URL, so it needs a boundary to prerender. */
+export default function NewQuotePage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-[12.5px] text-muted-foreground">Loading…</div>}>
+      <NewQuoteInner />
+    </Suspense>
   )
 }

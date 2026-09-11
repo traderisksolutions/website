@@ -6,6 +6,9 @@
  * Being a client is evidenced by billing history or an active policy — not by owing money. A
  * client who pays every debit note on time is still a client. "Lapsed" therefore needs real
  * dormancy: no active policy, nothing billed for a long while, and no recent conversation.
+ *
+ * "Lead" and "prospect" belong to sales outreach, which is not connected yet, so nothing here
+ * ever suggests them: anyone already in our mail is treated as a client.
  */
 import type { Stage } from './types'
 import { STAGES } from './types'
@@ -49,15 +52,13 @@ export function suggestStage(f: StageFacts, current: Stage, today = todaySGT()):
     }
   } else if (f.openQuotes > 0) {
     suggested = 'quoting'
-  } else if (f.openThreads > 0) {
-    suggested = dormant(f, today) && (current === 'client' || current === 'renewal_due') ? 'lapsed' : 'prospect'
   } else {
-    suggested = current === 'client' || current === 'renewal_due' ? 'lapsed' : 'lead'
+    // No policy, no billing, no open quote: still a client unless they have gone quiet for good.
+    // "Lead" and "prospect" are earned in sales outreach, which is not connected yet, so nothing
+    // here ever suggests them.
+    suggested = dormant(f, today) ? 'lapsed' : 'client'
   }
 
-  // A client that goes quiet is still a client — never suggest walking one back to lead or
-  // prospect. Only genuine dormancy (handled above) may move it to lapsed.
-  if ((current === 'client' || current === 'renewal_due') && (suggested === 'lead' || suggested === 'prospect')) return null
   return suggested === current ? null : suggested
 }
 

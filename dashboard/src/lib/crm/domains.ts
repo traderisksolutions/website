@@ -165,7 +165,7 @@ export async function mergeCompanies(loserId: string, winnerId: string, userEmai
     await sbTry(`${table}?${column}=eq.${enc(loserId)}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ [column]: winnerId }) })
     moved[table] = before.length
   }
-  for (const table of ['email_threads', 'contacts', 'cases', 'debit_notes', 'inbound_leads', 'pm_quotations', 'customers', 'company_actions', 'company_contacts', 'pm_classification_tiers']) {
+  for (const table of ['email_threads', 'contacts', 'cases', 'debit_notes', 'inbound_leads', 'pm_quotations', 'customers', 'company_contacts', 'pm_classification_tiers']) {
     await move(table)
   }
 

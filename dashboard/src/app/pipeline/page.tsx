@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Building2, Plus, ArrowRight, Reply, Inbox, MessageCircle, Telescope, Radar, Table2, Megaphone, MailCheck, Sparkles } from 'lucide-react'
+import { Building2, Plus, ArrowRight, Reply, Inbox, MessageCircle, Telescope, Radar, Table2, Megaphone, MailCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/components/page-header'
 import { NewCompanyDialog } from '@/components/crm/dialogs'
@@ -248,7 +248,6 @@ function CompanyList({ rows, busy, onStage, onApplyAll, empty, columns }: {
                   {columns === 'operations' && sgd && sgd.overdue > 0 && <Chip tone="red">{fmtMoney(sgd.overdue, sgd.currency, { compact: true })} overdue</Chip>}
                   {columns === 'operations' && sgd && sgd.overdue === 0 && sgd.outstanding > 0 && <Chip tone="neutral">{fmtMoney(sgd.outstanding, sgd.currency, { compact: true })} outstanding</Chip>}
                   {columns === 'operations' && r.nextRenewalDate && <Chip tone="neutral" title={fmtDate(r.nextRenewalDate)}>Renews {fmtRelative(r.nextRenewalDate)}</Chip>}
-                  {r.proposedActions > 0 && <Chip tone="blue"><Sparkles size={10} /> {r.proposedActions} to review</Chip>}
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1 flex-shrink-0">

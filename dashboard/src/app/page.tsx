@@ -2,28 +2,25 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, Sparkles } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { PageHeader } from '@/components/page-header'
 import { SectionCard, Chip, Empty, Spinner, StageBadge } from '@/components/crm/primitives'
 import { fmtMoney, fmtRelative, fmtDate } from '@/lib/crm/format'
-import { ACTION_KIND_LABEL, STAGES, STAGE_LABEL, type CompanyAction, type CompanySummaryRow, type PaymentDerived } from '@/lib/crm/types'
+import { STAGES, STAGE_LABEL, type CompanySummaryRow, type PaymentDerived } from '@/lib/crm/types'
 
 type Home = {
   today: string
-  kpis: { needsReply: number; overdueCount: number; overdueMoney: { currency: string; outstanding: number; overdue: number }[]; renewals60d: number; actionsDueWeek: number; proposedActions: number; unlinkedThreads: number; pendingDrafts: number; companies: number; byStage: Record<string, number> }
+  kpis: { needsReply: number; overdueCount: number; overdueMoney: { currency: string; outstanding: number; overdue: number }[]; renewals60d: number; unlinkedThreads: number; pendingDrafts: number; companies: number; byStage: Record<string, number> }
   needsReply: { threadId: string; subject: string | null; category: string | null; companyId: string | null; companyName: string | null; from: string; at: string }[]
   overdue: (PaymentDerived & { companyName: string | null })[]
   dueSoon: (PaymentDerived & { companyName: string | null })[]
   renewals: { policyId: string; policyNumber: string | null; insurer: string | null; classOfInsurance: string | null; endDate: string; companyId: string | null; companyName: string | null }[]
-  actionsDue: (CompanyAction & { companyName: string | null })[]
-  proposed: (CompanyAction & { companyName: string | null })[]
   companies: CompanySummaryRow[]
 }
 
 export default function HomePage() {
   const [data, setData] = useState<Home | null>(null)
   const [error, setError] = useState<string | null>(null)
-
   useEffect(() => {
     fetch('/api/home/crm', { cache: 'no-store' })
       .then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error ?? 'Could not load.'); setData(d) })
@@ -38,7 +35,6 @@ export default function HomePage() {
         k.needsReply ? `${k.needsReply} awaiting a reply` : null,
         k.overdueCount ? `${fmtMoney(sgdOverdue, 'SGD', { compact: true })} overdue across ${k.overdueCount} debit note${k.overdueCount === 1 ? '' : 's'}` : null,
         k.renewals60d ? `${k.renewals60d} renewal${k.renewals60d === 1 ? '' : 's'} within 60 days` : null,
-        k.proposedActions ? `${k.proposedActions} agent proposal${k.proposedActions === 1 ? '' : 's'} to review` : null,
       ].filter(Boolean).join(' · ') || 'Nothing needs attention today.'
     : 'What needs attention across every client.'
 
@@ -82,7 +78,7 @@ export default function HomePage() {
               <ul className="m-0 p-0 list-none flex flex-col">
                 {[...data.overdue, ...data.dueSoon].slice(0, 8).map(d => (
                   <li key={d.id} className="border-b border-[--border-subtle] last:border-b-0">
-                    <Link href={`/companies/${d.company_id}?tab=quotation`} className="flex items-center gap-3 py-2 no-underline text-foreground hover:text-primary">
+                    <Link href={`/companies/${d.company_id}?tab=payments`} className="flex items-center gap-3 py-2 no-underline text-foreground hover:text-primary">
                       <span className="min-w-0 flex-1">
                         <span className="block text-[13px] truncate">{d.companyName ?? 'Unknown company'} · <span className="font-mono text-[11.5px]">{d.debit_note_no}</span></span>
                         <span className="block text-[11.5px] text-muted-foreground truncate">{d.classOfInsurance ?? d.event_type ?? ''}{d.insurer ? ` · ${d.insurer}` : ''}</span>
@@ -95,31 +91,12 @@ export default function HomePage() {
               </ul>
             </SectionCard>
 
-            <SectionCard title="To do" description="Due this week, and proposals waiting on a decision.">
-              {data.actionsDue.length === 0 && data.proposed.length === 0 && <Empty compact>Nothing due. Open a company and ask the agent to find next actions.</Empty>}
-              <ul className="m-0 p-0 list-none flex flex-col">
-                {[...data.proposed, ...data.actionsDue].slice(0, 8).map(a => (
-                  <li key={a.id} className="border-b border-[--border-subtle] last:border-b-0">
-                    <Link href={`/companies/${a.company_id}`} className="flex items-center gap-3 py-2 no-underline text-foreground hover:text-primary">
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[13px] truncate">{a.title}</span>
-                        <span className="block text-[11.5px] text-muted-foreground truncate">{a.companyName ?? ''} · {ACTION_KIND_LABEL[a.kind]}{a.owner_email ? ` · ${a.owner_email.split('@')[0]}` : ''}</span>
-                      </span>
-                      {a.status === 'proposed'
-                        ? <Chip tone="blue"><Sparkles size={10} /> Review</Chip>
-                        : a.due_date ? <Chip tone={a.due_date < data.today ? 'red' : 'neutral'}>{a.due_date < data.today ? 'Overdue' : fmtRelative(a.due_date)}</Chip> : null}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </SectionCard>
-
             <SectionCard title="Renewals in the next 60 days" actions={<Link href="/calendar" className="inline-flex items-center gap-1 text-[12px] font-semibold text-primary no-underline hover:underline">Calendar <ArrowRight size={11} /></Link>}>
               {data.renewals.length === 0 && <Empty compact>No policies ending in the next 60 days.</Empty>}
               <ul className="m-0 p-0 list-none flex flex-col">
                 {data.renewals.slice(0, 8).map(r => (
                   <li key={r.policyId} className="border-b border-[--border-subtle] last:border-b-0">
-                    <Link href={r.companyId ? `/companies/${r.companyId}?tab=policies` : '/calendar'} className="flex items-center gap-3 py-2 no-underline text-foreground hover:text-primary">
+                    <Link href={r.companyId ? `/companies/${r.companyId}?tab=purchases` : '/calendar'} className="flex items-center gap-3 py-2 no-underline text-foreground hover:text-primary">
                       <span className="min-w-0 flex-1">
                         <span className="block text-[13px] truncate">{r.companyName ?? 'Unknown company'} · {r.classOfInsurance ?? 'Policy'}</span>
                         <span className="block text-[11.5px] text-muted-foreground truncate">{r.insurer ?? ''}{r.policyNumber ? ` · ${r.policyNumber}` : ''}</span>

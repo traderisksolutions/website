@@ -19,7 +19,6 @@ import { listCompanyThreads } from '@/lib/crm/threads'
 import { loadCompanyPayments } from '@/lib/crm/payments-server'
 import { listCompanyQuotes } from '@/lib/crm/quotes'
 import { rankPeople } from '@/lib/crm/people'
-import type { CompanyAction } from '@/lib/crm/types'
 
 export const maxDuration = 300
 
@@ -75,7 +74,6 @@ const COMPANY_TOOLS = [
   { name: 'get_company_payments', description: 'Every debit note for this company with amount, due date, outstanding balance and whether it is overdue.', input_schema: { type: 'object', properties: {} } },
   { name: 'get_company_quotes',   description: 'RFQ lines and group benefits quotations for this company with status.', input_schema: { type: 'object', properties: {} } },
   { name: 'get_company_people',   description: 'Who corresponds with us at this company, ranked by activity, with insurer contacts seen on the same threads.', input_schema: { type: 'object', properties: {} } },
-  { name: 'list_company_actions', description: 'Open and proposed next actions recorded for this company.', input_schema: { type: 'object', properties: {} } },
 ] as const
 
 async function execCompanyTool(name: string, input: Record<string, unknown>, companyId: string): Promise<string> {
@@ -106,15 +104,11 @@ async function execCompanyTool(name: string, input: Record<string, unknown>, com
       const { people } = await rankPeople(company)
       return cap(JSON.stringify(people.map(p => ({ name: p.name, email: p.email, party: p.party, primary: p.isPrimary, wrote: p.sent, addressed: p.received, copied: p.cc, last_seen: p.lastSeen, topics: p.topics }))))
     }
-    if (name === 'list_company_actions') {
-      const rows = await sbTry<CompanyAction[]>(`company_actions?company_id=eq.${companyId}&status=in.(open,proposed)&select=title,detail,kind,status,priority,due_date,owner_email&order=due_date.asc.nullslast`, [])
-      return cap(JSON.stringify(rows))
-    }
   } catch (e) { return `Tool error: ${String(e)}` }
   return 'Unknown tool.'
 }
 
-const SYSTEM_COMPANY = `You are a sharp, candid account consultant embedded in TRS (Trade Risk Solutions, a Singapore insurance brokerage). A broker is asking you about ONE client company. Answer from the facts in context and from what your read-tools return — list_company_threads, get_thread_messages, get_company_payments, get_company_quotes, get_company_people, list_company_actions. Prefer looking things up over guessing. Be concise and practical: what is going on, what is owed, what is unanswered, what to do next and who to contact.
+const SYSTEM_COMPANY = `You are a sharp, candid account consultant embedded in TRS (Trade Risk Solutions, a Singapore insurance brokerage). A broker is asking you about ONE client company. Answer from the facts in context and from what your read-tools return — list_company_threads, get_thread_messages, get_company_payments, get_company_quotes, get_company_people. Prefer looking things up over guessing. Be concise and practical: what is going on, what is owed, what is unanswered, what to do next and who to contact.
 
 CONFIRM-TO-ACT: if — and only if — the broker asks you to write to someone, END your reply with a single fenced block:
 \`\`\`action
@@ -144,7 +138,6 @@ const TOOL_STATUS: Record<string, string> = {
   get_company_payments: 'Checking the payments…',
   get_company_quotes:   'Checking the quotes…',
   get_company_people:   'Checking who is who…',
-  list_company_actions: 'Checking open actions…',
 }
 function toolStatus(names: string[]): string {
   const known = names.map(n => TOOL_STATUS[n]).filter(Boolean)

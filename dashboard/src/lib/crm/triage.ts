@@ -186,12 +186,11 @@ export async function decideLink(threadId: string, d: TriageDecision, userEmail:
   if (d.decision === 'not_client') { await markSuggestion('accepted', 'not_client'); return { ok: true, companyId: null } }
 
   let companyId: string | null = null
-  let stageForNew: Stage = thread.category === 'renewal' || thread.category === 'claim' ? 'client' : 'prospect'
+  const stageForNew: Stage = 'client'
 
   if (d.decision === 'link') companyId = d.companyId
   else if (d.decision === 'create') {
-    if (d.stage) stageForNew = d.stage
-    companyId = await createClientCompany({ name: d.name, domain: d.domain ?? emailDomain(thread.contacts?.email), stage: stageForNew, source: 'triage' })
+    companyId = await createClientCompany({ name: d.name, domain: d.domain ?? emailDomain(thread.contacts?.email), stage: d.stage ?? stageForNew, source: 'triage' })
   } else if (d.decision === 'accept') {
     if (!suggestion || suggestion.status !== 'pending') return { ok: false, error: 'There is no pending suggestion to accept.' }
     if (suggestion.verdict === 'not_client') { await markSuggestion('accepted'); return { ok: true, companyId: null } }
@@ -217,7 +216,7 @@ export async function createClientCompany(input: { name: string; domain?: string
     return existing[0].id
   }
   const domains = input.domain && !PUBLIC_EMAIL_DOMAINS.has(input.domain) ? [input.domain.toLowerCase()] : []
-  const full = { company_name: name, address: input.address ?? null, industry: input.industry ?? null, kind: 'client', stage: input.stage ?? 'prospect', stage_changed_at: new Date().toISOString(), owner_email: input.ownerEmail ?? null, domains, domain: domains[0] ?? null, source: input.source ?? 'manual' }
+  const full = { company_name: name, address: input.address ?? null, industry: input.industry ?? null, kind: 'client', stage: input.stage ?? 'client', stage_changed_at: new Date().toISOString(), owner_email: input.ownerEmail ?? null, domains, domain: domains[0] ?? null, source: input.source ?? 'manual' }
   try {
     const rows = await sb<{ id: string }[]>('companies', { method: 'POST', body: JSON.stringify(full) })
     return rows[0].id

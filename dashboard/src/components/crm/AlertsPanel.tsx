@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowRight, Send, MailOpen, CheckCircle2, Milestone } from 'lucide-react'
+import { ArrowRight, Send, MailOpen, Milestone } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SectionCard, Empty } from './primitives'
 import { fmtDateTime, fmtRelative } from '@/lib/crm/format'
@@ -49,7 +49,6 @@ export function LeftOffPanel({ leftOff }: { leftOff: LeftOff }) {
   const rows: { icon: React.ElementType; text: React.ReactNode; at: string; href?: string }[] = []
   if (leftOff.lastInbound) rows.push({ icon: MailOpen, at: leftOff.lastInbound.at, href: `/engagement?lead=${leftOff.lastInbound.threadId}`, text: <><strong className="font-semibold">{who(leftOff.lastInbound.from)}</strong> wrote{leftOff.lastInbound.subject ? <> on “{leftOff.lastInbound.subject}”</> : null}</> })
   if (leftOff.lastOutbound) rows.push({ icon: Send, at: leftOff.lastOutbound.at, href: `/engagement?lead=${leftOff.lastOutbound.threadId}`, text: <>We replied, sent by <strong className="font-semibold">{who(leftOff.lastOutbound.by)}</strong></> })
-  if (leftOff.lastActionDone) rows.push({ icon: CheckCircle2, at: leftOff.lastActionDone.at, text: <>Finished: {leftOff.lastActionDone.title}</> })
   if (leftOff.lastStageChange) rows.push({ icon: Milestone, at: leftOff.lastStageChange.at, text: <>Moved to {leftOff.lastStageChange.stage}</> })
   rows.sort((a, b) => b.at.localeCompare(a.at))
 

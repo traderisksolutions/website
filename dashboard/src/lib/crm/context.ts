@@ -11,7 +11,7 @@ import { listCompanyQuotes } from './quotes'
 import { listCompanyCases } from './cases'
 import { fmtMoney, todaySGT } from './format'
 import { STAGE_LABEL } from './types'
-import type { Company, CompanyAction, CompanyThread, Person, PaymentDerived, PaymentSummary, QuoteRow, CaseRow } from './types'
+import type { Company, CompanyThread, Person, PaymentDerived, PaymentSummary, QuoteRow, CaseRow } from './types'
 
 type MsgRow = { thread_id: string; direction: 'inbound' | 'outbound'; from_address: string | null; sent_at: string; body_text: string | null }
 
@@ -25,7 +25,6 @@ export interface CompanyContext {
   paymentSummary: PaymentSummary
   quotes: QuoteRow[]
   cases: CaseRow[]
-  actions: CompanyAction[]
   excerpts: Map<string, MsgRow[]>
   text: string
 }
@@ -36,13 +35,12 @@ const EXCERPT_CHARS = 700
 
 export async function buildCompanyContext(company: Company, opts: { withExcerpts?: boolean } = {}): Promise<CompanyContext> {
   const threadIds = await getCompanyThreadIds(company.id)
-  const [threads, peopleRes, pay, quotes, cases, actions] = await Promise.all([
+  const [threads, peopleRes, pay, quotes, cases] = await Promise.all([
     listCompanyThreads(company.id, threadIds),
     rankPeople(company, threadIds),
     loadCompanyPayments(company.id),
     listCompanyQuotes(company, threadIds),
     listCompanyCases(company.id, threadIds),
-    sbTry<CompanyAction[]>(`company_actions?company_id=eq.${company.id}&status=in.(open,proposed)&select=*&order=due_date.asc.nullslast`, []),
   ])
 
   const excerpts = new Map<string, MsgRow[]>()
@@ -59,7 +57,7 @@ export async function buildCompanyContext(company: Company, opts: { withExcerpts
 
   const ctx: CompanyContext = {
     company, threadIds, threads, people: peopleRes.people, primary: peopleRes.primary,
-    payments: pay.notes, paymentSummary: pay.summary, quotes, cases, actions, excerpts, text: '',
+    payments: pay.notes, paymentSummary: pay.summary, quotes, cases, excerpts, text: '',
   }
   ctx.text = renderContext(ctx)
   return ctx
@@ -104,10 +102,6 @@ export function renderContext(ctx: CompanyContext): string {
   lines.push('', '── NEXUS CASES ──')
   if (ctx.cases.length === 0) lines.push('No cases.')
   for (const c of ctx.cases.slice(0, 10)) lines.push(`- ${c.name} · ${c.status} · ${c.thread_count} threads · last activity ${c.last_activity?.slice(0, 10) ?? '?'}${c.description ? ` · ${clip(c.description, 160)}` : ''}`)
-
-  lines.push('', '── OPEN ACTIONS ──')
-  if (ctx.actions.length === 0) lines.push('None recorded.')
-  for (const a of ctx.actions) lines.push(`- [${a.status}] ${a.title} · ${a.kind} · ${a.priority}${a.due_date ? ` · due ${a.due_date}` : ''}${a.owner_email ? ` · ${a.owner_email}` : ''}`)
 
   lines.push('', `── EMAIL THREADS (${ctx.threads.length} total, newest first) ──`)
   if (ctx.threads.length === 0) lines.push('No threads linked yet.')

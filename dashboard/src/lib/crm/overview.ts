@@ -1,6 +1,6 @@
 /**
- * The company Overview in one call: alerts (what needs attention), where we left off, the
- * to-do list, the last few threads and the client-side stakeholders. Facts only — the Nexus
+ * The company Overview in one call: alerts (what needs attention), where we left off, the last
+ * few threads and the client-side stakeholders. Facts only — the Nexus
  * summary itself is the saved brief on the company row and is refreshed by hand.
  */
 import { sbTry, inChunks, getCompanyThreadIds, bareEmail, displayNameFromAddress, enc } from './db'
@@ -9,7 +9,7 @@ import { rankPeople } from './people'
 import { loadCompanyPayments } from './payments-server'
 import { fmtMoney, fmtDate, fmtRelative, todaySGT, daysBetween } from './format'
 import { STAGE_LABEL } from './types'
-import type { Alert, Company, CompanyAction, CompanyOverview, LeftOff, PaymentSummary } from './types'
+import type { Alert, Company, CompanyOverview, LeftOff, PaymentSummary } from './types'
 
 type MsgRow = { thread_id: string; direction: 'inbound' | 'outbound'; from_address: string | null; subject: string | null; sent_at: string }
 type PolicyRow = { end_date: string | null; status: string | null; class_of_insurance: string | null }
@@ -19,12 +19,11 @@ type AuditRow = { created_at: string; user_name: string | null; new_value: { sta
 export async function buildOverview(company: Company): Promise<CompanyOverview & { paymentSummary: PaymentSummary; nextRenewalDate: string | null }> {
   const today = todaySGT()
   const threadIds = await getCompanyThreadIds(company.id)
-  const [threads, peopleRes, pay, customers, actions, audit, lastMsgs] = await Promise.all([
+  const [threads, peopleRes, pay, customers, audit, lastMsgs] = await Promise.all([
     listCompanyThreads(company.id, threadIds),
     rankPeople(company, threadIds),
     loadCompanyPayments(company.id),
     sbTry<CustomerRow[]>(`customers?company_id=eq.${enc(company.id)}&select=policies(end_date,status,class_of_insurance)`, []),
-    sbTry<CompanyAction[]>(`company_actions?company_id=eq.${enc(company.id)}&status=in.(open,proposed)&select=*&order=status.desc,due_date.asc.nullslast,created_at.desc`, []),
     sbTry<AuditRow[]>(`audit_logs?resource_type=eq.company&resource_id=eq.${enc(company.id)}&action=eq.company.stage&select=created_at,user_name,new_value&order=created_at.desc&limit=1`, []),
     threadIds.length ? inChunks(threadIds, 100, c => sbTry<MsgRow[]>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,direction,from_address,subject,sent_at&order=sent_at.desc&limit=40`, [])) : Promise.resolve([] as MsgRow[]),
   ])
@@ -33,7 +32,7 @@ export async function buildOverview(company: Company): Promise<CompanyOverview &
 
   // Money
   for (const n of pay.notes.filter(n => n.derived === 'overdue').sort((a, b) => b.daysOverdue - a.daysOverdue)) {
-    alerts.push({ id: `overdue-${n.id}`, kind: 'overdue', tone: 'red', title: `${fmtMoney(n.outstanding, n.currency)} overdue on ${n.debit_note_no}`, detail: `${n.daysOverdue} day${n.daysOverdue === 1 ? '' : 's'} past due · ${n.classOfInsurance ?? n.insurer ?? ''}`.trim(), href: `/companies/${company.id}?tab=quotation`, at: n.payment_due_date })
+    alerts.push({ id: `overdue-${n.id}`, kind: 'overdue', tone: 'red', title: `${fmtMoney(n.outstanding, n.currency)} overdue on ${n.debit_note_no}`, detail: `${n.daysOverdue} day${n.daysOverdue === 1 ? '' : 's'} past due · ${n.classOfInsurance ?? n.insurer ?? ''}`.trim(), href: `/companies/${company.id}?tab=payments`, at: n.payment_due_date })
   }
 
   // Replies
@@ -49,13 +48,11 @@ export async function buildOverview(company: Company): Promise<CompanyOverview &
   const nextRenewalDate = upcoming.find(d => d >= today) ?? upcoming[upcoming.length - 1] ?? null
   for (const p of policies) {
     const d = daysBetween(today, p.end_date as string)
-    if (d < 0) alerts.push({ id: `ended-${p.end_date}-${p.class_of_insurance}`, kind: 'policy_ended', tone: 'amber', title: `${p.class_of_insurance ?? 'Policy'} ended ${fmtRelative(p.end_date)}`, detail: 'Renewal not recorded yet', href: `/companies/${company.id}?tab=policies`, at: p.end_date })
-    else if (d <= 60) alerts.push({ id: `renew-${p.end_date}-${p.class_of_insurance}`, kind: 'renewal', tone: d <= 14 ? 'amber' : 'blue', title: `${p.class_of_insurance ?? 'Policy'} renews ${fmtRelative(p.end_date)}`, detail: fmtDate(p.end_date), href: `/companies/${company.id}?tab=policies`, at: p.end_date })
+    if (d < 0) alerts.push({ id: `ended-${p.end_date}-${p.class_of_insurance}`, kind: 'policy_ended', tone: 'amber', title: `${p.class_of_insurance ?? 'Policy'} ended ${fmtRelative(p.end_date)}`, detail: 'Renewal not recorded yet', href: `/companies/${company.id}?tab=purchases`, at: p.end_date })
+    else if (d <= 60) alerts.push({ id: `renew-${p.end_date}-${p.class_of_insurance}`, kind: 'renewal', tone: d <= 14 ? 'amber' : 'blue', title: `${p.class_of_insurance ?? 'Policy'} renews ${fmtRelative(p.end_date)}`, detail: fmtDate(p.end_date), href: `/companies/${company.id}?tab=purchases`, at: p.end_date })
   }
 
   // Agent
-  const proposed = actions.filter(a => a.status === 'proposed').length
-  if (proposed > 0) alerts.push({ id: 'proposals', kind: 'proposal', tone: 'blue', title: `${proposed} proposed action${proposed === 1 ? '' : 's'} to review`, detail: 'Accept or dismiss below', href: null, at: null })
   const lastMessageAt = threads[0]?.last_message_at ?? null
   const summaryStale = !!company.ai_brief_at && !!lastMessageAt && company.ai_brief_at < lastMessageAt
   if (!company.ai_brief) alerts.push({ id: 'no-summary', kind: 'no_summary', tone: 'neutral', title: 'No Nexus summary yet', detail: 'Generate one to see the whole relationship in one read', href: null, at: null })
@@ -64,11 +61,9 @@ export async function buildOverview(company: Company): Promise<CompanyOverview &
   // Where we left off
   const outbound = lastMsgs.filter(m => m.direction === 'outbound').sort((a, b) => b.sent_at.localeCompare(a.sent_at))[0]
   const inbound  = lastMsgs.filter(m => m.direction === 'inbound').sort((a, b) => b.sent_at.localeCompare(a.sent_at))[0]
-  const doneRows = await sbTry<CompanyAction[]>(`company_actions?company_id=eq.${enc(company.id)}&status=eq.done&select=title,completed_at,owner_email&order=completed_at.desc&limit=1`, [])
   const leftOff: LeftOff = {
     lastOutbound: outbound ? { at: outbound.sent_at, by: displayNameFromAddress(outbound.from_address) ?? bareEmail(outbound.from_address), subject: outbound.subject, threadId: outbound.thread_id } : null,
     lastInbound:  inbound  ? { at: inbound.sent_at,  from: displayNameFromAddress(inbound.from_address) ?? bareEmail(inbound.from_address), subject: inbound.subject, threadId: inbound.thread_id } : null,
-    lastActionDone: doneRows[0]?.completed_at ? { at: doneRows[0].completed_at, title: doneRows[0].title, by: doneRows[0].owner_email } : null,
     lastStageChange: audit[0] ? { at: audit[0].created_at, stage: STAGE_LABEL[(audit[0].new_value?.stage ?? company.stage) as keyof typeof STAGE_LABEL] ?? String(audit[0].new_value?.stage), by: audit[0].user_name } : null,
   }
 
@@ -79,11 +74,10 @@ export async function buildOverview(company: Company): Promise<CompanyOverview &
   else if (sgd?.outstanding) parts.push(`${fmtMoney(sgd.outstanding, sgd.currency)} outstanding`)
   if (waiting.length) parts.push(`${waiting.length} awaiting reply`)
   if (nextRenewalDate) parts.push(nextRenewalDate < today ? `policy ended ${fmtRelative(nextRenewalDate)}` : `renews ${fmtRelative(nextRenewalDate)}`)
-  if (actions.filter(a => a.status === 'open').length) parts.push(`${actions.filter(a => a.status === 'open').length} to do`)
   const statusLine = parts.length ? parts.join(' · ') : 'Nothing outstanding'
 
   return {
-    alerts, leftOff, actions,
+    alerts, leftOff,
     lastThreads: threads.slice(0, 5),
     stakeholders: peopleRes.people.filter(p => p.party === 'client' || p.party === 'other').slice(0, 6),
     needsReply: waiting.length,

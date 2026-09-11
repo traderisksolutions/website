@@ -7,7 +7,7 @@ import { Btn, Field, inputCls, textareaCls } from './primitives'
 import { STAGES, STAGE_LABEL, STAGE_HELP, type Stage, type Company } from '@/lib/crm/types'
 
 /** Create a client company by hand. Everything except the name is optional. */
-export function NewCompanyDialog({ open, onClose, onCreated, defaultName, defaultDomain, defaultStage = 'prospect' }: {
+export function NewCompanyDialog({ open, onClose, onCreated, defaultName, defaultDomain, defaultStage = 'client' }: {
   open: boolean; onClose: () => void; onCreated?: (id: string) => void
   defaultName?: string; defaultDomain?: string; defaultStage?: Stage
 }) {
@@ -118,51 +118,6 @@ export function EditCompanyDialog({ open, onClose, company, onSaved }: { open: b
           <div className="flex justify-end gap-2 pt-1">
             <Btn type="button" level="tertiary" onClick={onClose}>Cancel</Btn>
             <Btn type="submit" level="primary" loading={saving}>Save</Btn>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-/** Open a Nexus case for the company, optionally pre-linking selected threads. */
-export function NewCaseDialog({ open, onClose, companyId, companyName, threadIds, onCreated }: {
-  open: boolean; onClose: () => void; companyId: string; companyName: string; threadIds?: string[]; onCreated: (caseId: string) => void
-}) {
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  useEffect(() => { if (open) { setName(''); setDescription(''); setError(null) } }, [open])
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault()
-    setSaving(true); setError(null)
-    try {
-      const res = await fetch(`/api/companies/${companyId}/cases`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name.trim(), description: description.trim(), threadIds: threadIds ?? [] }) })
-      const d = await res.json()
-      if (!res.ok) throw new Error(d.error ?? 'Could not create the case.')
-      onCreated(d.id)
-      onClose()
-    } catch (err) { setError(err instanceof Error ? err.message : String(err)) }
-    finally { setSaving(false) }
-  }
-
-  const n = threadIds?.length ?? 0
-  return (
-    <Dialog open={open} onOpenChange={o => { if (!o) onClose() }}>
-      <DialogContent className="sm:max-w-[460px]">
-        <DialogHeader>
-          <DialogTitle>{n > 0 ? `Combine ${n} thread${n === 1 ? '' : 's'} into a case` : 'New Nexus case'}</DialogTitle>
-          <DialogDescription>A case groups related threads for {companyName} so the analysis reads them together.</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={submit} className="flex flex-col gap-3">
-          <Field label="Case name"><input autoFocus className={inputCls} value={name} onChange={e => setName(e.target.value)} placeholder={`${companyName} — renewal 2026`} required /></Field>
-          <Field label="What is this about?"><textarea className={textareaCls} rows={3} value={description} onChange={e => setDescription(e.target.value)} placeholder="Optional" /></Field>
-          {error && <p className="text-[12px] text-destructive m-0">{error}</p>}
-          <div className="flex justify-end gap-2 pt-1">
-            <Btn type="button" level="tertiary" onClick={onClose}>Cancel</Btn>
-            <Btn type="submit" level="primary" loading={saving}>Create case</Btn>
           </div>
         </form>
       </DialogContent>

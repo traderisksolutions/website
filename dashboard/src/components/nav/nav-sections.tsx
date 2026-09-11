@@ -30,26 +30,26 @@ export type NavSection = {
 // Single source of truth for the top nav — used by both the desktop NavigationMenu and the
 // mobile Sheet drawer.
 //
-// Companies-first (10 Sep 2026). Client work lives inside each company page; Pipeline holds
-// the sales journey (Start › Sales › Convert › Operations) including every lead source; Nexus is
-// its own item; Tools keeps the global-only views. Group Benefits is deprecated (route kept,
+// Companies-first. Client work lives inside each company page. The daily path reads left to
+// right: the client list, all mail, the sales journey, cases, the diary. Tools keeps the
+// global-only views that are not about one client. Group Benefits is deprecated (route kept,
 // hidden from the menu). RoadPlus, Analytics, Team and Settings stay separate.
 export const NAV_SECTIONS: NavSection[] = [
-  { label: 'Home',      href: '/',           icon: Home },
-  { label: 'Companies', href: '/companies',  icon: Building2 },
-  { label: 'Pipeline',  href: '/pipeline',   icon: Waypoints },
-  { label: 'Inbox',     href: '/engagement', icon: Bot },
-  { label: 'Nexus',     href: '/nexus',      icon: Network },
+  { label: 'Home',           href: '/',           icon: Home },
+  { label: 'Companies',      href: '/companies',  icon: Building2 },
+  { label: 'All Inbox',      href: '/engagement', icon: Bot },
+  { label: 'Sales Outreach', href: '/pipeline',   icon: Waypoints },
+  { label: 'Nexus',          href: '/nexus',      icon: Network },
+  { label: 'Calendar',       href: '/calendar',   icon: CalendarDays },
 
   {
     label: 'Tools',
     icon: Wrench,
     items: [
-      { title: 'Debit Notes',    href: '/debit-notes',      icon: Receipt,      description: 'All invoices and payments' },
-      { title: 'Pricing Matrix', href: '/pricing-matrix',   icon: HeartPulse,   description: 'Insurer calculators and quotes' },
-      { title: 'Calendar',       href: '/calendar',         icon: CalendarDays, description: 'Renewals and due dates' },
-      { title: 'Filing',         href: '/companies/triage', icon: Link2,        description: 'Decide who unmatched email belongs to' },
-      { title: 'Contacts',       href: '/contacts',         icon: Users,        description: 'Every person on file' },
+      { title: 'Debit Notes',    href: '/debit-notes',      icon: Receipt,    description: 'All invoices and payments' },
+      { title: 'Pricing Matrix', href: '/pricing-matrix',   icon: HeartPulse, description: 'Insurer calculators and quotes' },
+      { title: 'Filing',         href: '/companies/triage', icon: Link2,      description: 'Decide who unmatched email belongs to' },
+      { title: 'Contacts',       href: '/contacts',         icon: Users,      description: 'Every person on file' },
     ],
   },
 

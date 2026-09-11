@@ -1,19 +1,19 @@
 'use client'
 
 import Link from 'next/link'
-import { MailOpen, Send, Bot, Receipt, BadgeDollarSign, FileText, Network, CheckCircle2, Milestone, StickyNote } from 'lucide-react'
+import { MailOpen, Send, Bot, Receipt, BadgeDollarSign, FileText, Network, Milestone, StickyNote } from 'lucide-react'
 import { SectionCard, Empty } from './primitives'
 import { fmtDateTime } from '@/lib/crm/format'
 import type { ActivityEvent, ActivityKind } from '@/lib/crm/types'
 
 const ICON: Record<ActivityKind, React.ElementType> = {
   email_in: MailOpen, email_out: Send, ai_draft: Bot, debit_note: Receipt, payment: BadgeDollarSign,
-  quote: FileText, case: Network, action_done: CheckCircle2, stage: Milestone, note: StickyNote,
+  quote: FileText, case: Network, stage: Milestone, note: StickyNote,
 }
 const COLOR: Record<ActivityKind, string> = {
   email_in: 'var(--primary-hex)', email_out: 'var(--text-muted)', ai_draft: 'var(--primary-hex)',
   debit_note: 'var(--warning)', payment: 'var(--success)', quote: 'var(--primary-hex)',
-  case: 'var(--primary-hex)', action_done: 'var(--success)', stage: 'var(--text-muted)', note: 'var(--text-muted)',
+  case: 'var(--primary-hex)', stage: 'var(--text-muted)', note: 'var(--text-muted)',
 }
 
 /** Everything that happened, newest first: emails, agent drafts, money, quotes, cases, stage. */
