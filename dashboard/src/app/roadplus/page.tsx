@@ -68,6 +68,33 @@ type Payment = {
   paid_date: string | null
   source: string | null
   received_at: string | null
+  quoted_premium: number | null
+  policy_type: string | null
+  journey_id: string | null
+  recon: Recon
+  attention: boolean
+}
+
+type Recon = 'reconciled' | 'amount_mismatch' | 'unmatched' | 'awaiting_policy_no' | 'awaiting_confirmation' | 'failed'
+type PaymentSummary = { collected: number; payments: number; reconciled: number; attention: number; awaitingPayment: number }
+
+const RECON_LABEL: Record<Recon, string> = {
+  reconciled: 'Reconciled',
+  amount_mismatch: 'Amount mismatch',
+  unmatched: 'No matching quote',
+  awaiting_policy_no: 'Awaiting policy no',
+  awaiting_confirmation: 'Awaiting confirmation',
+  failed: 'Payment failed',
+}
+
+function ReconPill({ r, attention }: { r: Recon; attention: boolean }) {
+  const cls =
+    r === 'reconciled'
+      ? 'bg-emerald-100 text-emerald-700'
+      : r === 'failed' || attention
+        ? 'bg-rose-100 text-rose-700'
+        : 'bg-amber-100 text-amber-700'
+  return <span className={`inline-block whitespace-nowrap rounded-[6px] px-2 py-0.5 text-[11px] font-medium ${cls}`}>{RECON_LABEL[r]}</span>
 }
 
 type JourneyEvent = {
@@ -104,6 +131,9 @@ export default function RoadplusReconPage() {
 
   // ── payments ──────────────────────────────────────────────────────────
   const [payments, setPayments] = useState<Payment[]>([])
+  const [pSummary, setPSummary] = useState<PaymentSummary | null>(null)
+  const [pError, setPError] = useState<string | null>(null)
+  const [attentionOnly, setAttentionOnly] = useState(false)
   const [pQuery, setPQuery] = useState('')
   const [pLoading, setPLoading] = useState(true)
 
@@ -114,6 +144,8 @@ export default function RoadplusReconPage() {
       const data = await res.json()
       setConfigured(data.configured !== false)
       setPayments(data.rows ?? [])
+      setPSummary(data.summary ?? null)
+      setPError(data.error ?? null)
     } finally {
       setPLoading(false)
     }
@@ -253,41 +285,70 @@ export default function RoadplusReconPage() {
               </div>
             </div>
 
+            {pSummary && (
+              <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                <Tile label="Collected" value={fmtMoney(pSummary.collected, 'SGD')} />
+                <Tile label="Payments" value={pSummary.payments} />
+                <Tile label="Reconciled" value={`${pSummary.reconciled} / ${pSummary.payments}`} />
+                <Tile label="Needs attention" value={pSummary.attention} tone={pSummary.attention ? 'rose' : undefined} />
+                <Tile label="Awaiting payment" value={pSummary.awaitingPayment} />
+              </div>
+            )}
+            {pSummary && pSummary.attention > 0 && (
+              <div className="mb-3 flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-[12.5px] text-rose-700">
+                <AlertTriangle size={14} className="shrink-0" />
+                <span>
+                  {pSummary.attention} payment{pSummary.attention === 1 ? '' : 's'} need{pSummary.attention === 1 ? 's' : ''} checking.
+                  Run reconcile first. If it stays, email ECICS with the policy id.
+                </span>
+                <button onClick={() => setAttentionOnly(true)} className="ml-auto font-medium underline">Show them</button>
+              </div>
+            )}
+            {pError && <p className="mb-3 text-[12.5px] text-rose-600">{pError}</p>}
+
             {pLoading ? (
               <div className="flex items-center gap-2 py-10 text-slate-400"><Loader2 size={16} className="animate-spin" /> Loading…</div>
             ) : payments.length === 0 ? (
               <p className="py-10 text-center text-[13px] text-slate-400">No payments yet. They appear here once ECICS posts to the webhook.</p>
             ) : (
-              <div className="rounded-lg border border-slate-200 overflow-x-auto">
-                <table className="data-table w-full border-collapse text-[12.5px]">
-                  <thead>
-                    <tr>
-                      <th className="pl-4 text-left">Received</th>
-                      <th className="text-left">Partner</th>
-                      <th className="text-left">Amount</th>
-                      <th className="text-left">Method</th>
-                      <th className="text-left">Policy no</th>
-                      <th className="text-left">Transaction id</th>
-                      <th className="text-left">Status</th>
-                      <th className="text-left pr-4">Source</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {payments.map((p) => (
-                      <tr key={p.id}>
-                        <td className="pl-4 whitespace-nowrap">{fmtDate(p.received_at)}</td>
-                        <td className="capitalize">{p.partner ?? '—'}</td>
-                        <td className="font-medium text-slate-800 tabular-nums">{fmtMoney(p.amount, p.currency)}</td>
-                        <td className="capitalize">{p.payment_method ?? '—'}</td>
-                        <td className="font-mono text-[11.5px]">{p.policy_no ?? p.policy_id ?? p.proposal_no ?? '—'}</td>
-                        <td className="font-mono text-[11.5px] text-slate-500">{p.transaction_id ?? '—'}</td>
-                        <td><StatusPill s={p.payment_status} /></td>
-                        <td className="pr-4 text-slate-400">{p.source ?? '—'}</td>
+              <>
+                <label className="mb-2 inline-flex items-center gap-2 text-[12.5px] text-slate-600">
+                  <input type="checkbox" checked={attentionOnly} onChange={(e) => setAttentionOnly(e.target.checked)} />
+                  Needs attention only
+                </label>
+                <div className="rounded-lg border border-slate-200 overflow-x-auto">
+                  <table className="data-table w-full border-collapse text-[12.5px]">
+                    <thead>
+                      <tr>
+                        <th className="pl-4 text-left">Received</th>
+                        <th className="text-left">Reconciliation</th>
+                        <th className="text-left">Quoted</th>
+                        <th className="text-left">Paid</th>
+                        <th className="text-left">Policy no</th>
+                        <th className="text-left">Policy id</th>
+                        <th className="text-left">Payment ref</th>
+                        <th className="text-left">Payment</th>
+                        <th className="text-left pr-4">Source</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {payments.filter((p) => !attentionOnly || p.attention).map((p) => (
+                        <tr key={p.id} className={p.attention ? 'bg-rose-50/60' : undefined}>
+                          <td className="pl-4 whitespace-nowrap">{fmtDate(p.received_at)}</td>
+                          <td><ReconPill r={p.recon} attention={p.attention} /></td>
+                          <td className="tabular-nums text-slate-500">{fmtMoney(p.quoted_premium, p.currency)}</td>
+                          <td className={`font-medium tabular-nums ${p.recon === 'amount_mismatch' ? 'text-rose-600' : 'text-slate-800'}`}>{fmtMoney(p.amount, p.currency)}</td>
+                          <td className="font-mono text-[11.5px]">{p.policy_no ?? '—'}</td>
+                          <td className="font-mono text-[11.5px] text-slate-500">{p.policy_id ?? '—'}</td>
+                          <td className="font-mono text-[11.5px] text-slate-500">{p.payment_ref_no ?? p.transaction_id ?? '—'}</td>
+                          <td><StatusPill s={p.payment_status} /></td>
+                          <td className="pr-4 text-slate-400">{p.source ?? '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         )}
