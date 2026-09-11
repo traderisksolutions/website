@@ -19,7 +19,7 @@
  *   7. leave anything still unresolved for the review queue
  */
 import { sb, sbTry, inChunks, enc, emailDomain, isInternal, isAutomated, PUBLIC_EMAIL_DOMAINS, normalizeCompany } from './db'
-import { buildCompanyIndex, matchByName, companyCore, type CompanyIndex } from './resolve'
+import { buildCompanyIndex, matchByName, companyCore, domainSuitsName, type CompanyIndex } from './resolve'
 import { buildIdentityIndex, matchName, loadAliases, recordAlias, aliasKey, type IdentityIndex } from './identity'
 import { geminiJson } from './ai'
 import type { Company, CompanyKind } from './types'
@@ -75,6 +75,10 @@ async function seedInsurers(dry: boolean, claimed: Map<string, string>): Promise
     const name = r.insurers?.name
     const d = emailDomain(r.contacts?.email)
     if (!name || !d || PUBLIC_EMAIL_DOMAINS.has(d)) continue
+    // The directory is hand-kept and occasionally holds a contact at an unrelated address — a
+    // vendor or a colleague filed under an insurer. Trusting it blindly hands that insurer
+    // somebody else's domain and every thread on it, so the name has to fit the domain.
+    if (!domainSuitsName(d, name)) continue
     byInsurer.set(name, (byInsurer.get(name) ?? new Set()).add(d))
   }
 

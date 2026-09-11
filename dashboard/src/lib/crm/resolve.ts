@@ -15,7 +15,8 @@
  * deliberately cautious: never a public mailbox, never an insurer or our own domain, never a
  * domain another company already claims, and only after it has been seen on two separate threads.
  */
-import { sbTry, inChunks, emailDomain, isInternal, isAutomated, PUBLIC_EMAIL_DOMAINS, normalizeCompany } from './db'
+import { sbTry, inChunks, emailDomain, isInternal, isAutomated, PUBLIC_EMAIL_DOMAINS, TRS_DOMAINS, normalizeCompany } from './db'
+import { aliasKey, loadAliases, recordAlias } from './identity'
 import type { Company } from './types'
 
 // Words that carry no identity, stripped only from the END of a company name so internal words
@@ -58,6 +59,33 @@ export function domainMatchesName(domain: string, companyName: string): boolean 
   if (!squashed) return false
   if (label.includes(squashed) || squashed.includes(label)) return true
   return core.split(' ').some(t => t.length >= 4 && label.includes(t))
+}
+
+/** The parts of a domain that could carry an organisation's name, ignoring the public suffix. */
+function domainLabels(domain: string): string[] {
+  const TLD = new Set(['com', 'net', 'org', 'co', 'sg', 'my', 'cn', 'uk', 'hk', 'id', 'th', 'asia', 'io', 'ai', 'biz', 'tech', 'global', 'sdn', 'bhd', 'inc', 'www'])
+  return domain.toLowerCase().split('.').filter(p => !TLD.has(p) && p.length >= 2)
+}
+
+/**
+ * Does this domain plausibly belong to an organisation of this name? Used to sanity-check the
+ * insurer directory before its domains are trusted, because a stray contact row there can hand
+ * an insurer somebody else's domain entirely. Unlike domainMatchesName (which judges a domain we
+ * have never been told about) this compares against a name we already know, so a short label
+ * like "aia" or "qbe" is perfectly acceptable.
+ */
+export function domainSuitsName(domain: string, name: string): boolean {
+  const core = companyCore(name)
+  const squashed = core.replace(/[^a-z0-9]/g, '')
+  if (!squashed) return false
+  const tokens = core.split(' ').filter(t => t.length >= 3)
+  for (const raw of domainLabels(domain)) {
+    const label = raw.replace(/[^a-z0-9]/g, '')
+    if (!label) continue
+    if (label.includes(squashed) || squashed.includes(label)) return true
+    if (tokens.some(t => label.includes(t))) return true
+  }
+  return false
 }
 
 export interface CompanyIndex {
@@ -107,7 +135,7 @@ export function makeCompanyIndex(companies: Company[], extraExcludedDomains: str
 
   const excludedDomains = new Set<string>(Array.from(PUBLIC_EMAIL_DOMAINS))
   for (const d of extraExcludedDomains) if (d) excludedDomains.add(d)
-  excludedDomains.add('trade-risksol.com')
+  TRS_DOMAINS.forEach(d => excludedDomains.add(d))
 
   return { companies, byId: new Map(companies.map(c => [c.id, c])), domains, keys, excludedDomains }
 }
@@ -138,16 +166,30 @@ export async function getCompanyIndex(maxAgeMs = 60_000): Promise<CompanyIndex> 
 export type ResolveVia = 'contact' | 'domain' | 'name'
 export interface ResolveHit { companyId: string; via: ResolveVia; evidence: string }
 
-/** Match a company name inside a subject line, on word boundaries. */
+/**
+ * Match a company name inside a subject line, on word boundaries.
+ *
+ * TRS subjects are written "TRS (Insurer) : Client — topic", so a single subject routinely names
+ * both an insurer and the client the work is for. The mail is about the client, so a client
+ * always wins over an insurer or a partner however prominent the other name is; only within the
+ * same kind does the longer, more specific name decide.
+ */
 export function matchByName(subject: string | null | undefined, index: CompanyIndex): ResolveHit | null {
   const hay = ` ${normalizeName(subject ?? '')} `
   if (hay.trim().length === 0) return null
-  let best: { key: string; id: string } | null = null
+
+  const RANK: Record<string, number> = { client: 0, other: 1, partner: 2, insurer: 3 }
+  let best: { key: string; id: string; rank: number } | null = null
   index.keys.forEach((id, key) => {
     if (!hay.includes(` ${key} `)) return
-    if (!best || key.length > best.key.length) best = { key, id }   // longest, most specific match wins
+    const rank = RANK[index.byId.get(id)?.kind ?? 'other'] ?? 1
+    if (!best || rank < best.rank || (rank === best.rank && key.length > best.key.length)) {
+      best = { key, id, rank }
+    }
   })
-  return best ? { companyId: (best as { key: string; id: string }).id, via: 'name', evidence: `subject contains “${(best as { key: string; id: string }).key}”` } : null
+  if (!best) return null
+  const hit = best as { key: string; id: string; rank: number }
+  return { companyId: hit.id, via: 'name', evidence: `subject contains “${hit.key}”` }
 }
 
 export function matchByDomain(emails: (string | null | undefined)[], index: CompanyIndex): ResolveHit | null {
@@ -172,7 +214,20 @@ export function resolveThread(
   if (input.contactCompanyId && index.byId.has(input.contactCompanyId)) {
     return { companyId: input.contactCompanyId, via: 'contact', evidence: 'the contact already belongs to this company' }
   }
-  return matchByDomain(input.participantEmails, index) ?? matchByName(input.subject, index)
+
+  const isClient = (hit: ResolveHit | null) => !!hit && index.byId.get(hit.companyId)?.kind === 'client'
+  const byDomain = matchByDomain(input.participantEmails, index)
+  const byName = matchByName(input.subject, index)
+
+  // A client's own address is the most reliable signal there is.
+  if (isClient(byDomain)) return byDomain
+
+  // Otherwise the only address on the thread often belongs to an insurer or an administrator
+  // writing to us ABOUT a client. The work is the client's, so a client named in the subject
+  // outranks the counterparty whose address happens to be on the message.
+  if (isClient(byName)) return byName
+
+  return byDomain ?? byName
 }
 
 /** Client-side addresses on a thread: not ours, not an insurer's, not a robot, not a webmail. */
@@ -189,6 +244,8 @@ export function clientSideDomains(emails: (string | null | undefined)[], index: 
 // ── Bulk sweep ────────────────────────────────────────────────────────────────────────────────
 
 export interface SweepResult {
+  counterpartyMoved: { threadId: string; subject: string | null; from: string; to: string }[]
+  aliasesLearned: { company: string; alias: string }[]
   threadsLinked: { id: string; subject: string | null; company: string; via: ResolveVia; evidence: string }[]
   domainsLearned: { domain: string; company: string; threads: number }[]
   contactsLinked: { email: string; company: string }[]
@@ -207,9 +264,87 @@ const THREAD_SELECT = 'id,subject,company_id,contact_id,contacts(id,email,compan
  * Link everything that can be linked deterministically, learn domains from what got linked, then
  * sweep again with the richer index. `dryRun` reports without writing a thing.
  */
+
+/**
+ * Keep the alias table current, without any model call. Two sources: a company's own name, so the
+ * alias table alone can answer "who is this"; and the free-text company written on its contacts,
+ * which is how staff and mail servers actually spell it. An alias that two companies would both
+ * claim is skipped rather than guessed at.
+ */
+async function learnAliases(dry: boolean): Promise<{ company: string; alias: string }[]> {
+  const companies = (await sbTry<Record<string, unknown>[]>(`companies?select=*&limit=1000`, [])).map(normalizeCompany)
+  if (companies.length === 0) return []
+  const existing = new Set((await loadAliases()).map(a => a.alias_norm))
+
+  const candidates: { companyId: string; company: string; alias: string; norm: string }[] = []
+  for (const c of companies) {
+    const norm = aliasKey(c.name)
+    if (norm) candidates.push({ companyId: c.id, company: c.name, alias: c.name, norm })
+  }
+
+  const contacts = await sbTry<{ company: string | null; company_id: string | null }[]>(
+    `contacts?company_id=not.is.null&company=not.is.null&select=company,company_id&limit=3000`, [])
+  const byId = new Map(companies.map(c => [c.id, c]))
+  for (const ct of contacts) {
+    const c = ct.company_id ? byId.get(ct.company_id) : undefined
+    const alias = (ct.company ?? '').trim()
+    if (!c || alias.length < 3) continue
+    const norm = aliasKey(alias)
+    if (norm) candidates.push({ companyId: c.id, company: c.name, alias, norm })
+  }
+
+  // Any spelling that more than one company would answer to identifies nobody.
+  const owners = new Map<string, Set<string>>()
+  for (const x of candidates) owners.set(x.norm, (owners.get(x.norm) ?? new Set()).add(x.companyId))
+
+  const learned: { company: string; alias: string }[] = []
+  const done = new Set<string>()
+  for (const x of candidates) {
+    if (existing.has(x.norm) || done.has(x.norm)) continue
+    if ((owners.get(x.norm)?.size ?? 0) !== 1) continue
+    done.add(x.norm)
+    learned.push({ company: x.company, alias: x.alias })
+    if (!dry) await recordAlias(x.companyId, x.alias, 'learned')
+  }
+  return learned
+}
+
+/**
+ * Re-examine threads sitting on an insurer or partner record.
+ *
+ * A counterparty's address is on a great deal of mail that is really about a client, so anything
+ * filed under one is worth a second look: if the subject names a client, the work is the
+ * client's. Safe to re-run, and it only ever moves a thread from a counterparty to a client.
+ */
+export async function recheckCounterpartyThreads(dry: boolean): Promise<{ moved: { threadId: string; subject: string | null; from: string; to: string }[] }> {
+  const index = await buildCompanyIndex()
+  const counterparties = (await sbTry<Record<string, unknown>[]>(`companies?kind=in.(insurer,partner)&select=*&limit=500`, [])).map(normalizeCompany)
+  if (counterparties.length === 0) return { moved: [] }
+  const nameById = new Map(counterparties.map(c => [c.id, c.name]))
+
+  const threads = await inChunks(counterparties.map(c => c.id), 50, ids =>
+    sbTry<{ id: string; subject: string | null; company_id: string }[]>(
+      `email_threads?company_id=in.(${ids.join(',')})&deleted_at=is.null&select=id,subject,company_id&limit=2000`, []))
+
+  const moved: { threadId: string; subject: string | null; from: string; to: string }[] = []
+  for (const t of threads) {
+    const hit = matchByName(t.subject, index)
+    if (!hit || hit.companyId === t.company_id) continue
+    const target = index.byId.get(hit.companyId)
+    if (!target || target.kind !== 'client') continue
+    moved.push({ threadId: t.id, subject: t.subject, from: nameById.get(t.company_id) ?? '?', to: target.name })
+    if (!dry) {
+      await sbTry(`email_threads?id=eq.${t.id}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ company_id: target.id }) })
+    }
+  }
+  return { moved }
+}
+
 export async function sweepCompanyLinks(opts: { dryRun?: boolean } = {}): Promise<SweepResult> {
   const dry = !!opts.dryRun
   let index = await buildCompanyIndex()
+  const aliasesLearned = await learnAliases(dry)
+  const { moved: counterpartyMoved } = await recheckCounterpartyThreads(dry)
 
   const [threads, decided] = await Promise.all([
     sbTry<ThreadRow[]>(`email_threads?company_id=is.null&deleted_at=is.null&select=${THREAD_SELECT}&limit=2000`, []),
@@ -346,6 +481,7 @@ export async function sweepCompanyLinks(opts: { dryRun?: boolean } = {}): Promis
   }
 
   return {
+    counterpartyMoved, aliasesLearned,
     threadsLinked: linked, domainsLearned, contactsLinked,
     casesLinked, leadsLinked, quotationsLinked,
     remaining: open.length - linked.length,

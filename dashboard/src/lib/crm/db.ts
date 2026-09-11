@@ -39,6 +39,9 @@ export async function inChunks<T>(ids: string[], size: number, fn: (chunk: strin
 // ── Email helpers ─────────────────────────────────────────────────────────────────────────────
 
 export const TRS_DOMAIN = 'trade-risksol.com'
+/** Our own addresses. The unhyphenated spelling is in use too, and without it TRS gets treated
+ *  as an outside organisation and given a company record of its own. */
+export const TRS_DOMAINS = new Set([TRS_DOMAIN, 'traderisksol.com'])
 
 export const PUBLIC_EMAIL_DOMAINS = new Set([
   'gmail.com', 'googlemail.com', 'yahoo.com', 'yahoo.com.sg', 'hotmail.com', 'hotmail.sg', 'outlook.com',
@@ -50,7 +53,7 @@ export function emailDomain(email: string | null | undefined): string {
   return m ? m[1].toLowerCase() : ''
 }
 
-export const isInternal = (email: string | null | undefined) => emailDomain(email) === TRS_DOMAIN
+export const isInternal = (email: string | null | undefined) => TRS_DOMAINS.has(emailDomain(email))
 
 export function isAutomated(email: string | null | undefined): boolean {
   const l = (email ?? '').toLowerCase()

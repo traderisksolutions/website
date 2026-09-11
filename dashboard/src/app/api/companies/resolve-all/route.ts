@@ -29,6 +29,8 @@ export async function POST(req: NextRequest) {
       dryRun: !!dryRun,
       threads: { linked: r.threadsLinked.length, byVia, remaining: r.remaining, sample: r.threadsLinked.slice(0, 40) },
       domainsLearned: r.domainsLearned,
+      aliasesLearned: { count: r.aliasesLearned.length, sample: r.aliasesLearned.slice(0, 15) },
+      movedOffCounterparties: { count: r.counterpartyMoved.length, sample: r.counterpartyMoved.slice(0, 20) },
       contacts: { linked: r.contactsLinked.length, sample: r.contactsLinked.slice(0, 20) },
       cases: r.casesLinked, leads: r.leadsLinked, quotations: r.quotationsLinked,
     })

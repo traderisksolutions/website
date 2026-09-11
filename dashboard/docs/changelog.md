@@ -4,6 +4,39 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-09-11 (late) — Filing corrections after the migration
+
+**Status:** `tsc` + `next build` clean, 333/333 tests pass. `20260911_company_identity.sql` applied. All corrections applied to live data.
+
+With the alias table in place, the deterministic sweep now also keeps it current (`learnAliases`, no model calls) and 160 spellings are remembered. Running the whole thing against real mail surfaced four faults, all fixed with a regression test each.
+
+### An insurer's address was outranking the client named in the subject
+
+Mail like `(TRS) EQ - CIWE JIDP U2 Expansion PB` was filing under EQ, because the only address on the thread is the insurer's and the domain rule ran before the subject. The work is the client's. `resolveThread` now runs: the client's own domain, then a client named in the subject, then anything else. A new step re-examines threads already sitting on an insurer or partner and moves them to the client where the subject names one — **70 threads were corrected**, for example every `TRS (Liberty) : Renewal for Mister Mobile Trading` thread moving from Liberty to Mister Mobile.
+
+### The insurer directory handed Allianz somebody else's domain
+
+An Allianz contact row held a `@kyn.com.sg` address, so seeding gave Allianz the vendor's domain and three unrelated threads with it ("Welcome to Perplexity" among them). Seeded domains are now checked against the insurer's own name (`domainSuitsName`, which tolerates short names like AIA and QBE and looks past a subdomain). The domain was removed and the threads unfiled.
+
+### TRS was given a company record of its own
+
+`isInternal` only knew `trade-risksol.com`, so the unhyphenated `traderisksol.com` read as an outside organisation and became "Trade Risk Solutions Pte Ltd". Both spellings are now treated as ours, and the record was deleted.
+
+### Healthway Medical Group was classified as a partner
+
+Correct in general — it is a clinic group — but for TRS it is a client buying employee benefits, and the misclassification kept its threads stranded on AIA, QBE, Singlife and Great Eastern. Reclassified, which released 11 more threads to it. This one is a reminder that `kind` is a judgement the agent can get wrong; it is editable, and the filing screen is where it gets corrected.
+
+### Where filing stands
+
+| | |
+|---|---|
+| threads filed | 298 of 357 |
+| contacts filed | 240 of 555 |
+| companies | 108 (71 client, 29 insurer, 8 partner) |
+| aliases remembered | 160 |
+
+The 59 unfiled threads name organisations that are not companies yet (BruBru, Genscript, Talent Trader, Deluge). They sit in the domain queue on the Filing screen, which is the design: the agent creates what it is sure of and asks about the rest.
+
 ## 2026-09-11 (evening) — Automatic filing: every email gets a company
 
 **Status:** `tsc` + `next build` clean, 325/325 tests pass (28 new). Applied to live data. **Migration `20260911_company_identity.sql` is PENDING** — everything works without it except remembering alternative spellings.
