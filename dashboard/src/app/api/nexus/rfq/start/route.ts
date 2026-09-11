@@ -16,14 +16,26 @@ import { logRfqEvent }               from '@/lib/rfq-log'
 import { logError }                  from '@/lib/error-log'
 import { PRODUCT_LINES, isValidProductLine, productLineLabel } from '@/lib/product-lines'
 import { resolveCompany } from '@/lib/debit-note-commit'
+import { geminiUrl, GEMINI_FLASH } from '@/lib/gemini-models'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
+const GEMINI_URL = geminiUrl(GEMINI_FLASH)
 
 function sbH(prefer = 'return=representation') {
   const k = process.env.SUPABASE_SERVICE_KEY
   if (!k) throw new Error('SUPABASE_SERVICE_KEY not set')
   return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: prefer }
+}
+
+/**
+ * Working out which lines of cover are being asked for needs the new part of the email, not the
+ * whole quoted history. Cutting the reply chain takes this from ~4k tokens to a few hundred and
+ * makes the answer better, because the model stops reading old threads as fresh requests.
+ */
+function trimForSlugs(body: string): string {
+  const cut = body.search(/^\s*(?:>|On .{0,80}\bwrote:|-{2,}\s*Original Message|_{5,}|From:\s)/m)
+  const head = cut > 200 ? body.slice(0, cut) : body
+  return head.replace(/\s+\n/g, '\n').trim().slice(0, 3000)
 }
 
 // Resolve the client message + insured name for a thread.
@@ -32,14 +44,15 @@ async function loadContext(thread_id: string, message_id?: string) {
   const msgUrl = message_id
     ? `${SB_URL}/rest/v1/email_messages?id=eq.${message_id}&select=id,subject,body_text&limit=1`
     : `${SB_URL}/rest/v1/email_messages?thread_id=eq.${thread_id}&direction=eq.inbound&order=sent_at.desc&select=id,subject,body_text&limit=1`
-  const mRes = await fetch(msgUrl, { headers: sbH(), cache: 'no-store' })
-  const msg  = mRes.ok ? (await mRes.json())[0] : null
+  // The message and the thread's contact are independent lookups — fetch them together rather
+  // than one behind the other; only the contact's own row has to wait.
+  const [mRes, tRes] = await Promise.all([
+    fetch(msgUrl, { headers: sbH(), cache: 'no-store' }),
+    fetch(`${SB_URL}/rest/v1/email_threads?id=eq.${thread_id}&select=contact_id&limit=1`, { headers: sbH(), cache: 'no-store' }),
+  ])
+  const msg = mRes.ok ? (await mRes.json())[0] : null
 
   let insured: string | null = null
-  const tRes = await fetch(
-    `${SB_URL}/rest/v1/email_threads?id=eq.${thread_id}&select=contact_id&limit=1`,
-    { headers: sbH(), cache: 'no-store' }
-  )
   const contactId = tRes.ok ? (await tRes.json())[0]?.contact_id : null
   if (contactId) {
     const cRes = await fetch(
@@ -80,7 +93,7 @@ Return ONLY JSON: { "requests": [ { "product_line": "<slug>", "summary": "<short
 Subject: ${msg.subject || '(none)'}
 
 Body:
-${String(msg.body_text).slice(0, 12000)}`
+${trimForSlugs(String(msg.body_text))}`
         const gRes = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },

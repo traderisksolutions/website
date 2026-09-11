@@ -7,9 +7,10 @@ import { createSupabaseDB, createGeminiComposer, EvalStore, ExampleStore, SkillS
 import { EMAIL_TYPE_BASE_INSTRUCTIONS } from '@/lib/email-surface-instructions'
 import { requireStaffOrCron }       from '@/lib/api-auth'
 import { getCustomerProfile }       from '@/lib/customer-profile'
+import { geminiUrl, GEMINI_FLASH } from '@/lib/gemini-models'
 
 const SB_URL    = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
+const GEMINI_URL = geminiUrl(GEMINI_FLASH)
 
 function sbHeaders(prefer = 'return=representation') {
   const k = process.env.SUPABASE_SERVICE_KEY

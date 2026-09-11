@@ -162,12 +162,12 @@ export function NexusPhasedAnalysisModal({
   const anyRunning = phase1Status === 'running' || phase2Status === 'running' || phase3Status === 'running'
 
   const phases = [
-    { n: 1, label: 'Reading threads & synthesising evidence', status: phase1Status, start: startPhase1, cta: 'Start Analysis',
-      unlocked: true },
-    { n: 2, label: 'Strategic analysis — scenarios & next steps', status: phase2Status, start: startPhase2, cta: 'Run Strategy Analysis',
-      unlocked: phase1Status === 'done' },
-    { n: 3, label: 'Drafting emails & finalizing', status: phase3Status, start: startPhase3, cta: 'Draft Emails & Finalize',
-      unlocked: phase2Status === 'done' },
+    { n: 1, label: 'Reading every email and attachment', status: phase1Status, start: startPhase1, cta: 'Start',
+      unlocked: true, model: 'Gemini Flash', role: 'extracting the facts', secs: 45 },
+    { n: 2, label: 'Judging the case — scenarios and next steps', status: phase2Status, start: startPhase2, cta: 'Run strategy',
+      unlocked: phase1Status === 'done', model: 'Claude Opus', role: 'reading the same emails and deciding', secs: 80 },
+    { n: 3, label: 'Writing the recommended emails', status: phase3Status, start: startPhase3, cta: 'Draft emails',
+      unlocked: phase2Status === 'done', model: 'Gemini Flash', role: 'writing to the Opus brief', secs: 40 },
   ] as const
 
   return (
@@ -223,6 +223,12 @@ export function NexusPhasedAnalysisModal({
                     )}
                   </div>
 
+                  {p.status === 'running' && <PhaseProgress seconds={p.secs} model={p.model} role={p.role} />}
+
+                  {p.status !== 'running' && (
+                    <p className="text-[10.5px] text-muted-foreground/70 pl-6 m-0">{p.model} · {p.role}</p>
+                  )}
+
                   {p.n === 1 && preview1 && phase1Status === 'done' && (
                     <div className="text-[11px] text-muted-foreground pl-6">
                       {preview1.stakeholders} stakeholders · {preview1.timelineEvents} timeline events · {preview1.openQuestions} open questions · {preview1.missingItems} missing items
@@ -277,4 +283,42 @@ function PhaseIcon({ status }: { status: PhaseStatus }) {
   if (status === 'done')    return <CheckCircle2 size={15} className="text-emerald-600 flex-shrink-0" />
   if (status === 'failed')  return <AlertCircle size={15} className="text-red-600 flex-shrink-0" />
   return <div className="w-[15px] h-[15px] rounded-full border-2 border-muted-foreground/30 flex-shrink-0" />
+}
+
+/**
+ * A moving bar while a phase runs. There is no token-level progress to report from the model,
+ * so this eases toward 95% over the phase's typical duration and finishes when the phase
+ * actually does — honest about being an estimate, and it stops pretending near the end.
+ */
+function PhaseProgress({ seconds, model, role }: { seconds: number; model: string; role: string }) {
+  const [pct, setPct] = useState(2)
+  const [elapsed, setElapsed] = useState(0)
+
+  useEffect(() => {
+    const started = Date.now()
+    const id = setInterval(() => {
+      const s = (Date.now() - started) / 1000
+      setElapsed(Math.floor(s))
+      // Approaches 95 asymptotically, so it never stalls at 100 while still working.
+      setPct(Math.min(95, 2 + 93 * (1 - Math.exp(-s / (seconds * 0.55)))))
+    }, 250)
+    return () => clearInterval(id)
+  }, [seconds])
+
+  const over = elapsed > seconds * 1.6
+
+  return (
+    <div className="pl-6 flex flex-col gap-1.5">
+      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+        <div
+          className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <p className="text-[10.5px] text-muted-foreground m-0">
+        {model} · {role} · {elapsed}s
+        {over && <span className="text-muted-foreground/70"> · taking longer than usual, still running</span>}
+      </p>
+    </div>
+  )
 }

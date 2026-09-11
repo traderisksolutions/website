@@ -113,6 +113,7 @@ export interface DebitNoteRow {
   currency: string
   gross_amount: number
   net_amount: number | null
+  commission: number | null
   paid_amount: number | null
   paid_direct_amount: number | null
   status: 'unpaid' | 'partially_paid' | 'paid'
@@ -157,6 +158,27 @@ export interface QuoteRow {
   quotesReceived: number | null
   href: string
   caseId: string | null
+  /** Per-insurer detail for an RFQ: who was written to, who answered, what they quoted. */
+  dispatches?: QuoteDispatch[]
+}
+
+export interface QuoteDispatch {
+  id: string
+  insurerName: string
+  toEmail: string | null
+  sentAt: string
+  repliedAt: string | null
+  status: 'sent' | 'replied' | string
+  daysWaiting: number
+  threadId: string | null
+  quote: {
+    premium: string | null
+    excess: string | null
+    limitIndemnity: string | null
+    validity: string | null
+    status: string | null
+    sourceLabel: string | null
+  } | null
 }
 
 // ── AI brief ──────────────────────────────────────────────────────────────────────────────────
@@ -219,6 +241,8 @@ export interface CompanyThread {
   message_count: number
   last_message_at: string | null
   lastDirection: 'inbound' | 'outbound' | null
+  /** Newest inbound message, so the RFQ flow can quote the client's actual request. */
+  lastInboundMessageId: string | null
   needsReply: boolean
   contact: { id: string; name: string | null; email: string | null } | null
   summary: string | null

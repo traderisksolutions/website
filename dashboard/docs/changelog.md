@@ -4,6 +4,123 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-09-11 (night) — Model routing confirmed and centralised, Ask Opus moves to the client
+
+**Status:** `tsc` + `next build` clean, 339/339 tests pass. No migration.
+
+### Confirmed: an ordinary email thread never touches Opus
+
+Traced end to end. Ingest, categorisation, thread summary, reply drafting, RAG, attachment
+reading and draft evaluation are all Gemini. Opus appears nowhere in the path, and the Opus
+dock is not even mounted on the inbox.
+
+### Every model id now comes from one file
+
+Only one call in the whole engagement path actually read `gemini-models.ts`; the rest hardcoded
+the URL, so the documented env override did nothing. All of them now route through it:
+classify, refresh-summary, auto-summarize, draft, RAG draft and embedding, draft evaluation,
+the instruction composer, attachment extraction, and the five RFQ and Nexus drafting routes.
+
+### One thread summary, one standard
+
+The Refresh button wrote the summary with Flash; the automatic pass after a reply wrote the
+same row with Flash Lite. The quality of a thread's analysis depended on which one happened to
+run. Both now use Flash.
+
+### Nexus phase three no longer waits on itself
+
+Gemini writing the emails and Opus building the verified timeline are independent, and were
+running one after the other. They now run together.
+
+### Ask Opus belongs to the client
+
+It used to be scoped to a Nexus case file. It is now the client's consultant, titled as such:
+opening a case resolves the company behind it, including through the case's threads for RFQ
+cases that were created without one, so the conversation covers the claim, the renewal and the
+money together. A case with no company still falls back to case scope, which keeps the
+steering and re-analysis actions reachable.
+
+Three new tools make "ask anything about this client" true:
+
+- **get_company_cover** — every policy with insurer, period, premium billed and commission
+  earned, plus lifetime customer value and renewal dates.
+- **get_company_cases** — each Nexus case with its latest brief, blocking issues, open
+  questions, next steps and scenarios.
+- **search_company_email** — full-text search across every message on the client's threads,
+  returning the surrounding excerpt, for a figure or promise buried in a long thread.
+
+---
+
+## 2026-09-11 (evening) — Relationship-manager pass: value, Nexus brain, RFQ speed
+
+**Status:** `tsc` + `next build` clean, 339/339 tests pass. No migration.
+
+### The company header is one line
+
+Stage, owner, domain and the facts that decide what to do next now sit on a single row.
+Industry and the stage date moved into Edit, where they belong.
+
+### Purchase History shows the money
+
+`policies.premium` has never been populated by any import, which is why every row read as a
+dash. The money is on the debit notes, which carry a policy id, so each policy now shows what
+was actually billed against it and what TRS earned.
+
+Above the table is **Customer value**: total premium billed, TRS commission with its effective
+rate, policy count, client since, last billed. The currency is stated, not assumed.
+
+### Nexus: Opus is the brain, Gemini is the eyes
+
+The split was **not** right and is now fixed. Gemini Flash was deciding the judgement calls —
+what is blocking the case, what is unanswered, what is missing, how each party stands — and
+Opus only ever saw Gemini's JSON summary, never the emails themselves.
+
+- **Opus now reads the original correspondence** in the strategy pass, not just the extraction,
+  budgeted to 220k characters with the newest mail kept.
+- **Opus re-derives the judgement** and its answer overrides the extraction: blocking issues,
+  open questions and missing items including contradictions between parties.
+- **Gemini's job is stated plainly in its own prompt**: extraction, not judgement. Evidence
+  ledger, timeline, citations, exact figures and dates. It still writes the email prose once
+  Opus has decided what each email must achieve.
+- Model ids now come from `gemini-models.ts`, so an env override actually takes effect. The
+  stale "Gemini 2.5 Pro" labels in the code and in the progress banner are corrected.
+
+### Generate is a modal again, with a progress bar
+
+The Nexus tab no longer lists every thread inline. **Generate case analysis** opens a picker of
+this client's threads, filtered by kind, with a second page that searches every thread in the
+inbox for a matter that runs through a mailbox never filed under this client.
+
+Each analysis phase now shows a real progress bar with the model doing the work and the seconds
+elapsed, and says so when a phase is taking longer than usual rather than sitting on a spinner.
+
+### Quotes expand
+
+Clicking an RFQ opens it in place: every insurer written to, who has replied, how many days the
+rest have been waiting, a link to each insurer conversation, and the premium, excess, limit and
+validity read out of the reply with the document they came from.
+
+### RFQ opens quickly again
+
+Picking a thread took several seconds on a blank panel. The cause was the line-detection model
+call sitting inside the render gate, with the case lookup queued behind it.
+
+- The model call is off the critical path and its result only pre-ticks suggestions, which is
+  how the original flow worked before the company revamp.
+- The case lookup joined the parallel batch instead of waiting behind the model.
+- A skeleton replaces the single line of grey text.
+- Detected lines are cached per thread, so reopening one is free.
+- The prompt drops quoted reply chains and caps at 3,000 characters instead of 12,000.
+- The company page now passes the real message id, which makes the lookup a primary-key read
+  **and** restores the client's own email into the insurer drafts, which had been silently lost.
+
+### Threads is full screen
+
+The Threads tab runs edge to edge under one slim bar that continues the main navigation: back,
+client name, thread count, and the other tabs on the right. Back returns to Overview.
+
+---
+
 ## 2026-09-11 (later) — Finance reconciliation, and the engagement dock removed
 
 **Status:** `tsc` + `next build` clean, 339/339 tests pass. One migration to apply (below).

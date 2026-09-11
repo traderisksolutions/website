@@ -66,6 +66,9 @@ function buildSigHtml(s: SigOption) {
 }
 function daysSince(iso: string) { return Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000) }
 
+/** Detected lines per thread, so re-opening a thread never pays for the model again. */
+const suggestCache = new Map<string, string[]>()
+
 export default function ThreadRfqWorkflow({
   threadId, messageId, defaultInsured,
 }: {
@@ -93,6 +96,7 @@ export default function ThreadRfqWorkflow({
   const [pickedLines, setPickedLines] = useState<string[]>([])        // lines multi-selected in the 'line' step
   const [lineQueue,  setLineQueue]  = useState<string[]>([])          // lines still to configure after the active one
   const [staged,     setStaged]     = useState<StagedLine[]>([])
+  const [detecting,  setDetecting]  = useState(true)
 
   const refresh = useCallback(async () => {
     const fr = await fetch(`/api/nexus/rfq/for-thread?thread_id=${threadId}`, { cache: 'no-store' }).then(r => r.json()).catch(() => ({ case_id: null }))
@@ -106,30 +110,51 @@ export default function ThreadRfqWorkflow({
     }
   }, [threadId])
 
+  // The panel is usable as soon as the cheap database reads land. Working out which lines of
+  // cover the client is asking for takes a model several seconds, and nothing on screen depends
+  // on it — it only pre-ticks the suggestions — so it runs alongside rather than in front.
+  // It used to sit inside this gate, which is why picking a thread felt so slow.
   useEffect(() => {
     let cancelled = false
     setLoading(true)
     ;(async () => {
-      const [sug, atts, sndrs, sigs] = await Promise.all([
-        fetch('/api/nexus/rfq/start', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ thread_id: threadId, message_id: messageId, suggest: true }) }).then(r => r.ok ? r.json() : null).catch(() => null),
+      const [atts, sndrs, sigs] = await Promise.all([
         fetch(`/api/nexus/rfq/attachments?thread_id=${threadId}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : []).catch(() => []),
         fetch('/api/email/available-senders', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).catch(() => []),
         fetch('/api/signatures', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).catch(() => []),
+        refresh(),
       ])
       if (cancelled) return
-      if (sug) {
-        setSuggested((sug.suggested_lines ?? []).map((l: { product_line: string }) => l.product_line))
-        if (sug.insured_name && !defaultInsured) setInsured(sug.insured_name)
-      }
       setAttachments(Array.isArray(atts) ? atts : [])
       const sa = Array.isArray(sndrs) ? sndrs : []; setSenders(sa); if (sa.length) setFromEmail(sa[0].email)
       const ga = Array.isArray(sigs) ? sigs : []; setSignatures(ga); if (ga.length) setSigId(ga[0].id)
-      await refresh()
-      if (!cancelled) setLoading(false)
+      setLoading(false)
     })()
     return () => { cancelled = true }
-  }, [threadId, messageId, defaultInsured, refresh])
+  }, [threadId, refresh])
+
+  // Line detection, off the critical path. Cached per thread so re-opening the same one is free.
+  useEffect(() => {
+    let cancelled = false
+    const cached = suggestCache.get(threadId)
+    if (cached) { setSuggested(cached); setDetecting(false); return }
+    setDetecting(true)
+    fetch('/api/nexus/rfq/start', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ thread_id: threadId, message_id: messageId, suggest: true }),
+    })
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null)
+      .then(sug => {
+        if (cancelled || !sug) { if (!cancelled) setDetecting(false); return }
+        const lines = (sug.suggested_lines ?? []).map((l: { product_line: string }) => l.product_line)
+        suggestCache.set(threadId, lines)
+        setSuggested(lines)
+        if (sug.insured_name && !defaultInsured) setInsured(sug.insured_name)
+        setDetecting(false)
+      })
+    return () => { cancelled = true }
+  }, [threadId, messageId, defaultInsured])
 
   // ── staged-insurer mutation helper ─────────────────────────────────────────
   const patchIns = useCallback((line: string, contactId: string, patch: Partial<StagedInsurer>) => {
@@ -256,7 +281,19 @@ export default function ThreadRfqWorkflow({
   const openLines = new Set(staged.map(l => l.line))
   const suggestedOpen = suggested.filter(s => !openLines.has(s))
 
-  if (loading) return <div className="p-5 text-[12px] text-muted-foreground">Loading RFQ…</div>
+  if (loading) return (
+    <div className="p-5 flex flex-col gap-4" aria-busy="true">
+      <div className="flex flex-col gap-1.5">
+        <div className="h-3.5 w-44 rounded bg-muted animate-pulse" />
+        <div className="h-3 w-80 max-w-full rounded bg-muted/70 animate-pulse" />
+      </div>
+      <div className="flex flex-col gap-1.5 max-w-sm">
+        <div className="h-2.5 w-24 rounded bg-muted/70 animate-pulse" />
+        <div className="h-8 w-full rounded-md bg-muted animate-pulse" />
+      </div>
+      <div className="h-8 w-48 rounded-md bg-muted animate-pulse" />
+    </div>
+  )
 
   return (
     <div className="p-5 flex flex-col gap-4">
@@ -295,7 +332,13 @@ export default function ThreadRfqWorkflow({
         </div>
       )}
 
-      {/* Suggested lines */}
+      {/* Suggested lines. While the model is still reading the email you can already start a
+          request by hand — the suggestions only save you a click. */}
+      {detecting && suggestedOpen.length === 0 && (
+        <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <Sparkles size={11} className="text-primary animate-pulse" /> Reading the email to suggest which cover to quote…
+        </span>
+      )}
       {suggestedOpen.length > 0 && (
         <div className="flex flex-col gap-1.5">
           <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">

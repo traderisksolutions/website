@@ -5,10 +5,9 @@ import Link from 'next/link'
 import { ArrowLeft, Pencil, Sparkles } from 'lucide-react'
 import { Btn } from './primitives'
 import { EditCompanyDialog } from './dialogs'
-import { fmtDate } from '@/lib/crm/format'
 import { STAGES, STAGE_LABEL, type Company, type Stage } from '@/lib/crm/types'
 
-/** Name, stage, owner, domains and one plain status line. No stat boxes by decision. */
+/** Name, stage and the facts that decide what to do next — all on one line. No stat boxes. */
 export function CompanyHeader({ company, statusLine, onCompany, onStage, onAskAi }: {
   company: Company
   statusLine: string
@@ -27,7 +26,9 @@ export function CompanyHeader({ company, statusLine, onCompany, onStage, onAskAi
         <div className="min-w-0 flex-1">
           <h1 className="text-[19px] font-bold tracking-tight text-foreground m-0 leading-tight break-words">{company.name}</h1>
 
-          <div className="mt-1 flex items-center gap-x-2 gap-y-1 flex-wrap text-[12px] text-muted-foreground">
+          {/* One line, not two. Stage and identity on the left, then the facts that decide what
+              to do next. Anything that was only metadata (industry, stage date) moved to Edit. */}
+          <div className="mt-1 flex items-center gap-x-2 gap-y-1 flex-wrap text-[12.5px]">
             <select
               value={company.stage}
               disabled={changing}
@@ -37,14 +38,10 @@ export function CompanyHeader({ company, statusLine, onCompany, onStage, onAskAi
             >
               {STAGES.map(s => <option key={s} value={s}>{STAGE_LABEL[s]}</option>)}
             </select>
-            <span aria-hidden>·</span>
-            <span>{company.owner_email ? company.owner_email.split('@')[0] : 'No owner'}</span>
-            {company.domains.length > 0 && <><span aria-hidden>·</span><span>{company.domains.join(', ')}</span></>}
-            {company.industry && <><span aria-hidden>·</span><span>{company.industry}</span></>}
-            {company.stage_changed_at && <><span aria-hidden>·</span><span className="text-muted-foreground/70">since {fmtDate(company.stage_changed_at)}</span></>}
+            <span className="text-muted-foreground">{company.owner_email ? company.owner_email.split('@')[0] : 'No owner'}</span>
+            {company.domains.length > 0 && <><span aria-hidden className="text-muted-foreground/50">·</span><span className="text-muted-foreground">{company.domains[0]}</span></>}
+            {statusLine && <><span aria-hidden className="text-muted-foreground/50">·</span><span className="text-foreground/90">{statusLine}</span></>}
           </div>
-
-          <p className="mt-1.5 text-[13px] text-foreground/80 m-0">{statusLine}</p>
         </div>
 
         <div className="flex items-center gap-1.5 flex-shrink-0">

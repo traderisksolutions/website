@@ -13,9 +13,10 @@ import { EMAIL_TYPE_BASE_INSTRUCTIONS } from '@/lib/email-surface-instructions'
 import { AUTO_SYNTH_THRESHOLD } from '@/lib/synthesize-prompt-override'
 import { createEngagementChatLearningSource } from '@/lib/nexus-chat-learnings'
 import { logError } from '@/lib/error-log'
+import { geminiUrl, GEMINI_LITE } from '@/lib/gemini-models'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
+const GEMINI_URL = geminiUrl(GEMINI_LITE)
 
 function sbH() {
   const k = process.env.SUPABASE_SERVICE_KEY

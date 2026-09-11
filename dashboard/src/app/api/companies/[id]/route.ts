@@ -13,6 +13,8 @@ import { isStage }                   from '@/lib/crm/stage'
 import { COMPANY_KINDS }             from '@/lib/crm/types'
 import { personName }                from '@/lib/crm/format'
 
+const round2 = (n: number) => Math.round(n * 100) / 100
+
 type ContactRow = { id: string; first_name: string | null; last_name: string | null; email: string | null; phone: string | null }
 type CustomerRow = { id: string; status: string | null; policies: PolicyRow[] | null }
 type PolicyRow = { id: string; policy_number: string | null; insurer: string | null; class_of_insurance: string | null; broker: string | null; currency: string | null; premium: number | null; start_date: string | null; end_date: string | null; status: string | null }
@@ -31,8 +33,43 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       sbTry<CustomerRow[]>(`customers?company_id=eq.${enc(id)}&select=id,status,policies(id,policy_number,insurer,class_of_insurance,broker,currency,premium,start_date,end_date,status)`, []),
       loadCompanyPayments(id),
     ])
-    const policies = customers.flatMap(c => c.policies ?? []).sort((a, b) => (b.end_date ?? '').localeCompare(a.end_date ?? ''))
-    const activeEnds = policies.filter(p => p.status === 'active' && p.end_date).map(p => p.end_date as string).sort()
+    const rawPolicies = customers.flatMap(c => c.policies ?? []).sort((a, b) => (b.end_date ?? '').localeCompare(a.end_date ?? ''))
+    const activeEnds = rawPolicies.filter(p => p.status === 'active' && p.end_date).map(p => p.end_date as string).sort()
+
+    // `policies.premium` has never been populated by any import — the money lives on the debit
+    // notes, which carry a policy_id. Roll them up so every row shows what was actually billed
+    // and what TRS earned, instead of a column of dashes.
+    const byPolicy = new Map<string, { billed: number; commission: number; currency: string; notes: number }>()
+    for (const d of payments.notes) {
+      if (!d.policy_id) continue
+      const cur = byPolicy.get(d.policy_id) ?? { billed: 0, commission: 0, currency: d.currency, notes: 0 }
+      cur.billed = round2(cur.billed + Number(d.net_amount ?? d.gross_amount ?? 0))
+      cur.commission = round2(cur.commission + Number(d.commission ?? 0))
+      cur.notes += 1
+      byPolicy.set(d.policy_id, cur)
+    }
+    const policies = rawPolicies.map(p => {
+      const m = byPolicy.get(p.id)
+      return {
+        ...p,
+        premium: p.premium ?? m?.billed ?? null,
+        premiumSource: p.premium != null ? 'policy' : m ? 'debit_notes' : null,
+        commission: m?.commission ?? null,
+        debitNoteCount: m?.notes ?? 0,
+        currency: p.currency ?? m?.currency ?? 'SGD',
+      }
+    })
+
+    // What this client is worth: everything ever billed through TRS and what TRS earned on it.
+    const value = new Map<string, { currency: string; billed: number; commission: number; notes: number }>()
+    for (const d of payments.notes) {
+      const cur = value.get(d.currency) ?? { currency: d.currency, billed: 0, commission: 0, notes: 0 }
+      cur.billed = round2(cur.billed + Number(d.net_amount ?? d.gross_amount ?? 0))
+      cur.commission = round2(cur.commission + Number(d.commission ?? 0))
+      cur.notes += 1
+      value.set(d.currency, cur)
+    }
+    const issueDates = payments.notes.map(d => d.issue_date).filter(Boolean).sort()
 
     return NextResponse.json({
       company,
@@ -45,6 +82,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       payments: payments.notes,
       debitNotes: payments.notes,
       paymentSummary: payments.summary,
+      value: {
+        byCurrency: Array.from(value.values()).sort((a, b) => (a.currency === 'SGD' ? -1 : b.currency === 'SGD' ? 1 : a.currency.localeCompare(b.currency))),
+        policyCount: policies.length,
+        activePolicies: policies.filter(p => p.status === 'active').length,
+        firstBilled: issueDates[0] ?? null,
+        lastBilled: issueDates[issueDates.length - 1] ?? null,
+      },
       summary: {
         contactCount: contacts.length,
         activePolicies: policies.filter(p => p.status === 'active').length,

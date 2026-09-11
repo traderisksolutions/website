@@ -7,9 +7,10 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { logError } from '@/lib/error-log'
+import { geminiUrl, GEMINI_LITE } from '@/lib/gemini-models'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
+const GEMINI_URL = geminiUrl(GEMINI_LITE)
 
 const CATEGORIES = ['rfq', 'claim', 'renewal', 'general', 'other'] as const
 

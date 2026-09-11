@@ -68,6 +68,24 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
   // The active scope (case or company). Seeded from the URL, then kept current by the
   // 'nexus:active-case' / 'crm:active-company' events the views broadcast.
   const [routeScope, setRouteScope] = useState<ChatScope>(() => scopeFromLocation())
+
+  // Ask Opus belongs to the client, not to one case file. On a Nexus case we look up the
+  // company that owns it and talk about the client, so the same conversation covers their
+  // claim, their renewal and their money. A case with no company still falls back to case
+  // scope, which keeps the steering and re-analysis actions available there.
+  useEffect(() => {
+    const caseId = routeScope.caseId
+    if (!caseId || routeScope.companyId) return
+    let cancelled = false
+    fetch(`/api/nexus/cases/${caseId}/company`, { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null)
+      .then(d => {
+        if (cancelled || !d?.companyId) return
+        setRouteScope(prev => prev.caseId === caseId ? { ...prev, companyId: d.companyId, label: d.companyName ?? prev.label } : prev)
+      })
+    return () => { cancelled = true }
+  }, [routeScope.caseId, routeScope.companyId])
   const routeCaseRef = useRef<ChatScope>(routeScope)
   routeCaseRef.current = routeScope
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null)

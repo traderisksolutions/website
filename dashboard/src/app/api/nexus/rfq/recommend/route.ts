@@ -14,10 +14,11 @@ import { productLineLabel }          from '@/lib/product-lines'
 import { logAnthropicUsage, logGeminiUsage } from '@/lib/gemini-usage'
 import { logRfqEvent }         from '@/lib/rfq-log'
 import { logError }            from '@/lib/error-log'
+import { geminiUrl, GEMINI_PRO as GEMINI_PRO_MODEL } from '@/lib/gemini-models'
 
 const SB_URL        = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
-const GEMINI_PRO    = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent'
+const GEMINI_PRO    = geminiUrl(GEMINI_PRO_MODEL)
 
 function sbH(prefer = 'return=representation') {
   const k = process.env.SUPABASE_SERVICE_KEY

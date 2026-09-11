@@ -252,11 +252,11 @@ type ComposeState = {
 
 const ANALYSIS_STAGES = [
   { model: null,             label: 'Fetching threads & messages',              from: 0,  to: 5,  duration: 2500  },
-  { model: 'Gemini',         label: 'Reading every attachment (re-scanning any unread)', from: 5,  to: 22, duration: 14000 },
-  { model: 'Gemini 2.5 Pro', label: 'Synthesising evidence & building the brief', from: 22, to: 52, duration: 26000 },
+  { model: 'Gemini Flash',   label: 'Reading every attachment (re-scanning any unread)', from: 5,  to: 22, duration: 14000 },
+  { model: 'Gemini Flash',   label: 'Extracting the evidence from every thread',  from: 22, to: 52, duration: 26000 },
   { model: 'Claude Opus',    label: 'Building a date-verified timeline',         from: 52, to: 70, duration: 16000 },
-  { model: 'Claude Opus',    label: 'Generating strategy & next steps',          from: 70, to: 88, duration: 18000 },
-  { model: 'Gemini Flash',   label: 'Drafting the recommended emails',           from: 88, to: 96, duration: 7000  },
+  { model: 'Claude Opus',    label: 'Judging the case — scenarios and next steps', from: 70, to: 88, duration: 18000 },
+  { model: 'Gemini Flash',   label: 'Writing the recommended emails',            from: 88, to: 96, duration: 7000  },
   { model: null,             label: 'Saving & repopulating Mission Control',     from: 96, to: 99, duration: 2500  },
 ] as const
 

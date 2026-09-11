@@ -19,7 +19,7 @@ type Row = DebitNoteRow & {
 
 const SELECT = [
   'id,company_id,contact_id,policy_id,debit_note_no,issue_date,payment_due_date,currency',
-  'gross_amount,net_amount,paid_amount,paid_direct_amount,status,paid_direct_status',
+  'gross_amount,net_amount,commission,paid_amount,paid_direct_amount,status,paid_direct_status',
   'pay_direct_to_insurer,insurer,event_type,drive_folder_url,updated_at',
   'companies(company_name),policies(policy_number,class_of_insurance)',
 ].join(',')

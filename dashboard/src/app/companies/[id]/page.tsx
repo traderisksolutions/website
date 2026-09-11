@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -9,7 +10,7 @@ import { CompanyHeader } from '@/components/crm/CompanyHeader'
 import { AlertsPanel, LeftOffPanel } from '@/components/crm/AlertsPanel'
 import { CompanyNexus } from '@/components/crm/CompanyNexus'
 import { PeoplePanel } from '@/components/crm/PeoplePanel'
-import { PoliciesPanel, type Policy } from '@/components/crm/PoliciesPanel'
+import { PoliciesPanel, type Policy, type CompanyValue } from '@/components/crm/PoliciesPanel'
 import { CompanyQuotation } from '@/components/crm/CompanyQuotation'
 import { CompanyPayments } from '@/components/crm/CompanyPayments'
 import { CompanyMail } from '@/components/crm/CompanyMail'
@@ -35,6 +36,7 @@ type Detail = {
   policies: Policy[]
   payments: PaymentDerived[]
   paymentSummary: PaymentSummary
+  value?: CompanyValue
 }
 
 const TABS = [
@@ -132,6 +134,48 @@ function CompanyWorkspace() {
 
   const { company } = ov
 
+  // Reading the client's mail is a full-screen job, so the Threads tab drops the page
+  // chrome and runs edge to edge under one slim bar that continues the main navigation.
+  if (tab === 'threads') {
+    return (
+      <div className="flex flex-col bg-background" style={{ height: 'calc(100vh - 56px)' }}>
+        <div className="flex items-center gap-2 px-4 h-11 border-b border-[--border-subtle] flex-shrink-0 bg-card">
+          <button
+            onClick={() => setTab('overview')}
+            className="inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground bg-transparent border-0 p-0 cursor-pointer flex-shrink-0"
+          >
+            <ArrowLeft size={13} /> Back
+          </button>
+          <span aria-hidden className="text-muted-foreground/30">|</span>
+          <span className="text-[13px] font-semibold truncate">{company.name}</span>
+          <span className="text-[12px] text-muted-foreground flex-shrink-0">
+            {threads ? `${threads.length} thread${threads.length === 1 ? '' : 's'}` : ''}
+            {ov.needsReply > 0 && ` · ${ov.needsReply} awaiting reply`}
+          </span>
+
+          <div className="ml-auto hidden md:flex items-center gap-0.5 flex-shrink-0" role="tablist">
+            {TABS.filter(t => t.key !== 'threads').map(t => (
+              <button
+                key={t.key}
+                role="tab"
+                onClick={() => setTab(t.key)}
+                className="px-2 py-1 rounded-md border-0 bg-transparent cursor-pointer text-[12px] text-muted-foreground hover:text-foreground hover:bg-muted whitespace-nowrap"
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex-1 min-h-0">
+          {threads
+            ? <CompanyMail threads={threads} companyId={id} companyName={company.name} fullHeight onRefresh={() => { setThreads(null); void loadThreads() }} />
+            : <Spinner label="Loading conversations…" />}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-full bg-background">
       <div className="mx-auto max-w-[1200px] px-6 py-6">
@@ -188,10 +232,6 @@ function CompanyWorkspace() {
           />
         ) : <Spinner />)}
 
-        {tab === 'threads' && (threads ? (
-          <CompanyMail threads={threads} companyId={id} companyName={company.name} onRefresh={() => { setThreads(null); void loadThreads() }} />
-        ) : <Spinner />)}
-
         {tab === 'people' && (people ? (
           <PeoplePanel
             people={people.people}
@@ -201,7 +241,7 @@ function CompanyWorkspace() {
           />
         ) : <Spinner />)}
 
-        {tab === 'purchases' && (detail ? <PoliciesPanel policies={detail.policies} /> : <Spinner />)}
+        {tab === 'purchases' && (detail ? <PoliciesPanel policies={detail.policies} value={detail.value} /> : <Spinner />)}
 
         {tab === 'quotation' && (quotes && threads ? (
           <CompanyQuotation companyId={id} companyName={company.name} quotes={quotes} threads={threads} />

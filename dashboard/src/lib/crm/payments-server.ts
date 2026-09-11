@@ -5,7 +5,7 @@ import type { DebitNoteRow, PaymentDerived, PaymentSummary } from './types'
 
 type Row = DebitNoteRow & { policies: { policy_number: string | null; class_of_insurance: string | null } | null }
 
-const SELECT = 'id,company_id,contact_id,policy_id,debit_note_no,issue_date,payment_due_date,currency,gross_amount,net_amount,paid_amount,paid_direct_amount,status,paid_direct_status,pay_direct_to_insurer,insurer,event_type,drive_folder_url,updated_at,policies(policy_number,class_of_insurance)'
+const SELECT = 'id,company_id,contact_id,policy_id,debit_note_no,issue_date,payment_due_date,currency,gross_amount,net_amount,commission,paid_amount,paid_direct_amount,status,paid_direct_status,pay_direct_to_insurer,insurer,event_type,drive_folder_url,updated_at,policies(policy_number,class_of_insurance)'
 
 export async function loadCompanyPayments(companyId: string): Promise<{ notes: PaymentDerived[]; summary: PaymentSummary }> {
   const rows = await sbTry<Row[]>(`debit_notes?company_id=eq.${enc(companyId)}&select=${SELECT}&order=issue_date.desc&limit=200`, [])

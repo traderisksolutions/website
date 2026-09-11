@@ -25,12 +25,14 @@ const CAT_TONE: Record<string, 'blue' | 'red' | 'amber' | 'neutral'> = { rfq: 'b
 
 type ThreadRow = { id: string; subject: string | null; status: string; last_message_at: string | null; contact_id: string | null }
 
-export function CompanyMail({ threads, companyId, companyName, onCombine, onRefresh }: {
+export function CompanyMail({ threads, companyId, companyName, onCombine, onRefresh, fullHeight }: {
   threads: CompanyThread[]
   companyId: string
   companyName: string
   onCombine?: (ids: string[]) => void
   onRefresh?: () => void
+  /** Fill the viewport instead of sitting inside the page column — the Threads tab. */
+  fullHeight?: boolean
 }) {
   const [filter, setFilter] = useState<Filter>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -108,8 +110,8 @@ export function CompanyMail({ threads, companyId, companyName, onCombine, onRefr
   } : null
 
   return (
-    <div className="mt-3">
-      <div className="mb-2 flex items-center gap-2 flex-wrap">
+    <div className={cn(fullHeight ? 'h-full flex flex-col px-4 pt-2' : 'mt-3')}>
+      <div className={cn('mb-2 flex items-center gap-2 flex-wrap', fullHeight && 'flex-shrink-0')}>
         <Segmented value={filter} onChange={setFilter} options={[
           { value: 'all', label: 'All', count: counts.all }, { value: 'reply', label: 'Awaiting reply', count: counts.reply },
           { value: 'rfq', label: 'RFQ', count: counts.rfq }, { value: 'claim', label: 'Claims', count: counts.claim },
@@ -128,12 +130,14 @@ export function CompanyMail({ threads, companyId, companyName, onCombine, onRefr
       {threads.length === 0 && <Empty>No threads are filed under this company yet.</Empty>}
 
       {threads.length > 0 && (
-        <div className="flex gap-4 items-start border-t border-[--border-subtle]">
+        <div className={cn('flex gap-4 border-t border-[--border-subtle]',
+          fullHeight ? 'flex-1 min-h-0 items-stretch' : 'items-start')}>
           {/* List */}
           <div className={cn('min-w-0 md:w-[320px] md:flex-shrink-0 md:border-r md:border-[--border-subtle] md:pr-3',
+            fullHeight && 'flex flex-col min-h-0',
             selectedId ? 'hidden md:block' : 'w-full')}>
             {visible.length === 0 && <Empty compact>Nothing matches this filter.</Empty>}
-            <ul className="m-0 p-0 list-none flex flex-col max-h-[70vh] overflow-y-auto">
+            <ul className={cn('m-0 p-0 list-none flex flex-col overflow-y-auto', fullHeight ? 'flex-1 min-h-0' : 'max-h-[70vh]')}>
               {visible.map(t => (
                 <li key={t.id} className={cn('border-b border-[--border-subtle] last:border-b-0', selectedId === t.id && 'bg-[--selected-row-bg]')}>
                   <div className="flex items-start gap-2 py-2 pr-1">
@@ -154,7 +158,7 @@ export function CompanyMail({ threads, companyId, companyName, onCombine, onRefr
           </div>
 
           {/* Conversation */}
-          <div ref={readerRef} className={cn('min-w-0 flex-1 max-h-[70vh] overflow-y-auto', selectedId ? 'block' : 'hidden md:block')}>
+          <div ref={readerRef} className={cn('min-w-0 flex-1 overflow-y-auto', fullHeight ? 'min-h-0' : 'max-h-[70vh]', selectedId ? 'block' : 'hidden md:block')}>
             {!selectedId && <Empty compact>Choose a conversation.</Empty>}
             {selectedId && loading && <Spinner label="Opening…" />}
             {selectedId && error && <p className="text-[12.5px] text-destructive py-4">{error}</p>}

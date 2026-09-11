@@ -36,7 +36,7 @@ export async function listCompanySummaries(opts: ListOptions = {}): Promise<Comp
     inChunks(ids, 100, c => sbTry<ContactRow[]>(`contacts?company_id=in.(${c.join(',')})&select=id,company_id`, [])),
     inChunks(ids, 100, c => sbTry<JunctionRow[]>(`company_contacts?company_id=in.(${c.join(',')})&select=company_id,contact_id`, [])),
     inChunks(ids, 100, c => sbTry<ThreadRow[]>(`email_threads?company_id=in.(${c.join(',')})&deleted_at=is.null&select=id,company_id,contact_id,last_message_at,status&limit=2000`, [])),
-    inChunks(ids, 100, c => sbTry<DebitNoteRow[]>(`debit_notes?company_id=in.(${c.join(',')})&select=id,company_id,contact_id,policy_id,debit_note_no,issue_date,payment_due_date,currency,gross_amount,net_amount,paid_amount,paid_direct_amount,status,paid_direct_status,pay_direct_to_insurer,insurer,event_type,drive_folder_url,updated_at`, [])),
+    inChunks(ids, 100, c => sbTry<DebitNoteRow[]>(`debit_notes?company_id=in.(${c.join(',')})&select=id,company_id,contact_id,policy_id,debit_note_no,issue_date,payment_due_date,currency,gross_amount,net_amount,commission,paid_amount,paid_direct_amount,status,paid_direct_status,pay_direct_to_insurer,insurer,event_type,drive_folder_url,updated_at`, [])),
     inChunks(ids, 100, c => sbTry<CustomerRow[]>(`customers?company_id=in.(${c.join(',')})&select=company_id,policies(end_date,status)`, [])),
     inChunks(ids, 100, c => sbTry<CaseRow[]>(`cases?company_id=in.(${c.join(',')})&select=id,company_id`, [])),
     inChunks(ids, 100, c => sbTry<PmRow[]>(`pm_quotations?company_id=in.(${c.join(',')})&select=company_id,created_at`, [])),

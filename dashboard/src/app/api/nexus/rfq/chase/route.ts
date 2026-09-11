@@ -10,9 +10,10 @@ import { logGeminiUsage }            from '@/lib/gemini-usage'
 import { productLineLabel }          from '@/lib/product-lines'
 import { logError }                  from '@/lib/error-log'
 import { requireStaffOrCron }        from '@/lib/api-auth'
+import { geminiUrl, GEMINI_LITE } from '@/lib/gemini-models'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
+const GEMINI_URL = geminiUrl(GEMINI_LITE)
 
 function sbH() {
   const k = process.env.SUPABASE_SERVICE_KEY

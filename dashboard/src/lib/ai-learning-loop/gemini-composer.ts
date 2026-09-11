@@ -1,7 +1,8 @@
 import type { InstructionComposer } from './skill-synthesizer'
 import { logError } from '@/lib/error-log'
+import { geminiUrl, GEMINI_FLASH } from '@/lib/gemini-models'
 
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
+const GEMINI_URL = geminiUrl(GEMINI_FLASH)
 
 /** Default InstructionComposer: asks Gemini to rewrite a surface's instruction block given
  *  its accumulated learnings. Isolated behind the InstructionComposer interface so tests use

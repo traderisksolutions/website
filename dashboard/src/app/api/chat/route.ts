@@ -19,6 +19,8 @@ import { listCompanyThreads } from '@/lib/crm/threads'
 import { loadCompanyPayments } from '@/lib/crm/payments-server'
 import { listCompanyQuotes } from '@/lib/crm/quotes'
 import { rankPeople } from '@/lib/crm/people'
+import { listCompanyCases } from '@/lib/crm/cases'
+import { enc } from '@/lib/crm/db'
 
 export const maxDuration = 300
 
@@ -74,6 +76,9 @@ const COMPANY_TOOLS = [
   { name: 'get_company_payments', description: 'Every debit note for this company with amount, due date, outstanding balance and whether it is overdue.', input_schema: { type: 'object', properties: {} } },
   { name: 'get_company_quotes',   description: 'RFQ lines and group benefits quotations for this company with status.', input_schema: { type: 'object', properties: {} } },
   { name: 'get_company_people',   description: 'Who corresponds with us at this company, ranked by activity, with insurer contacts seen on the same threads.', input_schema: { type: 'object', properties: {} } },
+  { name: 'get_company_cover',    description: 'What this client has bought: every policy with insurer, cover, period, premium billed and commission earned, plus lifetime customer value and renewal dates. Use for "what are they worth", "what do they have", "when does X renew".', input_schema: { type: 'object', properties: {} } },
+  { name: 'get_company_cases',    description: 'Nexus cases for this company and the latest deep analysis of each: case brief, blocking issues, recommended next steps and scenarios. Use for "what is happening with the claim" or "where are we on X".', input_schema: { type: 'object', properties: {} } },
+  { name: 'search_company_email', description: 'Full-text search across every message in this company\'s threads. Use when the broker asks about something specific that may be buried in a long thread — a figure, a name, a clause, a promise.', input_schema: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] } },
 ] as const
 
 async function execCompanyTool(name: string, input: Record<string, unknown>, companyId: string): Promise<string> {
@@ -104,11 +109,92 @@ async function execCompanyTool(name: string, input: Record<string, unknown>, com
       const { people } = await rankPeople(company)
       return cap(JSON.stringify(people.map(p => ({ name: p.name, email: p.email, party: p.party, primary: p.isPrimary, wrote: p.sent, addressed: p.received, copied: p.cc, last_seen: p.lastSeen, topics: p.topics }))))
     }
+    if (name === 'get_company_cover') {
+      type Cust = { policies: { id: string; policy_number: string | null; insurer: string | null; class_of_insurance: string | null; currency: string | null; premium: number | null; start_date: string | null; end_date: string | null; status: string | null }[] | null }
+      const [custs, pay] = await Promise.all([
+        sbTry<Cust[]>(`customers?company_id=eq.${enc(companyId)}&select=policies(id,policy_number,insurer,class_of_insurance,currency,premium,start_date,end_date,status)`, []),
+        loadCompanyPayments(companyId),
+      ])
+      // policies.premium is never populated by the imports; the money is on the debit notes.
+      const billedByPolicy = new Map<string, { billed: number; commission: number }>()
+      let billed = 0, commission = 0
+      for (const d of pay.notes) {
+        const amt = Number(d.net_amount ?? d.gross_amount ?? 0)
+        const com = Number(d.commission ?? 0)
+        billed += amt; commission += com
+        if (d.policy_id) {
+          const cur = billedByPolicy.get(d.policy_id) ?? { billed: 0, commission: 0 }
+          cur.billed += amt; cur.commission += com
+          billedByPolicy.set(d.policy_id, cur)
+        }
+      }
+      const policies = custs.flatMap(c => c.policies ?? []).map(p => ({
+        cover: p.class_of_insurance, insurer: p.insurer, policy_number: p.policy_number,
+        period: `${p.start_date ?? '?'} to ${p.end_date ?? '?'}`, renews: p.end_date, status: p.status,
+        currency: p.currency ?? 'SGD',
+        premium_billed: billedByPolicy.get(p.id)?.billed ?? null,
+        commission_earned: billedByPolicy.get(p.id)?.commission ?? null,
+      }))
+      const issued = pay.notes.map(d => d.issue_date).filter(Boolean).sort()
+      return cap(JSON.stringify({
+        customer_value: {
+          total_premium_billed: Math.round(billed * 100) / 100,
+          total_commission_earned: Math.round(commission * 100) / 100,
+          debit_notes: pay.notes.length,
+          client_since: issued[0] ?? null,
+          last_billed: issued[issued.length - 1] ?? null,
+          note: 'Premium comes from debit notes; commission is recorded on 27 of 38 notes overall, so it can understate.',
+        },
+        policies,
+      }))
+    }
+    if (name === 'get_company_cases') {
+      const ids = await getCompanyThreadIds(companyId)
+      const cases = await listCompanyCases(companyId, ids)
+      if (cases.length === 0) return 'No Nexus cases for this company.'
+      type Row = { case_id: string; structured_analysis: Record<string, unknown> | null; created_at: string }
+      const analyses = await sbTry<Row[]>(`case_analyses?case_id=in.(${cases.map(c => enc(c.id)).join(',')})&select=case_id,structured_analysis,created_at&order=created_at.desc`, [])
+      const latest = new Map<string, Row>()
+      for (const a of analyses) if (!latest.has(a.case_id)) latest.set(a.case_id, a)
+      return cap(JSON.stringify(cases.map(c => {
+        const sa = latest.get(c.id)?.structured_analysis as {
+          case_brief?: { summary?: string; current_stage?: string; blocking_issues?: string[] }
+          recommended_next_steps?: { action?: string; owner?: string; deadline?: string }[]
+          scenario_analysis?: { name?: string; probability?: string }[]
+          open_questions?: { question?: string; priority?: string }[]
+        } | undefined
+        return {
+          case_id: c.id, name: c.name, status: c.status, threads: c.thread_count,
+          analysed_at: latest.get(c.id)?.created_at ?? null,
+          summary: sa?.case_brief?.summary ?? null,
+          stage: sa?.case_brief?.current_stage ?? null,
+          blocking_issues: sa?.case_brief?.blocking_issues ?? [],
+          open_questions: (sa?.open_questions ?? []).map(q => q.question),
+          next_steps: (sa?.recommended_next_steps ?? []).map(x => ({ action: x.action, owner: x.owner, deadline: x.deadline })),
+          scenarios: (sa?.scenario_analysis ?? []).map(x => ({ name: x.name, probability: x.probability })),
+        }
+      })))
+    }
+    if (name === 'search_company_email') {
+      const q = String(input.query ?? '').trim()
+      if (q.length < 2) return 'Give a search term of at least two characters.'
+      const ids = await getCompanyThreadIds(companyId)
+      if (ids.length === 0) return 'No threads for this company.'
+      const rows = await sbTry<{ thread_id: string; direction: string; from_address: string | null; sent_at: string; body_text: string | null }[]>(
+        `email_messages?thread_id=in.(${ids.map(enc).join(',')})&deleted_at=is.null&body_text=ilike.*${enc(q)}*&select=thread_id,direction,from_address,sent_at,body_text&order=sent_at.desc&limit=12`, [])
+      if (rows.length === 0) return `Nothing in this company's mail mentions "${q}".`
+      return cap(JSON.stringify(rows.map(m => {
+        const body = m.body_text ?? ''
+        const at = body.toLowerCase().indexOf(q.toLowerCase())
+        const from = Math.max(0, at - 300)
+        return { thread_id: m.thread_id, direction: m.direction, from: m.from_address, date: m.sent_at, excerpt: body.slice(from, from + 900) }
+      })))
+    }
   } catch (e) { return `Tool error: ${String(e)}` }
   return 'Unknown tool.'
 }
 
-const SYSTEM_COMPANY = `You are a sharp, candid account consultant embedded in TRS (Trade Risk Solutions, a Singapore insurance brokerage). A broker is asking you about ONE client company. Answer from the facts in context and from what your read-tools return — list_company_threads, get_thread_messages, get_company_payments, get_company_quotes, get_company_people. Prefer looking things up over guessing. Be concise and practical: what is going on, what is owed, what is unanswered, what to do next and who to contact.
+const SYSTEM_COMPANY = `You are a sharp, candid account consultant embedded in TRS (Trade Risk Solutions, a Singapore insurance brokerage). A broker is asking you about ONE client company. Answer from the facts in context and from what your read-tools return — list_company_threads, get_thread_messages, get_company_payments, get_company_quotes, get_company_people, get_company_cover, get_company_cases, search_company_email. Prefer looking things up over guessing. Be concise and practical: what is going on, what is owed, what is unanswered, what to do next and who to contact.
 
 CONFIRM-TO-ACT: if — and only if — the broker asks you to write to someone, END your reply with a single fenced block:
 \`\`\`action
@@ -265,8 +351,12 @@ export async function POST(req: NextRequest) {
       msgs.push({ role: 'user', content: messageWithAtt })
     }
 
-    const effCaseId = (case_id ?? thread.case_id ?? null) as string | null
-    const effCompanyId = effCaseId ? null : ((company_id ?? thread.company_id ?? null) as string | null)
+    // Ask Opus belongs to the client. When both a company and a case are in view the company
+    // wins, because a broker's question about "them" spans the claim, the renewal and the
+    // money. Case scope remains for a case that could not be resolved to a company, so the
+    // steering and re-analysis actions stay reachable there.
+    const effCompanyId = (company_id ?? thread.company_id ?? null) as string | null
+    const effCaseId = effCompanyId ? null : ((case_id ?? thread.case_id ?? null) as string | null)
     const origin = new URL(req.url).origin
     const ctx = effCaseId ? await caseContext(effCaseId) : effCompanyId ? await companyContext(effCompanyId) : ''
 

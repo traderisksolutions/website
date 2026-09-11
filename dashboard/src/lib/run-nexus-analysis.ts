@@ -1,14 +1,21 @@
 /**
- * Nexus Grand Analysis Engine — v2.0
+ * Nexus Grand Analysis Engine — v2.1
  *
- * Two-brain architecture:
- *   Brain 1 — Gemini 2.5 Pro: Reads all emails + attachments across ALL linked threads,
- *              synthesises unified timeline, current status, and per-step draft emails.
+ * The division of labour, which is the whole design:
  *
- *   Brain 2 — Claude Opus (or Gemini fallback): Takes Gemini's synthesis and builds
- *              the strategic playbook, legal research, and outreach strategy.
+ *   Gemini Flash — the EYES. Reads every email and attachment across all linked threads,
+ *     including photographs and scanned PDFs, and pulls out what is on the page: who is
+ *     involved, what happened when, which document says what. Extraction, not opinion.
+ *     It also writes the final email prose once Opus has decided what each one must achieve.
  *
- * Set ANTHROPIC_API_KEY in env to enable Claude. Falls back to Gemini-only if not set.
+ *   Claude Opus — the BRAIN. Reads the SAME original correspondence, not just Gemini's notes,
+ *     and makes every judgement call: what is actually blocking the case, what is genuinely
+ *     unanswered or missing, how the scenarios play out, what to do next, what to reserve,
+ *     and what each email needs to accomplish. Where Opus disagrees with the extraction,
+ *     Opus wins.
+ *
+ * There is deliberately no Gemini fallback for the judgement pass. Without ANTHROPIC_API_KEY
+ * the strategy is skipped and said to be skipped, rather than quietly downgraded.
  */
 
 import { logGeminiUsage, logAnthropicUsage } from '@/lib/gemini-usage'
@@ -17,10 +24,16 @@ import { buildQuoteDecision, type QuoteDecisionV1 } from '@/lib/rfq-quote-decisi
 import { caseChatContext } from '@/lib/nexus-chat-learnings'
 import { logError } from '@/lib/error-log'
 
+import { GEMINI_FLASH as GEMINI_FLASH_MODEL } from './gemini-models'
+
 const SB_URL          = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const STORAGE_BUCKET  = 'email-attachments'
-const GEMINI_URL      = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
-const GEMINI_FLASH    = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
+// Model ids come from one place so an env override actually takes effect here too.
+const GEMINI_EXTRACT_MODEL = GEMINI_FLASH_MODEL
+const GEMINI_DRAFT_MODEL   = GEMINI_FLASH_MODEL
+const OPUS_MODEL           = 'claude-opus-4-8'
+const GEMINI_URL      = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_EXTRACT_MODEL}:generateContent`
+const GEMINI_FLASH    = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_DRAFT_MODEL}:generateContent`
 const GEMINI_UPLOAD   = 'https://generativelanguage.googleapis.com/upload/v1beta/files'
 const ANTHROPIC_URL   = 'https://api.anthropic.com/v1/messages'
 
@@ -598,7 +611,7 @@ ${corpus.slice(0, 120_000)}`
     const res = await fetch(ANTHROPIC_URL, {
       method:  'POST',
       headers: { 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-opus-4-8', max_tokens: 8000, thinking: { type: 'adaptive' }, messages: [{ role: 'user', content: prompt }] }),
+      body: JSON.stringify({ model: OPUS_MODEL, max_tokens: 8000, thinking: { type: 'adaptive' }, messages: [{ role: 'user', content: prompt }] }),
     })
     if (!res.ok) {
       void logError({ source: 'anthropic', feature: 'nexus_timeline', statusCode: res.status, message: await res.text() })
@@ -933,6 +946,10 @@ export type NexusPhase2State = {
   strategyTokens:        number
   strategySkippedReason: string | null
   strategyModelName:     string
+  /** Opus's own read of what is blocked, unanswered or missing — overrides the extraction. */
+  revisedBlocking:       string[] | null
+  revisedQuestions:      NexusAnalysisV1['open_questions'] | null
+  revisedMissing:        NexusAnalysisV1['missing_items'] | null
 }
 
 // Record a failed run so operators can see it in the History tab — shared by the phase
@@ -1099,7 +1116,7 @@ export async function runNexusAnalysisPhase1(
       .map(m => {
         const who  = m.direction === 'inbound' ? `${party.display_label} <${m.from_address ?? contactEmail}>` : 'TRS'
         const date = new Date(m.sent_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-        const body = (m.body_text ?? '').slice(0, 15000) // generous limit with Gemini 2.5 Pro
+        const body = (m.body_text ?? '').slice(0, 15000) // generous — both models take a long context
         const att  = m.has_attachments ? ' [HAS ATTACHMENTS — see uploaded files]' : ''
         // Surface what the sender HIGHLIGHTED — often their actual reply, inline in quoted text.
         const hl   = (m.highlights && m.highlights.length) ? `\n  >> SENDER HIGHLIGHTED: ${m.highlights.map(h => `"${h}"`).join('; ')}` : ''
@@ -1171,7 +1188,7 @@ ${threadMsgs || '(no messages yet)'}`
     ? `\nATTACHMENTS FOUND:\n${attachmentSummary.map(a => `  • ${a}`).join('\n')}\n${gdriveNote}`
     : `\nNo email attachments found.\n${gdriveNote}`
 
-  // ── PASS 1: Gemini 2.5 Pro — Evidence synthesis (7 sections) ────────────────
+  // ── PASS 1: Gemini Flash — the eyes. Extract what is on the page, judge nothing. ──
 
   // Facts already established via the broker's Ask-Opus chat about THIS case (nightly
   // extraction — see src/lib/nexus-chat-learnings.ts) so the synthesis doesn't treat them
@@ -1182,7 +1199,9 @@ ${threadMsgs || '(no messages yet)'}`
 
 You are reading ALL email threads linked to a single case simultaneously. Each thread is a conversation between TRS and a different party (client, insurer, lawyers, etc.).
 
-Your task: produce a structured evidence synthesis — extract only what is actually documented. No inference, no fabrication.
+Your task: EXTRACTION, not judgement. Pull out only what is actually documented. No inference, no fabrication.
+
+A senior consultant (a stronger model) reads the same emails after you and makes every call about what is blocking the case, what is genuinely unanswered and what is missing. Your blocking_issues, open_questions and missing_items are a first pass for them to work from, so list what the text plainly supports and do not strain to fill them. Your real value is in the parts only a careful reader of every page can supply: the evidence ledger, the timeline, the citations, and the exact figures, dates and names.
 
 ━━ EVIDENCE SOURCES IN THIS ANALYSIS ━━
 ${attachmentNote}
@@ -1335,7 +1354,7 @@ Return [] for sections with no items; never omit a section`
     throw new Error(`Gemini synthesis failed ${synthRes.status}: ${err}`)
   }
   const synthData = await synthRes.json()
-  void logGeminiUsage('nexus_synthesis', synthData.usageMetadata ?? {}, caseId, 'gemini-3.6-flash')
+  void logGeminiUsage('nexus_synthesis', synthData.usageMetadata ?? {}, caseId, GEMINI_EXTRACT_MODEL)
 
   const synthParts2 = (synthData?.candidates?.[0]?.content?.parts ?? []) as { text?: string }[]
   const synthText   = synthParts2.find(p => p.text?.trim().startsWith('{'))?.text
@@ -1380,8 +1399,19 @@ export async function runNexusAnalysisPhase2(
   state: NexusPhase2State
   preview: { scenarios: number; nextSteps: number; briefs: number; reserveEstimate: string | null }
 }> {
-  const { synthesis, partyContactsJson, chatContext } = phase1
+  const { synthesis, partyContactsJson, chatContext, threadSections, attachmentText } = phase1
   const instructions = instructionsOverride !== undefined ? instructionsOverride : phase1.instructions
+
+  // Opus reads the correspondence itself rather than trusting the extraction. Budgeted so a
+  // very large case still fits alongside the structured sections; the newest mail is kept,
+  // because that is where the live questions are.
+  const STRATEGY_CORPUS_CHARS = 220_000
+  const corpus = attachmentText
+    ? `${threadSections}\n\n━━ EXTRACTED ATTACHMENT TEXT ━━\n${attachmentText}`
+    : threadSections
+  const rawCorpusForStrategy = corpus.length > STRATEGY_CORPUS_CHARS
+    ? `(earlier correspondence trimmed to fit — the extraction above covers it)\n…\n${corpus.slice(-STRATEGY_CORPUS_CHARS)}`
+    : corpus
 
   const anthropicKey = process.env.ANTHROPIC_API_KEY
   let scenarioAnalysis:     NexusAnalysisV1['scenario_analysis']      = []
@@ -1390,6 +1420,9 @@ export async function runNexusAnalysisPhase2(
   let communicationBriefs:  CommunicationBrief[]                      = []
   let strategyTokens = 0
   let strategySkippedReason: string | null = null
+  let revisedBlocking:  string[] | null = null
+  let revisedQuestions: NexusAnalysisV1['open_questions'] | null = null
+  let revisedMissing:   NexusAnalysisV1['missing_items']  | null = null
 
   // Build a "recently completed actions" summary to feed into the hygiene rules
   const recentEvents = (synthesis.timeline ?? []).slice(-6).map(e => `${e.date}: ${e.event}`).join('\n')
@@ -1424,12 +1457,36 @@ ${JSON.stringify(synthesis.citations, null, 2)}
 
 ━━ RECENTLY COMPLETED ACTIONS (last 6 timeline events) ━━
 ${recentEvents || '(none)'}
+
+━━ THE SOURCE EMAILS THEMSELVES ━━
+The extraction above was produced by a fast model whose job is to pull out what is on the page.
+It is a reading aid, not a verdict. YOU are the one making the judgement calls, so read the
+original correspondence below and trust it over the extraction wherever the two differ.
+${rawCorpusForStrategy}
 ${chatContext ? `\n━━ ALREADY ESTABLISHED (from the broker's prior AI-consultant chat about this case — factor into next_steps/communication_briefs directly, don't recommend re-asking) ━━\n${chatContext}\n` : ''}
 ━━ YOUR TASK ━━
 
 Produce four strategic sections grounded in the evidence above. Return ONLY valid JSON (no markdown fences):
 
 {
+  "revised_blocking_issues": ["What is ACTUALLY preventing progress, in your judgement, having read the emails — name the party responsible. Replaces the extraction's list. [] if nothing is blocked."],
+  "revised_open_questions": [
+    {
+      "question": "A question that genuinely affects the outcome and has not been answered",
+      "priority": "critical|high|medium|low",
+      "directed_at": "insurer|client|lawyer|trs or null",
+      "citation_ids": ["c1"]
+    }
+  ],
+  "revised_missing_items": [
+    {
+      "item": "A document or fact that is genuinely absent and matters. Include contradictions between parties as 'Contradiction: A states X; B states Y'",
+      "required_from": "insurer|client|lawyer|surveyor|other",
+      "urgency": "urgent|normal|low",
+      "impact": "What decision is blocked without it",
+      "stakeholder_id": "stakeholder id or null"
+    }
+  ],
   "scenario_analysis": [
     {
       "name": "Scenario name — specific to this case (e.g. 'Full indemnity settlement', 'Partial payout after survey dispute', 'Policy repudiation — exclusion applied')",
@@ -1502,6 +1559,13 @@ SCENARIO COMPLETENESS:
 - trigger_conditions[] must list observable signals (e.g. "Insurer issues reservation of rights letter", "Client provides signed proof of loss")
 - strategic_implication must address TRS's reserve position and negotiating posture
 
+JUDGEMENT IS YOURS, NOT THE EXTRACTION'S:
+- revised_blocking_issues, revised_open_questions and revised_missing_items REPLACE what the
+  extraction proposed. Drop anything it raised that the emails show is already resolved or was
+  never material, and add anything it missed.
+- A question is only open if nobody answered it. Check the later emails before repeating one.
+- Prefer a short, true list over a long, hedged one. Three real blockers beat ten maybes.
+
 COMMUNICATION BRIEFS (you plan the emails; a separate drafting model writes them):
 - One brief per party that requires contact — ordered by priority
 - Do NOT write the email body or subject. Provide intent, key_points, tone, and recipients only.
@@ -1520,7 +1584,7 @@ COMMUNICATION BRIEFS (you plan the emails; a separate drafting model writes them
           'content-type':      'application/json',
         },
         body: JSON.stringify({
-          model:      'claude-opus-4-8',
+          model:      OPUS_MODEL,
           max_tokens: 16000,
           // Opus 4.8: adaptive thinking is the only on-mode; budget_tokens/temperature would 400.
           thinking:   { type: 'adaptive' },
@@ -1540,12 +1604,19 @@ COMMUNICATION BRIEFS (you plan the emails; a separate drafting model writes them
             recommended_next_steps: NexusAnalysisV1['recommended_next_steps']
             communication_briefs:   CommunicationBrief[]
             reserve_guidance:       NexusAnalysisV1['reserve_guidance']
+            revised_blocking_issues: string[]
+            revised_open_questions:  NexusAnalysisV1['open_questions']
+            revised_missing_items:   NexusAnalysisV1['missing_items']
           }>
           const strategy = parseJsonSafe(claudeText) as StrategyV1
           if (strategy.scenario_analysis)      scenarioAnalysis     = strategy.scenario_analysis
           if (strategy.recommended_next_steps) recommendedNextSteps = strategy.recommended_next_steps
           if (strategy.communication_briefs)   communicationBriefs  = strategy.communication_briefs
           if ('reserve_guidance' in strategy)  reserveGuidance      = strategy.reserve_guidance ?? null
+          // Opus has read the emails; its read of what is blocked, unanswered or missing wins.
+          if (Array.isArray(strategy.revised_blocking_issues)) revisedBlocking  = strategy.revised_blocking_issues
+          if (Array.isArray(strategy.revised_open_questions))  revisedQuestions = strategy.revised_open_questions
+          if (Array.isArray(strategy.revised_missing_items))   revisedMissing   = strategy.revised_missing_items
         } catch { /* non-fatal: keep empty defaults */ }
         console.log('[nexus] Opus grand-analysis complete, tokens:', strategyTokens, '— briefs:', communicationBriefs.length)
       } else {
@@ -1564,11 +1635,12 @@ COMMUNICATION BRIEFS (you plan the emails; a separate drafting model writes them
     console.log('[nexus]', strategySkippedReason, '— skipping strategy + drafting')
   }
 
-  const strategyModelName = anthropicKey ? 'claude-opus-4-8' : 'not_configured'
+  const strategyModelName = anthropicKey ? OPUS_MODEL : 'not_configured'
 
   const state: NexusPhase2State = {
     scenarioAnalysis, recommendedNextSteps, communicationBriefs, reserveGuidance,
     strategyTokens, strategySkippedReason, strategyModelName,
+    revisedBlocking, revisedQuestions, revisedMissing,
   }
 
   return {
@@ -1605,17 +1677,32 @@ export async function runNexusAnalysisPhase3(
 
   let draftArtifacts: NexusAnalysisV1['draft_artifacts'] = []
   let draftModelName: string | null = null
+  let verifiedTimeline: TimelineEventV1[] = []
 
-  // ── PASS 3: Drafting — Gemini expands Opus briefs into full emails ───────────
-  if (communicationBriefs.length > 0) {
-    try {
-      draftArtifacts  = await draftEmailsFromBriefs(communicationBriefs, synthesis.case_brief, partyContactsJson, geminiKey, chatContext)
-      draftModelName  = 'gemini-3.6-flash'
+  // Two independent model calls: Gemini writes the emails from Opus's briefs, and Opus builds
+  // a date-verified timeline from the raw corpus. Neither needs the other's output, so they
+  // run together — this used to be two round trips back to back.
+  const [draftRes, timelineRes] = await Promise.allSettled([
+    communicationBriefs.length > 0
+      ? draftEmailsFromBriefs(communicationBriefs, synthesis.case_brief, partyContactsJson, geminiKey, chatContext)
+      : Promise.resolve([] as NexusAnalysisV1['draft_artifacts']),
+    anthropicKey
+      ? extractVerifiedTimeline(`${threadSections}\n\n${attachmentText}`, anthropicKey)
+      : Promise.resolve([] as TimelineEventV1[]),
+  ])
+
+  if (draftRes.status === 'fulfilled') {
+    draftArtifacts = draftRes.value
+    if (communicationBriefs.length > 0) {
+      draftModelName = GEMINI_DRAFT_MODEL
       console.log('[nexus] Gemini drafting complete —', draftArtifacts.length, 'drafts from', communicationBriefs.length, 'briefs')
-    } catch (e) {
-      console.warn('[nexus] Gemini drafting error (non-fatal):', e instanceof Error ? e.message : e)
     }
+  } else {
+    console.warn('[nexus] Gemini drafting error (non-fatal):', draftRes.reason)
   }
+
+  if (timelineRes.status === 'fulfilled') verifiedTimeline = timelineRes.value
+  else console.warn('[nexus] timeline pass non-fatal:', timelineRes.reason)
 
   // ── Post-processing ───────────────────────────────────────────────────────────
 
@@ -1646,7 +1733,7 @@ export async function runNexusAnalysisPhase3(
 
   const analysisMetadata: AnalysisMetadata = {
     analysis_ts:          new Date().toISOString(),
-    synthesis_model:      'gemini-3.6-flash',
+    synthesis_model:      GEMINI_EXTRACT_MODEL,
     strategy_model:       strategyModelName,
     draft_model:          draftModelName,
     synthesis_tokens:     synthesisTokens,
@@ -1661,23 +1748,22 @@ export async function runNexusAnalysisPhase3(
     truncation_flags:     truncationFlags,
   }
 
-  // ── #3 Dedicated, date-verified timeline (Opus over the raw corpus) ──────────
-  let verifiedTimeline: TimelineEventV1[] = []
-  if (anthropicKey) {
-    try { verifiedTimeline = await extractVerifiedTimeline(`${threadSections}\n\n${attachmentText}`, anthropicKey) }
-    catch (e) { console.warn('[nexus] timeline pass non-fatal:', e) }
-  }
-
   // ── Build V1 structured analysis ─────────────────────────────────────────────
+
+  // Where Opus formed its own view after reading the emails, that view wins over the
+  // extraction. Gemini pulls facts off the page; Opus decides what they mean.
+  const caseBrief: NexusAnalysisV1['case_brief'] = phase2.revisedBlocking
+    ? { ...synthesis.case_brief, blocking_issues: phase2.revisedBlocking }
+    : synthesis.case_brief
 
   const structuredAnalysis: NexusAnalysisV1 = {
     schema_version:         '1.0',
-    case_brief:             synthesis.case_brief,
+    case_brief:             caseBrief,
     stakeholder_map:        synthesis.stakeholder_map  ?? [],
     timeline:               (verifiedTimeline.length > 0 ? verifiedTimeline : synthesis.timeline) ?? [],
     evidence_ledger:        synthesis.evidence_ledger  ?? [],
-    open_questions:         synthesis.open_questions   ?? [],
-    missing_items:          synthesis.missing_items    ?? [],
+    open_questions:         phase2.revisedQuestions ?? synthesis.open_questions ?? [],
+    missing_items:          phase2.revisedMissing   ?? synthesis.missing_items  ?? [],
     scenario_analysis:      cleanedScenarios,
     recommended_next_steps: cleanedSteps,
     draft_artifacts:        draftArtifacts             ?? [],
@@ -1708,9 +1794,9 @@ export async function runNexusAnalysisPhase3(
   }))
 
   const legacyStatus: NexusAnalysis['current_status'] = {
-    summary:         synthesis.case_brief.summary,
-    blocking_issues: synthesis.case_brief.blocking_issues ?? [],
-    pending_from:    synthesis.case_brief.pending_from    ?? {},
+    summary:         caseBrief.summary,
+    blocking_issues: caseBrief.blocking_issues ?? [],
+    pending_from:    caseBrief.pending_from    ?? {},
   }
 
   const legacyPlaybook: PlaybookStep[] = (draftArtifacts ?? []).map((a, i) => ({
@@ -1762,7 +1848,7 @@ export async function runNexusAnalysisPhase3(
       playbook:            analysis.playbook,
       outreach_strategy:   analysis.outreach_strategy,
       legal_research:      null,
-      synthesis_model:     'gemini-3.6-flash',
+      synthesis_model:     GEMINI_EXTRACT_MODEL,
       strategy_model:      strategyModelName,
       gemini_tokens:       synthesisTokens,
       claude_tokens:       strategyTokens || null,

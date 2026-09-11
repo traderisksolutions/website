@@ -8,11 +8,13 @@
  */
 import { sbTry, inChunks, enc } from './db'
 import { listCompanyCaseIds } from './cases'
-import type { Company, QuoteRow } from './types'
+import type { Company, QuoteRow, QuoteDispatch } from './types'
 
 type RfqRow = { id: string; case_id: string; client_thread_id: string | null; product_line: string; insured_name: string | null; status: string; created_at: string }
 type PmRow  = { id: string; company_id: string | null; company_name: string | null; effective_date: string | null; member_count: number | null; created_at: string; calculator_ids: string[] | null }
 type GbRow  = { id: string; company_name: string | null; effective_date: string | null; member_count: number | null; created_at: string }
+type DispatchRow = { id: string; rfq_request_id: string; insurer_name: string | null; to_email: string | null; status: string; thread_id: string | null; created_at: string; updated_at: string }
+type QuoteDetailRow = { rfq_request_id: string | null; dispatch_id: string | null; premium: string | null; excess: string | null; limit_indemnity: string | null; validity: string | null; status: string | null; primary_source: string | null }
 
 const RFQ_OPEN = new Set(['open', 'dispatched', 'quoted', 'recommended'])
 const RFQ_LABEL: Record<string, string> = {
@@ -40,9 +42,40 @@ export async function listCompanyQuotes(company: Company, threadIds: string[]): 
   for (const r of [...rfqByCase, ...rfqByThread]) rfqMap.set(r.id, r)
   const rfqIds = Array.from(rfqMap.keys())
   const quoteCounts = new Map<string, number>()
+  const dispatchesByRequest = new Map<string, QuoteDispatch[]>()
   if (rfqIds.length) {
-    const qs = await inChunks(rfqIds, 100, c => sbTry<{ rfq_request_id: string | null }[]>(`rfq_quotes?rfq_request_id=in.(${c.join(',')})&select=rfq_request_id`, []))
-    for (const q of qs) if (q.rfq_request_id) quoteCounts.set(q.rfq_request_id, (quoteCounts.get(q.rfq_request_id) ?? 0) + 1)
+    // Who we wrote to, who answered, and what they said — so the company page can show the
+    // state of an RFQ without sending the broker to Nexus to find out.
+    const [dRows, qRows] = await Promise.all([
+      inChunks(rfqIds, 100, c => sbTry<DispatchRow[]>(`rfq_dispatches?rfq_request_id=in.(${c.join(',')})&select=id,rfq_request_id,insurer_name,to_email,status,thread_id,created_at,updated_at&order=created_at.asc`, [])),
+      inChunks(rfqIds, 100, c => sbTry<QuoteDetailRow[]>(`rfq_quotes?rfq_request_id=in.(${c.join(',')})&select=rfq_request_id,dispatch_id,premium,excess,limit_indemnity,validity,status,primary_source`, [])),
+    ])
+    const quoteByDispatch = new Map<string, QuoteDetailRow>()
+    for (const q of qRows) {
+      if (q.rfq_request_id) quoteCounts.set(q.rfq_request_id, (quoteCounts.get(q.rfq_request_id) ?? 0) + 1)
+      if (q.dispatch_id) quoteByDispatch.set(q.dispatch_id, q)
+    }
+    const now = Date.now()
+    for (const d of dRows) {
+      const q = quoteByDispatch.get(d.id) ?? null
+      const replied = d.status === 'replied'
+      const arr = dispatchesByRequest.get(d.rfq_request_id) ?? []
+      arr.push({
+        id: d.id,
+        insurerName: d.insurer_name ?? 'Insurer',
+        toEmail: d.to_email,
+        sentAt: d.created_at,
+        repliedAt: replied ? d.updated_at : null,
+        status: d.status,
+        daysWaiting: Math.max(0, Math.floor((now - new Date(replied ? d.updated_at : d.created_at).getTime()) / 86_400_000)),
+        threadId: d.thread_id,
+        quote: q ? {
+          premium: q.premium, excess: q.excess, limitIndemnity: q.limit_indemnity,
+          validity: q.validity, status: q.status, sourceLabel: q.primary_source,
+        } : null,
+      })
+      dispatchesByRequest.set(d.rfq_request_id, arr)
+    }
   }
 
   const freshCutoff = Date.now() - QUOTE_FRESH_DAYS * 86_400_000
@@ -55,6 +88,7 @@ export async function listCompanyQuotes(company: Company, threadIds: string[]): 
       status: RFQ_LABEL[r.status] ?? r.status, isOpen: RFQ_OPEN.has(r.status),
       created_at: r.created_at, effective_date: null, productLine: r.product_line, memberCount: null,
       quotesReceived: quoteCounts.get(r.id) ?? 0, href: `/nexus?case=${r.case_id}`, caseId: r.case_id,
+      dispatches: dispatchesByRequest.get(r.id) ?? [],
     })),
     ...Array.from(pmMap.values()).map((p): QuoteRow => ({
       id: p.id, kind: 'pricing_matrix', title: `Group benefits quote (${p.calculator_ids?.length ?? 0} insurer${(p.calculator_ids?.length ?? 0) === 1 ? '' : 's'})`,

@@ -40,9 +40,12 @@ export function FloatingChatDock() {
   if (!caseIdInRoute && !scopeInRoute.companyId) return null
 
   const caseAware = true
-  const companyScoped = !caseIdInRoute && !!scopeInRoute.companyId
-  const title     = companyScoped ? 'Company consultant' : 'Case consultant'
-  const subtitle  = companyScoped ? (scopeInRoute.label ? `About ${scopeInRoute.label}` : 'About this company') : 'Steering this case'
+  // The client is the subject. A case only takes the dock when it has no company behind it.
+  const companyScoped = !!scopeInRoute.companyId
+  const title     = companyScoped ? 'Client consultant' : 'Case consultant'
+  const subtitle  = companyScoped
+    ? (scopeInRoute.label ? `Ask anything about ${scopeInRoute.label}` : 'Ask anything about this client')
+    : 'Steering this case'
 
   // ── Closed → launcher pill ──────────────────────────────────────────────────
   if (!state.isOpen) {

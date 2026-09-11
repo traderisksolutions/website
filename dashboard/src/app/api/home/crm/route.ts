@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 
     const [threads, debitNotes, policies, unlinked, drafts] = await Promise.all([
       sbTry<ThreadRow[]>(`email_threads?deleted_at=is.null&status=eq.active&select=id,subject,company_id,contact_id,last_message_at,category,contacts(company_id)&order=last_message_at.desc&limit=150`, []),
-      sbTry<DebitNoteRow[]>(`debit_notes?status=in.(unpaid,partially_paid)&select=id,company_id,contact_id,policy_id,debit_note_no,issue_date,payment_due_date,currency,gross_amount,net_amount,paid_amount,paid_direct_amount,status,paid_direct_status,pay_direct_to_insurer,insurer,event_type,drive_folder_url,updated_at&order=payment_due_date.asc&limit=200`, []),
+      sbTry<DebitNoteRow[]>(`debit_notes?status=in.(unpaid,partially_paid)&select=id,company_id,contact_id,policy_id,debit_note_no,issue_date,payment_due_date,currency,gross_amount,net_amount,commission,paid_amount,paid_direct_amount,status,paid_direct_status,pay_direct_to_insurer,insurer,event_type,drive_folder_url,updated_at&order=payment_due_date.asc&limit=200`, []),
       sbTry<PolicyRow[]>(`policies?status=eq.active&end_date=gte.${today}&end_date=lte.${addDays(today, 60)}&select=id,policy_number,insurer,class_of_insurance,end_date,customers(company_id)&order=end_date.asc&limit=50`, []),
       sbTry<{ id: string }[]>(`email_threads?company_id=is.null&deleted_at=is.null&select=id&limit=1000`, []),
       sbTry<{ id: string }[]>(`ai_drafts?status=eq.pending&select=id&limit=500`, []),

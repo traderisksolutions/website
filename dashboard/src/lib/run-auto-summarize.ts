@@ -2,9 +2,13 @@ import { logGeminiUsage }       from '@/lib/gemini-usage'
 import { logError }             from '@/lib/error-log'
 import { runRagDraft }           from '@/lib/run-rag-draft'
 import { fetchKnowledgeDocs }    from '@/lib/gdrive-knowledge'
+import { geminiUrl, GEMINI_FLASH } from '@/lib/gemini-models'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
+// Same model as the Refresh button. These two write the SAME thread_summaries row, so running
+// them on different tiers meant the quality of a thread's analysis depended on whether a human
+// pressed Refresh or a reply happened to trigger it. One model, one standard.
+const GEMINI_URL = geminiUrl(GEMINI_FLASH)
 
 function sbHeaders(prefer = 'return=minimal') {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -130,7 +134,7 @@ Rules for draft_reply:
   }
 
   const geminiData = await geminiRes.json()
-  void logGeminiUsage('auto_summarize', geminiData.usageMetadata ?? {}, thread_id, 'gemini-3.1-flash-lite')
+  void logGeminiUsage('auto_summarize', geminiData.usageMetadata ?? {}, thread_id, GEMINI_FLASH)
   const resultText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text
   if (!resultText) throw new Error('Gemini returned empty response')
 

@@ -12,7 +12,7 @@ type ThreadRow = {
   message_count: number; last_message_at: string | null; contact_id: string | null
   contacts: { id: string; first_name: string | null; last_name: string | null; email: string | null } | null
 }
-type MsgRow = { thread_id: string; direction: 'inbound' | 'outbound'; sent_at: string }
+type MsgRow = { id: string; thread_id: string; direction: 'inbound' | 'outbound'; sent_at: string }
 type SummaryRow = { thread_id: string; summary: string | null; next_action: string | null; created_at: string }
 type CaseLink = { thread_id: string; case_id: string }
 
@@ -24,15 +24,17 @@ export async function listCompanyThreads(companyId: string, threadIds?: string[]
 
   const [threads, messages, summaries, caseLinks] = await Promise.all([
     inChunks(ids, 100, c => sbTry<ThreadRow[]>(`email_threads?id=in.(${c.join(',')})&select=${THREAD_SELECT}`, [])),
-    inChunks(ids, 100, c => sbTry<MsgRow[]>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,direction,sent_at&order=sent_at.desc`, [])),
+    inChunks(ids, 100, c => sbTry<MsgRow[]>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=id,thread_id,direction,sent_at&order=sent_at.desc`, [])),
     inChunks(ids, 100, c => sbTry<SummaryRow[]>(`thread_summaries?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,summary,next_action,created_at&order=created_at.desc`, [])),
     inChunks(ids, 100, c => sbTry<CaseLink[]>(`case_threads?thread_id=in.(${c.join(',')})&select=thread_id,case_id`, [])),
   ])
 
   const lastDir = new Map<string, MsgRow>()
+  const lastInbound = new Map<string, MsgRow>()
   const counts = new Map<string, number>()
   for (const m of messages) {
     if (!lastDir.has(m.thread_id)) lastDir.set(m.thread_id, m)
+    if (m.direction === 'inbound' && !lastInbound.has(m.thread_id)) lastInbound.set(m.thread_id, m)
     counts.set(m.thread_id, (counts.get(m.thread_id) ?? 0) + 1)
   }
   const latestSummary = new Map<string, SummaryRow>()
@@ -49,6 +51,7 @@ export async function listCompanyThreads(companyId: string, threadIds?: string[]
         // email_threads.message_count is stale (0 everywhere), so count the real rows.
         message_count: counts.get(t.id) ?? 0, last_message_at: t.last_message_at,
         lastDirection: last?.direction ?? null,
+        lastInboundMessageId: lastInbound.get(t.id)?.id ?? null,
         needsReply: t.status === 'active' && last?.direction === 'inbound',
         contact: t.contacts ? { id: t.contacts.id, name: personName(t.contacts.first_name, t.contacts.last_name, null) === 'Unknown' ? null : personName(t.contacts.first_name, t.contacts.last_name), email: t.contacts.email } : null,
         summary: sum?.summary ?? null,

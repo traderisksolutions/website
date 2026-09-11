@@ -1,11 +1,12 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Network, Sparkles, ExternalLink, ChevronDown, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { SectionCard, Btn, Chip, Empty, Spinner, Segmented, inputCls } from './primitives'
+import { SectionCard, Btn, Chip, Empty, Spinner } from './primitives'
 import { NexusSummary } from './NexusSummary'
+import { CaseThreadPicker } from './CaseThreadPicker'
 import { NexusPhasedAnalysisModal } from '@/components/nexus/NexusPhasedAnalysisModal'
 import { fmtRelative, fmtDate } from '@/lib/crm/format'
 import type { AiBrief, CaseRow, Company, CompanyThread, Person, Stage } from '@/lib/crm/types'
@@ -27,8 +28,6 @@ type CaseAnalysis = {
   strategy_model?: string | null
 }
 
-const CAT_TONE: Record<string, 'blue' | 'red' | 'amber' | 'neutral'> = { rfq: 'blue', claim: 'red', renewal: 'amber', general: 'neutral', other: 'neutral' }
-type Filter = 'all' | 'rfq' | 'claim' | 'renewal' | 'general'
 
 export function CompanyNexus({ company, threads, cases, stakeholders, summaryStale, userEmail, onBrief, onApplyStage, onCasesChanged }: {
   company: Company
@@ -41,28 +40,12 @@ export function CompanyNexus({ company, threads, cases, stakeholders, summarySta
   onApplyStage: (s: Stage) => Promise<void>
   onCasesChanged: () => void
 }) {
-  const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [filter, setFilter] = useState<Filter>('all')
-  const [caseName, setCaseName] = useState('')
+  const [picking, setPicking] = useState(false)
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [analysing, setAnalysing] = useState<{ caseId: string; threadIds: string[] } | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [analyses, setAnalyses] = useState<Record<string, CaseAnalysis | null>>({})
-
-  const counts = useMemo(() => ({
-    all: threads.length,
-    rfq: threads.filter(t => t.category === 'rfq').length,
-    claim: threads.filter(t => t.category === 'claim').length,
-    renewal: threads.filter(t => t.category === 'renewal').length,
-    general: threads.filter(t => !t.category || t.category === 'general' || t.category === 'other').length,
-  }), [threads])
-
-  const visible = useMemo(() => (
-    filter === 'all' ? threads
-      : filter === 'general' ? threads.filter(t => !t.category || t.category === 'general' || t.category === 'other')
-      : threads.filter(t => t.category === filter)
-  ), [threads, filter])
 
   const loadAnalysis = useCallback(async (caseId: string) => {
     if (caseId in analyses) return
@@ -75,21 +58,18 @@ export function CompanyNexus({ company, threads, cases, stakeholders, summarySta
 
   useEffect(() => { for (const c of cases.slice(0, 3)) void loadAnalysis(c.id) }, [cases, loadAnalysis])
 
-  const toggle = (id: string) => setSelected(s => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
-
-  async function generate() {
-    if (selected.size === 0) return
+  async function generate(ids: string[], typedName: string) {
+    if (ids.length === 0) return
     setCreating(true); setError(null)
     try {
-      const ids = Array.from(selected)
-      const name = caseName.trim() || defaultCaseName(threads, ids, company.name)
+      const name = typedName || defaultCaseName(threads, ids, company.name)
       const res = await fetch(`/api/companies/${company.id}/cases`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, threadIds: ids }),
       })
       const d = await res.json()
       if (!res.ok) throw new Error(d.error ?? 'Could not create the case.')
-      setSelected(new Set()); setCaseName('')
+      setPicking(false)
       onCasesChanged()
       setAnalysing({ caseId: d.id, threadIds: ids })   // straight into the analysis
     } catch (e) { setError(e instanceof Error ? e.message : String(e)) }
@@ -106,8 +86,13 @@ export function CompanyNexus({ company, threads, cases, stakeholders, summarySta
         onApplyStage={onApplyStage}
       />
 
-      <SectionCard title="Cases" description="Groups of threads analysed together — a claim, a dispute, a multi-insurer renewal.">
-        {cases.length === 0 && <Empty compact>No cases yet. Pick the threads below that belong to one matter and generate.</Empty>}
+      <SectionCard
+        title="Cases"
+        description="Groups of threads analysed together — a claim, a dispute, a multi-insurer renewal."
+        actions={<Btn size="xs" level="primary" onClick={() => setPicking(true)}><Network size={12} /> Generate case analysis</Btn>}
+      >
+        {error && !picking && <p className="text-[12px] text-destructive m-0 mb-2">{error}</p>}
+        {cases.length === 0 && <Empty compact>No cases yet. Press Generate case analysis and pick the emails that belong to one matter.</Empty>}
         <ul className="m-0 p-0 list-none flex flex-col">
           {cases.map(c => {
             const a = analyses[c.id]
@@ -179,49 +164,15 @@ export function CompanyNexus({ company, threads, cases, stakeholders, summarySta
         </ul>
       </SectionCard>
 
-      <SectionCard
-        title="Combine threads into a case"
-        description="Tick the threads that belong to one matter, then generate. The agent reads them together and produces the case analysis."
-        actions={
-          selected.size > 0
-            ? <Btn size="xs" level="primary" onClick={generate} loading={creating}><Network size={12} /> Generate from {selected.size} thread{selected.size === 1 ? '' : 's'}</Btn>
-            : undefined
-        }
-      >
-        {error && <p className="text-[12px] text-destructive m-0 mb-2">{error}</p>}
-
-        <div className="mb-2 flex items-center gap-2 flex-wrap">
-          <Segmented value={filter} onChange={setFilter} options={[
-            { value: 'all', label: 'All', count: counts.all }, { value: 'rfq', label: 'RFQ', count: counts.rfq },
-            { value: 'claim', label: 'Claims', count: counts.claim }, { value: 'renewal', label: 'Renewals', count: counts.renewal },
-            { value: 'general', label: 'General', count: counts.general },
-          ]} />
-          {selected.size > 0 && (
-            <input value={caseName} onChange={e => setCaseName(e.target.value)} placeholder="Case name (optional)" className={`${inputCls} sm:max-w-[260px] sm:ml-auto`} />
-          )}
-        </div>
-
-        {visible.length === 0 && <Empty compact>{threads.length === 0 ? 'No threads filed under this company yet.' : 'Nothing matches this filter.'}</Empty>}
-
-        <ul className="m-0 p-0 list-none flex flex-col">
-          {visible.map(t => (
-            <li key={t.id} className={cn('border-b border-[--border-subtle] last:border-b-0', selected.has(t.id) && 'bg-[--selected-row-bg]')}>
-              <label className="flex items-start gap-2.5 py-2 cursor-pointer">
-                <input type="checkbox" className="mt-1 flex-shrink-0" checked={selected.has(t.id)} onChange={() => toggle(t.id)} />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[12.5px] font-medium">{t.subject ?? '(no subject)'}</span>
-                  {t.summary && <span className="block text-[11.5px] text-muted-foreground line-clamp-1 mt-0.5">{t.summary}</span>}
-                  <span className="block text-[11px] text-muted-foreground/80 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                    {t.category && <Chip tone={CAT_TONE[t.category] ?? 'neutral'} className="capitalize">{t.category}</Chip>}
-                    {t.caseIds.length > 0 && <Chip tone="blue">already in a case</Chip>}
-                    {t.contact?.name ?? t.contact?.email ?? 'Unknown'} · {t.message_count} message{t.message_count === 1 ? '' : 's'} · {fmtRelative(t.last_message_at)}
-                  </span>
-                </span>
-              </label>
-            </li>
-          ))}
-        </ul>
-      </SectionCard>
+      <CaseThreadPicker
+        open={picking}
+        onClose={() => { setPicking(false); setError(null) }}
+        threads={threads}
+        companyName={company.name}
+        busy={creating}
+        error={picking ? error : null}
+        onGenerate={generate}
+      />
 
       {analysing && (
         <NexusPhasedAnalysisModal

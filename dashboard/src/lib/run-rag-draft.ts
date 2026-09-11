@@ -11,14 +11,15 @@
  */
 
 const SB_URL      = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-const GEMINI_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
-const EMBED_URL   = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent'
+const GEMINI_URL  = geminiUrl(GEMINI_FLASH)
+const EMBED_URL   = geminiUrl(GEMINI_EMBED, 'embedContent')
 
 import { logGeminiUsage } from '@/lib/gemini-usage'
 import { logError } from '@/lib/error-log'
 import { fetchAttachmentContext } from '@/lib/thread-attachment-context'
 import { createSupabaseDB, createGeminiComposer, EvalStore, ExampleStore, SkillSynthesizer, type EvalRecord, type SkillExample } from '@/lib/ai-learning-loop'
 import { EMAIL_TYPE_BASE_INSTRUCTIONS } from '@/lib/email-surface-instructions'
+import { geminiUrl, GEMINI_FLASH, GEMINI_EMBED } from '@/lib/gemini-models'
 
 function sbHeaders(prefer = 'return=minimal') {
   const k = process.env.SUPABASE_SERVICE_KEY

@@ -20,6 +20,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { parseEmlSmart }             from '@/lib/parse-eml'
 import { logError }                  from '@/lib/error-log'
+import { geminiUrl, GEMINI_FLASH as GEMINI_FLASH_MODEL } from '@/lib/gemini-models'
 
 export const maxDuration = 300
 
@@ -27,7 +28,7 @@ const SB_URL          = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const STORAGE_BUCKET  = 'email-attachments'
 const GMAIL_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const GMAIL_API       = 'https://gmail.googleapis.com/gmail/v1/users/me'
-const GEMINI_FLASH    = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
+const GEMINI_FLASH    = geminiUrl(GEMINI_FLASH_MODEL)
 
 const MAX_BYTES = 20_000_000 // 20 MB hard cap per attachment
 

@@ -11,9 +11,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { logGeminiUsage }            from '@/lib/gemini-usage'
 import { logError }                  from '@/lib/error-log'
 import { requireStaffOrCron }        from '@/lib/api-auth'
+import { geminiUrl, GEMINI_FLASH } from '@/lib/gemini-models'
 
 const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
+const GEMINI_URL = geminiUrl(GEMINI_FLASH)
 
 function sbH() {
   const k = process.env.SUPABASE_SERVICE_KEY
