@@ -41,6 +41,9 @@ function milestoneStyle(milestone: 0 | 14 | 30 | 60): { dot: string; bg: string;
 
 function eventColor(e: CalendarEvent): string {
   if (e.type === 'renewal') return milestoneStyle(e.milestone).dot
+  if (e.type === 'payment_overdue') return 'bg-orange-600'
+  if (e.type === 'rfq_waiting') return 'bg-violet-500'
+  if (e.type === 'case_step') return 'bg-emerald-600'
   const overdue = e.date.slice(0, 10) < todaySGT()
   return overdue ? 'bg-orange-500' : 'bg-blue-500'
 }
@@ -49,6 +52,9 @@ function eventColor(e: CalendarEvent): string {
 // stacked "invite" rows — Google Calendar-style, so a busy day reads at a glance.
 function eventChipStyle(e: CalendarEvent): { dot: string; bg: string; text: string } {
   if (e.type === 'renewal') return milestoneStyle(e.milestone)
+  if (e.type === 'payment_overdue') return { dot: 'bg-orange-600', bg: 'bg-orange-50', text: 'text-orange-800' }
+  if (e.type === 'rfq_waiting') return { dot: 'bg-violet-500', bg: 'bg-violet-50', text: 'text-violet-700' }
+  if (e.type === 'case_step') return { dot: 'bg-emerald-600', bg: 'bg-emerald-50', text: 'text-emerald-700' }
   const overdue = e.date.slice(0, 10) < todaySGT()
   return overdue
     ? { dot: 'bg-orange-500', bg: 'bg-orange-50', text: 'text-orange-700' }
@@ -60,8 +66,10 @@ const LEGEND = [
   { color: 'bg-rose-500',   label: 'Renewal in 14 days' },
   { color: 'bg-amber-500',  label: 'Renewal in 30 days' },
   { color: 'bg-slate-400',  label: 'Renewal in 60 days' },
-  { color: 'bg-orange-500', label: 'Debit note payment overdue' },
-  { color: 'bg-blue-500',   label: 'Debit note payment upcoming' },
+  { color: 'bg-blue-500',    label: 'Payment due' },
+  { color: 'bg-orange-600',  label: 'Payment past due' },
+  { color: 'bg-violet-500',  label: 'Insurer has not answered an RFQ' },
+  { color: 'bg-emerald-600', label: 'Next step from a Nexus case' },
 ]
 
 export default function CalendarPage() {
@@ -223,7 +231,12 @@ function DayDetailModal({ date, events, onClose }: { date: Date; events: Calenda
           <p className="text-[12.5px] text-muted-foreground py-4">Nothing due this day.</p>
         ) : (
           <div className="flex flex-col gap-3">
-            {events.map(e => e.type === 'renewal' ? <RenewalCard key={e.id} e={e} /> : <DebitDueCard key={e.id} e={e} />)}
+            {events.map(e =>
+              e.type === 'renewal'         ? <RenewalCard key={e.id} e={e} />
+              : e.type === 'payment_overdue' ? <PaymentOverdueCard key={e.id} e={e} />
+              : e.type === 'rfq_waiting'     ? <RfqWaitingCard key={e.id} e={e} />
+              : e.type === 'case_step'       ? <CaseStepCard key={e.id} e={e} />
+              : <DebitDueCard key={e.id} e={e} />)}
           </div>
         )}
       </DialogContent>
@@ -286,11 +299,87 @@ function DebitDueCard({ e }: { e: Extract<CalendarEvent, { type: 'debit_due' }> 
         <span>Debit note: {e.debitNoteNo}</span>
         <span>Insurer: {e.insurer || '—'}</span>
         <span>Policy: {e.policyNumber || e.classOfInsurance || '—'}</span>
-        <span>Amount: {e.currency} {e.grossAmount.toLocaleString('en-SG', { minimumFractionDigits: 2 })}</span>
+        <span>To collect: {e.currency} {e.outstanding.toLocaleString('en-SG', { minimumFractionDigits: 2 })}</span>
       </div>
       <div className="flex items-center gap-2 mt-1.5">
         <Link href={`/debit-notes?company_id=${e.companyId ?? ''}&open=${e.debitNoteId}`}>
           <Button variant="outline" size="xs"><Receipt size={11} className="mr-1.5" /> View debit note</Button>
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+function PaymentOverdueCard({ e }: { e: Extract<CalendarEvent, { type: 'payment_overdue' }> }) {
+  return (
+    <div className="rounded-lg border border-[--border-subtle] p-3 flex flex-col gap-1.5">
+      <div className="flex items-center gap-1.5 text-[13px] font-semibold">
+        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-orange-600" />
+        <Building2 size={13} className="text-muted-foreground/60" /> {e.companyName ?? 'Unknown company'}
+        <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide text-orange-700">{e.daysOverdue} days past due</span>
+      </div>
+      <div className="text-[11.5px] text-muted-foreground grid grid-cols-2 gap-x-3 gap-y-0.5">
+        <span>Debit note: {e.debitNoteNo}</span>
+        <span>Was due: {e.dueDate}</span>
+        <span>Cover: {e.classOfInsurance || '—'}</span>
+        <span>To collect: {e.currency} {e.outstanding.toLocaleString('en-SG', { minimumFractionDigits: 2 })}</span>
+      </div>
+      <div className="flex items-center gap-2 mt-1.5">
+        <Link href="/finance">
+          <Button variant="outline" size="xs"><Receipt size={11} className="mr-1.5" /> Record the payment</Button>
+        </Link>
+        {e.companyId && (
+          <Link href={`/companies/${e.companyId}?tab=payments`}>
+            <Button variant="ghost" size="xs">Open the client</Button>
+          </Link>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function RfqWaitingCard({ e }: { e: Extract<CalendarEvent, { type: 'rfq_waiting' }> }) {
+  const line = (e.productLine ?? '').replace(/[_-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+  return (
+    <div className="rounded-lg border border-[--border-subtle] p-3 flex flex-col gap-1.5">
+      <div className="flex items-center gap-1.5 text-[13px] font-semibold">
+        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-violet-500" />
+        {e.insurerName}
+        <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide text-violet-700">Chase due</span>
+      </div>
+      <div className="text-[11.5px] text-muted-foreground grid grid-cols-2 gap-x-3 gap-y-0.5">
+        <span>Insured: {e.insuredName || '—'}</span>
+        <span>Cover: {line || '—'}</span>
+        <span>Sent: {e.sentAt.slice(0, 10)}</span>
+        <span>No reply for {e.daysWaiting} days</span>
+      </div>
+      {e.caseId && (
+        <div className="flex items-center gap-2 mt-1.5">
+          <Link href={`/nexus?case=${e.caseId}`}>
+            <Button variant="outline" size="xs">Open the RFQ</Button>
+          </Link>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CaseStepCard({ e }: { e: Extract<CalendarEvent, { type: 'case_step' }> }) {
+  return (
+    <div className="rounded-lg border border-[--border-subtle] p-3 flex flex-col gap-1.5">
+      <div className="flex items-center gap-1.5 text-[13px] font-semibold">
+        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-emerald-600" />
+        <Building2 size={13} className="text-muted-foreground/60" /> {e.companyName ?? e.caseName ?? 'Case'}
+        {e.priority && <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide text-emerald-700">{e.priority}</span>}
+      </div>
+      <p className="text-[12.5px] m-0">{e.action}</p>
+      <div className="text-[11.5px] text-muted-foreground grid grid-cols-2 gap-x-3 gap-y-0.5">
+        <span>Case: {e.caseName || '—'}</span>
+        <span>Owner: {e.owner || 'unassigned'}</span>
+      </div>
+      <div className="flex items-center gap-2 mt-1.5">
+        <Link href={`/nexus?case=${e.caseId}`}>
+          <Button variant="outline" size="xs">Open the case</Button>
         </Link>
       </div>
     </div>

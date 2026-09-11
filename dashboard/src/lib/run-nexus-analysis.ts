@@ -166,7 +166,10 @@ export type NextStepV1 = {
   step:          number
   action:        string
   owner:         string
+  /** A real YYYY-MM-DD date, so the step can land in the calendar. */
   deadline?:     string
+  /** The same deadline in words, for reading. */
+  deadline_text?: string
   priority:      'urgent' | 'high' | 'normal'
   rationale:     string
   citation_ids?: string[]
@@ -1504,7 +1507,8 @@ Produce four strategic sections grounded in the evidence above. Return ONLY vali
       "step": 1,
       "action": "Specific action — who does what, to whom, by when",
       "owner": "trs|client|insurer|lawyer|other",
-      "deadline": "e.g. Within 48h, 2026-07-05, or null",
+      "deadline": "YYYY-MM-DD — a real calendar date worked out from TODAY, or null. Never a phrase: 'within 48 hours' from a TODAY of 2026-09-11 is \"2026-09-13\". This lands in the broker's calendar, so a phrase means the step is never scheduled.",
+      "deadline_text": "The same deadline as you would say it to a colleague, e.g. 'within 48 hours', or null",
       "priority": "urgent|high|normal",
       "rationale": "Why this step is required now — cite the evidence item or open question that makes it necessary",
       "citation_ids": ["c1"],

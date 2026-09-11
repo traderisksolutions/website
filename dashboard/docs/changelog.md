@@ -4,6 +4,44 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-09-11 (late) — The calendar shows everything that has a date
+
+**Status:** `tsc` + `next build` clean, 339/339 tests pass. No migration.
+
+The calendar carried two things: policy renewals and debit notes whose due date fell inside the
+month you were looking at. For September that was seven events. Everything else with a date on
+it lived somewhere you had to go and look for.
+
+Three categories added.
+
+**Money already past due**, pinned to today rather than left in the month it lapsed. This was
+the real gap: September showed nothing to collect while 35 notes worth S$240,408 sat overdue
+and invisible. The amount shown is what is still outstanding after any recorded payment, not
+the face value of the note, and each one links straight to Finance to record the payment.
+
+**Insurers who have not answered an RFQ**, landing on the day they cross the service level set
+in Settings, or today if they crossed it earlier. Three are waiting now, two of them since
+July.
+
+**Deadlines the Nexus analysis recommended.** The agent has been producing next steps with
+deadlines all along and they went nowhere.
+
+Two bugs found while wiring this up:
+
+- **The insurer join silently returned nothing.** Two foreign keys connect dispatches to
+  requests, one of them a dead column from the old bind flow, so the database refused the
+  ambiguous join and the route swallowed the error as an empty list. Disambiguated.
+- **The agent writes deadlines as prose.** Of 53 recommended deadlines on file, 51 read
+  "Within 48h" or "Before policy expiry" and only 2 were real dates, so almost nothing could
+  ever be scheduled. The model is now asked for a calendar date worked out from today, with
+  the human phrasing kept alongside it in `deadline_text`. Existing analyses keep their prose
+  and simply do not appear until a case is re-analysed.
+
+September now shows 45 events instead of 7. The legend names all five kinds, and the day view
+gives each its own card with the right action on it.
+
+---
+
 ## 2026-09-11 (night) — Model routing confirmed and centralised, Ask Opus moves to the client
 
 **Status:** `tsc` + `next build` clean, 339/339 tests pass. No migration.
