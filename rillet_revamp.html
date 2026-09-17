@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Design direction for approval — Trade Risk Solutions</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="description" content="Internal preview of a proposed design direction for the Trade Risk Solutions website. Not live." />
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
+  <link rel="stylesheet" href="/styles/rillet-revamp.css" />
+</head>
+<body class="rv">
+
+<!-- ══ Preview banner — this page is not the live site ══════════════════════════════════ -->
+<div class="rv-preview-bar">
+  <div class="rv-shell">
+    <span class="rv-preview-tag">Preview</span>
+    <p>A proposed design direction for review. Nothing here is live, and the current site at traderisksolutions.com.sg is untouched. Links point at real pages so you can check the wayfinding.</p>
+  </div>
+</div>
+
+<!-- ══ Nav with the new Solutions mega-menu ════════════════════════════════════════════ -->
+<header class="rv-nav">
+  <div class="rv-shell rv-nav-inner">
+    <a href="/" class="rv-logo">Trade Risk <span>Solutions</span></a>
+
+    <nav class="rv-nav-links" aria-label="Primary">
+      <div class="rv-nav-item" data-menu>
+        <button class="rv-nav-trigger" aria-expanded="false" aria-haspopup="true">
+          Solutions
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+
+        <div class="rv-mega" role="menu">
+          <div class="rv-mega-grid">
+            <div>
+              <p class="rv-mega-head">By role</p>
+              <a class="rv-mega-link" href="/solutions/tech-media-startups"><b>Founder / CEO</b><span>Cover for a growing company</span></a>
+              <a class="rv-mega-link" href="/commercial/financial-assets"><b>CFO / Finance</b><span>Balance sheet and D&amp;O</span></a>
+              <a class="rv-mega-link" href="/business"><b>Operations / Risk</b><span>Assets, liability, continuity</span></a>
+              <a class="rv-mega-link" href="/employees/benefits"><b>HR / People</b><span>WICA, medical, foreign worker</span></a>
+              <a class="rv-mega-link" href="/about"><b>Broker / Partner</b><span>Placement partnership</span></a>
+            </div>
+
+            <div>
+              <p class="rv-mega-head">By company size</p>
+              <a class="rv-mega-link" href="/solutions/tech-media-startups"><b>Startup &amp; SME</b><span>First programme, fast</span></a>
+              <a class="rv-mega-link" href="/business"><b>Mid-market</b><span>Multi-line, renewed annually</span></a>
+              <a class="rv-mega-link" href="/solutions/financial-services"><b>Enterprise</b><span>Structured, board-reported</span></a>
+              <a class="rv-mega-link" href="/api/"><b>Platform &amp; API</b><span>Embed cover in your product</span></a>
+            </div>
+
+            <div>
+              <p class="rv-mega-head">By industry</p>
+              <a class="rv-mega-link" href="/solutions/logistics"><b>Logistics</b></a>
+              <a class="rv-mega-link" href="/solutions/energy"><b>Energy</b></a>
+              <a class="rv-mega-link" href="/solutions/built-environment"><b>Built environment</b></a>
+              <a class="rv-mega-link" href="/solutions/healthcare"><b>Healthcare</b></a>
+              <a class="rv-mega-link" href="/solutions/financial-services"><b>Financial services</b></a>
+            </div>
+
+            <div>
+              <p class="rv-mega-head">Popular programmes</p>
+              <a class="rv-mega-link" href="/commercial/cyber"><b>Cyber</b></a>
+              <a class="rv-mega-link" href="/commercial/dao"><b>Directors &amp; officers</b></a>
+              <a class="rv-mega-link" href="/commercial/workmen"><b>Work injury (WICA)</b></a>
+              <a class="rv-mega-link" href="/commercial/financial-assets"><b>Trade credit</b></a>
+              <a class="rv-mega-link" href="/commercial/property"><b>Property</b></a>
+            </div>
+          </div>
+
+          <div class="rv-mega-foot">
+            <span>Four more industries:</span>
+            <a href="/solutions/manufacturing">Manufacturing</a>
+            <a href="/solutions/wholesale">Wholesale</a>
+            <a href="/solutions/professional-services">Professional services</a>
+            <a href="/solutions">See all</a>
+          </div>
+        </div>
+      </div>
+
+      <a class="rv-nav-trigger" href="/business">Products</a>
+      <a class="rv-nav-trigger" href="/claims">Claims</a>
+      <a class="rv-nav-trigger" href="/about">About</a>
+    </nav>
+
+    <button class="rv-burger" id="rv-burger" aria-label="Menu" aria-expanded="false">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+
+    <div class="rv-nav-cta">
+      <a class="rv-btn rv-btn--ghost" href="/claims">Make a claim</a>
+      <a class="rv-btn rv-btn--primary" href="#rv-ask">Get covered</a>
+    </div>
+  </div>
+
+  <!-- Mobile drawer mirrors the same four groups -->
+  <div class="rv-drawer" id="rv-drawer">
+    <div class="rv-shell">
+      <div class="rv-acc" data-acc>
+        <button class="rv-acc-btn">Solutions
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="rv-acc-body">
+          <div class="rv-acc-group">
+            <p>By role</p>
+            <a href="/solutions/tech-media-startups">Founder / CEO</a>
+            <a href="/commercial/financial-assets">CFO / Finance</a>
+            <a href="/business">Operations / Risk</a>
+            <a href="/employees/benefits">HR / People</a>
+            <a href="/about">Broker / Partner</a>
+          </div>
+          <div class="rv-acc-group">
+            <p>By company size</p>
+            <a href="/solutions/tech-media-startups">Startup &amp; SME</a>
+            <a href="/business">Mid-market</a>
+            <a href="/solutions/financial-services">Enterprise</a>
+            <a href="/api/">Platform &amp; API</a>
+          </div>
+          <div class="rv-acc-group">
+            <p>By industry</p>
+            <a href="/solutions/logistics">Logistics</a>
+            <a href="/solutions/energy">Energy</a>
+            <a href="/solutions/built-environment">Built environment</a>
+            <a href="/solutions/healthcare">Healthcare</a>
+            <a href="/solutions/financial-services">Financial services</a>
+            <a href="/solutions/manufacturing">Manufacturing</a>
+            <a href="/solutions/wholesale">Wholesale</a>
+            <a href="/solutions/professional-services">Professional services</a>
+          </div>
+          <div class="rv-acc-group">
+            <p>Popular programmes</p>
+            <a href="/commercial/cyber">Cyber</a>
+            <a href="/commercial/dao">Directors &amp; officers</a>
+            <a href="/commercial/workmen">Work injury (WICA)</a>
+            <a href="/commercial/financial-assets">Trade credit</a>
+            <a href="/commercial/property">Property</a>
+          </div>
+        </div>
+      </div>
+      <div class="rv-acc"><button class="rv-acc-btn" onclick="location.href='/business'">Products</button></div>
+      <div class="rv-acc"><button class="rv-acc-btn" onclick="location.href='/claims'">Claims</button></div>
+      <div class="rv-acc"><button class="rv-acc-btn" onclick="location.href='/about'">About</button></div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- ══ 0. Hero — the question is the front door ═════════════════════════════════════════ -->
+<section class="rv-hero" id="rv-ask">
+  <div class="rv-shell rv-hero-inner">
+    <a class="rv-badge" href="/roadplus"><b>NEW</b> RoadPlus motor cover &rarr;</a>
+
+    <h1 class="rv-h1">Go to market,<br>fully protected</h1>
+    <p class="rv-hero-sub">Tell us what your business actually does. We structure the programme around it and place it with the right insurers.</p>
+
+    <div class="rv-ask">
+      <div class="rv-ask-box">
+        <textarea class="rv-ask-input" id="rv-input" placeholder="Ask TRS about&hellip;" aria-label="Describe your business"></textarea>
+        <div class="rv-ask-foot">
+          <button class="rv-ask-dept" type="button">Sales</button>
+          <button class="rv-ask-send" type="button" id="rv-send" aria-label="Send">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="rv-try">
+        <span>Try:</span>
+        <button class="rv-chip" type="button" data-ex="cargo" aria-pressed="false">We ship electronics to Jakarta</button>
+        <button class="rv-chip" type="button" data-ex="people" aria-pressed="false">15 staff, need medical cover</button>
+        <button class="rv-chip" type="button" data-ex="fund" aria-pressed="false">Setting up a fund</button>
+        <button class="rv-chip" type="button" data-ex="site" aria-pressed="false">We run construction sites</button>
+      </div>
+
+      <div class="rv-route" id="rv-route" hidden>
+        <div class="rv-route-head"><span class="rv-route-dot"></span><span id="rv-route-label">Reading your exposure</span></div>
+        <div class="rv-route-body">
+          <p id="rv-route-summary"></p>
+          <ul class="rv-lines" id="rv-route-lines"></ul>
+          <div class="rv-route-foot">
+            <a class="rv-btn rv-btn--primary" href="#rv-contact">Talk to a broker</a>
+            <a class="rv-btn rv-btn--ghost" id="rv-route-link" href="/business">See the full programme</a>
+          </div>
+          <p class="rv-route-note">Illustration of how the assistant routes an enquiry. A real submission goes to a broker, not to an automated quote.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 1. Trust — static monochrome grid, no marquee ════════════════════════════════════ -->
+<section class="rv-trust">
+  <div class="rv-shell">
+    <p class="rv-trust-label">Placed with 20+ insurer partners across Singapore</p>
+    <div class="rv-grid">
+      <div class="rv-cell"><img src="/logos/axa.png" alt="AXA" loading="lazy" /></div>
+      <div class="rv-cell"><img src="/logos/allianz.png" alt="Allianz" loading="lazy" /></div>
+      <div class="rv-cell"><img src="/logos/chubb.png" alt="Chubb" loading="lazy" /></div>
+      <div class="rv-cell"><img src="/logos/april-insurance.png" alt="April" loading="lazy" /></div>
+      <div class="rv-cell"><img src="/logos/aa-singapore.png" alt="AA Singapore" loading="lazy" /></div>
+      <div class="rv-cell rv-cell--todo"><span>Tokio Marine<em>artwork to come</em></span></div>
+      <div class="rv-cell rv-cell--todo"><span>MSIG<em>artwork to come</em></span></div>
+      <div class="rv-cell rv-cell--todo"><span>Great Eastern<em>artwork to come</em></span></div>
+      <div class="rv-cell rv-cell--todo"><span>QBE<em>artwork to come</em></span></div>
+      <div class="rv-cell rv-cell--todo"><span>Liberty<em>artwork to come</em></span></div>
+    </div>
+    <p class="rv-trust-note">Five cells are placeholders. Send the official logo files and they drop straight in &mdash; no layout change.</p>
+  </div>
+</section>
+
+<!-- ══ 2. What we cover ═════════════════════════════════════════════════════════════════ -->
+<section class="rv-sec">
+  <div class="rv-shell">
+    <div class="rv-sec-head">
+      <p class="rv-eyebrow">What we cover</p>
+      <h2 class="rv-h2">Four ways businesses come to us</h2>
+    </div>
+    <div class="rv-cards rv-cards--4">
+      <a class="rv-card" href="/consumers">
+        <span class="rv-card-ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+        <h3>Personal</h3>
+        <p>Motor, travel, home and personal accident for you and your family.</p>
+        <span class="rv-card-more">Explore &rarr;</span>
+      </a>
+      <a class="rv-card" href="/business">
+        <span class="rv-card-ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>
+        <h3>Business</h3>
+        <p>Property, liability, cyber, marine cargo and trade credit.</p>
+        <span class="rv-card-more">Explore &rarr;</span>
+      </a>
+      <a class="rv-card" href="/employees/benefits">
+        <span class="rv-card-ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg></span>
+        <h3>Workforce</h3>
+        <p>Work injury, group medical, foreign worker bonds and benefits.</p>
+        <span class="rv-card-more">Explore &rarr;</span>
+      </a>
+      <a class="rv-card" href="/api/">
+        <span class="rv-card-ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
+        <h3>API</h3>
+        <p>Embed cover in your own product and issue policies programmatically.</p>
+        <span class="rv-card-more">Explore &rarr;</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 3. How TRS works ═════════════════════════════════════════════════════════════════ -->
+<section class="rv-sec rv-sec--alt">
+  <div class="rv-shell">
+    <div class="rv-sec-head">
+      <p class="rv-eyebrow">How we work</p>
+      <h2 class="rv-h2">Three steps, and a broker at every one</h2>
+    </div>
+    <div class="rv-steps">
+      <div class="rv-step">
+        <span class="rv-step-n"></span>
+        <h3>Discover</h3>
+        <p>We start with what your business actually does, where it operates and what would hurt if it stopped. Not a form of tick boxes.</p>
+      </div>
+      <div class="rv-step">
+        <span class="rv-step-n"></span>
+        <h3>Structure</h3>
+        <p>We set the programme: which lines you need, which limits are right, and which gaps are worth leaving open.</p>
+      </div>
+      <div class="rv-step">
+        <span class="rv-step-n"></span>
+        <h3>Place and support</h3>
+        <p>We go to the market on your behalf, compare what comes back, and stay on the file through renewals and claims.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 4. Industry solutions ════════════════════════════════════════════════════════════ -->
+<section class="rv-sec">
+  <div class="rv-shell">
+    <div class="rv-sec-head">
+      <p class="rv-eyebrow">By industry</p>
+      <h2 class="rv-h2">Programmes built for how your sector actually works</h2>
+      <p class="rv-lede">Every sector carries its own exposures. These are the nine we place most often in Singapore.</p>
+    </div>
+    <div class="rv-sectors">
+      <a class="rv-sector" href="/solutions/logistics">Logistics <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></a>
+      <a class="rv-sector" href="/solutions/energy">Energy <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></a>
+      <a class="rv-sector" href="/solutions/built-environment">Built environment <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></a>
+      <a class="rv-sector" href="/solutions/healthcare">Healthcare <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></a>
+      <a class="rv-sector" href="/solutions/financial-services">Financial services <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></a>
+      <a class="rv-sector" href="/solutions/manufacturing">Manufacturing <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></a>
+      <a class="rv-sector" href="/solutions/wholesale">Wholesale &amp; trade <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></a>
+      <a class="rv-sector" href="/solutions/professional-services">Professional services <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></a>
+      <a class="rv-sector" href="/solutions/tech-media-startups">Tech, media &amp; startups <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></a>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 5. Proof ═════════════════════════════════════════════════════════════════════════ -->
+<section class="rv-sec rv-sec--alt">
+  <div class="rv-shell">
+    <div class="rv-proof">
+      <div class="rv-proof-item"><b>20+</b><p>Insurer partners across Singapore</p></div>
+      <div class="rv-proof-item"><b>MAS</b><p>Licensed insurance broker</p></div>
+      <div class="rv-proof-item"><b>End&nbsp;to&nbsp;end</b><p>Claims managed by your broker, not a call centre</p></div>
+      <div class="rv-proof-item"><b>Bespoke</b><p>Structured to your risk profile, never off the shelf</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 6. Closing CTA ═══════════════════════════════════════════════════════════════════ -->
+<section class="rv-close" id="rv-contact">
+  <div class="rv-shell">
+    <h2>Ready to get covered?</h2>
+    <p>Tell us what your business does. A broker reads it and comes back to you, usually the same working day.</p>
+    <div class="rv-close-actions">
+      <a class="rv-btn rv-btn--primary" href="#rv-ask">Ask TRS</a>
+      <a class="rv-btn rv-btn--ghost" href="/about">Talk to the team</a>
+    </div>
+  </div>
+</section>
+
+<!-- ══ Approval checklist — preview only, removed before this ships ═════════════════════ -->
+<section class="rv-approve">
+  <div class="rv-shell">
+    <h2>What needs your approval</h2>
+    <p>This section exists only on the preview and comes off before anything goes live. Everything below is a decision for TRS, not something I should choose.</p>
+    <ul class="rv-checks">
+      <li class="rv-check" data-state="gap">
+        <b>Five insurer logo files</b>
+        <p>Tokio Marine, MSIG, Great Eastern, QBE and Liberty are placeholders. Send official artwork, ideally SVG, and confirm all five are genuinely on panel.</p>
+      </li>
+      <li class="rv-check" data-state="gap">
+        <b>The insurer count</b>
+        <p>Kept at 20+ as instructed. The page meta currently says 18 institutional insurers, so that needs changing to match, or the number comes out entirely.</p>
+      </li>
+      <li class="rv-check" data-state="open">
+        <b>By-role destinations</b>
+        <p>The five role links point at the closest existing pages rather than new ones. If a founder should land somewhere purpose-built, that is five thin pages to write.</p>
+      </li>
+      <li class="rv-check" data-state="open">
+        <b>Helloride and CCCC</b>
+        <p>Both are out of the insurer grid, since neither is an insurer. They could return later as platform partners in their own row.</p>
+      </li>
+      <li class="rv-check" data-state="gap">
+        <b>The Solutions hub page</b>
+        <p>The live /solutions page is still placeholder text. It needs to become a real overview matching this menu, or redirect to the industry section.</p>
+      </li>
+      <li class="rv-check" data-state="open">
+        <b>The routed answer in the hero</b>
+        <p>Currently four worked examples showing the pattern. Wiring it to the live assistant is a separate piece of work, and the disclaimer stays until it is.</p>
+      </li>
+    </ul>
+  </div>
+</section>
+
+</main>
+
+<script>
+(function () {
+  /* Desktop mega-menu: hover on pointer devices, click everywhere, Escape closes. */
+  document.querySelectorAll('[data-menu]').forEach(function (item) {
+    var btn = item.querySelector('.rv-nav-trigger');
+    function set(open) {
+      item.setAttribute('data-open', open ? 'true' : 'false');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    item.addEventListener('mouseenter', function () { if (matchMedia('(hover: hover)').matches) set(true); });
+    item.addEventListener('mouseleave', function () { if (matchMedia('(hover: hover)').matches) set(false); });
+    btn.addEventListener('click', function (e) { e.preventDefault(); set(item.getAttribute('data-open') !== 'true'); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') set(false); });
+    document.addEventListener('click', function (e) { if (!item.contains(e.target)) set(false); });
+  });
+
+  /* Mobile drawer + accordions */
+  var burger = document.getElementById('rv-burger');
+  var drawer = document.getElementById('rv-drawer');
+  if (burger && drawer) {
+    burger.addEventListener('click', function () {
+      var open = drawer.getAttribute('data-open') === 'true';
+      drawer.setAttribute('data-open', open ? 'false' : 'true');
+      burger.setAttribute('aria-expanded', open ? 'false' : 'true');
+    });
+  }
+  document.querySelectorAll('[data-acc]').forEach(function (acc) {
+    var b = acc.querySelector('.rv-acc-btn');
+    if (!acc.querySelector('.rv-acc-body')) return;
+    b.addEventListener('click', function () {
+      acc.setAttribute('data-open', acc.getAttribute('data-open') === 'true' ? 'false' : 'true');
+    });
+  });
+
+  /* Worked examples. Pre-written, clearly labelled as an illustration on the page —
+     this does not call a model and must not be presented as if it does. */
+  var EXAMPLES = {
+    cargo: {
+      q: 'We ship consumer electronics from Singapore to Jakarta, about 40 containers a year.',
+      summary: 'Goods in transit across a border, with payment risk on the buyer side and a warehouse at each end.',
+      href: '/solutions/logistics',
+      lines: [
+        ['Marine cargo', 'core'], ['Trade credit', 'core'],
+        ['Warehouse / stock throughput', 'advised'], ['Public liability', 'advised']
+      ]
+    },
+    people: {
+      q: 'We have 15 staff in Singapore and need medical cover for them.',
+      summary: 'A small team, so work injury cover is a legal requirement and group medical is the retention piece.',
+      href: '/employees/benefits',
+      lines: [
+        ['Work injury compensation (WICA)', 'core'], ['Group medical', 'core'],
+        ['Group personal accident', 'advised'], ['Group term life', 'advised']
+      ]
+    },
+    fund: {
+      q: 'We are setting up a fund management company and need cover before we launch.',
+      summary: 'A regulated entity handling other people’s money, so the exposure is professional and personal rather than physical.',
+      href: '/solutions/financial-services',
+      lines: [
+        ['Professional indemnity', 'core'], ['Directors &amp; officers', 'core'],
+        ['Cyber', 'advised'], ['Crime / fidelity', 'advised']
+      ]
+    },
+    site: {
+      q: 'We run construction sites across Singapore with about 60 workers.',
+      summary: 'Works in progress, plant on site and a large workforce, so both the project and the people need cover.',
+      href: '/solutions/built-environment',
+      lines: [
+        ['Contractors all risks', 'core'], ['Work injury compensation (WICA)', 'core'],
+        ['Public liability', 'core'], ['Plant &amp; machinery', 'advised']
+      ]
+    }
+  };
+
+  var input = document.getElementById('rv-input');
+  var route = document.getElementById('rv-route');
+  var label = document.getElementById('rv-route-label');
+  var summary = document.getElementById('rv-route-summary');
+  var list = document.getElementById('rv-route-lines');
+  var link = document.getElementById('rv-route-link');
+  var chips = Array.prototype.slice.call(document.querySelectorAll('.rv-chip'));
+  var timer = null;
+
+  function show(key) {
+    var ex = EXAMPLES[key];
+    if (!ex || !route) return;
+    chips.forEach(function (c) { c.setAttribute('aria-pressed', c.dataset.ex === key ? 'true' : 'false'); });
+    if (input) input.value = ex.q;
+    clearTimeout(timer);
+
+    route.hidden = false;
+    label.textContent = 'Reading your exposure…';
+    summary.textContent = '';
+    list.innerHTML = '';
+    link.href = ex.href;
+
+    timer = setTimeout(function () {
+      label.textContent = 'Suggested programme';
+      summary.textContent = ex.summary;
+      list.innerHTML = ex.lines.map(function (l) {
+        return '<li><b>' + l[0] + '</b><span class="rv-tag rv-tag--' + l[1] + '">' + l[1] + '</span></li>';
+      }).join('');
+    }, 620);
+  }
+
+  chips.forEach(function (c) { c.addEventListener('click', function () { show(c.dataset.ex); }); });
+  var send = document.getElementById('rv-send');
+  if (send) send.addEventListener('click', function () { show(chips[0].dataset.ex); });
+})();
+</script>
+</body>
+</html>

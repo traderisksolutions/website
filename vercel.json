@@ -42,6 +42,7 @@
     { "source": "/about",     "destination": "/about.html" },
     { "source": "/solutions", "destination": "/solutions.html" },
     { "source": "/pricing",   "destination": "/pricing.html" },
-    { "source": "/claims",    "destination": "/claims.html" }
+    { "source": "/claims",    "destination": "/claims.html" },
+    { "source": "/rillet_revamp", "destination": "/rillet_revamp.html" }
   ]
 }
