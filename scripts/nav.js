@@ -126,9 +126,9 @@ var NAV_HTML = `
               </div>
               <!-- API -->
               <div class="mega-panel" data-panel="api">
-                <a href="/api/white-label" class="mega-link-item"><span class="mega-link-title">Custom Coverage White Label</span><span class="mega-link-sub">Embedded insurance for your platform</span></a>
-                <a href="/api/gig-worker" class="mega-link-item"><span class="mega-link-title">Gig worker coverage</span><span class="mega-link-sub">Coverage for gig economy workers</span></a>
-                <a href="/api/rentals" class="mega-link-item"><span class="mega-link-title">Rentals</span><span class="mega-link-sub">Rental vehicle &amp; property coverage</span></a>
+                <a href="/api" class="mega-link-item"><span class="mega-link-title">Custom Coverage White Label</span><span class="mega-link-sub">Embedded insurance for your platform</span></a>
+                <a href="/api" class="mega-link-item"><span class="mega-link-title">Gig worker coverage</span><span class="mega-link-sub">Coverage for gig economy workers</span></a>
+                <a href="/api" class="mega-link-item"><span class="mega-link-title">Rentals</span><span class="mega-link-sub">Rental vehicle &amp; property coverage</span></a>
               </div>
             </div>
           </div>
@@ -216,9 +216,9 @@ var NAV_HTML = `
         <a href="/employees/dao">D&amp;O Liability</a>
         <a href="/employees/keyman">Keyman Insurance</a>
         <span class="nav-drawer-group-label">API</span>
-        <a href="/api/white-label">Custom Coverage White Label</a>
-        <a href="/api/gig-worker">Gig worker</a>
-        <a href="/api/rentals">Rentals</a>
+        <a href="/api">Custom Coverage White Label</a>
+        <a href="/api">Gig worker</a>
+        <a href="/api">Rentals</a>
       </div>
 
       <button class="nav-drawer-accordion">Solutions<svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>

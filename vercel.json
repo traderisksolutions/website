@@ -43,6 +43,11 @@
     { "source": "/solutions", "destination": "/solutions.html" },
     { "source": "/pricing",   "destination": "/pricing.html" },
     { "source": "/claims",    "destination": "/claims.html" },
-    { "source": "/rillet_revamp", "destination": "/rillet_revamp.html" }
+    { "source": "/api",       "destination": "/api.html" },
+    { "source": "/api/",      "destination": "/api.html" }
+  ],
+  "redirects": [
+    { "source": "/api/(white-label|gig-worker|rentals)",  "destination": "/api", "permanent": true },
+    { "source": "/api/(white-label|gig-worker|rentals)/", "destination": "/api", "permanent": true }
   ]
 }

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
+  <link rel="shortcut icon" href="/favicon-192.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="/favicon-192.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Embedded Insurance API Singapore | Trade Risk Solutions</title>
+  <meta name="description" content="Embed insurance into your platform, checkout or app. TRS structures the cover, places it with insurers and handles claims for gig, rental, e-commerce and fintech platforms." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" /></noscript>
+  <link rel="stylesheet" href="/styles/main.css" />
+  <script defer src="/_vercel/insights/script.js"></script>
+  <link rel="canonical" href="https://traderisksolutions.com.sg/api" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://traderisksolutions.com.sg/api" />
+  <meta property="og:title" content="Embedded Insurance API Singapore | Trade Risk Solutions" />
+  <meta property="og:description" content="Embed insurance into your platform, checkout or app. TRS structures the cover, places it with insurers and handles claims." />
+  <meta property="og:image" content="https://traderisksolutions.com.sg/og-image.png" />
+  <meta property="og:site_name" content="Trade Risk Solutions" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Embedded Insurance API Singapore | Trade Risk Solutions" />
+  <meta name="twitter:description" content="Embed insurance into your platform, checkout or app. TRS structures the cover, places it with insurers and handles claims." />
+  <meta name="twitter:image" content="https://traderisksolutions.com.sg/og-image.png" />
+  <style>
+    /* Page-specific additions to the shared homepage hero (.am-hero, .cta-box, .cta-pill in main.css). */
+    .emb-hero .am-headline { letter-spacing: -0.03em; }
+    .emb-hero .am-caption { max-width: 600px; }
+    .emb-actions { display: flex; justify-content: center; margin-top: 28px; }
+    .emb-hero .cta-box-footer { justify-content: flex-end; }
+    @media (max-width: 640px) {
+      .emb-hero { padding: 104px 16px 56px; }
+      .emb-hero .cta-pill-row { gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="nav-root"></div>
+
+  <main class="am-hero emb-hero" id="main-content">
+    <div class="am-hero-inner">
+
+      <div class="am-badge">
+        <span class="am-badge-label">API</span>
+        <span class="am-badge-text">Embedded insurance</span>
+      </div>
+
+      <h1 class="am-headline">Build insurance into<br>everything you ship</h1>
+
+      <p class="am-caption">Embed cover in your checkout, app or platform. Describe what you sell and who you serve. TRS structures the programme, places it with insurers and handles every claim.</p>
+
+      <div class="cta-glow-wrap">
+        <div class="cta-glow-ring"></div>
+        <div class="cta-box am-cta-box">
+          <textarea class="cta-input" id="emb-input" placeholder="Describe your platform and who you want to cover…" aria-label="Describe your platform"></textarea>
+          <div class="cta-box-footer">
+            <div class="cta-right-controls">
+              <button class="cta-send" id="emb-send" data-track="api_prompt_send" aria-label="Send">
+                <svg class="cta-send-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+                <span class="cta-send-rocket" aria-hidden="true">🚀</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cta-pill-row">
+        <button class="cta-pill" data-prompt="We run a gig platform and want per-job personal accident cover for our riders and workers.">🛵 Gig workers</button>
+        <button class="cta-pill" data-prompt="We rent out vehicles or property and want to offer cover at the point of booking.">🚗 Rentals</button>
+        <button class="cta-pill" data-prompt="We want to offer product protection or shipping cover at our e-commerce checkout.">🛒 E-commerce checkout</button>
+        <button class="cta-pill" data-prompt="We are a fintech platform and want to embed insurance into our app or wallet.">💳 Fintech &amp; wallets</button>
+        <button class="cta-pill" data-prompt="We want to launch an insurance product under our own brand.">🏷️ White label</button>
+      </div>
+
+      <div class="emb-actions">
+        <button class="footer-cta-btn" data-track="api_contact_us" data-ctac-modal aria-label="Contact us">
+          Contact us
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <div id="footer-root"></div>
+
+  <script src="/scripts/product-taxonomy.js"></script>
+  <script src="/scripts/nav.js"></script>
+  <script>
+    (function () {
+      /* The prompt opens the site-wide contact popover (scripts/nav.js) with the
+         visitor's text pre-filled, the same hand-off the homepage hero uses. */
+      var input = document.getElementById('emb-input');
+      var send = document.getElementById('emb-send');
+
+      function firePrompt(trigger) {
+        var msg = input.value.trim();
+        if (typeof window.trsOpenContactPopover === 'function') {
+          window.trsOpenContactPopover(msg, trigger || null, 'Sales', null);
+        }
+        input.value = '';
+      }
+
+      // stopPropagation: nav.js closes the popover on any click outside it, which
+      // would otherwise close it on the same click that opened it.
+      send.addEventListener('click', function (e) { e.stopPropagation(); firePrompt(send); });
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); firePrompt(); }
+      });
+
+      document.querySelectorAll('.cta-pill').forEach(function (pill) {
+        pill.addEventListener('click', function () {
+          input.value = pill.dataset.prompt;
+          input.focus();
+        });
+      });
+    })();
+  </script>
+  <script src="/scripts/analytics.js"></script>
+</body>
+</html>
