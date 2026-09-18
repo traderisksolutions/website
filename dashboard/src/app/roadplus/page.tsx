@@ -75,7 +75,7 @@ type Payment = {
   attention: boolean
 }
 
-type Recon = 'reconciled' | 'amount_mismatch' | 'unmatched' | 'awaiting_policy_no' | 'awaiting_confirmation' | 'failed'
+type Recon = 'reconciled' | 'amount_mismatch' | 'unmatched' | 'awaiting_policy_no' | 'awaiting_confirmation' | 'awaiting_payment' | 'failed'
 type PaymentSummary = { collected: number; payments: number; reconciled: number; attention: number; awaitingPayment: number }
 
 const RECON_LABEL: Record<Recon, string> = {
@@ -84,6 +84,7 @@ const RECON_LABEL: Record<Recon, string> = {
   unmatched: 'No matching quote',
   awaiting_policy_no: 'Awaiting policy no',
   awaiting_confirmation: 'Awaiting confirmation',
+  awaiting_payment: 'Not paid',
   failed: 'Payment failed',
 }
 
@@ -93,7 +94,10 @@ function ReconPill({ r, attention }: { r: Recon; attention: boolean }) {
       ? 'bg-emerald-100 text-emerald-700'
       : r === 'failed' || attention
         ? 'bg-rose-100 text-rose-700'
-        : 'bg-amber-100 text-amber-700'
+        : // Not paid yet is the normal state of a live checkout, not a problem.
+          r === 'awaiting_payment'
+          ? 'bg-slate-100 text-slate-600'
+          : 'bg-amber-100 text-amber-700'
   return <span className={`inline-block whitespace-nowrap rounded-[6px] px-2 py-0.5 text-[11px] font-medium ${cls}`}>{RECON_LABEL[r]}</span>
 }
 
@@ -115,7 +119,9 @@ const fmtMoney = (n: number | null, ccy: string | null) =>
   n == null ? '—' : `${ccy ?? 'SGD'} ${n.toFixed(2)}`
 
 function StatusPill({ s }: { s: string | null }) {
-  const v = (s ?? '').toLowerCase()
+  // No payment row yet — a pill would imply a gateway result we never got.
+  if (!s) return <span className="text-slate-400">—</span>
+  const v = s.toLowerCase()
   const cls =
     v === 'success' || v === 'ok'
       ? 'bg-emerald-100 text-emerald-700'
@@ -152,6 +158,8 @@ export default function RoadplusReconPage() {
   }, [])
 
   useEffect(() => { loadPayments() }, [loadPayments])
+
+  const visible = payments.filter((p) => !attentionOnly || p.attention)
 
   // ── reconcile trigger (Phase 4) ─────────────────────────────────────────
   const [recon, setRecon] = useState<{ running: boolean; msg?: string }>({ running: false })
@@ -220,7 +228,7 @@ export default function RoadplusReconPage() {
           <h1 className="text-[20px] font-semibold text-slate-900">RoadPlus Reconciliation</h1>
         </div>
         <p className="text-[13px] text-slate-500">
-          Live payments ledger &amp; journey traces from the separate <b>roadplus</b> database (read-only).
+          Every purchase attempt, its payment and its journey trace, read live from the separate <b>roadplus</b> database (read-only).
         </p>
 
         {!configured && (
@@ -244,7 +252,7 @@ export default function RoadplusReconPage() {
                 tab === t ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-400 hover:text-slate-600'
               }`}
             >
-              {t === 'payments' ? 'Payments' : t === 'journey' ? 'Journey lookup' : 'Analytics'}
+              {t === 'payments' ? 'Purchases' : t === 'journey' ? 'Journey lookup' : 'Analytics'}
             </button>
           ))}
         </div>
@@ -308,8 +316,6 @@ export default function RoadplusReconPage() {
 
             {pLoading ? (
               <div className="flex items-center gap-2 py-10 text-slate-400"><Loader2 size={16} className="animate-spin" /> Loading…</div>
-            ) : payments.length === 0 ? (
-              <p className="py-10 text-center text-[13px] text-slate-400">No payments yet. They appear here once ECICS posts to the webhook.</p>
             ) : (
               <>
                 <label className="mb-2 inline-flex items-center gap-2 text-[12.5px] text-slate-600">
@@ -320,7 +326,7 @@ export default function RoadplusReconPage() {
                   <table className="data-table w-full border-collapse text-[12.5px]">
                     <thead>
                       <tr>
-                        <th className="pl-4 text-left">Received</th>
+                        <th className="pl-4 text-left">Date</th>
                         <th className="text-left">Reconciliation</th>
                         <th className="text-left">Quoted</th>
                         <th className="text-left">Paid</th>
@@ -332,19 +338,31 @@ export default function RoadplusReconPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {payments.filter((p) => !attentionOnly || p.attention).map((p) => (
-                        <tr key={p.id} className={p.attention ? 'bg-rose-50/60' : undefined}>
-                          <td className="pl-4 whitespace-nowrap">{fmtDate(p.received_at)}</td>
-                          <td><ReconPill r={p.recon} attention={p.attention} /></td>
-                          <td className="tabular-nums text-slate-500">{fmtMoney(p.quoted_premium, p.currency)}</td>
-                          <td className={`font-medium tabular-nums ${p.recon === 'amount_mismatch' ? 'text-rose-600' : 'text-slate-800'}`}>{fmtMoney(p.amount, p.currency)}</td>
-                          <td className="font-mono text-[11.5px]">{p.policy_no ?? '—'}</td>
-                          <td className="font-mono text-[11.5px] text-slate-500">{p.policy_id ?? '—'}</td>
-                          <td className="font-mono text-[11.5px] text-slate-500">{p.payment_ref_no ?? p.transaction_id ?? '—'}</td>
-                          <td><StatusPill s={p.payment_status} /></td>
-                          <td className="pr-4 text-slate-400">{p.source ?? '—'}</td>
+                      {visible.length === 0 ? (
+                        <tr>
+                          <td colSpan={9} className="px-4 py-10 text-center text-[13px] text-slate-400">
+                            {payments.length > 0
+                              ? 'No rows match this filter.'
+                              : pQuery
+                                ? 'Nothing matches that reference.'
+                                : 'No purchase attempts yet. A row appears as soon as a customer reaches the ECICS payment page.'}
+                          </td>
                         </tr>
-                      ))}
+                      ) : (
+                        visible.map((p) => (
+                          <tr key={p.id} className={p.attention ? 'bg-rose-50/60' : undefined}>
+                            <td className="pl-4 whitespace-nowrap">{fmtDate(p.received_at)}</td>
+                            <td><ReconPill r={p.recon} attention={p.attention} /></td>
+                            <td className="tabular-nums text-slate-500">{fmtMoney(p.quoted_premium, p.currency)}</td>
+                            <td className={`font-medium tabular-nums ${p.recon === 'amount_mismatch' ? 'text-rose-600' : 'text-slate-800'}`}>{fmtMoney(p.amount, p.currency)}</td>
+                            <td className="font-mono text-[11.5px]">{p.policy_no ?? '—'}</td>
+                            <td className="font-mono text-[11.5px] text-slate-500">{p.policy_id ?? '—'}</td>
+                            <td className="font-mono text-[11.5px] text-slate-500">{p.payment_ref_no ?? p.transaction_id ?? '—'}</td>
+                            <td><StatusPill s={p.payment_status} /></td>
+                            <td className="pr-4 text-slate-400">{p.source ?? '—'}</td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>

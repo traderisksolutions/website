@@ -28,12 +28,27 @@ type PaymentRow = {
   quotes: { final_premium: number | null; policy_type: string | null; geo_area: string | null; journey_id: string | null } | null
 }
 
+type QuoteRow = {
+  id: string
+  quote_id: string | null
+  policy_id: string | null
+  proposal_no: string | null
+  final_premium: number | null
+  premium: number | null
+  policy_type: string | null
+  geo_area: string | null
+  journey_id: string | null
+  status: string | null
+  created_at: string | null
+}
+
 type Recon =
   | 'reconciled'
   | 'amount_mismatch'
   | 'unmatched'
   | 'awaiting_policy_no'
   | 'awaiting_confirmation'
+  | 'awaiting_payment'
   | 'failed'
 
 // Route files may only export handlers, so these stay module-private.
@@ -58,8 +73,12 @@ function reconcile(p: PaymentRow, policyNoById: Map<string, string | null>): { r
   return { recon: 'reconciled', stale: false }
 }
 
-// GET /api/roadplus/payments → every RoadPlus payment, matched to its quote and
-// policy, with a reconciliation status and a summary.
+// GET /api/roadplus/payments → every RoadPlus purchase attempt: each payment
+// matched to its quote and policy, PLUS every quote that reached ECICS payment
+// with no payment recorded against it yet. A payment row only ever exists once
+// ECICS posts the webhook or the sweep finds the policy, so a payments-only list
+// shows nothing at all until money lands — and hides abandoned checkouts and
+// missed callbacks, which are exactly the rows someone needs to act on.
 export async function GET(req: NextRequest) {
   if (!(await requireUser()))
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
@@ -74,22 +93,32 @@ export async function GET(req: NextRequest) {
     'payment_ref_no,amount,currency,payment_status,error_code,paid_date,source,received_at,' +
     'quotes(final_premium,policy_type,geo_area,journey_id)'
   let path = `payments?select=${cols}&order=received_at.desc&limit=${limit}`
+
+  // A quote holds a policy_id only once ECICS has issued a proposal and a payment
+  // link — that is the moment a visitor became a purchase attempt.
+  const quoteCols =
+    'id,quote_id,policy_id,proposal_no,final_premium,premium,policy_type,geo_area,journey_id,status,created_at'
+  let quotePath = `quotes?select=${quoteCols}&policy_id=not.is.null&order=created_at.desc&limit=${limit}`
+
   if (q) {
     const like = `*${q}*`
     path += `&or=(policy_no.ilike.${like},policy_id.ilike.${like},proposal_no.ilike.${like},transaction_id.ilike.${like},payment_ref_no.ilike.${like})`
+    quotePath += `&or=(policy_id.ilike.${like},proposal_no.ilike.${like},quote_id.ilike.${like},journey_id.ilike.${like})`
   }
 
   try {
-    const since = new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString()
-    const [payments, pendingQuotes] = await Promise.all([
+    const [payments, attempts] = await Promise.all([
       rpGet<PaymentRow[]>(path),
-      // Finalized in the last 14 days — the window the reconcile sweep covers.
-      rpGet<{ policy_id: string | null }[]>(
-        `quotes?select=policy_id&status=eq.pending_payment&policy_id=not.is.null&created_at=gte.${since}`,
-      ),
+      rpGet<QuoteRow[]>(quotePath),
     ])
 
-    const policyIds = Array.from(new Set(payments.map((p) => p.policy_id).filter((x): x is string => !!x)))
+    const policyIds = Array.from(
+      new Set(
+        [...payments.map((p) => p.policy_id), ...attempts.map((a) => a.policy_id)].filter(
+          (x): x is string => !!x,
+        ),
+      ),
+    )
     const policies = policyIds.length
       ? await rpGet<{ policy_id: string; policy_no: string | null }[]>(
           `policies?select=policy_id,policy_no&policy_id=in.(${policyIds.map((id) => `"${id}"`).join(',')})`,
@@ -98,7 +127,7 @@ export async function GET(req: NextRequest) {
     const policyNoById = new Map<string, string | null>()
     for (const p of policies) if (p.policy_no || !policyNoById.has(p.policy_id)) policyNoById.set(p.policy_id, p.policy_no)
 
-    const rows = payments.map((p) => {
+    const paymentRows = payments.map((p) => {
       const { recon, stale } = reconcile(p, policyNoById)
       const { quotes, ...rest } = p
       return {
@@ -114,14 +143,61 @@ export async function GET(req: NextRequest) {
       }
     })
 
-    const paidIds = new Set(payments.filter((p) => p.payment_status === 'success').map((p) => p.policy_id))
-    const success = rows.filter((r) => r.payment_status === 'success')
+    // Attempts already carrying a payment row are represented by that row.
+    const covered = new Set<string>()
+    for (const p of payments) {
+      if (p.policy_id) covered.add(`pid:${p.policy_id}`)
+      if (p.proposal_no) covered.add(`prop:${p.proposal_no}`)
+    }
+    const unpaid = attempts.filter(
+      (a) =>
+        !(a.policy_id && covered.has(`pid:${a.policy_id}`)) &&
+        !(a.proposal_no && covered.has(`prop:${a.proposal_no}`)),
+    )
+
+    const unpaidRows = unpaid.map((a) => {
+      const policyNo = (a.policy_id ? policyNoById.get(a.policy_id) : null) ?? null
+      return {
+        id: `quote:${a.id}`,
+        partner: 'ecics',
+        gateway: null,
+        payment_method: null,
+        proposal_no: a.proposal_no,
+        policy_id: a.policy_id,
+        policy_no: policyNo,
+        transaction_id: null,
+        payment_ref_no: null,
+        amount: null,
+        currency: 'SGD',
+        payment_status: null,
+        error_code: null,
+        paid_date: null,
+        // The attempt itself, not a payment — the reconcile sweep is what asks
+        // ECICS whether one of these was in fact paid.
+        source: 'quote',
+        received_at: a.created_at,
+        quoted_premium: a.final_premium ?? a.premium ?? null,
+        policy_type: a.policy_type,
+        geo_area: a.geo_area,
+        journey_id: a.journey_id,
+        recon: 'awaiting_payment' as Recon,
+        // ECICS issued a policy number but no payment ever reached the ledger —
+        // the callback was missed. Someone has to run reconcile or chase ECICS.
+        attention: !!policyNo,
+      }
+    })
+
+    const rows = [...paymentRows, ...unpaidRows].sort(
+      (a, b) => new Date(b.received_at ?? 0).getTime() - new Date(a.received_at ?? 0).getTime(),
+    )
+
+    const success = paymentRows.filter((r) => r.payment_status === 'success')
     const summary = {
       collected: success.reduce((s, r) => s + Number(r.amount ?? 0), 0),
       payments: success.length,
-      reconciled: rows.filter((r) => r.recon === 'reconciled').length,
+      reconciled: paymentRows.filter((r) => r.recon === 'reconciled').length,
       attention: rows.filter((r) => r.attention).length,
-      awaitingPayment: pendingQuotes.filter((x) => x.policy_id && !paidIds.has(x.policy_id)).length,
+      awaitingPayment: unpaidRows.length,
     }
 
     return NextResponse.json({ configured: true, rows, summary })
