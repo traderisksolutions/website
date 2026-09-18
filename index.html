@@ -89,23 +89,26 @@
   </main>
 
   <!-- UNDERINSURED SECTION -->
-  <!-- CLIENTS SECTION — placeholder cells until client logos are approved -->
-  <section class="trust-section" aria-labelledby="clients-label">
+  <!-- TRUST SECTION — static monochrome grid of insurer logos we place with -->
+  <section class="trust-section" aria-labelledby="trust-label">
     <div class="trust-header">
-      <p class="trust-label" id="clients-label">Our clients</p>
+      <p class="trust-label" id="trust-label">Backed by leading insurers</p>
     </div>
-    <ul class="client-grid">
-      <li class="client-cell">S&amp;P500 Companies</li>
-      <li class="client-cell">S&amp;P500 Companies</li>
-      <li class="client-cell">S&amp;P500 Companies</li>
-      <li class="client-cell">S&amp;P500 Companies</li>
-      <li class="client-cell">S&amp;P500 Companies</li>
-      <li class="client-cell">S&amp;P500 Companies</li>
-      <li class="client-cell">S&amp;P500 Companies</li>
-      <li class="client-cell">S&amp;P500 Companies</li>
-      <li class="client-cell">S&amp;P500 Companies</li>
-      <li class="client-cell">S&amp;P500 Companies</li>
-    </ul>
+    <div class="trust-grid-wrap">
+      <span class="trust-corner trust-corner--tl" aria-hidden="true"></span>
+      <span class="trust-corner trust-corner--tr" aria-hidden="true"></span>
+      <span class="trust-corner trust-corner--bl" aria-hidden="true"></span>
+      <span class="trust-corner trust-corner--br" aria-hidden="true"></span>
+      <div class="trust-grid-clip">
+        <ul class="trust-logo-grid">
+          <li class="trust-cell"><img src="/logos/axa.png" alt="AXA" loading="lazy" width="120" height="40" /></li>
+          <li class="trust-cell"><img src="/logos/allianz.png" alt="Allianz" loading="lazy" width="120" height="40" /></li>
+          <li class="trust-cell"><img src="/logos/chubb.png" alt="Chubb" loading="lazy" width="120" height="40" /></li>
+          <li class="trust-cell"><img src="/logos/april-insurance.png" alt="April" loading="lazy" width="120" height="40" /></li>
+          <li class="trust-cell"><img src="/logos/aa-singapore.png" alt="AA Singapore" loading="lazy" width="120" height="40" /></li>
+        </ul>
+      </div>
+    </div>
   </section>
 
   <!-- WHAT WE COVER — Interactive Grid Collapse -->

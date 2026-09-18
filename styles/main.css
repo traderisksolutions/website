@@ -1727,6 +1727,8 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 
 /* ── TRUST SECTION ── */
 .trust-section {
+  --trust-rule: #ededf0;        /* hairlines between cells */
+  --trust-rule-strong: #c9c9d1; /* corner brackets */
   background: var(--bg);
   padding: 80px 48px 80px;
   width: 100%;
@@ -1763,25 +1765,34 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 }
 .trust-stories-btn:hover { border-color: var(--text-subtle); color: var(--text); }
 
-/* Grid wrapper — holds corner dots + the grid */
+/* Grid wrapper — holds the corner brackets and clips the grid's outer rules.
+   The grid is inset by -1px on its right and bottom, so the last column's and
+   last row's hairlines fall outside the wrapper and get clipped. Result:
+   rules appear only BETWEEN cells, at any logo count or column count. */
 .trust-grid-wrap {
   position: relative;
+  max-width: 1040px;
+  margin: 0 auto;
 }
 
-/* Corner dots */
+.trust-grid-clip {
+  overflow: hidden;
+}
+
+/* Corner brackets — L-shaped stubs marking the frame without drawing it */
 .trust-corner {
-  display: none;
+  display: block;
   position: absolute;
-  width: 5px;
-  height: 5px;
-  background: var(--border);
-  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  border: 0 solid var(--trust-rule-strong);
+  pointer-events: none;
   z-index: 1;
 }
-.trust-corner--tl { top: -2.5px;  left: -2.5px;  }
-.trust-corner--tr { top: -2.5px;  right: -2.5px; }
-.trust-corner--bl { bottom: -2.5px; left: -2.5px;  }
-.trust-corner--br { bottom: -2.5px; right: -2.5px; }
+.trust-corner--tl { top: 0;    left: 0;  border-top-width: 1px;    border-left-width: 1px;  }
+.trust-corner--tr { top: 0;    right: 0; border-top-width: 1px;    border-right-width: 1px; }
+.trust-corner--bl { bottom: 0; left: 0;  border-bottom-width: 1px; border-left-width: 1px;  }
+.trust-corner--br { bottom: 0; right: 0; border-bottom-width: 1px; border-right-width: 1px; }
 
 /* Logo grid */
 .trust-grid {
@@ -1840,50 +1851,51 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 .trust-logo--wide   { font-weight: 500; font-size: 16px; letter-spacing: 0.12em; text-transform: uppercase; }
 .trust-logo--serif  { font-weight: 400; font-size: 16px; font-style: italic; }
 
-/* ── Client grid (replaces the insurer marquee) ── */
-/* 2 columns on phones, 5 on tablet and up. Borders draw the cell lines. */
-.client-grid {
+/* ── Insurer logo grid (replaces the marquee) ── */
+/* Hairline cells, monochrome marks, colour on hover. 5 across on desktop,
+   3 on tablet, 2 on phones. */
+.trust-logo-grid {
   list-style: none;
-  margin: 0 auto;
+  margin: 0 -1px -1px 0;   /* outer right + bottom rules clipped by .trust-grid-clip */
   padding: 0;
-  max-width: 1100px;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  border-top: 1px solid #e6e6e8;
-  border-left: 1px solid #e6e6e8;
 }
-@media (min-width: 768px) {
-  .client-grid { grid-template-columns: repeat(5, 1fr); }
-}
-.client-cell {
+@media (min-width: 640px)  { .trust-logo-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1024px) { .trust-logo-grid { grid-template-columns: repeat(5, 1fr); } }
+
+.trust-cell {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 96px;
-  padding: 16px 12px;
-  border-right: 1px solid #e6e6e8;
-  border-bottom: 1px solid #e6e6e8;
-  text-align: center;
-  font-family: var(--font);
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.3;
-  color: #b0afab;
+  min-height: 116px;
+  padding: 24px 28px;
+  border-right: 1px solid var(--trust-rule);
+  border-bottom: 1px solid var(--trust-rule);
+  background: var(--bg);
+  transition: background 0.18s var(--ease);
 }
-/* Client logos go in as <img> inside a cell; flat logos with white
-   backgrounds render as grey marks rather than white boxes. */
-.client-cell img {
+.trust-cell:hover { background: #fbfbfc; }
+
+/* The logo files are flat RGB with baked-in white backgrounds; multiply drops
+   the white so each mark sits on the cell rather than in a white box. */
+.trust-cell img {
   max-height: 40px;
   max-width: 100%;
   width: auto;
   height: auto;
   object-fit: contain;
-  filter: grayscale(1);
-  opacity: 0.6;
+  filter: grayscale(1) contrast(1.15);
+  opacity: 0.78;
   mix-blend-mode: multiply;
+  transition: filter 0.18s var(--ease), opacity 0.18s var(--ease);
 }
-@media (max-width: 767px) {
-  .client-cell { min-height: 72px; font-size: 13px; }
+.trust-cell:hover img { filter: grayscale(0) contrast(1); opacity: 1; }
+
+@media (max-width: 639px) {
+  .trust-cell { min-height: 88px; padding: 18px 16px; }
+  .trust-cell img { max-height: 30px; }
+  .trust-corner { width: 10px; height: 10px; }
 }
 
 /* ── Responsive ── */
