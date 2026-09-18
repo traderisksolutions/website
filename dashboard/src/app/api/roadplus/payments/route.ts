@@ -8,6 +8,29 @@ async function requireUser() {
   return user
 }
 
+/** The insured person, as captured on the quote form. */
+type Insured = {
+  full_name: string | null
+  nric_or_fin: string | null
+  dob: string | null
+  email: string | null
+  mobile: string | null
+}
+
+/** What a quote tells us about the cover and the person buying it. */
+type QuoteFacts = {
+  final_premium: number | null
+  premium: number | null
+  policy_type: string | null
+  geo_area: string | null
+  max_rental_period: string | null
+  policy_start_date: string | null
+  policy_end_date: string | null
+  journey_id: string | null
+  return_baseurl: string | null
+  insured_details: Insured | Insured[] | null
+}
+
 type PaymentRow = {
   id: string
   partner: string | null
@@ -25,21 +48,98 @@ type PaymentRow = {
   paid_date: string | null
   source: string | null
   received_at: string | null
-  quotes: { final_premium: number | null; policy_type: string | null; geo_area: string | null; journey_id: string | null } | null
+  quotes: QuoteFacts | null
 }
 
-type QuoteRow = {
+type QuoteRow = QuoteFacts & {
   id: string
   quote_id: string | null
   policy_id: string | null
   proposal_no: string | null
-  final_premium: number | null
-  premium: number | null
-  policy_type: string | null
-  geo_area: string | null
-  journey_id: string | null
   status: string | null
   created_at: string | null
+}
+
+/** PostgREST returns an embedded one-to-many as an array; we want the one row. */
+function insuredOf(q: QuoteFacts | null): Insured | null {
+  const d = q?.insured_details
+  if (!d) return null
+  return Array.isArray(d) ? d[0] ?? null : d
+}
+
+/**
+ * Age in whole years on `on` (the policy start — the date an insurer rates on),
+ * falling back to today when the quote has no start date.
+ */
+function ageOn(dob: string | null, on: string | null): number | null {
+  if (!dob) return null
+  const b = new Date(dob)
+  const at = on ? new Date(on) : new Date()
+  if (Number.isNaN(b.getTime()) || Number.isNaN(at.getTime())) return null
+  let age = at.getUTCFullYear() - b.getUTCFullYear()
+  const m = at.getUTCMonth() - b.getUTCMonth()
+  if (m < 0 || (m === 0 && at.getUTCDate() < b.getUTCDate())) age--
+  return age >= 0 && age < 130 ? age : null
+}
+
+/**
+ * Days of cover, counting BOTH the start and end date — the same inclusive count
+ * ECICS uses for the 42-day single-trip limit.
+ */
+function coverDays(start: string | null, end: string | null): number | null {
+  if (!start || !end) return null
+  const a = Date.parse(start)
+  const b = Date.parse(end)
+  if (Number.isNaN(a) || Number.isNaN(b) || b < a) return null
+  return Math.round((b - a) / 86_400_000) + 1
+}
+
+/** "Annual · APAC" — the cover, as a person would describe it. */
+function coverageLabel(q: QuoteFacts | null): string | null {
+  if (!q) return null
+  const type = q.policy_type?.trim()
+  const area = q.geo_area?.trim()
+  const parts = [
+    type ? type.replace(/\b\w/g, (c) => c.toUpperCase()) : null,
+    area ? area.toUpperCase() : null,
+  ].filter(Boolean)
+  return parts.length ? parts.join(' · ') : null
+}
+
+/**
+ * The webhook URL this quote handed to ECICS, with its shared secret stripped.
+ * It is sent per transaction by our own app, so when a payment never arrives
+ * this is what tells you whether ECICS was ever given a reachable address.
+ */
+function callbackUrl(raw: string | null): string | null {
+  if (!raw) return null
+  try {
+    const u = new URL(raw)
+    if (u.searchParams.has('s')) u.searchParams.set('s', '<redacted>')
+    return u.toString()
+  } catch {
+    return raw
+  }
+}
+
+/** The customer + cover columns of the report, derived from the quote. */
+function reportFields(q: QuoteFacts | null) {
+  const insured = insuredOf(q)
+  return {
+    insured_name: insured?.full_name ?? null,
+    nric: insured?.nric_or_fin ?? null,
+    email: insured?.email ?? null,
+    mobile: insured?.mobile ?? null,
+    age: ageOn(insured?.dob ?? null, q?.policy_start_date ?? null),
+    coverage: coverageLabel(q),
+    policy_type: q?.policy_type ?? null,
+    geo_area: q?.geo_area ?? null,
+    max_rental_period: q?.max_rental_period ?? null,
+    policy_start_date: q?.policy_start_date ?? null,
+    policy_end_date: q?.policy_end_date ?? null,
+    cover_days: coverDays(q?.policy_start_date ?? null, q?.policy_end_date ?? null),
+    callback_url: callbackUrl(q?.return_baseurl ?? null),
+  }
 }
 
 type Recon =
@@ -88,16 +188,21 @@ export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q')?.trim()
   const limit = Math.min(Number(req.nextUrl.searchParams.get('limit') ?? 500), 1000)
 
+  // The person and the cover live on the quote, not the payment — so both halves
+  // of the list embed the same quote facts and the insured's details.
+  const quoteFacts =
+    'final_premium,premium,policy_type,geo_area,max_rental_period,policy_start_date,' +
+    'policy_end_date,journey_id,return_baseurl,insured_details(full_name,nric_or_fin,dob,email,mobile)'
+
   const cols =
     'id,partner,gateway,payment_method,proposal_no,policy_id,policy_no,transaction_id,' +
     'payment_ref_no,amount,currency,payment_status,error_code,paid_date,source,received_at,' +
-    'quotes(final_premium,policy_type,geo_area,journey_id)'
+    `quotes(${quoteFacts})`
   let path = `payments?select=${cols}&order=received_at.desc&limit=${limit}`
 
   // A quote holds a policy_id only once ECICS has issued a proposal and a payment
   // link — that is the moment a visitor became a purchase attempt.
-  const quoteCols =
-    'id,quote_id,policy_id,proposal_no,final_premium,premium,policy_type,geo_area,journey_id,status,created_at'
+  const quoteCols = `id,quote_id,policy_id,proposal_no,status,created_at,${quoteFacts}`
   let quotePath = `quotes?select=${quoteCols}&policy_id=not.is.null&order=created_at.desc&limit=${limit}`
 
   if (q) {
@@ -133,10 +238,9 @@ export async function GET(req: NextRequest) {
       return {
         ...rest,
         policy_no: p.policy_no ?? (p.policy_id ? policyNoById.get(p.policy_id) ?? null : null),
-        quoted_premium: quotes?.final_premium ?? null,
-        policy_type: quotes?.policy_type ?? null,
-        geo_area: quotes?.geo_area ?? null,
+        quoted_premium: quotes?.final_premium ?? quotes?.premium ?? null,
         journey_id: quotes?.journey_id ?? null,
+        ...reportFields(quotes),
         recon,
         // Unconfirmed or number-less for over an hour → a person should check.
         attention: ATTENTION.includes(recon) || stale,
@@ -177,9 +281,8 @@ export async function GET(req: NextRequest) {
         source: 'quote',
         received_at: a.created_at,
         quoted_premium: a.final_premium ?? a.premium ?? null,
-        policy_type: a.policy_type,
-        geo_area: a.geo_area,
         journey_id: a.journey_id,
+        ...reportFields(a),
         recon: 'awaiting_payment' as Recon,
         // ECICS issued a policy number but no payment ever reached the ledger —
         // the callback was missed. Someone has to run reconcile or chase ECICS.

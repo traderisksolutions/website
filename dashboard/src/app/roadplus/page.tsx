@@ -1,7 +1,12 @@
 'use client'
 
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
-import { Loader2, Search, AlertTriangle, ExternalLink, RefreshCw } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { Loader2, Search, AlertTriangle, ExternalLink, RefreshCw, Download, Play } from 'lucide-react'
+
+/** How often the open Purchases tab re-queries for new transactions. */
+const POLL_MS = 20_000
+/** How long a row that just arrived stays marked as new. */
+const NEW_ROW_MS = 60_000
 
 type AnalyticsData = {
   configured?: boolean
@@ -69,8 +74,21 @@ type Payment = {
   source: string | null
   received_at: string | null
   quoted_premium: number | null
-  policy_type: string | null
   journey_id: string | null
+  // Who bought, and what they bought.
+  insured_name: string | null
+  nric: string | null
+  email: string | null
+  mobile: string | null
+  age: number | null
+  coverage: string | null
+  policy_type: string | null
+  geo_area: string | null
+  max_rental_period: string | null
+  policy_start_date: string | null
+  policy_end_date: string | null
+  cover_days: number | null
+  callback_url: string | null
   recon: Recon
   attention: boolean
 }
@@ -115,8 +133,15 @@ type JourneyEvent = {
 
 const fmtDate = (s: string | null) =>
   s ? new Date(s).toLocaleString('en-SG', { dateStyle: 'medium', timeStyle: 'short' }) : '—'
+const fmtDay = (s: string | null) =>
+  s ? new Date(s).toLocaleDateString('en-SG', { day: '2-digit', month: 'short', year: '2-digit' }) : '—'
 const fmtMoney = (n: number | null, ccy: string | null) =>
   n == null ? '—' : `${ccy ?? 'SGD'} ${n.toFixed(2)}`
+
+// NRIC is shown masked on screen — full numbers belong in the export, which is a
+// deliberate act, not something a passer-by reads over a shoulder.
+const maskNric = (s: string | null) =>
+  !s ? '—' : s.length < 5 ? s : `${s[0]}••••${s.slice(-4)}`
 
 function StatusPill({ s }: { s: string | null }) {
   // No payment row yet — a pill would imply a gateway result we never got.
@@ -131,6 +156,62 @@ function StatusPill({ s }: { s: string | null }) {
   return <span className={`inline-block rounded-[6px] px-2 py-0.5 text-[11px] font-medium ${cls}`}>{s ?? '—'}</span>
 }
 
+// ── CSV export ────────────────────────────────────────────────────────────
+// The full transaction record, including the unmasked NRIC and the contact
+// details — an abandoned checkout is only actionable if you can call the person.
+const CSV_COLUMNS: { header: string; value: (p: Payment) => string | number | null }[] = [
+  { header: 'Date', value: (p) => p.received_at },
+  { header: 'Status', value: (p) => RECON_LABEL[p.recon] },
+  { header: 'Name', value: (p) => p.insured_name },
+  { header: 'NRIC / FIN', value: (p) => p.nric },
+  { header: 'Age', value: (p) => p.age },
+  { header: 'Email', value: (p) => p.email },
+  { header: 'Mobile', value: (p) => p.mobile },
+  { header: 'Coverage', value: (p) => p.coverage },
+  { header: 'Max rental period', value: (p) => p.max_rental_period },
+  { header: 'Cover start', value: (p) => p.policy_start_date },
+  { header: 'Cover end', value: (p) => p.policy_end_date },
+  { header: 'Days of coverage', value: (p) => p.cover_days },
+  { header: 'Premium quoted', value: (p) => p.quoted_premium },
+  { header: 'Amount paid', value: (p) => p.amount },
+  { header: 'Currency', value: (p) => p.currency },
+  { header: 'Payment status', value: (p) => p.payment_status },
+  { header: 'Payment method', value: (p) => p.payment_method },
+  { header: 'Policy no', value: (p) => p.policy_no },
+  { header: 'Policy id', value: (p) => p.policy_id },
+  { header: 'Proposal no', value: (p) => p.proposal_no },
+  { header: 'Payment ref', value: (p) => p.payment_ref_no ?? p.transaction_id },
+  { header: 'Paid date', value: (p) => p.paid_date },
+  { header: 'Journey ref', value: (p) => p.journey_id },
+  { header: 'Source', value: (p) => p.source },
+  // What ECICS was told to call back on for this transaction, secret removed.
+  { header: 'Callback URL', value: (p) => p.callback_url },
+]
+
+/** Quote a CSV field, and defuse anything a spreadsheet would run as a formula. */
+function csvCell(v: string | number | null): string {
+  if (v == null) return ''
+  const s = String(v)
+  const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s
+  return `"${safe.replace(/"/g, '""')}"`
+}
+
+function toCsv(rows: Payment[]): string {
+  const lines = [CSV_COLUMNS.map((c) => csvCell(c.header)).join(',')]
+  for (const r of rows) lines.push(CSV_COLUMNS.map((c) => csvCell(c.value(r))).join(','))
+  // BOM so Excel reads UTF-8 names correctly.
+  return `﻿${lines.join('\r\n')}\r\n`
+}
+
+function download(filename: string, body: string) {
+  const url = URL.createObjectURL(new Blob([body], { type: 'text/csv;charset=utf-8' }))
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export default function RoadplusReconPage() {
   const [tab, setTab] = useState<'payments' | 'journey' | 'analytics'>('payments')
   const [configured, setConfigured] = useState(true)
@@ -143,23 +224,65 @@ export default function RoadplusReconPage() {
   const [pQuery, setPQuery] = useState('')
   const [pLoading, setPLoading] = useState(true)
 
-  const loadPayments = useCallback(async (q = '') => {
-    setPLoading(true)
+  // ── live listener ───────────────────────────────────────────────────────
+  // The roadplus database is reachable only with its service key, which stays on
+  // the server — so no client subscription. Polling this route every 20s is the
+  // honest version of "live": one cheap query, and a tab left open on a wall
+  // screen shows a purchase within 20 seconds of it happening.
+  const [live, setLive] = useState(true)
+  const [lastSync, setLastSync] = useState<Date | null>(null)
+  const [newIds, setNewIds] = useState<string[]>([])
+  const seenIds = useRef<Record<string, true> | null>(null)
+  const appliedQuery = useRef('')
+
+  const loadPayments = useCallback(async (q = '', opts: { quiet?: boolean } = {}) => {
+    appliedQuery.current = q
+    if (!opts.quiet) setPLoading(true)
     try {
       const res = await fetch(`/api/roadplus/payments${q ? `?q=${encodeURIComponent(q)}` : ''}`, { cache: 'no-store' })
       const data = await res.json()
+      const rows: Payment[] = data.rows ?? []
       setConfigured(data.configured !== false)
-      setPayments(data.rows ?? [])
+      setPayments(rows)
       setPSummary(data.summary ?? null)
       setPError(data.error ?? null)
+      setLastSync(new Date())
+
+      // Flag whatever arrived since the last poll. The first load establishes the
+      // baseline — everything is "new" then, which would just be noise.
+      const ids: Record<string, true> = {}
+      for (const r of rows) ids[r.id] = true
+      const before = seenIds.current
+      seenIds.current = ids
+      if (before) {
+        const fresh = rows.filter((r) => !before[r.id]).map((r) => r.id)
+        if (fresh.length) {
+          setNewIds((prev) => prev.concat(fresh))
+          setTimeout(() => setNewIds((prev) => prev.filter((id) => fresh.indexOf(id) === -1)), NEW_ROW_MS)
+        }
+      }
     } finally {
-      setPLoading(false)
+      if (!opts.quiet) setPLoading(false)
     }
   }, [])
 
   useEffect(() => { loadPayments() }, [loadPayments])
 
+  useEffect(() => {
+    if (!live || tab !== 'payments') return
+    const id = setInterval(() => {
+      // A background tab polls nothing — it would just burn queries.
+      if (document.visibilityState === 'visible') loadPayments(appliedQuery.current, { quiet: true })
+    }, POLL_MS)
+    return () => clearInterval(id)
+  }, [live, tab, loadPayments])
+
   const visible = payments.filter((p) => !attentionOnly || p.attention)
+
+  const exportCsv = useCallback(() => {
+    const stamp = new Date().toISOString().slice(0, 10)
+    download(`roadplus-transactions-${stamp}.csv`, toCsv(visible))
+  }, [visible])
 
   // ── reconcile trigger (Phase 4) ─────────────────────────────────────────
   const [recon, setRecon] = useState<{ running: boolean; msg?: string }>({ running: false })
@@ -282,6 +405,32 @@ export default function RoadplusReconPage() {
               <div className="flex items-center gap-2">
                 {recon.msg && <span className="text-[12px] text-slate-500">{recon.msg}</span>}
                 <button
+                  onClick={() => setLive((v) => !v)}
+                  title={live ? `Checking for new transactions every ${POLL_MS / 1000}s` : 'Live updates paused'}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  {live ? (
+                    <>
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                      </span>
+                      Live
+                    </>
+                  ) : (
+                    <><Play size={13} /> Paused</>
+                  )}
+                </button>
+                <button
+                  onClick={exportCsv}
+                  disabled={visible.length === 0}
+                  title="Download the rows below, with full NRIC and contact details"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                >
+                  <Download size={13} />
+                  Export CSV
+                </button>
+                <button
                   onClick={runReconcile}
                   disabled={recon.running}
                   title="Ask ECICS to backfill any paid-but-unrecorded policies"
@@ -318,29 +467,40 @@ export default function RoadplusReconPage() {
               <div className="flex items-center gap-2 py-10 text-slate-400"><Loader2 size={16} className="animate-spin" /> Loading…</div>
             ) : (
               <>
-                <label className="mb-2 inline-flex items-center gap-2 text-[12.5px] text-slate-600">
-                  <input type="checkbox" checked={attentionOnly} onChange={(e) => setAttentionOnly(e.target.checked)} />
-                  Needs attention only
-                </label>
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <label className="inline-flex items-center gap-2 text-[12.5px] text-slate-600">
+                    <input type="checkbox" checked={attentionOnly} onChange={(e) => setAttentionOnly(e.target.checked)} />
+                    Needs attention only
+                  </label>
+                  <span className="text-[11.5px] text-slate-400">
+                    {visible.length} row{visible.length === 1 ? '' : 's'}
+                    {lastSync && ` · updated ${lastSync.toLocaleTimeString('en-SG', { hour12: false })}`}
+                    {' · NRIC masked on screen, full value in the export'}
+                  </span>
+                </div>
                 <div className="rounded-lg border border-slate-200 overflow-x-auto">
                   <table className="data-table w-full border-collapse text-[12.5px]">
                     <thead>
                       <tr>
                         <th className="pl-4 text-left">Date</th>
-                        <th className="text-left">Reconciliation</th>
-                        <th className="text-left">Quoted</th>
+                        <th className="text-left">Status</th>
+                        <th className="text-left">Customer</th>
+                        <th className="text-left">Age</th>
+                        <th className="text-left">NRIC / FIN</th>
+                        <th className="text-left">Coverage</th>
+                        <th className="text-left">Cover period</th>
+                        <th className="text-left">Days</th>
+                        <th className="text-left">Premium</th>
                         <th className="text-left">Paid</th>
                         <th className="text-left">Policy no</th>
                         <th className="text-left">Policy id</th>
-                        <th className="text-left">Payment ref</th>
-                        <th className="text-left">Payment</th>
                         <th className="text-left pr-4">Source</th>
                       </tr>
                     </thead>
                     <tbody>
                       {visible.length === 0 ? (
                         <tr>
-                          <td colSpan={9} className="px-4 py-10 text-center text-[13px] text-slate-400">
+                          <td colSpan={13} className="px-4 py-10 text-center text-[13px] text-slate-400">
                             {payments.length > 0
                               ? 'No rows match this filter.'
                               : pQuery
@@ -350,15 +510,40 @@ export default function RoadplusReconPage() {
                         </tr>
                       ) : (
                         visible.map((p) => (
-                          <tr key={p.id} className={p.attention ? 'bg-rose-50/60' : undefined}>
-                            <td className="pl-4 whitespace-nowrap">{fmtDate(p.received_at)}</td>
+                          <tr
+                            key={p.id}
+                            className={
+                              newIds.indexOf(p.id) !== -1
+                                ? 'bg-emerald-50/70'
+                                : p.attention
+                                  ? 'bg-rose-50/60'
+                                  : undefined
+                            }
+                          >
+                            <td className="pl-4 whitespace-nowrap">
+                              {newIds.indexOf(p.id) !== -1 && (
+                                <span className="mr-1.5 rounded-[5px] bg-emerald-600 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                                  New
+                                </span>
+                              )}
+                              {fmtDate(p.received_at)}
+                            </td>
                             <td><ReconPill r={p.recon} attention={p.attention} /></td>
+                            <td className="whitespace-nowrap font-medium text-slate-800">{p.insured_name ?? '—'}</td>
+                            <td className="tabular-nums text-slate-600">{p.age ?? '—'}</td>
+                            <td className="font-mono text-[11.5px] text-slate-500" title="Full value is in the CSV export">{maskNric(p.nric)}</td>
+                            <td className="whitespace-nowrap text-slate-600">
+                              {p.coverage ?? '—'}
+                              {p.max_rental_period && <span className="text-slate-400"> · max {p.max_rental_period}</span>}
+                            </td>
+                            <td className="whitespace-nowrap text-slate-500">
+                              {p.policy_start_date ? `${fmtDay(p.policy_start_date)} → ${fmtDay(p.policy_end_date)}` : '—'}
+                            </td>
+                            <td className="tabular-nums text-slate-600">{p.cover_days ?? '—'}</td>
                             <td className="tabular-nums text-slate-500">{fmtMoney(p.quoted_premium, p.currency)}</td>
                             <td className={`font-medium tabular-nums ${p.recon === 'amount_mismatch' ? 'text-rose-600' : 'text-slate-800'}`}>{fmtMoney(p.amount, p.currency)}</td>
                             <td className="font-mono text-[11.5px]">{p.policy_no ?? '—'}</td>
                             <td className="font-mono text-[11.5px] text-slate-500">{p.policy_id ?? '—'}</td>
-                            <td className="font-mono text-[11.5px] text-slate-500">{p.payment_ref_no ?? p.transaction_id ?? '—'}</td>
-                            <td><StatusPill s={p.payment_status} /></td>
                             <td className="pr-4 text-slate-400">{p.source ?? '—'}</td>
                           </tr>
                         ))
