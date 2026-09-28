@@ -6,13 +6,17 @@ import { useSearchParams } from 'next/navigation'
 import { UploadCloud, Plus, Download, Send, Loader2, FolderOpen, Pencil, Trash2, PlusCircle, X, ArrowUp, ArrowDown, ArrowUpDown, ListFilter } from 'lucide-react'
 import { AppSplitLayout, AppMainPanel, AppPageHeader, AppPageBody } from '@/components/app-shell'
 import { DataTableToolbar, DataTableReset } from '@/components/data-table/toolbar'
-import { StatusBadge } from '@/components/status-badge'
 import { DetailSection, DetailField } from '@/components/detail-section'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { SendDocumentsModal, type SendableAttachment } from '@/components/debit-notes/SendDocumentsModal'
+import { Register, RegisterHead, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
 import { cn } from '@/lib/utils'
+
+const INK = '#202124'
+const MUTED = '#5f6368'
+const BODY = '#3c4043'
 
 type Row = {
   id: string; debit_note_no: string; issue_date: string; payment_due_date: string | null
@@ -58,8 +62,38 @@ const COLUMNS: Column[] = [
   { key: 'status',     label: 'Status',      type: 'status', value: r => r.status, display: r => STATUS_LABEL[r.status] },
 ]
 
+// Policy type is shown as the Company cell's second line, so it has no header of its own;
+// its text filter lives in the Company header's popover. Sorting and filtering still run over
+// every column in COLUMNS.
+const HEADER_COLUMNS = COLUMNS.filter(c => c.key !== 'policyType')
+
+/** A text filter field inside a column's popover. */
+function FilterInput({ label, value, onChange, autoFocus }: { label: string; value?: string; onChange?: (v: string) => void; autoFocus?: boolean }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <input
+        autoFocus={autoFocus}
+        value={value ?? ''}
+        onChange={e => onChange?.(e.target.value)}
+        placeholder={`Filter ${label.toLowerCase()}`}
+        aria-label={`Filter ${label.toLowerCase()}`}
+        className="flex-1 min-w-0 h-9 rounded-[8px] border bg-white px-2.5 text-[13px] outline-none focus:border-[#202124]"
+        style={{ borderColor: '#dadce0', color: INK }}
+      />
+      {value && (
+        <button type="button" onClick={() => onChange?.('')} aria-label={`Clear ${label.toLowerCase()} filter`} className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4] flex-shrink-0" style={{ color: MUTED }}><X size={12} /></button>
+      )}
+    </div>
+  )
+}
+
+/**
+ * A register header cell that sorts and filters. Same markup as RegisterTh (sticky first column,
+ * 13px muted label, arrow on the active sort) with the filter popover trigger beside the label.
+ * The popover trigger cannot live inside RegisterTh's sort button, so the th is rendered here.
+ */
 function ColumnHeader({
-  col, sortKey, sortDir, onSort, filterValue, onFilterChange, statusFilter, onStatusFilterChange,
+  col, sortKey, sortDir, onSort, filterValue, onFilterChange, statusFilter, onStatusFilterChange, first, last, extraFilter,
 }: {
   col: Column
   sortKey: ColKey | null
@@ -69,33 +103,39 @@ function ColumnHeader({
   onFilterChange?: (v: string) => void
   statusFilter?: Set<PayStatus>
   onStatusFilterChange?: (s: Set<PayStatus>) => void
+  first?: boolean
+  last?: boolean
+  /** A second text filter shown in the same popover (Company carries the policy type filter). */
+  extraFilter?: { label: string; value?: string; onChange: (v: string) => void }
 }) {
   const [open, setOpen] = useState(false)
-  const active   = col.type === 'status' ? (statusFilter?.size ?? 0) > 0 : !!filterValue?.trim()
+  const active   = (col.type === 'status' ? (statusFilter?.size ?? 0) > 0 : !!filterValue?.trim()) || !!extraFilter?.value?.trim()
   const isSorted = sortKey === col.key
   const SortIcon = !isSorted ? ArrowUpDown : sortDir === 'asc' ? ArrowUp : ArrowDown
+  const right = col.align === 'right'
 
   return (
-    <th className={cn('px-3 py-2 font-semibold select-none', col.align === 'right' ? 'text-right' : 'text-left')}>
-      <div className={cn('flex items-center gap-1', col.align === 'right' && 'justify-end')}>
-        <button onClick={() => onSort(col.key)} className="flex items-center gap-1 hover:text-foreground transition-colors" title={`Sort by ${col.label}`}>
+    <th scope="col" aria-sort={isSorted ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+      className={cn('py-0 font-normal whitespace-nowrap', right ? 'text-right' : 'text-left', first ? 'sticky left-0 z-30 bg-white pl-6 pr-4 shadow-[inset_-1px_0_0_#e8eaed]' : 'px-4', last && 'pr-6')}>
+      <span className={cn('group inline-flex items-center gap-1 h-11', right && 'flex-row-reverse')}>
+        <button type="button" onClick={() => onSort(col.key)} title={`Sort by ${col.label.toLowerCase()}`}
+          className={cn('inline-flex items-center gap-1.5 bg-transparent border-0 p-0 cursor-pointer text-[13px] whitespace-nowrap', right && 'flex-row-reverse', isSorted && 'font-medium')} style={{ color: isSorted ? INK : MUTED }}>
           {col.label}
-          <SortIcon size={11} className={isSorted ? 'text-primary' : 'text-muted-foreground/40'} />
+          <SortIcon size={13} className={cn(isSorted ? 'opacity-100' : 'opacity-0 group-hover:opacity-60')} aria-hidden />
         </button>
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
-            <button
-              title={`Filter ${col.label}`}
-              className={cn('p-0.5 rounded hover:bg-accent transition-colors', active ? 'text-primary' : 'text-muted-foreground/40 hover:text-muted-foreground')}
-            >
-              <ListFilter size={11} />
+            <button type="button" title={`Filter ${col.label.toLowerCase()}`} aria-label={`Filter ${col.label.toLowerCase()}`}
+              className={cn('w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]', active ? 'opacity-100' : 'opacity-0 group-hover:opacity-60 focus-visible:opacity-100')}
+              style={{ color: active ? INK : MUTED }}>
+              <ListFilter size={13} />
             </button>
           </PopoverTrigger>
-          <PopoverContent className="w-52 p-2" align={col.align === 'right' ? 'end' : 'start'}>
+          <PopoverContent className="w-56 p-2.5 rounded-[12px]" align={right ? 'end' : 'start'} style={{ border: '1px solid #e8eaed' }}>
             {col.type === 'status' ? (
               <div className="flex flex-col gap-0.5">
                 {STATUS_OPTIONS.map(s => (
-                  <label key={s} className="flex items-center gap-2 text-[12px] px-1.5 py-1 rounded hover:bg-accent cursor-pointer">
+                  <label key={s} className="flex items-center gap-2 text-[13.5px] px-2 py-1.5 rounded-[8px] hover:bg-[#f8f9fa] cursor-pointer" style={{ color: INK }}>
                     <input
                       type="checkbox"
                       checked={statusFilter?.has(s) ?? false}
@@ -109,26 +149,18 @@ function ColumnHeader({
                   </label>
                 ))}
                 {(statusFilter?.size ?? 0) > 0 && (
-                  <button onClick={() => onStatusFilterChange?.(new Set())} className="text-[11px] text-muted-foreground hover:text-foreground mt-1 text-left px-1.5">Clear</button>
+                  <button type="button" onClick={() => onStatusFilterChange?.(new Set())} className="text-[13px] mt-1 text-left px-2 py-1 bg-transparent border-0 cursor-pointer underline underline-offset-4" style={{ color: INK }}>Clear</button>
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-1.5">
-                <input
-                  autoFocus
-                  value={filterValue ?? ''}
-                  onChange={e => onFilterChange?.(e.target.value)}
-                  placeholder={`Filter ${col.label.toLowerCase()}…`}
-                  className="flex-1 min-w-0 text-[12px] border border-border rounded-md px-2 py-1 outline-none focus:ring-1 focus:ring-primary/30"
-                />
-                {filterValue && (
-                  <button onClick={() => onFilterChange?.('')} className="text-muted-foreground hover:text-foreground flex-shrink-0"><X size={12} /></button>
-                )}
+              <div className="flex flex-col gap-2">
+                <FilterInput label={col.label} value={filterValue} onChange={onFilterChange} autoFocus />
+                {extraFilter && <FilterInput label={extraFilter.label} value={extraFilter.value} onChange={extraFilter.onChange} />}
               </div>
             )}
           </PopoverContent>
         </Popover>
-      </div>
+      </span>
     </th>
   )
 }
@@ -200,37 +232,39 @@ function DebitNotesContent() {
   return (
     <AppSplitLayout>
       <AppMainPanel>
-        <AppPageHeader
-          title="Debit Notes"
-          description="Every debit note sent to a client — generated here or bulk-imported from PDFs."
-          actions={(
-            <>
-              <a href="https://drive.google.com/drive/folders/1fNWSYQdZwhkz2A4APmif41PLNwNWNv9r" target="_blank" rel="noreferrer">
-                <Button variant="outline" size="sm"><FolderOpen size={14} className="mr-1.5" /> Open GDrive</Button>
-              </a>
-              <Link href="/debit-notes/historical"><Button variant="outline" size="sm"><UploadCloud size={14} className="mr-1.5" /> Generate Historical Debit Note</Button></Link>
-              <Link href="/debit-notes/new"><Button size="sm"><Plus size={14} className="mr-1.5" /> Generate new debit note</Button></Link>
-            </>
-          )}
-        />
+        <div className="px-8 pt-10 pb-6" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+          <div className="flex items-end justify-between gap-6 flex-wrap">
+            <div>
+              <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08] text-[#202124]">Debit Notes</h1>
+              <p className="m-0 mt-2 text-[15px] text-[#5f6368]">{loading ? 'Loading…' : `${rows.length} debit note${rows.length === 1 ? '' : 's'}`}{companyId ? ' for this company' : ''}</p>
+            </div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <a href="https://drive.google.com/drive/folders/1fNWSYQdZwhkz2A4APmif41PLNwNWNv9r" target="_blank" rel="noreferrer" className="h-12 px-5 rounded-[12px] bg-white text-[15px] border no-underline inline-flex items-center gap-2 hover:bg-[#f8f9fa] text-[#202124]" style={{ borderColor: '#dadce0' }}><FolderOpen size={15} /> Drive folder</a>
+              <Link href="/debit-notes/historical" className="h-12 px-5 rounded-[12px] bg-white text-[15px] border no-underline inline-flex items-center gap-2 hover:bg-[#f8f9fa] text-[#202124]" style={{ borderColor: '#dadce0' }}><UploadCloud size={15} /> Import historical</Link>
+              <Link href="/debit-notes/new" className="h-12 px-6 rounded-[12px] text-white text-[15px] font-medium no-underline inline-flex items-center gap-2 hover:opacity-90" style={{ background: '#202124' }}><Plus size={15} /> New debit note</Link>
+            </div>
+          </div>
+        </div>
         {(activeFilterCount > 0 || sortKey) && (
           <DataTableToolbar>
-            <span className="text-[11.5px] text-muted-foreground">
+            <span className="text-[13px]" style={{ color: MUTED }}>
               {sorted.length} of {rows.length} debit note{rows.length !== 1 ? 's' : ''}
               {activeFilterCount > 0 && ` · ${activeFilterCount} filter${activeFilterCount !== 1 ? 's' : ''}`}
-              {sortKey && ` · sorted by ${COLUMNS.find(c => c.key === sortKey)?.label} (${sortDir === 'asc' ? 'ascending' : 'descending'})`}
+              {sortKey && ` · sorted by ${COLUMNS.find(c => c.key === sortKey)?.label.toLowerCase()} (${sortDir === 'asc' ? 'ascending' : 'descending'})`}
             </span>
             <DataTableReset onReset={resetAll} />
           </DataTableToolbar>
         )}
         <AppPageBody padded={false}>
-          <table className="w-full text-[12.5px]">
-            <thead>
-              <tr className="border-b border-[--border-subtle] text-[10.5px] uppercase tracking-wider text-muted-foreground/60">
-                {COLUMNS.map(col => (
+          <div className="px-8 pb-10">
+            <Register label="Debit notes" minWidth={1080} maxHeight="calc(100vh - 260px)">
+              <RegisterHead>
+                {HEADER_COLUMNS.map((col, i) => (
                   <ColumnHeader
                     key={col.key}
                     col={col}
+                    first={i === 0}
+                    last={i === HEADER_COLUMNS.length - 1}
                     sortKey={sortKey}
                     sortDir={sortDir}
                     onSort={toggleSort}
@@ -238,32 +272,32 @@ function DebitNotesContent() {
                     onFilterChange={v => setColFilters(f => ({ ...f, [col.key]: v }))}
                     statusFilter={statusFilter}
                     onStatusFilterChange={setStatusFilter}
+                    extraFilter={col.key === 'company' ? { label: 'Policy type', value: colFilters.policyType, onChange: v => setColFilters(f => ({ ...f, policyType: v })) } : undefined}
                   />
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading && Array.from({ length: 6 }).map((_, i) => (
-                <tr key={i} className="border-b border-[--border-subtle]"><td colSpan={9} className="px-4 h-11"><div className="skeleton sk-cell" style={{ width: '80%', height: 10 }} /></td></tr>
-              ))}
-              {!loading && sorted.length === 0 && (
-                <tr><td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">{rows.length === 0 ? 'No debit notes yet.' : 'No debit notes match these filters.'}</td></tr>
-              )}
-              {!loading && sorted.map(r => (
-                <tr key={r.id} onClick={() => setOpenId(r.id)} className="border-b border-[--border-subtle] hover:bg-accent/40 cursor-pointer">
-                  <td className="px-4 py-2.5 font-medium uppercase truncate max-w-[200px]">{r.companies?.name ?? '—'}</td>
-                  <td className="px-3 py-2.5 text-muted-foreground truncate max-w-[180px]">{r.policies?.class_of_insurance || '—'}</td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{r.policies?.policy_number || '—'}</td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{r.insurer ?? '—'}</td>
-                  <td className="px-3 py-2.5 font-mono text-[11.5px]">{r.debit_note_no}</td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{fmtDate(r.policies?.end_date ?? null)}</td>
-                  <td className="px-3 py-2.5 text-right font-medium">{fmt(r.gross_amount, r.currency)}</td>
-                  <td className="px-3 py-2.5 text-right text-muted-foreground">{r.commission != null ? fmt(r.commission, r.currency) : '—'}</td>
-                  <td className="px-3 py-2.5"><StatusBadge status={r.status} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              </RegisterHead>
+              <tbody>
+                {loading && Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid #e8eaed' }}><td colSpan={HEADER_COLUMNS.length} className="pl-6 pr-6 h-14"><div className="h-3.5 w-[70%] rounded bg-[#f1f3f4] animate-pulse" /></td></tr>
+                ))}
+                {!loading && sorted.length === 0 && (
+                  <RegisterEmpty colSpan={HEADER_COLUMNS.length}>{rows.length === 0 ? 'No debit notes yet.' : 'No debit notes match these filters.'}</RegisterEmpty>
+                )}
+                {!loading && sorted.map(r => (
+                  <RegisterRow key={r.id} onClick={() => setOpenId(r.id)}>
+                    <RegisterCell first title={r.companies?.name ?? undefined} primary={r.companies?.name ?? '—'} secondary={r.policies?.class_of_insurance || 'No policy type'} />
+                    <RegisterCell><span className="text-[14px] tabular-nums" style={{ color: BODY }}>{r.policies?.policy_number || '—'}</span></RegisterCell>
+                    <RegisterCell className="max-w-[220px]"><span className="block truncate text-[14px]" style={{ color: BODY }}>{r.insurer ?? '—'}</span></RegisterCell>
+                    <RegisterCell><span className="text-[14px] tabular-nums" style={{ color: BODY }}>{r.debit_note_no}</span></RegisterCell>
+                    <RegisterCell primary={fmtDate(r.policies?.end_date ?? null)} />
+                    <RegisterCell align="right" primary={<span className="font-medium">{fmt(r.gross_amount, r.currency)}</span>} secondary={r.currency} />
+                    <RegisterCell align="right" primary={r.commission != null ? fmt(r.commission, r.currency) : '—'} />
+                    <RegisterCell last><span className="text-[14px]" style={{ color: BODY }}>{STATUS_LABEL[r.status]}</span></RegisterCell>
+                  </RegisterRow>
+                ))}
+              </tbody>
+            </Register>
+          </div>
         </AppPageBody>
       </AppMainPanel>
 
@@ -427,7 +461,7 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
             {detail && !editing && (
               <div className="flex items-center gap-1.5">
                 <Button variant="outline" size="sm" onClick={startEditing}><Pencil size={12} className="mr-1.5" /> Edit</Button>
-                <Button variant="outline" size="sm" onClick={() => setConfirmDelete(true)} className="text-rose-600 hover:text-rose-600 border-rose-200 hover:bg-rose-50">
+                <Button variant="outline" size="sm" onClick={() => setConfirmDelete(true)} className="text-[#3c4043] hover:text-[#3c4043] border-[#e8eaed] hover:bg-[#f1f3f4]">
                   <Trash2 size={12} className="mr-1.5" /> Delete
                 </Button>
               </div>
@@ -440,10 +474,10 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
           <div className="px-4 py-4">
             <p className="text-[13px] mb-1">Delete debit note {detail.debit_note_no}?</p>
             <p className="text-[11.5px] text-muted-foreground mb-4">This removes this debit note and its generated PDF. If no other debit notes are linked to its policy, the policy is removed too — the company and its contacts are never affected. This cannot be undone.</p>
-            {error && <p className="text-[11.5px] text-rose-600 mb-2">{error}</p>}
+            {error && <p className="text-[11.5px] text-[#3c4043] mb-2">{error}</p>}
             <div className="flex justify-end gap-2">
               <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(false)} disabled={deleting}>Cancel</Button>
-              <Button size="sm" onClick={del} disabled={deleting} className="bg-rose-600 hover:bg-rose-700">
+              <Button size="sm" onClick={del} disabled={deleting} className="bg-white text-[#c5221f] border border-[#dadce0] hover:bg-[#f8f9fa]">
                 {deleting ? <Loader2 size={13} className="animate-spin mr-1.5" /> : <Trash2 size={13} className="mr-1.5" />} Delete
               </Button>
             </div>
@@ -451,11 +485,11 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
         ) : (
           <div className="flex flex-col">
             <DetailSection label="Client">
-              <DetailField label="Company"><span className="uppercase">{detail.companies?.name ?? '—'}</span></DetailField>
+              <DetailField label="Company"><span className="">{detail.companies?.name ?? '—'}</span></DetailField>
               {!editing && detail.event_type === 'endorsement' && (
-                <div className="mb-3 rounded-md border border-orange-200 bg-orange-50/60 px-2.5 py-1.5">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-orange-700">Mid-term endorsement</p>
-                  <p className="text-[11.5px] text-orange-900">Effective {fmtDate(detail.endorsement_effective_date)}</p>
+                <div className="mb-3 rounded-md border border-[#e8eaed] bg-[#f1f3f4]/60 px-2.5 py-1.5">
+                  <p className="text-[12.5px] font-medium text-[#3c4043]">Mid-term endorsement</p>
+                  <p className="text-[11.5px] text-[#3c4043]">Effective {fmtDate(detail.endorsement_effective_date)}</p>
                 </div>
               )}
               {editing && form ? (
@@ -536,10 +570,10 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
                     <div key={i} className="flex items-center gap-2 mb-1.5">
                       <input value={l.description} onChange={e => updateLineItem(i, { description: e.target.value })} placeholder="Description" className={`${inputCls} flex-1 min-w-0`} />
                       <input type="number" value={l.amount} onChange={e => updateLineItem(i, { amount: Number(e.target.value) })} className={`${inputCls} w-28 flex-none`} />
-                      <button onClick={() => removeLineItem(i)} className="text-muted-foreground hover:text-rose-600 flex-none"><X size={14} /></button>
+                      <button onClick={() => removeLineItem(i)} className="text-muted-foreground hover:text-[#3c4043] flex-none"><X size={14} /></button>
                     </div>
                   ))}
-                  <button onClick={addLineItem} className="flex items-center gap-1.5 text-[11.5px] text-primary hover:underline mt-1 mb-3"><PlusCircle size={13} /> Add line item</button>
+                  <button onClick={addLineItem} className="flex items-center gap-1.5 text-[11.5px] text-[#202124] hover:underline mt-1 mb-3"><PlusCircle size={13} /> Add line item</button>
 
                   {/* Fee rebate toggle — sits above the price row it nets against */}
                   <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground mb-2 max-w-[220px]">
@@ -598,7 +632,7 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
                       <DetailField label="Commission">{fmt(detail.commission, detail.currency)}{detail.commission_rate != null ? ` (${detail.commission_rate}%)` : ''}</DetailField>
                     )}
                     {detail.drive_folder_url && (
-                      <DetailField label="Documents"><a href={detail.drive_folder_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-primary hover:underline"><FolderOpen size={12} /> Open in Google Drive</a></DetailField>
+                      <DetailField label="Documents"><a href={detail.drive_folder_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-[#202124] hover:underline"><FolderOpen size={12} /> Open in Google Drive</a></DetailField>
                     )}
                   </>
                 )}
@@ -643,7 +677,7 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
               </div>
             </DetailSection>
 
-            {error && <p className="px-4 text-[11.5px] text-rose-600">{error}</p>}
+            {error && <p className="px-4 text-[11.5px] text-[#3c4043]">{error}</p>}
 
             <div className="flex items-center justify-between px-4 pt-3 pb-1">
               <div className="flex items-center gap-2">

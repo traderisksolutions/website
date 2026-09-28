@@ -1,9 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Upload } from 'lucide-react'
+import { X } from 'lucide-react'
 import { CENSUS_CSV_FIELDS, CENSUS_CSV_FIELD_LABEL, CENSUS_CSV_REQUIRED } from '@/lib/pm-census'
 import type { CensusCsvField } from '@/lib/pm-census'
+import { Btn, inputCls } from '@/components/crm/primitives'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
+
+const INK = '#202124'
+const MUTED = '#5f6368'
+const RULE = '#e8eaed'
 
 /** Shown after picking a CSV, before any rows are imported — lets the broker confirm/fix which
  *  uploaded column is which field instead of silently guessing and dropping mismatches. */
@@ -18,28 +24,29 @@ export function CsvMappingModal({ headers, guesses, previewRows, onCancel, onCon
   const canConfirm = CENSUS_CSV_REQUIRED.every(f => mapping[f] != null)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-xl bg-card shadow-2xl">
-        <div className="sticky top-0 bg-card border-b border-[--border-subtle] px-5 py-3.5 flex items-center justify-between">
-          <h3 className="text-[14px] font-semibold text-foreground flex items-center gap-2"><Upload size={15} /> Match CSV columns</h3>
-          <button onClick={onCancel} className="text-muted-foreground hover:text-foreground"><X size={16} /></button>
+    <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-[10vh]" style={{ background: 'rgba(32,33,36,0.28)' }} onMouseDown={e => { if (e.target === e.currentTarget) onCancel() }}>
+      <div role="dialog" aria-modal="true" aria-labelledby="csv-map" className="w-full max-w-[680px] max-h-[85vh] overflow-y-auto rounded-[16px] bg-white" style={{ boxShadow: '0 24px 64px rgba(32,33,36,0.2)', color: INK }}>
+        <div className="sticky top-0 bg-white px-6 pt-6 pb-4 flex items-start justify-between gap-3" style={{ borderBottom: `1px solid ${RULE}` }}>
+          <div>
+            <h2 id="csv-map" className="m-0 text-[20px] font-medium tracking-[-0.01em]">Match CSV columns</h2>
+            <p className="m-0 mt-1 text-[13.5px]" style={{ color: MUTED }}>Unmapped optional fields stay blank.</p>
+          </div>
+          <button type="button" onClick={onCancel} aria-label="Close" className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: MUTED }}><X size={16} /></button>
         </div>
 
-        <div className="px-5 py-4 flex flex-col gap-3">
-          <p className="text-[11.5px] text-muted-foreground">Confirm which column in your file is which field. Unmapped optional fields are just left blank.</p>
-
-          <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-2 items-center">
+        <div className="px-6 py-5 flex flex-col gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-[160px_minmax(0,1fr)] gap-x-4 gap-y-3 items-center">
             {CENSUS_CSV_FIELDS.map(f => (
               <div key={f} className="contents">
-                <span className="text-[12px] font-medium text-foreground/80">
-                  {CENSUS_CSV_FIELD_LABEL[f]}{CENSUS_CSV_REQUIRED.includes(f) && <span className="text-rose-500"> *</span>}
+                <span className="text-[13.5px]" style={{ color: '#3c4043' }}>
+                  {CENSUS_CSV_FIELD_LABEL[f]}{CENSUS_CSV_REQUIRED.includes(f) && <span className="ml-1 text-[12px]" style={{ color: MUTED }}>required</span>}
                 </span>
                 <select
                   value={mapping[f] ?? ''}
                   onChange={e => setMapping(m => ({ ...m, [f]: e.target.value === '' ? null : Number(e.target.value) }))}
-                  className="text-[12.5px] border border-border rounded-md px-2 py-1 bg-background"
+                  className={inputCls}
                 >
-                  <option value="">— none —</option>
+                  <option value="">None</option>
                   {headers.map((h, i) => <option key={i} value={i}>{h}</option>)}
                 </select>
               </div>
@@ -47,37 +54,27 @@ export function CsvMappingModal({ headers, guesses, previewRows, onCancel, onCon
           </div>
 
           {previewRows.length > 0 && (
-            <div className="mt-2">
-              <p className="text-[11px] font-medium text-muted-foreground/70 mb-1.5">Preview (first {previewRows.length} rows)</p>
-              <div className="overflow-x-auto border border-border rounded-lg">
-                <table className="w-full text-[11.5px] border-collapse">
-                  <thead>
-                    <tr className="bg-muted/40 border-b border-border">
-                      {headers.map((h, i) => <th key={i} className="text-left py-1.5 px-2 font-medium text-foreground/70 whitespace-nowrap">{h}</th>)}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {previewRows.map((row, i) => (
-                      <tr key={i} className="border-b border-border/30 last:border-0">
-                        {row.map((cell, j) => <td key={j} className="py-1.5 px-2 text-muted-foreground/90 whitespace-nowrap">{cell}</td>)}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <div>
+              <p className="m-0 mb-2 text-[12.5px]" style={{ color: MUTED }}>First {previewRows.length} rows</p>
+              <Register label="CSV preview" minWidth={0} maxHeight="40vh">
+                <RegisterHead>
+                  {headers.map((h, i) => <RegisterTh key={i} first={i === 0} last={i === headers.length - 1}>{h}</RegisterTh>)}
+                </RegisterHead>
+                <tbody>
+                  {previewRows.map((row, i) => (
+                    <RegisterRow key={i}>
+                      {row.map((cell, j) => <RegisterCell key={j} first={j === 0} last={j === row.length - 1} className={j === 0 ? 'min-w-[160px]' : undefined}><span className="text-[13.5px] tabular-nums" style={{ color: '#3c4043' }}>{cell}</span></RegisterCell>)}
+                    </RegisterRow>
+                  ))}
+                </tbody>
+              </Register>
             </div>
           )}
         </div>
 
-        <div className="sticky bottom-0 bg-card border-t border-[--border-subtle] px-5 py-3 flex items-center justify-end gap-2">
-          <button onClick={onCancel} className="text-[12px] text-muted-foreground hover:text-foreground px-3 py-1.5">Cancel</button>
-          <button
-            onClick={() => onConfirm(mapping)}
-            disabled={!canConfirm}
-            className="text-[12px] font-semibold px-4 py-1.5 rounded-md bg-primary text-primary-foreground disabled:opacity-50"
-          >
-            Import
-          </button>
+        <div className="sticky bottom-0 bg-white px-6 py-4 flex items-center justify-end gap-2" style={{ borderTop: `1px solid ${RULE}` }}>
+          <Btn level="tertiary" onClick={onCancel}>Cancel</Btn>
+          <Btn level="primary" onClick={() => onConfirm(mapping)} disabled={!canConfirm}>Import</Btn>
         </div>
       </div>
     </div>

@@ -1,12 +1,18 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, Sparkles } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { RagSource } from '@/components/engagement/types'
 import { RetrievalSourcesPanel } from './retrieval-sources-panel'
 import { ApprovedExamplesPanel } from './approved-examples-panel'
 import { AntiPatternPanel } from './anti-pattern-panel'
+
+const BODY = '#3c4043'
+const MUTED = '#5f6368'
+const FAINT = '#80868b'
+const DOT = '#9aa0a6'
+const HAIR = '#e8eaed'
 
 interface Example {
   id:              string
@@ -37,30 +43,32 @@ export function DraftProvenancePanel({
   if (signalCount === 0) return null
 
   return (
-    <div className="mt-2.5 pt-2.5 border-t border-[--border-subtle]">
+    <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${HAIR}` }}>
       <button
+        type="button"
         onClick={() => setOpen(v => !v)}
         aria-expanded={open}
-        className="flex items-center justify-between w-full text-left"
+        className="flex items-center justify-between w-full text-left bg-transparent border-0 p-0 cursor-pointer"
       >
-        <div className="flex items-center gap-1.5">
-          <Sparkles size={9} strokeWidth={2} className="text-primary/60" />
-          <span className="text-[9.5px] font-semibold text-muted-foreground/70">How this draft was made</span>
+        <span className="flex items-center gap-1.5">
+          <span className="text-[12.5px] font-medium" style={{ color: BODY }}>How this draft was made</span>
           {!open && (
-            <span className="text-[8.5px] text-muted-foreground/40 tabular-nums">
+            <span className="text-[12px] tabular-nums" style={{ color: FAINT }}>
               {signalCount} signal{signalCount !== 1 ? 's' : ''}
             </span>
           )}
-        </div>
+        </span>
         <ChevronDown
-          size={9}
+          size={13}
           strokeWidth={2}
-          className={cn('text-muted-foreground/40 transition-transform', open && 'rotate-180')}
+          className={cn('transition-transform flex-shrink-0', open && 'rotate-180')}
+          style={{ color: DOT }}
+          aria-hidden
         />
       </button>
 
       {open && (
-        <div className="mt-1">
+        <div className="mt-1 text-[12.5px]" style={{ color: MUTED }}>
           <RetrievalSourcesPanel sources={ragSources} gdocNames={gdocNames} generatedBy={generatedBy} />
           <ApprovedExamplesPanel examples={examples} />
           <AntiPatternPanel watchOuts={watchOuts} />

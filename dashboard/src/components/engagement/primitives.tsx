@@ -2,29 +2,31 @@
  * Engagement Agent — Atomic Primitives
  *
  * Small, typed UI atoms used across the engagement component tree.
- * These are NOT wired into existing components yet (that happens in Phase 2/3).
- * They are defined here so the design vocabulary is established and ready.
  *
  * Rules:
  * - No business logic — pure presentation
  * - No API calls or side effects
  * - Every component is self-contained and independently importable
- * - Use --ea-* tokens where a value originates from the design system
- * - Fall back to Tailwind semantics (primary, muted, accent, etc.) otherwise
+ * - Tokens only: ink #202124, body #3c4043, muted #5f6368, faint #80868b, dot #9aa0a6,
+ *   hairline #e8eaed, control #dadce0, field #f1f3f4. State is never colour-coded — every
+ *   variant that used to carry a tint (outbound blue, warning amber, success green) is the
+ *   same neutral field; the label carries the meaning.
  */
 
 import { cn } from '@/lib/utils'
 import type { ReactNode } from 'react'
 
+const INK   = '#202124'
+const BODY  = '#3c4043'
+const MUTED = '#5f6368'
+const FAINT = '#80868b'
+const FIELD = '#f1f3f4'
+const HAIR  = '#e8eaed'
+const CTRL  = '#dadce0'
+
 // ─────────────────────────────────────────────────────────────────────────────
-// EaAvatar
-//
-// Initials circle. Three variants drive the tint:
-//   outbound — blue-primary (sent by TRS)
-//   inbound  — muted neutral (received from contact)
-//   active   — primary (selected/highlighted state)
-//
-// Sizes map to --ea-avatar-* tokens.
+// EaAvatar — initials circle. Variants kept for API compatibility; all neutral now
+// except `active` (ink on white text, the selected state).
 // ─────────────────────────────────────────────────────────────────────────────
 
 type AvatarVariant = 'outbound' | 'inbound' | 'active' | 'neutral'
@@ -44,22 +46,18 @@ const AVATAR_SIZE: Record<AvatarSize, string> = {
   lg: 'w-9 h-9 text-[13px]',
 }
 
-const AVATAR_VARIANT: Record<AvatarVariant, string> = {
-  outbound: 'bg-primary/10 text-primary',
-  inbound:  'bg-muted text-muted-foreground',
-  active:   'bg-primary/10 text-primary',
-  neutral:  'bg-muted text-muted-foreground',
+const AVATAR_VARIANT: Record<AvatarVariant, { background: string; color: string }> = {
+  outbound: { background: FIELD, color: INK },
+  inbound:  { background: FIELD, color: BODY },
+  active:   { background: INK,   color: '#fff' },
+  neutral:  { background: FIELD, color: BODY },
 }
 
 export function EaAvatar({ initial, variant = 'neutral', size = 'md', className }: EaAvatarProps) {
   return (
     <div
-      className={cn(
-        'rounded-full flex-shrink-0 flex items-center justify-center font-bold select-none',
-        AVATAR_SIZE[size],
-        AVATAR_VARIANT[variant],
-        className,
-      )}
+      className={cn('rounded-full flex-shrink-0 flex items-center justify-center font-medium select-none', AVATAR_SIZE[size], className)}
+      style={AVATAR_VARIANT[variant]}
       aria-hidden
     >
       {initial.slice(0, 1).toUpperCase()}
@@ -69,23 +67,16 @@ export function EaAvatar({ initial, variant = 'neutral', size = 'md', className 
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EaPill
-//
-// Small inline chip/badge. Used for:
-//   - source labels (Campaign, Form, FWD)
-//   - direction labels (Sent, Received)
-//   - status labels (Needs reply)
-//   - count badges in tabs
-//
-// Intentionally small and restrained. Avoid loud colors for non-critical labels.
+// EaPill — small inline chip. rounded-[6px], 11.5px medium, neutral field; the
+// label carries the meaning. `outline` is border-only.
 // ─────────────────────────────────────────────────────────────────────────────
 
 type PillVariant =
-  | 'primary'    // blue tint — selected, sent, form leads
-  | 'warning'    // amber     — needs reply, campaign
-  | 'success'    // green     — replied, converted
-  | 'muted'      // neutral   — FWD, general
-  | 'outline'    // border-only, no background
+  | 'primary'
+  | 'warning'
+  | 'success'
+  | 'muted'
+  | 'outline'
 
 interface EaPillProps {
   children:   ReactNode
@@ -93,24 +84,20 @@ interface EaPillProps {
   className?: string
 }
 
-const PILL_VARIANT: Record<PillVariant, string> = {
-  primary: 'bg-primary/8 text-primary border-transparent',
-  warning: 'bg-[--warning-bg] text-[--warning] border-transparent',
-  success: 'bg-[--success-bg] text-[--success] border-transparent',
-  muted:   'bg-muted text-muted-foreground border-transparent',
-  outline: 'bg-transparent text-muted-foreground border-[--border-subtle]',
+const PILL_VARIANT: Record<PillVariant, { background: string; color: string; border: string }> = {
+  primary: { background: FIELD, color: BODY, border: 'transparent' },
+  warning: { background: FIELD, color: BODY, border: 'transparent' },
+  success: { background: FIELD, color: BODY, border: 'transparent' },
+  muted:   { background: FIELD, color: BODY, border: 'transparent' },
+  outline: { background: 'transparent', color: MUTED, border: CTRL },
 }
 
 export function EaPill({ children, variant = 'muted', className }: EaPillProps) {
+  const s = PILL_VARIANT[variant]
   return (
     <span
-      className={cn(
-        'inline-flex items-center whitespace-nowrap',
-        'text-[10px] font-[600] leading-none',
-        'px-[7px] h-[18px] rounded-[20px] border',
-        PILL_VARIANT[variant],
-        className,
-      )}
+      className={cn('inline-flex items-center whitespace-nowrap text-[11.5px] font-medium leading-none px-2 h-[20px] rounded-[6px] border', className)}
+      style={{ background: s.background, color: s.color, borderColor: s.border }}
     >
       {children}
     </span>
@@ -119,11 +106,8 @@ export function EaPill({ children, variant = 'muted', className }: EaPillProps) 
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EaSectionLabel
-//
-// The uppercase micro-label that heads every section in the context panel,
-// the AI analysis block, the draft history section, etc.
-// Matches --ea-section-label-* tokens.
+// EaSectionLabel — the small label that heads a section in the context panel.
+// 12px muted, sentence case (no uppercase tracking).
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface EaSectionLabelProps {
@@ -135,13 +119,7 @@ interface EaSectionLabelProps {
 
 export function EaSectionLabel({ children, className, noMargin }: EaSectionLabelProps) {
   return (
-    <p
-      className={cn(
-        'text-[9.5px] font-bold uppercase tracking-[0.07em] text-muted-foreground/70 m-0 leading-none',
-        !noMargin && 'mb-1',
-        className,
-      )}
-    >
+    <p className={cn('text-[12px] font-medium m-0 leading-none', !noMargin && 'mb-1.5', className)} style={{ color: MUTED }}>
       {children}
     </p>
   )
@@ -149,10 +127,7 @@ export function EaSectionLabel({ children, className, noMargin }: EaSectionLabel
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EaFieldLabel
-//
-// Same visual treatment as EaSectionLabel but used above individual form
-// fields (Name, Email, Phone, Company, etc.) — slightly tighter bottom margin.
+// EaFieldLabel — same treatment above individual form fields.
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface EaFieldLabelProps {
@@ -162,12 +137,7 @@ interface EaFieldLabelProps {
 
 export function EaFieldLabel({ children, className }: EaFieldLabelProps) {
   return (
-    <p
-      className={cn(
-        'text-[9.5px] font-bold uppercase tracking-[0.07em] text-muted-foreground/70 m-0 mb-0.5 leading-none',
-        className,
-      )}
-    >
+    <p className={cn('text-[12px] font-medium m-0 mb-1 leading-none', className)} style={{ color: MUTED }}>
       {children}
     </p>
   )
@@ -175,10 +145,7 @@ export function EaFieldLabel({ children, className }: EaFieldLabelProps) {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EaMetaStat
-//
-// A label + bold numeric/text value pair. Used in the context panel header to
-// show "Emails: 6", "Days open: 12", "Last reply: 2h ago".
+// EaMetaStat — a label + value pair ("Emails: 6", "Days open: 12").
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface EaMetaStatProps {
@@ -192,17 +159,8 @@ interface EaMetaStatProps {
 export function EaMetaStat({ label, value, secondary, className }: EaMetaStatProps) {
   return (
     <div className={cn('flex flex-col', className)}>
-      <span className="text-[9px] font-bold uppercase tracking-[0.07em] text-muted-foreground/60 leading-none mb-0.5">
-        {label}
-      </span>
-      <span
-        className={cn(
-          'font-bold leading-none',
-          secondary
-            ? 'text-[11px] text-muted-foreground'
-            : 'text-[14px] text-foreground',
-        )}
-      >
+      <span className="text-[12px] leading-none mb-1" style={{ color: MUTED }}>{label}</span>
+      <span className={cn('font-medium leading-none tabular-nums', secondary ? 'text-[12.5px]' : 'text-[14px]')} style={{ color: secondary ? MUTED : INK }}>
         {value}
       </span>
     </div>
@@ -211,18 +169,15 @@ export function EaMetaStat({ label, value, secondary, className }: EaMetaStatPro
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EaStatusDot
-//
-// Small colored dot indicating reply state in the context panel header row
-// and the conversation list item.
+// EaStatusDot — reply-state dot. Ink = needs reply, dot grey = replied, hairline = none.
 // ─────────────────────────────────────────────────────────────────────────────
 
 type StatusDotVariant = 'needs-reply' | 'replied' | 'none'
 
 const STATUS_DOT_COLOR: Record<StatusDotVariant, string> = {
-  'needs-reply': 'bg-[--warning]',
-  'replied':     'bg-[--success]',
-  'none':        'bg-border',
+  'needs-reply': INK,
+  'replied':     '#9aa0a6',
+  'none':        HAIR,
 }
 
 interface EaStatusDotProps {
@@ -232,23 +187,13 @@ interface EaStatusDotProps {
 
 export function EaStatusDot({ variant, className }: EaStatusDotProps) {
   return (
-    <span
-      className={cn(
-        'block flex-shrink-0 w-1.5 h-1.5 rounded-full',
-        STATUS_DOT_COLOR[variant],
-        className,
-      )}
-      aria-hidden
-    />
+    <span className={cn('block flex-shrink-0 w-1.5 h-1.5 rounded-full', className)} style={{ background: STATUS_DOT_COLOR[variant] }} aria-hidden />
   )
 }
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EaDivider
-//
-// A horizontal rule between context panel sections.
-// Thinner and more restrained than a full border — uses --border-subtle.
+// EaDivider — one hairline between sections.
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface EaDividerProps {
@@ -256,21 +201,12 @@ interface EaDividerProps {
 }
 
 export function EaDivider({ className }: EaDividerProps) {
-  return (
-    <div
-      className={cn('h-px w-full bg-[--border-subtle] flex-shrink-0', className)}
-      role="separator"
-      aria-hidden
-    />
-  )
+  return <div className={cn('h-px w-full flex-shrink-0', className)} style={{ background: HAIR }} role="separator" aria-hidden />
 }
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EaEmptyThread
-//
-// Centered empty state shown in the message area when no thread is selected
-// or when a lead has no email history. Accepts an optional message override.
+// EaEmptyThread — one muted sentence, centred.
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface EaEmptyThreadProps {
@@ -285,24 +221,16 @@ export function EaEmptyThread({
   className,
 }: EaEmptyThreadProps) {
   return (
-    <div
-      className={cn(
-        'flex flex-col items-center justify-center gap-1.5 py-16 px-8 text-center',
-        className,
-      )}
-    >
-      <p className="text-[13px] font-medium text-muted-foreground m-0">{title}</p>
-      <p className="text-[11.5px] text-muted-foreground/70 leading-relaxed max-w-[260px] m-0">{body}</p>
+    <div className={cn('flex flex-col items-center justify-center gap-1.5 py-16 px-8 text-center', className)}>
+      <p className="text-[15px] font-medium m-0" style={{ color: INK }}>{title}</p>
+      <p className="text-[13.5px] leading-relaxed max-w-[280px] m-0" style={{ color: MUTED }}>{body}</p>
     </div>
   )
 }
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EaSkeletonRow
-//
-// A single shimmer row for the conversation list loading state.
-// Compose multiples to build the skeleton list.
+// EaSkeletonRow — one shimmer row for the conversation list loading state.
 // Uses the global `.skeleton` class from globals.css (shimmer keyframe).
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -313,16 +241,8 @@ interface EaSkeletonRowProps {
 
 export function EaSkeletonRow({ avatarSize = 'w-8 h-8', className }: EaSkeletonRowProps) {
   return (
-    <div
-      className={cn(
-        'flex items-start gap-3 px-3 py-3 border-b border-[--border-subtle]',
-        className,
-      )}
-      aria-hidden
-    >
-      {/* Avatar placeholder */}
+    <div className={cn('flex items-start gap-3 px-3 py-3 border-b', className)} style={{ borderColor: HAIR }} aria-hidden>
       <div className={cn('skeleton rounded-full flex-shrink-0', avatarSize)} />
-      {/* Text lines */}
       <div className="flex-1 min-w-0 flex flex-col gap-2 pt-0.5">
         <div className="flex items-center justify-between gap-4">
           <div className="skeleton h-2.5 w-28 rounded" />
@@ -336,9 +256,7 @@ export function EaSkeletonRow({ avatarSize = 'w-8 h-8', className }: EaSkeletonR
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EaSkeletonList
-//
-// Full conversation list skeleton — renders N shimmer rows.
+// EaSkeletonList — N shimmer rows.
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface EaSkeletonListProps {
@@ -358,10 +276,7 @@ export function EaSkeletonList({ rows = 6, className }: EaSkeletonListProps) {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EaSkeletonMessage
-//
-// A shimmer placeholder for a message card while thread is loading.
-// Shows a collapsed-card-style skeleton with avatar + two text lines.
+// EaSkeletonMessage — shimmer placeholder for a message while the thread loads.
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface EaSkeletonMessageProps {
@@ -370,13 +285,7 @@ interface EaSkeletonMessageProps {
 
 export function EaSkeletonMessage({ className }: EaSkeletonMessageProps) {
   return (
-    <div
-      className={cn(
-        'flex items-center gap-3 px-4 py-3 rounded-lg border border-[--border-subtle] bg-card',
-        className,
-      )}
-      aria-hidden
-    >
+    <div className={cn('flex items-center gap-3 px-4 py-3 rounded-[12px] border bg-white', className)} style={{ borderColor: HAIR }} aria-hidden>
       <div className="skeleton w-8 h-8 rounded-full flex-shrink-0" />
       <div className="flex-1 min-w-0 flex flex-col gap-1.5">
         <div className="flex items-center justify-between gap-8">
@@ -392,9 +301,7 @@ export function EaSkeletonMessage({ className }: EaSkeletonMessageProps) {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EaInlineError
-//
-// Small inline error text. Used in compose footer, draft generation, send action.
+// EaInlineError — small inline error text, body colour (no red).
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface EaInlineErrorProps {
@@ -404,11 +311,10 @@ interface EaInlineErrorProps {
 
 export function EaInlineError({ message, className }: EaInlineErrorProps) {
   return (
-    <span
-      className={cn('text-[11px] text-[--error] leading-tight max-w-[200px]', className)}
-      role="alert"
-    >
+    <span className={cn('text-[12.5px] leading-tight max-w-[240px]', className)} style={{ color: BODY }} role="alert">
       {message}
     </span>
   )
 }
+
+export const EA_TOKENS = { INK, BODY, MUTED, FAINT, FIELD, HAIR, CTRL } as const

@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, Pencil, Save, X } from 'lucide-react'
 import { PmComparison } from '@/components/pricing-matrix/PmComparison'
 import { PmLiveBenefitPreview } from '@/components/pricing-matrix/PmLiveBenefitPreview'
 import { PmQuoteActions } from '@/components/pricing-matrix/PmQuoteActions'
@@ -20,8 +19,12 @@ import { alignSelectedTerms } from '@/lib/pm-compare'
 import type { CompareRow } from '@/lib/pm-compare'
 import type { Recommendation, LegacyRecommendation } from '@/lib/pm-recommend'
 import { MetricCard, MetricGrid } from '@/components/shared/metric-card'
+import { Empty, Spinner } from '@/components/crm/primitives'
 
-const inp = 'text-[12.5px] border border-border rounded-md px-2 py-1 bg-background focus:outline-none focus:ring-2 focus:ring-primary/25'
+const INK = '#202124'
+const MUTED = '#5f6368'
+const RULE = '#e8eaed'
+const dateCls = 'h-12 w-full rounded-[12px] border border-[#dadce0] bg-white px-4 text-[15px] text-[#202124] outline-none focus:border-[#202124]'
 
 type Quote = {
   id: string; company_name: string | null; company_id: string | null; effective_date: string | null; member_count: number
@@ -138,79 +141,84 @@ export default function QuoteDetailPage() {
     setSaving(false); setEditing(false)
   }
 
-  if (loading) return <div className="flex items-center gap-2 text-[13px] text-muted-foreground py-24 justify-center"><Loader2 size={15} className="animate-spin" /> Loading…</div>
-  if (!quote) return <div className="p-8 text-sm text-rose-600">Not found.</div>
+  if (loading) return <div className="min-h-[calc(100vh-56px)] bg-white"><Spinner /></div>
+  if (!quote) return <div className="min-h-[calc(100vh-56px)] bg-white"><Empty>Quote not found.</Empty></div>
+
+  const meta = [`${quote.member_count} lives`, quote.effective_date ? `effective ${quote.effective_date}` : null, `created ${new Date(quote.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`].filter(Boolean).join(' · ')
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-6">
-      <Link href="/pricing-matrix/quote" className="inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground hover:text-foreground mb-3"><ArrowLeft size={14} /> Quotes</Link>
+    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
+      <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
+        <Link href="/pricing-matrix/quote" className="inline-flex items-center gap-1.5 text-[14px] no-underline hover:underline" style={{ color: MUTED }}>← Quotes</Link>
 
-      <div className="flex items-start justify-between gap-3 mb-1">
-        <h1 className="text-[18px] font-semibold text-foreground">{quote.company_name || 'Untitled quote'}</h1>
-        {!editing && (
-          <button onClick={startEdit} className="flex items-center gap-1.5 text-[12.5px] font-semibold px-3 py-1.5 rounded-lg border border-border hover:bg-muted shrink-0">
-            <Pencil size={13} /> Edit
-          </button>
-        )}
-      </div>
-      <p className="text-[12px] text-muted-foreground/70 mb-5">{quote.member_count} lives{quote.effective_date ? ` · eff. ${quote.effective_date}` : ''} · {new Date(quote.created_at).toLocaleString('en-SG')}</p>
-
-      {error && <div className="mb-4 text-[12.5px] text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{error}</div>}
-
-      {editing ? (
-        <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-3 max-w-lg items-start">
-            <CompanyContactPicker value={editCompanyPick} onChange={setEditCompanyPick} hideContact initialQuery={quote.company_name ?? ''} />
-            <input type="date" value={editEffDate} onChange={e => setEditEffDate(e.target.value)} title="Policy effective date" className={inp} />
+        <div className="mt-3 flex items-end justify-between gap-6 flex-wrap">
+          <div className="min-w-0">
+            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08] truncate">{quote.company_name || 'Untitled quote'}</h1>
+            <p className="m-0 mt-2 text-[13.5px] tabular-nums" style={{ color: MUTED }}>{meta}</p>
           </div>
-
-          <CensusEditor census={editCensus} setCensus={setEditCensus} companyId={editCompanyPick?.companyId ?? null} onRenameTier={renameOverrideCategory} />
-
-          <PlanSelectionEditor avail={avail} selected={editSelected} selections={editSelections} toggleInsurer={toggleInsurer} setSel={setSel} namedCount={editNamedCount} />
-
-          <CategoryOverrideEditor avail={avail} selected={editSelected} census={editCensus} overrides={editCategoryOverrides} setOverride={setOverride} />
-
-          {editSelectedIds.length > 0 && editNamedCount > 0 && (
-            <div className="flex flex-col gap-3 pt-2 border-t border-border/60">
-              <h2 className="text-[12.5px] font-semibold text-foreground/80">Live comparison <span className="font-normal text-muted-foreground/50">— updates instantly as you toggle plans above</span></h2>
-              {(() => {
-                const { cheapest, priciest, spread } = quoteSpreadStats(liveResult.insurers)
-                return cheapest && (
-                  <MetricGrid className="md:grid-cols-3">
-                    <MetricCard label="Cheapest" value={`$${cheapest.grand!.toLocaleString()}`} sub={cheapest.insurer_name} />
-                    <MetricCard label="Most expensive" value={priciest ? `$${priciest.grand!.toLocaleString()}` : '—'} sub={priciest?.insurer_name} />
-                    <MetricCard label="Spread" value={spread != null ? `$${spread.toLocaleString()}` : '—'} sub={spread != null ? 'across selected insurers' : undefined} />
-                  </MetricGrid>
-                )
-              })()}
-              <PmComparison result={liveResult} />
-              <PmLiveBenefitPreview rows={liveBenefitRows} insurers={editSelectedMeta} />
-            </div>
+          {!editing && (
+            <button type="button" onClick={startEdit} className="h-12 px-5 rounded-[12px] bg-white text-[15px] border cursor-pointer hover:bg-[#f8f9fa] shrink-0" style={{ borderColor: '#dadce0', color: INK }}>Edit</button>
           )}
+        </div>
 
-          <div className="flex justify-end gap-2">
-            <button onClick={() => setEditing(false)} disabled={saving} className="flex items-center gap-1.5 text-[13px] px-4 py-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-50"><X size={14} /> Cancel</button>
-            <button onClick={saveChanges} disabled={saving || editSelectedIds.length === 0 || editNamedCount === 0} className="flex items-center gap-1.5 text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-              {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}{saving ? 'Saving…' : 'Save changes'}
-            </button>
+        {error && <p role="alert" className="m-0 mt-5 text-[14px]" style={{ color: '#3c4043' }}>{error}</p>}
+
+        {editing ? (
+          <div className="mt-8 flex flex-col gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_200px] gap-3 max-w-[640px] items-start">
+              <CompanyContactPicker value={editCompanyPick} onChange={setEditCompanyPick} hideContact initialQuery={quote.company_name ?? ''} />
+              <input type="date" value={editEffDate} onChange={e => setEditEffDate(e.target.value)} title="Policy effective date" aria-label="Policy effective date" className={dateCls} />
+            </div>
+
+            <CensusEditor census={editCensus} setCensus={setEditCensus} companyId={editCompanyPick?.companyId ?? null} onRenameTier={renameOverrideCategory} />
+
+            <PlanSelectionEditor avail={avail} selected={editSelected} selections={editSelections} toggleInsurer={toggleInsurer} setSel={setSel} namedCount={editNamedCount} />
+
+            <CategoryOverrideEditor avail={avail} selected={editSelected} census={editCensus} overrides={editCategoryOverrides} setOverride={setOverride} />
+
+            {editSelectedIds.length > 0 && editNamedCount > 0 && (
+              <div className="flex flex-col gap-4 pt-6" style={{ borderTop: `1px solid ${RULE}` }}>
+                <h2 className="m-0 text-[16px] font-medium tracking-[-0.01em] leading-tight">Live comparison</h2>
+                {(() => {
+                  const { cheapest, priciest, spread } = quoteSpreadStats(liveResult.insurers)
+                  return cheapest && (
+                    <MetricGrid className="md:grid-cols-3">
+                      <MetricCard label="Lowest premium" value={`$${cheapest.grand!.toLocaleString()}`} sub={cheapest.insurer_name} />
+                      <MetricCard label="Highest premium" value={priciest ? `$${priciest.grand!.toLocaleString()}` : '—'} sub={priciest?.insurer_name} />
+                      <MetricCard label="Spread" value={spread != null ? `$${spread.toLocaleString()}` : '—'} sub={spread != null ? 'across selected insurers' : undefined} />
+                    </MetricGrid>
+                  )
+                })()}
+                <PmComparison result={liveResult} />
+                <h2 className="m-0 mt-2 text-[16px] font-medium tracking-[-0.01em] leading-tight">Benefit schedule</h2>
+                <PmLiveBenefitPreview rows={liveBenefitRows} insurers={editSelectedMeta} />
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 flex-wrap">
+              <button type="button" onClick={() => setEditing(false)} disabled={saving} className="h-12 px-5 rounded-[12px] bg-white text-[15px] border cursor-pointer hover:bg-[#f8f9fa] disabled:opacity-50" style={{ borderColor: '#dadce0', color: INK }}>Cancel</button>
+              <button type="button" onClick={saveChanges} disabled={saving || editSelectedIds.length === 0 || editNamedCount === 0} className="h-12 px-6 rounded-[12px] text-white text-[15px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed" style={{ background: INK }}>
+                {saving ? 'Saving…' : 'Save changes'}
+              </button>
+            </div>
           </div>
-        </div>
-      ) : quote.results ? (
-        <div className="flex flex-col gap-6">
-          {(() => {
-            const { cheapest, priciest, spread } = quoteSpreadStats(quote.results.insurers)
-            return cheapest && (
-              <MetricGrid className="md:grid-cols-3">
-                <MetricCard label="Cheapest" value={`$${cheapest.grand!.toLocaleString()}`} sub={cheapest.insurer_name} />
-                <MetricCard label="Most expensive" value={priciest ? `$${priciest.grand!.toLocaleString()}` : '—'} sub={priciest?.insurer_name} />
-                <MetricCard label="Spread" value={spread != null ? `$${spread.toLocaleString()}` : '—'} sub={spread != null ? 'across selected insurers' : undefined} />
-              </MetricGrid>
-            )
-          })()}
-          <PmComparison result={quote.results} />
-          <PmQuoteActions quoteId={quote.id} results={quote.results} initialRecommendation={quote.recommendation} initialPriorities={quote.priorities} />
-        </div>
-      ) : <p className="text-[13px] text-muted-foreground">No results stored for this quote.</p>}
+        ) : quote.results ? (
+          <div className="mt-8 flex flex-col gap-6">
+            {(() => {
+              const { cheapest, priciest, spread } = quoteSpreadStats(quote.results.insurers)
+              return cheapest && (
+                <MetricGrid className="md:grid-cols-3">
+                  <MetricCard label="Lowest premium" value={`$${cheapest.grand!.toLocaleString()}`} sub={cheapest.insurer_name} />
+                  <MetricCard label="Highest premium" value={priciest ? `$${priciest.grand!.toLocaleString()}` : '—'} sub={priciest?.insurer_name} />
+                  <MetricCard label="Spread" value={spread != null ? `$${spread.toLocaleString()}` : '—'} sub={spread != null ? 'across selected insurers' : undefined} />
+                </MetricGrid>
+              )
+            })()}
+            <PmComparison result={quote.results} />
+            <PmQuoteActions quoteId={quote.id} results={quote.results} initialRecommendation={quote.recommendation} initialPriorities={quote.priorities} />
+          </div>
+        ) : <Empty>No results stored for this quote.</Empty>}
+      </div>
     </div>
   )
 }

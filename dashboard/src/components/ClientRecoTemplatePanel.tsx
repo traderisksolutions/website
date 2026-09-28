@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useCallback } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input }  from '@/components/ui/input'
 
@@ -76,14 +76,8 @@ export default function ClientRecoTemplatePanel() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Client Recommendation Template</CardTitle>
-        <CardDescription>
-          The house skeleton for the compiled quotations email sent to the client once insurers reply.
-          The recommend agent follows this structure and fills the placeholders from the captured quotes —
-          <span className="font-medium"> {'{options_summary}'}</span> becomes the plain-language comparison and
-          <span className="font-medium"> {'{recommendation}'}</span> the broker&apos;s pick. Figures are never invented.
-        </CardDescription>
-      </CardHeader>
+        <CardTitle>Client recommendation</CardTitle>
+        </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {tpl === null ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
@@ -111,7 +105,7 @@ export default function ClientRecoTemplatePanel() {
                   <button
                     key={p}
                     onClick={() => navigator.clipboard.writeText(p)}
-                    className="text-[11px] font-mono rounded-md border border-border bg-muted/40 px-2 py-1 text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
+                    className="text-[11px] font-mono rounded-md border border-border bg-muted/40 px-2 py-1 text-muted-foreground hover:text-foreground hover:border-[#202124]/40 transition-colors"
                     title="Copy"
                   >
                     {p}
@@ -122,7 +116,7 @@ export default function ClientRecoTemplatePanel() {
 
             <div className="flex items-center gap-3">
               <Button onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save template'}</Button>
-              {saved && <span className="text-xs text-emerald-600 font-medium">Saved ✓</span>}
+              {saved && <span className="text-xs text-[#202124] font-medium">Saved ✓</span>}
             </div>
           </>
         )}

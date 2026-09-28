@@ -5,7 +5,8 @@ import { TopNavbar } from '@/components/nav/top-navbar'
 import { EngagementRail, useShowEngagementRail } from '@/components/nav/engagement-rail'
 import { ChatDockProvider } from '@/providers/chat-dock-provider'
 import { FloatingChatDock } from '@/components/chat/floating-chat-dock'
-import { EngagementNavProvider } from '@/providers/engagement-nav-provider'
+import { EngagementNavProvider, useEngagementNav } from '@/providers/engagement-nav-provider'
+import { RAIL_COLLAPSED } from '@/hooks/useResizableRailWidth'
 
 function MainContent({ children }: { children: React.ReactNode }) {
   // /engagement renders its conversation list as a fixed left rail (see EngagementRail) instead
@@ -13,11 +14,15 @@ function MainContent({ children }: { children: React.ReactNode }) {
   // --engagement-rail-w CSS var the rail itself resizes (see useResizableRailWidth), so dragging
   // the rail wider/narrower resizes this margin too without any prop-threading between the two
   // sibling components.
+  // Collapsed navigator = a fixed 64px icon rail; the margin follows it (EngagementRail also
+  // writes the same value into --engagement-rail-w, this is the explicit fallback).
   const showEngagementRail = useShowEngagementRail()
+  const { navCollapsed } = useEngagementNav()
+  const marginLeft = !showEngagementRail ? 0 : navCollapsed ? `${RAIL_COLLAPSED}px` : 'var(--engagement-rail-w, 380px)'
   return (
     <div
       className="main-content min-h-[calc(100vh/var(--ui-zoom))] flex flex-col"
-      style={{ background: 'hsl(var(--background))', marginLeft: showEngagementRail ? 'var(--engagement-rail-w, 340px)' : 0 }}
+      style={{ background: 'hsl(var(--background))', marginLeft }}
     >
       {children}
     </div>

@@ -1,20 +1,25 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
-import { X, ChevronRight, ChevronDown, Users, Copy, Check, Plus, UploadCloud } from 'lucide-react'
+import { useEffect, useState, useCallback, Fragment } from 'react'
+import { X, ChevronRight, ChevronDown, Copy, Check } from 'lucide-react'
 import BulkImportContacts from '@/components/BulkImportContacts'
 import { cn } from '@/lib/utils'
-import { AppSplitLayout, AppMainPanel, AppPageHeader } from '@/components/app-shell'
-import { DataTableToolbar, DataTableSearch } from '@/components/data-table/toolbar'
+import { AppSplitLayout, AppMainPanel } from '@/components/app-shell'
+import { DataTableSearch } from '@/components/data-table/toolbar'
 import { StatusBadge } from '@/components/status-badge'
 import type { AppStatus } from '@/components/status-badge'
 import { DetailSection, DetailField } from '@/components/detail-section'
+import { Avatar, Chip, textareaCls } from '@/components/crm/primitives'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterGroupRow, RegisterEmpty } from '@/components/ui/register'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog'
 import { CompaniesTab } from '@/components/contacts/CompaniesTab'
+
+const INK = '#202124'
+const MUTED = '#5f6368'
 
 interface Contact {
   id: string; first_name: string | null; last_name: string | null
@@ -86,10 +91,10 @@ function SkeletonRows() {
   return (
     <>
       {Array.from({ length: 8 }).map((_, i) => (
-        <tr key={i} className="border-b border-[--border-subtle]">
-          {[60, 45, 30, 20, 25].map((w, j) => (
-            <td key={j} className={cn('px-3 h-11', j === 0 && 'pl-8')}>
-              <div className="skeleton sk-cell" style={{ width: `${w}%`, height: 10 }} />
+        <tr key={i} style={{ borderBottom: '1px solid #e8eaed' }}>
+          {[60, 30, 25, 40].map((w, j) => (
+            <td key={j} className={cn('px-4 h-14', j === 0 && 'pl-6', j === 3 && 'pr-6')}>
+              <div className={cn('h-3.5 rounded bg-[#f1f3f4] animate-pulse', j === 3 && 'ml-auto')} style={{ width: `${w}%` }} />
             </td>
           ))}
         </tr>
@@ -99,7 +104,7 @@ function SkeletonRows() {
 }
 
 // ── Add-contact dialog ────────────────────────────────────────────────────────
-// Manually create a person in Active Contacts. All fields optional, but the
+// Manually create a person in Contacts. All fields optional, but the
 // contacts table needs at least one of email / phone.
 
 const EMPTY_PERSON = { first_name: '', last_name: '', email: '', phone: '', company: '', notes: '' }
@@ -137,33 +142,33 @@ function AddContactDialog({ open, onOpenChange, onSaved, referral = false }: {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{referral ? 'Log a referral' : 'Add contact'}</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-[20px] font-medium tracking-[-0.01em]" style={{ color: INK }}>{referral ? 'Log referral' : 'Add contact'}</DialogTitle>
+          <DialogDescription className="text-[14px]" style={{ color: MUTED }}>
             {referral
-              ? 'Log a person referred to TRS by the team. Tracked in Pipeline like any other lead. Provide at least an email or phone.'
-              : 'Add a person to Active Contacts. Provide at least an email or phone.'}
+              ? 'A person referred to TRS by the team. Tracked in Pipeline like any other lead. Email or phone required.'
+              : 'Email or phone required.'}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-2">
-          <div className="grid grid-cols-2 gap-2">
-            <Input placeholder="First name" value={form.first_name} onChange={e => set('first_name', e.target.value)} />
-            <Input placeholder="Last name"  value={form.last_name}  onChange={e => set('last_name', e.target.value)} />
+        <div className="flex flex-col gap-2.5">
+          <div className="grid grid-cols-2 gap-2.5">
+            <Input placeholder="First name" aria-label="First name" value={form.first_name} onChange={e => set('first_name', e.target.value)} />
+            <Input placeholder="Last name"  aria-label="Last name"  value={form.last_name}  onChange={e => set('last_name', e.target.value)} />
           </div>
-          <Input placeholder="Email" value={form.email} onChange={e => set('email', e.target.value)} />
-          <Input placeholder="Phone" value={form.phone} onChange={e => set('phone', e.target.value)} />
-          <Input placeholder="Company" value={form.company} onChange={e => set('company', e.target.value)} />
+          <Input placeholder="Email" aria-label="Email" value={form.email} onChange={e => set('email', e.target.value)} />
+          <Input placeholder="Phone" aria-label="Phone" value={form.phone} onChange={e => set('phone', e.target.value)} />
+          <Input placeholder="Company" aria-label="Company" value={form.company} onChange={e => set('company', e.target.value)} />
           {referral && (
             <textarea
-              placeholder="Who referred them, and what do they need? (optional)"
+              placeholder="Who referred them, and what they need"
+              aria-label="Referral notes"
               value={form.notes}
               onChange={e => set('notes', e.target.value)}
               rows={3}
-              className="w-full text-[13px] px-2.5 py-2 rounded-md bg-background resize-y font-[inherit]"
-              style={{ border: '1px solid var(--border-subtle)' }}
+              className={textareaCls}
             />
           )}
-          {error && <p className="text-xs text-destructive">{error}</p>}
+          {error && <p className="m-0 text-[13px]" style={{ color: MUTED }}>{error}</p>}
         </div>
 
         <DialogFooter>
@@ -172,6 +177,25 @@ function AddContactDialog({ open, onOpenChange, onSaved, referral = false }: {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  )
+}
+
+/** Contacts | Companies switch, as underline tabs (same pattern as the Companies page). */
+function ContactsViewTabs({ view, onChange }: { view: 'contacts' | 'companies'; onChange: (v: 'contacts' | 'companies') => void }) {
+  return (
+    <div className="mt-4 flex items-center gap-6" role="tablist" aria-label="Contacts or companies">
+      {(['contacts', 'companies'] as const).map(k => {
+        const on = view === k
+        return (
+          <button key={k} type="button" role="tab" aria-selected={on} onClick={() => onChange(k)}
+            className={cn('relative pb-2 bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#202124]')}
+            style={{ color: on ? INK : MUTED }}>
+            {k === 'contacts' ? 'Contacts' : 'Companies'}
+            <span className={cn('absolute left-0 right-0 bottom-0 h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: INK }} aria-hidden />
+          </button>
+        )
+      })}
+    </div>
   )
 }
 
@@ -202,7 +226,7 @@ export default function ContactsPage() {
       for (const c of (Array.isArray(conversations) ? conversations : [])) {
         if (c.email && !seen.includes(c.email.toLowerCase())) { merged.push(c); seen.push(c.email.toLowerCase()) }
       }
-      // Manually-added contacts (Active Contacts "+ Add") that aren't already surfaced.
+      // Manually-added contacts (Contacts "Add contact") that aren't already surfaced.
       for (const c of (Array.isArray(manual) ? manual : [])) {
         if (c.email && !seen.includes(c.email.toLowerCase())) { merged.push(c); seen.push(c.email.toLowerCase()) }
       }
@@ -239,219 +263,148 @@ export default function ContactsPage() {
   }
 
   return (
-    <AppSplitLayout>
+    <AppSplitLayout className="bg-white">
 
       {/* ── Main table area ── */}
-      <AppMainPanel>
+      <AppMainPanel className="bg-white">
 
-        <AppPageHeader
-          title="Contacts"
-          description={loading
-            ? 'Loading contacts…'
-            : `${primaryCount} contact${primaryCount !== 1 ? 's' : ''}${ccCount > 0 ? ` · ${ccCount} CC` : ''}`}
-          actions={
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted mr-1">
-                <button onClick={() => setView('contacts')} className="text-[11.5px] font-semibold px-2.5 py-1 rounded bg-card text-foreground" style={{ boxShadow: 'var(--card-shadow)' }}>Contacts</button>
-                <button onClick={() => setView('companies')} className="text-[11.5px] font-medium px-2.5 py-1 rounded text-muted-foreground hover:text-foreground">Companies</button>
-              </div>
-              <Button size="sm" variant="outline" onClick={() => setImportOpen(true)} className="gap-1.5">
-                <UploadCloud size={14} /> Import CSV
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setReferralOpen(true)} className="gap-1.5">
-                <Users size={14} /> Log referral
-              </Button>
-              <Button size="sm" onClick={() => setAddOpen(true)} className="gap-1.5">
-                <Plus size={14} /> Add contact
-              </Button>
+        {/* Header: title, count line, view tabs, actions */}
+        <div className="flex-shrink-0 px-6 sm:px-12 pt-10" style={{ color: INK }}>
+          <div className="flex items-end justify-between gap-6 flex-wrap">
+            <div className="min-w-0">
+              <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Contacts</h1>
+              <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>
+                {loading ? 'Loading…' : `${primaryCount} contact${primaryCount !== 1 ? 's' : ''}${ccCount > 0 ? ` · ${ccCount} cc` : ''}`}
+              </p>
+              <ContactsViewTabs view={view} onChange={setView} />
             </div>
-          }
-        />
+            <div className="flex items-center gap-3 flex-wrap pb-2">
+              <Button size="lg" variant="outline" onClick={() => setImportOpen(true)}>Import CSV</Button>
+              <Button size="lg" variant="outline" onClick={() => setReferralOpen(true)}>Log referral</Button>
+              <Button size="lg" onClick={() => setAddOpen(true)}>Add contact</Button>
+            </div>
+          </div>
+
+          {/* Filter row: status pills left, search right */}
+          <div className="mt-5 pb-4 flex items-center justify-between gap-3 flex-wrap" style={{ borderBottom: '1px solid #e8eaed' }}>
+            <div className="flex flex-wrap gap-1.5 min-w-0" role="group" aria-label="Filter by status">
+              {STATUS_OPTIONS.map(s => (
+                <button key={s} type="button" onClick={() => setFilter(s)}
+                  aria-pressed={filter === s}
+                  className={cn('filter-pill', filter === s && 'active')}>
+                  {STATUS_LABELS[s] ?? s}
+                </button>
+              ))}
+            </div>
+            <DataTableSearch
+              value={search}
+              onChange={setSearch}
+              placeholder="Search contacts"
+              className="flex-shrink-0"
+            />
+          </div>
+        </div>
 
         <AddContactDialog open={addOpen} onOpenChange={setAddOpen} onSaved={load} />
         <AddContactDialog open={referralOpen} onOpenChange={setReferralOpen} onSaved={load} referral />
         <BulkImportContacts open={importOpen} onOpenChange={setImportOpen} onImported={load} />
 
-        {/* Table card */}
-        <div className="flex-1 overflow-hidden px-6 pb-6">
-          <div className="h-full flex flex-col rounded-xl bg-card overflow-hidden" style={{ boxShadow: 'var(--card-shadow)' }}>
+        {/* Table */}
+        <div className="flex-1 overflow-auto px-6 sm:px-12 pt-6 pb-16" style={{ color: INK }}>
+          <Register label="Contacts by company" minWidth={640}>
+            <RegisterHead>
+              <RegisterTh first hint="Name, and the email on file">Name</RegisterTh>
+              <RegisterTh hint="Where the contact came from">Source</RegisterTh>
+              <RegisterTh>Status</RegisterTh>
+              <RegisterTh last align="right" hint="Date the contact was first recorded">Added</RegisterTh>
+            </RegisterHead>
+            <tbody>
+              {loading ? (
+                <SkeletonRows />
+              ) : groups.length === 0 ? (
+                <RegisterEmpty colSpan={4}>
+                  {search
+                    ? <>No contacts match “{search}”. <button type="button" onClick={() => setSearch('')} className="underline bg-transparent border-0 cursor-pointer p-0 text-[15px]" style={{ color: INK }}>Clear search</button></>
+                    : 'No contacts yet. Leads appear here as they arrive.'}
+                </RegisterEmpty>
+              ) : (
+                groups.map(group => {
+                  const key = group.company ?? '—'
+                  const isCollapsed = effectiveCollapsed.has(key)
+                  const ccInGroup = group.contacts.filter(c => c.isCC).length
+                  return (
+                    <Fragment key={key}>
+                      {/* Company group header */}
+                      <RegisterGroupRow colSpan={4} onClick={() => toggleCollapse(key)} open={!isCollapsed}>
+                        <span className="flex items-center gap-2 select-none">
+                          <span className="flex-shrink-0" style={{ color: '#9aa0a6' }} aria-hidden>
+                            {isCollapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+                          </span>
+                          <span style={{ color: group.company ? '#3c4043' : MUTED }}>{group.company ?? 'No company'}</span>
+                          <span className="font-normal tabular-nums" style={{ color: '#80868b' }}>{group.contacts.length}</span>
+                          {ccInGroup > 0 && <span className="font-normal" style={{ color: '#80868b' }}>{ccInGroup} cc</span>}
+                        </span>
+                      </RegisterGroupRow>
 
-            {/* Filter / Search toolbar */}
-            <DataTableToolbar>
-              <div className="flex flex-wrap gap-1 flex-1 min-w-0">
-                {STATUS_OPTIONS.map(s => (
-                  <button key={s} onClick={() => setFilter(s)}
-                    aria-pressed={filter === s}
-                    className={cn('filter-pill', filter === s && 'active')}>
-                    {STATUS_LABELS[s] ?? s}
-                  </button>
-                ))}
-              </div>
-              <DataTableSearch
-                value={search}
-                onChange={setSearch}
-                placeholder="Search contacts…"
-                className="flex-shrink-0"
-              />
-            </DataTableToolbar>
+                      {/* Contacts in group */}
+                      {!isCollapsed && group.contacts.map(contact => {
+                        const on = selected?.id === contact.id
+                        return (
+                          <RegisterRow key={contact.id} selected={on} onClick={() => setSelected(on ? null : contact)}>
+                            <RegisterCell first selected={on} title={contact.email ?? undefined}
+                              primary={<span className="inline-flex items-center gap-2 max-w-full"><span className="truncate min-w-0">{fullName(contact)}</span>{contact.isCC && <Chip>CC</Chip>}</span>}
+                              secondary={contact.email ?? 'No email on file'} />
+                            <RegisterCell><Chip>{SOURCE_LABEL[contact.source] ?? contact.source}</Chip></RegisterCell>
+                            <RegisterCell><StatusBadge status={contact.status as AppStatus} /></RegisterCell>
+                            <RegisterCell last align="right"><span className="text-[13.5px] tabular-nums" style={{ color: MUTED }}>{fmtDate(contact.created_at)}</span></RegisterCell>
+                          </RegisterRow>
+                        )
+                      })}
+                    </Fragment>
+                  )
+                })
+              )}
+            </tbody>
+          </Register>
 
-            {/* Table */}
-            <div className="flex-1 overflow-auto">
-              <table className="data-table w-full border-collapse text-[13px]">
-                <thead>
-                  <tr>
-                    <th className="pl-8 pr-3 text-left">Name</th>
-                    <th className="text-left">Email</th>
-                    <th className="text-left">Source</th>
-                    <th className="text-left">Status</th>
-                    <th className="text-right pr-4">Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <SkeletonRows />
-                  ) : groups.length === 0 ? (
-                    <tr>
-                      <td colSpan={5}>
-                        <div className="empty-state">
-                          <div className="empty-icon-wrap">
-                            <Users size={20} className="text-muted-foreground" />
-                          </div>
-                          <p className="empty-title">{search ? 'No contacts found' : 'No contacts yet'}</p>
-                          <p className="empty-desc">
-                            {search
-                              ? `No contacts match "${search}"`
-                              : 'Contacts will appear here once leads start coming in.'}
-                          </p>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    groups.map(group => {
-                      const key = group.company ?? '—'
-                      const isCollapsed = effectiveCollapsed.has(key)
-                      const ccInGroup = group.contacts.filter(c => c.isCC).length
-                      return (
-                        <>
-                          {/* Company group header */}
-                          <tr key={`g-${key}`}
-                            onClick={() => toggleCollapse(key)}
-                            className="group-row cursor-pointer select-none">
-                            <td colSpan={5} className="pl-3">
-                              <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground/40 flex-shrink-0">
-                                  {isCollapsed
-                                    ? <ChevronRight size={11} strokeWidth={2.5} />
-                                    : <ChevronDown  size={11} strokeWidth={2.5} />}
-                                </span>
-                                <span className="text-[12.5px] font-semibold text-foreground tracking-tight uppercase">
-                                  {group.company ?? <span className="text-muted-foreground/35 font-normal italic text-[12px] normal-case">No company</span>}
-                                </span>
-                                <span className="inline-flex items-center text-[10.5px] font-semibold text-muted-foreground/55 bg-muted/70 rounded px-1.5 py-px leading-none">
-                                  {group.contacts.length}
-                                </span>
-                                {ccInGroup > 0 && (
-                                  <span className="text-[10px] font-semibold text-muted-foreground/40 uppercase tracking-widest">
-                                    {ccInGroup} CC
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-
-                          {/* Contacts in group */}
-                          {!isCollapsed && group.contacts.map(contact => (
-                            <tr key={contact.id}
-                              onClick={() => setSelected(selected?.id === contact.id ? null : contact)}
-                              className={cn(
-                                'cursor-pointer border-b border-[--border-subtle] transition-colors',
-                                selected?.id === contact.id
-                                  ? 'row-selected'
-                                  : 'hover:bg-muted/40',
-                              )}>
-                              <td className="pl-8 pr-3 h-11">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[13px] font-medium text-foreground leading-none">
-                                    {fullName(contact)}
-                                  </span>
-                                  {contact.isCC && (
-                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-[6px] bg-muted/80 text-muted-foreground/50 uppercase tracking-widest leading-none">
-                                      CC
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="text-[12px] text-muted-foreground pr-3 max-w-[200px]">
-                                <span className="block overflow-hidden text-ellipsis whitespace-nowrap">
-                                  {contact.email ?? '—'}
-                                </span>
-                              </td>
-                              <td className="pr-3">
-                                <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
-                                  {SOURCE_LABEL[contact.source] ?? contact.source}
-                                </span>
-                              </td>
-                              <td className="pr-3">
-                                <StatusBadge status={contact.status as AppStatus} />
-                              </td>
-                              <td className="text-[11px] text-muted-foreground/60 whitespace-nowrap text-right pr-4">
-                                {fmtDate(contact.created_at)}
-                              </td>
-                            </tr>
-                          ))}
-                        </>
-                      )
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Table footer */}
-            {!loading && groups.length > 0 && (
-              <div className="px-4 py-2.5 border-t border-[--border-subtle] bg-muted/20 flex-shrink-0">
-                <span className="text-[11px] text-muted-foreground/60">
-                  {filtered.length} contact{filtered.length !== 1 ? 's' : ''}
-                  {filter !== 'all' && ` · filtered by ${filter}`}
-                </span>
-              </div>
-            )}
-          </div>
+          {!loading && groups.length > 0 && (
+            <p className="m-0 mt-4 text-[12.5px]" style={{ color: MUTED }}>
+              {filtered.length} contact{filtered.length !== 1 ? 's' : ''}
+              {filter !== 'all' && ` · ${STATUS_LABELS[filter] ?? filter}`}
+            </p>
+          )}
         </div>
       </AppMainPanel>
 
-      {/* ── Detail panel ── */}
+      {/* ── Detail panel: overlay under 768px, side pane above ── */}
       {selected && (
-        <div className="w-[300px] flex-shrink-0 border-l border-[--border-subtle] bg-card overflow-y-auto flex flex-col">
+        <div className="fixed inset-0 z-40 md:static md:inset-auto md:z-auto md:w-[320px] md:flex-shrink-0 bg-white overflow-y-auto flex flex-col"
+          style={{ color: INK, borderLeft: '1px solid #e8eaed' }}>
 
           {/* Panel header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[--border-subtle] flex-shrink-0">
-            <span className="text-[10px] font-bold uppercase tracking-[0.07em] text-muted-foreground/55">
-              Contact Details
-            </span>
+          <div className="flex items-center justify-between px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid #e8eaed' }}>
+            <span className="text-[16px] font-medium tracking-[-0.01em]">Contact</span>
             <button
+              type="button"
               onClick={() => setSelected(null)}
               aria-label="Close"
-              className="p-1 rounded-md hover:bg-muted transition-colors text-muted-foreground/60 hover:text-foreground bg-transparent border-0 cursor-pointer">
-              <X size={13} />
+              className="w-8 h-8 inline-flex items-center justify-center rounded-[8px] hover:bg-[#f1f3f4] transition-colors bg-transparent border-0 cursor-pointer"
+              style={{ color: MUTED }}>
+              <X size={14} />
             </button>
           </div>
 
           {/* Identity */}
           <DetailSection>
             <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-full bg-primary/[0.07] flex items-center justify-center flex-shrink-0 text-[13px] font-bold text-primary/70">
-                {(selected.first_name?.[0] ?? selected.email?.[0] ?? '?').toUpperCase()}
-              </div>
+              <Avatar name={fullName(selected)} className="w-9 h-9" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                  <p className="text-[13.5px] font-semibold text-foreground m-0 leading-tight">{fullName(selected)}</p>
-                  {selected.isCC && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-[4px] bg-muted/80 text-muted-foreground/50 uppercase tracking-widest leading-none">CC</span>
-                  )}
+                  <p className="text-[15px] font-medium m-0 leading-tight" style={{ color: INK }}>{fullName(selected)}</p>
+                  {selected.isCC && <Chip>CC</Chip>}
                 </div>
                 {resolvedCompany(selected) && (
-                  <p className="text-[12px] text-muted-foreground mb-1.5 uppercase">{resolvedCompany(selected)}</p>
+                  <p className="text-[13px] m-0 mb-2" style={{ color: MUTED }}>{resolvedCompany(selected)}</p>
                 )}
                 <StatusBadge status={(selected.isCC ? 'cc' : selected.status) as AppStatus} />
               </div>
@@ -463,38 +416,42 @@ export default function ContactsPage() {
             {selected.email && (
               <DetailField label="Email">
                 <button
+                  type="button"
                   onClick={() => copy(selected.email!, 'email')}
+                  aria-label={`Copy email ${selected.email}`}
                   className="flex items-center gap-1.5 max-w-full bg-transparent border-0 p-0 cursor-pointer text-left">
-                  <span className="text-[12px] text-foreground/85 overflow-hidden text-ellipsis whitespace-nowrap max-w-[200px] block leading-[1.5]">
+                  <span className="overflow-hidden text-ellipsis whitespace-nowrap max-w-[220px] block" style={{ color: INK }}>
                     {selected.email}
                   </span>
                   {copied === 'email'
-                    ? <Check size={11} className="text-emerald-500 flex-shrink-0" />
-                    : <Copy size={10} className="text-muted-foreground/30 flex-shrink-0 hover:text-muted-foreground" />}
+                    ? <Check size={12} className="flex-shrink-0" style={{ color: INK }} />
+                    : <Copy size={12} className="flex-shrink-0" style={{ color: '#9aa0a6' }} />}
                 </button>
               </DetailField>
             )}
             {selected.phone && (
               <DetailField label="Phone">
                 <button
+                  type="button"
                   onClick={() => copy(selected.phone!, 'phone')}
+                  aria-label={`Copy phone ${selected.phone}`}
                   className="flex items-center gap-1.5 bg-transparent border-0 p-0 cursor-pointer">
-                  <span className="text-[12px] text-foreground/85 leading-[1.5]">{selected.phone}</span>
+                  <span style={{ color: INK }}>{selected.phone}</span>
                   {copied === 'phone'
-                    ? <Check size={11} className="text-emerald-500 flex-shrink-0" />
-                    : <Copy size={10} className="text-muted-foreground/30 flex-shrink-0" />}
+                    ? <Check size={12} className="flex-shrink-0" style={{ color: INK }} />
+                    : <Copy size={12} className="flex-shrink-0" style={{ color: '#9aa0a6' }} />}
                 </button>
               </DetailField>
             )}
           </DetailSection>
 
           {/* Lead info */}
-          <DetailSection label="Lead Info" className="flex-1">
+          <DetailSection label="Lead" className="flex-1">
             {[
               { label: 'Source',     value: SOURCE_LABEL[selected.source] ?? selected.source },
               { label: 'Department', value: selected.department },
               { label: 'Message',    value: selected.message },
-              { label: 'Created',    value: new Date(selected.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }) },
+              { label: 'Added',      value: new Date(selected.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }) },
             ].filter(f => f.value).map(f => (
               <DetailField key={f.label} label={f.label}>
                 {f.value}

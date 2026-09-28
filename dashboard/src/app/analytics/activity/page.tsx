@@ -1,7 +1,10 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { RefreshCw, ChevronDown, ChevronRight } from 'lucide-react'
+import { Btn, Chip, Segmented, inputCls } from '@/components/crm/primitives'
+import { PersonTag } from '@/components/board/TodoEditor'
+import type { StaffMember } from '@/lib/crm/staff'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -21,37 +24,48 @@ type LogRow = {
 }
 
 // ── Action config ─────────────────────────────────────────────────────────────
+// Every action renders as the same neutral chip; the label carries the meaning.
 
-const ACTION_CONFIG: Record<string, { label: string; color: string; bg: string; group: string }> = {
-  'email.sent':           { label: 'Email sent',          color: '#15803d', bg: '#f0fdf4', group: 'Email' },
-  'draft.approved':       { label: 'Approved & sent',      color: '#15803d', bg: '#f0fdf4', group: 'Email' },
-  'draft.generated':      { label: 'Generated draft',     color: '#1d4ed8', bg: '#eff6ff', group: 'AI' },
-  'rag_draft.generated':  { label: 'Generated RAG draft', color: '#6d28d9', bg: '#f5f3ff', group: 'AI' },
-  'draft.rejected':       { label: 'Rejected draft',      color: '#b45309', bg: '#fffbeb', group: 'AI' },
-  'status.changed':       { label: 'Status changed',      color: '#7c3aed', bg: '#f5f3ff', group: 'Lead' },
-  'note.saved':           { label: 'Note saved',          color: '#0891b2', bg: '#ecfeff', group: 'Lead' },
-  'thread.viewed':        { label: 'Viewed thread',       color: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--muted))', group: 'Navigation' },
+const ACTION_CONFIG: Record<string, { label: string; group: string }> = {
+  'email.sent':           { label: 'Email sent',          group: 'Email' },
+  'draft.approved':       { label: 'Approved and sent',   group: 'Email' },
+  'draft.generated':      { label: 'Generated draft',     group: 'AI' },
+  'rag_draft.generated':  { label: 'Generated RAG draft', group: 'AI' },
+  'draft.rejected':       { label: 'Rejected draft',      group: 'AI' },
+  'status.changed':       { label: 'Status changed',      group: 'Lead' },
+  'note.saved':           { label: 'Note saved',          group: 'Lead' },
+  'thread.viewed':        { label: 'Viewed thread',       group: 'Navigation' },
   // Nexus
-  'nexus.case_renamed':        { label: 'Renamed case',        color: '#7c3aed', bg: '#f5f3ff', group: 'Nexus' },
-  'nexus.case_status_changed': { label: 'Changed case status', color: '#7c3aed', bg: '#f5f3ff', group: 'Nexus' },
-  'nexus.case_updated':        { label: 'Updated case',        color: '#7c3aed', bg: '#f5f3ff', group: 'Nexus' },
-  'nexus.analysis_run':        { label: 'Ran analysis',        color: '#6d28d9', bg: '#f5f3ff', group: 'Nexus' },
-  'nexus.analysis_edited':     { label: 'Edited analysis',     color: '#6d28d9', bg: '#f5f3ff', group: 'Nexus' },
-  'nexus.thread_linked':       { label: 'Linked thread',       color: '#4f46e5', bg: '#eef2ff', group: 'Nexus' },
-  'nexus.thread_unlinked':     { label: 'Unlinked thread',     color: '#b45309', bg: '#fffbeb', group: 'Nexus' },
-  'nexus.case_viewed':         { label: 'Opened case',         color: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--muted))', group: 'Navigation' },
+  'nexus.case_renamed':        { label: 'Renamed case',        group: 'Nexus' },
+  'nexus.case_status_changed': { label: 'Changed case status', group: 'Nexus' },
+  'nexus.case_updated':        { label: 'Updated case',        group: 'Nexus' },
+  'nexus.analysis_run':        { label: 'Ran analysis',        group: 'Nexus' },
+  'nexus.analysis_edited':     { label: 'Edited analysis',     group: 'Nexus' },
+  'nexus.thread_linked':       { label: 'Linked thread',       group: 'Nexus' },
+  'nexus.thread_unlinked':     { label: 'Unlinked thread',     group: 'Nexus' },
+  'nexus.case_viewed':         { label: 'Opened case',         group: 'Navigation' },
   // RFQ
-  'rfq.dispatched':            { label: 'Sent RFQ to insurer', color: '#4f46e5', bg: '#eef2ff', group: 'RFQ' },
-  'contacts.bulk_import':      { label: 'Imported contacts',   color: '#0891b2', bg: '#ecfeff', group: 'Lead' },
+  'rfq.dispatched':            { label: 'Sent RFQ to insurer', group: 'RFQ' },
+  'contacts.bulk_import':      { label: 'Imported contacts',   group: 'Lead' },
 }
 const ALL_ACTION_TYPES = Object.keys(ACTION_CONFIG)
 const ACTION_GROUPS = ['Email', 'AI', 'Nexus', 'RFQ', 'Lead', 'Navigation']
 
 function actionCfg(action: string) {
-  return ACTION_CONFIG[action] ?? { label: action, color: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--muted))', group: 'Other' }
+  return ACTION_CONFIG[action] ?? { label: action, group: 'Other' }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+const INK = '#202124'
+const MUTED = '#5f6368'
+const RULE = '#e8eaed'
+const FIELD = '#f1f3f4'
+
+type Period = '7' | '30' | '90' | '0'
+const PERIODS: { value: Period; label: string }[] = [
+  { value: '7', label: '7d' }, { value: '30', label: '30d' }, { value: '90', label: '90d' }, { value: '0', label: 'All' },
+]
 
 function timeAgo(iso: string) {
   const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
@@ -71,14 +85,6 @@ function fmtFull(iso: string) {
   })
 }
 
-function initials(email: string) {
-  const name = email.split('@')[0]
-  const parts = name.split(/[._-]/)
-  return parts.length > 1
-    ? (parts[0][0] + parts[1][0]).toUpperCase()
-    : name.slice(0, 2).toUpperCase()
-}
-
 function displayName(row: LogRow) {
   if (row.user_name) return row.user_name
   return row.user_email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
@@ -92,7 +98,7 @@ function describeAction(row: LogRow): string {
     case 'email.sent':
       return `Sent email to ${nv?.recipient ?? row.lead_email ?? '?'}${nv?.subject ? ` — "${nv.subject}"` : ''}`
     case 'draft.approved':
-      return `Approved & sent reply${m?.contact ? ` to ${m.contact}` : row.lead_email ? ` to ${row.lead_email}` : ''}${m?.chars ? ` (${m.chars} chars)` : ''}`
+      return `Approved and sent reply${m?.contact ? ` to ${m.contact}` : row.lead_email ? ` to ${row.lead_email}` : ''}${m?.chars ? ` (${m.chars} chars)` : ''}`
     case 'draft.generated':
       return `Generated AI draft${m?.contact ? ` for ${m.contact}` : row.lead_email ? ` for ${row.lead_email}` : ''}`
     case 'rag_draft.generated':
@@ -115,9 +121,9 @@ function describeAction(row: LogRow): string {
 function JsonBlock({ label, data }: { label: string; data: Record<string, unknown> | null }) {
   if (!data || Object.keys(data).length === 0) return null
   return (
-    <div style={{ marginTop: 8 }}>
-      <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'hsl(var(--muted-foreground))' }}>{label}</p>
-      <pre style={{ margin: 0, padding: '8px 10px', background: 'hsl(var(--muted))', border: '1px solid var(--border-subtle)', borderRadius: 6, fontSize: 11, color: 'hsl(var(--foreground))', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: 200, overflowY: 'auto', fontFamily: 'ui-monospace, monospace' }}>
+    <div className="mt-2 min-w-0">
+      <p className="m-0 mb-1 text-[12px]" style={{ color: MUTED }}>{label}</p>
+      <pre className="m-0 px-3 py-2 rounded-[10px] text-[12px] leading-relaxed whitespace-pre-wrap break-all max-h-[200px] overflow-y-auto" style={{ background: FIELD, color: INK, fontFamily: 'ui-monospace, monospace' }}>
         {JSON.stringify(data, null, 2)}
       </pre>
     </div>
@@ -128,14 +134,14 @@ function RowDetail({ row }: { row: LogRow }) {
   const hasDetail = row.old_value || row.new_value || row.metadata || row.resource_id
   if (!hasDetail) return null
   return (
-    <div style={{ padding: '10px 16px 14px 58px', background: 'hsl(var(--muted))', borderTop: '1px solid var(--border-subtle)' }}>
+    <div className="pb-4 pt-1 pl-0 sm:pl-[140px]">
       {row.resource_type && row.resource_id && (
-        <p style={{ margin: '0 0 8px', fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>
-          {row.resource_type} · <code style={{ fontFamily: 'ui-monospace, monospace', fontSize: 10 }}>{row.resource_id}</code>
+        <p className="m-0 mb-2 text-[12.5px]" style={{ color: MUTED }}>
+          {row.resource_type} · <code className="text-[12px]" style={{ fontFamily: 'ui-monospace, monospace' }}>{row.resource_id}</code>
         </p>
       )}
       {row.old_value && row.new_value && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
           <JsonBlock label="Before" data={row.old_value} />
           <JsonBlock label="After"  data={row.new_value} />
         </div>
@@ -145,14 +151,6 @@ function RowDetail({ row }: { row: LogRow }) {
       {row.metadata && <JsonBlock label="Metadata" data={row.metadata} />}
     </div>
   )
-}
-
-// ── Avatar ────────────────────────────────────────────────────────────────────
-
-const AVATAR_COLORS = ['#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4','#ec4899']
-function avatarColor(email: string) {
-  let h = 0; for (const c of email) h = (h * 31 + c.charCodeAt(0)) >>> 0
-  return AVATAR_COLORS[h % AVATAR_COLORS.length]
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
@@ -187,6 +185,18 @@ export default function ActivityLogPage() {
     )
   )).sort()
 
+  // Staff directory for PersonTag, derived from the rows already loaded (no extra fetch).
+  const staff = useMemo(() => {
+    const by = new Map<string, StaffMember>()
+    for (const l of logs) {
+      if (!l.user_email) continue
+      const cur = by.get(l.user_email) ?? { email: l.user_email, name: displayName(l), actions: 0 }
+      cur.actions += 1
+      by.set(l.user_email, cur)
+    }
+    return by
+  }, [logs])
+
   // Group logs by calendar day
   const grouped = logs.reduce<Record<string, LogRow[]>>((acc, row) => {
     const day = new Date(row.created_at).toLocaleDateString('en-SG', {
@@ -197,148 +207,136 @@ export default function ActivityLogPage() {
     return acc
   }, {})
 
+  const periodLabel = days > 0 ? `last ${days} days` : 'all time'
+  const anyFilter = filterUser || filterAction || days !== 30
+
   return (
-    <div style={{ padding: '28px 32px', maxWidth: 860, margin: '0 auto' }}>
+    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
+      <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'hsl(var(--foreground))', letterSpacing: '-0.02em' }}>Activity Log</h1>
-          <p style={{ margin: '3px 0 0', fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>
-            {logs.length} event{logs.length !== 1 ? 's' : ''} · {days > 0 ? `last ${days} days` : 'all time'}
-          </p>
+        {/* ── Header ─────────────────────────────────────────────────────────── */}
+        <div className="flex items-end justify-between gap-6 flex-wrap">
+          <div className="min-w-0">
+            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Activity log</h1>
+            <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>
+              {loading ? 'Loading…' : `${logs.length} event${logs.length !== 1 ? 's' : ''} · ${periodLabel}`}
+            </p>
+          </div>
+          <Btn level="secondary" onClick={() => load(true)} loading={refreshing} title="Refresh">
+            {!refreshing && <RefreshCw size={13} strokeWidth={2} />}
+            Refresh
+          </Btn>
         </div>
-        <button
-          onClick={() => load(true)}
-          title="Refresh"
-          style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: 7, padding: '6px 10px', cursor: 'pointer', color: 'hsl(var(--muted-foreground))', display: 'flex', alignItems: 'center', gap: 5 }}
-        >
-          <RefreshCw size={13} strokeWidth={2} style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }} />
-          <span style={{ fontSize: 12 }}>Refresh</span>
-        </button>
-      </div>
 
-      {/* ── Filters ────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 24, alignItems: 'center' }}>
-        {/* Employee filter */}
-        <select
-          value={filterUser}
-          onChange={e => setFilterUser(e.target.value)}
-          style={selStyle}
-        >
-          <option value="">All employees</option>
-          {uniqueUsers.map(u => (
-            <option key={u} value={u}>
-              {u.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-            </option>
-          ))}
-        </select>
-
-        {/* Action type filter */}
-        <select value={filterAction} onChange={e => setFilterAction(e.target.value)} style={selStyle}>
-          <option value="">All actions</option>
-          {ACTION_GROUPS.map(group => (
-            <optgroup key={group} label={group}>
-              {ALL_ACTION_TYPES.filter(a => actionCfg(a).group === group).map(a => (
-                <option key={a} value={a}>{actionCfg(a).label}</option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
-
-        {/* Date range */}
-        <select value={days} onChange={e => setDays(parseInt(e.target.value))} style={selStyle}>
-          <option value={7}>Last 7 days</option>
-          <option value={30}>Last 30 days</option>
-          <option value={90}>Last 90 days</option>
-          <option value={0}>All time</option>
-        </select>
-
-        {(filterUser || filterAction || days !== 30) && (
-          <button
-            onClick={() => { setFilterUser(''); setFilterAction(''); setDays(30) }}
-            style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', background: 'none', border: '1px solid var(--border-subtle)', borderRadius: 6, padding: '5px 10px', cursor: 'pointer' }}
+        {/* ── Filters ────────────────────────────────────────────────────────── */}
+        <div className="mt-6 mb-6 flex items-center gap-2 flex-wrap">
+          <select
+            value={filterUser}
+            onChange={e => setFilterUser(e.target.value)}
+            className={inputCls.replace('w-full ', '') + ' w-auto min-w-[180px] cursor-pointer'}
+            aria-label="Employee"
           >
-            Clear
-          </button>
+            <option value="">All employees</option>
+            {uniqueUsers.map(u => (
+              <option key={u} value={u}>
+                {u.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+              </option>
+            ))}
+          </select>
+
+          <select value={filterAction} onChange={e => setFilterAction(e.target.value)} className={inputCls.replace('w-full ', '') + ' w-auto min-w-[180px] cursor-pointer'} aria-label="Action">
+            <option value="">All actions</option>
+            {ACTION_GROUPS.map(group => (
+              <optgroup key={group} label={group}>
+                {ALL_ACTION_TYPES.filter(a => actionCfg(a).group === group).map(a => (
+                  <option key={a} value={a}>{actionCfg(a).label}</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+
+          <Segmented<Period>
+            value={String(days) as Period}
+            onChange={v => setDays(parseInt(v))}
+            options={PERIODS}
+          />
+
+          {anyFilter && (
+            <Btn level="tertiary" onClick={() => { setFilterUser(''); setFilterAction(''); setDays(30) }}>
+              Clear
+            </Btn>
+          )}
+        </div>
+
+        {/* ── Feed ───────────────────────────────────────────────────────────── */}
+        {loading ? (
+          <div className="flex flex-col gap-2">
+            {[0, 1, 2, 3, 4].map(i => <div key={i} className="h-12 rounded-[10px] animate-pulse" style={{ background: FIELD }} />)}
+          </div>
+        ) : logs.length === 0 ? (
+          <div className="py-16 text-center">
+            <p className="m-0 text-[15px]" style={{ color: MUTED }}>No activity in this period.</p>
+            {days > 0 && <Btn level="tertiary" className="mt-3" onClick={() => setDays(0)}>Show all time</Btn>}
+          </div>
+        ) : (
+          Object.entries(grouped).map(([day, rows]) => (
+            <section key={day} className="mb-8">
+              <p className="m-0 mb-1 text-[12.5px]" style={{ color: MUTED }}>{day}</p>
+
+              <div className="border-t" style={{ borderColor: RULE }}>
+                {rows.map(row => {
+                  const cfg   = actionCfg(row.action)
+                  const isExp = expanded === row.id
+                  const hasDetail = row.old_value || row.new_value || row.metadata || row.resource_id
+
+                  return (
+                    <div key={row.id} className="border-b" style={{ borderColor: RULE }}>
+                      <button
+                        type="button"
+                        onClick={() => hasDetail ? setExpanded(isExp ? null : row.id) : undefined}
+                        aria-expanded={hasDetail ? isExp : undefined}
+                        className={`w-full flex items-start gap-3 py-3 bg-transparent border-0 text-left ${hasDetail ? 'cursor-pointer hover:bg-[#f8f9fa]' : 'cursor-default'}`}
+                      >
+                        {/* Employee */}
+                        <div className="w-[128px] flex-shrink-0 pt-px hidden sm:block">
+                          {row.user_email
+                            ? <PersonTag email={row.user_email} staff={staff} size="md" />
+                            : <span className="text-[13px]" style={{ color: MUTED }}>{displayName(row)}</span>}
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="sm:hidden">
+                              {row.user_email && <PersonTag email={row.user_email} staff={staff} />}
+                            </span>
+                            <Chip>{cfg.label}</Chip>
+                            <span className="text-[14px] min-w-0 break-words" style={{ color: INK }}>{describeAction(row)}</span>
+                          </div>
+                        </div>
+
+                        {/* Right side */}
+                        <div className="flex-shrink-0 flex items-center gap-2 pt-0.5">
+                          <span className="text-[12.5px] tabular-nums whitespace-nowrap" style={{ color: MUTED }} title={fmtFull(row.created_at)}>
+                            {timeAgo(row.created_at)}
+                          </span>
+                          {hasDetail
+                            ? (isExp
+                              ? <ChevronDown size={14} strokeWidth={2} style={{ color: '#9aa0a6' }} />
+                              : <ChevronRight size={14} strokeWidth={2} style={{ color: '#9aa0a6' }} />)
+                            : <span className="w-[14px]" />}
+                        </div>
+                      </button>
+
+                      {isExp && <RowDetail row={row} />}
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          ))
         )}
       </div>
-
-      {/* ── Feed ───────────────────────────────────────────────────────────── */}
-      {loading ? (
-        <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', textAlign: 'center', padding: '48px 0' }}>Loading…</p>
-      ) : logs.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '48px 0' }}>
-          <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>No activity in this period.</p>
-          {days > 0 && <button onClick={() => setDays(0)} style={{ marginTop: 8, fontSize: 12, color: 'var(--primary-hex)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>View all time</button>}
-        </div>
-      ) : (
-        Object.entries(grouped).map(([day, rows]) => (
-          <div key={day} style={{ marginBottom: 28 }}>
-            <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{day}</p>
-
-            <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 12, overflow: 'hidden', background: 'hsl(var(--card))' }}>
-              {rows.map((row, i) => {
-                const cfg   = actionCfg(row.action)
-                const isExp = expanded === row.id
-                const hasDetail = row.old_value || row.new_value || row.metadata || row.resource_id
-                const color = avatarColor(row.user_email)
-
-                return (
-                  <div key={row.id} style={{ borderBottom: i < rows.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
-                    <button
-                      onClick={() => hasDetail ? setExpanded(isExp ? null : row.id) : undefined}
-                      style={{
-                        width: '100%', display: 'flex', alignItems: 'flex-start', gap: 12,
-                        padding: '11px 14px', background: 'none', border: 'none',
-                        cursor: hasDetail ? 'pointer' : 'default', textAlign: 'left',
-                      }}
-                    >
-                      {/* Avatar */}
-                      <div style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, background: color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: 'hsl(var(--card))' }}>{initials(row.user_email)}</span>
-                      </div>
-
-                      {/* Content */}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginBottom: 2 }}>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--foreground))' }}>{displayName(row)}</span>
-                          <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 7px', borderRadius: 20, color: cfg.color, background: cfg.bg, whiteSpace: 'nowrap' }}>
-                            {cfg.label}
-                          </span>
-                        </div>
-                        <p style={{ margin: 0, fontSize: 12, color: 'hsl(var(--muted-foreground))', lineHeight: 1.4 }}>{describeAction(row)}</p>
-                      </div>
-
-                      {/* Right side */}
-                      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }} title={fmtFull(row.created_at)}>
-                          {timeAgo(row.created_at)}
-                        </span>
-                        {hasDetail && (
-                          isExp
-                            ? <ChevronDown size={12} strokeWidth={2} style={{ color: 'hsl(var(--muted-foreground))', flexShrink: 0 }} />
-                            : <ChevronRight size={12} strokeWidth={2} style={{ color: 'hsl(var(--muted-foreground))', flexShrink: 0 }} />
-                        )}
-                      </div>
-                    </button>
-
-                    {isExp && <RowDetail row={row} />}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        ))
-      )}
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
-}
-
-const selStyle: React.CSSProperties = {
-  fontSize: 12, border: '1px solid var(--border-subtle)', borderRadius: 7,
-  padding: '5px 10px', color: 'hsl(var(--foreground))', background: 'hsl(var(--card))',
-  outline: 'none', cursor: 'pointer',
 }

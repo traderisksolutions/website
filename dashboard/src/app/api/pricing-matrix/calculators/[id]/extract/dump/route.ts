@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { SB_URL, sbH, signRead }     from '@/lib/pm-storage'
 import { patchCalc, logRun }         from '@/lib/pm-extract-shared'
+import { internalHeaders }        from '@/lib/api-gate/internal'
 
 export const maxDuration = 60
 
@@ -36,7 +37,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       try {
         const xlsx_url = await signRead(calc.xlsx_path)
         const origin = new URL(_req.url).origin
-        const dumpRes = await fetch(`${origin}/api/pm_dump`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ xlsx_url }) })
+        const dumpRes = await fetch(`${origin}/api/pm_dump`, { method: 'POST', headers: internalHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ xlsx_url }) })
         const d = await dumpRes.json().catch(() => ({ error: 'pm_dump returned non-JSON' }))
         if (dumpRes.ok && !d.error) { dump = d; void logRun(id, { kind: 'dump', ok: true, output: { sheets: d.sheets?.length ?? 0 }, duration_ms: Date.now() - t0 }) }
         else void logRun(id, { kind: 'dump', ok: false, error: d.error ?? `pm_dump ${dumpRes.status}` })

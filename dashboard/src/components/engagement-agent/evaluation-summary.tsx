@@ -16,9 +16,9 @@ export function EvaluationSummary({ emailType, examplesCount, watchOutsCount }: 
   if (watchOutsCount > 0) parts.push(`${watchOutsCount} lesson${watchOutsCount !== 1 ? 's' : ''} from past edits`)
 
   return (
-    <div className="mt-2 px-2 py-1.5 bg-primary/[.03] rounded-lg border border-primary/10">
-      <p className="text-[9px] text-muted-foreground/60 leading-[1.5] m-0">
-        <span className="font-semibold text-primary/60">Self-improving</span>
+    <div className="mt-2.5 px-3 py-2 rounded-[10px]" style={{ background: '#f1f3f4' }}>
+      <p className="text-[12.5px] leading-[1.5] m-0" style={{ color: '#5f6368' }}>
+        <span className="font-medium" style={{ color: '#3c4043' }}>Self-improving</span>
         {' — '}{parts.join(' · ')} informed this draft.
       </p>
     </div>

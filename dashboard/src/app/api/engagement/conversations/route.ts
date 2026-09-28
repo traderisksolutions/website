@@ -32,10 +32,10 @@ export async function GET(req: NextRequest) {
     type CampaignCtx = { campaign_id: string; campaign_name: string; product_type: string; step_replied_to: number | null } | null
     type ThreadRow = {
       id: string; subject: string | null; snippet: string | null; last_message_at: string; contact_id: string | null; campaign_context: CampaignCtx; category: string | null
-      company_id: string | null; companies: { id: string; name: string } | null
+      company_id: string | null; companies: { id: string; name: string; owner_email?: string | null } | null
     }
     const threadRes = await fetch(
-      `${SB_URL}/rest/v1/email_threads?select=id,subject,snippet,last_message_at,contact_id,campaign_context,category,company_id,companies(id,name:company_name)&deleted_at=is.null&order=last_message_at.desc&limit=200`,
+      `${SB_URL}/rest/v1/email_threads?select=id,subject,snippet,last_message_at,contact_id,campaign_context,category,company_id,companies(id,name:company_name,owner_email)&deleted_at=is.null&order=last_message_at.desc&limit=200`,
       { headers: sbHeaders(), cache: 'no-store' }
     )
     const threads: ThreadRow[] = threadRes.ok ? await threadRes.json() : []
@@ -58,6 +58,7 @@ export async function GET(req: NextRequest) {
     //    — includes both inbound AND outbound because forwarded emails are stored as outbound
     const allThreadIds = threads.map(t => t.id)
     const threadSenderMap = new Map<string, string>() // thread_id -> best external email
+    const lastDirection = new Map<string, 'inbound' | 'outbound'>() // thread_id -> direction of the newest message
     if (allThreadIds.length > 0) {
       // Prefer inbound messages first (direct client email)
       const msgRes = await fetch(
@@ -66,6 +67,10 @@ export async function GET(req: NextRequest) {
       )
       const msgs: { thread_id: string; from_address: string | null; direction: string }[] =
         msgRes.ok ? await msgRes.json() : []
+      // Messages arrive oldest-first, so the last write per thread is its newest message.
+      for (const m of (Array.isArray(msgs) ? msgs : [])) {
+        if (m.direction === 'inbound' || m.direction === 'outbound') lastDirection.set(m.thread_id, m.direction)
+      }
       // First pass: inbound messages
       for (const m of (Array.isArray(msgs) ? msgs : [])) {
         if (m.direction === 'inbound' && !threadSenderMap.has(m.thread_id) &&
@@ -142,6 +147,8 @@ export async function GET(req: NextRequest) {
         category:         t.category ?? null,
         companyId:        t.company_id ?? null,
         companyName:      t.companies?.name ?? null,
+        companyOwner:     t.companies?.owner_email ?? null,
+        lastDirection:    lastDirection.get(t.id) ?? null,
       }]
     })
 

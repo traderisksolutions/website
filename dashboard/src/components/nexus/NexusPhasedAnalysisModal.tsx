@@ -9,7 +9,16 @@
  * closed mid-call) is picked up by polling instead of silently re-triggering paid work.
  */
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { X, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
+import { X, Loader2 } from 'lucide-react'
+import { Btn, Chip, textareaCls } from '@/components/crm/primitives'
+
+const INK   = '#202124'
+const BODY  = '#3c4043'
+const MUTED = '#5f6368'
+const FAINT = '#80868b'
+const DOT   = '#9aa0a6'
+const HAIR  = '#e8eaed'
+const FIELD = '#f1f3f4'
 
 type PhaseStatus = 'pending' | 'running' | 'done' | 'failed'
 
@@ -172,103 +181,91 @@ export function NexusPhasedAnalysisModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(32,33,36,0.4)' }}
       onClick={anyRunning ? undefined : onClose}
     >
       <div
-        className="bg-card rounded-2xl shadow-2xl w-full max-w-[560px] flex flex-col overflow-hidden"
+        className="bg-white rounded-[16px] w-full max-w-[600px] flex flex-col overflow-hidden max-h-[calc(90vh/var(--ui-zoom))]"
+        style={{ boxShadow: 'var(--shadow-modal)', color: INK }}
         onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-label="Run analysis"
       >
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[--border-subtle] flex-shrink-0">
-          <div>
-            <h3 className="text-[13.5px] font-bold text-foreground">Run Analysis</h3>
-            <p className="text-[10.5px] text-muted-foreground/60 mt-0.5">
-              Runs in 3 short steps so one slow step can never time out the whole analysis.
-            </p>
-          </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground ml-4"><X size={14} /></button>
+        <div className="flex items-center justify-between gap-3 px-6 pt-5 pb-4 flex-shrink-0">
+          <h2 className="m-0 text-[20px] font-medium tracking-[-0.02em]" style={{ color: INK }}>Run analysis</h2>
+          <button type="button" onClick={onClose} aria-label="Close" className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: MUTED }}>
+            <X size={15} />
+          </button>
         </div>
 
-        <div className="p-5 flex flex-col gap-3">
+        <div className="px-6 pb-6 flex flex-col gap-3 overflow-y-auto">
           {checkingResume ? (
-            <p className="text-[12px] text-muted-foreground italic">Checking for an in-progress analysis…</p>
+            <p className="m-0 py-4 text-[14px] text-center" style={{ color: MUTED }}>Checking for an analysis in progress…</p>
           ) : (
             <>
               {resumed && (phase1Status !== 'pending') && (
-                <div className="text-[11px] text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/20 rounded-lg px-3 py-2">
-                  Resumed an analysis already in progress for this case.
-                </div>
+                <p className="m-0 text-[13px]" style={{ color: MUTED }}>Resumed an analysis already in progress for this case.</p>
               )}
 
-              {phases.map((p, i) => (
-                <div key={p.n} className="flex flex-col gap-2 border border-[--border-subtle] rounded-xl p-3.5">
-                  <div className="flex items-center gap-2.5">
+              {phases.map(p => (
+                <div key={p.n} className="flex flex-col gap-2.5 rounded-[16px] p-4" style={{ border: `1px solid ${HAIR}` }}>
+                  <div className="flex items-center gap-3 flex-wrap">
                     <PhaseIcon status={p.status} />
-                    <span className="text-[12px] font-semibold text-foreground flex-1">Phase {p.n} — {p.label}</span>
+                    <span className="text-[14px] font-medium flex-1 min-w-[200px]" style={{ color: INK }}>Phase {p.n}. {p.label}</span>
+                    {p.status === 'done' && <Chip>Done</Chip>}
+                    {p.status === 'failed' && <Chip>Failed</Chip>}
                     {p.status === 'pending' && p.unlocked && (
-                      <button
-                        onClick={p.start}
-                        className="text-[11px] font-semibold px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:opacity-90 transition-opacity whitespace-nowrap"
-                      >
-                        {p.cta}
-                      </button>
+                      <Btn level="primary" onClick={p.start}>{p.cta}</Btn>
                     )}
                     {p.status === 'failed' && (
-                      <button
-                        onClick={p.start}
-                        className="text-[11px] font-semibold px-3 py-1.5 rounded-md border border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors whitespace-nowrap"
-                      >
-                        Retry
-                      </button>
+                      <Btn level="secondary" onClick={p.start}>Retry</Btn>
                     )}
                   </div>
 
                   {p.status === 'running' && <PhaseProgress seconds={p.secs} model={p.model} role={p.role} />}
 
                   {p.status !== 'running' && (
-                    <p className="text-[10.5px] text-muted-foreground/70 pl-6 m-0">{p.model} · {p.role}</p>
+                    <p className="m-0 pl-7 text-[13px]" style={{ color: MUTED }}>{p.model} · {p.role}</p>
                   )}
 
                   {p.n === 1 && preview1 && phase1Status === 'done' && (
-                    <div className="text-[11px] text-muted-foreground pl-6">
-                      {preview1.stakeholders} stakeholders · {preview1.timelineEvents} timeline events · {preview1.openQuestions} open questions · {preview1.missingItems} missing items
-                      {preview1.caseSummary && <p className="mt-1 text-foreground/80 leading-relaxed">{preview1.caseSummary}</p>}
+                    <div className="pl-7 text-[13px]" style={{ color: MUTED }}>
+                      <span className="tabular-nums">{preview1.stakeholders} stakeholders · {preview1.timelineEvents} timeline events · {preview1.openQuestions} open questions · {preview1.missingItems} missing items</span>
+                      {preview1.caseSummary && <p className="m-0 mt-1.5 text-[14px] leading-[1.6]" style={{ color: BODY }}>{preview1.caseSummary}</p>}
                     </div>
                   )}
 
                   {p.n === 1 && phase1Status === 'done' && phase2Status === 'pending' && (
-                    <div className="pl-6 flex flex-col gap-1.5">
-                      <label className="text-[10.5px] text-muted-foreground">Add steering instructions before running strategy (optional)</label>
+                    <label className="pl-7 flex flex-col gap-1.5">
+                      <span className="text-[12.5px]" style={{ color: MUTED }}>Steering instructions for the strategy phase. Optional.</span>
                       <textarea
                         value={instructions}
                         onChange={e => setInstructions(e.target.value)}
-                        placeholder="e.g. Focus on the coverage dispute with the insurer, not the client's outstanding documents."
+                        placeholder="e.g. Focus on the coverage dispute with the insurer, not the client’s outstanding documents."
                         rows={2}
-                        className="text-[11.5px] border border-[--border-subtle] rounded-md px-2 py-1.5 bg-background outline-none resize-none"
+                        className={textareaCls}
                       />
-                    </div>
+                    </label>
                   )}
 
                   {p.n === 2 && preview2 && phase2Status === 'done' && (
-                    <div className="text-[11px] text-muted-foreground pl-6">
+                    <p className="m-0 pl-7 text-[13px] tabular-nums" style={{ color: MUTED }}>
                       {preview2.scenarios} scenarios · {preview2.nextSteps} next steps · {preview2.briefs} draft briefs
-                      {preview2.reserveEstimate && <> · reserve est. {preview2.reserveEstimate}</>}
-                    </div>
+                      {preview2.reserveEstimate && <> · reserve estimate {preview2.reserveEstimate}</>}
+                    </p>
                   )}
                 </div>
               ))}
 
               {error && (
-                <div className="text-[11px] text-red-600 bg-red-50 dark:bg-red-950/20 rounded-lg px-3 py-2">✗ {error}</div>
+                <p className="m-0 rounded-[12px] px-4 py-3 text-[13.5px] leading-[1.5]" style={{ background: FIELD, color: BODY }}>{error}</p>
               )}
 
               {phase3Status === 'done' && (
-                <button
-                  onClick={onClose}
-                  className="text-[12px] font-semibold px-4 py-2 rounded-md border border-border bg-background hover:bg-muted transition-colors self-end"
-                >
-                  Done
-                </button>
+                <div className="flex justify-end pt-1">
+                  <Btn level="secondary" onClick={onClose}>Done</Btn>
+                </div>
               )}
             </>
           )}
@@ -278,11 +275,16 @@ export function NexusPhasedAnalysisModal({
   )
 }
 
+/** Phase state marker: a spinner while running, a filled ink dot when done, a grey dot otherwise. */
 function PhaseIcon({ status }: { status: PhaseStatus }) {
-  if (status === 'running') return <Loader2 size={15} className="text-primary animate-spin flex-shrink-0" />
-  if (status === 'done')    return <CheckCircle2 size={15} className="text-emerald-600 flex-shrink-0" />
-  if (status === 'failed')  return <AlertCircle size={15} className="text-red-600 flex-shrink-0" />
-  return <div className="w-[15px] h-[15px] rounded-full border-2 border-muted-foreground/30 flex-shrink-0" />
+  if (status === 'running') return <Loader2 size={16} className="animate-spin flex-shrink-0" style={{ color: MUTED }} aria-label="Running" />
+  return (
+    <span
+      className="w-4 h-4 rounded-full flex-shrink-0 inline-flex items-center justify-center"
+      style={{ border: `2px solid ${status === 'done' ? INK : DOT}`, background: status === 'done' ? INK : 'transparent' }}
+      aria-hidden
+    />
+  )
 }
 
 /**
@@ -308,16 +310,13 @@ function PhaseProgress({ seconds, model, role }: { seconds: number; model: strin
   const over = elapsed > seconds * 1.6
 
   return (
-    <div className="pl-6 flex flex-col gap-1.5">
-      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-        <div
-          className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
-          style={{ width: `${pct}%` }}
-        />
+    <div className="pl-7 flex flex-col gap-1.5" role="status" aria-live="polite">
+      <div className="h-[3px] rounded-full overflow-hidden" style={{ background: HAIR }}>
+        <div className="h-full rounded-full transition-[width] duration-300 ease-out" style={{ width: `${pct}%`, background: INK }} />
       </div>
-      <p className="text-[10.5px] text-muted-foreground m-0">
-        {model} · {role} · {elapsed}s
-        {over && <span className="text-muted-foreground/70"> · taking longer than usual, still running</span>}
+      <p className="m-0 text-[13px]" style={{ color: MUTED }}>
+        {model} · {role} · <span className="tabular-nums">{elapsed}s</span>
+        {over && <span style={{ color: FAINT }}> · longer than usual, still running</span>}
       </p>
     </div>
   )

@@ -7,7 +7,8 @@ import { Bold, Italic, List, ListOrdered, IndentIncrease, IndentDecrease, Link2,
  * Lightweight rich-text editor for RFQ drafts. Uncontrolled contentEditable so
  * the caret is never reset on re-render; `resetKey` re-seeds the content (used
  * when a draft is regenerated). Emits HTML via onChange. Toolbar: bold, italic,
- * heading, bullet / numbered lists, indent / outdent, link.
+ * heading, bullet / numbered lists, indent / outdent, link — on the composer tokens
+ * (32px buttons, hairline groups, ink active state).
  */
 export function RichTextEditor({
   html, resetKey, onChange, minHeight = 180,
@@ -35,39 +36,45 @@ export function RichTextEditor({
     if (url) exec('createLink', url)
   }
 
-  const Btn = ({ onClick, title, children }: { onClick: () => void; title: string; children: React.ReactNode }) => (
+  const Btn = ({ onClick, title, shortcut, children }: { onClick: () => void; title: string; shortcut?: string; children: React.ReactNode }) => (
     <button
       type="button"
-      title={title}
+      title={shortcut ? `${title} (${shortcut})` : title}
+      aria-label={title}
       onMouseDown={e => e.preventDefault()}  // keep the selection
       onClick={onClick}
-      className="h-7 w-7 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+      className="h-8 w-8 flex items-center justify-center rounded-[8px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#202124]/30"
+      style={{ color: '#3c4043' }}
     >
       {children}
     </button>
   )
+  const Sep = () => <span aria-hidden className="w-px h-5 mx-1.5" style={{ background: '#e8eaed' }} />
 
   return (
-    <div className="border border-[--border-subtle] rounded-md bg-background overflow-hidden">
-      <div className="flex items-center gap-0.5 border-b border-[--border-subtle] px-1 py-1 bg-muted/30">
-        <Btn onClick={() => exec('bold')} title="Bold"><Bold size={13} /></Btn>
-        <Btn onClick={() => exec('italic')} title="Italic"><Italic size={13} /></Btn>
-        <Btn onClick={() => exec('formatBlock', '<h3>')} title="Heading"><Heading size={13} /></Btn>
-        <span className="w-px h-4 bg-border mx-0.5" />
-        <Btn onClick={() => exec('insertUnorderedList')} title="Bullet list"><List size={13} /></Btn>
-        <Btn onClick={() => exec('insertOrderedList')} title="Numbered list"><ListOrdered size={13} /></Btn>
-        <Btn onClick={() => exec('outdent')} title="Outdent"><IndentDecrease size={13} /></Btn>
-        <Btn onClick={() => exec('indent')} title="Indent"><IndentIncrease size={13} /></Btn>
-        <span className="w-px h-4 bg-border mx-0.5" />
-        <Btn onClick={addLink} title="Insert link"><Link2 size={13} /></Btn>
+    <div className="rounded-[10px] bg-white overflow-hidden" style={{ border: '1px solid #dadce0' }}>
+      <div role="toolbar" aria-label="Formatting" className="flex items-center gap-0.5 flex-wrap px-2 py-1.5" style={{ borderBottom: '1px solid #e8eaed' }}>
+        <Btn onClick={() => exec('bold')} title="Bold" shortcut="⌘B"><Bold size={15} strokeWidth={2.5} /></Btn>
+        <Btn onClick={() => exec('italic')} title="Italic" shortcut="⌘I"><Italic size={15} /></Btn>
+        <Btn onClick={() => exec('formatBlock', '<h3>')} title="Heading"><Heading size={15} /></Btn>
+        <Sep />
+        <Btn onClick={() => exec('insertUnorderedList')} title="Bulleted list"><List size={16} /></Btn>
+        <Btn onClick={() => exec('insertOrderedList')} title="Numbered list"><ListOrdered size={16} /></Btn>
+        <Btn onClick={() => exec('outdent')} title="Decrease indent" shortcut="⇧Tab"><IndentDecrease size={16} /></Btn>
+        <Btn onClick={() => exec('indent')} title="Increase indent" shortcut="Tab"><IndentIncrease size={16} /></Btn>
+        <Sep />
+        <Btn onClick={addLink} title="Insert link" shortcut="⌘K"><Link2 size={16} /></Btn>
       </div>
       <div
         ref={ref}
         contentEditable
         suppressContentEditableWarning
+        role="textbox"
+        aria-multiline
+        aria-label="Message body"
         onInput={() => { if (ref.current) onChange(ref.current.innerHTML) }}
-        className="rte-content px-3 py-2 text-[12px] leading-relaxed outline-none overflow-y-auto"
-        style={{ minHeight, maxHeight: 340 }}
+        className="rte-content px-3.5 py-3 text-[14px] leading-[1.6] outline-none overflow-y-auto"
+        style={{ minHeight, maxHeight: 340, color: '#202124' }}
       />
     </div>
   )

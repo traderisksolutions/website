@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { BadgeDollarSign } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Btn, Field, inputCls, textareaCls } from './primitives'
 import { fmtMoney, fmtDate, todaySGT } from '@/lib/crm/format'
@@ -9,6 +8,8 @@ import { CHANNEL_LABEL, type ReceiptChannel } from '@/lib/crm/receipts'
 import type { PaymentDerived } from '@/lib/crm/types'
 
 const CHANNELS: ReceiptChannel[] = ['trs', 'insurer', 'writeoff']
+const INK = '#202124'
+const MUTED = '#5f6368'
 
 /**
  * Record what was actually received against one debit note. The whole point of the finance
@@ -75,7 +76,7 @@ export function RecordPaymentDialog({ note, open, onClose, onDone }: {
     <Dialog open={open} onOpenChange={v => { if (!v) onClose() }}>
       <DialogContent className="max-w-[460px]">
         <DialogHeader>
-          <DialogTitle>Record a payment</DialogTitle>
+          <DialogTitle>Record payment</DialogTitle>
           <DialogDescription>
             {note.debit_note_no}
             {note.companyName ? ` · ${note.companyName}` : ''}
@@ -85,8 +86,8 @@ export function RecordPaymentDialog({ note, open, onClose, onDone }: {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-3">
-          <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label={`Amount received (${note.currency})`}>
               <input
                 className={inputCls}
@@ -102,9 +103,9 @@ export function RecordPaymentDialog({ note, open, onClose, onDone }: {
           </div>
 
           <Field label="How it was settled">
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1.5 pt-0.5">
               {CHANNELS.map(c => (
-                <label key={c} className="flex items-center gap-2 text-[12.5px] cursor-pointer">
+                <label key={c} className="flex items-center gap-2 text-[14px] cursor-pointer" style={{ color: INK }}>
                   <input
                     type="radio"
                     name="receipt-channel"
@@ -112,7 +113,7 @@ export function RecordPaymentDialog({ note, open, onClose, onDone }: {
                     onChange={() => setChannel(c)}
                   />
                   {CHANNEL_LABEL[c]}
-                  {c === 'writeoff' && <span className="text-muted-foreground">— clears the balance, counts as nothing collected</span>}
+                  {c === 'writeoff' && <span className="text-[13px]" style={{ color: MUTED }}>— clears the balance, counts as nothing collected</span>}
                 </label>
               ))}
             </div>
@@ -126,28 +127,29 @@ export function RecordPaymentDialog({ note, open, onClose, onDone }: {
             <textarea className={textareaCls} rows={2} value={memo} onChange={e => setMemo(e.target.value)} />
           </Field>
 
-          <p className="text-[12px] m-0 text-muted-foreground">
+          <p className="text-[13px] m-0" style={{ color: MUTED }}>
             {!Number.isFinite(entered) || entered <= 0
               ? 'Enter an amount greater than zero.'
               : remaining > 0
-                ? <>Leaves <strong className="tabular-nums text-foreground">{fmtMoney(remaining, note.currency)}</strong> still to collect.</>
+                ? <>Leaves <span className="tabular-nums font-medium" style={{ color: INK }}>{fmtMoney(remaining, note.currency)}</span> still to collect.</>
                 : remaining < 0
-                  ? <span style={{ color: 'var(--error)' }}>That is more than the balance on this note.</span>
-                  : <>Settles this debit note in full.</>}
+                  ? 'That is more than the balance on this note.'
+                  : 'Settles this debit note in full.'}
           </p>
 
-          {error && <p className="text-[12px] m-0 text-destructive">{error}</p>}
+          {error && <p className="text-[13px] m-0" style={{ color: '#c5221f' }}>{error}</p>}
         </div>
 
-        <div className="flex justify-end gap-2 pt-1">
+        <div className="flex justify-end gap-2 pt-2">
           <Btn level="tertiary" onClick={onClose}>Cancel</Btn>
           <Btn
             level="primary"
+            className="h-10 px-4"
             onClick={save}
             loading={busy}
             disabled={!Number.isFinite(entered) || entered <= 0 || remaining < 0}
           >
-            <BadgeDollarSign size={12} /> Record payment
+            Record payment
           </Btn>
         </div>
       </DialogContent>

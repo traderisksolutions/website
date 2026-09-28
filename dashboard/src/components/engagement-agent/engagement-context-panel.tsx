@@ -1,18 +1,27 @@
 'use client'
 
-// Engagement Context Panel — Phase 4
-//
-// AI Analysis section rebuilt — email classification badge, draft provenance,
-// knowledge sources, approved examples, and watch-outs now surfaced.
-// All other sections (status, contact, notes, draft history) are unchanged from Phase 3.
+// Engagement context panel: reply state and counts, the parties in a multi-thread
+// conversation, lead status, transfer to existing client, contact, enquiry, notes and draft
+// history. Rendered inside the context rail (ContextRail.tsx) as one outlined card. Every
+// fetch and handler is unchanged; the presentation sits on the inbox tokens: ink, body, muted,
+// faint, hairline, grey field. No state colour.
 
 import { useState, useEffect, useRef } from 'react'
-import { Copy, Check, ChevronDown, ChevronRight, ArrowRightLeft, X } from 'lucide-react'
+import { Copy, Check, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuditLog } from '@/hooks/useAuditLog'
 import type { Lead, RealMsg, DraftHistoryItem } from '@/components/engagement/types'
 import { STATUS_MAP, ALL_STATUSES, EMAIL_SOURCES } from '@/components/engagement/types'
 import { fullName, timeAgo, daysSince } from '@/components/engagement/helpers'
+
+const INK = '#202124'
+const BODY = '#3c4043'
+const MUTED = '#5f6368'
+const FAINT = '#80868b'
+const HAIR = '#e8eaed'
+const FIELD = '#f1f3f4'
+const LINK = 'bg-transparent border-0 p-0 cursor-pointer underline underline-offset-[3px] decoration-[#9aa0a6] hover:decoration-[#202124]'
+const INPUT = 'w-full h-9 rounded-[8px] bg-white px-3 text-[13px] outline-none focus:border-[#202124]'
 
 interface EngagementContextPanelProps {
   lead:                 Lead
@@ -37,85 +46,43 @@ export function EngagementContextPanel({
 
   return (
     <aside
-      aria-label="Thread context and AI analysis"
-      className="flex-shrink-0 bg-card flex flex-col min-h-0 overflow-y-auto"
-      style={{ width: 'var(--ea-context-w, 244px)' }}
+      aria-label="Thread context"
+      className="flex-shrink-0 bg-white flex flex-col min-h-0 overflow-y-auto"
+      style={{ width: 'var(--ea-context-w, 244px)', color: INK }}
     >
-      {/* ── Collapse toggle ── */}
       {onCollapse && (
-        <div className="flex-shrink-0 flex items-center justify-between px-3 py-1.5 border-b border-[--border-subtle]/60">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">Details</span>
-          <button
-            onClick={onCollapse}
-            title="Collapse panel"
-            aria-label="Collapse panel"
-            className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white hover:bg-primary/90 transition-colors shadow-sm"
-          >
-            <ChevronRight size={14} strokeWidth={2.5} />
-          </button>
+        <div className="flex-shrink-0 flex items-center justify-between px-4 py-2" style={{ borderBottom: `1px solid ${HAIR}` }}>
+          <span className="text-[12px]" style={{ color: MUTED }}>Details</span>
+          <button type="button" onClick={onCollapse} title="Collapse panel" aria-label="Collapse panel" className={cn(LINK, 'text-[12.5px]')} style={{ color: INK }}>Collapse</button>
         </div>
       )}
 
-      {/* ── Reply state + stats ── */}
-      <div className={cn(
-        'flex-shrink-0 px-4 py-3 border-b border-[--border-subtle]',
-        needsReply ? 'bg-[--warning-bg]/60' : 'bg-card',
-      )}>
-        {needsReply ? (
-          <div className="flex items-center gap-2">
-            <span className="w-[5px] h-[5px] rounded-full bg-[--warning] flex-shrink-0" />
-            <span className="text-[11px] font-semibold text-[--warning]">Awaiting reply</span>
-          </div>
-        ) : messages.length > 0 ? (
-          <div className="flex items-center gap-2">
-            <span className="w-[5px] h-[5px] rounded-full bg-[--success] flex-shrink-0" />
-            <span className="text-[11px] font-medium text-[--success]">We replied last</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <span className="w-[5px] h-[5px] rounded-full bg-border flex-shrink-0" />
-            <span className="text-[11px] text-muted-foreground">No emails yet</span>
-          </div>
-        )}
+      {/* Reply state + counts */}
+      <div className="flex-shrink-0 px-4 py-3" style={{ borderBottom: `1px solid ${HAIR}` }}>
+        <p className="m-0 text-[13px]" style={{ color: BODY }}>
+          {needsReply ? 'Awaiting your reply' : messages.length > 0 ? 'Awaiting client reply' : 'No emails yet'}
+        </p>
         {messages.length > 0 && (
-          <div className="flex items-center gap-4 mt-2.5">
-            <CtxStat label="Emails"    value={String(messages.length)} />
-            <CtxStat label="Days open" value={String(daysSince(lead.created_at))} />
-            {lastInbound?.sent_at && (
-              <CtxStat label="Last reply" value={timeAgo(lastInbound.sent_at)} small />
-            )}
-          </div>
+          <dl className="m-0 mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[12.5px]">
+            <dt style={{ color: MUTED }}>Emails</dt><dd className="m-0 tabular-nums" style={{ color: INK }}>{messages.length}</dd>
+            <dt style={{ color: MUTED }}>Days open</dt><dd className="m-0 tabular-nums" style={{ color: INK }}>{daysSince(lead.created_at)}</dd>
+            {lastInbound?.sent_at && <><dt style={{ color: MUTED }}>Last reply</dt><dd className="m-0" style={{ color: INK }}>{timeAgo(lastInbound.sent_at)}</dd></>}
+          </dl>
         )}
       </div>
 
-      {/* AI Analysis now lives in the bottom dock (moved out of this sidebar). */}
-
-      {/* ── Parties in this conversation (only shown when it spans >1 thread) ── */}
       <ConversationsSection
         anchorThreadId={conversationThreadId ?? null}
         activeThreadId={activeThreadId ?? threadId}
         onSelect={onSelectThread}
       />
 
-      {/* ── Status ── */}
       <StatusSection lead={lead} onStatus={onStatus} />
-
-      {/* ── Transfer / Existing client ── */}
       <TransferSection lead={lead} onTransfer={onTransfer} />
-
-      {/* ── Contact info ── */}
       <ContactSection lead={lead} />
-
-      {/* ── Lead / Enquiry info ── */}
       <EnquirySection lead={lead} />
-
-      {/* ── Notes ── */}
       <NotesSection lead={lead} />
-
-      {/* ── Draft history ── */}
-      {threadId && (
-        <DraftHistorySection threadId={threadId} onRestore={onRestoreDraft} />
-      )}
+      {threadId && <DraftHistorySection threadId={threadId} onRestore={onRestoreDraft} />}
     </aside>
   )
 }
@@ -169,58 +136,43 @@ function ConversationsSection({
   }
 
   const threads = data?.threads ?? []
-  // Nothing to switch between → don't clutter the panel.
   if (!anchorThreadId || threads.length <= 1) return null
 
   return (
-    <AccordionSection title={`Conversations (${threads.length})`} defaultOpen>
-      <div className="px-3 pb-3 flex flex-col gap-1.5">
+    <AccordionSection title={`Conversations · ${threads.length}`} defaultOpen>
+      <ul className="m-0 px-4 pb-3 p-0 list-none flex flex-col gap-1.5" role="list">
         {threads.map(t => {
           const active = t.id === activeThreadId
           return (
-            <button
-              key={t.id}
-              onClick={() => onSelect?.(t.id)}
-              className={cn(
-                'w-full text-left rounded-lg border px-2.5 py-2 transition-colors',
-                active
-                  ? 'border-primary/40 bg-primary/5'
-                  : 'border-[--border-subtle] bg-card hover:bg-accent/30',
-              )}
-            >
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="text-[11px] font-semibold text-foreground/85 truncate">{t.party.name}</span>
-                {t.is_root && (
-                  <span className="text-[8.5px] font-bold uppercase tracking-wide text-primary/70 bg-primary/8 rounded px-1 py-[1px] flex-shrink-0">
-                    client
-                  </span>
-                )}
-                <span className="ml-auto text-[9px] text-muted-foreground/50 flex-shrink-0 tabular-nums">
-                  {t.last_message_at ? timeAgo(t.last_message_at) : ''}
+            <li key={t.id}>
+              <button
+                type="button"
+                onClick={() => onSelect?.(t.id)}
+                aria-current={active ? 'true' : undefined}
+                className="w-full text-left rounded-[10px] px-3 py-2 cursor-pointer hover:bg-[#f8f9fa]"
+                style={{ border: `1px solid ${active ? INK : HAIR}`, background: active ? FIELD : '#fff' }}
+              >
+                <span className="flex items-center gap-1.5">
+                  <span className="text-[13px] font-medium truncate" style={{ color: INK }}>{t.party.name}</span>
+                  {t.is_root && <span className="text-[11.5px] font-medium rounded-[6px] px-1.5 py-px flex-shrink-0" style={{ background: FIELD, color: BODY }}>Client</span>}
+                  <span className="ml-auto text-[12px] flex-shrink-0 tabular-nums" style={{ color: FAINT }}>{t.last_message_at ? timeAgo(t.last_message_at) : ''}</span>
                 </span>
-              </div>
-              {t.party.company && (
-                <p className="text-[10px] text-muted-foreground/60 m-0 truncate">{t.party.company}</p>
-              )}
-              <p className="text-[10px] text-muted-foreground/55 m-0 truncate">
-                {t.message_count} msg{t.message_count === 1 ? '' : 's'}
-                {t.snippet ? ` · ${t.snippet}` : ''}
-              </p>
-            </button>
+                {t.party.company && <span className="block text-[12.5px] truncate" style={{ color: MUTED }}>{t.party.company}</span>}
+                <span className="block text-[12.5px] truncate" style={{ color: MUTED }}>
+                  {t.message_count} message{t.message_count === 1 ? '' : 's'}{t.snippet ? ` · ${t.snippet}` : ''}
+                </span>
+              </button>
+            </li>
           )
         })}
-
         {data?.suggest_nexus && (
-          <button
-            onClick={promoteToNexus}
-            disabled={promoting}
-            className="mt-1 flex items-center justify-between rounded-lg border border-amber-300/50 bg-amber-50/60 px-2.5 py-1.5 text-[10.5px] font-medium text-amber-700 hover:bg-amber-50 disabled:opacity-60 transition-colors"
-          >
-            <span>{promoting ? 'Creating Nexus case…' : `${threads.length} parties — promote to Nexus`}</span>
-            <span aria-hidden>{promoting ? '⋯' : '→'}</span>
-          </button>
+          <li>
+            <button type="button" onClick={promoteToNexus} disabled={promoting} className={cn(LINK, 'mt-1 text-[13px] disabled:opacity-60')} style={{ color: INK }}>
+              {promoting ? 'Creating Nexus case…' : `${threads.length} parties · Promote to Nexus`}
+            </button>
+          </li>
         )}
-      </div>
+      </ul>
     </AccordionSection>
   )
 }
@@ -237,8 +189,10 @@ function StatusSection({ lead, onStatus }: { lead: Lead; onStatus: (id: string, 
     const h = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setDropdownOpen(false)
     }
+    const k = (e: KeyboardEvent) => { if (e.key === 'Escape') setDropdownOpen(false) }
     document.addEventListener('mousedown', h)
-    return () => document.removeEventListener('mousedown', h)
+    document.addEventListener('keydown', k)
+    return () => { document.removeEventListener('mousedown', h); document.removeEventListener('keydown', k) }
   }, [dropdownOpen])
 
   return (
@@ -246,35 +200,31 @@ function StatusSection({ lead, onStatus }: { lead: Lead; onStatus: (id: string, 
       <div className="px-4 pb-3">
         <div className="relative" ref={menuRef}>
           <button
+            type="button"
             onClick={() => setDropdownOpen(v => !v)}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-lg border text-[11.5px] font-semibold cursor-pointer transition-opacity hover:opacity-90"
-            style={{ background: st.bg, color: st.color, borderColor: `${st.color}28` }}
+            aria-haspopup="listbox"
+            aria-expanded={dropdownOpen}
+            className="w-full flex items-center justify-between px-3 h-9 rounded-[8px] text-[13px] cursor-pointer bg-white hover:bg-[#f8f9fa]"
+            style={{ border: '1px solid #dadce0', color: INK }}
           >
             {st.label}
-            <ChevronDown
-              size={11}
-              strokeWidth={2.5}
-              className={cn('transition-transform opacity-60', dropdownOpen && 'rotate-180')}
-            />
+            <ChevronDown size={13} className={cn('transition-transform', dropdownOpen && 'rotate-180')} style={{ color: '#9aa0a6' }} />
           </button>
           {dropdownOpen && (
-            <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-card border border-[--border-subtle] rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] z-50 py-1 overflow-hidden">
+            <div role="listbox" aria-label="Lead status" className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white rounded-[12px] z-50 p-1.5" style={{ border: `1px solid ${HAIR}`, boxShadow: '0 12px 32px rgba(32,33,36,0.12)' }}>
               {ALL_STATUSES.map(s => {
                 const sc = STATUS_MAP[s]
+                const on = lead.status === s
                 return (
                   <button
                     key={s}
+                    type="button"
+                    role="option"
+                    aria-selected={on}
                     onClick={() => { onStatus(lead.id, s); setDropdownOpen(false) }}
-                    className={cn(
-                      'w-full text-left px-3 py-2 text-[11.5px] flex items-center gap-2.5 transition-colors',
-                      'hover:bg-accent',
-                      lead.status === s ? 'font-semibold text-foreground' : 'text-foreground/70',
-                    )}
+                    className={cn('w-full text-left px-2.5 py-1.5 rounded-[8px] text-[13px] bg-transparent border-0 cursor-pointer hover:bg-[#f8f9fa]', on && 'font-medium')}
+                    style={{ color: on ? INK : BODY, background: on ? FIELD : undefined }}
                   >
-                    <span
-                      className="w-[7px] h-[7px] rounded-full flex-shrink-0"
-                      style={{ background: sc.color }}
-                    />
                     {sc.label}
                   </button>
                 )
@@ -307,14 +257,9 @@ function TransferSection({
 
   if (lead.segment === 'existing_client') {
     return (
-      <div className="px-4 py-2.5 border-b border-[--border-subtle]/40 flex items-center gap-2">
-        <ArrowRightLeft size={11} strokeWidth={2} className="text-muted-foreground/50 flex-shrink-0" />
-        <div className="min-w-0">
-          <span className="text-[11px] font-semibold text-foreground/70 block">Existing Client</span>
-          {lead.segment_note && (
-            <span className="text-[10.5px] text-muted-foreground/60 block mt-0.5">{lead.segment_note}</span>
-          )}
-        </div>
+      <div className="px-4 py-2.5 text-[13px]" style={{ borderBottom: `1px solid ${HAIR}` }}>
+        <span className="block" style={{ color: INK }}>Existing client</span>
+        {lead.segment_note && <span className="block mt-0.5 text-[12.5px]" style={{ color: MUTED }}>{lead.segment_note}</span>}
       </div>
     )
   }
@@ -322,41 +267,30 @@ function TransferSection({
   if (!(EMAIL_SOURCES.has(lead.source) || !!lead.campaign_context)) return null
 
   return (
-    <div className="px-4 py-2.5 border-b border-[--border-subtle]/40">
+    <div className="px-4 py-2.5" style={{ borderBottom: `1px solid ${HAIR}` }}>
       {!open ? (
-        <button
-          onClick={() => setOpen(true)}
-          className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg border border-[--border-subtle] bg-muted/50 text-[11px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-        >
-          <ArrowRightLeft size={10} strokeWidth={2} />
-          Move to Existing Client
-        </button>
+        <button type="button" onClick={() => setOpen(true)} className={cn(LINK, 'text-[13px]')} style={{ color: INK }}>Move to existing client</button>
       ) : (
         <div className="flex flex-col gap-2">
-          <CtxLabel>Reason for transfer</CtxLabel>
-          <input
-            autoFocus
-            value={note}
-            onChange={e => setNote(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter') confirm()
-              if (e.key === 'Escape') { setOpen(false); setNote('') }
-            }}
-            placeholder="e.g. Existing marine policy"
-            className="w-full text-[11.5px] border border-[--border-subtle] rounded-lg px-3 py-1.5 bg-background outline-none focus:ring-1 focus:ring-primary/30 text-foreground"
-          />
-          <div className="flex gap-2">
-            <button
-              onClick={confirm}
-              disabled={saving}
-              className="flex-1 py-1.5 rounded-lg text-[11px] font-semibold bg-primary text-primary-foreground disabled:opacity-50"
-            >
+          <label className="text-[12.5px]" style={{ color: MUTED }}>Reason for transfer
+            <input
+              autoFocus
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') confirm()
+                if (e.key === 'Escape') { setOpen(false); setNote('') }
+              }}
+              placeholder="Existing marine policy"
+              className={cn(INPUT, 'mt-1')}
+              style={{ border: '1px solid #dadce0', color: INK }}
+            />
+          </label>
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={confirm} disabled={saving} className="h-9 px-3.5 rounded-[10px] text-[13px] font-medium text-white border-0 cursor-pointer hover:opacity-90 disabled:opacity-50" style={{ background: INK }}>
               {saving ? 'Moving…' : 'Confirm'}
             </button>
-            <button
-              onClick={() => { setOpen(false); setNote('') }}
-              className="px-3 py-1.5 rounded-lg text-[11px] border border-[--border-subtle] text-muted-foreground hover:bg-accent"
-            >
+            <button type="button" onClick={() => { setOpen(false); setNote('') }} className="h-9 px-3 rounded-[10px] text-[13px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: INK }}>
               Cancel
             </button>
           </div>
@@ -379,49 +313,35 @@ function ContactSection({ lead }: { lead: Lead }) {
 
   return (
     <AccordionSection title="Contact">
-      <div className="px-4 pb-3 flex flex-col gap-2.5">
-        {(lead.first_name || lead.last_name) && (
-          <CtxField label="Name" value={fullName(lead)} />
-        )}
+      <dl className="m-0 px-4 pb-3 flex flex-col gap-2">
+        {(lead.first_name || lead.last_name) && <CtxField label="Name" value={fullName(lead)} />}
 
         {lead.email && (
           <div>
-            <CtxFieldLabel>Email</CtxFieldLabel>
-            <button
-              onClick={() => copy(lead.email!, 'email')}
-              className="flex items-start gap-1.5 text-left w-full group mt-0.5"
-            >
-              <span className="text-[11.5px] text-foreground/70 break-all leading-snug">
-                {lead.email}
-              </span>
-              <span className="flex-shrink-0 mt-[1px]">
-                {copied === 'email'
-                  ? <Check size={10} className="text-[--success]" />
-                  : <Copy size={9} className="text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors" />
-                }
-              </span>
-            </button>
+            <dt className="text-[12px]" style={{ color: MUTED }}>Email</dt>
+            <dd className="m-0">
+              <button type="button" onClick={() => copy(lead.email!, 'email')} title="Copy email" aria-label={copied === 'email' ? 'Copied' : 'Copy email'} className="flex items-start gap-1.5 text-left w-full bg-transparent border-0 p-0 cursor-pointer">
+                <span className="text-[13px] break-all leading-snug" style={{ color: INK }}>{lead.email}</span>
+                <span className="flex-shrink-0 mt-[2px]" style={{ color: '#9aa0a6' }}>{copied === 'email' ? <Check size={11} /> : <Copy size={11} />}</span>
+              </button>
+            </dd>
           </div>
         )}
 
         {lead.phone && (
           <div>
-            <CtxFieldLabel>Phone</CtxFieldLabel>
-            <button
-              onClick={() => copy(lead.phone!, 'phone')}
-              className="flex items-center gap-1.5 text-left w-full group mt-0.5"
-            >
-              <span className="text-[11.5px] text-foreground/70">{lead.phone}</span>
-              {copied === 'phone'
-                ? <Check size={10} className="text-[--success] flex-shrink-0" />
-                : <Copy size={9} className="text-muted-foreground/30 group-hover:text-muted-foreground/60 flex-shrink-0 transition-colors" />
-              }
-            </button>
+            <dt className="text-[12px]" style={{ color: MUTED }}>Phone</dt>
+            <dd className="m-0">
+              <button type="button" onClick={() => copy(lead.phone!, 'phone')} title="Copy phone" aria-label={copied === 'phone' ? 'Copied' : 'Copy phone'} className="flex items-center gap-1.5 text-left w-full bg-transparent border-0 p-0 cursor-pointer">
+                <span className="text-[13px]" style={{ color: INK }}>{lead.phone}</span>
+                <span className="flex-shrink-0" style={{ color: '#9aa0a6' }}>{copied === 'phone' ? <Check size={11} /> : <Copy size={11} />}</span>
+              </button>
+            </dd>
           </div>
         )}
 
         {lead.company && <CtxField label="Company" value={lead.company} />}
-      </div>
+      </dl>
     </AccordionSection>
   )
 }
@@ -431,17 +351,15 @@ function ContactSection({ lead }: { lead: Lead }) {
 function EnquirySection({ lead }: { lead: Lead }) {
   return (
     <AccordionSection title="Enquiry">
-      <div className="px-4 pb-3 flex flex-col gap-2.5">
+      <dl className="m-0 px-4 pb-3 flex flex-col gap-2">
         {lead.department   && <CtxField label="Department" value={lead.department} />}
         {lead.topic        && <CtxField label="Topic"      value={lead.topic} />}
         {lead.contact_type && <CtxField label="Type"       value={lead.contact_type} />}
         <CtxField
           label="Lead since"
-          value={new Date(lead.created_at).toLocaleDateString('en-SG', {
-            day: 'numeric', month: 'short', year: 'numeric',
-          })}
+          value={new Date(lead.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
         />
-      </div>
+      </dl>
     </AccordionSection>
   )
 }
@@ -479,38 +397,26 @@ function NotesSection({ lead }: { lead: Lead }) {
   return (
     <AccordionSection title="Notes">
       <div className="px-4 pb-3">
-        <div className="flex items-center justify-end mb-1.5">
-          <span className={cn(
-            'text-[10px] transition-colors',
-            saved ? 'text-[--success]'
-                 : saving ? 'text-muted-foreground/60'
-                 : dirty ? 'text-[--warning]'
-                 : 'text-transparent',
-          )}>
-            {saved ? 'Saved' : saving ? 'Saving…' : dirty ? 'Unsaved' : '·'}
-          </span>
-        </div>
         <textarea
           value={text}
           onChange={e => { setText(e.target.value); setSaved(false) }}
           onBlur={save}
           onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); save() } }}
           aria-label="Internal notes"
-          placeholder="Internal notes… (auto-saves on blur)"
+          placeholder="Internal notes. Saved when you leave the field."
           rows={4}
-          className={cn(
-            'w-full text-[11.5px] text-foreground/70 leading-[1.65] resize-y',
-            'border border-[--border-subtle] rounded-lg px-3 py-2 bg-background',
-            'outline-none focus:ring-1 focus:ring-primary/25 focus:border-primary/30',
-            'placeholder:text-muted-foreground/35 transition-colors',
-          )}
+          className="w-full text-[13px] leading-[1.6] resize-y rounded-[8px] px-3 py-2 bg-white outline-none focus:border-[#202124] placeholder:text-[#9aa0a6]"
+          style={{ border: '1px solid #dadce0', color: INK }}
         />
+        <p className="m-0 mt-1 text-[12px] min-h-[16px]" style={{ color: MUTED }} aria-live="polite">
+          {saved ? 'Saved' : saving ? 'Saving…' : dirty ? 'Not saved yet' : ''}
+        </p>
       </div>
     </AccordionSection>
   )
 }
 
-// ── Draft History ─────────────────────────────────────────────────────────────
+// ── Draft history ─────────────────────────────────────────────────────────────
 
 function DraftHistorySection({
   threadId, onRestore,
@@ -540,36 +446,20 @@ function DraftHistorySection({
   }
 
   const EMAIL_TYPE_LABELS: Record<string, string> = {
-    gdrive: 'GDrive', rag: 'Knowledge', manual: 'Manual',
+    gdrive: 'Drive', rag: 'Knowledge', manual: 'Manual',
   }
 
   return (
-    <div className="border-b border-[--border-subtle]">
-      <button
-        onClick={toggle}
-        aria-expanded={open}
-        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-accent/20 transition-colors text-left"
-      >
-        <span className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground/70">
-          Draft History
-        </span>
-        <ChevronDown
-          size={11}
-          strokeWidth={2}
-          className={cn('text-muted-foreground/50 transition-transform', open && 'rotate-180')}
-        />
+    <div style={{ borderBottom: `1px solid ${HAIR}` }}>
+      <button type="button" onClick={toggle} aria-expanded={open} className="w-full flex items-center justify-between px-4 py-2.5 bg-transparent border-0 cursor-pointer hover:bg-[#f8f9fa] text-left">
+        <span className="text-[13px] font-medium" style={{ color: INK }}>Draft history</span>
+        <ChevronDown size={13} className={cn('transition-transform', open && 'rotate-180')} style={{ color: '#9aa0a6' }} />
       </button>
 
       {open && (
         <div className="pb-2.5">
-          {loading && (
-            <p className="text-[11px] text-muted-foreground px-4 pb-2">Loading…</p>
-          )}
-          {loaded && items.length === 0 && (
-            <p className="text-[11px] text-muted-foreground/65 italic px-4 pb-3 leading-relaxed">
-              No drafts yet — generate one in the compose area.
-            </p>
-          )}
+          {loading && <p className="m-0 text-[12.5px] px-4 pb-2" style={{ color: MUTED }}>Loading…</p>}
+          {loaded && items.length === 0 && <p className="m-0 text-[12.5px] px-4 pb-3" style={{ color: MUTED }}>No drafts yet.</p>}
 
           {items.map((item, idx) => {
             const vNum      = items.length - idx
@@ -580,73 +470,23 @@ function DraftHistorySection({
             const snippet   = item.body.replace(/\s+/g, ' ').slice(0, 90)
 
             return (
-              <div
-                key={item.id}
-                className={cn(
-                  'mx-3 mb-2 rounded-lg border overflow-hidden',
-                  isCurrent
-                    ? 'border-[--border-subtle] bg-card'
-                    : 'border-[--border-subtle] bg-muted/30',
+              <div key={item.id} className="mx-3 mb-2 rounded-[10px] px-3 py-2.5" style={{ border: `1px solid ${HAIR}`, background: isCurrent ? '#fff' : '#f8f9fa' }}>
+                <p className="m-0 mb-1 flex items-center gap-2 text-[12px]" style={{ color: MUTED }}>
+                  <span style={{ color: INK }}>v{vNum}</span>
+                  <span>{typeLabel}</span>
+                  <span>{isCurrent ? 'Current' : isSent ? 'Sent' : 'Older'}</span>
+                  <span className="ml-auto tabular-nums" style={{ color: FAINT }}>{timeAgo(item.created_at)}</span>
+                </p>
+                <p className="m-0 mb-2 text-[12.5px] leading-[1.5] line-clamp-2" style={{ color: BODY }}>{snippet}{item.body.length > 90 ? '…' : ''}</p>
+                <p className="m-0 flex items-center gap-3 text-[12.5px]">
+                  <button type="button" onClick={() => setPreview(expanded ? null : item.id)} aria-expanded={expanded} className={LINK} style={{ color: INK }}>{expanded ? 'Hide' : 'Preview'}</button>
+                  <button type="button" onClick={() => onRestore(item.body, item.generated_by)} className={LINK} style={{ color: INK }}>{isCurrent ? 'Reload into composer' : 'Load into composer'}</button>
+                </p>
+                {expanded && (
+                  <div className="mt-2 p-2.5 rounded-[8px] max-h-[180px] overflow-y-auto" style={{ background: FIELD }}>
+                    <pre className="m-0 text-[12.5px] whitespace-pre-wrap leading-[1.6] font-[inherit]" style={{ color: BODY }}>{item.body}</pre>
+                  </div>
                 )}
-              >
-                <div className="px-3 py-2.5">
-                  {/* Version header */}
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <span className="text-[9.5px] font-bold text-muted-foreground/60">v{vNum}</span>
-                    <span className={cn(
-                      'text-[8.5px] font-bold px-1.5 py-[1px] rounded-sm',
-                      item.generated_by === 'rag'
-                        ? 'bg-violet-50 text-violet-600'
-                        : 'bg-primary/8 text-primary',
-                    )}>
-                      {typeLabel}
-                    </span>
-                    <span className={cn(
-                      'text-[9.5px]',
-                      isCurrent ? 'text-[--success] font-medium'
-                                : isSent ? 'text-primary font-medium'
-                                : 'text-muted-foreground/60',
-                    )}>
-                      {isCurrent ? 'current' : isSent ? 'sent' : 'older'}
-                    </span>
-                    <span className="ml-auto text-[9px] text-muted-foreground/50 tabular-nums">
-                      {timeAgo(item.created_at)}
-                    </span>
-                  </div>
-
-                  {/* Snippet */}
-                  <p className="text-[10.5px] text-muted-foreground/65 leading-[1.5] mb-2 line-clamp-2 m-0">
-                    {snippet}{item.body.length > 90 ? '…' : ''}
-                  </p>
-
-                  {/* Actions */}
-                  <div className="flex gap-1.5">
-                    <button
-                      onClick={() => setPreview(expanded ? null : item.id)}
-                      className="text-[10px] text-muted-foreground border border-[--border-subtle] rounded-md px-2 py-0.5 hover:bg-accent transition-colors"
-                    >
-                      {expanded ? 'Hide' : 'Preview'}
-                    </button>
-                    <button
-                      onClick={() => onRestore(item.body, item.generated_by)}
-                      className={cn(
-                        'text-[10px] font-semibold text-white rounded-md px-2 py-0.5',
-                        isCurrent ? 'bg-[--success]' : 'bg-primary',
-                      )}
-                    >
-                      {isCurrent ? 'Reload' : 'Load'}
-                    </button>
-                  </div>
-
-                  {/* Preview expansion */}
-                  {expanded && (
-                    <div className="mt-2 p-2.5 bg-muted/60 rounded-lg border border-[--border-subtle] max-h-[180px] overflow-y-auto">
-                      <pre className="text-[10.5px] text-foreground/65 whitespace-pre-wrap leading-[1.6] m-0 font-inherit">
-                        {item.body}
-                      </pre>
-                    </div>
-                  )}
-                </div>
               </div>
             )
           })}
@@ -667,68 +507,23 @@ function AccordionSection({
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="border-b border-[--border-subtle]">
-      <button
-        onClick={() => setOpen(v => !v)}
-        aria-expanded={open}
-        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-accent/20 transition-colors text-left"
-      >
-        <span className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground/70">
-          {title}
-        </span>
-        <ChevronDown
-          size={11}
-          strokeWidth={2}
-          className={cn('text-muted-foreground/50 transition-transform', open && 'rotate-180')}
-        />
+    <div style={{ borderBottom: `1px solid ${HAIR}` }}>
+      <button type="button" onClick={() => setOpen(v => !v)} aria-expanded={open} className="w-full flex items-center justify-between px-4 py-2.5 bg-transparent border-0 cursor-pointer hover:bg-[#f8f9fa] text-left">
+        <span className="text-[13px] font-medium" style={{ color: INK }}>{title}</span>
+        <ChevronDown size={13} className={cn('transition-transform', open && 'rotate-180')} style={{ color: '#9aa0a6' }} />
       </button>
       {open && children}
     </div>
   )
 }
 
-// ── Shared atoms for context panel ────────────────────────────────────────────
-
-function CtxLabel({ children, noMargin }: { children: React.ReactNode; noMargin?: boolean }) {
-  return (
-    <p className={cn(
-      'text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground/60 m-0',
-      !noMargin && 'mb-1',
-    )}>
-      {children}
-    </p>
-  )
-}
-
-function CtxFieldLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground/60 m-0 mb-0.5">
-      {children}
-    </p>
-  )
-}
+// ── Shared atoms ──────────────────────────────────────────────────────────────
 
 function CtxField({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <CtxFieldLabel>{label}</CtxFieldLabel>
-      <p className="text-[11.5px] text-foreground/70 m-0 break-words leading-snug">{value}</p>
-    </div>
-  )
-}
-
-function CtxStat({ label, value, small }: { label: string; value: string; small?: boolean }) {
-  return (
-    <div>
-      <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/55 m-0 mb-0.5">
-        {label}
-      </p>
-      <p className={cn(
-        'font-bold m-0',
-        small ? 'text-[11px] text-foreground/55' : 'text-[14px] text-foreground',
-      )}>
-        {value}
-      </p>
+      <dt className="text-[12px]" style={{ color: MUTED }}>{label}</dt>
+      <dd className="m-0 text-[13px] break-words leading-snug" style={{ color: INK }}>{value}</dd>
     </div>
   )
 }

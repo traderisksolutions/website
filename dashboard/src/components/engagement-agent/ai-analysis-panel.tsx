@@ -11,6 +11,18 @@ import { DraftProvenancePanel } from './draft-provenance-panel'
 import { EvaluationSummary } from './evaluation-summary'
 import { InlineProgress, useFauxProgress } from '@/components/engagement/InlineProgress'
 
+/** Summary, next action and draft provenance for the open thread. Quiet AI: ink text on white,
+ *  one field-grey block for the next action, text links for the actions. */
+
+const INK = '#202124'
+const BODY = '#3c4043'
+const MUTED = '#5f6368'
+const FAINT = '#80868b'
+const HAIR = '#e8eaed'
+const FIELD = '#f1f3f4'
+
+const LINK = 'bg-transparent border-0 p-0 cursor-pointer text-[13px] underline underline-offset-[3px] decoration-[#9aa0a6] hover:decoration-[#202124] disabled:cursor-default disabled:no-underline disabled:opacity-50'
+
 interface DraftMeta {
   emailType:   string | null
   generatedBy: string | null
@@ -71,26 +83,28 @@ export function AiAnalysisPanel({
   }
 
   return (
-    <div className="border-b border-[--border-subtle] flex-shrink-0">
+    <div className="flex-shrink-0" style={{ borderBottom: `1px solid ${HAIR}` }}>
       {/* Header */}
-      <div className="flex items-center justify-between px-3.5 pt-3 pb-1.5">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[9.5px] font-bold uppercase tracking-wider text-primary">AI Analysis</span>
+      <div className="flex items-center justify-between gap-2 px-3.5 pt-3 pb-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+          <span className="text-[13px] font-medium" style={{ color: INK }}>Analysis</span>
           {meta?.emailType && <EmailTypeBadge type={meta.emailType} size="xs" />}
           {latest && (
-            <span className="text-[9.5px] text-muted-foreground">· {timeAgo(latest.created_at)}</span>
+            <span className="text-[12px]" style={{ color: FAINT }}>· {timeAgo(latest.created_at)}</span>
           )}
-          <Tip text="Generated automatically each time the contact sends a new email. Summarises the thread and suggests a next step." />
+          <Tip text="Generated each time the contact sends a new email. Summarises the thread and suggests a next step." />
         </div>
-        <div className="flex items-center gap-1.5">
-          {regenErr && <span className="text-[9.5px] text-[--error] max-w-[80px] truncate">{regenErr}</span>}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {regenErr && <span className="text-[12px] max-w-[120px] truncate" style={{ color: BODY }} role="alert">{regenErr}</span>}
           {threadId && latestMessageId && (
             <button
+              type="button"
               onClick={handleRegenerate}
               disabled={regenerating || loading}
-              className="flex items-center gap-1 text-[10px] text-primary hover:opacity-80 disabled:opacity-50 transition-opacity"
+              className={cn(LINK, 'inline-flex items-center gap-1')}
+              style={{ color: INK }}
             >
-              <RefreshCw size={9} strokeWidth={2} className={cn(regenerating && 'animate-spin')} />
+              <RefreshCw size={11} strokeWidth={2} className={cn(regenerating && 'animate-spin')} aria-hidden />
               {regenerating ? 'Generating…' : latest ? 'Refresh' : 'Generate'}
             </button>
           )}
@@ -103,19 +117,19 @@ export function AiAnalysisPanel({
         )}
 
         {!loading && !regenerating && !latest && (
-          <p className="text-[11.5px] text-muted-foreground italic leading-relaxed">
-            Generates automatically on each new email, or click Refresh above.
+          <p className="text-[13px] leading-relaxed m-0" style={{ color: MUTED }}>
+            Generated on each new email. Refresh above to run it now.
           </p>
         )}
 
         {latest && (
           <>
-            <p className="text-[12px] text-foreground/80 leading-[1.65] mb-2 m-0">{latest.summary}</p>
+            <p className="text-[13px] leading-[1.6] m-0 mb-2.5" style={{ color: BODY }}>{latest.summary}</p>
 
             {latest.next_action && (
-              <div className="mb-2 px-2.5 py-2 bg-primary/5 rounded-lg border-l-2 border-primary/40">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-primary mb-1">Next action</p>
-                <p className="text-[11.5px] text-primary/80 leading-relaxed m-0">{latest.next_action}</p>
+              <div className="mb-2 px-3 py-2.5 rounded-[10px]" style={{ background: FIELD }}>
+                <p className="text-[12px] m-0 mb-1" style={{ color: MUTED }}>Next action</p>
+                <p className="text-[13px] leading-relaxed m-0" style={{ color: INK }}>{latest.next_action}</p>
               </div>
             )}
 
@@ -140,11 +154,13 @@ export function AiAnalysisPanel({
 
             {older.length > 0 && (
               <button
+                type="button"
                 onClick={() => setHistoryOpen(v => !v)}
                 aria-expanded={historyOpen}
-                className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1 mt-2"
+                className={cn(LINK, 'inline-flex items-center gap-1 mt-2.5')}
+                style={{ color: MUTED }}
               >
-                <ChevronDown size={9} className={cn('transition-transform', historyOpen && 'rotate-180')} />
+                <ChevronDown size={12} className={cn('transition-transform', historyOpen && 'rotate-180')} aria-hidden />
                 {older.length} earlier {older.length === 1 ? 'summary' : 'summaries'}
               </button>
             )}
@@ -152,11 +168,11 @@ export function AiAnalysisPanel({
             {historyOpen && (
               <div className="mt-2 flex flex-col gap-2">
                 {older.map(s => (
-                  <div key={s.id} className="px-2.5 py-2 bg-muted rounded-lg">
-                    <p className="text-[9.5px] text-muted-foreground mb-1 m-0">{fmtDateTime(s.created_at)}</p>
-                    <p className="text-[11px] text-foreground/70 leading-[1.55] m-0">{s.summary}</p>
+                  <div key={s.id} className="px-3 py-2.5 rounded-[10px]" style={{ background: FIELD }}>
+                    <p className="text-[12px] m-0 mb-1" style={{ color: FAINT }}>{fmtDateTime(s.created_at)}</p>
+                    <p className="text-[12.5px] leading-[1.55] m-0" style={{ color: BODY }}>{s.summary}</p>
                     {s.next_action && (
-                      <p className="text-[10.5px] text-muted-foreground italic mt-1 m-0">→ {s.next_action}</p>
+                      <p className="text-[12.5px] mt-1 m-0" style={{ color: MUTED }}>Next: {s.next_action}</p>
                     )}
                   </div>
                 ))}

@@ -2,11 +2,17 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Loader2, AlertCircle, CheckCircle, ExternalLink, X, Sparkles, Send, RotateCcw } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { AppScrollPage, AppPageHeader } from '@/components/app-shell'
+import Link from 'next/link'
+import { Loader2 } from 'lucide-react'
+import { Tip } from '@/components/Tip'
+import { Button } from '@/components/ui/button'
 import { StatusBadge, STATUS_MAP } from '@/components/status-badge'
 import type { ReplyLabel } from '@/components/status-badge'
+import { Segmented, textareaCls } from '@/components/crm/primitives'
+
+const INK = '#202124'
+const MUTED = '#5f6368'
+const RULE = '#e8eaed'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -40,6 +46,8 @@ const ALL_LABELS: ReplyLabel[] = [
   'positive','meeting_intent','question','neutral',
   'negative','unsubscribe','out_of_office','wrong_person',
 ]
+
+const FILTER_LABELS: (ReplyLabel | 'all')[] = ['all', 'positive', 'meeting_intent', 'question', 'neutral', 'negative']
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
@@ -152,236 +160,168 @@ function RepliesInner() {
     r => r.classification && !r.classification.human_label
   ).length
 
+  const countLine = loading
+    ? 'Loading…'
+    : [
+        `${replies.length} repl${replies.length === 1 ? 'y' : 'ies'}`,
+        pendingCount > 0 ? `${pendingCount} awaiting review` : null,
+        campaignFilter ? 'filtered to one campaign' : null,
+      ].filter(Boolean).join(' · ')
+
   return (
-    <AppScrollPage maxWidth="900px">
-      <AppPageHeader
-        title="Reply Review"
-        description="AI-classified inbound replies. Confirm the label, then generate, edit, and send a response."
-        actions={
-          <label className="flex items-center gap-1.5 text-[13px] text-muted-foreground cursor-pointer">
-            <input type="checkbox" checked={needsReview} onChange={e => setNeedsReview(e.target.checked)} className="cursor-pointer" />
-            Needs review only
-            {pendingCount > 0 && (
-              <span className="text-[11px] font-semibold rounded-full px-1.5" style={{ background: 'var(--warning)', color: 'hsl(var(--card))' }}>
-                {pendingCount}
-              </span>
-            )}
-          </label>
-        }
-      />
+    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
+      <div className="mx-auto max-w-[1000px] px-6 sm:px-12 pt-12 pb-20">
 
-      {/* Info banner */}
-      <div className="rounded-[10px] px-[18px] py-3.5 mb-4" style={{ background: 'var(--primary-light-bg)', border: '1px solid var(--primary-light-border)' }}>
-        <p className="m-0 text-[13px] font-bold" style={{ color: 'var(--primary-hex)' }}>What is Reply Review?</p>
-        <p className="mt-1.5 mb-0 text-[12px] text-muted-foreground leading-relaxed">
-          When leads reply to your outbound campaigns via Instantly, those replies arrive here automatically via webhook.
-          The AI reads each reply and classifies it as <strong>Positive</strong>, <strong>Meeting Intent</strong>, <strong>Question</strong>,{' '}
-          <strong>Neutral</strong>, <strong>Not Interested</strong>, <strong>Unsubscribe</strong>, <strong>Out of Office</strong>, or <strong>Wrong Person</strong>.
-        </p>
-        <p className="mt-1.5 mb-0 text-[12px] text-muted-foreground leading-relaxed">
-          <strong>Your job:</strong> Confirm the AI label (click it to tick it) or select a different one if the AI got it wrong.
-          Reviewed labels keep your pipeline data accurate and help train the classification over time.
-          Replies highlighted in <span className="px-1 rounded-[3px] font-semibold" style={{ background: 'var(--warning-bg)', color: 'var(--warning)' }}>amber</span> have not been reviewed yet.
-        </p>
-        <p className="mt-1.5 mb-0 text-[12px] text-muted-foreground leading-relaxed">
-          Worth a response? Click <strong>Generate reply</strong> for an AI-drafted response — edit it however you like, then <strong>Send</strong>.
-          Nothing goes out without you clicking Send.
-        </p>
-      </div>
-
-      {/* Label filter */}
-      <div className="flex flex-wrap gap-1.5 mb-4">
-        <button onClick={() => setLabelFilter('all')} aria-pressed={labelFilter === 'all'} className={cn('filter-pill', labelFilter === 'all' && 'active')}>
-          All
-        </button>
-        {(['positive','meeting_intent','question','neutral','negative'] as ReplyLabel[]).map(l => {
-          const cfg = STATUS_MAP[l]
-          const selected = labelFilter === l
-          return (
-            <button
-              key={l}
-              onClick={() => setLabelFilter(l)}
-              aria-pressed={selected}
-              className="px-3 py-1 rounded-full text-[12px] font-medium border"
-              style={{
-                borderColor: selected ? cfg.color : 'var(--border-subtle)',
-                background: selected ? cfg.bg : 'hsl(var(--card))',
-                color: selected ? cfg.color : 'hsl(var(--muted-foreground))',
-              }}
-            >
-              {cfg.label}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Error / Success */}
-      {error && (
-        <div className="flex items-center gap-2 px-3.5 py-2.5 mb-3.5 rounded-lg text-[13px]" style={{ background: 'var(--error-bg)', border: '1px solid var(--error-border, var(--error))', color: 'var(--error)' }}>
-          <AlertCircle size={14} className="flex-shrink-0" />
-          <span className="flex-1">{error}</span>
-          <button onClick={() => setError(null)} className="bg-transparent border-none cursor-pointer text-lg leading-none" style={{ color: 'var(--error)' }}><X size={14} /></button>
+        {/* Header */}
+        <div className="flex items-end justify-between gap-6 flex-wrap">
+          <div className="min-w-0">
+            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Replies</h1>
+            <p className="m-0 mt-2 text-[15px] flex items-center gap-1" style={{ color: MUTED }}>
+              {countLine}
+              <Tip text="Replies to campaign emails arrive here from Instantly. The AI proposes a label; confirm it or pick another. A reply is only sent when you click Send." />
+            </p>
+          </div>
+          <Segmented
+            value={needsReview ? 'review' : 'all'}
+            onChange={v => setNeedsReview(v === 'review')}
+            options={[{ value: 'all', label: 'All' }, { value: 'review', label: 'Needs review', count: pendingCount > 0 ? pendingCount : undefined }]}
+          />
         </div>
-      )}
-      {successMsg && (
-        <div className="flex items-center gap-2 px-3.5 py-2.5 mb-3.5 rounded-lg text-[13px]" style={{ background: 'var(--success-bg)', border: '1px solid var(--success-border)', color: 'var(--success)' }}>
-          <CheckCircle size={14} className="flex-shrink-0" />
-          <span className="flex-1">{successMsg}</span>
-          <button onClick={() => setSuccessMsg(null)} className="bg-transparent border-none cursor-pointer text-lg leading-none" style={{ color: 'var(--success)' }}><X size={14} /></button>
-        </div>
-      )}
 
-      {/* Replies */}
-      {loading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 size={18} className="animate-spin text-muted-foreground" />
+        {/* Label filter */}
+        <div className="mt-6">
+          <Segmented
+            value={labelFilter}
+            onChange={setLabelFilter}
+            options={FILTER_LABELS.map(l => ({ value: l, label: l === 'all' ? 'All labels' : STATUS_MAP[l].label }))}
+          />
         </div>
-      ) : filtered.length === 0 ? (
-        <div className="empty-state">
-          <p className="empty-title">{needsReview ? 'All replies have been reviewed.' : 'No replies yet.'}</p>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-2.5">
-          {filtered.map(reply => {
-            const cl        = reply.classification
-            const aiLabel   = cl?.ai_label ?? null
-            const humLabel  = cl?.human_label ?? null
-            const effective = humLabel ?? aiLabel
-            const isReviewed = !!humLabel
-            const needsAttention = !!cl && !humLabel
-            const isSaving  = saving === reply.id
 
-            return (
-              <div
-                key={reply.id}
-                className="rounded-xl px-5 py-4 bg-card"
-                style={{ border: `1px solid ${needsAttention ? 'var(--warning)' : 'var(--border-subtle)'}`, boxShadow: 'var(--card-shadow)' }}
-              >
-                {/* Header row */}
-                <div className="flex items-start gap-2.5 mb-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                      {effective && <StatusBadge status={effective} label={`${humLabel ? '✓ ' : 'AI: '}${STATUS_MAP[effective].label}`} />}
-                      {cl?.ai_confidence != null && (
-                        <span className="text-[11px] text-muted-foreground">{Math.round(cl.ai_confidence * 100)}% confidence</span>
-                      )}
-                      {!cl && <span className="text-[11px] text-muted-foreground italic">Not yet classified</span>}
+        {error && (
+          <p className="mt-6 mb-0 text-[14px] flex items-center gap-3 flex-wrap" style={{ color: '#3c4043' }} role="alert">
+            <span>{error}</span>
+            <button type="button" onClick={() => setError(null)} className="bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4" style={{ color: INK }}>Dismiss</button>
+          </p>
+        )}
+        {successMsg && (
+          <p className="mt-6 mb-0 text-[14px] flex items-center gap-3 flex-wrap" style={{ color: MUTED }} role="status">
+            <span>{successMsg}</span>
+            <button type="button" onClick={() => setSuccessMsg(null)} className="bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4" style={{ color: INK }}>Dismiss</button>
+          </p>
+        )}
+
+        {/* Replies */}
+        <div className="mt-6">
+          {loading ? (
+            <div className="flex flex-col gap-3" aria-busy="true">
+              {Array.from({ length: 3 }).map((_, i) => <span key={i} className="block h-[140px] rounded-[16px] bg-[#f1f3f4] animate-pulse" />)}
+            </div>
+          ) : filtered.length === 0 ? (
+            <p className="py-16 text-center text-[16px] m-0" style={{ color: MUTED }}>
+              {needsReview ? 'Every reply has been reviewed.' : 'No replies yet.'}
+            </p>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {filtered.map(reply => {
+                const cl        = reply.classification
+                const aiLabel   = cl?.ai_label ?? null
+                const humLabel  = cl?.human_label ?? null
+                const effective = humLabel ?? aiLabel
+                const isSaving  = saving === reply.id
+
+                return (
+                  <article key={reply.id} className="rounded-[16px] bg-white px-6 py-5" style={{ border: `1px solid ${RULE}` }}>
+                    {/* Header row */}
+                    <div className="flex items-start gap-4 flex-wrap">
+                      <div className="flex-1 min-w-[200px]">
+                        <p className="m-0 text-[15px] font-medium" style={{ color: INK }}>{reply.lead_email ?? '—'}</p>
+                        {reply.subject && <p className="m-0 mt-0.5 text-[13px]" style={{ color: MUTED }}>Re: {reply.subject}</p>}
+                        <p className="m-0 mt-2 flex items-center gap-2 flex-wrap text-[12.5px]" style={{ color: MUTED }}>
+                          {effective && <StatusBadge status={effective} label={`${humLabel ? 'Confirmed' : 'AI'} · ${STATUS_MAP[effective].label}`} />}
+                          {cl?.ai_confidence != null && <span className="tabular-nums">{Math.round(cl.ai_confidence * 100)}% confidence</span>}
+                          {!cl && <span>Not yet classified</span>}
+                        </p>
+                      </div>
+                      <span className="text-[12.5px] flex-shrink-0" style={{ color: MUTED }}>
+                        {new Date(reply.received_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
                     </div>
-                    <p className="m-0 text-[13px] font-semibold text-foreground">{reply.lead_email ?? '—'}</p>
-                    {reply.subject && <p className="mt-0.5 mb-0 text-[12px] text-muted-foreground">Re: {reply.subject}</p>}
-                  </div>
-                  <span className="text-[11px] text-muted-foreground flex-shrink-0">
-                    {new Date(reply.received_at).toLocaleDateString()}
-                  </span>
-                </div>
 
-                {/* Preview */}
-                {reply.body_preview && (
-                  <div className="px-3 py-2 rounded-[7px] bg-muted mb-2.5" style={{ border: '1px solid var(--border-subtle)' }}>
-                    <p className="m-0 text-[12px] text-muted-foreground leading-relaxed whitespace-pre-wrap">{reply.body_preview}</p>
-                  </div>
-                )}
-
-                {/* AI reasoning */}
-                {cl?.ai_reasoning && (
-                  <p className="mb-2.5 text-[11px] italic" style={{ color: '#7c3aed' }}>AI: {cl.ai_reasoning}</p>
-                )}
-
-                {/* Human label selector */}
-                <div className="flex gap-1.5 flex-wrap items-center">
-                  {isSaving ? (
-                    <Loader2 size={14} className="animate-spin text-muted-foreground" />
-                  ) : (
-                    ALL_LABELS.map(l => {
-                      const cfg = STATUS_MAP[l]
-                      const selected = humLabel === l
-                      return (
-                        <button
-                          key={l}
-                          onClick={() => applyLabel(reply.id, l)}
-                          className="px-2.5 py-[3px] rounded-full text-[11px] font-medium border"
-                          style={{
-                            borderColor: selected ? cfg.color : 'var(--border-subtle)',
-                            background: selected ? cfg.bg : 'hsl(var(--card))',
-                            color: selected ? cfg.color : 'hsl(var(--muted-foreground))',
-                          }}
-                        >
-                          {cfg.label}
-                        </button>
-                      )
-                    })
-                  )}
-                  {reply.campaign_id && (
-                    <a href={`/outbound/campaigns/${reply.campaign_id}`} className="ml-auto inline-flex items-center gap-1 text-[11px] no-underline" style={{ color: 'var(--primary-hex)' }}>
-                      <ExternalLink size={10} /> Campaign
-                    </a>
-                  )}
-                </div>
-
-                {/* Reply drafting — a human always decides whether to respond and always approves
-                    the exact text before it sends; nothing here ever sends automatically. */}
-                {reply.lead_email && (
-                  <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-                    {reply.draft_status === 'sent' ? (
-                      <div className="flex items-start gap-2">
-                        <CheckCircle size={13} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--success)' }} />
-                        <div className="flex-1 min-w-0">
-                          <p className="m-0 text-[11px] font-semibold" style={{ color: 'var(--success)' }}>
-                            Sent{reply.sent_from_email ? ` as ${reply.sent_from_email}` : ''}{reply.sent_at ? ` · ${new Date(reply.sent_at).toLocaleString()}` : ''}
-                          </p>
-                          <p className="mt-1 mb-0 text-[12px] text-muted-foreground whitespace-pre-wrap">{reply.draft_body}</p>
-                        </div>
+                    {/* Preview */}
+                    {reply.body_preview && (
+                      <div className="mt-3 rounded-[12px] px-4 py-3" style={{ background: '#f1f3f4' }}>
+                        <p className="m-0 text-[14px] leading-relaxed whitespace-pre-wrap" style={{ color: '#3c4043' }}>{reply.body_preview}</p>
                       </div>
-                    ) : editingDraft[reply.id] !== undefined || reply.draft_body ? (
-                      <div className="flex flex-col gap-2">
-                        <textarea
-                          value={editingDraft[reply.id] ?? reply.draft_body ?? ''}
-                          onChange={e => setEditingDraft(prev => ({ ...prev, [reply.id]: e.target.value }))}
-                          rows={4}
-                          className="w-full text-[12.5px] leading-relaxed rounded-[7px] px-3 py-2 resize-y"
-                          style={{ border: '1px solid var(--border-subtle)', background: 'hsl(var(--card))' }}
-                          placeholder="Reply text — review and edit before sending"
-                        />
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => sendReply(reply.id)}
-                            disabled={sending === reply.id || !(editingDraft[reply.id] ?? reply.draft_body)?.trim()}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold text-white disabled:opacity-40"
-                            style={{ background: 'var(--primary-hex)' }}
-                          >
-                            {sending === reply.id ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
-                            Send
-                          </button>
-                          <button
-                            onClick={() => generateDraft(reply.id)}
-                            disabled={drafting === reply.id}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] font-medium text-muted-foreground disabled:opacity-40"
-                            style={{ border: '1px solid var(--border-subtle)', background: 'transparent' }}
-                          >
-                            {drafting === reply.id ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
-                            Regenerate
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => generateDraft(reply.id)}
-                        disabled={drafting === reply.id}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium disabled:opacity-40"
-                        style={{ border: '1px solid var(--border-subtle)', color: 'var(--primary-hex)', background: 'transparent' }}
-                      >
-                        {drafting === reply.id ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                        Generate reply
-                      </button>
                     )}
-                  </div>
-                )}
-              </div>
-            )
-          })}
+
+                    {/* AI reasoning */}
+                    {cl?.ai_reasoning && (
+                      <p className="m-0 mt-2.5 text-[12.5px] leading-relaxed" style={{ color: MUTED }}>AI reasoning: {cl.ai_reasoning}</p>
+                    )}
+
+                    {/* Human label selector */}
+                    <div className="mt-3 flex items-center gap-3 flex-wrap">
+                      {isSaving ? (
+                        <span className="inline-flex items-center gap-2 text-[13px]" style={{ color: MUTED }}><Loader2 size={13} className="animate-spin" /> Saving…</span>
+                      ) : (
+                        <Segmented
+                          value={humLabel ?? ('' as ReplyLabel)}
+                          onChange={l => applyLabel(reply.id, l)}
+                          options={ALL_LABELS.map(l => ({ value: l, label: STATUS_MAP[l].label }))}
+                        />
+                      )}
+                      {reply.campaign_id && (
+                        <Link href={`/outbound/campaigns/${reply.campaign_id}`} className="ml-auto text-[13px] no-underline hover:underline underline-offset-4" style={{ color: INK }}>
+                          Open campaign →
+                        </Link>
+                      )}
+                    </div>
+
+                    {/* Reply drafting: a human always decides whether to respond and approves the exact
+                        text before it sends; nothing here ever sends automatically. */}
+                    {reply.lead_email && (
+                      <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${RULE}` }}>
+                        {reply.draft_status === 'sent' ? (
+                          <div>
+                            <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>
+                              Sent{reply.sent_from_email ? ` as ${reply.sent_from_email}` : ''}{reply.sent_at ? ` · ${new Date(reply.sent_at).toLocaleString('en-SG', { dateStyle: 'medium', timeStyle: 'short' })}` : ''}
+                            </p>
+                            <p className="m-0 mt-1.5 text-[14px] leading-relaxed whitespace-pre-wrap" style={{ color: '#3c4043' }}>{reply.draft_body}</p>
+                          </div>
+                        ) : editingDraft[reply.id] !== undefined || reply.draft_body ? (
+                          <div className="flex flex-col gap-2.5">
+                            <textarea
+                              value={editingDraft[reply.id] ?? reply.draft_body ?? ''}
+                              onChange={e => setEditingDraft(prev => ({ ...prev, [reply.id]: e.target.value }))}
+                              rows={4}
+                              className={textareaCls}
+                              placeholder="Reply text. Review and edit before sending."
+                              aria-label="Reply text"
+                            />
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Button size="sm" onClick={() => sendReply(reply.id)} disabled={sending === reply.id || !(editingDraft[reply.id] ?? reply.draft_body)?.trim()}>
+                                {sending === reply.id ? 'Sending…' : 'Send'}
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => generateDraft(reply.id)} disabled={drafting === reply.id}>
+                                {drafting === reply.id ? 'Drafting…' : 'Regenerate'}
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <Button variant="outline" size="sm" onClick={() => generateDraft(reply.id)} disabled={drafting === reply.id}>
+                            {drafting === reply.id ? 'Drafting…' : 'Generate reply'}
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </article>
+                )
+              })}
+            </div>
+          )}
         </div>
-      )}
-    </AppScrollPage>
+      </div>
+    </div>
   )
 }
 

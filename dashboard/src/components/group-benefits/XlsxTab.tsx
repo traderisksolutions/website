@@ -5,6 +5,7 @@ import { UploadCloud, Loader2, CheckCircle2, FileSpreadsheet, ChevronDown, Chevr
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { RuleStep } from '@/lib/pm-rules-extract'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 const NOT_DETECTED = 'NOT DETECTED — requires human input'
@@ -21,13 +22,10 @@ type Table = {
 }
 type DetLog = { rule: string; value: unknown; source_cell_or_text: string; confidence: string }
 
-const RULES_TONE: Record<string, string> = {
-  none: 'bg-muted text-muted-foreground', analyzing: 'bg-amber-100 text-amber-700',
-  in_review: 'bg-blue-100 text-blue-700', approved: 'bg-emerald-100 text-emerald-700', error: 'bg-rose-100 text-rose-700',
-}
 const RULES_LABEL: Record<string, string> = {
   none: 'No calculator', analyzing: 'Analyzing…', in_review: 'Review rules', approved: 'Rules approved', error: 'Failed',
 }
+const RATE_STATUS_LABEL: Record<string, string> = { draft: 'Draft', extracting: 'Extracting', in_review: 'In review', approved: 'Approved', archived: 'Archived' }
 
 export function XlsxTab({ tables, loading, onChanged }: { tables: Table[]; loading: boolean; onChanged: () => void }) {
   const [openId, setOpenId] = useState<string | null>(null)
@@ -47,7 +45,7 @@ export function XlsxTab({ tables, loading, onChanged }: { tables: Table[]; loadi
         <span className="font-medium text-foreground/70"> calculation rules</span> the rate PDF doesn&apos;t contain. Rate numbers still come from the rate PDF.
       </p>
       <div className="rounded-lg border border-border bg-muted/20 px-4 py-3">
-        <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground/70 mb-2">What we extract from the calculator</p>
+        <p className="text-[12.5px] font-medium text-muted-foreground/70 mb-2">What we extract from the calculator</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-[11.5px]">
           {[
             ['Age basis', 'how the insurer counts age (last vs next birthday)'],
@@ -58,51 +56,58 @@ export function XlsxTab({ tables, loading, onChanged }: { tables: Table[]; loadi
             ['Coverage dependencies', 'a cover that requires another first (for reference)'],
           ].map(([t, d]) => (
             <div key={t} className="flex gap-1.5">
-              <span className="text-primary/50 mt-px">•</span>
+              <span className="text-[#9aa0a6] mt-px">•</span>
               <span><span className="font-semibold text-foreground/80">{t}</span> <span className="text-muted-foreground/70">— {d}</span></span>
             </div>
           ))}
         </div>
         <p className="text-[10.5px] text-muted-foreground/60 mt-2.5">Each is shown with where we found it and how confident we are — you review and approve before it&apos;s used in quotes.</p>
       </div>
-      <div className="rounded-lg border border-border overflow-x-auto">
-        <table className="data-table w-full border-collapse text-[13px]">
-          <thead><tr>
-            <th className="pl-4 text-left w-6" /><th className="text-left">Insurer</th><th className="text-left">Products</th>
-            <th className="text-left">Rate status</th><th className="text-left">Calculator</th><th className="text-right pr-4">Action</th>
-          </tr></thead>
-          <tbody>
-            {tables.map(t => {
-              const rs = t.rules_status ?? 'none'
-              const open = openId === t.id
-              return (
-                <React.Fragment key={t.id}>
-                  <tr className="cursor-pointer" onClick={() => setOpenId(open ? null : t.id)}>
-                    <td className="pl-4 text-muted-foreground/50">{rs === 'none' ? <span className="inline-block w-3" /> : open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</td>
-                    <td className="font-medium text-foreground whitespace-nowrap">{t.insurer_name || 'Unknown insurer'}</td>
-                    <td className="text-muted-foreground max-w-[320px] truncate">{t.product_code}</td>
-                    <td className="text-muted-foreground capitalize">{t.status.replace('_', ' ')}</td>
-                    <td>
-                      <span className={cn('text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-[6px]', RULES_TONE[rs] ?? 'bg-muted')}>{RULES_LABEL[rs] ?? rs}</span>
-                      {t.calculator_filename && <span className="ml-2 text-[11px] text-muted-foreground/60">{t.calculator_filename}</span>}
-                    </td>
-                    <td className="text-right pr-4" onClick={e => e.stopPropagation()}>
-                      <UploadXlsx tableId={t.id} status={rs} onDone={onChanged} />
-                    </td>
-                  </tr>
-                  {open && rs !== 'none' && (
-                    <tr><td colSpan={6} className="!p-0">
-                      {/* key on rules_updated_at so the panel refetches after a re-analysis/save */}
-                      <RulesPanel key={t.rules_updated_at ?? t.id} tableId={t.id} onChanged={onChanged} />
-                      <RichRulesPanel tableId={t.id} />
-                    </td></tr>
-                  )}
-                </React.Fragment>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
+      <Register label="Calculators" minWidth={820}>
+        <RegisterHead>
+          <RegisterTh first width={280}>Insurer</RegisterTh>
+          <RegisterTh>Products</RegisterTh>
+          <RegisterTh>Rate status</RegisterTh>
+          <RegisterTh>Calculator</RegisterTh>
+          <RegisterTh last align="right"><span className="sr-only">Actions</span></RegisterTh>
+        </RegisterHead>
+        <tbody>
+          {tables.map(t => {
+            const rs = t.rules_status ?? 'none'
+            const open = openId === t.id
+            const canOpen = rs !== 'none'
+            return (
+              <React.Fragment key={t.id}>
+                <RegisterRow onClick={canOpen ? () => setOpenId(open ? null : t.id) : undefined} selected={open}>
+                  <RegisterCell first selected={open}>
+                    <span className="flex items-center gap-2">
+                      <span className="w-3.5 shrink-0 inline-flex" style={{ color: '#9aa0a6' }} aria-hidden>{canOpen ? (open ? <ChevronDown size={14} /> : <ChevronRight size={14} />) : null}</span>
+                      <span className="min-w-0">
+                        <span className="block text-[15px] font-medium leading-tight truncate" style={{ color: '#202124' }}>{t.insurer_name || 'Unknown insurer'}</span>
+                        <span className="block text-[12.5px] mt-0.5 truncate" style={{ color: '#5f6368' }}>{RULES_LABEL[rs] ?? rs}</span>
+                      </span>
+                    </span>
+                  </RegisterCell>
+                  <RegisterCell className="max-w-[320px]"><span className="block text-[14px] truncate" style={{ color: '#3c4043' }} title={t.product_code}>{t.product_code}</span></RegisterCell>
+                  <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>{RATE_STATUS_LABEL[t.status] ?? t.status.replace('_', ' ')}</span></RegisterCell>
+                  <RegisterCell className="max-w-[260px]">
+                    <span className="block text-[14px] truncate" style={{ color: '#3c4043' }}>{RULES_LABEL[rs] ?? rs}</span>
+                    {t.calculator_filename && <span className="block text-[12.5px] mt-0.5 truncate" style={{ color: '#5f6368' }} title={t.calculator_filename}>{t.calculator_filename}</span>}
+                  </RegisterCell>
+                  <RegisterCell last align="right"><span className="inline-flex" onClick={e => e.stopPropagation()}><UploadXlsx tableId={t.id} status={rs} onDone={onChanged} /></span></RegisterCell>
+                </RegisterRow>
+                {open && rs !== 'none' && (
+                  <tr style={{ borderBottom: '1px solid #e8eaed' }}><td colSpan={5} className="p-0">
+                    {/* key on rules_updated_at so the panel refetches after a re-analysis/save */}
+                    <RulesPanel key={t.rules_updated_at ?? t.id} tableId={t.id} onChanged={onChanged} />
+                    <RichRulesPanel tableId={t.id} />
+                  </td></tr>
+                )}
+              </React.Fragment>
+            )
+          })}
+        </tbody>
+      </Register>
     </div>
   )
 }
@@ -132,9 +137,9 @@ function UploadXlsx({ tableId, status, onDone }: { tableId: string; status: stri
 
   return (
     <span className="inline-flex items-center gap-2">
-      {err && <span className="text-[11px] text-rose-600 max-w-[200px] truncate" title={err}>{err}</span>}
+      {err && <span className="text-[11px] text-[#c5221f] max-w-[200px] truncate" title={err}>{err}</span>}
       <label className={cn('inline-flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg border cursor-pointer',
-        busy ? 'opacity-60 pointer-events-none border-border' : 'border-primary/30 text-primary hover:bg-primary/5')}>
+        busy ? 'opacity-60 pointer-events-none border-border' : 'border-[#dadce0] text-[#202124] hover:bg-[#f8f9fa]')}>
         {busy ? <Loader2 size={13} className="animate-spin" /> : <UploadCloud size={13} />}
         {busy ? 'Analyzing…' : status === 'none' ? 'Upload xlsx' : 'Replace'}
         <input type="file" accept=".xlsx" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) pick(f) }} />
@@ -193,18 +198,18 @@ function RulesPanel({ tableId, onChanged }: { tableId: string; onChanged: () => 
             : 'These rules are applied automatically when you quote this insurer. Click Edit to change them.'}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {status === 'approved' && !editing && <span className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-emerald-700"><CheckCircle2 size={13} /> Approved</span>}
+          {status === 'approved' && !editing && <span className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-[#3c4043]"><CheckCircle2 size={13} /> Approved</span>}
           {editable
             ? <>
                 {editing && <button onClick={cancel} disabled={saving} className="text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-border bg-white hover:bg-muted/40 disabled:opacity-50">Cancel</button>}
-                <button onClick={save} disabled={saving} className="text-[12px] font-semibold px-3.5 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">{saving ? 'Saving…' : 'Save'}</button>
+                <button onClick={save} disabled={saving} className="text-[12px] font-semibold px-3.5 py-1.5 rounded-lg bg-[#202124] text-white hover:opacity-90 disabled:opacity-50">{saving ? 'Saving…' : 'Save'}</button>
               </>
             : <button onClick={() => setEditing(true)} className="text-[12px] font-semibold px-3.5 py-1.5 rounded-lg border border-border bg-white hover:bg-muted/40">Edit</button>}
         </div>
       </div>
 
       {warnings.length > 0 && (
-        <div className="mb-3 text-[11.5px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+        <div className="mb-3 text-[11.5px] text-[#3c4043] bg-[#f8f9fa] border border-[#e8eaed] rounded-lg px-3 py-2">
           {warnings.map((w, i) => <p key={i} className="m-0">{w}</p>)}
         </div>
       )}
@@ -304,32 +309,32 @@ function RichRulesPanel({ tableId }: { tableId: string }) {
   if (loading) return null
 
   return (
-    <div className="px-6 py-4 bg-indigo-50/30 border-t border-indigo-100">
+    <div className="px-6 py-4 bg-[#f8f9fa] border-t border-[#e8eaed]">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h4 className="text-[12.5px] font-bold text-foreground flex items-center gap-1.5"><Sparkles size={13} className="text-indigo-600" /> Richer calculation logic <span className="text-[10px] font-semibold uppercase text-indigo-500 bg-indigo-100 px-1.5 py-0.5 rounded">Beta</span></h4>
+          <h4 className="text-[12.5px] font-bold text-foreground flex items-center gap-1.5"><Sparkles size={13} className="text-[#3c4043]" /> Richer calculation logic <span className="text-[11.5px] font-medium text-[#3c4043] bg-[#f1f3f4] px-1.5 py-0.5 rounded">Beta</span></h4>
           <p className="text-[11px] text-muted-foreground/70 mt-0.5 max-w-[560px]">
             {row?.rules?.length
               ? 'Reads the calculator\'s actual formulas — beyond the 5 fixed rule types above — for loadings, tiers, and combinations those can\'t express. Independent from the rules above; only used once approved.'
               : 'Optional — for calculators whose logic goes beyond the fixed rule types above (multi-step loadings, conditional tiers). Most calculators don\'t need this.'}
           </p>
         </div>
-        <button onClick={extract} disabled={extracting} className="shrink-0 text-[11.5px] font-semibold px-3 py-1.5 rounded-lg border border-indigo-300 text-indigo-700 hover:bg-indigo-100/60 disabled:opacity-50">
+        <button onClick={extract} disabled={extracting} className="shrink-0 text-[11.5px] font-semibold px-3 py-1.5 rounded-lg border border-[#dadce0] text-[#202124] hover:bg-[#f8f9fa] disabled:opacity-50">
           {extracting ? <Loader2 size={12} className="animate-spin inline mr-1" /> : null}
           {extracting ? 'Reading…' : row?.rules?.length ? 'Re-extract' : 'Try richer extraction'}
         </button>
       </div>
 
-      {err && <p className="text-[11px] text-rose-600 mt-2">{err}</p>}
+      {err && <p className="text-[11px] text-[#c5221f] mt-2">{err}</p>}
 
       {row?.rules && row.rules.length > 0 && (
         <div className="mt-3 flex flex-col gap-3">
           <div className="flex items-center gap-2">
-            <span className={cn('text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-[6px]',
-              row.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700')}>
+            <span className={cn('text-[11.5px] font-medium px-2 py-0.5 rounded-[6px]',
+              row.status === 'approved' ? 'bg-[#f1f3f4] text-[#3c4043]' : 'bg-[#f1f3f4] text-[#3c4043]')}>
               {row.status === 'approved' ? 'Approved — live in quotes' : 'Draft — not yet used in quotes'}
             </span>
-            <button onClick={() => setExpanded(v => !v)} className="text-[11px] text-muted-foreground/60 hover:text-primary">
+            <button onClick={() => setExpanded(v => !v)} className="text-[11px] text-muted-foreground/60 hover:text-[#202124]">
               {expanded ? 'hide' : 'show'} {row.rules.length} step{row.rules.length === 1 ? '' : 's'}
             </button>
           </div>
@@ -344,7 +349,7 @@ function RichRulesPanel({ tableId }: { tableId: string }) {
           {verification && (
             <div className="rounded-lg border border-border bg-white px-3 py-2.5">
               <p className="text-[11px] font-bold text-foreground/80 mb-1.5 flex items-center gap-1.5">
-                <AlertTriangle size={12} className={verification.maxAbsDelta > 0.01 ? 'text-amber-600' : 'text-emerald-600'} />
+                <AlertTriangle size={12} className={verification.maxAbsDelta > 0.01 ? 'text-[#3c4043]' : 'text-[#3c4043]'} />
                 Sample premiums: current rules vs these richer rules
               </p>
               <table className="w-full text-[11px] border-collapse">
@@ -358,7 +363,7 @@ function RichRulesPanel({ tableId }: { tableId: string }) {
                       <td className="py-1">{s.product_code}</td><td>{s.plan_code}</td><td>{s.age}</td>
                       <td className="text-right tabular-nums">{s.oldPremium ?? '—'}</td>
                       <td className="text-right tabular-nums">{s.newPremium ?? '—'}</td>
-                      <td className={cn('text-right tabular-nums font-semibold', s.delta && Math.abs(s.delta) > 0.01 ? 'text-amber-700' : 'text-muted-foreground/50')}>{s.delta ?? '—'}</td>
+                      <td className={cn('text-right tabular-nums font-semibold', s.delta && Math.abs(s.delta) > 0.01 ? 'text-[#3c4043]' : 'text-muted-foreground/50')}>{s.delta ?? '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -369,7 +374,7 @@ function RichRulesPanel({ tableId }: { tableId: string }) {
                     <input type="checkbox" checked={ack} onChange={e => setAck(e.target.checked)} className="mt-0.5" />
                     I&apos;ve reviewed the premium comparison above{verification.maxAbsDelta > 0.01 ? ' — the delta is understood and expected (e.g. these rules capture a loading the current rules miss)' : ''}.
                   </label>
-                  <button onClick={approve} disabled={!ack || approving} className="mt-2 text-[11.5px] font-semibold px-3.5 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40">
+                  <button onClick={approve} disabled={!ack || approving} className="mt-2 text-[11.5px] font-semibold px-3.5 py-1.5 rounded-lg bg-[#202124] text-white hover:opacity-90 disabled:opacity-40">
                     {approving ? 'Approving…' : 'Approve — use in quotes'}
                   </button>
                 </div>
@@ -400,9 +405,9 @@ function hasVal(v: unknown): boolean {
 
 // ── Guided rule editors (no JSON) ──────────────────────────────────────────────────
 const CONF_META: Record<string, { label: string; cls: string }> = {
-  high:   { label: 'Detected',      cls: 'bg-emerald-100 text-emerald-700' },
-  medium: { label: 'Likely',        cls: 'bg-blue-100 text-blue-700' },
-  low:    { label: 'Please check',  cls: 'bg-amber-100 text-amber-700' },
+  high:   { label: 'Detected',      cls: 'bg-[#f1f3f4] text-[#3c4043]' },
+  medium: { label: 'Likely',        cls: 'bg-[#f1f3f4] text-[#3c4043]' },
+  low:    { label: 'Please check',  cls: 'bg-[#f1f3f4] text-[#3c4043]' },
   'n/a':  { label: 'Not found',     cls: 'bg-muted text-muted-foreground' },
 }
 
@@ -419,12 +424,12 @@ function RuleCard({ title, blurb, confidence, source, editable, found, children 
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-[12.5px] font-semibold text-foreground">{title}</span>
-            <span className={cn('text-[9.5px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded', cm.cls)}>{cm.label}</span>
+            <span className={cn('text-[11.5px] font-medium px-1.5 py-0.5 rounded', cm.cls)}>{cm.label}</span>
           </div>
           <p className="text-[11px] text-muted-foreground/70 mt-0.5">{blurb}</p>
         </div>
         {source && (
-          <button type="button" onClick={() => setShowSrc(s => !s)} className="text-[10.5px] text-muted-foreground/50 hover:text-primary shrink-0 mt-0.5">{showSrc ? 'hide' : 'where?'}</button>
+          <button type="button" onClick={() => setShowSrc(s => !s)} className="text-[10.5px] text-muted-foreground/50 hover:text-[#202124] shrink-0 mt-0.5">{showSrc ? 'Hide source' : 'Source'}</button>
         )}
       </div>
       {showSrc && source && <p className="text-[10.5px] text-muted-foreground/60 mt-1.5 bg-muted/40 rounded px-2 py-1 break-words">Found in: {source}</p>}
@@ -434,7 +439,7 @@ function RuleCard({ title, blurb, confidence, source, editable, found, children 
         : (
           <div className="mt-2 flex items-center gap-2 text-[11.5px] text-muted-foreground/60">
             <span>Not found in this calculator.</span>
-            {editable && <button type="button" onClick={() => setAdding(true)} className="text-primary hover:underline">Add manually</button>}
+            {editable && <button type="button" onClick={() => setAdding(true)} className="text-[#202124] hover:underline">Add manually</button>}
           </div>
         )}
     </div>
@@ -442,7 +447,7 @@ function RuleCard({ title, blurb, confidence, source, editable, found, children 
 }
 
 const pill = 'text-[12px] px-3 py-1.5 rounded-lg border font-medium'
-const numInput = 'w-16 text-[12px] px-2 py-1 rounded border border-border focus:outline-none focus:border-primary/40'
+const numInput = 'w-16 text-[12px] px-2 py-1 rounded border border-border focus:outline-none focus:border-[#202124]'
 
 function AgeBasisEditor({ value, onChange }: { value: unknown; onChange: (v: unknown) => void }) {
   const cur = value === 'last birthday' || value === 'next birthday' ? value : ''
@@ -450,9 +455,9 @@ function AgeBasisEditor({ value, onChange }: { value: unknown; onChange: (v: unk
   return (
     <div className="flex items-center gap-1.5">
       {opts.map(([v, label]) => (
-        <button key={v} onClick={() => onChange(v)} className={cn(pill, cur === v ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/30')}>{label}</button>
+        <button key={v} onClick={() => onChange(v)} className={cn(pill, cur === v ? 'border-[#202124] bg-white text-[#202124]' : 'border-border text-muted-foreground hover:border-[#9aa0a6]')}>{label}</button>
       ))}
-      <button onClick={() => onChange(NOT_DETECTED)} className={cn(pill, cur === '' ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-border text-muted-foreground/60 hover:border-amber-300')}>Not sure</button>
+      <button onClick={() => onChange(NOT_DETECTED)} className={cn(pill, cur === '' ? 'border-[#202124] bg-white text-[#202124]' : 'border-border text-muted-foreground/60 hover:border-[#9aa0a6]')}>Not sure</button>
     </div>
   )
 }
@@ -463,8 +468,8 @@ function GstEditor({ value, onChange }: { value: unknown; onChange: (v: unknown)
   const factor = typeof v.conversion_factor === 'number' ? v.conversion_factor : 1.09
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <button onClick={() => onChange({ treatment: 'inclusive', conversion_factor: factor })} className={cn(pill, treatment === 'inclusive' ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/30')}>Rates include GST</button>
-      <button onClick={() => onChange({ treatment: 'exclusive', conversion_factor: null })} className={cn(pill, treatment === 'exclusive' ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/30')}>Rates exclude GST (net)</button>
+      <button onClick={() => onChange({ treatment: 'inclusive', conversion_factor: factor })} className={cn(pill, treatment === 'inclusive' ? 'border-[#202124] bg-white text-[#202124]' : 'border-border text-muted-foreground hover:border-[#9aa0a6]')}>Rates include GST</button>
+      <button onClick={() => onChange({ treatment: 'exclusive', conversion_factor: null })} className={cn(pill, treatment === 'exclusive' ? 'border-[#202124] bg-white text-[#202124]' : 'border-border text-muted-foreground hover:border-[#9aa0a6]')}>Rates exclude GST (net)</button>
       {treatment === 'inclusive' && (
         <span className="inline-flex items-center gap-1.5 text-[11.5px] text-muted-foreground ml-1">
           divide by
@@ -496,11 +501,11 @@ function GroupDiscountEditor({ value, onChange }: { value: unknown; onChange: (v
             </select>
             <input type="number" defaultValue={pctOf(t.factor)} onBlur={e => { const p = Number(e.target.value) || 0; const f = kind === 'loading' ? 1 + p / 100 : 1 - p / 100; const n = [...tiers]; n[i] = { ...t, factor: f }; set(n) }} className={numInput} />
             <span className="text-muted-foreground">%</span>
-            <button onClick={() => set(tiers.filter((_, j) => j !== i))} className="text-muted-foreground/30 hover:text-rose-600 ml-1"><Trash2 size={13} /></button>
+            <button onClick={() => set(tiers.filter((_, j) => j !== i))} className="text-muted-foreground/30 hover:text-[#c5221f] ml-1"><Trash2 size={13} /></button>
           </div>
         )
       })}
-      <button onClick={() => set([...tiers, { min_lives: (tiers.at(-1)?.min_lives ?? 0) + 1, factor: 0.95 }])} className="inline-flex items-center gap-1 text-[11.5px] text-primary hover:underline w-fit"><Plus size={12} /> Add a tier</button>
+      <button onClick={() => set([...tiers, { min_lives: (tiers.at(-1)?.min_lives ?? 0) + 1, factor: 0.95 }])} className="inline-flex items-center gap-1 text-[11.5px] text-[#202124] hover:underline w-fit"><Plus size={12} /> Add a tier</button>
     </div>
   )
 }
@@ -522,11 +527,11 @@ function RenewalBandsEditor({ value, onChange }: { value: unknown; onChange: (v:
             <input type="number" placeholder="to" defaultValue={to === '' ? '' : to} onBlur={e => { const n = [...bands]; n[i] = { ...b, band: [Number(from) || 0, Number(e.target.value) || 999] }; set(n) }} className={numInput} />
             <span className="text-muted-foreground">— renewal only</span>
             {b.text && <span className="text-[10.5px] text-muted-foreground/50 truncate max-w-[220px]" title={b.text}>· {b.text}</span>}
-            <button onClick={() => set(bands.filter((_, j) => j !== i))} className="text-muted-foreground/30 hover:text-rose-600 ml-1"><Trash2 size={13} /></button>
+            <button onClick={() => set(bands.filter((_, j) => j !== i))} className="text-muted-foreground/30 hover:text-[#c5221f] ml-1"><Trash2 size={13} /></button>
           </div>
         )
       })}
-      <button onClick={() => set([...bands, { band: [65, 999] }])} className="inline-flex items-center gap-1 text-[11.5px] text-primary hover:underline w-fit"><Plus size={12} /> Add an age range</button>
+      <button onClick={() => set([...bands, { band: [65, 999] }])} className="inline-flex items-center gap-1 text-[11.5px] text-[#202124] hover:underline w-fit"><Plus size={12} /> Add an age range</button>
     </div>
   )
 }
@@ -543,7 +548,7 @@ function OccClassEditor({ value, onChange }: { value: unknown; onChange: (v: unk
     <div>
       <div className="flex items-center gap-1.5">
         {[1, 2, 3, 4].map(c => (
-          <button key={c} onClick={() => toggle(c)} className={cn(pill, excluded.has(c) ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-border text-muted-foreground hover:border-rose-300')}>Class {c}{excluded.has(c) ? ' ✕' : ''}</button>
+          <button key={c} onClick={() => toggle(c)} className={cn(pill, excluded.has(c) ? 'border-[#202124] bg-white text-[#202124]' : 'border-border text-muted-foreground hover:border-[#9aa0a6]')}>Class {c}{excluded.has(c) ? ' ✕' : ''}</button>
         ))}
       </div>
       <p className="text-[10.5px] text-muted-foreground/50 mt-1.5">{excluded.size === 0 ? 'All classes eligible (tick a class to exclude it).' : `Excluded: Class ${Array.from(excluded).sort().join(', ')}.`}{present.length ? ` Classes seen in the sheet: ${present.join(', ')}.` : ''}</p>
@@ -555,7 +560,7 @@ type Dep = { coverage: string; requires: string }
 function RiderEditor({ value, onChange }: { value: unknown; onChange: (v: unknown) => void }) {
   const deps: Dep[] = Array.isArray(value) ? value as Dep[] : []
   const set = (next: Dep[]) => onChange(next)
-  const ti = 'text-[12px] px-2 py-1 rounded border border-border focus:outline-none focus:border-primary/40 w-40'
+  const ti = 'text-[12px] px-2 py-1 rounded border border-border focus:outline-none focus:border-[#202124] w-40'
   return (
     <div className="flex flex-col gap-1.5">
       {deps.length === 0 && <p className="text-[11.5px] text-muted-foreground/60">No dependencies.</p>}
@@ -564,10 +569,10 @@ function RiderEditor({ value, onChange }: { value: unknown; onChange: (v: unknow
           <input placeholder="coverage" defaultValue={d.coverage} onBlur={e => { const n = [...deps]; n[i] = { ...d, coverage: e.target.value }; set(n) }} className={ti} />
           <span className="text-muted-foreground">requires</span>
           <input placeholder="other coverage" defaultValue={d.requires} onBlur={e => { const n = [...deps]; n[i] = { ...d, requires: e.target.value }; set(n) }} className={ti} />
-          <button onClick={() => set(deps.filter((_, j) => j !== i))} className="text-muted-foreground/30 hover:text-rose-600"><Trash2 size={13} /></button>
+          <button onClick={() => set(deps.filter((_, j) => j !== i))} className="text-muted-foreground/30 hover:text-[#c5221f]"><Trash2 size={13} /></button>
         </div>
       ))}
-      <button onClick={() => set([...deps, { coverage: '', requires: '' }])} className="inline-flex items-center gap-1 text-[11.5px] text-primary hover:underline w-fit"><Plus size={12} /> Add a dependency</button>
+      <button onClick={() => set([...deps, { coverage: '', requires: '' }])} className="inline-flex items-center gap-1 text-[11.5px] text-[#202124] hover:underline w-fit"><Plus size={12} /> Add a dependency</button>
     </div>
   )
 }

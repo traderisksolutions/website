@@ -3,10 +3,11 @@
 import { Fragment, useMemo, useState } from 'react'
 import { alignTerms, differingRows } from '@/lib/pm-compare'
 import type { CompareInsurer } from '@/lib/pm-compare'
-import { TableShell, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/shared/table-shell'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterGroupRow, RegisterEmpty } from '@/components/ui/register'
 
 /** Level 2 — side-by-side coverage/wordings comparison across insurers, grouped by normalised
- *  (category, label) so each insurer's own terms line up under one row per benefit. */
+ *  (category, label) so each insurer's own terms line up under one row per benefit. A matrix on
+ *  the register: the coverage term frozen on the left, one column per insurer. */
 export function PmCompareTable({ insurers }: { insurers: CompareInsurer[] }) {
   const [onlyDiff, setOnlyDiff] = useState(true)
   const ids = insurers.map(i => i.calculator_id)
@@ -15,47 +16,40 @@ export function PmCompareTable({ insurers }: { insurers: CompareInsurer[] }) {
 
   const byCategory = new Map<string, typeof rows>()
   for (const r of rows) { const k = r.canonical_category || r.category || '—'; (byCategory.get(k) ?? byCategory.set(k, []).get(k)!).push(r) }
+  const cols = insurers.length + 1
 
   return (
     <div className="flex flex-col gap-3">
-      <label className="flex items-center gap-1.5 text-[12px] text-muted-foreground self-end">
-        <input type="checkbox" checked={onlyDiff} onChange={e => setOnlyDiff(e.target.checked)} className="accent-primary" />
-        Show only where insurers differ
+      <label className="flex items-center gap-2 text-[13.5px] self-end cursor-pointer" style={{ color: '#3c4043' }}>
+        <input type="checkbox" checked={onlyDiff} onChange={e => setOnlyDiff(e.target.checked)} className="w-4 h-4 accent-[#202124]" />
+        Only where insurers differ
       </label>
 
-      <div className="border border-border rounded-xl overflow-hidden">
-        <TableShell matrix>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[26%]">Coverage term</TableHead>
-              {insurers.map(ins => <TableHead key={ins.calculator_id}>{ins.insurer_name}</TableHead>)}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.length === 0 ? (
-              <TableRow><TableCell colSpan={insurers.length + 1} className="py-8 text-center text-muted-foreground/60 text-[12.5px]">
-                {allRows.length === 0 ? 'No coverage terms extracted for these insurers yet.' : 'No differences found across the selected insurers.'}
-              </TableCell></TableRow>
-            ) : Array.from(byCategory.entries()).map(([cat, catRows]) => (
-              <Fragment key={cat}>
-                <TableRow className="group-row">
-                  <TableCell colSpan={insurers.length + 1}>{cat}</TableCell>
-                </TableRow>
-                {catRows.map(r => (
-                  <TableRow key={r.key}>
-                    <TableCell className="text-foreground/80">{r.label}</TableCell>
-                    {insurers.map(ins => (
-                      <TableCell key={ins.calculator_id} className="text-muted-foreground/90">
-                        {r.per_insurer[ins.calculator_id] ?? <span className="text-muted-foreground/30">not stated</span>}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </Fragment>
-            ))}
-          </TableBody>
-        </TableShell>
-      </div>
+      <Register label="Coverage comparison" minWidth={Math.max(720, 300 + insurers.length * 220)}>
+        <RegisterHead>
+          <RegisterTh first width={300}>Coverage term</RegisterTh>
+          {insurers.map((ins, i) => <RegisterTh key={ins.calculator_id} last={i === insurers.length - 1}>{ins.insurer_name}</RegisterTh>)}
+        </RegisterHead>
+        <tbody>
+          {rows.length === 0 ? (
+            <RegisterEmpty colSpan={cols}>{allRows.length === 0 ? 'No coverage terms extracted for these insurers yet.' : 'No differences across the selected insurers.'}</RegisterEmpty>
+          ) : Array.from(byCategory.entries()).map(([cat, catRows]) => (
+            <Fragment key={cat}>
+              <RegisterGroupRow colSpan={cols}>{cat} <span className="tabular-nums font-normal" style={{ color: '#9aa0a6' }}>{catRows.length}</span></RegisterGroupRow>
+              {catRows.map(r => (
+                <RegisterRow key={r.key}>
+                  <RegisterCell first nowrap={false}><span className="block text-[14px] leading-snug" style={{ color: '#202124' }}>{r.label}</span></RegisterCell>
+                  {insurers.map((ins, i) => (
+                    <RegisterCell key={ins.calculator_id} last={i === insurers.length - 1} nowrap={false} className="min-w-[200px]">
+                      <span className="block text-[14px] leading-snug" style={{ color: r.per_insurer[ins.calculator_id] ? '#3c4043' : '#9aa0a6' }}>{r.per_insurer[ins.calculator_id] ?? 'not stated'}</span>
+                    </RegisterCell>
+                  ))}
+                </RegisterRow>
+              ))}
+            </Fragment>
+          ))}
+        </tbody>
+      </Register>
     </div>
   )
 }

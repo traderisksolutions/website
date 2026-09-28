@@ -2,7 +2,6 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -20,6 +19,9 @@ import type {
   Company, CompanyThread, Person, PaymentDerived, PaymentSummary,
   QuoteRow, ActivityEvent, Stage, Alert, LeftOff, CaseRow,
 } from '@/lib/crm/types'
+
+const INK = '#202124'
+const MUTED = '#5f6368'
 
 type Overview = {
   company: Company
@@ -44,7 +46,7 @@ const TABS = [
   { key: 'nexus',     label: 'Nexus'               },
   { key: 'threads',   label: 'Threads'             },
   { key: 'people',    label: 'People'              },
-  { key: 'purchases', label: 'Purchase History'    },
+  { key: 'purchases', label: 'Purchase history'    },
   { key: 'quotation', label: 'Quotation'           },
   { key: 'payments',  label: 'Finance'             },
   { key: 'activity',  label: 'Activity'            },
@@ -124,9 +126,11 @@ function CompanyWorkspace() {
 
   if (error) {
     return (
-      <div className="mx-auto max-w-[1200px] px-6 py-6">
-        <p className="text-[14px] text-destructive mb-2">{error}</p>
-        <Link href="/companies" className="text-[13px] text-primary hover:underline">← Back to Companies</Link>
+      <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
+        <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
+          <Link href="/companies" className="inline-flex items-center gap-1.5 text-[14px] no-underline hover:underline" style={{ color: MUTED }}>← Companies</Link>
+          <p className="m-0 mt-6 text-[16px]" style={{ color: MUTED }}>{error}</p>
+        </div>
       </div>
     )
   }
@@ -134,32 +138,48 @@ function CompanyWorkspace() {
 
   const { company } = ov
 
+  // A plain count per tab, as on Companies. Never an urgency figure.
+  const countFor = (t: Tab): number | null => {
+    switch (t) {
+      case 'threads': return threads?.length ?? null
+      case 'nexus': return cases?.length ?? null
+      case 'people': return people?.people.length ?? null
+      case 'purchases': return detail?.policies.length ?? null
+      case 'quotation': return quotes?.length ?? null
+      case 'payments': return detail?.paymentSummary.openCount ?? null
+      default: return null
+    }
+  }
+
   // Reading the client's mail is a full-screen job, so the Threads tab drops the page
   // chrome and runs edge to edge under one slim bar that continues the main navigation.
   if (tab === 'threads') {
     return (
-      <div className="flex flex-col bg-background" style={{ height: 'calc(100vh - 56px)' }}>
-        <div className="flex items-center gap-2 px-4 h-11 border-b border-[--border-subtle] flex-shrink-0 bg-card">
+      <div className="flex flex-col bg-white" style={{ height: 'calc(100vh - 56px)', color: INK }}>
+        <div className="flex items-center gap-3 px-4 sm:px-6 h-12 flex-shrink-0 bg-white" style={{ borderBottom: '1px solid #e8eaed' }}>
           <button
+            type="button"
             onClick={() => setTab('overview')}
-            className="inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground bg-transparent border-0 p-0 cursor-pointer flex-shrink-0"
+            className="inline-flex items-center gap-1 text-[14px] bg-transparent border-0 p-0 cursor-pointer flex-shrink-0 no-underline hover:underline"
+            style={{ color: MUTED }}
           >
-            <ArrowLeft size={13} /> Back
+            ← Back
           </button>
-          <span aria-hidden className="text-muted-foreground/30">|</span>
-          <span className="text-[13px] font-semibold truncate">{company.name}</span>
-          <span className="text-[12px] text-muted-foreground flex-shrink-0">
+          <span className="text-[14px] font-medium truncate" style={{ color: INK }}>{company.name}</span>
+          <span className="text-[13px] flex-shrink-0" style={{ color: MUTED }}>
             {threads ? `${threads.length} thread${threads.length === 1 ? '' : 's'}` : ''}
             {ov.needsReply > 0 && ` · ${ov.needsReply} awaiting reply`}
           </span>
 
-          <div className="ml-auto hidden md:flex items-center gap-0.5 flex-shrink-0" role="tablist">
+          <div className="ml-auto hidden md:flex items-center gap-1 flex-shrink-0" role="tablist">
             {TABS.filter(t => t.key !== 'threads').map(t => (
               <button
                 key={t.key}
+                type="button"
                 role="tab"
                 onClick={() => setTab(t.key)}
-                className="px-2 py-1 rounded-md border-0 bg-transparent cursor-pointer text-[12px] text-muted-foreground hover:text-foreground hover:bg-muted whitespace-nowrap"
+                className="h-8 px-2.5 rounded-[8px] border-0 bg-transparent cursor-pointer text-[13px] whitespace-nowrap hover:bg-[#f1f3f4]"
+                style={{ color: MUTED }}
               >
                 {t.label}
               </button>
@@ -177,8 +197,8 @@ function CompanyWorkspace() {
   }
 
   return (
-    <div className="min-h-full bg-background">
-      <div className="mx-auto max-w-[1200px] px-6 py-6">
+    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
+      <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
         <CompanyHeader
           company={company}
           statusLine={ov.statusLine}
@@ -188,24 +208,23 @@ function CompanyWorkspace() {
         />
 
         {/* Eight tabs on one line from laptop width up; only a phone ever scrolls them. */}
-        <div className="flex border-b border-[--border-subtle] mb-1 overflow-x-auto lg:overflow-visible -mx-6 px-6 sm:mx-0 sm:px-0" role="tablist">
+        <div className="flex items-center gap-6 mb-8 overflow-x-auto lg:overflow-visible -mx-6 px-6 sm:mx-0 sm:px-0" style={{ borderBottom: '1px solid #e8eaed' }} role="tablist">
           {TABS.map(t => {
-            const badge = t.key === 'overview' ? ov.alerts.filter(a => a.tone === 'red' || a.tone === 'amber').length
-              : t.key === 'threads' ? ov.needsReply
-              : t.key === 'payments' ? (detail?.paymentSummary.overdueCount ?? 0)
-              : t.key === 'nexus' ? (cases?.length ?? 0)
-              : 0
+            const on = tab === t.key
+            const n = countFor(t.key)
             return (
               <button
                 key={t.key}
+                type="button"
                 role="tab"
-                aria-selected={tab === t.key}
+                aria-selected={on}
                 onClick={() => setTab(t.key)}
-                className={cn('inline-flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap px-2.5 py-2 border-0 bg-transparent cursor-pointer text-[12.5px] border-b-2 -mb-px transition-colors',
-                  tab === t.key ? 'border-primary text-foreground font-semibold' : 'border-transparent text-muted-foreground hover:text-foreground')}
+                className={cn('relative pb-3 flex-shrink-0 whitespace-nowrap bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#202124]')}
+                style={{ color: on ? INK : MUTED }}
               >
                 {t.label}
-                {badge > 0 && <span className="text-[10px] font-semibold rounded-[5px] px-1 leading-4" style={{ background: 'var(--neutral-status-bg)', color: 'var(--neutral-status-fg)' }}>{badge}</span>}
+                {n !== null && n > 0 && <span className="ml-1.5 tabular-nums text-[13px]" style={{ color: '#80868b' }}>{n}</span>}
+                <span className={cn('absolute left-0 right-0 -bottom-px h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: INK }} aria-hidden />
               </button>
             )
           })}

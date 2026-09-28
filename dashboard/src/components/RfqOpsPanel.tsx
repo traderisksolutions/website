@@ -1,9 +1,13 @@
 'use client'
 
 import React, { useEffect, useState, useCallback } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input }  from '@/components/ui/input'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
+
+const INK = '#202124'
+const MUTED = '#5f6368'
 
 // RFQ operations settings (Workstream 3): the quote-chase SLA (a nudge threshold —
 // never auto-sends) and an insurer responsiveness scoreboard.
@@ -58,91 +62,69 @@ export default function RfqOpsPanel() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>RFQ Operations</CardTitle>
-        <CardDescription>
-          The quote-chase SLA and insurer responsiveness. When an insurer hasn’t replied within the SLA,
-          the RFQ view flags it as overdue so you can chase — nothing is ever sent automatically.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-5">
+      <CardContent className="flex flex-col gap-5 pt-5">
         <div className="flex items-end gap-2">
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium text-foreground/80">Chase SLA (days)</span>
+            <span className="text-[12.5px]" style={{ color: MUTED }}>Chase SLA (days)</span>
             <Input type="number" min={1} value={days} onChange={e => setDays(e.target.value)} className="w-28" />
           </label>
           <Button onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
-          {saved && <span className="text-xs text-emerald-600 font-medium mb-2">Saved ✓</span>}
+          {saved && <span className="text-[13px] mb-2.5" style={{ color: MUTED }}>Saved</span>}
         </div>
 
         {/* Pipeline funnel + win metrics (#4) */}
         {funnel && funnel.funnel.requested > 0 && (
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Pipeline</span>
+          <div className="flex flex-col gap-3">
+            <h3 className="m-0 text-[16px] font-medium tracking-[-0.01em]" style={{ color: INK }}>Pipeline</h3>
             <div className="flex flex-wrap items-stretch gap-2">
               {([
                 { l: 'Requested',   v: funnel.funnel.requested },
                 { l: 'Dispatched',  v: funnel.funnel.dispatched },
                 { l: 'Quoted',      v: funnel.funnel.quoted },
                 { l: 'Recommended', v: funnel.funnel.recommended },
-                { l: 'Selected',    v: funnel.funnel.won,  tone: 'emerald' },
-                { l: 'Not chosen',  v: funnel.funnel.lost, tone: 'rose' },
-              ] as { l: string; v: number; tone?: string }[]).map(s => (
-                <div key={s.l} className={`flex flex-col items-center justify-center rounded-lg border px-4 py-2 min-w-[84px] ${
-                  s.tone === 'emerald' ? 'border-emerald-200 bg-emerald-50/60' : s.tone === 'rose' ? 'border-rose-200 bg-rose-50/50' : 'border-border bg-muted/20'}`}>
-                  <span className="text-[18px] font-bold text-foreground leading-none">{s.v}</span>
-                  <span className="text-[9.5px] uppercase tracking-wider text-muted-foreground/60 mt-1">{s.l}</span>
+                { l: 'Selected',    v: funnel.funnel.won },
+                { l: 'Not chosen',  v: funnel.funnel.lost },
+              ] as { l: string; v: number }[]).map(s => (
+                <div key={s.l} className="flex flex-col rounded-[16px] px-4 py-3 min-w-[104px]" style={{ background: '#f1f3f4' }}>
+                  <span className="text-[12.5px]" style={{ color: MUTED }}>{s.l}</span>
+                  <span className="text-[22px] font-medium tracking-[-0.02em] leading-none tabular-nums mt-1.5" style={{ color: INK }}>{s.v}</span>
                 </div>
               ))}
             </div>
-            <div className="flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-muted-foreground mt-0.5">
-              <span>Selection rate <b className="text-foreground">{funnel.win_rate}%</b> <span className="text-muted-foreground/50">(of decided)</span></span>
-              <span>Quote conversion <b className="text-foreground">{funnel.quote_conversion}%</b></span>
-              <span>In flight <b className="text-foreground">{funnel.in_flight}</b></span>
-              {funnel.avg_time_to_quote_days != null && <span>Avg time-to-quote <b className="text-foreground">{funnel.avg_time_to_quote_days}d</b></span>}
-              {funnel.avg_time_to_decision_days != null && <span>Avg time-to-decision <b className="text-foreground">{funnel.avg_time_to_decision_days}d</b></span>}
+            <div className="flex flex-wrap gap-x-5 gap-y-1 text-[13px]" style={{ color: MUTED }}>
+              <span>Selection rate <span className="tabular-nums" style={{ color: INK }}>{funnel.win_rate}%</span> of decided</span>
+              <span>Quote conversion <span className="tabular-nums" style={{ color: INK }}>{funnel.quote_conversion}%</span></span>
+              <span>In flight <span className="tabular-nums" style={{ color: INK }}>{funnel.in_flight}</span></span>
+              {funnel.avg_time_to_quote_days != null && <span>Average time to quote <span className="tabular-nums" style={{ color: INK }}>{funnel.avg_time_to_quote_days} days</span></span>}
+              {funnel.avg_time_to_decision_days != null && <span>Average time to decision <span className="tabular-nums" style={{ color: INK }}>{funnel.avg_time_to_decision_days} days</span></span>}
             </div>
           </div>
         )}
 
-        <div className="flex flex-col gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Insurer scoreboard</span>
-          {stats === null ? (
-            <p className="text-sm text-muted-foreground">Loading…</p>
-          ) : stats.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No dispatches yet.</p>
-          ) : (
-            <div className="overflow-x-auto rounded-lg border border-border">
-              <table className="w-full text-[12px] border-collapse">
-                <thead>
-                  <tr className="text-left text-[10px] uppercase tracking-wider text-muted-foreground/60 bg-muted/30">
-                    <th className="py-2 px-3 font-semibold">Insurer</th>
-                    <th className="py-2 px-3 font-semibold">Requested</th>
-                    <th className="py-2 px-3 font-semibold">Replied</th>
-                    <th className="py-2 px-3 font-semibold">Quoted</th>
-                    <th className="py-2 px-3 font-semibold">Quote rate</th>
-                    <th className="py-2 px-3 font-semibold">Avg reply</th>
-                    <th className="py-2 px-3 font-semibold">Selected</th>
-                    <th className="py-2 px-3 font-semibold">Selection rate</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {stats.map(s => (
-                    <tr key={s.insurer}>
-                      <td className="py-2 px-3 font-medium text-foreground">{s.insurer}</td>
-                      <td className="py-2 px-3 text-muted-foreground">{s.requested}</td>
-                      <td className="py-2 px-3 text-muted-foreground">{s.replied}</td>
-                      <td className="py-2 px-3 text-muted-foreground">{s.quoted}</td>
-                      <td className="py-2 px-3 text-muted-foreground">{s.quote_rate}%</td>
-                      <td className="py-2 px-3 text-muted-foreground">{s.avg_response_days != null ? `${s.avg_response_days}d` : '—'}</td>
-                      <td className="py-2 px-3 text-muted-foreground">{s.won}</td>
-                      <td className="py-2 px-3 text-muted-foreground">{s.win_rate}%</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+        <div className="flex flex-col gap-3">
+          <h3 className="m-0 text-[16px] font-medium tracking-[-0.01em]" style={{ color: INK }}>Insurer scoreboard</h3>
+          <Register label="Insurer scoreboard" minWidth={640}>
+            <RegisterHead>
+              <RegisterTh first hint="Insurer, and how many quote requests were sent to them">Insurer</RegisterTh>
+              <RegisterTh align="right" hint="Requests that received any reply">Replied</RegisterTh>
+              <RegisterTh align="right" hint="Requests that came back with a quote, and the quote rate">Quoted</RegisterTh>
+              <RegisterTh align="right" hint="Average days from request to first reply">Average reply</RegisterTh>
+              <RegisterTh last align="right" hint="Quotes the client selected, and the selection rate">Selected</RegisterTh>
+            </RegisterHead>
+            <tbody>
+              {stats === null && <RegisterEmpty colSpan={5}>Loading…</RegisterEmpty>}
+              {stats && stats.length === 0 && <RegisterEmpty colSpan={5}>No dispatches yet.</RegisterEmpty>}
+              {(stats ?? []).map(s => (
+                <RegisterRow key={s.insurer}>
+                  <RegisterCell first title={s.insurer} primary={s.insurer} secondary={`${s.requested} request${s.requested === 1 ? '' : 's'}`} />
+                  <RegisterCell align="right" primary={s.replied} />
+                  <RegisterCell align="right" primary={s.quoted} secondary={`${s.quote_rate}% quote rate`} />
+                  <RegisterCell align="right" primary={s.avg_response_days != null ? `${s.avg_response_days} days` : '—'} />
+                  <RegisterCell last align="right" primary={s.won} secondary={`${s.win_rate}% selection rate`} />
+                </RegisterRow>
+              ))}
+            </tbody>
+          </Register>
         </div>
       </CardContent>
     </Card>

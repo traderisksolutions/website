@@ -15,7 +15,7 @@ const STYLES: Record<CalloutVariant, {
   info: {
     bg:          'rgba(15,61,145,0.05)',
     borderLeft:  'rgba(15,61,145,0.40)',
-    titleColor:  '#0F3D91',
+    titleColor:  '#202124',
     bodyColor:   'rgba(16,24,40,0.75)',
   },
   warning: {
@@ -57,7 +57,7 @@ export function InfoCallout({ variant = 'info', title, children, className }: In
     >
       {title && (
         <p
-          className="text-[11px] font-bold uppercase tracking-[0.07em] mb-1.5"
+          className="text-[12.5px] font-medium tracking-[0.07em] mb-1.5"
           style={{ color: s.titleColor }}
         >
           {title}

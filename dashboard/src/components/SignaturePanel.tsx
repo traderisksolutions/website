@@ -65,7 +65,7 @@ function SigPreview({ sig }: { sig: UserSignature }) {
   const parts = [sig.title, sig.phone, sig.email].filter(Boolean)
   return (
     <div>
-      <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: 'var(--text-primary, #111)' }}>{sig.name}</p>
+      <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: '#202124' }}>{sig.name}</p>
       {parts.length > 0 && (
         <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-muted, #9ca3af)' }}>{parts.join(' · ')}</p>
       )}
@@ -358,7 +358,7 @@ export default function SignaturePanel({ profile }: { profile: Profile | null })
       {/* Header */}
       <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #111)' }}>Email Signatures</h2>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 500, color: '#202124' }}>Email signatures</h2>
           <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted, #9ca3af)' }}>
             One signature per sending address. Selected automatically when you choose a From address.
           </p>

@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Loader2, AlertCircle, CheckCircle, Plus, ExternalLink, RefreshCw } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
-import { AppScrollPage } from '@/components/app-shell'
-import { PageHeader } from '@/components/page-header'
+import { Chip, Field, Segmented, inputCls, textareaCls } from '@/components/crm/primitives'
+
+const INK = '#202124'
+const MUTED = '#5f6368'
+const RULE = '#e8eaed'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -35,21 +35,21 @@ interface Signal {
 
 // ── Status + type metadata ────────────────────────────────────────────────────
 
-const SIGNAL_STATUS: Record<SignalStatus, { label: string; color: string; bg: string }> = {
-  pending:  { label: 'Pending',  color: '#92400e', bg: 'rgba(245,158,11,0.10)'  },
-  active:   { label: 'Active',   color: '#166534', bg: 'rgba(22,101,52,0.09)'   },
-  rejected: { label: 'Rejected', color: '#991b1b', bg: 'rgba(153,27,27,0.08)'   },
-  archived: { label: 'Archived', color: '#667085', bg: 'rgba(20,30,50,0.05)'    },
+const STATUS_LABEL: Record<SignalStatus, string> = {
+  pending:  'Pending',
+  active:   'Active',
+  rejected: 'Rejected',
+  archived: 'Archived',
 }
 
 const TYPE_LABELS: Record<SignalType, string> = {
   incident:           'Incident',
   regulatory:         'Regulatory',
-  market_event:       'Market Event',
+  market_event:       'Market event',
   merger_acquisition: 'M&A',
-  leadership_change:  'Leadership Change',
+  leadership_change:  'Leadership change',
   financial_event:    'Financial',
-  sector_trend:       'Sector Trend',
+  sector_trend:       'Sector trend',
   competitor_news:    'Competitor',
 }
 
@@ -62,18 +62,7 @@ function getHostname(url: string): string {
   try { return new URL(url).hostname } catch { return url }
 }
 
-// ── Shared form label ─────────────────────────────────────────────────────────
-
-function FormLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
-      {children}
-    </label>
-  )
-}
-
-const INPUT_CLS = 'w-full h-9 px-3 text-[13px] text-foreground bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-ring'
-const TEXTAREA_CLS = 'w-full px-3 py-2 text-[13px] text-foreground bg-background border border-input rounded-md resize-y outline-none focus:ring-1 focus:ring-ring font-sans leading-relaxed'
+const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
@@ -181,335 +170,176 @@ export default function SignalLibraryPage() {
     ? signals
     : signals.filter(s => s.status === statusFilter)
 
-  const corroborated = filtered.filter(s => s.corroboration_count >= 2)
   const pendingCount = signals.filter(s => s.status === 'pending').length
 
+  const countLine = loading
+    ? 'Loading…'
+    : `${filtered.length} signal${filtered.length === 1 ? '' : 's'}${statusFilter !== 'all' ? ` · ${STATUS_LABEL[statusFilter].toLowerCase()}` : ''}`
+
   return (
-    <AppScrollPage maxWidth="1000px">
+    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
+      <div className="mx-auto max-w-[1000px] px-6 sm:px-12 pt-12 pb-20">
 
-      <PageHeader
-        title="Signal Library"
-        description="Market signals that inform outbound campaigns. Signals with 2+ sources are corroborated."
-        actions={
-          <>
-            <Button variant="outline" size="compact" onClick={load} className="gap-1.5">
-              <RefreshCw size={12} /> Refresh
-            </Button>
-            <Button size="compact" onClick={() => setShowForm(v => !v)} className="gap-1.5">
-              <Plus size={13} /> Add Signal
-            </Button>
-          </>
-        }
-        className="mb-5"
-      />
-
-      {/* Status filter pills */}
-      <div className="flex gap-1.5 mb-4 flex-wrap">
-        {(['all', 'pending', 'active', 'rejected', 'archived'] as const).map(s => (
-          <button
-            key={s}
-            onClick={() => setStatusFilter(s)}
-            aria-pressed={statusFilter === s}
-            className={cn('filter-pill', statusFilter === s && 'active')}
-          >
-            {s.charAt(0).toUpperCase() + s.slice(1)}
-            {s === 'pending' && pendingCount > 0 && (
-              <span className="ml-1.5 bg-amber-500 text-white rounded-[5px] text-[10px] px-1.5 py-px font-bold leading-none">
-                {pendingCount}
-              </span>
+        {/* Header */}
+        <div className="flex items-end justify-between gap-6 flex-wrap">
+          <div className="min-w-0">
+            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Signals</h1>
+            <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>{countLine}</p>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <button type="button" onClick={load} className="h-12 px-4 rounded-[12px] border bg-white text-[15px] cursor-pointer hover:bg-[#f8f9fa]" style={{ borderColor: '#dadce0', color: INK }}>
+              Refresh
+            </button>
+            {!showForm && (
+              <button type="button" onClick={() => setShowForm(true)} className="h-12 px-6 rounded-[12px] text-white text-[15px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90" style={{ background: INK }}>
+                Add signal
+              </button>
             )}
-          </button>
-        ))}
-      </div>
-
-      {/* Error */}
-      {error && (
-        <div className="flex items-center gap-2 px-3.5 py-2.5 mb-4 rounded-lg bg-destructive/[0.08] border-l-[3px] border-destructive/40 text-[13px] text-destructive">
-          <AlertCircle size={14} className="flex-shrink-0" strokeWidth={2} />
-          <span className="flex-1">{error}</span>
-          <button onClick={() => setError(null)} className="bg-transparent border-0 cursor-pointer text-destructive text-base leading-none">×</button>
+          </div>
         </div>
-      )}
 
-      {/* Success */}
-      {successMsg && (
-        <div className="flex items-center gap-2 px-3.5 py-2.5 mb-4 rounded-lg bg-[rgba(15,138,95,0.08)] border-l-[3px] border-[rgba(15,138,95,0.5)] text-[13px] text-emerald-700">
-          <CheckCircle size={14} className="flex-shrink-0" strokeWidth={2} />
-          <span className="flex-1">{successMsg}</span>
-          <button onClick={() => setSuccessMsg(null)} className="bg-transparent border-0 cursor-pointer text-emerald-700 text-base leading-none">×</button>
+        {/* Status filter */}
+        <div className="mt-6">
+          <Segmented
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={(['all', 'pending', 'active', 'rejected', 'archived'] as const).map(s => ({
+              value: s, label: s === 'all' ? 'All' : STATUS_LABEL[s], count: s === 'pending' && pendingCount > 0 ? pendingCount : undefined,
+            }))}
+          />
         </div>
-      )}
 
-      {/* Corroboration notice */}
-      {corroborated.length > 0 && (
-        <div className="mb-4 px-3.5 py-2.5 rounded-lg bg-violet-50 border-l-[3px] border-violet-300 text-[12.5px] text-violet-700">
-          {corroborated.length} signal{corroborated.length !== 1 ? 's' : ''} have 2+ corroborating sources — strong candidates for campaign use.
-        </div>
-      )}
+        {error && (
+          <p className="mt-6 mb-0 text-[14px] flex items-center gap-3 flex-wrap" style={{ color: '#3c4043' }} role="alert">
+            <span>{error}</span>
+            <button type="button" onClick={() => setError(null)} className="bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4" style={{ color: INK }}>Dismiss</button>
+          </p>
+        )}
+        {successMsg && (
+          <p className="mt-6 mb-0 text-[14px] flex items-center gap-3 flex-wrap" style={{ color: MUTED }} role="status">
+            <span>{successMsg}</span>
+            <button type="button" onClick={() => setSuccessMsg(null)} className="bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4" style={{ color: INK }}>Dismiss</button>
+          </p>
+        )}
 
-      {/* Add signal form */}
-      {showForm && (
-        <Card className="mb-5 border-primary/20 bg-primary/[0.02]">
-          <CardContent className="p-6">
-            <p className="text-[14px] font-bold text-foreground mb-4">New Signal</p>
-            <form onSubmit={submitSignal}>
-              <div className="grid grid-cols-2 gap-3 mb-3">
-                <div>
-                  <FormLabel>Scope *</FormLabel>
-                  <select
-                    value={form.scope}
-                    onChange={e => setForm(f => ({ ...f, scope: e.target.value as 'sector' | 'company' }))}
-                    className={INPUT_CLS}
-                    required
-                  >
-                    <option value="sector">Sector</option>
-                    <option value="company">Company</option>
-                  </select>
+        {/* Add signal form */}
+        {showForm && (
+          <form onSubmit={submitSignal} className="mt-6 rounded-[16px] bg-white px-6 py-5" style={{ border: `1px solid ${RULE}` }}>
+            <h2 className="m-0 mb-4 text-[16px] font-medium tracking-[-0.01em]" style={{ color: INK }}>New signal</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="Scope">
+                <select value={form.scope} onChange={e => setForm(f => ({ ...f, scope: e.target.value as 'sector' | 'company' }))} className={inputCls} required>
+                  <option value="sector">Sector</option>
+                  <option value="company">Company</option>
+                </select>
+              </Field>
+              <Field label="Signal type">
+                <select value={form.signal_type} onChange={e => setForm(f => ({ ...f, signal_type: e.target.value as SignalType }))} className={inputCls} required>
+                  {SIGNAL_TYPES.map(t => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}
+                </select>
+              </Field>
+              <div className="sm:col-span-2">
+                <Field label="Sector or industry">
+                  <input value={form.sector} onChange={e => setForm(f => ({ ...f, sector: e.target.value }))} placeholder="Manufacturing, Retail, F&B" className={inputCls} />
+                </Field>
+              </div>
+              <div className="sm:col-span-2">
+                <Field label="Headline">
+                  <input value={form.headline} onChange={e => setForm(f => ({ ...f, headline: e.target.value }))} placeholder="One line describing the signal" className={inputCls} required />
+                </Field>
+              </div>
+              <div className="sm:col-span-2">
+                <Field label="Summary">
+                  <textarea value={form.summary} onChange={e => setForm(f => ({ ...f, summary: e.target.value }))} placeholder="Context for the signal" className={textareaCls} rows={3} />
+                </Field>
+              </div>
+              <Field label="Source URL">
+                <input value={form.source_url} onChange={e => setForm(f => ({ ...f, source_url: e.target.value }))} placeholder="https://…" type="url" className={inputCls} required />
+              </Field>
+              <Field label="Published date">
+                <input value={form.published_at} onChange={e => setForm(f => ({ ...f, published_at: e.target.value }))} type="date" className={inputCls} />
+              </Field>
+              <div className="sm:col-span-2">
+                <Field label="Relevance notes">
+                  <input value={form.relevance_notes} onChange={e => setForm(f => ({ ...f, relevance_notes: e.target.value }))} placeholder="How this signal supports TRS outreach" className={inputCls} />
+                </Field>
+              </div>
+              <div className="sm:col-span-2">
+                <Field label="Corroboration group ID" hint="Paste an existing signal's group UUID to link them.">
+                  <input value={form.corroboration_group_id} onChange={e => setForm(f => ({ ...f, corroboration_group_id: e.target.value }))} placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" className={inputCls} />
+                </Field>
+              </div>
+            </div>
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <Button type="button" variant="ghost" size="sm" onClick={() => setShowForm(false)}>Cancel</Button>
+              <Button type="submit" size="sm" disabled={submitting}>{submitting ? 'Saving…' : 'Add signal'}</Button>
+            </div>
+          </form>
+        )}
+
+        {/* Signals list */}
+        <div className="mt-6">
+          {loading ? (
+            <div className="rounded-[16px] overflow-hidden bg-white" style={{ border: `1px solid ${RULE}` }} aria-busy="true">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="h-[88px] px-6 flex flex-col justify-center gap-2.5" style={{ borderBottom: `1px solid ${RULE}` }}>
+                  <span className="h-3.5 w-3/5 rounded bg-[#f1f3f4] animate-pulse" />
+                  <span className="h-3 w-2/5 rounded bg-[#f1f3f4] animate-pulse" />
                 </div>
-                <div>
-                  <FormLabel>Signal Type *</FormLabel>
-                  <select
-                    value={form.signal_type}
-                    onChange={e => setForm(f => ({ ...f, signal_type: e.target.value as SignalType }))}
-                    className={INPUT_CLS}
-                    required
-                  >
-                    {SIGNAL_TYPES.map(t => (
-                      <option key={t} value={t}>{TYPE_LABELS[t]}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="mb-3">
-                <FormLabel>Sector / Industry</FormLabel>
-                <input
-                  value={form.sector}
-                  onChange={e => setForm(f => ({ ...f, sector: e.target.value }))}
-                  placeholder="e.g. Manufacturing, Retail, F&B"
-                  className={INPUT_CLS}
-                />
-              </div>
-
-              <div className="mb-3">
-                <FormLabel>Headline *</FormLabel>
-                <input
-                  value={form.headline}
-                  onChange={e => setForm(f => ({ ...f, headline: e.target.value }))}
-                  placeholder="Brief description of the signal"
-                  className={INPUT_CLS}
-                  required
-                />
-              </div>
-
-              <div className="mb-3">
-                <FormLabel>Summary</FormLabel>
-                <textarea
-                  value={form.summary}
-                  onChange={e => setForm(f => ({ ...f, summary: e.target.value }))}
-                  placeholder="Additional context about the signal…"
-                  className={TEXTAREA_CLS}
-                  style={{ minHeight: 60 }}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 mb-3">
-                <div>
-                  <FormLabel>Source URL *</FormLabel>
-                  <input
-                    value={form.source_url}
-                    onChange={e => setForm(f => ({ ...f, source_url: e.target.value }))}
-                    placeholder="https://…"
-                    type="url"
-                    className={INPUT_CLS}
-                    required
-                  />
-                </div>
-                <div>
-                  <FormLabel>Published Date</FormLabel>
-                  <input
-                    value={form.published_at}
-                    onChange={e => setForm(f => ({ ...f, published_at: e.target.value }))}
-                    type="date"
-                    className={INPUT_CLS}
-                  />
-                </div>
-              </div>
-
-              <div className="mb-3">
-                <FormLabel>Relevance Notes</FormLabel>
-                <input
-                  value={form.relevance_notes}
-                  onChange={e => setForm(f => ({ ...f, relevance_notes: e.target.value }))}
-                  placeholder="Why this matters for TRS outreach…"
-                  className={INPUT_CLS}
-                />
-              </div>
-
-              <div className="mb-5">
-                <FormLabel>
-                  Corroboration Group ID{' '}
-                  <span className="text-[10px] font-normal text-muted-foreground/50 normal-case tracking-normal ml-1">
-                    (paste an existing signal&apos;s group UUID to link them)
-                  </span>
-                </FormLabel>
-                <input
-                  value={form.corroboration_group_id}
-                  onChange={e => setForm(f => ({ ...f, corroboration_group_id: e.target.value }))}
-                  placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                  className={INPUT_CLS}
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <Button type="submit" size="sm" disabled={submitting} className="gap-1.5">
-                  {submitting ? <Loader2 size={13} className="animate-spin" /> : null}
-                  {submitting ? 'Saving…' : 'Add Signal'}
-                </Button>
-                <Button type="button" variant="outline" size="sm" onClick={() => setShowForm(false)}>
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Signals list */}
-      {loading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 size={18} className="animate-spin text-muted-foreground/40" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-[13.5px] text-muted-foreground/40">
-              {statusFilter === 'pending'
-                ? 'No pending signals — add one above or run the agent to discover signals.'
-                : 'No signals found.'}
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <p className="py-16 text-center text-[16px] m-0" style={{ color: MUTED }}>
+              {statusFilter === 'pending' ? 'No pending signals. Add one or run the agent to discover more.' : 'No signals here.'}
             </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {filtered.map(sig => {
-            const sm         = SIGNAL_STATUS[sig.status]
-            const isActioning = actioning?.startsWith(sig.id)
-            return (
-              <Card key={sig.id}>
-                <CardContent className="p-5">
-                  <div className="flex items-start gap-4">
-                    <div className="flex-1 min-w-0">
-
-                      {/* Header badges */}
-                      <div className="flex items-center gap-2 flex-wrap mb-2">
-                        <span
-                          className="text-[11px] font-semibold px-2 py-0.5 rounded-[5px] whitespace-nowrap"
-                          style={{ color: sm.color, background: sm.bg }}
-                        >
-                          {sm.label}
-                        </span>
-                        <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-muted text-muted-foreground whitespace-nowrap">
-                          {TYPE_LABELS[sig.signal_type] ?? sig.signal_type}
-                        </span>
-                        {sig.sector && (
-                          <span className="text-[11px] text-muted-foreground/60">{sig.sector}</span>
-                        )}
-                        {sig.corroboration_count >= 2 && (
-                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-[5px] text-violet-700 bg-violet-50 whitespace-nowrap">
-                            {sig.corroboration_count} sources
-                          </span>
-                        )}
-                        {sig.created_by_agent && (
-                          <span className="text-[10.5px] text-muted-foreground/40">AI-discovered</span>
-                        )}
-                      </div>
-
-                      {/* Headline */}
-                      <p className="text-[14px] font-semibold text-foreground leading-snug mb-1.5">
-                        {sig.headline}
+          ) : (
+            <ul className="m-0 p-0 list-none rounded-[16px] overflow-hidden bg-white" style={{ border: `1px solid ${RULE}` }}>
+              {filtered.map(sig => {
+                const isActioning = actioning?.startsWith(sig.id)
+                return (
+                  <li key={sig.id} className="flex items-start gap-6 px-6 py-4 flex-wrap" style={{ borderBottom: `1px solid ${RULE}` }}>
+                    <div className="flex-1 min-w-[260px]">
+                      <p className="m-0 text-[14px] font-medium leading-snug" style={{ color: INK }}>{sig.headline}</p>
+                      <p className="m-0 mt-1.5 flex items-center gap-2 flex-wrap text-[12.5px]" style={{ color: MUTED }}>
+                        <Chip>{STATUS_LABEL[sig.status]}</Chip>
+                        <Chip>{TYPE_LABELS[sig.signal_type] ?? sig.signal_type}</Chip>
+                        {sig.corroboration_count >= 2 && <Chip>{sig.corroboration_count} sources</Chip>}
+                        {sig.sector && <span>{sig.sector}</span>}
+                        {sig.created_by_agent && <span>AI-discovered</span>}
                       </p>
-
-                      {/* Summary */}
-                      {sig.summary && (
-                        <p className="text-[12.5px] text-muted-foreground leading-relaxed mb-2">
-                          {sig.summary}
-                        </p>
-                      )}
-
-                      {/* Relevance notes */}
-                      {sig.relevance_notes && (
-                        <p className="text-[12px] text-violet-700/75 italic mb-2">
-                          {sig.relevance_notes}
-                        </p>
-                      )}
-
-                      {/* Source + dates */}
-                      <div className="flex items-center gap-4 flex-wrap">
-                        <a
-                          href={sig.source_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-[11.5px] text-primary no-underline hover:underline"
-                        >
-                          <ExternalLink size={10} />
-                          {sig.source_domain ?? getHostname(sig.source_url)}
+                      {sig.summary && <p className="m-0 mt-2 text-[13px] leading-relaxed" style={{ color: '#3c4043' }}>{sig.summary}</p>}
+                      {sig.relevance_notes && <p className="m-0 mt-1.5 text-[13px] leading-relaxed" style={{ color: MUTED }}>{sig.relevance_notes}</p>}
+                      <p className="m-0 mt-2 flex items-center gap-4 flex-wrap text-[12.5px]" style={{ color: MUTED }}>
+                        <a href={sig.source_url} target="_blank" rel="noopener noreferrer" className="no-underline hover:underline underline-offset-4" style={{ color: INK }}>
+                          {sig.source_domain ?? getHostname(sig.source_url)} ↗
                         </a>
-                        {sig.published_at && (
-                          <span className="text-[11px] text-muted-foreground/50">
-                            Published {new Date(sig.published_at).toLocaleDateString()}
-                          </span>
-                        )}
-                        <span className="text-[11px] text-muted-foreground/30">
-                          Added {new Date(sig.discovered_at).toLocaleDateString()}
-                        </span>
-                      </div>
+                        {sig.published_at && <span>Published {fmtDate(sig.published_at)}</span>}
+                        <span>Added {fmtDate(sig.discovered_at)}</span>
+                      </p>
                     </div>
 
-                    {/* Actions */}
                     {sig.status === 'pending' && (
                       <div className="flex gap-2 flex-shrink-0">
-                        <Button
-                          size="compact"
-                          onClick={() => takeAction(sig.id, 'approve')}
-                          disabled={!!isActioning}
-                          className="gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white border-0"
-                        >
-                          {isActioning && actioning === sig.id + ':approve'
-                            ? <Loader2 size={12} className="animate-spin" />
-                            : <CheckCircle size={12} />}
-                          Approve
+                        <Button variant="outline" size="sm" onClick={() => takeAction(sig.id, 'approve')} disabled={!!isActioning}>
+                          {actioning === sig.id + ':approve' ? 'Approving…' : 'Approve'}
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="compact"
-                          onClick={() => takeAction(sig.id, 'reject')}
-                          disabled={!!isActioning}
-                          className="text-destructive border-destructive/30 hover:bg-destructive/[0.05]"
-                        >
-                          Reject
+                        <Button variant="ghost" size="sm" onClick={() => takeAction(sig.id, 'reject')} disabled={!!isActioning}>
+                          {actioning === sig.id + ':reject' ? 'Rejecting…' : 'Reject'}
                         </Button>
                       </div>
                     )}
                     {sig.status === 'active' && (
-                      <Button
-                        variant="outline"
-                        size="compact"
-                        onClick={() => takeAction(sig.id, 'archive')}
-                        disabled={!!isActioning}
-                        className="flex-shrink-0 gap-1.5"
-                      >
-                        {isActioning ? <Loader2 size={12} className="animate-spin" /> : null}
-                        Archive
+                      <Button variant="ghost" size="sm" className="flex-shrink-0" onClick={() => takeAction(sig.id, 'archive')} disabled={!!isActioning}>
+                        {isActioning ? 'Archiving…' : 'Archive'}
                       </Button>
                     )}
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
         </div>
-      )}
-    </AppScrollPage>
+      </div>
+    </div>
   )
 }

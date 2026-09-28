@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
+import { internalHeaders }        from '@/lib/api-gate/internal'
 
 export const maxDuration = 120
 
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // Same-deployment Python serverless function.
     const origin = new URL(req.url).origin
     const pyRes = await fetch(`${origin}/api/analyze_xlsx`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: internalHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ xlsx_url, insurer_name: table?.insurer_name ?? null }),
     })
     const analysis = await pyRes.json().catch(() => ({ error: 'analyzer returned non-JSON' }))

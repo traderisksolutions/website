@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Network, Reply, ExternalLink, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Network, Reply, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { Btn, Chip, Empty, Segmented, Spinner } from './primitives'
@@ -21,7 +21,8 @@ import type { CompanyThread } from '@/lib/crm/types'
  */
 
 type Filter = 'all' | 'reply' | 'rfq' | 'claim' | 'renewal' | 'general'
-const CAT_TONE: Record<string, 'blue' | 'red' | 'amber' | 'neutral'> = { rfq: 'blue', claim: 'red', renewal: 'amber', general: 'neutral', other: 'neutral' }
+const INK = '#202124'
+const MUTED = '#5f6368'
 
 type ThreadRow = { id: string; subject: string | null; status: string; last_message_at: string | null; contact_id: string | null }
 
@@ -110,8 +111,8 @@ export function CompanyMail({ threads, companyId, companyName, onCombine, onRefr
   } : null
 
   return (
-    <div className={cn(fullHeight ? 'h-full flex flex-col px-4 pt-2' : 'mt-3')}>
-      <div className={cn('mb-2 flex items-center gap-2 flex-wrap', fullHeight && 'flex-shrink-0')}>
+    <div className={cn(fullHeight ? 'h-full flex flex-col px-4 sm:px-6 pt-3' : 'mt-3')} style={{ color: INK }}>
+      <div className={cn('mb-3 flex items-center gap-2 flex-wrap', fullHeight && 'flex-shrink-0')}>
         <Segmented value={filter} onChange={setFilter} options={[
           { value: 'all', label: 'All', count: counts.all }, { value: 'reply', label: 'Awaiting reply', count: counts.reply },
           { value: 'rfq', label: 'RFQ', count: counts.rfq }, { value: 'claim', label: 'Claims', count: counts.claim },
@@ -119,7 +120,7 @@ export function CompanyMail({ threads, companyId, companyName, onCombine, onRefr
         ]} />
         <span className="ml-auto flex items-center gap-1.5">
           {onCombine && selected.size > 0 && (
-            <Btn size="xs" level="primary" onClick={() => { onCombine(Array.from(selected)); setSelected(new Set()) }}>
+            <Btn size="xs" level="secondary" onClick={() => { onCombine(Array.from(selected)); setSelected(new Set()) }}>
               <Network size={12} /> Combine {selected.size} into a case
             </Btn>
           )}
@@ -130,26 +131,26 @@ export function CompanyMail({ threads, companyId, companyName, onCombine, onRefr
       {threads.length === 0 && <Empty>No threads are filed under this company yet.</Empty>}
 
       {threads.length > 0 && (
-        <div className={cn('flex gap-4 border-t border-[--border-subtle]',
+        <div className={cn('flex gap-4 border-t border-[#e8eaed]',
           fullHeight ? 'flex-1 min-h-0 items-stretch' : 'items-start')}>
           {/* List */}
-          <div className={cn('min-w-0 md:w-[320px] md:flex-shrink-0 md:border-r md:border-[--border-subtle] md:pr-3',
+          <div className={cn('min-w-0 md:w-[340px] md:flex-shrink-0 md:border-r md:border-[#e8eaed] md:pr-4',
             fullHeight && 'flex flex-col min-h-0',
             selectedId ? 'hidden md:block' : 'w-full')}>
             {visible.length === 0 && <Empty compact>Nothing matches this filter.</Empty>}
             <ul className={cn('m-0 p-0 list-none flex flex-col overflow-y-auto', fullHeight ? 'flex-1 min-h-0' : 'max-h-[70vh]')}>
               {visible.map(t => (
-                <li key={t.id} className={cn('border-b border-[--border-subtle] last:border-b-0', selectedId === t.id && 'bg-[--selected-row-bg]')}>
-                  <div className="flex items-start gap-2 py-2 pr-1">
+                <li key={t.id} className={cn('border-b border-[#e8eaed] last:border-b-0', selectedId === t.id ? 'bg-[#f1f3f4]' : 'hover:bg-[#f8f9fa]')}>
+                  <div className="flex items-start gap-2 py-3 px-2">
                     {onCombine && <input type="checkbox" className="mt-1.5 flex-shrink-0" checked={selected.has(t.id)} onChange={() => toggle(t.id)} aria-label={`Select ${t.subject ?? 'thread'}`} />}
                     <button onClick={() => openThread(t.id)} className="min-w-0 flex-1 text-left bg-transparent border-0 p-0 cursor-pointer">
-                      <p className={cn('text-[12.5px] m-0 line-clamp-2', selectedId === t.id ? 'font-semibold' : 'font-medium')}>{t.subject ?? '(no subject)'}</p>
-                      <p className="text-[11px] text-muted-foreground m-0 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                        {t.needsReply && <Chip tone="amber"><Reply size={9} /> Reply</Chip>}
-                        {t.category && <Chip tone={CAT_TONE[t.category] ?? 'neutral'} className="capitalize">{t.category}</Chip>}
+                      <p className={cn('text-[14px] m-0 line-clamp-2', selectedId === t.id ? 'font-medium' : '')} style={{ color: INK }}>{t.subject ?? '(no subject)'}</p>
+                      <p className="text-[12.5px] m-0 mt-1 flex items-center gap-1.5 flex-wrap" style={{ color: MUTED }}>
+                        {t.needsReply && <Chip>Awaiting reply</Chip>}
+                        {t.category && <Chip className="capitalize">{t.category}</Chip>}
                         <span className="truncate">{t.contact?.name ?? t.contact?.email ?? 'Unknown'}</span>
                       </p>
-                      <p className="text-[10.5px] text-muted-foreground/70 m-0 mt-0.5">{t.message_count} message{t.message_count === 1 ? '' : 's'} · {fmtRelative(t.last_message_at)}</p>
+                      <p className="text-[12.5px] m-0 mt-0.5" style={{ color: '#80868b' }}>{t.message_count} message{t.message_count === 1 ? '' : 's'} · {fmtRelative(t.last_message_at)}</p>
                     </button>
                   </div>
                 </li>
@@ -161,29 +162,29 @@ export function CompanyMail({ threads, companyId, companyName, onCombine, onRefr
           <div ref={readerRef} className={cn('min-w-0 flex-1 overflow-y-auto', fullHeight ? 'min-h-0' : 'max-h-[70vh]', selectedId ? 'block' : 'hidden md:block')}>
             {!selectedId && <Empty compact>Choose a conversation.</Empty>}
             {selectedId && loading && <Spinner label="Opening…" />}
-            {selectedId && error && <p className="text-[12.5px] text-destructive py-4">{error}</p>}
+            {selectedId && error && <p className="text-[13px] py-4 m-0" style={{ color: '#c5221f' }}>{error}</p>}
 
             {selectedId && !loading && !error && current && (
               <>
-                <div className="flex items-start justify-between gap-2 pb-2 border-b border-[--border-subtle] sticky top-0 bg-background z-10">
+                <div className="flex items-start justify-between gap-3 pt-3 pb-3 border-b border-[#e8eaed] sticky top-0 bg-white z-10">
                   <div className="min-w-0">
-                    <button onClick={() => setSelectedId(null)} className="md:hidden inline-flex items-center gap-1 text-[12px] text-muted-foreground bg-transparent border-0 p-0 mb-1 cursor-pointer">
+                    <button type="button" onClick={() => setSelectedId(null)} className="md:hidden inline-flex items-center gap-1 text-[13px] bg-transparent border-0 p-0 mb-1 cursor-pointer" style={{ color: MUTED }}>
                       <ArrowLeft size={12} /> All threads
                     </button>
-                    <p className="text-[13.5px] font-semibold m-0 leading-snug">{current.subject ?? '(no subject)'}</p>
-                    <p className="text-[11.5px] text-muted-foreground m-0 mt-0.5">
+                    <p className="text-[16px] font-medium tracking-[-0.01em] m-0 leading-snug" style={{ color: INK }}>{current.subject ?? '(no subject)'}</p>
+                    <p className="text-[13px] m-0 mt-0.5" style={{ color: MUTED }}>
                       {current.contact?.name ?? current.contact?.email ?? 'Unknown contact'} · {messages?.length ?? 0} message{(messages?.length ?? 0) === 1 ? '' : 's'}
-                      {current.caseIds.length > 0 && <> · <Link href={`/nexus?case=${current.caseIds[0]}`} className="text-primary no-underline hover:underline">in a case</Link></>}
+                      {current.caseIds.length > 0 && <> · <Link href={`/nexus?case=${current.caseIds[0]}`} className="underline underline-offset-4" style={{ color: INK }}>in a case</Link></>}
                     </p>
                   </div>
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    {!composing && <Btn size="xs" level="primary" onClick={() => setComposing(true)}><Reply size={12} /> Reply</Btn>}
-                    <Link href={`/engagement?lead=${current.id}`} title="Open in the full Inbox" className="inline-flex items-center gap-1 text-[11.5px] text-muted-foreground hover:text-primary no-underline"><ExternalLink size={12} /></Link>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {!composing && <Btn size="sm" level="primary" onClick={() => setComposing(true)}><Reply size={12} /> Reply</Btn>}
+                    <Link href={`/engagement?lead=${current.id}`} title="Open in the full Inbox" className="text-[13px] no-underline hover:underline" style={{ color: MUTED }}>Open in Inbox</Link>
                   </div>
                 </div>
 
                 {composing && lead && (
-                  <div className="py-3 border-b border-[--border-subtle]">
+                  <div className="py-3 border-b border-[#e8eaed]">
                     <EngagementComposePanel
                       lead={lead}
                       thread={thread ? { id: thread.id, subject: thread.subject, status: thread.status, last_message_at: thread.last_message_at, message_count: messages?.length ?? 0 } : null}

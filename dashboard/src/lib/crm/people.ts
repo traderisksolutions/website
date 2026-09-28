@@ -13,7 +13,7 @@ import type { Company, Person, PersonParty } from './types'
 type Participant = { thread_id: string; message_id: string | null; email: string; name: string | null; role: 'from' | 'to' | 'cc' | 'bcc'; contact_id: string | null }
 type MsgRow = { id: string; thread_id: string; direction: 'inbound' | 'outbound'; sent_at: string }
 type ThreadCat = { id: string; category: string | null }
-type ContactRow = { id: string; email: string | null; first_name: string | null; last_name: string | null; company_id: string | null }
+type ContactRow = { id: string; email: string | null; first_name: string | null; last_name: string | null; company_id: string | null; title: string | null }
 
 const WEIGHT = { sent: 3, received: 1, cc: 0.5 }
 
@@ -32,13 +32,14 @@ export async function rankPeople(company: Company, threadIds?: string[]): Promis
     inChunks(ids, 100, c => sbTry<Participant[]>(`email_participants?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,message_id,email,name,role,contact_id`, [])),
     inChunks(ids, 100, c => sbTry<MsgRow[]>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=id,thread_id,direction,sent_at`, [])),
     inChunks(ids, 100, c => sbTry<ThreadCat[]>(`email_threads?id=in.(${c.join(',')})&select=id,category`, [])),
-    sbTry<{ contact_email: string }[]>(`insurer_contacts?select=contact_email`, []),
-    sbTry<ContactRow[]>(`contacts?company_id=eq.${company.id}&select=id,email,first_name,last_name,company_id`, []),
+    // insurer_contacts is a link table into contacts (20260707); its own email column is gone.
+    sbTry<{ contacts: { email: string | null } | null }[]>(`insurer_contacts?select=contacts(email)`, []),
+    sbTry<ContactRow[]>(`contacts?company_id=eq.${company.id}&select=id,email,first_name,last_name,company_id,title`, []),
   ])
 
   const msgById = new Map(messages.map(m => [m.id, m]))
   const catByThread = new Map(threadCats.map(t => [t.id, t.category ?? 'general']))
-  const insurerSet = new Set(insurerEmails.map(r => r.contact_email.toLowerCase()))
+  const insurerSet = new Set(insurerEmails.map(r => (r.contacts?.email ?? '').toLowerCase()).filter(Boolean))
   const contactByEmail = new Map(companyContacts.filter(c => c.email).map(c => [c.email!.toLowerCase(), c]))
   const companyDomains = new Set(company.domains)
 
@@ -59,6 +60,7 @@ export async function rankPeople(company: Company, threadIds?: string[]): Promis
         : 'other'
       a = {
         email, name: p.name?.trim() || (contact ? personName(contact.first_name, contact.last_name, null) : null) || null,
+        title: contact?.title ?? null,
         contactId: p.contact_id ?? contact?.id ?? null, party, domain,
         sent: 0, received: 0, cc: 0, threads: 0, score: 0, firstSeen: null, lastSeen: null, topics: [], isPrimary: false,
         threadSet: new Set(), topicCounts: new Map(),

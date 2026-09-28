@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { clampRailWidth, RAIL_MIN, RAIL_MAX, RAIL_ICON_THRESHOLD } from '@/hooks/useResizableRailWidth'
+import { clampRailWidth, RAIL_MIN, RAIL_MAX, RAIL_DEFAULT, RAIL_COLLAPSED } from '@/hooks/useResizableRailWidth'
 
 describe('clampRailWidth', () => {
   it('passes through values already inside [min, max]', () => {
-    expect(clampRailWidth(300)).toBe(300)
+    expect(clampRailWidth(340)).toBe(340)
+    expect(clampRailWidth(RAIL_DEFAULT)).toBe(RAIL_DEFAULT)
     expect(clampRailWidth(RAIL_MIN)).toBe(RAIL_MIN)
     expect(clampRailWidth(RAIL_MAX)).toBe(RAIL_MAX)
   })
@@ -30,18 +31,24 @@ describe('clampRailWidth', () => {
     expect(clampRailWidth(Infinity)).toBe(RAIL_MIN)
   })
 
-  it('allows narrowing down to the icon-only threshold and below', () => {
-    expect(RAIL_ICON_THRESHOLD).toBeGreaterThan(RAIL_MIN)
-    expect(clampRailWidth(RAIL_MIN)).toBeLessThan(RAIL_ICON_THRESHOLD)
+  it('never narrows below a readable row — the collapsed icon rail is a separate fixed width', () => {
+    expect(clampRailWidth(RAIL_MIN)).toBe(RAIL_MIN)
+    expect(clampRailWidth(RAIL_MIN - 100)).toBe(RAIL_MIN)
+    expect(clampRailWidth(RAIL_COLLAPSED)).toBe(RAIL_MIN)
+    expect(RAIL_COLLAPSED).toBeLessThan(RAIL_MIN)
+  })
+
+  it('uses the approved navigator proportions (380 default, 320–460 range, 64 collapsed)', () => {
+    expect(RAIL_DEFAULT).toBe(380)
+    expect(RAIL_MIN).toBe(320)
+    expect(RAIL_MAX).toBe(460)
+    expect(RAIL_COLLAPSED).toBe(64)
   })
 })
 
-describe('localStorage persistence round-trip', () => {
+describe('persisted width', () => {
   const KEY = 'engagement_rail_width'
-
-  beforeEach(() => {
-    localStorage.clear()
-  })
+  beforeEach(() => { localStorage.clear() })
 
   it('stores and clamps a round-tripped width the same way the hook does', () => {
     localStorage.setItem(KEY, '999')

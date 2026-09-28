@@ -1,42 +1,36 @@
 'use client'
 
-import Link from 'next/link'
-import { ArrowRight, Send, MailOpen, Milestone } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { useRouter } from 'next/navigation'
 import { SectionCard, Empty } from './primitives'
-import { fmtDateTime, fmtRelative } from '@/lib/crm/format'
-import type { Alert, AlertTone, LeftOff } from '@/lib/crm/types'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
+import { fmtDate, fmtDateTime, fmtRelative } from '@/lib/crm/format'
+import type { Alert, LeftOff } from '@/lib/crm/types'
 
-const DOT: Record<AlertTone, string> = {
-  red: 'var(--error)', amber: 'var(--warning)', blue: 'var(--primary-hex)', neutral: 'var(--text-muted)',
-}
+const BODY = '#3c4043'
 
-/** Needs attention: one line per thing, a coloured dot for severity. No boxes, no counts. */
+/** Open items on the register: the item, its detail, when. A row opens what it names. */
 export function AlertsPanel({ alerts }: { alerts: Alert[] }) {
+  const router = useRouter()
   return (
-    <SectionCard title="Needs attention">
-      {alerts.length === 0 && <Empty compact>Nothing outstanding.</Empty>}
-      <ul className="m-0 p-0 list-none flex flex-col">
-        {alerts.map(a => {
-          const inner = (
-            <>
-              <span className="mt-[7px] w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: DOT[a.tone] }} />
-              <span className="min-w-0 flex-1">
-                <span className="block text-[13px] leading-snug">{a.title}</span>
-                {a.detail && <span className="block text-[11.5px] text-muted-foreground leading-snug">{a.detail}</span>}
-              </span>
-              {a.href && <ArrowRight size={12} className="mt-1 text-muted-foreground/40 flex-shrink-0" />}
-            </>
-          )
-          return (
-            <li key={a.id}>
-              {a.href
-                ? <Link href={a.href} className="flex items-start gap-2.5 py-1.5 no-underline text-foreground hover:text-primary">{inner}</Link>
-                : <div className="flex items-start gap-2.5 py-1.5">{inner}</div>}
-            </li>
-          )
-        })}
-      </ul>
+    <SectionCard title="Open items">
+      {alerts.length === 0 ? <Empty compact>Nothing open.</Empty> : (
+        <Register label="Open items" minWidth={0}>
+          <RegisterHead>
+            <RegisterTh first>Item</RegisterTh>
+            <RegisterTh>Detail</RegisterTh>
+            <RegisterTh align="right" last>When</RegisterTh>
+          </RegisterHead>
+          <tbody>
+            {alerts.map(a => (
+              <RegisterRow key={a.id} onClick={a.href ? () => router.push(a.href!) : undefined}>
+                <RegisterCell first identityWidth={520} primary={a.title} />
+                <RegisterCell nowrap={false}><span className="text-[14px]" style={{ color: BODY }}>{a.detail ?? '—'}</span></RegisterCell>
+                <RegisterCell last align="right" title={a.at ? fmtDateTime(a.at) : undefined} primary={a.at ? fmtRelative(a.at) : '—'} secondary={a.at ? fmtDate(a.at) : undefined} />
+              </RegisterRow>
+            ))}
+          </tbody>
+        </Register>
+      )}
     </SectionCard>
   )
 }
@@ -44,35 +38,35 @@ export function AlertsPanel({ alerts }: { alerts: Alert[] }) {
 /** A readable person: a display name when we have one, otherwise the part before the @. */
 const who = (s: string) => (s.includes('@') ? s.split('@')[0] : s)
 
-/** Where we left off: the last thing said in each direction, and the last thing we finished. */
+/** Where we left off on the register: what happened, who, when. */
 export function LeftOffPanel({ leftOff }: { leftOff: LeftOff }) {
-  const rows: { icon: React.ElementType; text: React.ReactNode; at: string; href?: string }[] = []
-  if (leftOff.lastInbound) rows.push({ icon: MailOpen, at: leftOff.lastInbound.at, href: `/engagement?lead=${leftOff.lastInbound.threadId}`, text: <><strong className="font-semibold">{who(leftOff.lastInbound.from)}</strong> wrote{leftOff.lastInbound.subject ? <> on “{leftOff.lastInbound.subject}”</> : null}</> })
-  if (leftOff.lastOutbound) rows.push({ icon: Send, at: leftOff.lastOutbound.at, href: `/engagement?lead=${leftOff.lastOutbound.threadId}`, text: <>We replied, sent by <strong className="font-semibold">{who(leftOff.lastOutbound.by)}</strong></> })
-  if (leftOff.lastStageChange) rows.push({ icon: Milestone, at: leftOff.lastStageChange.at, text: <>Moved to {leftOff.lastStageChange.stage}</> })
+  const router = useRouter()
+  const rows: { event: string; detail: string | null; who: string | null; at: string; href?: string }[] = []
+  if (leftOff.lastInbound) rows.push({ event: 'They wrote', detail: leftOff.lastInbound.subject, who: who(leftOff.lastInbound.from), at: leftOff.lastInbound.at, href: `/engagement?lead=${leftOff.lastInbound.threadId}` })
+  if (leftOff.lastOutbound) rows.push({ event: 'We replied', detail: leftOff.lastOutbound.subject, who: who(leftOff.lastOutbound.by), at: leftOff.lastOutbound.at, href: `/engagement?lead=${leftOff.lastOutbound.threadId}` })
+  if (leftOff.lastStageChange) rows.push({ event: `Moved to ${leftOff.lastStageChange.stage}`, detail: null, who: leftOff.lastStageChange.by ? who(leftOff.lastStageChange.by) : null, at: leftOff.lastStageChange.at })
   rows.sort((a, b) => b.at.localeCompare(a.at))
 
   return (
     <SectionCard title="Where we left off">
-      {rows.length === 0 && <Empty compact>No activity yet.</Empty>}
-      <ul className="m-0 p-0 list-none flex flex-col">
-        {rows.map((r, i) => {
-          const inner = (
-            <>
-              <r.icon size={13} className="mt-[3px] text-muted-foreground/50 flex-shrink-0" />
-              <span className="min-w-0 flex-1 text-[13px] leading-snug">{r.text}</span>
-              <span className="text-[11.5px] text-muted-foreground whitespace-nowrap flex-shrink-0" title={fmtDateTime(r.at)}>{fmtRelative(r.at)}</span>
-            </>
-          )
-          return (
-            <li key={i} className={cn(i > 0 && 'mt-0.5')}>
-              {r.href
-                ? <Link href={r.href} className="flex items-start gap-2.5 py-1 no-underline text-foreground hover:text-primary">{inner}</Link>
-                : <div className="flex items-start gap-2.5 py-1">{inner}</div>}
-            </li>
-          )
-        })}
-      </ul>
+      {rows.length === 0 ? <Empty compact>No activity yet.</Empty> : (
+        <Register label="Where we left off" minWidth={0}>
+          <RegisterHead>
+            <RegisterTh first>Event</RegisterTh>
+            <RegisterTh>Who</RegisterTh>
+            <RegisterTh align="right" last>When</RegisterTh>
+          </RegisterHead>
+          <tbody>
+            {rows.map((r, i) => (
+              <RegisterRow key={i} onClick={r.href ? () => router.push(r.href!) : undefined}>
+                <RegisterCell first identityWidth={520} primary={r.event} secondary={r.detail ?? undefined} />
+                <RegisterCell><span className="text-[14px]" style={{ color: BODY }}>{r.who ?? '—'}</span></RegisterCell>
+                <RegisterCell last align="right" title={fmtDateTime(r.at)} primary={fmtRelative(r.at)} secondary={fmtDate(r.at)} />
+              </RegisterRow>
+            ))}
+          </tbody>
+        </Register>
+      )}
     </SectionCard>
   )
 }

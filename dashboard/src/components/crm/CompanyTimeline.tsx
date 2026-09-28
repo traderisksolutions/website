@@ -1,49 +1,42 @@
 'use client'
 
-import Link from 'next/link'
-import { MailOpen, Send, Bot, Receipt, BadgeDollarSign, FileText, Network, Milestone, StickyNote } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { SectionCard, Empty } from './primitives'
-import { fmtDateTime } from '@/lib/crm/format'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
+import { fmtDate, fmtDateTime, fmtRelative } from '@/lib/crm/format'
 import type { ActivityEvent, ActivityKind } from '@/lib/crm/types'
 
-const ICON: Record<ActivityKind, React.ElementType> = {
-  email_in: MailOpen, email_out: Send, ai_draft: Bot, debit_note: Receipt, payment: BadgeDollarSign,
-  quote: FileText, case: Network, stage: Milestone, note: StickyNote,
-}
-const COLOR: Record<ActivityKind, string> = {
-  email_in: 'var(--primary-hex)', email_out: 'var(--text-muted)', ai_draft: 'var(--primary-hex)',
-  debit_note: 'var(--warning)', payment: 'var(--success)', quote: 'var(--primary-hex)',
-  case: 'var(--primary-hex)', stage: 'var(--text-muted)', note: 'var(--text-muted)',
+const BODY = '#3c4043'
+
+const KIND_LABEL: Record<ActivityKind, string> = {
+  email_in: 'Email in', email_out: 'Email out', ai_draft: 'Draft', debit_note: 'Debit note', payment: 'Payment',
+  quote: 'Quote', case: 'Case', stage: 'Stage', note: 'Note',
 }
 
-/** Everything that happened, newest first: emails, agent drafts, money, quotes, cases, stage. */
+/** Everything that happened, newest first, on the register: kind, what, when. A row opens what it names. */
 export function CompanyTimeline({ events, limit, title = 'Activity' }: { events: ActivityEvent[]; limit?: number; title?: string }) {
+  const router = useRouter()
   const rows = limit ? events.slice(0, limit) : events
   return (
-    <SectionCard title={title} description={limit ? undefined : 'Emails, agent drafts, money and changes in one log.'}>
-      {rows.length === 0 && <Empty compact>Nothing yet.</Empty>}
-      <ol className="m-0 p-0 list-none">
-        {rows.map(e => {
-          const Icon = ICON[e.kind]
-          const body = (
-            <>
-              <span className="mt-0.5 w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 bg-muted" style={{ color: COLOR[e.kind] }}><Icon size={11} /></span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[12.5px] leading-snug truncate">{e.title}</span>
-                {e.detail && <span className="block text-[11.5px] text-muted-foreground leading-snug truncate">{e.detail}</span>}
-              </span>
-              <span className="text-[11px] text-muted-foreground whitespace-nowrap flex-shrink-0">{fmtDateTime(e.at)}</span>
-            </>
-          )
-          return (
-            <li key={e.id} className="border-b border-[--border-subtle] last:border-b-0">
-              {e.href
-                ? <Link href={e.href} className="flex items-start gap-2.5 py-2 no-underline text-foreground hover:text-primary">{body}</Link>
-                : <div className="flex items-start gap-2.5 py-2">{body}</div>}
-            </li>
-          )
-        })}
-      </ol>
+    <SectionCard title={title}>
+      {rows.length === 0 ? <Empty compact>Nothing yet.</Empty> : (
+        <Register label={title} minWidth={0}>
+          <RegisterHead>
+            <RegisterTh first>What</RegisterTh>
+            <RegisterTh>Kind</RegisterTh>
+            <RegisterTh align="right" last>When</RegisterTh>
+          </RegisterHead>
+          <tbody>
+            {rows.map(e => (
+              <RegisterRow key={e.id} onClick={e.href ? () => router.push(e.href!) : undefined}>
+                <RegisterCell first identityWidth={520} primary={e.title} secondary={e.detail ?? undefined} />
+                <RegisterCell><span className="text-[14px]" style={{ color: BODY }}>{KIND_LABEL[e.kind]}</span></RegisterCell>
+                <RegisterCell last align="right" title={fmtDateTime(e.at)} primary={fmtRelative(e.at)} secondary={fmtDate(e.at)} />
+              </RegisterRow>
+            ))}
+          </tbody>
+        </Register>
+      )}
     </SectionCard>
   )
 }

@@ -3,26 +3,20 @@
 import { useResizableDimension, clampDimension } from './useResizableDimension'
 
 /**
- * Drag/keyboard-resizable width for the engagement rail (the left conversation-list sidebar on
+ * Drag/keyboard-resizable width for the engagement navigator (the left conversation column on
  * /engagement), persisted to localStorage and shared with ConditionalShell's `marginLeft` via a
  * CSS custom property (--engagement-rail-w) that both read — no prop-threading needed between
  * the two sibling components (see engagement-rail.tsx / ConditionalShell.tsx).
  *
- * RAIL_MIN is deliberately narrow (not just "small text") — below RAIL_ICON_THRESHOLD the rail
- * switches to an icon-only rendering mode (avatar circles, no text/search/tabs — see
- * EngagementRail/EngagementFolderNav/ConversationList/EngagementThreadRow's `iconOnly` prop)
- * rather than trying to cram full rows into an unreadably narrow column. Between that and
- * RAIL_COMPACT_THRESHOLD, the search box and tab pills collapse to icon buttons that open a
- * popover on click (see EngagementFolderNav's `compact` prop) — full labels ("Prospects",
- * "Clients") start truncating well before RAIL_ICON_THRESHOLD, so that gap needs its own mode
- * rather than just squeezing the full-width chrome.
+ * The navigator never narrows below a readable row (RAIL_MIN). The only narrower state is the
+ * collapsed icon rail, a fixed RAIL_COLLAPSED px toggled by `navCollapsed` in the nav provider —
+ * that is a separate boolean, not a width the user can drag to, so the two never interfere.
  */
-export const RAIL_MIN             = 64
-export const RAIL_ICON_THRESHOLD  = 88
-export const RAIL_COMPACT_THRESHOLD = 200
-export const RAIL_MAX             = 520
-export const RAIL_DEFAULT         = 340
-export const RAIL_STEP            = 10
+export const RAIL_MIN       = 320
+export const RAIL_MAX       = 460
+export const RAIL_DEFAULT   = 380
+export const RAIL_STEP      = 10
+export const RAIL_COLLAPSED = 64
 
 export function clampRailWidth(n: number): number {
   return clampDimension(n, RAIL_MIN, RAIL_MAX)

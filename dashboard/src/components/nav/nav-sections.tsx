@@ -23,6 +23,7 @@ export type NavSection = {
   icon: LucideIcon
   href?: string      // direct link — no dropdown
   disabled?: boolean
+  placement?: 'account' // lives under the avatar on desktop, not in the bar; still listed on mobile
   items?: NavLink[]  // flat dropdown (2-6 items, one column)
   groups?: NavGroup[] // grouped dropdown (each group its own labeled column)
 }
@@ -30,33 +31,34 @@ export type NavSection = {
 // Single source of truth for the top nav — used by both the desktop NavigationMenu and the
 // mobile Sheet drawer.
 //
-// Companies-first. Client work lives inside each company page. The daily path reads left to
-// right: the client list, all mail, the sales journey, cases, the diary. Tools keeps the
-// global-only views that are not about one client. Finance is where a balance is cleared.
-// Group Benefits is deprecated (route kept,
-// hidden from the menu). RoadPlus, Analytics, Team and Settings stay separate.
+// Companies-first. Home, Companies, the inbox (with Nexus beside it), the product tools, Sales,
+// Calendar, Analytics. Settings — which now holds the team roster — sits under the avatar.
+// Group Benefits is deprecated (route kept, hidden from the menu).
 export const NAV_SECTIONS: NavSection[] = [
-  { label: 'Home',           href: '/',           icon: Home },
-  { label: 'Companies',      href: '/companies',  icon: Building2 },
-  { label: 'All Inbox',      href: '/engagement', icon: Bot },
-  { label: 'Sales Outreach', href: '/pipeline',   icon: Waypoints },
-  { label: 'Nexus',          href: '/nexus',      icon: Network },
-  { label: 'Calendar',       href: '/calendar',   icon: CalendarDays },
-  { label: 'Finance',        href: '/finance',    icon: Landmark },
-
+  { label: 'Home',      href: '/',          icon: Home },
+  { label: 'Companies', href: '/companies', icon: Building2 },
   {
-    label: 'Tools',
-    icon: Wrench,
+    label: 'All Inbox',
+    icon: Bot,
     items: [
-      { title: 'Debit Notes',    href: '/debit-notes',      icon: Receipt,    description: 'Raise and issue debit notes' },
-      { title: 'Pricing Matrix', href: '/pricing-matrix',   icon: HeartPulse, description: 'Insurer calculators and quotes' },
-      { title: 'Filing',         href: '/companies/triage', icon: Link2,      description: 'Decide who unmatched email belongs to' },
-      { title: 'Contacts',       href: '/contacts',         icon: Users,      description: 'Every person on file' },
+      { title: 'All Inbox', href: '/engagement', icon: Bot,     description: 'Every client conversation, needs-reply first' },
+      { title: 'Nexus',     href: '/nexus',      icon: Network, description: 'Case analysis across a client\'s threads and files' },
     ],
   },
-
-  { label: 'RoadPlus', href: '/roadplus', icon: Car },
-
+  {
+    label: 'Product',
+    icon: Wrench,
+    items: [
+      { title: 'Debit Notes',    href: '/debit-notes',      icon: Receipt,      description: 'Raise and issue debit notes' },
+      { title: 'Pricing Matrix', href: '/pricing-matrix',   icon: HeartPulse,   description: 'Insurer calculators and quotes' },
+      { title: 'Match Threads',  href: '/companies/triage', icon: Link2,        description: 'Decide which company unmatched email belongs to' },
+      { title: 'Contacts',       href: '/contacts',         icon: Users,        description: 'Every person on file' },
+      { title: 'Finance',        href: '/finance',          icon: Landmark,     description: 'Receipts and reconciliation' },
+      { title: 'RoadPlus',       href: '/roadplus',         icon: Car,          description: 'Motor programme' },
+    ],
+  },
+  { label: 'Sales',     href: '/pipeline', icon: Waypoints },
+  { label: 'Calendar',  href: '/calendar', icon: CalendarDays },
   {
     label: 'Analytics',
     icon: BarChart2,
@@ -88,6 +90,6 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
 
-  { label: 'Team',     href: '/team',     icon: UsersRound },
-  { label: 'Settings', href: '/settings', icon: Settings },
+  // Settings (with Team inside it) sits under the avatar.
+  { label: 'Settings', href: '/settings', icon: Settings, placement: 'account' },
 ]

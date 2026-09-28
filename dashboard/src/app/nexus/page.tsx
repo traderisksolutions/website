@@ -2,15 +2,11 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo, Fragment } from 'react'
 import {
-  Plus, ChevronDown, X, Search, Link2, Sparkles, BellRing,
-  AlertCircle, Clock, CheckCircle2, Zap, BookOpen, ArrowRight,
-  MailOpen, FileText, Scale, Users, Send, Loader2, Trash2, Paperclip,
-  FolderOpen, Network, HelpCircle, ShieldAlert, TrendingUp, ListChecks,
-  BadgeDollarSign, Database, Eye, Pin, PinOff, Minus, Maximize2, Minimize2, Pencil,
-  type LucideIcon,
+  ChevronDown, X, Search, Send, Loader2, Pin, PinOff, Minus, Maximize2, Minimize2, Pencil,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
+import { Btn, Chip, Field, inputCls, textareaCls, Segmented, Spinner } from '@/components/crm/primitives'
+import { RichEditor, plainToHtml } from '@/components/RichEditor'
 import RfqPanel from '@/components/nexus/RfqPanel'
 import { NexusPhasedAnalysisModal } from '@/components/nexus/NexusPhasedAnalysisModal'
 import { ActivityFeed, LastHandledBy } from '@/components/ActivityFeed'
@@ -185,23 +181,63 @@ type ThreadSuggestion = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const PARTY_COLORS: Record<string, { bg: string; text: string; border: string; dot: string }> = {
-  client:    { bg: 'rgba(29,78,216,0.06)',  text: '#1d4ed8', border: 'rgba(29,78,216,0.2)',  dot: '#1d4ed8' },
-  insurer:   { bg: 'rgba(5,150,105,0.06)',  text: '#059669', border: 'rgba(5,150,105,0.2)',  dot: '#059669' },
-  lawyer:    { bg: 'rgba(124,58,237,0.06)', text: '#7c3aed', border: 'rgba(124,58,237,0.2)', dot: '#7c3aed' },
-  regulator: { bg: 'rgba(220,38,38,0.06)',  text: '#dc2626', border: 'rgba(220,38,38,0.2)',  dot: '#dc2626' },
-  other:     { bg: 'rgba(107,114,128,0.06)',text: '#6b7280', border: 'rgba(107,114,128,0.2)',dot: '#6b7280' },
-  trs:       { bg: 'rgba(15,118,110,0.06)', text: '#0f766e', border: 'rgba(15,118,110,0.2)', dot: '#0f766e' },
-}
-const partyColor = (p: string) => PARTY_COLORS[p.toLowerCase()] ?? PARTY_COLORS.other
+// Design tokens (Home system). State is never colour-coded; a party is a category and may
+// carry one soft field. Every chip is the same neutral fill with ink text.
+const INK   = '#202124'
+const BODY  = '#3c4043'
+const MUTED = '#5f6368'
+const FAINT = '#80868b'
+const DOT   = '#9aa0a6'
+const HAIR  = '#e8eaed'
+const CTRL  = '#dadce0'
+const FIELD = '#f1f3f4'
+const HOVER = '#f8f9fa'
+const NAVY  = '#0C338A' // email compose surfaces only
 
-const PRIORITY_META: Record<string, { label: string; color: string; bg: string; icon: typeof Zap }> = {
-  URGENT:    { label: 'Urgent',    color: '#dc2626', bg: 'rgba(220,38,38,0.08)',   icon: Zap },
-  HIGH:      { label: 'High',      color: '#b45309', bg: 'rgba(180,83,9,0.08)',    icon: AlertCircle },
-  THIS_WEEK: { label: 'This week', color: '#0369a1', bg: 'rgba(3,105,161,0.08)',   icon: Clock },
-  LATER:     { label: 'Later',     color: '#6b7280', bg: 'rgba(107,114,128,0.08)', icon: CheckCircle2 },
+const PARTY_FIELD: Record<string, string> = {
+  client:       '#EAF2FF',
+  insurer:      '#F1EEFF',
+  lawyer:       '#FFF6D8',
+  regulator:    '#F5F5F3',
+  counterparty: '#FFF0E7',
+  trs:          '#EAF6EC',
+  other:        '#F5F5F3',
 }
-const priorityMeta = (p: string) => PRIORITY_META[p] ?? PRIORITY_META.LATER
+const partyField = (p: string) => PARTY_FIELD[(p ?? '').toLowerCase()] ?? PARTY_FIELD.other
+
+const PRIORITY_LABEL: Record<string, string> = { URGENT: 'Urgent', HIGH: 'High', THIS_WEEK: 'This week', LATER: 'Later' }
+const priorityLabel = (p: string) => PRIORITY_LABEL[p] ?? 'Later'
+
+/** A neutral list row: grey dot, ink text. Used for blocking items, questions, prerequisites. */
+function DotRow({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <li className={cn('flex items-start gap-2.5 text-[14px] leading-[1.55] list-none', className)} style={{ color: BODY }}>
+      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[8px]" style={{ background: DOT }} aria-hidden />
+      <span className="min-w-0 flex-1">{children}</span>
+    </li>
+  )
+}
+
+/** A party chip: the category's soft field, ink text. Category, not state. */
+function PartyChip({ party, className }: { party: string; className?: string }) {
+  return (
+    <span className={cn('inline-flex items-center rounded-[6px] px-2 py-0.5 text-[11.5px] font-medium whitespace-nowrap leading-4', className)} style={{ background: partyField(party), color: BODY }}>
+      {partyLabel(party)}
+    </span>
+  )
+}
+
+/** A chip that sits on a grey field: white fill, ink text. */
+function WhiteChip({ children }: { children: React.ReactNode }) {
+  return <span className="inline-flex items-center rounded-[6px] bg-white px-2 py-0.5 text-[11.5px] font-medium whitespace-nowrap leading-4" style={{ color: BODY }}>{children}</span>
+}
+
+/** A small muted label above a group of rows (13px, sentence case). */
+function GroupLabel({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <p className={cn('m-0 text-[12.5px] font-medium', className)} style={{ color: MUTED }}>{children}</p>
+}
+
+const ghostBtn = 'inline-flex items-center gap-1 bg-transparent border-0 p-0 cursor-pointer text-[13px] underline-offset-4 hover:underline disabled:opacity-40 disabled:cursor-default'
 
 function contactName(c: Contact | null): string {
   if (!c) return '—'
@@ -251,13 +287,13 @@ type ComposeState = {
 // ── Analysis progress ──────────────────────────────────────────────────────────
 
 const ANALYSIS_STAGES = [
-  { model: null,             label: 'Fetching threads & messages',              from: 0,  to: 5,  duration: 2500  },
+  { model: null,             label: 'Fetching threads and messages',              from: 0,  to: 5,  duration: 2500  },
   { model: 'Gemini Flash',   label: 'Reading every attachment (re-scanning any unread)', from: 5,  to: 22, duration: 14000 },
   { model: 'Gemini Flash',   label: 'Extracting the evidence from every thread',  from: 22, to: 52, duration: 26000 },
   { model: 'Claude Opus',    label: 'Building a date-verified timeline',         from: 52, to: 70, duration: 16000 },
   { model: 'Claude Opus',    label: 'Judging the case — scenarios and next steps', from: 70, to: 88, duration: 18000 },
   { model: 'Gemini Flash',   label: 'Writing the recommended emails',            from: 88, to: 96, duration: 7000  },
-  { model: null,             label: 'Saving & repopulating Mission Control',     from: 96, to: 99, duration: 2500  },
+  { model: null,             label: 'Saving and refreshing Mission control',     from: 96, to: 99, duration: 2500  },
 ] as const
 
 type AnalysisProgress = { pct: number; stageIdx: number }
@@ -357,95 +393,82 @@ export default function NexusPage() {
   const selectedCase = cases.find(c => c.id === selectedId) ?? null
 
   return (
-    <div className="flex flex-col overflow-hidden h-[calc((100vh-var(--mobile-nav-h,0px))/var(--ui-zoom))]">
+    <div className="flex flex-col overflow-hidden bg-white h-[calc((100vh-var(--mobile-nav-h,0px))/var(--ui-zoom))]" style={{ color: INK }}>
       {/* ── Header ── */}
-      <div className="flex items-center justify-between px-5 h-[52px] border-b border-[--border-subtle] flex-shrink-0 bg-card">
-        <div className="flex items-center gap-3">
-          <div>
-            <span className="text-[13.5px] font-bold text-foreground tracking-tight">Nexus</span>
-            <span className="ml-2 text-[10px] text-muted-foreground/50 font-medium uppercase tracking-wider">Grand Analysis & Strategy</span>
-          </div>
-        </div>
+      <div className="flex items-center justify-between gap-4 px-6 h-[68px] flex-shrink-0 bg-white" style={{ borderBottom: `1px solid ${HAIR}` }}>
+        <h1 className="m-0 text-[28px] font-medium tracking-[-0.03em] leading-none" style={{ color: INK }}>Nexus</h1>
         <button
+          type="button"
           onClick={() => setCreateOpen(true)}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-primary text-primary-foreground text-[12px] font-semibold hover:opacity-90 transition-opacity shadow-sm"
+          className="h-10 px-4 rounded-[10px] text-white text-[14px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90"
+          style={{ background: INK }}
         >
-          <Plus size={12} strokeWidth={2.5} />
-          New Case
+          New case
         </button>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
 
         {/* ── Left: Case List ── */}
-        <aside className="w-[240px] flex-shrink-0 border-r border-[--border-subtle] flex flex-col overflow-hidden bg-card">
-          <div className="px-3 py-2.5 border-b border-[--border-subtle]">
-            <div className="flex items-center gap-2 px-2.5 py-1.5 bg-muted/70 rounded-lg border border-[--border-subtle]/60">
-              <Search size={11} className="text-muted-foreground/40 flex-shrink-0" />
+        {/* Under 768px the list and the detail stack: the list shows until a case is picked, the detail carries a back link. */}
+        <aside className={cn('w-full md:w-[280px] flex-shrink-0 flex-col overflow-hidden bg-white', selectedCase ? 'hidden md:flex' : 'flex')} style={{ borderRight: `1px solid ${HAIR}` }}>
+          <div className="px-4 py-3" style={{ borderBottom: `1px solid ${HAIR}` }}>
+            <label className="relative block">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: FAINT }} />
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Search cases…"
-                className="flex-1 text-[11.5px] bg-transparent outline-none text-foreground placeholder:text-muted-foreground/40 min-w-0"
+                placeholder="Search cases"
+                aria-label="Search cases"
+                className={cn(inputCls, 'pl-9')}
               />
-            </div>
+            </label>
           </div>
 
           <div className="flex-1 overflow-y-auto">
             {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 size={16} className="animate-spin text-muted-foreground/40" />
+              <div className="px-4 py-3 flex flex-col gap-3" aria-busy="true">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="flex flex-col gap-2 py-2">
+                    <span className="h-3.5 w-40 rounded animate-pulse" style={{ background: FIELD }} />
+                    <span className="h-3 w-24 rounded animate-pulse" style={{ background: FIELD }} />
+                  </div>
+                ))}
               </div>
             ) : visible.length === 0 ? (
-              <div className="px-5 py-10 text-center flex flex-col items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-muted/80 flex items-center justify-center">
-                  <FolderOpen size={18} strokeWidth={1.4} className="text-muted-foreground/40" />
-                </div>
-                <div>
-                  <p className="text-[12px] font-medium text-foreground/60 mb-1">No cases yet</p>
-                  <p className="text-[10.5px] text-muted-foreground/45">Group related threads into a case to begin grand analysis.</p>
-                </div>
-                <button onClick={() => setCreateOpen(true)} className="text-[11.5px] text-primary font-semibold hover:opacity-80 transition-opacity">
-                  + Create first case
-                </button>
+              <div className="px-5 py-16 text-center">
+                <p className="m-0 text-[15px]" style={{ color: MUTED }}>{search ? 'No cases match.' : 'No cases yet.'}</p>
+                {!search && (
+                  <button type="button" onClick={() => setCreateOpen(true)} className={cn(ghostBtn, 'mt-3')} style={{ color: INK }}>
+                    Create the first case
+                  </button>
+                )}
               </div>
             ) : (
               <div className="py-1">
-                {visible.map(c => (
-                  <button
-                    key={c.id}
-                    onClick={() => setSelectedId(c.id)}
-                    className={cn(
-                      'w-full text-left px-3 py-2.5 flex flex-col gap-1 transition-all border-l-[3px] group',
-                      selectedId === c.id
-                        ? 'bg-primary/5 border-primary'
-                        : 'border-transparent hover:bg-muted/50 hover:border-muted-foreground/20',
-                    )}
-                  >
-                    <div className="flex items-center justify-between gap-1.5 min-w-0">
-                      <span className="text-[12px] font-semibold text-foreground truncate flex-1">{c.name}</span>
-                      <span className={cn(
-                        'text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-[6px] flex-shrink-0',
-                        c.status === 'open'
-                          ? 'bg-primary/10 text-primary'
-                          : 'bg-muted text-muted-foreground',
-                      )}>
-                        {c.status}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10.5px] text-muted-foreground/60">
+                {visible.map(c => {
+                  const on = selectedId === c.id
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      aria-current={on ? 'true' : undefined}
+                      onClick={() => setSelectedId(c.id)}
+                      className={cn('w-full text-left px-4 py-3 flex flex-col gap-1 border-0 cursor-pointer transition-colors', on ? '' : 'hover:bg-[#f8f9fa]')}
+                      style={{ background: on ? FIELD : 'transparent' }}
+                    >
+                      <div className="flex items-center justify-between gap-2 min-w-0">
+                        <span className="text-[14px] font-medium truncate flex-1" style={{ color: INK }}>{c.name}</span>
+                        <Chip>{c.status === 'open' ? 'Open' : c.status === 'closed' ? 'Closed' : c.status}</Chip>
+                      </div>
+                      <div className="text-[12.5px] truncate" style={{ color: MUTED }}>
                         {c.thread_count} thread{c.thread_count !== 1 ? 's' : ''}
-                      </span>
-                      {c.last_activity && (
-                        <span className="text-[10px] text-muted-foreground/40">{timeAgo(c.last_activity)}</span>
-                      )}
-                    </div>
-                    {c.description && (
-                      <p className="text-[10.5px] text-muted-foreground/50 truncate leading-[1.3]">{c.description}</p>
-                    )}
-                  </button>
-                ))}
+                        {c.last_activity && <> · {timeAgo(c.last_activity)}</>}
+                        {c.description && <> · {c.description}</>}
+                      </div>
+                    </button>
+                  )
+                })}
               </div>
             )}
           </div>
@@ -457,10 +480,11 @@ export default function NexusPage() {
             caseData={selectedCase}
             onRefresh={loadCases}
             onDelete={() => handleDeleteCase(selectedCase.id)}
+            onBack={() => setSelectedId(null)}
           />
         ) : (
-          <div className="flex-1 flex items-center justify-center text-[12.5px] text-muted-foreground/50">
-            {loading ? 'Loading…' : 'Select or create a case to begin.'}
+          <div className="flex-1 flex items-center justify-center text-[15px] px-6 text-center" style={{ color: MUTED }}>
+            {loading ? 'Loading…' : 'Select a case, or create one.'}
           </div>
         )}
       </div>
@@ -524,32 +548,31 @@ function CreateCaseModal({ onCreate, onClose, prefillCompany }: {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(32,33,36,0.4)' }} onClick={onClose}>
       <form
         onSubmit={submit}
-        className="bg-card rounded-2xl shadow-2xl w-full max-w-[400px] p-6 flex flex-col gap-4"
+        className="bg-white rounded-[16px] w-full max-w-[440px] p-6 flex flex-col gap-4"
+        style={{ boxShadow: 'var(--shadow-modal)', color: INK }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between">
-          <h2 className="text-[14px] font-bold text-foreground">New Case</h2>
-          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <X size={14} />
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="m-0 text-[20px] font-medium tracking-[-0.02em]" style={{ color: INK }}>New case</h2>
+          <button type="button" onClick={onClose} aria-label="Close" className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: MUTED }}>
+            <X size={15} />
           </button>
         </div>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/70">Case Name</label>
+        <Field label="Case name">
           <input
             autoFocus
             value={name}
             onChange={e => setName(e.target.value)}
-            placeholder="e.g. FlyORO Cargo Damage Claim Jun 2026"
-            className="w-full px-3 py-2 text-[12.5px] border border-[--border-subtle] rounded-lg bg-background outline-none focus:ring-1 focus:ring-primary/30 text-foreground"
+            placeholder="e.g. FlyORO cargo damage claim, Jun 2026"
+            className={inputCls}
           />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/70">Company</label>
+        </Field>
+        <Field label="Company">
           {prefillCompany ? (
-            <div className="w-full px-3 py-2 text-[12.5px] border border-[--border-subtle] rounded-lg bg-muted/40 text-foreground flex items-center gap-1.5">
+            <div className="w-full h-10 rounded-[10px] px-3.5 text-[14px] flex items-center" style={{ background: FIELD, color: INK }}>
               {prefillCompany.name}
             </div>
           ) : (
@@ -559,15 +582,15 @@ function CreateCaseModal({ onCreate, onClose, prefillCompany }: {
                 onChange={e => { setCompanyQuery(e.target.value); setSelectedCompanyId(null) }}
                 onFocus={() => setCompanyPickerOpen(true)}
                 onBlur={() => setTimeout(() => setCompanyPickerOpen(false), 150)}
-                placeholder="Search or type a new company name…"
-                className="w-full px-3 py-2 text-[12.5px] border border-[--border-subtle] rounded-lg bg-background outline-none focus:ring-1 focus:ring-primary/30 text-foreground"
+                placeholder="Search, or type a new company name"
+                className={inputCls}
               />
               {companyPickerOpen && (
-                <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-card border border-[--border-subtle] rounded-lg shadow-lg max-h-40 overflow-y-auto">
-                  {companySearching && <div className="px-3 py-2 text-[11.5px] text-muted-foreground flex items-center gap-1.5"><Loader2 size={11} className="animate-spin" /> Searching…</div>}
+                <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white rounded-[12px] max-h-44 overflow-y-auto" style={{ border: `1px solid ${HAIR}`, boxShadow: '0 8px 24px rgba(32,33,36,0.08)' }}>
+                  {companySearching && <div className="px-3.5 py-2.5 text-[13px] flex items-center gap-1.5" style={{ color: MUTED }}><Loader2 size={12} className="animate-spin" /> Searching…</div>}
                   {!companySearching && companyResults.length === 0 && (
-                    <div className="px-3 py-2 text-[11.5px] text-muted-foreground">
-                      {companyQuery.trim() ? `No match — "${companyQuery.trim()}" will be created as a new company.` : 'Start typing to search companies…'}
+                    <div className="px-3.5 py-2.5 text-[13px]" style={{ color: MUTED }}>
+                      {companyQuery.trim() ? `No match. “${companyQuery.trim()}” will be created as a new company.` : 'Type to search companies.'}
                     </div>
                   )}
                   {!companySearching && companyResults.map(c => (
@@ -575,7 +598,8 @@ function CreateCaseModal({ onCreate, onClose, prefillCompany }: {
                       key={c.id}
                       type="button"
                       onClick={() => { setSelectedCompanyId(c.id); setCompanyQuery(c.name); setCompanyPickerOpen(false) }}
-                      className="w-full text-left px-3 py-2 text-[12px] hover:bg-accent transition-colors"
+                      className="w-full text-left px-3.5 py-2.5 text-[14px] bg-transparent border-0 cursor-pointer hover:bg-[#f8f9fa]"
+                      style={{ color: INK }}
                     >
                       {c.name}
                     </button>
@@ -584,28 +608,21 @@ function CreateCaseModal({ onCreate, onClose, prefillCompany }: {
               )}
             </div>
           )}
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/70">Description (optional)</label>
+        </Field>
+        <Field label="Description" hint="Optional.">
           <textarea
             value={desc}
             onChange={e => setDesc(e.target.value)}
-            placeholder="Brief description of the case…"
+            placeholder="One line on what the case is about"
             rows={3}
-            className="w-full px-3 py-2 text-[12.5px] border border-[--border-subtle] rounded-lg bg-background outline-none focus:ring-1 focus:ring-primary/30 text-foreground resize-none"
+            className={textareaCls}
           />
-        </div>
-        <div className="flex gap-2 justify-end">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-[12px] border border-[--border-subtle] rounded-lg text-muted-foreground hover:bg-accent transition-colors">
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={!name.trim() || !companyValid || saving}
-            className="px-4 py-2 text-[12px] font-semibold bg-primary text-primary-foreground rounded-lg disabled:opacity-50 hover:opacity-90 transition-opacity"
-          >
-            {saving ? 'Creating…' : 'Create Case'}
-          </button>
+        </Field>
+        <div className="flex gap-2 justify-end pt-1">
+          <Btn type="button" level="secondary" onClick={onClose}>Cancel</Btn>
+          <Btn type="submit" level="primary" disabled={!name.trim() || !companyValid} loading={saving}>
+            {saving ? 'Creating…' : 'Create case'}
+          </Btn>
         </div>
       </form>
     </div>
@@ -615,8 +632,8 @@ function CreateCaseModal({ onCreate, onClose, prefillCompany }: {
 // ── Case Detail Panel (Mission Control shell) ─────────────────────────────────
 
 function CaseDetailPanel({
-  caseData, onRefresh, onDelete,
-}: { caseData: Case; onRefresh: () => void; onDelete: () => void }) {
+  caseData, onRefresh, onDelete, onBack,
+}: { caseData: Case; onRefresh: () => void; onDelete: () => void; onBack: () => void }) {
   const [detail,        setDetail]        = useState<{ threads: CaseThread[]; analysis: CaseAnalysis | null } | null>(null)
   const [loading,       setLoading]       = useState(false)
   const [analyzing,     setAnalyzing]     = useState(false)
@@ -850,6 +867,7 @@ function CaseDetailPanel({
     <div className="flex flex-col flex-1 overflow-hidden min-w-0">
       <MissionHeader
         caseData={caseData}
+        onBack={onBack}
         newReplyCount={newReplyCount}
         threads={threads}
         analysis={analysis}
@@ -874,7 +892,7 @@ function CaseDetailPanel({
         onSaveTitle={renameCase}
         onCancelTitle={() => setEditingTitle(false)}
       />
-      <div className="flex-1 overflow-y-auto bg-background">
+      <div className="flex-1 overflow-y-auto bg-white">
         {view === 'history' ? (
           <RunHistoryView
             caseId={caseData.id}
@@ -954,11 +972,12 @@ function CaseDetailPanel({
 // ── Mission Header ────────────────────────────────────────────────────────────
 
 function MissionHeader({
-  caseData, threads, analysis, newReplyCount, analyzing, analyzeProgress, analyzeError, confirmDelete, view, totalMsgCount, runsCount, rfqCount,
+  caseData, onBack, threads, analysis, newReplyCount, analyzing, analyzeProgress, analyzeError, confirmDelete, view, totalMsgCount, runsCount, rfqCount,
   onSetView, onRunAnalysis, onLinkThreads, onDelete, onConfirmDelete, onCancelDelete,
   editingTitle, titleValue, onTitleChange, onStartEditTitle, onSaveTitle, onCancelTitle,
 }: {
   caseData:        Case
+  onBack:          () => void
   threads:         CaseThread[]
   analysis:        CaseAnalysis | null
   newReplyCount:   number
@@ -986,20 +1005,33 @@ function MissionHeader({
   const attCount   = threads.flatMap(ct => ct.attachment_records ?? []).filter(a => a.parsed_at !== null).length
   const modelLabel = analysis?.strategy_model?.includes('claude') ? 'Claude + Gemini' : analysis?.strategy_model ? 'Gemini' : null
 
+  const metaLine = [
+    `${threads.length} thread${threads.length !== 1 ? 's' : ''}`,
+    attCount > 0 ? `${attCount} attachment${attCount !== 1 ? 's' : ''}` : null,
+    analysis ? `Analysed ${timeAgo(analysis.created_at)}` : null,
+    modelLabel,
+  ].filter(Boolean).join(' · ')
+
+  const tabs = [
+    { key: 'mission',  label: 'Mission control', count: 0 },
+    { key: 'messages', label: 'Messages', count: totalMsgCount },
+    ...(rfqCount > 0 ? [{ key: 'rfq', label: 'RFQ', count: rfqCount }] : []),
+    { key: 'logs',     label: 'Logs', count: 0 },
+    { key: 'history',  label: 'History', count: runsCount },
+  ] as { key: 'mission' | 'messages' | 'logs' | 'history' | 'rfq'; label: string; count: number }[]
+
   return (
-    <div className="relative flex-shrink-0 border-b border-[--border-subtle] bg-card">
+    <div className="relative flex-shrink-0 bg-white" style={{ borderBottom: `1px solid ${HAIR}` }}>
       {analyzing && analyzeProgress && (
-        <div className="absolute bottom-0 left-0 right-0 h-[2px] overflow-hidden z-10">
-          <div
-            className="h-full bg-primary/60 transition-[width] duration-300 ease-linear"
-            style={{ width: `${analyzeProgress.pct}%` }}
-          />
+        <div className="absolute bottom-0 left-0 right-0 h-[2px] overflow-hidden z-10" style={{ background: HAIR }}>
+          <div className="h-full transition-[width] duration-300 ease-linear" style={{ width: `${analyzeProgress.pct}%`, background: INK }} />
         </div>
       )}
       {/* Top row: name + actions */}
-      <div className="flex items-start justify-between px-5 pt-3.5 pb-2.5">
-        <div className="min-w-0 flex-1 pr-4">
-          <div className="flex items-center gap-2 mb-0.5">
+      <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-3 flex-wrap">
+        <div className="min-w-0 flex-1">
+          <button type="button" onClick={onBack} className={cn(ghostBtn, 'md:hidden mb-2 text-[14px]')} style={{ color: MUTED }}>← Cases</button>
+          <div className="flex items-center gap-2.5 min-w-0">
             {editingTitle ? (
               <input
                 value={titleValue}
@@ -1007,131 +1039,87 @@ function MissionHeader({
                 onKeyDown={e => { if (e.key === 'Enter') onSaveTitle(); if (e.key === 'Escape') onCancelTitle() }}
                 onBlur={onSaveTitle}
                 autoFocus
-                className="text-[14px] font-bold text-foreground bg-background border border-primary/40 rounded px-1.5 py-0.5 focus:outline-none focus:ring-2 focus:ring-primary/30 min-w-0 flex-1"
+                aria-label="Case name"
+                className={cn(inputCls, 'text-[20px] font-medium h-11 max-w-[520px]')}
               />
             ) : (
               <>
-                <h2 className="text-[14px] font-bold text-foreground truncate">{caseData.name}</h2>
-                <button onClick={onStartEditTitle} title="Rename case"
-                  className="flex-shrink-0 text-muted-foreground/40 hover:text-primary transition-colors">
-                  <Pencil size={12} strokeWidth={2} />
+                <h2 className="m-0 text-[20px] font-medium tracking-[-0.02em] truncate" style={{ color: INK }}>{caseData.name}</h2>
+                <button type="button" onClick={onStartEditTitle} title="Rename case" aria-label="Rename case"
+                  className="flex-shrink-0 w-7 h-7 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: FAINT }}>
+                  <Pencil size={13} strokeWidth={2} />
                 </button>
               </>
             )}
-            <span className={cn(
-              'text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-[6px] flex-shrink-0',
-              caseData.status === 'open' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
-            )}>
-              {caseData.status}
-            </span>
+            <Chip>{caseData.status === 'open' ? 'Open' : caseData.status === 'closed' ? 'Closed' : caseData.status}</Chip>
           </div>
           {caseData.description && (
-            <p className="text-[11px] text-muted-foreground/55 truncate">{caseData.description}</p>
+            <p className="m-0 mt-1 text-[13px] truncate" style={{ color: MUTED }}>{caseData.description}</p>
           )}
-          <LastHandledBy resourceId={caseData.id} className="text-[10px] text-muted-foreground/45 mt-0.5 block truncate" />
+          <LastHandledBy resourceId={caseData.id} className="block mt-1 text-[12.5px] truncate" />
         </div>
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
           {confirmDelete ? (
             <>
-              <span className="text-[11px] text-red-600 mr-1">Delete this case?</span>
-              <button onClick={onDelete} className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors">Delete</button>
-              <button onClick={onCancelDelete} className="px-2.5 py-1 rounded-md text-[11px] border border-[--border-subtle] text-muted-foreground hover:bg-accent">Cancel</button>
+              <span className="text-[13px] mr-1" style={{ color: MUTED }}>Delete this case?</span>
+              <Btn level="secondary" onClick={onDelete} style={{ color: '#c5221f' }}>Delete</Btn>
+              <Btn level="secondary" onClick={onCancelDelete}>Cancel</Btn>
             </>
           ) : (
             <>
               {/* New inbound replies since the last analysis → the case is stale. */}
               {analysis && !analyzing && newReplyCount > 0 && (
-                <button
-                  onClick={onRunAnalysis}
-                  title="New replies since the last analysis — re-analyse to include them"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors animate-pulse"
-                >
-                  <BellRing size={12} strokeWidth={2} /> {newReplyCount} new {newReplyCount === 1 ? 'reply' : 'replies'} · Re-analyse
-                </button>
+                <Btn level="secondary" onClick={onRunAnalysis} title="New replies since the last analysis. Re-analyse to include them.">
+                  Re-analyse · {newReplyCount} new {newReplyCount === 1 ? 'reply' : 'replies'}
+                </Btn>
               )}
-              <button
-                onClick={onLinkThreads}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-semibold border border-[--border-subtle] text-foreground/70 hover:bg-accent transition-colors"
-              >
-                <Link2 size={11} strokeWidth={2} /> Link threads
-              </button>
+              <Btn level="secondary" onClick={onLinkThreads}>Link threads</Btn>
               {/* First analysis only — re-analysis is otherwise steered via the AI consultant chat. */}
               {(!analysis || analyzing) && (
-                <button
-                  onClick={onRunAnalysis}
-                  disabled={analyzing || threads.length === 0}
-                  className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-semibold transition-all shadow-sm',
-                    analyzing
-                      ? 'bg-primary/10 text-primary cursor-not-allowed'
-                      : threads.length === 0
-                        ? 'bg-muted text-muted-foreground/50 cursor-not-allowed'
-                        : 'bg-primary text-primary-foreground hover:opacity-90',
-                  )}
-                >
-                  {analyzing
-                    ? <><Loader2 size={11} className="animate-spin" /> {analyzeProgress ? `${analyzeProgress.pct}%` : 'Analysing…'}</>
-                    : <><Sparkles size={11} strokeWidth={2} /> Run Analysis</>}
-                </button>
+                <Btn level="secondary" onClick={onRunAnalysis} disabled={analyzing || threads.length === 0} loading={analyzing}>
+                  {analyzing ? (analyzeProgress ? `${analyzeProgress.pct}%` : 'Analysing…') : 'Run analysis'}
+                </Btn>
               )}
-              <button
-                onClick={onConfirmDelete}
-                className="p-1.5 rounded-md text-muted-foreground/30 hover:text-red-500 hover:bg-red-50 transition-colors"
-              >
-                <Trash2 size={13} strokeWidth={1.8} />
-              </button>
+              <Btn level="tertiary" onClick={onConfirmDelete} style={{ color: MUTED }}>Delete</Btn>
             </>
           )}
         </div>
       </div>
 
-      {/* Vercel timeout warning — sits between buttons and tabs for maximum visibility */}
+      {/* Timeout notice — a plain row, no tint. */}
       {analyzeError === '__TIMEOUT__' && (
-        <div className="flex items-start gap-2 px-5 py-2.5 bg-amber-50 border-t border-amber-100">
-          <AlertCircle size={11} className="text-amber-500 flex-shrink-0 mt-0.5" />
-          <p className="text-[10.5px] text-amber-700 leading-relaxed">
-            Analysis timed out — this case likely has too many threads or attachments for the 60-second function limit.{' '}
-            <span className="font-semibold">Upgrade to Vercel Pro</span> for a 300-second limit, or unlink some threads and re-run.
-          </p>
-        </div>
+        <p className="m-0 px-6 pb-3 text-[13px] leading-[1.5]" style={{ color: BODY }}>
+          Analysis timed out. This case has too many threads or attachments for the 60-second function limit. Unlink some threads and re-run, or move to a 300-second limit on Vercel Pro.
+        </p>
       )}
 
       {/* View tabs + meta row */}
-      <div className="flex items-center justify-between px-5 border-t border-[--border-subtle]/40">
-        <div className="flex">
-          {([
-            { key: 'mission',  label: 'Mission Control' },
-            { key: 'messages', label: `Messages${totalMsgCount > 0 ? ` (${totalMsgCount})` : ''}` },
-            ...(rfqCount > 0 ? [{ key: 'rfq', label: `RFQ (${rfqCount})` }] : []),
-            { key: 'logs',     label: 'Logs' },
-            { key: 'history',  label: `History${runsCount > 0 ? ` (${runsCount})` : ''}` },
-          ] as { key: 'mission' | 'messages' | 'logs' | 'history' | 'rfq'; label: string }[]).map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => onSetView(key)}
-              className={cn(
-                'px-4 py-2.5 text-[11.5px] font-semibold border-b-2 transition-colors',
-                view === key
-                  ? 'text-primary border-primary'
-                  : 'text-muted-foreground/60 border-transparent hover:text-foreground',
-              )}
-            >
-              {label}
-            </button>
-          ))}
+      <div className="flex items-end justify-between gap-4 px-6 flex-wrap">
+        <div className="flex items-center gap-6" role="tablist" aria-label="Case views">
+          {tabs.map(({ key, label, count }) => {
+            const on = view === key
+            return (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={on}
+                onClick={() => onSetView(key)}
+                className={cn('relative pb-2.5 bg-transparent border-0 cursor-pointer text-[15px] whitespace-nowrap', on ? 'font-medium' : 'hover:text-[#202124]')}
+                style={{ color: on ? INK : MUTED }}
+              >
+                {label}
+                {count > 0 && <span className="ml-1.5 tabular-nums text-[13px]" style={{ color: FAINT }}>{count}</span>}
+                <span className={cn('absolute left-0 right-0 bottom-0 h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: INK }} aria-hidden />
+              </button>
+            )
+          })}
         </div>
-        <div className="flex items-center gap-3 text-[10px] text-muted-foreground/40 pb-2.5">
-          <span>{threads.length} thread{threads.length !== 1 ? 's' : ''}</span>
-          {attCount > 0 && <span>{attCount} attachment{attCount !== 1 ? 's' : ''}</span>}
-          {analysis && <span>Analysed {timeAgo(analysis.created_at)}</span>}
-          {modelLabel && <span className="bg-muted/70 px-1.5 py-0.5 rounded text-[9.5px] font-medium">{modelLabel}</span>}
-        </div>
+        <p className="m-0 pb-2.5 text-[13px] whitespace-nowrap" style={{ color: MUTED }}>{metaLine}</p>
       </div>
 
       {analyzeError && analyzeError !== '__TIMEOUT__' && (
-        <div className="mx-5 mb-3 px-3 py-2 bg-red-50 border border-red-100 rounded-lg">
-          <p className="text-[10.5px] text-red-600 leading-relaxed">{analyzeError}</p>
-        </div>
+        <p className="m-0 px-6 pb-3 text-[13px] leading-[1.5]" style={{ color: BODY }}>{analyzeError}</p>
       )}
     </div>
   )
@@ -1159,11 +1147,7 @@ function MissionControlBody({
   onOpenCompose:     (s: ComposeState) => void
 }) {
   if (loading && threads.length === 0) {
-    return (
-      <div className="flex items-center justify-center py-32">
-        <Loader2 size={20} className="animate-spin text-muted-foreground/30" />
-      </div>
-    )
+    return <div className="py-24"><Spinner /></div>
   }
 
   if (threads.length === 0) return <NoThreadsState onAdd={onLinkThreads} />
@@ -1186,7 +1170,7 @@ function MissionControlBody({
   const sa = analysis.structured_analysis ?? null
 
   return (
-    <div className="px-6 py-6 flex flex-col gap-8 pb-12">
+    <div className="px-6 py-6 flex flex-col gap-10 pb-16 max-w-[1100px]">
       {analyzing && <AnalyzingBanner progress={analyzeProgress} />}
 
       {/* 1 — Executive brief */}
@@ -1263,14 +1247,14 @@ function LogsView({
   if (!analysis) {
     return (
       <div className="px-6 py-16 flex flex-col items-center gap-3 text-center">
-        <p className="text-[12px] text-muted-foreground/60">Run analysis to populate the logs.</p>
-        <button onClick={onGoToMission} className="text-[11.5px] font-semibold text-primary hover:underline">Go to Mission Control →</button>
+        <p className="m-0 text-[15px]" style={{ color: MUTED }}>Logs fill after the first analysis.</p>
+        <button type="button" onClick={onGoToMission} className={ghostBtn} style={{ color: INK }}>Go to Mission control</button>
       </div>
     )
   }
 
   return (
-    <div className="px-6 py-6 flex flex-col gap-8 pb-12">
+    <div className="px-6 py-6 flex flex-col gap-10 pb-16 max-w-[1100px]">
       {(sa?.evidence_ledger?.length ?? 0) > 0 && (
         <EvidencePanelSection items={sa!.evidence_ledger} citations={sa!.citations ?? []} />
       )}
@@ -1302,22 +1286,11 @@ function LogsView({
 
 function NoThreadsState({ onAdd }: { onAdd: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-5 py-28 px-8 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-muted/60 border border-[--border-subtle] flex items-center justify-center">
-        <Network size={28} strokeWidth={1.2} className="text-muted-foreground/30" />
-      </div>
-      <div className="max-w-[300px]">
-        <p className="text-[14px] font-bold text-foreground/60 mb-2">No threads linked</p>
-        <p className="text-[12px] text-muted-foreground/45 leading-[1.7]">
-          Link email threads to build this case. Each thread represents a conversation with a party — client, insurer, lawyer, or regulator.
-        </p>
-      </div>
-      <button
-        onClick={onAdd}
-        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-[12.5px] font-semibold hover:opacity-90 transition-opacity shadow-sm"
-      >
-        <Link2 size={12} strokeWidth={2} /> Link first thread
-      </button>
+    <div className="flex flex-col items-center justify-center gap-4 py-24 px-8 text-center">
+      <p className="m-0 text-[15px] max-w-[360px] leading-[1.6]" style={{ color: MUTED }}>
+        No threads linked. Each linked thread is one conversation with a party: client, insurer, lawyer or regulator.
+      </p>
+      <Btn level="secondary" onClick={onAdd}>Link threads</Btn>
     </div>
   )
 }
@@ -1337,41 +1310,29 @@ function PreAnalysisState({
   analyzeProgress:   AnalysisProgress | null
 }) {
   return (
-    <div className="px-6 py-6 flex flex-col gap-6">
+    <div className="px-6 py-6 flex flex-col gap-8 pb-16 max-w-[1100px]">
       {analyzing && <AnalyzingBanner progress={analyzeProgress} />}
 
       {!analyzing && (
-        <div className="rounded-xl border border-primary/20 bg-primary/[0.04] px-5 py-6 flex flex-col items-center gap-4 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/15 flex items-center justify-center">
-            <Sparkles size={24} strokeWidth={1.4} className="text-primary/60" />
-          </div>
-          <div className="max-w-[340px]">
-            <p className="text-[13.5px] font-bold text-foreground/80 mb-1.5">Ready for grand analysis</p>
-            <p className="text-[11.5px] text-muted-foreground/55 leading-[1.7]">
-              {threads.length} thread{threads.length !== 1 ? 's' : ''} linked. Run the analysis to get a full mission brief, stakeholder map, timeline, evidence ledger, and draft communications.
-            </p>
-          </div>
+        <div className="rounded-[16px] px-6 py-8 flex flex-col items-center gap-4 text-center" style={{ background: FIELD }}>
+          <p className="m-0 text-[15px] max-w-[420px] leading-[1.6]" style={{ color: BODY }}>
+            {threads.length} thread{threads.length !== 1 ? 's' : ''} linked. The analysis produces a brief, stakeholder map, timeline, evidence ledger and draft emails.
+          </p>
           <button
+            type="button"
             onClick={onRunAnalysis}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-[12.5px] font-semibold hover:opacity-90 transition-opacity shadow-sm"
+            className="h-10 px-4 rounded-[10px] text-white text-[14px] font-medium border-0 cursor-pointer hover:opacity-90"
+            style={{ background: INK }}
           >
-            <Sparkles size={13} strokeWidth={2} /> Run Grand Analysis
+            Run analysis
           </button>
         </div>
       )}
 
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-foreground/45">Linked Threads</span>
-            <span className="text-[9.5px] font-bold text-muted-foreground/40 bg-muted/70 px-1.5 py-0.5 rounded-[6px]">
-              {threads.length}
-            </span>
-          </div>
-          <button onClick={onAdd} className="text-[11px] text-primary font-semibold hover:opacity-80 transition-opacity">
-            + Add
-          </button>
-        </div>
+        <SectionLabel title="Linked threads" count={threads.length}>
+          <Btn level="secondary" size="xs" onClick={onAdd}>Link threads</Btn>
+        </SectionLabel>
         <div className="flex flex-col gap-2">
           {threads.map(ct => (
             <LinkedThreadCard key={ct.id} ct={ct} onUnlink={onUnlink} onUpdatePartyType={onUpdatePartyType} />
@@ -1391,46 +1352,45 @@ function PreAnalysisState({
 function AnalyzingBanner({ progress }: { progress: AnalysisProgress | null }) {
   const idx = progress?.stageIdx ?? 0
   return (
-    <div className="flex flex-col gap-3 px-4 py-4 bg-primary/5 border border-primary/15 rounded-xl">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-3 px-5 py-4 rounded-[16px]" style={{ background: FIELD }} role="status" aria-live="polite">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
-          <Loader2 size={14} className="animate-spin text-primary flex-shrink-0" />
-          <p className="text-[12px] font-semibold text-primary/90">Grand analysis in progress</p>
-          <span className="text-[10px] text-primary/50">step {Math.min(idx + 1, ANALYSIS_STAGES.length)} of {ANALYSIS_STAGES.length}</span>
+          <Loader2 size={14} className="animate-spin flex-shrink-0" style={{ color: MUTED }} />
+          <p className="m-0 text-[14px] font-medium" style={{ color: INK }}>Analysis running</p>
+          <span className="text-[13px]" style={{ color: MUTED }}>step {Math.min(idx + 1, ANALYSIS_STAGES.length)} of {ANALYSIS_STAGES.length}</span>
         </div>
-        {progress && <span className="text-[12px] font-bold text-primary tabular-nums">{progress.pct}%</span>}
+        {progress && <span className="text-[14px] font-medium tabular-nums" style={{ color: INK }}>{progress.pct}%</span>}
       </div>
 
-      <div className="h-[3px] bg-primary/10 rounded-full overflow-hidden">
-        <div className="h-full bg-primary/50 rounded-full transition-[width] duration-300 ease-linear" style={{ width: `${progress?.pct ?? 0}%` }} />
+      <div className="h-[3px] rounded-full overflow-hidden" style={{ background: HAIR }}>
+        <div className="h-full rounded-full transition-[width] duration-300 ease-linear" style={{ width: `${progress?.pct ?? 0}%`, background: INK }} />
       </div>
 
       {/* Step checklist — what it's doing and what's next */}
-      <div className="flex flex-col gap-1 pt-0.5">
+      <ul className="m-0 p-0 flex flex-col gap-1 pt-0.5">
         {ANALYSIS_STAGES.map((s, i) => {
           const state = i < idx ? 'done' : i === idx ? 'current' : 'pending'
           return (
-            <div key={i} className={cn('flex items-center gap-2 text-[10.5px]',
-              state === 'done' ? 'text-primary/50' : state === 'current' ? 'text-primary font-semibold' : 'text-muted-foreground/40')}>
+            <li key={i} className={cn('flex items-center gap-2 text-[13px] list-none', state === 'current' && 'font-medium')}
+              style={{ color: state === 'current' ? INK : state === 'done' ? BODY : FAINT }}>
               <span className="w-3.5 flex-shrink-0 flex items-center justify-center">
-                {state === 'done' ? <CheckCircle2 size={11} strokeWidth={2.5} />
-                  : state === 'current' ? <Loader2 size={10} className="animate-spin" />
-                  : <span className="w-1.5 h-1.5 rounded-full bg-current opacity-40" />}
+                {state === 'current'
+                  ? <Loader2 size={11} className="animate-spin" />
+                  : <span className="w-1.5 h-1.5 rounded-full" style={{ background: state === 'done' ? INK : DOT }} />}
               </span>
               <span>{s.label}</span>
-              {s.model && state === 'current' && (
-                <span className="text-[9px] font-bold bg-primary/10 text-primary/70 px-1.5 py-0.5 rounded flex-shrink-0">{s.model}</span>
-              )}
-            </div>
+              {s.model && state === 'current' && <Chip>{s.model}</Chip>}
+            </li>
           )
         })}
-      </div>
+      </ul>
     </div>
   )
 }
 
 // ── Shared Primitives ─────────────────────────────────────────────────────────
 
+/** Section heading: 16px medium sentence case; the count as muted tabular text. */
 function SectionLabel({
   title, count, children,
 }: {
@@ -1439,39 +1399,26 @@ function SectionLabel({
   children?: React.ReactNode
 }) {
   return (
-    <div className="flex items-center justify-between mb-3">
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-foreground/45">{title}</span>
-        {count !== undefined && (
-          <span className="text-[9.5px] font-bold text-muted-foreground/40 bg-muted/70 px-1.5 py-0.5 rounded-[6px]">
-            {count}
-          </span>
-        )}
-      </div>
-      {children && <div className="flex items-center gap-2">{children}</div>}
+    <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+      <h2 className="m-0 text-[16px] font-medium tracking-[-0.01em] leading-tight" style={{ color: INK }}>
+        {title}
+        {count !== undefined && <span className="ml-2 text-[13px] font-normal tabular-nums" style={{ color: FAINT }}>{count}</span>}
+      </h2>
+      {children && <div className="flex items-center gap-2 flex-wrap">{children}</div>}
     </div>
   )
 }
 
-function NoDataState({
-  icon: Icon, message,
-}: {
-  icon:    LucideIcon
-  message: string
-}) {
-  return (
-    <div className="flex items-center gap-3 px-4 py-5 rounded-xl border border-dashed border-[--border-subtle] text-muted-foreground/45">
-      <Icon size={16} strokeWidth={1.4} />
-      <p className="text-[11.5px] italic">{message}</p>
-    </div>
-  )
+function NoDataState({ message }: { message: string }) {
+  return <p className="m-0 py-5 text-[14px]" style={{ color: MUTED }}>{message}</p>
 }
 
+/** One fact: muted term, ink value. Renders inside a <dl>. */
 function KFact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-muted/50 rounded-lg border border-[--border-subtle]">
-      <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/50">{label}</span>
-      <span className="text-[11.5px] font-semibold text-foreground/85">{value}</span>
+    <div className="flex items-baseline gap-2 text-[13.5px] min-w-0">
+      <dt className="m-0 flex-shrink-0" style={{ color: MUTED }}>{label}</dt>
+      <dd className="m-0 font-medium truncate" style={{ color: INK }}>{value}</dd>
     </div>
   )
 }
@@ -1481,24 +1428,17 @@ function KFact({ label, value }: { label: string; value: string }) {
 function CitationChip({ id, citations }: { id: string; citations: V1Citation[] }) {
   const c = citations.find(x => x.id === id)
   if (!c) return null
-  const label = `[${c.label.length > 18 ? c.label.slice(0, 18) + '…' : c.label}]`
+  const label = c.label.length > 18 ? c.label.slice(0, 18) + '…' : c.label
   // v1.1: cited facts resolve to a real message/attachment → link to the source thread.
   const href = c.thread_id ? `/engagement?lead=${c.thread_id}` : null
+  const cls = 'inline-flex items-center rounded-[6px] px-1.5 py-0.5 text-[11px] font-medium align-middle no-underline whitespace-nowrap'
   if (href) return (
-    <a
-      href={href}
-      onClick={e => e.stopPropagation()}
-      title={`${c.excerpt ?? c.label} — open source`}
-      className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/10 text-primary/80 border border-primary/20 hover:bg-primary/20 cursor-pointer align-middle"
-    >
+    <a href={href} onClick={e => e.stopPropagation()} title={`${c.excerpt ?? c.label}. Opens the source.`} className={cn(cls, 'hover:underline')} style={{ background: FIELD, color: BODY }}>
       {label}
     </a>
   )
   return (
-    <span
-      title={c.excerpt ?? c.label}
-      className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/8 text-primary/70 border border-primary/15 cursor-help align-middle"
-    >
+    <span title={c.excerpt ?? c.label} className={cn(cls, 'cursor-help')} style={{ background: FIELD, color: BODY }}>
       {label}
     </span>
   )
@@ -1508,72 +1448,73 @@ function CitationChip({ id, citations }: { id: string; citations: V1Citation[] }
 
 function QuoteDecisionSection({ decision }: { decision: V1QuoteDecision }) {
   return (
-    <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-5 flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <SectionLabel title="Quote Decision" />
-        <span className="text-[10.5px] text-indigo-700/60 flex-shrink-0">Record the outcome in the RFQ tab once the client decides.</span>
-      </div>
-
-      {decision.lines.map((line, li) => {
-        const rec = line.options.find(o => o.dispatch_id === line.recommended_dispatch_id) ?? null
-        return (
-          <div key={line.rfq_request_id ?? li} className="rounded-lg border border-indigo-200/70 bg-white p-4 flex flex-col gap-3">
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="text-[12.5px] font-semibold text-foreground">{line.product_line_label}</span>
-              <span className="text-[10px] text-muted-foreground/60">{line.options.length} insurer{line.options.length !== 1 ? 's' : ''}</span>
-            </div>
-
-            {/* Each option objectively — figures + benefits + downsides */}
-            <div className="grid gap-2.5 md:grid-cols-2">
-              {line.options.map(o => {
-                const isRec = o.dispatch_id === line.recommended_dispatch_id
-                return (
-                  <div key={o.dispatch_id} className={cn('rounded-md border p-3 flex flex-col gap-2',
-                    isRec ? 'border-emerald-300 bg-emerald-50/50' : 'border-border/60 bg-card')}>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[12px] font-semibold text-foreground">{o.insurer_name}</span>
-                      {isRec && <span className="text-[9px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-100 rounded-[6px] px-1.5 py-0.5">Broker pick</span>}
-                    </div>
-                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10.5px] text-muted-foreground">
-                      {o.premium && <span><span className="text-muted-foreground/60">Premium</span> <b className="text-foreground/80">{o.premium}</b></span>}
-                      {o.excess && <span><span className="text-muted-foreground/60">Excess</span> <b className="text-foreground/80">{o.excess}</b></span>}
-                      {o.limit_indemnity && <span><span className="text-muted-foreground/60">Limit</span> <b className="text-foreground/80">{o.limit_indemnity}</b></span>}
-                      {o.validity && <span><span className="text-muted-foreground/60">Valid</span> <b className="text-foreground/80">{o.validity}</b></span>}
-                    </div>
-                    {o.pros.length > 0 && (
-                      <ul className="flex flex-col gap-0.5">
-                        {o.pros.map((p, i) => <li key={i} className="text-[11px] text-emerald-800 flex gap-1.5"><span className="text-emerald-500">+</span><span>{p}</span></li>)}
-                      </ul>
-                    )}
-                    {o.cons.length > 0 && (
-                      <ul className="flex flex-col gap-0.5">
-                        {o.cons.map((c, i) => <li key={i} className="text-[11px] text-rose-700/90 flex gap-1.5"><span className="text-rose-400">−</span><span>{c}</span></li>)}
-                      </ul>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* Recommendation */}
-            {line.rationale && (
-              <div className="rounded-md border border-emerald-200 bg-emerald-50/60 px-3 py-2.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700/70">Recommendation</span>
-                <p className="text-[12px] text-emerald-900 leading-[1.55] mt-0.5">
-                  {rec && <b>Go with {rec.insurer_name} — </b>}{line.rationale}
-                </p>
+    <div>
+      <SectionLabel title="Quote decision">
+        <span className="text-[13px]" style={{ color: MUTED }}>Record the outcome in the RFQ tab once the client decides.</span>
+      </SectionLabel>
+      <div className="flex flex-col gap-3">
+        {decision.lines.map((line, li) => {
+          const rec = line.options.find(o => o.dispatch_id === line.recommended_dispatch_id) ?? null
+          return (
+            <div key={line.rfq_request_id ?? li} className="rounded-[16px] bg-white p-5 flex flex-col gap-4" style={{ border: `1px solid ${HAIR}` }}>
+              <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                <span className="text-[15px] font-medium" style={{ color: INK }}>{line.product_line_label}</span>
+                <span className="text-[13px] tabular-nums" style={{ color: MUTED }}>{line.options.length} insurer{line.options.length !== 1 ? 's' : ''}</span>
               </div>
-            )}
-            {line.caveats.length > 0 && (
-              <ul className="flex flex-col gap-0.5">
-                {line.caveats.map((c, i) => <li key={i} className="text-[10.5px] text-amber-700 flex gap-1.5"><span>⚠</span><span>{c}</span></li>)}
-              </ul>
-            )}
-          </div>
-        )
-      })}
 
-      <p className="text-[10.5px] text-indigo-700/60 italic">{decision.note}</p>
+              {/* Each option objectively — figures + benefits + downsides */}
+              <div className="grid gap-3 md:grid-cols-2">
+                {line.options.map(o => {
+                  const isRec = o.dispatch_id === line.recommended_dispatch_id
+                  return (
+                    <div key={o.dispatch_id} className="rounded-[12px] p-4 flex flex-col gap-2.5" style={{ background: FIELD }}>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[14px] font-medium" style={{ color: INK }}>{o.insurer_name}</span>
+                        {isRec && <Chip>Broker pick</Chip>}
+                      </div>
+                      <dl className="m-0 flex flex-wrap gap-x-5 gap-y-1">
+                        {o.premium && <KFact label="Premium" value={o.premium} />}
+                        {o.excess && <KFact label="Excess" value={o.excess} />}
+                        {o.limit_indemnity && <KFact label="Limit" value={o.limit_indemnity} />}
+                        {o.validity && <KFact label="Valid" value={o.validity} />}
+                      </dl>
+                      {o.pros.length > 0 && (
+                        <div>
+                          <GroupLabel className="mb-1">For</GroupLabel>
+                          <ul className="m-0 p-0 flex flex-col gap-1">{o.pros.map((p, i) => <DotRow key={i} className="text-[13px]">{p}</DotRow>)}</ul>
+                        </div>
+                      )}
+                      {o.cons.length > 0 && (
+                        <div>
+                          <GroupLabel className="mb-1">Against</GroupLabel>
+                          <ul className="m-0 p-0 flex flex-col gap-1">{o.cons.map((c, i) => <DotRow key={i} className="text-[13px]">{c}</DotRow>)}</ul>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Recommendation */}
+              {line.rationale && (
+                <div>
+                  <GroupLabel className="mb-1">Recommendation</GroupLabel>
+                  <p className="m-0 text-[14px] leading-[1.6]" style={{ color: BODY }}>
+                    {rec && <span className="font-medium" style={{ color: INK }}>Go with {rec.insurer_name}. </span>}{line.rationale}
+                  </p>
+                </div>
+              )}
+              {line.caveats.length > 0 && (
+                <div>
+                  <GroupLabel className="mb-1">Caveats</GroupLabel>
+                  <ul className="m-0 p-0 flex flex-col gap-1">{line.caveats.map((c, i) => <DotRow key={i} className="text-[13px]">{c}</DotRow>)}</ul>
+                </div>
+              )}
+            </div>
+          )
+        })}
+        {decision.note && <p className="m-0 text-[13px]" style={{ color: MUTED }}>{decision.note}</p>}
+      </div>
     </div>
   )
 }
@@ -1593,82 +1534,57 @@ function ExecBriefCard({ analysis, sa }: { analysis: CaseAnalysis; sa: NexusAnal
   const questions   = sa?.open_questions ?? []
   const missing     = sa?.missing_items  ?? []
 
+  const criticalCount = questions.filter(q => q.priority === 'critical' || q.priority === 'high').length
+  const urgentCount   = missing.filter(m => m.urgency === 'urgent').length
+  const pendingRows   = Object.entries(pendingFrom).filter(([, v]) => v)
+
   return (
     <div>
-      <SectionLabel title="Executive Brief" />
-      <div className="rounded-xl border border-[--border-subtle] bg-card px-5 py-4 flex flex-col gap-4">
+      <SectionLabel title="Executive brief" />
+      <div className="rounded-[16px] bg-white px-6 py-5 flex flex-col gap-5" style={{ border: `1px solid ${HAIR}` }}>
         {(stage || coverage || claim || policy) && (
-          <div className="flex flex-wrap gap-2">
+          <dl className="m-0 flex flex-wrap gap-x-8 gap-y-1.5">
             {stage    && <KFact label="Stage"    value={stage} />}
             {coverage && <KFact label="Coverage" value={coverage} />}
             {claim    && <KFact label="Claim"    value={claim} />}
             {policy   && <KFact label="Policy"   value={policy} />}
-          </div>
+          </dl>
         )}
 
-        {summary && <p className="text-[12.5px] text-foreground/80 leading-[1.7]">{summary}</p>}
+        {summary && <p className="m-0 text-[14px] leading-[1.7]" style={{ color: BODY }}>{summary}</p>}
 
         {blocking.length > 0 && (
           <div>
-            <div className="flex items-center gap-1.5 mb-2">
-              <AlertCircle size={10} strokeWidth={2} className="text-red-500" />
-              <span className="text-[9.5px] font-bold uppercase tracking-wider text-red-600/80">
-                Blocking ({blocking.length})
-              </span>
-            </div>
-            <div className="flex flex-col gap-1">
-              {blocking.map((b, i) => (
-                <div key={i} className="flex gap-2 text-[11.5px] text-foreground/75 leading-[1.5]">
-                  <span className="text-red-400 flex-shrink-0">•</span>{b}
+            <GroupLabel className="mb-2">Blocking <span className="tabular-nums" style={{ color: FAINT }}>{blocking.length}</span></GroupLabel>
+            <ul className="m-0 p-0 flex flex-col gap-1.5">
+              {blocking.map((b, i) => <DotRow key={i}>{b}</DotRow>)}
+            </ul>
+          </div>
+        )}
+
+        {pendingRows.length > 0 && (
+          <div>
+            <GroupLabel className="mb-2">Pending from</GroupLabel>
+            <div className="flex flex-wrap gap-3">
+              {pendingRows.map(([party, item]) => (
+                <div key={party} className="flex flex-col gap-1 px-4 py-3 rounded-[12px] flex-1 min-w-[200px]" style={{ background: partyField(party) }}>
+                  <span className="text-[12.5px] font-medium" style={{ color: MUTED }}>{partyLabel(party)}</span>
+                  <p className="m-0 text-[14px] leading-[1.5]" style={{ color: BODY }}>{item as string}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {Object.entries(pendingFrom).filter(([, v]) => v).length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(pendingFrom).filter(([, v]) => v).map(([party, item]) => {
-              const pc = partyColor(party)
-              return (
-                <div
-                  key={party}
-                  className="flex items-start gap-2 px-3 py-2 rounded-lg border flex-1 min-w-[180px]"
-                  style={{ background: pc.bg, borderColor: pc.border }}
-                >
-                  <span className="text-[9.5px] font-bold uppercase tracking-wider flex-shrink-0 mt-0.5" style={{ color: pc.text }}>
-                    {party}
-                  </span>
-                  <p className="text-[11.5px] text-foreground/70 leading-[1.45]">{item as string}</p>
-                </div>
-              )
-            })}
-          </div>
-        )}
-
         {(questions.length > 0 || missing.length > 0) && (
-          <div className="flex gap-5 pt-1 border-t border-[--border-subtle]/50 flex-wrap">
+          <ul className="m-0 p-0 flex flex-col gap-1.5 pt-4" style={{ borderTop: `1px solid ${HAIR}` }}>
             {questions.length > 0 && (
-              <div className="flex items-center gap-1.5">
-                <HelpCircle size={10} strokeWidth={2} className="text-amber-500" />
-                <span className="text-[10.5px] text-muted-foreground/70">
-                  <span className="font-semibold text-amber-600">
-                    {questions.filter(q => q.priority === 'critical' || q.priority === 'high').length}
-                  </span>{' '}critical question{questions.filter(q => q.priority === 'critical' || q.priority === 'high').length !== 1 ? 's' : ''}
-                </span>
-              </div>
+              <DotRow>{criticalCount} critical question{criticalCount !== 1 ? 's' : ''} of {questions.length} open</DotRow>
             )}
             {missing.length > 0 && (
-              <div className="flex items-center gap-1.5">
-                <ShieldAlert size={10} strokeWidth={2} className="text-muted-foreground/50" />
-                <span className="text-[10.5px] text-muted-foreground/70">
-                  <span className="font-semibold text-foreground/70">
-                    {missing.filter(m => m.urgency === 'urgent').length}
-                  </span>{' '}urgent item{missing.filter(m => m.urgency === 'urgent').length !== 1 ? 's' : ''} missing
-                </span>
-              </div>
+              <DotRow>{urgentCount} urgent item{urgentCount !== 1 ? 's' : ''} missing of {missing.length}</DotRow>
             )}
-          </div>
+          </ul>
         )}
       </div>
     </div>
@@ -1677,13 +1593,13 @@ function ExecBriefCard({ analysis, sa }: { analysis: CaseAnalysis; sa: NexusAnal
 
 // ── Stakeholder Map Section ───────────────────────────────────────────────────
 
-// Stance → short disposition + colour (full text kept for the expanded row/tooltip).
-function stanceStyle(stance?: string): { label: string; full: string; color: string; bg: string } | null {
+// Stance → short disposition (full text kept for the expanded row/tooltip). The label carries the meaning; no colour.
+function stanceStyle(stance?: string): { label: string; full: string } | null {
   if (!stance) return null
   const s = stance.toLowerCase()
-  if (/(advers|hostile|oppos|against|dispute|litig)/.test(s)) return { label: 'Adversarial', full: stance, color: '#b91c1c', bg: 'rgba(185,28,28,0.08)' }
-  if (/(align|cooperat|support|favour|favor|friendly|collaborat|engaged|our client)/.test(s)) return { label: 'Cooperative', full: stance, color: '#047857', bg: 'rgba(4,120,87,0.08)' }
-  return { label: 'Neutral', full: stance, color: '#b45309', bg: 'rgba(180,83,9,0.08)' }
+  if (/(advers|hostile|oppos|against|dispute|litig)/.test(s)) return { label: 'Adversarial', full: stance }
+  if (/(align|cooperat|support|favour|favor|friendly|collaborat|engaged|our client)/.test(s)) return { label: 'Cooperative', full: stance }
+  return { label: 'Neutral', full: stance }
 }
 
 const PARTY_LABEL: Record<string, string> = { client: 'Client', insurer: 'Insurer', lawyer: 'Lawyer', regulator: 'Regulator', trs: 'TRS', counterparty: 'Counterparty', other: 'Other' }
@@ -1740,7 +1656,7 @@ function StakeholderMapSection({
   if (!stakeholders?.length) return (
     <div>
       <SectionLabel title="Stakeholders" />
-      <NoDataState icon={Users} message="No stakeholders identified in this analysis." />
+      <NoDataState message="No stakeholders identified in this analysis." />
     </div>
   )
 
@@ -1781,84 +1697,84 @@ function StakeholderMapSection({
 
   const toggle = (key: string) => setExpanded(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n })
 
+  const th = 'py-2.5 px-3 text-[12px] font-medium text-left'
+
   return (
     <div>
       <SectionLabel title="Stakeholders" count={stakeholders.length} />
-      <div className="rounded-xl border border-[--border-subtle] bg-card overflow-hidden">
-        <table className="w-full text-left border-collapse text-[12px]">
-          <thead>
-            <tr className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/50 bg-muted/30">
-              <th className="w-7"></th>
-              <th className="py-2 px-3 font-bold">Stakeholder</th>
-              <th className="py-2 px-3 font-bold">Stance</th>
-              <th className="py-2 px-3 font-bold">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedGroups.map(([g, rs]) => (
-              <Fragment key={g}>
-                <tr className="bg-muted/15">
-                  <td colSpan={4} className="py-1.5 px-3 text-[9px] font-bold uppercase tracking-wider" style={{ color: partyColor(g).text }}>
-                    {partyLabel(g)} · {rs.length}
-                  </td>
-                </tr>
-                {rs.map(r => {
-                  const open = expanded.has(r.key)
-                  return (
-                    <Fragment key={r.key}>
-                      <tr className="border-t border-[--border-subtle] hover:bg-muted/20 cursor-pointer" onClick={() => toggle(r.key)}>
-                        <td className="py-2.5 pl-3 align-top"><ChevronDown size={13} className={cn('text-muted-foreground/40 transition-transform mt-0.5', open && 'rotate-180')} /></td>
-                        <td className="py-2.5 px-3 align-top">
-                          <div className="font-semibold text-foreground">{r.s.name}</div>
-                          {r.s.company && <div className="text-[10px] text-muted-foreground/50">{r.s.company}</div>}
-                        </td>
-                        <td className="py-2.5 px-3 align-top">
-                          {r.st ? <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-[6px] whitespace-nowrap" style={{ color: r.st.color, background: r.st.bg }} title={r.st.full}>{r.st.label}</span> : <span className="text-muted-foreground/40">—</span>}
-                        </td>
-                        <td className="py-2.5 px-3 align-top">
-                          <span className={cn('text-[10.5px] font-medium whitespace-nowrap',
-                            !r.last ? 'text-muted-foreground/40' : r.overdue ? 'text-red-600' : r.awaiting ? 'text-amber-600' : 'text-emerald-600')}>
-                            {!r.last ? 'No thread' : r.overdue ? `Overdue · ${r.days}d` : r.awaiting ? `Awaiting · ${r.days}d` : `Replied · ${timeAgo(r.last.sent_at)}`}
-                          </span>
-                          {r.outstanding.length > 0 && <span className="text-[9.5px] text-amber-600/80 ml-1.5">· {r.outstanding.length} awaited</span>}
-                        </td>
-                      </tr>
-                      {open && (
-                        <tr className="bg-muted/10 border-t border-[--border-subtle]/50">
-                          <td></td>
-                          <td colSpan={3} className="px-3 pb-3 pt-1">
-                            {r.s.email && <p className="text-[10.5px] text-muted-foreground/55 mb-1">{r.s.email}</p>}
-                            {r.s.role_summary && <p className="text-[11.5px] text-foreground/70 leading-[1.5] mb-2">{r.s.role_summary}</p>}
-                            {r.st && <p className="text-[10.5px] italic text-muted-foreground/60 mb-2">Stance: {r.st.full}</p>}
-                            {r.outstanding.length > 0 && (
-                              <div className="mb-2">
-                                <p className="text-[8.5px] font-bold uppercase tracking-wider text-amber-600/80 mb-1">Waiting on them</p>
-                                <ul className="flex flex-col gap-0.5">
-                                  {r.outstanding.map((o, oi) => (
-                                    <li key={oi} className="flex items-start gap-1.5">
-                                      <Clock size={9} strokeWidth={2} className="flex-shrink-0 mt-[3px] text-amber-500/70" />
-                                      <span className="text-[10.5px] text-foreground/65 leading-[1.5]">{o}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                            {r.thread && (
-                              <a href={`/engagement?lead=${r.thread.thread_id}`} onClick={e => e.stopPropagation()}
-                                className={cn('inline-flex items-center gap-1 text-[10.5px] font-semibold hover:underline', r.overdue ? 'text-red-600' : 'text-primary')}>
-                                {r.overdue ? 'Chase' : 'Open in Engagement'} <ArrowRight size={10} />
-                              </a>
-                            )}
+      <div className="rounded-[16px] bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-[14px]">
+            <thead>
+              <tr style={{ color: MUTED, borderBottom: `1px solid ${HAIR}` }}>
+                <th className="w-8"></th>
+                <th className={th}>Stakeholder</th>
+                <th className={th}>Stance</th>
+                <th className={th}>Last contact</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedGroups.map(([g, rs]) => (
+                <Fragment key={g}>
+                  <tr>
+                    <td colSpan={4} className="pt-3 pb-1 px-3 text-[12.5px] font-medium" style={{ color: MUTED }}>
+                      {partyLabel(g)} <span className="tabular-nums" style={{ color: FAINT }}>{rs.length}</span>
+                    </td>
+                  </tr>
+                  {rs.map(r => {
+                    const open = expanded.has(r.key)
+                    const status = !r.last ? 'No thread'
+                      : r.overdue ? `Waiting ${r.days}d, past the reply window`
+                      : r.awaiting ? `Waiting ${r.days}d`
+                      : `Replied ${timeAgo(r.last.sent_at)}`
+                    return (
+                      <Fragment key={r.key}>
+                        <tr className="cursor-pointer hover:bg-[#f8f9fa]" style={{ borderTop: `1px solid ${HAIR}` }} onClick={() => toggle(r.key)} aria-expanded={open}>
+                          <td className="py-3 pl-3 align-top"><ChevronDown size={14} className={cn('transition-transform mt-0.5', open && 'rotate-180')} style={{ color: FAINT }} /></td>
+                          <td className="py-3 px-3 align-top">
+                            <div className="font-medium" style={{ color: INK }}>{r.s.name}</div>
+                            {r.s.company && <div className="text-[12.5px]" style={{ color: MUTED }}>{r.s.company}</div>}
+                          </td>
+                          <td className="py-3 px-3 align-top">
+                            {r.st ? <Chip title={r.st.full}>{r.st.label}</Chip> : <span style={{ color: FAINT }}>—</span>}
+                          </td>
+                          <td className="py-3 px-3 align-top text-[13.5px] whitespace-nowrap" style={{ color: r.last ? BODY : FAINT }}>
+                            {status}
+                            {r.outstanding.length > 0 && <span style={{ color: MUTED }}> · {r.outstanding.length} item{r.outstanding.length !== 1 ? 's' : ''} awaited</span>}
                           </td>
                         </tr>
-                      )}
-                    </Fragment>
-                  )
-                })}
-              </Fragment>
-            ))}
-          </tbody>
-        </table>
+                        {open && (
+                          <tr style={{ background: HOVER }}>
+                            <td></td>
+                            <td colSpan={3} className="px-3 pb-4 pt-1">
+                              {r.s.email && <p className="m-0 mb-1 text-[13px]" style={{ color: MUTED }}>{r.s.email}</p>}
+                              {r.s.role_summary && <p className="m-0 mb-2 text-[14px] leading-[1.55]" style={{ color: BODY }}>{r.s.role_summary}</p>}
+                              {r.st && <p className="m-0 mb-2 text-[13px]" style={{ color: MUTED }}>Stance: {r.st.full}</p>}
+                              {r.outstanding.length > 0 && (
+                                <div className="mb-2">
+                                  <GroupLabel className="mb-1">Waiting on them</GroupLabel>
+                                  <ul className="m-0 p-0 flex flex-col gap-1">
+                                    {r.outstanding.map((o, oi) => <DotRow key={oi} className="text-[13.5px]">{o}</DotRow>)}
+                                  </ul>
+                                </div>
+                              )}
+                              {r.thread && (
+                                <a href={`/engagement?lead=${r.thread.thread_id}`} onClick={e => e.stopPropagation()}
+                                  className="inline-flex items-center gap-1 text-[13px] font-medium underline-offset-4 hover:underline no-underline" style={{ color: INK }}>
+                                  {r.overdue ? 'Chase in Engagement' : 'Open in Engagement'} →
+                                </a>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    )
+                  })}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )
@@ -1866,10 +1782,10 @@ function StakeholderMapSection({
 
 // ── Scenario Section ──────────────────────────────────────────────────────────
 
-const SCENARIO_PROB: Record<string, { color: string; bg: string; border: string; barW: string; pct: string }> = {
-  high:   { color: '#059669', bg: 'rgba(5,150,105,0.05)',   border: 'rgba(5,150,105,0.18)',   barW: '65%', pct: '~65%' },
-  medium: { color: '#d97706', bg: 'rgba(217,119,6,0.05)',   border: 'rgba(217,119,6,0.18)',   barW: '35%', pct: '~35%' },
-  low:    { color: '#6b7280', bg: 'rgba(107,114,128,0.05)', border: 'rgba(107,114,128,0.18)', barW: '15%', pct: '~15%' },
+const SCENARIO_PROB: Record<string, { barW: string; pct: string }> = {
+  high:   { barW: '65%', pct: '~65%' },
+  medium: { barW: '35%', pct: '~35%' },
+  low:    { barW: '15%', pct: '~15%' },
 }
 
 // Disposition (Optimistic / Expected / Adverse) inferred from the scenario name —
@@ -1877,10 +1793,10 @@ const SCENARIO_PROB: Record<string, { color: string; bg: string; border: string;
 function scenarioView(s: V1Scenario) {
   const name = s.name ?? ''
   const n = name.toLowerCase()
-  let disp: { label: string; color: string; bg: string } | null = null
-  if (/best|favou?r|upside|optimistic/.test(n))                          disp = { label: 'Optimistic', color: '#059669', bg: 'rgba(5,150,105,0.10)' }
-  else if (/worst|adverse|downside|repudiat|inability|fail/.test(n))     disp = { label: 'Adverse',    color: '#dc2626', bg: 'rgba(220,38,38,0.10)' }
-  else if (/base|expected|likely|middle|central/.test(n))               disp = { label: 'Expected',   color: '#d97706', bg: 'rgba(217,119,6,0.10)' }
+  let disp: string | null = null
+  if (/best|favou?r|upside|optimistic/.test(n))                          disp = 'Optimistic'
+  else if (/worst|adverse|downside|repudiat|inability|fail/.test(n))     disp = 'Adverse'
+  else if (/base|expected|likely|middle|central/.test(n))               disp = 'Expected'
   const cleanName = name.replace(/^\s*(best|base|worst)\s+case\s*[—\-:]\s*/i, '').trim() || name
   const pm = SCENARIO_PROB[s.probability?.toLowerCase()] ?? SCENARIO_PROB.low
   return { disp, cleanName, pm }
@@ -1906,7 +1822,7 @@ function AttachmentsSection({ threads, attachmentRecords }: { threads: CaseThrea
   if (files.length === 0) return (
     <div>
       <SectionLabel title="Documents" />
-      <NoDataState icon={FileText} message="No attachments on this case yet." />
+      <NoDataState message="No attachments on this case yet." />
     </div>
   )
 
@@ -1933,34 +1849,30 @@ function AttachmentsSection({ threads, attachmentRecords }: { threads: CaseThrea
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-2">
-        <SectionLabel title="Documents" />
-        <span className="text-[10px] text-muted-foreground/60">{total} file{total !== 1 ? 's' : ''} · {parsed} read by Nexus</span>
-      </div>
-      <div className="flex flex-col gap-3 mt-1">
+      <SectionLabel title="Documents" count={total}>
+        <span className="text-[13px] tabular-nums" style={{ color: MUTED }}>{parsed} of {total} read by Nexus</span>
+      </SectionLabel>
+      <div className="flex flex-col gap-3">
         {sortedGroups.map(g => {
           const ct = threads.find(t => (t.party_label ?? '') === g.label)
-          const pc = partyColor(ct?.party_type ?? 'other')
+          const pt = ct?.party_type ?? 'other'
           return (
-            <div key={g.label} className="rounded-lg border border-[--border-subtle] bg-card overflow-hidden">
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 border-b border-[--border-subtle]/60">
-                <span className="text-[10px] font-bold uppercase tracking-wide rounded px-1.5 py-0.5" style={{ background: pc.bg, color: pc.text }}>{partyLabel(ct?.party_type ?? 'other')}</span>
-                <span className="text-[11.5px] font-semibold text-foreground truncate">{g.label}</span>
-                <span className="text-[10px] text-muted-foreground/50 ml-auto">{g.items.length}</span>
+            <div key={g.label} className="rounded-[16px] bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
+              <div className="flex items-center gap-2.5 px-4 py-2.5" style={{ borderBottom: `1px solid ${HAIR}` }}>
+                <PartyChip party={pt} className="flex-shrink-0" />
+                <span className="text-[14px] font-medium truncate" style={{ color: INK }}>{g.label}</span>
+                <span className="text-[13px] tabular-nums ml-auto" style={{ color: FAINT }}>{g.items.length}</span>
               </div>
-              <div className="flex flex-col divide-y divide-border/40">
+              <div className="flex flex-col">
                 {g.items.map((f, i) => (
-                  <div key={f.id ?? i} className="flex items-center gap-2 px-3 py-2 text-[11.5px]">
-                    <FileText size={12} className="text-muted-foreground/50 flex-shrink-0" />
+                  <div key={f.id ?? i} className="flex items-center gap-3 px-4 py-2.5 text-[14px] hover:bg-[#f8f9fa]" style={{ borderTop: i === 0 ? 'none' : `1px solid ${HAIR}` }}>
                     {f.storage_url
-                      ? <a href={f.storage_url} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline truncate">{f.filename}</a>
-                      : <span className="font-medium text-foreground truncate">{f.filename}</span>}
-                    <span className="text-[10px] text-muted-foreground/50 flex-shrink-0">{fmtBytes(f.size_bytes)}</span>
-                    <span className="ml-auto flex items-center gap-2 flex-shrink-0">
-                      {f.created_at && <span className="text-[10px] text-muted-foreground/50">{new Date(f.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>}
-                      {f.parsed_at
-                        ? <span className="text-[9px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-[6px] px-1.5 py-0.5">read</span>
-                        : <span className="text-[9px] font-bold uppercase tracking-wide text-amber-700 bg-amber-50 border border-amber-200 rounded-[6px] px-1.5 py-0.5">pending</span>}
+                      ? <a href={f.storage_url} target="_blank" rel="noopener noreferrer" className="font-medium underline-offset-4 hover:underline no-underline truncate" style={{ color: INK }}>{f.filename}</a>
+                      : <span className="font-medium truncate" style={{ color: INK }}>{f.filename}</span>}
+                    <span className="text-[12.5px] flex-shrink-0 tabular-nums" style={{ color: MUTED }}>{fmtBytes(f.size_bytes)}</span>
+                    <span className="ml-auto flex items-center gap-3 flex-shrink-0">
+                      {f.created_at && <span className="text-[12.5px]" style={{ color: MUTED }}>{new Date(f.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>}
+                      <Chip>{f.parsed_at ? 'Read' : 'Pending'}</Chip>
                     </span>
                   </div>
                 ))}
@@ -1977,88 +1889,72 @@ function ScenarioSection({ scenarios }: { scenarios: V1Scenario[] }) {
   if (!scenarios?.length) return (
     <div>
       <SectionLabel title="Scenarios" />
-      <NoDataState icon={TrendingUp} message="Run analysis to see scenario projections." />
+      <NoDataState message="Scenarios appear after analysis." />
     </div>
   )
+
+  const th = 'py-2.5 px-4 text-[12px] font-medium text-left'
 
   // Full-width comparison table — rows are scenarios, columns compare across them.
   return (
     <div>
       <SectionLabel title="Scenarios" count={scenarios.length} />
-      <div className="rounded-xl border border-[--border-subtle] bg-card overflow-hidden">
+      <div className="rounded-[16px] bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left">
+          <table className="w-full border-collapse text-left min-w-[720px]">
             <thead>
-              <tr className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground/50 bg-muted/30">
-                <th className="py-2.5 px-4 font-bold w-[22%]">Scenario</th>
-                <th className="py-2.5 px-4 font-bold w-[13%]">Probability</th>
-                <th className="py-2.5 px-4 font-bold w-[32%]">Projected outcome</th>
-                <th className="py-2.5 px-4 font-bold w-[33%]">TRS action &amp; watch-fors</th>
+              <tr style={{ color: MUTED, borderBottom: `1px solid ${HAIR}` }}>
+                <th className={cn(th, 'w-[22%]')}>Scenario</th>
+                <th className={cn(th, 'w-[13%]')}>Probability</th>
+                <th className={cn(th, 'w-[32%]')}>Projected outcome</th>
+                <th className={cn(th, 'w-[33%]')}>TRS action and watch-fors</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[--border-subtle]">
+            <tbody>
               {scenarios.map((s, i) => {
                 const { disp, cleanName, pm } = scenarioView(s)
-                const barColor = disp?.color ?? pm.color
                 const assumptions       = s.assumptions?.filter(Boolean)       ?? []
                 const triggerConditions = s.trigger_conditions?.filter(Boolean) ?? []
                 return (
-                  <tr key={i} className="align-top" style={{ background: pm.bg }}>
+                  <tr key={i} className="align-top" style={{ borderTop: i === 0 ? 'none' : `1px solid ${HAIR}` }}>
                     {/* Disposition chip + scenario name + strategic implication */}
-                    <td className="py-3 px-4">
-                      {disp && (
-                        <span className="inline-block text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-[6px] mb-1" style={{ color: disp.color, background: disp.bg }}>
-                          {disp.label}
-                        </span>
-                      )}
-                      <p className="text-[12px] font-bold text-foreground leading-snug">{cleanName}</p>
+                    <td className="py-4 px-4">
+                      {disp && <Chip className="mb-1.5">{disp}</Chip>}
+                      <p className="m-0 text-[14px] font-medium leading-snug" style={{ color: INK }}>{cleanName}</p>
                       {s.strategic_implication && (
-                        <p className="text-[10px] italic text-foreground/50 leading-[1.5] mt-1">{s.strategic_implication}</p>
+                        <p className="m-0 mt-1 text-[13px] leading-[1.5]" style={{ color: MUTED }}>{s.strategic_implication}</p>
                       )}
                     </td>
 
                     {/* Probability % + bar */}
-                    <td className="py-3 px-4">
-                      <span className="text-[12px] font-bold" style={{ color: barColor }}>{pm.pct}</span>
-                      <div className="h-[3px] rounded-full bg-black/[0.06] mt-1.5 overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width: pm.barW, background: barColor }} />
+                    <td className="py-4 px-4">
+                      <span className="text-[14px] font-medium tabular-nums" style={{ color: INK }}>{pm.pct}</span>
+                      <div className="h-[3px] rounded-full mt-1.5 overflow-hidden" style={{ background: HAIR }}>
+                        <div className="h-full rounded-full" style={{ width: pm.barW, background: DOT }} />
                       </div>
                     </td>
 
                     {/* Outcome + assumptions */}
-                    <td className="py-3 px-4">
-                      <p className="text-[11.5px] text-foreground/75 leading-[1.55]">{s.outcome}</p>
+                    <td className="py-4 px-4">
+                      <p className="m-0 text-[14px] leading-[1.55]" style={{ color: BODY }}>{s.outcome}</p>
                       {assumptions.length > 0 && (
-                        <div className="mt-2">
-                          <p className="text-[8.5px] font-bold uppercase tracking-wider text-foreground/35 mb-0.5">Assumes</p>
-                          <ul className="flex flex-col gap-0.5">
-                            {assumptions.map((a, ai) => (
-                              <li key={ai} className="flex items-start gap-1.5">
-                                <span className="text-[9px] text-foreground/30 flex-shrink-0 mt-[3px]">•</span>
-                                <span className="text-[10.5px] text-foreground/60 leading-[1.5]">{a}</span>
-                              </li>
-                            ))}
+                        <div className="mt-2.5">
+                          <GroupLabel className="mb-1">Assumes</GroupLabel>
+                          <ul className="m-0 p-0 flex flex-col gap-1">
+                            {assumptions.map((a, ai) => <DotRow key={ai} className="text-[13px]">{a}</DotRow>)}
                           </ul>
                         </div>
                       )}
                     </td>
 
                     {/* TRS action + watch-fors */}
-                    <td className="py-3 px-4">
-                      <div className="flex gap-1.5 items-start">
-                        <ArrowRight size={10} strokeWidth={2.5} className="flex-shrink-0 mt-0.5" style={{ color: pm.color }} />
-                        <p className="text-[11px] font-medium leading-[1.5]" style={{ color: pm.color }}>{s.trs_action}</p>
-                      </div>
+                    <td className="py-4 px-4">
+                      <p className="m-0 text-[14px] font-medium leading-[1.5]" style={{ color: INK }}>{s.trs_action}</p>
                       {triggerConditions.length > 0 && (
-                        <div className="mt-2">
-                          <p className="text-[8.5px] font-bold uppercase tracking-wider text-foreground/35 mb-0.5">Watch for</p>
-                          <ul className="flex flex-col gap-0.5">
-                            {triggerConditions.map((t, ti) => (
-                              <li key={ti} className="flex items-start gap-1.5">
-                                <Zap size={8} strokeWidth={2} className="flex-shrink-0 mt-[3px] text-foreground/30" />
-                                <span className="text-[10.5px] text-foreground/60 leading-[1.5]">{t}</span>
-                              </li>
-                            ))}
+                        <div className="mt-2.5">
+                          <GroupLabel className="mb-1">Watch for</GroupLabel>
+                          <ul className="m-0 p-0 flex flex-col gap-1">
+                            {triggerConditions.map((t, ti) => <DotRow key={ti} className="text-[13px]">{t}</DotRow>)}
                           </ul>
                         </div>
                       )}
@@ -2092,7 +1988,7 @@ function MissionTimelineSection({
   if (!events.length) return (
     <div>
       <SectionLabel title="Timeline" />
-      <NoDataState icon={Clock} message="No timeline events in this analysis." />
+      <NoDataState message="No timeline events in this analysis." />
     </div>
   )
 
@@ -2103,40 +1999,30 @@ function MissionTimelineSection({
     <div>
       <SectionLabel title="Timeline" count={events.length}>
         {events.length > PREVIEW && (
-          <button
-            onClick={() => setShowAll(v => !v)}
-            className="text-[10.5px] text-primary font-semibold hover:opacity-80 transition-opacity"
-          >
-            {showAll ? 'Show less' : `View all (${events.length})`}
+          <button type="button" onClick={() => setShowAll(v => !v)} className={ghostBtn} style={{ color: INK }}>
+            {showAll ? 'Show fewer' : `Show all ${events.length}`}
           </button>
         )}
       </SectionLabel>
-      <div className="rounded-xl border border-[--border-subtle] bg-card px-5 py-4">
-        {shown.map((e, i) => {
-          const pc = partyColor(e.party)
-          return (
-            <div key={i} className="flex gap-4">
-              <div className="flex flex-col items-center">
-                <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ background: pc.dot }} />
-                {i < shown.length - 1 && <div className="w-px flex-1 bg-[--border-subtle]/70 mt-1.5 mb-1" />}
-              </div>
-              <div className="pb-4 min-w-0 flex-1">
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: pc.text }}>
-                    {e.party}
-                  </span>
-                  <span className="text-[9.5px] text-muted-foreground/50" title={e.date_excerpt ? `Source: “${e.date_excerpt}”` : undefined}>{fmtDate(e.date)}</span>
-                  {e.date_verified === false && (
-                    <span className="text-[8.5px] font-bold uppercase tracking-wide text-amber-600 bg-amber-50 border border-amber-200 rounded px-1 py-0.5" title="This date could not be verified verbatim against the source — please check.">date?</span>
-                  )}
-                  {e.citation_ids.map(cid => <CitationChip key={cid} id={cid} citations={citations} />)}
-                </div>
-                <p className="text-[12px] text-foreground/80 leading-[1.55] mb-0.5">{e.event}</p>
-                <p className="text-[10.5px] text-muted-foreground/55 italic leading-[1.45]">{e.significance}</p>
-              </div>
+      <div className="rounded-[16px] bg-white px-6 py-5" style={{ border: `1px solid ${HAIR}` }}>
+        {shown.map((e, i) => (
+          <div key={i} className="flex gap-4">
+            <div className="flex flex-col items-center">
+              <span className="w-2 h-2 rounded-full flex-shrink-0 mt-[7px]" style={{ background: DOT }} />
+              {i < shown.length - 1 && <div className="w-px flex-1 mt-1.5 mb-1" style={{ background: HAIR }} />}
             </div>
-          )
-        })}
+            <div className={cn('min-w-0 flex-1', i < shown.length - 1 ? 'pb-5' : 'pb-0')}>
+              <div className="flex items-center gap-2 mb-1 flex-wrap text-[12.5px]" style={{ color: MUTED }}>
+                <span className="font-medium">{partyLabel(e.party)}</span>
+                <span title={e.date_excerpt ? `Source: “${e.date_excerpt}”` : undefined}>{fmtDate(e.date)}</span>
+                {e.date_verified === false && <Chip title="This date was not found verbatim in the source. Check it.">Date unverified</Chip>}
+                {e.citation_ids.map(cid => <CitationChip key={cid} id={cid} citations={citations} />)}
+              </div>
+              <p className="m-0 text-[14px] leading-[1.55]" style={{ color: INK }}>{e.event}</p>
+              {e.significance && <p className="m-0 mt-0.5 text-[13px] leading-[1.5]" style={{ color: MUTED }}>{e.significance}</p>}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -2166,80 +2052,43 @@ function EvidencePanelSection({ items, citations }: { items: V1Evidence[]; citat
 
   return (
     <div>
-      <SectionLabel title="Evidence" count={items.length} />
-      <div className="rounded-xl border border-[--border-subtle] bg-card overflow-hidden">
-        <div className="flex border-b border-[--border-subtle] bg-muted/20">
-          {TAB_META.map(({ key, label }) => {
-            const count = groups[key]?.length ?? 0
-            return (
-              <button
-                key={key}
-                onClick={() => setTab(key)}
-                className={cn(
-                  'flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-semibold border-b-2 transition-colors',
-                  tab === key
-                    ? 'border-primary text-primary bg-card'
-                    : 'border-transparent text-muted-foreground/60 hover:text-foreground',
-                )}
-              >
-                {label}
-                {count > 0 && (
-                  <span className="text-[9px] font-bold bg-muted/80 rounded-[6px] px-1.5 py-0.5 text-muted-foreground/55">
-                    {count}
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </div>
-
+      <SectionLabel title="Evidence" count={items.length}>
+        <Segmented value={tab} onChange={setTab} options={TAB_META.map(t => ({ value: t.key, label: t.label, count: groups[t.key]?.length ?? 0 }))} />
+      </SectionLabel>
+      <div className="rounded-[16px] bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
         {shown.length === 0 ? (
-          <p className="text-[11.5px] text-muted-foreground/40 italic text-center py-8">
+          <p className="m-0 text-[14px] text-center py-10" style={{ color: MUTED }}>
             No {tab === 'email' ? 'email' : tab === 'attachment' ? 'attachment' : 'knowledge'} evidence in this analysis.
           </p>
         ) : (
-          <div className="divide-y divide-[--border-subtle]">
+          <div>
             {shown.map((item, i) => {
               const itemKey = item.id ?? String(i)
               const isOpen  = expandedId === itemKey
               return (
-                <div key={itemKey}>
+                <div key={itemKey} style={{ borderTop: i === 0 ? 'none' : `1px solid ${HAIR}` }}>
                   <button
+                    type="button"
+                    aria-expanded={isOpen}
                     onClick={() => setExpandedId(isOpen ? null : itemKey)}
-                    className="w-full text-left px-5 py-3.5 flex items-start gap-3 hover:bg-muted/20 transition-colors"
+                    className="w-full text-left px-5 py-3.5 flex items-start gap-3 bg-transparent border-0 cursor-pointer hover:bg-[#f8f9fa]"
                   >
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="text-[12px] font-semibold text-foreground truncate">
-                          {item.filename_or_label}
-                        </span>
-                        {item.coverage_relevant && (
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-[6px] bg-emerald-50 text-emerald-700 border border-emerald-100 flex-shrink-0">
-                            Coverage
-                          </span>
-                        )}
+                      <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                        <span className="text-[14px] font-medium truncate" style={{ color: INK }}>{item.filename_or_label}</span>
+                        {item.coverage_relevant && <Chip>Coverage</Chip>}
                         {item.citation_id && <CitationChip id={item.citation_id} citations={citations} />}
                       </div>
                       {!isOpen && item.key_facts?.[0] && (
-                        <p className="text-[10.5px] text-muted-foreground/60 line-clamp-1">{item.key_facts[0]}</p>
+                        <p className="m-0 text-[13px] line-clamp-1" style={{ color: MUTED }}>{item.key_facts[0]}</p>
                       )}
                     </div>
-                    <ChevronDown
-                      size={11}
-                      strokeWidth={2}
-                      className={cn('text-muted-foreground/30 flex-shrink-0 mt-0.5 transition-transform', isOpen && 'rotate-180')}
-                    />
+                    <ChevronDown size={14} strokeWidth={2} className={cn('flex-shrink-0 mt-0.5 transition-transform', isOpen && 'rotate-180')} style={{ color: FAINT }} />
                   </button>
                   {isOpen && (
-                    <div className="px-5 pb-4 bg-muted/[0.07]">
-                      <ul className="flex flex-col gap-1">
-                        {(item.key_facts ?? []).map((f, fi) => (
-                          <li key={fi} className="flex gap-2 text-[11.5px] text-foreground/75 leading-[1.55]">
-                            <span className="text-muted-foreground/40 flex-shrink-0">•</span>{f}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                    <ul className="m-0 px-5 pb-4 pt-0 flex flex-col gap-1.5">
+                      {(item.key_facts ?? []).map((f, fi) => <DotRow key={fi}>{f}</DotRow>)}
+                    </ul>
                   )}
                 </div>
               )
@@ -2253,10 +2102,9 @@ function EvidencePanelSection({ items, citations }: { items: V1Evidence[]; citat
 
 // ── Next Steps Section ────────────────────────────────────────────────────────
 
-const STEP_PRIORITY: Record<string, { color: string; bg: string }> = {
-  urgent: { color: '#dc2626', bg: 'rgba(220,38,38,0.08)' },
-  high:   { color: '#d97706', bg: 'rgba(217,119,6,0.08)' },
-  normal: { color: '#6b7280', bg: 'rgba(107,114,128,0.08)' },
+const stepPriorityLabel = (p?: string) => {
+  const k = (p ?? '').toLowerCase()
+  return k === 'urgent' ? 'Urgent' : k === 'high' ? 'High' : k ? k[0].toUpperCase() + k.slice(1) : 'Normal'
 }
 
 type StepDraftState = {
@@ -2366,8 +2214,8 @@ function NextStepsSection({
 
   if (!v1Steps?.length && !missingItems?.length) return (
     <div>
-      <SectionLabel title="Next Steps" />
-      <NoDataState icon={CheckCircle2} message="Next steps will appear here after analysis." />
+      <SectionLabel title="Next steps" />
+      <NoDataState message="Next steps appear after analysis." />
     </div>
   )
 
@@ -2377,128 +2225,94 @@ function NextStepsSection({
 
   return (
     <div>
-      <SectionLabel title="Next Steps" count={v1Steps?.length ?? 0}>
-        {draftableCount > 0 && (
-          <span className="text-[10px] text-muted-foreground/45 flex items-center gap-1">
-            <MailOpen size={9} strokeWidth={2} />
-            {draftableCount} with draft
-          </span>
-        )}
+      <SectionLabel title="Next steps" count={v1Steps?.length ?? 0}>
+        {draftableCount > 0 && <span className="text-[13px] tabular-nums" style={{ color: MUTED }}>{draftableCount} with a draft</span>}
       </SectionLabel>
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-3">
         {urgentMissing.length > 0 && (
-          <div className="px-4 py-3 rounded-xl border border-amber-200 bg-amber-50">
-            <p className="text-[9.5px] font-bold uppercase tracking-wider text-amber-700 mb-2">Prerequisites Required</p>
-            <div className="flex flex-col gap-1.5">
+          <div className="px-5 py-4 rounded-[16px]" style={{ background: FIELD }}>
+            <GroupLabel className="mb-2">Prerequisites <span className="tabular-nums" style={{ color: FAINT }}>{urgentMissing.length}</span></GroupLabel>
+            <ul className="m-0 p-0 flex flex-col gap-1.5">
               {urgentMissing.map((m, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <ShieldAlert size={10} strokeWidth={2} className="text-amber-500 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-[11.5px] font-medium text-amber-800">{m.item}</span>
-                    <span className="text-[10.5px] text-amber-600"> · from {m.required_from}</span>
-                    {m.impact && <p className="text-[10.5px] text-amber-600/80 mt-0.5">{m.impact}</p>}
-                  </div>
-                </div>
+                <DotRow key={i}>
+                  <span className="font-medium" style={{ color: INK }}>{m.item}</span>
+                  <span style={{ color: MUTED }}> · from {m.required_from}</span>
+                  {m.impact && <span className="block text-[13px] mt-0.5" style={{ color: MUTED }}>{m.impact}</span>}
+                </DotRow>
               ))}
-            </div>
+            </ul>
           </div>
         )}
 
         {(v1Steps ?? []).map((step, i) => {
-          const pc       = partyColor(step.owner)
-          const ps       = STEP_PRIORITY[step.priority?.toLowerCase()] ?? STEP_PRIORITY.normal
           const artifact = drafts[step.step - 1] ?? null
           const ds       = stepDraftState[step.step] ?? { status: 'idle' }
           const toEmail  = resolveEmail(step, artifact)
           const lastSent = lastSentForStep(step, toEmail)
 
           return (
-            <div key={i} className="flex gap-4 px-4 py-3.5 rounded-xl border border-[--border-subtle] bg-card">
-              <span className="text-[13px] font-black text-muted-foreground/20 flex-shrink-0 w-6 text-right pt-0.5">
+            <div key={i} className="flex gap-4 px-5 py-4 rounded-[16px] bg-white" style={{ border: `1px solid ${HAIR}` }}>
+              <span className="text-[14px] font-medium tabular-nums flex-shrink-0 w-5 text-right pt-[1px]" style={{ color: FAINT }}>
                 {step.step}
               </span>
               <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2 mb-1.5">
-                  <span className="text-[12.5px] font-semibold text-foreground leading-[1.4]">{step.action}</span>
-                  <span
-                    className="text-[9px] font-bold px-2 py-0.5 rounded-[6px] flex-shrink-0"
-                    style={{ background: ps.bg, color: ps.color }}
-                  >
-                    {step.priority?.toUpperCase()}
-                  </span>
+                <div className="flex items-start justify-between gap-3 mb-1.5 flex-wrap">
+                  <span className="text-[14px] font-medium leading-[1.45]" style={{ color: INK }}>{step.action}</span>
+                  <Chip className="flex-shrink-0">{stepPriorityLabel(step.priority)}</Chip>
                 </div>
-                <div className="flex items-center gap-2 mb-2 flex-wrap">
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md" style={{ background: pc.bg, color: pc.text }}>
-                    {step.owner?.toUpperCase()}
-                  </span>
+                <div className="flex items-center gap-2 mb-2 flex-wrap text-[12.5px]" style={{ color: MUTED }}>
+                  {step.owner && <PartyChip party={step.owner} />}
                   {step.deadline && (
-                    <span className="text-[10px] text-muted-foreground/55 flex items-center gap-1" title="Timing is guidance, not a blocker — any step can be drafted now">
-                      <Clock size={9} strokeWidth={2} /> {step.deadline} · guidance
-                    </span>
+                    <span title="Timing is guidance, not a blocker. Any step can be drafted now.">{step.deadline} · guidance</span>
                   )}
                   {lastSent && (
-                    <span className="text-[9.5px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-[6px] px-1.5 py-0.5 flex items-center gap-1"
-                      title={`An email to this recipient was already sent on ${new Date(lastSent).toLocaleString('en-SG')}. Check the thread before re-sending.`}>
-                      <CheckCircle2 size={9} strokeWidth={2.5} /> emailed {relTime(lastSent)}
-                    </span>
+                    <Chip title={`An email to this recipient was sent on ${new Date(lastSent).toLocaleString('en-SG')}. Check the thread before sending again.`}>
+                      Emailed {relTime(lastSent)}
+                    </Chip>
                   )}
                 </div>
-                <p className="text-[11.5px] text-muted-foreground/60 italic leading-[1.5] mb-3">{step.rationale}</p>
+                <p className="m-0 text-[13.5px] leading-[1.55] mb-3" style={{ color: MUTED }}>{step.rationale}</p>
 
                 {/* ── Step action bar (every step is draftable; recipient editable) ── */}
-                <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-[--border-subtle]/60">
-                  <button
+                <div className="flex items-center gap-2 flex-wrap pt-3" style={{ borderTop: `1px solid ${HAIR}` }}>
+                  <Btn
+                    level="secondary"
+                    size="xs"
                     onClick={() => { if (toEmail) draftInEngagement(step, toEmail); else { setPickFor(pickFor === step.step ? null : step.step); setPickEmail('') } }}
                     disabled={ds.status === 'creating'}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/[0.06] text-[10.5px] font-semibold text-primary hover:bg-primary/[0.12] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    loading={ds.status === 'creating'}
                     title={toEmail ? `Draft in Engagement to ${toEmail}` : 'Choose a recipient to draft to'}
                   >
-                    {ds.status === 'creating' ? (
-                      <Loader2 size={10} strokeWidth={2} className="animate-spin" />
-                    ) : (
-                      <ArrowRight size={11} strokeWidth={2.5} />
-                    )}
                     {ds.status === 'creating' ? 'Drafting…' : toEmail ? 'Draft in Engagement' : 'Draft in Engagement…'}
-                  </button>
-                  <button
-                    onClick={() => copyStep(step)}
-                    className={cn(
-                      'flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10.5px] font-medium transition-colors',
-                      copiedStep === step.step
-                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                        : 'border-[--border-subtle] bg-background text-muted-foreground/60 hover:bg-muted/60 hover:text-foreground/70',
-                    )}
-                  >
-                    {copiedStep === step.step ? (
-                      <><CheckCircle2 size={10} strokeWidth={2.5} /> Copied!</>
-                    ) : (
-                      <><FileText size={10} strokeWidth={2} /> Copy</>
-                    )}
-                  </button>
+                  </Btn>
+                  <Btn level="tertiary" size="xs" onClick={() => copyStep(step)}>
+                    {copiedStep === step.step ? 'Copied' : 'Copy'}
+                  </Btn>
                   {ds.errorMsg && (
-                    <span className={cn('text-[10px]', ds.status === 'error' ? 'text-red-500' : 'text-muted-foreground/70')}>{ds.errorMsg}</span>
+                    <span className="text-[12.5px]" style={{ color: ds.status === 'error' ? INK : MUTED }}>{ds.errorMsg}</span>
                   )}
                 </div>
 
                 {/* Manual recipient picker — shown when the step has no auto-resolved recipient */}
                 {pickFor === step.step && (
-                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <div className="flex items-center gap-2 mt-3 flex-wrap">
                     <input
                       list="nexus-known-emails"
                       value={pickEmail}
                       onChange={e => setPickEmail(e.target.value)}
                       placeholder="recipient@company.com"
-                      className="flex-1 min-w-[200px] text-[11.5px] rounded-md border border-[--border-subtle] bg-background px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      aria-label="Recipient"
+                      className={cn(inputCls, 'flex-1 min-w-[200px] w-auto')}
                       autoFocus
                     />
-                    <button
+                    <Btn
+                      level="primary"
                       onClick={() => { if (pickEmail.includes('@')) { draftInEngagement(step, pickEmail.trim()); setPickFor(null) } }}
                       disabled={!pickEmail.includes('@')}
-                      className="text-[10.5px] font-semibold px-3 py-1.5 rounded-md bg-primary text-primary-foreground disabled:opacity-40"
                     >
                       Draft
-                    </button>
-                    <button onClick={() => setPickFor(null)} className="text-[10.5px] text-muted-foreground hover:text-foreground px-2">Cancel</button>
+                    </Btn>
+                    <Btn level="tertiary" onClick={() => setPickFor(null)}>Cancel</Btn>
                   </div>
                 )}
               </div>
@@ -2525,8 +2339,8 @@ function DraftOutputsSection({
 
   if (!hasDrafts && !hasLegacy) return (
     <div>
-      <SectionLabel title="Draft Outputs" />
-      <NoDataState icon={MailOpen} message="No draft communications. Run analysis to generate drafts for each party." />
+      <SectionLabel title="Draft outputs" />
+      <NoDataState message="No drafts yet. Analysis writes one draft per party." />
     </div>
   )
 
@@ -2548,10 +2362,8 @@ function DraftOutputsSection({
 
   return (
     <div>
-      <SectionLabel title="Draft Outputs" count={steps.length}>
-        {!hasDrafts && hasLegacy && (
-          <span className="text-[10px] text-muted-foreground/40 italic">Legacy format</span>
-        )}
+      <SectionLabel title="Draft outputs" count={steps.length}>
+        {!hasDrafts && hasLegacy && <span className="text-[13px]" style={{ color: MUTED }}>Legacy format</span>}
       </SectionLabel>
       <div className="flex flex-col gap-3">
         {steps.map(step => (
@@ -2652,46 +2464,38 @@ function RunComparisonBanner({
 
   const prevAgo = timeAgo(previousRun.created_at)
 
-  const STEP_DIFF_COLOR: Record<StepDiffItem['type'], string> = {
-    added:   'bg-green-50 text-green-700 border-green-200',
-    removed: 'bg-red-50   text-red-600   border-red-200',
-    changed: 'bg-amber-50 text-amber-700 border-amber-200',
-  }
   const STEP_DIFF_LABEL: Record<StepDiffItem['type'], string> = {
-    added:   '+ added',
-    removed: '− removed',
-    changed: '~ changed',
+    added:   'Added',
+    removed: 'Removed',
+    changed: 'Changed',
   }
 
   return (
-    <div className="rounded-xl border border-[--border-subtle] bg-muted/30">
+    <div className="rounded-[16px]" style={{ background: FIELD }}>
       <button
+        type="button"
+        aria-expanded={open}
         onClick={handleToggle}
-        className="w-full flex items-center justify-between px-4 py-2.5 text-left"
+        className="w-full flex items-center justify-between gap-3 px-5 py-3 text-left bg-transparent border-0 cursor-pointer"
       >
-        <div className="flex items-center gap-2 min-w-0">
-          <TrendingUp size={11} strokeWidth={2} className="text-primary/50 flex-shrink-0" />
-          <span className="text-[10.5px] font-semibold text-foreground/60">vs. {prevAgo}</span>
-          <span className="text-[10px] text-muted-foreground/50 truncate hidden sm:block">
-            {diffs.slice(0, 3).join(' · ')}{diffs.length > 3 ? ` · +${diffs.length - 3} more` : ''}
+        <div className="flex items-center gap-2 min-w-0 flex-wrap text-[13.5px]">
+          <span className="font-medium" style={{ color: INK }}>Compared with the run {prevAgo}</span>
+          <span className="truncate" style={{ color: MUTED }}>
+            {diffs.slice(0, 3).join(' · ')}{diffs.length > 3 ? ` · ${diffs.length - 3} more` : ''}
           </span>
         </div>
-        <ChevronDown size={12} strokeWidth={2} className={cn('text-muted-foreground/30 flex-shrink-0 transition-transform', open && 'rotate-180')} />
+        <ChevronDown size={14} strokeWidth={2} className={cn('flex-shrink-0 transition-transform', open && 'rotate-180')} style={{ color: FAINT }} />
       </button>
       {open && (
-        <div className="px-4 pb-4 border-t border-[--border-subtle]/40 pt-3 flex flex-col gap-3">
+        <div className="px-5 pb-4 pt-3 flex flex-col gap-4" style={{ borderTop: `1px solid ${HAIR}` }}>
           {/* Metadata diffs */}
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/40 mb-2">Changes since previous run</p>
+            <GroupLabel className="mb-2">Changes since the previous run</GroupLabel>
             {diffs.length === 0 ? (
-              <p className="text-[10.5px] text-muted-foreground/40 italic">No metadata changes</p>
+              <p className="m-0 text-[13px]" style={{ color: MUTED }}>No metadata changes</p>
             ) : (
               <div className="flex flex-wrap gap-1.5">
-                {diffs.map((d, i) => (
-                  <span key={i} className="text-[10.5px] px-2 py-0.5 rounded-[6px] bg-primary/[0.06] text-primary/70 border border-primary/10 font-medium">
-                    {d}
-                  </span>
-                ))}
+                {diffs.map((d, i) => <WhiteChip key={i}>{d}</WhiteChip>)}
               </div>
             )}
           </div>
@@ -2699,29 +2503,23 @@ function RunComparisonBanner({
           {/* Step-level diffs */}
           {prevSteps !== null && stepDiff.length > 0 && (
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/40 mb-2">Step changes</p>
-              <div className="flex flex-col gap-1.5">
+              <GroupLabel className="mb-2">Step changes</GroupLabel>
+              <ul className="m-0 p-0 flex flex-col gap-2">
                 {stepDiff.map((d, i) => (
-                  <div key={i} className={cn('rounded-lg border px-2.5 py-1.5', STEP_DIFF_COLOR[d.type])}>
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <span className="text-[8.5px] font-bold uppercase tracking-wider opacity-70">
-                        {STEP_DIFF_LABEL[d.type]} · step {d.step}
-                      </span>
-                    </div>
-                    <p className="text-[10.5px] font-medium leading-[1.4]">{d.action}</p>
-                    {d.prevAction && (
-                      <p className="text-[10px] opacity-60 line-through leading-[1.3] mt-0.5">{d.prevAction}</p>
-                    )}
-                  </div>
+                  <li key={i} className="list-none rounded-[12px] bg-white px-4 py-2.5" style={{ border: `1px solid ${HAIR}` }}>
+                    <p className="m-0 text-[12.5px] mb-0.5" style={{ color: MUTED }}>{STEP_DIFF_LABEL[d.type]} · step {d.step}</p>
+                    <p className="m-0 text-[14px] leading-[1.45]" style={{ color: INK }}>{d.action}</p>
+                    {d.prevAction && <p className="m-0 mt-0.5 text-[13px] line-through leading-[1.4]" style={{ color: FAINT }}>{d.prevAction}</p>}
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
           )}
           {prevSteps !== null && stepDiff.length === 0 && (
-            <p className="text-[10px] text-muted-foreground/40 italic">Step actions unchanged</p>
+            <p className="m-0 text-[13px]" style={{ color: MUTED }}>Step actions unchanged</p>
           )}
 
-          <p className="text-[10px] text-muted-foreground/40">
+          <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>
             Previous run: {new Date(previousRun.created_at).toLocaleString('en-SG', { dateStyle: 'medium', timeStyle: 'short' })}
             {previousRun.run_duration_ms ? ` · ${Math.round(previousRun.run_duration_ms / 1000)}s` : ''}
           </p>
@@ -2764,24 +2562,15 @@ function RunHistoryView({
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-32">
-        <Loader2 size={20} className="animate-spin text-muted-foreground/30" />
-      </div>
-    )
+    return <div className="py-24"><Spinner /></div>
   }
 
   if (runs.length === 0) {
     return (
-      <div className="px-6 py-6 flex flex-col gap-4 pb-12">
+      <div className="px-6 py-6 flex flex-col gap-10 pb-16 max-w-[1100px]">
         <div className="flex flex-col items-center gap-3 py-12 px-8 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-muted/60 border border-[--border-subtle] flex items-center justify-center">
-            <Database size={24} strokeWidth={1.2} className="text-muted-foreground/30" />
-          </div>
-          <p className="text-[12.5px] font-bold text-foreground/50">No analysis runs yet</p>
-          <button onClick={onGoToMission} className="text-[11px] text-primary font-semibold hover:opacity-80">
-            Go to Mission Control →
-          </button>
+          <p className="m-0 text-[15px]" style={{ color: MUTED }}>No analysis runs yet.</p>
+          <button type="button" onClick={onGoToMission} className={ghostBtn} style={{ color: INK }}>Go to Mission control</button>
         </div>
         <div>
           <SectionLabel title="Case activity" />
@@ -2792,30 +2581,28 @@ function RunHistoryView({
   }
 
   return (
-    <div className="px-6 py-6 flex flex-col gap-4 pb-12">
+    <div className="px-6 py-6 flex flex-col gap-10 pb-16 max-w-[1100px]">
       <div>
         <SectionLabel title="Case activity" />
         <ActivityFeed resourceId={caseId} emptyText="No activity on this case yet." />
       </div>
-      <div className="flex items-center justify-between">
-        <SectionLabel title="Analysis Run History" count={runs.length} />
-        <div className="flex items-center gap-2">
-          {runs.filter(r => !r.pinned).length > 15 && (
-            <button
-              onClick={async () => { setPruning(true); try { await onPrune() } finally { setPruning(false) } }}
-              disabled={pruning}
-              title="Delete unpinned runs beyond the 15 most recent. Pinned runs are always kept."
-              className="flex items-center gap-1 text-[10px] text-muted-foreground/50 hover:text-red-500 transition-colors disabled:opacity-40"
-            >
-              {pruning ? <Loader2 size={9} strokeWidth={2} className="animate-spin" /> : <Trash2 size={9} strokeWidth={2} />}
-              Prune old runs
-            </button>
-          )}
-          {runs.length >= 2 && (
-            <span className="text-[10px] text-muted-foreground/40">Newest first</span>
-          )}
-        </div>
-      </div>
+      <div>
+      <SectionLabel title="Analysis runs" count={runs.length}>
+        {runs.length >= 2 && <span className="text-[13px]" style={{ color: MUTED }}>Newest first</span>}
+        {runs.filter(r => !r.pinned).length > 15 && (
+          <Btn
+            level="tertiary"
+            size="xs"
+            onClick={async () => { setPruning(true); try { await onPrune() } finally { setPruning(false) } }}
+            disabled={pruning}
+            loading={pruning}
+            title="Delete unpinned runs beyond the 15 most recent. Pinned runs are always kept."
+          >
+            Prune old runs
+          </Btn>
+        )}
+      </SectionLabel>
+      <div className="flex flex-col gap-3">
 
       {runs.map((run, i) => {
         const isCurrent   = i === 0
@@ -2832,64 +2619,37 @@ function RunHistoryView({
         })()
 
         return (
-          <div
-            key={run.id}
-            className={cn(
-              'rounded-xl border bg-card transition-colors overflow-hidden',
-              isCurrent ? 'border-primary/20 bg-primary/[0.02]'
-              : run.pinned ? 'border-primary/15 ring-1 ring-primary/8'
-              : 'border-[--border-subtle]',
-            )}
-          >
+          <div key={run.id} className="rounded-[16px] bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
             {/* Run header */}
-            <div className="px-4 py-3.5">
-              <div className="flex items-start justify-between gap-3 mb-2.5">
-                <div className="flex items-center gap-2 min-w-0">
-                  {isCurrent && (
-                    <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-[6px] bg-primary/10 text-primary flex-shrink-0">
-                      Current
-                    </span>
-                  )}
-                  {run.pinned && !isCurrent && (
-                    <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-[6px] bg-primary/8 text-primary/70 flex-shrink-0 flex items-center gap-0.5">
-                      <Pin size={7} strokeWidth={2.5} /> Pinned
-                    </span>
-                  )}
-                  <span className="text-[11.5px] font-semibold text-foreground/80">{ts}</span>
-                  {run.triggered_by && (
-                    <span className="text-[10px] text-muted-foreground/45 truncate">by {run.triggered_by}</span>
-                  )}
+            <div className="px-5 py-4">
+              <div className="flex items-start justify-between gap-3 mb-2.5 flex-wrap">
+                <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                  <span className="text-[14px] font-medium" style={{ color: INK }}>{ts}</span>
+                  {run.triggered_by && <span className="text-[13px] truncate" style={{ color: MUTED }}>by {run.triggered_by}</span>}
+                  {isCurrent && <Chip>Current</Chip>}
+                  {run.pinned && !isCurrent && <Chip>Pinned</Chip>}
+                  {run.run_status === 'failed' && <Chip>Failed</Chip>}
+                  {run.run_status === 'partial' && <Chip>Partial</Chip>}
                 </div>
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  {run.run_status === 'failed' && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-[6px] bg-red-50 text-red-500 border border-red-200">failed</span>
-                  )}
-                  {run.run_status === 'partial' && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-[6px] bg-amber-50 text-amber-500 border border-amber-200">partial</span>
-                  )}
-                  {durationS && (
-                    <span className="text-[10px] text-muted-foreground/40">{durationS}</span>
-                  )}
-                  {modelLabel && (
-                    <span className="text-[9px] font-medium text-muted-foreground/40 bg-muted/70 px-1.5 py-0.5 rounded">{modelLabel}</span>
-                  )}
+                <div className="flex items-center gap-3 flex-shrink-0 text-[13px]" style={{ color: MUTED }}>
+                  {durationS && <span className="tabular-nums">{durationS}</span>}
+                  {modelLabel && <span>{modelLabel}</span>}
                   <button
+                    type="button"
                     onClick={() => onPinToggle(run.id, !run.pinned)}
-                    title={run.pinned ? 'Unpin run (will be eligible for pruning)' : 'Pin run (exempt from auto-prune)'}
-                    className={cn(
-                      'flex items-center justify-center w-5 h-5 rounded transition-colors',
-                      run.pinned
-                        ? 'text-primary bg-primary/10 hover:bg-primary/20'
-                        : 'text-muted-foreground/30 hover:text-muted-foreground/60 hover:bg-muted/60',
-                    )}
+                    title={run.pinned ? 'Unpin run. It becomes eligible for pruning.' : 'Pin run. Pinned runs are never pruned.'}
+                    aria-label={run.pinned ? 'Unpin run' : 'Pin run'}
+                    aria-pressed={run.pinned}
+                    className="flex items-center justify-center w-7 h-7 rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]"
+                    style={{ color: run.pinned ? INK : FAINT }}
                   >
-                    {run.pinned ? <Pin size={9} strokeWidth={2.5} /> : <PinOff size={9} strokeWidth={2} />}
+                    {run.pinned ? <Pin size={13} strokeWidth={2} /> : <PinOff size={13} strokeWidth={2} />}
                   </button>
                 </div>
               </div>
 
-              {/* Stats grid */}
-              <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-2.5">
+              {/* Stats line */}
+              <p className="m-0 mb-2.5 text-[13px] flex flex-wrap gap-x-4 gap-y-1" style={{ color: MUTED }}>
                 {[
                   { v: run.threads_included,    l: 'threads'     },
                   { v: run.messages_included,   l: 'messages'    },
@@ -2899,78 +2659,61 @@ function RunHistoryView({
                   { v: run.missing_items_count, l: 'blockers'    },
                   { v: run.evidence_count,      l: 'evidence'    },
                 ].map(({ v, l }) => (
-                  <span key={l} className="text-[10.5px] text-muted-foreground/55">
-                    <span className="font-semibold text-foreground/70">{v}</span> {l}
-                  </span>
+                  <span key={l}><span className="font-medium tabular-nums" style={{ color: INK }}>{v}</span> {l}</span>
                 ))}
                 {run.gdrive_docs_count > 0 && (
-                  <span className="text-[10.5px] text-muted-foreground/55">
-                    <span className="font-semibold text-foreground/70">{run.gdrive_docs_count}</span> GDrive docs
-                  </span>
+                  <span><span className="font-medium tabular-nums" style={{ color: INK }}>{run.gdrive_docs_count}</span> Drive docs</span>
                 )}
                 {(run.gemini_tokens ?? 0) > 0 && (
-                  <span className="text-[10.5px] text-muted-foreground/40">
-                    {((run.gemini_tokens ?? 0) + (run.claude_tokens ?? 0)).toLocaleString()} tokens
-                  </span>
+                  <span className="tabular-nums">{((run.gemini_tokens ?? 0) + (run.claude_tokens ?? 0)).toLocaleString()} tokens</span>
                 )}
-              </div>
+              </p>
 
               {/* Diff vs. previous */}
               {diffs.length > 0 && (
-                <div className="flex flex-wrap gap-1 mb-2.5">
-                  {diffs.map((d, di) => (
-                    <span key={di} className="text-[9.5px] px-1.5 py-0.5 rounded-[6px] bg-muted/60 text-muted-foreground/60 border border-[--border-subtle]">
-                      {d}
-                    </span>
-                  ))}
+                <div className="flex flex-wrap gap-1.5 mb-2.5">
+                  {diffs.map((d, di) => <Chip key={di}>{d}</Chip>)}
                 </div>
               )}
 
               {/* Truncation flags */}
               {run.truncation_flags?.length > 0 && (
-                <div className="flex flex-wrap gap-1 mb-2.5">
-                  {run.truncation_flags.map((f, fi) => (
-                    <span key={fi} className="text-[9.5px] text-amber-600 flex items-center gap-1">
-                      <AlertCircle size={9} strokeWidth={2} /> {f}
-                    </span>
-                  ))}
-                </div>
+                <ul className="m-0 p-0 mb-2.5 flex flex-col gap-1">
+                  {run.truncation_flags.map((f, fi) => <DotRow key={fi} className="text-[13px]">{f}</DotRow>)}
+                </ul>
               )}
 
               {/* Error message for failed runs */}
               {run.run_status === 'failed' && run.error_message && (
-                <div className="mb-2.5 px-2.5 py-2 rounded-lg bg-red-50 border border-red-200">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-red-400 mb-0.5">Error</p>
-                  <p className="text-[10.5px] text-red-700 font-mono leading-[1.4] break-all">
-                    {run.error_message}
-                  </p>
+                <div className="mb-2.5 px-4 py-3 rounded-[12px]" style={{ background: FIELD }}>
+                  <GroupLabel className="mb-1">Error</GroupLabel>
+                  <p className="m-0 text-[12.5px] font-mono leading-[1.5] break-all" style={{ color: BODY }}>{run.error_message}</p>
                 </div>
               )}
 
               {/* Raw section viewer toggle — not available for failed runs */}
               {run.run_status !== 'failed' ? (
                 <button
+                  type="button"
                   onClick={() => loadRaw(run.id)}
                   disabled={isLoadingRaw}
-                  className="flex items-center gap-1.5 text-[10px] text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors"
+                  aria-expanded={isExpanded}
+                  className={ghostBtn}
+                  style={{ color: MUTED }}
                 >
-                  {isLoadingRaw ? (
-                    <Loader2 size={9} strokeWidth={2} className="animate-spin" />
-                  ) : (
-                    <Eye size={9} strokeWidth={2} />
-                  )}
-                  {isExpanded ? 'Hide raw sections' : 'View raw sections'}
-                  <ChevronDown size={9} strokeWidth={2} className={cn('transition-transform', isExpanded && 'rotate-180')} />
+                  {isLoadingRaw && <Loader2 size={12} strokeWidth={2} className="animate-spin" />}
+                  {isExpanded ? 'Hide raw sections' : 'Show raw sections'}
+                  <ChevronDown size={12} strokeWidth={2} className={cn('transition-transform', isExpanded && 'rotate-180')} />
                 </button>
               ) : (
-                <span className="text-[10px] text-muted-foreground/30 italic">No analysis data — run failed before completion</span>
+                <span className="text-[13px]" style={{ color: MUTED }}>No analysis data. The run failed before completion.</span>
               )}
             </div>
 
             {/* Raw JSON viewer */}
             {isExpanded && rawJson[run.id] && (
-              <div className="border-t border-[--border-subtle]/60 bg-muted/20 rounded-b-xl overflow-hidden">
-                <pre className="px-4 py-3 text-[9.5px] text-muted-foreground/60 leading-relaxed overflow-x-auto max-h-96 font-mono">
+              <div style={{ borderTop: `1px solid ${HAIR}`, background: HOVER }}>
+                <pre className="m-0 px-5 py-3 text-[12px] leading-relaxed overflow-x-auto max-h-96 font-mono" style={{ color: BODY }}>
                   {rawJson[run.id]}
                 </pre>
               </div>
@@ -2978,6 +2721,8 @@ function RunHistoryView({
           </div>
         )
       })}
+      </div>
+      </div>
     </div>
   )
 }
@@ -3001,75 +2746,63 @@ function AnalysisMetadataCard({ meta }: { meta: AnalysisMetadata }) {
   }
 
   return (
-    <div className="rounded-xl border border-dashed border-[--border-subtle]/60 bg-muted/20">
+    <div className="rounded-[16px]" style={{ background: FIELD }}>
       <button
+        type="button"
+        aria-expanded={open}
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-between px-4 py-3 text-left"
+        className="w-full flex items-center justify-between gap-3 px-5 py-3.5 text-left bg-transparent border-0 cursor-pointer"
       >
-        <div className="flex items-center gap-2">
-          <Database size={11} strokeWidth={2} className="text-muted-foreground/40" />
-          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40">Analysis Metadata</span>
+        <span className="text-[16px] font-medium tracking-[-0.01em]" style={{ color: INK }}>
+          Analysis metadata
           {(meta.truncation_flags?.length ?? 0) > 0 && (
-            <span className="text-[9px] font-bold text-amber-500 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-[6px]">
-              {meta.truncation_flags.length} flag{meta.truncation_flags.length > 1 ? 's' : ''}
-            </span>
+            <span className="ml-2 text-[13px] font-normal tabular-nums" style={{ color: FAINT }}>{meta.truncation_flags.length} flag{meta.truncation_flags.length > 1 ? 's' : ''}</span>
           )}
-        </div>
-        <ChevronDown size={12} strokeWidth={2} className={cn('text-muted-foreground/30 transition-transform', open && 'rotate-180')} />
+        </span>
+        <ChevronDown size={14} strokeWidth={2} className={cn('transition-transform', open && 'rotate-180')} style={{ color: FAINT }} />
       </button>
 
       {open && (
-        <div className="px-4 pb-4 flex flex-col gap-3 border-t border-[--border-subtle]/40">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-3">
+        <div className="px-5 pb-5 pt-4 flex flex-col gap-4" style={{ borderTop: `1px solid ${HAIR}` }}>
+          <dl className="m-0 grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3">
             <MetaStat label="Run at" value={ts} />
             <MetaStat label="Synthesis" value={meta.synthesis_model} />
             <MetaStat label="Strategy" value={meta.strategy_model} />
             <MetaStat label="Threads" value={String(meta.threads_included)} />
             <MetaStat label="Messages" value={String(meta.messages_included)} />
-            <MetaStat label="Synth tokens" value={meta.synthesis_tokens ? meta.synthesis_tokens.toLocaleString() : '—'} />
+            <MetaStat label="Synthesis tokens" value={meta.synthesis_tokens ? meta.synthesis_tokens.toLocaleString() : '—'} />
             {meta.strategy_tokens && <MetaStat label="Strategy tokens" value={meta.strategy_tokens.toLocaleString()} />}
-          </div>
+          </dl>
 
           {meta.attachments_included?.length > 0 && (
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/35 mb-1.5">Attachments processed</p>
-              <div className="flex flex-col gap-1">
+              <GroupLabel className="mb-1.5">Attachments processed</GroupLabel>
+              <ul className="m-0 p-0 flex flex-col gap-1">
                 {meta.attachments_included.map((a, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <Paperclip size={9} strokeWidth={2} className="text-muted-foreground/30 flex-shrink-0" />
-                    <span className="text-[10.5px] text-muted-foreground/60 flex-1 min-w-0 truncate">{a.filename}</span>
-                    <span className="text-[9px] text-muted-foreground/35 flex-shrink-0">{METHOD_LABEL[a.method] ?? a.method}</span>
-                  </div>
+                  <li key={i} className="list-none flex items-center gap-3 text-[13.5px]">
+                    <span className="flex-1 min-w-0 truncate" style={{ color: BODY }}>{a.filename}</span>
+                    <span className="flex-shrink-0 text-[12.5px]" style={{ color: MUTED }}>{METHOD_LABEL[a.method] ?? a.method}</span>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
           )}
 
           {meta.gdrive_docs?.length > 0 && (
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/35 mb-1.5">Knowledge base docs</p>
-              <div className="flex flex-col gap-1">
-                {meta.gdrive_docs.map((d, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <BookOpen size={9} strokeWidth={2} className="text-muted-foreground/30 flex-shrink-0" />
-                    <span className="text-[10.5px] text-muted-foreground/60">{d}</span>
-                  </div>
-                ))}
-              </div>
+              <GroupLabel className="mb-1.5">Knowledge base documents</GroupLabel>
+              <ul className="m-0 p-0 flex flex-col gap-1">
+                {meta.gdrive_docs.map((d, i) => <li key={i} className="list-none text-[13.5px]" style={{ color: BODY }}>{d}</li>)}
+              </ul>
             </div>
           )}
 
           {meta.truncation_flags?.length > 0 && (
-            <div className="px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-200">
-              <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600 mb-1.5">Quality flags</p>
-              <div className="flex flex-col gap-1">
-                {meta.truncation_flags.map((f, i) => (
-                  <div key={i} className="flex items-start gap-1.5">
-                    <AlertCircle size={9} strokeWidth={2} className="text-amber-500 flex-shrink-0 mt-[2px]" />
-                    <span className="text-[10.5px] text-amber-700">{f}</span>
-                  </div>
-                ))}
-              </div>
+            <div>
+              <GroupLabel className="mb-1.5">Quality flags</GroupLabel>
+              <ul className="m-0 p-0 flex flex-col gap-1">
+                {meta.truncation_flags.map((f, i) => <DotRow key={i} className="text-[13.5px]">{f}</DotRow>)}
+              </ul>
             </div>
           )}
         </div>
@@ -3080,9 +2813,9 @@ function AnalysisMetadataCard({ meta }: { meta: AnalysisMetadata }) {
 
 function MetaStat({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/35 mb-0.5">{label}</p>
-      <p className="text-[11px] text-muted-foreground/65 font-medium">{value}</p>
+    <div className="min-w-0">
+      <dt className="m-0 text-[12.5px]" style={{ color: MUTED }}>{label}</dt>
+      <dd className="m-0 text-[14px] font-medium truncate" style={{ color: INK }}>{value}</dd>
     </div>
   )
 }
@@ -3115,48 +2848,50 @@ function ThreadsOverviewCard({
 
   return (
     <div>
-      <SectionLabel title="Linked Threads" count={threads.length}>
-        <div className="flex items-center gap-3">
-          {extracted > 0 && <span className="text-[10px] text-muted-foreground/50">{extracted} att. extracted</span>}
-          {pending > 0 && <span className="text-[10px] text-amber-600 font-medium">{pending} pending</span>}
-          <button onClick={onAddThread} className="text-[11px] text-primary font-semibold hover:opacity-80 transition-opacity">
-            + Add
-          </button>
-        </div>
+      <SectionLabel title="Linked threads" count={threads.length}>
+        {(extracted > 0 || pending > 0) && (
+          <span className="text-[13px] tabular-nums" style={{ color: MUTED }}>
+            {extracted > 0 && `${extracted} attachment${extracted !== 1 ? 's' : ''} extracted`}
+            {extracted > 0 && pending > 0 && ' · '}
+            {pending > 0 && `${pending} pending`}
+          </span>
+        )}
+        <Btn level="secondary" size="xs" onClick={onAddThread}>Link threads</Btn>
       </SectionLabel>
 
-      <div className="rounded-xl border border-[--border-subtle] bg-card overflow-hidden">
+      <div className="rounded-[16px] bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
         <button
+          type="button"
+          aria-expanded={expanded}
           onClick={() => setExpanded(v => !v)}
-          className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/20 transition-colors"
+          className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-transparent border-0 cursor-pointer text-left hover:bg-[#f8f9fa]"
         >
           <div className="flex items-center gap-1.5 flex-wrap">
             {threads.slice(0, 5).map(ct => {
-              const pc   = partyColor(ct.party_type)
               const name = ct.thread?.contact ? contactName(ct.thread.contact) : ct.party_label ?? ct.party_type
               return (
-                <span key={ct.id} className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-[6px]" style={{ background: pc.bg, color: pc.text }}>
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: pc.dot }} />
+                <span key={ct.id} className="inline-flex items-center rounded-[6px] px-2 py-0.5 text-[11.5px] font-medium whitespace-nowrap leading-4" style={{ background: partyField(ct.party_type), color: BODY }}>
                   {name.length > 16 ? name.slice(0, 16) + '…' : name}
                 </span>
               )
             })}
-            {threads.length > 5 && <span className="text-[10px] text-muted-foreground/50">+{threads.length - 5} more</span>}
+            {threads.length > 5 && <span className="text-[13px]" style={{ color: MUTED }}>{threads.length - 5} more</span>}
           </div>
-          <ChevronDown size={11} strokeWidth={2} className={cn('text-muted-foreground/30 flex-shrink-0 ml-3 transition-transform', expanded && 'rotate-180')} />
+          <ChevronDown size={14} strokeWidth={2} className={cn('flex-shrink-0 transition-transform', expanded && 'rotate-180')} style={{ color: FAINT }} />
         </button>
 
         {expanded && (
           <>
-            <div className="border-t border-[--border-subtle] divide-y divide-[--border-subtle]">
-              {threads.map(ct => (
-                <div key={ct.id} className="flex items-start gap-2 px-4">
+            <div style={{ borderTop: `1px solid ${HAIR}` }}>
+              {threads.map((ct, i) => (
+                <div key={ct.id} className="flex items-start gap-3 px-4 py-3" style={{ borderTop: i === 0 ? 'none' : `1px solid ${HAIR}` }}>
                   <input
                     type="checkbox"
                     checked={selected.has(ct.thread_id)}
                     onChange={() => toggle(ct.thread_id)}
-                    className="mt-4 accent-primary flex-shrink-0"
+                    className="mt-4 accent-[#202124] flex-shrink-0"
                     title="Include this thread in the next analysis"
+                    aria-label="Include this thread in the next analysis"
                   />
                   <div className="flex-1 min-w-0">
                     <LinkedThreadCard ct={ct} onUnlink={onUnlink} onUpdatePartyType={onUpdatePartyType} />
@@ -3165,18 +2900,19 @@ function ThreadsOverviewCard({
               ))}
             </div>
             {/* Re-run on the ticked subset — uncheck emails, then re-analyse this group */}
-            <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-t border-[--border-subtle] bg-muted/20">
-              <span className="text-[10.5px] text-muted-foreground/60">
+            <div className="flex items-center justify-between gap-3 px-4 py-3 flex-wrap" style={{ borderTop: `1px solid ${HAIR}`, background: HOVER }}>
+              <span className="text-[13px] tabular-nums" style={{ color: MUTED }}>
                 {selected.size} of {threads.length} thread{threads.length === 1 ? '' : 's'} selected
-                {!allSelected && <button onClick={() => setSelected(new Set(threads.map(t => t.thread_id)))} className="ml-2 text-primary hover:underline">select all</button>}
+                {!allSelected && <button type="button" onClick={() => setSelected(new Set(threads.map(t => t.thread_id)))} className={cn(ghostBtn, 'ml-2')} style={{ color: INK }}>Select all</button>}
               </span>
-              <button
+              <Btn
+                level="secondary"
                 onClick={() => onRunAnalysis(allSelected ? undefined : Array.from(selected))}
                 disabled={analyzing || selected.size === 0}
-                className="text-[10.5px] font-semibold px-3 py-1.5 rounded-md bg-primary text-primary-foreground disabled:opacity-50"
+                loading={analyzing}
               >
-                {analyzing ? 'Analysing…' : allSelected ? 'Re-analyse all' : `Re-analyse with ${selected.size} selected`}
-              </button>
+                {analyzing ? 'Analysing…' : allSelected ? 'Re-analyse all' : `Re-analyse ${selected.size} selected`}
+              </Btn>
             </div>
           </>
         )}
@@ -3201,37 +2937,20 @@ function MessagesView({
   onGoToMission: () => void
 }) {
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <Loader2 size={18} className="animate-spin text-muted-foreground/30" />
-      </div>
-    )
+    return <div className="py-16"><Spinner /></div>
   }
 
   if (messages.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-5 py-24 px-8 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-muted/60 border border-[--border-subtle] flex items-center justify-center">
-          <Network size={28} strokeWidth={1.2} className="text-muted-foreground/30" />
-        </div>
-        <div className="max-w-[260px]">
-          <p className="text-[13px] font-semibold text-foreground/60 mb-1.5">No messages yet</p>
-          <p className="text-[11.5px] text-muted-foreground/45 leading-[1.6]">
-            Link email threads on Mission Control to see all communications here.
-          </p>
-        </div>
-        <button
-          onClick={onGoToMission}
-          className="text-[12px] text-primary font-semibold hover:opacity-80 transition-opacity"
-        >
-          ← Mission Control
-        </button>
+      <div className="flex flex-col items-center justify-center gap-3 py-24 px-8 text-center">
+        <p className="m-0 text-[15px] max-w-[320px] leading-[1.6]" style={{ color: MUTED }}>No messages yet. Link email threads on Mission control to see every message here.</p>
+        <button type="button" onClick={onGoToMission} className={ghostBtn} style={{ color: INK }}>Go to Mission control</button>
       </div>
     )
   }
 
   return (
-    <div className="px-5 py-4 flex flex-col gap-3">
+    <div className="px-6 py-6 flex flex-col gap-3 pb-16 max-w-[1100px]">
       {messages.map(msg => <TimelineMessageCard key={msg.id} msg={msg} />)}
     </div>
   )
@@ -3246,56 +2965,38 @@ function LinkedThreadCard({
   onUnlink:          (threadId: string) => void
   onUpdatePartyType: (threadId: string, partyType: string) => void
 }) {
-  const pc      = partyColor(ct.party_type)
   const contact = ct.thread?.contact ?? null
   const msgCount = ct.messages.length
 
-  return (
-    <div className="flex items-start gap-3 px-3.5 py-3 rounded-xl border border-[--border-subtle] bg-card hover:bg-muted/20 transition-colors group">
-      {/* Party dot */}
-      <span className="w-2 h-2 rounded-full flex-shrink-0 mt-2" style={{ background: pc.dot }} />
+  const metaLine = [
+    `${msgCount} message${msgCount !== 1 ? 's' : ''}`,
+    ct.attachments_extracted > 0 ? `${ct.attachments_extracted} attachment${ct.attachments_extracted !== 1 ? 's' : ''} extracted` : null,
+    ct.attachments_pending && ct.attachments_extracted === 0 ? 'attachments pending' : null,
+    fmtDate(ct.thread?.last_message_at),
+  ].filter(Boolean).join(' · ')
 
+  return (
+    <div className="flex items-start gap-3 px-4 py-3 rounded-[12px] bg-white flex-wrap" style={{ border: `1px solid ${HAIR}` }}>
       {/* Main content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-baseline gap-1.5 mb-0.5">
-          <span className="text-[12px] font-semibold text-foreground truncate">
-            {contact ? contactName(contact) : '—'}
-          </span>
-          {contact?.company && (
-            <span className="text-[10.5px] text-muted-foreground/50 truncate">· {contact.company}</span>
-          )}
+      <div className="flex-1 min-w-0 basis-[240px]">
+        <div className="flex items-center gap-2 mb-0.5 min-w-0">
+          <PartyChip party={ct.party_type} className="flex-shrink-0" />
+          <span className="text-[14px] font-medium truncate" style={{ color: INK }}>{contact ? contactName(contact) : '—'}</span>
+          {contact?.company && <span className="text-[13px] truncate" style={{ color: MUTED }}>· {contact.company}</span>}
         </div>
-        <p className="text-[11px] text-muted-foreground/60 truncate mb-2">
-          {ct.thread?.subject ?? '(no subject)'}
-        </p>
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-[10.5px] text-muted-foreground/50">
-            {msgCount} msg{msgCount !== 1 ? 's' : ''}
-          </span>
-          {ct.attachments_extracted > 0 && (
-            <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-600 font-medium">
-              <Paperclip size={9} strokeWidth={2} /> {ct.attachments_extracted} extracted
-            </span>
-          )}
-          {ct.attachments_pending && ct.attachments_extracted === 0 && (
-            <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-500 font-medium">
-              <Paperclip size={9} strokeWidth={2} /><Clock size={8} strokeWidth={2} /> pending
-            </span>
-          )}
-          <span className="text-[10px] text-muted-foreground/35 ml-auto">
-            {fmtDate(ct.thread?.last_message_at)}
-          </span>
-        </div>
+        <p className="m-0 text-[13.5px] truncate" style={{ color: BODY }}>{ct.thread?.subject ?? '(no subject)'}</p>
+        <p className="m-0 mt-1 text-[12.5px]" style={{ color: MUTED }}>{metaLine}</p>
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-1.5 flex-shrink-0 ml-1">
+      <div className="flex items-center gap-2 flex-shrink-0">
         <select
           value={ct.party_type}
           onChange={e => onUpdatePartyType(ct.thread_id, e.target.value)}
           onClick={e => e.stopPropagation()}
-          className="text-[10.5px] border border-[--border-subtle] rounded-md px-1.5 py-0.5 bg-background outline-none font-semibold focus:ring-1 focus:ring-primary/20"
-          style={{ color: pc.text }}
+          aria-label="Party type"
+          className="h-8 rounded-[8px] px-2 text-[13px] bg-white outline-none cursor-pointer focus:border-[#202124]"
+          style={{ border: `1px solid ${CTRL}`, color: INK }}
         >
           {PARTY_TYPES.map(t => (
             <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
@@ -3304,17 +3005,21 @@ function LinkedThreadCard({
         <a
           href={`/engagement?lead=${ct.thread_id}`}
           onClick={e => e.stopPropagation()}
-          className="p-1 rounded-md text-muted-foreground/40 hover:text-primary hover:bg-primary/5 transition-colors"
+          className="text-[13px] font-medium no-underline underline-offset-4 hover:underline whitespace-nowrap"
+          style={{ color: INK }}
           title="Open this conversation in Engagement"
         >
-          <Link2 size={11} strokeWidth={2} />
+          Open
         </a>
         <button
+          type="button"
           onClick={() => onUnlink(ct.thread_id)}
-          className="p-1 rounded-md text-muted-foreground/25 hover:text-red-500 hover:bg-red-50 transition-colors"
+          className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]"
+          style={{ color: FAINT }}
           title="Remove from case"
+          aria-label="Remove from case"
         >
-          <X size={11} strokeWidth={2} />
+          <X size={13} strokeWidth={2} />
         </button>
       </div>
     </div>
@@ -3342,39 +3047,39 @@ function AttachmentCoverageCard({
   const other = Math.max(0, ext - byType.pdf - byType.image - byType.docx - byType.xlsx)
 
   return (
-    <div className="rounded-xl border border-[--border-subtle] bg-card px-4 py-3.5">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-[10.5px] font-bold uppercase tracking-wider text-foreground/60 flex items-center gap-1.5">
-          <Paperclip size={10} strokeWidth={2} /> Attachment Coverage
-        </span>
+    <div className="rounded-[16px] px-5 py-4" style={{ background: FIELD }}>
+      <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+        <span className="text-[14px] font-medium" style={{ color: INK }}>Attachment coverage</span>
         {pendingThreads.length > 0 && (
-          <span className="text-[9.5px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-[6px] font-medium">
+          <span className="text-[13px] tabular-nums" style={{ color: MUTED }}>
             {pendingThreads.length} thread{pendingThreads.length > 1 ? 's' : ''} pending extraction
           </span>
         )}
       </div>
 
       {ext === 0 && pendingThreads.length === 0 ? (
-        <p className="text-[11px] text-muted-foreground/40 italic">No attachments found in linked threads.</p>
+        <p className="m-0 text-[14px]" style={{ color: MUTED }}>No attachments in the linked threads.</p>
       ) : (
-        <div className="flex items-center gap-5 flex-wrap">
-          <div>
-            <p className="text-[22px] font-bold text-foreground tabular-nums leading-none">{ext}</p>
-            <p className="text-[9.5px] text-muted-foreground/50 uppercase tracking-wide mt-0.5">Extracted</p>
-          </div>
-          {pendingThreads.length > 0 && (
+        <div className="flex items-center gap-6 flex-wrap">
+          <dl className="m-0 flex items-center gap-6">
             <div>
-              <p className="text-[22px] font-bold text-amber-600 tabular-nums leading-none">{pendingThreads.length}</p>
-              <p className="text-[9.5px] text-muted-foreground/50 uppercase tracking-wide mt-0.5">Pending</p>
+              <dd className="m-0 text-[24px] font-medium tabular-nums leading-none tracking-[-0.02em]" style={{ color: INK }}>{ext}</dd>
+              <dt className="m-0 text-[12.5px] mt-1" style={{ color: MUTED }}>Extracted</dt>
             </div>
-          )}
+            {pendingThreads.length > 0 && (
+              <div>
+                <dd className="m-0 text-[24px] font-medium tabular-nums leading-none tracking-[-0.02em]" style={{ color: INK }}>{pendingThreads.length}</dd>
+                <dt className="m-0 text-[12.5px] mt-1" style={{ color: MUTED }}>Pending</dt>
+              </div>
+            )}
+          </dl>
           {ext > 0 && (
             <div className="flex flex-wrap gap-1.5 ml-auto">
-              {byType.pdf   > 0 && <span className="text-[10px] px-2 py-0.5 bg-red-50 text-red-700 rounded-[6px] border border-red-100 font-medium">PDF ×{byType.pdf}</span>}
-              {byType.docx  > 0 && <span className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-700 rounded-[6px] border border-blue-100 font-medium">DOCX ×{byType.docx}</span>}
-              {byType.xlsx  > 0 && <span className="text-[10px] px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-[6px] border border-emerald-100 font-medium">XLSX ×{byType.xlsx}</span>}
-              {byType.image > 0 && <span className="text-[10px] px-2 py-0.5 bg-purple-50 text-purple-700 rounded-[6px] border border-purple-100 font-medium">Image ×{byType.image}</span>}
-              {other        > 0 && <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-[6px] border border-[--border-subtle] font-medium">Other ×{other}</span>}
+              {byType.pdf   > 0 && <WhiteChip>PDF {byType.pdf} </WhiteChip>}
+              {byType.docx  > 0 && <WhiteChip>DOCX {byType.docx} </WhiteChip>}
+              {byType.xlsx  > 0 && <WhiteChip>XLSX {byType.xlsx} </WhiteChip>}
+              {byType.image > 0 && <WhiteChip>Image {byType.image} </WhiteChip>}
+              {other        > 0 && <WhiteChip>Other {other} </WhiteChip>}
             </div>
           )}
         </div>
@@ -3391,42 +3096,39 @@ function TimelineMessageCard({
   msg: CaseThreadMsg & { party_type: string; party_label: string; subject: string }
 }) {
   const [open, setOpen] = useState(false)
-  const pc = partyColor(msg.direction === 'outbound' ? 'trs' : msg.party_type)
+  const party = msg.direction === 'outbound' ? 'trs' : msg.party_type
   const who = msg.direction === 'outbound' ? 'TRS' : msg.party_label
 
   return (
     <div
-      className="rounded-xl border transition-colors cursor-pointer"
-      style={{ borderColor: pc.border, background: open ? pc.bg : 'transparent' }}
+      className="rounded-[16px] bg-white cursor-pointer hover:bg-[#f8f9fa]"
+      style={{ border: `1px solid ${HAIR}` }}
       onClick={() => setOpen(v => !v)}
+      role="button"
+      aria-expanded={open}
     >
-      <div className="flex items-start gap-2.5 px-3 py-2.5">
-        <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: pc.dot }} />
+      <div className="flex items-start gap-3 px-4 py-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 justify-between">
-            <span className="text-[11px] font-semibold" style={{ color: pc.text }}>{who}</span>
-            <span className="text-[9.5px] text-muted-foreground/50 flex-shrink-0">{fmtDate(msg.sent_at)}</span>
+          <div className="flex items-center gap-2 justify-between flex-wrap">
+            <span className="flex items-center gap-2 min-w-0">
+              <PartyChip party={party} />
+              <span className="text-[14px] font-medium truncate" style={{ color: INK }}>{who}</span>
+              {msg.subject && <span className="text-[13px] truncate" style={{ color: MUTED }}>· {msg.subject}</span>}
+            </span>
+            <span className="text-[12.5px] flex-shrink-0" style={{ color: MUTED }}>{fmtDate(msg.sent_at)}</span>
           </div>
           {!open && (
-            <p className="text-[11px] text-muted-foreground/60 leading-[1.4] mt-0.5 line-clamp-2">
+            <p className="m-0 mt-1 text-[13.5px] leading-[1.5] line-clamp-2" style={{ color: BODY }}>
               {(msg.body_text ?? '').slice(0, 200)}
             </p>
           )}
-          {msg.has_attachments && (
-            <span className="inline-flex items-center gap-1 text-[9.5px] text-muted-foreground/50 mt-1">
-              <FileText size={9} strokeWidth={1.8} /> attachments
-            </span>
-          )}
+          {msg.has_attachments && <span className="inline-block mt-1.5"><Chip>Attachments</Chip></span>}
         </div>
-        <ChevronDown
-          size={11}
-          strokeWidth={2}
-          className={cn('text-muted-foreground/30 flex-shrink-0 transition-transform mt-1', open && 'rotate-180')}
-        />
+        <ChevronDown size={14} strokeWidth={2} className={cn('flex-shrink-0 transition-transform mt-1', open && 'rotate-180')} style={{ color: FAINT }} />
       </div>
       {open && (
-        <div className="px-3 pb-3 border-t border-[--border-subtle]/50 mt-1">
-          <p className="text-[11.5px] text-foreground/75 leading-[1.7] whitespace-pre-wrap mt-2">
+        <div className="px-4 pb-4" style={{ borderTop: `1px solid ${HAIR}` }}>
+          <p className="m-0 mt-3 text-[14px] leading-[1.7] whitespace-pre-wrap" style={{ color: BODY }}>
             {msg.body_text ?? '(empty)'}
           </p>
         </div>
@@ -3439,83 +3141,48 @@ function TimelineMessageCard({
 
 function PlaybookStepCard({ step, threads }: { step: PlaybookStep; threads: CaseThread[] }) {
   const [composeOpen, setComposeOpen] = useState(false)
-  const pm = priorityMeta(step.priority)
-  const pc = partyColor(step.party_type)
-  const PIcon = pm.icon
 
   // Find the thread for this step's party type
   const matchingThread = threads.find(ct => ct.party_type === step.party_type) ?? null
 
   return (
-    <div className="rounded-xl border border-[--border-subtle] bg-card overflow-hidden">
+    <div className="rounded-[16px] bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
       {/* Step header */}
-      <div className="px-3 pt-3 pb-2.5">
-        <div className="flex items-start gap-2 justify-between mb-2">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <span className="text-[11px] font-black text-muted-foreground/40 flex-shrink-0">
-              {String(step.step).padStart(2, '0')}
-            </span>
-            <span className="text-[12px] font-bold text-foreground truncate">{step.action}</span>
+      <div className="px-5 pt-4 pb-3">
+        <div className="flex items-start gap-3 justify-between mb-2 flex-wrap">
+          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+            <span className="text-[14px] font-medium tabular-nums flex-shrink-0" style={{ color: FAINT }}>{step.step}</span>
+            <span className="text-[14px] font-medium truncate" style={{ color: INK }}>{step.action}</span>
           </div>
-          <span
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[6px] text-[9.5px] font-bold flex-shrink-0"
-            style={{ background: pm.bg, color: pm.color }}
-          >
-            <PIcon size={8} strokeWidth={2.5} />
-            {pm.label}
-          </span>
+          <Chip className="flex-shrink-0">{priorityLabel(step.priority)}</Chip>
         </div>
 
         {/* Party */}
-        <div className="flex items-center gap-1.5 mb-2">
-          <span
-            className="text-[10px] font-bold px-2 py-0.5 rounded-[6px]"
-            style={{ background: pc.bg, color: pc.text }}
-          >
-            {step.party_type.toUpperCase()}
-          </span>
-          <span className="text-[11px] text-muted-foreground/60 truncate">{step.party_name}</span>
+        <div className="flex items-center gap-2 mb-2">
+          <PartyChip party={step.party_type} />
+          <span className="text-[13px] truncate" style={{ color: MUTED }}>{step.party_name}</span>
         </div>
 
         {/* Intent */}
-        <p className="text-[11px] text-foreground/70 leading-[1.55] mb-1.5">{step.intent}</p>
+        <p className="m-0 text-[14px] leading-[1.55] mb-1" style={{ color: BODY }}>{step.intent}</p>
 
         {/* Reasoning */}
-        {step.reasoning && (
-          <p className="text-[10.5px] text-muted-foreground/55 italic leading-[1.45]">{step.reasoning}</p>
-        )}
+        {step.reasoning && <p className="m-0 text-[13px] leading-[1.5]" style={{ color: MUTED }}>{step.reasoning}</p>}
 
         {/* To/CC preview */}
         {(step.to_emails?.length > 0 || step.cc_emails?.length > 0) && (
-          <div className="mt-2 flex flex-col gap-0.5">
-            {step.to_emails?.length > 0 && (
-              <p className="text-[9.5px] text-muted-foreground/50">
-                <span className="font-semibold">To:</span> {step.to_emails.join(', ')}
-              </p>
-            )}
-            {step.cc_emails?.length > 0 && (
-              <p className="text-[9.5px] text-muted-foreground/50">
-                <span className="font-semibold">CC:</span> {step.cc_emails.join(', ')}
-              </p>
-            )}
-          </div>
+          <dl className="m-0 mt-2 flex flex-col gap-0.5">
+            {step.to_emails?.length > 0 && <KFact label="To" value={step.to_emails.join(', ')} />}
+            {step.cc_emails?.length > 0 && <KFact label="Cc" value={step.cc_emails.join(', ')} />}
+          </dl>
         )}
       </div>
 
       {/* Actions */}
-      <div className="px-3 pb-3 flex gap-1.5">
-        <button
-          onClick={() => setComposeOpen(v => !v)}
-          className={cn(
-            'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-semibold transition-colors',
-            composeOpen
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-primary/8 text-primary hover:bg-primary/12',
-          )}
-        >
-          <MailOpen size={11} strokeWidth={2} />
-          {composeOpen ? 'Hide Draft' : 'Open Draft'}
-        </button>
+      <div className="px-5 pb-4 flex gap-2">
+        <Btn level="secondary" onClick={() => setComposeOpen(v => !v)} aria-expanded={composeOpen}>
+          {composeOpen ? 'Hide draft' : 'Open draft'}
+        </Btn>
       </div>
 
       {/* Inline compose */}
@@ -3621,79 +3288,61 @@ function NexusStepCompose({
 
   if (sent) {
     return (
-      <div className="border-t border-[--border-subtle] px-3 py-4 flex flex-col items-center gap-2">
-        <CheckCircle2 size={20} className="text-[--success]" strokeWidth={1.8} />
-        <p className="text-[12px] font-semibold text-[--success]">Email sent</p>
-        <button onClick={onClose} className="text-[11px] text-muted-foreground hover:text-foreground">Close</button>
+      <div className="px-5 py-5 flex flex-col items-center gap-2" style={{ borderTop: `1px solid ${HAIR}` }}>
+        <p className="m-0 text-[14px] font-medium" style={{ color: INK }}>Email sent</p>
+        <button type="button" onClick={onClose} className={ghostBtn} style={{ color: MUTED }}>Close</button>
       </div>
     )
   }
 
+  const rowLabel = 'text-[12.5px] w-14 flex-shrink-0'
+  const rowInput = 'flex-1 min-w-0 h-9 rounded-[8px] px-3 text-[14px] bg-white outline-none focus:border-[#202124]'
+
   return (
-    <div className="border-t border-[--border-subtle]">
-      <div className="px-3 pt-3 pb-2 flex flex-col gap-2">
+    <div style={{ borderTop: `1px solid ${HAIR}` }}>
+      <div className="px-5 pt-4 pb-3 flex flex-col gap-2">
         {/* From */}
         {senders.length > 1 && (
-          <div className="flex items-center gap-2">
-            <span className="text-[9.5px] font-semibold text-muted-foreground/60 w-10 flex-shrink-0">From</span>
-            <select
-              value={fromEmail}
-              onChange={e => setFromEmail(e.target.value)}
-              className="flex-1 text-[11px] border border-[--border-subtle] rounded-md px-2 py-1 bg-background outline-none focus:ring-1 focus:ring-primary/20"
-            >
+          <label className="flex items-center gap-2">
+            <span className={rowLabel} style={{ color: MUTED }}>From</span>
+            <select value={fromEmail} onChange={e => setFromEmail(e.target.value)} className={rowInput} style={{ border: `1px solid ${CTRL}`, color: INK }}>
               {senders.map(s => <option key={s.email} value={s.email}>{s.label || s.email}</option>)}
             </select>
-          </div>
+          </label>
         )}
 
         {/* To */}
-        <div className="flex items-center gap-2">
-          <span className="text-[9.5px] font-semibold text-muted-foreground/60 w-10 flex-shrink-0">To</span>
-          <input
-            value={toList}
-            onChange={e => setToList(e.target.value)}
-            className="flex-1 text-[11px] border border-[--border-subtle] rounded-md px-2 py-1 bg-background outline-none focus:ring-1 focus:ring-primary/20"
-          />
-        </div>
+        <label className="flex items-center gap-2">
+          <span className={rowLabel} style={{ color: MUTED }}>To</span>
+          <input value={toList} onChange={e => setToList(e.target.value)} className={rowInput} style={{ border: `1px solid ${CTRL}`, color: INK }} />
+        </label>
 
         {/* CC */}
-        <div className="flex items-center gap-2">
-          <span className="text-[9.5px] font-semibold text-muted-foreground/60 w-10 flex-shrink-0">CC</span>
-          <input
-            value={ccList}
-            onChange={e => setCcList(e.target.value)}
-            className="flex-1 text-[11px] border border-[--border-subtle] rounded-md px-2 py-1 bg-background outline-none focus:ring-1 focus:ring-primary/20"
-          />
-        </div>
+        <label className="flex items-center gap-2">
+          <span className={rowLabel} style={{ color: MUTED }}>Cc</span>
+          <input value={ccList} onChange={e => setCcList(e.target.value)} className={rowInput} style={{ border: `1px solid ${CTRL}`, color: INK }} />
+        </label>
 
         {/* Subject */}
-        <div className="flex items-center gap-2">
-          <span className="text-[9.5px] font-semibold text-muted-foreground/60 w-10 flex-shrink-0">Subj</span>
-          <input
-            value={subject}
-            onChange={e => setSubject(e.target.value)}
-            className="flex-1 text-[11px] border border-[--border-subtle] rounded-md px-2 py-1 bg-background outline-none focus:ring-1 focus:ring-primary/20"
-          />
-        </div>
+        <label className="flex items-center gap-2">
+          <span className={rowLabel} style={{ color: MUTED }}>Subject</span>
+          <input value={subject} onChange={e => setSubject(e.target.value)} className={rowInput} style={{ border: `1px solid ${CTRL}`, color: INK }} />
+        </label>
 
         {/* Signature selector */}
         {signatures.length > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-[9.5px] font-semibold text-muted-foreground/60 w-10 flex-shrink-0">Sig</span>
-            <select
-              value={selectedSigId}
-              onChange={e => setSelectedSigId(e.target.value)}
-              className="flex-1 text-[11px] border border-[--border-subtle] rounded-md px-2 py-1 bg-background outline-none focus:ring-1 focus:ring-primary/20"
-            >
-              <option value="">— No signature —</option>
+          <label className="flex items-center gap-2">
+            <span className={rowLabel} style={{ color: MUTED }}>Signature</span>
+            <select value={selectedSigId} onChange={e => setSelectedSigId(e.target.value)} className={rowInput} style={{ border: `1px solid ${CTRL}`, color: INK }}>
+              <option value="">No signature</option>
               {signatures.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
-          </div>
+          </label>
         )}
       </div>
 
       {/* Rich editor */}
-      <div className="px-3 pb-2 border-t border-[--border-subtle]/50">
+      <div className="px-5 pb-3" style={{ borderTop: `1px solid ${HAIR}` }}>
         <RichEditor
           key={editorKey}
           initialHtml={draftHtml}
@@ -3703,21 +3352,19 @@ function NexusStepCompose({
       </div>
 
       {/* Actions */}
-      <div className="px-3 pb-3 flex items-center gap-2 border-t border-[--border-subtle]/50 pt-2">
-        {error && <p className="flex-1 text-[10.5px] text-[--error] truncate">{error}</p>}
-        <div className="flex gap-1.5 ml-auto">
+      <div className="px-5 pb-4 pt-3 flex items-center gap-3 flex-wrap" style={{ borderTop: `1px solid ${HAIR}` }}>
+        {error && <p className="m-0 flex-1 text-[13px] truncate" style={{ color: BODY }}>{error}</p>}
+        <div className="flex gap-2 ml-auto">
+          <Btn level="secondary" onClick={onClose}>Cancel</Btn>
+          {/* Email compose surface: the send button keeps TRS navy. */}
           <button
-            onClick={onClose}
-            className="px-3 py-1.5 rounded-lg text-[11px] border border-[--border-subtle] text-muted-foreground hover:bg-accent transition-colors"
-          >
-            Cancel
-          </button>
-          <button
+            type="button"
             onClick={handleSend}
             disabled={sending || !toList.trim()}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-primary text-primary-foreground disabled:opacity-50 hover:opacity-90 transition-opacity"
+            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[10px] text-white text-[13.5px] font-medium border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+            style={{ background: NAVY }}
           >
-            {sending ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} strokeWidth={2} />}
+            {sending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} strokeWidth={2} />}
             {sending ? 'Sending…' : 'Send'}
           </button>
         </div>
@@ -3791,123 +3438,86 @@ function NexusComposeWindow({
     }
   }
 
+  const barBtn = 'w-7 h-7 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer text-white/70 hover:text-white hover:bg-white/10'
+
   // Minimised tab bar
   if (minimized) {
     return (
-      <div className="fixed bottom-0 right-6 z-50 flex items-center gap-3 px-4 py-2.5 bg-foreground text-background rounded-t-xl shadow-2xl cursor-pointer select-none">
-        <span
-          className="text-[11.5px] font-semibold truncate max-w-[200px]"
-          onClick={() => setMinimized(false)}
-        >
-          {subject || 'New Message'}
+      <div className="fixed bottom-0 right-6 z-50 flex items-center gap-3 pl-4 pr-2 py-2 rounded-t-[12px] cursor-pointer select-none text-white" style={{ background: INK, boxShadow: 'var(--shadow-panel)' }}>
+        <span className="text-[13.5px] font-medium truncate max-w-[220px]" onClick={() => setMinimized(false)}>
+          {subject || 'New message'}
         </span>
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setMinimized(false)}
-            className="text-background/60 hover:text-background transition-colors"
-          >
-            <Maximize2 size={11} />
-          </button>
-          <button
-            onClick={onClose}
-            className="text-background/60 hover:text-background transition-colors"
-          >
-            <X size={11} />
-          </button>
+        <div className="flex items-center gap-1">
+          <button type="button" onClick={() => setMinimized(false)} className={barBtn} title="Restore" aria-label="Restore"><Maximize2 size={12} /></button>
+          <button type="button" onClick={onClose} className={barBtn} title="Close" aria-label="Close"><X size={12} /></button>
         </div>
       </div>
     )
   }
 
-  const panelW = expanded ? 'w-[680px]' : 'w-[520px]'
+  const panelW = expanded ? 'w-[680px] max-w-[calc(100vw-48px)]' : 'w-[520px] max-w-[calc(100vw-48px)]'
   const panelH = expanded ? 'h-[600px]' : 'h-[460px]'
 
   return (
-    <div className={cn(
-      'fixed bottom-0 right-6 z-50 flex flex-col bg-card shadow-2xl rounded-t-xl overflow-hidden',
-      panelW, panelH,
-    )}>
+    <div className={cn('fixed bottom-0 right-6 z-50 flex flex-col bg-white rounded-t-[16px] overflow-hidden', panelW, panelH)} style={{ boxShadow: 'var(--shadow-modal)' }}>
       {/* Title bar */}
-      <div
-        className="flex items-center justify-between px-4 py-2.5 bg-foreground flex-shrink-0 select-none"
-        onDoubleClick={() => setMinimized(true)}
-      >
-        <span className="text-[11.5px] font-semibold text-background truncate flex-1 mr-3">
-          {subject || 'New Message'}
-        </span>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setMinimized(true)}
-            className="text-background/55 hover:text-background transition-colors"
-            title="Minimise"
-          >
-            <Minus size={11} />
+      <div className="flex items-center justify-between pl-4 pr-2 py-2 flex-shrink-0 select-none text-white" style={{ background: INK }} onDoubleClick={() => setMinimized(true)}>
+        <span className="text-[13.5px] font-medium truncate flex-1 mr-3">{subject || 'New message'}</span>
+        <div className="flex items-center gap-1">
+          <button type="button" onClick={() => setMinimized(true)} className={barBtn} title="Minimise" aria-label="Minimise"><Minus size={12} /></button>
+          <button type="button" onClick={() => setExpanded(v => !v)} className={barBtn} title={expanded ? 'Restore' : 'Expand'} aria-label={expanded ? 'Restore' : 'Expand'}>
+            {expanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
           </button>
-          <button
-            onClick={() => setExpanded(v => !v)}
-            className="text-background/55 hover:text-background transition-colors"
-            title={expanded ? 'Restore' : 'Expand'}
-          >
-            {expanded ? <Minimize2 size={11} /> : <Maximize2 size={11} />}
-          </button>
-          <button
-            onClick={onClose}
-            className="text-background/55 hover:text-background transition-colors"
-            title="Close"
-          >
-            <X size={11} />
-          </button>
+          <button type="button" onClick={onClose} className={barBtn} title="Close" aria-label="Close"><X size={12} /></button>
         </div>
       </div>
 
       {/* Field rows — dividers only, no outer border */}
-      <div className="flex flex-col flex-shrink-0 bg-card">
+      <div className="flex flex-col flex-shrink-0 bg-white">
         {/* To */}
-        <div className="flex items-center gap-2 px-4 py-2 border-b border-[--border-subtle]/50">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/40 w-7 flex-shrink-0">To</span>
+        <label className="flex items-center gap-2 px-4 py-2" style={{ borderBottom: `1px solid ${HAIR}` }}>
+          <span className="text-[12.5px] w-14 flex-shrink-0" style={{ color: MUTED }}>To</span>
           <input
             value={to}
             onChange={e => setTo(e.target.value)}
-            className="flex-1 text-[12px] bg-transparent outline-none text-foreground placeholder:text-muted-foreground/30"
+            className="flex-1 min-w-0 text-[14px] bg-transparent outline-none border-0 placeholder:text-[#80868b]"
+            style={{ color: INK }}
             placeholder="recipient@example.com"
           />
           {!showCc && (
-            <button
-              onClick={() => setShowCc(true)}
-              className="text-[10px] text-muted-foreground/40 hover:text-muted-foreground/70 flex-shrink-0"
-            >
-              CC
-            </button>
+            <button type="button" onClick={() => setShowCc(true)} className={cn(ghostBtn, 'flex-shrink-0')} style={{ color: MUTED }}>Cc</button>
           )}
-        </div>
+        </label>
 
         {/* CC (toggle) */}
         {showCc && (
-          <div className="flex items-center gap-2 px-4 py-2 border-b border-[--border-subtle]/50">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/40 w-7 flex-shrink-0">CC</span>
+          <label className="flex items-center gap-2 px-4 py-2" style={{ borderBottom: `1px solid ${HAIR}` }}>
+            <span className="text-[12.5px] w-14 flex-shrink-0" style={{ color: MUTED }}>Cc</span>
             <input
               value={cc}
               onChange={e => setCc(e.target.value)}
-              className="flex-1 text-[12px] bg-transparent outline-none text-foreground placeholder:text-muted-foreground/30"
-              placeholder="cc@example.com, ..."
+              className="flex-1 min-w-0 text-[14px] bg-transparent outline-none border-0 placeholder:text-[#80868b]"
+              style={{ color: INK }}
+              placeholder="cc@example.com, …"
             />
-          </div>
+          </label>
         )}
 
         {/* Subject */}
-        <div className="flex items-center gap-2 px-4 py-2 border-b border-[--border-subtle]/50">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/40 w-7 flex-shrink-0">Subj</span>
+        <label className="flex items-center gap-2 px-4 py-2" style={{ borderBottom: `1px solid ${HAIR}` }}>
+          <span className="text-[12.5px] w-14 flex-shrink-0" style={{ color: MUTED }}>Subject</span>
           <input
             value={subject}
             onChange={e => setSubject(e.target.value)}
-            className="flex-1 text-[12px] bg-transparent outline-none text-foreground placeholder:text-muted-foreground/30"
+            className="flex-1 min-w-0 text-[14px] bg-transparent outline-none border-0 placeholder:text-[#80868b]"
+            style={{ color: INK }}
             placeholder="Subject"
           />
-        </div>
+        </label>
       </div>
 
       {/* Body — RichEditor */}
-      <div className="flex-1 overflow-hidden px-4 py-3 bg-card min-h-0">
+      <div className="flex-1 overflow-hidden px-4 py-3 bg-white min-h-0">
         <RichEditor
           initialHtml={bodyHtml}
           onChange={setBodyHtml}
@@ -3918,19 +3528,19 @@ function NexusComposeWindow({
 
       {/* Send error */}
       {sendError && (
-        <div className="px-4 py-2 bg-red-50 flex-shrink-0">
-          <p className="text-[10.5px] text-red-600">{sendError}</p>
-        </div>
+        <p className="m-0 px-4 py-2 text-[13px] flex-shrink-0" style={{ color: BODY, background: FIELD }}>{sendError}</p>
       )}
 
       {/* Footer */}
-      <div className="flex items-center justify-between px-4 py-3 border-t border-[--border-subtle]/50 bg-card flex-shrink-0">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-3 px-4 py-3 bg-white flex-shrink-0" style={{ borderTop: `1px solid ${HAIR}` }}>
+        <div className="flex items-center gap-2 min-w-0">
           {signatures.length > 0 && (
             <select
               value={sigId ?? ''}
               onChange={e => setSigId(e.target.value || null)}
-              className="text-[10.5px] text-muted-foreground/55 bg-transparent border-0 outline-none cursor-pointer"
+              aria-label="Signature"
+              className="h-8 max-w-[200px] rounded-[8px] px-2 text-[13px] bg-transparent border-0 outline-none cursor-pointer hover:bg-[#f1f3f4]"
+              style={{ color: MUTED }}
             >
               <option value="">No signature</option>
               {signatures.map(s => (
@@ -3940,29 +3550,16 @@ function NexusComposeWindow({
           )}
         </div>
         <div className="flex items-center gap-2">
+          <Btn level="tertiary" onClick={onClose}>Discard</Btn>
+          {/* Email compose surface: the send button keeps TRS navy. */}
           <button
-            onClick={onClose}
-            className="text-[11px] text-muted-foreground/50 hover:text-foreground px-3 py-1.5 transition-colors"
-          >
-            Discard
-          </button>
-          <button
+            type="button"
             onClick={handleSend}
             disabled={sending || sent || !to.trim()}
-            className={cn(
-              'flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11.5px] font-semibold transition-colors',
-              sent
-                ? 'bg-emerald-50 text-emerald-700'
-                : 'bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed',
-            )}
+            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[10px] text-white text-[13.5px] font-medium border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
+            style={{ background: sent ? INK : NAVY }}
           >
-            {sent ? (
-              <><CheckCircle2 size={11} /> Sent</>
-            ) : sending ? (
-              <><Loader2 size={11} className="animate-spin" /> Sending…</>
-            ) : (
-              <><Send size={11} /> Send</>
-            )}
+            {sent ? 'Sent' : sending ? <><Loader2 size={12} className="animate-spin" /> Sending…</> : <><Send size={12} /> Send</>}
           </button>
         </div>
       </div>
@@ -4053,77 +3650,81 @@ function ThreadLinkerModal({
   const restRows       = filtered.filter(t => !suggestionIds.has(t.id) || !!search)
   const addCount       = Array.from(selected).filter(id => !linkedThreadIds.includes(id)).length
 
+  const groupRow = (label: string, count?: number) => (
+    <tr>
+      <td colSpan={5} className="px-4 pt-4 pb-1.5 text-[12.5px] font-medium" style={{ color: MUTED }}>
+        {label}{count !== undefined && <span className="ml-1.5 tabular-nums" style={{ color: FAINT }}>{count}</span>}
+      </td>
+    </tr>
+  )
+
   const ThreadTableRow = ({ thread, isSuggested }: { thread: ThreadSuggestion; isSuggested: boolean }) => {
     const alreadyLinked = linkedThreadIds.includes(thread.id)
     const isSelected    = selected.has(thread.id)
     const pty           = partyTypes[thread.id] ?? 'client'
-    const pc            = partyColor(pty)
 
     return (
       <tr
-        className={cn(
-          'border-b border-[--border-subtle] transition-colors cursor-pointer',
-          alreadyLinked ? 'opacity-40 cursor-default' : isSelected ? 'bg-primary/5' : 'hover:bg-muted/40',
-        )}
+        className={cn('transition-colors', alreadyLinked ? 'opacity-50 cursor-default' : 'cursor-pointer hover:bg-[#f8f9fa]')}
+        style={{ borderTop: `1px solid ${HAIR}`, background: isSelected && !alreadyLinked ? FIELD : undefined }}
         onClick={() => !alreadyLinked && toggleSelect(thread.id)}
+        aria-selected={isSelected}
       >
         {/* Checkbox */}
-        <td className="px-3 py-2.5 w-8">
+        <td className="px-4 py-3 w-10 align-top">
           {alreadyLinked ? (
-            <CheckCircle2 size={13} className="text-green-500" strokeWidth={2} />
+            <Chip>Linked</Chip>
           ) : (
             <input
               type="checkbox"
               checked={isSelected}
               onChange={() => toggleSelect(thread.id)}
               onClick={e => e.stopPropagation()}
-              className="w-3.5 h-3.5 rounded accent-primary cursor-pointer"
+              aria-label="Select thread"
+              className="w-4 h-4 accent-[#202124] cursor-pointer mt-0.5"
             />
           )}
         </td>
 
         {/* Contact */}
-        <td className="py-2.5 pr-3 min-w-0 max-w-[140px]">
-          <p className="text-[11.5px] font-semibold text-foreground truncate">
-            {thread.contact ? contactName(thread.contact) : '—'}
-          </p>
-          {thread.contact?.company && (
-            <p className="text-[10px] text-muted-foreground/60 truncate">{thread.contact.company}</p>
-          )}
+        <td className="py-3 pr-3 min-w-0 max-w-[160px] align-top">
+          <p className="m-0 text-[14px] font-medium truncate" style={{ color: INK }}>{thread.contact ? contactName(thread.contact) : '—'}</p>
+          {thread.contact?.company && <p className="m-0 text-[12.5px] truncate" style={{ color: MUTED }}>{thread.contact.company}</p>}
         </td>
 
         {/* Subject */}
-        <td className="py-2.5 pr-3 min-w-0">
-          <p className="text-[11.5px] text-foreground truncate">{thread.subject ?? '(no subject)'}</p>
-          {isSuggested && (
-            <p className="text-[9.5px] text-primary/60 italic truncate">{thread.match_reason}</p>
-          )}
+        <td className="py-3 pr-3 min-w-0 align-top">
+          <p className="m-0 text-[14px] truncate" style={{ color: BODY }}>{thread.subject ?? '(no subject)'}</p>
+          {isSuggested && <p className="m-0 text-[12.5px] truncate" style={{ color: MUTED }}>{thread.match_reason}</p>}
         </td>
 
         {/* Date */}
-        <td className="py-2.5 pr-3 text-[10.5px] text-muted-foreground/60 whitespace-nowrap">
+        <td className="py-3 pr-3 text-[13px] whitespace-nowrap align-top" style={{ color: MUTED }}>
           {fmtDate(thread.last_message_at)}
         </td>
 
         {/* Party type */}
-        <td className="py-2 pr-3 w-[130px]" onClick={e => e.stopPropagation()}>
+        <td className="py-2.5 pr-4 w-[150px] align-top" onClick={e => e.stopPropagation()}>
           {alreadyLinked ? (
-            <span className="text-[10px] text-muted-foreground">Already linked</span>
+            <span className="text-[13px]" style={{ color: MUTED }}>Already linked</span>
           ) : (
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1.5">
               <select
                 value={pty}
                 onChange={e => setPartyTypes(prev => ({ ...prev, [thread.id]: e.target.value }))}
-                className="text-[10.5px] border border-[--border-subtle] rounded-md px-1.5 py-0.5 bg-background outline-none w-full font-semibold"
-                style={{ color: pc.text }}
+                aria-label="Party type"
+                className="h-8 w-full rounded-[8px] px-2 text-[13px] bg-white outline-none cursor-pointer focus:border-[#202124]"
+                style={{ border: `1px solid ${CTRL}`, color: INK }}
               >
                 {PARTY_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
               </select>
               <input
                 value={labels[thread.id] ?? ''}
                 onChange={e => setLabels(prev => ({ ...prev, [thread.id]: e.target.value }))}
-                placeholder="e.g. QBE Marine"
-                className="text-[10px] border border-[--border-subtle] rounded-md px-1.5 py-0.5 bg-background outline-none w-full text-muted-foreground"
+                placeholder="Label, e.g. QBE Marine"
+                aria-label="Party label"
+                className="h-8 w-full rounded-[8px] px-2 text-[13px] bg-white outline-none focus:border-[#202124] placeholder:text-[#80868b]"
+                style={{ border: `1px solid ${CTRL}`, color: INK }}
               />
             </div>
           )}
@@ -4132,139 +3733,123 @@ function ThreadLinkerModal({
     )
   }
 
+  const th = 'py-2.5 pr-3 text-left text-[12px] font-medium'
+
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(32,33,36,0.4)' }} onClick={onClose}>
       <div
-        className="bg-card rounded-2xl shadow-2xl w-full max-w-[760px] flex flex-col overflow-hidden max-h-[calc(85vh/var(--ui-zoom))]"
+        className="bg-white rounded-[16px] w-full max-w-[800px] flex flex-col overflow-hidden max-h-[calc(85vh/var(--ui-zoom))]"
+        style={{ boxShadow: 'var(--shadow-modal)', color: INK }}
         onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-label="Link threads"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[--border-subtle] flex-shrink-0">
-          <div>
-            <h3 className="text-[13.5px] font-bold text-foreground">Add Email Threads to Case</h3>
-            <p className="text-[10.5px] text-muted-foreground/60 mt-0.5">
-              Select conversations and assign each party. Party types are auto-suggested from contact email.
-            </p>
-          </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground ml-4"><X size={14} /></button>
+        <div className="flex items-center justify-between gap-3 px-6 pt-5 pb-4 flex-shrink-0">
+          <h2 className="m-0 text-[20px] font-medium tracking-[-0.02em]" style={{ color: INK }}>Link threads</h2>
+          <button type="button" onClick={onClose} aria-label="Close" className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: MUTED }}>
+            <X size={15} />
+          </button>
         </div>
 
         {/* Search + bulk action bar */}
-        <div className="flex items-center gap-2.5 px-4 py-2.5 border-b border-[--border-subtle] flex-shrink-0 bg-muted/20">
-          <div className="flex items-center gap-2 flex-1 px-3 py-1.5 bg-background rounded-lg border border-[--border-subtle]">
-            <Search size={12} className="text-muted-foreground/50 flex-shrink-0" />
+        <div className="flex items-center gap-3 px-6 pb-4 flex-shrink-0 flex-wrap" style={{ borderBottom: `1px solid ${HAIR}` }}>
+          <label className="relative flex-1 min-w-[220px]">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: FAINT }} />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search by subject, contact name, or company…"
+              placeholder="Search subject, contact or company"
+              aria-label="Search threads"
               autoFocus
-              className="flex-1 text-[12px] bg-transparent outline-none placeholder:text-muted-foreground/40"
+              className={cn(inputCls, 'pl-9 pr-9')}
             />
             {search && (
-              <button onClick={() => setSearch('')} className="text-muted-foreground/40 hover:text-muted-foreground">
-                <X size={11} />
+              <button type="button" onClick={() => setSearch('')} aria-label="Clear search" className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: MUTED }}>
+                <X size={13} />
               </button>
             )}
-          </div>
+          </label>
           <button
+            type="button"
             onClick={linkSelected}
             disabled={addCount === 0 || linking}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[12px] font-semibold bg-primary text-primary-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity flex-shrink-0 whitespace-nowrap shadow-sm"
+            className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] text-white text-[14px] font-medium border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 whitespace-nowrap"
+            style={{ background: INK }}
           >
-            {linking ? <Loader2 size={12} className="animate-spin" /> : <Link2 size={12} strokeWidth={2} />}
-            {addCount > 0 ? `Add ${addCount} to Case` : 'Select threads'}
+            {linking && <Loader2 size={13} className="animate-spin" />}
+            {addCount > 0 ? `Add ${addCount} thread${addCount > 1 ? 's' : ''}` : 'Add threads'}
           </button>
         </div>
 
         {/* Thread table */}
         <div className="flex-1 overflow-y-auto">
           {loading ? (
-            <p className="text-[12px] text-muted-foreground text-center py-10">Loading conversations…</p>
+            <Spinner label="Loading conversations…" />
           ) : (
-            <table className="w-full">
-              <thead className="sticky top-0 bg-muted/60 backdrop-blur-sm border-b border-[--border-subtle]">
-                <tr>
-                  <th className="px-3 py-2 text-left w-8"></th>
-                  <th className="py-2 pr-3 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Contact</th>
-                  <th className="py-2 pr-3 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Subject</th>
-                  <th className="py-2 pr-3 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Date</th>
-                  <th className="py-2 pr-3 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Party</th>
-                </tr>
-              </thead>
-              <tbody>
-                {!search && linkedThreads.length > 0 && (
-                  <>
-                    <tr className="bg-emerald-50/50">
-                      <td colSpan={5} className="px-3 py-2 border-b border-emerald-100">
-                        <span className="text-[9.5px] font-bold uppercase tracking-wider text-emerald-700/70 flex items-center gap-1.5">
-                          <CheckCircle2 size={9} strokeWidth={2.5} /> Already in this case · {linkedThreads.length}
-                        </span>
-                      </td>
-                    </tr>
-                    {linkedThreads.map(ct => {
-                      const lpc = partyColor(ct.party_type)
-                      return (
-                        <tr key={`linked-${ct.thread_id}`} className="border-b border-[--border-subtle] bg-muted/10">
-                          <td className="px-3 py-2.5 w-8"><CheckCircle2 size={13} className="text-emerald-500" strokeWidth={2} /></td>
-                          <td className="py-2.5 pr-3 max-w-[140px]"><p className="text-[11.5px] font-semibold text-foreground truncate">{ct.thread?.contact ? contactName(ct.thread.contact) : (ct.party_label ?? '—')}</p></td>
-                          <td className="py-2.5 pr-3 min-w-0"><p className="text-[11.5px] text-foreground truncate">{ct.thread?.subject ?? '(no subject)'}</p></td>
-                          <td className="py-2.5 pr-3 text-[10.5px] text-muted-foreground/60 whitespace-nowrap">{fmtDate(ct.thread?.last_message_at ?? null)}</td>
-                          <td className="py-2 pr-3 w-[130px]">
-                            <div className="flex items-center justify-between gap-1">
-                              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ background: lpc.bg, color: lpc.text }}>{partyLabel(ct.party_type)}</span>
-                              <button onClick={() => unlink(ct.thread_id)} disabled={unlinking === ct.thread_id} className="text-[10px] text-muted-foreground/50 hover:text-red-500 disabled:opacity-40">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse min-w-[640px]">
+                <thead className="sticky top-0 bg-white" style={{ boxShadow: `inset 0 -1px 0 ${HAIR}` }}>
+                  <tr style={{ color: MUTED }}>
+                    <th className="px-4 py-2.5 text-left w-10"></th>
+                    <th className={th}>Contact</th>
+                    <th className={th}>Subject</th>
+                    <th className={th}>Date</th>
+                    <th className={cn(th, 'pr-4')}>Party</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {!search && linkedThreads.length > 0 && (
+                    <>
+                      {groupRow('Already in this case', linkedThreads.length)}
+                      {linkedThreads.map(ct => (
+                        <tr key={`linked-${ct.thread_id}`} style={{ borderTop: `1px solid ${HAIR}` }}>
+                          <td className="px-4 py-3 w-10 align-top"><Chip>Linked</Chip></td>
+                          <td className="py-3 pr-3 max-w-[160px] align-top"><p className="m-0 text-[14px] font-medium truncate" style={{ color: INK }}>{ct.thread?.contact ? contactName(ct.thread.contact) : (ct.party_label ?? '—')}</p></td>
+                          <td className="py-3 pr-3 min-w-0 align-top"><p className="m-0 text-[14px] truncate" style={{ color: BODY }}>{ct.thread?.subject ?? '(no subject)'}</p></td>
+                          <td className="py-3 pr-3 text-[13px] whitespace-nowrap align-top" style={{ color: MUTED }}>{fmtDate(ct.thread?.last_message_at ?? null)}</td>
+                          <td className="py-3 pr-4 w-[150px] align-top">
+                            <div className="flex items-center justify-between gap-2">
+                              <PartyChip party={ct.party_type} />
+                              <button type="button" onClick={() => unlink(ct.thread_id)} disabled={unlinking === ct.thread_id} className={ghostBtn} style={{ color: MUTED }}>
                                 {unlinking === ct.thread_id ? '…' : 'Unlink'}
                               </button>
                             </div>
                           </td>
                         </tr>
-                      )
-                    })}
-                  </>
-                )}
-                {suggestedRows.length > 0 && !search && (
-                  <>
-                    <tr className="bg-primary/[0.04]">
-                      <td colSpan={5} className="px-3 py-2 border-b border-primary/10">
-                        <span className="text-[9.5px] font-bold uppercase tracking-wider text-primary/60 flex items-center gap-1.5">
-                          <Sparkles size={9} strokeWidth={2.5} /> AI Suggestions — review for relevance
-                        </span>
-                      </td>
-                    </tr>
-                    {suggestedRows.map(t => <ThreadTableRow key={t.id} thread={t} isSuggested />)}
-                    <tr className="bg-muted/40">
-                      <td colSpan={5} className="px-3 py-2 border-b border-[--border-subtle]">
-                        <span className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground/50">All Recent Conversations</span>
-                      </td>
-                    </tr>
-                  </>
-                )}
-                {restRows.map(t => <ThreadTableRow key={t.id} thread={t} isSuggested={false} />)}
-                {restRows.length === 0 && suggestedRows.length === 0 && (
-                  <tr><td colSpan={5} className="text-center py-10 text-[11.5px] text-muted-foreground/50 italic">
-                    {search ? 'No matching threads found.' : 'No threads available.'}
-                  </td></tr>
-                )}
-              </tbody>
-            </table>
+                      ))}
+                    </>
+                  )}
+                  {suggestedRows.length > 0 && !search && (
+                    <>
+                      {groupRow('Suggested, by contact and subject', suggestedRows.length)}
+                      {suggestedRows.map(t => <ThreadTableRow key={t.id} thread={t} isSuggested />)}
+                      {groupRow('All recent conversations')}
+                    </>
+                  )}
+                  {restRows.map(t => <ThreadTableRow key={t.id} thread={t} isSuggested={false} />)}
+                  {restRows.length === 0 && suggestedRows.length === 0 && (
+                    <tr><td colSpan={5} className="text-center py-12 text-[15px]" style={{ color: MUTED }}>
+                      {search ? 'No threads match.' : 'No threads available.'}
+                    </td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-5 py-2.5 border-t border-[--border-subtle] bg-muted/10 flex-shrink-0">
+        <div className="flex items-center justify-between gap-3 px-6 py-3 flex-shrink-0 flex-wrap" style={{ borderTop: `1px solid ${HAIR}` }}>
           <div className="flex items-center gap-3">
-            <p className="text-[10.5px] text-muted-foreground/60">
-              {addCount > 0 ? `${addCount} thread${addCount > 1 ? 's' : ''} selected` : 'Click rows to select'}
+            <p className="m-0 text-[13px] tabular-nums" style={{ color: MUTED }}>
+              {addCount > 0 ? `${addCount} thread${addCount > 1 ? 's' : ''} selected` : 'Select rows to add'}
             </p>
             {addCount > 0 && (
-              <button onClick={() => setSelected(new Set())} className="text-[10.5px] text-muted-foreground/50 hover:text-muted-foreground underline-offset-2 hover:underline">
-                Clear all
-              </button>
+              <button type="button" onClick={() => setSelected(new Set())} className={ghostBtn} style={{ color: INK }}>Clear</button>
             )}
           </div>
-          <button onClick={onClose} className="text-[11.5px] font-medium text-muted-foreground hover:text-foreground transition-colors">
-            Cancel
-          </button>
+          <Btn level="secondary" onClick={onClose}>Cancel</Btn>
         </div>
       </div>
     </div>

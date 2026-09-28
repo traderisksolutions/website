@@ -5,6 +5,7 @@ import { Network, Search, ArrowLeft, Inbox } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Btn, Chip, Empty, Segmented, inputCls } from './primitives'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { fmtRelative } from '@/lib/crm/format'
 import type { CompanyThread } from '@/lib/crm/types'
 
@@ -16,7 +17,8 @@ import type { CompanyThread } from '@/lib/crm/types'
  * never filed under this client.
  */
 
-const CAT_TONE: Record<string, 'blue' | 'red' | 'amber' | 'neutral'> = { rfq: 'blue', claim: 'red', renewal: 'amber', general: 'neutral', other: 'neutral' }
+const INK = '#202124'
+const MUTED = '#5f6368'
 type Filter = 'all' | 'rfq' | 'claim' | 'renewal' | 'general'
 type Page = 'company' | 'everything'
 
@@ -27,6 +29,28 @@ type SearchHit = {
   category: string | null
   last_message_at: string | null
   companyName: string | null
+}
+
+/** One pickable thread: checkbox first, then subject over its summary, the category, and who/when. */
+function ThreadRow({ id, checked, onToggle, subject, summary, category, meta, when }: {
+  id: string; checked: boolean; onToggle: () => void
+  subject: string | null; summary: string | null; category: string | null; meta: string; when: string | null
+}) {
+  return (
+    <RegisterRow selected={checked} onClick={onToggle}>
+      <RegisterCell first selected={checked} className="min-w-0 max-w-none">
+        <span className="flex items-start gap-3 min-w-0">
+          <input type="checkbox" className="mt-[3px] flex-shrink-0" checked={checked} onChange={onToggle} onClick={e => e.stopPropagation()} aria-label={`Select ${subject ?? 'thread'}`} data-thread={id} />
+          <span className="min-w-0">
+            <span className="block text-[15px] font-medium leading-tight truncate" style={{ color: INK }}>{subject ?? '(no subject)'}</span>
+            <span className="block text-[12.5px] mt-0.5 truncate" style={{ color: MUTED }}>{summary ?? meta}</span>
+          </span>
+        </span>
+      </RegisterCell>
+      <RegisterCell>{category ? <Chip className="capitalize">{category}</Chip> : <span style={{ color: '#9aa0a6' }}>—</span>}</RegisterCell>
+      <RegisterCell last align="right" primary={fmtRelative(when)} secondary={summary ? meta : undefined} />
+    </RegisterRow>
+  )
 }
 
 export function CaseThreadPicker({ open, onClose, threads, companyName, busy, error, onGenerate }: {
@@ -54,7 +78,7 @@ export function CaseThreadPicker({ open, onClose, threads, companyName, busy, er
     setCaseName(''); setQuery(''); setHits(null); setExtra(new Map())
   }, [open])
 
-  // Search every thread, not just this client's, debounced.
+  // Search every thread in the inbox, not only this client's, debounced.
   useEffect(() => {
     if (page !== 'everything') return
     const q = query.trim()
@@ -100,12 +124,20 @@ export function CaseThreadPicker({ open, onClose, threads, companyName, busy, er
 
   const chosenFromElsewhere = Array.from(selected).filter(id => !ownIds.has(id)).length
 
+  const head = (
+    <RegisterHead>
+      <RegisterTh first>Thread</RegisterTh>
+      <RegisterTh>Category</RegisterTh>
+      <RegisterTh last align="right">Last message</RegisterTh>
+    </RegisterHead>
+  )
+
   return (
     <Dialog open={open} onOpenChange={v => { if (!v && !busy) onClose() }}>
       <DialogContent className="max-w-[680px]">
         <DialogHeader>
           <DialogTitle>
-            {page === 'company' ? 'Which emails belong to this matter?' : 'Search every email'}
+            {page === 'company' ? 'Emails in this matter' : 'Search every email'}
           </DialogTitle>
           <DialogDescription>
             {page === 'company'
@@ -124,42 +156,37 @@ export function CaseThreadPicker({ open, onClose, threads, companyName, busy, er
               { value: 'general', label: 'General', count: counts.general },
             ]} />
 
-            <div className="max-h-[42vh] overflow-y-auto -mx-1 px-1">
-              {visible.length === 0 && (
-                <Empty compact>{threads.length === 0 ? 'No threads filed under this client yet.' : 'Nothing matches this filter.'}</Empty>
-              )}
-              <ul className="m-0 p-0 list-none">
-                {visible.map(t => (
-                  <li key={t.id} className="border-b border-[--border-subtle] last:border-b-0">
-                    <label className="flex items-start gap-2.5 py-2 cursor-pointer">
-                      <input type="checkbox" className="mt-1 flex-shrink-0" checked={selected.has(t.id)} onChange={() => toggle(t.id)} />
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[12.5px] font-medium truncate">{t.subject ?? '(no subject)'}</span>
-                        {t.summary && <span className="block text-[11.5px] text-muted-foreground line-clamp-2">{t.summary}</span>}
-                        <span className="flex items-center gap-1.5 mt-1 text-[11px] text-muted-foreground">
-                          {t.category && <Chip tone={CAT_TONE[t.category] ?? 'neutral'} className="capitalize">{t.category}</Chip>}
-                          {t.contact?.name ?? t.contact?.email ?? 'Unknown'} · {t.message_count} message{t.message_count === 1 ? '' : 's'} · {fmtRelative(t.last_message_at)}
-                        </span>
-                      </span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {visible.length === 0 && (
+              <Empty compact>{threads.length === 0 ? 'No threads filed under this client yet.' : 'Nothing matches this filter.'}</Empty>
+            )}
+            {visible.length > 0 && (
+              <Register label="Threads filed under this client" minWidth={560} maxHeight="42vh">
+                {head}
+                <tbody>
+                  {visible.map(t => (
+                    <ThreadRow key={t.id} id={t.id} checked={selected.has(t.id)} onToggle={() => toggle(t.id)}
+                      subject={t.subject} summary={t.summary ?? null} category={t.category ?? null}
+                      meta={`${t.contact?.name ?? t.contact?.email ?? 'Unknown'} · ${t.message_count} message${t.message_count === 1 ? '' : 's'}`}
+                      when={t.last_message_at} />
+                  ))}
+                </tbody>
+              </Register>
+            )}
 
             <button
               onClick={() => setPage('everything')}
-              className="self-start inline-flex items-center gap-1.5 text-[12px] font-semibold text-primary bg-transparent border-0 p-0 cursor-pointer hover:underline"
+              className="self-start inline-flex items-center gap-1.5 text-[13px] bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4"
+              style={{ color: INK }}
             >
-              <Inbox size={12} /> This matter runs through another mailbox — search all emails
+              <Inbox size={12} /> Search all emails
             </button>
           </>
         ) : (
           <>
             <label className="relative block">
-              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#80868b' }} />
               <input
-                className={cn(inputCls, 'pl-8')}
+                className={cn(inputCls, 'pl-9')}
                 placeholder="Search subject or sender across every thread"
                 value={query}
                 onChange={e => setQuery(e.target.value)}
@@ -167,40 +194,34 @@ export function CaseThreadPicker({ open, onClose, threads, companyName, busy, er
               />
             </label>
 
-            <div className="max-h-[42vh] overflow-y-auto -mx-1 px-1">
-              {query.trim().length < 2 && <Empty compact>Type at least two characters.</Empty>}
-              {query.trim().length >= 2 && searching && <Empty compact>Searching…</Empty>}
-              {query.trim().length >= 2 && !searching && hits?.length === 0 && <Empty compact>Nothing matches that.</Empty>}
-              <ul className="m-0 p-0 list-none">
-                {(hits ?? []).map(h => (
-                  <li key={h.id} className="border-b border-[--border-subtle] last:border-b-0">
-                    <label className="flex items-start gap-2.5 py-2 cursor-pointer">
-                      <input type="checkbox" className="mt-1 flex-shrink-0" checked={selected.has(h.id)} onChange={() => toggle(h.id, h)} />
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[12.5px] font-medium truncate">{h.subject ?? '(no subject)'}</span>
-                        {h.snippet && <span className="block text-[11.5px] text-muted-foreground line-clamp-1">{h.snippet}</span>}
-                        <span className="flex items-center gap-1.5 mt-1 text-[11px] text-muted-foreground">
-                          {h.category && <Chip tone={CAT_TONE[h.category] ?? 'neutral'} className="capitalize">{h.category}</Chip>}
-                          {h.companyName ?? 'Not filed to a client'} · {fmtRelative(h.last_message_at)}
-                        </span>
-                      </span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {query.trim().length < 2 && <Empty compact>Type at least two characters.</Empty>}
+            {query.trim().length >= 2 && searching && <Empty compact>Searching…</Empty>}
+            {query.trim().length >= 2 && !searching && hits?.length === 0 && <Empty compact>Nothing matches that.</Empty>}
+            {(hits?.length ?? 0) > 0 && (
+              <Register label="Search results" minWidth={560} maxHeight="42vh">
+                {head}
+                <tbody>
+                  {(hits ?? []).map(h => (
+                    <ThreadRow key={h.id} id={h.id} checked={selected.has(h.id)} onToggle={() => toggle(h.id, h)}
+                      subject={h.subject} summary={h.snippet} category={h.category}
+                      meta={h.companyName ?? 'Not filed to a client'} when={h.last_message_at} />
+                  ))}
+                </tbody>
+              </Register>
+            )}
 
             <button
               onClick={() => setPage('company')}
-              className="self-start inline-flex items-center gap-1.5 text-[12px] font-semibold text-primary bg-transparent border-0 p-0 cursor-pointer hover:underline"
+              className="self-start inline-flex items-center gap-1.5 text-[13px] bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4"
+              style={{ color: INK }}
             >
               <ArrowLeft size={12} /> Back to {companyName}&apos;s emails
             </button>
           </>
         )}
 
-        <label className="flex flex-col gap-1">
-          <span className="text-[10.5px] uppercase tracking-wider text-muted-foreground font-semibold">Name this case</span>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[12.5px]" style={{ color: MUTED }}>Case name</span>
           <input
             className={inputCls}
             placeholder="Left blank, it is named from what you picked"
@@ -209,10 +230,10 @@ export function CaseThreadPicker({ open, onClose, threads, companyName, busy, er
           />
         </label>
 
-        {error && <p className="text-[12px] text-destructive m-0">{error}</p>}
+        {error && <p className="text-[13px] m-0" style={{ color: '#c5221f' }}>{error}</p>}
 
         <div className="flex items-center justify-between gap-3 pt-1">
-          <p className="text-[12px] text-muted-foreground m-0">
+          <p className="text-[13px] m-0" style={{ color: MUTED }}>
             {selected.size === 0
               ? 'Nothing picked yet.'
               : <>{selected.size} thread{selected.size === 1 ? '' : 's'} picked{chosenFromElsewhere > 0 && `, ${chosenFromElsewhere} from elsewhere`}.</>}

@@ -11,11 +11,11 @@ export function PageHeader({ title, description, actions, className }: PageHeade
   return (
     <div className={cn('flex flex-wrap items-end justify-between gap-3', className)}>
       <div className="min-w-0">
-        <h1 className="text-xl font-bold tracking-tight text-foreground leading-tight">
+        <h1 className="m-0 text-[28px] font-medium tracking-[-0.02em] leading-[1.15]" style={{ color: '#202124' }}>
           {title}
         </h1>
         {description && (
-          <p className="text-[12.5px] text-muted-foreground mt-0.5 leading-snug">
+          <p className="m-0 mt-1 text-[14.5px] leading-snug" style={{ color: '#5f6368' }}>
             {description}
           </p>
         )}

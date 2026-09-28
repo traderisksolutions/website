@@ -2,7 +2,9 @@
 
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
-import { CheckCircle2, XCircle } from 'lucide-react'
+
+const INK = '#202124'
+const MUTED = '#5f6368'
 
 function UnsubscribedCard() {
   const params = useSearchParams()
@@ -10,27 +12,25 @@ function UnsubscribedCard() {
 
   return (
     <div
-      className="flex items-center justify-center px-4"
-      style={{ minHeight: 'calc(100vh / var(--ui-zoom))', background: 'hsl(var(--background))' }}
+      className="flex items-center justify-center px-4 bg-white"
+      style={{ minHeight: 'calc(100vh / var(--ui-zoom))', color: INK }}
     >
-      <div
-        className="w-[380px] bg-card rounded-xl border border-[--border-subtle] px-9 py-10 text-center"
-        style={{ boxShadow: 'var(--shadow-modal)' }}
-      >
+      <div className="w-full max-w-[400px] bg-white rounded-[16px] px-9 py-10 text-center" style={{ border: '1px solid #e8eaed' }}>
+        <div className="inline-flex items-center justify-center rounded-[12px] mb-5 w-12 h-12" style={{ background: INK }}>
+          <span className="text-white text-[16px] font-medium tracking-[-0.01em]">TRS</span>
+        </div>
         {ok ? (
           <>
-            <CheckCircle2 className="mx-auto mb-4" size={36} style={{ color: 'var(--success)' }} />
-            <h1 className="text-[17px] font-bold text-foreground tracking-tight m-0">You&rsquo;re unsubscribed</h1>
-            <p className="text-[13px] text-muted-foreground mt-2 leading-relaxed m-0">
-              We won&rsquo;t send you any further emails from this address. If you reach out to us again, that&rsquo;s separate — we&rsquo;ll still respond.
+            <h1 className="m-0 text-[24px] font-medium tracking-[-0.02em] leading-tight" style={{ color: INK }}>Unsubscribed</h1>
+            <p className="m-0 mt-2.5 text-[14px] leading-relaxed" style={{ color: MUTED }}>
+              No further emails will be sent to this address. If you contact us again, we will still reply.
             </p>
           </>
         ) : (
           <>
-            <XCircle className="mx-auto mb-4" size={36} style={{ color: 'var(--error)' }} />
-            <h1 className="text-[17px] font-bold text-foreground tracking-tight m-0">Link no longer valid</h1>
-            <p className="text-[13px] text-muted-foreground mt-2 leading-relaxed m-0">
-              This unsubscribe link couldn&rsquo;t be verified. If you&rsquo;d still like to stop receiving emails, please reply to any message from us and let us know.
+            <h1 className="m-0 text-[24px] font-medium tracking-[-0.02em] leading-tight" style={{ color: INK }}>Link no longer valid</h1>
+            <p className="m-0 mt-2.5 text-[14px] leading-relaxed" style={{ color: MUTED }}>
+              This unsubscribe link could not be verified. To stop receiving emails, please reply to any message from us and let us know.
             </p>
           </>
         )}

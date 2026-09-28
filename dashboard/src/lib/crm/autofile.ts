@@ -13,19 +13,22 @@
  *   1. seed insurers from the insurer directory so their domains are claimed
  *   2. gather evidence for every unclaimed external domain
  *   3. name and classify those domains (one batched model call per handful)
- *   4. match each name against the companies we already have, else create
- *   5. link every thread that touches a claimed domain
- *   6. for threads with no client-side domain at all, fall back to the name in the subject
- *   7. leave anything still unresolved for the review queue
+ *   4. match each domain's stem, then each name, against the companies we already have —
+ *      including the ones born from a debit note that have a name but no domain yet
+ *   5. otherwise CREATE, whatever the model's confidence, and mark the record unconfirmed
+ *      for a person to glance at. A queue nobody clears is what left mail unfiled for a week.
+ *   6. link every thread that touches a claimed domain
+ *   7. for threads with no client-side domain at all, fall back to the name in the subject
+ *   8. give every contact a company from their email domain
+ *
+ * Only threads carrying nothing but personal or excluded addresses are left for a person.
  */
-import { sb, sbTry, inChunks, enc, emailDomain, isInternal, isAutomated, PUBLIC_EMAIL_DOMAINS, normalizeCompany } from './db'
-import { buildCompanyIndex, matchByName, companyCore, domainSuitsName, type CompanyIndex } from './resolve'
+import { sb, sbTry, inChunks, enc, emailDomain, isInternal, isAutomated, PUBLIC_EMAIL_DOMAINS, NOT_A_CLIENT_DOMAINS, normalizeCompany } from './db'
+import { buildCompanyIndex, matchByName, companyCore, domainSuitsName, domainMatchesName, type CompanyIndex } from './resolve'
 import { buildIdentityIndex, matchName, loadAliases, recordAlias, aliasKey, type IdentityIndex } from './identity'
 import { geminiJson } from './ai'
 import type { Company, CompanyKind } from './types'
 
-// A domain must be at least this convincing before a company is created for it unattended.
-const AUTO_CREATE_CONFIDENCE = 0.75
 // Above this, a name match is trusted without review.
 const AUTO_MATCH_SCORE = 0.8
 
@@ -56,6 +59,8 @@ export interface AutofileResult {
   threadsBySubject: number
   queuedThreads: number
   remaining: number
+  /** Contacts given a company from their email domain at the end of the sweep. */
+  contactsLinked: number
   errors: string[]
 }
 
@@ -253,42 +258,61 @@ export async function autofile(opts: { dryRun?: boolean; maxDomains?: number } =
   const decisions: DomainDecision[] = []
 
   for (const ev of ranked) {
-    const guess = classified.get(ev.domain)
-    if (!guess) {
-      decisions.push({ domain: ev.domain, name: '', kind: 'other', confidence: 0, reason: 'The model returned nothing for this domain.', action: 'queued', companyId: null, companyName: null, threads: ev.threadIds.length })
+    if (NOT_A_CLIENT_DOMAINS.has(ev.domain)) {
+      decisions.push({ domain: ev.domain, name: '', kind: 'other', confidence: 1, reason: 'On the not-a-client list.', action: 'queued', companyId: null, companyName: null, threads: ev.threadIds.length })
       continue
     }
 
-    const match = matchName(guess.name, identity)
+    // The domain's stem names a company we already have — typically one born from a debit
+    // note with a name and no domain. Attach rather than create a twin.
+    const stemHits = allCompanies.filter(c => c.kind === 'client' && domainMatchesName(ev.domain, c.name))
+    if (stemHits.length === 1) {
+      const company = stemHits[0]
+      await attachDomain(company, ev.domain, dry)
+      claimed.set(ev.domain, company.id)
+      decisions.push({ domain: ev.domain, name: company.name, kind: company.kind, confidence: 0.9, reason: `The domain names ${company.name}`, action: 'linked-existing', companyId: company.id, companyName: company.name, threads: ev.threadIds.length })
+      continue
+    }
+
+    const guess = classified.get(ev.domain) ?? null
+    const signed = ev.contactCompanies.find(n => n && n.trim().length >= 3)?.trim()
+    const name = guess?.name?.trim() || signed || nameFromDomain(ev.domain)
+    const kind: CompanyKind = guess
+      ? (guess.kind === 'insurer' || guess.kind === 'partner') ? guess.kind
+        : (guess.kind === 'other' && guess.confidence >= 0.6) ? 'partner'
+        : 'client'
+      : 'client'
+    const confidence = guess?.confidence ?? 0
+    const reason = guess?.reason ?? `Named from the domain; the model did not answer.`
+
+    const match = matchName(name, identity)
     if (match && match.score >= AUTO_MATCH_SCORE) {
       const company = companyById.get(match.companyId)
       if (company) {
         await attachDomain(company, ev.domain, dry)
         claimed.set(ev.domain, company.id)
-        if (!dry) await recordAlias(company.id, guess.name, 'ai')
-        decisions.push({ domain: ev.domain, name: guess.name, kind: company.kind, confidence: guess.confidence, reason: `Same as ${company.name} (matched on ${match.matchedOn})`, action: 'linked-existing', companyId: company.id, companyName: company.name, threads: ev.threadIds.length })
+        if (!dry) await recordAlias(company.id, name, 'ai')
+        decisions.push({ domain: ev.domain, name, kind: company.kind, confidence, reason: `Same as ${company.name} (matched on ${match.matchedOn})`, action: 'linked-existing', companyId: company.id, companyName: company.name, threads: ev.threadIds.length })
         continue
       }
     }
 
-    if (guess.confidence >= AUTO_CREATE_CONFIDENCE && guess.kind !== 'other') {
-      if (dry) {
-        decisions.push({ domain: ev.domain, name: guess.name, kind: guess.kind, confidence: guess.confidence, reason: guess.reason, action: 'created', companyId: null, companyName: guess.name, threads: ev.threadIds.length })
-        claimed.set(ev.domain, `dry-${ev.domain}`)
-      } else {
-        const id = await createCompany({ name: guess.name, kind: guess.kind, domains: [ev.domain], note: guess.reason, confidence: guess.confidence })
-        if (!id) { errors.push(`Could not create ${guess.name}`); continue }
-        await recordAlias(id, guess.name, 'ai')
-        const created = normalizeCompany({ id, company_name: guess.name, kind: guess.kind, domains: [ev.domain] })
-        allCompanies = [...allCompanies, created]
-        companyById.set(id, created)
-        claimed.set(ev.domain, id)
-        decisions.push({ domain: ev.domain, name: guess.name, kind: guess.kind, confidence: guess.confidence, reason: guess.reason, action: 'created', companyId: id, companyName: guess.name, threads: ev.threadIds.length })
-      }
-      continue
+    // Create, whatever the confidence. A weak guess becomes an unconfirmed record a person
+    // renames in a second; a queue nobody clears is what left 11 threads unfiled for a week.
+    if (dry) {
+      decisions.push({ domain: ev.domain, name, kind, confidence, reason, action: 'created', companyId: null, companyName: name, threads: ev.threadIds.length })
+      claimed.set(ev.domain, `dry-${ev.domain}`)
+    } else {
+      const id = await createCompany({ name, kind, domains: [ev.domain], note: reason, confidence })
+      if (!id) { errors.push(`Could not create ${name}`); continue }
+      await recordAlias(id, name, 'ai')
+      await sbTry(`companies?id=eq.${id}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ confirmed_at: null }) })
+      const created = normalizeCompany({ id, company_name: name, kind, domains: [ev.domain] })
+      allCompanies = [...allCompanies, created]
+      companyById.set(id, created)
+      claimed.set(ev.domain, id)
+      decisions.push({ domain: ev.domain, name, kind, confidence, reason, action: 'created', companyId: id, companyName: name, threads: ev.threadIds.length })
     }
-
-    decisions.push({ domain: ev.domain, name: guess.name, kind: guess.kind, confidence: guess.confidence, reason: guess.reason, action: 'queued', companyId: null, companyName: null, threads: ev.threadIds.length })
   }
 
   // Rebuild the indexes so the newly created companies are matchable by the passes below.
@@ -335,93 +359,184 @@ export async function autofile(opts: { dryRun?: boolean; maxDomains?: number } =
     queuedThreads.push(t.id)
   }
 
+  const contactsLinked = opts.dryRun ? 0 : await linkContactsByDomain().catch(() => 0)
+
   return {
     insurersSeeded, domains: decisions,
     threadsLinked, threadsBySubject,
     queuedThreads: queuedThreads.length,
     remaining: queuedThreads.length,
+    contactsLinked,
     errors,
   }
 }
 
 /**
- * The live path: resolve one thread on arrival. Deterministic rules first; if the thread carries
- * an unknown external domain, that single domain is named and classified (one cheap call) and the
- * thread files itself. Anything less certain is left for the queue rather than guessed at.
+ * The live path: resolve one thread the moment it arrives. This is the locked workflow.
+ *
+ *   1. A domain we already know → file under its owner.
+ *   2. A domain nobody owns, but whose stem matches an existing company's name (@flavia →
+ *      "Flavia Holdings Pte Ltd") → attach the domain to that company and file. This is how a
+ *      client that first arrived by debit note, with a name and no domain, is found by their
+ *      first email instead of being created twice.
+ *   3. The organisation named in the sender's signature matches a company → same.
+ *   4. The client is named in the subject → file.
+ *   5. Otherwise a company is CREATED for the domain — named by the model when it answers,
+ *      from the domain itself when it does not — and marked unconfirmed for a person to
+ *      glance at. Nothing waits in a queue; every email files somewhere.
+ *
+ * Domains on the not-a-client list (our sister company, ISPs) and insurer-owned domains never
+ * become clients.
  */
 export async function autofileThread(threadId: string): Promise<{ companyId: string | null; via: string }> {
-  const rows = await sbTry<ThreadRow[]>(`email_threads?id=eq.${enc(threadId)}&select=${THREAD_SELECT}&limit=1`, [])
+  type ThreadRow = { id: string; subject: string | null; company_id: string | null; contacts: { id: string; email: string | null; company: string | null; company_id: string | null } | null }
+  type PartRow = { thread_id: string; email: string; name: string | null }
+
+  const rows = await sbTry<ThreadRow[]>(`email_threads?id=eq.${enc(threadId)}&select=id,subject,company_id,contacts(id,email,company,company_id)&limit=1`, [])
   const t = rows[0]
   if (!t || t.company_id) return { companyId: t?.company_id ?? null, via: 'already filed' }
-
-  // Every message on a thread runs this. If we have already looked at this one and could not
-  // place it, do not pay for the same answer again — the free domain check below still runs, so
-  // it files itself the moment its domain becomes known.
-  const considered = await sbTry<{ status: string }[]>(`company_link_suggestions?thread_id=eq.${enc(threadId)}&select=status&limit=1`, [])
-  const alreadyConsidered = considered.length > 0
 
   const parts = await sbTry<PartRow[]>(`email_participants?thread_id=eq.${enc(threadId)}&deleted_at=is.null&select=thread_id,email,name`, [])
   const emails = [t.contacts?.email, ...parts.map(p => p.email)]
 
   const index = await buildCompanyIndex()
+  const file = async (companyId: string, via: string) => {
+    await sbTry(`email_threads?id=eq.${threadId}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ company_id: companyId }) })
+    if (t.contacts?.id && !t.contacts.company_id) {
+      await sbTry(`contacts?id=eq.${t.contacts.id}&company_id=is.null`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ company_id: companyId }) })
+    }
+    // Close any earlier "could not place this" placeholder so the queue stays honest.
+    await sbTry(`company_link_suggestions?thread_id=eq.${enc(threadId)}&status=eq.pending`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'accepted', verdict: 'existing', suggested_company_id: companyId, decided_at: new Date().toISOString(), decided_by: 'autofile' }) })
+    return { companyId, via }
+  }
+
+  // 1. Known domain.
   for (const e of emails) {
     const d = emailDomain(e)
     if (!d || isInternal(e) || isAutomated(e)) continue
     const owner = index.domains.get(d)
-    if (owner) {
-      await sbTry(`email_threads?id=eq.${threadId}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ company_id: owner }) })
-      return { companyId: owner, via: 'domain' }
-    }
+    if (owner) return file(owner, 'domain')
   }
 
+  // The external domains on this thread that nobody owns and that could be a client.
   const unknown = Array.from(new Set(emails
     .filter(e => e && !isInternal(e) && !isAutomated(e))
     .map(e => emailDomain(e))
-    .filter(d => d && !PUBLIC_EMAIL_DOMAINS.has(d) && !index.domains.has(d) && !index.excludedDomains.has(d))))
+    .filter(d => d && !PUBLIC_EMAIL_DOMAINS.has(d) && !NOT_A_CLIENT_DOMAINS.has(d) && !index.domains.has(d) && !index.excludedDomains.has(d))))
 
-  if (unknown.length > 0 && !alreadyConsidered) {
-    const ev: DomainEvidence = {
-      domain: unknown[0], threadIds: [t.id], subjects: t.subject ? [t.subject] : [],
-      people: parts.filter(p => emailDomain(p.email) === unknown[0]).map(p => p.name ? `${p.name} <${p.email}>` : p.email).slice(0, 6),
-      contactCompanies: t.contacts?.company ? [t.contacts.company] : [],
+  const clients = index.companies.filter(c => c.kind === 'client')
+
+  // 2. Domain stem names an existing company (the debit-note-born ones have no domain yet).
+  for (const d of unknown) {
+    const hits = clients.filter(c => domainMatchesName(d, c.name))
+    if (hits.length === 1) {
+      await attachDomain(hits[0], d, false)
+      return file(hits[0].id, `domain "${d}" matched ${hits[0].name}`)
     }
-    const classified = await classifyDomains([ev])
-    const guess = classified.get(unknown[0])
-    if (guess) {
-      const allCompanies = (await sbTry<Record<string, unknown>[]>(`companies?select=*&limit=1000`, [])).map(normalizeCompany)
-      const identity = buildIdentityIndex(allCompanies, await loadAliases())
-      const match = matchName(guess.name, identity)
-      let companyId: string | null = null
-      if (match && match.score >= AUTO_MATCH_SCORE) {
-        const company = allCompanies.find(c => c.id === match.companyId)
-        if (company) { await attachDomain(company, unknown[0], false); companyId = company.id }
-      } else if (guess.confidence >= AUTO_CREATE_CONFIDENCE && guess.kind !== 'other') {
-        companyId = await createCompany({ name: guess.name, kind: guess.kind, domains: [unknown[0]], note: guess.reason, confidence: guess.confidence })
-      }
-      if (companyId) {
-        await recordAlias(companyId, guess.name, 'ai')
-        await sbTry(`email_threads?id=eq.${threadId}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ company_id: companyId }) })
-        if (t.contacts?.id) await sbTry(`contacts?id=eq.${t.contacts.id}&company_id=is.null`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ company_id: companyId }) })
-        return { companyId, via: match ? 'domain matched an existing company' : 'new company created' }
+  }
+
+  // 3. The organisation as written in the sender's signature.
+  const identity = buildIdentityIndex(index.companies, await loadAliases())
+  const signed = t.contacts?.company?.trim()
+  if (signed && signed.length >= 3) {
+    const m = matchName(signed, identity)
+    if (m && m.score >= AUTO_MATCH_SCORE) {
+      const company = index.byId.get(m.companyId)
+      if (company && company.kind === 'client') {
+        for (const d of unknown) if (domainSuitsName(d, company.name) || unknown.length === 1) await attachDomain(company, d, false)
+        await recordAlias(company.id, signed, 'learned')
+        return file(company.id, `signature named ${company.name}`)
       }
     }
   }
 
+  // 4. Client named in the subject.
   const hit = matchByName(t.subject, index)
-  if (hit) {
-    await sbTry(`email_threads?id=eq.${threadId}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ company_id: hit.companyId }) })
-    return { companyId: hit.companyId, via: 'name in the subject' }
-  }
+  if (hit) return file(hit.companyId, 'name in the subject')
 
-  // Record that it was looked at, which both stops the repeat spend above and puts the thread in
-  // front of a person on the filing screen.
-  if (!alreadyConsidered) {
+  // 5. Create. One company for the first unknown domain; the rest attach to it if they suit.
+  if (unknown.length === 0) {
+    // Only public or excluded addresses on this thread — a person has to decide.
     await sbTry(`company_link_suggestions?on_conflict=thread_id`, null, {
       method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-      body: JSON.stringify({ thread_id: threadId, verdict: 'unsure', status: 'pending', rationale: 'No company domain on the thread and no known client named in the subject.' }),
+      body: JSON.stringify({ thread_id: threadId, verdict: 'unsure', status: 'pending', rationale: 'Only personal or excluded email addresses on this thread.' }),
     })
+    return { companyId: null, via: 'left for review' }
   }
-  return { companyId: null, via: 'left for review' }
+
+  const domain = unknown[0]
+  const ev: DomainEvidence = {
+    domain, threadIds: [t.id], subjects: t.subject ? [t.subject] : [],
+    people: parts.filter(p => emailDomain(p.email) === domain).map(p => p.name ? `${p.name} <${p.email}>` : p.email).slice(0, 6),
+    contactCompanies: signed ? [signed] : [],
+  }
+  const guess = (await classifyDomains([ev]).catch(() => new Map())).get(domain) ?? null
+
+  // The model may name an insurer or partner we have not seeded; honour that rather than make
+  // it a client. Something it is fairly sure is NOT a client — a hospital, a bank, a TPA on a
+  // claims thread — files as a partner, which keeps it off the client list. Only when it has
+  // no view at all does "create" mean "create a client".
+  const kind: CompanyKind = guess
+    ? (guess.kind === 'insurer' || guess.kind === 'partner') ? guess.kind
+      : (guess.kind === 'other' && guess.confidence >= 0.6) ? 'partner'
+      : 'client'
+    : 'client'
+  const name = guess?.name?.trim() || signed || nameFromDomain(domain)
+
+  // A confident model name might still be one of ours under a different spelling.
+  const m = matchName(name, identity)
+  if (m && m.score >= AUTO_MATCH_SCORE) {
+    const company = index.byId.get(m.companyId)
+    if (company) {
+      await attachDomain(company, domain, false)
+      await recordAlias(company.id, name, 'ai')
+      return file(company.id, `"${name}" matched ${company.name}`)
+    }
+  }
+
+  const companyId = await createCompany({
+    name, kind, domains: unknown.filter(d => d === domain || domainSuitsName(d, name)),
+    note: guess ? guess.reason : `Named from the email domain ${domain}; the model did not answer.`,
+    confidence: guess?.confidence ?? 0,
+  })
+  if (!companyId) return { companyId: null, via: 'could not create a company' }
+  await recordAlias(companyId, name, 'ai')
+  // Created unattended: flag it so a person confirms the name at their leisure.
+  await sbTry(`companies?id=eq.${companyId}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ confirmed_at: null }) })
+  return file(companyId, `created ${kind} "${name}"${guess ? '' : ' from the domain'}`)
+}
+
+/** "axismachines.org" → "Axismachines". Good enough to file under until a person renames it. */
+export function nameFromDomain(domain: string): string {
+  const label = domain.split('.')[0] ?? domain
+  return label.replace(/[-_]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+/**
+ * Give every contact a company from their email domain where one company owns that domain.
+ * Cheap, deterministic, idempotent. Run at the end of every sweep so the People tab and the
+ * per-contact resolution both see the whole picture.
+ */
+export async function linkContactsByDomain(): Promise<number> {
+  const index = await buildCompanyIndex()
+  const rows = await sbTry<{ id: string; email: string | null }[]>(`contacts?company_id=is.null&email=not.is.null&select=id,email&limit=2000`, [])
+  const byCompany = new Map<string, string[]>()
+  for (const c of rows) {
+    const d = emailDomain(c.email)
+    if (!d || PUBLIC_EMAIL_DOMAINS.has(d) || isInternal(c.email)) continue
+    const owner = index.domains.get(d)
+    if (!owner) continue
+    byCompany.set(owner, [...(byCompany.get(owner) ?? []), c.id])
+  }
+  let linked = 0
+  for (const [companyId, ids] of Array.from(byCompany.entries())) {
+    await inChunks(ids, 100, async c => {
+      await sbTry(`contacts?id=in.(${c.join(',')})&company_id=is.null`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ company_id: companyId }) })
+      return []
+    })
+    linked += ids.length
+  }
+  return linked
 }
 
 export { aliasKey }

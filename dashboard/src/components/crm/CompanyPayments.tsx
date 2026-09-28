@@ -1,17 +1,20 @@
 'use client'
 
 import { useState } from 'react'
-import { Send, ExternalLink, FolderOpen, BadgeDollarSign } from 'lucide-react'
+import { Send } from 'lucide-react'
 import Link from 'next/link'
-import { cn } from '@/lib/utils'
-import { SectionCard, Chip, Empty, Btn, LinkBtn } from './primitives'
+import { SectionCard, Empty, Btn, LinkBtn } from './primitives'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { RecordPaymentDialog } from './RecordPaymentDialog'
 import { fmtMoney, fmtDate } from '@/lib/crm/format'
-import { PAYMENT_LABEL } from '@/lib/crm/payments'
 import { openEngagementCompose } from '@/lib/engagement-handoff'
 import type { PaymentDerived, PaymentSummary, DerivedPaymentStatus } from '@/lib/crm/types'
 
-const TONE: Record<DerivedPaymentStatus, 'green' | 'amber' | 'red' | 'neutral'> = { paid: 'green', partial: 'amber', unpaid: 'neutral', overdue: 'red' }
+const INK = '#202124'
+const MUTED = '#5f6368'
+
+/** Status in words only. A note past its due date is still awaiting payment. */
+const STATUS_LABEL: Record<DerivedPaymentStatus, string> = { paid: 'Settled', partial: 'Part paid', unpaid: 'Awaiting payment', overdue: 'Awaiting payment' }
 
 /**
  * What this client has been billed and what is still to come in.
@@ -56,7 +59,6 @@ export function CompanyPayments({ companyId, notes, summary, onChanged }: {
   return (
     <SectionCard
       title="Billing and payments"
-      description="Everything raised for this client, and what has come back in."
       actions={
         <>
           {open.length > 0 && (
@@ -64,31 +66,30 @@ export function CompanyPayments({ companyId, notes, summary, onChanged }: {
               <Send size={12} /> Draft reminder{selected.size ? ` (${selected.size})` : ''}
             </Btn>
           )}
-          <LinkBtn size="xs" level="tertiary" href="/finance"><ExternalLink size={12} /> Reconciliation</LinkBtn>
+          <LinkBtn size="xs" level="tertiary" href="/finance">Reconciliation</LinkBtn>
         </>
       }
     >
-      {error && <p className="text-[12px] text-destructive mb-2 m-0">{error}</p>}
+      {error && <p className="text-[13px] mb-2 m-0" style={{ color: '#c5221f' }}>{error}</p>}
 
       {notes.length > 0 && (
-        <div className="mb-3">
-          <p className="text-[13px] m-0">
-            <span className="text-muted-foreground">Collected </span>
-            <strong className="tabular-nums">{fmtMoney(collected, currency)}</strong>
-            <span className="text-muted-foreground"> of </span>
-            <strong className="tabular-nums">{fmtMoney(billed, currency)}</strong>
-            <span className="text-muted-foreground"> billed</span>
+        <div className="mb-5">
+          <p className="text-[14px] m-0" style={{ color: INK }}>
+            <span style={{ color: MUTED }}>Collected </span>
+            <span className="font-medium tabular-nums">{fmtMoney(collected, currency)}</span>
+            <span style={{ color: MUTED }}> of </span>
+            <span className="font-medium tabular-nums">{fmtMoney(billed, currency)}</span>
+            <span style={{ color: MUTED }}> billed</span>
             {summary.byCurrency.map(m => (
               <span key={m.currency}>
-                <span className="text-muted-foreground"> · Still to collect </span>
-                <strong className="tabular-nums">{fmtMoney(m.outstanding, m.currency)}</strong>
-                {m.overdue > 0 && <span className="text-muted-foreground"> ({fmtMoney(m.overdue, m.currency)} past due)</span>}
+                <span style={{ color: MUTED }}> · Still to collect </span>
+                <span className="font-medium tabular-nums">{fmtMoney(m.outstanding, m.currency)}</span>
               </span>
             ))}
-            {summary.nextDue && <><span className="text-muted-foreground"> · Next due </span>{fmtDate(summary.nextDue)}</>}
+            {summary.nextDue && <><span style={{ color: MUTED }}> · Next due </span>{fmtDate(summary.nextDue)}</>}
           </p>
-          <div className="mt-2 h-1.5 rounded-sm bg-muted overflow-hidden">
-            <div className="h-full rounded-sm" style={{ width: `${pct}%`, background: 'var(--success)' }} />
+          <div className="mt-2.5 h-1 rounded-full overflow-hidden" style={{ background: '#dadce0' }} aria-hidden>
+            <div className="h-full rounded-full" style={{ width: `${pct}%`, background: INK }} />
           </div>
         </div>
       )}
@@ -96,56 +97,64 @@ export function CompanyPayments({ companyId, notes, summary, onChanged }: {
       {rows.length === 0 && <Empty compact>{notes.length === 0 ? 'Nothing has been billed to this client yet.' : 'Everything has been collected.'}</Empty>}
 
       {rows.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-[12.5px] min-w-[640px]">
-            <thead>
-              <tr className="text-[10.5px] uppercase tracking-wider text-muted-foreground border-b border-[--border-subtle]">
-                <th className="w-7 py-1.5" />
-                <th className="text-left pr-3 py-1.5 font-semibold">Debit note</th>
-                <th className="text-left pr-3 py-1.5 font-semibold">Cover</th>
-                <th className="text-left pr-3 py-1.5 font-semibold">Due</th>
-                <th className="text-right pr-3 py-1.5 font-semibold">Billed</th>
-                <th className="text-right pr-3 py-1.5 font-semibold">To collect</th>
-                <th className="text-left pr-3 py-1.5 font-semibold">Status</th>
-                <th className="py-1.5" />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(n => (
-                <tr key={n.id} className={cn('border-b border-[--border-subtle] last:border-b-0', n.outstanding > 0 && 'cursor-pointer hover:bg-muted/40')} onClick={() => n.outstanding > 0 && toggle(n.id)}>
-                  <td className="py-2">{n.outstanding > 0 && <input type="checkbox" checked={selected.has(n.id)} onChange={() => toggle(n.id)} onClick={e => e.stopPropagation()} aria-label={`Select ${n.debit_note_no}`} />}</td>
-                  <td className="pr-3 py-2 font-mono text-[11.5px] whitespace-nowrap">
-                    {n.debit_note_no}
-                    {n.drive_folder_url && <a href={n.drive_folder_url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="ml-1.5 inline-flex align-middle text-muted-foreground hover:text-primary" title="Open Drive folder"><FolderOpen size={11} /></a>}
-                  </td>
-                  <td className="pr-3 py-2 text-muted-foreground"><span className="block truncate max-w-[200px]">{n.classOfInsurance ?? n.event_type ?? '—'}</span><span className="block text-[11px] truncate max-w-[200px]">{n.insurer ?? ''}</span></td>
-                  <td className="pr-3 py-2 whitespace-nowrap">{fmtDate(n.payment_due_date)}{n.derived === 'overdue' && <span className="block text-[10.5px] text-muted-foreground">{n.daysOverdue} days past due</span>}</td>
-                  <td className="pr-3 py-2 text-right tabular-nums whitespace-nowrap">{fmtMoney(n.net_amount ?? n.gross_amount, n.currency)}</td>
-                  <td className="pr-3 py-2 text-right tabular-nums whitespace-nowrap font-semibold">{n.outstanding > 0 ? fmtMoney(n.outstanding, n.currency) : '—'}</td>
-                  <td className="pr-3 py-2"><Chip tone={TONE[n.derived]}>{PAYMENT_LABEL[n.derived]}</Chip></td>
-                  <td className="py-2 text-right">
-                    {n.outstanding > 0 && (
-                      <Btn size="xs" level="tertiary" onClick={e => { e.stopPropagation(); setPaying(n) }} title="Record what has been received against this debit note">
-                        <BadgeDollarSign size={12} /> Record payment
+        <Register label="Debit notes" minWidth={700}>
+          <RegisterHead>
+            <RegisterTh first>Debit note</RegisterTh>
+            <RegisterTh>Cover</RegisterTh>
+            <RegisterTh>Due</RegisterTh>
+            <RegisterTh align="right">Billed</RegisterTh>
+            <RegisterTh align="right">To collect</RegisterTh>
+            <RegisterTh last />
+          </RegisterHead>
+          <tbody>
+            {rows.map(n => {
+              const openNote = n.outstanding > 0
+              const on = selected.has(n.id)
+              return (
+                <RegisterRow key={n.id} selected={on} onClick={openNote ? () => toggle(n.id) : undefined}>
+                  <RegisterCell first selected={on}>
+                    <span className="flex items-center gap-3">
+                      <span className="w-4 flex-shrink-0 inline-flex items-center">
+                        {openNote && <input type="checkbox" checked={on} onChange={() => toggle(n.id)} onClick={e => e.stopPropagation()} aria-label={`Select ${n.debit_note_no}`} />}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-[15px] font-medium leading-tight truncate tabular-nums" style={{ color: INK }}>{n.debit_note_no}</span>
+                        <span className="block text-[12.5px] mt-0.5 truncate" style={{ color: MUTED }}>
+                          {n.drive_folder_url
+                            ? <a href={n.drive_folder_url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="no-underline hover:underline" style={{ color: MUTED }} title="Open Drive folder">Drive folder</a>
+                            : `Issued ${fmtDate(n.issue_date)}`}
+                        </span>
+                      </span>
+                    </span>
+                  </RegisterCell>
+                  <RegisterCell primary={n.classOfInsurance ?? n.event_type ?? '—'} secondary={n.insurer ?? 'Insurer not recorded'} className="max-w-[260px]" nowrap={false} />
+                  <RegisterCell primary={fmtDate(n.payment_due_date)} />
+                  <RegisterCell align="right" primary={fmtMoney(n.net_amount ?? n.gross_amount, n.currency)} secondary={n.commission ? `Commission ${fmtMoney(n.commission, n.currency)}` : undefined} />
+                  <RegisterCell align="right" primary={openNote ? <span className="font-medium">{fmtMoney(n.outstanding, n.currency)}</span> : '—'}
+                    secondary={openNote && (Number(n.paid_amount ?? 0) + Number(n.paid_direct_amount ?? 0)) > 0 ? `${fmtMoney(Number(n.paid_amount ?? 0) + Number(n.paid_direct_amount ?? 0), n.currency)} received` : STATUS_LABEL[n.derived]} />
+                  <RegisterCell last align="right">
+                    {openNote && (
+                      <Btn size="xs" level="secondary" onClick={e => { e.stopPropagation(); setPaying(n) }} title="Record what has been received against this debit note">
+                        Record payment
                       </Btn>
                     )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </RegisterCell>
+                </RegisterRow>
+              )
+            })}
+          </tbody>
+        </Register>
       )}
 
       {settled.length > 0 && (
-        <button onClick={() => setShowPaid(v => !v)} className="mt-2 text-[12px] font-semibold text-primary bg-transparent border-0 p-0 cursor-pointer hover:underline">
+        <button type="button" onClick={() => setShowPaid(v => !v)} className="mt-3 text-[13px] bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4" style={{ color: INK }}>
           {showPaid ? 'Hide settled' : `Show ${settled.length} settled debit note${settled.length === 1 ? '' : 's'}`}
         </button>
       )}
 
-      <p className="text-[11.5px] text-muted-foreground m-0 mt-3">
-        Clearing a balance here records the payment against the debit note. To work through everything at once, use{' '}
-        <Link href="/finance" className="text-primary no-underline hover:underline">Finance</Link>.
+      <p className="text-[13px] m-0 mt-4" style={{ color: MUTED }}>
+        Recording a payment here clears the balance on the debit note. To work through everything at once, use{' '}
+        <Link href="/finance" className="underline underline-offset-4" style={{ color: INK }}>Finance</Link>.
       </p>
 
       <RecordPaymentDialog

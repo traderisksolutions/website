@@ -2,12 +2,17 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, Scale } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { PmCompareTable } from '@/components/pricing-matrix/PmCompareTable'
 import type { CompareInsurer } from '@/lib/pm-compare'
+import { Spinner } from '@/components/crm/primitives'
+
+const INK = '#202124'
+const MUTED = '#5f6368'
 
 type Avail = { id: string; insurer_name: string }
 
+/** Compare coverage: pick two or more approved insurers, then the wording side by side. */
 export default function ComparePage() {
   const [avail, setAvail] = useState<Avail[]>([])
   const [selected, setSelected] = useState<Record<string, boolean>>({})
@@ -26,28 +31,40 @@ export default function ComparePage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-6">
-      <Link href="/pricing-matrix" className="inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground hover:text-foreground mb-3"><ArrowLeft size={14} /> Pricing Matrix</Link>
-      <h1 className="text-[18px] font-semibold text-foreground mb-1 flex items-center gap-2"><Scale size={17} className="text-primary" /> Compare coverage</h1>
-      <p className="text-[12.5px] text-muted-foreground/80 mb-5">Pick two or more insurers to see what&rsquo;s actually covered side by side — not just the price.</p>
-
-      {avail.length === 0 ? (
-        <p className="text-[13px] text-muted-foreground py-8 text-center border border-dashed border-border rounded-xl">No approved calculators yet.</p>
-      ) : (
-        <div className="flex flex-wrap items-center gap-2 mb-5">
-          {avail.map(a => (
-            <label key={a.id} className={`text-[12.5px] px-3 py-1.5 rounded-lg border cursor-pointer ${selected[a.id] ? 'border-primary/40 bg-primary/5 text-primary font-medium' : 'border-border text-muted-foreground hover:bg-muted/40'}`}>
-              <input type="checkbox" className="hidden" checked={!!selected[a.id]} onChange={() => setSelected(s => ({ ...s, [a.id]: !s[a.id] }))} />
-              {a.insurer_name}
-            </label>
-          ))}
-          <button onClick={compare} disabled={ids.length < 2 || loading} className="ml-auto flex items-center gap-1.5 text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-            {loading ? <Loader2 size={14} className="animate-spin" /> : <Scale size={14} />} Compare {ids.length > 0 ? `(${ids.length})` : ''}
-          </button>
+    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
+      <div className="mx-auto max-w-[1400px] px-6 sm:px-12 pt-12 pb-20">
+        <Link href="/pricing-matrix" className="inline-flex items-center gap-1.5 text-[14px] no-underline hover:underline" style={{ color: MUTED }}>← Pricing Matrix</Link>
+        <div className="mt-3 flex items-end justify-between gap-6 flex-wrap">
+          <div className="min-w-0 max-w-[640px]">
+            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Compare coverage</h1>
+            <p className="m-0 mt-2 text-[13.5px] tabular-nums" style={{ color: MUTED }}>{avail.length} approved calculator{avail.length === 1 ? '' : 's'}{ids.length ? ` · ${ids.length} selected` : ''}</p>
+          </div>
+          {avail.length > 0 && (
+            <button type="button" onClick={compare} disabled={ids.length < 2 || loading} className="h-12 px-6 rounded-[12px] text-white text-[15px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed" style={{ background: INK }}>
+              {loading ? 'Comparing…' : 'Compare'}
+            </button>
+          )}
         </div>
-      )}
 
-      {data && <PmCompareTable insurers={data} />}
+        {avail.length === 0 ? (
+          <p className="m-0 py-16 text-center text-[15px]" style={{ color: MUTED }}>No approved calculators yet.</p>
+        ) : (
+          <div className="mt-8 flex flex-wrap items-center gap-2" role="group" aria-label="Insurers to compare">
+            {avail.map(a => {
+              const on = !!selected[a.id]
+              return (
+                <label key={a.id} className={cn('inline-flex items-center h-10 px-4 rounded-[10px] text-[14px] cursor-pointer select-none border', on ? 'font-medium bg-[#f1f3f4]' : 'bg-white hover:bg-[#f8f9fa]')} style={{ borderColor: on ? INK : '#dadce0', color: INK }}>
+                  <input type="checkbox" className="sr-only" checked={on} onChange={() => setSelected(s => ({ ...s, [a.id]: !s[a.id] }))} />
+                  {a.insurer_name}
+                </label>
+              )
+            })}
+          </div>
+        )}
+
+        {loading && <Spinner label="Aligning coverage terms…" />}
+        {data && <div className="mt-6"><PmCompareTable insurers={data} /></div>}
+      </div>
     </div>
   )
 }

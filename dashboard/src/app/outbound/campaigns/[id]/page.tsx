@@ -3,20 +3,20 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import {
-  ArrowLeft, Loader2, AlertCircle, CheckCircle, Sparkles,
-  Newspaper, Rocket, RefreshCw, ChevronDown, ChevronUp,
-  Mail, Users, BarChart2, FileText, Pause, Play, GitBranch, X, Send,
-} from 'lucide-react'
+import { Loader2, ChevronDown, ChevronUp, X } from 'lucide-react'
 import { Tip } from '@/components/Tip'
 import { RichEditor, plainToHtml } from '@/components/RichEditor'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { cn } from '@/lib/utils'
 import { StatusBadge } from '@/components/status-badge'
 import type { AppStatus } from '@/components/status-badge'
 import { StatCard } from '@/components/stat-card'
-import { AppScrollPage } from '@/components/app-shell'
+import { Chip, inputCls } from '@/components/crm/primitives'
+
+const INK = '#202124'
+const MUTED = '#5f6368'
+const RULE = '#e8eaed'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -95,8 +95,8 @@ type Tab = 'sequence' | 'leads' | 'brief' | 'variants' | 'analytics'
 
 // ── Shared input class ─────────────────────────────────────────────────────────
 
-const INPUT_CLS = 'w-full h-9 px-3 text-[13px] text-foreground bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-ring disabled:bg-muted/30'
-const FIELD_LABEL_CLS = 'text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.04em]'
+const INPUT_CLS = `${inputCls} disabled:bg-[#f8f9fa] disabled:text-[#5f6368]`
+const FIELD_LABEL_CLS = 'text-[12.5px] text-[#5f6368]'
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
@@ -261,7 +261,7 @@ export default function CampaignDetailPage() {
       }
       const updated = data.sequences ?? []
       setLocalSeqs(updated)
-      setSuccessMsg('AI draft complete — review and edit each step below')
+      setSuccessMsg('Drafts ready. Review and edit each step below.')
       setExpandedStep(1)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Drafting failed')
@@ -358,7 +358,7 @@ export default function CampaignDetailPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Failed to create brief')
       setBrief(data)
-      setSuccessMsg('Brief created — review and approve to enable draft generation')
+      setSuccessMsg('Brief created. Approve it to enable draft generation.')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create brief')
     } finally { setBriefSaving(false) }
@@ -375,7 +375,7 @@ export default function CampaignDetailPage() {
       })
       if (!res.ok) throw new Error('Approval failed')
       setBrief(prev => prev ? { ...prev, status: 'approved', approved_at: new Date().toISOString() } : prev)
-      setSuccessMsg('Brief approved — you can now generate AI drafts')
+      setSuccessMsg('Brief approved. Drafts can be generated.')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Approval failed')
     } finally { setBriefApproving(false) }
@@ -406,9 +406,9 @@ export default function CampaignDetailPage() {
           body: JSON.stringify({ limit: validLeadIds.length }),
         })
         const sendData = sendRes.ok ? await sendRes.json() : {}
-        setSuccessMsg(`Campaign launched! ${sendData.sent ?? 0} emails sent now.`)
+        setSuccessMsg(`Campaign launched. ${sendData.sent ?? 0} emails sent now.`)
       } else {
-        setSuccessMsg(`Campaign launched! ${data.leadsQueued} leads queued. Use "Send Now" to send ${batchSize} at a time.`)
+        setSuccessMsg(`Campaign launched. ${data.leadsQueued} leads queued. Use Send now to send ${batchSize} at a time.`)
       }
       await load()
     } catch (e) {
@@ -485,7 +485,7 @@ export default function CampaignDetailPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Send failed')
-      setSuccessMsg(`Sent ${data.sent} email${data.sent !== 1 ? 's' : ''} now!`)
+      setSuccessMsg(`Sent ${data.sent} email${data.sent !== 1 ? 's' : ''}.`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Send failed')
     } finally { setSendingNow(false) }
@@ -514,17 +514,26 @@ export default function CampaignDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[calc(50vh/var(--ui-zoom))]">
-        <Loader2 size={20} className="animate-spin text-muted-foreground/40" />
+      <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
+        <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20" aria-busy="true">
+          <span className="block h-3.5 w-24 rounded bg-[#f1f3f4] animate-pulse" />
+          <span className="block mt-6 h-9 w-80 rounded bg-[#f1f3f4] animate-pulse" />
+          <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {Array.from({ length: 4 }).map((_, i) => <span key={i} className="block h-[92px] rounded-[16px] bg-[#f1f3f4] animate-pulse" />)}
+          </div>
+          <span className="block mt-8 h-[200px] rounded-[16px] bg-[#f1f3f4] animate-pulse" />
+        </div>
       </div>
     )
   }
 
   if (!campaign) {
     return (
-      <div className="px-8 py-7">
-        <p className="text-[14px] text-destructive mb-2">Campaign not found.</p>
-        <Link href="/outbound/campaigns" className="text-[13px] text-primary hover:underline">← Back to Campaigns</Link>
+      <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
+        <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
+          <Link href="/outbound/campaigns" className="inline-flex items-center gap-1.5 text-[14px] no-underline hover:underline" style={{ color: MUTED }}>← Campaigns</Link>
+          <p className="mt-8 text-[16px] m-0" style={{ color: MUTED }}>Campaign not found.</p>
+        </div>
       </div>
     )
   }
@@ -533,679 +542,452 @@ export default function CampaignDetailPage() {
     ? Math.round((campaign.reply_count / campaign.sent_count) * 100)
     : 0
 
+  // The one filled primary on the page: the campaign's next action. Tab-level
+  // actions drop to secondary whenever the header owns the primary.
+  const headerPrimary: 'send' | 'resume' | 'launch' | null =
+    isActive ? 'send' : isPaused ? 'resume' : (allApproved && !isActive) ? 'launch' : null
+  const tabPrimary = headerPrimary ? 'outline' : 'default'
+
+  const cumulativeDay = (stepNumber: number) =>
+    localSeqs.filter(s => s.step_number <= stepNumber && s.step_number > 1).reduce((n, s) => n + (s.delay_days || 0), 0)
+
+  const createdLabel = new Date(campaign.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })
+  const sigCurrent = signatureId ? signatures.find(s => s.id === signatureId) ?? null : null
+
+  const TABS: { key: Tab; label: string; dot?: boolean }[] = [
+    { key: 'sequence',  label: 'Sequence' },
+    { key: 'leads',     label: 'Leads' },
+    { key: 'brief',     label: 'Brief', dot: !!needsBrief },
+    ...(campaign.variant_mode ? [{ key: 'variants' as Tab, label: 'Variants' }] : []),
+    { key: 'analytics', label: 'Analytics' },
+  ]
+
   return (
-    <AppScrollPage maxWidth="1000px">
+    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
+      <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
 
-      {/* ── Breadcrumb ── */}
-      <Link
-        href="/outbound/campaigns"
-        className="inline-flex items-center gap-1 text-[12px] text-muted-foreground/60 hover:text-muted-foreground no-underline mb-3"
-      >
-        <ArrowLeft size={12} /> Campaigns
-      </Link>
+        <Link href="/outbound/campaigns" className="inline-flex items-center gap-1.5 text-[14px] no-underline hover:underline" style={{ color: MUTED }}>← Campaigns</Link>
 
-      {/* ── Campaign header ── */}
-      <div className="flex items-center gap-3 flex-wrap mb-4">
-        <h1 className="text-[20px] font-bold tracking-tight text-foreground flex-1 min-w-0 m-0">
-          {campaign.name}
-        </h1>
-        <StatusBadge status={campaign.status as AppStatus} />
-        {(isActive || isPaused) && (
-          <>
-            <Button
-              size="compact"
-              onClick={togglePause}
-              disabled={pausing}
-              className={cn(
-                'gap-1.5',
-                isPaused
-                  ? 'bg-emerald-700 hover:bg-emerald-800 text-white border-0'
-                  : 'border-violet-300 text-violet-700 hover:bg-violet-50'
-              )}
-              variant={isPaused ? 'default' : 'outline'}
-            >
-              {pausing
-                ? <Loader2 size={12} className="animate-spin" />
-                : isPaused ? <Play size={12} /> : <Pause size={12} />
-              }
-              {isPaused ? 'Resume' : 'Pause'}
-            </Button>
-            <Button
-              size="compact"
-              onClick={sendNow}
-              disabled={sendingNow}
-              className="gap-1.5 bg-blue-700 hover:bg-blue-800 text-white border-0"
-            >
-              {sendingNow
-                ? <Loader2 size={12} className="animate-spin" />
-                : <Send size={12} />
-              }
-              {sendingNow ? 'Sending…' : 'Send Now'}
-            </Button>
-          </>
-        )}
-      </div>
-
-      {/* ── Compact performance strip ── */}
-      {(campaign.sent_count > 0 || campaign.lead_count > 0) && (
-        <div className="flex items-center gap-6 px-4 py-3 mb-4 rounded-lg bg-muted/30 border border-[--border-subtle] flex-wrap">
-          {[
-            { label: 'Leads',      value: campaign.lead_count,  highlight: false },
-            { label: 'Sent',       value: campaign.sent_count,  highlight: false },
-            { label: 'Replies',    value: campaign.reply_count, highlight: campaign.reply_count > 0 },
-            ...(campaign.sent_count > 0
-              ? [{ label: 'Reply Rate', value: `${replyRate}%`, highlight: replyRate > 0 }]
-              : []
-            ),
-          ].map(m => (
-            <div key={m.label} className="flex items-baseline gap-2">
-              <span className={cn(
-                'text-[22px] font-bold tabular-nums tracking-tight',
-                m.highlight ? 'text-emerald-700' : 'text-foreground'
-              )}>
-                {m.value}
-              </span>
-              <span className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                {m.label}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* ── News hook ── */}
-      {campaign.news_headline && (
-        <div className="flex items-start gap-2.5 mt-1 mb-3 px-3.5 py-2.5 rounded-lg bg-emerald-50" style={{ borderLeft: '3px solid rgba(15,138,95,0.45)' }}>
-          <Newspaper size={13} className="text-emerald-700 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-[11.5px] font-semibold text-emerald-700 mb-0.5 flex items-center gap-1">
-              News Hook <Tip text="The AI uses this article as the opening line in Email 1." />
+        {/* ── Header ── */}
+        <div className="mt-4 flex items-end justify-between gap-6 flex-wrap">
+          <div className="min-w-0">
+            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]" style={{ textWrap: 'balance' }}>{campaign.name}</h1>
+            <p className="m-0 mt-2 text-[15px] flex items-center gap-2 flex-wrap" style={{ color: MUTED }}>
+              <StatusBadge status={campaign.status as AppStatus} />
+              <span>Created {createdLabel}</span>
             </p>
-            <p className="text-[12px] text-emerald-700">{campaign.news_headline}</p>
-            {campaign.news_summary && (
-              <p className="text-[11px] text-emerald-600/70 mt-0.5 leading-relaxed">{campaign.news_summary}</p>
-            )}
           </div>
-        </div>
-      )}
-
-      {/* ── Brief required warning ── */}
-      {needsBrief && tab !== 'brief' && (
-        <div className="flex items-center gap-2.5 mb-3 px-3.5 py-2.5 rounded-lg bg-amber-50" style={{ borderLeft: '3px solid rgba(194,122,7,0.50)' }}>
-          <AlertCircle size={13} className="text-amber-700 flex-shrink-0" />
-          <p className="text-[12px] text-amber-800 flex-1 m-0">
-            Brief approval required before you can generate AI drafts.
-          </p>
-          <button
-            onClick={() => setTab('brief')}
-            className="text-[12px] font-medium text-amber-800 rounded-md px-2.5 py-1 bg-amber-100/60 cursor-pointer hover:bg-amber-100 transition-colors whitespace-nowrap"
-          >
-            Go to Brief →
-          </button>
-        </div>
-      )}
-
-      {/* ── Error / Success banners ── */}
-      {error && (
-        <div className="flex items-center gap-2 px-3.5 py-2.5 mb-4 rounded-lg bg-destructive/[0.06] border border-destructive/20 text-destructive text-[13px]">
-          <AlertCircle size={14} className="flex-shrink-0" />
-          <span className="flex-1">{error}</span>
-          <button onClick={() => setError(null)} className="bg-transparent border-0 cursor-pointer text-destructive text-[16px] leading-none px-1">×</button>
-        </div>
-      )}
-      {successMsg && (
-        <div className="flex items-center gap-2 px-3.5 py-2.5 mb-4 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-[13px]">
-          <CheckCircle size={14} className="flex-shrink-0" />
-          <span className="flex-1">{successMsg}</span>
-          <button onClick={() => setSuccessMsg(null)} className="bg-transparent border-0 cursor-pointer text-emerald-700 text-[16px] leading-none px-1">×</button>
-        </div>
-      )}
-
-      {/* ── Tab bar ── */}
-      <div className="flex border-b border-[--border-subtle] mb-5 overflow-x-auto">
-        {([
-          { key: 'sequence',  label: 'Sequence',  icon: <Mail size={13} /> },
-          { key: 'leads',     label: 'Leads',     icon: <Users size={13} /> },
-          { key: 'brief',     label: 'Brief',     icon: <FileText size={13} />, badge: needsBrief },
-          ...(campaign.variant_mode
-            ? [{ key: 'variants' as Tab, label: 'Variants', icon: <GitBranch size={13} /> }]
-            : []
-          ),
-          { key: 'analytics', label: 'Analytics', icon: <BarChart2 size={13} /> },
-        ] as { key: Tab; label: string; icon: React.ReactNode; badge?: boolean }[]).map(t => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={cn(
-              'inline-flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap relative',
-              'px-4 py-2.5 border-0 bg-transparent cursor-pointer',
-              'text-[13px] transition-colors border-b-2 -mb-px',
-              tab === t.key
-                ? 'border-primary text-foreground font-semibold'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            )}
-          >
-            {t.icon} {t.label}
-            {t.badge && (
-              <span className="absolute top-1.5 right-1 w-1.5 h-1.5 rounded-full bg-amber-400" />
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* ══════════════════════════════════════════════════════════════
-          SEQUENCE TAB
-      ══════════════════════════════════════════════════════════════ */}
-      {tab === 'sequence' && (
-        <div>
-          {/* Sequence toolbar */}
-          <div className="flex items-center gap-2 mb-4 flex-wrap">
-            <p className="flex-1 min-w-0 text-[13px] text-muted-foreground m-0">
-              {hasDraft
-                ? 'Review and edit each step. Approve all steps before launching.'
-                : 'Generate AI drafts to get started.'}
-            </p>
-            <Tip text="The AI writes all 3 email steps using the news hook and lead details. Review and edit each draft before approving — nothing is sent until you click Launch." />
-            <Button
-              size="compact"
-              onClick={draftSequences}
-              disabled={drafting || isActive}
-              className="gap-1.5 bg-violet-600 hover:bg-violet-700 text-white border-0"
-            >
-              {drafting
-                ? <Loader2 size={12} className="animate-spin" />
-                : hasDraft ? <RefreshCw size={12} /> : <Sparkles size={12} />
-              }
-              {drafting ? 'Drafting…' : hasDraft ? 'Redraft All' : 'Generate AI Drafts'}
-            </Button>
-            {hasDraft && !isActive && (
-              <Button variant="outline" size="compact" onClick={saveSequences} disabled={savingSeqs} className="gap-1.5">
-                {savingSeqs && <Loader2 size={12} className="animate-spin" />}
-                {savingSeqs ? 'Saving…' : 'Save Changes'}
+          <div className="flex items-center gap-2 flex-wrap">
+            {(isActive || isPaused) && (
+              <Button variant={headerPrimary === 'resume' ? 'default' : 'outline'} size="lg" onClick={togglePause} disabled={pausing}>
+                {pausing ? 'Working…' : isPaused ? 'Resume' : 'Pause'}
               </Button>
             )}
-            {allApproved && !isActive && (
-              <>
-                <Tip text="Queues all approved leads for Gmail delivery. Emails send at ~30/hour with follow-up steps handled automatically." />
-                <Button
-                  size="compact"
-                  onClick={() => setLaunchConfirm(true)}
-                  disabled={launching}
-                  className="gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white border-0"
-                >
-                  {launching ? <Loader2 size={12} className="animate-spin" /> : <Rocket size={12} />}
-                  {launching ? 'Launching…' : 'Launch Campaign'}
+            {(isActive || isPaused) && (
+              <Button variant={headerPrimary === 'send' ? 'default' : 'outline'} size="lg" onClick={sendNow} disabled={sendingNow}>
+                {sendingNow ? 'Sending…' : 'Send now'}
+              </Button>
+            )}
+            {headerPrimary === 'launch' && (
+              <span className="inline-flex items-center gap-1">
+                <Button size="lg" onClick={() => setLaunchConfirm(true)} disabled={launching}>
+                  {launching ? 'Launching…' : 'Launch campaign'}
                 </Button>
-              </>
+                <Tip text="Queues all approved leads for Gmail delivery. Emails send at about 30 an hour; follow-up steps are handled automatically." />
+              </span>
             )}
           </div>
-
-          {/* Step cards */}
-          <div className="flex flex-col gap-3">
-            {localSeqs.map((seq, i) => {
-              const isExpanded = expandedStep === seq.step_number
-              const approved   = seq.status === 'approved'
-              const stepLabel  = seq.step_number === 1
-                ? 'Email 1 — Initial outreach'
-                : seq.step_number === 2
-                ? 'Email 2 — Follow-up'
-                : 'Email 3 — Final touch'
-              return (
-                <Card key={seq.id} className={cn('overflow-hidden', approved && 'border-emerald-200')}>
-                  <button
-                    onClick={() => setExpandedStep(isExpanded ? null : seq.step_number)}
-                    className="w-full flex items-center gap-3 px-5 py-3.5 bg-transparent border-0 cursor-pointer text-left"
-                  >
-                    <span className={cn(
-                      'w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[11px] font-bold',
-                      approved
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        : 'bg-muted text-muted-foreground'
-                    )}>
-                      {approved ? <CheckCircle size={13} /> : i + 1}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="m-0 text-[13px] font-semibold text-foreground flex items-center gap-2 flex-wrap">
-                        {stepLabel}
-                        {seq.step_number > 1 && (
-                          <span className="text-[11px] font-normal text-muted-foreground/60">
-                            {seq.delay_days === 0 ? 'Same day' : `+${seq.delay_days}d`}
-                          </span>
-                        )}
-                      </p>
-                      {seq.subject && (
-                        <p className="m-0 mt-0.5 text-[12px] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
-                          Subject: {seq.subject}
-                        </p>
-                      )}
-                    </div>
-                    <span className={cn(
-                      'text-[10px] font-semibold px-2 py-0.5 rounded flex-shrink-0',
-                      approved ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
-                    )}>
-                      {approved ? 'Approved' : 'Draft'}
-                    </span>
-                    {isExpanded
-                      ? <ChevronUp size={14} className="text-muted-foreground/30 flex-shrink-0" />
-                      : <ChevronDown size={14} className="text-muted-foreground/30 flex-shrink-0" />
-                    }
-                  </button>
-
-                  {isExpanded && (
-                    <div className="px-5 pb-5 pt-4 border-t border-[--border-subtle]">
-                      {/* Timing */}
-                      {seq.step_number > 1 && (
-                        <div className="flex items-center gap-3 mb-4">
-                          <label className={cn(FIELD_LABEL_CLS, 'whitespace-nowrap')}>
-                            Send after
-                          </label>
-                          <input
-                            type="number" min={1} max={90}
-                            value={seq.delay_days}
-                            disabled={isActive}
-                            onChange={e => updateLocalSeq(seq.id, 'delay_days', parseInt(e.target.value) || 1)}
-                            className="w-14 h-8 px-2 text-center text-[13px] text-foreground border border-input rounded-md bg-background outline-none focus:ring-1 focus:ring-ring disabled:bg-muted/30"
-                          />
-                          <span className="text-[12px] text-muted-foreground">days</span>
-                        </div>
-                      )}
-
-                      {/* Subject */}
-                      <div className="mb-4">
-                        <label className={cn(FIELD_LABEL_CLS, 'block mb-1.5')}>
-                          Subject Line
-                        </label>
-                        <input
-                          className={INPUT_CLS}
-                          placeholder="Subject line…"
-                          value={seq.subject}
-                          disabled={isActive}
-                          onChange={e => updateLocalSeq(seq.id, 'subject', e.target.value)}
-                        />
-                      </div>
-
-                      {/* Body */}
-                      <div className="mb-4">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <label className={FIELD_LABEL_CLS}>Email Body</label>
-                          <span className="text-[10px] text-amber-600 font-semibold">
-                            ⚠ Images &amp; HTML reduce cold-email deliverability
-                          </span>
-                        </div>
-                        {isActive ? (
-                          <div
-                            className="px-3 py-2.5 text-[13px] border border-[--border-subtle] rounded-md bg-muted/30 min-h-[120px] text-foreground leading-relaxed whitespace-pre-wrap"
-                            dangerouslySetInnerHTML={{ __html: seq.body }}
-                          />
-                        ) : (
-                          <RichEditor
-                            key={seq.id}
-                            initialHtml={seq.body.startsWith('<') ? seq.body : plainToHtml(seq.body)}
-                            onChange={html => updateLocalSeq(seq.id, 'body', html)}
-                            placeholder="Email body… Use {{first_name}} and {{company}} for personalisation."
-                            minHeight={160}
-                          />
-                        )}
-                        <p className="text-[11px] text-muted-foreground/40 mt-1.5 flex items-center gap-1 m-0">
-                          Tokens: {'{{first_name}}'} · {'{{company}}'}{' '}
-                          <Tip text="Gmail replaces these with each lead's first name and company before sending." />
-                        </p>
-                        {/* Signature preview */}
-                        {signatureId && (() => {
-                          const sig = signatures.find(s => s.id === signatureId)
-                          return sig ? (
-                            <div className="mt-2 px-3 py-2.5 rounded-lg bg-muted/30 border border-dashed border-border text-[12px] text-muted-foreground leading-relaxed">
-                              <p className="text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground/40 mb-1">
-                                Signature appended at send
-                              </p>
-                              Best regards,<br />
-                              <strong className="text-foreground/70">{sig.name}</strong><br />
-                              {[sig.title, sig.phone].filter(Boolean).join(' · ')}
-                              {(sig.title || sig.phone) ? <br /> : null}
-                              {sig.email && <>{sig.email}<br /></>}
-                              {sig.company_tagline && (
-                                <span className="text-muted-foreground/40">{sig.company_tagline}</span>
-                              )}
-                            </div>
-                          ) : null
-                        })()}
-                      </div>
-
-                      {/* Step actions */}
-                      {!isActive && !approved && seq.subject && seq.body && (
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="compact"
-                            onClick={() => approveStep(seq.id)}
-                            className="gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white border-0"
-                          >
-                            <CheckCircle size={12} /> Approve Step {seq.step_number}
-                          </Button>
-                          <Tip text="Marks this email as ready to send. All 3 steps must be approved before the Launch Campaign button appears." />
-                        </div>
-                      )}
-                      {!isActive && approved && (
-                        <Button
-                          variant="outline"
-                          size="compact"
-                          onClick={() => updateLocalSeq(seq.id, 'status', 'draft')}
-                        >
-                          Unapprove
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </Card>
-              )
-            })}
-          </div>
-
-          {localSeqs.length === 0 && (
-            <div className="text-center py-8">
-              <p className="text-[13px] text-muted-foreground/50">
-                No sequences yet — click &ldquo;Generate AI Drafts&rdquo; to start
-              </p>
-            </div>
-          )}
         </div>
-      )}
 
-      {/* ══════════════════════════════════════════════════════════════
-          LEADS TAB
-      ══════════════════════════════════════════════════════════════ */}
-      {tab === 'leads' && (
-        <Card>
-          <CardContent className="p-5">
-            {/* Segment management */}
-            <div className="mb-4 pb-4 border-b border-[--border-subtle]">
-              <p className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-wider mb-2">
-                Segments
-              </p>
+        {/* ── Stat tiles ── */}
+        {(campaign.sent_count > 0 || campaign.lead_count > 0) && (
+          <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <StatCard label="Leads"      value={campaign.lead_count} />
+            <StatCard label="Sent"       value={campaign.sent_count} />
+            <StatCard label="Replies"    value={campaign.reply_count} />
+            <StatCard label="Reply rate" value={campaign.sent_count > 0 ? `${replyRate}%` : '—'} />
+          </div>
+        )}
+
+        {/* ── News hook ── */}
+        {campaign.news_headline && (
+          <div className="mt-6">
+            <p className="m-0 text-[12.5px] flex items-center gap-1" style={{ color: MUTED }}>
+              News hook <Tip text="The AI uses this article as the opening line in Email 1." />
+            </p>
+            <p className="m-0 mt-1 text-[14px]" style={{ color: INK }}>{campaign.news_headline}</p>
+            {campaign.news_summary && <p className="m-0 mt-1 text-[13px] leading-relaxed" style={{ color: MUTED }}>{campaign.news_summary}</p>}
+          </div>
+        )}
+
+        {/* ── Notices: plain rows, no tint ── */}
+        {needsBrief && tab !== 'brief' && (
+          <p className="mt-6 mb-0 text-[14px] flex items-center gap-3 flex-wrap" style={{ color: '#3c4043' }}>
+            <span>A brief must be approved before drafts can be generated.</span>
+            <button type="button" onClick={() => setTab('brief')} className="bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4" style={{ color: INK }}>Open brief</button>
+          </p>
+        )}
+        {error && (
+          <p className="mt-6 mb-0 text-[14px] flex items-center gap-3 flex-wrap" style={{ color: '#3c4043' }} role="alert">
+            <span>{error}</span>
+            <button type="button" onClick={() => setError(null)} className="bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4" style={{ color: INK }}>Dismiss</button>
+          </p>
+        )}
+        {successMsg && (
+          <p className="mt-6 mb-0 text-[14px] flex items-center gap-3 flex-wrap" style={{ color: MUTED }} role="status">
+            <span>{successMsg}</span>
+            <button type="button" onClick={() => setSuccessMsg(null)} className="bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4" style={{ color: INK }}>Dismiss</button>
+          </p>
+        )}
+
+        {/* ── Tabs ── */}
+        <div className="mt-8 flex items-center gap-6 overflow-x-auto" role="tablist" style={{ borderBottom: `1px solid ${RULE}` }}>
+          {TABS.map(t => {
+            const on = tab === t.key
+            return (
+              <button key={t.key} type="button" role="tab" aria-selected={on} onClick={() => setTab(t.key)}
+                className={cn('relative pb-3 bg-transparent border-0 cursor-pointer text-[15px] whitespace-nowrap inline-flex items-center gap-1.5', on ? 'font-medium' : 'hover:text-[#202124]')}
+                style={{ color: on ? INK : MUTED }}>
+                {t.label}
+                {t.dot && <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#9aa0a6' }} aria-hidden />}
+                <span className={cn('absolute left-0 right-0 -bottom-px h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: INK }} aria-hidden />
+              </button>
+            )
+          })}
+        </div>
+
+        {/* ══════════════ SEQUENCE TAB ══════════════ */}
+        {tab === 'sequence' && (
+          <div className="mt-6">
+            <div className="flex items-center justify-end gap-2 mb-4 flex-wrap">
+              {hasDraft && !isActive && (
+                <Button variant="outline" size="sm" onClick={saveSequences} disabled={savingSeqs}>
+                  {savingSeqs ? 'Saving…' : 'Save changes'}
+                </Button>
+              )}
+              <span className="inline-flex items-center gap-1">
+                <Button variant={tabPrimary} size="sm" onClick={draftSequences} disabled={drafting || isActive}>
+                  {drafting ? 'Drafting…' : hasDraft ? 'Redraft all' : 'Generate drafts'}
+                </Button>
+                <Tip text="The AI writes all 3 email steps using the news hook and lead details. Review and edit each draft before approving; nothing is sent until you launch." />
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {localSeqs.map(seq => {
+                const isExpanded = expandedStep === seq.step_number
+                const approved   = seq.status === 'approved'
+                return (
+                  <div key={seq.id} className="rounded-[16px] bg-white overflow-hidden" style={{ border: `1px solid ${RULE}` }}>
+                    <button
+                      type="button"
+                      onClick={() => setExpandedStep(isExpanded ? null : seq.step_number)}
+                      aria-expanded={isExpanded}
+                      className="w-full flex items-center gap-4 px-6 py-4 bg-transparent border-0 cursor-pointer text-left hover:bg-[#f8f9fa]"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="m-0 text-[16px] font-medium tracking-[-0.01em]" style={{ color: INK }}>
+                          Step {seq.step_number} · Day {cumulativeDay(seq.step_number)}
+                        </p>
+                        <p className="m-0 mt-0.5 text-[13px] truncate" style={{ color: MUTED }}>
+                          {seq.subject ? seq.subject : 'No subject yet'}
+                        </p>
+                      </div>
+                      <Chip>{approved ? 'Approved' : 'Draft'}</Chip>
+                      {isExpanded
+                        ? <ChevronUp size={16} className="flex-shrink-0" style={{ color: '#9aa0a6' }} aria-hidden />
+                        : <ChevronDown size={16} className="flex-shrink-0" style={{ color: '#9aa0a6' }} aria-hidden />}
+                    </button>
+
+                    {isExpanded && (
+                      <div className="px-6 pb-6 pt-5" style={{ borderTop: `1px solid ${RULE}` }}>
+                        {seq.step_number > 1 && (
+                          <div className="flex items-center gap-3 mb-4 flex-wrap">
+                            <span className={FIELD_LABEL_CLS}>Send after</span>
+                            <input
+                              type="number" min={1} max={90}
+                              value={seq.delay_days}
+                              disabled={isActive}
+                              onChange={e => updateLocalSeq(seq.id, 'delay_days', parseInt(e.target.value) || 1)}
+                              className={cn(INPUT_CLS, 'w-20 text-center')}
+                              aria-label="Days after the previous step"
+                            />
+                            <span className="text-[13px]" style={{ color: MUTED }}>days after step {seq.step_number - 1}</span>
+                          </div>
+                        )}
+
+                        <label className="block mb-4">
+                          <span className={cn(FIELD_LABEL_CLS, 'block mb-1.5')}>Subject</span>
+                          <input
+                            className={INPUT_CLS}
+                            placeholder="Subject line"
+                            value={seq.subject}
+                            disabled={isActive}
+                            onChange={e => updateLocalSeq(seq.id, 'subject', e.target.value)}
+                          />
+                        </label>
+
+                        <div className="mb-4">
+                          <div className="flex items-center justify-between gap-3 mb-1.5 flex-wrap">
+                            <span className={FIELD_LABEL_CLS}>Body</span>
+                            <span className="text-[12.5px]" style={{ color: MUTED }}>Images and HTML reduce cold-email deliverability.</span>
+                          </div>
+                          {isActive ? (
+                            <div
+                              className="px-3.5 py-3 text-[14px] rounded-[12px] min-h-[120px] leading-relaxed whitespace-pre-wrap"
+                              style={{ border: '1px solid #dadce0', background: '#f8f9fa', color: INK }}
+                              dangerouslySetInnerHTML={{ __html: seq.body }}
+                            />
+                          ) : (
+                            <div className="rounded-[12px] bg-white px-3.5" style={{ border: '1px solid #dadce0' }}>
+                              <RichEditor
+                                key={seq.id}
+                                borderless
+                                initialHtml={seq.body.startsWith('<') ? seq.body : plainToHtml(seq.body)}
+                                onChange={html => updateLocalSeq(seq.id, 'body', html)}
+                                placeholder="Email body. Use {{first_name}} and {{company}} for personalisation."
+                                minHeight={160}
+                              />
+                            </div>
+                          )}
+                          <p className="m-0 mt-1.5 text-[12.5px] flex items-center gap-1" style={{ color: MUTED }}>
+                            Tokens: {'{{first_name}}'} · {'{{company}}'}
+                            <Tip text="Gmail replaces these with each lead's first name and company before sending." />
+                          </p>
+                          {sigCurrent && (
+                            <div className="mt-3 rounded-[12px] px-4 py-3 text-[13px] leading-relaxed" style={{ background: '#f1f3f4', color: '#3c4043' }}>
+                              <p className="m-0 mb-1 text-[12.5px]" style={{ color: MUTED }}>Signature appended at send</p>
+                              Best regards,<br />
+                              <span className="font-medium" style={{ color: INK }}>{sigCurrent.name}</span><br />
+                              {[sigCurrent.title, sigCurrent.phone].filter(Boolean).join(' · ')}
+                              {(sigCurrent.title || sigCurrent.phone) ? <br /> : null}
+                              {sigCurrent.email && <>{sigCurrent.email}<br /></>}
+                              {sigCurrent.company_tagline && <span style={{ color: MUTED }}>{sigCurrent.company_tagline}</span>}
+                            </div>
+                          )}
+                        </div>
+
+                        {!isActive && !approved && seq.subject && seq.body && (
+                          <div className="flex items-center gap-1">
+                            <Button variant="outline" size="sm" onClick={() => approveStep(seq.id)}>
+                              Approve step {seq.step_number}
+                            </Button>
+                            <Tip text="Marks this email as ready to send. All 3 steps must be approved before Launch campaign appears." />
+                          </div>
+                        )}
+                        {!isActive && approved && (
+                          <Button variant="ghost" size="sm" onClick={() => updateLocalSeq(seq.id, 'status', 'draft')}>
+                            Unapprove
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            {localSeqs.length === 0 && (
+              <p className="py-16 text-center text-[16px] m-0" style={{ color: MUTED }}>No sequence yet. Generate drafts to start.</p>
+            )}
+          </div>
+        )}
+
+        {/* ══════════════ LEADS TAB ══════════════ */}
+        {tab === 'leads' && (
+          <div className="mt-6 flex flex-col gap-8">
+            <section>
+              <h2 className="m-0 mb-3 text-[16px] font-medium tracking-[-0.01em]" style={{ color: INK }}>Segments</h2>
               {segments.length > 0 && (
-                <div className="flex gap-1.5 mb-2.5 flex-wrap">
+                <div className="flex gap-1.5 mb-3 flex-wrap">
                   {segments.map(seg => (
-                    <div key={seg.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-muted/70">
-                      <span className="text-[11px] text-foreground">{seg.name}</span>
+                    <Chip key={seg.id} className="pr-1">
+                      {seg.name}
                       <button
+                        type="button"
                         onClick={() => deleteSegment(seg.id)}
                         disabled={deletingSegment === seg.id}
-                        className="text-muted-foreground/40 hover:text-muted-foreground bg-transparent border-0 cursor-pointer p-0 flex"
+                        aria-label={`Remove segment ${seg.name}`}
+                        className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#e8eaed] p-0"
+                        style={{ color: MUTED }}
                       >
-                        {deletingSegment === seg.id
-                          ? <Loader2 size={10} className="animate-spin" />
-                          : <X size={10} />
-                        }
+                        {deletingSegment === seg.id ? <Loader2 size={10} className="animate-spin" /> : <X size={10} />}
                       </button>
-                    </div>
+                    </Chip>
                   ))}
                 </div>
               )}
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <input
-                  className="flex-1 h-8 px-3 text-[12px] text-foreground border border-input rounded-md bg-background outline-none focus:ring-1 focus:ring-ring"
-                  placeholder="New segment name…"
+                  className={cn(inputCls, 'max-w-[320px]')}
+                  placeholder="New segment name"
+                  aria-label="New segment name"
                   value={newSegmentName}
                   onChange={e => setNewSegmentName(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && addSegment()}
                 />
-                <Button
-                  size="compact"
-                  onClick={addSegment}
-                  disabled={addingSegment || !newSegmentName.trim()}
-                  className="gap-1"
-                >
-                  {addingSegment ? <Loader2 size={11} className="animate-spin" /> : null}
-                  + Add
+                <Button variant="outline" onClick={addSegment} disabled={addingSegment || !newSegmentName.trim()}>
+                  {addingSegment ? 'Adding…' : 'Add segment'}
                 </Button>
               </div>
-            </div>
+            </section>
 
-            {/* Leads header */}
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-[13px] font-semibold text-foreground m-0">
-                Campaign leads
-                {campaignLeads.length > 0 && (
-                  <span className="ml-1.5 font-normal text-muted-foreground/60">
-                    ({campaignLeads.filter(cl => cl.approval_status !== 'excluded').length} active)
-                  </span>
-                )}
-              </p>
-              <Link
-                href="/outbound/leads"
-                className="inline-flex items-center gap-1 text-[12px] font-medium text-foreground border border-input rounded-md px-2.5 py-1.5 bg-background hover:bg-muted transition-colors no-underline"
-              >
-                + Add from Lead Database
-              </Link>
-            </div>
-
-            {/* Leads list */}
-            {fetchingLeads ? (
-              <div className="flex justify-center py-8">
-                <Loader2 size={18} className="animate-spin text-muted-foreground/40" />
-              </div>
-            ) : campaignLeads.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-[13px] text-muted-foreground/60 mb-3">No leads assigned to this campaign yet.</p>
-                <Link href="/outbound/leads" className="text-[13px] text-primary hover:underline">
-                  Add leads from Lead Database →
+            <section>
+              <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+                <h2 className="m-0 text-[16px] font-medium tracking-[-0.01em]" style={{ color: INK }}>
+                  Leads
+                  {campaignLeads.length > 0 && (
+                    <span className="ml-2 text-[13px] font-normal tabular-nums" style={{ color: MUTED }}>
+                      {campaignLeads.filter(cl => cl.approval_status !== 'excluded').length} included of {campaignLeads.length}
+                    </span>
+                  )}
+                </h2>
+                <Link href="/outbound/leads" className="inline-flex items-center h-9 px-3.5 rounded-[10px] text-[13.5px] font-medium bg-white no-underline hover:bg-[#f8f9fa]" style={{ border: '1px solid #dadce0', color: INK }}>
+                  Add from lead database
                 </Link>
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr>
-                      {['Include', 'Name', 'Email', 'Title / Company', 'Status'].map(h => (
-                        <th key={h} className="h-9 px-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/30 border-b border-[--border-subtle] whitespace-nowrap first:pl-4">
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
+
+              {fetchingLeads ? (
+                <div className="rounded-[16px] overflow-hidden bg-white" style={{ border: `1px solid ${RULE}` }} aria-busy="true">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="h-12 px-6 flex items-center gap-8" style={{ borderBottom: `1px solid ${RULE}` }}>
+                      <span className="h-3.5 w-40 rounded bg-[#f1f3f4] animate-pulse" />
+                      <span className="h-3.5 w-52 rounded bg-[#f1f3f4] animate-pulse" />
+                    </div>
+                  ))}
+                </div>
+              ) : campaignLeads.length === 0 ? (
+                <p className="py-16 text-center text-[16px] m-0" style={{ color: MUTED }}>
+                  No leads in this campaign yet.{' '}
+                  <Link href="/outbound/leads" className="underline" style={{ color: INK }}>Add leads from the lead database</Link>
+                </p>
+              ) : (
+                <Register label="Campaign leads" minWidth={720}>
+                  <RegisterHead>
+                    <RegisterTh first hint="Ticked leads are included in the send">Lead</RegisterTh>
+                    <RegisterTh>Email</RegisterTh>
+                    <RegisterTh>Segment</RegisterTh>
+                    <RegisterTh last>Status</RegisterTh>
+                  </RegisterHead>
                   <tbody>
                     {campaignLeads.map(cl => {
                       const lead     = cl.outbound_leads
                       const excluded = cl.approval_status === 'excluded'
                       const toggling = togglingLeads.includes(cl.lead_id)
+                      const role     = [lead?.current_title, lead?.current_company].filter(Boolean).join(' · ')
                       return (
-                        <tr key={cl.id} className={cn(
-                          'border-b border-[--border-subtle]',
-                          excluded ? 'opacity-45' : 'hover:bg-muted/20 transition-colors'
-                        )}>
-                          <td className="px-3 py-2.5 pl-4 w-10">
-                            {toggling
-                              ? <Loader2 size={13} className="animate-spin text-muted-foreground/40" />
-                              : <input
-                                  type="checkbox"
-                                  checked={!excluded}
-                                  disabled={isActive}
-                                  onChange={() => toggleLeadInclusion(cl.lead_id, cl.approval_status)}
-                                  className={cn('w-4 h-4', !isActive && 'cursor-pointer')}
-                                  title={excluded ? 'Include in campaign' : 'Exclude from campaign'}
-                                />
-                            }
-                          </td>
-                          <td className="px-3 py-2.5 text-[13px] font-medium text-foreground whitespace-nowrap">
-                            {lead?.full_name || '—'}
-                          </td>
-                          <td className={cn(
-                            'px-3 py-2.5 text-[12px]',
-                            lead?.email ? 'text-emerald-700' : 'text-muted-foreground/40'
-                          )}>
-                            {lead?.email || '—'}
-                          </td>
-                          <td className="px-3 py-2.5 text-[12px] max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap">
-                            <span className="text-foreground/70">{lead?.current_title || '—'}</span>
-                            {lead?.current_company && (
-                              <span className="text-muted-foreground/60"> · {lead.current_company}</span>
-                            )}
-                          </td>
-                          <td className="px-3 py-2.5">
-                            {!excluded && (
-                              <span className={cn(
-                                'text-[10px] font-semibold px-2 py-0.5 rounded',
-                                (cl.send_status === 'sent' || cl.send_status === 'replied')
-                                  ? 'bg-emerald-50 text-emerald-700'
-                                  : 'bg-amber-50 text-amber-700'
-                              )}>
-                                {cl.send_status}
+                        <RegisterRow key={cl.id} className={cn('hover:bg-[#f8f9fa]', excluded && 'opacity-50')}>
+                          <RegisterCell first className="min-w-[280px]">
+                            <span className="flex items-center gap-3 min-w-0">
+                              <span className="inline-flex w-4 flex-shrink-0 justify-center">
+                                {toggling
+                                  ? <Loader2 size={13} className="animate-spin" style={{ color: '#9aa0a6' }} />
+                                  : <input
+                                      type="checkbox"
+                                      checked={!excluded}
+                                      disabled={isActive}
+                                      onChange={() => toggleLeadInclusion(cl.lead_id, cl.approval_status)}
+                                      className={cn('w-4 h-4', !isActive && 'cursor-pointer')}
+                                      aria-label={excluded ? 'Include in campaign' : 'Exclude from campaign'}
+                                    />
+                                }
                               </span>
-                            )}
-                          </td>
-                        </tr>
+                              <span className="min-w-0">
+                                <span className="block text-[15px] font-medium leading-tight truncate" style={{ color: INK }} title={lead?.full_name ?? undefined}>{lead?.full_name || '—'}</span>
+                                <span className="block text-[12.5px] mt-0.5 truncate" style={{ color: MUTED }}>{role || 'No title on file'}</span>
+                              </span>
+                            </span>
+                          </RegisterCell>
+                          <RegisterCell><span className="text-[14px]" style={{ color: lead?.email ? INK : '#9aa0a6' }}>{lead?.email || '—'}</span></RegisterCell>
+                          <RegisterCell><span className="text-[14px]" style={{ color: cl.ob_campaign_segments ? '#3c4043' : '#9aa0a6' }}>{cl.ob_campaign_segments?.name ?? '—'}</span></RegisterCell>
+                          <RegisterCell last>
+                            <span className="text-[14px]" style={{ color: excluded ? MUTED : INK }}>
+                              {excluded ? 'Excluded' : cl.send_status.replace(/_/g, ' ').replace(/^\w/, ch => ch.toUpperCase())}
+                            </span>
+                          </RegisterCell>
+                        </RegisterRow>
                       )
                     })}
                   </tbody>
-                </table>
+                </Register>
+              )}
+            </section>
+          </div>
+        )}
+
+        {/* ══════════════ BRIEF TAB ══════════════ */}
+        {tab === 'brief' && (
+          <div className="mt-6">
+            {fetchingBrief ? (
+              <div className="flex flex-col gap-4" aria-busy="true">
+                <span className="block h-[120px] rounded-[16px] bg-[#f1f3f4] animate-pulse" />
+                <span className="block h-[280px] rounded-[16px] bg-[#f1f3f4] animate-pulse" />
               </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════
-          BRIEF TAB
-      ══════════════════════════════════════════════════════════════ */}
-      {tab === 'brief' && (
-        <div>
-          {fetchingBrief ? (
-            <div className="flex justify-center py-12">
-              <Loader2 size={18} className="animate-spin text-muted-foreground/40" />
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4">
-              {/* Brief status banner */}
-              {brief ? (
-                <div className={cn(
-                  'flex items-center gap-3 px-4 py-3 rounded-lg border',
-                  briefApproved
-                    ? 'bg-emerald-50 border-emerald-200'
-                    : 'bg-amber-50 border-amber-200'
-                )}>
-                  {briefApproved
-                    ? <CheckCircle size={14} className="text-emerald-700 flex-shrink-0" />
-                    : <AlertCircle size={14} className="text-amber-700 flex-shrink-0" />
-                  }
-                  <p className={cn(
-                    'text-[13px] flex-1 m-0',
-                    briefApproved ? 'text-emerald-700' : 'text-amber-800'
-                  )}>
-                    {briefApproved
-                      ? `Brief v${brief.version_number} approved — AI drafts can be generated.`
-                      : `Brief v${brief.version_number} is in draft. Approve it to enable AI draft generation.`
-                    }
+            ) : (
+              <div className="flex flex-col gap-4">
+                {brief ? (
+                  <p className="m-0 text-[14px] flex items-center gap-3 flex-wrap" style={{ color: '#3c4043' }}>
+                    <Chip>{briefApproved ? 'Approved' : 'Draft'}</Chip>
+                    <span>
+                      {briefApproved
+                        ? `Brief v${brief.version_number} approved. Drafts can be generated.`
+                        : `Brief v${brief.version_number} is in draft. Approve it to enable draft generation.`}
+                    </span>
+                    {!briefApproved && (
+                      <Button variant={tabPrimary} size="sm" onClick={approveBrief} disabled={briefApproving}>
+                        {briefApproving ? 'Approving…' : 'Approve brief'}
+                      </Button>
+                    )}
                   </p>
-                  {!briefApproved && (
-                    <Button
-                      size="compact"
-                      onClick={approveBrief}
-                      disabled={briefApproving}
-                      className="gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white border-0 flex-shrink-0"
-                    >
-                      {briefApproving ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle size={12} />}
-                      {briefApproving ? 'Approving…' : 'Approve Brief'}
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <Card>
-                  <CardContent className="p-8 text-center">
-                    <FileText size={28} className="text-muted-foreground/20 mx-auto mb-3" />
-                    <p className="text-[15px] font-semibold text-foreground/70 mb-1">No brief yet</p>
-                    <p className="text-[13px] text-muted-foreground/60">
-                      Create a brief to define messaging goals before AI draft generation.
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
+                ) : (
+                  <p className="m-0 text-[14px]" style={{ color: MUTED }}>No brief yet. Fill in the form below to create one.</p>
+                )}
 
-              {/* Products & Segments context */}
-              {(briefProducts.length > 0 || briefSegments.length > 0) && (
-                <div className="flex gap-3 flex-wrap">
-                  {briefProducts.length > 0 && (
-                    <Card className="flex-1 min-w-[200px]">
-                      <CardContent className="p-4">
-                        <p className="text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground/55 mb-2.5">
-                          Products
-                        </p>
-                        <div className="flex flex-col gap-1.5">
+                {(briefProducts.length > 0 || briefSegments.length > 0) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {briefProducts.length > 0 && (
+                      <div className="rounded-[16px] px-6 py-5 bg-white" style={{ border: `1px solid ${RULE}` }}>
+                        <h2 className="m-0 mb-3 text-[16px] font-medium tracking-[-0.01em]" style={{ color: INK }}>Products</h2>
+                        <ul className="m-0 p-0 list-none flex flex-col gap-2">
                           {briefProducts.map(p => (
-                            <div key={p.id} className="flex items-center gap-2">
-                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-violet-50 text-violet-700 whitespace-nowrap">
-                                {p.product_code}
-                              </span>
-                              <span className="text-[13px] text-foreground">{p.product_name}</span>
-                              {p.priority === 1 && (
-                                <span className="text-[10px] text-muted-foreground/50 ml-auto">primary</span>
-                              )}
-                            </div>
+                            <li key={p.id} className="flex items-center gap-2 text-[14px]" style={{ color: INK }}>
+                              <Chip>{p.product_code}</Chip>
+                              <span>{p.product_name}</span>
+                              {p.priority === 1 && <span className="ml-auto text-[12.5px]" style={{ color: MUTED }}>Primary</span>}
+                            </li>
                           ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                  {briefSegments.length > 0 && (
-                    <Card className="flex-1 min-w-[200px]">
-                      <CardContent className="p-4">
-                        <p className="text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground/55 mb-2.5">
-                          Segments
-                        </p>
-                        <div className="flex flex-col gap-1.5">
+                        </ul>
+                      </div>
+                    )}
+                    {briefSegments.length > 0 && (
+                      <div className="rounded-[16px] px-6 py-5 bg-white" style={{ border: `1px solid ${RULE}` }}>
+                        <h2 className="m-0 mb-3 text-[16px] font-medium tracking-[-0.01em]" style={{ color: INK }}>Segments</h2>
+                        <ul className="m-0 p-0 list-none flex flex-col gap-2">
                           {briefSegments.map(s => (
-                            <div key={s.id}>
-                              <span className="text-[13px] text-foreground font-medium">{s.name}</span>
-                              {s.description && (
-                                <p className="text-[11px] text-muted-foreground/60 mt-0.5">{s.description}</p>
-                              )}
-                            </div>
+                            <li key={s.id}>
+                              <span className="block text-[14px] font-medium" style={{ color: INK }}>{s.name}</span>
+                              {s.description && <span className="block text-[12.5px] mt-0.5" style={{ color: MUTED }}>{s.description}</span>}
+                            </li>
                           ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              )}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
 
-              {/* Brief form */}
-              <Card>
-                <CardContent className="p-5">
-                  <p className="text-[13px] font-semibold text-foreground mb-4">
-                    {brief
-                      ? `${briefApproved ? 'Approved brief' : 'Edit draft brief'} v${brief.version_number}`
-                      : 'New brief'
-                    }
-                  </p>
+                <div className="rounded-[16px] px-6 py-5 bg-white" style={{ border: `1px solid ${RULE}` }}>
+                  <h2 className="m-0 mb-4 text-[16px] font-medium tracking-[-0.01em]" style={{ color: INK }}>
+                    {brief ? `${briefApproved ? 'Approved brief' : 'Draft brief'} v${brief.version_number}` : 'New brief'}
+                  </h2>
                   <div className="flex flex-col gap-4 mb-5">
                     {([
-                      {
-                        label: 'Campaign Goal',
-                        tip: 'What do you want recipients to do? e.g. Book a 15-min call to discuss cyber insurance.',
-                        placeholder: 'e.g. Book a 15-min discovery call to discuss cyber insurance coverage',
-                        value: briefGoal, set: setBriefGoal,
-                      },
-                      {
-                        label: 'Target Audience',
-                        tip: 'Who are we targeting? Be specific — industry, seniority, geography.',
-                        placeholder: 'e.g. SME founders and business owners in Singapore',
-                        value: briefAudience, set: setBriefAudience,
-                      },
-                      {
-                        label: 'Tone',
-                        tip: 'How should the emails sound?',
-                        placeholder: 'e.g. Professional, direct, not salesy',
-                        value: briefTone, set: setBriefTone,
-                      },
-                      {
-                        label: 'Topics to Avoid',
-                        tip: 'Anything the AI should steer clear of — pricing, competitor names, regulatory details.',
-                        placeholder: 'e.g. Pricing discussion, competitor names',
-                        value: briefAvoid, set: setBriefAvoid,
-                      },
+                      { label: 'Goal',            tip: 'What you want recipients to do, for example book a 15-minute call to discuss cyber insurance.', placeholder: 'Book a 15-minute discovery call on cyber cover', value: briefGoal,     set: setBriefGoal },
+                      { label: 'Target audience', tip: 'Who we are targeting: industry, seniority, geography.',                                          placeholder: 'SME founders and owners in Singapore',           value: briefAudience, set: setBriefAudience },
+                      { label: 'Tone',            tip: 'How the emails should sound.',                                                                    placeholder: 'Professional, direct, not salesy',               value: briefTone,     set: setBriefTone },
+                      { label: 'Topics to avoid', tip: 'Anything the AI should steer clear of: pricing, competitor names, regulatory detail.',            placeholder: 'Pricing, competitor names',                     value: briefAvoid,    set: setBriefAvoid },
                     ] as { label: string; tip: string; placeholder: string; value: string; set: (v: string) => void }[]).map(f => (
-                      <div key={f.label}>
-                        <label className={cn(FIELD_LABEL_CLS, 'flex items-center gap-1.5 mb-1.5')}>
-                          {f.label} <Tip text={f.tip} />
-                        </label>
+                      <label key={f.label} className="block min-w-0">
+                        <span className={cn(FIELD_LABEL_CLS, 'flex items-center gap-1 mb-1.5')}>{f.label} <Tip text={f.tip} /></span>
                         <input
                           type="text"
                           className={INPUT_CLS}
@@ -1214,450 +996,251 @@ export default function CampaignDetailPage() {
                           disabled={briefApproved}
                           onChange={e => f.set(e.target.value)}
                         />
-                      </div>
+                      </label>
                     ))}
                   </div>
 
-                  {!briefApproved && (
-                    <div className="flex gap-2.5">
-                      <Button size="compact" onClick={createBrief} disabled={briefSaving} className="gap-1.5">
-                        {briefSaving && <Loader2 size={12} className="animate-spin" />}
-                        {briefSaving ? 'Saving…' : brief ? 'Create New Version' : 'Create Brief'}
-                      </Button>
-                      {brief && !briefApproved && (
-                        <Button
-                          size="compact"
-                          onClick={approveBrief}
-                          disabled={briefApproving}
-                          className="gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white border-0"
-                        >
-                          {briefApproving ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle size={12} />}
-                          {briefApproving ? 'Approving…' : 'Approve'}
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                  {briefApproved && (
-                    <Button
-                      variant="outline"
-                      size="compact"
-                      onClick={createBrief}
-                      disabled={briefSaving}
-                      className="gap-1.5"
-                    >
-                      {briefSaving ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-                      {briefSaving ? 'Creating…' : 'Create New Version'}
+                  <div className="flex gap-2 flex-wrap">
+                    <Button variant={!brief && !headerPrimary ? 'default' : 'outline'} size="sm" onClick={createBrief} disabled={briefSaving}>
+                      {briefSaving ? 'Saving…' : brief ? 'Create new version' : 'Create brief'}
                     </Button>
-                  )}
-                </CardContent>
-              </Card>
+                    {brief && !briefApproved && (
+                      <Button variant="outline" size="sm" onClick={approveBrief} disabled={briefApproving}>
+                        {briefApproving ? 'Approving…' : 'Approve brief'}
+                      </Button>
+                    )}
+                  </div>
+                </div>
 
-              {/* Sender signature */}
-              <Card>
-                <CardContent className="p-5">
-                  <p className="text-[13px] font-semibold text-foreground mb-3">Sender Signature</p>
+                <div className="rounded-[16px] px-6 py-5 bg-white" style={{ border: `1px solid ${RULE}` }}>
+                  <h2 className="m-0 mb-3 text-[16px] font-medium tracking-[-0.01em]" style={{ color: INK }}>Sender signature</h2>
                   <select
                     value={signatureId}
                     onChange={e => saveSignature(e.target.value)}
-                    className="w-full h-9 px-3 text-[13px] text-foreground bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-ring"
+                    className={cn(inputCls, 'max-w-[420px]')}
+                    aria-label="Sender signature"
                   >
                     <option value="">No signature</option>
                     {signatures.map(s => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}{s.title ? ` — ${s.title}` : ''}
-                      </option>
+                      <option key={s.id} value={s.id}>{s.name}{s.title ? ` — ${s.title}` : ''}</option>
                     ))}
                   </select>
-                  {savingSig && (
-                    <p className="text-[11px] text-muted-foreground/50 mt-1.5">Saving…</p>
+                  {savingSig && <p className="m-0 mt-1.5 text-[12.5px]" style={{ color: MUTED }}>Saving…</p>}
+                  {sigCurrent && (
+                    <div className="mt-3 rounded-[12px] px-4 py-3 text-[13px] leading-relaxed max-w-[420px]" style={{ background: '#f1f3f4', color: '#3c4043' }}>
+                      Best regards,<br />
+                      <span className="font-medium" style={{ color: INK }}>{sigCurrent.name}</span><br />
+                      {[sigCurrent.title, sigCurrent.phone].filter(Boolean).join(' · ')}
+                      {(sigCurrent.title || sigCurrent.phone) && <br />}
+                      {sigCurrent.email && <>{sigCurrent.email}<br /></>}
+                      {sigCurrent.company_tagline && <span style={{ color: MUTED }}>{sigCurrent.company_tagline}</span>}
+                    </div>
                   )}
-                  {signatureId && (() => {
-                    const sig = signatures.find(s => s.id === signatureId)
-                    return sig ? (
-                      <div className="mt-3 px-3.5 py-3 rounded-lg bg-muted/30 border border-[--border-subtle] text-[12px] text-muted-foreground leading-relaxed">
-                        Best regards,<br />
-                        <strong className="text-foreground/80">{sig.name}</strong><br />
-                        {[sig.title, sig.phone].filter(Boolean).join(' · ')}
-                        {(sig.title || sig.phone) && <br />}
-                        {sig.email && <>{sig.email}<br /></>}
-                        {sig.company_tagline && (
-                          <span className="text-muted-foreground/50">{sig.company_tagline}</span>
-                        )}
-                      </div>
-                    ) : null
-                  })()}
-                  <p className="text-[11px] text-muted-foreground/40 mt-2.5">
-                    Appended to all emails sent from this campaign. Manage signatures in{' '}
-                    <Link href="/settings" className="text-muted-foreground/70 underline hover:text-foreground">
-                      Settings
-                    </Link>.
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════
-          VARIANTS TAB
-      ══════════════════════════════════════════════════════════════ */}
-      {tab === 'variants' && (
-        <div>
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-            <p className="text-[13px] text-muted-foreground m-0">
-              AI-generated sequence variants. Approve one to use it in the campaign.
-            </p>
-            <div className="flex gap-2">
-              <Button
-                size="compact"
-                onClick={() => generateVariants()}
-                disabled={generatingVariants}
-                className="gap-1.5 bg-violet-600 hover:bg-violet-700 text-white border-0"
-              >
-                {generatingVariants ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                {generatingVariants ? 'Generating…' : 'Generate'}
-              </Button>
-              <Button
-                variant="outline"
-                size="compact"
-                onClick={() => generateVariants('subject_line')}
-                disabled={generatingVariants}
-              >
-                A/B Subject Lines
-              </Button>
-              <Button
-                variant="outline"
-                size="compact"
-                onClick={() => generateVariants('opening_hook')}
-                disabled={generatingVariants}
-              >
-                A/B Opening Hooks
-              </Button>
-            </div>
-          </div>
-
-          {fetchingVariants ? (
-            <div className="flex justify-center py-12">
-              <Loader2 size={18} className="animate-spin text-muted-foreground/40" />
-            </div>
-          ) : variants.length === 0 ? (
-            <Card>
-              <CardContent className="p-12 text-center">
-                <GitBranch size={28} className="text-muted-foreground/20 mx-auto mb-3" />
-                <p className="text-[15px] font-semibold text-foreground/70 mb-1">No variants yet</p>
-                <p className="text-[13px] text-muted-foreground/60">
-                  Generate a standard variant or an A/B test to get started.
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {variants.map(v => {
-                const isExpanded = expandedVariant === v.id
-                const approved   = v.status === 'approved'
-                return (
-                  <Card key={v.id} className={cn('overflow-hidden', approved && 'border-emerald-200')}>
-                    <button
-                      onClick={() => setExpandedVariant(isExpanded ? null : v.id)}
-                      className="w-full flex items-center gap-3 px-5 py-3.5 bg-transparent border-0 cursor-pointer text-left"
-                    >
-                      <span className={cn(
-                        'w-7 h-7 rounded-md flex-shrink-0 flex items-center justify-center text-[13px] font-bold',
-                        approved
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-muted text-muted-foreground'
-                      )}>
-                        {v.variant_label}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[13px] font-semibold text-foreground">
-                            Variant {v.variant_label}
-                          </span>
-                          {v.ab_dimension && (
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-violet-50 text-violet-700">
-                              A/B: {v.ab_dimension.replace('_', ' ')}
-                            </span>
-                          )}
-                          {v.ab_group && (
-                            <span className="text-[10px] text-muted-foreground/60">{v.ab_group}</span>
-                          )}
-                          {v.audience_split_pct != null && v.audience_split_pct < 100 && (
-                            <span className="text-[10px] text-muted-foreground/60">
-                              {v.audience_split_pct}% audience
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground/60 mt-0.5 m-0">{v.steps.length} steps</p>
-                      </div>
-                      <span className={cn(
-                        'text-[10px] font-semibold px-2 py-0.5 rounded flex-shrink-0',
-                        approved ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
-                      )}>
-                        {approved ? 'Approved' : 'Draft'}
-                      </span>
-                      {isExpanded
-                        ? <ChevronUp size={14} className="text-muted-foreground/30 flex-shrink-0" />
-                        : <ChevronDown size={14} className="text-muted-foreground/30 flex-shrink-0" />
-                      }
-                    </button>
-
-                    {isExpanded && (
-                      <div className="border-t border-[--border-subtle] px-5 py-4">
-                        {v.steps.map(step => (
-                          <div key={step.id} className="mb-4 pb-4 border-b border-[--border-subtle] last:border-b-0 last:mb-0 last:pb-0">
-                            <p className="text-[11px] font-bold uppercase tracking-[0.04em] text-muted-foreground/50 mb-1.5">
-                              Step {step.step_number}
-                              {step.delay_days > 0 && (
-                                <span className="font-normal"> · +{step.delay_days}d</span>
-                              )}
-                            </p>
-                            <p className="text-[13px] font-semibold text-foreground mb-1">{step.subject}</p>
-                            <p className="text-[12px] text-foreground/70 leading-relaxed whitespace-pre-wrap m-0">
-                              {step.body}
-                            </p>
-                          </div>
-                        ))}
-                        {!approved && (
-                          <Button
-                            size="compact"
-                            onClick={() => approveVariant(v.id)}
-                            className="mt-3 gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white border-0"
-                          >
-                            <CheckCircle size={12} /> Approve Variant {v.variant_label}
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                  </Card>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════
-          ANALYTICS TAB
-      ══════════════════════════════════════════════════════════════ */}
-      {tab === 'analytics' && (
-        <div>
-          {fetchingAnalytics ? (
-            <div className="flex justify-center py-12">
-              <Loader2 size={18} className="animate-spin text-muted-foreground/40" />
-            </div>
-          ) : analytics ? (
-            <>
-              {/* Metrics grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                <StatCard label="Active Leads"     value={analytics.total_active} accent="blue" />
-                <StatCard label="Sent"             value={analytics.total_sent} />
-                <StatCard
-                  label="Replies"
-                  value={analytics.total_replied}
-                  accent={analytics.total_replied > 0 ? 'green' : undefined}
-                />
-                <StatCard
-                  label="Reply Rate"
-                  value={`${analytics.reply_rate_pct}%`}
-                  accent={analytics.reply_rate_pct > 0 ? 'green' : undefined}
-                />
-                <StatCard
-                  label="Positive Replies"
-                  value={analytics.positive_replies}
-                  accent={analytics.positive_replies > 0 ? 'green' : undefined}
-                />
-                <StatCard
-                  label="Positive Rate"
-                  value={`${analytics.positive_rate_pct}%`}
-                  accent={analytics.positive_rate_pct > 0 ? 'green' : undefined}
-                />
-                <StatCard
-                  label="Bounced"
-                  value={analytics.total_bounced}
-                  accent={analytics.total_bounced > 0 ? 'red' : undefined}
-                />
-              </div>
-
-              {/* Segment breakdown */}
-              {analyticsSegments.length > 0 && (
-                <Card className="mb-3">
-                  <CardContent className="p-5">
-                    <p className="text-[13px] font-semibold text-foreground mb-3">Segment breakdown</p>
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse">
-                        <thead>
-                          <tr>
-                            {['Segment', 'Leads', 'Sent', 'Replied', 'Reply rate'].map(h => (
-                              <th key={h} className="h-9 px-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/30 border-b border-[--border-subtle] first:pl-4 whitespace-nowrap">
-                                {h}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {analyticsSegments.map(seg => (
-                            <tr key={seg.segment_id} className="border-b border-[--border-subtle] hover:bg-muted/20 transition-colors">
-                              <td className="px-3 py-2.5 pl-4 text-[13px] text-foreground">{seg.name}</td>
-                              <td className="px-3 py-2.5 text-[13px] text-muted-foreground">{seg.total}</td>
-                              <td className="px-3 py-2.5 text-[13px] text-muted-foreground">{seg.sent}</td>
-                              <td className={cn(
-                                'px-3 py-2.5 text-[13px]',
-                                seg.replied > 0 ? 'text-emerald-700 font-semibold' : 'text-muted-foreground'
-                              )}>
-                                {seg.replied}
-                              </td>
-                              <td className="px-3 py-2.5 text-[13px] text-muted-foreground">
-                                {seg.sent > 0 ? `${Math.round((seg.replied / seg.sent) * 100)}%` : '—'}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* AI usage */}
-              {aiUsage && (
-                <Card className="mb-3">
-                  <CardContent className="p-5">
-                    <div className="flex items-center gap-1.5 mb-3">
-                      <Sparkles size={13} className="text-violet-600" />
-                      <p className="text-[13px] font-semibold text-foreground m-0">AI Usage</p>
-                    </div>
-                    <div className="grid grid-cols-3 gap-3">
-                      {[
-                        { label: 'Draft Calls',   value: aiUsage.calls },
-                        { label: 'Total Tokens',  value: aiUsage.total_tokens >= 1000 ? `${(aiUsage.total_tokens / 1000).toFixed(1)}k` : String(aiUsage.total_tokens) },
-                        { label: 'Output Tokens', value: aiUsage.output_tokens >= 1000 ? `${(aiUsage.output_tokens / 1000).toFixed(1)}k` : String(aiUsage.output_tokens) },
-                      ].map(s => (
-                        <div key={s.label} className="text-center px-3 py-2.5 rounded-lg bg-violet-50 border border-violet-100">
-                          <p className="text-[18px] font-bold text-violet-700 m-0 mb-0.5">{s.value}</p>
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-600/60 m-0">{s.label}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground/40 mt-3 text-right m-0">
-                      <Link href="/outbound/ai-usage" className="text-violet-600 hover:text-violet-700 no-underline">
-                        View full AI usage →
-                      </Link>
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-
-              <div className="flex gap-2 justify-end mb-2">
-                <Link
-                  href={`/outbound/replies?campaign_id=${id}`}
-                  className="inline-flex items-center gap-1 text-[12px] font-medium text-foreground border border-input rounded-md px-2.5 py-1.5 bg-background hover:bg-muted transition-colors no-underline"
-                >
-                  Review Replies →
-                </Link>
-              </div>
-            </>
-          ) : (
-            <Card>
-              <CardContent className="p-12 text-center">
-                <BarChart2 size={32} className="text-muted-foreground/20 mx-auto mb-3" />
-                <p className="text-[15px] font-semibold text-foreground/70 mb-1">Analytics available after launch</p>
-                <p className="text-[13px] text-muted-foreground/60">
-                  Approve all sequence steps and launch the campaign to see reply tracking here.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      )}
-
-      {/* ── Launch confirm modal ── */}
-      {launchConfirm && (
-        <div
-          className="fixed inset-0 z-[200] flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.45)' }}
-        >
-          <div className="bg-background rounded-[14px] p-7 max-w-[460px] w-[90%] shadow-[0_20px_60px_rgba(0,0,0,0.2)]">
-            <p className="text-[16px] font-bold text-foreground mb-4">Launch Campaign</p>
-
-            <div className="flex flex-col gap-2 mb-4">
-              <label className={cn(
-                'flex gap-3 items-start cursor-pointer px-3.5 py-3 rounded-lg border',
-                sendMode === 'all'
-                  ? 'border-emerald-500 bg-emerald-50'
-                  : 'border-border bg-muted/20'
-              )}>
-                <input
-                  type="radio"
-                  checked={sendMode === 'all'}
-                  onChange={() => setSendMode('all')}
-                  className="mt-0.5"
-                />
-                <div>
-                  <p className="text-[13px] font-semibold text-foreground m-0">Send all now</p>
-                  <p className="text-[12px] text-muted-foreground mt-0.5 m-0">
-                    All leads get emailed immediately after launch
+                  <p className="m-0 mt-3 text-[12.5px]" style={{ color: MUTED }}>
+                    Appended to every email sent from this campaign. Manage signatures in{' '}
+                    <Link href="/settings" className="underline" style={{ color: INK }}>Settings</Link>.
                   </p>
                 </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ══════════════ VARIANTS TAB ══════════════ */}
+        {tab === 'variants' && (
+          <div className="mt-6">
+            <div className="flex items-center justify-end gap-2 mb-4 flex-wrap">
+              <Button variant="outline" size="sm" onClick={() => generateVariants('subject_line')} disabled={generatingVariants}>A/B subject lines</Button>
+              <Button variant="outline" size="sm" onClick={() => generateVariants('opening_hook')} disabled={generatingVariants}>A/B opening hooks</Button>
+              <Button variant={tabPrimary} size="sm" onClick={() => generateVariants()} disabled={generatingVariants}>
+                {generatingVariants ? 'Generating…' : 'Generate variant'}
+              </Button>
+            </div>
+
+            {fetchingVariants ? (
+              <div className="flex flex-col gap-3" aria-busy="true">
+                {Array.from({ length: 2 }).map((_, i) => <span key={i} className="block h-[72px] rounded-[16px] bg-[#f1f3f4] animate-pulse" />)}
+              </div>
+            ) : variants.length === 0 ? (
+              <p className="py-16 text-center text-[16px] m-0" style={{ color: MUTED }}>No variants yet. Generate a standard variant or an A/B test.</p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {variants.map(v => {
+                  const isExpanded = expandedVariant === v.id
+                  const approved   = v.status === 'approved'
+                  return (
+                    <div key={v.id} className="rounded-[16px] bg-white overflow-hidden" style={{ border: `1px solid ${RULE}` }}>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedVariant(isExpanded ? null : v.id)}
+                        aria-expanded={isExpanded}
+                        className="w-full flex items-center gap-4 px-6 py-4 bg-transparent border-0 cursor-pointer text-left hover:bg-[#f8f9fa]"
+                      >
+                        <span className="w-8 h-8 rounded-[8px] flex-shrink-0 inline-flex items-center justify-center text-[13px] font-medium" style={{ background: '#f1f3f4', color: INK }}>
+                          {v.variant_label}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[16px] font-medium tracking-[-0.01em]" style={{ color: INK }}>Variant {v.variant_label}</span>
+                            {v.ab_dimension && <Chip>A/B: {v.ab_dimension.replace(/_/g, ' ')}</Chip>}
+                            {v.ab_group && <span className="text-[12.5px]" style={{ color: MUTED }}>{v.ab_group}</span>}
+                            {v.audience_split_pct != null && v.audience_split_pct < 100 && (
+                              <span className="text-[12.5px] tabular-nums" style={{ color: MUTED }}>{v.audience_split_pct}% of audience</span>
+                            )}
+                          </div>
+                          <p className="m-0 mt-0.5 text-[13px]" style={{ color: MUTED }}>{v.steps.length} step{v.steps.length === 1 ? '' : 's'}</p>
+                        </div>
+                        <Chip>{approved ? 'Approved' : 'Draft'}</Chip>
+                        {isExpanded
+                          ? <ChevronUp size={16} className="flex-shrink-0" style={{ color: '#9aa0a6' }} aria-hidden />
+                          : <ChevronDown size={16} className="flex-shrink-0" style={{ color: '#9aa0a6' }} aria-hidden />}
+                      </button>
+
+                      {isExpanded && (
+                        <div className="px-6 py-5" style={{ borderTop: `1px solid ${RULE}` }}>
+                          {v.steps.map(step => (
+                            <div key={step.id} className="py-4 first:pt-0 last:pb-0" style={{ borderBottom: `1px solid ${RULE}` }}>
+                              <p className="m-0 mb-1 text-[12.5px]" style={{ color: MUTED }}>
+                                Step {step.step_number}{step.delay_days > 0 ? ` · +${step.delay_days}d` : ''}
+                              </p>
+                              <p className="m-0 mb-1 text-[14px] font-medium" style={{ color: INK }}>{step.subject}</p>
+                              <p className="m-0 text-[13px] leading-relaxed whitespace-pre-wrap" style={{ color: '#3c4043' }}>{step.body}</p>
+                            </div>
+                          ))}
+                          {!approved && (
+                            <Button variant="outline" size="sm" className="mt-4" onClick={() => approveVariant(v.id)}>
+                              Approve variant {v.variant_label}
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ══════════════ ANALYTICS TAB ══════════════ */}
+        {tab === 'analytics' && (
+          <div className="mt-6">
+            {fetchingAnalytics ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3" aria-busy="true">
+                {Array.from({ length: 4 }).map((_, i) => <span key={i} className="block h-[92px] rounded-[16px] bg-[#f1f3f4] animate-pulse" />)}
+              </div>
+            ) : analytics ? (
+              <div className="flex flex-col gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <StatCard label="Active leads"     value={analytics.total_active} />
+                  <StatCard label="Sent"             value={analytics.total_sent} />
+                  <StatCard label="Replies"          value={analytics.total_replied} />
+                  <StatCard label="Reply rate"       value={`${analytics.reply_rate_pct}%`} />
+                  <StatCard label="Positive replies" value={analytics.positive_replies} />
+                  <StatCard label="Positive rate"    value={`${analytics.positive_rate_pct}%`} />
+                  <StatCard label="Bounced"          value={analytics.total_bounced} />
+                </div>
+
+                {analyticsSegments.length > 0 && (
+                  <section>
+                    <h2 className="m-0 mb-3 text-[16px] font-medium tracking-[-0.01em]" style={{ color: INK }}>Segment breakdown</h2>
+                    <Register label="Segment breakdown" minWidth={560}>
+                      <RegisterHead>
+                        <RegisterTh first>Segment</RegisterTh>
+                        <RegisterTh align="right">Leads</RegisterTh>
+                        <RegisterTh align="right">Sent</RegisterTh>
+                        <RegisterTh align="right">Replied</RegisterTh>
+                        <RegisterTh last align="right">Reply rate</RegisterTh>
+                      </RegisterHead>
+                      <tbody>
+                        {analyticsSegments.map(seg => (
+                          <RegisterRow key={seg.segment_id} className="hover:bg-[#f8f9fa]">
+                            <RegisterCell first primary={seg.name} secondary={`${seg.total} lead${seg.total === 1 ? '' : 's'}`} />
+                            <RegisterCell align="right" primary={seg.total} />
+                            <RegisterCell align="right" primary={seg.sent} />
+                            <RegisterCell align="right" primary={seg.replied} />
+                            <RegisterCell last align="right" primary={seg.sent > 0 ? `${Math.round((seg.replied / seg.sent) * 100)}%` : '—'} />
+                          </RegisterRow>
+                        ))}
+                      </tbody>
+                    </Register>
+                  </section>
+                )}
+
+                {aiUsage && (
+                  <section>
+                    <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+                      <h2 className="m-0 text-[16px] font-medium tracking-[-0.01em]" style={{ color: INK }}>AI usage</h2>
+                      <Link href="/outbound/ai-usage" className="text-[13px] no-underline hover:underline underline-offset-4" style={{ color: INK }}>Full AI usage →</Link>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <StatCard label="Draft calls"   value={aiUsage.calls} />
+                      <StatCard label="Total tokens"  value={aiUsage.total_tokens >= 1000 ? `${(aiUsage.total_tokens / 1000).toFixed(1)}k` : String(aiUsage.total_tokens)} />
+                      <StatCard label="Output tokens" value={aiUsage.output_tokens >= 1000 ? `${(aiUsage.output_tokens / 1000).toFixed(1)}k` : String(aiUsage.output_tokens)} />
+                    </div>
+                  </section>
+                )}
+
+                <div className="flex justify-end">
+                  <Link href={`/outbound/replies?campaign_id=${id}`} className="inline-flex items-center h-9 px-3.5 rounded-[10px] text-[13.5px] font-medium bg-white no-underline hover:bg-[#f8f9fa]" style={{ border: '1px solid #dadce0', color: INK }}>
+                    Review replies
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <p className="py-16 text-center text-[16px] m-0" style={{ color: MUTED }}>Analytics appear after launch.</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Launch confirm dialog ── */}
+      {launchConfirm && (
+        <div className="fixed inset-0 z-[200] flex items-start justify-center px-4 pt-[12vh]" style={{ background: 'rgba(32,33,36,0.28)' }}
+          onMouseDown={e => { if (e.target === e.currentTarget) setLaunchConfirm(false) }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="launch-title" className="w-full max-w-[480px] rounded-[16px] bg-white p-6" style={{ boxShadow: '0 24px 64px rgba(32,33,36,0.2)', color: INK }}>
+            <h2 id="launch-title" className="m-0 text-[20px] font-medium">Launch campaign</h2>
+            <p className="m-0 mt-1 text-[13.5px]" style={{ color: MUTED }}>Sends from the configured ops email. Opt-outs are excluded. Pause from the campaign header at any time.</p>
+
+            <div className="mt-5 flex flex-col gap-2">
+              <label className="flex gap-3 items-start cursor-pointer px-4 py-3 rounded-[12px]" style={{ border: `1px solid ${sendMode === 'all' ? INK : '#dadce0'}` }}>
+                <input type="radio" checked={sendMode === 'all'} onChange={() => setSendMode('all')} className="mt-1" />
+                <span>
+                  <span className="block text-[14px] font-medium" style={{ color: INK }}>Send all now</span>
+                  <span className="block mt-0.5 text-[13px]" style={{ color: MUTED }}>Every included lead is emailed straight after launch.</span>
+                </span>
               </label>
-              <label className={cn(
-                'flex gap-3 items-start cursor-pointer px-3.5 py-3 rounded-lg border',
-                sendMode === 'batch'
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-border bg-muted/20'
-              )}>
-                <input
-                  type="radio"
-                  checked={sendMode === 'batch'}
-                  onChange={() => setSendMode('batch')}
-                  className="mt-0.5"
-                />
-                <div className="flex-1">
-                  <p className="text-[13px] font-semibold text-foreground m-0">Send in batches</p>
-                  <p className="text-[12px] text-muted-foreground mt-0.5 m-0">
-                    Queue all leads, use &ldquo;Send Now&rdquo; to send a batch at a time
-                  </p>
+              <label className="flex gap-3 items-start cursor-pointer px-4 py-3 rounded-[12px]" style={{ border: `1px solid ${sendMode === 'batch' ? INK : '#dadce0'}` }}>
+                <input type="radio" checked={sendMode === 'batch'} onChange={() => setSendMode('batch')} className="mt-1" />
+                <span className="flex-1 min-w-0">
+                  <span className="block text-[14px] font-medium" style={{ color: INK }}>Send in batches</span>
+                  <span className="block mt-0.5 text-[13px]" style={{ color: MUTED }}>Queue every lead, then use Send now to release one batch at a time.</span>
                   {sendMode === 'batch' && (
-                    <div className="flex items-center gap-2 mt-3">
-                      <span className="text-[12px] text-muted-foreground">Batch size:</span>
+                    <span className="flex items-center gap-2 mt-3 flex-wrap">
+                      <span className="text-[13px]" style={{ color: MUTED }}>Batch size</span>
                       <input
                         type="number" min={1} max={500}
                         value={batchSize}
                         onChange={e => setBatchSize(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-[70px] h-8 px-2 text-center text-[13px] text-foreground border border-input rounded-md bg-background outline-none focus:ring-1 focus:ring-ring"
+                        className={cn(inputCls, 'w-24 text-center')}
+                        aria-label="Batch size"
                       />
-                      <span className="text-[12px] text-muted-foreground">emails per &ldquo;Send Now&rdquo;</span>
-                    </div>
+                      <span className="text-[13px]" style={{ color: MUTED }}>emails per Send now</span>
+                    </span>
                   )}
-                </div>
+                </span>
               </label>
             </div>
 
-            <div className="px-3.5 py-2.5 rounded-lg bg-emerald-50 border border-emerald-200 mb-5">
-              <p className="text-[12px] text-emerald-700 leading-relaxed m-0">
-                Sends from your configured ops email. Opt-outs are excluded. Pause the campaign from the header if needed.
-              </p>
-            </div>
-
-            <div className="flex gap-2.5 justify-end">
-              <Button variant="outline" size="compact" onClick={() => setLaunchConfirm(false)}>
-                Cancel
-              </Button>
-              <Button
-                size="compact"
-                onClick={launch}
-                disabled={launching}
-                className="gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white border-0"
-              >
-                {launching ? <Loader2 size={12} className="animate-spin" /> : <Rocket size={12} />}
-                {launching ? 'Launching…' : 'Confirm Launch'}
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setLaunchConfirm(false)}>Cancel</Button>
+              <Button size="sm" onClick={launch} disabled={launching}>
+                {launching ? 'Launching…' : 'Launch'}
               </Button>
             </div>
           </div>
         </div>
       )}
-
-    </AppScrollPage>
+    </div>
   )
 }

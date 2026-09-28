@@ -4,6 +4,462 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-09-30 (later) — Endorsements follow the main policy; Unassigned views; Overview on the register
+
+### 1. A mid-term endorsement is an amendment to the main policy
+Rule: an endorsement debit note bills the change; the cover, the term and the renewal date stay
+those of the main policy. It never becomes a second active policy.
+- `src/lib/policies/endorsement.ts`: `basePolicyNumber` (strips "/E01", "-E001", "-T00004"
+  member tags), `looksLikeEndorsement` (suffix or wording), `findMasterPolicy` (same base
+  number, else the one master with the same term end and class, never a guess between two),
+  `withoutEndorsementDuplicates`. Unit-tested against the live shapes.
+- Approval (`debit-note-commit.ts`): `eventType = endorsement` attaches the debit note to the
+  master policy found for that customer; a same-number re-import no longer overwrites the
+  master's description and term with the amendment's.
+- `/api/policies/lookup` also takes `company_id`, `class_of_insurance`, `period_end` and returns
+  the master with `matchedBy: number | base | term`. Both review pages show "Amendment to policy
+  X · renews DATE. This debit note attaches to that policy and keeps its renewal date." and send
+  `{ policyId }` for that master.
+- Counts and Calendar (`aggregates.ts`, `overview.ts`, `calendar/events`) drop endorsement
+  rows that duplicate a master's term, so each cover renews once. Purchase history labels such
+  rows "Amendment to <number>" with the renewal "Follows the main policy".
+- **One-off repair, run in the SQL editor:** `supabase/migrations/20260930_endorsement_policies.sql`
+  repoints the existing endorsement debit notes to their master policy and removes the six
+  duplicate policy rows (HFW-E001 ×2, /R00/E01, N0018530, N0018676-T…, N0018913). It only acts
+  where exactly one master is found.
+
+### 2. Unassigned
+- All Inbox: a work view "Unassigned" = threads filed under a company that has no owner
+  (`companyOwner` now comes from the conversations API). Unlinked stays separate.
+- Companies: quick view "Unassigned" = companies with no owner.
+- Home: a Pinned | Unassigned switch under the search. Unassigned = a company nobody owns that
+  has an email waiting for a reply or open to-dos, or any company with an open to-do that has
+  no person on it.
+
+### 3. Overview on the register
+Open items (Item · Detail · When), Where we left off (Event · Who · When) and Activity (What ·
+Kind · When) now render through the shared register; rows open what they name.
+
+---
+
+## 2026-09-30 — All Inbox rebuilt as the Mail Workspace
+
+**Status:** `tsc` clean, `next build` clean, vitest 365/365 (46 files). Built to the approved mock
+(https://claude.ai/code/artifact/f1d89dcd-3069-48ef-a74a-61ffd7e8b1a0). Nothing deployed.
+
+### Navigator
+`ThreadListPane` is the unified Mail Navigator: "All Inbox" (a button that selects everything) with
+the count, an ink Compose, one search (⌘K / Ctrl+K / `/` focus it), the work views in two quiet
+columns with counts (Needs reply, Awaiting client, Unlinked, Drafts | Renewals, Claims, RFQs,
+Clients, Prospects), then the rows: ink dot when a reply is needed, sender and time, company ·
+subject, the state in words. Footer: "Newest activity first", density, sync, collapse. Collapsed
+= a 64px icon rail with counts (`CollapsedNavRail`, persisted as `engagement_nav_collapsed`;
+`--engagement-rail-w` follows). Default width 380, range 320–460. `c` opens Compose when no field
+is focused. The phone fallback renders the same navigator inline.
+
+### Reader
+`ThreadHeader`: subject 22px, contact · email, one context line (company link or "Not linked to a
+company · Link company", type, state, owner), Reply in ink, Reply all / Context / More as icon
+buttons. `ThreadView`: the latest message in full on a 1040px measure, earlier messages as one-line
+rows that open in place, the collapsed "Reply to X…" field at the foot (`r` opens it), the context
+rail as a 340px column from 1024px and a sheet below, closed by default.
+`MessageBlock`: avatar, name (the thread contact's name when the header carries only an address),
+to-line with Details, timestamp; body through sanitise → blank-block collapse → quoted split →
+signature split → table wrap, typeset by `.email-html-body`; data tables in a rounded scroll
+container with "Table kept exactly as sent · View original table"; signature folded at 13.5px;
+quoted history behind one grey fold row and rendered as a nested chain (`splitQuotedChain`,
+Gmail / Outlook / Apple / plain-text markers, deepest last); "View original" opens the raw HTML or
+plain text in a dialog; attachments as document cards with Preview and Download.
+`ContextRail`: cards on the soft fields — Company (blue), Work (butter), Policy (lavender),
+Calendar (mint), Finance (peach), Related threads (grey), TRS assist as text links (Summarise ·
+Draft reply · Create to-do · Show analysis), Nexus; the contact / status / notes panel outlined.
+
+### Composer
+`EngagementComposePanel` presentation rebuilt on the same measure: Reply · Minimise, To with chips
++ Reply all + Cc/Bcc, Subject with From and Signature as quiet inline selects, the grouped
+toolbar from the new `compose-toolbar.tsx` (paragraph · B I U S colour · font size · lists indent
+align quote · link table image divider · Attach Assist · undo redo clear full-screen), the Quill
+editor at 16px, Approve & Send in ink. `RichEditor` (Quill 2 + quill-table-better) gained the
+grouped toolbar and extra formats (font family, size, alignment registered as a real format,
+divider, ⌘K link) while keeping its API for the campaign pages. `NewEmailComposeModal` is the
+"New email" dialog (880px, chips, Cc, From, the same toolbar, Save draft · Send, external-recipient
+note). No navy remains in the inbox; every hairline is #e8eaed.
+
+Legacy panels still rendered by the company page (`CompanyMail`) and the RFQ workflow moved onto
+the same tokens: `ThreadRfqWorkflow` (numbered underline steps, outlined chips, one ink button),
+`engagement-message-card`, `engagement-thread-row`, `engagement-thread-header`,
+`ai-analysis-panel`, `evaluation-summary`, `email-type-badge`, `draft-provenance-panel`,
+`engagement-status-badge`.
+
+### Judgement calls
+- Forward, Send later, Preview, Template and "Extract policy details" are not shown: no handler or
+  API exists for them. Nothing was invented.
+- Attachment Preview and Download both use `/api/engagement/attachments/[id]/download` (there is
+  no preview route); PDFs and images open inline in the new tab.
+- The reply panel has no autosave (drafts are written on send), so it shows no "Saved" state; the
+  New email dialog shows its real draft state.
+- Esc closes menus and full screen, not the reply panel, because minimising discards the draft.
+- The previous session's capture caveat holds: with the cron bearer, session-only routes return
+  401, so some screens look empty in the walkthrough shots.
+
+---
+
+## 2026-09-29 (night) — One register for every table; mail workspace mock
+
+**Status:** `tsc` clean, `next build` clean, vitest 350/350. Both pending migrations confirmed
+applied on the live database (`board_tasks`, `board_comments`, `companies.home_pinned_*`,
+`contacts.title`, `api_clients` all present; `api_clients` is empty, so the API gate must stay
+in log-only mode until keys are issued).
+
+### The register
+
+`src/components/ui/register.tsx` is the Companies table pattern made shared: `Register`,
+`RegisterHead`, `RegisterTh` (sortable when given `onSort`), `RegisterRow`, `RegisterCell`
+(primary over secondary, `first` freezes the identity column), `RegisterGroupRow`,
+`RegisterEmpty`. One outlined 16px card, sticky white header with 13px muted labels, py-4
+hairline rows, right-aligned tabular numbers, hover #f8f9fa, selected row on soft blue with an
+ink bar, status as words. Every table in the product now renders through it: Finance, Contacts
+and its companies tab, Inbound leads, Debit Notes, Team, the RFQ scoreboard, the company page
+panels (Finance, Purchase history, Quotation, People, thread picker; Activity on the Nexus
+dot-row timeline), the Sales lead grid and sources, `/outbound` leads, agent and campaign
+tables, Kyn ROI, RAG index, Email evaluation, RoadPlus, the Pricing Matrix calculator list,
+quotes, terminology, comparison and mapping tables (`TableShell` re-implemented on the register
+with the same API), and the deprecated Group Benefits lists. Rate matrices keep
+`.data-table.matrix-table`.
+
+Trade-offs made by the agents: Contacts folds email under the name (one column fewer); Debit
+Notes lost the policy-type sort header (filter kept); the Sales lead grid's company sort key is
+unreachable from the UI; `InlineReplyRow` colSpan corrected to 6.
+
+### Mail workspace mock (design only, no code)
+
+Artifact: https://claude.ai/code/artifact/f1d89dcd-3069-48ef-a74a-61ffd7e8b1a0 — one navigator
+(header, Compose, search, work views, list), content-first reader, earlier messages that unfurl
+in place and a nested quoted-history unfurl, on-demand context rail on soft fields, a contained
+reply editor with a grouped toolbar, a new-email dialog, phone screens. Buttons are ink, not
+navy. Awaiting the owner's review before the inbox is rebuilt to it.
+
+---
+
+## 2026-09-29 (later) — Every page on one design system
+
+**Status:** `tsc` clean, `next build` clean, `npx vitest run` 350/350. Captured all 60 screens
+locally; the walkthrough artifact carries them. Nothing deployed from this session.
+
+### What changed
+
+The token layer and the shared primitives moved to the Home system, so every page that
+builds on them changed at once: `globals.css` (foreground `#202124`, muted `#5f6368`, border
+`#e8eaed`, input `#dadce0`, radius 12px, neutral status and stat tokens, ink filter pills, no
+table header band, retuned `.kpi-*`, `.st-*`, `.page-title`), the shadcn `button / input /
+badge / tabs / table / card / select / popover / dialog / sheet`, `page-header`, `app-shell`,
+`stat-card`, `status-badge`, `shared/status-pill`, `data-table/toolbar`, `detail-section`,
+`crm/primitives` (`Btn`, `Segmented`, `Field`, `SectionCard` without a description prop,
+neutral `Chip`), and the antd theme in `layout.tsx`. The `--primary` token stays navy because
+the inbox, compose and chat hardcode it; no shadcn Button is used inside those surfaces, so
+its default variant is now ink.
+
+Then every remaining page was restyled in place, data flow untouched: Nexus (the 4272-line
+workspace, phased-analysis modal, RFQ panel, activity feed); the company page and all
+`crm/*` panels; Match threads; Finance; Calendar; Claims; Contacts and the companies tab;
+Inbound leads; RoadPlus; sign-in and unsubscribed; the eight Analytics / Kyn ROI pages; the
+seven `/outbound` pages behind Sales; the Pricing Matrix quote wizard, calculator review,
+compare, quotes and terminology with their components; the company contact picker; and a
+light pass over the deprecated Group Benefits pages. Settings panels lost their duplicated
+card headings and description lines.
+
+Rules applied everywhere: no colour-coded state (every status is one neutral chip with the
+label), no alert strips, no explanatory line under a section heading, sentence case, one
+filled ink primary per view, 36px titles, hairline tables without a header band, grey
+`#f1f3f4` tiles with ink numbers, `PersonTag` for people.
+
+### Deleted
+
+The superseded Phase 11 board components: `src/components/board/{AddTaskForm, AssignmentPicker,
+CompanyBoard, CompanyDetail, CompanyRow, FilterBar, SummaryStrip, TaskBullet, WorkloadView,
+badges}.tsx`. They were never committed. `useBoardData` now owns the `SyncState` type.
+
+### Judgement calls
+
+- Replies: each drafted reply card keeps its own filled Send; there is no page-level primary.
+- The company page header select is the *stage* select (its PATCH only takes `stage`); the
+  owner badge falls back to the email's local part because the page has no staff fetch.
+- Inbound `constants.ts` still holds colour fields; the dropdown ignores them.
+- During local capture with the cron bearer, session-only routes return 401, so Debit Notes,
+  Contacts detail, Calendar events and the Settings panels render empty in the shots. That is
+  the capture, not the pages.
+
+---
+
+## 2026-09-29 — End-to-end revamp: company as the primary key, Google-Store editorial design
+
+**Status:** `tsc` clean, `next build` clean (API-gate coverage check passed), `npx vitest run`
+350/350. Dogfooded end to end on localhost:3111 with the capture cycle (29 screens in the
+walkthrough). Nothing deployed from this session; the other account pushes live.
+
+### Handoff for the deploying account
+
+Apply in the Supabase SQL editor, in this order, before or with the deploy:
+
+1. `supabase/migrations/20260922_focus_board.sql` — board_tasks, board_comments,
+   contacts.title / signature_read_at, companies.confirmed_at / confirmed_by, and (section 4,
+   appended this round) `companies.home_pinned_at` / `home_pinned_by` with a partial index.
+   Home falls back to "companies with open to-dos" until the pin columns exist and says so.
+2. `supabase/migrations/20260924_api_clients.sql` — the API-gate key registry (the other
+   account's own, uncommitted on purpose).
+
+Environment and auth:
+
+- Production Gemini key returns **402, prepayment credits depleted**. Every Gemini feature
+  (drafts, triage, debit-note extraction, briefs, Nexus reads) fails until AI Studio billing is
+  topped up. Local `.env.local` Gemini keys are invalid; do not use them to verify.
+- `ANTHROPIC_API_KEY` must be set for Ask Opus (Nexus, chat dock).
+- Add `http://localhost:3111/**` to Supabase Auth → URL configuration → Redirect URLs, or
+  localhost sign-in keeps bouncing to production.
+- `API_GATE_MODE=log-only` is what local dogfood ran under; production should run the gate
+  in enforce mode once the key registry migration is applied.
+
+Deleted: `src/components/engagement/EngagementFolderNav.tsx` is tracked and shows as `D` —
+`git rm` it. The rest of what this round removed (PillWall, InboxSections, SummaryCards,
+RenewalTabs, CompanyFilterBar, the operations-layout components under `src/components/home/`)
+were never committed, so nothing else to do. New directories to add: `src/app/api/board/`,
+`src/app/api/outbound/workspace/`, `src/app/api/users/`, `src/components/board/`,
+`src/components/companies/`, `src/components/home/`, `src/components/outreach/`,
+`src/components/settings/`, `src/lib/api-gate/`, plus the new engagement panes and tests.
+
+### One design system, from the website
+
+Inter; ink `#202124`, muted `#5f6368`, hairline `#e8eaed`; soft fields (`#EAF2FF`, `#F1EEFF`,
+`#FFF6D8`, `#EAF6EC`, `#FFF0E7`, `#F5F5F3`, grey `#F1F3F4`); 12px-radius controls; one filled
+ink primary per view; TRS navy `#0C338A` kept in the inbox. No colour coding of state, no
+alerts, no money warnings anywhere: `board/model.ts`, `companies/badges.ts`, `crm/overview.ts`
+and the calendar route drop overdue-payment signals; the calendar shows ended policies in grey
+as "Ended N days ago". Finance reconciliation stays out until it is asked for.
+
+### Home is the pinned companies
+
+"Companies to work on", centred search across every company plus Add company. A card is one
+company: name, its open to-dos as white square labels scrolling inside the card, and the
+owner's badge at the foot with the to-do count and Pin / Unpin. Five per row (three when the
+drawer is open). Membership is manual pinning only — `PATCH /api/companies/[id]` with
+`{ pinned: true|false }` sets or clears `home_pinned_at` / `home_pinned_by`. Opening a card
+opens the company drawer, which is where to-dos are added, edited, assigned and removed
+(`TodoEditor`: Enter to add, click to edit, date, person, complete, remove). Owner badges are
+`PersonTag`: one of eight hues per email, tinted background, first name.
+
+### Companies is a table with a Clients | Insurers switch
+
+Title, count, the switch, search (`/` focuses), a filter popover (settings-list style with
+Reset / Done) and Add company; nothing else above the list. Six columns: Company (frozen),
+Stage, Threads with awaiting-reply count, LTV (debit-note gross by currency), Next policy
+renewal (date plus "in N days" / "ended N days ago"), Owner and last activity. Default sort is
+renewal descending; every header sorts. Insurers are rows in `companies` with `kind =
+'insurer'`, listed by `listCompaniesByKind`, and get the same model as clients (owner, pin,
+to-dos). Merging the insurer directory into `companies` as the single source of truth is
+scoped, not built.
+
+### The company drawer
+
+Header: name, `Client · domain · owner`. Tabs: Overview (to-dos and Pin), Policies (each row
+opens the debit note: `/debit-notes?company_id=…&open=…`), Threads (opens the conversation in
+All Inbox), Finance (debit note, due, amount due, total). Menu: open company page, pin, add
+debit note, edit company. The four mini-cards, Tasks tab and Activity tab from the 28 Sep
+drawer are gone.
+
+### All Inbox reads like a mail client
+
+Two panes: one thread list (search, Compose, section select — Needs reply, Waiting, Renewal,
+RFQ, Claim, All — density, sync) and the thread. The sections rail is gone. Messages render
+their real HTML in chronological order, quoted history collapsed (`splitQuotedHtml`), typography
+via `.email-html-body` in `globals.css`, latest message scrolled into view. The composer is a
+collapsed "Reply to X…" line that expands to the compose panel; its controls now sit on one
+top bar — Reply · From · Signature · Generate AI reply · Approve & Send · Minimise. The context
+rail is a column at 1680px and wider, a sheet below that.
+
+### Navbar and Settings
+
+Home · Companies · All Inbox ▾ (All Inbox, Nexus) · Product ▾ (Debit Notes, Pricing Matrix,
+Match Threads, Contacts, Finance, RoadPlus) · Sales · Calendar · Analytics ▾. Settings sits
+under the avatar (`placement: 'account'`). Team is merged into Settings, structured like Alps
+Wills: an internal nav (You: profile, signatures · Team: team · Operations: insurers, RFQ,
+email templates, How it works) and a roster table. `/team` redirects to
+`/settings?section=team`. The roster reads Supabase Auth users on TRS domains joined with
+`employee_profiles` (`GET /api/users`, session or cron bearer, read-only); invite, role and
+suspend are admin-only and never act on self.
+
+"How it works" is the workflow diagram (`WorkflowDiagram`): the five doors a company comes in
+through (All Inbox new domain, debit-note approve, Pricing Matrix quote, Sales move-to-sales,
+Add company), the company at the centre, and every page as a view of it, plus the six-step
+loop. The same diagram is in the walkthrough artifact.
+
+### Sales is a campaign workspace
+
+Campaigns | Leads | Pipeline | Sources, backed by `GET /api/outbound/workspace`. Campaign rows
+with a side panel (compact metrics when the panel is open), a lead grid with a lead panel,
+Move to Sales (lead becomes a company at Prospect), New campaign, sources view. `/pipeline`
+is the stage view.
+
+### Debit notes, Pricing Matrix 2.0
+
+Both debit-note flows (new and historical) fill the company from the extracted `client_name`
+by exact normalised match against `/api/companies?search=` (`useAutoMatchCompany`), and the
+picker opens pre-filled when nothing matches. Debit Notes list, new and historical screens use
+the Home tokens (`Field` labels, `inp`).
+
+Pricing Matrix 2.0 phase 1: the page on the Home system with a "What's new" field in plain
+English; the census editor flags rows without a date of birth or age, or an age outside 0–99,
+with a `#FFF6D8` row tint and a summary line. Phases 2–6 (value column, scenarios, grounded
+recommendation, quote → policy) are scoped, not built.
+
+### Nexus
+
+Every case has Ask Opus in the chat dock with two change prompts in the empty state; the dock
+already supports confirm-to-act edits through `/api/nexus/cases/[id]/edit-analysis`.
+
+### Not built, on purpose
+
+Insurer directory merge into `companies` (migration plus RFQ routing); Pricing Matrix 2.0
+phases 2–6; deeper debit-note drawer and calculator restyles; finance reconciliation.
+
+---
+
+## 2026-09-28 (later) — Companies rebuilt around the company, navbar in the website's design
+
+**Status:** `tsc` + `next build` clean, tests pass. No new migration beyond the one already
+pending (`20260922_focus_board.sql`).
+
+### The navbar looks like the website
+
+Same 56px white bar with the soft blur, the same Inter at 14/500 in muted ink that darkens on
+hover, the current section in a quiet navy tint, and dropdowns as white rounded cards with a
+title and one-line description per entry. The sections and their contents are unchanged: Home,
+Companies, All Inbox, Sales Outreach, Nexus, Calendar, Finance, Tools, RoadPlus, Analytics,
+Team, Settings. The shadcn navigation-menu and dropdown primitives are no longer used by it.
+
+### Companies is the register, with the overview in a drawer
+
+Built to the Harvey-inspired brief. Five summary cards (clients, renewals within 90 and 30
+days, awaiting reply, past due), each a filter. A renewal strip — All policies, Within 90 / 60
+/ 30 / 7 days, Overdue, No renewal date — with counts, cumulative and labelled as such, hover
+text spelling out the inclusion rule. A filter bar for search, stage, owner (including
+"assigned to me" and "unassigned"), operational badge and sort, with active-filter chips and a
+clear-all.
+
+The table: company with health dot, domain and owner; stage; up to three operational badges
+(overdue item, payment overdue, blocked, renewal due, awaiting reply, high priority, claim
+open, RFQ active, no owner, unconfirmed) with the rest collapsed and every badge a filter;
+threads with the awaiting-reply count; to collect with the past-due line in red; next renewal
+with date, plain-English distance and a bucket tag; owner avatars; last activity. Rows are
+keyboard selectable. Cards on a phone.
+
+Selecting a row opens a 440px drawer over the table without losing filters or position, and
+moving between rows keeps it open. Escape closes. It has a sticky header (name, domain, stage,
+health, renewal tag, overflow menu with open page / add item / link thread / add policy / edit),
+four mini-cards that jump to a tab, and six tabs: Overview, Policies, Threads, Tasks, Finance,
+Activity. The tabs reuse the company page's own components, so nothing is duplicated. Overview
+runs in the brief's order: needs attention, policy renewals with View in Calendar, alerts and
+where we left off, company information with an owner picker.
+
+### One renewal vocabulary, shared with Calendar
+
+`src/lib/crm/renewal.ts` is the single definition of the bands (Overdue, 0–7, 8–30, 31–60,
+61–90, beyond 90, no date) and the cumulative windows. Companies, the drawer and the Calendar
+all read it. The Calendar gained the same window chips, an "Open company" link on every
+renewal that lands in the Companies drawer, a `?date=` parameter so the drawer can hand off to
+the right month, and a new event kind: policies past their end date and still marked active,
+pinned to today, which the old feed silently omitted.
+
+### One data model
+
+Home and Companies both read `/api/board` through a shared hook, so a task ticked on one is
+ticked on the other and both hear the database change feed.
+
+---
+
+## 2026-09-28 — Home is the company board
+
+**Status:** `tsc` + `next build` clean, 345/345 tests pass. **Migration to apply:**
+`supabase/migrations/20260922_focus_board.sql` (rewritten; it had not been applied).
+
+Home was rebuilt to the collaborative board brief. Every client company is a row; the row
+says what is most pressing right now, who owns it, the nearest deadline, status and priority,
+open-item count and last activity. Clicking a row expands it in place, without leaving the
+page: account header with owner, health, renewal and money; the list of pressing items, each
+with a checkbox, deadline, one primary owner plus collaborators, priority, status and a
+comment thread; and an add form defaulting to the signed-in person.
+
+Above the table, an urgency strip — Overdue, Due today, Due this week, Renewals, Claims, RFQs,
+Awaiting reply — with live counts that filter the board. A filter bar for search, owner,
+status, priority and sort, with four views: Table, By urgency, My work and Team workload, and a
+collapse-all control. Every write is optimistic with a Syncing / Saved just now / Not saved
+indicator, and the database change feed keeps two people's screens in step. Table on desktop,
+trimmed columns on tablet, stacked cards on a phone. Keyboard operable throughout; no state is
+carried by colour alone.
+
+Where a company has no items yet, the row still says why it matters, from the same roll-up the
+companies list uses: emails awaiting reply, money past due, a renewal inside sixty days.
+
+The task model changed to fit: a task hangs off the company directly (no separate "on the
+board" step), and carries priority, status (on track / awaiting client reply / blocked /
+complete), a primary owner, collaborators and comments. The tile board from 22 September is
+gone; the company header now shows the count of pressing items and deep-links to the row.
+
+---
+
+## 2026-09-22 — Focus board, the email workflow locked, stakeholder titles
+
+**Status:** `tsc` + `next build` clean, 345/345 tests pass. **One migration to apply:**
+`supabase/migrations/20260922_focus_board.sql`. Everything degrades safely until it is.
+
+### The focus board replaces the printed fortnightly list
+
+On Home, above everything else. One tile per company, any number of tasks on the tile, each
+task tagged to a person from a picker of everyone who has signed in. Anyone adds a company,
+anyone removes one, anyone ticks a task done. Two people looking at it see each other's changes
+within a second through the database change feed, with a 30-second poll behind it. Every change
+is written to the audit log and the last few show under the board. Filters for All, Mine and
+Unassigned. Each tile links to its company page, shows what is waiting there (awaiting reply,
+past due, next renewal), and each company page carries an "On the board" or "Add to board"
+control in its header.
+
+### The email workflow, locked
+
+Every inbound email now resolves in this order, and every step is deterministic except the last:
+known domain → domain stem names an existing company (so `@flavia` finds "Flavia Holdings Pte
+Ltd" instead of making a twin) → the organisation in the sender's signature matches a company →
+client named in the subject → **create**, whatever the model's confidence, and mark the record
+unconfirmed. The model names it when it answers; the domain names it when it does not. The
+queue that left eleven Mpinsb threads unfiled for a week is gone. Only threads carrying nothing
+but personal or excluded addresses wait for a person.
+
+Guards: a not-a-client list (KYN, Singapore ISPs), insurer-owned domains never become clients,
+and something the model is fairly sure is *not* a client — a hospital, a bank, a claims TPA —
+files as a partner so it stays off the client list.
+
+Unconfirmed companies show an amber Confirm control in the header and a dot on the list.
+
+### Stakeholder titles from signatures
+
+The first time a person writes to us, the model reads the tail of that one email for their
+position and the organisation as they write it. Stored once; re-read only if a later signature
+differs. The People tab now shows the title, and marks anyone who has only ever been copied.
+The organisation from the signature also feeds the company match above.
+
+### Contacts linked to companies
+
+Only 41% of contacts belonged to a company. Every sweep now ends by giving each contact the
+company that owns their email domain: 218 link immediately, a further 128 as soon as their
+companies are created, personal mailboxes and TRS staff are left alone.
+
+### Also
+
+- `rankPeople` was reading a column dropped in July (`insurer_contacts.contact_email`), silently
+  getting an empty list, so insurer contacts were being classed as "other". Fixed.
+- Two real duplicates remain for a person to merge: BLL twice, and "Cold Chain Refrigration"
+  (typo) beside "COLD CHAIN REFRIGERATION". The Huang Pu Soya Bean pair are two branches.
+
+---
+
 ## 2026-09-11 (late) — The calendar shows everything that has a date
 
 **Status:** `tsc` + `next build` clean, 339/339 tests pass. No migration.

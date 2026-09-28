@@ -3,6 +3,9 @@
 import { cn } from '@/lib/utils'
 import { EMAIL_TYPE_MAP } from '@/components/engagement/types'
 
+/** The email type as a neutral chip: field grey, body text, the word carries the meaning.
+ *  The per-type colours in EMAIL_TYPE_MAP are no longer painted. */
+
 interface EmailTypeBadgeProps {
   type:       string | null
   size?:      'xs' | 'sm' | 'md'
@@ -17,13 +20,13 @@ export function EmailTypeBadge({ type, size = 'sm', className }: EmailTypeBadgeP
   return (
     <span
       className={cn(
-        'inline-flex items-center font-bold rounded-[6px] whitespace-nowrap flex-shrink-0 tracking-wide uppercase',
-        size === 'xs' && 'text-[8.5px] px-2 py-[2px]',
-        size === 'sm' && 'text-[9.5px] px-2.5 py-[3px]',
-        size === 'md' && 'text-[11px] px-3 py-[4px]',
+        'inline-flex items-center font-medium rounded-[6px] whitespace-nowrap flex-shrink-0 leading-none',
+        size === 'xs' && 'text-[11.5px] px-2 h-[20px]',
+        size === 'sm' && 'text-[12px] px-2.5 h-[22px]',
+        size === 'md' && 'text-[13px] px-3 h-[26px]',
         className,
       )}
-      style={{ background: et.bg, color: et.color }}
+      style={{ background: '#f1f3f4', color: '#3c4043' }}
     >
       {et.label}
     </span>

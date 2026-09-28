@@ -1,13 +1,14 @@
 'use client'
 
-// Engagement Compose Panel — Phase 3
+// Engagement Compose Panel — the reply editor rendered in the reader's foot by ThreadView.
 //
-// ALL business logic, hooks, and API calls are preserved verbatim from
-// ComposePanel.tsx. Only the visual shell (JSX structure + CSS classes)
-// has been updated. If you need to add logic, do it here.
+// ALL business logic, hooks, and API calls are preserved verbatim from the previous shell
+// (draft load/generate/send, attachments, signatures, senders, pendingRestore, resize hook).
+// Only the presentation is rebuilt, to the approved mail-workspace mock: everything sits on the
+// 1040 measure — top bar, To/Cc/Bcc/Subject rows, the grouped toolbar, the editor, the footer.
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { RefreshCw, ChevronDown, Sparkles, Paperclip, Upload, X } from 'lucide-react'
+import { Paperclip, Sparkles, ChevronDown, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
 import { createClient } from '@/lib/supabase/client'
@@ -17,6 +18,10 @@ import { fullName } from '@/components/engagement/helpers'
 import { useAutocomplete, SuggestionList } from '@/components/engagement/RecipientAutocomplete'
 import { InlineProgress, useFauxProgress } from '@/components/engagement/InlineProgress'
 import { useResizableComposerHeight } from '@/hooks/useResizableComposerHeight'
+import {
+  TbGroup, TbButton, TbMenu, TbMenuItem, TbMenuLabel, FieldRow, RecipientChip, QuietSelect, AttachmentChip,
+  BTN_PRIMARY, BTN_TERTIARY, INK, BODY, MUTED, FAINT,
+} from '@/components/engagement-agent/compose-toolbar'
 
 interface EngagementComposePanelProps {
   lead:              Lead
@@ -40,6 +45,8 @@ interface EngagementComposePanelProps {
   /** Run one AI-analysis pass (updates the AI Analysis tab + history) before drafting. */
   onAnalyze?:        () => Promise<void>
   pendingRestore?:   { body: string; generatedBy: string; stamp: number } | null
+  /** Folds the composer back to one line (rendered by the thread view). */
+  onMinimise?:       () => void
 }
 
 export function EngagementComposePanel({
@@ -48,7 +55,7 @@ export function EngagementComposePanel({
   setToAddress, setCcList, setBccList, setCustomSubject,
   replyAll, onToggleReplyAll,
   storedDraft, storedRagDraft, storedRagSources,
-  onRagRefresh, onThreadRefresh, onAnalyze, pendingRestore,
+  onRagRefresh, onThreadRefresh, onAnalyze, pendingRestore, onMinimise,
 }: EngagementComposePanelProps) {
 
   // ── All state preserved verbatim ──────────────────────────────────────────
@@ -69,12 +76,14 @@ export function EngagementComposePanel({
   const [aiDraftChecked,  setAiDraftChecked]  = useState(false)
   const [showCc,          setShowCc]          = useState(ccList.length > 0)
   const [showBcc,         setShowBcc]         = useState(bccList.length > 0)
-  // Gmail/Superhuman-style collapsed header: "To: name ▾" by default, expands to editable
-  // To/Cc/Bcc fields on click. Starts collapsed — the recipient is virtually always
-  // pre-filled from the thread/lead, so showing three stacked input rows up front is noise.
+  // The To row shows the recipient as a chip; clicking it opens the editable field. Starts
+  // collapsed — the recipient is virtually always pre-filled from the thread/lead.
   const [headerExpanded,  setHeaderExpanded]  = useState(false)
   const [ragSources,      setRagSources]      = useState<RagSource[]>(storedRagSources ?? [])
   const [showSources,     setShowSources]     = useState(false)
+  // Full screen: the panel takes the whole reader column (ThreadView's EaWorkspaceColumn is the
+  // positioned ancestor), the editor body flexes to fill it. Esc leaves.
+  const [fullscreen,      setFullscreen]      = useState(false)
 
   // Editor height — drag-resizable via the handle below it, persisted across the session.
   const { height: editorHeight, min: editorMin, max: editorMax, step: editorStep, startDrag: startEditorDrag, nudge: nudgeEditor, setAbsolute: setEditorHeight } = useResizableComposerHeight()
@@ -83,7 +92,7 @@ export function EngagementComposePanel({
   const editorHeightRef = useRef(editorHeight)
   editorHeightRef.current = editorHeight
   const onEditorContentHeight = useCallback((contentH: number) => {
-    const needed = Math.min(editorMax, contentH + 24)   // + the editor wrapper's own py-3 (12px top + 12px bottom)
+    const needed = Math.min(editorMax, contentH + 24)   // + the editor body's own vertical padding
     if (needed > editorHeightRef.current) setEditorHeight(needed)
   }, [editorMax, setEditorHeight])
 
@@ -210,7 +219,7 @@ export function EngagementComposePanel({
       }
     } finally {
       setUploading(false)
-      setAttachMenuOpen(false)   // collapse the "Upload from computer" menu once done
+      setAttachMenuOpen(false)   // collapse the attach menu once done
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
@@ -382,17 +391,19 @@ export function EngagementComposePanel({
   const hasDraft = draftHtml.replace(/<[^>]+>/g, '').trim().length > 0
   const canSend  = hasDraft && !!toAddress.trim()
 
+  const contactName = fullName(lead)
+  const toName = toAddress && lead.email && toAddress.trim().toLowerCase() === lead.email.toLowerCase() && contactName ? contactName : toAddress
+  const selectedSender = senders.find(s => s.email === selectedFrom)
+
   // ── Sent state ─────────────────────────────────────────────────────────────
   if (sent) {
     return (
-      <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-[--border-subtle] bg-card">
-        <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-[--success]" />
-          <span className="text-[12.5px] font-medium text-[--success]">Reply sent</span>
-        </div>
+      <div className="w-full max-w-[1040px] mx-auto flex items-center justify-between gap-3 px-6 lg:px-10 h-12" style={{ color: INK }}>
+        <span className="text-[14px] font-medium">Reply sent</span>
         <button
+          type="button"
           onClick={() => { setSent(false); setDraftHtml(''); setDraftId(null); setContextUsed([]) }}
-          className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+          className={BTN_TERTIARY}
         >
           Compose another
         </button>
@@ -401,178 +412,181 @@ export function EngagementComposePanel({
   }
 
   // ── Compose shell ──────────────────────────────────────────────────────────
-  // Flat, in-flow treatment — this is the first item in the thread's own scroll region now (the
-  // stack is newest-first: composer, then newest message, then descending history), not a panel
-  // floating up from a fixed-height dock, so no rounded corners / shadow / h-full. border-b (not
-  // border-t) since it separates the composer FROM the messages below it, not above.
   return (
-    <div className="flex-shrink-0 flex flex-col border-b border-[--border-subtle] bg-card">
+    <div
+      className={cn('flex flex-col bg-white', fullscreen && 'absolute inset-0 z-20 overflow-hidden')}
+      onKeyDown={e => {
+        // Esc leaves full screen. It does not minimise: minimising unmounts the panel and the
+        // reply edits with it, which is too costly for a key that is easy to hit by accident.
+        if (e.key === 'Escape' && fullscreen && !e.defaultPrevented) { e.preventDefault(); e.stopPropagation(); setFullscreen(false) }
+      }}
+      aria-label="Reply"
+    >
+      <div className={cn('w-full max-w-[1040px] mx-auto flex flex-col min-h-0 [--re-gutter:24px] lg:[--re-gutter:40px]', fullscreen && 'flex-1')}>
 
-      {/* ── Addressing header ── */}
-      <div className="flex-shrink-0 border-b border-[--border-subtle]">
+        {/* ── Top bar: Reply · save state · spacer · Minimise ── */}
+        <div className="flex items-center gap-2.5 px-[var(--re-gutter)] h-12 flex-shrink-0">
+          <h3 className="m-0 text-[15px] font-medium" style={{ color: INK }}>Reply</h3>
+          {/* No draft autosave exists in this panel — drafts are written on send — so no "Saved" state is shown. */}
+          <span className="flex-1" />
+          {onMinimise && (
+            <button type="button" onClick={onMinimise} title="Minimise" aria-label="Minimise the reply" className={cn(BTN_TERTIARY, 'h-8 px-2.5')}>
+              Minimise
+            </button>
+          )}
+        </div>
 
-        {!headerExpanded ? (
-          /* Collapsed summary line — Gmail/Superhuman style: "To: recipient ▾  Cc/Bcc" */
-          <button
-            type="button"
-            onClick={() => setHeaderExpanded(true)}
-            aria-expanded={false}
-            className="w-full flex items-center gap-2.5 px-6 py-2.5 text-left hover:bg-muted/30 transition-colors"
-          >
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/55 flex-shrink-0">
-              To
-            </span>
-            <span className="text-[12.5px] font-medium text-foreground truncate flex-1 min-w-0">
-              {toAddress || <span className="text-muted-foreground/50 font-normal">Add recipient…</span>}
-            </span>
-            {(ccList.length > 0 || bccList.length > 0) && (
-              <span className="text-[10.5px] text-muted-foreground/60 flex-shrink-0">
-                {[ccList.length > 0 ? `Cc ${ccList.length}` : null, bccList.length > 0 ? `Bcc ${bccList.length}` : null]
-                  .filter(Boolean).join(' · ')}
-              </span>
-            )}
-            {!ccList.length && !bccList.length && (
-              <span className="text-[10.5px] text-muted-foreground/45 flex-shrink-0">Cc/Bcc</span>
-            )}
-            <ChevronDown size={13} strokeWidth={2} className="text-muted-foreground/40 flex-shrink-0" />
-          </button>
-        ) : (
-          <div className="pb-2 pt-1">
-
-            {/* TO */}
-            <div className="flex items-center min-h-[40px] px-6 gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/55 w-[40px] flex-shrink-0">
-                To
-              </span>
-              <ToAutocompleteInput value={toAddress} onChange={setToAddress} placeholder="Type a name or email…" />
-              {onToggleReplyAll && (
-                <button
-                  onClick={onToggleReplyAll}
-                  title={replyAll ? 'Replying to everyone — click for sender only' : 'Replying to sender only — click to Reply All'}
-                  aria-pressed={replyAll}
-                  className={cn(
-                    'text-[10px] font-semibold px-2 py-1 rounded flex-shrink-0 transition-colors',
-                    replyAll ? 'text-primary' : 'text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted',
-                  )}
-                >
-                  {replyAll ? 'Reply all ✓' : 'Reply all'}
-                </button>
-              )}
-              {!showCc && (
-                <button
-                  onClick={() => setShowCc(true)}
-                  aria-label="Show CC field"
-                  className="text-[10px] font-semibold text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted rounded px-2 py-1 flex-shrink-0 transition-colors"
-                >
-                  Cc
-                </button>
-              )}
-              {!showBcc && (
-                <button
-                  onClick={() => setShowBcc(true)}
-                  aria-label="Show BCC field"
-                  className="text-[10px] font-semibold text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted rounded px-2 py-1 flex-shrink-0 transition-colors"
-                >
-                  Bcc
-                </button>
-              )}
+        {/* ── To ── */}
+        <FieldRow label="To" tall htmlFor="compose-to" right={
+          <>
+            {onToggleReplyAll && (
               <button
-                onClick={() => setHeaderExpanded(false)}
-                title="Collapse address fields"
-                aria-label="Collapse address fields"
-                className="text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted rounded p-1 flex-shrink-0 transition-colors"
+                type="button"
+                onClick={onToggleReplyAll}
+                aria-pressed={replyAll}
+                title={replyAll ? 'Replying to everyone. Click to reply to the sender only' : 'Replying to the sender only. Click to reply to everyone'}
+                className={cn('h-7 px-2 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f3f4]', replyAll && 'bg-[#f1f3f4] font-medium')}
+                style={{ color: replyAll ? INK : FAINT }}
               >
-                <ChevronDown size={13} strokeWidth={2} className="rotate-180" />
+                Reply all
               </button>
-            </div>
-
-            {/* CC — toggleable, appears directly below To */}
-            {showCc && (
-              <div className="flex items-start min-h-[36px] px-6 gap-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/55 w-[40px] flex-shrink-0 pt-2">
-                  Cc
-                </span>
-                <ChipInput chips={ccList} onChange={setCcList} placeholder="Add CC…" />
-                <button
-                  onClick={() => { setShowCc(false); setCcList([]) }}
-                  aria-label="Hide CC field"
-                  className="text-muted-foreground/40 hover:text-muted-foreground p-1 mt-1 flex-shrink-0"
-                >
-                  <X size={12} />
-                </button>
-              </div>
             )}
+            {!showCc && <button type="button" onClick={() => setShowCc(true)} aria-label="Add Cc" className="h-7 px-1.5 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f3f4]" style={{ color: FAINT }}>Cc</button>}
+            {!showCc && !showBcc && <span aria-hidden>·</span>}
+            {!showBcc && <button type="button" onClick={() => setShowBcc(true)} aria-label="Add Bcc" className="h-7 px-1.5 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f3f4]" style={{ color: FAINT }}>Bcc</button>}
+          </>
+        }>
+          {headerExpanded || !toAddress ? (
+            <ToAutocompleteInput id="compose-to" value={toAddress} onChange={setToAddress} placeholder="Type a name or email…"
+              onDone={() => { if (toAddress.trim()) setHeaderExpanded(false) }} autoFocus={headerExpanded} />
+          ) : (
+            <RecipientChip name={toName} email={toAddress} onClick={() => setHeaderExpanded(true)} title={`${toAddress} · click to change`} />
+          )}
+        </FieldRow>
 
-            {/* BCC — toggleable, appears below CC */}
-            {showBcc && (
-              <div className="flex items-start min-h-[36px] px-6 gap-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/55 w-[40px] flex-shrink-0 pt-2">
-                  Bcc
-                </span>
-                <ChipInput chips={bccList} onChange={setBccList} placeholder="Add BCC…" />
-                <button
-                  onClick={() => { setShowBcc(false); setBccList([]) }}
-                  aria-label="Hide BCC field"
-                  className="text-muted-foreground/40 hover:text-muted-foreground p-1 mt-1 flex-shrink-0"
-                >
-                  <X size={12} />
-                </button>
-              </div>
-            )}
-          </div>
+        {/* ── Cc / Bcc — revealed from the To row ── */}
+        {showCc && (
+          <FieldRow label="Cc" tall right={
+            <button type="button" onClick={() => { setShowCc(false); setCcList([]) }} aria-label="Remove Cc" title="Remove Cc" className="w-7 h-7 inline-flex items-center justify-center rounded-[6px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: MUTED }}><X size={13} /></button>
+          }>
+            <ChipInput chips={ccList} onChange={setCcList} placeholder="Add Cc…" />
+          </FieldRow>
+        )}
+        {showBcc && (
+          <FieldRow label="Bcc" tall right={
+            <button type="button" onClick={() => { setShowBcc(false); setBccList([]) }} aria-label="Remove Bcc" title="Remove Bcc" className="w-7 h-7 inline-flex items-center justify-center rounded-[6px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: MUTED }}><X size={13} /></button>
+          }>
+            <ChipInput chips={bccList} onChange={setBccList} placeholder="Add Bcc…" />
+          </FieldRow>
         )}
 
-        {/* Subject — always visible, compact */}
-        <div className="flex items-center min-h-[38px] px-6 border-t border-[--border-subtle]">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/55 w-[40px] flex-shrink-0">
-            Subj
-          </span>
+        {/* ── Subject · From · Signature ── */}
+        <FieldRow label="Subject" htmlFor="compose-subject" right={
+          (senders.length > 0 || signatures.length > 0) ? (
+            <>
+              {senders.length > 0 && (
+                <span className="inline-flex items-center gap-1">
+                  <span>From</span>
+                  <QuietSelect label="From" value={selectedFrom} onChange={setSelectedFrom}>
+                    {senders.map(s => <option key={s.email} value={s.email}>{s.label}</option>)}
+                  </QuietSelect>
+                </span>
+              )}
+              {senders.length > 0 && signatures.length > 0 && <span aria-hidden>·</span>}
+              {signatures.length > 0 && (
+                <span className="inline-flex items-center gap-1">
+                  <span>Signature:</span>
+                  <QuietSelect label="Signature" value={selectedSigId} onChange={setSelectedSigId}>
+                    <option value="">None</option>
+                    {signatures.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </QuietSelect>
+                </span>
+              )}
+            </>
+          ) : undefined
+        }>
           <input
+            id="compose-subject"
             value={customSubject}
             onChange={e => setCustomSubject(e.target.value)}
             aria-label="Email subject"
-            className="flex-1 text-[12px] text-foreground/75 bg-transparent border-none outline-none py-2"
+            placeholder="Subject"
+            className="w-full text-[14px] bg-transparent border-none outline-none py-1 placeholder:text-[#80868b]"
+            style={{ color: INK }}
           />
-        </div>
-      </div>
+        </FieldRow>
 
-      {(
-        <>
-          {/* Why this draft looks the way it does — deterministic, not LLM-self-reported (see
-              api/engagement/draft/route.ts) — so staff can verify rather than trust blindly. */}
-          {hasDraft && contextUsed.length > 0 && (
-            <div className="px-6 pt-2.5 flex flex-wrap items-center gap-1.5">
-              <span className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider mr-0.5">Used:</span>
-              {contextUsed.map((c, i) => (
-                <span key={i} className="text-[10.5px] px-2 py-0.5 rounded-full bg-primary/[0.06] text-[--primary-hex]">{c}</span>
-              ))}
-            </div>
-          )}
-
-          {/* ── Editor — height is drag-resizable (handle below), not just capped, so a longer
-               draft has real room without the thread scroll region also having to grow past what
-               the reader wants visible at once. ── */}
-          <div className="px-6 py-3 overflow-y-auto" style={{ height: 'var(--engagement-composer-h, 220px)' }}>
-            <RichEditor
-              key={draftEditorKey}
-              initialHtml={draftHtml}
-              onChange={setDraftHtml}
-              sigHtml={sigHtml}
-              borderless
-              placeholder={
-                loading === 'gen'
-                  ? 'Generating AI draft…'
-                  : hasDraft
-                    ? ''
-                    : `Write your reply to ${lead.email ?? 'the client'}…`
-              }
-              minHeight={200}
-              onAttachClick={() => fileInputRef.current?.click()}
-              onContentHeightChange={onEditorContentHeight}
-            />
+        {/* Why this draft looks the way it does — deterministic, not LLM-self-reported (see
+            api/engagement/draft/route.ts) — so staff can verify rather than trust blindly. */}
+        {hasDraft && contextUsed.length > 0 && (
+          <div className="px-[var(--re-gutter)] pt-2 flex flex-wrap items-center gap-1.5 flex-shrink-0">
+            <span className="text-[12.5px] mr-0.5" style={{ color: MUTED }}>Drafted from</span>
+            {contextUsed.map((c, i) => (
+              <span key={i} className="text-[11.5px] font-medium px-2 py-0.5 rounded-[6px] bg-[#f1f3f4]" style={{ color: BODY }}>{c}</span>
+            ))}
           </div>
+        )}
 
-          {/* ── Editor resize handle ── */}
+        {/* ── Toolbar + editor. Outside full screen the body is a fixed, drag-resizable box (the
+             handle below); in full screen it flexes to fill the reader. ── */}
+        <RichEditor
+          key={draftEditorKey}
+          initialHtml={draftHtml}
+          onChange={setDraftHtml}
+          sigHtml={sigHtml}
+          borderless
+          variant="reading"
+          placeholder={
+            loading === 'gen'
+              ? 'Drafting…'
+              : hasDraft
+                ? ''
+                : `Write your reply to ${contactName || lead.email || 'the client'}…`
+          }
+          minHeight={140}
+          onContentHeightChange={onEditorContentHeight}
+          fullscreen={fullscreen}
+          onToggleFullscreen={() => setFullscreen(v => !v)}
+          className={cn('min-h-0', fullscreen && 'flex-1')}
+          bodyClassName={cn('overflow-y-auto', fullscreen && 'flex-1 min-h-0')}
+          bodyStyle={fullscreen ? undefined : { height: 'var(--engagement-composer-h, 220px)' }}
+          toolbarExtras={
+            <>
+              <TbGroup label="Attach">
+                <TbMenu label={uploading ? 'Uploading…' : 'Attach files'} open={attachMenuOpen} onOpenChange={setAttachMenuOpen} caret={threadFiles.length > 0} width={260}
+                  trigger={<><Paperclip size={15} /> {uploading ? 'Uploading…' : 'Attach'}</>}>
+                  {close => (
+                    <>
+                      <TbMenuItem onSelect={() => { fileInputRef.current?.click(); close() }}>Upload from computer</TbMenuItem>
+                      {threadFiles.length > 0 && (
+                        <>
+                          <TbMenuLabel>From this thread</TbMenuLabel>
+                          {threadFiles.map(f => {
+                            const on = attachments.some(a => a.storage_url === f.storage_url)
+                            return <TbMenuItem key={f.storage_url} active={on} onSelect={() => toggleThreadFile(f)}>{f.filename}</TbMenuItem>
+                          })}
+                        </>
+                      )}
+                    </>
+                  )}
+                </TbMenu>
+              </TbGroup>
+              {/* No house-template picker exists in this panel yet, so there is no Template menu. */}
+              <TbGroup label="Assist">
+                <TbMenu label="Assist" disabled={!!loading} trigger={<><Sparkles size={15} /> {loading === 'gen' ? (genStep === 'analyze' ? 'Analysing…' : 'Drafting…') : 'Assist'}</>} width={200}>
+                  {close => (
+                    <TbMenuItem onSelect={() => { close(); void generate() }} disabled={!!loading}>
+                      {hasDraft ? 'Regenerate' : 'Generate AI reply'}
+                    </TbMenuItem>
+                  )}
+                </TbMenu>
+              </TbGroup>
+            </>
+          }
+        />
+
+        {/* ── Editor resize handle (not in full screen) ── */}
+        {!fullscreen && (
           <div
             role="separator"
             aria-orientation="horizontal"
@@ -588,226 +602,99 @@ export function EngagementComposePanel({
               else if (e.key === 'Home')      { e.preventDefault(); setEditorHeight(editorMin) }
               else if (e.key === 'End')       { e.preventDefault(); setEditorHeight(editorMax) }
             }}
-            className="h-1.5 -my-0.5 cursor-row-resize flex items-center justify-center group focus-visible:outline-none flex-shrink-0"
+            className="h-2 cursor-row-resize flex items-center justify-center group focus-visible:outline-none flex-shrink-0"
           >
-            <div className="w-8 h-px bg-[--border-subtle] group-hover:bg-primary/50 group-hover:h-0.5 group-focus-visible:bg-primary/60 group-focus-visible:h-0.5 transition-all" />
+            <div className="w-10 h-px bg-[#e8eaed] group-hover:bg-[#9aa0a6] group-hover:h-0.5 group-focus-visible:bg-[#202124] group-focus-visible:h-0.5 transition-all" />
           </div>
+        )}
 
-          {/* ── Knowledge sources (RAG) ── */}
-          {ragSources.length > 0 && (
-            <div className="mx-6 mb-2 rounded-lg border border-[--border-subtle] overflow-hidden">
-              <button
-                onClick={() => setShowSources(v => !v)}
-                aria-expanded={showSources}
-                className="w-full flex items-center justify-between px-3.5 py-2 bg-muted/30 text-left hover:bg-muted/50 transition-colors"
-              >
-                <span className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground/70">
-                  {ragSources.length} source{ragSources.length !== 1 ? 's' : ''} retrieved
-                </span>
-                <ChevronDown
-                  size={11}
-                  strokeWidth={2}
-                  className={cn('text-muted-foreground/50 transition-transform', showSources && 'rotate-180')}
-                />
-              </button>
-              {showSources && (
-                <div className="divide-y divide-[--border-subtle]">
-                  {ragSources.map((s, i) => (
-                    <div key={i} className="px-3.5 py-2.5">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[11px] font-medium text-foreground/75">{s.file_name}</span>
-                        <span className="text-[9.5px] font-bold text-[--success]">
-                          {Math.round(s.similarity * 100)}%
-                        </span>
-                      </div>
-                      <p className="text-[10.5px] text-muted-foreground/70 leading-relaxed line-clamp-2 m-0">
-                        {s.content}
-                      </p>
+        {/* ── Knowledge sources (RAG) ── */}
+        {ragSources.length > 0 && (
+          <div className="mx-[var(--re-gutter)] mb-2 rounded-[10px] border border-[#e8eaed] overflow-hidden flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowSources(v => !v)}
+              aria-expanded={showSources}
+              className="w-full flex items-center justify-between px-3.5 h-9 bg-white text-left border-0 cursor-pointer hover:bg-[#f8f9fa]"
+            >
+              <span className="text-[12.5px]" style={{ color: MUTED }}>
+                {ragSources.length} source{ragSources.length !== 1 ? 's' : ''} retrieved
+              </span>
+              <ChevronDown size={13} strokeWidth={2} className={cn('transition-transform', showSources && 'rotate-180')} style={{ color: '#9aa0a6' }} />
+            </button>
+            {showSources && (
+              <div className="divide-y divide-[#e8eaed] border-t border-[#e8eaed]">
+                {ragSources.map((s, i) => (
+                  <div key={i} className="px-3.5 py-2.5">
+                    <div className="flex items-center justify-between mb-1 gap-3">
+                      <span className="text-[13px] font-medium truncate" style={{ color: INK }}>{s.file_name}</span>
+                      <span className="text-[12px] tabular-nums flex-shrink-0" style={{ color: FAINT }}>{Math.round(s.similarity * 100)}%</span>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── Attachments (local upload + re-attach thread files) ── */}
-          <div className="px-6 pb-2">
-            {attachments.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mb-1.5">
-                {attachments.map(a => (
-                  <span key={a.storage_url} className="inline-flex items-center gap-1 text-[10.5px] bg-muted/60 border border-[--border-subtle] rounded-md pl-2 pr-1 py-[3px]">
-                    <Paperclip size={9} className="text-muted-foreground/60" />
-                    <span className="max-w-[160px] truncate text-foreground/75">{a.filename}</span>
-                    <button onClick={() => removeAttachment(a.storage_url)} aria-label={`Remove ${a.filename}`} className="text-muted-foreground/50 hover:text-foreground">
-                      <X size={11} />
-                    </button>
-                  </span>
+                    <p className="text-[12.5px] leading-relaxed line-clamp-2 m-0" style={{ color: MUTED }}>{s.content}</p>
+                  </div>
                 ))}
               </div>
             )}
-
-            <div className="relative inline-block">
-              <button
-                onClick={() => setAttachMenuOpen(v => !v)}
-                className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-muted-foreground/60 hover:text-foreground transition-colors"
-              >
-                <Paperclip size={11} /> {uploading ? 'Uploading…' : 'Attach'}
-              </button>
-
-              {attachMenuOpen && (
-                <div className="absolute bottom-full left-0 mb-1 z-30 w-64 rounded-lg border border-[--border-subtle] bg-card p-1 shadow-[0_12px_32px_-12px_rgba(16,24,40,0.28)]">
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md text-[11.5px] text-foreground/85 hover:bg-muted/60 flex items-center gap-1.5"
-                  >
-                    <Upload size={11} /> Upload from computer
-                  </button>
-                  {threadFiles.length > 0 && (
-                    <>
-                      <div className="px-2.5 pt-2 pb-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground/50">From this thread</div>
-                      {threadFiles.map(f => {
-                        const on = attachments.some(a => a.storage_url === f.storage_url)
-                        return (
-                          <button
-                            key={f.storage_url}
-                            onClick={() => toggleThreadFile(f)}
-                            className="w-full text-left px-2.5 py-1.5 rounded-md text-[11.5px] hover:bg-muted/60 flex items-center gap-1.5"
-                          >
-                            <span className={cn('w-3 h-3 rounded-sm border flex items-center justify-center flex-shrink-0 text-[8px]', on ? 'bg-primary border-primary text-white' : 'border-muted-foreground/40')}>{on ? '✓' : ''}</span>
-                            <span className="truncate text-foreground/80">{f.filename}</span>
-                          </button>
-                        )
-                      })}
-                    </>
-                  )}
-                </div>
-              )}
-
-              <input ref={fileInputRef} type="file" multiple className="hidden" onChange={e => uploadLocalFiles(e.target.files)} />
-            </div>
           </div>
+        )}
 
-          {/* ── Footer: from/sig | generate | send ── */}
-          <div className="flex-shrink-0 flex items-center justify-between gap-3 px-6 py-3.5 border-t border-[--border-subtle] bg-muted/20">
+        {/* ── Attachments tray ── */}
+        {attachments.length > 0 && (
+          <div className="px-[var(--re-gutter)] pb-2 flex flex-wrap gap-1.5 flex-shrink-0">
+            {attachments.map(a => <AttachmentChip key={a.storage_url} name={a.filename} onRemove={() => removeAttachment(a.storage_url)} />)}
+          </div>
+        )}
+        <input ref={fileInputRef} type="file" multiple className="hidden" onChange={e => uploadLocalFiles(e.target.files)} aria-hidden tabIndex={-1} />
 
-            {/* Left: from selector + sig indicator */}
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              {senders.length > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50">
-                    From
-                  </span>
-                  <select
-                    value={selectedFrom}
-                    onChange={e => setSelectedFrom(e.target.value)}
-                    className="text-[11px] text-foreground border border-[--border-subtle] rounded-md px-2 py-[3px] bg-background cursor-pointer outline-none focus:ring-1 focus:ring-primary/30"
-                  >
-                    {senders.map(s => (
-                      <option key={s.email} value={s.email}>{s.label}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+        {/* Progress while a reply is being generated (#3) */}
+        {loading === 'gen' && (
+          <div className="px-[var(--re-gutter)] pb-2 flex-shrink-0">
+            <InlineProgress value={genPct} label={genStep === 'analyze' ? 'Analysing thread…' : 'Drafting reply…'} />
+          </div>
+        )}
 
-              {signatures.length > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50">
-                    Sig
-                  </span>
-                  <select
-                    value={selectedSigId}
-                    onChange={e => setSelectedSigId(e.target.value)}
-                    className="text-[11px] text-foreground border border-[--border-subtle] rounded-md px-2 py-[3px] bg-background cursor-pointer outline-none focus:ring-1 focus:ring-primary/30 max-w-[150px]"
-                  >
-                    <option value="">No signature</option>
-                    {signatures.map(s => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-
-            {/* Right: error + generate + send */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {error && (
-                <div className="relative" ref={errorRef}>
-                  <button
-                    type="button"
-                    onClick={() => setErrorOpen(v => !v)}
-                    title="Click for full error"
-                    className="text-[10.5px] text-[--error] max-w-[220px] truncate cursor-pointer underline decoration-dotted underline-offset-2"
-                  >
-                    {error}
-                  </button>
-
-                  {errorOpen && (
-                    <div className="absolute bottom-full right-0 z-50 mb-2 w-[380px] max-h-[260px] overflow-auto rounded-lg border border-[--border-subtle] bg-background p-3 shadow-lg">
-                      <div className="mb-1.5 flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50">Error detail</span>
-                        <div className="flex items-center gap-2.5">
-                          <button
-                            type="button"
-                            onClick={() => navigator.clipboard?.writeText(error)}
-                            className="text-[10px] font-medium text-primary hover:underline"
-                          >
-                            Copy
-                          </button>
-                          <button type="button" onClick={() => setErrorOpen(false)} className="text-muted-foreground/60 hover:text-foreground">
-                            <X size={12} strokeWidth={2} />
-                          </button>
-                        </div>
-                      </div>
-                      <div className="whitespace-pre-wrap break-words text-[11px] text-[--error]">{error}</div>
+        {/* ── Footer: note or error · spacer · Approve & Send ── */}
+        <div className="flex items-center gap-2 px-[var(--re-gutter)] pt-2 pb-4 flex-shrink-0">
+          {error ? (
+            <div className="relative min-w-0" ref={errorRef}>
+              <button
+                type="button"
+                onClick={() => setErrorOpen(v => !v)}
+                title="Show the full error"
+                aria-expanded={errorOpen}
+                className="text-[12.5px] max-w-[360px] truncate cursor-pointer bg-transparent border-0 p-0 text-left underline decoration-dotted underline-offset-2"
+                style={{ color: BODY }}
+              >
+                {error}
+              </button>
+              {errorOpen && (
+                <div className="absolute bottom-full left-0 z-50 mb-2 w-[380px] max-w-[80vw] max-h-[260px] overflow-auto rounded-[10px] border border-[#e8eaed] bg-white p-3 shadow-[0_8px_24px_rgba(32,33,36,0.12)]">
+                  <div className="mb-1.5 flex items-center justify-between gap-2">
+                    <span className="text-[12px]" style={{ color: MUTED }}>Error detail</span>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => navigator.clipboard?.writeText(error)} className="text-[12px] font-medium bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: INK }}>Copy</button>
+                      <button type="button" onClick={() => setErrorOpen(false)} aria-label="Close error detail" className="bg-transparent border-0 p-0 cursor-pointer" style={{ color: MUTED }}><X size={12} strokeWidth={2} /></button>
                     </div>
-                  )}
+                  </div>
+                  <div className="whitespace-pre-wrap break-words text-[12.5px]" style={{ color: BODY }}>{error}</div>
                 </div>
               )}
-
-              {/* Generate AI Reply — secondary: subtle outline, no fill */}
-              <button
-                onClick={() => generate()}
-                disabled={!!loading}
-                className={cn(
-                  'flex items-center gap-1.5 text-[11.5px] font-medium px-3.5 h-9 rounded-lg',
-                  'border border-primary/20 bg-primary/[.04] text-primary',
-                  'hover:bg-primary/8 hover:border-primary/30 transition-colors',
-                  loading && 'opacity-50 cursor-not-allowed',
-                )}
-              >
-                {loading === 'gen'
-                  ? <RefreshCw size={12} strokeWidth={2} className="animate-spin" />
-                  : <Sparkles size={12} strokeWidth={2} />
-                }
-                {loading === 'gen'
-                  ? (genStep === 'analyze' ? 'Analysing…' : 'Drafting…')
-                  : hasDraft ? 'Regenerate' : 'Generate AI reply'}
-              </button>
-
-              {/* Approve & Send — the one primary CTA, visually heaviest control in the panel */}
-              <button
-                onClick={handleSend}
-                disabled={!!loading || !canSend}
-                className={cn(
-                  'text-[12.5px] font-semibold px-6 h-9 rounded-lg shadow-sm',
-                  'bg-primary text-primary-foreground',
-                  'hover:bg-primary/90 transition-colors',
-                  (loading || !canSend) && 'opacity-35 cursor-not-allowed',
-                )}
-              >
-                {loading === 'send' ? 'Sending…' : 'Approve & Send'}
-              </button>
             </div>
-          </div>
-
-          {/* Progress bar under the buttons while a reply is being generated (#3) */}
-          {loading === 'gen' && (
-            <div className="flex-shrink-0 px-6 pb-3 -mt-1">
-              <InlineProgress value={genPct} label={genStep === 'analyze' ? 'Analysing thread…' : 'Drafting reply…'} />
-            </div>
+          ) : (
+            <span className="text-[12.5px] truncate" style={{ color: FAINT }}>Signature and quoted message are added on send</span>
           )}
-        </>
-      )}
+          <span className="flex-1" />
+          {/* Approve & Send — the one filled primary in the panel */}
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={!!loading || !canSend}
+            className={BTN_PRIMARY}
+          >
+            {loading === 'send' ? 'Sending…' : 'Approve & Send'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -815,21 +702,27 @@ export function EngagementComposePanel({
 // ── To field with recipient autocomplete (#2) ──────────────────────────────────
 
 function ToAutocompleteInput({
-  value, onChange, placeholder,
-}: { value: string; onChange: (v: string) => void; placeholder: string }) {
+  value, onChange, placeholder, onDone, autoFocus, id,
+}: { value: string; onChange: (v: string) => void; placeholder: string; onDone?: () => void; autoFocus?: boolean; id?: string }) {
   const ac = useAutocomplete(value, c => onChange(c.email))
   return (
-    <div ref={ac.boxRef} className="relative flex-1">
+    <div ref={ac.boxRef} className="relative flex-1 min-w-[160px]">
       <input
+        id={id}
         value={value}
         onChange={e => { onChange(e.target.value); ac.reopen() }}
-        onKeyDown={e => ac.onKeyDown(e)}
+        onKeyDown={e => {
+          if (ac.onKeyDown(e)) { e.stopPropagation(); return }
+          if (e.key === 'Enter') { e.preventDefault(); onDone?.() }
+        }}
         onFocus={ac.reopen}
-        onBlur={ac.close}
+        onBlur={() => { ac.close(); onDone?.() }}
         placeholder={placeholder}
         aria-label="Recipient email address"
         autoComplete="off"
-        className="w-full text-[12.5px] font-medium text-foreground bg-transparent border-none outline-none focus-visible:outline-none py-2 pr-4"
+        autoFocus={autoFocus}
+        className="w-full text-[14px] bg-transparent border-none outline-none focus-visible:outline-none py-1 pr-4 placeholder:text-[#80868b]"
+        style={{ color: INK }}
       />
       {ac.visible && <SuggestionList items={ac.items} highlight={ac.highlight} onPick={c => { onChange(c.email); ac.close() }} />}
     </div>
@@ -859,35 +752,25 @@ function ChipInput({
   const ac = useAutocomplete(input, c => pick(c.email))
 
   return (
-    <div ref={ac.boxRef} className="relative flex flex-wrap items-center gap-1 py-1.5 pr-3 flex-1 min-w-0">
+    <div ref={ac.boxRef} className="relative flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
       {chips.map(email => (
-        <span
-          key={email}
-          className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-[6px] bg-primary/8 text-primary border border-primary/15"
-        >
-          {email}
-          <button
-            type="button"
-            onClick={() => onChange(chips.filter(c => c !== email))}
-            className="text-primary/50 hover:text-primary leading-none"
-          >
-            ×
-          </button>
-        </span>
+        <RecipientChip key={email} name={email} email={email} onRemove={() => onChange(chips.filter(c => c !== email))} />
       ))}
       <input
         value={input}
         onChange={e => { setInput(e.target.value); ac.reopen() }}
         onKeyDown={e => {
-          if (ac.onKeyDown(e)) return
+          if (ac.onKeyDown(e)) { e.stopPropagation(); return }
           if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); tryAdd(input) }
           if (e.key === 'Backspace' && !input && chips.length) onChange(chips.slice(0, -1))
         }}
         onFocus={ac.reopen}
         onBlur={() => { ac.close(); tryAdd(input) }}
         placeholder={chips.length === 0 ? placeholder : ''}
+        aria-label={placeholder}
         autoComplete="off"
-        className="min-w-[100px] text-[12px] bg-transparent border-none outline-none focus-visible:outline-none text-foreground placeholder:text-muted-foreground/40"
+        className="min-w-[120px] flex-1 text-[14px] bg-transparent border-none outline-none focus-visible:outline-none py-1 placeholder:text-[#80868b]"
+        style={{ color: INK }}
       />
       {ac.visible && <SuggestionList items={ac.items} highlight={ac.highlight} onPick={c => pick(c.email)} />}
     </div>

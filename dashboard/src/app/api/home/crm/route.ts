@@ -37,6 +37,13 @@ export async function GET(req: NextRequest) {
     const last = new Map<string, MsgRow>()
     for (const m of msgs) if (!last.has(m.thread_id)) last.set(m.thread_id, m)
 
+    // Threads may sit on insurer or partner companies, which the client roll-up does not name.
+    const missing = Array.from(new Set(threads.map(t => t.company_id ?? t.contacts?.company_id ?? null).filter((id): id is string => !!id && !nameById.has(id))))
+    if (missing.length) {
+      const extra = await inChunks(missing, 100, c => sbTry<{ id: string; company_name: string }[]>(`companies?id=in.(${c.join(',')})&select=id,company_name`, []))
+      for (const e of extra) nameById.set(e.id, e.company_name)
+    }
+
     const needsReply = threads.flatMap(t => {
       const m = last.get(t.id)
       if (!m || m.direction !== 'inbound' || isInternal(m.from_address) || isAutomated(m.from_address)) return []

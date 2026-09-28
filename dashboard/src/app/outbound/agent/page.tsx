@@ -2,18 +2,17 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import {
-  Search, Building2, Users, Mail, ChevronRight,
-  Clock, ArrowLeft, AlertCircle, CheckCircle, ExternalLink, Loader2,
-} from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { Tip } from '@/components/Tip'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
 import { cn } from '@/lib/utils'
-import { AppScrollPage } from '@/components/app-shell'
-import { PageHeader } from '@/components/page-header'
-import { MetricCard, MetricGrid } from '@/components/shared/metric-card'
+import { StatCard } from '@/components/stat-card'
+import { Chip, inputCls } from '@/components/crm/primitives'
+
+const INK = '#202124'
+const MUTED = '#5f6368'
+const RULE = '#e8eaed'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -46,7 +45,8 @@ interface EmailResult {
 
 const LOCATIONS = ['Singapore', 'Hong Kong', 'Malaysia', 'Indonesia']
 const HEADCOUNT_OPTIONS = [
-  { value: '<50',      label: '< 50' },
+  { value: '1-10',     label: '1–10' },
+  { value: '10-50',    label: '10–50' },
   { value: '50-200',   label: '50–200' },
   { value: '200-1000', label: '200–1,000' },
   { value: '1000+',    label: '1,000+' },
@@ -60,32 +60,27 @@ const PEOPLE_PAGE_SIZE = 30
 // ── Shared sub-components ─────────────────────────────────────────────────────
 
 function FormLabel({ children }: { children: React.ReactNode }) {
-  return <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">{children}</span>
+  return <span className="flex items-center gap-1 text-[12.5px] mb-1.5" style={{ color: MUTED }}>{children}</span>
 }
 
-function TBadge({ label, color, bg }: { label: string; color: string; bg: string }) {
+function SectionCard({ title, aside, children, className }: { title: string; aside?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
-    <span className="text-[11px] font-semibold px-2 py-0.5 rounded whitespace-nowrap" style={{ color, background: bg }}>
-      {label}
-    </span>
-  )
-}
-
-function Th({ children, w, right }: { children?: React.ReactNode; w?: number; right?: boolean }) {
-  return (
-    <th className={cn('h-9 px-3 align-middle text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/30 whitespace-nowrap', right ? 'text-right' : 'text-left')} style={{ width: w }}>
+    <div className={cn('rounded-[16px] bg-white px-6 py-5', className)} style={{ border: `1px solid ${RULE}` }}>
+      <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+        <h2 className="m-0 text-[16px] font-medium tracking-[-0.01em]" style={{ color: INK }}>{title}</h2>
+        {aside}
+      </div>
       {children}
-    </th>
+    </div>
   )
 }
 
-function Td({ children, className, right }: { children?: React.ReactNode; className?: string; right?: boolean }) {
-  return (
-    <td className={cn('px-3 py-2.5 align-middle border-b border-[--border-subtle] text-[13px]', right && 'text-right tabular-nums', className)}>
-      {children}
-    </td>
-  )
-}
+const PageTitle = ({ children, sub }: { children: React.ReactNode; sub?: React.ReactNode }) => (
+  <div className="flex-1 min-w-0">
+    <p className="m-0 text-[16px] font-medium tracking-[-0.01em]" style={{ color: INK }}>{children}</p>
+    {sub && <p className="m-0 mt-0.5 text-[12.5px]" style={{ color: MUTED }}>{sub}</p>}
+  </div>
+)
 
 // ── Multi-select chip component ───────────────────────────────────────────────
 
@@ -103,11 +98,9 @@ function ChipSelect({ options, selected, onChange, label }: {
         {options.map(o => {
           const active = selected.includes(o.value)
           return (
-            <button key={o.value} type="button" onClick={() => toggle(o.value)}
-              className={cn(
-                'px-3 py-1 rounded-[6px] text-[12px] font-medium cursor-pointer transition-all',
-                active ? 'bg-foreground text-background' : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
-              )}
+            <button key={o.value} type="button" onClick={() => toggle(o.value)} aria-pressed={active}
+              className="h-8 px-3 rounded-[8px] text-[13px] font-medium cursor-pointer border-0 transition-colors"
+              style={{ background: active ? INK : '#f1f3f4', color: active ? '#ffffff' : '#3c4043' }}
             >
               {o.label}
             </button>
@@ -118,32 +111,31 @@ function ChipSelect({ options, selected, onChange, label }: {
   )
 }
 
-// ── Breadcrumb ────────────────────────────────────────────────────────────────
+// ── Step switch ───────────────────────────────────────────────────────────────
 
-function Breadcrumb({ step, onNav, canGo }: {
+function StepTabs({ step, onNav, canGo }: {
   step: Step; onNav: (s: Step) => void; canGo: Record<Step, boolean>
 }) {
-  const steps: { key: Step; label: string; icon: React.ReactNode }[] = [
-    { key: 'search',    label: 'Search',    icon: <Search    size={11} /> },
-    { key: 'companies', label: 'Companies', icon: <Building2 size={11} /> },
-    { key: 'people',    label: 'People',    icon: <Users     size={11} /> },
-    { key: 'emails',    label: 'Emails',    icon: <Mail      size={11} /> },
+  const steps: { key: Step; label: string }[] = [
+    { key: 'search',    label: 'Search' },
+    { key: 'companies', label: 'Companies' },
+    { key: 'people',    label: 'People' },
+    { key: 'emails',    label: 'Emails' },
   ]
   return (
-    <div className="flex items-center gap-0.5 mb-6">
-      {steps.map((s, i) => (
-        <div key={s.key} className="flex items-center">
-          {i > 0 && <ChevronRight size={12} className="text-border mx-0.5" />}
-          <button onClick={() => canGo[s.key] && onNav(s.key)}
-            className={cn(
-              'inline-flex items-center gap-1.5 px-3 py-1 rounded-md border-0 text-[12px] transition-all',
-              step === s.key ? 'bg-foreground text-background font-semibold' : canGo[s.key] ? 'bg-muted text-muted-foreground font-normal cursor-pointer hover:bg-muted/80' : 'bg-transparent text-muted-foreground/30 cursor-default font-normal'
-            )}
-          >
-            {s.icon} {s.label}
+    <div className="mt-8 flex items-center gap-6 overflow-x-auto" role="tablist" aria-label="Discovery steps" style={{ borderBottom: `1px solid ${RULE}` }}>
+      {steps.map((s, i) => {
+        const on = step === s.key
+        const enabled = canGo[s.key]
+        return (
+          <button key={s.key} type="button" role="tab" aria-selected={on} aria-disabled={!enabled} onClick={() => enabled && onNav(s.key)}
+            className={cn('relative pb-3 bg-transparent border-0 text-[15px] whitespace-nowrap', on ? 'font-medium' : enabled ? 'cursor-pointer hover:text-[#202124]' : 'cursor-default')}
+            style={{ color: on ? INK : enabled ? MUTED : '#9aa0a6' }}>
+            <span className="mr-1.5 tabular-nums" style={{ color: '#9aa0a6' }}>{i + 1}</span>{s.label}
+            <span className={cn('absolute left-0 right-0 -bottom-px h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: INK }} aria-hidden />
           </button>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
@@ -151,10 +143,9 @@ function Breadcrumb({ step, onNav, canGo }: {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function OutboundAgentPage() {
-  const [step,      setStep]      = useState<Step>('search')
-  const [isHistory, setIsHistory] = useState(false)
-
+  const [step,          setStep]          = useState<Step>('search')
   const [history,       setHistory]       = useState<SearchRun[]>([])
+  const [isHistory,     setIsHistory]     = useState(false)
   const [currentSearch, setCurrentSearch] = useState<SearchRun | null>(null)
   const [companies,     setCompanies]     = useState<Company[]>([])
   const [people,        setPeople]        = useState<Person[]>([])
@@ -329,366 +320,302 @@ export default function OutboundAgentPage() {
   const totalPages  = Math.ceil(people.length / PEOPLE_PAGE_SIZE)
   const pagedPeople = people.slice((peoplePage - 1) * PEOPLE_PAGE_SIZE, peoplePage * PEOPLE_PAGE_SIZE)
 
+  const emailsFound    = people.filter(p => p.email).length
+  const emailsNotFound = people.filter(p => p.email_requested && !p.email).length
+
   return (
-    <AppScrollPage maxWidth="1140px">
+    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
+      <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
 
-      <PageHeader
-        title="Lead Discovery"
-        description="AI finds real companies in any sector → Apollo finds decision-makers → verified emails"
-        className="mb-6"
-      />
-
-      <Breadcrumb step={step} onNav={setStep} canGo={canGo} />
-
-      {/* Error */}
-      {error && (
-        <div className="flex items-center gap-2 px-3.5 py-2.5 mb-4 rounded-lg bg-destructive/8 border border-destructive/20 text-[13px] text-destructive">
-          <AlertCircle size={14} className="flex-shrink-0" strokeWidth={2} />
-          <span className="flex-1">{error}</span>
-          <button onClick={() => setError(null)} className="bg-transparent border-0 cursor-pointer text-destructive text-base leading-none">×</button>
+        {/* Header */}
+        <div className="flex items-end justify-between gap-6 flex-wrap">
+          <div className="min-w-0">
+            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Lead discovery</h1>
+            <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>Companies from Gemini, decision-makers and verified emails from Apollo.</p>
+          </div>
         </div>
-      )}
 
-      {/* ══ STEP 1: SEARCH ══ */}
-      {step === 'search' && (
-        <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-5 items-start">
+        <StepTabs step={step} onNav={setStep} canGo={canGo} />
 
-          <Card>
-            <CardContent className="p-6">
-              <p className="text-[15px] font-bold text-foreground mb-4">New Search</p>
-              <div className="flex flex-col gap-3.5">
-                <div>
-                  <FormLabel>Industry / Sector *</FormLabel>
-                  <Input placeholder="e.g. SaaS, FinTech, Logistics, Marine"
+        {error && (
+          <p className="mt-6 mb-0 text-[14px] flex items-center gap-3 flex-wrap" style={{ color: '#3c4043' }} role="alert">
+            <span>{error}</span>
+            <button type="button" onClick={() => setError(null)} className="bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4" style={{ color: INK }}>Dismiss</button>
+          </p>
+        )}
+
+        {/* ══ STEP 1: SEARCH ══ */}
+        {step === 'search' && (
+          <div className="mt-6 grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-5 items-start">
+
+            <SectionCard title="New search">
+              <div className="flex flex-col gap-4">
+                <label className="block">
+                  <FormLabel>Industry or sector</FormLabel>
+                  <input className={inputCls} placeholder="SaaS, FinTech, Logistics, Marine"
                     value={sector} onChange={e => setSector(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && runSearch()} />
-                </div>
-                <ChipSelect label="Location * (select all that apply)" options={LOCATIONS.map(l => ({ value: l, label: l }))} selected={locations} onChange={setLocations} />
-                <ChipSelect label="Company Headcount (optional)" options={HEADCOUNT_OPTIONS} selected={headcountRanges} onChange={setHeadcountRanges} />
-                <div>
+                </label>
+                <ChipSelect label="Locations" options={LOCATIONS.map(l => ({ value: l, label: l }))} selected={locations} onChange={setLocations} />
+                <ChipSelect label="Company headcount (optional)" options={HEADCOUNT_OPTIONS} selected={headcountRanges} onChange={setHeadcountRanges} />
+                <label className="block">
                   <FormLabel>
-                    Scheduled Run{' '}
-                    <Tip placement="right" text="Set how often the AI automatically re-runs this search with the same criteria and adds new companies to the Lead Database." />
+                    Scheduled run
+                    <Tip placement="right" text="How often the AI re-runs this search with the same criteria and adds new companies to the lead database." />
                   </FormLabel>
-                  <select value={cronPref} onChange={e => setCronPref(e.target.value)}
-                    className="w-full h-9 px-3 text-[13px] text-foreground bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-ring">
+                  <select value={cronPref} onChange={e => setCronPref(e.target.value)} className={inputCls}>
                     {CRON_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
-                </div>
-                <div>
+                </label>
+                <label className="block">
                   <FormLabel>
-                    Number of results{' '}
-                    <Tip placement="right" text="How many companies Apollo returns per search. Apollo free plan: 75 credits/month total — keep this low and run fewer searches." />
+                    Number of results
+                    <Tip placement="right" text="How many companies Apollo returns per search. The Apollo free plan has 75 credits a month; keep this low and run fewer searches." />
                   </FormLabel>
                   <input
                     type="number" min={1} max={100} value={perPage}
                     onChange={e => setPerPage(Math.min(100, Math.max(1, parseInt(e.target.value) || 1)))}
-                    className="w-full h-9 px-3 text-[13px] text-foreground bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-ring"
+                    className={inputCls}
                   />
-                  <p className="text-[11px] mt-1 text-amber-600">
-                    Gemini discovers companies · Apollo verifies each (~{perPage} credits) · 75 credits/month free
-                  </p>
-                </div>
-              </div>
-              <Button className="mt-5 w-full gap-1.5" onClick={runSearch}
-                disabled={loading || !sector.trim() || locations.length === 0}>
-                {loading ? <Loader2 size={13} className="animate-spin" /> : <Search size={13} />}
-                {loading ? 'AI is finding companies…' : 'Find Companies'}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* History card */}
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Clock size={13} className="text-muted-foreground" />
-                <p className="text-[15px] font-bold text-foreground m-0">Search History</p>
-                <span className="ml-auto text-[11px] text-muted-foreground/50">Last 30 days</span>
-              </div>
-              {history.length === 0 ? (
-                <p className="text-[13px] text-muted-foreground/40 text-center py-6">No searches yet</p>
-              ) : (
-                <table className="w-full border-collapse text-[12px]">
-                  <thead>
-                    <tr>
-                      <Th>Date</Th><Th>Sector</Th><Th>Locations</Th><Th>Type</Th><Th right>Companies</Th><Th>{''}</Th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {history.map(s => (
-                      <tr key={s.id} className="hover:bg-muted/50 transition-colors">
-                        <Td className="text-muted-foreground whitespace-nowrap">
-                          {new Date(s.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: '2-digit' })}
-                        </Td>
-                        <Td className="font-medium text-foreground max-w-[130px] overflow-hidden text-ellipsis whitespace-nowrap">{s.sector}</Td>
-                        <Td className="text-muted-foreground text-[11px]">{(s.locations?.length ? s.locations : [s.location]).join(', ')}</Td>
-                        <Td>
-                          <TBadge label={s.product_type ?? 'General'} color="hsl(var(--muted-foreground))" bg="hsl(var(--muted))" />
-                        </Td>
-                        <Td right className="font-semibold text-foreground">{s.company_count}</Td>
-                        <Td>
-                          <Button variant="outline" size="sm" className="text-[11px] h-7 px-2.5" onClick={() => viewHistorySearch(s)}>View</Button>
-                        </Td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* ══ STEP 2: COMPANIES ══ */}
-      {step === 'companies' && currentSearch && (
-        <div>
-          <div className="flex items-center gap-2.5 mb-4 flex-wrap">
-            <Button variant="outline" size="sm" onClick={() => setStep('search')} className="gap-1.5">
-              <ArrowLeft size={12} /> Back
-            </Button>
-            <div className="flex-1 min-w-0">
-              <p className="text-[14px] font-bold text-foreground m-0">
-                {currentSearch.sector}{' '}
-                <span className="font-normal text-muted-foreground">
-                  — {(currentSearch.locations ?? [currentSearch.location]).join(', ')}
-                </span>
-              </p>
-              {skipped > 0 && <p className="text-[11px] text-amber-600 mt-0.5 mb-0">{skipped} duplicate(s) excluded</p>}
-            </div>
-            {isHistory
-              ? <span className="text-[12px] text-muted-foreground/50 italic">Read-only — history</span>
-              : (
-                <div className="flex items-center gap-2">
-                  <span className="text-[12px] text-muted-foreground">{selCompanies.size} selected</span>
-                  <Tip text="Looks up decision-makers (Risk Managers, CFOs, Operations leads) at the selected companies using Apollo.io. Tick the companies you want before clicking." />
-                  <Button size="sm" onClick={fetchPeople} disabled={selCompanies.size === 0 || fetchingPeople} className="gap-1.5">
-                    {fetchingPeople
-                      ? <><Loader2 size={12} className="animate-spin" /> Fetching…</>
-                      : <><Users size={12} /> Fetch People ({selCompanies.size})</>
-                    }
-                  </Button>
-                </div>
-              )
-            }
-          </div>
-
-          <MetricGrid className="mb-4 grid-cols-3 md:grid-cols-3">
-            <MetricCard label="Companies found" value={companies.length} icon={Building2} />
-            <MetricCard label="People fetched" value={companies.filter(c => c.people_fetched).length} icon={CheckCircle}
-              sub={`of ${companies.length}`} />
-            <MetricCard label="Total people" value={companies.reduce((n, c) => n + c.people_count, 0)} icon={Users} />
-          </MetricGrid>
-
-          <Card>
-            <CardContent className="p-0">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr>
-                    {!isHistory && <Th w={36}><input type="checkbox" checked={selCompanies.size === companies.length && companies.length > 0} onChange={e => setSelCompanies(e.target.checked ? new Set(companies.map(c => c.id)) : new Set())} /></Th>}
-                    <Th w={36}>#</Th><Th>Company</Th><Th>Industry</Th><Th right>Headcount</Th><Th>People Status</Th><Th right>Count</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {companies.map(c => (
-                    <tr key={c.id}>
-                      {!isHistory && (
-                        <Td><input type="checkbox" checked={selCompanies.has(c.id)} onChange={e => setSelCompanies(prev => { const n = new Set(prev); e.target.checked ? n.add(c.id) : n.delete(c.id); return n })} /></Td>
-                      )}
-                      <Td className="text-muted-foreground/40 text-[11px] w-9">{c.source_rank}</Td>
-                      <Td className="font-medium text-foreground">{c.name}</Td>
-                      <Td className="text-muted-foreground text-[12px]">{c.industry ?? '—'}</Td>
-                      <Td right className="text-muted-foreground text-[12px]">{c.employee_count ? c.employee_count.toLocaleString() : '—'}</Td>
-                      <Td>
-                        {c.people_fetched
-                          ? <TBadge label="Fetched" color="var(--success)" bg="var(--success-bg)" />
-                          : <TBadge label="Pending" color="hsl(var(--muted-foreground))" bg="hsl(var(--muted))" />
-                        }
-                      </Td>
-                      <Td right className={c.people_count > 0 ? 'font-semibold text-foreground' : 'text-muted-foreground/30'}>
-                        {c.people_count > 0 ? c.people_count : '—'}
-                      </Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
-
-          {people.length > 0 && (
-            <div className="mt-3.5 flex justify-end">
-              <Button onClick={() => setStep('people')} className="gap-1.5">
-                <Users size={12} /> View {people.length} people →
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ══ STEP 3: PEOPLE ══ */}
-      {step === 'people' && currentSearch && (
-        <div>
-          <div className="flex items-center gap-2.5 mb-4 flex-wrap">
-            <Button variant="outline" size="sm" onClick={() => setStep('companies')} className="gap-1.5">
-              <ArrowLeft size={12} /> Companies
-            </Button>
-            <div className="flex-1 min-w-0">
-              <p className="text-[14px] font-bold text-foreground m-0">
-                {people.length} people —{' '}
-                <span className="font-normal text-muted-foreground">{currentSearch.sector}</span>
-              </p>
-              <p className="text-[11px] text-muted-foreground mt-0.5 mb-0">
-                From {new Set(people.map(p => p.company_id)).size} companies
-              </p>
-            </div>
-            {isHistory && <span className="text-[12px] text-muted-foreground/50 italic">Read-only — history</span>}
-          </div>
-
-          <MetricGrid className="mb-4 grid-cols-3 md:grid-cols-3">
-            <MetricCard label="People found" value={people.length} icon={Users} />
-            <MetricCard label="From companies" value={new Set(people.map(p => p.company_id)).size} icon={Building2} />
-            <MetricCard label="Emails found" value={people.filter(p => p.email).length} icon={Mail}
-              sub={people.some(p => p.email_requested) ? `of ${people.filter(p => p.email_requested).length} requested` : undefined} />
-          </MetricGrid>
-
-          <Card>
-            <CardContent className="p-0">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr>
-                    {['Name', 'Title', 'Company', 'Location', 'Email', 'LinkedIn'].map(h => <Th key={h}>{h}</Th>)}
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagedPeople.map(p => (
-                    <tr key={p.id}>
-                      <Td className="font-medium text-foreground">{p.full_name || '—'}</Td>
-                      <Td className="text-muted-foreground max-w-[160px] overflow-hidden text-ellipsis whitespace-nowrap">{p.title || p.headline || '—'}</Td>
-                      <Td className="text-muted-foreground">{p.company_name}</Td>
-                      <Td className="text-muted-foreground/70">{p.location || '—'}</Td>
-                      <Td>
-                        {p.email
-                          ? <span className="text-emerald-700 font-medium text-[12px]">{p.email}</span>
-                          : p.email_requested
-                          ? <span className="text-muted-foreground/50 text-[11px]">Not found</span>
-                          : fetchingEmailFor.has(p.id)
-                          ? <Loader2 size={12} className="animate-spin text-muted-foreground" />
-                          : !isHistory
-                          ? (
-                            <button onClick={() => fetchEmailForPerson(p.id)}
-                              className="text-[11px] px-2 py-0.5 rounded border-0 cursor-pointer bg-blue-600 text-white hover:bg-blue-700 transition-colors">
-                              Get Email
-                            </button>
-                          )
-                          : <span className="text-muted-foreground/20 text-[11px]">—</span>
-                        }
-                      </Td>
-                      <Td>
-                        {p.linkedin_url
-                          ? <a href={p.linkedin_url} target="_blank" rel="noreferrer"
-                              className="text-primary text-[11px] inline-flex items-center gap-1 no-underline">
-                              View <ExternalLink size={10} />
-                            </a>
-                          : <span className="text-muted-foreground/20 text-[11px]">—</span>
-                        }
-                      </Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-3.5 pt-3 border-t border-[--border-subtle] px-4 pb-3">
-                  <span className="text-[12px] text-muted-foreground">
-                    {(peoplePage - 1) * PEOPLE_PAGE_SIZE + 1}–{Math.min(peoplePage * PEOPLE_PAGE_SIZE, people.length)} of {people.length}
+                  <span className="block mt-1.5 text-[12.5px]" style={{ color: MUTED }}>
+                    Gemini discovers companies; Apollo verifies each (about {perPage} credits of 75 a month).
                   </span>
-                  <div className="flex gap-1">
-                    <Button variant="outline" size="sm" onClick={() => setPeoplePage(p => Math.max(1, p - 1))} disabled={peoplePage === 1} className="text-[11px] h-7 px-2">← Prev</Button>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
-                      <Button key={n} variant={n === peoplePage ? 'default' : 'outline'} size="sm" onClick={() => setPeoplePage(n)} className="text-[11px] h-7 w-7 p-0">{n}</Button>
-                    ))}
-                    <Button variant="outline" size="sm" onClick={() => setPeoplePage(p => Math.min(totalPages, p + 1))} disabled={peoplePage === totalPages} className="text-[11px] h-7 px-2">Next →</Button>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {people.some(p => p.email_requested) && (
-            <div className="mt-3.5 flex justify-end">
-              <Button onClick={() => setStep('emails')} className="gap-1.5">
-                <Mail size={12} /> View email results →
+                </label>
+              </div>
+              <Button className="mt-5 w-full" onClick={runSearch} disabled={loading || !sector.trim() || locations.length === 0}>
+                {loading ? 'Finding companies…' : 'Find companies'}
               </Button>
-            </div>
-          )}
-        </div>
-      )}
+            </SectionCard>
 
-      {/* ══ STEP 4: EMAILS ══ */}
-      {step === 'emails' && (
-        <div>
-          <div className="flex items-center gap-2.5 mb-4">
-            <Button variant="outline" size="sm" onClick={() => setStep('people')} className="gap-1.5">
-              <ArrowLeft size={12} /> People
-            </Button>
-            <div className="flex-1">
-              <p className="text-[14px] font-bold text-foreground m-0">Email Lookup Results</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5 mb-0">
-                <span className="text-emerald-700 font-semibold">{people.filter(p => p.email).length} found</span>
-                {' · '}
-                <span>{people.filter(p => p.email_requested && !p.email).length} not found</span>
-              </p>
-            </div>
-            <Link href="/outbound/leads" className="no-underline">
-              <Button size="sm" className="gap-1.5">
-                <CheckCircle size={12} /> View Lead Database →
-              </Button>
-            </Link>
-          </div>
-
-          <MetricGrid className="mb-4 grid-cols-2 md:grid-cols-2">
-            <MetricCard label="Emails found" value={people.filter(p => p.email).length} icon={CheckCircle} />
-            <MetricCard label="Not found" value={people.filter(p => p.email_requested && !p.email).length} icon={AlertCircle} />
-          </MetricGrid>
-
-          <Card>
-            <CardContent className="p-0">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr>
-                    {['Name', 'Email', 'Status', 'Company', 'Title', 'Saved'].map(h => <Th key={h}>{h}</Th>)}
-                  </tr>
-                </thead>
+            <section className="min-w-0">
+              <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+                <h2 className="m-0 text-[16px] font-medium tracking-[-0.01em]" style={{ color: INK }}>Search history</h2>
+                <span className="text-[12.5px]" style={{ color: MUTED }}>Last 30 days</span>
+              </div>
+              <Register label="Search history" minWidth={560}>
+                <RegisterHead>
+                  <RegisterTh first>Sector</RegisterTh>
+                  <RegisterTh>Type</RegisterTh>
+                  <RegisterTh align="right">Companies</RegisterTh>
+                  <RegisterTh align="right">Run</RegisterTh>
+                  <RegisterTh last />
+                </RegisterHead>
                 <tbody>
-                  {people.filter(p => p.email_requested).map(p => (
-                    <tr key={p.id}>
-                      <Td className="font-medium text-foreground">{p.full_name || '—'}</Td>
-                      <Td className={cn('text-[12px]', p.email ? 'text-emerald-700 font-medium' : 'text-muted-foreground/40')}>
-                        {p.email || 'Not found'}
-                      </Td>
-                      <Td>
-                        <TBadge
-                          label={p.email_status ?? (p.email ? 'valid' : 'not_found')}
-                          color={p.email ? 'var(--success)' : 'var(--error)'}
-                          bg={p.email ? 'var(--success-bg)' : 'var(--error-bg)'}
-                        />
-                      </Td>
-                      <Td className="text-muted-foreground">{p.company_name}</Td>
-                      <Td className="text-muted-foreground/70 max-w-[160px] overflow-hidden text-ellipsis whitespace-nowrap">{p.title || p.headline || '—'}</Td>
-                      <Td>
-                        {p.outbound_lead_id
-                          ? <span className="inline-flex items-center gap-1 text-emerald-700 text-[12px]"><CheckCircle size={12} /> Saved</span>
-                          : <span className="text-muted-foreground/20 text-[12px]">—</span>
-                        }
-                      </Td>
-                    </tr>
+                  {history.length === 0 && <RegisterEmpty colSpan={5}>No searches yet.</RegisterEmpty>}
+                  {history.map(s => (
+                    <RegisterRow key={s.id} onClick={() => viewHistorySearch(s)}>
+                      <RegisterCell first primary={s.sector} secondary={(s.locations?.length ? s.locations : [s.location]).join(', ')} title={s.sector} />
+                      <RegisterCell><Chip>{s.product_type ?? 'General'}</Chip></RegisterCell>
+                      <RegisterCell align="right" primary={s.company_count} />
+                      <RegisterCell align="right" primary={new Date(s.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: '2-digit' })} />
+                      <RegisterCell last align="right">
+                        <Button variant="outline" size="xs" onClick={e => { e.stopPropagation(); viewHistorySearch(s) }}>View</Button>
+                      </RegisterCell>
+                    </RegisterRow>
                   ))}
                 </tbody>
-              </table>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-    </AppScrollPage>
+              </Register>
+            </section>
+          </div>
+        )}
+
+        {/* ══ STEP 2: COMPANIES ══ */}
+        {step === 'companies' && currentSearch && (
+          <div className="mt-6">
+            <div className="flex items-center gap-4 mb-6 flex-wrap">
+              <Button variant="ghost" size="sm" onClick={() => setStep('search')}>← Search</Button>
+              <PageTitle sub={skipped > 0 ? `${skipped} duplicate${skipped === 1 ? '' : 's'} excluded` : undefined}>
+                {currentSearch.sector} <span className="font-normal" style={{ color: MUTED }}>· {(currentSearch.locations ?? [currentSearch.location]).join(', ')}</span>
+              </PageTitle>
+              {isHistory
+                ? <span className="text-[12.5px]" style={{ color: MUTED }}>Read-only history</span>
+                : (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[13px] tabular-nums" style={{ color: MUTED }}>{selCompanies.size} selected</span>
+                    <Tip text="Looks up decision-makers (risk managers, CFOs, operations leads) at the selected companies through Apollo. Tick the companies first." />
+                    <Button onClick={fetchPeople} disabled={selCompanies.size === 0 || fetchingPeople}>
+                      {fetchingPeople ? 'Fetching…' : `Fetch people (${selCompanies.size})`}
+                    </Button>
+                  </div>
+                )
+              }
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+              <StatCard label="Companies found" value={companies.length} />
+              <StatCard label="People fetched" value={companies.filter(c => c.people_fetched).length} sublabel={`of ${companies.length}`} />
+              <StatCard label="Total people" value={companies.reduce((n, c) => n + c.people_count, 0)} />
+            </div>
+
+            <Register label="Companies found" minWidth={720}>
+              <RegisterHead>
+                <RegisterTh first>
+                  <span className="inline-flex items-center gap-3">
+                    {!isHistory && <input type="checkbox" aria-label="Select all companies" className="cursor-pointer" checked={selCompanies.size === companies.length && companies.length > 0} onChange={e => setSelCompanies(e.target.checked ? new Set(companies.map(c => c.id)) : new Set())} />}
+                    Company
+                  </span>
+                </RegisterTh>
+                <RegisterTh align="right">Headcount</RegisterTh>
+                <RegisterTh>People</RegisterTh>
+                <RegisterTh last align="right">Count</RegisterTh>
+              </RegisterHead>
+              <tbody>
+                {companies.length === 0 && <RegisterEmpty colSpan={4}>No companies found.</RegisterEmpty>}
+                {companies.map(c => {
+                  const on = selCompanies.has(c.id)
+                  const toggle = () => setSelCompanies(prev => { const n = new Set(prev); on ? n.delete(c.id) : n.add(c.id); return n })
+                  return (
+                    <RegisterRow key={c.id} selected={on} className="hover:bg-[#f8f9fa]">
+                      <RegisterCell first selected={on} className="min-w-[280px]">
+                        <span className="flex items-center gap-3 min-w-0">
+                          {!isHistory && (
+                            <input type="checkbox" aria-label={`Select ${c.name}`} className="cursor-pointer flex-shrink-0" checked={on} onChange={toggle} />
+                          )}
+                          <span className="text-[12.5px] tabular-nums flex-shrink-0 w-5" style={{ color: '#9aa0a6' }}>{c.source_rank}</span>
+                          <span className="min-w-0">
+                            <span className="block text-[15px] font-medium leading-tight truncate" style={{ color: INK }} title={c.name}>{c.name}</span>
+                            <span className="block text-[12.5px] mt-0.5 truncate" style={{ color: MUTED }}>{c.industry ?? 'No industry on file'}</span>
+                          </span>
+                        </span>
+                      </RegisterCell>
+                      <RegisterCell align="right" primary={c.employee_count ? c.employee_count.toLocaleString() : '—'} />
+                      <RegisterCell><Chip>{c.people_fetched ? 'Fetched' : 'Pending'}</Chip></RegisterCell>
+                      <RegisterCell last align="right">
+                        <span className="text-[14px] tabular-nums" style={{ color: c.people_count > 0 ? INK : '#9aa0a6' }}>{c.people_count > 0 ? c.people_count : '—'}</span>
+                      </RegisterCell>
+                    </RegisterRow>
+                  )
+                })}
+              </tbody>
+            </Register>
+
+            {people.length > 0 && (
+              <div className="mt-4 flex justify-end">
+                <Button variant="outline" onClick={() => setStep('people')}>View {people.length} people →</Button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ══ STEP 3: PEOPLE ══ */}
+        {step === 'people' && currentSearch && (
+          <div className="mt-6">
+            <div className="flex items-center gap-4 mb-6 flex-wrap">
+              <Button variant="ghost" size="sm" onClick={() => setStep('companies')}>← Companies</Button>
+              <PageTitle sub={`From ${new Set(people.map(p => p.company_id)).size} companies`}>
+                {people.length} people <span className="font-normal" style={{ color: MUTED }}>· {currentSearch.sector}</span>
+              </PageTitle>
+              {isHistory && <span className="text-[12.5px]" style={{ color: MUTED }}>Read-only history</span>}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+              <StatCard label="People found" value={people.length} />
+              <StatCard label="From companies" value={new Set(people.map(p => p.company_id)).size} />
+              <StatCard label="Emails found" value={emailsFound}
+                sublabel={people.some(p => p.email_requested) ? `of ${people.filter(p => p.email_requested).length} requested` : undefined} />
+            </div>
+
+            <Register label="People found" minWidth={880}>
+              <RegisterHead>
+                <RegisterTh first>Name</RegisterTh>
+                <RegisterTh>Company</RegisterTh>
+                <RegisterTh>Location</RegisterTh>
+                <RegisterTh>Email</RegisterTh>
+                <RegisterTh last>LinkedIn</RegisterTh>
+              </RegisterHead>
+              <tbody>
+                {pagedPeople.length === 0 && <RegisterEmpty colSpan={5}>No people yet.</RegisterEmpty>}
+                {pagedPeople.map(p => (
+                  <RegisterRow key={p.id} className="hover:bg-[#f8f9fa]">
+                    <RegisterCell first primary={p.full_name || '—'} secondary={p.title || p.headline || 'No title on file'} title={p.full_name ?? undefined} />
+                    <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>{p.company_name}</span></RegisterCell>
+                    <RegisterCell><span className="text-[14px]" style={{ color: MUTED }}>{p.location || '—'}</span></RegisterCell>
+                    <RegisterCell>
+                      {p.email
+                        ? <span className="text-[14px]" style={{ color: INK }}>{p.email}</span>
+                        : p.email_requested
+                        ? <span className="text-[13px]" style={{ color: MUTED }}>Not found</span>
+                        : fetchingEmailFor.has(p.id)
+                        ? <Loader2 size={13} className="animate-spin" style={{ color: '#9aa0a6' }} />
+                        : !isHistory
+                        ? <Button variant="outline" size="xs" onClick={() => fetchEmailForPerson(p.id)}>Get email</Button>
+                        : <span style={{ color: '#9aa0a6' }}>—</span>
+                      }
+                    </RegisterCell>
+                    <RegisterCell last>
+                      {p.linkedin_url
+                        ? <a href={p.linkedin_url} target="_blank" rel="noreferrer" className="text-[13.5px] no-underline hover:underline underline-offset-4" style={{ color: INK }}>Profile ↗</a>
+                        : <span style={{ color: '#9aa0a6' }}>—</span>
+                      }
+                    </RegisterCell>
+                  </RegisterRow>
+                ))}
+              </tbody>
+            </Register>
+
+            {totalPages > 1 && (
+              <div className="mt-3 flex items-center justify-between gap-3 flex-wrap">
+                <span className="text-[13px] tabular-nums" style={{ color: MUTED }}>
+                  {(peoplePage - 1) * PEOPLE_PAGE_SIZE + 1}–{Math.min(peoplePage * PEOPLE_PAGE_SIZE, people.length)} of {people.length}
+                </span>
+                <div className="flex gap-1 flex-wrap">
+                  <Button variant="outline" size="xs" onClick={() => setPeoplePage(p => Math.max(1, p - 1))} disabled={peoplePage === 1}>← Previous</Button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+                    <Button key={n} variant={n === peoplePage ? 'secondary' : 'outline'} size="xs" className="w-7 px-0 tabular-nums" onClick={() => setPeoplePage(n)} aria-current={n === peoplePage ? 'page' : undefined}>{n}</Button>
+                  ))}
+                  <Button variant="outline" size="xs" onClick={() => setPeoplePage(p => Math.min(totalPages, p + 1))} disabled={peoplePage === totalPages}>Next →</Button>
+                </div>
+              </div>
+            )}
+
+            {people.some(p => p.email_requested) && (
+              <div className="mt-4 flex justify-end">
+                <Button onClick={() => setStep('emails')}>View email results →</Button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ══ STEP 4: EMAILS ══ */}
+        {step === 'emails' && (
+          <div className="mt-6">
+            <div className="flex items-center gap-4 mb-6 flex-wrap">
+              <Button variant="ghost" size="sm" onClick={() => setStep('people')}>← People</Button>
+              <PageTitle sub={`${emailsFound} found · ${emailsNotFound} not found`}>Email results</PageTitle>
+              <Link href="/outbound/leads" className="inline-flex items-center h-10 px-4 rounded-[10px] text-white text-[14px] font-medium no-underline hover:opacity-90" style={{ background: INK }}>
+                Open lead database
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <StatCard label="Emails found" value={emailsFound} />
+              <StatCard label="Not found" value={emailsNotFound} />
+            </div>
+
+            <Register label="Email results" minWidth={800}>
+              <RegisterHead>
+                <RegisterTh first>Name</RegisterTh>
+                <RegisterTh>Email</RegisterTh>
+                <RegisterTh>Status</RegisterTh>
+                <RegisterTh>Company</RegisterTh>
+                <RegisterTh last>Saved</RegisterTh>
+              </RegisterHead>
+              <tbody>
+                {!people.some(p => p.email_requested) && <RegisterEmpty colSpan={5}>No email lookups yet.</RegisterEmpty>}
+                {people.filter(p => p.email_requested).map(p => (
+                  <RegisterRow key={p.id} className="hover:bg-[#f8f9fa]">
+                    <RegisterCell first primary={p.full_name || '—'} secondary={p.title || p.headline || 'No title on file'} title={p.full_name ?? undefined} />
+                    <RegisterCell><span className="text-[14px]" style={{ color: p.email ? INK : MUTED }}>{p.email || 'Not found'}</span></RegisterCell>
+                    <RegisterCell><Chip>{(p.email_status ?? (p.email ? 'valid' : 'not_found')).replace(/_/g, ' ').replace(/^\w/, ch => ch.toUpperCase())}</Chip></RegisterCell>
+                    <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>{p.company_name}</span></RegisterCell>
+                    <RegisterCell last><span className="text-[14px]" style={{ color: p.outbound_lead_id ? INK : '#9aa0a6' }}>{p.outbound_lead_id ? 'Saved' : '—'}</span></RegisterCell>
+                  </RegisterRow>
+                ))}
+              </tbody>
+            </Register>
+          </div>
+        )}
+      </div>
+    </div>
   )
 }

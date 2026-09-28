@@ -1,4 +1,4 @@
-import type { Lead, RealMsg } from './types'
+import type { Lead, RealMsg, ThreadState } from './types'
 import { PERSONAL_DOMAINS } from './types'
 
 export function fullName(l: Lead): string {
@@ -88,4 +88,72 @@ export function needsReply(messages: RealMsg[]): boolean {
 
 export function lastActivity(lead: Lead, messages: RealMsg[]): string {
   return messages.at(-1)?.sent_at ?? lead.created_at
+}
+
+/** Needs a reply: the loaded thread's newest message is inbound, or, before the thread is
+ *  loaded, the conversations API said so. */
+export function leadNeedsReply(lead: Lead, state?: ThreadState): boolean {
+  if (state && !state.loading && state.messages.length > 0) return needsReply(state.messages)
+  return lead.lastDirection === 'inbound'
+}
+
+/** "Lisa Daly <lisa@celavi.com>" → { name: 'Lisa Daly', email: 'lisa@celavi.com' }. */
+export function parseAddress(raw: string | null | undefined): { name: string | null; email: string } {
+  if (!raw) return { name: null, email: '' }
+  const m = raw.match(/^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/)
+  if (m) return { name: m[1].trim() || null, email: m[2].trim().toLowerCase() }
+  const email = raw.trim().toLowerCase()
+  return { name: null, email }
+}
+
+// ── Reader helpers (additive) ─────────────────────────────────────────────────────────────
+
+/** First letter for the avatar circle. */
+export function initialOf(name: string | null | undefined): string {
+  const c = (name ?? '').trim()[0]
+  return c ? c.toUpperCase() : '?'
+}
+
+export function formatBytes(n: number | null | undefined): string {
+  if (!n || n <= 0) return ''
+  if (n < 1024) return `${n} B`
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`
+}
+
+/** Short badge text for an attachment: "PDF", "XLSX", "IMG", "FILE". */
+export function fileBadge(filename: string | null | undefined, mime?: string | null): string {
+  const ext = (filename ?? '').split('.').pop()?.toLowerCase() ?? ''
+  if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'heic', 'bmp', 'svg', 'tif', 'tiff'].includes(ext) || mime?.startsWith('image/')) return 'IMG'
+  if (ext && ext.length <= 5 && /^[a-z0-9]+$/.test(ext)) return ext.toUpperCase()
+  return 'FILE'
+}
+
+/** "Mon, 28 Sept · 06:33" for the message header; "Thu, 25 Sept" for the one-line rows. */
+export function fmtWhen(iso: string | null, withTime = true): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  const date = d.toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short' })
+  if (!withTime) return date
+  return `${date} · ${d.toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', hour12: false })}`
+}
+
+/** The trailing signature, when a known marker makes it certain: our own outbound signature
+ *  rule (see lib/signature-html), Gmail's gmail_signature div, Outlook's Signature div, or the
+ *  plain-text "-- " delimiter. Anything less certain stays in the body: show more, never less. */
+const SIG_HTML_MARKERS = [
+  /<hr[^>]*border-top:\s*1px solid #e5e7eb[^>]*>/i,
+  /<div[^>]*class="[^"]*gmail_signature[^"]*"/i,
+  /<div[^>]*id="Signature"/i,
+]
+export function splitSignatureHtml(html: string): { main: string; signature: string | null } {
+  let cut = -1
+  for (const re of SIG_HTML_MARKERS) { const m = re.exec(html); if (m && m.index > 40 && (cut < 0 || m.index < cut)) cut = m.index }
+  if (cut < 0) return { main: html, signature: null }
+  return { main: html.slice(0, cut), signature: html.slice(cut) }
+}
+export function splitSignatureText(text: string): { main: string; signature: string | null } {
+  const i = text.search(/^-- ?$/m)
+  if (i <= 0) return { main: text, signature: null }
+  return { main: text.slice(0, i).replace(/\s+$/, ''), signature: text.slice(i).replace(/^-- ?\n?/, '').trim() || null }
 }

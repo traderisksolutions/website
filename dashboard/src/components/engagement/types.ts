@@ -6,12 +6,18 @@ export type Lead = {
   topic: string | null; details: string | null; message: string | null
   page_url: string | null; status: string; notes?: string | null
   subject?: string | null
+  snippet?: string | null
+  /** Direction of the newest message, from the conversations API — "inbound" means the client
+   *  wrote last and nobody has answered. */
+  lastDirection?: 'inbound' | 'outbound' | null
   thread_id?: string | null
   category?: string | null
   /** Resolved companies-row link (email_threads.company_id) — distinct from the free-text
    *  `company` field above, which is lead-intake display text and not a real FK. */
   companyId?: string | null
   companyName?: string | null
+  /** The linked company's account owner (email); null when the company has no owner yet. */
+  companyOwner?: string | null
   segment?: string | null
   segment_note?: string | null
   campaign_context?: {
@@ -86,7 +92,7 @@ export type Sender = {
 
 export const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
   contacted: { label: 'Contacted', color: '#8A4200', bg: 'rgba(138,66,0,0.09)'  },
-  engaged:   { label: 'Engaged',   color: '#0C338A', bg: 'rgba(12,51,138,0.09)' },
+  engaged:   { label: 'Engaged',   color: '#202124', bg: 'rgba(32,33,36,0.07)'  },
   qualified: { label: 'Qualified', color: '#096842', bg: 'rgba(9,104,66,0.09)'  },
   proposal:  { label: 'Proposal',  color: '#7E3C00', bg: 'rgba(130,60,0,0.09)'  },
   converted: { label: 'Converted', color: '#096842', bg: 'rgba(9,104,66,0.09)'  },

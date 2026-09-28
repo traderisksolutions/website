@@ -1,18 +1,15 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { ChevronDown, RefreshCw } from 'lucide-react'
 import {
-  Clock, Zap, TrendingUp, Layers, ChevronDown, ChevronRight,
-  RefreshCw, Info,
-} from 'lucide-react'
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { StatCard } from '@/components/stat-card'
 import { Tip } from '@/components/Tip'
+import { Btn, Segmented } from '@/components/crm/primitives'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import {
   GEMINI_FEATURE_CONFIG, CAMPAIGN_ACTION_CONFIG, HOURLY_RATE_SGD,
 } from '@/lib/kyn-roi/estimation-config'
@@ -23,10 +20,15 @@ import type { KynRoiResponse, WorkflowRow } from '@/app/api/analytics/kyn-roi/ro
 type Range = '7d' | '30d' | '90d'
 const RANGE_DAYS: Record<Range, number> = { '7d': 7, '30d': 30, '90d': 90 }
 const RANGE_LABEL: Record<Range, string> = {
-  '7d':  'Last 7 days',
-  '30d': 'Last 30 days',
-  '90d': 'Last 90 days',
+  '7d':  'last 7 days',
+  '30d': 'last 30 days',
+  '90d': 'last 90 days',
 }
+
+const INK = '#202124'
+const MUTED = '#5f6368'
+const RULE = '#e8eaed'
+const FIELD = '#f1f3f4'
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 
@@ -66,7 +68,9 @@ async function fetchRoiData(days: number): Promise<KynRoiResponse | null> {
   }
 }
 
-// ── Workflow table row ─────────────────────────────────────────────────────────
+// ── Workflow register row ──────────────────────────────────────────────────────
+
+const WORKFLOW_COLS = 6
 
 function WorkflowTableRow({
   row,
@@ -79,101 +83,49 @@ function WorkflowTableRow({
 }) {
   return (
     <>
-      <button
-        onClick={onToggle}
-        aria-expanded={expanded}
-        className={cn(
-          'w-full text-left flex items-center gap-4 px-5 py-3.5 transition-colors group',
-          'border-b border-[--border-subtle] last:border-b-0',
-          expanded ? 'bg-muted/30' : 'hover:bg-muted/20',
-        )}
-      >
-        {/* Colour chip + label */}
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <span
-            className="w-2 h-2 rounded-full flex-shrink-0"
-            style={{ background: row.color }}
+      <RegisterRow selected={expanded} onClick={onToggle}>
+        <RegisterCell first selected={expanded} primary={row.label} secondary={row.description} title={row.description} className="min-w-[260px] max-w-[420px]" />
+        <RegisterCell align="right" primary={row.runs.toLocaleString()} />
+        <RegisterCell align="right" primary={fmtHours(row.hoursSaved)} />
+        <RegisterCell align="right" primary={fmtValueSGD(row.estimatedValueSGD)} />
+        <RegisterCell align="right" primary={fmtDateShort(row.lastActive)} />
+        <RegisterCell last align="right">
+          <ChevronDown
+            size={14}
+            strokeWidth={2}
+            className={cn('inline-block transition-transform duration-200', expanded && 'rotate-180')}
+            style={{ color: '#9aa0a6' }}
+            aria-hidden
           />
-          <div className="min-w-0">
-            <p className="text-[13px] font-semibold text-foreground tracking-tight truncate">
-              {row.label}
-            </p>
-            <p className="text-[11px] text-muted-foreground/70 truncate">{row.description}</p>
-          </div>
-        </div>
+        </RegisterCell>
+      </RegisterRow>
 
-        {/* Runs */}
-        <div className="text-right w-20 flex-shrink-0">
-          <p className="text-[13px] font-semibold tabular-nums text-foreground">
-            {row.runs.toLocaleString()}
-          </p>
-          <p className="text-[10px] text-muted-foreground">runs</p>
-        </div>
-
-        {/* Hours saved */}
-        <div className="text-right w-24 flex-shrink-0">
-          <p className="text-[13px] font-semibold tabular-nums" style={{ color: '#0F3D91' }}>
-            {fmtHours(row.hoursSaved)}
-          </p>
-          <p className="text-[10px] text-muted-foreground">saved</p>
-        </div>
-
-        {/* Value */}
-        <div className="text-right w-24 flex-shrink-0">
-          <p className="text-[13px] font-semibold tabular-nums" style={{ color: '#C27A07' }}>
-            {fmtValueSGD(row.estimatedValueSGD)}
-          </p>
-          <p className="text-[10px] text-muted-foreground">est. value</p>
-        </div>
-
-        {/* Last active */}
-        <div className="text-right w-20 flex-shrink-0 hidden sm:block">
-          <p className="text-[12px] text-muted-foreground">{fmtDateShort(row.lastActive)}</p>
-        </div>
-
-        {/* Expand chevron */}
-        <ChevronDown
-          size={14}
-          strokeWidth={2}
-          className={cn(
-            'text-muted-foreground/40 flex-shrink-0 transition-transform duration-200',
-            expanded && 'rotate-180',
-          )}
-        />
-      </button>
-
-      {/* Expanded breakdown */}
+      {/* Expanded breakdown: one action per line, inside the same card */}
       {expanded && (
-        <div className="border-b border-[--border-subtle] bg-muted/10">
-          <div className="px-5 py-3">
-            <table className="w-full text-[12px]">
+        <tr style={{ borderBottom: `1px solid ${RULE}` }}>
+          <td colSpan={WORKFLOW_COLS} className="px-6 pb-5 pt-2">
+            <table className="w-full text-[13.5px] border-collapse">
               <thead>
                 <tr className="text-left">
-                  <th className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground pb-2 pr-4">Action</th>
-                  <th className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground pb-2 pr-4 text-right">Count</th>
-                  <th className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground pb-2 pr-4 text-right">Per Run</th>
-                  <th className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground pb-2 text-right">Total Saved</th>
+                  <th className="pb-2 pr-4 text-[12.5px] font-normal" style={{ color: MUTED }}>Action</th>
+                  <th className="pb-2 pr-4 text-[12.5px] font-normal text-right" style={{ color: MUTED }}>Count</th>
+                  <th className="pb-2 pr-4 text-[12.5px] font-normal text-right" style={{ color: MUTED }}>Per run</th>
+                  <th className="pb-2 text-[12.5px] font-normal text-right" style={{ color: MUTED }}>Total saved</th>
                 </tr>
               </thead>
               <tbody>
                 {row.breakdown.map(b => (
-                  <tr key={b.action} className="border-t border-[--border-subtle]/50">
-                    <td className="py-2 pr-4 font-medium text-foreground/80">{b.action}</td>
-                    <td className="py-2 pr-4 tabular-nums text-right text-foreground/70">
-                      {b.count.toLocaleString()}
-                    </td>
-                    <td className="py-2 pr-4 tabular-nums text-right text-muted-foreground">
-                      {b.minutesSaved} min
-                    </td>
-                    <td className="py-2 tabular-nums text-right font-semibold" style={{ color: '#0F3D91' }}>
-                      {fmtHours(b.hoursSaved)}
-                    </td>
+                  <tr key={b.action} style={{ borderTop: `1px solid ${RULE}` }}>
+                    <td className="py-2 pr-4" style={{ color: INK }}>{b.action}</td>
+                    <td className="py-2 pr-4 tabular-nums text-right" style={{ color: INK }}>{b.count.toLocaleString()}</td>
+                    <td className="py-2 pr-4 tabular-nums text-right" style={{ color: MUTED }}>{b.minutesSaved} min</td>
+                    <td className="py-2 tabular-nums text-right" style={{ color: INK }}>{fmtHours(b.hoursSaved)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
-        </div>
+          </td>
+        </tr>
       )}
     </>
   )
@@ -198,73 +150,56 @@ function MethodologyCard() {
   ]
 
   return (
-    <Card>
+    <div className="border-t border-b" style={{ borderColor: RULE }}>
       <button
+        type="button"
         onClick={() => setOpen(v => !v)}
         aria-expanded={open}
-        className="w-full flex items-center gap-2 px-5 py-4 text-left hover:bg-muted/15 transition-colors rounded-lg"
+        className="w-full flex items-center gap-2 py-4 text-left bg-transparent border-0 cursor-pointer hover:bg-[#f8f9fa] transition-colors"
       >
-        <Info size={14} strokeWidth={2} className="text-muted-foreground/60 flex-shrink-0" />
-        <p className="text-[12px] font-semibold text-muted-foreground flex-1">
-          How Kyn ROI is calculated
-        </p>
+        <span className="flex-1 text-[14px]" style={{ color: INK }}>How Kyn ROI is calculated</span>
         <ChevronDown
-          size={13}
+          size={14}
           strokeWidth={2}
-          className={cn(
-            'text-muted-foreground/40 flex-shrink-0 transition-transform duration-200',
-            open && 'rotate-180',
-          )}
+          className={cn('flex-shrink-0 transition-transform duration-200', open && 'rotate-180')}
+          style={{ color: '#9aa0a6' }}
         />
       </button>
 
       {open && (
-        <CardContent className="pt-0 pb-5 px-5">
-          <p className="text-[12.5px] text-muted-foreground leading-relaxed mb-4">
+        <div className="pb-5">
+          <p className="m-0 mb-4 text-[14px] leading-relaxed" style={{ color: '#3c4043' }}>
             Time saved is estimated from observed AI automation events and conservative per-action
             benchmarks. Each event type reflects the manual work it replaces for an insurance
             professional. Estimated value is calculated at{' '}
-            <strong className="text-foreground">S${HOURLY_RATE_SGD}/hr</strong> — a conservative
+            <span className="font-medium" style={{ color: INK }}>S${HOURLY_RATE_SGD}/hr</span>, a conservative
             professional services rate for Singapore.
           </p>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-[12px] border-collapse">
-              <thead>
-                <tr className="border-b border-[--border-subtle]">
-                  <th className="text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground pb-2 pr-6">
-                    Automation Action
-                  </th>
-                  <th className="text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground pb-2 pr-6 w-20">
-                    Assumption
-                  </th>
-                  <th className="text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground pb-2">
-                    Basis
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {actions.map(a => (
-                  <tr key={a.label} className="border-b border-[--border-subtle]/50 last:border-0">
-                    <td className="py-2 pr-6 font-medium text-foreground/80">{a.label}</td>
-                    <td className="py-2 pr-6 tabular-nums text-right font-semibold text-foreground">
-                      {a.minutes} min
-                    </td>
-                    <td className="py-2 text-muted-foreground leading-snug">{a.basis}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Register label="Estimation assumptions" minWidth={560}>
+            <RegisterHead>
+              <RegisterTh first>Automation action</RegisterTh>
+              <RegisterTh align="right">Assumption</RegisterTh>
+              <RegisterTh last>Basis</RegisterTh>
+            </RegisterHead>
+            <tbody>
+              {actions.map(a => (
+                <RegisterRow key={a.label} className="hover:bg-[#f8f9fa]">
+                  <RegisterCell first primary={a.label} />
+                  <RegisterCell align="right" primary={`${a.minutes} min`} />
+                  <RegisterCell last nowrap={false}><span className="block text-[13.5px] leading-snug min-w-[260px]" style={{ color: MUTED }}>{a.basis}</span></RegisterCell>
+                </RegisterRow>
+              ))}
+            </tbody>
+          </Register>
 
-          <p className="text-[11px] text-muted-foreground/60 mt-4 leading-relaxed">
-            These figures are estimates only. Actual time savings vary by task complexity and team
-            workflow. Revenue influence is not attributed directly — no pipeline or deal data is
-            currently tracked.
+          <p className="m-0 mt-4 text-[12.5px] leading-relaxed" style={{ color: MUTED }}>
+            These figures are estimates. Actual time savings vary by task complexity and team
+            workflow. Revenue influence is not attributed: no pipeline or deal data is tracked.
           </p>
-        </CardContent>
+        </div>
       )}
-    </Card>
+    </div>
   )
 }
 
@@ -301,258 +236,174 @@ export default function KynRoiPage() {
   const timeSeries = data?.timeSeries ?? []
 
   return (
-    <div className="p-6 lg:p-8 max-w-[1100px] mx-auto">
+    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
+      <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4 mb-5">
-        <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <TrendingUp size={20} strokeWidth={2} className="text-primary flex-shrink-0" />
-            <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">
-              Kyn ROI
-            </h1>
+        {/* ── Header ─────────────────────────────────────────────────────────── */}
+        <div className="flex items-end justify-between gap-6 flex-wrap">
+          <div className="min-w-0">
+            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Kyn ROI</h1>
+            <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>
+              Estimated hours saved and value created by AI automation · {RANGE_LABEL[range]}
+            </p>
           </div>
-          <p className="text-[13.5px] text-muted-foreground leading-snug">
-            Estimated business value and man-hours saved by AI automations
-            <span className="mx-1.5 text-muted-foreground/40">·</span>
-            <span className="text-muted-foreground/70">{RANGE_LABEL[range]}</span>
-          </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Segmented<Range>
+              value={range}
+              onChange={setRange}
+              options={[{ value: '7d', label: '7d' }, { value: '30d', label: '30d' }, { value: '90d', label: '90d' }]}
+            />
+            <Btn level="secondary" onClick={load} loading={loading}>
+              {!loading && <RefreshCw size={12} strokeWidth={2} />}
+              Refresh
+            </Btn>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="flex rounded-md overflow-hidden border border-border">
-            {(['7d', '30d', '90d'] as Range[]).map(r => (
-              <button
-                key={r}
-                onClick={() => setRange(r)}
-                className={cn(
-                  'px-3 py-1.5 text-[11px] font-medium transition-colors',
-                  range === r
-                    ? 'bg-foreground text-background'
-                    : 'text-muted-foreground hover:bg-muted/50',
-                )}
-              >
-                {r}
-              </button>
-            ))}
+        {/* ── Error ──────────────────────────────────────────────────────────── */}
+        {error && (
+          <div className="flex items-center gap-3 mt-4 text-[14px]" style={{ color: INK }}>
+            <span className="flex-1">Error: {error}</span>
+            <Btn level="tertiary" size="xs" onClick={() => setError(null)} aria-label="Dismiss error">Dismiss</Btn>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={load}
-            disabled={loading}
-            className="gap-1.5"
-          >
-            <RefreshCw size={12} strokeWidth={2} className={loading ? 'animate-spin' : ''} />
-            Refresh
-          </Button>
+        )}
+
+        {/* ── KPI tiles ──────────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-8 mb-10">
+          <StatCard
+            label="Hours saved"
+            value={loading ? '—' : fmtHours(summary?.totalHoursSaved ?? 0)}
+            sublabel="Manual work time recovered"
+            loading={loading}
+            tooltip="Total manual work time recovered. Each AI event is credited a conservative time estimate: drafting a reply = 15 min, summarising a thread = 3–5 min, analysing an email = 5 min, and so on. Expand any workflow row to see the per-action breakdown."
+          />
+          <StatCard
+            label="Automations run"
+            value={loading ? '—' : (summary?.totalRuns ?? 0).toLocaleString()}
+            sublabel="Across all workflows"
+            loading={loading}
+            tooltip="Total automation events counted from the Gemini AI log — every draft generation, thread summary, lead analysis, outbound research action, and campaign draft across all active workflows."
+          />
+          <StatCard
+            label="Estimated value"
+            value={loading ? '—' : fmtValueSGD(summary?.estimatedValueSGD ?? 0)}
+            sublabel={`At S$${HOURLY_RATE_SGD}/hr`}
+            loading={loading}
+            tooltip={`Hours saved × S$${HOURLY_RATE_SGD}/hr — a conservative professional services rate for Singapore. No revenue is attributed directly; no pipeline or deal data is tracked.`}
+          />
+          <StatCard
+            label="Workflows active"
+            value={loading ? '—' : String(summary?.workflowsActive ?? 0)}
+            sublabel="With at least one run"
+            loading={loading}
+            tooltip="Distinct workflow categories with at least one automation event in the selected time period. Workflows with no activity are excluded from this count."
+          />
         </div>
-      </div>
 
-
-      {/* ── Error ──────────────────────────────────────────────────────────── */}
-      {error && (
-        <div className="flex items-center gap-2 px-4 py-3 mb-5 rounded-lg bg-destructive/6 border border-destructive/20 text-[13px] text-destructive">
-          <span className="flex-1">{error}</span>
-          <button
-            onClick={() => setError(null)}
-            aria-label="Dismiss error"
-            className="bg-transparent border-0 cursor-pointer text-destructive text-lg leading-none"
-          >
-            ×
-          </button>
-        </div>
-      )}
-
-      {/* ── KPI cards ──────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatCard
-          label="Hours Saved"
-          value={loading ? '—' : fmtHours(summary?.totalHoursSaved ?? 0)}
-          sublabel="man-hours recovered"
-          accent="blue"
-          icon={Clock}
-          loading={loading}
-          tooltip="Total manual work time recovered. Each AI event is credited a conservative time estimate: drafting a reply = 15 min, summarising a thread = 3–5 min, analysing an email = 5 min, and so on. Expand any workflow row to see the per-action breakdown."
-        />
-        <StatCard
-          label="Automations Run"
-          value={loading ? '—' : (summary?.totalRuns ?? 0).toLocaleString()}
-          sublabel="across all workflows"
-          accent="green"
-          icon={Zap}
-          loading={loading}
-          tooltip="Total automation events counted from the Gemini AI log — every draft generation, thread summary, lead analysis, outbound research action, and campaign draft across all active workflows."
-        />
-        <StatCard
-          label="Est. Value Created"
-          value={loading ? '—' : fmtValueSGD(summary?.estimatedValueSGD ?? 0)}
-          sublabel={`@ S$${HOURLY_RATE_SGD}/hr · conservative estimate`}
-          accent="amber"
-          icon={TrendingUp}
-          loading={loading}
-          tooltip={`Hours saved × S$${HOURLY_RATE_SGD}/hr — a conservative professional services rate for Singapore. No revenue is attributed directly; no pipeline or deal data is tracked.`}
-        />
-        <StatCard
-          label="Workflows Active"
-          value={loading ? '—' : String(summary?.workflowsActive ?? 0)}
-          sublabel="running automations"
-          accent="blue"
-          icon={Layers}
-          loading={loading}
-          tooltip="Distinct workflow categories with at least one automation event in the selected time period. Workflows with no activity are excluded from this count."
-        />
-      </div>
-
-      {/* ── Trend chart ────────────────────────────────────────────────────── */}
-      <Card className="mb-4">
-        <CardHeader className="pb-1 pt-4 px-5">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-[13px] font-semibold text-foreground">
-              Hours Saved Over Time
-            </CardTitle>
-            <span className="text-[11px] text-muted-foreground/60">daily — {RANGE_LABEL[range]}</span>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-3 pb-4 px-5">
+        {/* ── Trend chart ────────────────────────────────────────────────────── */}
+        <section className="mb-10">
+          <header className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+            <h2 className="m-0 text-[16px] font-medium tracking-[-0.01em]" style={{ color: INK }}>Hours saved per day</h2>
+            <span className="text-[12.5px]" style={{ color: MUTED }}>{RANGE_LABEL[range]}</span>
+          </header>
           {loading ? (
-            <div className="h-[220px] flex items-center justify-center text-[13px] text-muted-foreground">
-              Loading…
-            </div>
+            <div className="h-[220px] rounded-[16px] animate-pulse" style={{ background: FIELD }} />
           ) : timeSeries.length === 0 ? (
-            <div className="h-[220px] flex flex-col items-center justify-center gap-2 text-muted-foreground">
-              <TrendingUp size={28} strokeWidth={1.5} className="opacity-25" />
-              <p className="text-[13px]">No automation activity in this period.</p>
-            </div>
+            <p className="m-0 py-16 text-center text-[15px]" style={{ color: MUTED }}>No automation activity in this period.</p>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={timeSeries} barSize={20} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                <CartesianGrid vertical={false} stroke={RULE} />
                 <XAxis
                   dataKey="date"
-                  tick={{ fontSize: 11, fill: '#9ca3af' }}
+                  tick={{ fontSize: 11, fill: '#9aa0a6' }}
                   tickLine={false}
                   axisLine={false}
                   tickFormatter={fmtDateAxis}
                   interval={range === '7d' ? 0 : range === '30d' ? 3 : 7}
                 />
                 <YAxis
-                  tick={{ fontSize: 11, fill: '#9ca3af' }}
+                  tick={{ fontSize: 11, fill: '#9aa0a6' }}
                   tickLine={false}
                   axisLine={false}
                   tickFormatter={v => `${Number(v).toFixed(0)}h`}
                   width={36}
                 />
                 <Tooltip
-                  cursor={{ fill: 'rgba(15,61,145,0.04)' }}
+                  cursor={{ fill: FIELD }}
                   formatter={(v) => [`${Number(v).toFixed(1)}h`, 'Hours saved']}
                   labelFormatter={l => `Date: ${l}`}
                   contentStyle={{
                     fontSize: 12,
-                    borderRadius: 8,
-                    border: '1px solid hsl(var(--border))',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                    borderRadius: 10,
+                    border: '1px solid #dadce0',
+                    boxShadow: 'none',
+                    color: INK,
                   }}
                 />
                 <Bar
                   dataKey="hoursSaved"
-                  fill="#3b82f6"
+                  fill={INK}
                   radius={[3, 3, 0, 0]}
-                  fillOpacity={0.85}
                 />
               </BarChart>
             </ResponsiveContainer>
           )}
-        </CardContent>
-      </Card>
+        </section>
 
-      {/* ── Workflow impact table ───────────────────────────────────────────── */}
-      <Card className="mb-4">
-        <CardHeader className="pb-0 pt-4 px-5">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-[13px] font-semibold text-foreground">
-              Workflow Impact
-            </CardTitle>
-            <span className="text-[11px] text-muted-foreground/60">
-              click any row to expand
-            </span>
-          </div>
-        </CardHeader>
+        {/* ── Workflow impact table ───────────────────────────────────────────── */}
+        <section className="mb-10">
+          <h2 className="m-0 mb-3 text-[16px] font-medium tracking-[-0.01em]" style={{ color: INK }}>Workflow impact</h2>
 
-        {/* Column headers */}
-        {!loading && workflows.length > 0 && (
-          <div className="flex items-center gap-4 px-5 py-2 mt-2 border-b border-[--border-subtle]">
-            <div className="flex-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Workflow
-            </div>
-            <div className="w-20 flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right">
-              Runs
-            </div>
-            <div className="w-24 flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right flex items-center justify-end gap-1">
-              Hours Saved
-              <Tip text="Time saved per workflow, based on conservative per-action benchmarks. Expand any row to see the count and minutes saved for each individual action type." />
-            </div>
-            <div className="w-24 flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right">
-              Est. Value
-            </div>
-            <div className="w-20 flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right hidden sm:block">
-              Last Active
-            </div>
-            <div className="w-5 flex-shrink-0" />
-          </div>
-        )}
-
-        <CardContent className="pt-0 pb-0 px-0">
           {loading ? (
-            <div className="px-5 py-10 flex items-center justify-center text-[13px] text-muted-foreground">
-              Loading workflow data…
+            <div className="flex flex-col gap-2">
+              {[0, 1, 2, 3].map(i => <div key={i} className="h-12 rounded-[10px] animate-pulse" style={{ background: FIELD }} />)}
             </div>
           ) : workflows.length === 0 ? (
-            <div className="px-5 py-10 flex flex-col items-center justify-center gap-2 text-muted-foreground">
-              <Layers size={28} strokeWidth={1.5} className="opacity-25" />
-              <p className="text-[13px]">No workflow activity in this period.</p>
-            </div>
+            <p className="m-0 py-16 text-center text-[15px]" style={{ color: MUTED }}>No workflow activity in this period.</p>
           ) : (
-            <div>
-              {workflows.map(row => (
-                <WorkflowTableRow
-                  key={row.id}
-                  row={row}
-                  expanded={expanded.has(row.id)}
-                  onToggle={() => toggleRow(row.id)}
-                />
-              ))}
-            </div>
+            <Register label="Workflow impact" minWidth={760}>
+              <RegisterHead>
+                <RegisterTh first>Workflow</RegisterTh>
+                <RegisterTh align="right">Runs</RegisterTh>
+                <RegisterTh align="right">
+                  Hours saved
+                  <Tip text="Time saved per workflow, based on conservative per-action benchmarks. Expand any row to see the count and minutes saved for each individual action type." />
+                </RegisterTh>
+                <RegisterTh align="right">Est. value</RegisterTh>
+                <RegisterTh align="right">Last active</RegisterTh>
+                <RegisterTh last />
+              </RegisterHead>
+              <tbody>
+                {workflows.map(row => (
+                  <WorkflowTableRow
+                    key={row.id}
+                    row={row}
+                    expanded={expanded.has(row.id)}
+                    onToggle={() => toggleRow(row.id)}
+                  />
+                ))}
+
+                {/* Total row */}
+                {summary && (
+                  <RegisterRow>
+                    <RegisterCell first primary="Total" />
+                    <RegisterCell align="right"><span className="text-[14px] font-medium tabular-nums" style={{ color: INK }}>{summary.totalRuns.toLocaleString()}</span></RegisterCell>
+                    <RegisterCell align="right"><span className="text-[14px] font-medium tabular-nums" style={{ color: INK }}>{fmtHours(summary.totalHoursSaved)}</span></RegisterCell>
+                    <RegisterCell align="right"><span className="text-[14px] font-medium tabular-nums" style={{ color: INK }}>{fmtValueSGD(summary.estimatedValueSGD)}</span></RegisterCell>
+                    <RegisterCell align="right" />
+                    <RegisterCell last />
+                  </RegisterRow>
+                )}
+              </tbody>
+            </Register>
           )}
+        </section>
 
-          {/* Total row */}
-          {!loading && workflows.length > 0 && summary && (
-            <div className="flex items-center gap-4 px-5 py-3 border-t border-[--border-subtle] bg-muted/10">
-              <div className="flex-1 text-[12px] font-semibold text-foreground">Total</div>
-              <div className="w-20 flex-shrink-0 text-[13px] font-bold tabular-nums text-right text-foreground">
-                {summary.totalRuns.toLocaleString()}
-              </div>
-              <div
-                className="w-24 flex-shrink-0 text-[13px] font-bold tabular-nums text-right"
-                style={{ color: '#0F3D91' }}
-              >
-                {fmtHours(summary.totalHoursSaved)}
-              </div>
-              <div
-                className="w-24 flex-shrink-0 text-[13px] font-bold tabular-nums text-right"
-                style={{ color: '#C27A07' }}
-              >
-                {fmtValueSGD(summary.estimatedValueSGD)}
-              </div>
-              <div className="w-20 flex-shrink-0 hidden sm:block" />
-              <div className="w-5 flex-shrink-0" />
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        {/* ── Methodology ────────────────────────────────────────────────────── */}
+        <MethodologyCard />
 
-      {/* ── Methodology ────────────────────────────────────────────────────── */}
-      <MethodologyCard />
-
+      </div>
     </div>
   )
 }

@@ -1,25 +1,21 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { TrendingUp, RefreshCw, Info, ChevronDown, ScrollText } from 'lucide-react'
-import { Card } from '@/components/ui/card'
+import { RefreshCw, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Btn, Chip } from '@/components/crm/primitives'
 import type { DevLogEntry } from '@/app/api/dev-logs/route'
 
 const PROJECT_LABELS: Record<string, string> = {
   'trs-dashboard': 'Dashboard',
   'trs-website':   'Website',
-  'ai-agent':      'AI Agent',
+  'ai-agent':      'AI agent',
 }
 
-const TAG_COLORS: Record<string, string> = {
-  feature:  'bg-blue-50 text-blue-600',
-  bugfix:   'bg-red-50 text-red-600',
-  design:   'bg-violet-50 text-violet-600',
-  refactor: 'bg-amber-50 text-amber-600',
-  security: 'bg-orange-50 text-orange-600',
-  perf:     'bg-green-50 text-green-600',
-}
+const INK = '#202124'
+const MUTED = '#5f6368'
+const RULE = '#e8eaed'
+const FIELD = '#f1f3f4'
 
 function fmtDate(iso: string) {
   return new Date(iso + 'T00:00:00').toLocaleDateString('en-SG', {
@@ -54,162 +50,104 @@ export default function KynRoiLogPage() {
   }
 
   return (
-    <div className="p-6 lg:p-8 max-w-[1100px] mx-auto">
+    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
+      <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
 
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-6">
-        <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <ScrollText size={20} strokeWidth={2} className="text-primary flex-shrink-0" />
-            <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">
-              Dev Logs
-            </h1>
+        {/* Header */}
+        <div className="flex items-end justify-between gap-6 flex-wrap mb-8">
+          <div className="min-w-0">
+            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Dev logs</h1>
+            <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>
+              {loading ? 'Loading…' : `${logs.length} session entr${logs.length === 1 ? 'y' : 'ies'} · what was built and when`}
+            </p>
           </div>
-          <p className="text-[13.5px] text-muted-foreground leading-snug">
-            Session changelog — what was built and when
-          </p>
-        </div>
-        <button
-          onClick={load}
-          disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-md border border-border text-muted-foreground hover:bg-muted/40 transition-colors disabled:opacity-50"
-        >
-          <RefreshCw size={12} strokeWidth={2} className={loading ? 'animate-spin' : ''} />
-          Refresh
-        </button>
-      </div>
-
-      {/* Table card */}
-      <Card>
-        {/* Column headers */}
-        <div className="flex items-center gap-4 px-5 py-3 border-b border-[--border-subtle] bg-muted/20 rounded-t-lg">
-          <div className="w-28 flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Date
-          </div>
-          <div className="w-24 flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Project
-          </div>
-          <div className="flex-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Session
-          </div>
-          <div className="w-36 flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hidden sm:block">
-            Tags
-          </div>
-          <div className="w-5 flex-shrink-0" />
+          <Btn level="secondary" onClick={load} loading={loading}>
+            {!loading && <RefreshCw size={12} strokeWidth={2} />}
+            Refresh
+          </Btn>
         </div>
 
         {/* Loading */}
         {loading && (
-          <div className="flex items-center justify-center py-16 text-[13px] text-muted-foreground gap-2">
-            <RefreshCw size={14} strokeWidth={2} className="animate-spin opacity-50" />
-            Loading logs…
+          <div className="flex flex-col gap-2">
+            {[0, 1, 2, 3].map(i => <div key={i} className="h-12 rounded-[10px] animate-pulse" style={{ background: FIELD }} />)}
           </div>
         )}
 
         {/* Error */}
         {!loading && error && (
-          <div className="mx-5 my-4 px-4 py-3 rounded-lg bg-destructive/6 border border-destructive/20 text-[12.5px] text-destructive">
-            Could not load logs — {error}
-          </div>
+          <p className="m-0 py-4 text-[14px]" style={{ color: INK }}>Error: could not load logs. {error}</p>
         )}
 
         {/* Empty */}
         {!loading && !error && logs.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
-            <Info size={24} strokeWidth={1.5} className="opacity-30" />
-            <div className="text-center">
-              <p className="text-[13px] font-medium">No log entries yet</p>
-              <p className="text-[12px] text-muted-foreground/70 mt-1">
-                Say &ldquo;add to logs&rdquo; at the end of a session and Claude will write one.
-              </p>
-            </div>
-          </div>
+          <p className="m-0 py-16 text-center text-[15px]" style={{ color: MUTED }}>
+            No log entries yet. Say &ldquo;add to logs&rdquo; at the end of a session and Claude writes one.
+          </p>
         )}
 
         {/* Rows */}
-        {logs.map((log, idx) => {
-          const open   = expanded.has(log.id)
-          const isLast = idx === logs.length - 1
-          return (
-            <div key={log.id}>
-              <button
-                onClick={() => toggle(log.id)}
-                aria-expanded={open}
-                className={cn(
-                  'w-full text-left flex items-center gap-4 px-5 py-4 transition-colors',
-                  !isLast && 'border-b border-[--border-subtle]',
-                  open ? 'bg-muted/30' : 'hover:bg-muted/20',
-                )}
-              >
-                {/* Date */}
-                <div className="w-28 flex-shrink-0">
-                  <p className="text-[12px] font-semibold text-foreground tabular-nums">
-                    {fmtDate(log.session_date)}
-                  </p>
-                </div>
+        {!loading && logs.length > 0 && (
+          <div className="border-t" style={{ borderColor: RULE }}>
+            {logs.map(log => {
+              const open = expanded.has(log.id)
+              return (
+                <div key={log.id} className="border-b" style={{ borderColor: RULE }}>
+                  <button
+                    type="button"
+                    onClick={() => toggle(log.id)}
+                    aria-expanded={open}
+                    className={cn(
+                      'w-full text-left flex items-start sm:items-center gap-3 sm:gap-4 py-3.5 bg-transparent border-0 cursor-pointer transition-colors',
+                      open ? 'bg-[#f8f9fa]' : 'hover:bg-[#f8f9fa]',
+                    )}
+                  >
+                    {/* Date */}
+                    <p className="m-0 w-[96px] sm:w-[112px] flex-shrink-0 text-[13px] tabular-nums pt-0.5 sm:pt-0" style={{ color: MUTED }}>
+                      {fmtDate(log.session_date)}
+                    </p>
 
-                {/* Project */}
-                <div className="w-24 flex-shrink-0">
-                  <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-md bg-primary/8 text-primary">
-                    {PROJECT_LABELS[log.project] ?? log.project}
-                  </span>
-                </div>
+                    {/* Title, project, tags */}
+                    <div className="flex-1 min-w-0">
+                      <p className="m-0 text-[14px] leading-snug" style={{ color: INK }}>{log.title}</p>
+                      <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                        <Chip>{PROJECT_LABELS[log.project] ?? log.project}</Chip>
+                        {(log.tags ?? []).slice(0, 3).map(tag => (
+                          <Chip key={tag} className="capitalize">{tag}</Chip>
+                        ))}
+                        <span className="text-[12.5px] tabular-nums" style={{ color: MUTED }}>
+                          {log.changes.length} change{log.changes.length !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    </div>
 
-                {/* Title */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-semibold text-foreground truncate">{log.title}</p>
-                  <p className="text-[11px] text-muted-foreground/60 mt-0.5">
-                    {log.changes.length} change{log.changes.length !== 1 ? 's' : ''}
-                  </p>
-                </div>
+                    {/* Chevron */}
+                    <ChevronDown
+                      size={14}
+                      strokeWidth={2}
+                      className={cn('flex-shrink-0 mt-1 sm:mt-0 transition-transform duration-200', open && 'rotate-180')}
+                      style={{ color: '#9aa0a6' }}
+                    />
+                  </button>
 
-                {/* Tags */}
-                <div className="w-36 flex-shrink-0 flex flex-wrap gap-1 hidden sm:flex">
-                  {(log.tags ?? []).slice(0, 3).map(tag => (
-                    <span
-                      key={tag}
-                      className={cn(
-                        'text-[9.5px] font-bold px-1.5 py-[1px] rounded-sm capitalize',
-                        TAG_COLORS[tag] ?? 'bg-muted text-muted-foreground',
-                      )}
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Chevron */}
-                <ChevronDown
-                  size={14}
-                  strokeWidth={2}
-                  className={cn(
-                    'text-muted-foreground/40 flex-shrink-0 transition-transform duration-200',
-                    open && 'rotate-180',
+                  {/* Expanded: bullet list */}
+                  {open && (
+                    <ul className="m-0 pl-0 sm:pl-[128px] pb-4 pt-1 list-none flex flex-col gap-2">
+                      {log.changes.map((item, i) => (
+                        <li key={i} className="flex items-start gap-2.5 text-[14px] leading-snug" style={{ color: '#3c4043' }}>
+                          <span className="mt-[7px] w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#9aa0a6' }} />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
                   )}
-                />
-              </button>
-
-              {/* Expanded: bullet list */}
-              {open && (
-                <div className={cn(
-                  'bg-muted/10 px-5 py-4',
-                  !isLast && 'border-b border-[--border-subtle]',
-                )}>
-                  <ul className="space-y-2">
-                    {log.changes.map((item, i) => (
-                      <li key={i} className="flex items-start gap-2.5 text-[12.5px] text-foreground/80 leading-snug">
-                        <span className="mt-[5px] w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
                 </div>
-              )}
-            </div>
-          )
-        })}
-      </Card>
+              )
+            })}
+          </div>
+        )}
 
+      </div>
     </div>
   )
 }

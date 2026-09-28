@@ -14,14 +14,19 @@
  * page) rather than conditionally by pathname, so EngagementRail.tsx never has to handle "no
  * provider mounted".
  */
-import { createContext, useContext, useState, type Dispatch, type SetStateAction, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, type Dispatch, type SetStateAction, type ReactNode } from 'react'
 import type { Lead, ThreadState } from '@/components/engagement/types'
 import type { NewEmailDraft } from '@/components/engagement/NewEmailComposeModal'
 
-export type EngagementTab = 'all' | 'prospects' | 'clients' | 'drafts' | 'unlinked'
-export type EngagementNavCounts = { all: number; prospects: number; clients: number; drafts: number; unlinked: number }
+export type EngagementTab =
+  | 'all' | 'needs_reply' | 'awaiting_client' | 'unlinked' | 'unassigned' | 'drafts'
+  | 'renewals' | 'claims' | 'rfqs' | 'clients' | 'prospects'
+export type EngagementNavCounts = Record<EngagementTab, number>
 
-const EMPTY_COUNTS: EngagementNavCounts = { all: 0, prospects: 0, clients: 0, drafts: 0, unlinked: 0 }
+const EMPTY_COUNTS: EngagementNavCounts = { all: 0, needs_reply: 0, awaiting_client: 0, unlinked: 0, unassigned: 0, drafts: 0, renewals: 0, claims: 0, rfqs: 0, clients: 0, prospects: 0 }
+
+/** localStorage key for the navigator's collapsed state (64px icon rail vs the full column). */
+export const KEY_NAV_COLLAPSED = 'engagement_nav_collapsed'
 
 interface EngagementNavContextValue {
   activeTab: EngagementTab
@@ -57,6 +62,10 @@ interface EngagementNavContextValue {
    *  page.tsx (which owns the real `leads` state) so the row updates without a full refetch. */
   onLinkCompany: ((threadId: string, companyId: string, companyName: string) => void) | null
   setOnLinkCompany: Dispatch<SetStateAction<((threadId: string, companyId: string, companyName: string) => void) | null>>
+  /** Navigator collapsed to the 64px icon rail (desktop only). Persisted under KEY_NAV_COLLAPSED;
+   *  EngagementRail renders the icon rail and ConditionalShell narrows its margin to match. */
+  navCollapsed: boolean
+  setNavCollapsed: Dispatch<SetStateAction<boolean>>
 }
 
 const EngagementNavContext = createContext<EngagementNavContextValue | null>(null)
@@ -83,6 +92,19 @@ export function EngagementNavProvider({ children }: { children: ReactNode }) {
   const [onOpenDraft, setOnOpenDraft] = useState<((draft: NewEmailDraft) => void) | null>(null)
   const [onLinkCompany, setOnLinkCompany] = useState<((threadId: string, companyId: string, companyName: string) => void) | null>(null)
 
+  // Collapsed state: render expanded on first paint, correct from localStorage in a client-only
+  // effect (same SSR-safe pattern as useResizableDimension), then persist every change.
+  const [navCollapsed, setNavCollapsed] = useState(false)
+  const [collapsedLoaded, setCollapsedLoaded] = useState(false)
+  useEffect(() => {
+    try { setNavCollapsed(localStorage.getItem(KEY_NAV_COLLAPSED) === '1') } catch { /* best effort */ }
+    setCollapsedLoaded(true)
+  }, [])
+  useEffect(() => {
+    if (!collapsedLoaded) return
+    try { localStorage.setItem(KEY_NAV_COLLAPSED, navCollapsed ? '1' : '0') } catch { /* best effort */ }
+  }, [navCollapsed, collapsedLoaded])
+
   return (
     <EngagementNavContext.Provider value={{
       activeTab, setActiveTab, search, setSearch,
@@ -90,6 +112,7 @@ export function EngagementNavProvider({ children }: { children: ReactNode }) {
       leads, setLeads, visible, setVisible, threadMap, setThreadMap,
       selectedId, setSelectedId, loading, setLoading, onSelect, setOnSelect, onOpenDraft, setOnOpenDraft,
       onLinkCompany, setOnLinkCompany,
+      navCollapsed, setNavCollapsed,
     }}>
       {children}
     </EngagementNavContext.Provider>

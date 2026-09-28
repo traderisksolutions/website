@@ -160,8 +160,7 @@ export const EaMessageArea = forwardRef<HTMLDivElement, EaMessageAreaProps>(func
       onScroll={onScroll}
       className={cn(
         'flex-1 min-h-0 overflow-y-auto',
-        // Explicit reading surface — differs from the white chrome panels
-        'bg-[hsl(var(--muted))]',
+        'bg-white',
         className,
       )}
     >
@@ -195,14 +194,10 @@ export function EaWorkspaceEmptyState({
     <div
       className={cn(
         'flex-1 flex items-center justify-center',
-        // Same reading surface background as EaMessageArea
-        'bg-[hsl(var(--muted))]',
+        'bg-white',
       )}
     >
-      <div className="flex flex-col items-center gap-1.5 text-center px-8">
-        <p className="text-[13px] font-medium text-muted-foreground m-0">{title}</p>
-        <p className="text-[11.5px] text-muted-foreground/60 leading-relaxed max-w-[260px] m-0">{body}</p>
-      </div>
+      <p className="m-0 px-8 text-center text-[16px]" style={{ color: '#5f6368' }}>{body || title}</p>
     </div>
   )
 }

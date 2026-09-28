@@ -71,10 +71,10 @@ describe('EvalPage sorting/grouping (dogfood: real render, not just types)', () 
 
   it('renders without crashing and loads all four data sources', async () => {
     render(<EvalPage />)
-    await waitFor(() => expect(screen.getByText('Total Evaluated')).toBeInTheDocument())
-    // Total Evaluated / Examples Stored / Learnings all happen to be "3" with this
-    // fixture — assert the specific stat tile, not an ambiguous bare "3".
-    const tile = screen.getByText('Total Evaluated').closest('div')!.parentElement!
+    await waitFor(() => expect(screen.getByText('Evaluated')).toBeInTheDocument())
+    // Evaluated / Examples stored / Learnings all happen to be "3" with this
+    // fixture — assert the specific stat tile (label → row → header → card), not an ambiguous bare "3".
+    const tile = screen.getByText('Evaluated').closest('div')!.parentElement!.parentElement!
     expect(tile).toHaveTextContent('3')
   })
 
@@ -97,9 +97,9 @@ describe('EvalPage sorting/grouping (dogfood: real render, not just types)', () 
 
   it('Prompt Learnings tab groups by surface in the same stable area order', async () => {
     render(<EvalPage />)
-    await waitFor(() => expect(screen.getByText('Total Evaluated')).toBeInTheDocument())
-    clickTab(/Prompt Learnings/)
-    const learningsTab = await screen.findByRole('tabpanel', { name: /Prompt Learnings/ })
+    await waitFor(() => expect(screen.getByText('Evaluated')).toBeInTheDocument())
+    clickTab(/Prompt learnings/)
+    const learningsTab = await screen.findByRole('tabpanel', { name: /Prompt learnings/ })
     await waitFor(() => expect(learningsTab).toHaveTextContent('Ask for the policy number'))
     const html = learningsTab.innerHTML
     expect(html.indexOf('>Claims<')).toBeLessThan(html.indexOf('>Pricing<'))
@@ -108,9 +108,9 @@ describe('EvalPage sorting/grouping (dogfood: real render, not just types)', () 
 
   it('Few-Shot Examples tab groups by surface, same order', async () => {
     render(<EvalPage />)
-    await waitFor(() => expect(screen.getByText('Total Evaluated')).toBeInTheDocument())
-    clickTab(/Few-Shot Examples/)
-    const examplesTab = await screen.findByRole('tabpanel', { name: /Few-Shot Examples/ })
+    await waitFor(() => expect(screen.getByText('Evaluated')).toBeInTheDocument())
+    clickTab(/Few-shot examples/)
+    const examplesTab = await screen.findByRole('tabpanel', { name: /Few-shot examples/ })
     await waitFor(() => expect(examplesTab).toHaveTextContent('claims example'))
     const html = examplesTab.innerHTML
     expect(html.indexOf('>Claims<')).toBeLessThan(html.indexOf('>Pricing<'))
@@ -119,9 +119,9 @@ describe('EvalPage sorting/grouping (dogfood: real render, not just types)', () 
 
   it('Chat Learnings tab groups by case, most recently active case first', async () => {
     render(<EvalPage />)
-    await waitFor(() => expect(screen.getByText('Total Evaluated')).toBeInTheDocument())
-    clickTab(/Chat Learnings/)
-    const chatTab = await screen.findByRole('tabpanel', { name: /Chat Learnings/ })
+    await waitFor(() => expect(screen.getByText('Evaluated')).toBeInTheDocument())
+    clickTab(/Chat learnings/)
+    const chatTab = await screen.findByRole('tabpanel', { name: /Chat learnings/ })
     await waitFor(() => expect(chatTab).toHaveTextContent('Case B (most recent chat)'))
     const html = chatTab.innerHTML
     // case-b's learning is newer (Jan 5) than case-a's (Jan 1) — case B must render first.
@@ -130,15 +130,15 @@ describe('EvalPage sorting/grouping (dogfood: real render, not just types)', () 
 
   it('expanding an evaluation row reveals its key learning', async () => {
     render(<EvalPage />)
-    await waitFor(() => expect(screen.getByText('Total Evaluated')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Evaluated')).toBeInTheDocument())
     fireEvent.click(screen.getByText('Added exact SGD figures with decimals'))
-    await waitFor(() => expect(screen.getByText('💡 Key learning')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Key learning')).toBeInTheDocument())
     expect(screen.getByText('Always quote SGD figures with two decimal places.')).toBeInTheDocument()
   })
 
   it('Skill Evolution recommendations and overrides are also area-sorted', async () => {
     const { container } = render(<EvalPage />)
-    await waitFor(() => expect(screen.getByText('Skill Evolution')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Skill evolution')).toBeInTheDocument())
     await waitFor(() => expect(screen.getByText(/Promote/)).toBeInTheDocument())
     const html = container.innerHTML
     // Recommendations: PRICING (Engagement) must precede CHAT_CONSULTANT (Nexus).

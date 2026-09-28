@@ -3,6 +3,7 @@
  * few threads and the client-side stakeholders. Facts only — the Nexus
  * summary itself is the saved brief on the company row and is refreshed by hand.
  */
+import { withoutEndorsementDuplicates } from '@/lib/policies/endorsement'
 import { sbTry, inChunks, getCompanyThreadIds, bareEmail, displayNameFromAddress, enc } from './db'
 import { listCompanyThreads } from './threads'
 import { rankPeople } from './people'
@@ -23,17 +24,14 @@ export async function buildOverview(company: Company): Promise<CompanyOverview &
     listCompanyThreads(company.id, threadIds),
     rankPeople(company, threadIds),
     loadCompanyPayments(company.id),
-    sbTry<CustomerRow[]>(`customers?company_id=eq.${enc(company.id)}&select=policies(end_date,status,class_of_insurance)`, []),
+    sbTry<CustomerRow[]>(`customers?company_id=eq.${enc(company.id)}&select=policies(id,policy_number,description,end_date,status,class_of_insurance)`, []),
     sbTry<AuditRow[]>(`audit_logs?resource_type=eq.company&resource_id=eq.${enc(company.id)}&action=eq.company.stage&select=created_at,user_name,new_value&order=created_at.desc&limit=1`, []),
     threadIds.length ? inChunks(threadIds, 100, c => sbTry<MsgRow[]>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,direction,from_address,subject,sent_at&order=sent_at.desc&limit=40`, [])) : Promise.resolve([] as MsgRow[]),
   ])
 
   const alerts: Alert[] = []
 
-  // Money
-  for (const n of pay.notes.filter(n => n.derived === 'overdue').sort((a, b) => b.daysOverdue - a.daysOverdue)) {
-    alerts.push({ id: `overdue-${n.id}`, kind: 'overdue', tone: 'red', title: `${fmtMoney(n.outstanding, n.currency)} overdue on ${n.debit_note_no}`, detail: `${n.daysOverdue} day${n.daysOverdue === 1 ? '' : 's'} past due · ${n.classOfInsurance ?? n.insurer ?? ''}`.trim(), href: `/companies/${company.id}?tab=payments`, at: n.payment_due_date })
-  }
+  // Money raises no alert while debit notes are still being entered and receipts recorded.
 
   // Replies
   const waiting = threads.filter(t => t.needsReply)
@@ -43,7 +41,7 @@ export async function buildOverview(company: Company): Promise<CompanyOverview &
   if (waiting.length > 5) alerts.push({ id: 'reply-more', kind: 'awaiting_reply', tone: 'amber', title: `${waiting.length - 5} more thread${waiting.length - 5 === 1 ? '' : 's'} awaiting a reply`, detail: null, href: `/companies/${company.id}?tab=threads`, at: null })
 
   // Renewals
-  const policies = customers.flatMap(c => c.policies ?? []).filter(p => p.status === 'active' && p.end_date)
+  const policies = withoutEndorsementDuplicates(customers.flatMap(c => c.policies ?? [])).filter(p => p.status === 'active' && p.end_date)
   const upcoming = policies.map(p => p.end_date as string).sort()
   const nextRenewalDate = upcoming.find(d => d >= today) ?? upcoming[upcoming.length - 1] ?? null
   for (const p of policies) {
@@ -70,8 +68,7 @@ export async function buildOverview(company: Company): Promise<CompanyOverview &
   // One-line status for the header
   const parts: string[] = []
   const sgd = pay.summary.byCurrency.find(m => m.currency === 'SGD') ?? pay.summary.byCurrency[0]
-  if (sgd?.overdue) parts.push(`${fmtMoney(sgd.overdue, sgd.currency)} overdue`)
-  else if (sgd?.outstanding) parts.push(`${fmtMoney(sgd.outstanding, sgd.currency)} outstanding`)
+  if (sgd?.outstanding) parts.push(`${fmtMoney(sgd.outstanding, sgd.currency)} outstanding`)
   if (waiting.length) parts.push(`${waiting.length} awaiting reply`)
   if (nextRenewalDate) parts.push(nextRenewalDate < today ? `policy ended ${fmtRelative(nextRenewalDate)}` : `renews ${fmtRelative(nextRenewalDate)}`)
   const statusLine = parts.length ? parts.join(' · ') : 'Nothing outstanding'

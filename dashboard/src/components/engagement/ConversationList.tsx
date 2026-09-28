@@ -5,8 +5,8 @@ import type { MouseEvent } from 'react'
 import { RefreshCw, X, FileEdit, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Lead, ThreadState } from './types'
-import { EngagementThreadRow } from '@/components/engagement-agent/engagement-thread-row'
-import { needsReply as calcNeedsReply } from './helpers'
+import { ThreadRow, type Density } from './ThreadRow'
+import { leadNeedsReply } from './helpers'
 import type { NewEmailDraft } from './NewEmailComposeModal'
 import { useEngagementNav } from '@/providers/engagement-nav-provider'
 import type { EngagementTab } from '@/providers/engagement-nav-provider'
@@ -30,30 +30,55 @@ interface ConversationListProps {
   onSelect:       (id: string) => void
   onRefresh:      () => void
   onOpenDraft:    (draft: NewEmailDraft) => void
-  /** EngagementRail's EngagementFolderNav already has its own title/refresh chrome above this list —
-   *  skip this component's own header so they don't stack. The mobile fallback (EaListPanel)
-   *  still wants it, so this defaults to shown. */
+  /** ThreadListPane owns the navigator header and footer — pass this so the list does not add
+   *  its own title/refresh strip on top. Defaults to shown for any standalone use. */
   hideHeader?:    boolean
-  /** Rail collapsed below the icon threshold — render avatar-only rows (see
-   *  EngagementThreadRow's iconOnly prop) instead of full name/subject/timestamp rows. */
+  density?:       Density
+  /** Avatar-only rows for a very narrow host. The navigator's own collapsed state is the icon
+   *  rail in ThreadListPane (CollapsedNavRail); this stays for compatibility. */
   iconOnly?:      boolean
 }
 
-/** Tabs/search/group-toggle render in EngagementRail.tsx (EngagementFolderNav) on desktop — this
- *  component is the actual scrollable rows for whichever set the folder-nav's filters resolve to
- *  (`visible`, computed in page.tsx), plus (unless hideHeader) a title/"awaiting reply"/refresh
- *  header for the mobile fallback layout, which renders this standalone. It still owns loading
- *  the drafts list (that data isn't needed anywhere else) and pushes its count into the shared
- *  nav context so the Drafts tab shows a live count. */
+const INK = '#202124'
+const MUTED = '#5f6368'
+const FAINT = '#80868b'
+const HAIRLINE = '#e8eaed'
+const FIELD = '#f1f3f4'
+
+const PAD: Record<Density, string> = { comfortable: 'py-4', standard: 'py-3', compact: 'py-2' }
+
+function draftOf(d: DraftRow): NewEmailDraft {
+  return { toEmail: d.to_email ?? '', cc: d.cc ?? '', subject: d.subject ?? '', body: d.body ?? '', attachment: d.attachments?.[0], draftId: d.id }
+}
+
+function SkeletonRows({ n = 6 }: { n?: number }) {
+  return (
+    <div aria-hidden className="animate-pulse">
+      {Array.from({ length: n }).map((_, i) => (
+        <div key={i} className="grid grid-cols-[14px_1fr_auto] gap-x-2 pl-3.5 pr-5 py-3" style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
+          <span />
+          <span className="h-[14px] w-[45%] rounded-[4px]" style={{ background: FIELD }} />
+          <span className="h-[12px] w-[38px] rounded-[4px]" style={{ background: FIELD }} />
+          <span className="col-start-2 col-end-4 mt-1.5 h-[13px] w-[80%] rounded-[4px]" style={{ background: FIELD }} />
+          <span className="col-start-2 col-end-4 mt-1.5 h-[12px] w-[30%] rounded-[4px]" style={{ background: FIELD }} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** The scrollable rows for whichever quick view the navigator's filters resolve to (`visible`,
+ *  computed in page.tsx). ThreadListPane renders the header, quick views and footer around it.
+ *  Still owns loading the drafts list (that data is not needed anywhere else) and pushes its
+ *  count into the shared nav context so the Drafts view shows a live count. */
 export function ConversationList({
   leads, visible, threadMap, selectedId,
   activeTab, search,
   loading, refreshing,
-  onSelect, onRefresh, onOpenDraft, hideHeader, iconOnly,
+  onSelect, onRefresh, onOpenDraft, hideHeader, iconOnly, density = 'standard',
 }: ConversationListProps) {
   const { setCounts, setSearch } = useEngagementNav()
-  const needsReplyCount = Object.values(threadMap)
-    .filter(t => calcNeedsReply(t.messages)).length
+  const needsReplyCount = leads.filter(l => leadNeedsReply(l, threadMap[l.id])).length
 
   const [drafts, setDrafts] = useState<DraftRow[]>([])
   const [draftsLoading, setDraftsLoading] = useState(false)
@@ -75,120 +100,88 @@ export function ConversationList({
     loadDrafts()
   }
 
+  const empty = (text: string, action?: { label: string; onClick: () => void }) => (
+    <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+      <p className="m-0 text-[14px]" style={{ color: MUTED }}>{text}</p>
+      {action && (
+        <button type="button" onClick={action.onClick}
+          className="h-9 px-3 rounded-[10px] text-[13.5px] font-medium bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#202124]" style={{ color: INK }}>
+          {action.label}
+        </button>
+      )}
+    </div>
+  )
+
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
+    <div className="flex flex-col h-full min-h-0">
       {!hideHeader && !iconOnly && (
-        <div className="flex-shrink-0 flex items-center justify-between px-4 h-11 border-b border-[--border-subtle]">
+        <div className="flex-shrink-0 flex items-center justify-between px-4 h-11" style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[13px] font-semibold text-foreground tracking-tight truncate">
-              {activeTab === 'all' ? 'All conversations' : activeTab === 'prospects' ? 'Prospects' : activeTab === 'clients' ? 'Clients' : 'Drafts'}
+            <span className="text-[14px] font-medium truncate" style={{ color: INK }}>
+              {activeTab === 'all' ? 'All inbox' : activeTab === 'prospects' ? 'Prospects' : activeTab === 'clients' ? 'Clients' : 'Drafts'}
             </span>
             {!loading && needsReplyCount > 0 && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-[6px] bg-[--warning-bg] text-[--warning] flex-shrink-0">
-                {needsReplyCount} awaiting reply
-              </span>
+              <span className="text-[12px] tabular-nums flex-shrink-0" style={{ color: FAINT }}>{needsReplyCount} need a reply</span>
             )}
           </div>
-          <button
-            onClick={onRefresh}
-            disabled={refreshing}
-            className="flex items-center gap-1 px-2 py-1 text-[10.5px] font-medium rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50 flex-shrink-0"
-          >
-            <RefreshCw size={10} strokeWidth={2} className={cn(refreshing && 'animate-spin')} />
-            {refreshing ? 'Syncing…' : 'Refresh'}
+          <button type="button" onClick={onRefresh} disabled={refreshing} aria-label="Sync mail" title={refreshing ? 'Syncing…' : 'Sync mail'}
+            className="w-9 h-9 inline-flex items-center justify-center rounded-[10px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4] disabled:opacity-50 flex-shrink-0" style={{ color: MUTED }}>
+            <RefreshCw size={14} className={cn(refreshing && 'animate-spin')} />
           </button>
         </div>
       )}
 
-      {/* List */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto" role="list" aria-label={activeTab === 'drafts' ? 'Drafts' : 'Conversations'}>
         {activeTab === 'drafts' ? (
           <>
-            {draftsLoading && (
-              <div className="flex items-center justify-center py-12">
-                <span className="text-[12px] text-muted-foreground">Loading drafts…</span>
-              </div>
-            )}
-            {!draftsLoading && drafts.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-12 px-4 gap-2">
-                <p className="text-[12px] text-muted-foreground text-center">No saved drafts.</p>
-              </div>
-            )}
+            {draftsLoading && <SkeletonRows n={3} />}
+            {!draftsLoading && drafts.length === 0 && empty('No saved drafts.')}
             {!draftsLoading && drafts.map(d => iconOnly ? (
-              <button
-                key={d.id}
-                title={d.subject || d.to_email || '(no subject)'}
-                onClick={() => onOpenDraft({
-                  toEmail: d.to_email ?? '', cc: d.cc ?? '', subject: d.subject ?? '', body: d.body ?? '',
-                  attachment: d.attachments?.[0], draftId: d.id,
-                })}
-                className="w-full flex items-center justify-center py-1.5"
-              >
-                <span className="w-8 h-8 rounded-full flex items-center justify-center bg-muted text-muted-foreground">
-                  <FileEdit size={13} />
-                </span>
-              </button>
+              <div key={d.id} role="listitem">
+                <button type="button" title={d.subject || d.to_email || '(no subject)'} aria-label={`Draft, ${d.subject || d.to_email || 'no subject'}`} onClick={() => onOpenDraft(draftOf(d))}
+                  className="w-full flex items-center justify-center py-1.5 bg-transparent border-0 cursor-pointer">
+                  <span className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: FIELD, color: MUTED }}><FileEdit size={13} /></span>
+                </button>
+              </div>
             ) : (
-              <div
-                key={d.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => onOpenDraft({
-                  toEmail: d.to_email ?? '', cc: d.cc ?? '', subject: d.subject ?? '', body: d.body ?? '',
-                  attachment: d.attachments?.[0], draftId: d.id,
-                })}
-                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') onOpenDraft({ toEmail: d.to_email ?? '', cc: d.cc ?? '', subject: d.subject ?? '', body: d.body ?? '', attachment: d.attachments?.[0], draftId: d.id }) }}
-                className="w-full flex items-start gap-2.5 px-3 py-2.5 border-b border-[--border-subtle] text-left hover:bg-accent/40 transition-colors cursor-pointer"
-              >
-                <FileEdit size={13} className="text-muted-foreground/60 mt-0.5 flex-shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[12px] font-medium text-foreground truncate">{d.subject || '(no subject)'}</span>
-                    <span className="text-[10px] text-muted-foreground/50 flex-shrink-0">{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground truncate">To: {d.to_email || '—'}</p>
-                  <p className="text-[11px] text-muted-foreground/70 truncate">{(d.body ?? '').slice(0, 80) || 'No message yet'}</p>
-                </div>
-                <button onClick={e => discardDraft(d.id, e)} className="text-muted-foreground/40 hover:text-rose-500 flex-shrink-0"><X size={13} /></button>
+              <div key={d.id} role="listitem" className="relative">
+                <button type="button" onClick={() => onOpenDraft(draftOf(d))} aria-label={`Draft, ${d.subject || 'no subject'}, to ${d.to_email || 'nobody yet'}`}
+                  className={cn('w-full text-left grid grid-cols-[14px_1fr_auto] gap-x-2 pl-3.5 pr-12 bg-white border-0 cursor-pointer transition-colors hover:bg-[#f8f9fa]',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#202124]', PAD[density])}
+                  style={{ borderBottom: `1px solid ${HAIRLINE}`, color: INK }}>
+                  <span className="mt-[7px] w-2 h-2 rounded-full" aria-hidden />
+                  <span className="min-w-0 text-[14px] font-medium leading-snug truncate">{d.subject || '(no subject)'}</span>
+                  <span className="text-[12px] tabular-nums pt-0.5 whitespace-nowrap" style={{ color: FAINT }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>
+                  <span className="col-start-2 col-end-4 min-w-0 block text-[13.5px] leading-snug truncate mt-0.5" style={{ color: '#3c4043' }}>
+                    <b className="font-medium" style={{ color: INK }}>Draft</b> · to {d.to_email || '—'}
+                  </span>
+                  {density !== 'compact' && (
+                    <span className="col-start-2 col-end-4 min-w-0 block text-[12.5px] leading-snug truncate mt-[3px]" style={{ color: MUTED }}>{(d.body ?? '').slice(0, 80) || 'No message yet'}</span>
+                  )}
+                </button>
+                <button type="button" onClick={e => discardDraft(d.id, e)} aria-label="Discard draft" title="Discard draft"
+                  className="absolute right-2 top-2 w-8 h-8 inline-flex items-center justify-center rounded-[8px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4] hover:text-[#c5221f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#202124]" style={{ color: FAINT }}>
+                  <X size={13} />
+                </button>
               </div>
             ))}
           </>
         ) : (
           <>
-            {loading && (
-              <div className="flex items-center justify-center py-12">
-                {iconOnly
-                  ? <Loader2 size={14} className="animate-spin text-muted-foreground" />
-                  : <span className="text-[12px] text-muted-foreground">Loading conversations…</span>}
-              </div>
-            )}
+            {loading && (iconOnly
+              ? <div className="flex items-center justify-center py-12"><Loader2 size={14} className="animate-spin" style={{ color: MUTED }} /></div>
+              : <SkeletonRows />)}
 
             {!loading && !iconOnly && visible.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-12 px-4 gap-2">
-                <p className="text-[12px] text-muted-foreground text-center">
-                  {search ? 'No conversations match your search.' : 'No conversations yet.'}
-                </p>
-                {search && (
-                  <button
-                    onClick={() => setSearch('')}
-                    className="text-[11px] text-primary hover:underline"
-                  >
-                    Clear search
-                  </button>
-                )}
-              </div>
+              search
+                ? empty('No conversations match this search.', { label: 'Clear search', onClick: () => setSearch('') })
+                : empty('No conversations yet.')
             )}
 
             {!loading && visible.length > 0 && visible.map(lead => (
-              <EngagementThreadRow
-                key={lead.id}
-                lead={lead}
-                isActive={lead.id === selectedId}
-                threadState={threadMap[lead.id]}
-                onClick={() => onSelect(lead.id)}
-                iconOnly={iconOnly}
-              />
+              <div key={lead.id} role="listitem">
+                <ThreadRow lead={lead} isActive={lead.id === selectedId} threadState={threadMap[lead.id]} onClick={() => onSelect(lead.id)} density={density} />
+              </div>
             ))}
           </>
         )}

@@ -1,10 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Sparkles, RefreshCw, Brain, Star } from 'lucide-react'
+import { Sparkles, RefreshCw, Brain } from 'lucide-react'
 import { SectionCard, Btn, Empty } from './primitives'
-import { fmtRelative, fmtDate } from '@/lib/crm/format'
+import { fmtDate } from '@/lib/crm/format'
 import { STAGE_LABEL, type AiBrief, type Company, type Person, type Stage } from '@/lib/crm/types'
+
+const INK = '#202124'
+const MUTED = '#5f6368'
 
 /**
  * "Nexus summary" — one read across every thread with this company, plus who the stakeholders
@@ -34,8 +37,8 @@ export function NexusSummary({ company, stakeholders, stale, onBrief, onApplySta
 
   const actions = (
     <>
-      <Btn size="xs" level={brief ? 'tertiary' : 'primary'} onClick={() => run(false)} loading={busy === 'flash'} disabled={busy !== null}>
-        {brief ? <RefreshCw size={12} /> : <Sparkles size={12} />} {brief ? 'Refresh' : 'Generate'}
+      <Btn size="xs" level="secondary" onClick={() => run(false)} loading={busy === 'flash'} disabled={busy !== null}>
+        {brief ? <RefreshCw size={12} /> : <Sparkles size={12} />} {brief ? 'Refresh' : 'Generate summary'}
       </Btn>
       <Btn size="xs" level="tertiary" onClick={() => run(true)} loading={busy === 'deep'} disabled={busy !== null} title="Slower and more thorough. Uses Claude Opus.">
         <Brain size={12} /> Deep analysis
@@ -46,27 +49,26 @@ export function NexusSummary({ company, stakeholders, stale, onBrief, onApplySta
   return (
     <SectionCard
       title="Nexus summary"
-      description={brief ? `${brief.deep ? 'Deep analysis' : 'Quick read'} · ${fmtRelative(brief.generated_at)}${stale ? ' · newer emails have arrived since' : ''}` : 'Every thread with this company, read together.'}
       actions={actions}
     >
-      {error && <p className="text-[12px] text-destructive mb-2 m-0">{error}</p>}
+      {error && <p className="text-[13px] mb-2 m-0" style={{ color: '#c5221f' }}>{error}</p>}
       {!brief && !busy && <Empty compact>No summary yet. Generate one to read the whole relationship at once.</Empty>}
       {!brief && busy && <Empty compact>Reading the threads, payments and quotes…</Empty>}
 
       {brief && (
         <div className="flex flex-col gap-3">
-          <p className="text-[13.5px] leading-relaxed text-foreground m-0">{brief.summary}</p>
-          {brief.relationship && <p className="text-[12.5px] text-muted-foreground m-0">{brief.relationship}</p>}
+          <p className="text-[14px] leading-relaxed m-0" style={{ color: INK }}>{brief.summary}</p>
+          {brief.relationship && <p className="text-[13.5px] m-0" style={{ color: MUTED }}>{brief.relationship}</p>}
 
           {stakeholders.length > 0 && (
-            <p className="text-[12.5px] m-0">
-              <span className="text-muted-foreground">Stakeholders: </span>
+            <p className="text-[13.5px] m-0" style={{ color: INK }}>
+              <span style={{ color: MUTED }}>Stakeholders: </span>
               {stakeholders.map((p, i) => (
                 <span key={p.email}>
-                  {i > 0 && <span className="text-muted-foreground"> · </span>}
+                  {i > 0 && <span style={{ color: MUTED }}> · </span>}
                   <span title={`${p.email} · wrote ${p.sent}, addressed ${p.received}, copied ${p.cc}`}>
                     {p.name ?? p.email}
-                    {p.isPrimary && <Star size={10} className="inline ml-1 -mt-0.5" style={{ color: 'var(--success)' }} aria-label="point person" />}
+                    {p.isPrimary && <span style={{ color: MUTED }}> (point person)</span>}
                   </span>
                 </span>
               ))}
@@ -74,18 +76,18 @@ export function NexusSummary({ company, stakeholders, stale, onBrief, onApplySta
           )}
 
           {brief.suggested_stage && brief.suggested_stage !== company.stage && (
-            <p className="text-[12.5px] m-0">
-              <span className="text-muted-foreground">Suggested stage: </span>
-              <strong>{STAGE_LABEL[brief.suggested_stage]}</strong>
-              <button onClick={() => onApplyStage(brief.suggested_stage!)} className="ml-2 text-[12px] font-semibold text-primary bg-transparent border-0 p-0 cursor-pointer hover:underline">Apply</button>
+            <p className="text-[13.5px] m-0" style={{ color: INK }}>
+              <span style={{ color: MUTED }}>Suggested stage: </span>
+              <span className="font-medium">{STAGE_LABEL[brief.suggested_stage]}</span>
+              <button type="button" onClick={() => onApplyStage(brief.suggested_stage!)} className="ml-2 text-[13px] bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4" style={{ color: INK }}>Apply</button>
             </p>
           )}
 
           {brief.risks.length > 0 && (
-            <p className="text-[12.5px] m-0"><span className="text-muted-foreground">Risks: </span>{brief.risks.join(' · ')}</p>
+            <p className="text-[13.5px] m-0" style={{ color: INK }}><span style={{ color: MUTED }}>Risks: </span>{brief.risks.join(' · ')}</p>
           )}
           {brief.upcoming.length > 0 && (
-            <p className="text-[12.5px] m-0"><span className="text-muted-foreground">Upcoming: </span>{brief.upcoming.map(u => `${u.what}${u.when ? ` (${fmtDate(u.when)})` : ''}`).join(' · ')}</p>
+            <p className="text-[13.5px] m-0" style={{ color: INK }}><span style={{ color: MUTED }}>Upcoming: </span>{brief.upcoming.map(u => `${u.what}${u.when ? ` (${fmtDate(u.when)})` : ''}`).join(' · ')}</p>
           )}
         </div>
       )}

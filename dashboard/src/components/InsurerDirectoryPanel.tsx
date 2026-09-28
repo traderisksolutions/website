@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input }  from '@/components/ui/input'
 import {
@@ -122,7 +122,7 @@ function AddPointPersonDialog({
         <div className="flex flex-col gap-4">
           {/* Step 1 — pick a person */}
           {person ? (
-            <div className="flex items-center justify-between rounded-md border border-primary/40 bg-primary/5 px-3 py-2">
+            <div className="flex items-center justify-between rounded-md border border-[#202124]/40 bg-[#202124]/5 px-3 py-2">
               <div className="min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">{personName(person)}</p>
                 <p className="text-[11px] text-muted-foreground truncate">
@@ -162,7 +162,7 @@ function AddPointPersonDialog({
               </div>
               <p className="text-[11px] text-muted-foreground">
                 Can’t find them?{' '}
-                <Link href="/contacts" className="text-primary hover:underline">Add them in Active Contacts →</Link>
+                <Link href="/contacts" className="text-[#202124] hover:underline">Add them in Active Contacts →</Link>
               </p>
             </div>
           )}
@@ -172,7 +172,7 @@ function AddPointPersonDialog({
             <span className="text-xs font-medium text-foreground/80">Product lines</span>
             {groupedProductLines().map(g => (
               <div key={g.key} className="flex flex-col gap-1">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">{g.label}</span>
+                <span className="text-[12.5px] font-medium text-muted-foreground/60">{g.label}</span>
                 <div className="grid grid-cols-2 gap-1.5">
                   {g.sections.flatMap(s => s.lines).map(p => (
                     <label key={p.slug} className="flex items-center gap-2 text-sm cursor-pointer rounded-md px-2 py-1 hover:bg-muted/50">
@@ -255,7 +255,7 @@ function InsurerRow({ insurer, onChange }: { insurer: Insurer; onChange: () => v
         </div>
       )}
 
-      <button onClick={() => setAdding(true)} className="self-start text-xs font-medium text-primary hover:underline">
+      <button onClick={() => setAdding(true)} className="self-start text-xs font-medium text-[#202124] hover:underline">
         + Add point person
       </button>
 
@@ -293,15 +293,7 @@ export default function InsurerDirectoryPanel() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Insurer Directory</CardTitle>
-        <CardDescription>
-          Insurance partners and their point person for each product line. The RFQ agent uses this
-          to route quotation requests. Point people come from Active Contacts — add an insurer, then
-          tag a contact to the lines they cover.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+      <CardContent className="flex flex-col gap-4 pt-5">
         <div className="flex items-center gap-2 max-w-md">
           <Input
             placeholder="Add an insurer (e.g. AIA, Chubb, QBE)"

@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { RefreshCw, ChevronDown, ChevronRight, AlertTriangle } from 'lucide-react'
+import { RefreshCw, ChevronDown, ChevronRight } from 'lucide-react'
+import { Btn, Chip, Segmented, inputCls } from '@/components/crm/primitives'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -19,20 +20,32 @@ type LogRow = {
 }
 
 // ── Source config ─────────────────────────────────────────────────────────────
+// Every source renders as the same neutral chip; the label carries the meaning.
 
-const SOURCE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  gemini:    { label: 'Gemini',    color: '#b45309', bg: '#fffbeb' },
-  anthropic: { label: 'Anthropic', color: '#6d28d9', bg: '#f5f3ff' },
-  roadplus:  { label: 'RoadPlus',  color: '#0f766e', bg: '#f0fdfa' },
-  supabase:  { label: 'Supabase',  color: '#15803d', bg: '#f0fdf4' },
+const SOURCE_CONFIG: Record<string, { label: string }> = {
+  gemini:    { label: 'Gemini' },
+  anthropic: { label: 'Anthropic' },
+  roadplus:  { label: 'RoadPlus' },
+  supabase:  { label: 'Supabase' },
 }
 const ALL_SOURCES = Object.keys(SOURCE_CONFIG)
 
 function sourceCfg(source: string) {
-  return SOURCE_CONFIG[source] ?? { label: source, color: 'hsl(var(--muted-foreground))', bg: 'hsl(var(--muted))' }
+  return SOURCE_CONFIG[source] ?? { label: source }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+const INK = '#202124'
+const MUTED = '#5f6368'
+const RULE = '#e8eaed'
+const FIELD = '#f1f3f4'
+const MONO = 'ui-monospace, monospace'
+
+type Period = '7' | '30' | '90' | '0'
+const PERIODS: { value: Period; label: string }[] = [
+  { value: '7', label: '7d' }, { value: '30', label: '30d' }, { value: '90', label: '90d' }, { value: '0', label: 'All' },
+]
 
 function timeAgo(iso: string) {
   const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
@@ -55,29 +68,29 @@ function fmtFull(iso: string) {
 function describeRow(row: LogRow): string {
   const feature = row.feature ? row.feature.replace(/_/g, ' ') : 'call'
   const code    = row.status_code ? ` (HTTP ${row.status_code})` : ''
-  return `${sourceCfg(row.source).label} ${feature}${code}`
+  return `${feature}${code}`
 }
 
 // ── Row detail expand ─────────────────────────────────────────────────────────
 
 function RowDetail({ row }: { row: LogRow }) {
   return (
-    <div style={{ padding: '10px 16px 14px 46px', background: 'hsl(var(--muted))', borderTop: '1px solid var(--border-subtle)' }}>
+    <div className="pb-4 pt-1 sm:pl-[112px] min-w-0">
       {(row.resource_type || row.resource_id || row.thread_id) && (
-        <p style={{ margin: '0 0 8px', fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>
+        <p className="m-0 mb-2 text-[12.5px] break-all" style={{ color: MUTED }}>
           {row.resource_type && row.resource_id ? `${row.resource_type} · ` : ''}
-          {row.resource_id && <code style={{ fontFamily: 'ui-monospace, monospace', fontSize: 10 }}>{row.resource_id}</code>}
-          {row.thread_id && <>{row.resource_id ? ' · ' : ''}thread <code style={{ fontFamily: 'ui-monospace, monospace', fontSize: 10 }}>{row.thread_id}</code></>}
+          {row.resource_id && <code className="text-[12px]" style={{ fontFamily: MONO }}>{row.resource_id}</code>}
+          {row.thread_id && <>{row.resource_id ? ' · ' : ''}thread <code className="text-[12px]" style={{ fontFamily: MONO }}>{row.thread_id}</code></>}
         </p>
       )}
-      <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'hsl(var(--muted-foreground))' }}>Full message</p>
-      <pre style={{ margin: 0, padding: '8px 10px', background: 'hsl(var(--card))', border: '1px solid var(--border-subtle)', borderRadius: 6, fontSize: 11, color: 'hsl(var(--foreground))', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: 260, overflowY: 'auto', fontFamily: 'ui-monospace, monospace' }}>
+      <p className="m-0 mb-1 text-[12px]" style={{ color: MUTED }}>Full message</p>
+      <pre className="m-0 px-3 py-2 rounded-[10px] text-[12px] leading-relaxed whitespace-pre-wrap break-all max-h-[260px] overflow-y-auto" style={{ background: FIELD, color: INK, fontFamily: MONO }}>
         {row.message}
       </pre>
       {row.metadata && Object.keys(row.metadata).length > 0 && (
         <>
-          <p style={{ margin: '8px 0 4px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'hsl(var(--muted-foreground))' }}>Metadata</p>
-          <pre style={{ margin: 0, padding: '8px 10px', background: 'hsl(var(--card))', border: '1px solid var(--border-subtle)', borderRadius: 6, fontSize: 11, color: 'hsl(var(--foreground))', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: 200, overflowY: 'auto', fontFamily: 'ui-monospace, monospace' }}>
+          <p className="m-0 mt-3 mb-1 text-[12px]" style={{ color: MUTED }}>Metadata</p>
+          <pre className="m-0 px-3 py-2 rounded-[10px] text-[12px] leading-relaxed whitespace-pre-wrap break-all max-h-[200px] overflow-y-auto" style={{ background: FIELD, color: INK, fontFamily: MONO }}>
             {JSON.stringify(row.metadata, null, 2)}
           </pre>
         </>
@@ -126,124 +139,112 @@ export default function ErrorLogPage() {
     return acc
   }, {})
 
+  const periodLabel = days > 0 ? `last ${days} days` : 'all time'
+
   return (
-    <div style={{ padding: '28px 32px', maxWidth: 860, margin: '0 auto' }}>
+    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
+      <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'hsl(var(--foreground))', letterSpacing: '-0.02em' }}>Error Log</h1>
-          <p style={{ margin: '3px 0 0', fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>
-            {logs.length} error{logs.length !== 1 ? 's' : ''} · {days > 0 ? `last ${days} days` : 'all time'} · updates every 30s
-          </p>
+        {/* ── Header ─────────────────────────────────────────────────────────── */}
+        <div className="flex items-end justify-between gap-6 flex-wrap">
+          <div className="min-w-0">
+            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Error log</h1>
+            <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>
+              {loading ? 'Loading…' : `${logs.length} error${logs.length !== 1 ? 's' : ''} · ${periodLabel} · refreshes every 30 seconds`}
+            </p>
+          </div>
+          <Btn level="secondary" onClick={() => load(true)} loading={refreshing} title="Refresh">
+            {!refreshing && <RefreshCw size={13} strokeWidth={2} />}
+            Refresh
+          </Btn>
         </div>
-        <button
-          onClick={() => load(true)}
-          title="Refresh"
-          style={{ background: 'none', border: '1px solid var(--border-subtle)', borderRadius: 7, padding: '6px 10px', cursor: 'pointer', color: 'hsl(var(--muted-foreground))', display: 'flex', alignItems: 'center', gap: 5 }}
-        >
-          <RefreshCw size={13} strokeWidth={2} style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }} />
-          <span style={{ fontSize: 12 }}>Refresh</span>
-        </button>
-      </div>
 
-      {/* ── Filters ────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 24, alignItems: 'center' }}>
-        <select value={filterSource} onChange={e => setFilterSource(e.target.value)} style={selStyle}>
-          <option value="">All sources</option>
-          {ALL_SOURCES.map(s => (
-            <option key={s} value={s}>{sourceCfg(s).label}</option>
-          ))}
-        </select>
+        {/* ── Filters ────────────────────────────────────────────────────────── */}
+        <div className="mt-6 mb-6 flex items-center gap-2 flex-wrap">
+          <select value={filterSource} onChange={e => setFilterSource(e.target.value)} className={inputCls.replace('w-full ', '') + ' w-auto min-w-[180px] cursor-pointer'} aria-label="Source">
+            <option value="">All sources</option>
+            {ALL_SOURCES.map(s => (
+              <option key={s} value={s}>{sourceCfg(s).label}</option>
+            ))}
+          </select>
 
-        <select value={days} onChange={e => setDays(parseInt(e.target.value))} style={selStyle}>
-          <option value={7}>Last 7 days</option>
-          <option value={30}>Last 30 days</option>
-          <option value={90}>Last 90 days</option>
-          <option value={0}>All time</option>
-        </select>
+          <Segmented<Period>
+            value={String(days) as Period}
+            onChange={v => setDays(parseInt(v))}
+            options={PERIODS}
+          />
 
-        {(filterSource || days !== 30) && (
-          <button
-            onClick={() => { setFilterSource(''); setDays(30) }}
-            style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', background: 'none', border: '1px solid var(--border-subtle)', borderRadius: 6, padding: '5px 10px', cursor: 'pointer' }}
-          >
-            Clear
-          </button>
+          {(filterSource || days !== 30) && (
+            <Btn level="tertiary" onClick={() => { setFilterSource(''); setDays(30) }}>
+              Clear
+            </Btn>
+          )}
+        </div>
+
+        {/* ── Feed ───────────────────────────────────────────────────────────── */}
+        {loading ? (
+          <div className="flex flex-col gap-2">
+            {[0, 1, 2, 3, 4].map(i => <div key={i} className="h-12 rounded-[10px] animate-pulse" style={{ background: FIELD }} />)}
+          </div>
+        ) : logs.length === 0 ? (
+          <div className="py-16 text-center">
+            <p className="m-0 text-[15px]" style={{ color: MUTED }}>No errors in this period.</p>
+            {days > 0 && <Btn level="tertiary" className="mt-3" onClick={() => setDays(0)}>Show all time</Btn>}
+          </div>
+        ) : (
+          Object.entries(grouped).map(([day, rows]) => (
+            <section key={day} className="mb-8">
+              <p className="m-0 mb-1 text-[12.5px]" style={{ color: MUTED }}>{day}</p>
+
+              <div className="border-t" style={{ borderColor: RULE }}>
+                {rows.map(row => {
+                  const cfg   = sourceCfg(row.source)
+                  const isExp = expanded === row.id
+
+                  return (
+                    <div key={row.id} className="border-b" style={{ borderColor: RULE }}>
+                      <button
+                        type="button"
+                        onClick={() => setExpanded(isExp ? null : row.id)}
+                        aria-expanded={isExp}
+                        className="w-full flex items-start gap-3 py-3 bg-transparent border-0 text-left cursor-pointer hover:bg-[#f8f9fa]"
+                      >
+                        {/* Source */}
+                        <div className="w-[100px] flex-shrink-0 pt-px hidden sm:block">
+                          <Chip>{cfg.label}</Chip>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="sm:hidden"><Chip>{cfg.label}</Chip></span>
+                            <span className="text-[14px]" style={{ color: INK }}>{describeRow(row)}</span>
+                          </div>
+                          <p className="m-0 mt-0.5 text-[13px] leading-snug truncate" style={{ color: MUTED }}>
+                            {row.message}
+                          </p>
+                        </div>
+
+                        {/* Right side */}
+                        <div className="flex-shrink-0 flex items-center gap-2 pt-0.5">
+                          <span className="text-[12.5px] tabular-nums whitespace-nowrap" style={{ color: MUTED }} title={fmtFull(row.created_at)}>
+                            {timeAgo(row.created_at)}
+                          </span>
+                          {isExp
+                            ? <ChevronDown size={14} strokeWidth={2} style={{ color: '#9aa0a6' }} />
+                            : <ChevronRight size={14} strokeWidth={2} style={{ color: '#9aa0a6' }} />}
+                        </div>
+                      </button>
+
+                      {isExp && <RowDetail row={row} />}
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          ))
         )}
       </div>
-
-      {/* ── Feed ───────────────────────────────────────────────────────────── */}
-      {loading ? (
-        <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', textAlign: 'center', padding: '48px 0' }}>Loading…</p>
-      ) : logs.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '48px 0' }}>
-          <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>No errors in this period. 🎉</p>
-          {days > 0 && <button onClick={() => setDays(0)} style={{ marginTop: 8, fontSize: 12, color: 'var(--primary-hex)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>View all time</button>}
-        </div>
-      ) : (
-        Object.entries(grouped).map(([day, rows]) => (
-          <div key={day} style={{ marginBottom: 28 }}>
-            <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{day}</p>
-
-            <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 12, overflow: 'hidden', background: 'hsl(var(--card))' }}>
-              {rows.map((row, i) => {
-                const cfg   = sourceCfg(row.source)
-                const isExp = expanded === row.id
-
-                return (
-                  <div key={row.id} style={{ borderBottom: i < rows.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
-                    <button
-                      onClick={() => setExpanded(isExp ? null : row.id)}
-                      style={{
-                        width: '100%', display: 'flex', alignItems: 'flex-start', gap: 12,
-                        padding: '11px 14px', background: 'none', border: 'none',
-                        cursor: 'pointer', textAlign: 'left',
-                      }}
-                    >
-                      {/* Icon */}
-                      <div style={{ width: 26, height: 26, borderRadius: 8, flexShrink: 0, background: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
-                        <AlertTriangle size={13} strokeWidth={2} style={{ color: cfg.color }} />
-                      </div>
-
-                      {/* Content */}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginBottom: 2 }}>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--foreground))' }}>{describeRow(row)}</span>
-                        </div>
-                        <p style={{ margin: 0, fontSize: 12, color: 'hsl(var(--muted-foreground))', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>
-                          {row.message}
-                        </p>
-                      </div>
-
-                      {/* Right side */}
-                      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }} title={fmtFull(row.created_at)}>
-                          {timeAgo(row.created_at)}
-                        </span>
-                        {isExp
-                          ? <ChevronDown size={12} strokeWidth={2} style={{ color: 'hsl(var(--muted-foreground))', flexShrink: 0 }} />
-                          : <ChevronRight size={12} strokeWidth={2} style={{ color: 'hsl(var(--muted-foreground))', flexShrink: 0 }} />
-                        }
-                      </div>
-                    </button>
-
-                    {isExp && <RowDetail row={row} />}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        ))
-      )}
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
-}
-
-const selStyle: React.CSSProperties = {
-  fontSize: 12, border: '1px solid var(--border-subtle)', borderRadius: 7,
-  padding: '5px 10px', color: 'hsl(var(--foreground))', background: 'hsl(var(--card))',
-  outline: 'none', cursor: 'pointer',
 }

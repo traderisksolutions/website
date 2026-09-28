@@ -9,7 +9,9 @@
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "dev-log": "node scripts/dev-log.mjs"
+    "dev-log": "node scripts/dev-log.mjs",
+    "prebuild": "node scripts/check-api-coverage.mjs",
+    "api-key": "node scripts/api-key.mjs"
   },
   "dependencies": {
     "@ant-design/nextjs-registry": "^1.3.0",

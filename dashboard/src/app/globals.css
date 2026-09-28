@@ -19,13 +19,13 @@
     /* App shell: the page IS white. Fills are for cards and zebra rows only,
        never for a full section — see docs/design-system.md. */
     --background:            0 0% 100%;      /* #FFFFFF */
-    --foreground:            215 44% 11%;    /* #101828 */
+    --foreground:            0 0% 13%;      /* #202124 ink */
 
     --card:                  0 0% 100%;      /* #FFFFFF — same as page; a hairline border/ring is what separates it, not a fill */
-    --card-foreground:       215 44% 11%;
+    --card-foreground:       0 0% 13%;
 
     --popover:               0 0% 100%;
-    --popover-foreground:    215 44% 11%;
+    --popover-foreground:    0 0% 13%;
 
     /* Deep refined navy — the one accent. Used for CTAs, active tabs, links,
        selected state. Not spent on decoration. */
@@ -33,24 +33,24 @@
     --primary-foreground:    0 0% 100%;
 
     /* Secondary / muted — hairline-grey, not a blue-tinted box */
-    --secondary:             220 14% 96%;    /* #F2F3F5 */
-    --secondary-foreground:  215 44% 11%;
+    --secondary:             210 12% 95%;    /* #F1F3F4 */
+    --secondary-foreground:  0 0% 13%;
 
-    --muted:                 220 14% 96%;    /* #F2F3F5 */
-    --muted-foreground:      215 20% 40%;    /* #506078 — 5.7:1 on white */
+    --muted:                 210 12% 95%;    /* #F1F3F4 */
+    --muted-foreground:      213 5% 39%;     /* #5f6368 */
 
     /* Accent — soft navy tint for hover / selected states, earned not decorative */
-    --accent:                219 70% 96%;    /* #EDF3FD */
-    --accent-foreground:     219 83% 28%;    /* primary blue text */
+    --accent:                210 12% 95%;    /* #F1F3F4 — hover / selected, neutral */
+    --accent-foreground:     0 0% 13%;
 
     --destructive:           354 55% 46%;    /* #C03347 */
     --destructive-foreground: 0 0% 100%;
 
     /* Border — hairline, structural. Reserve --input for stronger interactive affordance. */
-    --border:                220 16% 90%;    /* #E4E7EC */
-    --input:                 217 15% 65%;    /* #99A2B1 */
-    --ring:                  219 83% 28%;    /* primary blue focus ring */
-    --radius:                0.625rem;
+    --border:                216 18% 92%;    /* #e8eaed hairline */
+    --input:                 214 12% 86%;    /* #dadce0 control border */
+    --ring:                  0 0% 13%;      /* ink focus */
+    --radius:                0.75rem;
 
     /* ── Sidebar palette ── */
     --sidebar-bg:            0 0% 100%;
@@ -71,12 +71,12 @@
     --mobile-nav-h:          56px;
     --content-bg:            hsl(0 0% 100%);
     --card-bg:               #ffffff;
-    --card-border:           hsl(220 16% 90%);
+    --card-border:           #e8eaed;
     /* A hairline ring, not a drop shadow — the "no boxes, no tinted panels"
        rule means separation reads as a border, so every place that already
        spends `boxShadow: var(--card-shadow)` gets the new look for free. */
     --card-shadow:           0 0 0 1px var(--border-subtle);
-    --card-radius:           0.625rem;
+    --card-radius:           1rem;
 
     /* ── Chart palette — updated to match new primary ── */
     --chart-1:               219 83% 28%;    /* primary blue */
@@ -96,49 +96,49 @@
     --surface-sent:          rgba(12,51,138,0.055);  /* outbound email bubble tint */
 
     /* Borders — scale from whisper to assertive */
-    --border-subtle:         rgba(16,24,40,0.08);
-    --border-mid:            rgba(16,24,40,0.12);
-    --border-strong:         rgba(16,24,40,0.18);
+    --border-subtle:         #e8eaed;
+    --border-mid:            #dadce0;
+    --border-strong:         #bdc1c6;
 
     /* Text hierarchy — consolidated single source of truth */
-    --text-primary:          #101828;
-    --text-secondary:        #3C5070;    /* stronger than before (#475467) */
-    --text-muted:            #506078;    /* matches muted-foreground */
+    --text-primary:          #202124;
+    --text-secondary:        #3c4043;
+    --text-muted:            #5f6368;
 
     /* Primary blue hex — for JS inline styles, one family only */
     --primary-hex:           #0C338A;
     --primary-hover:         #092870;
-    --primary-selected-bg:   rgba(12,51,138,0.08);
-    --primary-focus-ring:    rgba(12,51,138,0.24);
-    --primary-badge-bg:      rgba(12,51,138,0.09);
-    --primary-light-bg:      rgba(12,51,138,0.06);   /* callout / info tint */
-    --primary-light-border:  rgba(12,51,138,0.20);   /* callout / info border */
+    --primary-selected-bg:   #f1f3f4;
+    --primary-focus-ring:    rgba(32,33,36,0.24);
+    --primary-badge-bg:      #f1f3f4;
+    --primary-light-bg:      #f1f3f4;   /* callout / info tint — neutral */
+    --primary-light-border:  #dadce0;
 
     /* Semantic status — all validated ≥ 4.5:1 */
-    --success:               #096842;
-    --success-bg:            rgba(9,104,66,0.09);
-    --warning:               #8A4200;
-    --warning-bg:            rgba(138,66,0,0.09);
-    --warning-border:        rgba(138,66,0,0.22);
-    --success-border:        rgba(9,104,66,0.22);
-    --error:                 #C03347;
-    --error-bg:              rgba(192,51,71,0.09);
-    --neutral-status-bg:     rgba(16,24,40,0.07);
-    --neutral-status-fg:     #445868;
+    --success:               #3c4043;
+    --success-bg:            #f1f3f4;
+    --warning:               #3c4043;
+    --warning-bg:            #f1f3f4;
+    --warning-border:        #e8eaed;
+    --success-border:        #e8eaed;
+    --error:                 #3c4043;
+    --error-bg:              #f1f3f4;
+    --neutral-status-bg:     #f1f3f4;
+    --neutral-status-fg:     #3c4043;
 
     /* Table / list surface tokens — light hairline-grey tints, not blue boxes */
-    --table-header-bg:       hsl(220 14% 97%);    /* #F5F6F8 */
-    --group-header-bg:       hsl(220 14% 93%);    /* #EBECEF — distinct but quiet */
-    --group-header-fg:       hsl(215 32% 28%);    /* #2C3F64 */
-    --selected-row-bg:       rgba(12,51,138,0.07);
-    --hover-row-bg:          rgba(12,51,138,0.035);
+    --table-header-bg:       #ffffff;
+    --group-header-bg:       #f8f9fa;
+    --group-header-fg:       #3c4043;
+    --selected-row-bg:       #f1f3f4;
+    --hover-row-bg:          #f8f9fa;
 
     /* Elevation system — hairline first. A resting card is a 1px ring, not a
        drop shadow; only genuinely floating overlays (open dropdowns, modals)
        earn real elevation on top of that ring. */
     --shadow-card:           0 0 0 1px var(--border-subtle);
-    --shadow-panel:          0 0 0 1px var(--border-mid), 0 6px 16px rgba(16,24,40,0.07);
-    --shadow-modal:          0 0 0 1px var(--border-mid), 0 16px 40px rgba(16,24,40,0.14);
+    --shadow-panel:          0 0 0 1px var(--border-subtle), 0 8px 24px rgba(32,33,36,0.08);
+    --shadow-modal:          0 0 0 1px var(--border-subtle), 0 16px 40px rgba(32,33,36,0.14);
 
     /* Content padding */
     --content-px:            1.5rem;
@@ -146,14 +146,14 @@
     --content-pb:            4rem;
 
     /* Stat card tonal accents */
-    --stat-blue-bg:          rgba(12,51,138,0.06);
-    --stat-blue-fg:          #0C338A;
-    --stat-green-bg:         rgba(9,104,66,0.07);
-    --stat-green-fg:         #096842;
-    --stat-amber-bg:         rgba(138,66,0,0.07);
-    --stat-amber-fg:         #8A4200;
-    --stat-red-bg:           rgba(192,51,71,0.07);
-    --stat-red-fg:           #C03347;
+    --stat-blue-bg:          #f1f3f4;
+    --stat-blue-fg:          #202124;
+    --stat-green-bg:         #f1f3f4;
+    --stat-green-fg:         #202124;
+    --stat-amber-bg:         #f1f3f4;
+    --stat-amber-fg:         #202124;
+    --stat-red-bg:           #f1f3f4;
+    --stat-red-fg:           #202124;
   }
 }
 
@@ -186,7 +186,7 @@
 /* ── Scrollbar — fine, neutral ── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(16,24,40,0.14); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: #dadce0; border-radius: 4px; }
 
 /* ── Responsive layout — top nav at every breakpoint; content-area margin only shifts for the
    /engagement conversation-list rail (see components/nav/engagement-rail.tsx), set inline by
@@ -328,8 +328,8 @@
   gap: 16px;
   padding: 20px 24px 16px;
 }
-.page-title   { font-size: 20px; font-weight: 700; letter-spacing: -0.025em; color: hsl(var(--foreground)); margin: 0; }
-.page-subtitle { font-size: 12px; color: hsl(var(--muted-foreground)); margin: 3px 0 0; }
+.page-title   { font-size: 28px; font-weight: 500; letter-spacing: -0.02em; line-height: 1.15; color: #202124; margin: 0; }
+.page-subtitle { font-size: 14.5px; color: #5f6368; margin: 4px 0 0; }
 
 /* ════════════════════════════════════════════════════════════════
    Skeleton / loading shimmer
@@ -372,18 +372,18 @@
 }
 .empty-icon-wrap {
   width: 44px; height: 44px;
-  border-radius: 12px;
+  border-radius: 14px;
   background: hsl(var(--muted));
   display: flex; align-items: center; justify-content: center;
   margin-bottom: 14px;
   color: hsl(var(--muted-foreground));
 }
 .empty-title {
-  font-size: 13px; font-weight: 600;
+  font-size: 15px; font-weight: 500;
   color: hsl(var(--foreground)); margin: 0 0 4px;
 }
 .empty-desc {
-  font-size: 12px; color: hsl(var(--muted-foreground));
+  font-size: 13.5px; color: hsl(var(--muted-foreground));
   max-width: 300px; line-height: 1.55; margin: 0;
 }
 
@@ -393,20 +393,20 @@
 
 .st-badge {
   display: inline-flex; align-items: center;
-  font-size: 11px; font-weight: 600;
+  font-size: 11.5px; font-weight: 500;
   padding: 2px 8px; border-radius: 6px;
   white-space: nowrap; letter-spacing: 0.01em;
 }
-.st-new       { background: rgba(12,51,138,0.09);  color: #0C338A; }
-.st-contacted { background: rgba(138,66,0,0.09);   color: #8A4200; }
-.st-engaged   { background: rgba(12,51,138,0.09);  color: #0C338A; }
-.st-qualified { background: rgba(9,104,66,0.09);   color: #096842; }
-.st-proposal  { background: rgba(130,60,0,0.09);   color: #7E3C00; }
-.st-converted { background: rgba(9,104,66,0.12);   color: #096842; }
-.st-dropped   { background: rgba(16,24,40,0.07);   color: #445868; }
-.st-replied   { background: rgba(138,66,0,0.09);   color: #8A4200; }
-.st-prospect  { background: rgba(16,24,40,0.07);   color: #445868; }
-.st-cc        { background: rgba(16,24,40,0.06);   color: #5C6878; }
+.st-new       { background: #f1f3f4; color: #3c4043; }
+.st-contacted { background: #f1f3f4; color: #3c4043; }
+.st-engaged   { background: #f1f3f4; color: #3c4043; }
+.st-qualified { background: #f1f3f4; color: #3c4043; }
+.st-proposal  { background: #f1f3f4; color: #3c4043; }
+.st-converted { background: #f1f3f4; color: #3c4043; }
+.st-dropped   { background: #f1f3f4; color: #3c4043; }
+.st-replied   { background: #f1f3f4; color: #3c4043; }
+.st-prospect  { background: #f1f3f4; color: #3c4043; }
+.st-cc        { background: #f1f3f4; color: #3c4043; }
 
 /* ════════════════════════════════════════════════════════════════
    Focus ring — consistent, accessible
@@ -440,31 +440,31 @@ select:focus-visible {
    active. Borrowed from the segmented-control pattern: a tonal fill reads as
    "selected" without the heavy-handed invert-to-black a filled pill implies. */
 .filter-pill {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 12px; font-weight: 500;
-  padding: 4px 12px; border-radius: 6px;
-  border: 1px solid var(--border-subtle);
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 500;
+  padding: 6px 14px; border-radius: 999px;
+  border: 1px solid #dadce0;
   background: transparent;
   color: hsl(var(--muted-foreground));
   cursor: pointer; white-space: nowrap;
   transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
 .filter-pill:hover { background: hsl(var(--muted)); border-color: var(--border-mid); color: hsl(var(--foreground)); }
-.filter-pill.active { background: var(--primary-light-bg); border-color: var(--primary-light-border); color: var(--primary-hex); font-weight: 600; }
+.filter-pill.active { background: #202124; border-color: #202124; color: #ffffff; font-weight: 500; }
 .filter-pill-count {
   font-size: 10px; font-weight: 700;
   padding: 0 5px; border-radius: 4px;
   background: rgba(16,24,40,0.08);
   color: inherit;
 }
-.filter-pill.active .filter-pill-count { background: rgba(12,51,138,0.12); }
+.filter-pill.active .filter-pill-count { background: rgba(255,255,255,0.18); }
 
 /* Search box in filter bar */
 .filter-search {
-  display: flex; align-items: center; gap: 7px;
-  height: 32px; padding: 0 10px;
-  border: 1px solid hsl(var(--border));
-  border-radius: 7px;
+  display: flex; align-items: center; gap: 8px;
+  height: 40px; padding: 0 14px;
+  border: 1px solid #dadce0;
+  border-radius: 10px;
   background: hsl(var(--background));
   min-width: 200px;
   transition: border-color 0.12s;
@@ -472,7 +472,7 @@ select:focus-visible {
 .filter-search:focus-within { border-color: hsl(var(--ring)); }
 .filter-search input {
   flex: 1; background: transparent; border: none; outline: none;
-  font-size: 12px; color: hsl(var(--foreground));
+  font-size: 14px; color: hsl(var(--foreground));
   min-width: 0;
 }
 .filter-search input::placeholder { color: hsl(var(--muted-foreground)); }
@@ -483,15 +483,16 @@ select:focus-visible {
 
 /* Table header — tinted bg is the divider; no bottom border needed */
 .data-table thead th {
-  font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
-  text-transform: uppercase; color: hsl(var(--muted-foreground));
-  padding: 0 12px; height: 36px;
-  background: var(--table-header-bg);
+  font-size: 12px; font-weight: 500; letter-spacing: 0;
+  text-transform: none; color: #5f6368;
+  padding: 0 12px; height: 40px;
+  background: #ffffff;
+  border-bottom: 1px solid #e8eaed;
   white-space: nowrap;
 }
 /* Member-type differentiators for the Pricing Matrix review grid. */
-.data-table thead.mt-employee th  { background: #0c338a; color: #ffffff; }
-.data-table thead.mt-dependant th { background: #eef1f5; color: #1a2233; }
+.data-table thead.mt-employee th  { background: #202124; color: #ffffff; border-bottom-color: #202124; }
+.data-table thead.mt-dependant th { background: #f1f3f4; color: #202124; }
 
 /* Wide rate matrices (Pricing Matrix review): zebra striping + a sticky Age-band
    first column so rows stay traceable when scrolling across many plan columns.
@@ -499,12 +500,12 @@ select:focus-visible {
    always rendered on the white review page, so the tints are light-mode fixed. */
 .data-table.matrix-table tbody td:first-child { background: #ffffff; }
 .data-table.matrix-table tbody tr:nth-child(even) td,
-.data-table.matrix-table tbody tr:nth-child(even) td:first-child { background: #f7f8fb; }
+.data-table.matrix-table tbody tr:nth-child(even) td:first-child { background: #f8f9fa; }
 .data-table.matrix-table thead th        { position: sticky; top: 0; z-index: 2; }
 .data-table.matrix-table thead th:first-child,
 .data-table.matrix-table tbody td:first-child {
   position: sticky; left: 0;
-  box-shadow: 2px 0 4px -2px rgba(15, 23, 42, 0.12);
+  box-shadow: 2px 0 4px -2px rgba(32, 33, 36, 0.12);
 }
 .data-table.matrix-table thead th:first-child { z-index: 3; }
 .data-table.matrix-table tbody td:first-child { z-index: 1; }
@@ -533,19 +534,11 @@ select:focus-visible {
    KPI / stat cards
    ════════════════════════════════════════════════════════════════ */
 
-.kpi-grid {
-  display: grid;
-  gap: 12px;
-}
-.kpi-card {
-  background: hsl(var(--card));
-  border-radius: var(--card-radius);
-  padding: 16px 20px;
-  box-shadow: var(--card-shadow);
-}
-.kpi-label { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: hsl(var(--muted-foreground)); margin: 0 0 8px; }
-.kpi-value { font-size: 26px; font-weight: 700; letter-spacing: -0.03em; color: hsl(var(--foreground)); line-height: 1; margin: 0; }
-.kpi-sub   { font-size: 11px; color: hsl(var(--muted-foreground)); margin: 4px 0 0; }
+.kpi-grid { display: grid; gap: 16px; }
+.kpi-card { background: #f1f3f4; border-radius: 16px; padding: 18px 20px; }
+.kpi-label { font-size: 12.5px; font-weight: 400; letter-spacing: 0; text-transform: none; color: #5f6368; margin: 0 0 8px; }
+.kpi-value { font-size: 28px; font-weight: 500; letter-spacing: -0.02em; color: #202124; line-height: 1; margin: 0; font-variant-numeric: tabular-nums; }
+.kpi-sub   { font-size: 12.5px; color: #5f6368; margin: 6px 0 0; }
 
 /* ════════════════════════════════════════════════════════════════
    Detail panel — right-side metadata panels
@@ -586,5 +579,52 @@ select:focus-visible {
 .email-html-body th { font-weight: 600; background: rgba(0,0,0,0.03); }
 .email-html-body img { max-width: 100%; height: auto; }
 .email-html-body p { margin: 0 0 0.6em; }
-.email-html-body a { color: #2563eb; text-decoration: underline; }
 .email-html-body blockquote { border-left: 2px solid var(--border-subtle, #e5e7eb); padding-left: 0.75em; margin: 0.5em 0; color: rgba(0,0,0,0.6); }
+
+/* ── Email bodies: keep the sender's structure, use our typography ─────────────────────────
+   A mail client renders every message in one face; we do the same. Inline fonts, sizes and
+   colours from Outlook/Gmail are overridden; bold, italics, lists, tables, links and images
+   survive. Reading body 16px / 1.6 ink; quoted history 14.5px body colour; signature 13.5px
+   muted. Data tables are wrapped by MessageBlock (wrapTables) in .email-tbl. */
+.email-html-body, .email-html-body * {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+  font-size: 16px !important; line-height: 1.6 !important; color: #202124 !important;
+  background: transparent !important; max-width: 100%;
+}
+.email-html-body.is-earlier, .email-html-body.is-earlier * { font-size: 15px !important; }
+.email-html-body b, .email-html-body strong { font-weight: 600 !important; }
+.email-html-body h1, .email-html-body h2, .email-html-body h3 { font-size: 17px !important; font-weight: 500 !important; margin: 0.8em 0 0.3em; }
+.email-html-body p, .email-html-body div { margin: 0 0 14px; }
+.email-html-body div:empty, .email-html-body p:empty { margin: 0; }
+.email-html-body ul, .email-html-body ol { margin: 0 0 14px; padding-left: 1.4em; }
+.email-html-body a { color: #202124 !important; text-decoration: underline; text-decoration-color: #9aa0a6; text-underline-offset: 3px; }
+.email-html-body img { max-width: 100% !important; height: auto !important; border-radius: 6px; }
+.email-html-body table { border-collapse: collapse; margin: 0.75em 0; width: auto !important; }
+.email-html-body td, .email-html-body th { border: 1px solid #e8eaed !important; padding: 6px 10px !important; text-align: left; vertical-align: top; }
+.email-html-body th { font-weight: 500 !important; background: #f8f9fa !important; }
+.email-html-body hr { border: 0; border-top: 1px solid #e8eaed; margin: 1em 0; }
+.email-html-body blockquote { border-left: 2px solid #e8eaed; padding-left: 0.9em; margin: 0.5em 0; }
+/* A data table kept exactly as sent: rounded hairline container, horizontal scroll, caption. */
+.email-html-body .email-tbl { margin: 6px 0 18px; border: 1px solid #e8eaed !important; border-radius: 12px; overflow: hidden; }
+.email-html-body .email-tbl-scroll { overflow-x: auto; margin: 0; }
+.email-html-body .email-tbl table { margin: 0; width: 100% !important; min-width: 520px; }
+.email-html-body .email-tbl td, .email-html-body .email-tbl th { border: 0 !important; border-bottom: 1px solid #e8eaed !important; padding: 10px 14px !important; }
+.email-html-body .email-tbl td, .email-html-body .email-tbl td * { font-size: 14px !important; line-height: 1.45 !important; }
+.email-html-body .email-tbl th, .email-html-body .email-tbl th * { font-size: 12.5px !important; font-weight: 500 !important; color: #5f6368 !important; background: #fff !important; line-height: 1.45 !important; }
+.email-html-body .email-tbl tr:last-child td { border-bottom: 0 !important; }
+.email-html-body .email-tbl-cap { display: flex; justify-content: space-between; gap: 12px; padding: 8px 14px; margin: 0; border-top: 1px solid #e8eaed; }
+.email-html-body .email-tbl-cap, .email-html-body .email-tbl-cap span { font-size: 12.5px !important; line-height: 1.45 !important; color: #80868b !important; }
+.email-html-body .email-tbl-cap button { font-size: 12.5px !important; line-height: 1.45 !important; color: #202124 !important; text-decoration: underline; text-decoration-color: #9aa0a6; text-underline-offset: 3px; border: 0; padding: 0; cursor: pointer; }
+/* Quoted history and signature */
+.email-html-body.email-quoted, .email-html-body.email-quoted * { color: #3c4043 !important; font-size: 14.5px !important; line-height: 1.55 !important; }
+.email-html-body.email-quoted p, .email-html-body.email-quoted div { margin: 0 0 8px; }
+.email-html-body.email-sig, .email-html-body.email-sig * { color: #5f6368 !important; font-size: 13.5px !important; line-height: 1.5 !important; }
+.email-html-body.email-sig p, .email-html-body.email-sig div { margin: 0 0 4px; }
+.email-html-body.email-sig hr { display: none; }
+.email-html-body.email-sig img { border-radius: 0; }
+/* The original message in the "View original" dialog: sanitised, otherwise untouched. */
+.email-original table { border-collapse: collapse; }
+.email-original td, .email-original th { padding: 2px 6px; }
+.email-original img { max-width: 100%; height: auto; }
+.email-original a { text-decoration: underline; }
+.email-original blockquote { border-left: 2px solid #e8eaed; padding-left: 0.75em; margin: 0.5em 0; }

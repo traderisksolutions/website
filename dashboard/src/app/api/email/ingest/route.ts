@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCompanyIndex, resolveThread } from '@/lib/crm/resolve'
 import { autofileThread } from '@/lib/crm/autofile'
+import { ensureSignatureRead } from '@/lib/crm/signature'
 import { waitUntil }        from '@vercel/functions'
 import { extractAndStoreQuote } from '@/lib/rfq-quote-extract'
 import { extractHighlights }    from '@/lib/extract-highlights'
@@ -630,6 +631,14 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
           body:    JSON.stringify({ engagement_stage: 'engaged' }),
         }).catch(() => {})
       }
+    }
+
+    // Read their signature the first time they appear: position, and the organisation as they
+    // write it, which is a far better match key than the domain alone. One model call per
+    // person, ever. Awaited, because the company resolution just below wants the name.
+    if (contactId && !partyIsInternal && direction === 'inbound') {
+      try { await ensureSignatureRead(contactId, resolvedParty.email, bodyText) }
+      catch (e) { console.warn('[ingest] signature read skipped:', e instanceof Error ? e.message : e) }
     }
 
     if (contactId && !partyIsInternal && !existingContact?.company) {

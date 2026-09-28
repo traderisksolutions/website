@@ -1,14 +1,25 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
-import { X, Loader2, Send, Paperclip, Save } from 'lucide-react'
-import { plainToHtml, htmlToPlain } from '@/components/RichEditor'
+import React, { useEffect, useRef, useState } from 'react'
+import * as DialogPrimitive from '@radix-ui/react-dialog'
+import { cn } from '@/lib/utils'
+import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
 import { useAutocomplete, SuggestionList } from '@/components/engagement/RecipientAutocomplete'
+import {
+  FieldRow, RecipientChip, QuietSelect, AttachmentChip, externalDomain,
+  BTN_PRIMARY, BTN_SECONDARY, BTN_TERTIARY, INK, BODY, FAINT,
+} from '@/components/engagement-agent/compose-toolbar'
 
 /**
  * Standalone "new email" composer for a recipient with no existing thread — so a
  * Nexus next-step's "Draft in Engagement" always lands in Engagement (compose
  * only; the thread is created on send). Server appends the signature (signatureId).
+ *
+ * Presentation: the approved "New email" dialog — centred, 880 wide, To/Cc/Subject rows, the
+ * same grouped toolbar and Quill editor as the reply panel, Save draft · Send in the footer.
+ * Data flow unchanged: drafts are still stored as plain text (the drafts list previews `body`
+ * as text), so the editor's HTML is flattened on save and re-expanded on reopen; the send
+ * carries the editor's HTML as-is.
  */
 
 type Sender    = { email: string; label: string; type: string }
@@ -25,6 +36,20 @@ export type NewEmailDraft = {
   draftId?: string
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/** Cc is kept as the comma-separated string the API stores. These split it into committed
+ *  chips (every token before the last comma) and the token still being typed. */
+function splitCc(cc: string): { chips: string[]; current: string } {
+  const tokens = cc.split(',')
+  const current = tokens.length > 0 ? tokens[tokens.length - 1] : ''
+  const chips = tokens.slice(0, -1).map(t => t.trim()).filter(Boolean)
+  return { chips, current: current.replace(/^\s+/, '') }
+}
+function joinCc(chips: string[], current: string): string {
+  return chips.length ? `${chips.join(', ')}, ${current}` : current
+}
+
 export function NewEmailComposeModal({ initial, onClose, onSent }: {
   initial: NewEmailDraft
   onClose: () => void
@@ -33,7 +58,8 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
   const [to,       setTo]       = useState(initial.toEmail)
   const [cc,       setCc]       = useState(initial.cc ?? '')
   const [subject,  setSubject]  = useState(initial.subject)
-  const [body,     setBody]     = useState(initial.body)
+  // The editor works in HTML. A reopened draft (plain text) is expanded; an HTML body is kept.
+  const [bodyHtml, setBodyHtml] = useState(() => initial.body.trim().startsWith('<') ? initial.body : plainToHtml(initial.body))
   const [senders,  setSenders]  = useState<Sender[]>([])
   const [sigs,     setSigs]     = useState<SigOption[]>([])
   const [fromEmail, setFromEmail] = useState('')
@@ -43,16 +69,17 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
   const [draftId,  setDraftId]  = useState(initial.draftId)
   const [draftSaved, setDraftSaved] = useState(false)
   const [error,    setError]    = useState<string | null>(null)
+  const [showCc,   setShowCc]   = useState(!!(initial.cc ?? '').trim())
+  const [fullscreen, setFullscreen] = useState(false)
+  const contentRef = useRef<HTMLDivElement>(null)
 
   // Recipient typeahead — same source as the reply editor (contacts + employees).
   const toAc = useAutocomplete(to, c => setTo(c.email))
   // CC is a comma-separated list — the typeahead matches the token currently being typed
   // and appends the picked address.
-  const ccTokens = cc.split(',')
-  const ccQuery  = (ccTokens[ccTokens.length - 1] ?? '').trim()
+  const { chips: ccChips, current: ccQuery } = splitCc(cc)
   const ccAc = useAutocomplete(ccQuery, c => {
-    const head = ccTokens.slice(0, -1).map(t => t.trim()).filter(Boolean)
-    setCc([...head, c.email].join(', ') + ', ')
+    setCc([...ccChips, c.email].join(', ') + ', ')
   })
 
   useEffect(() => {
@@ -66,6 +93,7 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
   }, [])
 
   const personal = senders.find(s => s.email === fromEmail)?.type === 'personal'
+  const body = htmlToPlain(bodyHtml)
 
   async function saveAsDraft() {
     if (!to.trim()) { setError('A recipient is required to save a draft.'); return }
@@ -84,12 +112,11 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
   }
 
   async function send() {
-    if (!to.trim() || !htmlToPlain(plainToHtml(body)).trim()) { setError('Recipient and a message are required.'); return }
+    if (!to.trim() || !body.trim()) { setError('Recipient and a message are required.'); return }
     setSending(true); setError(null)
     try {
-      const plain = body
       // The original AI-drafted text (before any broker edits) — captured from `initial`,
-      // which never changes after mount, NOT from `plain`/`body` which reflects live edits.
+      // which never changes after mount, NOT from the live body which reflects edits.
       // Sending the edited text as its own "original" would make the eval comparison
       // self-referential (draft vs itself) and produce no learning signal.
       const draftRes = await fetch('/api/nexus/draft-create', {
@@ -105,7 +132,7 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
       const sendRes = await fetch('/api/email/send', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          draftId: draftData.draftId, htmlBody: plainToHtml(plain), originalAiBody: initial.body,
+          draftId: draftData.draftId, htmlBody: bodyHtml, originalAiBody: initial.body,
           toEmail: to.trim(), cc: ccList, customSubject: subject, fromEmail: fromEmail || null,
           signatureId: sigId || null,   // server appends the signature
           attachments: initial.attachment ? [initial.attachment] : undefined,
@@ -133,95 +160,191 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
     } finally { setSending(false) }
   }
 
-  const inp = 'flex-1 text-[13px] bg-background border border-[--border-subtle] rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/30 min-w-0'
+  // Anything typed since open (or since the last save) that would be lost on close.
+  const dirty = !draftSaved && (
+    to.trim() !== initial.toEmail.trim() || subject !== initial.subject || (cc.trim() !== (initial.cc ?? '').trim()) ||
+    body.trim() !== htmlToPlain(plainToHtml(initial.body)).trim()
+  )
+  function requestClose() {
+    // A backdrop click never closes (an accidental click used to silently discard the whole
+    // email). Esc and Close do, behind one confirm when there are unsaved changes.
+    if (dirty && !window.confirm('Discard this email? Unsaved changes will be lost.')) return
+    onClose()
+  }
 
-  // No onClick on the backdrop below, on purpose — an accidental click used to silently discard
-  // the whole in-progress email with zero confirmation. Cancel/X remain the only ways out.
+  const external = externalDomain(to)
+  const toName = to.trim() === initial.toEmail.trim() && initial.toName ? initial.toName : to
+  const savedState = savingDraft ? 'Saving…' : draftSaved ? 'Draft saved' : null
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-2xl max-h-[88vh] overflow-y-auto rounded-xl bg-card shadow-2xl">
-        <div className="sticky top-0 bg-card border-b border-[--border-subtle] px-5 py-3.5 flex items-center justify-between">
-          <div>
-            <h3 className="text-[14px] font-semibold text-foreground">New email{initial.toName ? ` to ${initial.toName}` : ''}</h3>
-            <p className="text-[11px] text-muted-foreground/60 mt-0.5">No thread yet — this starts one when you send.</p>
-          </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X size={16} /></button>
-        </div>
-
-        <div className="px-5 py-4 flex flex-col gap-2.5">
-          <label className="flex items-center gap-2"><span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 w-14 flex-shrink-0">To</span>
-            <div ref={toAc.boxRef} className="relative flex-1 min-w-0">
-              <input
-                value={to}
-                onChange={e => { setTo(e.target.value); toAc.reopen() }}
-                onKeyDown={e => toAc.onKeyDown(e)}
-                onFocus={toAc.reopen}
-                onBlur={toAc.close}
-                placeholder="Type a name or email…"
-                autoComplete="off"
-                className={`${inp} w-full focus-visible:outline-none`}
-              />
-              {toAc.visible && <SuggestionList items={toAc.items} highlight={toAc.highlight} onPick={c => { setTo(c.email); toAc.close() }} />}
-            </div></label>
-          <label className="flex items-center gap-2"><span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 w-14 flex-shrink-0">Cc</span>
-            <div ref={ccAc.boxRef} className="relative flex-1 min-w-0">
-              <input
-                value={cc}
-                onChange={e => { setCc(e.target.value); ccAc.reopen() }}
-                onKeyDown={e => ccAc.onKeyDown(e)}
-                onFocus={ccAc.reopen}
-                onBlur={ccAc.close}
-                placeholder={personal ? 'operations@ auto-added' : 'optional'}
-                autoComplete="off"
-                className={`${inp} w-full focus-visible:outline-none`}
-              />
-              {ccAc.visible && <SuggestionList items={ccAc.items} highlight={ccAc.highlight} onPick={c => {
-                const head = cc.split(',').slice(0, -1).map(t => t.trim()).filter(Boolean)
-                setCc([...head, c.email].join(', ') + ', ')
-                ccAc.close()
-              }} />}
-            </div></label>
-          <label className="flex items-center gap-2"><span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 w-14 flex-shrink-0">Subject</span>
-            <input value={subject} onChange={e => setSubject(e.target.value)} className={inp} /></label>
-
-          <div className="flex items-center gap-2 flex-wrap pt-0.5">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 w-14 flex-shrink-0">From</span>
-            <select value={fromEmail} onChange={e => setFromEmail(e.target.value)} className="text-[12px] rounded-md border border-[--border-subtle] bg-background px-2 py-1.5">
-              {senders.map(s => <option key={s.email} value={s.email}>{s.label}</option>)}
-            </select>
-            <select value={sigId} onChange={e => setSigId(e.target.value)} className="text-[12px] rounded-md border border-[--border-subtle] bg-background px-2 py-1.5">
-              <option value="">No signature</option>
-              {sigs.map(s => <option key={s.id} value={s.id}>{s.name}{s.title ? ` · ${s.title}` : ''}</option>)}
-            </select>
+    <DialogPrimitive.Root open onOpenChange={o => { if (!o) requestClose() }}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-[#202124]/40 data-[state=open]:animate-in data-[state=open]:fade-in-0" />
+        <DialogPrimitive.Content
+          ref={contentRef}
+          aria-describedby={undefined}
+          onPointerDownOutside={e => e.preventDefault()}
+          onInteractOutside={e => e.preventDefault()}
+          // Radix's Esc listener runs before an open toolbar menu's own: when a menu is open,
+          // leave Esc to the menu (it closes itself) instead of closing the whole dialog.
+          onEscapeKeyDown={e => {
+            e.preventDefault()
+            if (contentRef.current?.querySelector('[role="menu"]')) return
+            if (fullscreen) setFullscreen(false); else requestClose()
+          }}
+          // Focus the To field when it is empty; otherwise the dialog itself, so typing starts
+          // where the user clicks rather than on the Close button Radix would pick.
+          onOpenAutoFocus={e => { e.preventDefault(); if (to.trim()) contentRef.current?.focus() }}
+          className={cn(
+            'fixed z-50 flex flex-col overflow-hidden bg-white border border-[#e8eaed] shadow-[0_24px_60px_rgba(32,33,36,0.18)] focus:outline-none',
+            'data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 duration-200',
+            fullscreen
+              ? 'inset-3 rounded-[16px]'
+              : 'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100vw-32px)] max-w-[880px] max-h-[calc(100vh-48px)] rounded-[16px]',
+            '[--re-gutter:16px] sm:[--re-gutter:24px]',
+          )}
+          style={{ color: INK }}
+        >
+          {/* ── Bar: New email · Draft saved · Close ── */}
+          <div className="flex items-center gap-2.5 px-[var(--re-gutter)] pt-4 pb-2.5 flex-shrink-0">
+            <DialogPrimitive.Title className="m-0 text-[18px] font-medium tracking-[-0.01em]" style={{ color: INK }}>New email</DialogPrimitive.Title>
+            <span className="flex-1" />
+            {savedState && <span className="text-[12.5px] mr-1" style={{ color: FAINT }} role="status">{savedState}</span>}
+            <button type="button" onClick={requestClose} className={cn(BTN_TERTIARY, 'h-8 px-2.5')} aria-label="Close" title="Close (Esc)">Close</button>
           </div>
 
-          <textarea value={body} onChange={e => setBody(e.target.value)} rows={13}
-            className="w-full text-[13px] leading-relaxed bg-background border border-[--border-subtle] rounded-md px-3 py-2.5 resize-y focus:outline-none focus:ring-2 focus:ring-primary/30 mt-1" />
+          {/* ── To ── */}
+          <FieldRow label="To" tall htmlFor="new-email-to" right={
+            !showCc ? <button type="button" onClick={() => setShowCc(true)} aria-label="Add Cc" className="h-7 px-1.5 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f3f4]" style={{ color: FAINT }}>Cc</button> : undefined
+          }>
+            {to.trim() ? (
+              <RecipientChip name={toName} email={to} onRemove={() => setTo('')} />
+            ) : (
+              <div ref={toAc.boxRef} className="relative flex-1 min-w-[160px]">
+                <input
+                  id="new-email-to"
+                  value={to}
+                  onChange={e => { setTo(e.target.value); toAc.reopen() }}
+                  onKeyDown={e => {
+                    if (toAc.onKeyDown(e)) { e.stopPropagation(); return }
+                    if (e.key === 'Enter') { e.preventDefault(); setTo(to.trim()) }
+                  }}
+                  onFocus={toAc.reopen}
+                  onBlur={() => { toAc.close(); setTo(to.trim()) }}
+                  placeholder="Add people…"
+                  aria-label="Recipient email address"
+                  autoComplete="off"
+                  autoFocus
+                  className="w-full text-[14px] bg-transparent border-none outline-none focus-visible:outline-none py-1 placeholder:text-[#80868b]"
+                  style={{ color: INK }}
+                />
+                {toAc.visible && <SuggestionList items={toAc.items} highlight={toAc.highlight} onPick={c => { setTo(c.email); toAc.close() }} />}
+              </div>
+            )}
+          </FieldRow>
+
+          {/* ── Cc — revealed from the To row. A personal sender auto-Ccs operations@ on the server. ── */}
+          {showCc && (
+            <FieldRow label="Cc" tall htmlFor="new-email-cc">
+              {ccChips.map((email, i) => (
+                <RecipientChip key={`${email}-${i}`} name={email} email={email} onRemove={() => setCc(joinCc(ccChips.filter((_, j) => j !== i), ccQuery))} />
+              ))}
+              <div ref={ccAc.boxRef} className="relative flex-1 min-w-[140px]">
+                <input
+                  id="new-email-cc"
+                  value={ccQuery}
+                  onChange={e => { setCc(joinCc(ccChips, e.target.value)); ccAc.reopen() }}
+                  onKeyDown={e => {
+                    if (ccAc.onKeyDown(e)) { e.stopPropagation(); return }
+                    if ((e.key === 'Enter' || e.key === ',') && EMAIL_RE.test(ccQuery.trim())) { e.preventDefault(); setCc([...ccChips, ccQuery.trim()].join(', ') + ', ') }
+                    if (e.key === 'Backspace' && !ccQuery && ccChips.length) setCc(joinCc(ccChips.slice(0, -1), ''))
+                  }}
+                  onFocus={ccAc.reopen}
+                  onBlur={() => { ccAc.close(); if (EMAIL_RE.test(ccQuery.trim())) setCc([...ccChips, ccQuery.trim()].join(', ') + ', ') }}
+                  placeholder={ccChips.length === 0 ? (personal ? 'operations@ is added on send' : 'Add Cc…') : ''}
+                  aria-label="Cc"
+                  autoComplete="off"
+                  className="w-full text-[14px] bg-transparent border-none outline-none focus-visible:outline-none py-1 placeholder:text-[#80868b]"
+                  style={{ color: INK }}
+                />
+                {ccAc.visible && <SuggestionList items={ccAc.items} highlight={ccAc.highlight} onPick={c => { setCc([...ccChips, c.email].join(', ') + ', '); ccAc.close() }} />}
+              </div>
+            </FieldRow>
+          )}
+
+          {/* ── Subject · From · Signature ── */}
+          <FieldRow label="Subject" htmlFor="new-email-subject" right={
+            (senders.length > 0 || sigs.length > 0) ? (
+              <>
+                {senders.length > 0 && (
+                  <span className="inline-flex items-center gap-1">
+                    <span>From</span>
+                    <QuietSelect label="From" value={fromEmail} onChange={setFromEmail}>
+                      {senders.map(s => <option key={s.email} value={s.email}>{s.label}</option>)}
+                    </QuietSelect>
+                  </span>
+                )}
+                {senders.length > 0 && sigs.length > 0 && <span aria-hidden>·</span>}
+                {sigs.length > 0 && (
+                  <span className="inline-flex items-center gap-1">
+                    <span>Signature:</span>
+                    <QuietSelect label="Signature" value={sigId} onChange={setSigId}>
+                      <option value="">None</option>
+                      {sigs.map(s => <option key={s.id} value={s.id}>{s.name}{s.title ? ` · ${s.title}` : ''}</option>)}
+                    </QuietSelect>
+                  </span>
+                )}
+              </>
+            ) : undefined
+          }>
+            <input
+              id="new-email-subject"
+              value={subject}
+              onChange={e => setSubject(e.target.value)}
+              placeholder="Subject"
+              aria-label="Subject"
+              className="w-full text-[14px] bg-transparent border-none outline-none py-1 placeholder:text-[#80868b]"
+              style={{ color: INK }}
+            />
+          </FieldRow>
+
+          {/* ── Toolbar + editor (same kit as the reply panel) ── */}
+          <RichEditor
+            initialHtml={bodyHtml}
+            onChange={setBodyHtml}
+            borderless
+            variant="reading"
+            placeholder={`Write your email${initial.toName ? ` to ${initial.toName}` : ''}…`}
+            minHeight={260}
+            fullscreen={fullscreen}
+            onToggleFullscreen={() => setFullscreen(v => !v)}
+            className="flex-1 min-h-0"
+            bodyClassName="flex-1 min-h-0 overflow-y-auto"
+          />
 
           {initial.attachment && (
-            <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground bg-muted/40 rounded-md px-2.5 py-1.5 w-fit">
-              <Paperclip size={12} /> {initial.attachment.filename}
+            <div className="px-[var(--re-gutter)] pt-2 flex flex-wrap gap-1.5 flex-shrink-0">
+              <AttachmentChip name={initial.attachment.filename} />
             </div>
           )}
 
-          {error && <p className="text-[11.5px] text-rose-600">{error}</p>}
-        </div>
-
-        <div className="sticky bottom-0 bg-card border-t border-[--border-subtle] px-5 py-3 flex items-center justify-end gap-2">
-          {draftSaved && <span className="text-[11px] text-muted-foreground/60 mr-auto">Saved to Drafts</span>}
-          <button onClick={onClose} className="text-[12px] text-muted-foreground hover:text-foreground px-3 py-1.5">Cancel</button>
-          <button onClick={saveAsDraft} disabled={savingDraft || sending}
-            className="flex items-center gap-1.5 text-[12px] font-medium px-3.5 py-1.5 rounded-md border border-[--border-subtle] text-foreground hover:bg-accent/40 disabled:opacity-50">
-            {savingDraft ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-            {savingDraft ? 'Saving…' : 'Save as draft'}
-          </button>
-          <button onClick={send} disabled={sending}
-            className="flex items-center gap-1.5 text-[12px] font-semibold px-4 py-1.5 rounded-md bg-primary text-primary-foreground disabled:opacity-50">
-            {sending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
-            {sending ? 'Sending…' : 'Send'}
-          </button>
-        </div>
-      </div>
-    </div>
+          {/* ── Footer: external note or error · Save draft · Send ── */}
+          <div className="flex items-center gap-2 px-[var(--re-gutter)] pt-2.5 pb-4 flex-shrink-0 flex-wrap">
+            {error ? (
+              <span className="text-[12.5px] min-w-0 truncate" role="alert" style={{ color: BODY }}>{error}</span>
+            ) : external ? (
+              <span className="text-[12.5px] min-w-0 truncate" style={{ color: FAINT }}>External recipient · {external}</span>
+            ) : null}
+            <span className="flex-1" />
+            <button type="button" onClick={saveAsDraft} disabled={savingDraft || sending} className={BTN_SECONDARY}>
+              {savingDraft ? 'Saving…' : 'Save draft'}
+            </button>
+            <button type="button" onClick={send} disabled={sending} className={cn(BTN_PRIMARY, 'h-9 text-[13.5px]')}>
+              {sending ? 'Sending…' : 'Send'}
+            </button>
+          </div>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   )
 }

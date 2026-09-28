@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2, CheckCircle2, AlertTriangle, Save, FileText, RefreshCw, Trash2, Pencil, X, Plus } from 'lucide-react'
+import { Loader2, CheckCircle2, AlertTriangle, Save, FileText, RefreshCw, Trash2, Pencil, X, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type Rate    = { id?: string; product_code: string; member_type: string | null; plan_code: string; band_label: string; age_min: number | null; age_max: number | null; premium: number; renewal_only?: boolean }
@@ -167,30 +167,30 @@ export default function GbReviewPage() {
   const t = d.table as { insurer_name?: string; product_code?: string; source_pdf_name?: string; age_basis?: string; plan_year?: number }
   const byProduct = groupBy(rates, r => r.product_code)
   const mi = 'w-full text-[12.5px] border border-border rounded-md px-2.5 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary/25'
-  const ci = 'w-full text-[12px] px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-primary/40 focus:outline-none bg-white'
+  const ci = 'w-full text-[12px] px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-[#202124] focus:outline-none bg-white'
   const btn = 'flex items-center gap-1.5 text-[12.5px] font-medium px-2.5 py-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50'
   const insurerLabel = meta.insurer_name || t.insurer_name || 'Insurer'
   const editable = status === 'in_review' || editing   // cells + metadata are editable in review, or when explicitly editing an approved table
 
   return (
-    <div className="min-h-screen bg-white">
-    <div className="max-w-6xl mx-auto px-8 py-6">
-      <button onClick={leave} className="flex items-center gap-1.5 text-[12px] text-muted-foreground hover:text-foreground mb-4"><ArrowLeft size={13} /> Rate Tables</button>
+    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: '#202124' }}>
+    <div className="mx-auto max-w-[1400px] px-6 sm:px-12 pt-12 pb-20">
+      <button onClick={leave} className="inline-flex items-center gap-1.5 text-[14px] bg-transparent border-0 p-0 cursor-pointer hover:underline mb-3" style={{ color: '#5f6368' }}>← Rate tables</button>
 
-      <div className="flex items-start justify-between gap-6 mb-6">
+      <div className="flex items-end justify-between gap-6 mb-8 flex-wrap">
         <div className="min-w-0">
-          <h1 className="text-[19px] font-semibold text-foreground tracking-tight truncate">{insurerLabel}</h1>
-          <p className="text-[12px] text-muted-foreground mt-1 truncate">
+          <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08] truncate">{insurerLabel}</h1>
+          <p className="m-0 text-[13.5px] mt-2 truncate tabular-nums" style={{ color: '#5f6368' }}>
             {t.source_pdf_name} · age {t.age_basis === 'last_birthday' ? 'last' : 'next'} birthday{t.plan_year ? ` · ${t.plan_year}` : ''} · {byProduct.size} product{byProduct.size === 1 ? '' : 's'} · {rates.length} rates
           </p>
         </div>
         <div className="flex items-center gap-0.5 flex-shrink-0">
-          {dirty && <span className="text-[11px] font-medium text-amber-600 mr-2">Unsaved changes</span>}
-          {msg && !dirty && <span className={cn('text-[12px] mr-2', /fail/i.test(msg) ? 'text-rose-600' : 'text-emerald-600')}>{msg}</span>}
-          {status === 'approved' && !editing && <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-[6px] bg-emerald-100 text-emerald-700 mr-1.5">Approved</span>}
+          {dirty && <span className="text-[11px] font-medium text-[#3c4043] mr-2">Unsaved changes</span>}
+          {msg && !dirty && <span className={cn('text-[12px] mr-2', /fail/i.test(msg) ? 'text-[#c5221f]' : 'text-[#3c4043]')}>{msg}</span>}
+          {status === 'approved' && !editing && <span className="inline-flex items-center text-[11.5px] font-medium px-2 py-0.5 rounded-[6px] bg-[#f1f3f4] text-[#3c4043] mr-1.5">Approved</span>}
           <a href={`/api/group-benefits/rate-tables/${id}/pdf`} target="_blank" rel="noopener noreferrer" className={btn}><FileText size={13} /> PDF</a>
           {status !== 'extracting' && !editing && <button onClick={reExtract} disabled={!!saving} className={btn} title="Re-run extraction"><RefreshCw size={13} /> Re-run</button>}
-          {!editing && <button onClick={del} className={cn(btn, 'text-rose-500 hover:text-rose-600 hover:bg-rose-50')} title="Delete"><Trash2 size={13} /></button>}
+          {!editing && <button onClick={del} className={cn(btn, 'text-[#c5221f] hover:opacity-80 hover:bg-[#f8f9fa]')} title="Delete"><Trash2 size={13} /></button>}
 
           {/* Edit an approved table in place (no re-extract) */}
           {status === 'approved' && !editing && (
@@ -207,7 +207,7 @@ export default function GbReviewPage() {
                 {saving === 'save' ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} {editing ? 'Save changes' : 'Save'}
               </button>
               {status === 'in_review' && (
-                <button onClick={() => save(true)} disabled={!!saving} className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-1.5 rounded-md bg-primary text-white hover:bg-primary/90 disabled:opacity-50">
+                <button onClick={() => save(true)} disabled={!!saving} className="flex items-center gap-1.5 text-[14px] font-medium h-10 px-4 rounded-[10px] bg-[#202124] text-white hover:opacity-90 disabled:opacity-50">
                   {saving === 'approve' ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />} Approve
                 </button>
               )}
@@ -219,10 +219,10 @@ export default function GbReviewPage() {
       {/* Extracted metadata — read from the PDF, editable in review or edit mode */}
       {editable && (
         <div className="rounded-lg border border-border bg-white p-4 mb-6">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50 mb-3">Details read from the PDF — correct if needed</p>
+          <p className="text-[12.5px] text-muted-foreground/50 mb-3">Details read from the PDF — correct if needed</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-start">
             <div className="col-span-2 md:col-span-1">
-              <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60">Insurer</label>
+              <label className="text-[12.5px] text-muted-foreground/60">Insurer</label>
               <input value={meta.insurer_name ?? ''} onChange={e => setMeta(m => ({ ...m, insurer_name: e.target.value }))} placeholder="Insurer name" className={`${mi} mt-1`} />
               <select value={meta.insurer_id ?? ''} onChange={e => { const iid = e.target.value; setMeta(m => ({ ...m, insurer_id: iid, insurer_name: insurers.find(i => i.id === iid)?.name ?? m.insurer_name })) }} className={`${mi} mt-1.5 text-muted-foreground`}>
                 <option value="">Link to directory (optional)…</option>
@@ -230,18 +230,18 @@ export default function GbReviewPage() {
               </select>
             </div>
             <div>
-              <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60">Age basis</label>
+              <label className="text-[12.5px] text-muted-foreground/60">Age basis</label>
               <select value={meta.age_basis ?? 'next_birthday'} onChange={e => setMeta(m => ({ ...m, age_basis: e.target.value }))} className={`${mi} mt-1`}>
                 <option value="next_birthday">Next birthday</option>
                 <option value="last_birthday">Last birthday</option>
               </select>
             </div>
             <div>
-              <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60">Plan year</label>
+              <label className="text-[12.5px] text-muted-foreground/60">Plan year</label>
               <input value={meta.plan_year ?? ''} onChange={e => setMeta(m => ({ ...m, plan_year: e.target.value }))} placeholder="2026" className={`${mi} mt-1`} />
             </div>
             <div>
-              <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60">Effective date</label>
+              <label className="text-[12.5px] text-muted-foreground/60">Effective date</label>
               <input type="date" value={meta.effective_date ?? ''} onChange={e => setMeta(m => ({ ...m, effective_date: e.target.value }))} className={`${mi} mt-1`} />
             </div>
           </div>
@@ -252,13 +252,13 @@ export default function GbReviewPage() {
         const stage = (d.table as { extract_stage?: string | null }).extract_stage ?? 'reading'
         const cur = Math.max(0, STAGES.findIndex(s => s.key === stage))
         return (
-          <div className="rounded-lg border border-amber-200 bg-amber-50/60 px-4 py-3.5">
-            <p className="text-[12px] font-semibold text-amber-800 mb-2.5">Extracting the rate matrix — this can take up to a minute…</p>
+          <div className="rounded-lg border border-[#e8eaed] bg-[#f8f9fa] px-4 py-3.5">
+            <p className="text-[12px] font-semibold text-[#3c4043] mb-2.5">Extracting the rate matrix — this can take up to a minute…</p>
             <div className="flex flex-col gap-1.5">
               {STAGES.map((s, i) => (
                 <div key={s.key} className="flex items-center gap-2 text-[12px]">
-                  {i < cur ? <CheckCircle2 size={14} className="text-emerald-600 flex-shrink-0" />
-                    : i === cur ? <Loader2 size={14} className="animate-spin text-amber-600 flex-shrink-0" />
+                  {i < cur ? <CheckCircle2 size={14} className="text-[#3c4043] flex-shrink-0" />
+                    : i === cur ? <Loader2 size={14} className="animate-spin text-[#3c4043] flex-shrink-0" />
                     : <span className="w-3.5 h-3.5 rounded-full border border-muted-foreground/30 flex-shrink-0" />}
                   <span className={cn(i <= cur ? 'text-foreground/80 font-medium' : 'text-muted-foreground/50')}>{s.label}</span>
                 </div>
@@ -278,7 +278,7 @@ export default function GbReviewPage() {
                 if (!e) return null
                 return (
                   <span key={k} className={cn('px-2 py-0.5 rounded-[6px] font-medium',
-                    e.error ? 'bg-rose-100 text-rose-700' : 'bg-muted text-muted-foreground')}
+                    e.error ? 'bg-[#f1f3f4] text-[#3c4043]' : 'bg-muted text-muted-foreground')}
                     title={e.error ?? ''}>
                     {k}: {e.error ? 'failed' : `${e.rates} cells`}
                   </span>
@@ -289,7 +289,7 @@ export default function GbReviewPage() {
 
           {/* Conflict summary */}
           <div className={cn('flex items-center gap-2 rounded-lg px-4 py-2.5 mb-5 text-[12.5px]',
-            d.conflicts.length ? 'bg-amber-50 border border-amber-200 text-amber-800' : 'bg-emerald-50 border border-emerald-200 text-emerald-800')}>
+            d.conflicts.length ? 'bg-[#f8f9fa] border border-[#e8eaed] text-[#3c4043]' : 'bg-[#f8f9fa] border border-[#e8eaed] text-[#3c4043]')}>
             {d.conflicts.length ? <AlertTriangle size={15} /> : <CheckCircle2 size={15} />}
             {d.confidence != null && <span className="font-semibold">{d.confidence}% agreement</span>}
             <span>· {d.conflicts.length} cell{d.conflicts.length === 1 ? '' : 's'} to verify (highlighted below){rates.length ? ` · ${rates.length} rates` : ''}</span>
@@ -298,11 +298,11 @@ export default function GbReviewPage() {
           {/* Wording changes vs the last approved version (Sales Loop v2, Phase 6c) — only ever
               non-empty on a re-extraction, since there's nothing to diff against the first time. */}
           {(d.wordingDiff?.length ?? 0) > 0 && (
-            <div className="rounded-lg px-4 py-3 mb-5 text-[12.5px] bg-indigo-50 border border-indigo-200 text-indigo-900">
+            <div className="rounded-lg px-4 py-3 mb-5 text-[12.5px] bg-[#f8f9fa] border border-[#e8eaed] text-[#3c4043]">
               <p className="font-semibold mb-1.5 flex items-center gap-1.5"><AlertTriangle size={14} /> {d.wordingDiff!.length} benefit term{d.wordingDiff!.length === 1 ? '' : 's'} changed since the last approved version</p>
               <ul className="flex flex-col gap-0.5">
                 {d.wordingDiff!.map((w, i) => (
-                  <li key={i} className="text-indigo-800/90">
+                  <li key={i} className="text-[#3c4043]">
                     <span className="font-medium">{w.path}</span>: {w.from == null ? <em>added</em> : w.to == null ? <em>removed</em> : <>&ldquo;{String(w.from)}&rdquo; → &ldquo;{String(w.to)}&rdquo;</>}
                   </li>
                 ))}
@@ -312,7 +312,7 @@ export default function GbReviewPage() {
 
           {rates.length === 0 && (
             <div className="text-center py-12 text-muted-foreground text-[13px]">
-              No rates were extracted. Check the extractor statuses above (API keys / model access), then <button onClick={reExtract} className="text-primary underline">re-run</button>.
+              No rates were extracted. Check the extractor statuses above (API keys / model access), then <button onClick={reExtract} className="text-[#202124] underline">re-run</button>.
             </div>
           )}
 
@@ -329,7 +329,7 @@ export default function GbReviewPage() {
                 for (const r of mtRates) cell.set(`${r.band_label}|${r.plan_code}`, r)
                 return (
                   <div key={mt} className="mb-5">
-                    {mtLabel(mt || null) && <p className="text-[10px] font-bold uppercase tracking-wider text-primary/60 mb-2">{mtLabel(mt || null)}</p>}
+                    {mtLabel(mt || null) && <p className="text-[12.5px] text-[#5f6368] mb-2">{mtLabel(mt || null)}</p>}
                     <div className="rounded-lg border border-border overflow-x-auto">
                       <table className="data-table matrix-table w-full border-collapse text-[12.5px]">
                         <thead className={gm(mt) === 'employee' ? 'mt-employee' : gm(mt) === 'dependant' ? 'mt-dependant' : ''}>
@@ -340,13 +340,13 @@ export default function GbReviewPage() {
                                 {editable ? (
                                   <span className="inline-flex items-center gap-1 justify-end">
                                     <input defaultValue={plan} key={plan} onBlur={e => renamePlan(product, mt, plan, e.target.value.trim())}
-                                      className="w-24 text-right text-[12px] font-semibold uppercase tracking-wide px-2 py-1 rounded border border-transparent focus:border-primary/40 focus:outline-none bg-white !text-slate-900" />
-                                    <button onClick={() => deletePlan(product, mt, plan)} title="Remove plan" className="text-slate-400 hover:text-rose-500"><X size={12} /></button>
+                                      className="w-24 text-right text-[12px] font-medium px-2 py-1 rounded border border-transparent focus:border-[#202124] focus:outline-none bg-white !text-[#202124]" />
+                                    <button onClick={() => deletePlan(product, mt, plan)} title="Remove plan" className="text-[#9aa0a6] hover:text-[#c5221f]"><X size={12} /></button>
                                   </span>
                                 ) : plan}
                               </th>
                             ))}
-                            {editable && <th className="pr-2 text-right"><button onClick={() => addPlan(product, mt, bands, plans)} title="Add plan" className="text-primary/70 hover:text-primary"><Plus size={13} /></button></th>}
+                            {editable && <th className="pr-2 text-right"><button onClick={() => addPlan(product, mt, bands, plans)} title="Add plan" className="text-[#5f6368] hover:text-[#202124]"><Plus size={13} /></button></th>}
                           </tr>
                         </thead>
                         <tbody>
@@ -355,14 +355,14 @@ export default function GbReviewPage() {
                               <td className="pl-4 whitespace-nowrap">
                                 {editable
                                   ? <input defaultValue={band} key={band} onBlur={e => renameBand(product, mt, band, e.target.value.trim())}
-                                      className="w-28 text-[12.5px] font-medium px-2 py-0.5 rounded border border-transparent hover:border-border focus:border-primary/40 focus:outline-none bg-white" />
+                                      className="w-28 text-[12.5px] font-medium px-2 py-0.5 rounded border border-transparent hover:border-border focus:border-[#202124] focus:outline-none bg-white" />
                                   : <span className="font-medium text-foreground/70">{band}</span>}
                               </td>
                               {plans.map(plan => {
                                 const r = cell.get(`${band}|${plan}`)
                                 const conflict = r ? conflictMap.get(cKey(r)) : undefined
                                 if (!editable) return r
-                                  ? <td key={plan} className="text-right pr-4 py-1"><span title={conflict ? `Opus ${fmt(conflict.opus)} · Gemini ${fmt(conflict.gemini)}` : ''} className={cn('tabular-nums text-[12.5px]', conflict ? 'rounded px-1.5 py-0.5 bg-amber-100 text-amber-800 font-medium' : 'text-foreground/80')}>{r.premium}</span></td>
+                                  ? <td key={plan} className="text-right pr-4 py-1"><span title={conflict ? `Opus ${fmt(conflict.opus)} · Gemini ${fmt(conflict.gemini)}` : ''} className={cn('tabular-nums text-[12.5px]', conflict ? 'rounded px-1.5 py-0.5 bg-[#f1f3f4] text-[#3c4043] font-medium' : 'text-foreground/80')}>{r.premium}</span></td>
                                   : <td key={plan} className="text-right pr-4 text-muted-foreground/25">—</td>
                                 return (
                                   <td key={plan} className="text-right pr-2 py-1">
@@ -370,16 +370,16 @@ export default function GbReviewPage() {
                                       onChange={e => setCell(product, mt, band, plan, e.target.value)}
                                       title={conflict ? `Opus ${fmt(conflict.opus)} · Gemini ${fmt(conflict.gemini)}` : ''}
                                       className={cn('w-24 text-right tabular-nums text-[12.5px] px-2 py-1 rounded border bg-white focus:outline-none focus:ring-1 focus:ring-primary/30',
-                                        conflict ? 'border-amber-300 bg-amber-50/70' : 'border-transparent hover:border-border')} />
+                                        conflict ? 'border-[#dadce0] bg-[#f8f9fa]' : 'border-transparent hover:border-border')} />
                                   </td>
                                 )
                               })}
-                              {editable && <td className="pr-2 text-right"><button onClick={() => deleteBand(product, mt, band)} title="Remove age band" className="text-muted-foreground/30 hover:text-rose-600"><Trash2 size={12} /></button></td>}
+                              {editable && <td className="pr-2 text-right"><button onClick={() => deleteBand(product, mt, band)} title="Remove age band" className="text-muted-foreground/30 hover:text-[#c5221f]"><Trash2 size={12} /></button></td>}
                             </tr>
                           ))}
                           {editable && (
                             <tr><td colSpan={plans.length + 2} className="pl-4">
-                              <button onClick={() => addBand(product, mt, plans, bands)} className="flex items-center gap-1 text-[11.5px] text-primary hover:text-primary/80 py-1"><Plus size={12} /> Add age band</button>
+                              <button onClick={() => addBand(product, mt, plans, bands)} className="flex items-center gap-1 text-[11.5px] text-[#202124] hover:opacity-80 py-1"><Plus size={12} /> Add age band</button>
                             </td></tr>
                           )}
                         </tbody>
@@ -392,7 +392,7 @@ export default function GbReviewPage() {
           ))}
 
           {editable && (
-            <button onClick={addProduct} className="flex items-center gap-1.5 text-[12px] font-medium text-primary hover:text-primary/80 mb-8"><Plus size={13} /> Add product / matrix</button>
+            <button onClick={addProduct} className="flex items-center gap-1.5 text-[12px] font-medium text-[#202124] hover:opacity-80 mb-8"><Plus size={13} /> Add product / matrix</button>
           )}
 
           {/* Coverage / sum assured */}
@@ -412,7 +412,7 @@ export default function GbReviewPage() {
                         <td><input value={c.plan_code ?? ''} onChange={e => updateCoverage(i, { plan_code: e.target.value || null })} className={ci} /></td>
                         <td><input value={c.item_label} onChange={e => updateCoverage(i, { item_label: e.target.value })} className={ci} /></td>
                         <td className="text-right pr-2"><input value={c.value_numeric != null ? String(c.value_numeric) : (c.value_text ?? '')} onChange={e => { const n = parseFloat(e.target.value.replace(/,/g, '')); updateCoverage(i, isFinite(n) && /^[\d.,]+$/.test(e.target.value) ? { value_numeric: n, value_text: null } : { value_numeric: null, value_text: e.target.value }) }} className={cn(ci, 'text-right w-32')} /></td>
-                        <td className="pr-2 text-right"><button onClick={() => setCoverage(prev => prev.filter((_, j) => j !== i))} className="text-muted-foreground/30 hover:text-rose-600"><Trash2 size={12} /></button></td>
+                        <td className="pr-2 text-right"><button onClick={() => setCoverage(prev => prev.filter((_, j) => j !== i))} className="text-muted-foreground/30 hover:text-[#c5221f]"><Trash2 size={12} /></button></td>
                       </tr>
                     ) : (
                       <tr key={i}>
@@ -423,7 +423,7 @@ export default function GbReviewPage() {
                         <td className="text-right pr-4 tabular-nums font-medium">{c.value_numeric != null ? c.value_numeric.toLocaleString('en-SG') : c.value_text}{c.unit ? ` ${c.unit}` : ''}</td>
                       </tr>
                     ))}
-                    {editable && <tr><td colSpan={6} className="pl-4"><button onClick={addCoverage} className="flex items-center gap-1 text-[11.5px] text-primary py-1"><Plus size={12} /> Add coverage row</button></td></tr>}
+                    {editable && <tr><td colSpan={6} className="pl-4"><button onClick={addCoverage} className="flex items-center gap-1 text-[11.5px] text-[#202124] py-1"><Plus size={12} /> Add coverage row</button></td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -454,12 +454,12 @@ export default function GbReviewPage() {
                         </td>
                         <td className="text-right pr-2 py-1">
                           <input value={b.value_text ?? ''} disabled={!editable} onChange={e => setBenefits(prev => prev.map((x, j) => j === i ? { ...x, value_text: e.target.value } : x))}
-                            className={cn('w-44 text-right text-[12px] px-2 py-1 rounded border bg-white focus:outline-none', editable ? 'border-transparent hover:border-border focus:border-primary/40' : 'border-transparent')} />
+                            className={cn('w-44 text-right text-[12px] px-2 py-1 rounded border bg-white focus:outline-none', editable ? 'border-transparent hover:border-border focus:border-[#202124]' : 'border-transparent')} />
                         </td>
-                        {editable && <td className="pr-2 text-right"><button onClick={() => setBenefits(prev => prev.filter((_, j) => j !== i))} className="text-muted-foreground/30 hover:text-rose-600"><Trash2 size={12} /></button></td>}
+                        {editable && <td className="pr-2 text-right"><button onClick={() => setBenefits(prev => prev.filter((_, j) => j !== i))} className="text-muted-foreground/30 hover:text-[#c5221f]"><Trash2 size={12} /></button></td>}
                       </tr>
                     ))}
-                    {editable && <tr><td colSpan={4} className="pl-4"><button onClick={addBenefit} className="flex items-center gap-1 text-[11.5px] text-primary py-1"><Plus size={12} /> Add benefit row</button></td></tr>}
+                    {editable && <tr><td colSpan={4} className="pl-4"><button onClick={addBenefit} className="flex items-center gap-1 text-[11.5px] text-[#202124] py-1"><Plus size={12} /> Add benefit row</button></td></tr>}
                   </tbody>
                 </table>
               </div>

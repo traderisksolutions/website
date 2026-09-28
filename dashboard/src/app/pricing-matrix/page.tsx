@@ -3,11 +3,17 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { FileSpreadsheet, FileText, Loader2, Plus, X, Calculator, Trash2, ShieldCheck, Hourglass, Tags } from 'lucide-react'
+import { FileSpreadsheet, FileText, Loader2, X, Trash2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-import { MetricCard, MetricGrid } from '@/components/shared/metric-card'
-import { StatusPill, CALCULATOR_STATUS } from '@/components/shared/status-pill'
-import { TableShell, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/shared/table-shell'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
+
+/**
+ * Pricing Matrix: every insurer's calculator, in Home's design system. One line on what the
+ * page is, the views as text, then the register: insurer over version and status, files,
+ * effective date, status in words, added. A row opens the calculator. Quotes, coverage
+ * comparison and terminology are the other views.
+ */
 
 type Calc = {
   id: string; insurer_name: string | null; label: string | null
@@ -16,130 +22,127 @@ type Calc = {
   created_at: string; approved_at: string | null
   change_summary: { text?: string } | null
 }
+const INK = '#202124'
+const MUTED = '#5f6368'
+const RULE = '#e8eaed'
+const STATUS_LABEL: Record<string, string> = { approved: 'Approved', in_review: 'In review', extracting: 'Extracting', draft: 'Draft', error: 'Needs attention', archived: 'Archived' }
 
 async function safeJson<T>(r: Response): Promise<T & { error?: string }> {
   try { return await r.json() } catch { return { error: `HTTP ${r.status}` } as T & { error?: string } }
 }
 
 export default function PricingMatrixPage() {
+  const router = useRouter()
   const [rows, setRows] = useState<Calc[]>([])
   const [pendingTerms, setPendingTerms] = useState(0)
   const [loading, setLoading] = useState(true)
   const [showUpload, setShowUpload] = useState(false)
+  const [q, setQ] = useState('')
 
   async function load() {
     setLoading(true)
-    const [calcRes, termsRes] = await Promise.all([
-      fetch('/api/pricing-matrix/calculators', { cache: 'no-store' }),
-      fetch('/api/pricing-matrix/taxonomy/synonyms?status=pending', { cache: 'no-store' }),
-    ])
+    const [calcRes, termsRes] = await Promise.all([fetch('/api/pricing-matrix/calculators', { cache: 'no-store' }), fetch('/api/pricing-matrix/taxonomy/synonyms?status=pending', { cache: 'no-store' })])
     setRows(calcRes.ok ? await calcRes.json() : [])
     setPendingTerms(termsRes.ok ? (await termsRes.json()).length : 0)
     setLoading(false)
   }
   useEffect(() => { load() }, [])
 
-  const approvedCount = rows.filter(r => r.status === 'approved').length
-  const inReviewCount = rows.filter(r => r.status === 'in_review' || r.status === 'extracting').length
-  const insurerCount = new Set(rows.filter(r => r.status === 'approved').map(r => r.insurer_name || r.label)).size
-
   const [deletingId, setDeletingId] = useState<string | null>(null)
   async function del(id: string, name: string) {
-    if (!window.confirm(`Delete "${name}"? This removes the calculator so you can re-upload/replace it. Quotes already generated keep their saved numbers.`)) return
+    if (!window.confirm(`Delete "${name}"? Quotes already generated keep their saved numbers.`)) return
     setDeletingId(id)
     try { await fetch(`/api/pricing-matrix/calculators/${id}`, { method: 'DELETE' }) } finally { setDeletingId(null); load() }
   }
+  const needle = q.trim().toLowerCase()
+  const shown = rows.filter(r => !needle || [r.insurer_name ?? '', r.label ?? '', r.xlsx_filename ?? ''].join(' ').toLowerCase().includes(needle))
+  const approved = rows.filter(r => r.status === 'approved').length
+  const inReview = rows.filter(r => r.status === 'in_review' || r.status === 'extracting').length
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-6">
-      <div className="flex items-start justify-between mb-1">
-        <div>
-          <h1 className="text-[19px] font-semibold text-foreground">Pricing Matrix</h1>
-          <p className="text-[12.5px] text-muted-foreground/80 mt-0.5">
-            Upload each insurer&rsquo;s Excel calculator (+ brochure). We map its input/output cells once, then
-            run the insurer&rsquo;s own formulas to quote a census — no rates are re-typed or re-derived.
-          </p>
+    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+      <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
+        <div className="flex items-end justify-between gap-6 flex-wrap">
+          <div className="min-w-0 max-w-[640px]">
+            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Pricing Matrix</h1>
+            <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>Each insurer's own calculator, mapped once. A quote runs the insurer's formulas on a census; nothing is re-typed.</p>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search insurers" aria-label="Search calculators" className="h-12 w-[220px] rounded-[12px] border bg-white px-4 text-[15px] outline-none focus:border-[#202124]" style={{ borderColor: '#dadce0' }} />
+            <Link href="/pricing-matrix/quote/new" className="h-12 px-5 rounded-[12px] bg-white text-[15px] border no-underline inline-flex items-center hover:bg-[#f8f9fa]" style={{ borderColor: '#dadce0', color: INK }}>New quote</Link>
+            <button type="button" onClick={() => setShowUpload(true)} className="h-12 px-6 rounded-[12px] text-white text-[15px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90" style={{ background: INK }}>Add calculator</button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href="/pricing-matrix/quote/new" className="flex items-center gap-2 text-[13px] font-semibold px-4 py-2 rounded-lg border border-primary/30 text-primary hover:bg-primary/5">
-            <Calculator size={15} /> New quote
-          </Link>
-          <button onClick={() => setShowUpload(true)} className="flex items-center gap-2 text-[13px] font-semibold px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90">
-            <Plus size={15} /> Add calculator
-          </button>
-        </div>
-      </div>
 
-      <div className="flex items-center gap-4 text-[12.5px] border-b border-border mt-4">
-        <span className="pb-2 border-b-2 border-primary text-foreground font-medium">Calculators</span>
-        <Link href="/pricing-matrix/quote" className="pb-2 border-b-2 border-transparent text-muted-foreground hover:text-foreground">Quotes</Link>
-        <Link href="/pricing-matrix/compare" className="pb-2 border-b-2 border-transparent text-muted-foreground hover:text-foreground">Compare coverage</Link>
-        <Link href="/pricing-matrix/taxonomy" className="pb-2 border-b-2 border-transparent text-muted-foreground hover:text-foreground">Terminology{pendingTerms > 0 && <span className="ml-1.5 inline-flex text-[10px] font-semibold px-1.5 py-0.5 rounded-[6px] bg-amber-100 text-amber-700">{pendingTerms}</span>}</Link>
-      </div>
+        <nav className="mt-8" aria-label="Views" style={{ borderBottom: `1px solid ${RULE}` }}>
+          <ul className="m-0 p-0 list-none flex items-center gap-7">
+            {[['/pricing-matrix', 'Calculators', true], ['/pricing-matrix/quote', 'Quotes', false], ['/pricing-matrix/compare', 'Compare coverage', false], ['/pricing-matrix/taxonomy', `Terminology${pendingTerms ? ` ${pendingTerms}` : ''}`, false]].map(([href, label, on]) => (
+              <li key={String(href)}><Link href={String(href)} aria-current={on ? 'page' : undefined} className={cn('relative block pb-3 text-[15px] no-underline', on ? 'font-medium' : 'hover:text-[#202124]')} style={{ color: on ? INK : MUTED }}>{String(label)}<span className={cn('absolute left-0 right-0 -bottom-px h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: INK }} aria-hidden /></Link></li>
+            ))}
+          </ul>
+        </nav>
 
-      {!loading && rows.length > 0 && (
-        <MetricGrid className="mt-5">
-          <MetricCard label="Approved insurers" value={insurerCount} icon={ShieldCheck} />
-          <MetricCard label="In review" value={inReviewCount} icon={Hourglass} sub={inReviewCount > 0 ? 'awaiting approval' : undefined} />
-          <MetricCard label="Pending terminology" value={pendingTerms} icon={Tags} sub={pendingTerms > 0 ? 'needs mapping' : 'all mapped'} />
-          <MetricCard label="Total calculators" value={rows.length} icon={FileSpreadsheet} />
-        </MetricGrid>
-      )}
+        <section className="mt-6 rounded-[20px] px-7 py-6" style={{ background: '#EAF2FF' }} aria-label="What's new">
+          <p className="m-0 text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: MUTED }}>What's new</p>
+          <h2 className="m-0 mt-2 text-[22px] font-medium tracking-[-0.02em]">Pricing Matrix 2.0 is being built.</h2>
+          <ul className="m-0 mt-3 pl-5 text-[14.5px] leading-relaxed flex flex-col gap-1" style={{ color: '#3c4043' }}>
+            <li><b className="font-medium" style={{ color: INK }}>Now:</b> upload a client's employee list as a spreadsheet, map its columns once, and rows that cannot be priced are flagged before any insurer is run.</li>
+            <li><b className="font-medium" style={{ color: INK }}>Now:</b> tiers per job grade (Director, Manager, Staff) re-price live as you change them.</li>
+            <li><b className="font-medium" style={{ color: INK }}>Next:</b> a value column — benefit limit per premium dollar — so price, premium and payout sit side by side and sort.</li>
+            <li><b className="font-medium" style={{ color: INK }}>Then:</b> saved scenarios exported side by side, a recommendation that cites its numbers, and the chosen quote becoming the debit note and policy without retyping.</li>
+          </ul>
+        </section>
 
-      <div className="mt-5">
+        <p className="m-0 mt-6 mb-3 text-[13.5px] tabular-nums" style={{ color: MUTED }}>{loading ? 'Loading…' : `${rows.length} calculator${rows.length === 1 ? '' : 's'} · ${approved} approved · ${inReview} in review${pendingTerms ? ` · ${pendingTerms} terms to map` : ''}`}</p>
+
         {loading ? (
-          <div className="flex items-center gap-2 text-[13px] text-muted-foreground py-16 justify-center"><Loader2 size={15} className="animate-spin" /> Loading…</div>
+          <div className="rounded-[16px] overflow-hidden bg-white" style={{ border: `1px solid ${RULE}` }} aria-busy="true">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-[60px] px-6 flex items-center" style={{ borderBottom: `1px solid ${RULE}` }}><span className="h-3.5 w-48 rounded bg-[#f1f3f4] animate-pulse" /></div>)}</div>
         ) : rows.length === 0 ? (
-          <div className="text-center text-muted-foreground py-16 border border-dashed border-border rounded-xl">
-            <FileSpreadsheet size={26} className="mx-auto mb-2 text-muted-foreground/40" />
-            <p className="text-sm">No calculators yet. Add an insurer&rsquo;s Excel calculator to begin.</p>
+          <div className="rounded-[20px] px-8 py-14 text-center" style={{ background: '#F5F5F3' }}>
+            <p className="m-0 text-[20px] font-medium">No calculators yet</p>
+            <p className="m-0 mt-2 text-[14.5px]" style={{ color: MUTED }}>Add an insurer's Excel calculator and brochure to begin.</p>
+            <button type="button" onClick={() => setShowUpload(true)} className="mt-5 h-11 px-6 rounded-[12px] text-white text-[15px] font-medium border-0 cursor-pointer" style={{ background: INK }}>Add calculator</button>
           </div>
         ) : (
-          <TableShell>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Insurer</TableHead>
-                <TableHead>Calculator file</TableHead>
-                <TableHead>Brochure</TableHead>
-                <TableHead>Effective</TableHead>
-                <TableHead>Ver.</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Added</TableHead>
-                <TableHead />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map(r => (
-                <TableRow key={r.id} className="group">
-                  <TableCell>
-                    <Link href={`/pricing-matrix/${r.id}`} className="font-medium text-foreground hover:text-primary">
-                      {r.insurer_name || r.label || 'Untitled'}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground/80"><span className="inline-flex items-center gap-1.5"><FileSpreadsheet size={13} className="text-emerald-600/70" />{r.xlsx_filename || '—'}</span></TableCell>
-                  <TableCell className="text-muted-foreground/60">{r.brochure_filename ? <span className="inline-flex items-center gap-1.5"><FileText size={13} className="text-rose-500/60" />{r.brochure_filename}</span> : '—'}</TableCell>
-                  <TableCell className="text-muted-foreground/70">{r.effective_date ?? '—'}</TableCell>
-                  <TableCell className="text-muted-foreground/70">
-                    v{r.version}
-                    {r.change_summary?.text && (
-                      <Link href={`/pricing-matrix/${r.id}`} title={r.change_summary.text} className="ml-1.5 inline-flex text-[10px] font-medium px-1.5 py-0.5 rounded-[6px] bg-indigo-50 text-indigo-600 hover:bg-indigo-100">changed</Link>
-                    )}
-                  </TableCell>
-                  <TableCell><StatusPill status={r.status} config={CALCULATOR_STATUS} /></TableCell>
-                  <TableCell className="text-muted-foreground/50">{new Date(r.created_at).toLocaleDateString('en-SG')}</TableCell>
-                  <TableCell className="text-right">
-                    <button onClick={() => del(r.id, r.insurer_name || r.label || 'this calculator')} disabled={deletingId === r.id}
-                      title="Delete calculator" className="text-muted-foreground/30 hover:text-rose-500 disabled:opacity-50 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                      {deletingId === r.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                    </button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </TableShell>
+          <Register label="Calculators" minWidth={880}>
+            <RegisterHead>
+              <RegisterTh first width={300}>Insurer</RegisterTh>
+              <RegisterTh>Calculator</RegisterTh>
+              <RegisterTh>Brochure</RegisterTh>
+              <RegisterTh align="right">Effective</RegisterTh>
+              <RegisterTh>Status</RegisterTh>
+              <RegisterTh align="right">Added</RegisterTh>
+              <RegisterTh last align="right"><span className="sr-only">Actions</span></RegisterTh>
+            </RegisterHead>
+            <tbody>
+              {shown.map(r => {
+                const name = r.insurer_name || r.label || 'Untitled'
+                return (
+                  <RegisterRow key={r.id} onClick={() => router.push(`/pricing-matrix/${r.id}`)}>
+                    <RegisterCell first primary={name} secondary={`v${r.version}${r.change_summary?.text ? ' · changed' : ''} · ${STATUS_LABEL[r.status] ?? r.status}`} title={r.change_summary?.text ?? name} />
+                    <RegisterCell className="max-w-[240px]">
+                      <span className="inline-flex items-center gap-1.5 text-[14px] max-w-full" style={{ color: '#3c4043' }}><FileSpreadsheet size={14} className="shrink-0" style={{ color: '#9aa0a6' }} /><span className="truncate" title={r.xlsx_filename ?? undefined}>{r.xlsx_filename || '—'}</span></span>
+                    </RegisterCell>
+                    <RegisterCell className="max-w-[240px]">
+                      {r.brochure_filename ? <span className="inline-flex items-center gap-1.5 text-[14px] max-w-full" style={{ color: '#3c4043' }}><FileText size={14} className="shrink-0" style={{ color: '#9aa0a6' }} /><span className="truncate" title={r.brochure_filename}>{r.brochure_filename}</span></span> : <span className="text-[14px]" style={{ color: '#9aa0a6' }}>No brochure</span>}
+                    </RegisterCell>
+                    <RegisterCell align="right" primary={r.effective_date ?? '—'} secondary={r.effective_date ? 'rates effective' : 'no effective date'} />
+                    <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>{STATUS_LABEL[r.status] ?? r.status}</span></RegisterCell>
+                    <RegisterCell align="right" primary={new Date(r.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} secondary={r.approved_at ? `approved ${new Date(r.approved_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}` : 'not yet approved'} />
+                    <RegisterCell last align="right">
+                      <span className="inline-flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                        <Link href={`/pricing-matrix/${r.id}`} onClick={e => e.stopPropagation()} className="inline-flex items-center h-8 px-3 rounded-[10px] bg-white text-[13px] border no-underline hover:bg-[#f8f9fa]" style={{ borderColor: '#dadce0', color: INK }}>Open</Link>
+                        <button type="button" onClick={() => del(r.id, name)} disabled={deletingId === r.id} aria-label={`Delete ${name}`} className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] bg-white text-[13px] border cursor-pointer hover:bg-[#f8f9fa] disabled:opacity-50" style={{ borderColor: '#dadce0', color: INK }}>{deletingId === r.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}Delete</button>
+                      </span>
+                    </RegisterCell>
+                  </RegisterRow>
+                )
+              })}
+              {shown.length === 0 && <RegisterEmpty colSpan={7}>No calculators match.</RegisterEmpty>}
+            </tbody>
+          </Register>
         )}
       </div>
-
       {showUpload && <UploadModal onClose={() => setShowUpload(false)} onDone={load} />}
     </div>
   )
@@ -154,6 +157,7 @@ function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }; document.addEventListener('keydown', k); return () => document.removeEventListener('keydown', k) }, [onClose])
 
   async function uploadOne(file: File, kind: 'xlsx' | 'pdf'): Promise<string> {
     const uu = await fetch('/api/pricing-matrix/calculators/upload-url', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filename: file.name, kind }) })
@@ -165,10 +169,9 @@ function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
     if (upErr) throw new Error(`Upload failed: ${upErr.message}`)
     return ud.path
   }
-
   async function submit() {
     if (!xlsx) { setError('Choose the calculator .xlsx'); return }
-    if (!xlsx.name.match(/\.(xlsx|xlsm|xls)$/i)) { setError('Calculator must be an Excel file (.xlsx, .xlsm or .xls)'); return }
+    if (!xlsx.name.match(/\.(xlsx|xlsm|xls)$/i)) { setError('The calculator must be an Excel file (.xlsx, .xlsm or .xls)'); return }
     setBusy(true); setError(null)
     try {
       setStatus('Uploading calculator…')
@@ -176,56 +179,35 @@ function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
       let brochure_path: string | undefined
       if (pdf) { setStatus('Uploading brochure…'); brochure_path = await uploadOne(pdf, 'pdf') }
       setStatus('Creating…')
-      const cr = await fetch('/api/pricing-matrix/calculators', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ xlsx_path, xlsx_filename: xlsx.name, brochure_path, brochure_filename: pdf?.name, insurer_name: insurer || null, effective_date: effDate || null }),
-      })
+      const cr = await fetch('/api/pricing-matrix/calculators', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ xlsx_path, xlsx_filename: xlsx.name, brochure_path, brochure_filename: pdf?.name, insurer_name: insurer || null, effective_date: effDate || null }) })
       const cd = await safeJson<{ id?: string }>(cr)
       if (!cr.ok || !cd.id) { setError(cd.error ?? 'Create failed'); return }
       onDone()
       router.push(`/pricing-matrix/${cd.id}?automap=1`)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Upload failed')
-    } finally { setBusy(false); setStatus(null) }
+    } catch (e) { setError(e instanceof Error ? e.message : 'Upload failed') } finally { setBusy(false); setStatus(null) }
   }
-
-  const drop = 'flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-border rounded-xl py-6 px-3 min-w-0 cursor-pointer hover:border-primary/40 text-center'
+  const drop = 'flex flex-col items-center justify-center gap-1.5 rounded-[12px] py-7 px-3 min-w-0 cursor-pointer text-center hover:bg-[#e8eaed]'
+  const inp = 'h-10 rounded-[10px] border bg-white px-3.5 text-[14px] outline-none focus:border-[#202124]'
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-xl bg-card shadow-2xl p-5 flex flex-col gap-3.5" onClick={e => e.stopPropagation()}>
-        <div className="flex items-start justify-between">
-          <div>
-            <h3 className="text-[15px] font-semibold text-foreground">Add insurer calculator</h3>
-            <p className="text-[11.5px] text-muted-foreground/70 mt-0.5">The Excel calculator is required; the brochure PDF is optional (used for wordings + recommendations).</p>
-          </div>
-          <button onClick={onClose} className="text-muted-foreground/50 hover:text-foreground"><X size={17} /></button>
+    <div className="fixed inset-0 z-[60] flex items-start justify-center px-4 pt-[12vh]" style={{ background: 'rgba(32,33,36,0.28)' }} onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div role="dialog" aria-modal="true" aria-labelledby="add-calc" className="w-full max-w-[560px] rounded-[16px] bg-white p-6" style={{ boxShadow: '0 24px 64px rgba(32,33,36,0.2)', color: INK }}>
+        <div className="flex items-start justify-between gap-3">
+          <div><h2 id="add-calc" className="m-0 text-[20px] font-medium">Add insurer calculator</h2><p className="m-0 mt-1 text-[13.5px]" style={{ color: MUTED }}>The Excel calculator is required. The brochure is optional and feeds wordings and recommendations.</p></div>
+          <button type="button" onClick={onClose} aria-label="Close" className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: MUTED }}><X size={16} /></button>
         </div>
-
-        <div className="grid grid-cols-2 gap-2.5">
-          <label className={drop}>
-            <FileSpreadsheet size={20} className="text-emerald-600/70 shrink-0" />
-            <span className="text-[12px] font-medium max-w-full truncate" title={xlsx?.name}>{xlsx ? xlsx.name : 'Calculator .xlsx *'}</span>
-            <input type="file" accept=".xlsx,.xlsm,.xls" className="hidden" onChange={e => setXlsx(e.target.files?.[0] ?? null)} />
-          </label>
-          <label className={drop}>
-            <FileText size={20} className="text-rose-500/60 shrink-0" />
-            <span className="text-[12px] font-medium max-w-full truncate" title={pdf?.name}>{pdf ? pdf.name : 'Brochure .pdf (optional)'}</span>
-            <input type="file" accept="application/pdf" className="hidden" onChange={e => setPdf(e.target.files?.[0] ?? null)} />
-          </label>
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <label className={drop} style={{ background: '#F1F3F4' }}><FileSpreadsheet size={20} style={{ color: '#3c4043' }} /><span className="text-[13px] font-medium max-w-full truncate" title={xlsx?.name}>{xlsx ? xlsx.name : 'Calculator .xlsx'}</span><span className="text-[12px]" style={{ color: MUTED }}>Required</span><input type="file" accept=".xlsx,.xlsm,.xls" className="hidden" onChange={e => setXlsx(e.target.files?.[0] ?? null)} /></label>
+          <label className={drop} style={{ background: '#F1F3F4' }}><FileText size={20} style={{ color: '#3c4043' }} /><span className="text-[13px] font-medium max-w-full truncate" title={pdf?.name}>{pdf ? pdf.name : 'Brochure .pdf'}</span><span className="text-[12px]" style={{ color: MUTED }}>Optional</span><input type="file" accept="application/pdf" className="hidden" onChange={e => setPdf(e.target.files?.[0] ?? null)} /></label>
         </div>
-
-        <div className="grid grid-cols-2 gap-2.5">
-          <input value={insurer} onChange={e => setInsurer(e.target.value)} placeholder="Insurer name (e.g. Steadfast MCare+)" className="text-[13px] border border-border rounded-md px-2.5 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-primary/25" />
-          <input value={effDate} onChange={e => setEffDate(e.target.value)} type="date" title="Rate effective date" className="text-[13px] border border-border rounded-md px-2.5 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-primary/25" />
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <input value={insurer} onChange={e => setInsurer(e.target.value)} placeholder="Insurer name" aria-label="Insurer name" className={inp} style={{ borderColor: '#dadce0' }} />
+          <input value={effDate} onChange={e => setEffDate(e.target.value)} type="date" aria-label="Rate effective date" className={inp} style={{ borderColor: '#dadce0' }} />
         </div>
-
-        {error && <p className="text-[12px] text-rose-600">{error}</p>}
-        <div className="flex items-center justify-end gap-2 mt-1">
-          {status && <span className="text-[12px] text-muted-foreground mr-auto flex items-center gap-1.5"><Loader2 size={13} className="animate-spin" />{status}</span>}
-          <button onClick={onClose} className="text-[13px] px-3 py-1.5 rounded-lg border border-border hover:bg-muted">Cancel</button>
-          <button onClick={submit} disabled={busy || !xlsx} className="flex items-center gap-1.5 text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-            {busy && <Loader2 size={14} className="animate-spin" />}{busy ? 'Working…' : 'Upload & map'}
-          </button>
+        {error && <p className="m-0 mt-3 text-[13px]" style={{ color: '#3c4043' }}>{error}</p>}
+        <div className="mt-5 flex items-center justify-end gap-2">
+          {status && <span className="text-[13px] mr-auto inline-flex items-center gap-1.5" style={{ color: MUTED }}><Loader2 size={13} className="animate-spin" />{status}</span>}
+          <button type="button" onClick={onClose} className="h-10 px-3.5 rounded-[10px] text-[14px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: INK }}>Cancel</button>
+          <button type="button" onClick={() => void submit()} disabled={busy || !xlsx} className="h-10 px-5 rounded-[10px] text-white text-[14px] font-medium border-0 cursor-pointer disabled:opacity-50" style={{ background: INK }}>{busy ? 'Working…' : 'Upload and map'}</button>
         </div>
       </div>
     </div>

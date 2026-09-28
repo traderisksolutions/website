@@ -1,18 +1,30 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef, Suspense, Fragment } from 'react'
+import { useEffect, useState, useCallback, Suspense, Fragment } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { RefreshCw, Search, X, Sparkles } from 'lucide-react'
+import { RefreshCw, Search, X } from 'lucide-react'
 import { Tip } from '@/components/Tip'
 import { cn } from '@/lib/utils'
-import { AppPageHeader } from '@/components/app-shell'
+import { Chip } from '@/components/crm/primitives'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { ChannelBadge }     from '@/components/inbound/channel-badge'
 import { StatusDropdown }   from '@/components/inbound/status-dropdown'
 import { LeadDetailPanel }  from '@/components/inbound/lead-detail-panel'
 import { InlineReplyRow, ReplyExpandButton } from '@/components/inbound/inline-reply-row'
 import type { Lead, Filter } from '@/components/inbound/types'
 import { WA_SOURCES, EMAIL_SOURCES, ALL_SOURCES } from '@/components/inbound/constants'
-import { channelOf, displayName, messagePreview, timeAgo } from '@/components/inbound/helpers'
+import { channelOf, messagePreview, timeAgo } from '@/components/inbound/helpers'
+
+const INK = '#202124'
+const MUTED = '#5f6368'
+
+/** The channel as a word, for the identity cell's second line when the lead has no company. */
+function channelLabel(source: string): string {
+  if (WA_SOURCES.has(source)) return 'WhatsApp'
+  if (source === 'website_form') return 'Website form'
+  if (source === 'manual') return 'Added manually'
+  return 'Email'
+}
 
 // ── API ───────────────────────────────────────────────────────────────────────
 
@@ -87,9 +99,9 @@ function InboundLeadsPage() {
   const emNew    = leads.filter(l => EMAIL_SOURCES.has(l.source) && l.status === 'new').length
 
   const FILTERS: { key: Filter; label: string; count: number; newCount: number }[] = [
-    { key: 'all',      label: 'All Leads',    count: leads.length, newCount: totalNew },
+    { key: 'all',      label: 'All leads',    count: leads.length, newCount: totalNew },
     { key: 'new',      label: 'New',          count: totalNew,     newCount: 0 },
-    { key: 'email',    label: 'Email / Form', count: emCount,      newCount: emNew },
+    { key: 'email',    label: 'Email / form', count: emCount,      newCount: emNew },
     { key: 'whatsapp', label: 'WhatsApp',     count: waCount,      newCount: waNew },
   ]
 
@@ -108,206 +120,192 @@ function InboundLeadsPage() {
   const selectedLead = leads.find(l => l.id === selectedId) ?? null
 
   return (
-    <div className="flex flex-col h-[calc(100vh/var(--ui-zoom))] overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh/var(--ui-zoom))] overflow-hidden bg-white" style={{ color: INK }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <AppPageHeader
-        title="Inbound Leads"
-        description="Enquiries from website forms and email"
-        actions={
+      <div className="flex-shrink-0 px-6 sm:px-12 pt-10">
+        <div className="flex items-end justify-between gap-6 flex-wrap">
+          <div className="min-w-0">
+            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Inbound leads</h1>
+            <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>
+              {loading ? 'Loading…' : `${leads.length} lead${leads.length !== 1 ? 's' : ''} from website forms, email and WhatsApp · ${totalNew} new`}
+            </p>
+          </div>
           <button
+            type="button"
             onClick={() => load(true)}
             aria-label="Refresh leads"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border bg-card text-[12px] font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors cursor-pointer"
-            style={{ outline: 'none' }}
+            className="h-12 px-5 rounded-[12px] bg-white text-[15px] inline-flex items-center gap-2 cursor-pointer hover:bg-[#f8f9fa] transition-colors"
+            style={{ border: '1px solid #dadce0', color: INK }}
           >
-            <RefreshCw
-              size={12}
-              strokeWidth={2}
-              className={refreshing ? 'animate-spin' : ''}
-            />
+            <RefreshCw size={15} className={refreshing ? 'animate-spin' : ''} />
             Refresh
           </button>
-        }
-      />
+        </div>
 
-      {/* ── KPI cards ──────────────────────────────────────────────────────── */}
-      {!loading && (
-        <div className="px-4 sm:px-6 py-3 bg-background flex-shrink-0 border-b border-[--border-subtle]">
-          <div className="kpi-grid grid-cols-2 sm:grid-cols-4">
-            <InboundStatCard label="Total Leads"  value={leads.length} color="#2563eb" />
-            <InboundStatCard label="New"          value={totalNew}     color="#2563eb" highlight />
-            <InboundStatCard label="Email / Form" value={emCount}      sub={emNew > 0 ? `${emNew} new` : undefined} color="#7c3aed" />
-            <InboundStatCard label="WhatsApp"     value={waCount}      sub={waNew > 0 ? `${waNew} new` : undefined} color="#0891b2" />
+        {/* ── Metric tiles: each one filters the list; the active filter gets an ink border ── */}
+        <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {loading
+            ? Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-[92px] rounded-[16px] bg-[#f1f3f4] animate-pulse" aria-hidden />)
+            : (
+              [
+                { key: 'all' as Filter,      label: 'Total leads',  value: leads.length, sub: undefined },
+                { key: 'new' as Filter,      label: 'New',          value: totalNew,     sub: undefined },
+                { key: 'email' as Filter,    label: 'Email / form', value: emCount,      sub: emNew > 0 ? `${emNew} new` : undefined },
+                { key: 'whatsapp' as Filter, label: 'WhatsApp',     value: waCount,      sub: waNew > 0 ? `${waNew} new` : undefined },
+              ].map(t => {
+                const on = filter === t.key
+                return (
+                  <button key={t.key} type="button" onClick={() => setFilter(t.key)} aria-pressed={on}
+                    className="text-left rounded-[16px] px-5 py-4 cursor-pointer transition-colors hover:bg-[#e8eaed]"
+                    style={{ background: '#f1f3f4', border: `1px solid ${on ? INK : '#f1f3f4'}` }}>
+                    <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>{t.label}</p>
+                    <p className="m-0 mt-2 text-[28px] font-medium tracking-[-0.02em] leading-none tabular-nums" style={{ color: INK }}>{t.value}</p>
+                    <p className="m-0 mt-1.5 text-[12.5px] min-h-[16px]" style={{ color: MUTED }}>{t.sub ?? ''}</p>
+                  </button>
+                )
+              })
+            )}
+        </div>
+
+        {/* ── Filter + search row ─────────────────────────────────────────── */}
+        <div className="mt-5 pb-4 flex items-center justify-between gap-3 flex-wrap" style={{ borderBottom: '1px solid #e8eaed' }}>
+          <div className="flex gap-1.5 flex-wrap" role="group" aria-label="Filter leads">
+            {FILTERS.map(f => (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setFilter(f.key)}
+                aria-pressed={filter === f.key}
+                className={cn('filter-pill', filter === f.key && 'active')}
+              >
+                {f.label}
+                <span className="text-[12px] tabular-nums opacity-70">{f.count}</span>
+              </button>
+            ))}
           </div>
-        </div>
-      )}
 
-      {/* ── Filter + search bar ─────────────────────────────────────────────── */}
-      <div className="px-4 sm:px-6 py-2 bg-background flex-shrink-0 border-b border-[--border-subtle] flex items-center gap-2 flex-wrap">
-        <div className="flex gap-1 flex-wrap" role="group" aria-label="Filter leads">
-          {FILTERS.map(f => (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              aria-pressed={filter === f.key}
-              className={cn('filter-pill', filter === f.key && 'active')}
-            >
-              {f.label}
-              <span className="filter-pill-count">{f.count}</span>
-              {f.newCount > 0 && (
-                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-primary opacity-70" />
-              )}
-            </button>
-          ))}
-        </div>
-
-        <div className="filter-search flex-1 max-w-[300px]">
-          <Search size={12} className="text-muted-foreground/50 flex-shrink-0" aria-hidden />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search name, email, phone, topic…"
-            aria-label="Search leads"
-          />
-          {search && (
-            <button
-              onClick={() => setSearch('')}
-              aria-label="Clear search"
-              className="text-muted-foreground/50 hover:text-muted-foreground"
-              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-            >
-              <X size={11} />
-            </button>
-          )}
+          <label className="relative flex-shrink-0 w-full sm:w-[300px]">
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#80868b' }} aria-hidden />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search name, email, phone, topic"
+              aria-label="Search leads"
+              className="h-10 w-full rounded-[10px] bg-white pl-10 pr-9 text-[14px] outline-none focus:border-[#202124] transition-colors placeholder:text-[#80868b]"
+              style={{ border: '1px solid #dadce0', color: INK }}
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                aria-label="Clear search"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]"
+                style={{ color: MUTED }}
+              >
+                <X size={12} />
+              </button>
+            )}
+          </label>
         </div>
       </div>
 
       {/* ── Content ────────────────────────────────────────────────────────── */}
-      <div className="flex-1 flex overflow-hidden px-4 sm:px-6 pb-6 gap-4 bg-background">
+      <div className="flex-1 flex overflow-hidden px-6 sm:px-12 pb-8 pt-4 gap-6 bg-white">
 
         {/* Table / card list */}
         <div
           className={cn(
-            'flex-1 overflow-y-auto bg-card rounded-lg',
+            'flex-1 overflow-y-auto min-w-0',
             selectedId ? 'hidden sm:flex sm:flex-col overflow-x-auto' : 'overflow-x-auto',
           )}
         >
           {loading ? (
-            <div className="py-16 text-center text-[13px] text-muted-foreground/50">Loading…</div>
-          ) : error ? (
-            <div className="py-16 text-center text-[13px] text-destructive">{error}</div>
-          ) : filtered.length === 0 ? (
-            <div className="py-16 text-center text-[13px] text-muted-foreground/50">
-              {search ? `No leads matching "${search}"` : 'No leads yet.'}
+            <div aria-busy="true">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-12 flex items-center gap-8" style={{ borderBottom: '1px solid #e8eaed' }}>
+                  <span className="h-3.5 w-20 rounded bg-[#f1f3f4] animate-pulse" />
+                  <span className="h-3.5 w-40 rounded bg-[#f1f3f4] animate-pulse" />
+                  <span className="h-3.5 w-24 rounded bg-[#f1f3f4] animate-pulse ml-auto" />
+                </div>
+              ))}
             </div>
+          ) : error ? (
+            <p className="py-16 text-center text-[16px] m-0" style={{ color: MUTED }}>
+              {error} <button type="button" onClick={() => load(true)} className="underline bg-transparent border-0 cursor-pointer p-0 text-[16px]" style={{ color: INK }}>Retry</button>
+            </p>
+          ) : filtered.length === 0 ? (
+            <p className="py-16 text-center text-[16px] m-0" style={{ color: MUTED }}>
+              {search ? `No leads match “${search}”.` : 'No leads yet.'}
+            </p>
           ) : (
             <>
-              {/* ── Desktop table (≥640px) ── */}
-              <table className="hidden sm:table w-full border-collapse text-[13px] min-w-[760px]">
-                <thead>
-                  <tr className="border-b border-[--border-subtle] sticky top-0 z-[1] bg-card">
-                    <Th w={110}>
-                      Channel{' '}
-                      <Tip text="Shows where this lead came from — Website = contact form, Email = direct email, WhatsApp = click-to-chat button. Manual means a team member added them." />
-                    </Th>
-                    <Th w={120}>First Name</Th>
-                    <Th w={120}>Last Name</Th>
-                    <Th w={150}>Company</Th>
-                    <Th w={160}>Topic</Th>
-                    <Th>Message</Th>
-                    <Th w={130}>
-                      Status{' '}
-                      <Tip text="Tracks where this lead sits in your pipeline, from New (not yet replied) to Converted (policy placed). Update this as conversations progress." />
-                    </Th>
-                    <Th w={90} right>Time</Th>
-                    <Th w={40} right>
-                      <Tip text="Click to expand and draft a reply email inline." />
-                    </Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map(lead => {
-                    const isActive   = lead.id === selectedId
-                    const isExpanded = lead.id === expandedId
-                    const isEmail    = channelOf(lead) === 'email' && !!lead.email
-                    const msg        = messagePreview(lead)
-                    return (
-                      <Fragment key={lead.id}>
-                        <tr
-                          onClick={() => setSelectedId(lead.id === selectedId ? null : lead.id)}
-                          className={cn(
-                            'border-b transition-colors cursor-pointer',
-                            isActive ? 'bg-primary/5' : isExpanded ? '' : 'hover:bg-muted/50',
-                          )}
-                          style={{
-                            background:  isExpanded && !isActive ? 'var(--primary-light-bg)' : undefined,
-                            borderLeft: `3px solid ${isActive ? 'hsl(var(--primary))' : isExpanded ? 'var(--primary-hex)' : 'transparent'}`,
-                          }}
-                        >
-                          <td className="px-3.5 py-2.5 align-middle">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              {lead.status === 'new' && (
-                                <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" aria-label="New lead" />
-                              )}
-                              <ChannelBadge source={lead.source} />
-                              {lead.ai_draft_id && (
-                                <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 whitespace-nowrap">
-                                  <Sparkles size={8} aria-hidden />AI
+              {/* ── Desktop register (≥640px) ── */}
+              <div className="hidden sm:block">
+                <Register label="Inbound leads" minWidth={880}>
+                  <RegisterHead>
+                    <RegisterTh first>
+                      Name
+                      <Tip text="Second line is the company, or the channel when there is none. Website = contact form. Email = direct email. WhatsApp = click-to-chat. Manual = added by the team." />
+                    </RegisterTh>
+                    <RegisterTh hint="Topic or department the lead asked about">Topic</RegisterTh>
+                    <RegisterTh hint="First line of the message">Message</RegisterTh>
+                    <RegisterTh>
+                      Status
+                      <Tip text="New = not yet replied. Converted = policy placed. Update as the conversation moves." />
+                    </RegisterTh>
+                    <RegisterTh align="right" hint="When the lead arrived">Received</RegisterTh>
+                    <RegisterTh last align="right" width={56}><span className="sr-only">Reply</span></RegisterTh>
+                  </RegisterHead>
+                  <tbody>
+                    {filtered.map(lead => {
+                      const isActive   = lead.id === selectedId
+                      const isExpanded = lead.id === expandedId
+                      const isEmail    = channelOf(lead) === 'email' && !!lead.email
+                      const msg        = messagePreview(lead)
+                      const name       = [lead.first_name, lead.last_name].filter(Boolean).join(' ') || lead.email || '—'
+                      return (
+                        <Fragment key={lead.id}>
+                          <RegisterRow
+                            selected={isActive}
+                            onClick={() => setSelectedId(lead.id === selectedId ? null : lead.id)}
+                            className={cn(!isActive && isExpanded && 'bg-[#f8f9fa]')}
+                          >
+                            <RegisterCell first selected={isActive} title={lead.email ?? name} className={cn(!isActive && isExpanded && 'bg-[#f8f9fa]')}
+                              primary={<span className="inline-flex items-center gap-2 max-w-full"><span className="truncate min-w-0">{name}</span>{lead.ai_draft_id && <Chip title="AI draft ready">AI draft</Chip>}</span>}
+                              secondary={lead.company || channelLabel(lead.source)} />
+                            <RegisterCell className="max-w-[200px]"><span className="block truncate text-[14px]" style={{ color: '#3c4043' }}>{lead.topic || lead.department || '—'}</span></RegisterCell>
+                            <RegisterCell className="max-w-[320px]"><span className="block truncate text-[13.5px]" style={{ color: MUTED }}>{msg || '—'}</span></RegisterCell>
+                            <RegisterCell><span onClick={e => e.stopPropagation()}><StatusDropdown lead={lead} onChange={handleStatus} /></span></RegisterCell>
+                            <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: INK }}>{timeAgo(lead.created_at)}</span></RegisterCell>
+                            <RegisterCell last align="right">
+                              {isEmail && (
+                                <span onClick={e => e.stopPropagation()}>
+                                  <ReplyExpandButton
+                                    isExpanded={isExpanded}
+                                    onClick={e => { e.stopPropagation(); setExpandedId(isExpanded ? null : lead.id) }}
+                                  />
                                 </span>
                               )}
-                            </div>
-                          </td>
-                          <td className="px-3 py-2.5 align-middle">
-                            <span className={cn('text-foreground', lead.status === 'new' ? 'font-semibold' : 'font-normal')}>
-                              {lead.first_name || '—'}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2.5 align-middle">
-                            <span className={cn('text-foreground', lead.status === 'new' ? 'font-semibold' : 'font-normal')}>
-                              {lead.last_name || '—'}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2.5 align-middle text-muted-foreground max-w-0">
-                            <span className="block overflow-hidden text-ellipsis whitespace-nowrap">{lead.company || '—'}</span>
-                          </td>
-                          <td className="px-3 py-2.5 align-middle text-muted-foreground max-w-0">
-                            <span className="block overflow-hidden text-ellipsis whitespace-nowrap">{lead.topic || lead.department || '—'}</span>
-                          </td>
-                          <td className="px-3 py-2.5 align-middle text-muted-foreground/60 max-w-0 text-[12px]">
-                            <span className="block overflow-hidden text-ellipsis whitespace-nowrap">{msg || '—'}</span>
-                          </td>
-                          <td className="px-3 py-2.5 align-middle" onClick={e => e.stopPropagation()}>
-                            <StatusDropdown lead={lead} onChange={handleStatus} />
-                          </td>
-                          <td className="px-3.5 py-2.5 align-middle text-right text-muted-foreground/50 text-[11px] whitespace-nowrap">
-                            {timeAgo(lead.created_at)}
-                          </td>
-                          <td className="px-2 py-2.5 align-middle text-right" onClick={e => e.stopPropagation()}>
-                            {isEmail && (
-                              <ReplyExpandButton
-                                isExpanded={isExpanded}
-                                onClick={e => { e.stopPropagation(); setExpandedId(isExpanded ? null : lead.id) }}
-                              />
-                            )}
-                          </td>
-                        </tr>
+                            </RegisterCell>
+                          </RegisterRow>
 
-                        {isExpanded && isEmail && (
-                          <InlineReplyRow
-                            lead={lead}
-                            onStatus={handleStatus}
-                            onCollapse={() => setExpandedId(null)}
-                          />
-                        )}
-                      </Fragment>
-                    )
-                  })}
-                </tbody>
-              </table>
+                          {isExpanded && isEmail && (
+                            <InlineReplyRow
+                              lead={lead}
+                              onStatus={handleStatus}
+                              onCollapse={() => setExpandedId(null)}
+                            />
+                          )}
+                        </Fragment>
+                      )
+                    })}
+                  </tbody>
+                </Register>
+              </div>
 
               {/* ── Mobile card list (<640px) ── */}
-              <div className="sm:hidden divide-y divide-border">
+              <div className="sm:hidden">
                 {filtered.map(lead => {
                   const isActive = lead.id === selectedId
                   const msg      = messagePreview(lead)
@@ -315,30 +313,24 @@ function InboundLeadsPage() {
                     <div
                       key={lead.id}
                       onClick={() => setSelectedId(lead.id === selectedId ? null : lead.id)}
-                      className={cn('px-4 py-3 cursor-pointer', isActive ? 'bg-primary/5' : '')}
-                      style={{ borderLeft: `3px solid ${isActive ? 'hsl(var(--primary))' : 'transparent'}` }}
+                      className={cn('px-1 py-3 cursor-pointer', isActive ? 'bg-[#f1f3f4]' : '')}
+                      style={{ borderBottom: '1px solid #e8eaed' }}
                     >
                       <div className="flex items-center gap-2 mb-1">
-                        {lead.status === 'new' && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" aria-label="New lead" />
-                        )}
                         <ChannelBadge source={lead.source} />
-                        <span className={cn(
-                          'flex-1 text-[13px] truncate',
-                          lead.status === 'new' ? 'font-semibold text-foreground' : 'text-foreground',
-                        )}>
+                        <span className={cn('flex-1 text-[14px] truncate', lead.status === 'new' ? 'font-medium' : '')} style={{ color: INK }}>
                           {[lead.first_name, lead.last_name].filter(Boolean).join(' ') || '—'}
                         </span>
-                        <span className="text-[11px] text-muted-foreground/50 flex-shrink-0">
+                        <span className="text-[12.5px] flex-shrink-0 tabular-nums" style={{ color: MUTED }}>
                           {timeAgo(lead.created_at)}
                         </span>
                       </div>
                       {(lead.company || lead.topic || lead.department) && (
-                        <p className="text-[12px] text-muted-foreground truncate mb-1">
+                        <p className="text-[13px] truncate m-0 mb-1" style={{ color: '#3c4043' }}>
                           {[lead.company, lead.topic ?? lead.department].filter(Boolean).join(' · ')}
                         </p>
                       )}
-                      {msg && <p className="text-[12px] text-muted-foreground/60 truncate mb-1.5">{msg}</p>}
+                      {msg && <p className="text-[13px] truncate m-0 mb-2" style={{ color: MUTED }}>{msg}</p>}
                       <div onClick={e => e.stopPropagation()}>
                         <StatusDropdown lead={lead} onChange={handleStatus} />
                       </div>
@@ -350,7 +342,7 @@ function InboundLeadsPage() {
           )}
 
           {!loading && filtered.length > 0 && (
-            <p className="px-5 py-3 text-[11px] text-muted-foreground/40 m-0">
+            <p className="py-3 text-[12.5px] m-0" style={{ color: MUTED }}>
               {filtered.length} lead{filtered.length !== 1 ? 's' : ''} · {totalNew} new
             </p>
           )}
@@ -358,11 +350,13 @@ function InboundLeadsPage() {
 
         {/* ── Detail panel ───────────────────────────────────────────────────── */}
         {selectedLead && (
-          <div className="w-full sm:w-80 sm:flex-shrink-0 bg-card rounded-lg overflow-y-auto border border-[--border-subtle]">
+          <div className="w-full sm:w-80 sm:flex-shrink-0 bg-white rounded-[16px] overflow-y-auto" style={{ border: '1px solid #e8eaed' }}>
             <button
+              type="button"
               onClick={() => setSelectedId(null)}
               aria-label="Back to leads list"
-              className="sm:hidden flex items-center gap-1.5 px-4 pt-3 pb-1 text-[12px] text-muted-foreground bg-transparent border-0 cursor-pointer"
+              className="sm:hidden flex items-center gap-1.5 px-4 pt-3 pb-1 text-[14px] bg-transparent border-0 cursor-pointer"
+              style={{ color: MUTED }}
             >
               ← Back to list
             </button>
@@ -389,57 +383,3 @@ export default function InboundLeadsPageWrapper() {
   )
 }
 
-// ── Table header cell ─────────────────────────────────────────────────────────
-
-function Th({ children, w, right }: { children?: React.ReactNode; w?: number | string; right?: boolean }) {
-  return (
-    <th
-      scope="col"
-      className={cn(
-        'h-9 px-3 align-middle text-[10.5px] font-semibold uppercase tracking-[0.05em] text-muted-foreground whitespace-nowrap',
-        'bg-muted/30 border-b border-[--border-subtle]',
-        right ? 'text-right' : 'text-left',
-      )}
-      style={{ width: w }}
-    >
-      {children}
-    </th>
-  )
-}
-
-// ── Inbound KPI card ──────────────────────────────────────────────────────────
-// Uses the .kpi-* global classes from globals.css — intentional design system usage.
-// The `highlight` variant creates a solid colour card for the "New" hero metric.
-
-function InboundStatCard({
-  label, value, sub, color, highlight,
-}: {
-  label: string; value: number; sub?: string; color: string; highlight?: boolean
-}) {
-  return (
-    <div
-      className="kpi-card"
-      style={highlight ? { background: color, borderColor: color, boxShadow: `0 2px 8px ${color}30` } : undefined}
-    >
-      <p className="kpi-label" style={highlight ? { color: 'rgba(255,255,255,0.80)' } : undefined}>
-        {label}
-      </p>
-      <div className="flex items-baseline gap-2">
-        <span className="kpi-value" style={highlight ? { color: '#fff' } : undefined}>
-          {value}
-        </span>
-        {sub && (
-          <span
-            className="text-[11px] font-semibold px-1.5 py-0.5 rounded"
-            style={{
-              color:      highlight ? 'rgba(255,255,255,0.75)' : color,
-              background: highlight ? 'rgba(255,255,255,0.20)' : `${color}18`,
-            }}
-          >
-            {sub}
-          </span>
-        )}
-      </div>
-    </div>
-  )
-}

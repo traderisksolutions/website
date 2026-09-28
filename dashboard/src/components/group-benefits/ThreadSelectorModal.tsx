@@ -58,14 +58,14 @@ export function ThreadSelectorModal({ onPick, onClose, busyLabel }: {
                 <li key={l.id}>
                   <button disabled={!!busyLabel} onClick={() => { setPickedId(l.id); onPick(l.id) }}
                     className={cn('w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-left hover:bg-muted/50 disabled:opacity-60',
-                      pickedId === l.id && 'bg-primary/5')}>
+                      pickedId === l.id && 'bg-[#f1f3f4]')}>
                     <span className="min-w-0">
                       <span className="block text-[12.5px] font-medium text-foreground truncate">{name(l)}</span>
                       <span className="block text-[11px] text-muted-foreground/70 truncate">{l.email}{l.company ? ` · ${l.company}` : ''}</span>
                     </span>
-                    <span className="flex items-center gap-1.5 shrink-0 text-[10px] font-semibold uppercase tracking-wide">
-                      {pickedId === l.id && busyLabel ? <Loader2 size={13} className="animate-spin text-primary" />
-                        : l.thread_id ? <span className="inline-flex items-center gap-1 text-primary"><MessageSquare size={12} /> Thread</span>
+                    <span className="flex items-center gap-1.5 shrink-0 text-[12.5px]">
+                      {pickedId === l.id && busyLabel ? <Loader2 size={13} className="animate-spin text-[#202124]" />
+                        : l.thread_id ? <span className="inline-flex items-center gap-1 text-[#202124]"><MessageSquare size={12} /> Thread</span>
                         : <span className="inline-flex items-center gap-1 text-muted-foreground/50"><Mail size={12} /> New</span>}
                     </span>
                   </button>

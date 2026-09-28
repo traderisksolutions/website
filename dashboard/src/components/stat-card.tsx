@@ -17,42 +17,40 @@ interface StatCardProps {
   className?: string
 }
 
+// State is not colour-coded: every accent resolves to the same grey field and ink number.
 const ACCENT: Record<AccentColor, { bg: string; valueColor: string }> = {
-  blue:  { bg: 'rgba(15,61,145,0.05)',  valueColor: '#0F3D91' },
-  green: { bg: 'rgba(15,138,95,0.06)',  valueColor: '#0F8A5F' },
-  amber: { bg: 'rgba(194,122,7,0.06)',  valueColor: '#C27A07' },
-  red:   { bg: 'rgba(194,65,77,0.06)', valueColor: '#C2414D' },
+  blue:  { bg: '#f1f3f4', valueColor: '#202124' },
+  green: { bg: '#f1f3f4', valueColor: '#202124' },
+  amber: { bg: '#f1f3f4', valueColor: '#202124' },
+  red:   { bg: '#f1f3f4', valueColor: '#202124' },
 }
 
 export function StatCard({
   label, value, sublabel, href, urgent, loading, accent, icon: Icon, tooltip, className,
 }: StatCardProps) {
   const ac = accent ? ACCENT[accent] : null
-  const valueColor = ac ? ac.valueColor : (urgent ? '#0F3D91' : undefined)
+  const valueColor = '#202124'; void ac; void urgent
 
   const card = (
     <div
       className={cn(
-        'relative rounded-lg bg-card px-5 py-4 transition-shadow',
-        href && 'hover:shadow-[var(--shadow-panel)]',
+        'relative rounded-[16px] px-5 py-4 transition-colors',
+        href && 'hover:bg-[#e8eaed]',
         className,
       )}
-      style={{
-        boxShadow: 'var(--card-shadow)',
-        background: ac ? ac.bg : undefined,
-      }}
+      style={{ background: '#f1f3f4' }}
     >
       {/* Label + icon */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1">
-          <p className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">
+          <p className="m-0 text-[12.5px]" style={{ color: '#5f6368' }}>
             {label}
           </p>
           {tooltip && <Tip text={tooltip} />}
         </div>
         {Icon && (
           <Icon
-            className="h-4 w-4 text-muted-foreground/50 flex-shrink-0"
+            className="h-4 w-4 flex-shrink-0" style={{ color: '#9aa0a6' }}
             strokeWidth={1.8}
           />
         )}
@@ -66,7 +64,7 @@ export function StatCard({
         />
       ) : (
         <p
-          className="text-2xl font-bold tracking-tight leading-none mb-1"
+          className="m-0 text-[28px] font-medium tracking-[-0.02em] leading-none mb-1 tabular-nums"
           style={{ color: valueColor }}
         >
           {value}
@@ -75,7 +73,7 @@ export function StatCard({
 
       {/* Sub-label */}
       {sublabel && (
-        <p className="text-[11px] text-muted-foreground leading-tight">{sublabel}</p>
+        <p className="m-0 text-[12.5px] leading-tight" style={{ color: '#5f6368' }}>{sublabel}</p>
       )}
     </div>
   )

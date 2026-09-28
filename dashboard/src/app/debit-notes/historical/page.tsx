@@ -10,15 +10,16 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { CompanyContactPicker, type PickerValue } from '@/components/company-contact-picker/CompanyContactPicker'
+import { useAutoMatchCompany } from '@/components/company-contact-picker/useAutoMatchCompany'
 import { SendDocumentsModal, type SendDocumentsTarget } from '@/components/debit-notes/SendDocumentsModal'
 import type { ExtractedDebitNote, DocType } from '@/lib/debit-note-extract'
 
 export default function HistoricalDebitNotePage() {
   return (
-    <div className="max-w-4xl mx-auto px-6 py-6">
-      <Link href="/debit-notes" className="inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground hover:text-foreground mb-3"><ArrowLeft size={14} /> Debit Notes</Link>
-      <h1 className="text-[18px] font-semibold text-foreground mb-1">Generate Historical Debit Note</h1>
-      <p className="text-[12.5px] text-muted-foreground mb-4">
+    <div className="max-w-[1100px] mx-auto px-6 sm:px-12 pt-10 pb-20" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: '#202124' }}>
+      <Link href="/debit-notes" className="inline-flex items-center gap-1.5 text-[13.5px] text-[#5f6368] hover:text-[#202124] no-underline mb-4"><ArrowLeft size={14} /> Debit Notes</Link>
+      <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08] text-[#202124] mb-2">Generate historical debit note</h1>
+      <p className="m-0 text-[15px] text-[#5f6368] mb-6 max-w-[72ch]">
         For backfilling records from before this system existed — bulk-upload old PDFs (one .zip
         per event, several at once) with all three document types, including a pre-existing TRS
         debit note.
@@ -188,7 +189,7 @@ function BulkUploadSection() {
       <div className="mb-6 rounded-lg border border-[--border-subtle] p-3">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1.5 text-[12.5px] font-medium">
-            {onedrive?.connected ? <Cloud size={14} className="text-blue-600" /> : <CloudOff size={14} className="text-muted-foreground" />}
+            {onedrive?.connected ? <Cloud size={14} className="text-[#202124]" /> : <CloudOff size={14} className="text-muted-foreground" />}
             OneDrive {onedrive?.connected ? `— connected (${onedrive.email ?? 'unknown account'})` : '— not connected'}
           </div>
           {!onedrive?.connected && (
@@ -223,7 +224,7 @@ function BulkUploadSection() {
           <Loader2 size={13} className="animate-spin" /> Uploading {progress.done}/{progress.total}…
         </div>
       )}
-      {error && <p className="mb-6 text-[11.5px] text-rose-600 whitespace-pre-wrap">{error}</p>}
+      {error && <p className="mb-6 text-[11.5px] text-[#3c4043] whitespace-pre-wrap">{error}</p>}
       {inFlight.length > 0 && (
         <div className="mb-4 flex flex-col gap-1.5">
           {inFlight.map(b => (
@@ -235,7 +236,7 @@ function BulkUploadSection() {
               <button
                 onClick={() => cancelBundle(b.id)}
                 disabled={cancelling === b.id}
-                className="flex-shrink-0 text-[11px] text-rose-600 hover:underline disabled:opacity-50"
+                className="flex-shrink-0 text-[11px] text-[#3c4043] hover:underline disabled:opacity-50"
               >
                 {cancelling === b.id ? 'Cancelling…' : 'Cancel'}
               </button>
@@ -244,11 +245,11 @@ function BulkUploadSection() {
         </div>
       )}
 
-      <h2 className="text-[13px] font-semibold mb-2">Review queue {needsReview.length > 0 && `(${needsReview.length})`}</h2>
+      <h2 className="m-0 text-[22px] font-medium tracking-[-0.02em] mb-3">Review queue {needsReview.length > 0 && `(${needsReview.length})`}</h2>
       {loadingBundles ? (
         <p className="text-[12.5px] text-muted-foreground">Loading…</p>
       ) : needsReview.length === 0 ? (
-        <p className="text-[12.5px] text-muted-foreground py-6 text-center border border-dashed border-[--border-subtle] rounded-xl">Nothing waiting on review.</p>
+        <p className="text-[14px] text-[#5f6368] py-10 text-center rounded-[16px]" style={{ background: '#F5F5F3' }}>Nothing waiting on review.</p>
       ) : (
         <div className="flex flex-col gap-3">
           {needsReview.map(b => <BundleReviewCard key={b.id} bundle={b} onResolved={loadBundles} />)}
@@ -259,9 +260,9 @@ function BulkUploadSection() {
 }
 
 // ── Bundle review card ──────────────────────────────────────────────────────────────────────
-const inp = 'text-[12.5px] border border-border rounded-md px-2 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-primary/25 w-full'
+const inp = 'h-10 text-[14px] text-[#202124] border border-[#dadce0] rounded-[10px] px-3 bg-white focus:outline-none focus:border-[#202124] w-full'
 type EventType = 'new_business' | 'renewal' | 'endorsement'
-type PolicyLookup = { id: string; startDate: string | null; endDate: string | null; hasDebitNotes: boolean } | null
+type PolicyLookup = { id: string; policyNumber: string | null; classOfInsurance: string | null; startDate: string | null; endDate: string | null; hasDebitNotes: boolean; matchedBy: 'number' | 'base' | 'term' } | null
 type ApprovedResult = { debitNoteId: string; debitNoteNo: string; downloadUrl: string; driveFolderUrl: string | null }
 
 function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: () => void }) {
@@ -269,6 +270,9 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
   const [recipient, setRecipient] = useState<PickerValue | null>(
     bundle.companies ? { companyId: bundle.companies.id, companyName: bundle.companies.name, contactId: null, contactEmail: null, contactName: null } : null,
   )
+  // The extracted client name picks the company when it matches one exactly; otherwise it
+  // prefills the picker below so the reviewer confirms or creates in one click.
+  useAutoMatchCompany(m?.client_name, recipient, setRecipient)
   const [debitNoteNo, setDebitNoteNo] = useState(m?.debit_note_no ?? '')
   const [policyNumber, setPolicyNumber] = useState(m?.policy_number ?? '')
   const [coverNoteNo, setCoverNoteNo] = useState(m?.cover_note_no ?? '')
@@ -289,6 +293,8 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
   const [eventType, setEventType] = useState<EventType>('new_business')
   const [eventTypeTouched, setEventTypeTouched] = useState(false)
   const [endorsementEffectiveDate, setEndorsementEffectiveDate] = useState('')
+  /** The main policy this endorsement amends; the debit note attaches to it and keeps its renewal date. */
+  const [masterPolicy, setMasterPolicy] = useState<PolicyLookup | null>(null)
   const [busy, setBusy] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -323,6 +329,25 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
     }, 500)
     return () => clearTimeout(t)
   }, [policyNumber, periodStart, periodEnd, eventTypeTouched])
+
+  // An endorsement is an amendment to the main policy: find it (same base number, or the one
+  // policy with the same term end and class) so the debit note attaches to it instead of
+  // creating a second policy with a second renewal.
+  useEffect(() => {
+    if (eventType !== 'endorsement' || !recipient?.companyId) { setMasterPolicy(null); return }
+    const t = setTimeout(async () => {
+      try {
+        const qs = new URLSearchParams({ company_id: recipient.companyId! })
+        if (policyNumber.trim()) qs.set('policy_number', policyNumber.trim())
+        if (classOfInsurance.trim()) qs.set('class_of_insurance', classOfInsurance.trim())
+        if (periodEnd) qs.set('period_end', periodEnd)
+        const res = await fetch(`/api/policies/lookup?${qs}`, { cache: 'no-store' })
+        const found = res.ok ? await res.json() as PolicyLookup | null : null
+        setMasterPolicy(found && found.id ? found : null)
+      } catch { setMasterPolicy(null) }
+    }, 400)
+    return () => clearTimeout(t)
+  }, [eventType, recipient?.companyId, policyNumber, classOfInsurance, periodEnd])
 
   function currentMerged(): ExtractedDebitNote {
     return {
@@ -361,7 +386,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
         body: JSON.stringify({
           company: { companyId: recipient.companyId },
           contact: recipient.contactId ? { contactId: recipient.contactId } : null,
-          policy: {
+          policy: eventType === 'endorsement' && masterPolicy ? { policyId: masterPolicy.id } : {
             policyNumber: policyNumber || null, coverNoteNo: coverNoteNo || null, insurer,
             classOfInsurance: classOfInsurance || null, currency, description: description || null,
             startDate: periodStart || null, endDate: periodEnd || null,
@@ -411,10 +436,10 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
 
   if (approved) {
     return (
-      <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4 flex flex-col items-center gap-3 text-center">
-        <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center"><CheckCircle2 size={20} className="text-emerald-600" /></div>
+      <div className="rounded-[16px] p-6 flex flex-col items-center gap-3 text-center" style={{ background: '#EAF6EC' }}>
+        <div className="w-10 h-10 rounded-full bg-[#f1f3f4] flex items-center justify-center"><CheckCircle2 size={20} className="text-[#202124]" /></div>
         <p className="text-[14px] font-semibold">Debit Note {approved.debitNoteNo} generated</p>
-        <p className="text-[11.5px] text-emerald-700 -mt-1.5">
+        <p className="text-[11.5px] text-[#202124] -mt-1.5">
           This debit note and its documents are now saved in your Debit Notes records
           {approved.driveFolderUrl ? (
             <> and <a href={approved.driveFolderUrl} target="_blank" rel="noreferrer" className="underline hover:no-underline">archived to Google Drive</a>.</>
@@ -431,28 +456,28 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
   }
 
   return (
-    <div className={`rounded-xl border p-3.5 flex flex-col gap-3 ${bundle.status === 'error' ? 'border-rose-200 bg-rose-50/30' : 'border-[--border-subtle]'}`}>
+    <div className="rounded-[16px] p-5 flex flex-col gap-4" style={{ border: '1px solid #e8eaed' }}>
       <div className="flex flex-wrap items-center gap-2">
         {bundle.pdf_import_items.map(it => (
           <a key={it.id} href={`/api/debit-notes/imports/items/${it.id}/pdf`} target="_blank" rel="noreferrer"
             title={it.error_message ?? undefined}
-            className="flex items-center gap-1.5 text-[11.5px] px-2 py-1 rounded-md border border-[--border-subtle] hover:bg-accent">
+            className="flex items-center gap-1.5 text-[13px] px-3 h-9 rounded-[8px] no-underline text-[#202124] hover:bg-[#e8eaed]" style={{ background: '#F1F3F4' }}>
             <FileText size={11} className="text-muted-foreground/60" />
             {it.original_filename ?? 'document.pdf'}
-            {it.doc_type && <span className="text-[9.5px] font-semibold uppercase tracking-wide text-primary">{DOC_TYPE_LABEL[it.doc_type]}</span>}
-            {it.status === 'error' && <AlertTriangle size={11} className="text-rose-600" />}
+            {it.doc_type && <span className="text-[12px] text-[#5f6368]">{DOC_TYPE_LABEL[it.doc_type]}</span>}
+            {it.status === 'error' && <AlertTriangle size={11} className="text-[#3c4043]" />}
           </a>
         ))}
         {bundle.match_confidence != null && (
-          <span className="text-[10.5px] text-muted-foreground ml-auto">match confidence {(bundle.match_confidence * 100).toFixed(0)}%</span>
+          <span className="text-[12.5px] text-[#5f6368] ml-auto">match confidence {(bundle.match_confidence * 100).toFixed(0)}%</span>
         )}
       </div>
 
-      <div className="rounded-md border border-dashed border-muted-foreground/30 p-2 flex flex-col gap-1 font-mono text-[10.5px] text-muted-foreground">
+      <div className="rounded-[10px] p-3 flex flex-col gap-1 font-mono text-[11.5px] text-[#5f6368]" style={{ background: '#F5F5F3' }}>
         <span>bundle status: <b>{bundle.status}</b>{bundle.consistency_warning ? ` · warning: ${bundle.consistency_warning}` : ''}</span>
         {bundle.pdf_import_items.map(it => (
           <span key={it.id}>
-            {it.original_filename ?? 'document.pdf'} — status: <b>{it.status}</b>, doc_type: <b>{it.doc_type ?? 'null'}</b>, error: <b className={it.error_message ? 'text-rose-700' : ''}>{it.error_message ?? 'null'}</b>
+            {it.original_filename ?? 'document.pdf'} — status: <b>{it.status}</b>, doc_type: <b>{it.doc_type ?? 'null'}</b>, error: <b className={it.error_message ? 'text-[#3c4043]' : ''}>{it.error_message ?? 'null'}</b>
           </span>
         ))}
       </div>
@@ -460,7 +485,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
       {bundle.pdf_import_items.some(it => it.error_message) && (
         <div className="flex flex-col gap-1">
           {bundle.pdf_import_items.filter(it => it.error_message).map(it => (
-            <p key={it.id} className="text-[11px] text-rose-700 bg-rose-50 border border-rose-200 rounded-md px-2 py-1">
+            <p key={it.id} className="text-[13px] text-[#3c4043] rounded-[10px] px-3 py-2" style={{ background: '#FFF0E7' }}>
               <b>{it.original_filename ?? 'document.pdf'}</b>: {it.error_message}
             </p>
           ))}
@@ -474,14 +499,14 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
       )}
 
       {bundle.consistency_warning && (
-        <div className="flex items-start gap-1.5 text-[11.5px] text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2.5 py-1.5">
+        <div className="flex items-start gap-1.5 text-[13px] text-[#3c4043] rounded-[10px] px-3 py-2" style={{ background: '#FFF6D8' }}>
           <AlertTriangle size={12} className="mt-0.5 flex-shrink-0" /> {bundle.consistency_warning}
         </div>
       )}
 
-      <CompanyContactPicker value={recipient} onChange={setRecipient} />
+      <CompanyContactPicker value={recipient} onChange={setRecipient} initialQuery={!recipient ? (m?.client_name ?? undefined) : undefined} />
 
-      <div className={`rounded-md border p-2.5 flex flex-col gap-2 ${eventType === 'endorsement' ? 'border-orange-200 bg-orange-50/40' : 'border-[--border-subtle]'}`}>
+      <div className="rounded-[12px] p-4 flex flex-col gap-3" style={{ background: eventType === 'endorsement' ? '#FFF6D8' : '#F5F5F3' }}>
         <div className="flex items-center gap-2">
           <Field label="Debit note type" className="flex-1">
             <select
@@ -495,13 +520,20 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
             </select>
           </Field>
           {eventType === 'endorsement' && (
+            <p className="m-0 text-[13.5px] leading-snug" style={{ color: '#3c4043' }}>
+              {masterPolicy
+                ? <>Amendment to policy <span className="font-medium">{masterPolicy.policyNumber ?? masterPolicy.classOfInsurance ?? 'on file'}</span>{masterPolicy.endDate ? <> · renews {new Date(masterPolicy.endDate).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</> : null}. This debit note attaches to that policy and keeps its renewal date.</>
+                : <>No main policy found for this company yet. Approving creates the policy from the fields below.</>}
+            </p>
+          )}
+          {eventType === 'endorsement' && (
             <Field label="Effective date (required)" className="flex-1">
               <input type="date" value={endorsementEffectiveDate} onChange={e => setEndorsementEffectiveDate(e.target.value)} className={inp} />
             </Field>
           )}
         </div>
         {eventType === 'endorsement' && (
-          <p className="text-[11px] text-orange-800">
+          <p className="text-[13px] text-[#3c4043]">
             This bills a mid-term change (e.g. an employee added partway through the year) rather than the full policy term shown below — the PDF will call out the effective date separately so the payment due date doesn&apos;t look mismatched against the period of insurance.
           </p>
         )}
@@ -509,14 +541,14 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
 
       <div className="flex flex-col gap-2">
         {/* Row 1 — reference numbers */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-3">
           <Field label="Debit note no."><input value={debitNoteNo} onChange={e => setDebitNoteNo(e.target.value)} placeholder="Auto-generated if left blank" className={inp} /></Field>
           <Field label="Policy number"><input value={policyNumber} onChange={e => setPolicyNumber(e.target.value)} className={inp} /></Field>
           <Field label="Cover note no."><input value={coverNoteNo} onChange={e => setCoverNoteNo(e.target.value)} className={inp} /></Field>
         </div>
 
         {/* Row 2 — insurer & class */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-3">
           <Field label="Insurer (required)"><input value={insurer} onChange={e => setInsurer(e.target.value)} className={inp} /></Field>
           <Field label="Class of insurance"><input value={classOfInsurance} onChange={e => setClassOfInsurance(e.target.value)} className={inp} /></Field>
         </div>
@@ -551,14 +583,14 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
           <Field label="GST" className="flex-1 min-w-[140px]"><input type="number" value={gstAmount} onChange={e => setGstAmount(Number(e.target.value))} className={inp} /></Field>
           <Field label="Currency" className="flex-1 min-w-[140px]"><select value={currency} onChange={e => setCurrency(e.target.value)} className={inp}>{['SGD', 'USD', 'MYR', 'IDR'].map(c => <option key={c}>{c}</option>)}</select></Field>
           <Field label="Premium Total" className="flex-1 min-w-[160px]">
-            <div className="text-[12.5px] border border-border rounded-md px-2 py-1.5 bg-muted/40 font-semibold flex items-center h-[34px]">
+            <div className="h-10 text-[14px] text-[#202124] border border-[#dadce0] rounded-[10px] px-3 bg-[#F5F5F3] font-medium flex items-center">
               {currency} {(grossPremium + gstAmount - (feeRebateEnabled ? feeRebate : 0)).toLocaleString('en-SG', { minimumFractionDigits: 2 })}
             </div>
           </Field>
         </div>
 
         {/* Row 7 — commission (broker's own figure, kept apart from the client-facing premium total above) */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-3">
           <Field label="Commission rate (%)"><input type="number" value={commissionRate} onChange={e => setCommissionRate(Number(e.target.value))} className={inp} /></Field>
           <Field label="Commission amount"><input type="number" value={commissionAmount} onChange={e => setCommissionAmount(Number(e.target.value))} className={inp} /></Field>
         </div>
@@ -571,10 +603,10 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
         <span>Premium Total: <b>{currency} {(grossPremium + gstAmount - (feeRebateEnabled ? feeRebate : 0)).toLocaleString('en-SG', { minimumFractionDigits: 2 })}</b></span>
       </div>
 
-      {err && <p className="text-[11.5px] text-rose-600">{err}</p>}
+      {err && <p className="text-[11.5px] text-[#3c4043]">{err}</p>}
 
       <div className="flex items-center justify-end gap-2">
-        {saved && <span className="text-[11.5px] text-emerald-600 mr-auto">Draft saved</span>}
+        {saved && <span className="text-[11.5px] text-[#202124] mr-auto">Draft saved</span>}
         <Button variant="ghost" size="sm" onClick={reject} disabled={busy || saving}><XCircle size={13} className="mr-1.5" /> Reject</Button>
         <Button variant="outline" size="sm" onClick={saveDraft} disabled={busy || saving}>
           {saving ? <Loader2 size={13} className="animate-spin mr-1.5" /> : <Save size={13} className="mr-1.5" />} Save draft

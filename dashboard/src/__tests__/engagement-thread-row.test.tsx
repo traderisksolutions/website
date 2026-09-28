@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { EngagementThreadRow } from '@/components/engagement-agent/engagement-thread-row'
+import { ThreadRow } from '@/components/engagement/ThreadRow'
 import type { Lead, ThreadState } from '@/components/engagement/types'
 
 const baseLead: Lead = {
@@ -46,9 +47,9 @@ describe('EngagementThreadRow', () => {
     expect(screen.getByText('Acme Corp')).toBeInTheDocument()
   })
 
-  it('renders subject as snippet', () => {
+  it('renders company · subject on one line', () => {
     render(<EngagementThreadRow lead={baseLead} isActive={false} threadState={emptyThread} onClick={vi.fn()} />)
-    expect(screen.getByText('Re: Marine insurance quotation')).toBeInTheDocument()
+    expect(screen.getByText(/Re: Marine insurance quotation/)).toBeInTheDocument()
   })
 
   it('calls onClick when clicked', () => {
@@ -68,15 +69,27 @@ describe('EngagementThreadRow', () => {
     expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'false')
   })
 
-  it('shows needs-reply dot when last message is inbound', () => {
+  it('shows an ink dot and "Needs your reply" when the last message is inbound', () => {
     render(<EngagementThreadRow lead={baseLead} isActive={false} threadState={inboundThread} onClick={vi.fn()} />)
-    // The needs-reply dot is a span with specific background styling
-    const btn = screen.getByRole('button')
-    // Active border-l class changes when needs reply
-    expect(btn.className).toContain('border-l-[--warning]')
+    const dot = screen.getByRole('button').querySelector('[data-dot]') as HTMLElement
+    expect(dot.style.background).toBe('rgb(32, 33, 36)')
+    expect(screen.getByText('Needs your reply')).toBeInTheDocument()
+    expect(screen.getByRole('button')).toHaveAttribute('aria-label', expect.stringContaining('needs your reply'))
   })
 
-  it('shows campaign badge when campaign_context is present', () => {
+  it('keeps the dot transparent when nothing is awaited', () => {
+    render(<EngagementThreadRow lead={baseLead} isActive={false} threadState={emptyThread} onClick={vi.fn()} />)
+    const dot = screen.getByRole('button').querySelector('[data-dot]') as HTMLElement
+    expect(dot.style.background).toBe('transparent')
+  })
+
+  it('uses no colour-coded state classes', () => {
+    render(<EngagementThreadRow lead={{ ...baseLead, category: 'claim' }} isActive={false} threadState={inboundThread} onClick={vi.fn()} />)
+    expect(screen.getByRole('button').outerHTML).not.toMatch(/amber|slate-|#0C338A|#0c338a|text-primary|bg-primary|--warning/)
+    expect(screen.getByText('Needs your reply · Claim')).toBeInTheDocument()
+  })
+
+  it('writes "Campaign" in the state line when campaign_context is present', () => {
     const campaignLead: Lead = {
       ...baseLead,
       campaign_context: {
@@ -84,7 +97,7 @@ describe('EngagementThreadRow', () => {
       },
     }
     render(<EngagementThreadRow lead={campaignLead} isActive={false} threadState={emptyThread} onClick={vi.fn()} />)
-    expect(screen.getByText('C')).toBeInTheDocument()
+    expect(screen.getByText('Campaign')).toBeInTheDocument()
   })
 
   describe('iconOnly (collapsed rail)', () => {
@@ -105,12 +118,72 @@ describe('EngagementThreadRow', () => {
       expect(onClick).toHaveBeenCalledOnce()
     })
 
-    it('still reflects active/needs-reply state via the left-accent border', () => {
+    it('still reflects active (field surface) and needs-reply (ink dot) state', () => {
       const { rerender } = render(<EngagementThreadRow lead={baseLead} isActive={true} threadState={emptyThread} onClick={vi.fn()} iconOnly />)
-      expect(screen.getByRole('button').className).toContain('border-l-primary')
+      expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'true')
+      expect(screen.getByRole('button').className).toContain('bg-[#f1f3f4]')
+      expect(screen.getByRole('button').querySelector('[data-dot]')).toBeNull()
 
       rerender(<EngagementThreadRow lead={baseLead} isActive={false} threadState={inboundThread} onClick={vi.fn()} iconOnly />)
-      expect(screen.getByRole('button').className).toContain('border-l-[--warning]')
+      const dot = screen.getByRole('button').querySelector('[data-dot]') as HTMLElement
+      expect(dot.style.background).toBe('rgb(32, 33, 36)')
     })
+  })
+})
+
+// ── ThreadRow — the Unified Mail Navigator row ──────────────────────────────────────────────
+// Grid row: ink dot only when a reply is needed, sender/time, `Company · subject`, one state line.
+
+describe('ThreadRow (navigator)', () => {
+  const dotOf = () => screen.getByRole('button').querySelector('[data-dot]') as HTMLElement
+
+  it('renders sender, company and subject', () => {
+    render(<ThreadRow lead={baseLead} isActive={false} threadState={emptyThread} onClick={vi.fn()} />)
+    expect(screen.getByText('Alice Tan')).toBeInTheDocument()
+    expect(screen.getByText('Acme Corp')).toBeInTheDocument()
+    expect(screen.getByText(/Re: Marine insurance quotation/)).toBeInTheDocument()
+  })
+
+  it('shows an ink dot and "Needs your reply" when the last message is inbound', () => {
+    render(<ThreadRow lead={baseLead} isActive={false} threadState={inboundThread} onClick={vi.fn()} />)
+    expect(dotOf().style.background).toBe('rgb(32, 33, 36)')
+    expect(screen.getByText('Needs your reply')).toBeInTheDocument()
+    expect(screen.getByRole('button')).toHaveAttribute('aria-label', expect.stringContaining('needs your reply'))
+  })
+
+  it('keeps the dot transparent and shows "Awaiting client" after we wrote last', () => {
+    const outbound: ThreadState = { ...inboundThread, messages: [{ ...inboundThread.messages[0], direction: 'outbound' }] }
+    render(<ThreadRow lead={baseLead} isActive={false} threadState={outbound} onClick={vi.fn()} />)
+    expect(dotOf().style.background).toBe('transparent')
+    expect(screen.getByText('Awaiting client')).toBeInTheDocument()
+  })
+
+  it('appends the triage type to the state line', () => {
+    render(<ThreadRow lead={{ ...baseLead, category: 'renewal' }} isActive={false} threadState={inboundThread} onClick={vi.fn()} />)
+    expect(screen.getByText('Needs your reply · Renewal')).toBeInTheDocument()
+  })
+
+  it('hides the state line in compact density', () => {
+    render(<ThreadRow lead={baseLead} isActive={false} threadState={inboundThread} onClick={vi.fn()} density="compact" />)
+    expect(screen.queryByText('Needs your reply')).toBeNull()
+  })
+
+  it('marks the selected row with aria-pressed and the field surface', () => {
+    render(<ThreadRow lead={baseLead} isActive={true} threadState={emptyThread} onClick={vi.fn()} />)
+    const btn = screen.getByRole('button')
+    expect(btn).toHaveAttribute('aria-pressed', 'true')
+    expect(btn.className).toContain('bg-[#f1f3f4]')
+  })
+
+  it('uses no colour-coded state classes', () => {
+    render(<ThreadRow lead={baseLead} isActive={false} threadState={inboundThread} onClick={vi.fn()} />)
+    expect(screen.getByRole('button').outerHTML).not.toMatch(/amber|slate-|#0C338A|#0c338a|text-primary|bg-primary/)
+  })
+
+  it('calls onClick', () => {
+    const onClick = vi.fn()
+    render(<ThreadRow lead={baseLead} isActive={false} threadState={emptyThread} onClick={onClick} />)
+    fireEvent.click(screen.getByRole('button'))
+    expect(onClick).toHaveBeenCalledOnce()
   })
 })

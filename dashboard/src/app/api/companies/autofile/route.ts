@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
       insurersSeeded: { total: r.insurersSeeded.length, created: r.insurersSeeded.filter(i => i.created).length },
       companies: { created: created.length, byKind, linkedExisting: r.domains.filter(d => d.action === 'linked-existing').length, queued: r.domains.filter(d => d.action === 'queued').length },
       threads: { byDomain: r.threadsLinked, bySubject: r.threadsBySubject, stillUnfiled: r.remaining },
+      contactsLinked: r.contactsLinked,
       domains: r.domains,
       errors: r.errors,
     })

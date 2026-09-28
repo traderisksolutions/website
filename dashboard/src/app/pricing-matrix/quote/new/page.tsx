@@ -3,7 +3,8 @@
 import { useMemo, useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Loader2, Save, Download, Wand2 } from 'lucide-react'
+import { Download } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { PmComparison } from '@/components/pricing-matrix/PmComparison'
 import { PmLiveBenefitPreview } from '@/components/pricing-matrix/PmLiveBenefitPreview'
 import { CensusEditor } from '@/components/pricing-matrix/CensusEditor'
@@ -18,8 +19,13 @@ import { coverageCodes } from '@/lib/pm-rates'
 import { alignSelectedTerms } from '@/lib/pm-compare'
 import type { CompareRow } from '@/lib/pm-compare'
 import { MetricCard, MetricGrid } from '@/components/shared/metric-card'
+import { Btn, Spinner, inputCls } from '@/components/crm/primitives'
+import { Tip } from '@/components/Tip'
 
-const inp = 'text-[12.5px] border border-border rounded-md px-2 py-1 bg-background focus:outline-none focus:ring-2 focus:ring-primary/25'
+const INK = '#202124'
+const MUTED = '#5f6368'
+const RULE = '#e8eaed'
+const dateCls = 'h-12 w-full rounded-[12px] border border-[#dadce0] bg-white px-4 text-[15px] text-[#202124] outline-none focus:border-[#202124]'
 
 async function safeJson<T>(r: Response): Promise<T & { error?: string }> {
   try { return await r.json() } catch { return { error: `HTTP ${r.status}` } as T & { error?: string } }
@@ -162,94 +168,104 @@ function NewQuoteInner() {
 
   const steps = ['Census', 'Insurers, plans & comparison']
   return (
-    <div className="max-w-5xl mx-auto px-6 py-6">
-      <Link href="/pricing-matrix" className="inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground hover:text-foreground mb-3"><ArrowLeft size={14} /> Pricing Matrix</Link>
-      <h1 className="text-[18px] font-semibold text-foreground mb-3">New quote</h1>
+    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
+      <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
+        <Link href="/pricing-matrix" className="inline-flex items-center gap-1.5 text-[14px] no-underline hover:underline" style={{ color: MUTED }}>← Pricing Matrix</Link>
+        <h1 className="m-0 mt-3 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">New quote</h1>
 
-      <div className="flex items-center gap-2 text-[12px] mb-5">
-        {steps.map((s, i) => (
-          <div key={s} className="flex items-center gap-2">
-            <span className={`px-2 py-0.5 rounded-[6px] font-medium ${i === step ? 'bg-primary text-primary-foreground' : i < step ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>{i + 1}. {s}</span>
-            {i < steps.length - 1 && <span className="text-muted-foreground/30">›</span>}
+        <nav className="mt-6" aria-label="Steps" style={{ borderBottom: `1px solid ${RULE}` }}>
+          <ol className="m-0 p-0 list-none flex items-center gap-7">
+            {steps.map((s, i) => {
+              const on = i === step
+              const reachable = i === 0 || namedCount > 0
+              return (
+                <li key={s}>
+                  <button type="button" onClick={() => setStep(i)} disabled={!reachable} aria-current={on ? 'step' : undefined}
+                    className={cn('relative block pb-3 text-[15px] bg-transparent border-0 p-0 cursor-pointer disabled:cursor-default', on ? 'font-medium' : 'hover:text-[#202124]')} style={{ color: on ? INK : MUTED }}>
+                    {i + 1}. {s}
+                    <span className={cn('absolute left-0 right-0 -bottom-px h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: INK }} aria-hidden />
+                  </button>
+                </li>
+              )
+            })}
+          </ol>
+        </nav>
+
+        {error && <p role="alert" className="m-0 mt-5 text-[14px]" style={{ color: '#3c4043' }}>{error}</p>}
+
+        {step === 0 && (
+          <div className="mt-8 flex flex-col gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_200px] gap-3 max-w-[640px] items-start">
+              <CompanyContactPicker value={companyPick} onChange={setCompanyPick} hideContact />
+              <input type="date" value={effDate} onChange={e => setEffDate(e.target.value)} title="Policy effective date" aria-label="Policy effective date" className={dateCls} />
+            </div>
+
+            <CensusEditor census={census} setCensus={setCensus} companyId={companyPick?.companyId ?? null} onRenameTier={renameOverrideCategory} />
+
+            <div className="flex justify-end">
+              <button type="button" onClick={() => setStep(1)} disabled={namedCount === 0} className="h-12 px-6 rounded-[12px] text-white text-[15px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed" style={{ background: INK }}>Next: insurers</button>
+            </div>
           </div>
-        ))}
-      </div>
+        )}
 
-      {error && <div className="mb-4 text-[12.5px] text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{error}</div>}
+        {step === 1 && (
+          <div className="mt-8 flex flex-col gap-6">
+            {selectedCoverages.length > 0 && (
+              <div className="rounded-[16px] bg-white p-5 flex flex-col gap-4" style={{ border: `1px solid ${RULE}` }}>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <h2 className="m-0 text-[16px] font-medium tracking-[-0.01em] leading-tight flex items-center">Client target requirements<Tip text="Optional. Used to auto-pick a plan tier per insurer." /></h2>
+                  <Btn level="secondary" onClick={runMatch} disabled={matching || !Object.values(targets).some(t => t?.trim())} loading={matching}>Auto-match plan tiers</Btn>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {selectedCoverages.map(c => (
+                    <label key={c.code} className="block min-w-0">
+                      <span className="block text-[12.5px] mb-1.5" style={{ color: MUTED }}>{c.label}</span>
+                      <input value={targets[c.code] ?? ''} onChange={e => setTargets(t => ({ ...t, [c.code]: e.target.value }))}
+                        placeholder="e.g. $200k annual limit, private hospital, 1-bed" className={inputCls} />
+                    </label>
+                  ))}
+                </div>
+                {matchError && <p role="alert" className="m-0 text-[13.5px]" style={{ color: '#3c4043' }}>{matchError}</p>}
+              </div>
+            )}
 
-      {step === 0 && (
-        <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-3 max-w-lg items-start">
-            <CompanyContactPicker value={companyPick} onChange={setCompanyPick} hideContact />
-            <input type="date" value={effDate} onChange={e => setEffDate(e.target.value)} title="Policy effective date" className={inp} />
-          </div>
+            <PlanSelectionEditor avail={avail} selected={selected} selections={selections} toggleInsurer={toggleInsurer} setSel={setSel} namedCount={namedCount} matchNotes={matchNotes} />
 
-          <CensusEditor census={census} setCensus={setCensus} companyId={companyPick?.companyId ?? null} onRenameTier={renameOverrideCategory} />
+            <CategoryOverrideEditor avail={avail} selected={selected} census={census} overrides={categoryOverrides} setOverride={setOverride} />
 
-          <div className="flex justify-end">
-            <button onClick={() => setStep(1)} disabled={namedCount === 0} className="text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">Next: insurers →</button>
-          </div>
-        </div>
-      )}
+            {selectedIds.length > 0 && namedCount > 0 && (
+              <div className="flex flex-col gap-4 pt-6" style={{ borderTop: `1px solid ${RULE}` }}>
+                <h2 className="m-0 text-[16px] font-medium tracking-[-0.01em] leading-tight">Live comparison</h2>
+                {(() => {
+                  const { cheapest, priciest, spread } = quoteSpreadStats(liveResult.insurers)
+                  return cheapest && (
+                    <MetricGrid className="md:grid-cols-3">
+                      <MetricCard label="Lowest premium" value={`$${cheapest.grand!.toLocaleString()}`} sub={cheapest.insurer_name} />
+                      <MetricCard label="Highest premium" value={priciest ? `$${priciest.grand!.toLocaleString()}` : '—'} sub={priciest?.insurer_name} />
+                      <MetricCard label="Spread" value={spread != null ? `$${spread.toLocaleString()}` : '—'} sub={spread != null ? 'across selected insurers' : undefined} />
+                    </MetricGrid>
+                  )
+                })()}
+                <PmComparison result={liveResult} />
+                <h2 className="m-0 mt-2 text-[16px] font-medium tracking-[-0.01em] leading-tight">Benefit schedule</h2>
+                <PmLiveBenefitPreview rows={liveBenefitRows} insurers={selectedInsurerMeta} />
+              </div>
+            )}
 
-      {step === 1 && (
-        <div className="flex flex-col gap-4">
-          {selectedCoverages.length > 0 && (
-            <div className="border border-border rounded-xl p-3 flex flex-col gap-2.5">
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-[12.5px] font-semibold text-foreground/80">Client&rsquo;s target requirements <span className="font-normal text-muted-foreground/50">(optional — used to auto-pick a plan tier per insurer)</span></h2>
-                <button onClick={runMatch} disabled={matching || !Object.values(targets).some(t => t?.trim())} className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-primary/30 text-primary hover:bg-primary/5 disabled:opacity-50 shrink-0">
-                  {matching ? <Loader2 size={13} className="animate-spin" /> : <Wand2 size={13} />} Auto-match plan tiers
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <button type="button" onClick={() => setStep(0)} className="h-12 px-5 rounded-[12px] bg-white text-[15px] border cursor-pointer hover:bg-[#f8f9fa]" style={{ borderColor: '#dadce0', color: INK }}>Back</button>
+              <div className="flex items-center gap-3 flex-wrap">
+                <button type="button" onClick={downloadComparisonPdf} disabled={downloading || selectedIds.length === 0} className="h-12 px-5 rounded-[12px] bg-white text-[15px] border cursor-pointer inline-flex items-center gap-2 hover:bg-[#f8f9fa] disabled:opacity-50 disabled:cursor-not-allowed" style={{ borderColor: '#dadce0', color: INK }}>
+                  <Download size={15} /> {downloading ? 'Preparing…' : 'Download comparison PDF'}
+                </button>
+                <button type="button" onClick={saveQuote} disabled={saving || selectedIds.length === 0 || !effDate} title={!effDate ? 'Set a policy effective date in the Census step. Ages are computed from it.' : ''} className="h-12 px-6 rounded-[12px] text-white text-[15px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed" style={{ background: INK }}>
+                  {saving ? 'Saving…' : 'Save quote'}
                 </button>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {selectedCoverages.map(c => (
-                  <label key={c.code} className="flex items-center gap-2 text-[12px]">
-                    <span className="w-32 shrink-0 text-muted-foreground/70">{c.label}</span>
-                    <input value={targets[c.code] ?? ''} onChange={e => setTargets(t => ({ ...t, [c.code]: e.target.value }))}
-                      placeholder="e.g. $200k annual limit, private hospital, 1-bed" className="flex-1 text-[12px] border border-border rounded-md px-2 py-1 bg-background focus:outline-none focus:ring-2 focus:ring-primary/25" />
-                  </label>
-                ))}
-              </div>
-              {matchError && <p className="text-[11.5px] text-rose-600">{matchError}</p>}
-            </div>
-          )}
-
-          <PlanSelectionEditor avail={avail} selected={selected} selections={selections} toggleInsurer={toggleInsurer} setSel={setSel} namedCount={namedCount} matchNotes={matchNotes} />
-
-          <CategoryOverrideEditor avail={avail} selected={selected} census={census} overrides={categoryOverrides} setOverride={setOverride} />
-
-          {selectedIds.length > 0 && namedCount > 0 && (
-            <div className="flex flex-col gap-3 pt-2 border-t border-border/60">
-              <h2 className="text-[12.5px] font-semibold text-foreground/80">Live comparison <span className="font-normal text-muted-foreground/50">— updates instantly as you toggle plans above</span></h2>
-              {(() => {
-                const { cheapest, priciest, spread } = quoteSpreadStats(liveResult.insurers)
-                return cheapest && (
-                  <MetricGrid className="md:grid-cols-3">
-                    <MetricCard label="Cheapest" value={`$${cheapest.grand!.toLocaleString()}`} sub={cheapest.insurer_name} />
-                    <MetricCard label="Most expensive" value={priciest ? `$${priciest.grand!.toLocaleString()}` : '—'} sub={priciest?.insurer_name} />
-                    <MetricCard label="Spread" value={spread != null ? `$${spread.toLocaleString()}` : '—'} sub={spread != null ? 'across selected insurers' : undefined} />
-                  </MetricGrid>
-                )
-              })()}
-              <PmComparison result={liveResult} />
-              <PmLiveBenefitPreview rows={liveBenefitRows} insurers={selectedInsurerMeta} />
-            </div>
-          )}
-
-          <div className="flex justify-between">
-            <button onClick={() => setStep(0)} className="text-[13px] px-4 py-1.5 rounded-lg border border-border hover:bg-muted">← Back</button>
-            <div className="flex items-center gap-2">
-              <button onClick={downloadComparisonPdf} disabled={downloading || selectedIds.length === 0} className="flex items-center gap-1.5 text-[13px] px-4 py-1.5 rounded-lg border border-primary/30 text-primary hover:bg-primary/5 disabled:opacity-50">
-                {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} Download comparison (PDF)
-              </button>
-              <button onClick={saveQuote} disabled={saving || selectedIds.length === 0 || !effDate} title={!effDate ? 'Set a policy effective date (Census step) — ages are computed from it' : ''} className="flex items-center gap-1.5 text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-                {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}{saving ? 'Saving…' : 'Save to draft'}
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
@@ -257,7 +273,7 @@ function NewQuoteInner() {
 /** The page reads the company out of the URL, so it needs a boundary to prerender. */
 export default function NewQuotePage() {
   return (
-    <Suspense fallback={<div className="p-6 text-[12.5px] text-muted-foreground">Loading…</div>}>
+    <Suspense fallback={<div className="min-h-[calc(100vh-56px)] bg-white"><Spinner /></div>}>
       <NewQuoteInner />
     </Suspense>
   )

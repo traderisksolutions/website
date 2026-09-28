@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffOrCron }        from '@/lib/api-auth'
 import { logActivity }               from '@/lib/log-activity'
+import { currentUserEmail }          from '@/lib/crm/auth'
 import { getCompany, sb, sbTry, enc, getCompanyContactIds, PUBLIC_EMAIL_DOMAINS } from '@/lib/crm/db'
 import { loadCompanyPayments }       from '@/lib/crm/payments-server'
 import { isStage }                   from '@/lib/crm/stage'
@@ -123,6 +124,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       patch.domains = domains
       patch.domain  = domains[0] ?? null
     }
+    // A person has looked at a record the mail filing created on its own.
+    if (body.confirmed === true) {
+      patch.confirmed_at = new Date().toISOString()
+      patch.confirmed_by = await currentUserEmail()
+    }
+    // Pin to Home, or take it off. Who pinned is kept so the card can say so.
+    if (body.pinned === true)  { patch.home_pinned_at = new Date().toISOString(); patch.home_pinned_by = await currentUserEmail() }
+    if (body.pinned === false) { patch.home_pinned_at = null; patch.home_pinned_by = null }
     let stageChanged = false
     if (body.stage !== undefined) {
       if (!isStage(body.stage)) return NextResponse.json({ error: 'invalid stage' }, { status: 400 })

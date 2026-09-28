@@ -16,6 +16,7 @@
  * company page's Due Dates tab; the main /calendar page omits it for the site-wide view).
  * Refetch only when the visible month changes (caller's job).
  */
+import { withoutEndorsementDuplicates } from '@/lib/policies/endorsement'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { SB_URL, sbH }               from '@/lib/debit-note-storage'
@@ -69,6 +70,12 @@ export type CalendarEvent =
       status: 'unpaid' | 'partially_paid' | 'paid'
     }
   | {
+      type: 'renewal_overdue'; id: string; date: string
+      companyId: string | null; companyName: string | null
+      policyId: string; policyNumber: string | null; insurer: string | null
+      classOfInsurance: string | null; endDate: string; daysOverdue: number
+    }
+  | {
       type: 'payment_overdue'; id: string; date: string
       companyId: string | null; companyName: string | null
       debitNoteId: string; debitNoteNo: string; dueDate: string; daysOverdue: number
@@ -114,7 +121,7 @@ export async function GET(req: NextRequest) {
     // `customers.company_id=eq.` filter only trims which embedded customer is attached, not
     // which policies come back, so the embed needs `!inner` to also restrict top-level rows
     // (same PostgREST convention already used in api/nexus/step-draft/route.ts).
-    const policiesUrl = `${SB_URL}/rest/v1/policies?end_date=gte.${from}&end_date=lte.${widenedTo}&status=eq.active&select=id,policy_number,insurer,class_of_insurance,currency,premium,end_date,customers${companyId ? '!inner' : ''}(company_id,companies(id,name:company_name))${companyId ? `&customers.company_id=eq.${companyId}` : ''}&order=end_date.asc`
+    const policiesUrl = `${SB_URL}/rest/v1/policies?end_date=gte.${from}&end_date=lte.${widenedTo}&status=eq.active&select=id,policy_number,description,insurer,class_of_insurance,currency,premium,end_date,customers${companyId ? '!inner' : ''}(company_id,companies(id,name:company_name))${companyId ? `&customers.company_id=eq.${companyId}` : ''}&order=end_date.asc`
     const dnCols = 'id,debit_note_no,payment_due_date,currency,gross_amount,net_amount,paid_amount,paid_direct_amount,status,insurer,company_id,companies(id,name:company_name),policies(policy_number,class_of_insurance)'
     const debitNotesUrl = `${SB_URL}/rest/v1/debit_notes?payment_due_date=gte.${from}&payment_due_date=lte.${to}&status=in.(unpaid,partially_paid)${companyId ? `&company_id=eq.${companyId}` : ''}&select=${dnCols}&order=payment_due_date.asc`
 
@@ -122,6 +129,10 @@ export async function GET(req: NextRequest) {
     // due, so the backlog is visible wherever you are in the calendar.
     const today = todaySGT()
     const overdueUrl = `${SB_URL}/rest/v1/debit_notes?payment_due_date=lt.${today}&status=in.(unpaid,partially_paid)${companyId ? `&company_id=eq.${companyId}` : ''}&select=${dnCols}&order=payment_due_date.asc&limit=200`
+
+    // Active policies past their end date and not marked renewed: the renewal was missed or
+    // the record was never closed. Either way somebody needs to see it, so it sits on today.
+    const lapsedUrl = `${SB_URL}/rest/v1/policies?end_date=lt.${today}&status=eq.active&select=id,policy_number,description,insurer,class_of_insurance,currency,premium,end_date,customers${companyId ? '!inner' : ''}(company_id,companies(id,name:company_name))${companyId ? `&customers.company_id=eq.${companyId}` : ''}&order=end_date.asc&limit=200`
 
     // Insurers that have not answered an RFQ.
     const dispatchUrl = `${SB_URL}/rest/v1/rfq_dispatches?status=eq.sent&select=id,insurer_name,to_email,status,created_at,rfq_requests!rfq_dispatches_rfq_request_id_fkey(id,product_line,insured_name,case_id)&order=created_at.asc&limit=200`
@@ -131,16 +142,24 @@ export async function GET(req: NextRequest) {
 
     const slaUrl = `${SB_URL}/rest/v1/app_settings?key=eq.rfq_sla&select=value&limit=1`
 
-    const [policiesRes, debitNotesRes, overdueRes, dispatchRes, analysisRes, slaRes] = await Promise.all([
+    const [policiesRes, debitNotesRes, overdueRes, dispatchRes, analysisRes, slaRes, lapsedRes] = await Promise.all([
       fetch(policiesUrl, { headers: sbH(), cache: 'no-store' }),
       fetch(debitNotesUrl, { headers: sbH(), cache: 'no-store' }),
       fetch(overdueUrl, { headers: sbH(), cache: 'no-store' }),
       fetch(dispatchUrl, { headers: sbH(), cache: 'no-store' }),
       fetch(analysisUrl, { headers: sbH(), cache: 'no-store' }),
       fetch(slaUrl, { headers: sbH(), cache: 'no-store' }),
+      fetch(lapsedUrl, { headers: sbH(), cache: 'no-store' }),
     ])
+    const lapsed = lapsedRes.ok ? await lapsedRes.json() as PolicyRow[] : []
 
-    const policies = policiesRes.ok ? await policiesRes.json() as PolicyRow[] : []
+    // Endorsements are amendments to a master policy: one renewal per cover, never two.
+    const onceOnly = (rows: PolicyRow[]) => {
+      const byCompany = new Map<string, PolicyRow[]>()
+      for (const r of rows) { const k = r.customers?.company_id ?? r.id; byCompany.set(k, [...(byCompany.get(k) ?? []), r]) }
+      return Array.from(byCompany.values()).flatMap(g => withoutEndorsementDuplicates(g))
+    }
+    const policies = onceOnly(policiesRes.ok ? await policiesRes.json() as PolicyRow[] : [])
     const debitNotes = debitNotesRes.ok ? await debitNotesRes.json() as DebitNoteRow[] : []
     const overdueNotes = overdueRes.ok ? await overdueRes.json() as DebitNoteRow[] : []
     const dispatches = dispatchRes.ok ? await dispatchRes.json() as DispatchRow[] : []
@@ -178,16 +197,11 @@ export async function GET(req: NextRequest) {
     // Only notes still owing anything — the ledger may have settled one since it was raised.
     const stillOwed = debitNotes.filter(d => outstandingOf(d) > 0)
 
-    const overdueEvents: CalendarEvent[] = today >= from && today <= to
-      ? overdueNotes.filter(d => outstandingOf(d) > 0).map((d): CalendarEvent => ({
-          type: 'payment_overdue', id: `payment_overdue-${d.id}`, date: today,
-          companyId: d.companies?.id ?? d.company_id ?? null, companyName: d.companies?.name ?? null,
-          debitNoteId: d.id, debitNoteNo: d.debit_note_no, dueDate: d.payment_due_date,
-          daysOverdue: daysBetweenIso(d.payment_due_date, today),
-          currency: d.currency, outstanding: outstandingOf(d),
-          insurer: d.insurer, classOfInsurance: d.policies?.class_of_insurance ?? null,
-        }))
-      : []
+    // Past-due money is not surfaced while debit notes are still being entered and receipts
+    // recorded; the balance says nothing yet. The event type stays so the page can render it
+    // again the day Finance goes live.
+    const overdueEvents: CalendarEvent[] = []
+    void overdueNotes
 
     // An insurer crosses the service level `slaDays` after we wrote to them; that is the day
     // the chaser is due, and it is the date the event lands on.
@@ -230,8 +244,18 @@ export async function GET(req: NextRequest) {
       })
     })
 
+    const lapsedEvents: CalendarEvent[] = today >= from && today <= to
+      ? lapsed.map((p): CalendarEvent => ({
+          type: 'renewal_overdue', id: `renewal_overdue-${p.id}`, date: today,
+          companyId: p.customers?.companies?.id ?? null, companyName: p.customers?.companies?.name ?? null,
+          policyId: p.id, policyNumber: p.policy_number, insurer: p.insurer, classOfInsurance: p.class_of_insurance,
+          endDate: p.end_date, daysOverdue: daysBetweenIso(p.end_date, today),
+        }))
+      : []
+
     const events: CalendarEvent[] = [
       ...renewalEvents,
+      ...lapsedEvents,
       ...stillOwed.map((d): CalendarEvent => ({
         type: 'debit_due', id: `debit_due-${d.id}`, date: d.payment_due_date,
         companyId: d.companies?.id ?? d.company_id ?? null, companyName: d.companies?.name ?? null,

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useCallback } from 'react'
-import { Plus, ExternalLink, Sparkles, Paperclip, Check, ChevronLeft } from 'lucide-react'
+import { Plus, Paperclip, Check, ChevronLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
@@ -21,7 +21,28 @@ const OPS_EMAIL = 'operations@trade-risksol.com'
  * subject, body, attachments) → send all or individually. The first insurer send
  * materialises the Nexus file. The wizard's staged drafts live here in the parent,
  * so closing the modal parks the work — reopening resumes it.
+ *
+ * Presentation: ink/hairline tokens. Steps are a muted numbered underline, insurer
+ * picks are outlined toggle chips, drafts sit in outlined cards, the one filled
+ * button per view is ink, progress is an ink bar on #e8eaed, state is in words.
  */
+
+const INK = '#202124'
+const BODY = '#3c4043'
+const MUTED = '#5f6368'
+const FAINT = '#80868b'
+const DOT = '#9aa0a6'
+const HAIR = '#e8eaed'
+const CTRL = '#dadce0'
+const FIELD = '#f1f3f4'
+
+const BTN_PRIMARY   = 'inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] bg-[#202124] text-white text-[14px] font-medium whitespace-nowrap hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer border-0'
+const BTN_SECONDARY = 'inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] bg-white text-[#202124] text-[13.5px] font-medium whitespace-nowrap border border-[#dadce0] hover:bg-[#f8f9fa] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+const BTN_TERTIARY  = 'inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] bg-transparent text-[#202124] text-[13.5px] font-medium whitespace-nowrap border-0 hover:bg-[#f1f3f4] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+const LINK = 'bg-transparent border-0 p-0 cursor-pointer text-[13px] underline underline-offset-[3px] decoration-[#9aa0a6] hover:decoration-[#202124] disabled:cursor-default disabled:no-underline disabled:opacity-50'
+const CHIP = 'inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[13px] font-medium cursor-pointer bg-white border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#202124] disabled:cursor-default'
+const INPUT = 'w-full h-9 text-[13.5px] rounded-[8px] px-3 bg-white outline-none focus-visible:ring-2 focus-visible:ring-[#202124]/30'
+const SELECT = 'w-full h-9 text-[13.5px] rounded-[8px] px-2.5 bg-white outline-none focus-visible:ring-2 focus-visible:ring-[#202124]/30'
 
 type Insurer  = { contact_id: string; insurer_id: string | null; insurer_name: string; contact_name: string | null; contact_email: string }
 type Dispatch = { id: string; insurer_name: string | null; to_email: string; status: string; insurer_contact_id: string | null; created_at: string; updated_at?: string }
@@ -41,6 +62,13 @@ type StagedInsurer = Insurer & {
   sending: boolean; sendError: string | null; sent: boolean
 }
 type StagedLine = { line: string; insurers: StagedInsurer[] }
+type Step = 'line' | 'insurers' | 'review'
+
+const STEPS: { key: Step; label: string }[] = [
+  { key: 'line',     label: 'Lines' },
+  { key: 'insurers', label: 'Insurers' },
+  { key: 'review',   label: 'Review and send' },
+]
 
 function escapeHtml(s: string) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }
 function plainToHtml(t: string) { return t.split('\n').map(l => l.trim() === '' ? '<br>' : `<p style="margin:0 0 10px">${escapeHtml(l)}</p>`).join('') }
@@ -89,7 +117,7 @@ export default function ThreadRfqWorkflow({
 
   // Wizard.
   const [wizardOpen, setWizardOpen] = useState(false)
-  const [step,       setStep]       = useState<'line' | 'insurers' | 'review'>('line')
+  const [step,       setStep]       = useState<Step>('line')
   const [activeLine, setActiveLine] = useState<string | null>(null)   // line being configured in the 'insurers' step
   const [lineInsurers, setLineInsurers] = useState<Insurer[]>([])
   const [picked,     setPicked]     = useState<string[]>([])          // contact_ids checked in 'insurers' step
@@ -282,52 +310,53 @@ export default function ThreadRfqWorkflow({
   const suggestedOpen = suggested.filter(s => !openLines.has(s))
 
   if (loading) return (
-    <div className="p-5 flex flex-col gap-4" aria-busy="true">
-      <div className="flex flex-col gap-1.5">
-        <div className="h-3.5 w-44 rounded bg-muted animate-pulse" />
-        <div className="h-3 w-80 max-w-full rounded bg-muted/70 animate-pulse" />
+    <div className="p-5 flex flex-col gap-4" aria-busy="true" aria-label="Loading quotation request">
+      <div className="flex flex-col gap-2">
+        <div className="skeleton h-3.5 w-44 rounded" />
+        <div className="skeleton h-3 w-80 max-w-full rounded" />
       </div>
-      <div className="flex flex-col gap-1.5 max-w-sm">
-        <div className="h-2.5 w-24 rounded bg-muted/70 animate-pulse" />
-        <div className="h-8 w-full rounded-md bg-muted animate-pulse" />
+      <div className="flex flex-col gap-2 max-w-sm">
+        <div className="skeleton h-2.5 w-24 rounded" />
+        <div className="skeleton h-9 w-full rounded-[8px]" />
       </div>
-      <div className="h-8 w-48 rounded-md bg-muted animate-pulse" />
+      <div className="skeleton h-9 w-48 rounded-[10px]" />
     </div>
   )
 
   return (
-    <div className="p-5 flex flex-col gap-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-[13px] font-semibold text-foreground">Request for Quotation</h3>
-          <p className="text-[11.5px] text-muted-foreground mt-0.5">Pick a line &amp; insurers, review each draft, then send. The Nexus file opens on your first send.</p>
+    <div className="p-5 flex flex-col gap-5">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="min-w-0">
+          <h3 className="m-0 text-[15px] font-medium tracking-[-0.01em]" style={{ color: INK }}>Request for quotation</h3>
+          <p className="m-0 mt-1 text-[13px]" style={{ color: MUTED }}>Pick lines and insurers, review each draft, then send. The Nexus file opens on the first send.</p>
         </div>
         {caseId && (
-          <a href={`/nexus?case=${caseId}`} className="flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline flex-shrink-0">
-            Open file in Nexus <ExternalLink size={11} />
+          <a href={`/nexus?case=${caseId}`} className={cn(LINK, 'no-underline hover:underline flex-shrink-0')} style={{ color: INK }}>
+            Open file in Nexus →
           </a>
         )}
       </div>
 
       <label className="flex flex-col gap-1.5 max-w-sm">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Insured / client</span>
+        <span className="text-[12.5px]" style={{ color: MUTED }}>Insured</span>
         <input value={insured} onChange={e => setInsured(e.target.value)} placeholder="Company or person seeking cover"
-          className="text-[12px] rounded-md border border-[--border-subtle] bg-background px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-primary/20" />
+          className={INPUT} style={{ border: `1px solid ${CTRL}`, color: INK }} />
       </label>
 
       {/* Resume banner */}
       {stagedCount > 0 && !wizardOpen && (
-        <button onClick={() => { setStep('review'); setWizardOpen(true) }}
-          className="flex items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-left">
-          <span className="text-[12px] font-medium text-primary">RFQ in progress — {stagedCount} draft{stagedCount !== 1 ? 's' : ''} staged</span>
-          <span className="text-[11px] font-semibold text-primary">Resume →</span>
+        <button type="button" onClick={() => { setStep('review'); setWizardOpen(true) }}
+          className="flex items-center justify-between gap-3 rounded-[10px] px-3.5 py-2.5 text-left bg-white cursor-pointer hover:bg-[#f8f9fa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#202124]"
+          style={{ border: `1px solid ${CTRL}` }}>
+          <span className="text-[13.5px]" style={{ color: INK }}>{stagedCount} draft{stagedCount !== 1 ? 's' : ''} staged, not sent</span>
+          <span className="text-[13px] font-medium flex-shrink-0" style={{ color: INK }}>Resume →</span>
         </button>
       )}
 
       {/* Already sent */}
       {dispatchedLines.length > 0 && (
         <div className="flex flex-col gap-2">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">Sent so far</span>
+          <span className="text-[12.5px]" style={{ color: MUTED }}>Sent so far</span>
           {dispatchedLines.map(r => <SentLine key={r.id} request={r} onChange={refresh} />)}
         </div>
       )}
@@ -335,30 +364,28 @@ export default function ThreadRfqWorkflow({
       {/* Suggested lines. While the model is still reading the email you can already start a
           request by hand — the suggestions only save you a click. */}
       {detecting && suggestedOpen.length === 0 && (
-        <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          <Sparkles size={11} className="text-primary animate-pulse" /> Reading the email to suggest which cover to quote…
+        <span className="flex items-center gap-2 text-[13px]" style={{ color: FAINT }}>
+          <span className="inline-block w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: INK }} aria-hidden />
+          Reading the email to suggest which cover to quote
         </span>
       )}
       {suggestedOpen.length > 0 && (
-        <div className="flex flex-col gap-1.5">
-          <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">
-            <Sparkles size={11} className="text-primary" /> Suggested from this email
-          </span>
-          <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-col gap-2">
+          <span className="text-[12.5px]" style={{ color: MUTED }}>Suggested from this email</span>
+          <div className="flex flex-wrap items-center gap-2">
             {suggestedOpen.map(line => (
-              <button key={line} onClick={() => openLineInsurers(line)}
-                className="flex items-center gap-1 text-[11px] rounded-[6px] border border-primary/30 bg-primary/5 px-2.5 py-1 font-medium text-primary hover:bg-primary/10">
-                <Plus size={10} /> {productLineLabel(line)}
+              <button key={line} type="button" onClick={() => openLineInsurers(line)}
+                className={cn(CHIP, 'hover:bg-[#f8f9fa]')} style={{ borderColor: CTRL, color: INK }}>
+                <Plus size={12} aria-hidden /> {productLineLabel(line)}
               </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* Manual start */}
-      <button onClick={openWizardBlank}
-        className="self-start flex items-center gap-1.5 text-[11.5px] font-semibold rounded-md border border-[--border-subtle] px-3 py-1.5 text-foreground hover:bg-muted">
-        <Plus size={12} /> New quotation request
+      {/* Manual start: the one filled button on the desk */}
+      <button type="button" onClick={openWizardBlank} className={cn(BTN_PRIMARY, 'self-start')}>
+        <Plus size={15} aria-hidden /> New quotation request
       </button>
 
       <RfqWizard
@@ -387,37 +414,62 @@ function SentLine({ request, onChange }: { request: RfqRequest; onChange: () => 
     try { await fetch('/api/nexus/rfq/chase', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dispatch_id: id }) }); onChange() }
     finally { setChasingId(null) }
   }
+  const total = request.dispatches.length
+  const replied = request.dispatches.filter(d => d.status === 'replied').length
   return (
-    <div className="rounded-lg border border-[--border-subtle] bg-card p-3 flex flex-col gap-1.5">
-      <span className="text-[12px] font-semibold text-foreground">{productLineLabel(request.product_line)}</span>
-      <div className="flex flex-wrap gap-1.5">
-        {request.dispatches.map(d => {
-          const replied = d.status === 'replied'
-          const waited  = daysSince(d.updated_at || d.created_at)
+    <div className="rounded-[12px] bg-white p-3.5 flex flex-col gap-2" style={{ border: `1px solid ${HAIR}` }}>
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-[13.5px] font-medium" style={{ color: INK }}>{productLineLabel(request.product_line)}</span>
+        <span className="text-[12.5px] tabular-nums flex-shrink-0" style={{ color: MUTED }}>{replied} of {total} replied</span>
+      </div>
+      <ul className="m-0 p-0 list-none flex flex-col">
+        {request.dispatches.map((d, i) => {
+          const hasReplied = d.status === 'replied'
+          const waited = daysSince(d.updated_at || d.created_at)
           return (
-            <span key={d.id} className={cn('inline-flex items-center gap-1 text-[10.5px] rounded-[6px] pl-2 pr-1 py-0.5 border',
-              replied ? 'text-indigo-700 bg-indigo-50 border-indigo-200 font-semibold' : 'text-emerald-700 bg-emerald-50 border-emerald-200')}>
-              {replied ? '↩ replied' : '✓ sent'} · {d.insurer_name || d.to_email}
-              {!replied && <span className="opacity-70">· ⏳{waited}d</span>}
-              {!replied && (
-                <button onClick={() => chase(d.id)} disabled={chasingId === d.id}
-                  className="ml-0.5 rounded-[4px] px-1.5 py-0.5 text-[9.5px] font-semibold bg-white/70 hover:bg-white border border-current/20 disabled:opacity-50">
-                  {chasingId === d.id ? '…' : 'Chase'}
-                </button>
-              )}
-            </span>
+            <li key={d.id} className="flex items-center justify-between gap-3 py-1.5 text-[13px]" style={{ borderTop: i > 0 ? `1px solid ${HAIR}` : undefined }}>
+              <span className="min-w-0 truncate" style={{ color: INK }}>{d.insurer_name || d.to_email}</span>
+              <span className="flex items-center gap-3 flex-shrink-0" style={{ color: MUTED }}>
+                <span>{hasReplied ? 'Replied' : `Sent · ${waited} day${waited === 1 ? '' : 's'} ago`}</span>
+                {!hasReplied && (
+                  <button type="button" onClick={() => chase(d.id)} disabled={chasingId === d.id} className={LINK} style={{ color: INK }}>
+                    {chasingId === d.id ? 'Chasing…' : 'Chase'}
+                  </button>
+                )}
+              </span>
+            </li>
           )
         })}
-      </div>
+      </ul>
     </div>
   )
 }
 
 // ── Wizard modal ──────────────────────────────────────────────────────────────
 
+/** The three steps as a muted numbered underline: the current one is ink with an ink rule. */
+function StepBar({ step }: { step: Step }) {
+  const idx = STEPS.findIndex(s => s.key === step)
+  return (
+    <ol className="m-0 p-0 list-none flex items-center gap-5 text-[13px]" aria-label="Steps" style={{ borderBottom: `1px solid ${HAIR}` }}>
+      {STEPS.map((s, i) => {
+        const current = i === idx
+        return (
+          <li key={s.key} aria-current={current ? 'step' : undefined}
+            className={cn('flex items-center gap-1.5 pb-2 -mb-px', current && 'font-medium')}
+            style={{ color: current ? INK : i < idx ? BODY : FAINT, borderBottom: `2px solid ${current ? INK : 'transparent'}` }}>
+            <span className="tabular-nums">{i + 1}</span>
+            <span>{s.label}</span>
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
+
 function RfqWizard(p: {
   open: boolean; onOpenChange: (v: boolean) => void
-  step: 'line' | 'insurers' | 'review'; setStep: (s: 'line' | 'insurers' | 'review') => void
+  step: Step; setStep: (s: Step) => void
   activeLine: string | null; lineInsurers: Insurer[]
   picked: string[]; setPicked: React.Dispatch<React.SetStateAction<string[]>>
   pickedLines: string[]; togglePickLine: (slug: string) => void; beginLineQueue: () => void
@@ -435,43 +487,48 @@ function RfqWizard(p: {
 
   return (
     <Dialog open={p.open} onOpenChange={p.onOpenChange}>
-      <DialogContent className="sm:max-w-[1000px] max-h-[calc(88vh/var(--ui-zoom))] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle>
+      <DialogContent className="sm:max-w-[1000px] max-h-[calc(88vh/var(--ui-zoom))] overflow-hidden flex flex-col gap-4">
+        <DialogHeader className="gap-1.5">
+          <DialogTitle className="text-[18px] font-medium tracking-[-0.01em]" style={{ color: INK }}>
             {p.step === 'line' ? 'New quotation request' : p.step === 'insurers'
-              ? `Select insurers — ${p.activeLine ? productLineLabel(p.activeLine) : ''}`
-              : 'Review & send'}
+              ? `Insurers for ${p.activeLine ? productLineLabel(p.activeLine) : 'this line'}`
+              : 'Review and send'}
           </DialogTitle>
-          <DialogDescription>
-            {p.step === 'line' ? 'Select one or more lines of insurance the client is asking to quote. You’ll pick insurers for each line in turn.'
-              : p.step === 'insurers' ? `Pick the insurers to request a quote from${p.activeLine ? ` for ${productLineLabel(p.activeLine)}` : ''}. One draft is prepared per insurer.${p.queueRemaining > 0 ? ` (${p.queueRemaining} more line${p.queueRemaining === 1 ? '' : 's'} to configure)` : ''}`
-              : 'Check the recipient, content and attachments on each, then send all or individually.'}
+          <DialogDescription className="text-[13px]" style={{ color: MUTED }}>
+            {p.step === 'line' ? 'Select the lines of insurance the client is asking to quote. Insurers are picked for each line in turn.'
+              : p.step === 'insurers' ? `One draft is prepared per insurer.${p.queueRemaining > 0 ? ` ${p.queueRemaining} more line${p.queueRemaining === 1 ? '' : 's'} to configure after this one.` : ''}`
+              : 'Check the recipient, content and attachments on each draft, then send all or one at a time.'}
           </DialogDescription>
         </DialogHeader>
 
+        <StepBar step={p.step} />
+
         <div className="flex-1 overflow-y-auto -mx-1 px-1">
-          {/* Step 1 — pick a line (grouped like the website navbar) */}
+          {/* Step 1 — pick lines (grouped like the website navbar) */}
           {p.step === 'line' && (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-5">
               {groupedProductLines().map(g => (
-                <div key={g.key} className="flex flex-col gap-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">{g.label}</span>
+                <div key={g.key} className="flex flex-col gap-2.5">
+                  <span className="text-[13.5px] font-medium" style={{ color: INK }}>{g.label}</span>
                   {g.sections.map(sec => (
                     <div key={sec.section} className="flex flex-col gap-1.5">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/45">{sec.section}</span>
-                      <div className="grid grid-cols-2 gap-2">
+                      <span className="text-[12.5px]" style={{ color: MUTED }}>{sec.section}</span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {sec.lines.map(pl => {
                           const done = stagedLines.has(pl.slug)
                           const sel  = p.pickedLines.includes(pl.slug)
                           return (
-                            <button key={pl.slug} onClick={() => !done && p.togglePickLine(pl.slug)} disabled={done}
-                              className={cn('flex items-center gap-2 text-left text-[12.5px] rounded-md border px-3 py-2.5 transition-colors',
-                                done ? 'border-[--border-subtle] bg-muted/40 text-muted-foreground/60 cursor-default'
-                                     : sel ? 'border-primary bg-primary/10 text-foreground'
-                                     : 'border-[--border-subtle] hover:border-primary/50 hover:bg-primary/5')}>
-                              <span className={cn('flex-shrink-0 w-3.5 h-3.5 rounded-[3px] border flex items-center justify-center text-[9px] text-white',
-                                sel ? 'bg-primary border-primary' : 'border-muted-foreground/40')}>{sel ? '✓' : ''}</span>
-                              {pl.label}{done && ' ✓ staged'}
+                            <button key={pl.slug} type="button" onClick={() => !done && p.togglePickLine(pl.slug)} disabled={done} aria-pressed={sel}
+                              className={cn('flex items-center gap-2.5 text-left text-[13.5px] rounded-[10px] px-3 py-2.5 bg-white transition-colors cursor-pointer',
+                                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#202124]',
+                                done ? 'cursor-default' : 'hover:bg-[#f8f9fa]')}
+                              style={{ border: `1px solid ${sel ? INK : CTRL}`, color: done ? FAINT : INK, background: done ? FIELD : undefined }}>
+                              <span className="flex-shrink-0 w-4 h-4 rounded-[4px] flex items-center justify-center" aria-hidden
+                                style={{ border: `1px solid ${sel ? INK : DOT}`, background: sel ? INK : '#fff', color: '#fff' }}>
+                                {sel && <Check size={11} strokeWidth={3} />}
+                              </span>
+                              <span className="min-w-0 truncate">{pl.label}</span>
+                              {done && <span className="ml-auto flex-shrink-0 text-[12.5px]" style={{ color: FAINT }}>Staged</span>}
                             </button>
                           )
                         })}
@@ -483,59 +540,65 @@ function RfqWizard(p: {
             </div>
           )}
 
-          {/* Step 2 — pick insurers */}
+          {/* Step 2 — pick insurers as outlined toggle chips */}
           {p.step === 'insurers' && (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
               {p.lineInsurers.length === 0 ? (
-                <p className="text-[12px] text-muted-foreground py-6 text-center">
-                  No insurers cover this line yet — add them in <span className="font-medium">Settings → Insurer Directory</span>.
+                <p className="m-0 text-[13.5px] py-8 text-center" style={{ color: MUTED }}>
+                  No insurers cover this line yet. Add them under Settings, Insurer directory.
                 </p>
-              ) : p.lineInsurers.map(i => {
-                const on = p.picked.includes(i.contact_id)
-                return (
-                  <button key={i.contact_id} onClick={() => toggle(i.contact_id)}
-                    className={cn('flex items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left transition-colors',
-                      on ? 'border-primary bg-primary/5' : 'border-[--border-subtle] hover:bg-muted')}>
-                    <div className="min-w-0">
-                      <p className="text-[12.5px] font-medium text-foreground">{i.insurer_name}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{i.contact_name ? `${i.contact_name} · ` : ''}{i.contact_email}</p>
-                    </div>
-                    <span className={cn('h-4 w-4 rounded flex items-center justify-center border flex-shrink-0', on ? 'bg-primary border-primary text-white' : 'border-muted-foreground/40')}>
-                      {on && <Check size={12} />}
-                    </span>
-                  </button>
-                )
-              })}
+              ) : (
+                <>
+                  <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>{p.picked.length} of {p.lineInsurers.length} selected</p>
+                  <div className="flex flex-wrap gap-2" role="group" aria-label="Insurers">
+                    {p.lineInsurers.map(i => {
+                      const on = p.picked.includes(i.contact_id)
+                      return (
+                        <button key={i.contact_id} type="button" onClick={() => toggle(i.contact_id)} aria-pressed={on}
+                          title={[i.contact_name, i.contact_email].filter(Boolean).join(' · ')}
+                          className={cn(CHIP, 'h-auto min-h-8 py-1.5', on ? 'hover:opacity-90' : 'hover:bg-[#f8f9fa]')}
+                          style={on ? { background: INK, borderColor: INK, color: '#fff' } : { borderColor: CTRL, color: INK }}>
+                          {on && <Check size={12} strokeWidth={2.5} aria-hidden />}
+                          <span className="flex flex-col items-start leading-tight text-left">
+                            <span>{i.insurer_name}</span>
+                            <span className="text-[12px] font-normal" style={{ color: on ? 'rgba(255,255,255,0.75)' : MUTED }}>{i.contact_name ? `${i.contact_name} · ` : ''}{i.contact_email}</span>
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
             </div>
           )}
 
           {/* Step 3 — review drafts */}
           {p.step === 'review' && (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-5">
               {p.stagedCount > 0 && (
-                <div className="rounded-lg border border-[--border-subtle] bg-muted/20 p-3 flex flex-col sm:flex-row gap-3">
-                  <label className="flex-1 flex flex-col gap-1 min-w-0">
-                    <span className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground/60">From — sender email</span>
-                    <select value={p.fromEmail} onChange={e => p.setFromEmail(e.target.value)} className="text-[12px] rounded-md border border-[--border-subtle] bg-background px-2.5 py-1.5">
+                <div className="rounded-[12px] p-3.5 flex flex-col sm:flex-row gap-3" style={{ border: `1px solid ${HAIR}` }}>
+                  <label className="flex-1 flex flex-col gap-1.5 min-w-0">
+                    <span className="text-[12.5px]" style={{ color: MUTED }}>From</span>
+                    <select value={p.fromEmail} onChange={e => p.setFromEmail(e.target.value)} className={SELECT} style={{ border: `1px solid ${CTRL}`, color: INK }}>
                       {p.senders.map(s => <option key={s.email} value={s.email}>{(s.type === 'shared' ? 'Shared · ' : 'You · ') + s.email}</option>)}
                     </select>
                     {p.senders.find(s => s.email === p.fromEmail)?.type === 'personal' && (
-                      <span className="text-[10px] text-amber-600">operations@ is auto-CC'd so it appears in Engagement</span>
+                      <span className="text-[12.5px]" style={{ color: MUTED }}>operations@ is copied so the thread appears in Engagement.</span>
                     )}
                   </label>
-                  <label className="flex-1 flex flex-col gap-1 min-w-0">
-                    <span className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground/60">Signature</span>
-                    <select value={p.sigId} onChange={e => p.setSigId(e.target.value)} className="text-[12px] rounded-md border border-[--border-subtle] bg-background px-2.5 py-1.5">
+                  <label className="flex-1 flex flex-col gap-1.5 min-w-0">
+                    <span className="text-[12.5px]" style={{ color: MUTED }}>Signature</span>
+                    <select value={p.sigId} onChange={e => p.setSigId(e.target.value)} className={SELECT} style={{ border: `1px solid ${CTRL}`, color: INK }}>
                       {p.signatures.length === 0 && <option value="">No signature</option>}
                       {p.signatures.map(s => <option key={s.id} value={s.id}>{s.name}{s.title ? ` · ${s.title}` : ''}</option>)}
                     </select>
                   </label>
                 </div>
               )}
-              {p.stagedCount === 0 && <p className="text-[12px] text-muted-foreground py-6 text-center">Nothing staged yet.</p>}
+              {p.stagedCount === 0 && <p className="m-0 text-[13.5px] py-8 text-center" style={{ color: MUTED }}>Nothing staged yet.</p>}
               {p.staged.map(l => (
-                <div key={l.line} className="flex flex-col gap-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">{productLineLabel(l.line)}</span>
+                <div key={l.line} className="flex flex-col gap-2.5">
+                  <span className="text-[13.5px] font-medium" style={{ color: INK }}>{productLineLabel(l.line)}</span>
                   {l.insurers.map(ins => (
                     <DraftCard key={ins.contact_id} line={l.line} ins={ins}
                       attachments={p.attachments}
@@ -548,37 +611,35 @@ function RfqWizard(p: {
           )}
         </div>
 
-        {/* Footer nav */}
-        <div className="flex items-center justify-between gap-2 border-t border-[--border-subtle] pt-3 mt-1">
+        {/* Footer nav: one filled button per step */}
+        <div className="flex items-center justify-between gap-2 pt-3" style={{ borderTop: `1px solid ${HAIR}` }}>
           <div className="flex items-center gap-2">
             {p.step === 'insurers' && (
-              <button onClick={() => p.setStep(p.staged.length ? 'review' : 'line')} className="flex items-center gap-1 text-[11.5px] text-muted-foreground hover:text-foreground">
-                <ChevronLeft size={13} /> Back
+              <button type="button" onClick={() => p.setStep(p.staged.length ? 'review' : 'line')} className={BTN_TERTIARY}>
+                <ChevronLeft size={14} aria-hidden /> Back
               </button>
             )}
             {p.step === 'review' && (
-              <button onClick={p.onAddAnotherLine} className="flex items-center gap-1 text-[11.5px] font-medium text-primary hover:underline">
-                <Plus size={12} /> Add another line
+              <button type="button" onClick={p.onAddAnotherLine} className={BTN_SECONDARY}>
+                <Plus size={13} aria-hidden /> Add another line
               </button>
             )}
           </div>
           <div className="flex items-center gap-2">
             {p.step === 'line' && (
-              <button onClick={p.beginLineQueue} disabled={p.pickedLines.length === 0}
-                className="text-[11.5px] font-semibold px-4 py-1.5 rounded-md bg-primary text-primary-foreground disabled:opacity-50">
-                Next{p.pickedLines.length ? ` — ${p.pickedLines.length} line${p.pickedLines.length === 1 ? '' : 's'}` : ''}
+              <button type="button" onClick={p.beginLineQueue} disabled={p.pickedLines.length === 0} className={BTN_PRIMARY}>
+                Next{p.pickedLines.length ? ` · ${p.pickedLines.length} line${p.pickedLines.length === 1 ? '' : 's'}` : ''}
               </button>
             )}
             {p.step === 'insurers' && (
-              <button onClick={p.confirmInsurers} disabled={p.picked.length === 0}
-                className="text-[11.5px] font-semibold px-4 py-1.5 rounded-md bg-primary text-primary-foreground disabled:opacity-50">
+              <button type="button" onClick={p.confirmInsurers} disabled={p.picked.length === 0} className={BTN_PRIMARY}>
                 {p.queueRemaining > 0
-                  ? `Prepare drafts · next line →`
-                  : `Prepare ${p.picked.length || ''} draft${p.picked.length === 1 ? '' : 's'} & review`}
+                  ? 'Prepare drafts · next line'
+                  : `Prepare ${p.picked.length || ''} draft${p.picked.length === 1 ? '' : 's'} and review`}
               </button>
             )}
             {p.step === 'review' && p.stagedCount > 0 && (
-              <button onClick={p.sendAll} className="text-[11.5px] font-semibold px-4 py-1.5 rounded-md bg-primary text-primary-foreground">
+              <button type="button" onClick={p.sendAll} className={BTN_PRIMARY}>
                 Send all ({p.stagedCount})
               </button>
             )}
@@ -590,6 +651,21 @@ function RfqWizard(p: {
 }
 
 // ── One insurer draft card ────────────────────────────────────────────────────
+
+/** A draft being written: an ink bar on a hairline track, no percentage (there is no signal). */
+function DraftingBar({ label }: { label: string }) {
+  return (
+    <div className="flex flex-col gap-1.5 py-2" role="progressbar" aria-label={label}>
+      <span className="text-[12.5px] flex items-center gap-1.5" style={{ color: FAINT }}>
+        <span className="inline-block w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: INK }} aria-hidden />
+        {label}
+      </span>
+      <div className="relative h-1 w-full overflow-hidden rounded-full" style={{ background: HAIR }}>
+        <span className="absolute top-0 h-full rounded-full animate-trs-indeterminate" style={{ background: INK, opacity: 0.7 }} />
+      </div>
+    </div>
+  )
+}
 
 function DraftCard({
   line, ins, attachments, sigHtml, patchIns, regenerate, onSend,
@@ -603,71 +679,79 @@ function DraftCard({
   const [showAttach, setShowAttach] = useState(false)
   const [ccOpen, setCcOpen] = useState(!!ins.cc.trim())
   const set = (patch: Partial<StagedInsurer>) => patchIns(line, ins.contact_id, patch)
-  const inp = 'w-full text-[12px] border border-[--border-subtle] rounded-md px-2.5 py-1.5 bg-background outline-none focus:ring-1 focus:ring-primary/20'
   const toggleAttach = (id: string) => set({ attach: ins.attach.includes(id) ? ins.attach.filter(x => x !== id) : [...ins.attach, id] })
+  const fieldLabel = 'text-[12.5px] w-14 flex-shrink-0'
 
   if (ins.sent) {
     return (
-      <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 flex items-center gap-2 text-[12px] text-emerald-700 font-semibold">
-        <span className="flex items-center justify-center w-4 h-4 rounded-full bg-emerald-600 text-white"><Check size={11} strokeWidth={3} /></span>
-        Done · sent to {ins.insurer_name} <span className="font-normal text-emerald-700/70">({ins.to})</span>
+      <div className="rounded-[12px] px-3.5 py-2.5 flex items-center gap-2.5 text-[13.5px]" style={{ border: `1px solid ${HAIR}`, background: FIELD, color: BODY }}>
+        <Check size={14} strokeWidth={2.5} aria-hidden style={{ color: INK }} />
+        <span><b className="font-medium" style={{ color: INK }}>Sent</b> to {ins.insurer_name} <span style={{ color: MUTED }}>({ins.to})</span></span>
       </div>
     )
   }
 
   return (
-    <div className="rounded-md border border-[--border-subtle] bg-card p-3 flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <span className="text-[12px] font-semibold text-foreground">{ins.insurer_name}{ins.contact_name ? <span className="text-muted-foreground font-normal"> · {ins.contact_name}</span> : null}</span>
+    <div className="rounded-[12px] bg-white p-3.5 flex flex-col gap-2.5" style={{ border: `1px solid ${CTRL}` }}>
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-[13.5px] font-medium min-w-0 truncate" style={{ color: INK }}>
+          {ins.insurer_name}{ins.contact_name ? <span className="font-normal" style={{ color: MUTED }}> · {ins.contact_name}</span> : null}
+        </span>
         {!ins.loadingDraft && (
-          <button onClick={() => regenerate(line, ins)} className="text-[10.5px] text-muted-foreground hover:text-foreground">Regenerate</button>
+          <button type="button" onClick={() => regenerate(line, ins)} className={cn(LINK, 'flex-shrink-0')} style={{ color: MUTED }}>Regenerate</button>
         )}
       </div>
 
       {ins.loadingDraft ? (
-        <p className="text-[12px] text-muted-foreground py-3 text-center">Drafting…</p>
+        <DraftingBar label="Drafting…" />
       ) : ins.draftError ? (
-        <p className="text-[11.5px] text-destructive">Draft failed: {ins.draftError}</p>
+        <p className="m-0 text-[13px]" style={{ color: BODY }} role="alert">Draft failed: {ins.draftError}</p>
       ) : (
         <>
           <div className="flex items-center gap-2">
-            <label className="flex items-center gap-2 flex-1"><span className="text-[9.5px] font-semibold uppercase tracking-wider text-muted-foreground/60 w-12 flex-shrink-0">To</span>
-              <input value={ins.to} onChange={e => set({ to: e.target.value })} className={inp} /></label>
+            <label className="flex items-center gap-2 flex-1 min-w-0">
+              <span className={fieldLabel} style={{ color: MUTED }}>To</span>
+              <input value={ins.to} onChange={e => set({ to: e.target.value })} className={INPUT} style={{ border: `1px solid ${CTRL}`, color: INK }} />
+            </label>
             {!ccOpen && (
-              <button onClick={() => setCcOpen(true)} className="text-[10.5px] font-semibold text-muted-foreground hover:text-foreground flex-shrink-0">
+              <button type="button" onClick={() => setCcOpen(true)} className={cn(LINK, 'flex-shrink-0')} style={{ color: MUTED }}>
                 Cc{ins.cc.trim() ? ` (${parseEmails(ins.cc).length})` : ''}
               </button>
             )}
           </div>
           {ccOpen && (
-            <label className="flex items-center gap-2"><span className="text-[9.5px] font-semibold uppercase tracking-wider text-muted-foreground/60 w-12 flex-shrink-0">Cc</span>
-              <input value={ins.cc} onChange={e => set({ cc: e.target.value, ccTouched: true })} placeholder="comma-separated emails" className={inp} /></label>
+            <label className="flex items-center gap-2">
+              <span className={fieldLabel} style={{ color: MUTED }}>Cc</span>
+              <input value={ins.cc} onChange={e => set({ cc: e.target.value, ccTouched: true })} placeholder="Comma-separated emails" className={INPUT} style={{ border: `1px solid ${CTRL}`, color: INK }} />
+            </label>
           )}
-          <label className="flex items-center gap-2"><span className="text-[9.5px] font-semibold uppercase tracking-wider text-muted-foreground/60 w-12 flex-shrink-0">Subject</span>
-            <input value={ins.subject} onChange={e => set({ subject: e.target.value })} className={inp} /></label>
+          <label className="flex items-center gap-2">
+            <span className={fieldLabel} style={{ color: MUTED }}>Subject</span>
+            <input value={ins.subject} onChange={e => set({ subject: e.target.value })} className={INPUT} style={{ border: `1px solid ${CTRL}`, color: INK }} />
+          </label>
           <RichTextEditor html={ins.body} resetKey={ins.gen} onChange={html => set({ body: html })} />
 
           {/* Signature preview — exactly what gets appended on send (no duplicates) */}
           {sigHtml ? (
-            <div className="rounded-md border border-dashed border-[--border-subtle] bg-muted/20 px-3 py-2">
-              <span className="text-[9.5px] font-semibold uppercase tracking-wider text-muted-foreground/50">Signature appended on send</span>
-              <div className="text-[12px] text-foreground/80 mt-1" dangerouslySetInnerHTML={{ __html: sigHtml }} />
+            <div className="rounded-[10px] px-3 py-2.5" style={{ background: FIELD }}>
+              <p className="m-0 mb-1 text-[12px]" style={{ color: MUTED }}>Signature appended on send</p>
+              <div className="text-[13px]" style={{ color: BODY }} dangerouslySetInnerHTML={{ __html: sigHtml }} />
             </div>
           ) : (
-            <p className="text-[10.5px] text-muted-foreground/60 italic">No signature selected — nothing will be appended.</p>
+            <p className="m-0 text-[12.5px]" style={{ color: FAINT }}>No signature selected. Nothing is appended.</p>
           )}
 
           {/* Attachments — manual add */}
           {attachments.length > 0 && (
-            <div className="flex flex-col gap-1">
-              <button onClick={() => setShowAttach(v => !v)} className="self-start flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">
-                <Paperclip size={11} /> Attachments{ins.attach.length > 0 ? ` (${ins.attach.length})` : ''}
+            <div className="flex flex-col gap-1.5">
+              <button type="button" onClick={() => setShowAttach(v => !v)} aria-expanded={showAttach} className={cn(LINK, 'self-start inline-flex items-center gap-1.5')} style={{ color: INK }}>
+                <Paperclip size={12} aria-hidden /> Attachments{ins.attach.length > 0 ? ` (${ins.attach.length})` : ''}
               </button>
               {showAttach && (
-                <div className="flex flex-col gap-1 pl-1">
+                <div className="flex flex-col gap-1.5 pl-1">
                   {attachments.map(a => (
-                    <label key={a.id} className="flex items-center gap-2 text-[11.5px] cursor-pointer">
-                      <input type="checkbox" checked={ins.attach.includes(a.id)} onChange={() => toggleAttach(a.id)} className="accent-primary" />
+                    <label key={a.id} className="flex items-center gap-2 text-[13px] cursor-pointer" style={{ color: BODY }}>
+                      <input type="checkbox" checked={ins.attach.includes(a.id)} onChange={() => toggleAttach(a.id)} className="accent-[#202124]" />
                       <span className="truncate">{a.filename}</span>
                     </label>
                   ))}
@@ -676,10 +760,9 @@ function DraftCard({
             </div>
           )}
 
-          {ins.sendError && <p className="text-[11px] text-destructive">{ins.sendError}</p>}
+          {ins.sendError && <p className="m-0 text-[13px]" style={{ color: BODY }} role="alert">{ins.sendError}</p>}
           <div className="flex justify-end">
-            <button onClick={onSend} disabled={ins.sending || !ins.to.trim() || !htmlToText(ins.body)}
-              className="text-[11px] font-semibold px-3.5 py-1.5 rounded-md bg-primary text-primary-foreground disabled:opacity-50">
+            <button type="button" onClick={onSend} disabled={ins.sending || !ins.to.trim() || !htmlToText(ins.body)} className={BTN_SECONDARY}>
               {ins.sending ? 'Sending…' : `Send to ${ins.insurer_name}`}
             </button>
           </div>

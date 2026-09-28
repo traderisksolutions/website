@@ -102,6 +102,17 @@ export function CensusEditor({ census, setCensus, companyId = null, onRenameTier
     })
   }
 
+  // What stops a row from pricing: no age (no date of birth either), or an age outside any
+  // plausible band. Checked here so the problem is seen before a single insurer is run.
+  const rowIssue = (m: CensusMember): string | null => {
+    if (!(m.name ?? '').trim() && !m.date_of_birth && m.age == null) return null
+    if (!m.date_of_birth && m.age == null) return 'no date of birth or age'
+    const age = m.age ?? (m.date_of_birth ? ageAsOfToday(m.date_of_birth) : null)
+    if (age != null && (age < 0 || age > 99)) return 'age outside 0–99'
+    return null
+  }
+  const issues = census.map(rowIssue).filter((x): x is string => !!x)
+
   return (
     <div className="border border-border rounded-xl overflow-hidden">
       <div className="grid grid-cols-[1fr_130px_70px_100px_140px_32px] gap-2 px-3 py-2 bg-muted/40 text-[11px] font-medium text-muted-foreground/70">
@@ -121,13 +132,13 @@ export function CensusEditor({ census, setCensus, companyId = null, onRenameTier
                     <input autoFocus value={editingValue} onChange={e => setEditingValue(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') submitRename(t.id); if (e.key === 'Escape') setEditingTierId(null) }}
                       className="text-[11.5px] w-24 bg-transparent focus:outline-none" />
-                    <button onClick={() => submitRename(t.id)} className="text-emerald-600"><Check size={11} /></button>
+                    <button onClick={() => submitRename(t.id)} className="text-[#202124]"><Check size={11} /></button>
                   </>
                 ) : (
                   <>
                     <span className="text-[11.5px]">{t.name}</span>
                     <button onClick={() => { setEditingTierId(t.id); setEditingValue(t.name) }} className="text-muted-foreground/50 hover:text-foreground"><Pencil size={10} /></button>
-                    <button onClick={() => removeTier(t.id)} className="text-muted-foreground/50 hover:text-rose-500"><X size={11} /></button>
+                    <button onClick={() => removeTier(t.id)} className="text-[#9aa0a6] hover:text-[#202124]"><X size={11} /></button>
                   </>
                 )}
               </div>
@@ -137,13 +148,13 @@ export function CensusEditor({ census, setCensus, companyId = null, onRenameTier
             <input value={newTierName} onChange={e => setNewTierName(e.target.value)} placeholder="New tier name…"
               onKeyDown={e => { if (e.key === 'Enter' && newTierName.trim()) { addTier(newTierName.trim()); setNewTierName('') } }}
               className="text-[11.5px] border border-border rounded-md px-2 py-1 bg-background w-40" />
-            <button onClick={() => { if (newTierName.trim()) { addTier(newTierName.trim()); setNewTierName('') } }} className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1"><Plus size={10} /> Add</button>
+            <button onClick={() => { if (newTierName.trim()) { addTier(newTierName.trim()); setNewTierName('') } }} className="text-[12px] text-[#202124] hover:underline flex items-center gap-1"><Plus size={10} /> Add</button>
           </div>
         </div>
       )}
 
       {census.map((m, i) => (
-        <div key={i} className="grid grid-cols-[1fr_130px_70px_100px_140px_32px] gap-2 px-3 py-1.5 border-t border-border/40 items-center">
+        <div key={i} className="grid grid-cols-[1fr_130px_70px_100px_140px_32px] gap-2 px-3 py-1.5 border-t border-border/40 items-center" style={rowIssue(m) ? { background: '#FFF6D8' } : undefined} title={rowIssue(m) ?? undefined}>
           <input value={m.name ?? ''} onChange={e => setCensus(c => c.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} placeholder="Full name" className={inp} />
           <input type="date" value={m.date_of_birth ?? ''} onChange={e => { const dob = e.target.value || null; setCensus(c => c.map((x, j) => j === i ? { ...x, date_of_birth: dob, age: dob ? ageAsOfToday(dob) : x.age } : x)) }} className={inp} />
           <input type="number" value={m.age ?? ''} disabled={!!m.date_of_birth} onChange={e => setCensus(c => c.map((x, j) => j === i ? { ...x, age: e.target.value ? Number(e.target.value) : null } : x))} placeholder="—" className={`${inp} disabled:opacity-60 disabled:bg-muted/40`} title={m.date_of_birth ? 'Calculated from date of birth' : 'Used only if no date of birth'} />
@@ -153,11 +164,16 @@ export function CensusEditor({ census, setCensus, companyId = null, onRenameTier
             {tiers.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
             <option value={ADD_CUSTOM}>+ add custom…</option>
           </select>
-          {census.length > 1 && <button onClick={() => setCensus(c => c.filter((_, j) => j !== i))} className="text-rose-400 hover:text-rose-600"><Trash2 size={13} /></button>}
+          {census.length > 1 && <button onClick={() => setCensus(c => c.filter((_, j) => j !== i))} className="text-[#9aa0a6] hover:text-[#c5221f]"><Trash2 size={13} /></button>}
         </div>
       ))}
+      {issues.length > 0 && (
+        <p className="m-0 px-3 py-2 text-[12.5px] border-t border-border/40" style={{ background: '#FFF6D8', color: '#3c4043' }}>
+          {issues.length} of {census.filter(m => (m.name ?? '').trim()).length} lives will not price: {Array.from(new Set(issues)).join('; ')}. Fix these before running the insurers.
+        </p>
+      )}
       <div className="flex items-center gap-3 px-3 py-2 border-t border-border/40">
-        <button onClick={() => setCensus(c => [...c, { name: '', relationship: 'Self', date_of_birth: null, age: null }])} className="text-[12px] text-primary flex items-center gap-1 hover:underline"><Plus size={12} /> add life</button>
+        <button onClick={() => setCensus(c => [...c, { name: '', relationship: 'Self', date_of_birth: null, age: null }])} className="text-[13px] text-[#202124] flex items-center gap-1 hover:underline"><Plus size={12} /> Add life</button>
         <label className="text-[12px] text-muted-foreground flex items-center gap-1 cursor-pointer hover:text-foreground">
           <Upload size={12} /> upload CSV
           <input type="file" accept=".csv,text/csv" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) onPickCsv(f); e.target.value = '' }} />

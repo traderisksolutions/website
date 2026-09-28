@@ -2,11 +2,12 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { UploadCloud, FileText, Loader2, Clock, Calculator } from 'lucide-react'
+import { UploadCloud, Loader2, Clock, Calculator } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { NewQuoteWizard } from '@/components/group-benefits/NewQuoteWizard'
 import { XlsxTab } from '@/components/group-benefits/XlsxTab'
 import { createClient } from '@/lib/supabase/client'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 
 // Parse a response as JSON, but degrade gracefully if the server returned plain text
 // (e.g. a Vercel "Request Entity Too Large" page) instead of crashing on JSON.parse.
@@ -24,10 +25,9 @@ type RateTable = {
 }
 type Activity = { id: string; created_at: string; user_name: string | null; action: string; new_value: Record<string, unknown> | null }
 
-const STATUS_TONE: Record<string, string> = {
-  draft: 'bg-muted text-muted-foreground', extracting: 'bg-amber-100 text-amber-700',
-  in_review: 'bg-blue-100 text-blue-700', approved: 'bg-emerald-100 text-emerald-700', archived: 'bg-muted text-muted-foreground/60',
-}
+// Every status is the same neutral chip; the label carries the meaning.
+const STATUS_LABEL: Record<string, string> = { draft: 'Draft', extracting: 'Extracting', in_review: 'In review', approved: 'Approved', archived: 'Archived' }
+const CHIP = 'inline-flex items-center rounded-[6px] bg-[#f1f3f4] text-[#3c4043] text-[11.5px] font-medium px-2 py-0.5 whitespace-nowrap'
 
 type Tab = 'tables' | 'xlsx' | 'quote' | 'quotes' | 'activity'
 
@@ -47,64 +47,58 @@ export default function GroupBenefitsPage() {
   useEffect(() => { load() }, [])
 
   return (
-    <div className="min-h-screen bg-white">
-    <div className="max-w-6xl mx-auto px-8 py-6">
-      <div className="mb-4 text-[12.5px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-        This is the <b>deprecated</b> Pricing Matrix (PDF rate-extraction model). The rebuilt version —
-        which runs each insurer&rsquo;s own Excel calculator — lives at{' '}
-        <a href="/pricing-matrix" className="underline font-medium">/pricing-matrix</a>.
-      </div>
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">Pricing Matrix <span className="text-[12px] font-normal text-muted-foreground">(deprecated)</span></h1>
-          <p className="text-sm text-muted-foreground mt-1">Insurer rate matrices — upload a PDF, extract with 3 agents + Opus judge, review, approve.</p>
+    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: '#202124' }}>
+    <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
+      <div className="flex items-end justify-between gap-6 flex-wrap">
+        <div className="min-w-0 max-w-[640px]">
+          <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Pricing Matrix <span className={CHIP + ' align-middle'}>Deprecated</span></h1>
+          <p className="m-0 mt-2 text-[15px]" style={{ color: '#5f6368' }}>PDF rate-extraction model. The current version runs each insurer&rsquo;s own Excel calculator at <a href="/pricing-matrix" className="underline" style={{ color: '#202124' }}>/pricing-matrix</a>.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => setTab('quote')} className="flex items-center gap-2 text-[13px] font-semibold px-4 py-2 rounded-lg border border-primary/30 text-primary hover:bg-primary/5">
+        <div className="flex items-center gap-3 flex-wrap">
+          <button onClick={() => setTab('quote')} className="h-12 px-5 rounded-[12px] bg-white text-[15px] border border-[#dadce0] text-[#202124] inline-flex items-center gap-2 cursor-pointer hover:bg-[#f8f9fa]">
             <Calculator size={15} /> New quote
           </button>
-          <button onClick={() => setShowUpload(true)} className="flex items-center gap-2 text-[13px] font-semibold px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90">
+          <button onClick={() => setShowUpload(true)} className="h-12 px-6 rounded-[12px] bg-[#202124] text-white text-[15px] font-medium border-0 inline-flex items-center gap-2 cursor-pointer hover:opacity-90">
             <UploadCloud size={15} /> Upload rate PDF
           </button>
         </div>
       </div>
 
-      <div className="flex items-center gap-1 border-b border-border mb-5">
+      <div className="mt-8 mb-6 flex items-center gap-7" style={{ borderBottom: '1px solid #e8eaed' }}>
         {(['tables', 'xlsx', 'quote', 'quotes', 'activity'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
-            className={cn('px-3.5 py-2 text-sm font-medium -mb-px border-b-2 transition-colors',
-              tab === t ? 'text-foreground border-primary' : 'text-muted-foreground border-transparent hover:text-foreground')}>
-            {t === 'tables' ? 'Rate Tables' : t === 'xlsx' ? 'Calculators' : t === 'quote' ? 'New Quote' : t === 'quotes' ? 'Quotes' : 'Activity'}
+            className={cn('relative pb-3 text-[15px] bg-transparent border-0 p-0 cursor-pointer', tab === t ? 'font-medium text-[#202124]' : 'text-[#5f6368] hover:text-[#202124]')}>
+            {t === 'tables' ? 'Rate tables' : t === 'xlsx' ? 'Calculators' : t === 'quote' ? 'New quote' : t === 'quotes' ? 'Quotes' : 'Activity'}
+            {tab === t && <span className="absolute left-0 right-0 -bottom-px h-[2px] rounded-full bg-[#202124]" aria-hidden />}
           </button>
         ))}
       </div>
 
       {tab === 'tables' && (
-        loading ? <p className="text-sm text-muted-foreground">Loading…</p>
+        loading ? <p className="m-0 py-10 text-center text-[15px]" style={{ color: '#5f6368' }}>Loading…</p>
         : tables.length === 0 ? (
-          <div className="text-center py-16 text-muted-foreground">
-            <FileText size={28} className="mx-auto mb-3 opacity-40" />
-            <p className="text-sm">No rate tables yet. Upload an insurer rate PDF to begin.</p>
-          </div>
+          <p className="m-0 py-16 text-center text-[15px]" style={{ color: '#5f6368' }}>No rate tables yet. Upload an insurer rate PDF to begin.</p>
         ) : (
-          <div className="rounded-lg border border-border overflow-x-auto">
-            <table className="data-table w-full border-collapse text-[13px]">
-              <thead><tr>
-                <th className="pl-4 text-left">Insurer</th><th className="text-left">Products</th><th className="text-left">Year</th><th className="text-left">Status</th><th className="text-right pr-4">Uploaded</th>
-              </tr></thead>
-              <tbody>
-                {tables.map(t => (
-                  <tr key={t.id} onClick={() => router.push(`/group-benefits/${t.id}`)} className="cursor-pointer">
-                    <td className="pl-4 font-medium text-foreground whitespace-nowrap">{t.insurer_name || 'Unknown insurer'}{t.version > 1 && <span className="text-muted-foreground/50 font-normal"> · v{t.version}</span>}</td>
-                    <td className="text-muted-foreground max-w-[380px] truncate">{t.product_code}</td>
-                    <td className="text-muted-foreground">{t.plan_year ?? '—'}</td>
-                    <td><span className={cn('text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-[6px]', STATUS_TONE[t.status] ?? 'bg-muted')}>{t.status.replace('_', ' ')}</span></td>
-                    <td className="text-right pr-4 text-muted-foreground/70 whitespace-nowrap">{new Date(t.created_at).toLocaleDateString('en-SG')}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Register label="Rate tables" minWidth={760}>
+            <RegisterHead>
+              <RegisterTh first width={280}>Insurer</RegisterTh>
+              <RegisterTh>Products</RegisterTh>
+              <RegisterTh align="right">Year</RegisterTh>
+              <RegisterTh>Status</RegisterTh>
+              <RegisterTh last align="right">Uploaded</RegisterTh>
+            </RegisterHead>
+            <tbody>
+              {tables.map(t => (
+                <RegisterRow key={t.id} onClick={() => router.push(`/group-benefits/${t.id}`)}>
+                  <RegisterCell first primary={t.insurer_name || 'Unknown insurer'} secondary={t.version > 1 ? `Version ${t.version}` : t.source_pdf_name ?? 'Version 1'} />
+                  <RegisterCell className="max-w-[380px]"><span className="block text-[14px] truncate" style={{ color: '#3c4043' }} title={t.product_code}>{t.product_code}</span></RegisterCell>
+                  <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: t.plan_year ? '#202124' : '#9aa0a6' }}>{t.plan_year ?? '—'}</span></RegisterCell>
+                  <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>{STATUS_LABEL[t.status] ?? t.status}</span></RegisterCell>
+                  <RegisterCell last align="right" primary={new Date(t.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} secondary={t.approved_at ? `approved ${new Date(t.approved_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}` : 'not yet approved'} />
+                </RegisterRow>
+              ))}
+            </tbody>
+          </Register>
         )
       )}
       {tab === 'xlsx'     && <XlsxTab tables={tables} loading={loading} onChanged={load} />}
@@ -128,30 +122,32 @@ function QuotesTab() {
   useEffect(() => {
     fetch('/api/group-benefits/quote', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).then((d) => { setRows(d); setLoading(false) }).catch(() => setLoading(false))
   }, [])
-  if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>
-  if (rows.length === 0) return <p className="text-sm text-muted-foreground">No quotes yet. Use “New Quote” to run a census.</p>
+  if (loading) return <p className="m-0 py-10 text-center text-[15px]" style={{ color: '#5f6368' }}>Loading…</p>
+  if (rows.length === 0) return <p className="m-0 py-16 text-center text-[15px]" style={{ color: '#5f6368' }}>No quotes yet. Run a census under New quote.</p>
   return (
-    <div className="rounded-lg border border-border overflow-x-auto">
-      <table className="data-table w-full border-collapse text-[13px]">
-        <thead><tr>
-          <th className="pl-4 text-left">Company</th><th className="text-left">Members</th><th className="text-left">Products</th><th className="text-left">Best price</th><th className="text-right pr-4">Created</th>
-        </tr></thead>
-        <tbody>
-          {rows.map(q => {
-            const best = [...(q.results ?? [])].sort((a, b) => a.total - b.total)[0]
-            return (
-              <tr key={q.id} onClick={() => router.push(`/group-benefits/quote/${q.id}`)} className="cursor-pointer">
-                <td className="pl-4 font-medium text-foreground whitespace-nowrap">{q.company_name || 'Untitled'}</td>
-                <td className="text-muted-foreground">{q.member_count}</td>
-                <td className="text-muted-foreground max-w-[280px] truncate">{(q.product_codes ?? []).join(', ')}</td>
-                <td className="text-emerald-700 font-semibold whitespace-nowrap">{best ? `${best.insurer_name} · ${best.total.toLocaleString('en-SG', { style: 'currency', currency: 'SGD' })}` : '—'}</td>
-                <td className="text-right pr-4 text-muted-foreground/70 whitespace-nowrap">{new Date(q.created_at).toLocaleDateString('en-SG')}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+    <Register label="Quotes" minWidth={760}>
+      <RegisterHead>
+        <RegisterTh first width={260}>Company</RegisterTh>
+        <RegisterTh align="right">Members</RegisterTh>
+        <RegisterTh>Products</RegisterTh>
+        <RegisterTh align="right">Lowest premium</RegisterTh>
+        <RegisterTh last align="right">Created</RegisterTh>
+      </RegisterHead>
+      <tbody>
+        {rows.map(q => {
+          const best = [...(q.results ?? [])].sort((a, b) => a.total - b.total)[0]
+          return (
+            <RegisterRow key={q.id} onClick={() => router.push(`/group-benefits/quote/${q.id}`)}>
+              <RegisterCell first primary={q.company_name || 'Untitled'} secondary={q.effective_date ? `effective ${q.effective_date}` : 'no effective date'} />
+              <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: '#202124' }}>{q.member_count}</span></RegisterCell>
+              <RegisterCell className="max-w-[280px]"><span className="block text-[14px] truncate" style={{ color: '#3c4043' }} title={(q.product_codes ?? []).join(', ')}>{(q.product_codes ?? []).join(', ') || '—'}</span></RegisterCell>
+              {best ? <RegisterCell align="right" primary={best.total.toLocaleString('en-SG', { style: 'currency', currency: 'SGD' })} secondary={best.insurer_name} /> : <RegisterCell align="right"><span style={{ color: '#9aa0a6' }}>—</span></RegisterCell>}
+              <RegisterCell last align="right"><span className="text-[14px] tabular-nums" style={{ color: '#5f6368' }}>{new Date(q.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></RegisterCell>
+            </RegisterRow>
+          )
+        })}
+      </tbody>
+    </Register>
   )
 }
 
@@ -165,7 +161,7 @@ function ActivityTab() {
   return (
     <div className="flex flex-col gap-1.5">
       {rows.map(r => (
-        <div key={r.id} className="flex items-center gap-3 px-3 py-2 rounded-lg border border-border/60 bg-card text-[12px]">
+        <div key={r.id} className="flex items-center gap-3 px-3 py-2.5 text-[13.5px]" style={{ borderBottom: '1px solid #e8eaed' }}>
           <Clock size={12} className="text-muted-foreground/40 flex-shrink-0" />
           <span className="font-medium text-foreground/80">{r.action.replace('gb.', '').replace(/_/g, ' ')}</span>
           <span className="text-muted-foreground/60 truncate flex-1">{r.new_value ? JSON.stringify(r.new_value) : ''}</span>
@@ -210,21 +206,21 @@ function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-xl bg-card shadow-2xl p-5 flex flex-col gap-3" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-lg rounded-[16px] bg-white p-6 flex flex-col gap-3" style={{ boxShadow: '0 24px 64px rgba(32,33,36,0.2)' }} onClick={e => e.stopPropagation()}>
         <div>
-          <h3 className="text-[15px] font-semibold text-foreground">Upload insurer rate PDF</h3>
+          <h3 className="m-0 text-[20px] font-medium tracking-[-0.01em] text-foreground">Upload insurer rate PDF</h3>
           <p className="text-[11.5px] text-muted-foreground/70 mt-0.5">Insurer, product, age basis, plan year and effective date are read from the PDF — you can correct them during review.</p>
         </div>
-        <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-xl py-10 cursor-pointer hover:border-primary/40">
+        <label className="flex flex-col items-center justify-center gap-2 rounded-[12px] py-10 cursor-pointer bg-[#f1f3f4] hover:bg-[#e8eaed]">
           <UploadCloud size={24} className="text-muted-foreground/50" />
           <span className="text-[12.5px] font-medium">{file ? file.name : 'Choose a PDF'}</span>
           <input type="file" accept="application/pdf" className="hidden" onChange={e => setFile(e.target.files?.[0] ?? null)} />
         </label>
-        {error && <p className="text-[12px] text-rose-600">{error}</p>}
+        {error && <p className="text-[12px] text-[#c5221f]">{error}</p>}
         <div className="flex justify-end gap-2 mt-1">
-          <button onClick={onClose} className="text-[13px] px-3 py-1.5 rounded-lg border border-border hover:bg-muted">Cancel</button>
-          <button onClick={submit} disabled={busy || !file} className="flex items-center gap-1.5 text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-            {busy && <Loader2 size={14} className="animate-spin" />}{busy ? 'Uploading…' : 'Upload & extract'}
+          <button onClick={onClose} className="h-10 px-3.5 rounded-[10px] text-[14px] bg-transparent border-0 hover:bg-[#f1f3f4]">Cancel</button>
+          <button onClick={submit} disabled={busy || !file} className="flex items-center gap-1.5 h-10 px-5 rounded-[10px] text-[14px] font-medium bg-[#202124] text-white hover:opacity-90 disabled:opacity-50">
+            {busy && <Loader2 size={14} className="animate-spin" />}{busy ? 'Uploading…' : 'Upload and extract'}
           </button>
         </div>
       </div>

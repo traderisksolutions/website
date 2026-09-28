@@ -22,15 +22,15 @@ describe('EmailTypeBadge', () => {
     expect(container.firstChild).toBeNull()
   })
 
-  it('applies correct inline color for PRICING', () => {
+  it('renders every type as the same neutral chip (field grey, body text)', () => {
     render(<EmailTypeBadge type="PRICING" />)
-    const badge = screen.getByText('Pricing')
-    expect(badge).toHaveStyle({ color: '#1d4ed8' })
+    expect(screen.getByText('Pricing')).toHaveStyle({ color: '#3c4043', background: '#f1f3f4' })
   })
 
-  it('applies correct inline color for CLAIMS', () => {
+  it('carries no per-type colour and no uppercase tracking', () => {
     render(<EmailTypeBadge type="CLAIMS" />)
     const badge = screen.getByText('Claims')
-    expect(badge).toHaveStyle({ color: '#dc2626' })
+    expect(badge).toHaveStyle({ color: '#3c4043' })
+    expect(badge.className).not.toMatch(/uppercase|tracking-wide/)
   })
 })

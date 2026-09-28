@@ -17,6 +17,8 @@ export function ChatEmptyState({ onPick }: { caseAware?: boolean; onPick: (promp
     'The stage is wrong — we’re already in arbitration. Update the analysis.',
     'Re-analyse focusing only on the coverage dispute.',
     'Draft a firmer chase to the insurer.',
+    'Move the next step “send documents to insurer” to Friday and assign it to Nathan.',
+    'The client email is too long — rewrite it in half the words.',
   ]
 
   return (
@@ -27,7 +29,7 @@ export function ChatEmptyState({ onPick }: { caseAware?: boolean; onPick: (promp
       <div>
         <p className="text-[13px] font-semibold text-foreground">Your case consultant</p>
         <p className="text-[11.5px] text-muted-foreground/70 mt-0.5 leading-[1.5]">
-          Ask about this case, tell me what to fix, or request changes. I’ll propose actions you confirm.
+          Ask about this case, or tell me what to change — a next step, a deadline, the blocking issue, an email. I propose the exact change; you confirm it.
         </p>
       </div>
       <div className="flex flex-col gap-1.5 w-full mt-1">

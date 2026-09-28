@@ -2,14 +2,19 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Send, FilePlus, ExternalLink, X, ChevronRight, ChevronDown, MailCheck, Clock, Paperclip } from 'lucide-react'
+import { Send, FilePlus, X, ChevronRight, ChevronDown } from 'lucide-react'
 import { SectionCard, Chip, Empty, Btn, LinkBtn } from './primitives'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import ThreadRfqWorkflow from '@/components/engagement/ThreadRfqWorkflow'
 import { fmtDate, fmtRelative } from '@/lib/crm/format'
 import type { CompanyThread, QuoteRow, QuoteKind } from '@/lib/crm/types'
 
-const KIND_LABEL: Record<QuoteKind, string> = { rfq: 'RFQ', pricing_matrix: 'Pricing Matrix', group_benefits: 'Legacy' }
+const INK = '#202124'
+const MUTED = '#5f6368'
+const HAIR = '#e8eaed'
+const KIND_LABEL: Record<QuoteKind, string> = { rfq: 'RFQ', pricing_matrix: 'Pricing matrix', group_benefits: 'Legacy' }
+const QUOTE_COLS = 5
 
 /**
  * Quotes going out: requests to insurers and quotations prepared for the client.
@@ -38,24 +43,33 @@ export function CompanyQuotation({ companyId, companyName, quotes, threads }: {
     <>
       <SectionCard
         title="Quotes"
-        description="Requests out to insurers and quotations prepared for this client."
         actions={
           <>
-            <Btn size="xs" level="primary" onClick={() => setPicking(true)}><Send size={12} /> Start RFQ</Btn>
+            <Btn size="xs" level="secondary" onClick={() => setPicking(true)}><Send size={12} /> Start RFQ</Btn>
             <LinkBtn size="xs" level="tertiary" href={`/pricing-matrix/quote/new?company_id=${companyId}&company=${encodeURIComponent(companyName)}`}><FilePlus size={12} /> New quotation</LinkBtn>
           </>
         }
       >
         {quotes.length === 0 && <Empty compact>No quotes yet. Start an RFQ from the client&apos;s request, or prepare a group benefits quotation.</Empty>}
-        <ul className="m-0 p-0 list-none flex flex-col">
-          {quotes.map(q => <QuoteRowItem key={`${q.kind}-${q.id}`} q={q} open={openQuote === q.id} onToggle={() => setOpenQuote(v => v === q.id ? null : q.id)} />)}
-        </ul>
+        {quotes.length > 0 && (
+          <Register label="Quotes" minWidth={820}>
+            <RegisterHead>
+              <RegisterTh first>Quote</RegisterTh>
+              <RegisterTh>Kind</RegisterTh>
+              <RegisterTh>Status</RegisterTh>
+              <RegisterTh align="right">Received</RegisterTh>
+              <RegisterTh last />
+            </RegisterHead>
+            <tbody>
+              {quotes.map(q => <QuoteRowItem key={`${q.kind}-${q.id}`} q={q} open={openQuote === q.id} onToggle={() => setOpenQuote(v => v === q.id ? null : q.id)} />)}
+            </tbody>
+          </Register>
+        )}
       </SectionCard>
 
       {rfqThread && (
         <SectionCard
           title="Request for quotation"
-          description={`From “${rfqThread.subject ?? 'the selected thread'}”. Pick the insurers for each line, review the wording, then send.`}
           actions={<Btn size="xs" level="tertiary" onClick={() => setRfqThread(null)}><X size={12} /> Close</Btn>}
         >
           <ThreadRfqWorkflow threadId={rfqThread.id} messageId={rfqThread.lastInboundMessageId} defaultInsured={companyName} />
@@ -66,31 +80,38 @@ export function CompanyQuotation({ companyId, companyName, quotes, threads }: {
       <Dialog open={picking} onOpenChange={o => { if (!o) setPicking(false) }}>
         <DialogContent className="sm:max-w-[620px]">
           <DialogHeader>
-            <DialogTitle>Which email is the request?</DialogTitle>
+            <DialogTitle>Choose the request email</DialogTitle>
             <DialogDescription>
               The agent reads that thread, works out what cover is being asked for, and drafts a request to each insurer you choose.
             </DialogDescription>
           </DialogHeader>
           {candidates.length === 0 && <Empty compact>No threads are filed under this company yet.</Empty>}
-          <ul className="m-0 p-0 list-none flex flex-col max-h-[50vh] overflow-y-auto">
-            {candidates.map(t => (
-              <li key={t.id} className="border-b border-[--border-subtle] last:border-b-0">
-                <button
-                  onClick={() => { setRfqThread(t); setPicking(false) }}
-                  className="w-full text-left py-2.5 bg-transparent border-0 cursor-pointer hover:bg-muted/40"
-                >
-                  <p className="text-[12.5px] font-medium m-0 flex items-center gap-1.5 flex-wrap">
-                    <span className="truncate">{t.subject ?? '(no subject)'}</span>
-                    {t.category === 'rfq' && <Chip tone="blue">RFQ</Chip>}
-                    {t.needsReply && <Chip tone="amber">Awaiting reply</Chip>}
-                  </p>
-                  <p className="text-[11.5px] text-muted-foreground m-0 mt-0.5 truncate">
-                    {t.contact?.name ?? t.contact?.email ?? 'Unknown'} · {t.message_count} message{t.message_count === 1 ? '' : 's'} · {fmtRelative(t.last_message_at)}
-                  </p>
-                </button>
-              </li>
-            ))}
-          </ul>
+          {candidates.length > 0 && (
+            <Register label="Threads filed under this company" minWidth={520} maxHeight="50vh">
+              <RegisterHead>
+                <RegisterTh first>Thread</RegisterTh>
+                <RegisterTh>Category</RegisterTh>
+                <RegisterTh last align="right">Last message</RegisterTh>
+              </RegisterHead>
+              <tbody>
+                {candidates.map(t => (
+                  <RegisterRow key={t.id} onClick={() => { setRfqThread(t); setPicking(false) }}>
+                    <RegisterCell first className="max-w-none"
+                      primary={t.subject ?? '(no subject)'}
+                      secondary={`${t.contact?.name ?? t.contact?.email ?? 'Unknown'} · ${t.message_count} message${t.message_count === 1 ? '' : 's'}`} />
+                    <RegisterCell>
+                      <span className="inline-flex items-center gap-1.5 flex-wrap">
+                        {t.category === 'rfq' && <Chip>RFQ</Chip>}
+                        {t.needsReply && <Chip>Awaiting reply</Chip>}
+                        {t.category !== 'rfq' && !t.needsReply && <span style={{ color: '#9aa0a6' }}>—</span>}
+                      </span>
+                    </RegisterCell>
+                    <RegisterCell last align="right" primary={fmtRelative(t.last_message_at)} />
+                  </RegisterRow>
+                ))}
+              </tbody>
+            </Register>
+          )}
         </DialogContent>
       </Dialog>
       {/* companyId is used by callers for deep links; referenced so the prop stays meaningful. */}
@@ -110,103 +131,98 @@ function QuoteRowItem({ q, open, onToggle }: { q: QuoteRow; open: boolean; onTog
   const replied = dispatches.filter(d => d.status === 'replied')
   const waiting = dispatches.filter(d => d.status !== 'replied')
 
+  const received = q.quotesReceived != null
+    ? { n: q.quotesReceived, what: `insurer quote${q.quotesReceived === 1 ? '' : 's'}` }
+    : q.memberCount != null
+      ? { n: q.memberCount, what: 'members' }
+      : null
+
   return (
-    <li className="border-b border-[--border-subtle] last:border-b-0">
-      <div className="flex items-center gap-2 py-2">
-        {expandable ? (
-          <button
-            onClick={onToggle}
-            aria-expanded={open}
-            className="flex items-center gap-2 min-w-0 flex-1 bg-transparent border-0 p-0 text-left cursor-pointer text-foreground hover:text-primary"
-          >
-            {open ? <ChevronDown size={13} className="flex-shrink-0 text-muted-foreground" /> : <ChevronRight size={13} className="flex-shrink-0 text-muted-foreground" />}
-            <QuoteLabel q={q} />
-          </button>
-        ) : (
-          <Link href={q.href} className="flex items-center gap-2 min-w-0 flex-1 no-underline text-foreground hover:text-primary">
-            <span className="w-[13px] flex-shrink-0" />
-            <QuoteLabel q={q} />
-          </Link>
-        )}
-        <Link href={q.href} className="flex-shrink-0 text-muted-foreground/40 hover:text-primary" title="Open the full file">
-          <ExternalLink size={12} />
-        </Link>
-      </div>
+    <>
+      <RegisterRow onClick={expandable ? onToggle : undefined} selected={open}>
+        <RegisterCell first selected={open}>
+          <span className="flex items-center gap-2 min-w-0">
+            {expandable
+              ? (open ? <ChevronDown size={14} className="flex-shrink-0" style={{ color: MUTED }} aria-hidden /> : <ChevronRight size={14} className="flex-shrink-0" style={{ color: MUTED }} aria-hidden />)
+              : <span className="w-[14px] flex-shrink-0" aria-hidden />}
+            <span className="min-w-0">
+              {expandable
+                ? <span className="block text-[15px] font-medium leading-tight truncate" style={{ color: INK }}>{q.title}</span>
+                : <Link href={q.href} className="block text-[15px] font-medium leading-tight truncate no-underline hover:underline" style={{ color: INK }}>{q.title}</Link>}
+              <span className="block text-[12.5px] mt-0.5 truncate" style={{ color: MUTED }}>
+                {fmtDate(q.created_at)}
+                {q.effective_date && ` · effective ${fmtDate(q.effective_date)}`}
+                {q.productLine && ` · ${q.productLine}`}
+              </span>
+            </span>
+          </span>
+        </RegisterCell>
+        <RegisterCell><Chip>{KIND_LABEL[q.kind]}</Chip></RegisterCell>
+        <RegisterCell><span className="text-[13.5px]" style={{ color: '#3c4043' }}>{q.status}</span></RegisterCell>
+        <RegisterCell align="right" primary={received ? received.n : <span style={{ color: '#9aa0a6' }}>—</span>} secondary={received?.what} />
+        <RegisterCell last align="right">
+          <LinkBtn size="xs" level="secondary" href={q.href}>Open</LinkBtn>
+        </RegisterCell>
+      </RegisterRow>
 
       {open && expandable && (
-        <div className="pb-3 pl-[21px] flex flex-col gap-2">
-          <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold m-0">
-            Sent to {dispatches.length} insurer{dispatches.length === 1 ? '' : 's'}
-            {replied.length > 0 && ` · ${replied.length} replied`}
-            {waiting.length > 0 && ` · ${waiting.length} awaiting response`}
-          </p>
+        <tr style={{ borderBottom: `1px solid ${HAIR}` }}>
+          <td colSpan={QUOTE_COLS} className="px-6 pt-1 pb-5">
+            <div className="flex flex-col gap-3">
+              <p className="text-[12.5px] m-0" style={{ color: MUTED }}>
+                Sent to {dispatches.length} insurer{dispatches.length === 1 ? '' : 's'}
+                {replied.length > 0 && ` · ${replied.length} replied`}
+                {waiting.length > 0 && ` · ${waiting.length} awaiting response`}
+              </p>
 
-          <ul className="m-0 p-0 list-none flex flex-col gap-1.5">
-            {dispatches.map(d => (
-              <li key={d.id} className="rounded-md border border-[--border-subtle] px-3 py-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[12.5px] font-medium">{d.insurerName}</span>
-                  {d.status === 'replied'
-                    ? <Chip tone="green"><MailCheck size={10} /> Replied</Chip>
-                    : <Chip tone={d.daysWaiting >= 3 ? 'amber' : 'neutral'}><Clock size={10} /> Awaiting response · {d.daysWaiting}d</Chip>}
-                  {d.threadId && (
-                    <Link href={`/engagement?lead=${d.threadId}`} className="text-[11.5px] font-semibold text-primary no-underline hover:underline ml-auto">
-                      Open the conversation
-                    </Link>
-                  )}
-                </div>
-                <p className="text-[11px] text-muted-foreground m-0 mt-0.5">
-                  {d.toEmail ?? 'no address recorded'} · sent {fmtRelative(d.sentAt)}
-                </p>
+              <ul className="m-0 p-0 list-none flex flex-col gap-2">
+                {dispatches.map(d => (
+                  <li key={d.id} className="rounded-[16px] bg-white px-5 py-4" style={{ border: `1px solid ${HAIR}` }}>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[14px] font-medium" style={{ color: INK }}>{d.insurerName}</span>
+                      {d.status === 'replied'
+                        ? <Chip>Replied</Chip>
+                        : <Chip>Awaiting response · {d.daysWaiting}d</Chip>}
+                      {d.threadId && (
+                        <Link href={`/engagement?lead=${d.threadId}`} className="text-[13px] no-underline hover:underline ml-auto" style={{ color: INK }}>
+                          Open the conversation
+                        </Link>
+                      )}
+                    </div>
+                    <p className="text-[12.5px] m-0 mt-0.5" style={{ color: MUTED }}>
+                      {d.toEmail ?? 'no address recorded'} · sent {fmtRelative(d.sentAt)}
+                    </p>
 
-                {d.quote && (
-                  <div className="mt-2 pt-2 border-t border-[--border-subtle] flex flex-wrap gap-x-5 gap-y-1 text-[12px]">
-                    {d.quote.premium && <span><span className="text-muted-foreground">Premium </span><strong>{d.quote.premium}</strong></span>}
-                    {d.quote.excess && <span><span className="text-muted-foreground">Excess </span><strong>{d.quote.excess}</strong></span>}
-                    {d.quote.limitIndemnity && <span><span className="text-muted-foreground">Limit </span><strong>{d.quote.limitIndemnity}</strong></span>}
-                    {d.quote.validity && <span><span className="text-muted-foreground">Valid </span><strong>{d.quote.validity}</strong></span>}
-                    {d.quote.sourceLabel && (
-                      <span className="text-muted-foreground inline-flex items-center gap-1 w-full">
-                        <Paperclip size={10} /> read from {d.quote.sourceLabel}
-                      </span>
+                    {d.quote && (
+                      <div className="mt-2.5 pt-2.5 flex flex-wrap gap-x-5 gap-y-1 text-[13px]" style={{ color: INK, borderTop: `1px solid ${HAIR}` }}>
+                        {d.quote.premium && <span><span style={{ color: MUTED }}>Premium </span><span className="font-medium">{d.quote.premium}</span></span>}
+                        {d.quote.excess && <span><span style={{ color: MUTED }}>Excess </span><span className="font-medium">{d.quote.excess}</span></span>}
+                        {d.quote.limitIndemnity && <span><span style={{ color: MUTED }}>Limit </span><span className="font-medium">{d.quote.limitIndemnity}</span></span>}
+                        {d.quote.validity && <span><span style={{ color: MUTED }}>Valid </span><span className="font-medium">{d.quote.validity}</span></span>}
+                        {d.quote.sourceLabel && (
+                          <span className="w-full text-[12.5px]" style={{ color: MUTED }}>Read from {d.quote.sourceLabel}</span>
+                        )}
+                      </div>
                     )}
-                  </div>
-                )}
 
-                {d.status === 'replied' && !d.quote && (
-                  <p className="text-[11.5px] text-muted-foreground m-0 mt-1.5">
-                    Replied, but no figures could be read out of it yet. Open the conversation to check.
-                  </p>
-                )}
-              </li>
-            ))}
-          </ul>
+                    {d.status === 'replied' && !d.quote && (
+                      <p className="text-[13px] m-0 mt-2" style={{ color: MUTED }}>
+                        Replied, but no figures could be read out of it yet. Open the conversation to check.
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
 
-          {q.caseId && (
-            <Link href={q.href} className="text-[12px] font-semibold text-primary no-underline hover:underline self-start">
-              Compare and recommend in Nexus →
-            </Link>
-          )}
-        </div>
+              {q.caseId && (
+                <Link href={q.href} className="text-[13px] no-underline hover:underline self-start" style={{ color: INK }}>
+                  Compare and recommend in Nexus →
+                </Link>
+              )}
+            </div>
+          </td>
+        </tr>
       )}
-    </li>
-  )
-}
-
-function QuoteLabel({ q }: { q: QuoteRow }) {
-  return (
-    <span className="min-w-0 flex-1">
-      <span className="block text-[13px] font-medium truncate">
-        {q.title}
-        <Chip tone={q.kind === 'rfq' ? 'blue' : q.kind === 'group_benefits' ? 'neutral' : 'green'} className="ml-1.5">{KIND_LABEL[q.kind]}</Chip>
-        <Chip tone={q.isOpen ? 'amber' : 'neutral'} className="ml-1">{q.status}</Chip>
-      </span>
-      <span className="block text-[11.5px] text-muted-foreground mt-0.5">
-        {fmtDate(q.created_at)}
-        {q.quotesReceived != null && ` · ${q.quotesReceived} insurer quote${q.quotesReceived === 1 ? '' : 's'} received`}
-        {q.memberCount != null && ` · ${q.memberCount} members`}
-        {q.effective_date && ` · effective ${fmtDate(q.effective_date)}`}
-      </span>
-    </span>
+    </>
   )
 }

@@ -1,22 +1,21 @@
 'use client'
 
-import Link from 'next/link'
+import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
-import { EngagementFolderNav } from '@/components/engagement/EngagementFolderNav'
+import { ThreadListPane, CollapsedNavRail } from '@/components/engagement/ThreadListPane'
+import { useEngagementNav } from '@/providers/engagement-nav-provider'
 import { useNarrowViewport } from '@/hooks/useNarrowViewport'
-import { useResizableRailWidth, RAIL_ICON_THRESHOLD, RAIL_COMPACT_THRESHOLD } from '@/hooks/useResizableRailWidth'
-import { cn } from '@/lib/utils'
+import { useResizableRailWidth, RAIL_COLLAPSED } from '@/hooks/useResizableRailWidth'
 
 const ENGAGEMENT_ROUTE = '/engagement'
+const HAIRLINE = '#e8eaed'
 
 function onEngagementRoute(pathname: string) {
   return pathname === ENGAGEMENT_ROUTE || pathname.startsWith(ENGAGEMENT_ROUTE + '/')
 }
 
-/** True when the engagement conversation list is showing as a rail (see EngagementRail below) —
- *  ConditionalShell uses this to push page content right by the rail's current width (the
- *  --engagement-rail-w CSS var) so it doesn't sit underneath the fixed rail. */
+/** True when the navigator shows as a fixed column — ConditionalShell pushes page content
+ *  right by its width (--engagement-rail-w) so nothing sits underneath. */
 export function useShowEngagementRail() {
   const pathname = usePathname()
   const narrow = useNarrowViewport()
@@ -24,67 +23,50 @@ export function useShowEngagementRail() {
 }
 
 /**
- * /engagement is a list+detail page: EngagementFolderNav (its conversation list, fed via
- * EngagementNavProvider) needs a persistent left column on wide screens — engagement/page.tsx's
- * own "isDesktop" branch (see useNarrowViewport) assumes this column exists and renders only the
- * thread view itself, not a list. It used to live inside the old rail Sidebar (see git history);
- * now that the primary nav is a top bar with no vertical rail, it gets its own fixed column below
- * the navbar instead, using the exact same NARROW_BREAKPOINT so the two can't disagree about
- * which layout is showing. Below that breakpoint engagement/page.tsx renders its own inline list
- * (EaListPanel, not resizable — dragging is a desktop-only affordance here), so this renders
- * nothing.
- *
- * Width is drag-resizable (64–520px, default 340) via a handle on the right edge, persisted to
- * localStorage and shared with ConditionalShell's MainContent margin through the
- * --engagement-rail-w CSS custom property — see useResizableRailWidth. Below
- * RAIL_ICON_THRESHOLD it collapses to an icon-only rail (avatar circles, no text) rather than
- * cramming full rows into an unusably narrow column.
+ * /engagement's left column on wide screens: the Unified Mail Navigator (ThreadListPane).
+ * Drag-resizable (320–460px, default 380) via a handle on its right edge, persisted to
+ * localStorage and shared with ConditionalShell's margin through --engagement-rail-w. Collapsed
+ * (`navCollapsed` in the nav provider) it becomes a fixed 64px icon rail and writes that width
+ * into the same CSS variable. Below NARROW_BREAKPOINT the page renders the navigator inline and
+ * this renders nothing.
  */
 export function EngagementRail() {
   const showRail = useShowEngagementRail()
+  const { navCollapsed } = useEngagementNav()
   const { width, min, max, step, startDrag, nudge, setAbsolute } = useResizableRailWidth()
+
+  // Keep --engagement-rail-w in step with the collapsed state. Declared after the hook's own
+  // mount effect so this write lands last on first paint.
+  useEffect(() => {
+    if (!showRail) return
+    document.documentElement.style.setProperty('--engagement-rail-w', `${navCollapsed ? RAIL_COLLAPSED : width}px`)
+  }, [showRail, navCollapsed, width])
+
   if (!showRail) return null
 
-  const iconOnly = width < RAIL_ICON_THRESHOLD
-  const compact  = !iconOnly && width < RAIL_COMPACT_THRESHOLD
+  if (navCollapsed) {
+    return (
+      <aside className="fixed left-0 z-30 bg-white overflow-hidden" style={{ top: 56, bottom: 0, width: RAIL_COLLAPSED, borderRight: `1px solid ${HAIRLINE}` }} aria-label="Mail navigator, collapsed">
+        <CollapsedNavRail />
+      </aside>
+    )
+  }
 
   return (
-    <aside
-      className="fixed left-0 flex flex-col z-30 glass-sidebar border-r border-[--border-subtle] overflow-hidden"
-      style={{ top: 56, bottom: 0, width: 'var(--engagement-rail-w, 340px)' }}
-    >
-      <Link
-        href="/"
-        title="Dashboard"
-        className={cn(
-          'flex-shrink-0 flex items-center gap-1.5 h-7 rounded-md text-[11.5px] text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors no-underline',
-          iconOnly ? 'justify-center w-7 mx-auto mt-2 mb-2' : 'px-2.5 mx-2 mt-2 mb-2',
-        )}
-      >
-        <ArrowLeft size={12} strokeWidth={2} /> {!iconOnly && 'Dashboard'}
-      </Link>
-      <EngagementFolderNav iconOnly={iconOnly} compact={compact} />
-
-      {/* Drag handle — the aside's own `fixed` positioning already establishes the containing
-          block for this absolute child, so it tracks the rail's right edge as it resizes. */}
-      <div
-        role="separator"
-        aria-orientation="vertical"
-        aria-label="Resize conversation list"
-        aria-valuenow={width}
-        aria-valuemin={min}
-        aria-valuemax={max}
-        tabIndex={0}
-        onPointerDown={e => { e.preventDefault(); startDrag(e.clientX, width) }}
-        onKeyDown={e => {
-          if (e.key === 'ArrowLeft')       { e.preventDefault(); nudge(-step) }
-          else if (e.key === 'ArrowRight') { e.preventDefault(); nudge(step) }
-          else if (e.key === 'Home')       { e.preventDefault(); setAbsolute(min) }
-          else if (e.key === 'End')        { e.preventDefault(); setAbsolute(max) }
-        }}
-        className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize z-10 flex items-center justify-center group focus-visible:outline-none"
-      >
-        <div className="w-px h-full bg-transparent group-hover:bg-primary/40 group-focus-visible:bg-primary/60 transition-colors" />
+    <aside className="fixed left-0 z-30 bg-white overflow-hidden" style={{ top: 56, bottom: 0, width: 'var(--engagement-rail-w, 380px)', borderRight: `1px solid ${HAIRLINE}` }} aria-label="Mail navigator">
+      <div className="relative h-full">
+        <ThreadListPane collapsible />
+        <div role="separator" aria-orientation="vertical" aria-label="Resize navigator" aria-valuenow={width} aria-valuemin={min} aria-valuemax={max} tabIndex={0}
+          onPointerDown={e => { e.preventDefault(); startDrag(e.clientX, width) }}
+          onKeyDown={e => {
+            if (e.key === 'ArrowLeft')       { e.preventDefault(); nudge(-step) }
+            else if (e.key === 'ArrowRight') { e.preventDefault(); nudge(step) }
+            else if (e.key === 'Home')       { e.preventDefault(); setAbsolute(min) }
+            else if (e.key === 'End')        { e.preventDefault(); setAbsolute(max) }
+          }}
+          className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize z-10 flex items-center justify-center group focus-visible:outline-none">
+          <div className="w-px h-full bg-transparent group-hover:bg-[#202124]/30 group-focus-visible:bg-[#202124]/60 transition-colors" />
+        </div>
       </div>
     </aside>
   )

@@ -4,7 +4,8 @@
  * query per company; at today's size (hundreds of threads, thousands of messages) it returns
  * in well under a second and it scales linearly.
  */
-import { sbTry, inChunks, listClientCompanies, isInternal, isAutomated } from './db'
+import { withoutEndorsementDuplicates } from '@/lib/policies/endorsement'
+import { sbTry, inChunks, listCompaniesByKind, isInternal, isAutomated } from './db'
 import { derivePayment, summarizePayments } from './payments'
 import { suggestStage } from './stage'
 import { countOpenRfqByCase } from './quotes'
@@ -20,10 +21,10 @@ type PmRow = { company_id: string | null; created_at: string }
 
 const QUOTE_FRESH_DAYS = 60
 
-export interface ListOptions { stage?: string | null; search?: string | null }
+export interface ListOptions { stage?: string | null; search?: string | null; kinds?: readonly string[] }
 
 export async function listCompanySummaries(opts: ListOptions = {}): Promise<CompanySummaryRow[]> {
-  let companies = await listClientCompanies()
+  let companies = await listCompaniesByKind(opts.kinds ?? ['client'])
   if (opts.stage) companies = companies.filter(c => c.stage === opts.stage)
   if (opts.search?.trim()) {
     const q = opts.search.trim().toLowerCase()
@@ -84,8 +85,15 @@ export async function listCompanySummaries(opts: ListOptions = {}): Promise<Comp
     const notes = myNotes.map(d => derivePayment(d))
     const pay = summarizePayments(notes)
     const lastBillingDate = myNotes.map(d => d.issue_date).filter(Boolean).sort().pop() ?? null
+    const ltvBy = new Map<string, { total: number; notes: number }>()
+    for (const d of myNotes) {
+      const cur = ltvBy.get(d.currency) ?? { total: 0, notes: 0 }
+      cur.total = Math.round((cur.total + (Number(d.gross_amount) || 0)) * 100) / 100; cur.notes++
+      ltvBy.set(d.currency, cur)
+    }
+    const ltv = Array.from(ltvBy.entries()).map(([currency, v]) => ({ currency, ...v })).sort((a, b) => b.total - a.total)
 
-    const policies = customers.filter(c => c.company_id === co.id).flatMap(c => c.policies ?? [])
+    const policies = withoutEndorsementDuplicates(customers.filter(c => c.company_id === co.id).flatMap(c => c.policies ?? []))
     const activeEnds = policies.filter(p => p.status === 'active' && p.end_date).map(p => p.end_date as string).sort()
     const activePolicies = policies.filter(p => p.status === 'active').length
 
@@ -102,7 +110,7 @@ export async function listCompanySummaries(opts: ListOptions = {}): Promise<Comp
     return {
       ...co,
       contactCount, openThreads, needsReply, lastActivityAt,
-      money: pay.byCurrency, overdueCount: pay.overdueCount, openDebitNotes: pay.openCount,
+      money: pay.byCurrency, ltv, overdueCount: pay.overdueCount, openDebitNotes: pay.openCount,
       nextRenewalDate: activeEnds[0] ?? null, activePolicies,
       openQuotes, suggestedStage,
     }

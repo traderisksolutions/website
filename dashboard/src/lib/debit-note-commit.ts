@@ -5,6 +5,7 @@
  * resolved-or-created. Follows the rest of the codebase's convention: auth is checked by the
  * caller (API route), this module talks to Supabase via service-key REST-over-fetch.
  */
+import { findMasterPolicy, type PolicyLike } from '@/lib/policies/endorsement'
 import { SB_URL, sbH } from '@/lib/debit-note-storage'
 import { logActivity }  from '@/lib/log-activity'
 
@@ -112,8 +113,23 @@ export type PolicyInput =
       source: 'manual' | 'pdf_import'
     }
 
-async function resolvePolicy(input: PolicyInput, customerId: string): Promise<string> {
+/** For a mid-term endorsement, the master policy already on file for this customer — matched by
+ *  base policy number, otherwise by the same term end and class. Null when there is none yet. */
+async function findMasterPolicyId(customerId: string, input: Exclude<PolicyInput, { policyId: string }>): Promise<string | null> {
+  const rows = await pg(`policies?customer_id=eq.${enc(customerId)}&status=eq.active&select=id,policy_number,class_of_insurance,description,start_date,end_date`) as PolicyLike[]
+  const master = findMasterPolicy({ policy_number: input.policyNumber ?? null, class_of_insurance: input.classOfInsurance ?? null, description: input.description ?? null, start_date: input.startDate ?? null, end_date: input.endDate ?? null }, rows)
+  return master?.id ?? null
+}
+
+async function resolvePolicy(input: PolicyInput, customerId: string, eventType?: 'new_business' | 'renewal' | 'endorsement'): Promise<string> {
   if ('policyId' in input) return input.policyId
+
+  // An endorsement is an amendment to the main policy: it is billed under that policy, its
+  // renewal stays the main policy's, and it never becomes a second active policy.
+  if (eventType === 'endorsement') {
+    const master = await findMasterPolicyId(customerId, input)
+    if (master) return master
+  }
 
   const fields = {
     customer_id: customerId,
@@ -141,7 +157,9 @@ async function resolvePolicy(input: PolicyInput, customerId: string): Promise<st
     const existing = await pg(`policies?policy_number=eq.${enc(policyNumber)}&select=id&limit=1`)
     if (existing[0]) {
       const id = existing[0].id as string
-      await pg(`policies?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify(fields) })
+      // A re-import refreshes the row; an endorsement billed under the same number must not
+      // overwrite the master's description and term with the amendment's.
+      if (eventType !== 'endorsement') await pg(`policies?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify(fields) })
       return id
     }
   }
@@ -235,7 +253,7 @@ export async function commitDebitNote(input: {
   }
 
   const customerId = await resolveCustomer(companyId, contactId)
-  const policyId    = await resolvePolicy(input.policy, customerId)
+  const policyId    = await resolvePolicy(input.policy, customerId, input.debitNote.eventType)
 
   // Line items are GST-inclusive (the debit-notes/new form folds GST into the printed premium
   // line — see that page's comment) — gstAmount is tracked purely for internal reporting, never

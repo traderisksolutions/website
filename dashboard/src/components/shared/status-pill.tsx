@@ -20,7 +20,7 @@ export function StatusPill<K extends string>({ status, config, className }: {
 }) {
   const cfg = (config as Record<string, { label: string; className: string } | undefined>)[status]
   return (
-    <span className={cn('st-badge', cfg?.className ?? 'bg-slate-100 text-slate-500', className)}>
+    <span className={cn('st-badge', cfg?.className ?? 'bg-[#f1f3f4] text-[#3c4043]', className)}>
       {cfg?.label ?? status}
     </span>
   )
@@ -28,28 +28,28 @@ export function StatusPill<K extends string>({ status, config, className }: {
 
 // Shared vocab for pm_calculators.status — used by the calculator list and the review page.
 export const CALCULATOR_STATUS: StatusPillConfig<'draft' | 'extracting' | 'mapping' | 'in_review' | 'approved' | 'archived'> = {
-  draft:      { label: 'Draft',      className: 'bg-slate-100 text-slate-600' },
-  extracting: { label: 'Extracting…', className: 'bg-amber-100 text-amber-700' },
-  mapping:    { label: 'Extracting…', className: 'bg-amber-100 text-amber-700' },
-  in_review:  { label: 'In review',  className: 'bg-indigo-100 text-indigo-700' },
-  approved:   { label: 'Approved',   className: 'bg-emerald-100 text-emerald-700' },
-  archived:   { label: 'Archived',   className: 'bg-slate-100 text-slate-400' },
+  draft:      { label: 'Draft',      className: 'bg-[#f1f3f4] text-[#3c4043]' },
+  extracting: { label: 'Extracting…', className: 'bg-[#f1f3f4] text-[#3c4043]' },
+  mapping:    { label: 'Extracting…', className: 'bg-[#f1f3f4] text-[#3c4043]' },
+  in_review:  { label: 'In review',  className: 'bg-[#f1f3f4] text-[#3c4043]' },
+  approved:   { label: 'Approved',   className: 'bg-[#f1f3f4] text-[#3c4043]' },
+  archived:   { label: 'Archived',   className: 'bg-[#f1f3f4] text-[#3c4043]' },
 }
 
 // pm_reconciliation_issues.status and pm_taxonomy_synonyms.status share the same three-state shape.
 export const REVIEW_STATUS: StatusPillConfig<'open' | 'pending' | 'resolved' | 'approved' | 'dismissed' | 'rejected'> = {
-  open:      { label: 'Open',      className: 'bg-amber-100 text-amber-700' },
-  pending:   { label: 'Pending',   className: 'bg-amber-100 text-amber-700' },
-  resolved:  { label: 'Resolved',  className: 'bg-emerald-100 text-emerald-700' },
-  approved:  { label: 'Approved',  className: 'bg-emerald-100 text-emerald-700' },
-  dismissed: { label: 'Dismissed', className: 'bg-slate-100 text-slate-400' },
-  rejected:  { label: 'Rejected',  className: 'bg-slate-100 text-slate-400' },
+  open:      { label: 'Open',      className: 'bg-[#f1f3f4] text-[#3c4043]' },
+  pending:   { label: 'Pending',   className: 'bg-[#f1f3f4] text-[#3c4043]' },
+  resolved:  { label: 'Resolved',  className: 'bg-[#f1f3f4] text-[#3c4043]' },
+  approved:  { label: 'Approved',  className: 'bg-[#f1f3f4] text-[#3c4043]' },
+  dismissed: { label: 'Dismissed', className: 'bg-[#f1f3f4] text-[#3c4043]' },
+  rejected:  { label: 'Rejected',  className: 'bg-[#f1f3f4] text-[#3c4043]' },
 }
 
 // pm_computation_rules.status — its own independent approval lifecycle (see plan §Decisions).
 export const RULES_STATUS: StatusPillConfig<'draft' | 'in_review' | 'approved' | 'archived'> = {
-  draft:     { label: 'Draft',     className: 'bg-slate-100 text-slate-600' },
-  in_review: { label: 'In review', className: 'bg-indigo-100 text-indigo-700' },
-  approved:  { label: 'Approved',  className: 'bg-emerald-100 text-emerald-700' },
-  archived:  { label: 'Archived',  className: 'bg-slate-100 text-slate-400' },
+  draft:     { label: 'Draft',     className: 'bg-[#f1f3f4] text-[#3c4043]' },
+  in_review: { label: 'In review', className: 'bg-[#f1f3f4] text-[#3c4043]' },
+  approved:  { label: 'Approved',  className: 'bg-[#f1f3f4] text-[#3c4043]' },
+  archived:  { label: 'Archived',  className: 'bg-[#f1f3f4] text-[#3c4043]' },
 }

@@ -2,12 +2,17 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronDown, ChevronUp, Check, Send, Sparkles } from 'lucide-react'
+import { ChevronDown, ChevronUp, Check, Send, X } from 'lucide-react'
 import { useAuditLog } from '@/hooks/useAuditLog'
 import { Tip } from '@/components/Tip'
 import { RichEditor, plainToHtml } from '@/components/RichEditor'
+import { Btn, Chip, inputCls } from '@/components/crm/primitives'
+import { cn } from '@/lib/utils'
 import { displayName, messagePreview } from './helpers'
 import type { Lead } from './types'
+
+const INK = '#202124'
+const MUTED = '#5f6368'
 
 // ── Types local to the reply workflow ─────────────────────────────────────────
 
@@ -20,6 +25,8 @@ type InboundSigOption = {
   email: string | null; company_tagline: string | null; sending_email: string | null
 }
 
+// Outbound email markup (what the recipient sees), not dashboard UI — colours here are the
+// signature's own styling and stay as they are.
 function buildSigHtml(sig: InboundSigOption): string {
   return [
     '<br>',
@@ -151,26 +158,30 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
   }
 
   const hasDraft = draftHtml.replace(/<[^>]+>/g, '').trim().length > 0
+  const selectCls = cn(inputCls, 'h-9 text-[13px] flex-1 cursor-pointer')
 
   if (sent) {
     return (
       <tr>
-        <td colSpan={9} className="px-4 py-3 bg-emerald-50 border-b border-emerald-100">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <Check size={14} className="text-emerald-600 flex-shrink-0" />
-              <span className="text-[12px] text-emerald-700 font-medium">Reply sent to {lead.email}</span>
+        <td colSpan={6} className="px-4 py-3" style={{ background: '#f8f9fa', borderBottom: '1px solid #e8eaed' }}>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-3 flex-wrap">
+              <Check size={14} className="flex-shrink-0" style={{ color: INK }} />
+              <span className="text-[13.5px]" style={{ color: '#3c4043' }}>Reply sent to {lead.email}</span>
               <a
                 href={`/engagement?lead=${lead.id}`}
-                className="text-[11px] font-semibold text-emerald-700 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-2 py-1 no-underline hover:bg-emerald-500/15"
+                className="text-[13.5px] no-underline hover:underline underline-offset-4"
+                style={{ color: INK }}
               >
-                View in Engagement Agent →
+                View in Engagement →
               </a>
             </div>
             <button
+              type="button"
               onClick={onCollapse}
               aria-label="Collapse reply panel"
-              className="bg-transparent border-0 p-0 cursor-pointer text-emerald-400 hover:text-emerald-600"
+              className="bg-transparent border-0 p-0 cursor-pointer"
+              style={{ color: MUTED }}
             >
               <ChevronUp size={14} />
             </button>
@@ -182,34 +193,33 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
 
   return (
     <tr>
-      <td colSpan={9} className="px-4 py-4 border-b" style={{ background: 'var(--primary-light-bg)' }}>
+      <td colSpan={6} className="px-4 py-4" style={{ background: '#f8f9fa', borderBottom: '1px solid #e8eaed' }}>
         <div className="flex flex-col gap-3">
 
           {/* Header */}
-          <div className="flex items-center justify-between">
-            <span
-              className="text-[11px] font-bold uppercase tracking-[0.06em] flex items-center gap-1.5"
-              style={{ color: 'var(--primary-hex)' }}
-            >
-              <Sparkles size={11} /> AI Reply Draft
-              <Tip text="Draft generated from TRS FAQ docs only — no pricing included. Review and edit before sending." />
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[14px] font-medium flex items-center gap-1" style={{ color: INK }}>
+              AI reply draft
+              <Tip text="Drafted from TRS FAQ documents only, no pricing. Review and edit before sending." />
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               {hasDraft && (
                 <button
+                  type="button"
                   onClick={generateDraft}
                   disabled={generating}
-                  className="bg-transparent border-0 cursor-pointer text-[11px] p-0"
-                  style={{ color: 'var(--text-muted)' }}
+                  className="bg-transparent border-0 cursor-pointer text-[13px] p-0 underline underline-offset-4 disabled:opacity-50"
+                  style={{ color: MUTED }}
                 >
                   {generating ? 'Regenerating…' : 'Regenerate'}
                 </button>
               )}
               <button
+                type="button"
                 onClick={onCollapse}
                 aria-label="Collapse reply panel"
                 className="bg-transparent border-0 p-0 cursor-pointer"
-                style={{ color: 'var(--text-muted)' }}
+                style={{ color: MUTED }}
               >
                 <ChevronUp size={14} />
               </button>
@@ -217,25 +227,16 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
           </div>
 
           {!hasDraft && !generating ? (
-            <div className="flex items-center gap-3">
-              <button
-                onClick={generateDraft}
-                disabled={generating}
-                className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-md border-0 cursor-pointer"
-                style={{ background: 'var(--primary-hex)', color: '#fff' }}
-              >
-                <Sparkles size={12} /> Generate Reply
-              </button>
-              {sendError && <span className="text-[11px] text-destructive">{sendError}</span>}
+            <div className="flex items-center gap-3 flex-wrap">
+              <Btn level="primary" onClick={generateDraft} disabled={generating}>Generate reply</Btn>
+              {sendError && <span className="text-[13px]" style={{ color: MUTED }}>{sendError}</span>}
             </div>
           ) : generating && !hasDraft ? (
-            <div className="text-[12px] flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
-              <Sparkles size={12} /> Generating…
-            </div>
+            <div className="text-[13px]" style={{ color: MUTED }}>Generating…</div>
           ) : (
             <>
               {/* Rich editor */}
-              <div style={{ border: '1px solid var(--primary-light-border)', borderRadius: 8, overflow: 'hidden', background: 'hsl(var(--card))' }}>
+              <div className="overflow-hidden rounded-[10px] bg-white" style={{ border: '1px solid #dadce0' }}>
                 <RichEditor
                   key={draftEditorKey}
                   initialHtml={draftHtml}
@@ -246,16 +247,15 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
               </div>
 
               {/* FROM + Signature row */}
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-2">
                 {senders.length > 0 && (
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] w-[46px] flex-shrink-0" style={{ color: 'var(--text-muted)' }}>From</span>
+                    <span className="text-[12.5px] w-[64px] flex-shrink-0" style={{ color: MUTED }}>From</span>
                     <select
                       value={selectedFromEmail}
                       onChange={e => setSelectedFromEmail(e.target.value)}
                       aria-label="Send from email address"
-                      className="flex-1 text-[12px] rounded-md cursor-pointer"
-                      style={{ padding: '4px 8px', border: '1px solid hsl(var(--border))', background: '#fff', color: 'var(--text-secondary)' }}
+                      className={selectCls}
                     >
                       {senders.map(s => (
                         <option key={s.email} value={s.email}>{s.label} &lt;{s.email}&gt;</option>
@@ -265,21 +265,20 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
                 )}
                 {signatures.length > 0 && (
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] w-[46px] flex-shrink-0" style={{ color: 'var(--text-muted)' }}>Sig</span>
+                    <span className="text-[12.5px] w-[64px] flex-shrink-0" style={{ color: MUTED }}>Signature</span>
                     {selectedSig ? (
                       <>
-                        <span
-                          className="text-[11px] rounded-md px-2 py-1 overflow-hidden text-ellipsis whitespace-nowrap max-w-[220px]"
-                          style={{ background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))', color: 'var(--text-secondary)' }}
-                        >
+                        <Chip className="max-w-[260px] overflow-hidden text-ellipsis">
                           {selectedSig.name}{selectedSig.title ? ` · ${selectedSig.title}` : ''}
-                        </span>
+                        </Chip>
                         <button
+                          type="button"
                           onClick={() => setSelectedSigId('')}
                           aria-label="Remove signature"
-                          style={{ fontSize: 10, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                          className="w-6 h-6 inline-flex items-center justify-center rounded-[6px] hover:bg-[#f1f3f4] bg-transparent border-0 cursor-pointer p-0"
+                          style={{ color: MUTED }}
                         >
-                          ✕
+                          <X size={12} />
                         </button>
                       </>
                     ) : (
@@ -287,10 +286,9 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
                         value={selectedSigId}
                         onChange={e => setSelectedSigId(e.target.value)}
                         aria-label="Choose email signature"
-                        className="flex-1 text-[12px] rounded-md cursor-pointer"
-                        style={{ padding: '4px 8px', border: '1px solid hsl(var(--border))', background: '#fff', color: 'var(--text-secondary)' }}
+                        className={selectCls}
                       >
-                        <option value="">— No signature —</option>
+                        <option value="">No signature</option>
                         {signatures.map(s => (
                           <option key={s.id} value={s.id}>{s.name}{s.title ? ` · ${s.title}` : ''}</option>
                         ))}
@@ -301,29 +299,19 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
               </div>
 
               {/* To + Send row */}
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
-                  To: {lead.email}
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <span className="text-[12.5px] flex items-center gap-1.5 flex-wrap" style={{ color: MUTED }}>
+                  To {lead.email}
                   {selectedFromEmail && selectedFromEmail !== 'operations@trade-risksol.com' && (
-                    <span
-                      className="ml-1 text-[10px] px-1.5 py-0.5 rounded"
-                      style={{ background: 'hsl(var(--muted))', color: 'var(--text-muted)' }}
-                    >
-                      CC: operations@
-                    </span>
+                    <Chip>cc operations@</Chip>
                   )}
-                  <Tip text="Sent via Gmail. When sending from a personal address, operations@ is auto-CC'd so lead replies stay in the shared thread." />
+                  <Tip text="Sent via Gmail. From a personal address, operations@ is copied so replies stay in the shared thread." />
                 </span>
-                <div className="flex items-center gap-2">
-                  {sendError && <span className="text-[11px] text-destructive">{sendError}</span>}
-                  <button
-                    onClick={sendReply}
-                    disabled={sending || !hasDraft}
-                    className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-md border-0 cursor-pointer disabled:opacity-50"
-                    style={{ background: sending ? 'var(--primary-light-bg)' : 'var(--primary-hex)', color: sending ? 'var(--primary-hex)' : '#fff' }}
-                  >
-                    <Send size={12} /> {sending ? 'Sending…' : 'Send Reply'}
-                  </button>
+                <div className="flex items-center gap-3">
+                  {sendError && <span className="text-[13px]" style={{ color: MUTED }}>{sendError}</span>}
+                  <Btn level="primary" onClick={sendReply} disabled={sending || !hasDraft} loading={sending}>
+                    {!sending && <Send size={12} />} {sending ? 'Sending…' : 'Send reply'}
+                  </Btn>
                 </div>
               </div>
             </>
@@ -346,15 +334,16 @@ export function ReplyExpandButton({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       aria-expanded={isExpanded}
       aria-label={isExpanded ? 'Collapse reply panel' : 'Draft and send reply'}
-      className={`inline-flex items-center justify-center cursor-pointer p-1 rounded transition-colors ${
-        isExpanded
-          ? 'border border-border text-primary hover:bg-muted/50'
-          : 'bg-muted/50 border border-border text-muted-foreground hover:bg-muted hover:text-foreground'
-      }`}
-      title={isExpanded ? 'Collapse' : 'Draft & send reply'}
+      className={cn(
+        'inline-flex items-center justify-center w-8 h-8 rounded-[8px] cursor-pointer transition-colors',
+        isExpanded ? 'bg-[#f1f3f4] hover:bg-[#e8eaed]' : 'bg-white hover:bg-[#f8f9fa]',
+      )}
+      style={{ border: '1px solid #dadce0', color: INK }}
+      title={isExpanded ? 'Collapse' : 'Draft and send reply'}
     >
       {isExpanded ? <ChevronDown size={14} /> : <Send size={14} />}
     </button>

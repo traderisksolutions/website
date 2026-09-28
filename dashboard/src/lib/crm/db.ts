@@ -43,6 +43,13 @@ export const TRS_DOMAIN = 'trade-risksol.com'
  *  as an outside organisation and given a company record of its own. */
 export const TRS_DOMAINS = new Set([TRS_DOMAIN, 'traderisksol.com'])
 
+/**
+ * Domains that must never become a client company: our sister company, and ISPs whose
+ * customers mail from the provider's own domain. Insurers are excluded separately, by being
+ * companies of kind insurer that own their domains.
+ */
+export const NOT_A_CLIENT_DOMAINS = new Set(['kyn.com.sg', 'singnet.com.sg', 'starhub.net.sg', 'pacific.net.sg'])
+
 export const PUBLIC_EMAIL_DOMAINS = new Set([
   'gmail.com', 'googlemail.com', 'yahoo.com', 'yahoo.com.sg', 'hotmail.com', 'hotmail.sg', 'outlook.com',
   'outlook.sg', 'live.com', 'icloud.com', 'me.com', 'ymail.com', 'protonmail.com', 'proton.me', 'qq.com', '163.com',
@@ -99,6 +106,12 @@ export function normalizeCompany(row: Json): Company {
     ai_brief:         (row.ai_brief as Company['ai_brief']) ?? null,
     ai_brief_at:      (row.ai_brief_at as string | null) ?? null,
     ai_brief_model:   (row.ai_brief_model as string | null) ?? null,
+    // Absent (column not migrated yet) stays undefined; only an explicit null means "nobody
+    // has looked at this record" — otherwise every company would read as unconfirmed.
+    confirmed_at:     row.confirmed_at === undefined ? undefined : ((row.confirmed_at as string | null) ?? null),
+    confirmed_by:     row.confirmed_by === undefined ? undefined : ((row.confirmed_by as string | null) ?? null),
+    home_pinned_at:   row.home_pinned_at === undefined ? undefined : ((row.home_pinned_at as string | null) ?? null),
+    home_pinned_by:   row.home_pinned_by === undefined ? undefined : ((row.home_pinned_by as string | null) ?? null),
     created_at:       String(row.created_at ?? ''),
     updated_at:       String(row.updated_at ?? row.created_at ?? ''),
   }
@@ -109,10 +122,16 @@ export async function getCompany(id: string): Promise<Company | null> {
   return rows[0] ? normalizeCompany(rows[0]) : null
 }
 
-/** All client companies (the CRM never lists insurers or partners). Falls back to every row
- *  when the `kind` column is not there yet. */
+/** All client companies. Falls back to every row when the `kind` column is not there yet. */
 export async function listClientCompanies(): Promise<Company[]> {
-  let rows = await sbTry<Json[] | null>(`companies?kind=eq.client&select=*&order=company_name.asc&limit=1000`, null)
+  return listCompaniesByKind(['client'])
+}
+
+/** Companies of the given kinds — clients and insurers share one working model now (owner,
+ *  pin, to-dos), so both can be listed together. Falls back to every row when the `kind`
+ *  column is not there yet. */
+export async function listCompaniesByKind(kinds: readonly string[]): Promise<Company[]> {
+  let rows = await sbTry<Json[] | null>(`companies?kind=in.(${kinds.join(',')})&select=*&order=company_name.asc&limit=1000`, null)
   if (rows === null) rows = await sbTry<Json[]>(`companies?select=*&order=company_name.asc&limit=1000`, [])
   return rows.map(normalizeCompany)
 }

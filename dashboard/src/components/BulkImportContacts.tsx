@@ -3,7 +3,12 @@
 import React, { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { UploadCloud, Download, AlertTriangle, Copy, UserPlus, X } from 'lucide-react'
+import { Chip, Segmented, inputCls } from '@/components/crm/primitives'
+import { cn } from '@/lib/utils'
+import { UploadCloud } from 'lucide-react'
+
+const INK = '#202124'
+const MUTED = '#5f6368'
 
 type Existing = { id: string; first_name: string | null; last_name: string | null; email: string | null; phone: string | null; company: string | null }
 type Status = 'new' | 'duplicate' | 'invalid'
@@ -72,7 +77,7 @@ export default function BulkImportContacts({ open, onOpenChange, onImported }: {
     setError(null); setBusy(true)
     try {
       const parsed = parseCSV(await file.text())
-      if (parsed.length < 2) { setError('The file has no data rows — add at least one contact below the header row.'); return }
+      if (parsed.length < 2) { setError('The file has no data rows. Add at least one contact below the header row.'); return }
 
       // Strict header validation: every column must be a recognised field, and the
       // header row must contain email and/or phone. No silent dropping of columns.
@@ -129,49 +134,47 @@ export default function BulkImportContacts({ open, onOpenChange, onImported }: {
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) reset() }}>
-      <DialogContent className="sm:max-w-[860px] max-h-[88vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-[860px] max-h-[88vh] overflow-hidden flex flex-col" style={{ color: INK }}>
         <DialogHeader>
-          <DialogTitle>Import contacts from CSV</DialogTitle>
-          <DialogDescription>
-            {step === 'upload' && 'Upload a CSV using the template. We’ll flag duplicates and rows to fix before anything is saved.'}
-            {step === 'review' && `${counts.new} new · ${counts.dup} duplicate· ${counts.invalid} need fixing — review, edit, then import.`}
+          <DialogTitle className="text-[20px] font-medium tracking-[-0.01em]" style={{ color: INK }}>Import contacts from CSV</DialogTitle>
+          <DialogDescription className="text-[14px]" style={{ color: MUTED }}>
+            {step === 'upload' && 'Upload a CSV in the template format. Duplicates and rows to fix are flagged before anything is saved.'}
+            {step === 'review' && `${counts.new} new · ${counts.dup} duplicate · ${counts.invalid} to fix`}
             {step === 'done' && 'Import complete.'}
           </DialogDescription>
         </DialogHeader>
 
         {/* ── Upload ── */}
         {step === 'upload' && (
-          <div className="flex flex-col gap-3 py-2">
+          <div className="flex flex-col gap-4 py-1">
             {/* Explicit header spec — strict: exactly these columns, nothing else. */}
-            <div className="rounded-lg border border-[--border-subtle] bg-muted/30 px-3.5 py-3">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 mb-2">Required format — exactly these columns</p>
-              <ul className="flex flex-col gap-1 text-[11.5px] text-foreground/80">
+            <div className="rounded-[16px] px-5 py-4" style={{ background: '#f1f3f4' }}>
+              <p className="m-0 text-[14px] font-medium mb-2.5" style={{ color: INK }}>Accepted columns</p>
+              <ul className="m-0 p-0 list-none flex flex-col gap-1.5 text-[13px]" style={{ color: '#3c4043' }}>
                 {HEADER_SPEC.map(h => (
-                  <li key={h.key} className="flex items-baseline gap-2">
-                    <code className="font-mono text-[11px] text-primary w-[76px] flex-shrink-0">{h.key}</code>
-                    {h.req === 'required'
-                      ? <span className="text-muted-foreground/60"><b className="text-amber-600">email or phone required</b> · e.g. {h.example}</span>
-                      : <span className="text-muted-foreground/60">optional · e.g. {h.example}</span>}
+                  <li key={h.key} className="flex items-baseline gap-3">
+                    <code className="font-mono text-[12.5px] w-[84px] flex-shrink-0" style={{ color: INK }}>{h.key}</code>
+                    <span style={{ color: MUTED }}>{h.req === 'required' ? 'email or phone required' : 'optional'} · e.g. {h.example}</span>
                   </li>
                 ))}
               </ul>
-              <p className="text-[10.5px] text-muted-foreground/55 mt-2 leading-relaxed">
-                First row must be the header. One contact per row. Only these five columns are accepted — any other column is rejected. Duplicates (by email or phone) are flagged for review before saving.
+              <p className="m-0 mt-3 text-[12.5px] leading-relaxed" style={{ color: MUTED }}>
+                First row is the header. One contact per row. Other columns are rejected. Duplicates by email or phone are flagged before saving.
               </p>
             </div>
 
-            <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[--border-subtle] rounded-xl py-10 cursor-pointer hover:border-primary/40 hover:bg-primary/[0.03] transition-colors">
-              <UploadCloud size={26} className="text-muted-foreground/50" />
-              <span className="text-[13px] font-medium text-foreground">Choose a CSV file</span>
-              <span className="text-[11px] text-muted-foreground/60">or drag it here</span>
+            <label className="flex flex-col items-center justify-center gap-1.5 rounded-[16px] py-10 cursor-pointer hover:bg-[#f8f9fa] transition-colors" style={{ border: '1px dashed #dadce0' }}>
+              <UploadCloud size={22} style={{ color: '#9aa0a6' }} />
+              <span className="text-[14px] font-medium" style={{ color: INK }}>Choose a CSV file</span>
+              <span className="text-[12.5px]" style={{ color: MUTED }}>or drop it here</span>
               <input type="file" accept=".csv,text/csv" className="hidden"
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = '' }} />
             </label>
-            <button onClick={downloadTemplate} className="self-start flex items-center gap-1.5 text-[11.5px] font-semibold text-primary hover:underline">
-              <Download size={12} /> Download CSV template
+            <button type="button" onClick={downloadTemplate} className="self-start text-[13.5px] bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4" style={{ color: INK }}>
+              Download CSV template
             </button>
-            {busy && <p className="text-[12px] text-muted-foreground">Reading…</p>}
-            {error && <p className="text-[12px] text-rose-600">{error}</p>}
+            {busy && <p className="m-0 text-[13px]" style={{ color: MUTED }}>Reading…</p>}
+            {error && <p className="m-0 text-[13px]" style={{ color: MUTED }}>{error}</p>}
           </div>
         )}
 
@@ -181,15 +184,15 @@ export default function BulkImportContacts({ open, onOpenChange, onImported }: {
             {[...rows.map((r, i) => ({ r, i }))].sort((a, b) => order[a.r.status] - order[b.r.status]).map(({ r, i }) => (
               <RowCard key={i} r={r} onEdit={(f, v) => edit(i, f, v)} onAction={(a) => setAction(i, a)} />
             ))}
+            {error && <p className="m-0 text-[13px]" style={{ color: MUTED }}>{error}</p>}
           </div>
         )}
 
         {/* ── Done ── */}
         {step === 'done' && result && (
-          <div className="py-6 flex flex-col items-center gap-2 text-center">
-            <div className="w-11 h-11 rounded-full bg-emerald-100 flex items-center justify-center"><UserPlus size={20} className="text-emerald-600" /></div>
-            <p className="text-[13px] font-semibold text-foreground">{result.inserted} added · {result.updated} updated</p>
-            <p className="text-[11.5px] text-muted-foreground/70">{result.skipped} skipped{result.failed ? ` · ${result.failed} failed` : ''}</p>
+          <div className="py-8 flex flex-col items-center gap-1 text-center">
+            <p className="m-0 text-[16px] font-medium" style={{ color: INK }}>{result.inserted} added · {result.updated} updated</p>
+            <p className="m-0 text-[13px]" style={{ color: MUTED }}>{result.skipped} skipped{result.failed ? ` · ${result.failed} failed` : ''}</p>
           </div>
         )}
 
@@ -198,7 +201,7 @@ export default function BulkImportContacts({ open, onOpenChange, onImported }: {
             <>
               <Button variant="outline" onClick={reset}>Back</Button>
               <Button onClick={commit} disabled={busy || (willInsert + willUpdate === 0)}>
-                {busy ? 'Importing…' : `Import (${willInsert} new${willUpdate ? `, ${willUpdate} update` : ''})`}
+                {busy ? 'Importing…' : `Import ${willInsert} new${willUpdate ? `, update ${willUpdate}` : ''}`}
               </Button>
             </>
           )}
@@ -211,40 +214,32 @@ export default function BulkImportContacts({ open, onOpenChange, onImported }: {
 
 // ── One review row ──────────────────────────────────────────────────────────
 function RowCard({ r, onEdit, onAction }: { r: Row; onEdit: (f: typeof FIELDS[number], v: string) => void; onAction: (a: Action) => void }) {
-  const inp = 'text-[11.5px] border border-[--border-subtle] rounded-md px-2 py-1 bg-background outline-none focus:ring-1 focus:ring-primary/20 w-full'
-  const tone = r.status === 'invalid' ? 'border-rose-200 bg-rose-50/30' : r.status === 'duplicate' ? 'border-amber-200 bg-amber-50/30' : 'border-[--border-subtle] bg-card'
+  const inp = cn(inputCls, 'h-9 text-[13px] px-3')
+  const label = r.status === 'invalid' ? 'Needs email or phone' : r.status === 'duplicate' ? 'Already exists' : 'New'
   return (
-    <div className={`rounded-lg border p-2.5 flex flex-col gap-2 ${tone} ${r.action === 'skip' ? 'opacity-55' : ''}`}>
-      <div className="flex items-center justify-between gap-2">
-        <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-[6px] flex items-center gap-1
-          ${r.status === 'invalid' ? 'text-rose-700 bg-rose-100' : r.status === 'duplicate' ? 'text-amber-700 bg-amber-100' : 'text-emerald-700 bg-emerald-100'}`}>
-          {r.status === 'invalid' && <AlertTriangle size={9} />}{r.status === 'duplicate' && <Copy size={9} />}
-          {r.status === 'invalid' ? 'Needs email or phone' : r.status === 'duplicate' ? 'Already exists' : 'New'}
-        </span>
+    <div className={cn('rounded-[12px] p-3 flex flex-col gap-2.5 bg-white', r.action === 'skip' && 'opacity-60')} style={{ border: '1px solid #e8eaed' }}>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <Chip>{label}</Chip>
         <div className="flex items-center gap-1">
           {r.status === 'duplicate' && (
-            <>
-              <ActionBtn active={r.action === 'skip'} onClick={() => onAction('skip')}>Ignore</ActionBtn>
-              <ActionBtn active={r.action === 'update'} onClick={() => onAction('update')}>Overwrite</ActionBtn>
-            </>
+            <Segmented<Action> value={r.action} onChange={onAction} options={[{ value: 'skip', label: 'Ignore' }, { value: 'update', label: 'Overwrite' }]} />
           )}
           {r.status === 'new' && (
-            <>
-              <ActionBtn active={r.action === 'insert'} onClick={() => onAction('insert')}>Add</ActionBtn>
-              <ActionBtn active={r.action === 'skip'} onClick={() => onAction('skip')}>Ignore</ActionBtn>
-            </>
+            <Segmented<Action> value={r.action} onChange={onAction} options={[{ value: 'insert', label: 'Add' }, { value: 'skip', label: 'Ignore' }]} />
           )}
-          {r.status === 'invalid' && <ActionBtn active onClick={() => onAction('skip')}><X size={10} /> Skip</ActionBtn>}
+          {r.status === 'invalid' && (
+            <Segmented<Action> value="skip" onChange={onAction} options={[{ value: 'skip', label: 'Skip' }]} />
+          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-5 gap-1.5">
-        {FIELDS.map(f => <input key={f} value={r[f]} placeholder={f.replace('_', ' ')} onChange={e => onEdit(f, e.target.value)} className={inp} />)}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
+        {FIELDS.map(f => <input key={f} value={r[f]} placeholder={f.replace('_', ' ')} aria-label={f.replace('_', ' ')} onChange={e => onEdit(f, e.target.value)} className={inp} />)}
       </div>
 
       {r.status === 'duplicate' && r.existing && (
-        <div className="grid grid-cols-5 gap-1.5 text-[10.5px] text-muted-foreground/70 px-2">
-          <span className="col-span-5 text-[9px] font-bold uppercase tracking-wider text-amber-700/60">Existing contact</span>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 text-[12.5px] px-1" style={{ color: MUTED }}>
+          <span className="col-span-2 sm:col-span-5 text-[12px]" style={{ color: '#80868b' }}>Existing contact</span>
           <span className="truncate">{r.existing.first_name || '—'}</span>
           <span className="truncate">{r.existing.last_name || '—'}</span>
           <span className="truncate">{r.existing.email || '—'}</span>
@@ -253,14 +248,5 @@ function RowCard({ r, onEdit, onAction }: { r: Row; onEdit: (f: typeof FIELDS[nu
         </div>
       )}
     </div>
-  )
-}
-
-function ActionBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button onClick={onClick} className={`flex items-center gap-1 text-[10.5px] font-semibold px-2 py-0.5 rounded-md border transition-colors
-      ${active ? 'border-primary bg-primary/10 text-primary' : 'border-[--border-subtle] text-muted-foreground/70 hover:text-foreground'}`}>
-      {children}
-    </button>
   )
 }

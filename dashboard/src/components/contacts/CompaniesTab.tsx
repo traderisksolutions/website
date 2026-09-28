@@ -2,17 +2,23 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Building2, Mail, FileText, X, Loader2 } from 'lucide-react'
-import { AppSplitLayout, AppMainPanel, AppPageHeader, AppPageBody } from '@/components/app-shell'
-import { DataTableToolbar, DataTableSearch } from '@/components/data-table/toolbar'
+import { X } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { AppSplitLayout, AppMainPanel } from '@/components/app-shell'
+import { DataTableSearch } from '@/components/data-table/toolbar'
 import { DetailSection, DetailField } from '@/components/detail-section'
 import { StatusBadge } from '@/components/status-badge'
+import { Spinner } from '@/components/crm/primitives'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
 
 /**
- * "Companies" tab on the Active Contacts page — insurance clients (companies/policies/debit
+ * "Companies" tab on the Contacts page — insurance clients (companies/policies/debit
  * notes), additive to the existing sales-lead contact list. Debit notes and PDF imports create
- * or match rows here via /api/companies, so this is where "merged into Active Contacts" surfaces.
+ * or match rows here via /api/companies, so this is where "merged into Contacts" surfaces.
  */
+
+const INK = '#202124'
+const MUTED = '#5f6368'
 
 type CompanyRow = { id: string; name: string; address: string | null; type: string | null; domain: string | null }
 type CompanyContact = { id: string; first_name: string | null; last_name: string | null; email: string | null; phone: string | null }
@@ -39,47 +45,70 @@ export function CompaniesTab({ onSwitchToContacts }: { onSwitchToContacts: () =>
   }, [q])
 
   return (
-    <AppSplitLayout>
-      <AppMainPanel>
-        <AppPageHeader
-          title="Companies"
-          description={loading ? 'Loading…' : `${companies.length} compan${companies.length !== 1 ? 'ies' : 'y'}`}
-          actions={(
-            <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted">
-              <button onClick={onSwitchToContacts} className="text-[11.5px] font-medium px-2.5 py-1 rounded text-muted-foreground hover:text-foreground">Contacts</button>
-              <button className="text-[11.5px] font-semibold px-2.5 py-1 rounded bg-card shadow-sm text-foreground">Companies</button>
+    <AppSplitLayout className="bg-white">
+      <AppMainPanel className="bg-white">
+
+        {/* Header: title, count line, view tabs, search */}
+        <div className="flex-shrink-0 px-6 sm:px-12 pt-10" style={{ color: INK }}>
+          <div className="flex items-end justify-between gap-6 flex-wrap">
+            <div className="min-w-0">
+              <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Companies</h1>
+              <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>
+                {loading ? 'Loading…' : `${companies.length} compan${companies.length !== 1 ? 'ies' : 'y'}`}
+              </p>
+              <div className="mt-4 flex items-center gap-6" role="tablist" aria-label="Contacts or companies">
+                {(['contacts', 'companies'] as const).map(k => {
+                  const on = k === 'companies'
+                  return (
+                    <button key={k} type="button" role="tab" aria-selected={on} onClick={on ? undefined : onSwitchToContacts}
+                      className={cn('relative pb-2 bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#202124]')}
+                      style={{ color: on ? INK : MUTED }}>
+                      {k === 'contacts' ? 'Contacts' : 'Companies'}
+                      <span className={cn('absolute left-0 right-0 bottom-0 h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: INK }} aria-hidden />
+                    </button>
+                  )
+                })}
+              </div>
             </div>
-          )}
-        />
-        <DataTableToolbar>
-          <DataTableSearch value={q} onChange={setQ} placeholder="Search companies…" />
-        </DataTableToolbar>
-        <AppPageBody padded={false}>
-          <table className="w-full text-[12.5px]">
-            <thead>
-              <tr className="border-b border-[--border-subtle] text-[10.5px] uppercase tracking-wider text-muted-foreground/60">
-                <th className="text-left px-4 py-2 font-semibold">Company</th>
-                <th className="text-left px-3 py-2 font-semibold">Address</th>
-                <th className="text-left px-3 py-2 font-semibold">Type</th>
-              </tr>
-            </thead>
+            <div className="flex items-center gap-3 flex-wrap pb-2">
+              <DataTableSearch value={q} onChange={setQ} placeholder="Search companies" />
+            </div>
+          </div>
+          <div className="mt-5" style={{ borderBottom: '1px solid #e8eaed' }} />
+        </div>
+
+        {/* Table */}
+        <div className="flex-1 overflow-auto px-6 sm:px-12 pt-6 pb-16" style={{ color: INK }}>
+          <Register label="Insurance client companies" minWidth={600}>
+            <RegisterHead>
+              <RegisterTh first hint="Company name, and its domain">Company</RegisterTh>
+              <RegisterTh hint="Registered address on file">Address</RegisterTh>
+              <RegisterTh last hint="Client or insurer">Type</RegisterTh>
+            </RegisterHead>
             <tbody>
               {loading && Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i} className="border-b border-[--border-subtle]"><td colSpan={3} className="px-4 h-11"><div className="skeleton sk-cell" style={{ width: '60%', height: 10 }} /></td></tr>
-              ))}
-              {!loading && companies.length === 0 && (
-                <tr><td colSpan={3} className="px-4 py-10 text-center text-muted-foreground">No companies yet — they're created from Debit Note generation or PDF import.</td></tr>
-              )}
-              {!loading && companies.map(c => (
-                <tr key={c.id} onClick={() => setSelectedId(c.id)} className="border-b border-[--border-subtle] hover:bg-accent/40 cursor-pointer">
-                  <td className="px-4 py-2.5 font-medium flex items-center gap-1.5"><Building2 size={13} className="text-muted-foreground/50" /> <span className="uppercase">{c.name}</span></td>
-                  <td className="px-3 py-2.5 text-muted-foreground truncate max-w-[280px]">{c.address ?? '—'}</td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{c.type ?? '—'}</td>
+                <tr key={i} style={{ borderBottom: '1px solid #e8eaed' }}>
+                  <td colSpan={3} className="pl-6 pr-6 h-14"><div className="h-3.5 w-[60%] rounded bg-[#f1f3f4] animate-pulse" /></td>
                 </tr>
               ))}
+              {!loading && companies.length === 0 && (
+                <RegisterEmpty colSpan={3}>
+                  {q.trim() ? `No companies match “${q.trim()}”.` : 'No companies yet. Debit note generation and PDF import create them.'}
+                </RegisterEmpty>
+              )}
+              {!loading && companies.map(c => {
+                const on = selectedId === c.id
+                return (
+                  <RegisterRow key={c.id} selected={on} onClick={() => setSelectedId(c.id)}>
+                    <RegisterCell first selected={on} title={c.name} primary={c.name} secondary={c.domain ?? 'No domain on file'} />
+                    <RegisterCell className="max-w-[360px]"><span className="block truncate text-[14px]" style={{ color: '#3c4043' }}>{c.address ?? '—'}</span></RegisterCell>
+                    <RegisterCell last><span className="text-[14px]" style={{ color: '#3c4043' }}>{c.type ?? '—'}</span></RegisterCell>
+                  </RegisterRow>
+                )
+              })}
             </tbody>
-          </table>
-        </AppPageBody>
+          </Register>
+        </div>
       </AppMainPanel>
 
       {selectedId && <CompanyDetailPanel id={selectedId} onClose={() => setSelectedId(null)} />}
@@ -95,33 +124,40 @@ function CompanyDetailPanel({ id, onClose }: { id: string; onClose: () => void }
     fetch(`/api/companies/${id}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(setData)
   }, [id])
 
+  const link = 'text-[13.5px] no-underline hover:underline underline-offset-4'
+
   return (
-    <div className="w-[340px] flex-shrink-0 border-l border-[--border-subtle] bg-card overflow-y-auto flex flex-col">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[--border-subtle] flex-shrink-0">
-        <span className="text-[10px] font-bold uppercase tracking-[0.07em] text-muted-foreground/55">Company</span>
-        <button onClick={onClose} aria-label="Close" className="p-1 rounded-md hover:bg-muted text-muted-foreground/60 hover:text-foreground"><X size={13} /></button>
+    <div className="fixed inset-0 z-40 md:static md:inset-auto md:z-auto md:w-[340px] md:flex-shrink-0 bg-white overflow-y-auto flex flex-col"
+      style={{ color: INK, borderLeft: '1px solid #e8eaed' }}>
+      <div className="flex items-center justify-between px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid #e8eaed' }}>
+        <span className="text-[16px] font-medium tracking-[-0.01em]">Company</span>
+        <button type="button" onClick={onClose} aria-label="Close"
+          className="w-8 h-8 inline-flex items-center justify-center rounded-[8px] hover:bg-[#f1f3f4] bg-transparent border-0 cursor-pointer"
+          style={{ color: MUTED }}>
+          <X size={14} />
+        </button>
       </div>
 
       {!data ? (
-        <div className="py-10 flex justify-center"><Loader2 size={18} className="animate-spin text-muted-foreground" /></div>
+        <Spinner />
       ) : (
         <>
           <DetailSection>
-            <p className="text-[14px] font-semibold text-foreground uppercase">{data.company.name}</p>
-            {data.company.address && <p className="text-[12px] text-muted-foreground mt-0.5">{data.company.address}</p>}
+            <p className="m-0 text-[15px] font-medium" style={{ color: INK }}>{data.company.name}</p>
+            {data.company.address && <p className="m-0 mt-0.5 text-[13px]" style={{ color: MUTED }}>{data.company.address}</p>}
           </DetailSection>
 
           <DetailSection label="Contacts">
-            {data.contacts.length === 0 && <p className="text-[11.5px] text-muted-foreground">None on file yet.</p>}
+            {data.contacts.length === 0 && <p className="m-0 text-[13px]" style={{ color: MUTED }}>None on file.</p>}
             {data.contacts.map(cc => (
               <DetailField key={cc.contacts.id} label={[cc.contacts.first_name, cc.contacts.last_name].filter(Boolean).join(' ') || 'Contact'}>
-                <span className="flex items-center gap-1.5"><Mail size={11} className="text-muted-foreground/50" /> {cc.contacts.email ?? cc.contacts.phone ?? '—'}</span>
+                {cc.contacts.email ?? cc.contacts.phone ?? '—'}
               </DetailField>
             ))}
           </DetailSection>
 
-          <DetailSection label={`Policies (${data.policies.length})`}>
-            {data.policies.length === 0 && <p className="text-[11.5px] text-muted-foreground">No policies yet.</p>}
+          <DetailSection label={`Policies · ${data.policies.length}`}>
+            {data.policies.length === 0 && <p className="m-0 text-[13px]" style={{ color: MUTED }}>No policies.</p>}
             {data.policies.map(p => (
               <DetailField key={p.id} label={p.policy_number || p.class_of_insurance || 'Policy'}>
                 {p.insurer} · ends {fmtDate(p.end_date)}
@@ -129,19 +165,19 @@ function CompanyDetailPanel({ id, onClose }: { id: string; onClose: () => void }
             ))}
           </DetailSection>
 
-          <DetailSection label={`Debit notes (${data.debitNotes.length})`}>
-            {data.debitNotes.length === 0 && <p className="text-[11.5px] text-muted-foreground">None yet.</p>}
+          <DetailSection label={`Debit notes · ${data.debitNotes.length}`}>
+            {data.debitNotes.length === 0 && <p className="m-0 text-[13px]" style={{ color: MUTED }}>None.</p>}
             {data.debitNotes.map(dn => (
-              <div key={dn.id} className="flex items-center justify-between text-[12px] mb-1.5">
-                <span className="flex items-center gap-1.5"><FileText size={11} className="text-muted-foreground/50" /> {dn.debit_note_no}</span>
+              <div key={dn.id} className="flex items-center justify-between text-[14px] mb-2 last:mb-0">
+                <span style={{ color: INK }}>{dn.debit_note_no}</span>
                 <StatusBadge status={dn.status} />
               </div>
             ))}
           </DetailSection>
 
-          <div className="px-4 pb-4 flex flex-col gap-1.5">
-            <Link href={`/debit-notes?company_id=${id}`} className="text-[11.5px] font-semibold text-primary hover:underline">View all debit notes →</Link>
-            <Link href={`/debit-notes/new`} className="text-[11.5px] font-semibold text-primary hover:underline">Generate a new debit note →</Link>
+          <div className="px-4 pb-5 flex flex-col gap-2">
+            <Link href={`/debit-notes?company_id=${id}`} className={link} style={{ color: INK }}>All debit notes →</Link>
+            <Link href={`/debit-notes/new`} className={link} style={{ color: INK }}>New debit note →</Link>
           </div>
         </>
       )}

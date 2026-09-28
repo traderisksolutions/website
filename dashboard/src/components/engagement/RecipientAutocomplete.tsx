@@ -83,7 +83,8 @@ export function useContactSearch(query: string): ContactSuggestion[] {
   return results
 }
 
-// Presentational dropdown of suggestions with keyboard highlight.
+// Presentational dropdown of suggestions with keyboard highlight. 14px rows, hover #f8f9fa,
+// keyboard highlight #f1f3f4, one grey "Team" chip for employees.
 export function SuggestionList({
   items, highlight, onPick,
 }: {
@@ -93,27 +94,29 @@ export function SuggestionList({
 }) {
   if (items.length === 0) return null
   return (
-    <div className="absolute left-0 right-2 top-full z-30 mt-1 max-h-56 overflow-y-auto rounded-lg border border-[--border-subtle] bg-popover shadow-lg">
+    <div role="listbox" aria-label="Suggested recipients" className="absolute left-0 right-0 top-full z-30 mt-1 max-h-64 overflow-y-auto rounded-[10px] border border-[#e8eaed] bg-white p-1 shadow-[0_8px_24px_rgba(32,33,36,0.12)]">
       {items.map((c, i) => (
         <button
           key={c.id}
           type="button"
+          role="option"
+          aria-selected={i === highlight}
           // onMouseDown (not onClick) so the pick fires before the input's blur.
           onMouseDown={e => { e.preventDefault(); onPick(c) }}
-          className={`flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left transition-colors ${
-            i === highlight ? 'bg-primary/10' : 'hover:bg-muted'
+          className={`flex w-full items-center justify-between gap-3 px-2.5 py-1.5 rounded-[6px] text-left border-0 cursor-pointer transition-colors ${
+            i === highlight ? 'bg-[#f1f3f4]' : 'bg-transparent hover:bg-[#f8f9fa]'
           }`}
         >
           <span className="min-w-0 flex-1">
             <span className="flex items-center gap-1.5">
-              <span className="truncate text-[12px] font-medium text-foreground">{c.name}</span>
+              <span className="truncate text-[14px] font-medium" style={{ color: '#202124' }}>{c.name}</span>
               {c.is_employee && (
-                <span className="flex-shrink-0 rounded-[6px] bg-primary/10 px-1.5 py-px text-[8.5px] font-bold uppercase tracking-wide text-primary">Team</span>
+                <span className="flex-shrink-0 rounded-[6px] bg-[#f1f3f4] px-1.5 py-px text-[11.5px] font-medium" style={{ color: '#3c4043' }}>Team</span>
               )}
             </span>
-            <span className="block truncate text-[10.5px] text-muted-foreground/70">{c.email}</span>
+            <span className="block truncate text-[12.5px]" style={{ color: '#5f6368' }}>{c.email}</span>
           </span>
-          {c.company && <span className="flex-shrink-0 truncate text-[10px] text-muted-foreground/50 max-w-[90px]">{c.company}</span>}
+          {c.company && <span className="flex-shrink-0 truncate text-[12.5px] max-w-[140px]" style={{ color: '#80868b' }}>{c.company}</span>}
         </button>
       ))}
     </div>
@@ -140,7 +143,7 @@ export function useAutocomplete(query: string, onPick: (c: ContactSuggestion) =>
     if (e.key === 'ArrowDown') { e.preventDefault(); setHighlight(h => Math.min(h + 1, items.length - 1)); return true }
     if (e.key === 'ArrowUp')   { e.preventDefault(); setHighlight(h => Math.max(h - 1, 0)); return true }
     if (e.key === 'Enter')     { e.preventDefault(); onPick(items[highlight]); setOpen(false); return true }
-    if (e.key === 'Escape')    { setOpen(false); return true }
+    if (e.key === 'Escape')    { e.preventDefault(); setOpen(false); return true }
     return false
   }
 

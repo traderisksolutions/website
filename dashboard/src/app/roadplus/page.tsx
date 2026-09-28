@@ -1,7 +1,14 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
-import { Loader2, Search, AlertTriangle, ExternalLink, RefreshCw, Download, Play } from 'lucide-react'
+import { Loader2, Search, RefreshCw, Download } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { Tip } from '@/components/Tip'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
+
+const INK = '#202124'
+const MUTED = '#5f6368'
+const HAIR = '1px solid #e8eaed'
 
 /** How often the open Purchases tab re-queries for new transactions. */
 const POLL_MS = 20_000
@@ -24,11 +31,12 @@ const STEP_LABEL: Record<string, string> = {
   payment_redirect: 'Sent to payment', policy_issued: 'Policy issued',
 }
 
-function Tile({ label, value, tone }: { label: string; value: ReactNode; tone?: 'rose' }) {
+// Grey stat tile: label, then the number. The label carries the meaning; no state colour.
+function Tile({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
-      <div className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{label}</div>
-      <div className={`mt-1 text-[26px] font-semibold tabular-nums ${tone === 'rose' ? 'text-rose-600' : 'text-slate-900'}`}>{value}</div>
+    <div className="rounded-[16px] px-5 py-4" style={{ background: '#f1f3f4' }}>
+      <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>{label}</p>
+      <p className="m-0 mt-2 text-[28px] font-medium tracking-[-0.02em] leading-none tabular-nums" style={{ color: INK }}>{value}</p>
     </div>
   )
 }
@@ -38,16 +46,16 @@ function Split({ title, data }: { title: string; data: Record<string, number> })
   const total = entries.reduce((s, [, v]) => s + v, 0) || 1
   return (
     <div>
-      <h3 className="mb-3 text-[13px] font-semibold text-slate-800">{title}</h3>
+      <h3 className="m-0 mb-3 text-[16px] font-medium tracking-[-0.01em]" style={{ color: INK }}>{title}</h3>
       {entries.length === 0 ? (
-        <p className="text-[12.5px] text-slate-400">No data yet.</p>
+        <p className="m-0 text-[14px]" style={{ color: MUTED }}>No data yet.</p>
       ) : (
         <div className="space-y-2">
           {entries.map(([k, v]) => (
             <div key={k} className="flex items-center gap-3">
-              <div className="w-28 shrink-0 text-[12.5px] capitalize text-slate-600">{k}</div>
-              <div className="h-5 flex-1 overflow-hidden rounded bg-slate-100"><div className="h-full rounded bg-slate-400" style={{ width: `${(v / total) * 100}%` }} /></div>
-              <div className="w-16 text-right text-[11px] tabular-nums text-slate-400">{v} ({((v / total) * 100).toFixed(0)}%)</div>
+              <div className="w-28 shrink-0 text-[13px] capitalize" style={{ color: '#3c4043' }}>{k}</div>
+              <div className="h-5 flex-1 overflow-hidden rounded-[4px]" style={{ background: '#f1f3f4' }}><div className="h-full rounded-[4px]" style={{ width: `${(v / total) * 100}%`, background: '#80868b' }} /></div>
+              <div className="w-20 text-right text-[12.5px] tabular-nums" style={{ color: MUTED }}>{v} ({((v / total) * 100).toFixed(0)}%)</div>
             </div>
           ))}
         </div>
@@ -106,18 +114,9 @@ const RECON_LABEL: Record<Recon, string> = {
   failed: 'Payment failed',
 }
 
-function ReconPill({ r, attention }: { r: Recon; attention: boolean }) {
-  const cls =
-    r === 'reconciled'
-      ? 'bg-emerald-100 text-emerald-700'
-      : r === 'failed' || attention
-        ? 'bg-rose-100 text-rose-700'
-        : // Not paid yet is the normal state of a live checkout, not a problem.
-          r === 'awaiting_payment'
-          ? 'bg-slate-100 text-slate-600'
-          : 'bg-amber-100 text-amber-700'
-  return <span className={`inline-block whitespace-nowrap rounded-[6px] px-2 py-0.5 text-[11px] font-medium ${cls}`}>{RECON_LABEL[r]}</span>
-}
+// One neutral chip, used only to mark a row that arrived since the last poll. State is words.
+const CHIP = 'inline-block whitespace-nowrap rounded-[6px] px-2 py-0.5 text-[11.5px] font-medium leading-4'
+const CHIP_STYLE = { background: '#f1f3f4', color: '#3c4043' } as const
 
 type JourneyEvent = {
   id: string
@@ -143,18 +142,8 @@ const fmtMoney = (n: number | null, ccy: string | null) =>
 const maskNric = (s: string | null) =>
   !s ? '—' : s.length < 5 ? s : `${s[0]}••••${s.slice(-4)}`
 
-function StatusPill({ s }: { s: string | null }) {
-  // No payment row yet — a pill would imply a gateway result we never got.
-  if (!s) return <span className="text-slate-400">—</span>
-  const v = s.toLowerCase()
-  const cls =
-    v === 'success' || v === 'ok'
-      ? 'bg-emerald-100 text-emerald-700'
-      : v === 'failed' || v === 'fail'
-        ? 'bg-rose-100 text-rose-700'
-        : 'bg-amber-100 text-amber-700'
-  return <span className={`inline-block rounded-[6px] px-2 py-0.5 text-[11px] font-medium ${cls}`}>{s ?? '—'}</span>
-}
+// Journey step outcomes as words.
+const STEP_STATUS_LABEL: Record<JourneyEvent['status'], string> = { ok: 'Completed', pending: 'Pending', fail: 'Failed' }
 
 // ── CSV export ────────────────────────────────────────────────────────────
 // The full transaction record, including the unmasked NRIC and the contact
@@ -210,6 +199,29 @@ function download(filename: string, body: string) {
   a.download = filename
   a.click()
   URL.revokeObjectURL(url)
+}
+
+// ── Shared control classes (tokens) ───────────────────────────────────────
+const inputCls = 'h-10 w-full sm:w-[340px] rounded-[10px] bg-white pl-10 pr-3.5 text-[14px] outline-none focus:border-[#202124] transition-colors placeholder:text-[#80868b]'
+const inputStyle = { border: '1px solid #dadce0', color: INK } as const
+const primaryCls = 'h-10 px-4 rounded-[10px] text-white text-[14px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed'
+const secondaryCls = 'inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] bg-white text-[14px] font-medium cursor-pointer whitespace-nowrap hover:bg-[#f8f9fa] transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+const secondaryStyle = { border: '1px solid #dadce0', color: INK } as const
+const tertiaryCls = 'text-[14px] bg-transparent border-0 cursor-pointer p-0 underline underline-offset-4'
+const MONO = 'ui-monospace, monospace'
+
+function LoadingRows() {
+  return (
+    <div aria-busy="true" className="mt-2">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="h-12 flex items-center gap-8" style={{ borderBottom: HAIR }}>
+          <span className="h-3.5 w-32 rounded bg-[#f1f3f4] animate-pulse" />
+          <span className="h-3.5 w-24 rounded bg-[#f1f3f4] animate-pulse" />
+          <span className="h-3.5 w-40 rounded bg-[#f1f3f4] animate-pulse ml-auto" />
+        </div>
+      ))}
+    </div>
+  )
 }
 
 export default function RoadplusReconPage() {
@@ -292,7 +304,7 @@ export default function RoadplusReconPage() {
       const res = await fetch('/api/roadplus/reconcile', { method: 'POST' })
       const d = await res.json()
       if (d.configured === false)
-        setRecon({ running: false, msg: 'Not configured — set ROADPLUS_SITE_URL + reconcile secret.' })
+        setRecon({ running: false, msg: 'Not configured. Set ROADPLUS_SITE_URL and the reconcile secret.' })
       else if (d.ok === false)
         setRecon({ running: false, msg: `Failed: ${d.error ?? 'error'}` })
       else
@@ -344,213 +356,190 @@ export default function RoadplusReconPage() {
   }, [])
   useEffect(() => { if (tab === 'analytics' && !analytics) loadAnalytics() }, [tab, analytics, loadAnalytics])
 
+  const TABS = [
+    { key: 'payments' as const, label: 'Purchases' },
+    { key: 'journey' as const, label: 'Journey lookup' },
+    { key: 'analytics' as const, label: 'Analytics' },
+  ]
+
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-6xl mx-auto px-8 py-7">
-        <div className="mb-1 flex items-center gap-2">
-          <h1 className="text-[20px] font-semibold text-slate-900">RoadPlus Reconciliation</h1>
+    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
+      <div className="mx-auto max-w-[1400px] px-6 sm:px-12 pt-12 pb-20">
+
+        {/* Header */}
+        <div className="flex items-end justify-between gap-6 flex-wrap">
+          <div className="min-w-0">
+            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">RoadPlus reconciliation</h1>
+            <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>
+              Every purchase attempt, its payment and its journey trace, read live from the roadplus database. Read-only.
+            </p>
+          </div>
         </div>
-        <p className="text-[13px] text-slate-500">
-          Every purchase attempt, its payment and its journey trace, read live from the separate <b>roadplus</b> database (read-only).
-        </p>
 
         {!configured && (
-          <div className="mt-5 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-800">
-            <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-            <div>
-              The roadplus database isn&rsquo;t connected. Set <code className="font-mono">ROADPLUS_SUPABASE_URL</code> and{' '}
-              <code className="font-mono">ROADPLUS_SUPABASE_SERVICE_KEY</code> on this dashboard&rsquo;s Vercel project
-              (the roadplus project&rsquo;s URL + service-role key), then redeploy.
-            </div>
-          </div>
+          <p className="m-0 mt-6 text-[14px] leading-relaxed" style={{ color: '#3c4043' }}>
+            The roadplus database is not connected. Set <code className="font-mono text-[13px]">ROADPLUS_SUPABASE_URL</code> and{' '}
+            <code className="font-mono text-[13px]">ROADPLUS_SUPABASE_SERVICE_KEY</code> on this dashboard&rsquo;s Vercel project
+            (the roadplus project&rsquo;s URL and service-role key), then redeploy.
+          </p>
         )}
 
-        {/* tabs */}
-        <div className="mt-6 flex gap-1 border-b border-slate-200">
-          {(['payments', 'journey', 'analytics'] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`px-3.5 py-2 text-[13px] font-medium border-b-2 -mb-px transition-colors ${
-                tab === t ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-400 hover:text-slate-600'
-              }`}
-            >
-              {t === 'payments' ? 'Purchases' : t === 'journey' ? 'Journey lookup' : 'Analytics'}
-            </button>
-          ))}
+        {/* Tabs */}
+        <div className="mt-6 flex items-center gap-6" role="tablist" aria-label="RoadPlus views" style={{ borderBottom: HAIR }}>
+          {TABS.map((t) => {
+            const on = tab === t.key
+            return (
+              <button
+                key={t.key}
+                type="button"
+                role="tab"
+                aria-selected={on}
+                onClick={() => setTab(t.key)}
+                className={cn('relative pb-2.5 bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#202124]')}
+                style={{ color: on ? INK : MUTED }}
+              >
+                {t.label}
+                <span className={cn('absolute left-0 right-0 -bottom-px h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: INK }} aria-hidden />
+              </button>
+            )
+          })}
         </div>
 
         {/* ── PAYMENTS ── */}
         {tab === 'payments' && (
-          <div className="mt-5">
-            <div className="mb-3 flex items-center justify-between gap-3 flex-wrap">
+          <div className="mt-6">
+            <div className="mb-5 flex items-center justify-between gap-3 flex-wrap">
               <form
                 onSubmit={(e) => { e.preventDefault(); loadPayments(pQuery) }}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 flex-wrap"
               >
-                <div className="relative">
-                  <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <label className="relative block w-full sm:w-auto">
+                  <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#80868b' }} aria-hidden />
                   <input
                     value={pQuery}
                     onChange={(e) => setPQuery(e.target.value)}
-                    placeholder="Policy no / policy id / proposal / txn id…"
-                    className="w-80 rounded-lg border border-slate-200 pl-8 pr-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                    placeholder="Policy no, policy id, proposal or txn id"
+                    aria-label="Search purchases"
+                    className={inputCls}
+                    style={inputStyle}
                   />
-                </div>
-                <button className="rounded-lg bg-slate-900 px-3 py-1.5 text-[12.5px] font-medium text-white hover:bg-slate-800">Search</button>
+                </label>
+                <button type="submit" className={primaryCls} style={{ background: INK }}>Search</button>
                 {pQuery && (
-                  <button type="button" onClick={() => { setPQuery(''); loadPayments() }} className="text-[12.5px] text-slate-400 hover:text-slate-600">Clear</button>
+                  <button type="button" onClick={() => { setPQuery(''); loadPayments() }} className={tertiaryCls} style={{ color: MUTED }}>Clear</button>
                 )}
               </form>
-              <div className="flex items-center gap-2">
-                {recon.msg && <span className="text-[12px] text-slate-500">{recon.msg}</span>}
+              <div className="flex items-center gap-3 flex-wrap">
+                {recon.msg && <span className="text-[13px]" style={{ color: MUTED }}>{recon.msg}</span>}
                 <button
+                  type="button"
                   onClick={() => setLive((v) => !v)}
-                  title={live ? `Checking for new transactions every ${POLL_MS / 1000}s` : 'Live updates paused'}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50"
+                  aria-pressed={live}
+                  title={live ? `Checks for new transactions every ${POLL_MS / 1000}s` : 'Live updates paused'}
+                  className="inline-flex items-center gap-2 h-10 px-2 text-[13px] bg-transparent border-0 cursor-pointer hover:underline underline-offset-4"
+                  style={{ color: MUTED }}
                 >
-                  {live ? (
-                    <>
-                      <span className="relative flex h-2 w-2">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                      </span>
-                      Live
-                    </>
-                  ) : (
-                    <><Play size={13} /> Paused</>
-                  )}
+                  <span className="inline-block w-2 h-2 rounded-full" style={{ background: live ? '#9aa0a6' : '#dadce0' }} aria-hidden />
+                  {live ? 'Live' : 'Paused'}
                 </button>
                 <button
+                  type="button"
                   onClick={exportCsv}
                   disabled={visible.length === 0}
                   title="Download the rows below, with full NRIC and contact details"
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                  className={secondaryCls}
+                  style={secondaryStyle}
                 >
-                  <Download size={13} />
+                  <Download size={14} />
                   Export CSV
                 </button>
                 <button
+                  type="button"
                   onClick={runReconcile}
                   disabled={recon.running}
                   title="Ask ECICS to backfill any paid-but-unrecorded policies"
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  className={secondaryCls}
+                  style={secondaryStyle}
                 >
-                  {recon.running ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+                  {recon.running ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                   Run reconcile
                 </button>
               </div>
             </div>
 
             {pSummary && (
-              <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+              <div className="mb-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
                 <Tile label="Collected" value={fmtMoney(pSummary.collected, 'SGD')} />
                 <Tile label="Payments" value={pSummary.payments} />
                 <Tile label="Reconciled" value={`${pSummary.reconciled} / ${pSummary.payments}`} />
-                <Tile label="Needs attention" value={pSummary.attention} tone={pSummary.attention ? 'rose' : undefined} />
+                <Tile label="To check" value={pSummary.attention} />
                 <Tile label="Awaiting payment" value={pSummary.awaitingPayment} />
               </div>
             )}
-            {pSummary && pSummary.attention > 0 && (
-              <div className="mb-3 flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-[12.5px] text-rose-700">
-                <AlertTriangle size={14} className="shrink-0" />
-                <span>
-                  {pSummary.attention} payment{pSummary.attention === 1 ? '' : 's'} need{pSummary.attention === 1 ? 's' : ''} checking.
-                  Run reconcile first. If it stays, email ECICS with the policy id.
-                </span>
-                <button onClick={() => setAttentionOnly(true)} className="ml-auto font-medium underline">Show them</button>
-              </div>
-            )}
-            {pError && <p className="mb-3 text-[12.5px] text-rose-600">{pError}</p>}
+            {pError && <p className="m-0 mb-4 text-[14px]" style={{ color: MUTED }}>{pError}</p>}
 
             {pLoading ? (
-              <div className="flex items-center gap-2 py-10 text-slate-400"><Loader2 size={16} className="animate-spin" /> Loading…</div>
+              <LoadingRows />
             ) : (
               <>
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <label className="inline-flex items-center gap-2 text-[12.5px] text-slate-600">
-                    <input type="checkbox" checked={attentionOnly} onChange={(e) => setAttentionOnly(e.target.checked)} />
-                    Needs attention only
+                <div className="mb-3 flex items-center justify-between gap-3 flex-wrap">
+                  <label className="inline-flex items-center gap-2 text-[14px] cursor-pointer" style={{ color: INK }}>
+                    <input type="checkbox" checked={attentionOnly} onChange={(e) => setAttentionOnly(e.target.checked)} className="w-4 h-4 accent-[#202124]" />
+                    To check only
+                    <Tip text="Payments the reconcile could not settle. Run reconcile first. If a row stays, email ECICS with its policy id." />
                   </label>
-                  <span className="text-[11.5px] text-slate-400">
+                  <span className="text-[12.5px]" style={{ color: MUTED }}>
                     {visible.length} row{visible.length === 1 ? '' : 's'}
                     {lastSync && ` · updated ${lastSync.toLocaleTimeString('en-SG', { hour12: false })}`}
                     {' · NRIC masked on screen, full value in the export'}
                   </span>
                 </div>
-                <div className="rounded-lg border border-slate-200 overflow-x-auto">
-                  <table className="data-table w-full border-collapse text-[12.5px]">
-                    <thead>
-                      <tr>
-                        <th className="pl-4 text-left">Date</th>
-                        <th className="text-left">Status</th>
-                        <th className="text-left">Customer</th>
-                        <th className="text-left">Age</th>
-                        <th className="text-left">NRIC / FIN</th>
-                        <th className="text-left">Coverage</th>
-                        <th className="text-left">Cover period</th>
-                        <th className="text-left">Days</th>
-                        <th className="text-left">Premium</th>
-                        <th className="text-left">Paid</th>
-                        <th className="text-left">Policy no</th>
-                        <th className="text-left">Policy id</th>
-                        <th className="text-left pr-4">Source</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {visible.length === 0 ? (
-                        <tr>
-                          <td colSpan={13} className="px-4 py-10 text-center text-[13px] text-slate-400">
-                            {payments.length > 0
-                              ? 'No rows match this filter.'
-                              : pQuery
-                                ? 'Nothing matches that reference.'
-                                : 'No purchase attempts yet. A row appears as soon as a customer reaches the ECICS payment page.'}
-                          </td>
-                        </tr>
-                      ) : (
-                        visible.map((p) => (
-                          <tr
-                            key={p.id}
-                            className={
-                              newIds.indexOf(p.id) !== -1
-                                ? 'bg-emerald-50/70'
-                                : p.attention
-                                  ? 'bg-rose-50/60'
-                                  : undefined
-                            }
-                          >
-                            <td className="pl-4 whitespace-nowrap">
-                              {newIds.indexOf(p.id) !== -1 && (
-                                <span className="mr-1.5 rounded-[5px] bg-emerald-600 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-                                  New
-                                </span>
-                              )}
-                              {fmtDate(p.received_at)}
-                            </td>
-                            <td><ReconPill r={p.recon} attention={p.attention} /></td>
-                            <td className="whitespace-nowrap font-medium text-slate-800">{p.insured_name ?? '—'}</td>
-                            <td className="tabular-nums text-slate-600">{p.age ?? '—'}</td>
-                            <td className="font-mono text-[11.5px] text-slate-500" title="Full value is in the CSV export">{maskNric(p.nric)}</td>
-                            <td className="whitespace-nowrap text-slate-600">
-                              {p.coverage ?? '—'}
-                              {p.max_rental_period && <span className="text-slate-400"> · max {p.max_rental_period}</span>}
-                            </td>
-                            <td className="whitespace-nowrap text-slate-500">
-                              {p.policy_start_date ? `${fmtDay(p.policy_start_date)} → ${fmtDay(p.policy_end_date)}` : '—'}
-                            </td>
-                            <td className="tabular-nums text-slate-600">{p.cover_days ?? '—'}</td>
-                            <td className="tabular-nums text-slate-500">{fmtMoney(p.quoted_premium, p.currency)}</td>
-                            <td className={`font-medium tabular-nums ${p.recon === 'amount_mismatch' ? 'text-rose-600' : 'text-slate-800'}`}>{fmtMoney(p.amount, p.currency)}</td>
-                            <td className="font-mono text-[11.5px]">{p.policy_no ?? '—'}</td>
-                            <td className="font-mono text-[11.5px] text-slate-500">{p.policy_id ?? '—'}</td>
-                            <td className="pr-4 text-slate-400">{p.source ?? '—'}</td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                <Register label="Purchase attempts" minWidth={1240} maxHeight="calc(100vh - 220px)">
+                  <RegisterHead>
+                    <RegisterTh first hint="When the attempt was recorded, and its reconciliation state">Date and status</RegisterTh>
+                    <RegisterTh>Customer</RegisterTh>
+                    <RegisterTh align="right">Age</RegisterTh>
+                    <RegisterTh hint="Masked on screen; the full value is in the export">NRIC / FIN</RegisterTh>
+                    <RegisterTh>Coverage</RegisterTh>
+                    <RegisterTh>Cover period</RegisterTh>
+                    <RegisterTh align="right">Days</RegisterTh>
+                    <RegisterTh align="right">Premium</RegisterTh>
+                    <RegisterTh align="right">Paid</RegisterTh>
+                    <RegisterTh>Policy no</RegisterTh>
+                    <RegisterTh>Policy id</RegisterTh>
+                    <RegisterTh last>Source</RegisterTh>
+                  </RegisterHead>
+                  <tbody>
+                    {visible.length === 0 ? (
+                      <RegisterEmpty colSpan={12}>
+                        {payments.length > 0
+                          ? 'No rows match this filter.'
+                          : pQuery
+                            ? 'Nothing matches that reference.'
+                            : 'No purchase attempts yet. A row appears as soon as a customer reaches the ECICS payment page.'}
+                      </RegisterEmpty>
+                    ) : (
+                      visible.map((p) => (
+                        <RegisterRow key={p.id} className="hover:bg-[#f8f9fa]">
+                          <RegisterCell first className="min-w-[240px]"
+                            primary={<>{newIds.indexOf(p.id) !== -1 && <span className={cn(CHIP, 'mr-2 align-middle')} style={CHIP_STYLE}>New</span>}{fmtDate(p.received_at)}</>}
+                            secondary={RECON_LABEL[p.recon]} />
+                          <RegisterCell><span className="text-[14px] font-medium" style={{ color: INK }}>{p.insured_name ?? '—'}</span></RegisterCell>
+                          <RegisterCell align="right" primary={p.age ?? '—'} />
+                          <RegisterCell title="Full value is in the CSV export"><span className="text-[12.5px]" style={{ fontFamily: MONO, color: MUTED }}>{maskNric(p.nric)}</span></RegisterCell>
+                          <RegisterCell primary={p.coverage ?? '—'} secondary={p.max_rental_period ? `max ${p.max_rental_period}` : undefined} />
+                          <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>{p.policy_start_date ? `${fmtDay(p.policy_start_date)} → ${fmtDay(p.policy_end_date)}` : '—'}</span></RegisterCell>
+                          <RegisterCell align="right" primary={p.cover_days ?? '—'} />
+                          <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: MUTED }}>{fmtMoney(p.quoted_premium, p.currency)}</span></RegisterCell>
+                          <RegisterCell align="right"><span className="text-[14px] tabular-nums font-medium" style={{ color: INK }}>{fmtMoney(p.amount, p.currency)}</span></RegisterCell>
+                          <RegisterCell><span className="text-[12.5px]" style={{ fontFamily: MONO, color: INK }}>{p.policy_no ?? '—'}</span></RegisterCell>
+                          <RegisterCell><span className="text-[12.5px]" style={{ fontFamily: MONO, color: MUTED }}>{p.policy_id ?? '—'}</span></RegisterCell>
+                          <RegisterCell last><span className="text-[14px]" style={{ color: MUTED }}>{p.source ?? '—'}</span></RegisterCell>
+                        </RegisterRow>
+                      ))
+                    )}
+                  </tbody>
+                </Register>
               </>
             )}
           </div>
@@ -558,106 +547,109 @@ export default function RoadplusReconPage() {
 
         {/* ── JOURNEY ── */}
         {tab === 'journey' && (
-          <div className="mt-5">
+          <div className="mt-6">
             <form
               onSubmit={(e) => { e.preventDefault(); loadJourney(jQuery) }}
-              className="mb-3 flex items-center gap-2"
+              className="mb-5 flex items-center gap-2 flex-wrap"
             >
-              <div className="relative">
-                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <label className="relative block w-full sm:w-auto">
+                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#80868b' }} aria-hidden />
                 <input
                   value={jQuery}
                   onChange={(e) => setJQuery(e.target.value)}
-                  placeholder="Reference (RP-XXXXXX) or policy id…"
-                  className="w-80 rounded-lg border border-slate-200 pl-8 pr-3 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                  placeholder="Reference (RP-XXXXXX) or policy id"
+                  aria-label="Journey reference or policy id"
+                  className={inputCls}
+                  style={inputStyle}
                 />
-              </div>
-              <button className="rounded-lg bg-slate-900 px-3 py-1.5 text-[12.5px] font-medium text-white hover:bg-slate-800">Look up</button>
-              <button type="button" onClick={() => { setJQuery(''); loadJourney('') }} className="text-[12.5px] text-slate-400 hover:text-slate-600">Recent failures</button>
+              </label>
+              <button type="submit" className={primaryCls} style={{ background: INK }}>Look up</button>
+              <button type="button" onClick={() => { setJQuery(''); loadJourney('') }} className={tertiaryCls} style={{ color: MUTED }}>Recent failures</button>
             </form>
 
             {jLoading ? (
-              <div className="flex items-center gap-2 py-10 text-slate-400"><Loader2 size={16} className="animate-spin" /> Loading…</div>
+              <LoadingRows />
             ) : !jSearched ? (
-              <p className="py-10 text-center text-[13px] text-slate-400">Enter a reference (from a customer&rsquo;s error message) or a policy id — or hit &ldquo;Recent failures&rdquo;.</p>
+              <p className="m-0 py-16 text-center text-[16px]" style={{ color: MUTED }}>Enter a reference from a customer&rsquo;s error message, or a policy id. Recent failures lists the latest failed steps.</p>
             ) : journey.length === 0 ? (
-              <p className="py-10 text-center text-[13px] text-slate-400">No journey events found.</p>
+              <p className="m-0 py-16 text-center text-[16px]" style={{ color: MUTED }}>No journey events found.</p>
             ) : (
-              <div className="rounded-lg border border-slate-200 overflow-x-auto">
-                <table className="data-table w-full border-collapse text-[12.5px]">
-                  <thead>
-                    <tr>
-                      <th className="pl-4 text-left">Time</th>
-                      <th className="text-left">Reference</th>
-                      <th className="text-left">Step</th>
-                      <th className="text-left">Status</th>
-                      <th className="text-left">Detail / error</th>
-                      <th className="text-left pr-4">Source</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {journey.map((e) => (
-                      <tr key={e.id} className={e.status === 'fail' ? 'bg-rose-50/60' : undefined}>
-                        <td className="pl-4 whitespace-nowrap text-slate-500">{fmtDate(e.created_at)}</td>
-                        <td className="font-mono text-[11.5px]">{e.journey_id}</td>
-                        <td className="font-medium text-slate-800">{e.step}</td>
-                        <td><StatusPill s={e.status} /></td>
-                        <td className="text-slate-600 max-w-[360px]">
-                          {e.error ? <span className="text-rose-600">{e.error}</span> : e.meta ? <span className="font-mono text-[11px] text-slate-400">{JSON.stringify(e.meta)}</span> : '—'}
-                        </td>
-                        <td className="pr-4 text-slate-400">{e.source ?? '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <Register label="Journey events" minWidth={840}>
+                <RegisterHead>
+                  <RegisterTh first>Step</RegisterTh>
+                  <RegisterTh>Time</RegisterTh>
+                  <RegisterTh>Status</RegisterTh>
+                  <RegisterTh>Detail or error</RegisterTh>
+                  <RegisterTh last>Source</RegisterTh>
+                </RegisterHead>
+                <tbody>
+                  {journey.map((e) => (
+                    <RegisterRow key={e.id} className="hover:bg-[#f8f9fa]">
+                      <RegisterCell first primary={e.step} secondary={<span style={{ fontFamily: MONO }}>{e.journey_id}</span>} title={e.journey_id} />
+                      <RegisterCell primary={fmtDate(e.created_at)} />
+                      <RegisterCell><span className="text-[14px]" style={{ color: INK }}>{STEP_STATUS_LABEL[e.status] ?? e.status}</span></RegisterCell>
+                      <RegisterCell nowrap={false}>
+                        <span className="block max-w-[420px] text-[14px] break-words" style={{ color: '#3c4043' }}>
+                          {e.error ? e.error : e.meta ? <span className="text-[12px]" style={{ fontFamily: MONO, color: MUTED }}>{JSON.stringify(e.meta)}</span> : '—'}
+                        </span>
+                      </RegisterCell>
+                      <RegisterCell last><span className="text-[14px]" style={{ color: MUTED }}>{e.source ?? '—'}</span></RegisterCell>
+                    </RegisterRow>
+                  ))}
+                </tbody>
+              </Register>
             )}
           </div>
         )}
 
         {/* ── ANALYTICS ── */}
         {tab === 'analytics' && (
-          <div className="mt-5">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <p className="text-[12.5px] text-slate-500">
-                No-login behaviour across visitors, sessions &amp; journeys (most recent activity).
+          <div className="mt-6">
+            <div className="mb-5 flex items-center justify-between gap-3 flex-wrap">
+              <p className="m-0 text-[13px]" style={{ color: MUTED }}>
+                Visitors, sessions and journeys without login. Most recent activity.
               </p>
               <button
+                type="button"
                 onClick={loadAnalytics}
                 disabled={aLoading}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-[12.5px] font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                className={secondaryCls}
+                style={secondaryStyle}
               >
-                {aLoading ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+                {aLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                 Refresh
               </button>
             </div>
 
             {aLoading && !analytics ? (
-              <div className="flex items-center gap-2 py-10 text-slate-400"><Loader2 size={16} className="animate-spin" /> Loading…</div>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5" aria-busy="true">
+                {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-[88px] rounded-[16px] bg-[#f1f3f4] animate-pulse" />)}
+              </div>
             ) : !analytics || analytics.configured === false ? (
-              <p className="py-10 text-center text-[13px] text-slate-400">Not connected — set the roadplus database env vars.</p>
+              <p className="m-0 py-16 text-center text-[16px]" style={{ color: MUTED }}>Not connected. Set the roadplus database env vars.</p>
             ) : analytics.error ? (
-              <p className="py-10 text-center text-[13px] text-rose-500">{analytics.error}</p>
+              <p className="m-0 py-16 text-center text-[16px]" style={{ color: MUTED }}>{analytics.error}</p>
             ) : (
-              <div className="space-y-8">
+              <div className="space-y-10">
                 {/* stat tiles */}
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
                   <Tile label="Visitors" value={analytics.totals!.visitors} />
                   <Tile label="Sessions" value={analytics.totals!.sessions} />
                   <Tile label="Searches" value={analytics.totals!.searches} />
                   <Tile label="Policies issued" value={analytics.totals!.issued} />
-                  <Tile label="Failed steps" value={analytics.failures ?? 0} tone="rose" />
+                  <Tile label="Failed steps" value={analytics.failures ?? 0} />
                   <Tile label="Conversion" value={pct(analytics.rates!.conversion)} />
                   <Tile label="Repeat visitors" value={pct(analytics.rates!.repeatVisitor)} />
-                  <Tile label="Searches / session" value={analytics.rates!.avgSearchesPerSession.toFixed(1)} />
-                  <Tile label="Sessions / visitor" value={analytics.rates!.avgSessionsPerVisitor.toFixed(1)} />
-                  <Tile label="Searches before buy" value={analytics.rates!.avgSearchesBeforePurchase.toFixed(1)} />
+                  <Tile label="Searches per session" value={analytics.rates!.avgSearchesPerSession.toFixed(1)} />
+                  <Tile label="Sessions per visitor" value={analytics.rates!.avgSessionsPerVisitor.toFixed(1)} />
+                  <Tile label="Searches before purchase" value={analytics.rates!.avgSearchesBeforePurchase.toFixed(1)} />
                 </div>
 
                 {/* funnel */}
                 <div>
-                  <h3 className="mb-3 text-[13px] font-semibold text-slate-800">
-                    Conversion funnel <span className="font-normal text-slate-400">— unique journeys reaching each step</span>
+                  <h3 className="m-0 mb-3 text-[16px] font-medium tracking-[-0.01em] flex items-center" style={{ color: INK }}>
+                    Conversion funnel
+                    <Tip text="Unique journeys reaching each step. The right-hand figure is the drop from the previous step." />
                   </h3>
                   <div className="space-y-2">
                     {(() => {
@@ -668,16 +660,16 @@ export default function RoadplusReconPage() {
                         const drop = prev > 0 ? 1 - f.journeys / prev : 0
                         return (
                           <div key={f.step} className="flex items-center gap-3">
-                            <div className="w-40 shrink-0 text-[12.5px] text-slate-600">{STEP_LABEL[f.step] ?? f.step}</div>
-                            <div className="h-6 flex-1 overflow-hidden rounded bg-slate-100">
+                            <div className="w-40 shrink-0 text-[13px]" style={{ color: '#3c4043' }}>{STEP_LABEL[f.step] ?? f.step}</div>
+                            <div className="h-6 flex-1 overflow-hidden rounded-[4px]" style={{ background: '#f1f3f4' }}>
                               <div
-                                className="flex h-full items-center rounded bg-slate-800 px-2 text-[11px] font-semibold text-white"
-                                style={{ width: `${Math.max(4, (f.journeys / max) * 100)}%` }}
+                                className="flex h-full items-center rounded-[4px] px-2 text-[11.5px] font-medium text-white tabular-nums"
+                                style={{ width: `${Math.max(4, (f.journeys / max) * 100)}%`, background: INK }}
                               >
                                 {f.journeys}
                               </div>
                             </div>
-                            <div className="w-16 text-right text-[11px] tabular-nums text-slate-400">
+                            <div className="w-16 text-right text-[12.5px] tabular-nums" style={{ color: MUTED }}>
                               {i > 0 && drop > 0 ? `−${(drop * 100).toFixed(0)}%` : ''}
                             </div>
                           </div>
@@ -688,7 +680,7 @@ export default function RoadplusReconPage() {
                 </div>
 
                 {/* splits */}
-                <div className="grid gap-6 sm:grid-cols-2">
+                <div className="grid gap-8 sm:grid-cols-2">
                   <Split title="Searches by region" data={analytics.regionSplit ?? {}} />
                   <Split title="Searches by policy type" data={analytics.typeSplit ?? {}} />
                 </div>
@@ -697,8 +689,8 @@ export default function RoadplusReconPage() {
           </div>
         )}
 
-        <p className="mt-6 text-[11.5px] text-slate-400 flex items-center gap-1">
-          <ExternalLink size={11} /> Data is read live from the roadplus Supabase project; this view never writes to it.
+        <p className="m-0 mt-8 text-[12.5px]" style={{ color: MUTED }}>
+          Read live from the roadplus Supabase project. This page never writes to it.
         </p>
       </div>
     </div>

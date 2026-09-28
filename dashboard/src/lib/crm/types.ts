@@ -56,6 +56,12 @@ export interface Company {
   ai_brief: AiBrief | null
   ai_brief_at: string | null
   ai_brief_model: string | null
+  /** Set once a person has looked at a record the mail filing created on its own. */
+  confirmed_at?: string | null
+  confirmed_by?: string | null
+  /** Set when a person pinned the company to Home; undefined until the column exists. */
+  home_pinned_at?: string | null
+  home_pinned_by?: string | null
   created_at: string
   updated_at: string
 }
@@ -69,6 +75,8 @@ export interface CompanySummaryRow extends Company {
   needsReply: number
   lastActivityAt: string | null
   money: MoneyByCurrency[]
+  /** Lifetime value: gross premium billed across every debit note, by currency. */
+  ltv: { currency: string; total: number; notes: number }[]
   overdueCount: number
   openDebitNotes: number
   nextRenewalDate: string | null
@@ -84,6 +92,8 @@ export type PersonParty = 'client' | 'insurer' | 'trs' | 'other'
 export interface Person {
   email: string
   name: string | null
+  /** Job position, read from their email signature. */
+  title: string | null
   contactId: string | null
   party: PersonParty
   domain: string

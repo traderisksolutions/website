@@ -3,16 +3,16 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Megaphone, Plus, Loader2, AlertCircle, ChevronRight, Newspaper, Sparkles, X } from 'lucide-react'
+import { ChevronRight, X } from 'lucide-react'
 import { Tip } from '@/components/Tip'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
-import { AppScrollPage } from '@/components/app-shell'
-import { PageHeader } from '@/components/page-header'
 import { StatusBadge } from '@/components/status-badge'
 import type { AppStatus } from '@/components/status-badge'
+import { Field, inputCls } from '@/components/crm/primitives'
+
+const INK = '#202124'
+const MUTED = '#5f6368'
+const RULE = '#e8eaed'
 
 interface Campaign {
   id: string; name: string; status: string
@@ -68,52 +68,42 @@ function SegmentSuggestions() {
   if (loading || visible.length === 0) return null
 
   return (
-    <div className="flex flex-col gap-2 mb-5">
-      {error && (
-        <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-destructive/8 border border-destructive/20 text-[13px] text-destructive">
-          <AlertCircle size={14} strokeWidth={2} className="flex-shrink-0" />
-          <span className="flex-1">{error}</span>
-        </div>
-      )}
-      {visible.map(s => (
-        <Card key={s.industry} style={{ background: 'var(--primary-light-bg)', border: '1px solid var(--primary-light-border)' }}>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-9 h-9 rounded-[9px] flex items-center justify-center flex-shrink-0" style={{ background: 'hsl(var(--card))' }}>
-              <Sparkles size={16} style={{ color: 'var(--primary-hex)' }} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13.5px] font-semibold text-foreground mb-0.5">
-                Suggested next segment: <span style={{ color: 'var(--primary-hex)' }}>{s.industry}</span>
-              </p>
-              <p className="text-[12px] text-muted-foreground">
+    <section className="mb-8">
+      <h2 className="m-0 mb-3 text-[16px] font-medium tracking-[-0.01em]" style={{ color: INK }}>Suggested segments</h2>
+      {error && <p className="m-0 mb-3 text-[14px]" style={{ color: '#3c4043' }}>{error}</p>}
+      <ul className="m-0 p-0 list-none rounded-[16px] overflow-hidden bg-white" style={{ border: `1px solid ${RULE}` }}>
+        {visible.map(s => (
+          <li key={s.industry} className="flex items-start gap-4 px-6 py-4 flex-wrap" style={{ borderBottom: `1px solid ${RULE}` }}>
+            <div className="flex-1 min-w-[240px]">
+              <p className="m-0 text-[15px] font-medium" style={{ color: INK }}>{s.industry}</p>
+              <p className="m-0 mt-1 text-[13px] leading-relaxed" style={{ color: MUTED }}>
                 {s.wonCompanyCount} won customer{s.wonCompanyCount !== 1 ? 's' : ''} in this industry
-                {s.sampleCompanies.length > 0 && <> ({s.sampleCompanies.join(', ')})</>} — no active campaign targets it yet.
-                {s.employeeMin != null && s.employeeMax != null && <> Typical size: {s.employeeMin}–{s.employeeMax} employees.</>}
-                {s.suggestedTitles.length > 0 && <> Target roles seen: {s.suggestedTitles.join(', ')}.</>}
+                {s.sampleCompanies.length > 0 && <> ({s.sampleCompanies.join(', ')})</>}; no active campaign targets it.
+                {s.employeeMin != null && s.employeeMax != null && <> Typical size {s.employeeMin}–{s.employeeMax} employees.</>}
+                {s.suggestedTitles.length > 0 && <> Roles seen: {s.suggestedTitles.join(', ')}.</>}
               </p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <Button size="sm" onClick={() => approve(s)} disabled={approving === s.industry} className="gap-1.5">
-                {approving === s.industry ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} strokeWidth={2.5} />}
-                Approve & create draft
+              <Button variant="outline" size="sm" onClick={() => approve(s)} disabled={approving === s.industry}>
+                {approving === s.industry ? 'Creating…' : 'Create draft campaign'}
               </Button>
-              <button onClick={() => setDismissed(prev => new Set(prev).add(s.industry))}
-                className="w-7 h-7 flex items-center justify-center rounded-md bg-transparent border-0 cursor-pointer text-muted-foreground hover:text-foreground">
+              <button type="button" onClick={() => setDismissed(prev => new Set(prev).add(s.industry))} aria-label={`Dismiss ${s.industry}`}
+                className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: MUTED }}>
                 <X size={14} />
               </button>
             </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 
-function Stat({ label, value, highlight = false }: { label: string; value: string | number; highlight?: boolean }) {
+function Metric({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="text-center">
-      <p className={cn('text-[16px] font-bold tracking-tight', highlight ? 'text-emerald-700' : 'text-foreground')}>{value}</p>
-      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{label}</p>
+    <div className="min-w-[64px]">
+      <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>{label}</p>
+      <p className="m-0 text-[15px] font-medium tabular-nums" style={{ color: INK }}>{value}</p>
     </div>
   )
 }
@@ -164,131 +154,125 @@ export default function CampaignsPage() {
   function closeModal() { setShowModal(false); setCampName(''); setCampPt('General'); setNewsUrl(''); setVariantMode(false) }
 
   return (
-    <AppScrollPage maxWidth="1100px">
+    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
+      <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
 
-      <PageHeader
-        title="Campaigns"
-        description="AI-drafted email sequences → human review → send via Instantly"
-        actions={
-          <Button size="sm" onClick={() => setShowModal(true)} className="gap-1.5">
-            <Plus size={13} strokeWidth={2.5} /> New Campaign
-          </Button>
-        }
-        className="mb-6"
-      />
-
-      {/* Error */}
-      {error && (
-        <div className="flex items-center gap-2 px-3.5 py-2.5 mb-4 rounded-lg bg-destructive/8 border border-destructive/20 text-[13px] text-destructive">
-          <AlertCircle size={14} strokeWidth={2} className="flex-shrink-0" />
-          <span className="flex-1">{error}</span>
-          <button onClick={() => setError(null)} className="bg-transparent border-0 cursor-pointer text-destructive text-base leading-none">×</button>
+        {/* Header */}
+        <div className="flex items-end justify-between gap-6 flex-wrap">
+          <div className="min-w-0">
+            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Campaigns</h1>
+            <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>
+              {loading ? 'Loading…' : `${campaigns.length} campaign${campaigns.length === 1 ? '' : 's'}`}
+            </p>
+          </div>
+          <button type="button" onClick={() => setShowModal(true)}
+            className="h-12 px-6 rounded-[12px] text-white text-[15px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90" style={{ background: INK }}>
+            New campaign
+          </button>
         </div>
-      )}
 
-      <SegmentSuggestions />
+        {error && (
+          <p className="mt-6 mb-0 text-[14px] flex items-center gap-3" style={{ color: '#3c4043' }}>
+            <span>{error}</span>
+            <button type="button" onClick={() => setError(null)} className="bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4" style={{ color: INK }}>Dismiss</button>
+          </p>
+        )}
 
-      {loading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 size={20} className="animate-spin text-muted-foreground" />
-        </div>
-      ) : campaigns.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Megaphone size={32} className="text-muted-foreground/20 mx-auto mb-3" />
-            <p className="text-[15px] font-semibold text-foreground mb-1">No campaigns yet</p>
-            <p className="text-[13px] text-muted-foreground mb-5">Create your first campaign from leads in the Lead Database</p>
-            <Button size="sm" onClick={() => setShowModal(true)} className="gap-1.5">
-              <Plus size={13} strokeWidth={2.5} /> New Campaign
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="flex flex-col gap-2.5">
-          {campaigns.map(c => {
-            const replyRate = c.sent_count > 0 ? Math.round((c.reply_count / c.sent_count) * 100) : 0
-            return (
-              <Link key={c.id} href={`/outbound/campaigns/${c.id}`} className="no-underline block rounded-md">
-                <Card className="transition-shadow hover:shadow-[var(--shadow-panel)]">
-                  <CardContent className="p-4 flex items-center gap-4">
-                    <div className="w-9 h-9 rounded-[9px] bg-muted flex items-center justify-center flex-shrink-0">
-                      <Megaphone size={16} className="text-muted-foreground" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <p className="text-[14px] font-semibold text-foreground tracking-tight overflow-hidden text-ellipsis whitespace-nowrap">{c.name}</p>
-                        <StatusBadge status={c.status as AppStatus} />
+        <div className="mt-8">
+          <SegmentSuggestions />
+
+          {loading ? (
+            <div className="rounded-[16px] overflow-hidden bg-white" style={{ border: `1px solid ${RULE}` }} aria-busy="true">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="h-[72px] px-6 flex items-center gap-8" style={{ borderBottom: `1px solid ${RULE}` }}>
+                  <span className="h-3.5 w-52 rounded bg-[#f1f3f4] animate-pulse" />
+                  <span className="h-3.5 w-14 rounded bg-[#f1f3f4] animate-pulse" />
+                  <span className="h-3.5 w-28 rounded bg-[#f1f3f4] animate-pulse ml-auto" />
+                </div>
+              ))}
+            </div>
+          ) : campaigns.length === 0 ? (
+            <p className="py-16 text-center text-[16px] m-0" style={{ color: MUTED }}>
+              No campaigns yet.{' '}
+              <button type="button" onClick={() => setShowModal(true)} className="underline bg-transparent border-0 p-0 cursor-pointer" style={{ color: INK }}>Create the first one</button>
+            </p>
+          ) : (
+            <ul className="m-0 p-0 list-none rounded-[16px] overflow-hidden bg-white" style={{ border: `1px solid ${RULE}` }}>
+              {campaigns.map(c => {
+                const replyRate = c.sent_count > 0 ? Math.round((c.reply_count / c.sent_count) * 100) : 0
+                return (
+                  <li key={c.id} style={{ borderBottom: `1px solid ${RULE}` }}>
+                    <Link href={`/outbound/campaigns/${c.id}`} className="no-underline flex items-center gap-6 px-6 py-4 flex-wrap hover:bg-[#f8f9fa] transition-colors" style={{ color: INK }}>
+                      <div className="flex-1 min-w-[220px]">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="m-0 text-[15px] font-medium truncate">{c.name}</p>
+                          <StatusBadge status={c.status as AppStatus} />
+                        </div>
+                        {c.news_headline && (
+                          <p className="m-0 mt-0.5 text-[13px] truncate" style={{ color: MUTED }}>{c.news_headline}</p>
+                        )}
                       </div>
-                      {c.news_headline && (
-                        <p className="text-[11px] text-muted-foreground flex items-center gap-1 overflow-hidden text-ellipsis whitespace-nowrap">
-                          <Newspaper size={10} /> {c.news_headline}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex gap-6 flex-shrink-0">
-                      <Stat label="Leads"   value={c.lead_count} />
-                      <Stat label="Sent"    value={c.sent_count} />
-                      <Stat label="Replies" value={c.reply_count} highlight={c.reply_count > 0} />
-                      {c.sent_count > 0 && <Stat label="Reply rate" value={`${replyRate}%`} />}
-                    </div>
-                    <ChevronRight size={16} className="text-muted-foreground/40 flex-shrink-0" />
-                  </CardContent>
-                </Card>
-              </Link>
-            )
-          })}
+                      <div className="flex gap-6 flex-shrink-0 flex-wrap">
+                        <Metric label="Leads"   value={c.lead_count} />
+                        <Metric label="Sent"    value={c.sent_count} />
+                        <Metric label="Replies" value={c.reply_count} />
+                        {c.sent_count > 0 && <Metric label="Reply rate" value={`${replyRate}%`} />}
+                      </div>
+                      <ChevronRight size={16} className="flex-shrink-0" style={{ color: '#9aa0a6' }} aria-hidden />
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
         </div>
-      )}
+      </div>
 
-      {/* New Campaign Modal */}
+      {/* New campaign dialog */}
       {showModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center backdrop-blur-[3px]"
-          style={{ background: 'rgba(0,0,0,0.22)' }}>
-          <div className="glass-modal rounded-2xl p-7 max-w-[460px] w-[90%]">
-            <p className="text-[16px] font-bold text-foreground mb-5">New Campaign</p>
-            <div className="flex flex-col gap-3.5">
-              <div>
-                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Campaign Name *</label>
-                <Input
+        <div className="fixed inset-0 z-[200] flex items-start justify-center px-4 pt-[12vh]" style={{ background: 'rgba(32,33,36,0.28)' }}
+          onMouseDown={e => { if (e.target === e.currentTarget) closeModal() }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="new-campaign" className="w-full max-w-[520px] rounded-[16px] bg-white p-6" style={{ boxShadow: '0 24px 64px rgba(32,33,36,0.2)', color: INK }}>
+            <h2 id="new-campaign" className="m-0 text-[20px] font-medium">New campaign</h2>
+            <p className="m-0 mt-1 text-[13.5px]" style={{ color: MUTED }}>Leads, sequence and review continue in the campaign workspace.</p>
+            <div className="mt-5 flex flex-col gap-3.5">
+              <Field label="Campaign name">
+                <input
                   autoFocus
-                  placeholder="e.g. SG Logistics Q3 — Liability"
+                  className={inputCls}
+                  placeholder="SG Logistics Q3 — Liability"
                   value={campName}
                   onChange={e => setCampName(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && createCampaign()}
                 />
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Product / Service Type *</label>
-                <select value={campPt} onChange={e => setCampPt(e.target.value)}
-                  className="w-full h-9 px-3 text-[13px] text-foreground bg-background border border-input rounded-md outline-none focus:ring-1 focus:ring-ring">
+              </Field>
+              <Field label="Product or service type">
+                <select value={campPt} onChange={e => setCampPt(e.target.value)} className={inputCls}>
                   {PRODUCT_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
                 </select>
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
-                  News Hook URL (optional){' '}
-                  <Tip placement="right" text="Paste a relevant article and the AI opens Email 1 with it as a hook — 'I came across this on [topic]…' Leave blank and the AI finds a suitable piece automatically." />
-                </label>
-                <Input
-                  placeholder="Paste article URL or leave blank for auto-fetch"
+              </Field>
+              <label className="block min-w-0">
+                <span className="flex items-center gap-1 text-[12.5px] mb-1.5" style={{ color: MUTED }}>
+                  News hook URL (optional)
+                  <Tip placement="right" text="Paste a relevant article and the AI opens Email 1 with it as a hook. Leave blank and the AI finds a suitable piece." />
+                </span>
+                <input
+                  className={inputCls}
+                  placeholder="https://…"
                   value={newsUrl}
                   onChange={e => setNewsUrl(e.target.value)}
                 />
-              </div>
-              <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
-                You&apos;ll select leads and generate AI drafts on the next screen.
-              </p>
+              </label>
             </div>
-            <div className="flex gap-2.5 justify-end mt-5">
-              <Button variant="outline" size="sm" onClick={closeModal}>Cancel</Button>
-              <Button size="sm" onClick={createCampaign} disabled={creating || !campName.trim()} className="gap-1.5">
-                {creating ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} strokeWidth={2.5} />}
-                {creating ? 'Creating…' : 'Create Campaign'}
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={closeModal}>Cancel</Button>
+              <Button size="sm" onClick={createCampaign} disabled={creating || !campName.trim()}>
+                {creating ? 'Creating…' : 'Create campaign'}
               </Button>
             </div>
           </div>
         </div>
       )}
-    </AppScrollPage>
+    </div>
   )
 }

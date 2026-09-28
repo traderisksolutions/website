@@ -20,7 +20,7 @@ export function EngagementStatusBadge({
         size === 'sm' ? 'text-[10.5px] px-2.5 py-[3px]' : 'text-[11.5px] px-3 py-1',
         className,
       )}
-      style={{ background: st.bg, color: st.color }}
+      style={{ background: '#f1f3f4', color: '#3c4043' }}
     >
       {st.label}
     </span>

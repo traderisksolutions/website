@@ -2,10 +2,16 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Download, Sparkles, Loader2, Reply, FileText, ListChecks, RefreshCw } from 'lucide-react'
+import { Download, Loader2, FileText, ListChecks } from 'lucide-react'
 import { ThreadSelectorModal } from '@/components/pricing-matrix/ThreadSelectorModal'
 import type { QuoteResult } from '@/lib/pm-quote'
 import type { Recommendation, LegacyRecommendation } from '@/lib/pm-recommend'
+import { Btn, Chip, textareaCls } from '@/components/crm/primitives'
+
+const INK = '#202124'
+const MUTED = '#5f6368'
+const RULE = '#e8eaed'
+const linkBtn = 'inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[10px] text-[13.5px] font-medium bg-white no-underline hover:bg-[#f8f9fa]'
 
 async function safeJson<T>(r: Response): Promise<T & { error?: string }> {
   try { return await r.json() } catch { return { error: `HTTP ${r.status}` } as T & { error?: string } }
@@ -31,7 +37,7 @@ export function PmQuoteActions({ quoteId, results, initialRecommendation, initia
   const priced = results.insurers.filter(i => !i.error)
 
   async function prepareReply(leadId: string) {
-    setPreparing('Generating CSVs & drafting reply…'); setError(null)
+    setPreparing('Generating CSVs and drafting the reply…'); setError(null)
     const res = await fetch(`/api/pricing-matrix/quote/${quoteId}/prepare-reply`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lead_id: leadId }),
     })
@@ -50,86 +56,77 @@ export function PmQuoteActions({ quoteId, results, initialRecommendation, initia
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col" style={{ color: INK }}>
       {/* Downloads + reply */}
-      <section className="border border-border rounded-xl p-4">
-        <div className="flex items-center justify-between gap-3 mb-2">
-          <h2 className="text-[13px] font-semibold">Download quotes <span className="font-normal text-muted-foreground/60">— one CSV per insurer</span></h2>
-          <button onClick={() => setShowThreadPick(true)} disabled={priced.length === 0} className="flex items-center gap-1.5 text-[12.5px] font-semibold px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-            <Reply size={14} /> Reply in Engagement
-          </button>
-        </div>
+      <section className="py-6" style={{ borderTop: `1px solid ${RULE}` }}>
+        <header className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+          <h2 className="m-0 text-[16px] font-medium tracking-[-0.01em] leading-tight">Downloads</h2>
+          <Btn level="primary" onClick={() => setShowThreadPick(true)} disabled={priced.length === 0} title="Attaches one CSV per insurer and the comparison in the email body. Pick the thread to reply to.">Send in Engagement</Btn>
+        </header>
         <div className="flex flex-wrap gap-2">
           {priced.map(ins => (
-            <a key={ins.calculator_id} href={`/api/pricing-matrix/quote/${quoteId}/export?insurer=${ins.calculator_id}&format=csv`}
-              className="inline-flex items-center gap-1.5 text-[12.5px] px-3 py-1.5 rounded-lg border border-border hover:bg-muted">
+            <a key={ins.calculator_id} href={`/api/pricing-matrix/quote/${quoteId}/export?insurer=${ins.calculator_id}&format=csv`} className={linkBtn} style={{ border: '1px solid #dadce0', color: INK }}>
               <Download size={13} /> {ins.insurer_name}.csv
             </a>
           ))}
           {priced.length > 0 && (
-            <a href={`/api/pricing-matrix/quote/${quoteId}/export-comparison`}
-              className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold px-3 py-1.5 rounded-lg border border-primary/30 text-primary hover:bg-primary/5">
-              <FileText size={13} /> Client comparison (PDF)
+            <a href={`/api/pricing-matrix/quote/${quoteId}/export-comparison`} className={linkBtn} style={{ border: '1px solid #dadce0', color: INK }}>
+              <FileText size={13} /> Client comparison, PDF
             </a>
           )}
           {priced.length > 0 && (
-            <a href={`/api/pricing-matrix/quote/${quoteId}/export-audit`}
-              className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50">
-              <ListChecks size={13} /> Audit trail (PDF)
+            <a href={`/api/pricing-matrix/quote/${quoteId}/export-audit`} className={linkBtn} style={{ border: '1px solid #dadce0', color: INK }}>
+              <ListChecks size={13} /> Audit trail, PDF
             </a>
           )}
         </div>
-        <p className="text-[10.5px] text-muted-foreground/40 mt-2">Reply attaches one CSV per insurer + the comparison in the email body; pick which thread to reply to.</p>
       </section>
 
       {/* Recommendation */}
-      <section className="border border-border rounded-xl p-4 flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-[13px] font-semibold flex items-center gap-1.5"><Sparkles size={14} className="text-primary" /> Recommendation</h2>
-          <button onClick={getRec} disabled={busy || priced.length === 0} className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-            {busy ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />} {rec ? 'Regenerate' : 'Get recommendation'}
-          </button>
-        </div>
-        <label className="text-[12px] flex flex-col gap-1">
-          <span className="text-muted-foreground/70">What matters to this client? <span className="text-muted-foreground/40">(optional — e.g. &ldquo;private hospital access, budget-conscious on outpatient&rdquo;)</span></span>
-          <textarea value={priorities} onChange={e => setPriorities(e.target.value)} rows={2} className="text-[12.5px] border border-border rounded-md px-2.5 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-primary/25 resize-y" placeholder="Leave blank to optimise for overall value" />
+      <section className="py-6 flex flex-col gap-4" style={{ borderTop: `1px solid ${RULE}` }}>
+        <header className="flex items-center justify-between gap-3 flex-wrap">
+          <h2 className="m-0 text-[16px] font-medium tracking-[-0.01em] leading-tight">Recommendation</h2>
+          <Btn level="secondary" onClick={getRec} disabled={busy || priced.length === 0} loading={busy}>{rec ? 'Regenerate' : 'Get recommendation'}</Btn>
+        </header>
+        <label className="block max-w-[720px]">
+          <span className="block text-[12.5px] mb-1.5" style={{ color: MUTED }}>Client priorities</span>
+          <textarea value={priorities} onChange={e => setPriorities(e.target.value)} rows={2} className={textareaCls} placeholder="e.g. private hospital access, budget-conscious on outpatient. Blank optimises for overall value." />
         </label>
 
-        {error && <p className="text-[12px] text-rose-600">{error}</p>}
+        {error && <p role="alert" className="m-0 text-[13.5px]" style={{ color: '#3c4043' }}>{error}</p>}
 
         {rec && isLegacy(rec) && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 flex items-center justify-between gap-3">
-            <p className="text-[12px] text-amber-800">This quote has an older-style recommendation (a single pick with pros/cons). Recompute it for the current side-by-side comparison format.</p>
-            <button onClick={getRec} disabled={busy} className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 shrink-0">
-              {busy ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Recompute
-            </button>
+          <div className="flex items-center justify-between gap-3 flex-wrap py-3" style={{ borderTop: `1px solid ${RULE}`, borderBottom: `1px solid ${RULE}` }}>
+            <p className="m-0 text-[13.5px]" style={{ color: '#3c4043' }}>This quote has an older-style recommendation. Recompute it for the side-by-side format.</p>
+            <Btn level="secondary" onClick={getRec} disabled={busy} loading={busy}>Recompute</Btn>
           </div>
         )}
 
         {rec && !isLegacy(rec) && (
-          <div className="flex flex-col gap-3 mt-1">
-            <div className="rounded-lg bg-primary/5 border border-primary/20 px-3 py-2.5">
-              <div className="flex items-center gap-2 text-[13px] font-semibold text-foreground"><Sparkles size={14} className="text-primary" /> {rec.headline}</div>
-              <div className="flex flex-col gap-2 mt-2">
-                {rec.narrative.split(/\n\n+/).map((para, i) => <p key={i} className="text-[12.5px] text-foreground/80 leading-relaxed">{para}</p>)}
+          <div className="flex flex-col gap-4">
+            <div className="rounded-[16px] px-6 py-5" style={{ background: '#f1f3f4' }}>
+              <p className="m-0 text-[16px] font-medium tracking-[-0.01em]">{rec.headline}</p>
+              <div className="flex flex-col gap-2 mt-3">
+                {rec.narrative.split(/\n\n+/).map((para, i) => <p key={i} className="m-0 text-[14px] leading-relaxed" style={{ color: '#3c4043' }}>{para}</p>)}
               </div>
             </div>
             {rec.highlights?.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <ul className="m-0 p-0 list-none flex flex-col">
                 {rec.highlights.map(h => (
-                  <div key={h.insurer} className="flex items-center gap-1.5 border border-border rounded-lg px-2.5 py-1.5">
-                    <span className="text-[12px] font-semibold">{h.insurer}</span>
-                    <span className="text-[11px] text-muted-foreground/70">— {h.note}</span>
-                  </div>
+                  <li key={h.insurer} className="flex items-baseline gap-2.5 py-2.5 text-[14px]" style={{ borderBottom: `1px solid ${RULE}` }}>
+                    <Chip>{h.insurer}</Chip>
+                    <span style={{ color: '#3c4043' }}>{h.note}</span>
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
-            <p className="text-[10.5px] text-muted-foreground/40">Premium figures come from each insurer&rsquo;s own calculator; the comparison narrative is Opus&rsquo;s qualitative read.</p>
+            <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Premiums come from each insurer&rsquo;s own calculator. The narrative is Opus&rsquo;s qualitative read.</p>
           </div>
         )}
       </section>
 
       {showThreadPick && <ThreadSelectorModal onPick={prepareReply} onClose={() => { if (!preparing) setShowThreadPick(false) }} busyLabel={preparing} />}
+      {preparing && !showThreadPick && <p className="m-0 text-[13px] inline-flex items-center gap-1.5" style={{ color: MUTED }}><Loader2 size={13} className="animate-spin" /> {preparing}</p>}
     </div>
   )
 }

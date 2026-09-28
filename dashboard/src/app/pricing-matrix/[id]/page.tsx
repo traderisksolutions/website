@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, Wand2, Save, CheckCircle2, Plus, Trash2, FileSpreadsheet, AlertTriangle, Table2, ArrowRight, Pencil, ListChecks, Tags } from 'lucide-react'
+import { Loader2, Plus, Trash2, Pencil } from 'lucide-react'
 import type { RateTable, Coverage, RatePlan, ReconciliationIssue } from '@/lib/pm-rates'
 import { runnableIssues, rateTableIsRunnable, EMPTY_RATE_TABLE } from '@/lib/pm-rates'
 import type { RuleConflict } from '@/lib/pm-rates-extract'
@@ -11,11 +11,18 @@ import type { BenefitTerm, TermConflict } from '@/lib/pm-benefits-extract'
 import type { RuleStep, ExcelShape } from '@/lib/pm-rules-extract'
 import { computeInsurerQuote } from '@/lib/pm-calc'
 import type { InsurerResult } from '@/lib/pm-quote'
-import { MetricCard, MetricGrid } from '@/components/shared/metric-card'
 import { StatusPill, CALCULATOR_STATUS, RULES_STATUS } from '@/components/shared/status-pill'
+import { Btn, Chip, Empty, Segmented, Spinner, inputCls } from '@/components/crm/primitives'
+import { Tip } from '@/components/Tip'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
 
-/** Card surface — white cards with a subtle border + shadow so they read on the white page. */
-const card = 'bg-white border border-slate-100 rounded-xl shadow-sm'
+const INK = '#202124'
+const MUTED = '#5f6368'
+const RULE = '#e8eaed'
+/** Outline card, as on Home: white, hairline, 16px radius, no shadow. */
+const card = 'rounded-[16px] bg-white border border-[#e8eaed]'
+const h2 = 'm-0 text-[16px] font-medium tracking-[-0.01em] leading-tight flex items-center'
+const iconBtn = 'w-8 h-8 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4] disabled:opacity-50'
 
 type Dump = {
   sheets: { name: string; state: string; visible: boolean; max_row: number; max_col: number }[]
@@ -42,6 +49,7 @@ type TermIssue = TermConflict & { issueId: string }
 
 type TaxCategory = { id: string; name: string; status: 'active' | 'archived' }
 type NewTerm = { id: string; term: string; source: 'coverage' | 'benefit_term' }
+type Section = 'review' | 'rates' | 'terms' | 'workbook'
 
 async function safeJson<T>(r: Response): Promise<T & { error?: string }> {
   try { return await r.json() } catch { return { error: `HTTP ${r.status}` } as T & { error?: string } }
@@ -67,6 +75,8 @@ export default function CalculatorReviewPage() {
   const [classifyMsg, setClassifyMsg] = useState<string | null>(null)
   const [newTerms, setNewTerms] = useState<NewTerm[]>([])
   const [taxCategories, setTaxCategories] = useState<TaxCategory[]>([])
+  // View-only: which section the Segmented switch shows. No data flows through it.
+  const [section, setSection] = useState<Section>('review')
 
   const loadTerminology = useCallback(async () => {
     const [nRes, cRes] = await Promise.all([
@@ -242,149 +252,164 @@ export default function CalculatorReviewPage() {
     void resolveIssue(tc.issueId, value === undefined ? { dismiss: true } : { resolution: value })
   }
 
-  if (loading) return <div className="flex items-center gap-2 text-[13px] text-muted-foreground py-24 justify-center"><Loader2 size={15} className="animate-spin" /> Loading…</div>
-  if (!calc) return <div className="p-8 text-sm text-rose-600">Not found.</div>
+  if (loading) return <div className="min-h-[calc(100vh-56px)] bg-white"><Spinner /></div>
+  if (!calc) return <div className="min-h-[calc(100vh-56px)] bg-white"><Empty>Calculator not found.</Empty></div>
 
   const issues = runnableIssues(rt)
   const runnable = rateTableIsRunnable(rt)
   const approved = calc.status === 'approved'
   const openItems = ruleConflicts.length + termConflicts.length
+  const reviewCount = openItems + newTerms.length + (calc.computation_rules?.rules?.length && calc.computation_rules.status !== 'approved' ? 1 : 0)
+  const agreement = calc.rate_table?.accuracy?.total_rates ? `${Math.round((calc.rate_table.accuracy.agreed! / calc.rate_table.accuracy.total_rates) * 100)}% cross-check agreement${calc.rate_table.accuracy.extractors?.length ? ` (${calc.rate_table.accuracy.extractors.join(' + ')})` : ''}` : null
+  const facts = rt ? [
+    `${rt.coverages.length} coverage${rt.coverages.length === 1 ? '' : 's'}`,
+    `${new Set(rt.coverages.flatMap(c => c.plans.map(p => p.code))).size} plans`,
+    `${openItems} flagged`,
+    agreement,
+  ].filter(Boolean).join(' · ') : null
+  const primaryBtn = 'h-12 px-6 rounded-[12px] text-white text-[15px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed'
+  const secondaryBtn = 'h-12 px-5 rounded-[12px] bg-white text-[15px] border border-[#dadce0] text-[#202124] cursor-pointer inline-flex items-center gap-2 hover:bg-[#f8f9fa] disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap'
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-6">
-      <Link href="/pricing-matrix" className="inline-flex items-center gap-1.5 text-[12.5px] text-slate-500 hover:text-slate-900 mb-3"><ArrowLeft size={14} /> Pricing Matrix</Link>
+    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
+      <div className="mx-auto max-w-[1400px] px-6 sm:px-12 pt-12 pb-20">
+        <Link href="/pricing-matrix" className="inline-flex items-center gap-1.5 text-[14px] no-underline hover:underline" style={{ color: MUTED }}>← Pricing Matrix</Link>
 
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-5">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2.5">
-            {editingName ? (
-              <input autoFocus value={nameDraft} onChange={e => setNameDraft(e.target.value)}
-                onBlur={() => { setEditingName(false); const v = nameDraft.trim(); if (v && v !== (calc.insurer_name ?? '')) patchMeta({ insurer_name: v }) }}
-                onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setEditingName(false) }}
-                placeholder="Insurer name" className="text-[19px] font-semibold text-slate-900 bg-slate-50 rounded px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-primary/25 min-w-[220px]" />
-            ) : (
-              <span className="flex items-center gap-1.5 min-w-0">
-                <h1 className={`text-[19px] font-semibold truncate ${calc.insurer_name ? 'text-slate-900' : 'text-slate-400 italic'}`}>{calc.insurer_name || calc.label || 'Untitled calculator'}</h1>
-                {!approved && <button onClick={() => { setNameDraft(calc.insurer_name ?? ''); setEditingName(true) }} title="Rename insurer" className="text-slate-300 hover:text-slate-600 shrink-0"><Pencil size={13} /></button>}
-              </span>
-            )}
-            <StatusPill status={calc.status} config={CALCULATOR_STATUS} className="shrink-0" />
-            <span className="text-[11px] text-slate-400 shrink-0">v{calc.version}</span>
+        {/* Header */}
+        <div className="mt-3 flex items-end justify-between gap-6 flex-wrap">
+          <div className="min-w-0 max-w-[760px]">
+            <div className="flex items-center gap-3 flex-wrap">
+              {editingName ? (
+                <input autoFocus value={nameDraft} onChange={e => setNameDraft(e.target.value)}
+                  onBlur={() => { setEditingName(false); const v = nameDraft.trim(); if (v && v !== (calc.insurer_name ?? '')) patchMeta({ insurer_name: v }) }}
+                  onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setEditingName(false) }}
+                  placeholder="Insurer name" aria-label="Insurer name" className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08] bg-white border-0 border-b-2 border-[#202124] px-0 py-0 outline-none min-w-[280px]" style={{ color: INK }} />
+              ) : (
+                <span className="flex items-center gap-2 min-w-0">
+                  <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08] truncate" style={{ color: calc.insurer_name ? INK : MUTED }}>{calc.insurer_name || calc.label || 'Untitled calculator'}</h1>
+                  {!approved && <button type="button" onClick={() => { setNameDraft(calc.insurer_name ?? ''); setEditingName(true) }} title="Rename insurer" aria-label="Rename insurer" className={iconBtn} style={{ color: MUTED }}><Pencil size={14} /></button>}
+                </span>
+              )}
+              <StatusPill status={calc.status} config={CALCULATOR_STATUS} className="shrink-0" />
+              <Chip className="shrink-0">v{calc.version}</Chip>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-2 text-[13.5px]" style={{ color: MUTED }}>
+              <span>{calc.xlsx_filename}</span>
+              {calc.brochure_filename && <><span style={{ color: '#9aa0a6' }}>·</span><span>{calc.brochure_filename}</span></>}
+              <span style={{ color: '#9aa0a6' }}>·</span>
+              {approved ? (
+                calc.effective_date ? <span className="tabular-nums">effective {calc.effective_date}</span> : <span>no effective date</span>
+              ) : (
+                <label className="inline-flex items-center gap-1.5">effective <input type="date" value={calc.effective_date ?? ''} onChange={e => patchMeta({ effective_date: e.target.value || null })} aria-label="Rate effective date" className="h-8 rounded-[8px] border border-[#dadce0] bg-white px-2 text-[13px] outline-none focus:border-[#202124]" style={{ color: INK }} /></label>
+              )}
+            </div>
+            {facts && <p className="m-0 mt-2 text-[13.5px] tabular-nums" style={{ color: MUTED }}>{facts}</p>}
           </div>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5 text-[11.5px] text-slate-500">
-            <span className="inline-flex items-center gap-1"><FileSpreadsheet size={12} className="text-emerald-600/70" />{calc.xlsx_filename}</span>
-            {calc.brochure_filename && <span className="text-slate-300">·</span>}
-            {calc.brochure_filename && <span>{calc.brochure_filename}</span>}
-            <span className="text-slate-300">·</span>
-            {approved ? (
-              calc.effective_date ? <span>eff. {calc.effective_date}</span> : null
-            ) : (
-              <span className="inline-flex items-center gap-1">eff. <input type="date" value={calc.effective_date ?? ''} onChange={e => patchMeta({ effective_date: e.target.value || null })} className="bg-slate-50 rounded px-1.5 py-0.5 text-[11.5px] text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/25" /></span>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <button onClick={() => { if (rt && !window.confirm('Re-extracting replaces the current rate table, rules, and coverage terms with a fresh AI proposal. Continue?')) return; runExtract() }} disabled={extracting} className="flex items-center gap-1.5 text-[12.5px] px-3 py-1.5 rounded-lg border border-slate-100 text-slate-700 hover:bg-slate-50 disabled:opacity-50">
-            {extracting ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}{rt ? 'Re-extract' : 'Extract'}
-          </button>
-          {rt && (
-            <button onClick={runClassify} disabled={classifying} title="Tag each coverage/benefit term with a shared canonical category, so it aligns correctly against other insurers in the comparison table — doesn't touch rates, rules, or approval status." className="flex items-center gap-1.5 text-[12.5px] px-3 py-1.5 rounded-lg border border-slate-100 text-slate-700 hover:bg-slate-50 disabled:opacity-50">
-              {classifying ? <Loader2 size={14} className="animate-spin" /> : <Tags size={14} />} Sync benefit categories
+          <div className="flex items-center gap-3 flex-wrap shrink-0">
+            <button type="button" onClick={() => { if (rt && !window.confirm('Re-extracting replaces the current rate table, rules, and coverage terms with a fresh AI proposal. Continue?')) return; runExtract() }} disabled={extracting} className={secondaryBtn}>
+              {extracting && <Loader2 size={14} className="animate-spin" />}{rt ? 'Re-extract' : 'Extract'}
             </button>
-          )}
-          {!approved && <button onClick={save} disabled={saving || !rt} className="flex items-center gap-1.5 text-[12.5px] px-3 py-1.5 rounded-lg border border-slate-100 text-slate-700 hover:bg-slate-50 disabled:opacity-50"><Save size={14} /> Save</button>}
-          {!approved && <button onClick={approve} disabled={saving || !runnable || openItems > 0} title={openItems > 0 ? `Resolve ${openItems} flagged item${openItems === 1 ? '' : 's'} first` : (!runnable ? issues[0] : '')} className="flex items-center gap-1.5 text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"><CheckCircle2 size={14} /> Approve{openItems > 0 ? ` · ${openItems} left` : ''}</button>}
+            {rt && (
+              <button type="button" onClick={runClassify} disabled={classifying} title="Tags each coverage and benefit term with a shared canonical category so it aligns against other insurers. Rates, rules and approval are untouched." className={secondaryBtn}>
+                {classifying && <Loader2 size={14} className="animate-spin" />} Sync benefit categories
+              </button>
+            )}
+            {!approved && <button type="button" onClick={save} disabled={saving || !rt} className={secondaryBtn}>Save</button>}
+            {!approved && <button type="button" onClick={approve} disabled={saving || !runnable || openItems > 0} title={openItems > 0 ? `Resolve ${openItems} flagged item${openItems === 1 ? '' : 's'} first` : (!runnable ? issues[0] : '')} className={primaryBtn} style={{ background: INK }}>Approve{openItems > 0 ? ` · ${openItems} left` : ''}</button>}
+            {approved && <Link href="/pricing-matrix/quote/new" className={`${primaryBtn} no-underline inline-flex items-center`} style={{ background: INK }}>New quote</Link>}
+          </div>
         </div>
+
+        {error && <p role="alert" className="m-0 mt-5 text-[14px]" style={{ color: '#3c4043' }}>{error}</p>}
+        {classifyMsg && <p role="status" className="m-0 mt-5 text-[14px]" style={{ color: '#3c4043' }}>{classifyMsg}</p>}
+        {extracting && (
+          <div className="mt-6 rounded-[16px] px-6 py-5" style={{ background: '#f1f3f4' }} aria-busy="true">
+            <div className="flex items-center gap-2 text-[14px] mb-3">
+              <Loader2 size={14} className="animate-spin" style={{ color: MUTED }} />
+              <span className="font-medium">{progress?.label ?? 'Reading the workbook…'}</span>
+              <span className="ml-auto tabular-nums text-[13px]" style={{ color: MUTED }}>{progress ? `${Math.min(progress.step, progress.total)} / ${progress.total}` : ''}</span>
+            </div>
+            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#e8eaed' }}>
+              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progress ? Math.round((Math.min(progress.step, progress.total) / progress.total) * 100) : 8}%`, background: INK }} />
+            </div>
+            <p className="m-0 text-[12.5px] mt-2" style={{ color: MUTED }}>Two models read the rates, rules and coverage terms independently, cross-checking the xlsx and the brochure.</p>
+          </div>
+        )}
+
+        {!rt && !extracting && (
+          <div className="py-16 text-center">
+            <p className="m-0 text-[15px]" style={{ color: MUTED }}>No rate table yet. Extract reads the workbook and brochure.</p>
+            <button type="button" onClick={() => setRt({ ...EMPTY_RATE_TABLE, calculator_id: id })} className="mt-4 h-10 px-4 rounded-[10px] bg-white text-[14px] border border-[#dadce0] cursor-pointer hover:bg-[#f8f9fa]" style={{ color: INK }}>Set up manually</button>
+          </div>
+        )}
+
+        {approved && (
+          <p className="m-0 mt-6 text-[14px]" style={{ color: '#3c4043' }}>Approved. This insurer is available to quote and compare.</p>
+        )}
+
+        {approved && calc.analysis_summary && (
+          <div className="mt-6 flex flex-col">
+            <section className="py-6" style={{ borderTop: `1px solid ${RULE}` }}>
+              <h2 className={`${h2} mb-3`}>Pricing method</h2>
+              <p className="m-0 text-[14px] leading-relaxed max-w-[860px]" style={{ color: '#3c4043' }}>{calc.analysis_summary}</p>
+            </section>
+            {calc.change_summary?.text && (
+              <section className="py-6" style={{ borderTop: `1px solid ${RULE}` }}>
+                <h2 className={`${h2} mb-3`}>Changes since the previous approved version</h2>
+                <p className="m-0 text-[14px] leading-relaxed max-w-[860px]" style={{ color: '#3c4043' }}>{calc.change_summary.text}</p>
+              </section>
+            )}
+          </div>
+        )}
+
+        {rt && (
+          <div className="mt-8 flex flex-col gap-6">
+            <Segmented<Section>
+              value={section}
+              onChange={setSection}
+              options={[
+                { value: 'review', label: 'Review', count: reviewCount },
+                { value: 'rates', label: 'Rates and rules' },
+                { value: 'terms', label: 'Coverage terms', count: terms.length },
+                { value: 'workbook', label: 'Workbook' },
+              ]}
+            />
+
+            {section === 'review' && (
+              <div className="flex flex-col gap-6">
+                {/* 1 — Flagged items + readiness. */}
+                <ReviewPanel issues={issues} ruleConflicts={ruleConflicts} termConflicts={termConflicts} onResolveRule={resolveRule} onDismissRule={dismissRule} onResolveTerm={resolveTerm} disabled={approved} />
+
+                {/* New terminology this calculator surfaced — wording that didn't exactly match the
+                    shared taxonomy (see /pricing-matrix/taxonomy). Approving here is retroactive: it
+                    also fixes every other calculator that used the same wording. */}
+                {newTerms.length > 0 && (
+                  <NewTerminologyPanel terms={newTerms} categories={taxCategories.filter(c => c.status === 'active')} onApprove={approveTerm} onReject={rejectTerm} disabled={approved} />
+                )}
+
+                {/* Translated calculation logic (see pm-rules-extract.ts) — independent approval gate
+                    from the calculator/rate-table status, only shown when there's something to review. */}
+                {!!calc.computation_rules?.rules?.length && (
+                  <ComputationRulesPanel computationRules={calc.computation_rules} onApprove={approveRules} approving={approvingRules} />
+                )}
+              </div>
+            )}
+
+            {section === 'rates' && (
+              <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-6 items-start">
+                {/* 2 — Rate table + rules. */}
+                <RateTableEditor rt={rt} setRt={setRt} disabled={approved} />
+                {/* 3 — Worked example, computed locally by pm-calc.ts. */}
+                <WorkedExample rt={rt} defaultEff={calc.effective_date} />
+              </div>
+            )}
+
+            {section === 'terms' && <BenefitTermsEditor terms={terms} setTerms={setTerms} rt={rt} disabled={approved} />}
+
+            {section === 'workbook' && (calc.workbook_summary ? <WorkbookSummary dump={calc.workbook_summary} /> : <Empty>No workbook summary captured.</Empty>)}
+          </div>
+        )}
       </div>
-
-      {rt && (
-        <MetricGrid className="mb-5">
-          <MetricCard label="Coverages" value={rt.coverages.length} />
-          <MetricCard label="Plans" value={new Set(rt.coverages.flatMap(c => c.plans.map(p => p.code))).size} />
-          <MetricCard label="Flagged items" value={openItems} sub={openItems > 0 ? 'need review' : 'all resolved'} />
-          <MetricCard label="Cross-check agreement" value={calc.rate_table?.accuracy?.total_rates ? `${Math.round((calc.rate_table.accuracy.agreed! / calc.rate_table.accuracy.total_rates) * 100)}%` : '—'} sub={calc.rate_table?.accuracy?.extractors?.join(' + ')} />
-        </MetricGrid>
-      )}
-
-      {error && <div className="mb-4 text-[12.5px] text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{error}</div>}
-      {classifyMsg && <div className="mb-4 text-[12.5px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">{classifyMsg}</div>}
-      {extracting && (
-        <div className="mb-4 rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3">
-          <div className="flex items-center gap-2 text-[12.5px] text-indigo-800 mb-2">
-            <Loader2 size={14} className="animate-spin" />
-            <span className="font-medium">{progress?.label ?? 'Reading the workbook…'}</span>
-            <span className="ml-auto text-indigo-400 tabular-nums">{progress ? `${Math.min(progress.step, progress.total)} / ${progress.total}` : ''}</span>
-          </div>
-          <div className="h-1.5 rounded-full bg-indigo-100 overflow-hidden">
-            <div className="h-full rounded-full bg-indigo-500 transition-all duration-500" style={{ width: `${progress ? Math.round((Math.min(progress.step, progress.total) / progress.total) * 100) : 8}%` }} />
-          </div>
-          <p className="text-[10.5px] text-indigo-400 mt-1.5">Two models read the rates, rules and coverage terms independently, cross-checking the xlsx and the brochure.</p>
-        </div>
-      )}
-
-      {!rt && !extracting && (
-        <div className="text-center text-slate-500 py-16 border border-dashed border-slate-100 rounded-xl bg-slate-50/50">
-          <Wand2 size={24} className="mx-auto mb-2 text-slate-300" />
-          <p className="text-sm">No rate table yet. Click <b>Extract</b> to have the AI read the workbook and brochure.</p>
-          <button onClick={() => setRt({ ...EMPTY_RATE_TABLE, calculator_id: id })} className="mt-3 text-[12px] text-primary hover:underline">or set one up manually</button>
-        </div>
-      )}
-
-      {approved && (
-        <div className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-          <div className="flex items-center gap-2 text-[13px] text-emerald-800"><CheckCircle2 size={16} /> Approved &amp; saved. This insurer is now available to quote and compare.</div>
-          <Link href="/pricing-matrix/quote/new" className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">Add employees &amp; quote <ArrowRight size={14} /></Link>
-        </div>
-      )}
-
-      {approved && calc.analysis_summary && (
-        <div className="mb-5 flex flex-col gap-2">
-          <div className={card + ' p-4'}>
-            <h2 className="text-[12px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">How this calculator prices</h2>
-            <p className="text-[12.5px] text-slate-700 leading-relaxed">{calc.analysis_summary}</p>
-          </div>
-          {calc.change_summary?.text && (
-            <div className={card + ' p-4 border-indigo-100'}>
-              <h2 className="text-[12px] font-semibold text-indigo-500 uppercase tracking-wide mb-1.5">Changed since the previous approved version</h2>
-              <p className="text-[12.5px] text-slate-700 leading-relaxed">{calc.change_summary.text}</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {rt && (
-        <div className="flex flex-col gap-5">
-          {/* 1 — Flagged items + readiness. */}
-          <ReviewPanel issues={issues} ruleConflicts={ruleConflicts} termConflicts={termConflicts} onResolveRule={resolveRule} onDismissRule={dismissRule} onResolveTerm={resolveTerm} disabled={approved} />
-
-          {/* New terminology this calculator surfaced — wording that didn't exactly match the
-              shared taxonomy (see /pricing-matrix/taxonomy). Approving here is retroactive: it
-              also fixes every other calculator that used the same wording. */}
-          {newTerms.length > 0 && (
-            <NewTerminologyPanel terms={newTerms} categories={taxCategories.filter(c => c.status === 'active')} onApprove={approveTerm} onReject={rejectTerm} disabled={approved} />
-          )}
-
-          {/* Translated calculation logic (see pm-rules-extract.ts) — independent approval gate
-              from the calculator/rate-table status, only shown when there's something to review. */}
-          {!!calc.computation_rules?.rules?.length && (
-            <ComputationRulesPanel computationRules={calc.computation_rules} onApprove={approveRules} approving={approvingRules} />
-          )}
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
-            {/* 2 — Rate table + rules. */}
-            <div className="flex flex-col gap-5">
-              <RateTableEditor rt={rt} setRt={setRt} disabled={approved} />
-              <BenefitTermsEditor terms={terms} setTerms={setTerms} rt={rt} disabled={approved} />
-              <WorkbookSummary dump={calc.workbook_summary} />
-            </div>
-            {/* 3 — Worked example, computed locally by pm-calc.ts. */}
-            <div className="flex flex-col gap-5">
-              <WorkedExample rt={rt} defaultEff={calc.effective_date} />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -400,47 +425,58 @@ function ReviewPanel({ issues, ruleConflicts, termConflicts, onResolveRule, onDi
   onResolveRule: (c: RuleIssue, value: unknown) => void; onDismissRule: (c: RuleIssue) => void
   onResolveTerm: (c: TermIssue, value: string | undefined) => void; disabled: boolean
 }) {
-  const allDone = ruleConflicts.length === 0 && termConflicts.length === 0
+  const open = ruleConflicts.length + termConflicts.length
+  const rows = issues.length + open
   return (
-    <section className={card + ' p-4'}>
-      <div className="flex items-center gap-2 mb-3">
-        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-[11px] font-bold">1</span>
-        <h2 className="text-[13px] font-semibold text-slate-800">Review <span className="font-normal text-slate-400">— resolve flagged items, then approve</span></h2>
-      </div>
+    <section>
+      <header className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+        <h2 className={h2}>Flagged items<Tip text="Where Opus and Gemini disagreed. Resolve every item, then approve." /></h2>
+        <Chip>{open === 0 ? 'None open' : `${open} open`}</Chip>
+      </header>
 
-      {issues.length > 0 && (
-        <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
-          <div className="flex items-center gap-1.5 text-[11.5px] font-semibold text-amber-800 mb-1"><AlertTriangle size={13} /> Not ready to approve yet</div>
-          <ul className="text-[12px] text-amber-800 list-disc list-inside">{issues.map((s, i) => <li key={i}>{s}</li>)}</ul>
-        </div>
-      )}
-
-      {ruleConflicts.length === 0 && termConflicts.length === 0 ? (
-        <div className="flex items-center gap-2 text-[12.5px] text-emerald-700 py-1"><CheckCircle2 size={15} /> {allDone ? 'No flagged disagreements — Opus and Gemini agreed on everything.' : ''}</div>
-      ) : (
-        <div className="flex flex-col gap-2.5">
+      <Register label="Flagged items" minWidth={640}>
+        <RegisterHead>
+          <RegisterTh first width={260}>Item</RegisterTh>
+          <RegisterTh>Kind</RegisterTh>
+          <RegisterTh last align="right">Resolution</RegisterTh>
+        </RegisterHead>
+        <tbody>
+          {issues.map((s, i) => (
+            <RegisterRow key={`i${i}`}>
+              <RegisterCell first nowrap={false}><span className="block text-[14px] leading-snug" style={{ color: '#3c4043' }}>{s}</span></RegisterCell>
+              <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>Blocks approval</span></RegisterCell>
+              <RegisterCell last align="right"><span className="text-[13px]" style={{ color: MUTED }}>Fix in rates and rules</span></RegisterCell>
+            </RegisterRow>
+          ))}
           {ruleConflicts.map((c, i) => (
-            <div key={`r${i}`} className="rounded-lg border border-slate-100 bg-slate-50/60 p-2.5">
-              <div className="flex items-start gap-1.5 text-[12.5px] text-slate-800 font-medium mb-1.5"><ListChecks size={13} className="mt-0.5 text-rose-500 shrink-0" />Rule "{c.field}" — Opus and Gemini disagree</div>
-              <div className="flex flex-wrap gap-2 pl-5">
-                <button disabled={disabled} onClick={() => onResolveRule(c, c.opus)} className="text-[11.5px] px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-white">Use Opus: {JSON.stringify(c.opus)}</button>
-                <button disabled={disabled} onClick={() => onResolveRule(c, c.gemini)} className="text-[11.5px] px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-white">Use Gemini: {JSON.stringify(c.gemini)}</button>
-                <button disabled={disabled} onClick={() => onDismissRule(c)} className="text-[11.5px] text-slate-400 hover:text-slate-600">I&rsquo;ve edited it below, dismiss</button>
-              </div>
-            </div>
+            <RegisterRow key={`r${i}`}>
+              <RegisterCell first primary={c.field} secondary="Rule" />
+              <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>Rule</span></RegisterCell>
+              <RegisterCell last align="right" nowrap={false}>
+                <span className="inline-flex flex-wrap justify-end gap-2">
+                  <Btn size="xs" level="secondary" disabled={disabled} onClick={() => onResolveRule(c, c.opus)}>Use Opus: {JSON.stringify(c.opus)}</Btn>
+                  <Btn size="xs" level="secondary" disabled={disabled} onClick={() => onResolveRule(c, c.gemini)}>Use Gemini: {JSON.stringify(c.gemini)}</Btn>
+                  <Btn size="xs" level="tertiary" disabled={disabled} onClick={() => onDismissRule(c)}>Dismiss, edited in rates</Btn>
+                </span>
+              </RegisterCell>
+            </RegisterRow>
           ))}
           {termConflicts.map((c, i) => (
-            <div key={`t${i}`} className="rounded-lg border border-slate-100 bg-slate-50/60 p-2.5">
-              <div className="flex items-start gap-1.5 text-[12.5px] text-slate-800 font-medium mb-1.5"><ListChecks size={13} className="mt-0.5 text-amber-500 shrink-0" />{c.category} — {c.label} <span className="font-normal text-slate-400">({c.note})</span></div>
-              <div className="flex flex-wrap gap-2 pl-5">
-                {c.opus !== undefined && <button disabled={disabled} onClick={() => onResolveTerm(c, c.opus)} className="text-[11.5px] px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-white">Use: {c.opus}</button>}
-                {c.gemini !== undefined && <button disabled={disabled} onClick={() => onResolveTerm(c, c.gemini)} className="text-[11.5px] px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-white">Use: {c.gemini}</button>}
-                <button disabled={disabled} onClick={() => onResolveTerm(c, undefined)} className="text-[11.5px] text-rose-400 hover:text-rose-600">Remove this term</button>
-              </div>
-            </div>
+            <RegisterRow key={`t${i}`}>
+              <RegisterCell first primary={`${c.category} — ${c.label}`} secondary={c.note ?? 'Term'} title={c.note ?? undefined} />
+              <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>Term</span></RegisterCell>
+              <RegisterCell last align="right" nowrap={false}>
+                <span className="inline-flex flex-wrap justify-end gap-2">
+                  {c.opus !== undefined && <Btn size="xs" level="secondary" disabled={disabled} onClick={() => onResolveTerm(c, c.opus)}>Use: {c.opus}</Btn>}
+                  {c.gemini !== undefined && <Btn size="xs" level="secondary" disabled={disabled} onClick={() => onResolveTerm(c, c.gemini)}>Use: {c.gemini}</Btn>}
+                  <Btn size="xs" level="tertiary" disabled={disabled} onClick={() => onResolveTerm(c, undefined)} className="text-[#c5221f]">Remove this term</Btn>
+                </span>
+              </RegisterCell>
+            </RegisterRow>
           ))}
-        </div>
-      )}
+          {rows === 0 && <RegisterEmpty colSpan={3}>No disagreements. Opus and Gemini agreed on every value.</RegisterEmpty>}
+        </tbody>
+      </Register>
     </section>
   )
 }
@@ -451,29 +487,36 @@ function NewTerminologyPanel({ terms, categories, onApprove, onReject, disabled 
   onApprove: (id: string, categoryId: string) => void; onReject: (id: string) => void; disabled: boolean
 }) {
   return (
-    <section className={card + ' p-4'}>
-      <div className="flex items-center gap-2 mb-3">
-        <Tags size={14} className="text-primary" />
-        <h2 className="text-[13px] font-semibold text-slate-800">New terminology <span className="font-normal text-slate-400">— wording not yet in the shared taxonomy</span></h2>
-      </div>
-      <div className="flex flex-col gap-2">
-        {terms.map(t => (
-          <div key={t.id} className="rounded-lg border border-slate-100 bg-slate-50/60 p-2.5 flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[12.5px] font-medium text-slate-800 truncate">{t.term}</p>
-              <p className="text-[11px] text-slate-400">{t.source === 'coverage' ? 'Coverage' : 'Benefit term'}</p>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <select disabled={disabled} defaultValue="" onChange={e => e.target.value && onApprove(t.id, e.target.value)}
-                className="text-[12px] border border-slate-200 rounded-md px-2 py-1 bg-white disabled:opacity-50">
-                <option value="" disabled>Assign category…</option>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-              <button disabled={disabled} onClick={() => onReject(t.id)} className="text-[11.5px] text-slate-400 hover:text-rose-500 disabled:opacity-50">Reject</button>
-            </div>
-          </div>
-        ))}
-      </div>
+    <section>
+      <header className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+        <h2 className={h2}>New terminology<Tip text="Wording not yet in the shared taxonomy. Approving maps it for every calculator." /></h2>
+        <Chip>{terms.length} to map</Chip>
+      </header>
+      <Register label="New terminology" minWidth={640}>
+        <RegisterHead>
+          <RegisterTh first width={300}>Term</RegisterTh>
+          <RegisterTh>Source</RegisterTh>
+          <RegisterTh last align="right">Category</RegisterTh>
+        </RegisterHead>
+        <tbody>
+          {terms.map(t => (
+            <RegisterRow key={t.id}>
+              <RegisterCell first primary={t.term} secondary={t.source === 'coverage' ? 'Coverage' : 'Benefit term'} title={t.term} />
+              <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>{t.source === 'coverage' ? 'Coverage' : 'Benefit term'}</span></RegisterCell>
+              <RegisterCell last align="right">
+                <span className="inline-flex items-center gap-2">
+                  <select disabled={disabled} defaultValue="" onChange={e => e.target.value && onApprove(t.id, e.target.value)} aria-label="Assign category" className={`${inputCls} w-auto h-9 disabled:opacity-50`}>
+                    <option value="" disabled>Assign category</option>
+                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <Btn size="xs" level="secondary" disabled={disabled} onClick={() => onReject(t.id)}>Reject</Btn>
+                </span>
+              </RegisterCell>
+            </RegisterRow>
+          ))}
+          {terms.length === 0 && <RegisterEmpty colSpan={3}>No new terminology.</RegisterEmpty>}
+        </tbody>
+      </Register>
     </section>
   )
 }
@@ -503,39 +546,39 @@ function ComputationRulesPanel({ computationRules, onApprove, approving }: {
 }) {
   const approved = computationRules.status === 'approved'
   return (
-    <section className={card + ' p-4'}>
-      <div className="flex items-center justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2">
-          <Table2 size={14} className="text-primary" />
-          <h2 className="text-[13px] font-semibold text-slate-800">Computation rules <span className="font-normal text-slate-400">— {SHAPE_LABEL[computationRules.source]}</span></h2>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
+    <section>
+      <header className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+        <h2 className={h2}>Computation rules<Tip text="Translated from the workbook's own formulas. Check each step against its source cell before approving. Once approved, these run at quote time instead of the flat rate lookup." /></h2>
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <Chip>{SHAPE_LABEL[computationRules.source]}</Chip>
           <StatusPill status={computationRules.status} config={RULES_STATUS} />
-          {!approved && (
-            <button onClick={onApprove} disabled={approving} className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">
-              {approving ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />} Approve logic
-            </button>
-          )}
+          {!approved && <Btn level="secondary" onClick={onApprove} disabled={approving} loading={approving}>Approve logic</Btn>}
         </div>
-      </div>
-      <p className="text-[11.5px] text-slate-400 mb-2.5">Translated from the workbook&rsquo;s own formulas — check each step against its source cell before approving. Runs at quote time instead of the flat rate lookup once approved.</p>
-      <div className="flex flex-col gap-1.5">
-        {computationRules.rules.map((s, i) => (
-          <div key={i} className="flex items-start gap-2 rounded-lg border border-slate-100 bg-slate-50/60 px-2.5 py-2 text-[12px]">
-            <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-slate-400 w-[130px]">{STEP_LABEL[s.type]}</span>
-            <span className="text-slate-700 flex-1">{describeStep(s)}</span>
-            {s.source_ref && <span className="shrink-0 font-mono text-[10.5px] text-slate-400">{s.source_ref}</span>}
-          </div>
-        ))}
-      </div>
+      </header>
+      <Register label="Computation rules" minWidth={640}>
+        <RegisterHead>
+          <RegisterTh first width={220}>Step</RegisterTh>
+          <RegisterTh>Rule</RegisterTh>
+          <RegisterTh last align="right">Source cell</RegisterTh>
+        </RegisterHead>
+        <tbody>
+          {computationRules.rules.map((s, i) => (
+            <RegisterRow key={i}>
+              <RegisterCell first primary={STEP_LABEL[s.type]} secondary={`Step ${i + 1}`} />
+              <RegisterCell nowrap={false}><span className="block text-[14px] leading-snug" style={{ color: '#3c4043' }}>{describeStep(s)}</span></RegisterCell>
+              <RegisterCell last align="right"><span className="font-mono text-[12.5px]" style={{ color: s.source_ref ? MUTED : '#9aa0a6' }}>{s.source_ref ?? '—'}</span></RegisterCell>
+            </RegisterRow>
+          ))}
+        </tbody>
+      </Register>
     </section>
   )
 }
 
 // ── Step 2 — rate table + insurer-specific pricing rules ────────────────────────
-const colInput = 'w-16 text-[12px] text-right font-mono rounded px-1.5 py-0.5 bg-slate-50 border border-transparent hover:bg-slate-100/70 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white disabled:opacity-60'
-const txtInput = 'text-[12px] rounded px-2 py-0.5 bg-slate-50 border border-transparent hover:bg-slate-100/70 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white disabled:opacity-60'
-const chip = 'text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 flex items-center gap-1'
+const colInput = 'w-20 h-8 text-[13px] text-right tabular-nums rounded-[8px] px-2 bg-white border border-[#dadce0] outline-none focus:border-[#202124] disabled:opacity-60 disabled:bg-[#f8f9fa] text-[#202124]'
+const txtInput = 'h-8 text-[13px] rounded-[8px] px-2.5 bg-white border border-[#dadce0] outline-none focus:border-[#202124] disabled:opacity-60 disabled:bg-[#f8f9fa] text-[#202124]'
+const label = 'text-[12.5px]'
 
 function RateTableEditor({ rt, setRt, disabled }: { rt: RateTable; setRt: (rt: RateTable) => void; disabled: boolean }) {
   const up = (patch: Partial<RateTable>) => setRt({ ...rt, ...patch })
@@ -545,37 +588,35 @@ function RateTableEditor({ rt, setRt, disabled }: { rt: RateTable; setRt: (rt: R
   const removeCoverage = (i: number) => up({ coverages: rt.coverages.filter((_, j) => j !== i) })
 
   return (
-    <section className={card + ' p-4 flex flex-col gap-4'}>
-      <div className="flex items-center gap-2">
-        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-[11px] font-bold">2</span>
-        <h2 className="text-[13px] font-semibold text-slate-800">Rate table &amp; rules <span className="font-normal text-slate-400">— every number a quote will use</span></h2>
-      </div>
+    <section className={`${card} p-5 flex flex-col gap-5 min-w-0`}>
+      <h2 className={h2}>Rate table and rules<Tip text="Every number a quote uses." /></h2>
 
-      <div className="flex flex-wrap items-center gap-4">
-        <label className="text-[12px] flex items-center gap-1.5">Age basis
-          <select value={rt.age_basis ?? ''} onChange={e => up({ age_basis: (e.target.value || null) as RateTable['age_basis'] })} disabled={disabled} className={`${txtInput} w-24`}>
+      <div className="flex flex-wrap items-center gap-5">
+        <label className={`${label} flex items-center gap-2`} style={{ color: MUTED }}>Age basis
+          <select value={rt.age_basis ?? ''} onChange={e => up({ age_basis: (e.target.value || null) as RateTable['age_basis'] })} disabled={disabled} className={`${txtInput} w-36`}>
             <option value="">—</option><option value="ANB">Next birthday</option><option value="ALB">Last birthday</option>
           </select>
         </label>
-        <label className="text-[12px] flex items-center gap-1.5">
-          <input type="checkbox" checked={!!rt.rules.gst?.inclusive} disabled={disabled} onChange={e => upRules({ gst: { inclusive: e.target.checked, rate: rt.rules.gst?.rate ?? 0.09 } })} /> Rates include GST
+        <label className="text-[13.5px] flex items-center gap-2 cursor-pointer" style={{ color: '#3c4043' }}>
+          <input type="checkbox" className="w-4 h-4 accent-[#202124]" checked={!!rt.rules.gst?.inclusive} disabled={disabled} onChange={e => upRules({ gst: { inclusive: e.target.checked, rate: rt.rules.gst?.rate ?? 0.09 } })} /> Rates include GST
         </label>
         {rt.rules.gst?.inclusive && (
-          <label className="text-[12px] flex items-center gap-1.5">rate <input type="number" step="0.01" value={rt.rules.gst?.rate ?? 0.09} disabled={disabled} onChange={e => upRules({ gst: { inclusive: true, rate: +e.target.value } })} className={`${colInput} w-16`} /></label>
+          <label className={`${label} flex items-center gap-2`} style={{ color: MUTED }}>GST rate <input type="number" step="0.01" value={rt.rules.gst?.rate ?? 0.09} disabled={disabled} onChange={e => upRules({ gst: { inclusive: true, rate: +e.target.value } })} className={colInput} /></label>
         )}
       </div>
 
       <LoadingBandsEditor rt={rt} upRules={upRules} disabled={disabled} />
 
       <div>
-        <div className="flex items-center justify-between mb-1.5">
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground/50">Coverages</p>
-          {!disabled && <button onClick={addCoverage} className="text-[11px] text-primary flex items-center gap-1 hover:underline"><Plus size={11} /> add</button>}
+        <div className="flex items-center justify-between mb-2">
+          <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Coverages</p>
+          {!disabled && <Btn size="xs" level="tertiary" onClick={addCoverage}><Plus size={11} /> Add coverage</Btn>}
         </div>
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-4">
           {rt.coverages.map((c, i) => (
             <CoverageEditor key={i} cov={c} onChange={p => upCov(i, p)} onRemove={() => removeCoverage(i)} disabled={disabled} />
           ))}
+          {rt.coverages.length === 0 && <Empty compact>No coverages yet.</Empty>}
         </div>
       </div>
     </section>
@@ -590,36 +631,44 @@ function LoadingBandsEditor({ rt, upRules, disabled }: { rt: RateTable; upRules:
 
   return (
     <div>
-      <p className="text-[11px] uppercase tracking-wide text-muted-foreground/50 mb-1.5">Group-size loading <span className="normal-case text-muted-foreground/40">— headcount → % adjustment</span></p>
-      <div className="flex flex-col gap-1.5">
+      <p className="m-0 mb-2 text-[12.5px] flex items-center" style={{ color: MUTED }}>Group-size loading<Tip text="Headcount band to percentage adjustment." /></p>
+      <div className="flex flex-col gap-2">
         {bands.map((b, i) => (
-          <div key={i} className="flex items-center gap-1.5 text-[12px]">
-            <input type="number" value={b.min} disabled={disabled} onChange={e => setBands(bands.map((x, j) => j === i ? { ...x, min: +e.target.value } : x))} className={`${colInput} w-14`} />
-            <span className="text-muted-foreground/50">to</span>
-            <input type="number" value={b.max ?? ''} placeholder="∞" disabled={disabled} onChange={e => setBands(bands.map((x, j) => j === i ? { ...x, max: e.target.value === '' ? null : +e.target.value } : x))} className={`${colInput} w-14`} />
-            <span className="text-muted-foreground/50">lives →</span>
-            <input type="number" value={b.loading_pct} disabled={disabled} onChange={e => setBands(bands.map((x, j) => j === i ? { ...x, loading_pct: +e.target.value } : x))} className={`${colInput} w-16`} />
-            <span className="text-muted-foreground/50">%</span>
-            {!disabled && <button onClick={() => setBands(bands.filter((_, j) => j !== i))} className="text-rose-400 hover:text-rose-600"><Trash2 size={12} /></button>}
+          <div key={i} className="flex items-center gap-2 text-[13px] flex-wrap" style={{ color: MUTED }}>
+            <input type="number" value={b.min} disabled={disabled} aria-label="From lives" onChange={e => setBands(bands.map((x, j) => j === i ? { ...x, min: +e.target.value } : x))} className={`${colInput} w-16`} />
+            <span>to</span>
+            <input type="number" value={b.max ?? ''} placeholder="∞" disabled={disabled} aria-label="To lives" onChange={e => setBands(bands.map((x, j) => j === i ? { ...x, max: e.target.value === '' ? null : +e.target.value } : x))} className={`${colInput} w-16`} />
+            <span>lives</span>
+            <input type="number" value={b.loading_pct} disabled={disabled} aria-label="Loading percent" onChange={e => setBands(bands.map((x, j) => j === i ? { ...x, loading_pct: +e.target.value } : x))} className={`${colInput} w-20`} />
+            <span>%</span>
+            {!disabled && <button type="button" onClick={() => setBands(bands.filter((_, j) => j !== i))} aria-label="Remove band" className={iconBtn} style={{ color: MUTED }}><Trash2 size={13} /></button>}
           </div>
         ))}
-        {!disabled && <button onClick={() => setBands([...bands, { min: 1, max: null, loading_pct: 0 }])} className="text-[11px] text-primary flex items-center gap-1 hover:underline self-start"><Plus size={10} /> add band</button>}
+        {bands.length === 0 && <p className="m-0 text-[13px]" style={{ color: MUTED }}>No loading bands.</p>}
+        {!disabled && <Btn size="xs" level="tertiary" onClick={() => setBands([...bands, { min: 1, max: null, loading_pct: 0 }])} className="self-start"><Plus size={11} /> Add band</Btn>}
       </div>
       {codes.length > 0 && (
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          <span className="text-[11px] text-muted-foreground/60">excluded from loading:</span>
-          {codes.map(code => (
-            <label key={code} className={`${chip} cursor-pointer ${excludes.has(code) ? 'bg-rose-50 text-rose-600' : ''}`}>
-              <input type="checkbox" className="hidden" disabled={disabled} checked={excludes.has(code)}
-                onChange={e => { const s = new Set(excludes); e.target.checked ? s.add(code) : s.delete(code); upRules({ loading_excludes: Array.from(s) }) }} />
-              {code}
-            </label>
-          ))}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="text-[12.5px]" style={{ color: MUTED }}>Excluded from loading</span>
+          {codes.map(code => {
+            const on = excludes.has(code)
+            return (
+              <label key={code} className="inline-flex items-center h-7 px-2.5 rounded-[6px] text-[12px] font-medium cursor-pointer select-none border" style={{ background: on ? '#ffffff' : '#f1f3f4', borderColor: on ? INK : 'transparent', color: on ? INK : '#3c4043' }}>
+                <input type="checkbox" className="sr-only" disabled={disabled} checked={on}
+                  onChange={e => { const s = new Set(excludes); e.target.checked ? s.add(code) : s.delete(code); upRules({ loading_excludes: Array.from(s) }) }} />
+                {code}{on ? ' · excluded' : ''}
+              </label>
+            )
+          })}
         </div>
       )}
     </div>
   )
 }
+
+/** Member-type header tone for the rate matrix: dependant matrices get the grey header,
+ *  everything else the ink employee header (globals.css .mt-employee / .mt-dependant). */
+const isDependant = (memberType?: string | null) => /depend|spouse|child/i.test(memberType ?? '')
 
 function CoverageEditor({ cov, onChange, onRemove, disabled }: { cov: Coverage; onChange: (p: Partial<Coverage>) => void; onRemove: () => void; disabled: boolean }) {
   const setPlans = (plans: RatePlan[]) => onChange({ plans })
@@ -634,46 +683,53 @@ function CoverageEditor({ cov, onChange, onRemove, disabled }: { cov: Coverage; 
     onChange({ rates })
   }
   const setBand = (ri: number, band: string) => { const rates = [...cov.rates]; rates[ri] = { ...rates[ri], band }; onChange({ rates }) }
+  const dep = isDependant(cov.member_type)
+  const hdrInput = 'h-7 w-24 text-right text-[12px] font-medium bg-transparent border-0 border-b px-1 outline-none disabled:opacity-70'
+  const hdrColor = dep ? INK : '#ffffff'
+  const hdrRule = dep ? 'rgba(32,33,36,0.35)' : 'rgba(255,255,255,0.45)'
 
   return (
-    <div className="border border-slate-100 rounded-lg p-2.5">
-      <div className="flex items-center gap-2 mb-2 flex-wrap">
-        <input value={cov.code} onChange={e => onChange({ code: e.target.value.toUpperCase() })} disabled={disabled} className={`${txtInput} w-20 font-mono`} placeholder="CODE" />
-        <input value={cov.full_name} onChange={e => onChange({ full_name: e.target.value })} disabled={disabled} className={`${txtInput} flex-1 min-w-[140px]`} placeholder="Full name" />
-        <input value={cov.member_type ?? ''} onChange={e => onChange({ member_type: e.target.value || undefined })} disabled={disabled} className={`${txtInput} w-28`} placeholder="member type (opt.)" />
-        {!disabled && <button onClick={onRemove} className="text-rose-400 hover:text-rose-600"><Trash2 size={13} /></button>}
+    <div className={`${card} p-4 min-w-0`}>
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        <input value={cov.code} onChange={e => onChange({ code: e.target.value.toUpperCase() })} disabled={disabled} aria-label="Coverage code" className={`${txtInput} w-24 font-mono`} placeholder="CODE" />
+        <input value={cov.full_name} onChange={e => onChange({ full_name: e.target.value })} disabled={disabled} aria-label="Coverage name" className={`${txtInput} flex-1 min-w-[160px]`} placeholder="Full name" />
+        <input value={cov.member_type ?? ''} onChange={e => onChange({ member_type: e.target.value || undefined })} disabled={disabled} aria-label="Member type" className={`${txtInput} w-36`} placeholder="Member type" />
+        {!disabled && <button type="button" onClick={onRemove} aria-label="Remove coverage" className={iconBtn} style={{ color: MUTED }}><Trash2 size={14} /></button>}
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="text-[11.5px] border-collapse w-full">
-          <thead>
-            <tr className="text-slate-500">
-              <th className="text-left py-1 pr-2 font-medium">Age band</th>
+      <div className="overflow-x-auto rounded-[12px]" style={{ border: `1px solid ${RULE}` }}>
+        <table className="data-table matrix-table w-full border-collapse text-[13px]">
+          <thead className={dep ? 'mt-dependant' : 'mt-employee'}>
+            <tr>
+              <th className="text-left">Age band</th>
               {cov.plans.map(p => (
-                <th key={p.code} className="text-right py-1 pr-2 font-medium">
-                  <input value={p.label} disabled={disabled} onChange={e => setPlans(cov.plans.map(x => x.code === p.code ? { ...x, label: e.target.value } : x))} className={`${txtInput} w-20 text-right`} />
-                  {!disabled && <button onClick={() => removePlan(p.code)} className="text-slate-300 hover:text-rose-500 ml-1"><Trash2 size={10} className="inline" /></button>}
+                <th key={p.code} className="text-right">
+                  <span className="inline-flex items-center gap-1">
+                    <input value={p.label} disabled={disabled} aria-label="Plan label" onChange={e => setPlans(cov.plans.map(x => x.code === p.code ? { ...x, label: e.target.value } : x))} className={hdrInput} style={{ color: hdrColor, borderBottomColor: hdrRule }} />
+                    {!disabled && <button type="button" onClick={() => removePlan(p.code)} aria-label={`Remove ${p.label}`} className="w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer opacity-70 hover:opacity-100" style={{ color: hdrColor }}><Trash2 size={11} /></button>}
+                  </span>
                 </th>
               ))}
-              {!disabled && <th className="text-right py-1"><button onClick={addPlan} className="text-primary hover:underline text-[11px] flex items-center gap-0.5 ml-auto"><Plus size={10} /> plan</button></th>}
+              {!disabled && <th className="text-right"><button type="button" onClick={addPlan} className="inline-flex items-center gap-1 text-[12px] font-medium bg-transparent border-0 cursor-pointer opacity-80 hover:opacity-100" style={{ color: hdrColor }}><Plus size={11} /> Plan</button></th>}
             </tr>
           </thead>
           <tbody>
             {cov.rates.map((r, ri) => (
-              <tr key={ri} className="border-t border-slate-50">
-                <td className="py-1 pr-2"><input value={r.band} disabled={disabled} onChange={e => setBand(ri, e.target.value)} className={`${txtInput} w-20`} placeholder="0-25" /></td>
+              <tr key={ri}>
+                <td><input value={r.band} disabled={disabled} aria-label="Age band" onChange={e => setBand(ri, e.target.value)} className={`${txtInput} w-24`} placeholder="0-25" /></td>
                 {cov.plans.map(p => (
-                  <td key={p.code} className="py-1 pr-2 text-right">
-                    <input value={r.by_plan?.[p.code] ?? ''} disabled={disabled} onChange={e => setRate(ri, p.code, e.target.value)} className={colInput} placeholder="—" />
+                  <td key={p.code} className="text-right">
+                    <input value={r.by_plan?.[p.code] ?? ''} disabled={disabled} aria-label={`${p.label} rate for ${r.band || 'band'}`} onChange={e => setRate(ri, p.code, e.target.value)} className={colInput} placeholder="—" />
                   </td>
                 ))}
-                {!disabled && <td className="text-right"><button onClick={() => removeBand(ri)} className="text-slate-300 hover:text-rose-500"><Trash2 size={11} /></button></td>}
+                {!disabled && <td className="text-right"><button type="button" onClick={() => removeBand(ri)} aria-label="Remove age band" className={iconBtn} style={{ color: MUTED }}><Trash2 size={12} /></button></td>}
               </tr>
             ))}
+            {cov.rates.length === 0 && <tr><td colSpan={cov.plans.length + 2} className="text-[13px]" style={{ color: MUTED }}>No age bands.</td></tr>}
           </tbody>
         </table>
       </div>
-      {!disabled && <button onClick={addBand} className="mt-1.5 text-[11px] text-primary flex items-center gap-1 hover:underline"><Plus size={10} /> add age band</button>}
+      {!disabled && <Btn size="xs" level="tertiary" onClick={addBand} className="mt-2"><Plus size={11} /> Add age band</Btn>}
     </div>
   )
 }
@@ -729,88 +785,82 @@ function BenefitTermsEditor({ terms, setTerms, rt, disabled }: { terms: BenefitT
     setNewCat(''); setNewLabel('')
   }
 
-  const cellCls = (inferred?: boolean) => `${txtInput} w-full ${inferred ? 'border-amber-300 bg-amber-50/60' : ''}`
+  const inferredCount = terms.filter(t => t.plan_code_inferred).length
+  const cellCls = (inferred?: boolean) => `${txtInput} w-full ${inferred ? 'border-dashed' : ''}`
 
   return (
-    <section className={card + ' p-4 flex flex-col gap-3'}>
-      <div className="flex items-center gap-2">
-        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-[11px] font-bold">3</span>
-        <h2 className="text-[13px] font-semibold text-slate-800">Coverage terms <span className="font-normal text-slate-400">— what&rsquo;s actually covered, one row per benefit, one column per plan</span></h2>
-      </div>
+    <section className={`${card} p-5 flex flex-col gap-4 min-w-0`}>
+      <header className="flex items-center justify-between gap-3 flex-wrap">
+        <h2 className={h2}>Coverage terms<Tip text="One row per benefit, one column per plan. A dashed cell means the plan tier was inferred, not read." /></h2>
+        {inferredCount > 0 && <Chip>{inferredCount} inferred</Chip>}
+      </header>
       {terms.length === 0 ? (
-        <p className="text-[12px] text-slate-400">No coverage terms yet — Extract reads them from the brochure.</p>
+        <Empty compact>No coverage terms yet. Extract reads them from the brochure.</Empty>
       ) : (
-        <div className="flex flex-col gap-1.5">
-          {terms.some(t => t.plan_code_inferred) && (
-            <p className="text-[10.5px] text-amber-700/80">Amber cell = the AI inferred which tier this applies to rather than reading it explicitly — worth a second look.</p>
-          )}
-          <div className="overflow-x-auto max-h-[420px]">
-            <table className="w-full text-[12px] border-collapse">
-              <thead>
-                <tr className="text-left text-[10.5px] uppercase tracking-wide text-slate-400 sticky top-0 bg-white">
-                  <th className="py-1.5 pr-2 font-medium min-w-[180px]">Benefit</th>
-                  {cols.map(c => <th key={c.code} className="py-1.5 px-1.5 font-medium min-w-[110px]">{c.label}</th>)}
-                  <th className="w-5" />
+        <div className="overflow-auto max-h-[560px] rounded-[12px]" style={{ border: `1px solid ${RULE}` }}>
+          <table className="w-full text-[13px] border-collapse">
+            <thead>
+              <tr className="text-left sticky top-0 bg-white z-10" style={{ boxShadow: `inset 0 -1px 0 ${RULE}` }}>
+                <th className="py-2.5 px-3 text-[12px] font-medium min-w-[220px]" style={{ color: MUTED }}>Benefit</th>
+                {cols.map(c => <th key={c.code} className="py-2.5 px-2 text-[12px] font-medium min-w-[130px]" style={{ color: MUTED }}>{c.label}</th>)}
+                <th className="w-10" />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => (
+                <tr key={i} style={{ borderTop: `1px solid ${RULE}` }}>
+                  <td className="py-2 px-3 align-top">
+                    <input value={row.category} disabled={disabled} aria-label="Category" onChange={e => renameRow(row.category, row.label, e.target.value, row.label)} className={`${txtInput} w-full mb-1`} placeholder="Category" />
+                    <input value={row.label} disabled={disabled} aria-label="Benefit" onChange={e => renameRow(row.category, row.label, row.category, e.target.value)} className={`${txtInput} w-full`} placeholder="Benefit" />
+                  </td>
+                  {cols.map(c => {
+                    const idx = row.cells.get(c.code)
+                    const t = idx !== undefined ? terms[idx] : undefined
+                    return (
+                      <td key={c.code} className="py-2 px-2 align-top">
+                        <input value={t?.value ?? ''} disabled={disabled} aria-label={`${row.label} · ${c.label}`} onChange={e => setCell(row.category, row.label, c.code, e.target.value)}
+                          title={t?.plan_code_inferred ? 'Plan tier inferred by the AI, not stated in the source. Check it.' : undefined}
+                          className={cellCls(t?.plan_code_inferred)} placeholder="—" />
+                      </td>
+                    )
+                  })}
+                  <td className="align-top py-2 pr-2">{!disabled && <button type="button" onClick={() => removeRow(row.category, row.label)} aria-label="Remove row" className={iconBtn} style={{ color: MUTED }}><Trash2 size={12} /></button>}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {rows.map((row, i) => (
-                  <tr key={i} className="border-t border-slate-100">
-                    <td className="py-1 pr-2 align-top">
-                      <input value={row.category} disabled={disabled} onChange={e => renameRow(row.category, row.label, e.target.value, row.label)} className={`${txtInput} w-full mb-1`} placeholder="category" />
-                      <input value={row.label} disabled={disabled} onChange={e => renameRow(row.category, row.label, row.category, e.target.value)} className={`${txtInput} w-full`} placeholder="label" />
-                    </td>
-                    {cols.map(c => {
-                      const idx = row.cells.get(c.code)
-                      const t = idx !== undefined ? terms[idx] : undefined
-                      return (
-                        <td key={c.code} className="py-1 px-1.5 align-top">
-                          <input value={t?.value ?? ''} disabled={disabled} onChange={e => setCell(row.category, row.label, c.code, e.target.value)}
-                            title={t?.plan_code_inferred ? 'Plan tier was inferred by the AI, not explicitly stated in the source — double-check this one' : undefined}
-                            className={cellCls(t?.plan_code_inferred)} placeholder="—" />
-                        </td>
-                      )
-                    })}
-                    <td className="align-top pt-1.5">{!disabled && <button onClick={() => removeRow(row.category, row.label)} className="text-slate-300 hover:text-rose-500"><Trash2 size={12} /></button>}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
       {!disabled && (
-        <div className="flex items-center gap-1.5 pt-1 border-t border-slate-100">
-          <input value={newCat} onChange={e => setNewCat(e.target.value)} placeholder="category" className={`${txtInput} w-32`} />
-          <input value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder="new benefit label" className={`${txtInput} flex-1`} />
-          <button onClick={addRow} disabled={!newCat.trim() || !newLabel.trim()} className="text-[11px] text-primary flex items-center gap-1 hover:underline disabled:opacity-40 disabled:hover:no-underline shrink-0"><Plus size={11} /> add row</button>
+        <div className="flex items-center gap-2 pt-3 flex-wrap" style={{ borderTop: `1px solid ${RULE}` }}>
+          <input value={newCat} onChange={e => setNewCat(e.target.value)} placeholder="Category" aria-label="New category" className={`${txtInput} w-40`} />
+          <input value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder="Benefit label" aria-label="New benefit label" className={`${txtInput} flex-1 min-w-[160px]`} />
+          <Btn size="xs" level="tertiary" onClick={addRow} disabled={!newCat.trim() || !newLabel.trim()}><Plus size={11} /> Add row</Btn>
         </div>
       )}
     </section>
   )
 }
 
-// ── Workbook reference — click any sheet to inspect its cells ─────────────────────────
+// ── Workbook reference — pick any sheet to inspect its cells ─────────────────────────
 function WorkbookSummary({ dump }: { dump: Dump | null }) {
   const [open, setOpen] = useState<string | null>(null)
   if (!dump) return null
   const sheet = open ?? dump.sheets?.[0]?.name ?? ''
   const values = dump.values?.[sheet]
   return (
-    <section className={card + ' p-4'}>
-      <div className="flex items-center gap-2 mb-2">
-        <Table2 size={14} className="text-slate-400" />
-        <h2 className="text-[13px] font-semibold text-slate-800">Workbook <span className="font-normal text-slate-400">— click a sheet to inspect</span></h2>
-      </div>
-      <div className="flex flex-wrap gap-1.5 mb-3">
-        {dump.sheets.map(s => (
-          <button key={s.name} onClick={() => setOpen(s.name)}
-            className={`text-[11px] px-2 py-0.5 rounded-[6px] transition-colors ${s.name === sheet ? 'bg-primary/10 text-primary font-medium ring-1 ring-primary/20' : s.visible ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>
-            {s.name}{!s.visible ? ' (hidden)' : ''}
-          </button>
-        ))}
-      </div>
-      {values ? <SheetGrid values={values} /> : <p className="text-[11.5px] text-slate-500 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2.5">No cell values captured for this sheet.</p>}
+    <section className={`${card} p-5 min-w-0`}>
+      <header className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+        <h2 className={h2}>Workbook</h2>
+        <Chip>{dump.sheets.length} sheet{dump.sheets.length === 1 ? '' : 's'}</Chip>
+      </header>
+      <Segmented<string>
+        value={sheet}
+        onChange={setOpen}
+        options={dump.sheets.map(s => ({ value: s.name, label: s.visible ? s.name : `${s.name} (hidden)` }))}
+        className="mb-4 max-w-full"
+      />
+      {values ? <SheetGrid values={values} /> : <Empty compact>No cell values captured for this sheet.</Empty>}
     </section>
   )
 }
@@ -828,17 +878,18 @@ function SheetGrid({ values }: { values: Record<string, string> }) {
   }
   cols.sort((a, b) => (a.length - b.length) || a.localeCompare(b))
   const rows = Object.keys(map).map(Number).sort((a, b) => a - b).slice(0, 200)
+  const cell = 'px-2 py-1 whitespace-nowrap'
   return (
-    <div className="overflow-auto max-h-[420px] border border-slate-100 rounded-md">
-      <table className="text-[11px] border-collapse">
-        <thead className="sticky top-0 bg-slate-50 z-10">
-          <tr><th className="px-1.5 py-0.5 border border-slate-100 text-slate-300 font-normal"></th>{cols.map(c => <th key={c} className="px-1.5 py-0.5 border border-slate-100 font-mono text-slate-400 font-normal">{c}</th>)}</tr>
+    <div className="overflow-auto max-h-[480px] rounded-[12px]" style={{ border: `1px solid ${RULE}` }}>
+      <table className="text-[12px] border-collapse" style={{ color: '#3c4043' }}>
+        <thead className="sticky top-0 z-10" style={{ background: '#f8f9fa' }}>
+          <tr><th className={cell} style={{ border: `1px solid ${RULE}` }}></th>{cols.map(c => <th key={c} className={`${cell} font-mono font-normal`} style={{ border: `1px solid ${RULE}`, color: MUTED }}>{c}</th>)}</tr>
         </thead>
         <tbody>
           {rows.map(rn => (
             <tr key={rn}>
-              <td className="px-1.5 py-0.5 border border-slate-100 bg-slate-50 text-slate-400 sticky left-0 tabular-nums">{rn}</td>
-              {cols.map(c => <td key={c} className="px-1.5 py-0.5 border border-slate-100 whitespace-nowrap max-w-[160px] truncate text-slate-600" title={map[rn]?.[c] ?? ''}>{map[rn]?.[c] ?? ''}</td>)}
+              <td className={`${cell} sticky left-0 tabular-nums`} style={{ border: `1px solid ${RULE}`, background: '#f8f9fa', color: MUTED }}>{rn}</td>
+              {cols.map(c => <td key={c} className={`${cell} max-w-[180px] truncate`} style={{ border: `1px solid ${RULE}` }} title={map[rn]?.[c] ?? ''}>{map[rn]?.[c] ?? ''}</td>)}
             </tr>
           ))}
         </tbody>
@@ -859,37 +910,45 @@ function WorkedExample({ rt, defaultEff }: { rt: RateTable; defaultEff: string |
   const m = result.members[0]
 
   return (
-    <section className={card + ' p-4 flex flex-col gap-3'}>
-      <div className="flex items-center gap-2">
-        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-[11px] font-bold">4</span>
-        <h2 className="text-[13px] font-semibold text-slate-800">Worked example <span className="font-normal text-slate-400">— computed live from the table on the left</span></h2>
-      </div>
-      <div className="flex items-center gap-2 flex-wrap text-[11.5px]">
-        <label className="flex items-center gap-1">Age <input type="number" value={age} onChange={e => setAge(+e.target.value)} className="w-14 border border-slate-100 rounded px-1.5 py-0.5 bg-white" /></label>
-        <label className="flex items-center gap-1">Relationship
-          <select value={relationship} onChange={e => setRelationship(e.target.value as 'Self' | 'Spouse' | 'Child')} className="border border-slate-100 rounded px-1.5 py-0.5 bg-white">
-            <option>Self</option><option>Spouse</option><option>Child</option>
-          </select>
-        </label>
+    <section className={`${card} p-5 flex flex-col gap-4 min-w-0`}>
+      <h2 className={h2}>Worked example<Tip text="Computed by pm-calc from the rate table and rules. Identical to a real quote, no network call." /></h2>
+      <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block min-w-0">
+            <span className="block text-[12.5px] mb-1.5" style={{ color: MUTED }}>Age</span>
+            <input type="number" value={age} onChange={e => setAge(+e.target.value)} className={inputCls} />
+          </label>
+          <label className="block min-w-0">
+            <span className="block text-[12.5px] mb-1.5" style={{ color: MUTED }}>Relationship</span>
+            <select value={relationship} onChange={e => setRelationship(e.target.value as 'Self' | 'Spouse' | 'Child')} className={inputCls}>
+              <option>Self</option><option>Spouse</option><option>Child</option>
+            </select>
+          </label>
+        </div>
         {codes.map(code => (
-          <label key={code} className="flex items-center gap-1 text-slate-500">
-            <span className="font-medium">{code}:</span>
-            <select value={sel[code] ?? ''} onChange={e => setSel(s => ({ ...s, [code]: e.target.value }))} className="text-[11px] border border-slate-100 rounded px-1 py-0.5 bg-white">
-              <option value="">— not selected —</option>
+          <label key={code} className="block min-w-0">
+            <span className="block text-[12.5px] mb-1.5" style={{ color: MUTED }}>{code}</span>
+            <select value={sel[code] ?? ''} onChange={e => setSel(s => ({ ...s, [code]: e.target.value }))} className={inputCls}>
+              <option value="">Not selected</option>
               {Array.from(new Set(rt.coverages.filter(c => c.code === code).flatMap(c => c.plans))).map(p => <option key={p.code} value={p.code}>{p.label}</option>)}
             </select>
           </label>
         ))}
       </div>
       {m && (
-        <div className="border-t border-slate-100 pt-2 flex items-center gap-4 flex-wrap">
+        <dl className="m-0 pt-3 flex flex-col" style={{ borderTop: `1px solid ${RULE}` }}>
           {codes.filter(c => typeof m.lines[c] === 'number').map(c => (
-            <span key={c} className="text-[11.5px] text-slate-600">{c} <b className="tabular-nums text-slate-800">{m.lines[c]?.toFixed(2)}</b></span>
+            <div key={c} className="flex items-center justify-between py-1.5 text-[14px]">
+              <dt style={{ color: MUTED }}>{c}</dt>
+              <dd className="m-0 tabular-nums" style={{ color: INK }}>{m.lines[c]?.toFixed(2)}</dd>
+            </div>
           ))}
-          <span className="text-[12px] text-slate-700 ml-auto">Premium <b className="tabular-nums text-primary text-[13px]">{m.subtotal.toFixed(2)}</b></span>
-        </div>
+          <div className="flex items-center justify-between pt-2.5 mt-1 text-[14px]" style={{ borderTop: `1px solid ${RULE}` }}>
+            <dt className="font-medium">Premium</dt>
+            <dd className="m-0 tabular-nums text-[18px] font-medium" style={{ color: INK }}>{m.subtotal.toFixed(2)}</dd>
+          </div>
+        </dl>
       )}
-      <p className="text-[10.5px] text-slate-400">Computed by pm-calc.ts from the rate table &amp; rules above — this is exactly what a real quote will compute, with no network call.</p>
     </section>
   )
 }

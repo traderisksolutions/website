@@ -2,15 +2,19 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { BadgeDollarSign, Undo2, ExternalLink, Search } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { PageHeader } from '@/components/page-header'
-import { SectionCard, Chip, Empty, Spinner, Btn, Segmented, inputCls } from '@/components/crm/primitives'
+import { Spinner, Btn, Segmented, inputCls } from '@/components/crm/primitives'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
 import { RecordPaymentDialog } from '@/components/crm/RecordPaymentDialog'
-import { fmtMoney, fmtDate, fmtRelative } from '@/lib/crm/format'
-import { PAYMENT_LABEL } from '@/lib/crm/payments'
+import { fmtMoney, fmtDate } from '@/lib/crm/format'
 import { CHANNEL_LABEL, type Receipt } from '@/lib/crm/receipts'
 import type { PaymentDerived, PaymentSummary, DerivedPaymentStatus } from '@/lib/crm/types'
+
+const INK = '#202124'
+const MUTED = '#5f6368'
+const BODY = '#3c4043'
+const COLS = 6
 
 type Note = PaymentDerived & { companyName: string | null; receipts: Receipt[] }
 
@@ -22,8 +26,9 @@ type Data = {
   ledgerReady: boolean
 }
 
-const TONE: Record<DerivedPaymentStatus, 'green' | 'amber' | 'red' | 'neutral'> = {
-  paid: 'green', partial: 'amber', unpaid: 'neutral', overdue: 'red',
+/** Status in words only. A note past its due date is still awaiting payment. */
+const STATUS_LABEL: Record<DerivedPaymentStatus, string> = {
+  paid: 'Settled', partial: 'Part paid', unpaid: 'Awaiting payment', overdue: 'Awaiting payment',
 }
 
 /**
@@ -79,55 +84,50 @@ export default function FinancePage() {
   const pct = sgd && sgd.billed > 0 ? Math.round((sgd.collected / sgd.billed) * 100) : 0
 
   return (
-    <div className="p-6">
-      <div className="max-w-[1200px] mx-auto">
-        <PageHeader
-          title="Finance"
-          description="Record what has been received and clear the balance. A debit note is settled by entering the payment, never by editing a status."
-        />
+    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
+      <div className="mx-auto max-w-[1400px] px-6 sm:px-12 pt-12 pb-20">
+        <div className="flex items-end justify-between gap-6 flex-wrap">
+          <div className="min-w-0">
+            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Finance</h1>
+            <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>
+              {data ? `${data.counts.open} debit note${data.counts.open === 1 ? '' : 's'} waiting for payment, oldest first.` : 'Loading…'}
+            </p>
+          </div>
+        </div>
 
-        {error && <p className="text-[12.5px] text-destructive">{error}</p>}
+        {error && <p className="mt-6 mb-0 text-[14px]" style={{ color: '#c5221f' }}>{error}</p>}
         {!data && !error && <Spinner label="Loading the reconciliation…" />}
 
         {data && (
           <>
             {!data.ledgerReady && (
-              <div className="mb-4 rounded-md border border-[--border-subtle] bg-muted/40 px-3 py-2.5">
-                <p className="text-[12.5px] m-0">
-                  Payments are being written straight onto the debit note because the finance migration has not been run yet.
-                  Recording still works. Once <code className="text-[11.5px]">20260911_debit_note_payments.sql</code> is applied,
-                  each payment is kept as its own entry and can be undone.
-                </p>
-              </div>
+              <p className="mt-6 mb-0 text-[14px]" style={{ color: MUTED }}>
+                Payments are being written straight onto the debit note because the finance migration has not been run yet.
+                Recording still works. Once <code className="text-[13px]">20260911_debit_note_payments.sql</code> is applied,
+                each payment is kept as its own entry and can be undone.
+              </p>
             )}
 
-            {/* Progress, not a single stark number: what was billed, what has come in. */}
+            {/* Two figures: what has come in, what is still to come. */}
             {sgd && (
-              <div className="mb-5 rounded-md border border-[--border-subtle] p-4">
-                <div className="flex items-baseline justify-between gap-4 flex-wrap">
-                  <p className="text-[13px] m-0">
-                    <span className="text-muted-foreground">Collected </span>
-                    <strong className="tabular-nums">{fmtMoney(sgd.collected, 'SGD')}</strong>
-                    <span className="text-muted-foreground"> of </span>
-                    <strong className="tabular-nums">{fmtMoney(sgd.billed, 'SGD')}</strong>
-                    <span className="text-muted-foreground"> billed</span>
-                  </p>
-                  <p className="text-[13px] m-0 tabular-nums">
-                    <span className="text-muted-foreground">Still to collect </span>
-                    <strong>{fmtMoney(sgd.billed - sgd.collected, 'SGD')}</strong>
-                    <span className="text-muted-foreground"> across {data.counts.open} note{data.counts.open === 1 ? '' : 's'}</span>
-                  </p>
+              <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="rounded-[16px] p-5" style={{ background: '#f1f3f4' }}>
+                  <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Collected</p>
+                  <p className="m-0 mt-1.5 text-[28px] font-medium tracking-[-0.02em] leading-none tabular-nums" style={{ color: INK }}>{fmtMoney(sgd.collected, 'SGD')}</p>
+                  <p className="m-0 mt-2 text-[12.5px] tabular-nums" style={{ color: MUTED }}>of {fmtMoney(sgd.billed, 'SGD')} billed · {data.counts.settled} of {data.counts.total} settled</p>
+                  <div className="mt-3 h-1 rounded-full overflow-hidden" style={{ background: '#dadce0' }} aria-hidden>
+                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: INK }} />
+                  </div>
                 </div>
-                <div className="mt-2.5 h-2 rounded-sm bg-muted overflow-hidden">
-                  <div className="h-full rounded-sm" style={{ width: `${pct}%`, background: 'var(--success)' }} />
+                <div className="rounded-[16px] p-5" style={{ background: '#f1f3f4' }}>
+                  <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Still to collect</p>
+                  <p className="m-0 mt-1.5 text-[28px] font-medium tracking-[-0.02em] leading-none tabular-nums" style={{ color: INK }}>{fmtMoney(sgd.billed - sgd.collected, 'SGD')}</p>
+                  <p className="m-0 mt-2 text-[12.5px] tabular-nums" style={{ color: MUTED }}>across {data.counts.open} debit note{data.counts.open === 1 ? '' : 's'}</p>
                 </div>
-                <p className="text-[11.5px] text-muted-foreground m-0 mt-1.5">
-                  {pct}% collected · {data.counts.settled} of {data.counts.total} debit notes settled
-                </p>
               </div>
             )}
 
-            <div className="mb-3 flex items-center gap-3 flex-wrap">
+            <div className="mt-8 flex items-center gap-3 flex-wrap">
               <Segmented
                 value={view}
                 onChange={setView}
@@ -136,56 +136,44 @@ export default function FinancePage() {
                   { value: 'all', label: 'Everything', count: data.counts.total },
                 ]}
               />
-              <label className="relative flex-1 min-w-[200px] max-w-[320px]">
-                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <label className="relative flex-1 min-w-[220px] max-w-[360px]">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#80868b' }} />
                 <input
-                  className={cn(inputCls, 'pl-8')}
+                  className={cn(inputCls, 'pl-9')}
                   placeholder="Search client, debit note or insurer"
+                  aria-label="Search debit notes"
                   value={query}
                   onChange={e => setQuery(e.target.value)}
                 />
               </label>
             </div>
 
-            <SectionCard
-              title={view === 'open' ? 'Waiting to be collected' : 'Every debit note'}
-              description="Oldest first. Open a row to see what has already been recorded against it."
-              padded={false}
-            >
-              {rows.length === 0 && <Empty compact>{query ? 'Nothing matches that search.' : 'Everything is settled.'}</Empty>}
+            <h2 className="m-0 mt-8 mb-3 text-[16px] font-medium tracking-[-0.01em]">{view === 'open' ? 'Waiting to be collected' : 'Every debit note'}</h2>
 
-              {rows.length > 0 && (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-[12.5px] min-w-[820px]">
-                    <thead>
-                      <tr className="text-[10.5px] uppercase tracking-wider text-muted-foreground border-b border-[--border-subtle]">
-                        <th className="text-left pl-4 pr-3 py-2 font-semibold">Client</th>
-                        <th className="text-left pr-3 py-2 font-semibold">Debit note</th>
-                        <th className="text-left pr-3 py-2 font-semibold">Cover</th>
-                        <th className="text-left pr-3 py-2 font-semibold">Due</th>
-                        <th className="text-right pr-3 py-2 font-semibold">Billed</th>
-                        <th className="text-right pr-3 py-2 font-semibold">To collect</th>
-                        <th className="text-left pr-3 py-2 font-semibold">Status</th>
-                        <th className="pr-4 py-2" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows.map(n => (
-                        <FinanceRow
-                          key={n.id}
-                          note={n}
-                          open={expanded === n.id}
-                          onToggle={() => setExpanded(v => (v === n.id ? null : n.id))}
-                          onPay={() => setPaying(n)}
-                          onUndo={undo}
-                          undoing={undoing}
-                        />
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </SectionCard>
+            <Register label={view === 'open' ? 'Debit notes waiting to be collected' : 'Every debit note'} minWidth={820}>
+              <RegisterHead>
+                <RegisterTh first hint="Client, and the debit note number">Client</RegisterTh>
+                <RegisterTh hint="Class of insurance, and the insurer">Cover</RegisterTh>
+                <RegisterTh hint="Payment due date">Due</RegisterTh>
+                <RegisterTh align="right" hint="Net premium billed">Billed</RegisterTh>
+                <RegisterTh align="right" hint="Balance still outstanding">To collect</RegisterTh>
+                <RegisterTh last><span className="sr-only">Actions</span></RegisterTh>
+              </RegisterHead>
+              <tbody>
+                {rows.length === 0 && <RegisterEmpty colSpan={COLS}>{query ? 'Nothing matches that search.' : 'Everything is settled.'}</RegisterEmpty>}
+                {rows.map(n => (
+                  <FinanceRow
+                    key={n.id}
+                    note={n}
+                    open={expanded === n.id}
+                    onToggle={() => setExpanded(v => (v === n.id ? null : n.id))}
+                    onPay={() => setPaying(n)}
+                    onUndo={undo}
+                    undoing={undoing}
+                  />
+                ))}
+              </tbody>
+            </Register>
           </>
         )}
 
@@ -209,83 +197,78 @@ function FinanceRow({ note, open, onToggle, onPay, onUndo, undoing }: {
   undoing: string | null
 }) {
   const billed = Number(note.net_amount ?? note.gross_amount ?? 0)
+  const client = note.companyName ?? 'Unnamed client'
   return (
     <>
-      <tr className="border-b border-[--border-subtle] hover:bg-muted/40 cursor-pointer" onClick={onToggle}>
-        <td className="pl-4 pr-3 py-2.5">
-          {note.company_id
-            ? <Link href={`/companies/${note.company_id}?tab=payments`} onClick={e => e.stopPropagation()} className="font-semibold no-underline text-foreground hover:text-primary">{note.companyName ?? 'Unnamed client'}</Link>
-            : <span className="font-semibold">{note.companyName ?? 'Unnamed client'}</span>}
-        </td>
-        <td className="pr-3 py-2.5 font-mono text-[11.5px] whitespace-nowrap">{note.debit_note_no}</td>
-        <td className="pr-3 py-2.5 text-muted-foreground">
-          <span className="block truncate max-w-[200px]">{note.classOfInsurance ?? note.event_type ?? '—'}</span>
-          <span className="block text-[11px] truncate max-w-[200px]">{note.insurer ?? ''}</span>
-        </td>
-        <td className="pr-3 py-2.5 whitespace-nowrap">
-          {fmtDate(note.payment_due_date)}
-          {note.derived === 'overdue' && (
-            <span className="block text-[10.5px] text-muted-foreground">{fmtRelative(note.payment_due_date)}</span>
-          )}
-        </td>
-        <td className="pr-3 py-2.5 text-right tabular-nums whitespace-nowrap">{fmtMoney(billed, note.currency)}</td>
-        <td className="pr-3 py-2.5 text-right tabular-nums whitespace-nowrap font-semibold">
-          {note.outstanding > 0 ? fmtMoney(note.outstanding, note.currency) : '—'}
-        </td>
-        <td className="pr-3 py-2.5"><Chip tone={TONE[note.derived]}>{PAYMENT_LABEL[note.derived]}</Chip></td>
-        <td className="pr-4 py-2.5 text-right">
+      <RegisterRow onClick={onToggle} className={cn(open && 'bg-[#f8f9fa]')}>
+        <RegisterCell first title={client}
+          primary={note.company_id
+            ? <Link href={`/companies/${note.company_id}?tab=payments`} onClick={e => e.stopPropagation()} className="no-underline hover:underline" style={{ color: INK }}>{client}</Link>
+            : client}
+          secondary={<span className="tabular-nums">{note.debit_note_no}</span>}
+          className={cn(open && 'bg-[#f8f9fa]')}
+        />
+        <RegisterCell primary={note.classOfInsurance ?? note.event_type ?? '—'} secondary={note.insurer ?? 'No insurer on file'} className="max-w-[230px]" nowrap={false} />
+        <RegisterCell primary={fmtDate(note.payment_due_date)} />
+        <RegisterCell align="right" primary={fmtMoney(billed, note.currency)} />
+        <RegisterCell align="right" nowrap={false}
+          primary={<span className={cn('whitespace-nowrap', note.outstanding > 0 && 'font-medium')}>{note.outstanding > 0 ? fmtMoney(note.outstanding, note.currency) : '—'}</span>}
+          secondary={billed - note.outstanding > 0 ? `${fmtMoney(billed - note.outstanding, note.currency)} received` : STATUS_LABEL[note.derived]} />
+        <RegisterCell last align="right">
           {note.outstanding > 0 && (
             <Btn size="xs" level="secondary" onClick={e => { e.stopPropagation(); onPay() }}>
-              <BadgeDollarSign size={12} /> Record payment
+              Record payment
             </Btn>
           )}
-        </td>
-      </tr>
+        </RegisterCell>
+      </RegisterRow>
 
       {open && (
-        <tr className="border-b border-[--border-subtle] bg-muted/20">
-          <td colSpan={8} className="px-4 py-3">
+        <RegisterRow style={{ background: '#f8f9fa' }}>
+          <RegisterCell colSpan={COLS} nowrap={false} className="px-6">
             <div className="flex items-start justify-between gap-6 flex-wrap">
               <div className="min-w-[260px]">
-                <p className="text-[10.5px] uppercase tracking-wider text-muted-foreground m-0 mb-1.5 font-semibold">Payments recorded</p>
+                <p className="text-[12.5px] m-0 mb-2" style={{ color: MUTED }}>Payments recorded</p>
                 {note.receipts.length === 0 && (
-                  <p className="text-[12.5px] text-muted-foreground m-0">
+                  <p className="text-[14px] m-0" style={{ color: MUTED }}>
                     Nothing recorded yet.
                     {Number(note.paid_amount ?? 0) + Number(note.paid_direct_amount ?? 0) > 0 &&
                       ` ${fmtMoney(Number(note.paid_amount ?? 0) + Number(note.paid_direct_amount ?? 0), note.currency)} is already set on the debit note itself.`}
                   </p>
                 )}
-                <ul className="m-0 p-0 list-none flex flex-col gap-1">
+                <ul className="m-0 p-0 list-none flex flex-col gap-1.5">
                   {note.receipts.map(r => (
-                    <li key={r.id} className="flex items-center gap-2.5 text-[12.5px]">
-                      <span className="tabular-nums font-semibold">{fmtMoney(Number(r.amount), note.currency)}</span>
-                      <span className="text-muted-foreground">{fmtDate(r.received_on)} · {CHANNEL_LABEL[r.channel]}</span>
-                      {r.reference && <span className="text-muted-foreground font-mono text-[11px]">{r.reference}</span>}
+                    <li key={r.id} className="flex items-center gap-3 text-[14px] flex-wrap" style={{ color: INK }}>
+                      <span className="tabular-nums font-medium">{fmtMoney(Number(r.amount), note.currency)}</span>
+                      <span style={{ color: MUTED }}>{fmtDate(r.received_on)} · {CHANNEL_LABEL[r.channel]}</span>
+                      {r.reference && <span className="tabular-nums text-[13px]" style={{ color: MUTED }}>{r.reference}</span>}
                       <button
+                        type="button"
                         onClick={() => onUndo(r.id)}
                         disabled={undoing === r.id}
-                        className="inline-flex items-center gap-1 text-[11.5px] text-muted-foreground hover:text-destructive bg-transparent border-0 p-0 cursor-pointer disabled:opacity-50"
+                        className="text-[13px] bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4 disabled:opacity-50"
+                        style={{ color: '#c5221f' }}
                         title="Undo this payment and put the balance back"
                       >
-                        <Undo2 size={11} /> Undo
+                        Undo
                       </button>
                     </li>
                   ))}
                 </ul>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-4 text-[13.5px]">
                 {note.drive_folder_url && (
-                  <a href={note.drive_folder_url} target="_blank" rel="noreferrer" className="text-[12px] font-semibold text-primary no-underline hover:underline inline-flex items-center gap-1">
-                    <ExternalLink size={11} /> Drive folder
+                  <a href={note.drive_folder_url} target="_blank" rel="noreferrer" className="underline underline-offset-4" style={{ color: INK }}>
+                    Drive folder
                   </a>
                 )}
-                <Link href={`/debit-notes?open=${note.id}`} className="text-[12px] font-semibold text-primary no-underline hover:underline inline-flex items-center gap-1">
-                  <ExternalLink size={11} /> Open the debit note
+                <Link href={`/debit-notes?open=${note.id}`} className="underline underline-offset-4" style={{ color: INK }}>
+                  Open the debit note
                 </Link>
               </div>
             </div>
-          </td>
-        </tr>
+          </RegisterCell>
+        </RegisterRow>
       )}
     </>
   )

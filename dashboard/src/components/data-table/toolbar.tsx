@@ -15,7 +15,7 @@ export function DataTableToolbar({ children, className }: DataTableToolbarProps)
   return (
     <div
       className={cn(
-        'flex items-center gap-2 px-4 py-2.5 border-b border-[--border-subtle] bg-card flex-shrink-0 flex-wrap',
+        'flex items-center gap-2.5 px-6 sm:px-10 py-3 border-b border-[#e8eaed] bg-white flex-shrink-0 flex-wrap',
         className,
       )}
     >
@@ -39,20 +39,20 @@ export function DataTableSearch({
   return (
     <div
       className={cn(
-        'flex items-center gap-2 h-8 px-3 rounded-md border border-input bg-background',
-        'transition-colors focus-within:border-ring focus-within:ring-1 focus-within:ring-ring/30',
-        'min-w-[180px] max-w-[260px]',
+        'flex items-center gap-2 h-10 px-3.5 rounded-[10px] border border-[#dadce0] bg-white',
+        'transition-colors focus-within:border-[#202124]',
+        'min-w-[220px] max-w-[320px]',
         className,
       )}
     >
-      <Search className="h-3.5 w-3.5 text-muted-foreground/55 flex-shrink-0" />
+      <Search className="h-4 w-4 flex-shrink-0" style={{ color: '#80868b' }} />
       <input
         type="text"
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         aria-label={placeholder}
-        className="flex-1 min-w-0 bg-transparent border-none outline-none text-[12.5px] text-foreground placeholder:text-muted-foreground/60"
+        className="flex-1 min-w-0 bg-transparent border-none outline-none text-[14px] text-[#202124] placeholder:text-[#80868b]"
       />
       {value && (
         <button
@@ -87,8 +87,8 @@ export function DataTableFilter({
       size="compact"
       onClick={onClick}
       className={cn(
-        'h-8 border-dashed font-normal gap-1.5',
-        active && 'border-primary/30 bg-primary/[0.04] text-primary',
+        'h-9 rounded-[999px] px-3.5 font-medium gap-1.5 text-[13px]',
+        active && 'bg-[#202124] text-white border-[#202124] hover:bg-[#202124] hover:opacity-90',
         className,
       )}
     >
@@ -96,10 +96,10 @@ export function DataTableFilter({
       {count !== undefined && count > 0 && (
         <span
           className={cn(
-            'text-[10px] font-bold px-1.5 py-px rounded',
+            'text-[11px] tabular-nums px-1.5 py-px rounded',
             active
-              ? 'bg-primary/10 text-primary'
-              : 'bg-muted text-muted-foreground',
+              ? 'bg-white/20 text-white'
+              : 'bg-[#f1f3f4] text-[#5f6368]',
           )}
         >
           {count}

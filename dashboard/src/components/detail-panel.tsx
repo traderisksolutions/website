@@ -27,7 +27,7 @@ export function DetailPanel({
       {/* Sticky header */}
       <div className="flex items-start justify-between gap-2 px-4 py-3.5 border-b border-[--border-subtle] bg-card sticky top-0 z-10 flex-shrink-0">
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.07em] text-muted-foreground/55 mb-0.5">
+          <p className="text-[12.5px] font-medium tracking-[0.07em] text-muted-foreground/55 mb-0.5">
             Details
           </p>
           <h2 className="text-[13px] font-semibold text-foreground leading-tight truncate">

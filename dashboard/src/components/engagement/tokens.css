@@ -1,29 +1,33 @@
 /* ── Engagement Agent — Scoped Design Tokens ────────────────────────────────
    Scope:   [data-ea] attribute on the EngagementShell root element.
    Purpose: Extend (never override) the global design system with
-            engagement-specific sizing, spacing, shadow, and type values.
+            engagement-specific sizing, spacing and type values.
 
    These custom properties activate ONLY inside [data-ea].
    Even if this CSS is bundled into the shared chunk by Next.js, it has zero
    effect on any other page because no other page renders [data-ea].
+
+   Palette (the mail workspace): ink #202124 · body #3c4043 · muted #5f6368 ·
+   faint #80868b · dot #9aa0a6 · hairline #e8eaed · control #dadce0 · field #f1f3f4 ·
+   hover #f8f9fa. No navy, no tinted state.
    ─────────────────────────────────────────────────────────────────────────── */
 
 [data-ea] {
 
   /* ── Pane layout ─────────────────────────────────────────────────────────── */
 
-  /* List panel — slightly narrower than the previous w-80 (320px) */
-  --ea-list-w:    300px;
-  /* Right context/detail panel */
-  --ea-context-w: 244px;
+  /* Navigator (list) panel */
+  --ea-list-w:    380px;
+  /* Right context rail */
+  --ea-context-w: 340px;
 
 
   /* ── Row & field sizing ──────────────────────────────────────────────────── */
 
   /* Conversation list row height */
   --ea-row-h:   64px;
-  /* Compose header field rows (To, CC, Subject) — Gmail-style */
-  --ea-field-h: 38px;
+  /* Compose header field rows (To, Cc, Subject) */
+  --ea-field-h: 40px;
 
 
   /* ── Avatar ──────────────────────────────────────────────────────────────── */
@@ -36,95 +40,91 @@
 
   /* ── Message card surfaces ───────────────────────────────────────────────── */
 
-  /* More generous rounding than the global --radius (10px) */
   --ea-card-radius: 12px;
   --ea-card-px:     20px;
   --ea-card-py:     16px;
   /* Gap between successive message cards */
   --ea-card-gap:    16px;
 
-  /* Inbound card (received email) — neutral, calm elevation */
-  --ea-shadow-card-in:
-    0 1px 2px rgba(20, 30, 50, 0.04),
-    0 3px 10px rgba(20, 30, 50, 0.05);
-  --ea-border-card-in: rgba(16, 24, 40, 0.08);
+  /* Inbound card (received email) — white on a hairline, no shadow */
+  --ea-shadow-card-in:  none;
+  --ea-border-card-in:  #e8eaed;
 
-  /* Outbound card (sent email) — primary-blue tinted elevation */
-  --ea-shadow-card-out:
-    0 1px 3px rgba(12, 51, 138, 0.06),
-    0 4px 12px rgba(12, 51, 138, 0.07);
-  --ea-border-card-out: rgba(12, 51, 138, 0.12);
+  /* Outbound card (sent email) — the same hairline; the "Sent" label carries the meaning */
+  --ea-shadow-card-out: none;
+  --ea-border-card-out: #e8eaed;
+  --ea-bg-card-out:     #f1f3f4;
 
 
   /* ── Message body typography ─────────────────────────────────────────────── */
 
-  /* Slightly larger and airier than UI text — optimised for reading emails */
-  --ea-body-size:    13.5px;
-  --ea-body-leading: 1.85;
+  /* Reading body: 16px / 1.6 on a 1040 measure */
+  --ea-body-size:    16px;
+  --ea-body-leading: 1.6;
 
 
   /* ── Thread header bar ───────────────────────────────────────────────────── */
 
-  --ea-header-title: 14.5px;
-  --ea-header-meta:  11.5px;
+  --ea-header-title: 22px;
+  --ea-header-meta:  13.5px;
 
 
   /* ── Conversation list row typography ────────────────────────────────────── */
 
-  --ea-row-name:    12.5px;
-  --ea-row-preview: 11px;
-  --ea-row-time:    10.5px;
+  --ea-row-name:    14px;
+  --ea-row-preview: 13.5px;
+  --ea-row-time:    12px;
 
 
   /* ── Compose panel ───────────────────────────────────────────────────────── */
 
-  /* Top accent border that separates compose from message scroll area */
-  --ea-compose-accent-border: 2px solid rgba(12, 51, 138, 0.18);
-  /* Field label (To / Subject / CC) */
-  --ea-compose-label: 10.5px;
+  /* Hairline that separates the composer from the message area */
+  --ea-compose-accent-border: 1px solid #e8eaed;
+  /* Field label (To / Subject / Cc) */
+  --ea-compose-label: 13px;
 
 
   /* ── Context (right) panel ───────────────────────────────────────────────── */
 
-  --ea-ctx-px:    14px;
-  --ea-ctx-py:    12px;
-  /* Uppercase micro-labels for sections and form fields */
-  --ea-ctx-label: 9.5px;
+  --ea-ctx-px:    16px;
+  --ea-ctx-py:    14px;
+  /* Section and field labels, sentence case */
+  --ea-ctx-label: 12px;
   /* Field values, notes text, contact details */
-  --ea-ctx-value: 11.5px;
+  --ea-ctx-value: 13px;
 
 
   /* ── AI Analysis section ─────────────────────────────────────────────────── */
 
-  /* AI summary body text — slightly smaller than message body, still readable */
-  --ea-ai-body: 12px;
-  /* "Next action" callout — restrained primary tint, not a loud alert box */
-  --ea-ai-next-bg:     rgba(12, 51, 138, 0.04);
-  --ea-ai-next-border: rgba(12, 51, 138, 0.25);
+  --ea-ai-body: 13.5px;
+  /* "Next action" callout — a grey field on a hairline, not a tinted alert box */
+  --ea-ai-next-bg:     #f1f3f4;
+  --ea-ai-next-border: #e8eaed;
 
 
   /* ── Pill / source chip ──────────────────────────────────────────────────── */
 
-  --ea-pill-h:      18px;
-  --ea-pill-px:     7px;
+  --ea-pill-h:      20px;
+  --ea-pill-px:     8px;
   /* rounded-[6px], matching the chip/badge convention everywhere else — not a full capsule */
   --ea-pill-radius: 6px;
-  --ea-pill-size:   10px;
-  --ea-pill-weight: 600;
+  --ea-pill-size:   11.5px;
+  --ea-pill-weight: 500;
 
 
   /* ── Section label ───────────────────────────────────────────────────────── */
 
-  --ea-section-label-size:    9.5px;
-  --ea-section-label-weight:  700;
-  --ea-section-label-spacing: 0.07em;
+  --ea-section-label-size:    12px;
+  --ea-section-label-weight:  500;
+  --ea-section-label-spacing: 0;
 
 
   /* ── Interaction states ──────────────────────────────────────────────────── */
 
-  /* Conversation row active background — stronger than generic accent/30 */
-  --ea-row-active-bg: hsl(var(--accent));
-  /* Needs-reply indicator — reuse semantic warning token */
-  --ea-needs-reply-color: var(--warning);
-  --ea-needs-reply-bg:    var(--warning-bg);
+  /* Selected conversation row: field with a 3px ink bar */
+  --ea-row-active-bg:  #f1f3f4;
+  --ea-row-active-bar: #202124;
+  /* Needs-reply indicator: the ink dot */
+  --ea-needs-reply-color: #202124;
+  --ea-needs-reply-bg:    #f1f3f4;
 }

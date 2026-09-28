@@ -6,13 +6,13 @@ import { useAuditLog } from '@/hooks/useAuditLog'
 import { createClient } from '@/lib/supabase/client'
 import type { Lead, ThreadState } from '@/components/engagement/types'
 import { EMAIL_SOURCES, ENGAGED_STATUSES } from '@/components/engagement/types'
-import { matchesSearch } from '@/components/engagement/helpers'
-import { ConversationList } from '@/components/engagement/ConversationList'
+import { matchesSearch, leadNeedsReply } from '@/components/engagement/helpers'
+import { ThreadListPane, SEARCH_INPUT_ID } from '@/components/engagement/ThreadListPane'
 import { ThreadView } from '@/components/engagement/ThreadView'
 import { NewEmailComposeModal, type NewEmailDraft } from '@/components/engagement/NewEmailComposeModal'
 import { EngagementShell } from '@/components/engagement/shell'
 import { EaListPanel, EaWorkspaceArea, EaWorkspaceEmptyState } from '@/components/engagement/EaLayout'
-import { useEngagementNav } from '@/providers/engagement-nav-provider'
+import { useEngagementNav, type EngagementTab, type EngagementNavCounts } from '@/providers/engagement-nav-provider'
 import { useNarrowViewport } from '@/hooks/useNarrowViewport'
 
 // ── API helpers ───────────────────────────────────────────────────────────────
@@ -79,7 +79,7 @@ function EngagementPageInner() {
     activeTab, search, setCounts, setRefreshing: setNavRefreshing, setOnRefresh,
     setLeads: setNavLeads, setVisible: setNavVisible, setThreadMap: setNavThreadMap,
     setSelectedId: setNavSelectedId, setLoading: setNavLoading, setOnSelect, setOnOpenDraft: setNavOnOpenDraft,
-    setOnLinkCompany,
+    setOnLinkCompany, navCollapsed, setNavCollapsed,
   } = useEngagementNav()
 
   const [leads,           setLeads]           = useState<Lead[]>([])
@@ -112,38 +112,44 @@ function EngagementPageInner() {
 
   const log = useAuditLog()
 
-  // Segment helpers
+  // Which section a conversation belongs to. Prospects/clients come from lead intake; the rest
+  // read the thread itself (category, company link, direction of the newest message).
   const isProspect = (l: Lead) =>
     (EMAIL_SOURCES.has(l.source) || !!l.campaign_context) && l.segment !== 'existing_client'
   const isClient = (l: Lead) =>
     (!EMAIL_SOURCES.has(l.source) && !l.campaign_context) || l.segment === 'existing_client'
+  const inSection = useCallback((l: Lead, tab: EngagementTab): boolean => {
+    switch (tab) {
+      case 'all':             return true
+      case 'needs_reply':     return leadNeedsReply(l, threadMap[l.id])
+      case 'awaiting_client': return !leadNeedsReply(l, threadMap[l.id]) && (l.lastDirection === 'outbound' || (threadMap[l.id]?.messages.at(-1)?.direction === 'outbound'))
+      case 'unlinked':        return !l.companyId
+      case 'unassigned':      return !!l.companyId && !l.companyOwner
+      case 'renewals':        return l.category === 'renewal'
+      case 'claims':          return l.category === 'claim'
+      case 'rfqs':            return l.category === 'rfq'
+      case 'clients':         return isClient(l)
+      case 'prospects':       return isProspect(l)
+      case 'drafts':          return false
+    }
+  }, [threadMap]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const prospectsCount = useMemo(() => leads.filter(isProspect).length, [leads]) // eslint-disable-line react-hooks/exhaustive-deps
-  const clientsCount   = useMemo(() => leads.filter(isClient).length,   [leads]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const unlinkedCount = useMemo(() => leads.filter(l => !l.companyId).length, [leads])
-
-  // Push the all/prospects/clients/unlinked counts up to EngagementRail's EngagementFolderNav —
-  // `drafts` is merged in separately by ConversationList (which owns loading the drafts list).
+  // Push every section's count up to the rail — `drafts` is merged in separately by
+  // ConversationList (which owns loading the drafts list).
   useEffect(() => {
-    setCounts(c => ({ ...c, all: leads.length, prospects: prospectsCount, clients: clientsCount, unlinked: unlinkedCount }))
-  }, [leads.length, prospectsCount, clientsCount, unlinkedCount, setCounts])
+    const tabs: EngagementTab[] = ['all', 'needs_reply', 'awaiting_client', 'unlinked', 'unassigned', 'renewals', 'claims', 'rfqs', 'clients', 'prospects']
+    setCounts(c => ({ ...c, ...Object.fromEntries(tabs.map(t => [t, leads.filter(l => inSection(l, t)).length])) as Partial<EngagementNavCounts> }))
+  }, [leads, inSection, setCounts])
 
   // Sorted + filtered list
   const visible = useMemo(() => {
-    const filtered = leads.filter(l => {
-      if (activeTab === 'prospects') return isProspect(l)
-      if (activeTab === 'clients')   return isClient(l)
-      if (activeTab === 'unlinked')  return !l.companyId
-      return true
-    }).filter(l => matchesSearch(l, search))
-
+    const filtered = leads.filter(l => inSection(l, activeTab)).filter(l => matchesSearch(l, search))
     return [...filtered].sort((a, b) => {
       const ta = threadMap[a.id]?.messages.at(-1)?.sent_at ?? a.created_at
       const tb = threadMap[b.id]?.messages.at(-1)?.sent_at ?? b.created_at
       return new Date(tb).getTime() - new Date(ta).getTime()
     })
-  }, [leads, activeTab, search, threadMap]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [leads, activeTab, search, threadMap, inSection])
   useEffect(() => { setNavVisible(visible) }, [visible, setNavVisible])
 
   // Load leads
@@ -352,26 +358,38 @@ function EngagementPageInner() {
 
   const selectedLead   = leads.find(l => l.id === selectedId) ?? null
   const selectedThread = selectedId ? threadMap[selectedId] : undefined
-  // Below the breakpoint where EngagementRail can host the list (see useNarrowViewport), this
-  // page falls back to its own EaListPanel + ConversationList — EngagementRail hides there and
-  // has no room for it.
+  // Below the breakpoint where EngagementRail can host the navigator (see useNarrowViewport),
+  // this page renders it inline in EaListPanel — EngagementRail hides there and has no room.
   const isDesktop = !useNarrowViewport()
 
-  const listContent = (
-    <ConversationList
-      leads={leads}
-      visible={visible}
-      threadMap={threadMap}
-      selectedId={selectedId}
-      activeTab={activeTab}
-      search={search}
-      loading={loading}
-      refreshing={refreshing}
-      onSelect={handleSelect}
-      onOpenDraft={handleOpenDraft}
-      onRefresh={handleRefresh}
-    />
-  )
+  // Narrow viewports get the same navigator inline (full width on a phone: navigator → reader).
+  // It reads the context this page mirrors into, so the handlers above still drive it.
+  const listContent = <ThreadListPane />
+
+  // Keyboard shortcuts, page-wide:
+  //   ⌘K / Ctrl+K  focus the navigator search (expands the collapsed rail first)
+  //   /            same, only when no field has focus
+  //   c            new email, only when no field has focus and no dialog is open
+  // ArrowUp/ArrowDown between rows live in ThreadListPane (roving focus inside the list).
+  useEffect(() => {
+    const isEditing = () => {
+      const el = document.activeElement as HTMLElement | null
+      return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)
+    }
+    const dialogOpen = () => !!document.querySelector('[role="dialog"], [aria-modal="true"]')
+    const focusSearch = () => {
+      if (navCollapsed) setNavCollapsed(false)
+      requestAnimationFrame(() => document.getElementById(SEARCH_INPUT_ID)?.focus())
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); focusSearch(); return }
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.key === '/' && !isEditing()) { e.preventDefault(); focusSearch(); return }
+      if (e.key === 'c' && !isEditing() && !newCompose && !dialogOpen()) { e.preventDefault(); handleOpenDraft({ toEmail: '', cc: '', subject: '', body: '' }) }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [navCollapsed, setNavCollapsed, newCompose, handleOpenDraft])
   const workspaceContent = selectedLead ? (
     <ThreadView
       lead={selectedLead}
@@ -406,7 +424,7 @@ function EngagementPageInner() {
         </div>
       ) : (
         <div className="flex flex-1 overflow-hidden">
-          <EaListPanel mobileHidden={mobilePanelView === 'thread'}>
+          <EaListPanel mobileHidden={mobilePanelView === 'thread'} className="lg:!w-[320px]">
             {listContent}
           </EaListPanel>
           <EaWorkspaceArea mobileHidden={mobilePanelView === 'list'}>
