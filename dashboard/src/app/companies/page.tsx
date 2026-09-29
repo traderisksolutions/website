@@ -62,8 +62,8 @@ function CompaniesInner() {
       case 'attention': return needsAttention(r, today)
       case 'renewals': return inRenewals(r)
       case 'awaiting': return c.needsReply > 0
-      case 'mine': return !!me && (c.owner_email === me || r.d.owners.includes(me))
-      case 'unassigned': return !c.owner_email
+      case 'mine': return !!me && (c.owner_emails.includes(me) || r.d.owners.includes(me))
+      case 'unassigned': return c.owner_emails.length === 0
     }
   }, [today, me]) // eslint-disable-line react-hooks/exhaustive-deps
   
@@ -75,14 +75,14 @@ function CompaniesInner() {
       if (!inView(r, view)) return false
       if (!inRenewalWindow(c.nextRenewalDate, today, f.renewal)) return false
       if (f.stage && c.stage !== f.stage) return false
-      if (f.owner === '__none__' && c.owner_email) return false
-      if (f.owner === '__me__' && (!me || c.owner_email !== me)) return false
-      if (f.owner && f.owner !== '__none__' && f.owner !== '__me__' && c.owner_email !== f.owner) return false
+      if (f.owner === '__none__' && c.owner_emails.length > 0) return false
+      if (f.owner === '__me__' && (!me || !c.owner_emails.includes(me))) return false
+      if (f.owner && f.owner !== '__none__' && f.owner !== '__me__' && !c.owner_emails.includes(f.owner)) return false
       if (f.awaiting === 'yes' && c.needsReply === 0) return false
       if (f.awaiting === 'no' && c.needsReply > 0) return false
       if (f.threads === 'open' && c.openThreads === 0) return false
       if (f.threads === 'none' && c.openThreads > 0) return false
-      if (needle && ![c.name, ...c.domains, c.owner_email ?? '', staff.get(c.owner_email ?? '')?.name ?? '', c.industry ?? '', ...c.tasks.map(t => t.title)].join(' ').toLowerCase().includes(needle)) return false
+      if (needle && ![c.name, ...c.domains, ...c.owner_emails, ...c.owner_emails.map(o => staff.get(o)?.name ?? ''), c.industry ?? '', ...c.tasks.map(t => t.title)].join(' ').toLowerCase().includes(needle)) return false
       return true
     })
     return [...list].sort((a, b) => compareRows(a, b, sort))

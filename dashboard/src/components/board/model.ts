@@ -139,7 +139,7 @@ export function derive(c: BoardCompany, today: string): Derived {
     : (c.needsReply > 0 || dueThisWeek > 0 || renewalSoon) ? 'watch' : 'good'
 
   const owners = Array.from(new Set([
-    ...(c.owner_email ? [c.owner_email] : []),
+    ...c.owner_emails,
     ...open.flatMap(t => [t.primary_assignee, ...t.collaborators]).filter((e): e is string => !!e),
   ]))
 

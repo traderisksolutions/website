@@ -96,6 +96,7 @@ export function normalizeCompany(row: Json): Company {
     stage:            (STAGES as readonly string[]).includes(stage) ? stage as Stage : 'client',
     stage_changed_at: (row.stage_changed_at as string | null) ?? null,
     owner_email:      (row.owner_email as string | null) ?? null,
+    owner_emails:     Array.isArray(row.owner_emails) ? (row.owner_emails as string[]).filter(Boolean) : row.owner_email ? [row.owner_email as string] : [],
     domains,
     domain:           legacyDomain,
     type:             (row.type as string | null) ?? null,

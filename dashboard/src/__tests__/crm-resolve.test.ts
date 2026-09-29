@@ -3,7 +3,7 @@ import { companyCore, makeCompanyIndex, matchByName, matchByDomain, resolveThrea
 import type { Company } from '@/lib/crm/types'
 
 const co = (id: string, name: string, domains: string[] = []): Company => ({
-  id, name, kind: 'client', stage: 'client', stage_changed_at: null, owner_email: null, domains,
+  id, name, kind: 'client', stage: 'client', stage_changed_at: null, owner_email: null, owner_emails: [], domains,
   domain: domains[0] ?? null, type: null, industry: null, address: null, notes: null, source: null,
   ai_brief: null, ai_brief_at: null, ai_brief_model: null, created_at: '', updated_at: '',
 })

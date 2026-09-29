@@ -1,7 +1,7 @@
 /**
  * GET   /api/companies/[id]  → the company, its contacts, policies, debit notes (with derived
  *                              payment status) and a summary block for the workspace header.
- * PATCH /api/companies/[id]  → { stage?, owner_email?, domains?, notes?, industry?, address?, kind? }
+ * PATCH /api/companies/[id]  → { stage?, owner_emails?, owner_email?, domains?, notes?, industry?, address?, kind? }
  *                              Stage changes are written to the audit log so the timeline shows them.
  */
 import { NextRequest, NextResponse } from 'next/server'
@@ -117,7 +117,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (typeof body.industry === 'string') patch.industry = body.industry.trim() || null
     if (typeof body.address === 'string')  patch.address = body.address.trim() || null
     if (typeof body.name === 'string' && body.name.trim()) patch.company_name = body.name.trim()
-    if (body.owner_email === null || typeof body.owner_email === 'string') patch.owner_email = typeof body.owner_email === 'string' ? body.owner_email.trim().toLowerCase() || null : null
+    // Owners: one or many. `owner_emails` is the list; `owner_email` mirrors its first entry so
+    // every older read keeps working. A single owner_email still sets the list.
+    if (Array.isArray(body.owner_emails)) {
+      const list = Array.from(new Set(body.owner_emails.map(e => String(e).trim().toLowerCase()).filter(Boolean)))
+      patch.owner_emails = list; patch.owner_email = list[0] ?? null
+    } else if (body.owner_email === null || typeof body.owner_email === 'string') {
+      const one = typeof body.owner_email === 'string' ? body.owner_email.trim().toLowerCase() || null : null
+      patch.owner_email = one; patch.owner_emails = one ? [one] : []
+    }
     if (typeof body.kind === 'string' && (COMPANY_KINDS as readonly string[]).includes(body.kind)) patch.kind = body.kind
     if (Array.isArray(body.domains)) {
       const domains = Array.from(new Set(body.domains.map(d => String(d).trim().toLowerCase().replace(/^@/, '')).filter(d => d.includes('.') && !PUBLIC_EMAIL_DOMAINS.has(d))))
@@ -139,7 +147,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
     if (Object.keys(patch).length === 1) return NextResponse.json({ error: 'nothing to update' }, { status: 400 })
 
-    await sb(`companies?id=eq.${enc(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(patch) })
+    try {
+      await sb(`companies?id=eq.${enc(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(patch) })
+    } catch (e) {
+      // Until 20260930_company_owners.sql is applied the list column does not exist; keep the first owner.
+      if ('owner_emails' in patch && /owner_emails/.test(String(e))) { const { owner_emails: _o, ...rest } = patch; void _o; await sb(`companies?id=eq.${enc(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(rest) }) }
+      else throw e
+    }
     if (stageChanged) void logActivity({ action: 'company.stage', resource_type: 'company', resource_id: id, old_value: { stage: before.stage }, new_value: { stage: patch.stage } })
     else void logActivity({ action: 'company.updated', resource_type: 'company', resource_id: id, new_value: patch })
 

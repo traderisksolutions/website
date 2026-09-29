@@ -18,7 +18,7 @@ export function attentionReasons(r: Row, today: string): AttentionReason[] {
   const b = renewalBucket(c.nextRenewalDate, today)
   if (b === 'within_7' || b === 'within_30') out.push('renewal')
   if (b === 'overdue') out.push('ended')
-  if (!c.owner_email) out.push('owner')
+  if (c.owner_emails.length === 0) out.push('owner')
   return out
 }
 

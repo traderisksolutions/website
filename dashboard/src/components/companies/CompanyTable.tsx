@@ -70,7 +70,7 @@ export function compareRows(a: Row, b: Row, sort: Sort): number {
     case 'threads': return dir * ((a.company.openThreads - b.company.openThreads) || (a.company.needsReply - b.company.needsReply)) || a.company.name.localeCompare(b.company.name)
     case 'ltv':     return dir * ((ltvOf(a)?.total ?? 0) - (ltvOf(b)?.total ?? 0)) || a.company.name.localeCompare(b.company.name)
     case 'renewal': { const ra = a.company.nextRenewalDate, rb = b.company.nextRenewalDate; return last(!ra, !rb) || dir * (ra! < rb! ? -1 : ra! > rb! ? 1 : 0) || a.company.name.localeCompare(b.company.name) }
-    case 'owner':   { const oa = a.company.owner_email, ob = b.company.owner_email; return last(!oa, !ob) || dir * (oa ?? '').localeCompare(ob ?? '') || (b.company.lastActivityAt ?? '').localeCompare(a.company.lastActivityAt ?? '') }
+    case 'owner':   { const oa = a.company.owner_emails[0] ?? null, ob = b.company.owner_emails[0] ?? null; return last(!oa, !ob) || dir * (oa ?? '').localeCompare(ob ?? '') || (b.company.lastActivityAt ?? '').localeCompare(a.company.lastActivityAt ?? '') }
   }
 }
 
@@ -128,7 +128,7 @@ export function CompanyTable({ rows, today, staff, workloads, selectedId, onSele
                 const c = r.company
                 const on = selectedId === c.id
                 const ltv = ltvOf(r)
-                const owner = c.owner_email
+                const owners = c.owner_emails
                 return (
                   <tr key={c.id} tabIndex={0} aria-selected={on} data-company={c.id} onClick={() => onSelect(c.id)}
                     onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(c.id) } }}
@@ -149,7 +149,7 @@ export function CompanyTable({ rows, today, staff, workloads, selectedId, onSele
                     <td className="px-4 py-4 align-middle text-right whitespace-nowrap"><RenewalCell date={c.nextRenewalDate} today={today} align="right" /></td>
                     <td className="px-4 pr-6 py-4 align-middle whitespace-nowrap">
                       <span className="flex items-center gap-2.5">
-                        {owner ? <PersonTag email={owner} staff={staff} size="md" /> : <span className="text-[13.5px]" style={{ color: MUTED }}>No owner</span>}
+                        {owners.length ? owners.map(o => <PersonTag key={o} email={o} staff={staff} size="md" />) : <span className="text-[13.5px]" style={{ color: MUTED }}>No owner</span>}
                         <span className="text-[12.5px]" style={{ color: MUTED }}>{c.lastActivityAt ? `Last activity ${relative(c.lastActivityAt)}` : 'No activity yet'}</span>
                       </span>
                     </td>

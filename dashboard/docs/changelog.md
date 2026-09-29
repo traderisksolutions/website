@@ -4,6 +4,56 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-09-30 — PRODUCTION IS BLANK: the API gate is enforcing with no keys
+
+trs-dashboard-pi.vercel.app answers every `/api/**` call with
+`401 {"error":"Missing x-api-key header.","code":"missing_key"}`, so every page renders empty
+(0 conversations, 0 companies). The data is intact. Cause: the gate defaults to `enforce`
+(`src/lib/api-gate/runtime.ts`), `WEB_API_KEY` is not set on Vercel so the boot script attaches
+no header, and `api_clients` has no rows.
+
+Fix, in order (the deploying account):
+1. Immediate: set `API_GATE_MODE=log-only` on Vercel and redeploy. Pages come back at once.
+2. Proper: with `SUPABASE_SERVICE_KEY` in the shell, from the dashboard folder run
+   `node scripts/api-key.mjs issue dashboard browser web` and
+   `node scripts/api-key.mjs issue internal machine machine`. Each prints its key once.
+   Put the first in Vercel as `WEB_API_KEY` and the second as `INTERNAL_API_KEY`, redeploy,
+   then remove `API_GATE_MODE` so the gate enforces.
+
+---
+
+## 2026-09-30 (night, later) — A company can have one or many owners
+
+- **SQL to run:** `supabase/migrations/20260930_company_owners.sql` adds `companies.owner_emails
+  text[]` (default empty), backfills it from `owner_email`, and indexes it. `owner_email` stays
+  and always mirrors the first entry, so every existing read (inbox filing, triage, briefs, the
+  Unassigned views, the conversations API) keeps working. Until the SQL runs, the PATCH falls
+  back to writing only the first owner.
+- `PATCH /api/companies/[id]` takes `owner_emails: string[]` (a lone `owner_email` still sets
+  the list). The edit-company dialog only sends the owner when it was changed, so it cannot
+  wipe co-owners.
+- `OwnerPicker` (badge per owner with a remove, "Add person" select from the team, "No owner"
+  when empty) replaces the single select on the company page header and in the company panel.
+- Companies table shows every owner; sort by owner uses the first. Home cards show every
+  owner. "My clients", the owner filter, search, Unassigned, the no-owner badge and the
+  attention rule all read the list.
+
+---
+
+## 2026-09-30 (night) — Home trimmed; owner is chosen, not defaulted; drawer under the navbar
+
+- Home: the Add company button is gone (it lives on Companies) and the Pinned | Unassigned
+  switch is gone. Home is the pinned companies again. The Unassigned views stay in All Inbox
+  and on Companies.
+- Owner: a person picker on the company page header and in the company panel (the team roster
+  from `/api/users`, "No owner" first). `PATCH /api/companies/[id] { owner_email }` already
+  existed. Nothing defaults an owner in code; the 34 clients showing Nathan carry that value in
+  the database from an earlier import, and each can now be changed or cleared in place.
+- Company panel: it sat under the 56px navbar (`inset-y-0`), so its header was hidden; it now
+  starts at 56px. Its Policies, Threads and Finance lists are registers.
+
+---
+
 ## 2026-09-30 (later) — Endorsements follow the main policy; Unassigned views; Overview on the register
 
 ### 1. A mid-term endorsement is an amendment to the main policy

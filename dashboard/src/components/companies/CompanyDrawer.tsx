@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { X, ExternalLink, MoreHorizontal, ArrowUpRight, Pin } from 'lucide-react'
+import { X, ExternalLink, MoreHorizontal, Pin } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { StaffMember } from '@/lib/crm/staff'
 import type { Row } from '@/components/board/useBoardData'
@@ -14,7 +14,8 @@ import { EditCompanyDialog } from '@/components/crm/dialogs'
 import type { CompanyThread, PaymentDerived, PaymentSummary, Company } from '@/lib/crm/types'
 import { fmtMoney, fmtDate } from '@/lib/crm/format'
 import { STAGE_LABEL } from '@/lib/crm/types'
-import { RenewalCell } from './CompanyTable'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
+import { OwnerPicker } from './OwnerPicker'
 
 /**
  * The company panel. Opens over Home or the Companies table and keeps them where they were.
@@ -77,16 +78,19 @@ export function CompanyDrawer({ row, today, staff, staffList, workloads, actions
 
   return (
     <aside ref={panel} tabIndex={-1} role="dialog" aria-label={c.name}
-      className="fixed inset-y-0 right-0 z-40 w-full sm:w-[460px] bg-white flex flex-col outline-none"
-      style={{ borderLeft: `1px solid ${RULE}`, boxShadow: '-24px 0 48px -32px rgba(32,33,36,0.25)', color: INK, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+      className="fixed right-0 z-40 w-full sm:w-[460px] bg-white flex flex-col outline-none"
+      style={{ top: 56, bottom: 0, borderLeft: `1px solid ${RULE}`, boxShadow: '-24px 0 48px -32px rgba(32,33,36,0.25)', color: INK, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
 
       {/* Header */}
       <div className="flex-shrink-0 px-7 pt-7 pb-0">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
             <h2 className="m-0 text-[22px] font-medium leading-[1.2] tracking-[-0.01em]" style={{ textWrap: 'balance' }}>{c.name}</h2>
-            <p className="m-0 mt-1.5 text-[13.5px] truncate" style={{ color: MUTED }}>
-              {STAGE_LABEL[c.stage as keyof typeof STAGE_LABEL] ?? c.stage}{c.domains[0] ? ` · ${c.domains[0]}` : ''}{owner ? ` · ${owner}` : ' · No owner'}
+            <p className="m-0 mt-1.5 text-[13.5px] flex items-center gap-2 flex-wrap" style={{ color: MUTED }}>
+              <span className="truncate">{STAGE_LABEL[c.stage as keyof typeof STAGE_LABEL] ?? c.stage}{c.domains[0] ? ` · ${c.domains[0]}` : ''}</span>
+              <span aria-hidden>·</span>
+              {/* Owners are chosen here, per company: one or many. Nobody is an owner by default. */}
+              <OwnerPicker value={c.owner_emails} staff={staffList} onChange={list => void onPatchCompany(c.id, { owner_emails: list })} />
             </p>
           </div>
           <div className="relative flex items-center gap-1 flex-shrink-0 -mr-2 -mt-1">
@@ -135,83 +139,64 @@ export function CompanyDrawer({ row, today, staff, staffList, workloads, actions
         {tab === 'policies' && (
           detail === null ? <p className="m-0 text-[14px]" style={{ color: MUTED }}>Loading…</p> :
           detail.policies.length === 0 ? <p className="m-0 text-[14px]" style={{ color: MUTED }}>No policies on file.</p> : (
-            <ul className="m-0 p-0 list-none">
-              {[...detail.policies].sort((a, b) => (b.end_date ?? '').localeCompare(a.end_date ?? '')).map(p => (
-                <li key={p.id} style={{ borderBottom: `1px solid ${RULE}` }} className="last:border-b-0">
-                  <Link href={policyHref(p)} className="group flex items-start justify-between gap-4 py-4 no-underline" style={{ color: INK }} title="Open the debit note and policy document">
-                    <span className="min-w-0">
-                      <span className="block text-[15px] font-medium leading-snug">{p.class_of_insurance ?? 'Policy'}</span>
-                      <span className="block text-[13px] mt-0.5 truncate" style={{ color: MUTED }}>{[p.insurer, p.policy_number].filter(Boolean).join(' · ') || 'No insurer on file'}</span>
-                      <span className="block text-[13px] mt-1.5" style={{ color: MUTED }}>
-                        {p.start_date ? `${fmtDate(p.start_date)} – ` : ''}{p.end_date ? fmtDate(p.end_date) : 'no end date'}
-                        {p.premium ? ` · ${fmtMoney(p.premium, p.currency ?? 'SGD')}` : ''}
-                        {p.status && p.status !== 'active' ? ` · ${p.status}` : ''}
-                      </span>
-                    </span>
-                    <span className="flex-shrink-0 flex flex-col items-end gap-1.5">
-                      {p.end_date && <RenewalCell date={p.end_date} today={today} align="right" />}
-                      <ArrowUpRight size={15} className="opacity-40 group-hover:opacity-100 transition-opacity" />
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <Register label="Policies" minWidth={0}>
+              <RegisterHead>
+                <RegisterTh first>Cover</RegisterTh>
+                <RegisterTh align="right" last>Renewal</RegisterTh>
+              </RegisterHead>
+              <tbody>
+                {[...detail.policies].sort((a, b) => (b.end_date ?? '').localeCompare(a.end_date ?? '')).map(p => (
+                  <RegisterRow key={p.id} onClick={() => { window.location.href = policyHref(p) }}>
+                    <RegisterCell first identityWidth={230} primary={p.class_of_insurance ?? 'Policy'} secondary={[p.insurer, p.policy_number].filter(Boolean).join(' · ') || 'No insurer on file'} />
+                    <RegisterCell last align="right" primary={p.end_date ? fmtDate(p.end_date) : 'No end date'} secondary={p.status && p.status !== 'active' ? p.status : p.premium ? fmtMoney(p.premium, p.currency ?? 'SGD') : undefined} />
+                  </RegisterRow>
+                ))}
+              </tbody>
+            </Register>
           )
         )}
 
         {tab === 'threads' && (
           threads === null ? <p className="m-0 text-[14px]" style={{ color: MUTED }}>Loading…</p> :
           threads.length === 0 ? <p className="m-0 text-[14px]" style={{ color: MUTED }}>No threads are filed under this company yet.</p> : (
-            <ul className="m-0 p-0 list-none">
-              {threads.map(t => (
-                <li key={t.id} style={{ borderBottom: `1px solid ${RULE}` }} className="last:border-b-0">
-                  <Link href={`/engagement?lead=${t.id}`} className="group flex items-start justify-between gap-4 py-3.5 no-underline" style={{ color: INK }}>
-                    <span className="min-w-0">
-                      <span className="block text-[14px] leading-snug truncate">{t.subject ?? '(no subject)'}</span>
-                      <span className="block text-[13px] mt-0.5 truncate" style={{ color: MUTED }}>
-                        {t.contact?.name ?? t.contact?.email ?? 'Unknown'}{t.needsReply ? ' · Awaiting our reply' : ''}{t.category ? ` · ${t.category}` : ''} · {relative(t.last_message_at)}
-                      </span>
-                    </span>
-                    <ArrowUpRight size={15} className="flex-shrink-0 mt-1 opacity-40 group-hover:opacity-100 transition-opacity" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <Register label="Threads" minWidth={0}>
+              <RegisterHead>
+                <RegisterTh first>Thread</RegisterTh>
+                <RegisterTh align="right" last>Last message</RegisterTh>
+              </RegisterHead>
+              <tbody>
+                {threads.map(t => (
+                  <RegisterRow key={t.id} onClick={() => { window.location.href = `/engagement?lead=${t.id}` }}>
+                    <RegisterCell first identityWidth={250} primary={t.subject ?? '(no subject)'} secondary={[t.contact?.name ?? t.contact?.email ?? 'Unknown', t.needsReply ? 'Awaiting our reply' : null, t.category].filter(Boolean).join(' · ')} />
+                    <RegisterCell last align="right" primary={relative(t.last_message_at)} />
+                  </RegisterRow>
+                ))}
+              </tbody>
+            </Register>
           )
         )}
 
         {tab === 'finance' && (
           detail === null ? <p className="m-0 text-[14px]" style={{ color: MUTED }}>Loading…</p> :
           detail.payments.length === 0 ? <p className="m-0 text-[14px]" style={{ color: MUTED }}>No debit notes yet.</p> : (
-            <table className="w-full border-collapse text-[13.5px]">
-              <thead>
-                <tr style={{ color: MUTED }}>
-                  <th className="text-left font-medium pb-2 pr-3" style={{ borderBottom: `1px solid ${RULE}` }}>Debit note</th>
-                  <th className="text-left font-medium pb-2 pr-3 whitespace-nowrap" style={{ borderBottom: `1px solid ${RULE}` }}>Due</th>
-                  <th className="text-right font-medium pb-2 whitespace-nowrap" style={{ borderBottom: `1px solid ${RULE}` }}>Amount due</th>
-                </tr>
-              </thead>
+            <Register label="Debit notes" minWidth={0}>
+              <RegisterHead>
+                <RegisterTh first>Debit note</RegisterTh>
+                <RegisterTh align="right" last>Amount due</RegisterTh>
+              </RegisterHead>
               <tbody>
                 {[...detail.payments].sort((a, b) => (a.payment_due_date ?? '').localeCompare(b.payment_due_date ?? '')).map(n => (
-                  <tr key={n.id} style={{ borderBottom: `1px solid ${RULE}` }} className="last:border-b-0">
-                    <td className="py-3 pr-3 align-top">
-                      <Link href={`/debit-notes?company_id=${c.id}&open=${n.id}`} className="no-underline hover:underline underline-offset-4" style={{ color: INK }}>{n.debit_note_no}</Link>
-                      <span className="block text-[12.5px] truncate max-w-[180px]" style={{ color: MUTED }}>{n.classOfInsurance ?? n.insurer ?? ''}</span>
-                    </td>
-                    <td className="py-3 pr-3 align-top whitespace-nowrap tabular-nums">{n.payment_due_date ? fmtDate(n.payment_due_date) : '—'}</td>
-                    <td className="py-3 align-top text-right whitespace-nowrap tabular-nums">{n.outstanding > 0 ? fmtMoney(n.outstanding, n.currency) : <span style={{ color: MUTED }}>Settled</span>}</td>
-                  </tr>
+                  <RegisterRow key={n.id} onClick={() => { window.location.href = `/debit-notes?company_id=${c.id}&open=${n.id}` }}>
+                    <RegisterCell first identityWidth={230} primary={n.debit_note_no} secondary={[n.classOfInsurance ?? n.insurer, n.payment_due_date ? `due ${fmtDate(n.payment_due_date)}` : null].filter(Boolean).join(' · ') || undefined} />
+                    <RegisterCell last align="right" primary={n.outstanding > 0 ? fmtMoney(n.outstanding, n.currency) : <span style={{ color: MUTED }}>Settled</span>} />
+                  </RegisterRow>
                 ))}
+                <RegisterRow>
+                  <RegisterCell first identityWidth={230}><span className="text-[13px]" style={{ color: MUTED }}>Total due</span></RegisterCell>
+                  <RegisterCell last align="right"><span className="text-[14px] font-medium tabular-nums" style={{ color: INK }}>{detail.paymentSummary.byCurrency.filter(m => m.outstanding > 0).map(m => fmtMoney(m.outstanding, m.currency)).join(' · ') || '—'}</span></RegisterCell>
+                </RegisterRow>
               </tbody>
-              <tfoot>
-                <tr>
-                  <td className="pt-3 text-[13px]" style={{ color: MUTED }} colSpan={2}>Total due</td>
-                  <td className="pt-3 text-right font-medium tabular-nums whitespace-nowrap">
-                    {detail.paymentSummary.byCurrency.filter(m => m.outstanding > 0).map(m => fmtMoney(m.outstanding, m.currency)).join(' · ') || '—'}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
+            </Register>
           )
         )}
       </div>

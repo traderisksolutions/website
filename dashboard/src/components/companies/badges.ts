@@ -28,7 +28,7 @@ export function badgesFor(r: Row, today: string): CompanyBadge[] {
   if (c.tasks.some(t => isOpen(t) && t.priority === 'critical')) out.push({ key: 'high_priority', label: 'High priority', tone: 'amber', title: 'A critical item is open' })
   if ((c.threadsByCategory.claim ?? 0) > 0) out.push({ key: 'claim_open', label: 'Claim open', tone: 'blue', title: `${c.threadsByCategory.claim} active claim thread${c.threadsByCategory.claim === 1 ? '' : 's'}` })
   if ((c.threadsByCategory.rfq ?? 0) > 0 || c.openQuotes > 0) out.push({ key: 'rfq_active', label: 'RFQ active', tone: 'blue', title: 'A quotation is in progress' })
-  if (!c.owner_email && d.owners.length === 0) out.push({ key: 'no_owner', label: 'No owner', tone: 'neutral', title: 'Nobody is assigned to this account' })
+  if (c.owner_emails.length === 0 && d.owners.length === 0) out.push({ key: 'no_owner', label: 'No owner', tone: 'neutral', title: 'Nobody is assigned to this account' })
   if (c.confirmed_at === null) out.push({ key: 'unconfirmed', label: 'Unconfirmed', tone: 'amber', title: 'Created by mail filing; a person has not checked the name yet' })
 
   return out.sort((a, b) => BADGE_ORDER.indexOf(a.key) - BADGE_ORDER.indexOf(b.key))

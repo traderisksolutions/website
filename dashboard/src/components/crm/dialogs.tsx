@@ -88,7 +88,7 @@ export function EditCompanyDialog({ open, onClose, company, onSaved }: { open: b
     try {
       const res = await fetch(`/api/companies/${company.id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, domains: domains.split(/[,\s]+/).map(s => s.trim()).filter(Boolean), owner_email: owner.trim() || null, industry, address, notes }),
+        body: JSON.stringify({ name, domains: domains.split(/[,\s]+/).map(s => s.trim()).filter(Boolean), ...(owner.trim() !== (company.owner_email ?? '') ? { owner_email: owner.trim() || null } : {}), industry, address, notes }),
       })
       const d = await res.json()
       if (!res.ok) throw new Error(d.error ?? 'Could not save.')

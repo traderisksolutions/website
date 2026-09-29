@@ -1,18 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { OwnerPicker } from '@/components/companies/OwnerPicker'
 import Link from 'next/link'
 import { Pencil, Sparkles } from 'lucide-react'
 import { Btn, Chip } from './primitives'
 import { EditCompanyDialog } from './dialogs'
 import { BoardChip } from '@/components/board/BoardChip'
-import { PersonTag } from '@/components/board/TodoEditor'
 import type { StaffMember } from '@/lib/crm/staff'
 import { STAGES, STAGE_LABEL, type Company, type Stage } from '@/lib/crm/types'
 
 const INK = '#202124'
 const MUTED = '#5f6368'
-const NO_STAFF = new Map<string, StaffMember>()
 
 /** Strip the money segment: the header names the relationship, the Finance tab carries the figures. */
 function withoutMoney(line: string): string {
@@ -30,6 +29,24 @@ export function CompanyHeader({ company, statusLine, onCompany, onStage, onAskAi
   const [editing, setEditing] = useState(false)
   const [changing, setChanging] = useState(false)
   const [confirming, setConfirming] = useState(false)
+  const [team, setTeam] = useState<{ email: string; name: string }[]>([])
+  const [savingOwner, setSavingOwner] = useState(false)
+  // The people who can own a company: the team roster. Loaded once; the picker degrades to the
+  // current owner alone if the roster is unavailable.
+  useEffect(() => {
+    fetch('/api/users', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => {
+      const list = Array.isArray(d) ? d : Array.isArray(d?.users) ? d.users : []
+      setTeam(list.filter((u: { email?: string; status?: string }) => u.email && u.status !== 'suspended').map((u: { email: string; name?: string }) => ({ email: u.email, name: u.name || u.email.split('@')[0] })))
+    }).catch(() => {})
+  }, [])
+  async function setOwners(list: string[]) {
+    setSavingOwner(true)
+    try {
+      const res = await fetch(`/api/companies/${company.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ owner_emails: list }) })
+      const d = await res.json()
+      if (res.ok && d.company) onCompany(d.company)
+    } finally { setSavingOwner(false) }
+  }
 
   async function confirm() {
     setConfirming(true)
@@ -61,9 +78,8 @@ export function CompanyHeader({ company, statusLine, onCompany, onStage, onAskAi
             >
               {STAGES.map(s => <option key={s} value={s}>{STAGE_LABEL[s]}</option>)}
             </select>
-            {company.owner_email
-              ? <PersonTag email={company.owner_email} staff={NO_STAFF} size="md" />
-              : <span>No owner</span>}
+            {/* Owners are chosen per company: one or many. Nobody is an owner by default. */}
+            <OwnerPicker value={company.owner_emails} staff={team.map(m => ({ ...m, actions: 0 }))} onChange={list => void setOwners(list)} disabled={savingOwner} size="md" />
             {company.domains.length > 0 && <span>{company.domains[0]}</span>}
             {company.confirmed_at === null && (
               <span className="inline-flex items-center gap-2">

@@ -6,7 +6,6 @@ import { Search, Pin } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { StaffMember } from '@/lib/crm/staff'
 import type { Company } from '@/lib/crm/types'
-import { NewCompanyDialog } from '@/components/crm/dialogs'
 import { useBoardData, type Row } from '@/components/board/useBoardData'
 import { isOpen, sortTasks } from '@/components/board/model'
 import { PersonTag, dueLabel } from '@/components/board/TodoEditor'
@@ -16,7 +15,7 @@ import { CompanyDrawer } from '@/components/companies/CompanyDrawer'
  * Home: the companies pinned to work on, managed by the team. A card is the company, its open
  * to-dos as white labels in a list that scrolls inside the card, and the owner's badge at the
  * foot. Opening a card is where to-dos are added, edited and removed. Search reaches every
- * client, and a result can be pinned from there.
+ * client, and a result can be pinned from there. Companies are added on the Companies page.
  */
 
 const FIELD = '#F1F3F4'
@@ -28,7 +27,6 @@ function longDate(d: Date): string {
   return d.toLocaleDateString('en-SG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 }
 const isPinned = (r: Row) => !!r.company.home_pinned_at
-const isUnassigned = (r: Row) => r.company.kind === 'client' && ((!r.company.owner_email && (r.d.openCount > 0 || r.company.needsReply > 0)) || r.company.tasks.some(t => isOpen(t) && !t.primary_assignee))
 function nextDue(r: Row): string | null {
   const dated = r.company.tasks.filter(t => isOpen(t) && t.due_on).map(t => t.due_on!).sort()
   return dated[0] ?? null
@@ -41,9 +39,6 @@ export function Catalogue() {
   const [q, setQ] = useState('')
   const [limit, setLimit] = useState(PAGE)
   const [selected, setSelected] = useState<string | null>(null)
-  const [creating, setCreating] = useState(false)
-  /** Pinned = what the team chose to work on. Unassigned = companies nobody owns that still have work, or an open to-do with no person on it. */
-  const [view, setView] = useState<'pinned' | 'unassigned'>('pinned')
 
   useEffect(() => { const id = search.get('company'); if (id) setSelected(id) }, [search])
   useEffect(() => { setLimit(PAGE) }, [q])
@@ -55,10 +50,8 @@ export function Catalogue() {
   const visible = useMemo(() => rows
     .filter(r => needle
       ? [r.company.name, ...r.company.domains, ...r.company.tasks.map(t => t.title)].join(' ').toLowerCase().includes(needle)
-      : view === 'unassigned' ? isUnassigned(r) : pinsAvailable ? isPinned(r) : r.d.openCount > 0)
-    .sort((a, b) => (nextDue(a) ?? '9999').localeCompare(nextDue(b) ?? '9999') || a.company.name.localeCompare(b.company.name)), [rows, needle, pinsAvailable, view])
-  const unassignedCount = useMemo(() => rows.filter(isUnassigned).length, [rows])
-  const pinnedCount = useMemo(() => rows.filter(r => pinsAvailable ? isPinned(r) : r.d.openCount > 0).length, [rows, pinsAvailable])
+      : pinsAvailable ? isPinned(r) : r.d.openCount > 0)
+    .sort((a, b) => (nextDue(a) ?? '9999').localeCompare(nextDue(b) ?? '9999') || a.company.name.localeCompare(b.company.name)), [rows, needle, pinsAvailable])
   const shown = visible.slice(0, limit)
 
   const select = (id: string) => { setSelected(id); router.replace(`/?company=${id}`, { scroll: false }) }
@@ -81,22 +74,12 @@ export function Catalogue() {
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search all companies" aria-label="Search all clients"
               className="h-12 w-full rounded-[12px] border bg-white pl-11 pr-4 text-[15px] outline-none focus:border-[#202124] transition-colors" style={{ borderColor: '#dadce0' }} />
           </label>
-          <button type="button" onClick={() => setCreating(true)} className="h-12 px-6 rounded-[12px] text-white text-[15px] font-medium border-0 cursor-pointer whitespace-nowrap transition-opacity hover:opacity-90" style={{ background: INK }}>Add company</button>
           {sync !== 'idle' && <span role="status" className="text-[13px]" style={{ color: '#80868b' }}>{sync === 'syncing' ? 'Saving…' : sync === 'saved' ? 'Saved' : 'Not saved'}</span>}
         </div>
 
-        {data && !needle && (
-          <div className="mt-8 flex items-center justify-center gap-6" role="tablist" aria-label="Pinned or unassigned">
-            {([['pinned', 'Pinned', pinnedCount], ['unassigned', 'Unassigned', unassignedCount]] as const).map(([k, label, n]) => {
-              const on = view === k
-              return <button key={k} type="button" role="tab" aria-selected={on} onClick={() => setView(k)} className={cn('relative pb-2 bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#202124]')} style={{ color: on ? INK : MUTED }}>{label}<span className="ml-1.5 tabular-nums" style={{ color: '#80868b' }}>{n}</span><span className={cn('absolute left-0 right-0 bottom-0 h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: INK }} aria-hidden /></button>
-            })}
-          </div>
-        )}
-
         {error && <p className="mt-10 text-[14px] text-center" style={{ color: MUTED }}>{error} <button type="button" onClick={() => void reload()} className="underline bg-transparent border-0 cursor-pointer" style={{ color: INK }}>Retry</button></p>}
 
-        <div className="mt-8">
+        <div className="mt-12">
           {!data && !error && (
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" aria-busy="true">
               {Array.from({ length: 10 }).map((_, i) => <div key={i} className="h-[220px] rounded-[16px] animate-pulse" style={{ background: FIELD }} />)}
@@ -106,12 +89,12 @@ export function Catalogue() {
           {data && (
             <>
               <p className="m-0 mb-4 text-[13px] tabular-nums" style={{ color: '#80868b' }} aria-live="polite">
-                {needle ? `${visible.length} of ${rows.length} companies match “${q.trim()}”` : view === 'unassigned' ? `${visible.length} ${visible.length === 1 ? 'company' : 'companies'} with no owner and open work, or a to-do nobody is on` : pinsAvailable ? `${visible.length} pinned ${visible.length === 1 ? 'company' : 'companies'}` : `${visible.length} companies with open to-dos · pinning starts once the board migration is applied`}
+                {needle ? `${visible.length} of ${rows.length} companies match “${q.trim()}”` : pinsAvailable ? `${visible.length} pinned ${visible.length === 1 ? 'company' : 'companies'}` : `${visible.length} companies with open to-dos · pinning starts once the board migration is applied`}
               </p>
 
               {visible.length === 0 ? (
                 <p className="m-0 py-16 text-center text-[16px]" style={{ color: MUTED }}>
-                  {needle ? <>No clients match. <button type="button" onClick={() => setQ('')} className="underline bg-transparent border-0 cursor-pointer" style={{ color: INK }}>Clear search</button></> : view === 'unassigned' ? 'Everything with open work has an owner.' : 'Nothing pinned. Search a company and pin it to work on it.'}
+                  {needle ? <>No clients match. <button type="button" onClick={() => setQ('')} className="underline bg-transparent border-0 cursor-pointer" style={{ color: INK }}>Clear search</button></> : 'Nothing pinned. Search a company and pin it to work on it.'}
                 </p>
               ) : (
                 <ul className={cn('m-0 p-0 list-none grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3', selectedRow ? 'lg:grid-cols-2 xl:grid-cols-3' : 'lg:grid-cols-4 xl:grid-cols-5')}>
@@ -128,7 +111,6 @@ export function Catalogue() {
           )}
         </div>
 
-        <NewCompanyDialog open={creating} onClose={() => setCreating(false)} />
       </div>
 
       {selectedRow && (
@@ -161,10 +143,10 @@ function ClientCard({ r, today, staff, selected, onOpen, highlight, searching, p
           {open.map(t => (
             <li key={t.id} className="bg-white px-2.5 py-1.5 text-[12.5px] leading-snug" style={{ color: INK }}>
               <span className="block">{t.title}</span>
-              {(t.due_on || (t.primary_assignee && t.primary_assignee !== c.owner_email)) && (
+              {(t.due_on || (t.primary_assignee && !c.owner_emails.includes(t.primary_assignee))) && (
                 <span className="mt-0.5 flex items-center gap-1.5 text-[11px]" style={{ color: MUTED }}>
                   {t.due_on && <span>{dueLabel(t.due_on, today)}</span>}
-                  {t.primary_assignee && t.primary_assignee !== c.owner_email && <PersonTag email={t.primary_assignee} staff={staff} />}
+                  {t.primary_assignee && !c.owner_emails.includes(t.primary_assignee) && <PersonTag email={t.primary_assignee} staff={staff} />}
                 </span>
               )}
             </li>
@@ -174,7 +156,7 @@ function ClientCard({ r, today, staff, selected, onOpen, highlight, searching, p
 
         {/* Foot: the owner's badge, and a way to pin or unpin */}
         <div className="mt-2 pt-2.5 flex items-center justify-between gap-2" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-          {c.owner_email ? <PersonTag email={c.owner_email} staff={staff} size="md" /> : <span className="text-[11.5px]" style={{ color: MUTED }}>No owner</span>}
+          <span className="flex items-center gap-1 flex-wrap min-w-0">{c.owner_emails.length ? c.owner_emails.map(o => <PersonTag key={o} email={o} staff={staff} size="md" />) : <span className="text-[11.5px]" style={{ color: MUTED }}>No owner</span>}</span>
           <span className="flex items-center gap-2 text-[11.5px]" style={{ color: MUTED }}>
             <span className="tabular-nums">{open.length} to-do{open.length === 1 ? '' : 's'}</span>
             {pinsAvailable && (searching || pinned) && (

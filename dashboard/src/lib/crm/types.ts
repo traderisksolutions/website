@@ -46,6 +46,8 @@ export interface Company {
   stage: Stage
   stage_changed_at: string | null
   owner_email: string | null
+  /** One or many account owners (staff emails). owner_email mirrors the first. */
+  owner_emails: string[]
   domains: string[]
   domain: string | null
   type: string | null
