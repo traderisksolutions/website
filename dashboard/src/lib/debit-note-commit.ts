@@ -168,33 +168,52 @@ async function resolvePolicy(input: PolicyInput, customerId: string, eventType?:
   return created[0].id as string
 }
 
-// ── Debit note number: "DN" + issue date (YYMMDD), -2/-3… suffix on same-day collision ─────────
-// No space after "DN" (decided 30 Sep 2026). Every debit note on file already uses this form, so
-// the generator now matches the data instead of contradicting it. That also repairs the collision
-// check below: it searches `debit_note_no like 'DN<yymmdd>%'`, which never matched a stored
-// "DN260607" while the generator was minting "DN 260607".
-export function debitNoteNumberBase(issueDateISO: string): string {
+// ── Debit note number: "DN" + YYMM + a running sequence within that month ─────────────────────
+// Six years of records follow this convention: DN2508 runs 01 to 38, and 38 cannot be a day of
+// the month. The generator previously used the day instead, which produced a well-formed number
+// that already belonged to a different note. Four such collisions had to be unpicked by hand,
+// including two clients issued the same number.
+
+/** "DN" + 2-digit year + 2-digit month. The sequence is appended separately. */
+export function debitNoteMonthPrefix(issueDateISO: string): string {
   const d  = new Date(issueDateISO)
   const yy = String(d.getFullYear()).slice(-2)
   const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const dd = String(d.getDate()).padStart(2, '0')
-  return `DN${yy}${mm}${dd}`
+  return `DN${yy}${mm}`
 }
 
-/** Pure: picks the first free number given the base and the set of numbers already in use
- *  (matching the same `DN<yymmdd>` prefix) — no I/O, so it's directly unit-testable. */
-export function pickFreeDebitNoteNumber(base: string, existingNumbers: string[]): string {
-  const used = new Set(existingNumbers)
-  if (!used.has(base)) return base
-  let n = 2
-  while (used.has(`${base}-${n}`)) n++
-  return `${base}-${n}`
+/**
+ * Pure: the next free sequence for a month, given every number already issued in it.
+ * Fills gaps rather than always taking max+1, so a voided note's number is reused rather than
+ * leaving a hole in a sequence people read as contiguous. Pads to 2 digits and grows past 99.
+ */
+export function nextSequenceNumber(prefix: string, existingNumbers: string[]): string {
+  const re = new RegExp(`^${prefix}(\\d{2,3})$`)
+  const used = new Set<number>()
+  for (const raw of existingNumbers) {
+    const m = re.exec((raw ?? '').replace(/\s+/g, '').toUpperCase())
+    if (m) used.add(Number(m[1]))
+  }
+  let n = 1
+  while (used.has(n)) n++
+  return `${prefix}${String(n).padStart(2, '0')}`
 }
 
 export async function generateDebitNoteNumber(issueDateISO: string): Promise<string> {
-  const base = debitNoteNumberBase(issueDateISO)
-  const existing = await pg(`debit_notes?debit_note_no=like.${enc(base)}*&select=debit_note_no`)
-  return pickFreeDebitNoteNumber(base, existing.map(r => r.debit_note_no as string))
+  const prefix = debitNoteMonthPrefix(issueDateISO)
+  // Both tables must be consulted. debit_notes holds what this system has raised; trs_notes is
+  // the historical register migrated from the Drive archive and holds far more. Checking only
+  // debit_notes would happily re-issue a number that already exists on paper — October 2026
+  // had no rows in debit_notes but DN261001 and DN261002 in the register.
+  const [live, register] = await Promise.all([
+    pg(`debit_notes?debit_note_no=like.${enc(prefix)}*&select=debit_note_no`).catch(() => []),
+    pg(`trs_notes?note_no=like.${enc(prefix)}*&select=note_no`).catch(() => []),
+  ])
+  const issued = [
+    ...live.map(r => r.debit_note_no as string),
+    ...register.map(r => r.note_no as string),
+  ]
+  return nextSequenceNumber(prefix, issued)
 }
 
 // ── Top-level commit ────────────────────────────────────────────────────────────────────────
