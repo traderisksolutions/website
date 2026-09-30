@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseDB, EvalStore, ExampleStore } from '@/lib/ai-learning-loop'
 import { requireStaffOrCron } from '@/lib/api-auth'
 
-const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
 function sbHeaders() {
   const k = process.env.SUPABASE_SERVICE_KEY

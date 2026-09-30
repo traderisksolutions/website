@@ -3,14 +3,13 @@
  * shape for a dedicated private bucket that holds both generated (Generate Debit Note) and
  * uploaded (bulk PDF import) debit-note PDFs.
  */
-export const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+export const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 export const BUCKET  = 'debit-notes'
 
-/** debit_note_no is "DN 260805" (space, for display/PDF/email) — a raw space in a storage
- *  object key isn't URL-encoded by the plain template-string fetch() calls this file uses, and
- *  can break the upload the same way bracket-filled insurer filenames did. Strip whitespace
- *  only when building the actual storage key; keep the spaced string everywhere it's shown to
- *  a person (PDF, filename metadata, email subject). */
+/** debit_note_no is "DN260805" — no space, since 30 Sep 2026. Kept as a guard anyway: a raw
+ *  space in a storage object key isn't URL-encoded by the plain template-string fetch() calls
+ *  this file uses, and would break the upload the same way bracket-filled insurer filenames did.
+ *  Historical rows and hand-typed overrides can still carry one. */
 export const storageKeySegment = (s: string) => s.replace(/\s+/g, '')
 
 export function serviceKey(): string {

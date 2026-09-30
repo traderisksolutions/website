@@ -85,10 +85,19 @@ describe('mergeBundleExtractions', () => {
 })
 
 describe('normalizeDebitNoteNo', () => {
-  it('accepts "DN" followed by digits, with or without a space', () => {
+  it('canonicalises every spelling to "DN" + digits, no space, upper case', () => {
     expect(normalizeDebitNoteNo('DN260607')).toBe('DN260607')
-    expect(normalizeDebitNoteNo('DN 260607')).toBe('DN 260607')
-    expect(normalizeDebitNoteNo('dn260607')).toBe('dn260607')
+    expect(normalizeDebitNoteNo('DN 260607')).toBe('DN260607')
+    expect(normalizeDebitNoteNo('dn260607')).toBe('DN260607')
+    expect(normalizeDebitNoteNo('  dn 260607  ')).toBe('DN260607')
+  })
+
+  it('keeps the same-day collision suffix', () => {
+    expect(normalizeDebitNoteNo('DN 260607-2')).toBe('DN260607-2')
+  })
+
+  it('makes the two spellings de-duplicate against each other', () => {
+    expect(normalizeDebitNoteNo('DN 260607')).toBe(normalizeDebitNoteNo('DN260607'))
   })
 
   it('rejects an insurer invoice number that is not DN-formatted', () => {

@@ -150,28 +150,38 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const threadId = state.activeThreadId
     if (!threadId) return
-    const supabase = createClient()
-    const channel = supabase
-      .channel(`chat-${threadId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `thread_id=eq.${threadId}` }, (payload) => {
-        const m = payload.new as ChatMessage
+    // Was a realtime subscription on chat_messages. Cloud SQL cannot push, so the thread is
+    // polled. The same dedup rules apply: a locally streaming reply owns its row, and a persisted
+    // reply that extends a stopped partial upgrades it in place rather than appearing twice.
+    const merge = (rows: ChatMessage[]) => {
+      for (const m of rows) {
         const cur = stateRef.current.messages
-        if (cur.some(x => x.id === m.id)) return                                   // already have this exact row
-        if (m.role === 'assistant') {
-          if (cur.some(x => x.message_status === 'streaming')) return              // a local reply is streaming — it owns this
-          // Stop-aware dedup: if a local (possibly stopped/partial) assistant reply
-          // is a prefix of this persisted one, upgrade it in place instead of adding.
-          const partial = cur.find(x => x.role === 'assistant' && x.content && m.content.startsWith(x.content))
-          if (partial) { dispatch({ type: 'REPLACE_MESSAGE', id: partial.id, message: m }); return }
+        if (cur.some(x => x.id === m.id)) {
+          const existing = cur.find(x => x.id === m.id)!
+          if (existing.content !== m.content || existing.message_status !== m.message_status) {
+            dispatch({ type: 'UPDATE_MESSAGE', id: m.id, patch: m })
+          }
+          continue
         }
-        dispatch({ type: 'ADD_MESSAGE', message: m })                             // ADD_MESSAGE also dedups by id
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_messages', filter: `thread_id=eq.${threadId}` }, (payload) => {
-        const m = payload.new as ChatMessage
-        dispatch({ type: 'UPDATE_MESSAGE', id: m.id, patch: m })
-      })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
+        if (m.role === 'assistant') {
+          if (cur.some(x => x.message_status === 'streaming')) continue
+          const partial = cur.find(x => x.role === 'assistant' && x.content && m.content.startsWith(x.content))
+          if (partial) { dispatch({ type: 'REPLACE_MESSAGE', id: partial.id, message: m }); continue }
+        }
+        dispatch({ type: 'ADD_MESSAGE', message: m })
+      }
+    }
+    let stopped = false
+    const tick = async () => {
+      if (stopped || document.visibilityState !== 'visible') return
+      try {
+        const res = await fetch(`/api/chat/messages?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' })
+        if (res.ok) merge(await res.json() as ChatMessage[])
+      } catch { /* transient */ }
+    }
+    const poll = window.setInterval(() => { void tick() }, 5000)
+    document.addEventListener('visibilitychange', () => { void tick() })
+    return () => { stopped = true; window.clearInterval(poll) }
   }, [state.activeThreadId])
 
   // ── Draft autosave (debounced) ──────────────────────────────────────────────

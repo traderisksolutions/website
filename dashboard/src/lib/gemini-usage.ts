@@ -1,6 +1,6 @@
 import { GEMINI_DEFAULT } from './gemini-models'
 
-const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
 // Per-model pricing (USD per 1M tokens). Verified against ai.google.dev/gemini-api/docs/pricing
 // and Anthropic's pricing page (25 Aug 2026). Three shapes, resolved by resolveRates() below:

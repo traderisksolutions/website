@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { logError } from '@/lib/error-log'
 import { geminiUrl, GEMINI_LITE } from '@/lib/gemini-models'
 
-const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = geminiUrl(GEMINI_LITE)
 
 const CATEGORIES = ['rfq', 'claim', 'renewal', 'general', 'other'] as const

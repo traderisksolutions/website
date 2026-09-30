@@ -1,4 +1,4 @@
-import { createServerClient } from '@supabase/ssr'
+import { readSession, SESSION_COOKIE } from '@/lib/auth/session'
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { isApiPath } from '@/lib/api-gate/policy'
@@ -9,31 +9,21 @@ import { verifyApiRequest } from '@/lib/api-gate/verify'
 // either. It was in both, which is what left all 247 route handlers each
 // responsible for their own protection — see src/lib/api-gate/policy.ts
 // for what that cost in practice.
-const PUBLIC_PATHS = ['/login', '/auth/callback', '/unsubscribed']
+// Reachable without a session. /auth/signin and /auth/signout must be here: a signed-out user
+// has to be able to start sign-in, and gating it behind a session is a redirect loop.
+export const PUBLIC_PATHS = ['/login', '/auth/signin', '/auth/callback', '/auth/signout', '/unsubscribed']
 const TRS_DOMAIN   = 'trade-risksol.com'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p))
 
-  let response = NextResponse.next({ request })
+  const response = NextResponse.next({ request })
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll()         { return request.cookies.getAll() },
-        setAll(toSet)    {
-          toSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          response = NextResponse.next({ request })
-          toSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
-        },
-      },
-    },
-  )
-
-  const { data: { user } } = await supabase.auth.getUser()
+  // Session is our own signed cookie now, not Supabase's. Reading it is pure and synchronous,
+  // so the middleware no longer makes a network call on every request.
+  const session = await readSession(request.cookies.get(SESSION_COOKIE)?.value, process.env.AUTH_SECRET ?? '')
+  const user = session ? { id: session.id, email: session.email } : null
 
   // ── /api/** ─────────────────────────────────────────────────────────
   // Two credentials before any handler runs: an x-api-key naming the
@@ -77,13 +67,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // Logged in but not a TRS email → sign out and show error
+  // Holding a session but not a TRS email → clear it and show the error.
+  // The callback already enforces the domain; this catches a cookie minted before a rule change.
   if (user && !user.email?.toLowerCase().endsWith(`@${TRS_DOMAIN}`)) {
-    await supabase.auth.signOut()
     const loginUrl = request.nextUrl.clone()
     loginUrl.pathname = '/login'
     loginUrl.searchParams.set('error', 'domain')
-    return NextResponse.redirect(loginUrl)
+    const out = NextResponse.redirect(loginUrl)
+    out.cookies.delete(SESSION_COOKIE)
+    return out
   }
 
   // Already logged in → skip the login page.

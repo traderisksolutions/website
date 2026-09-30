@@ -168,16 +168,17 @@ async function resolvePolicy(input: PolicyInput, customerId: string, eventType?:
   return created[0].id as string
 }
 
-// ── Debit note number: "DN " + issue date (YYMMDD), -2/-3… suffix on same-day collision ────────
-// Always a space after "DN" — past records were inconsistent (some "DN260607", some "DN 260607");
-// standardising the space going forward only, existing numbers are left as-is since they're
-// already referenced in sent emails and generated PDF filenames.
+// ── Debit note number: "DN" + issue date (YYMMDD), -2/-3… suffix on same-day collision ─────────
+// No space after "DN" (decided 30 Sep 2026). Every debit note on file already uses this form, so
+// the generator now matches the data instead of contradicting it. That also repairs the collision
+// check below: it searches `debit_note_no like 'DN<yymmdd>%'`, which never matched a stored
+// "DN260607" while the generator was minting "DN 260607".
 export function debitNoteNumberBase(issueDateISO: string): string {
   const d  = new Date(issueDateISO)
   const yy = String(d.getFullYear()).slice(-2)
   const mm = String(d.getMonth() + 1).padStart(2, '0')
   const dd = String(d.getDate()).padStart(2, '0')
-  return `DN ${yy}${mm}${dd}`
+  return `DN${yy}${mm}${dd}`
 }
 
 /** Pure: picks the first free number given the base and the set of numbers already in use
@@ -206,7 +207,7 @@ export type DebitNoteInput = {
   feeRebate?:         number | null
   commission?:        number | null
   commissionRate?:    number | null
-  /** Preserve the original number when backfilling a historical debit note (e.g. "DN 260610"
+  /** Preserve the original number when backfilling a historical debit note (e.g. "DN260610"
    *  read off the TRS PDF itself) instead of minting a new DN+date one. Auto-generated when
    *  omitted, which is always the case for a brand-new manual debit note. */
   debitNoteNo?:       string | null
