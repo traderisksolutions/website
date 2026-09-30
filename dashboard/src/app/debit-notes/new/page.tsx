@@ -186,6 +186,13 @@ const inp = 'h-10 text-[14px] text-[#202124] border border-[#dadce0] rounded-[10
 type ApprovedResult = { debitNoteId: string; debitNoteNo: string; downloadUrl: string; driveFolderUrl: string | null }
 type EventType = 'new_business' | 'renewal' | 'endorsement'
 type PolicyLookup = { id: string; policyNumber: string | null; classOfInsurance: string | null; startDate: string | null; endDate: string | null; hasDebitNotes: boolean; matchedBy: 'number' | 'base' | 'term' } | null
+/** A policy the reviewer can tag an endorsement to — /api/policies/lookup?list=1. */
+type PolicyOption = { id: string; policyNumber: string | null; classOfInsurance: string | null; startDate: string | null; endDate: string | null }
+
+const fmtDay = (d: string | null) => d ? new Date(d).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
+/** "SI25Q04155/QAF · Group H&S · 1 Jan 2026 – 31 Dec 2026" */
+const policyOptionLabel = (p: PolicyOption) =>
+  [p.policyNumber || 'No policy number', p.classOfInsurance || null, `${fmtDay(p.startDate)} – ${fmtDay(p.endDate)}`].filter(Boolean).join(' · ')
 
 function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: () => void }) {
   const m = bundle.merged
@@ -216,8 +223,12 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
   const [eventType, setEventType] = useState<EventType>('new_business')
   const [eventTypeTouched, setEventTypeTouched] = useState(false)
   const [endorsementEffectiveDate, setEndorsementEffectiveDate] = useState('')
-  /** The main policy this endorsement amends; the debit note attaches to it and keeps its renewal date. */
-  const [masterPolicy, setMasterPolicy] = useState<PolicyLookup | null>(null)
+  /** Every policy this company could be tagged to, for the picker below. */
+  const [policyOptions, setPolicyOptions] = useState<PolicyOption[]>([])
+  /** What the reviewer actually chose. '' means open-ended: tagged to nothing, on purpose. */
+  const [masterPolicyId, setMasterPolicyId] = useState('')
+  /** Once they pick (or clear) it themselves, auto-detection stops overwriting it. */
+  const [masterPolicyTouched, setMasterPolicyTouched] = useState(false)
   const [busy, setBusy] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -269,7 +280,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
         lineItems: [{ description: 'Gross Premium collected on behalf of Insurance Company', amount: grossPremium + gstAmount }],
         gstAmount, feeRebate: feeRebateEnabled ? feeRebate : null, total: net,
         bankProfile, paymentDueDate, eventType,
-        endorsementEffectiveDate: eventType === 'endorsement' ? endorsementEffectiveDate : null,
+        endorsementEffectiveDate: eventType === 'endorsement' ? (endorsementEffectiveDate || null) : null,
       })
     }, 400)
     return () => clearTimeout(t)
@@ -306,11 +317,12 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
     return () => clearTimeout(t)
   }, [policyNumber, periodStart, periodEnd, eventTypeTouched])
 
-  // An endorsement is an amendment to the main policy: find it (same base number, or the one
-  // policy with the same term end and class) so the debit note attaches to it instead of
-  // creating a second policy with a second renewal.
+  // Which master this endorsement probably amends (same base number, or the one policy with the
+  // same term end and class). Only a pre-selection for the picker — the reviewer decides. Worth
+  // keeping: attaching to the master is what stops a second policy, with a second renewal date,
+  // being created for what is really one cover.
   useEffect(() => {
-    if (eventType !== 'endorsement' || !recipient?.companyId) { setMasterPolicy(null); return }
+    if (eventType !== 'endorsement' || !recipient?.companyId || masterPolicyTouched) return
     const t = setTimeout(async () => {
       try {
         const qs = new URLSearchParams({ company_id: recipient.companyId! })
@@ -319,11 +331,26 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
         if (periodEnd) qs.set('period_end', periodEnd)
         const res = await fetch(`/api/policies/lookup?${qs}`, { cache: 'no-store' })
         const found = res.ok ? await res.json() as PolicyLookup | null : null
-        setMasterPolicy(found && found.id ? found : null)
-      } catch { setMasterPolicy(null) }
+        if (found?.id) setMasterPolicyId(found.id)
+      } catch { /* best-effort pre-selection only */ }
     }, 400)
     return () => clearTimeout(t)
-  }, [eventType, recipient?.companyId, policyNumber, classOfInsurance, periodEnd])
+  }, [eventType, recipient?.companyId, policyNumber, classOfInsurance, periodEnd, masterPolicyTouched])
+
+  // The choices behind the picker. Loaded for the company as a whole, independent of the
+  // auto-detect guess above, so there's always something to pick when the guess misses.
+  useEffect(() => {
+    if (eventType !== 'endorsement' || !recipient?.companyId) { setPolicyOptions([]); return }
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/policies/lookup?company_id=${encodeURIComponent(recipient.companyId!)}&list=1`, { cache: 'no-store' })
+        const rows = res.ok ? await res.json() as PolicyOption[] : []
+        if (!cancelled) setPolicyOptions(Array.isArray(rows) ? rows : [])
+      } catch { if (!cancelled) setPolicyOptions([]) }
+    })()
+    return () => { cancelled = true }
+  }, [eventType, recipient?.companyId])
 
   // Preview the debit note number this will actually generate as — a live suggestion the
   // reviewer can confirm or override before approving, not just found out after the fact.
@@ -370,7 +397,6 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
 
   async function approve() {
     if (!recipient?.companyId || !insurer.trim() || !grossPremium) { setErr('Company, insurer and a premium amount are required.'); return }
-    if (eventType === 'endorsement' && !endorsementEffectiveDate) { setErr('Effective date is required for a mid-term endorsement.'); return }
     setBusy(true); setErr(null)
     try {
       const res = await fetch(`/api/debit-notes/imports/bundles/${bundle.id}/approve`, {
@@ -378,7 +404,9 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
         body: JSON.stringify({
           company: { companyId: recipient.companyId },
           contact: recipient.contactId ? { contactId: recipient.contactId } : null,
-          policy: eventType === 'endorsement' && masterPolicy ? { policyId: masterPolicy.id } : {
+          // Tagged to an existing policy when one is picked; otherwise open-ended, and the
+          // fields below create a policy the same way new business and renewals do.
+          policy: eventType === 'endorsement' && masterPolicyId ? { policyId: masterPolicyId } : {
             policyNumber: policyNumber || null, coverNoteNo: coverNoteNo || null, insurer,
             classOfInsurance: classOfInsurance || null, currency, description: description || null,
             startDate: periodStart || null, endDate: periodEnd || null,
@@ -392,7 +420,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
             commissionRate: commissionRate || null, commission: commissionAmount || null,
             debitNoteNo: debitNoteNo.trim() || null,
             issueDate: issueDate || new Date().toISOString().slice(0, 10), paymentDueDate: paymentDueDate || null, insurer,
-            eventType, endorsementEffectiveDate: eventType === 'endorsement' ? endorsementEffectiveDate : null,
+            eventType, endorsementEffectiveDate: eventType === 'endorsement' ? (endorsementEffectiveDate || null) : null,
             origin: 'new' as const,
           },
         }),
@@ -516,21 +544,30 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
             </select>
           </Field>
           {eventType === 'endorsement' && (
-            <p className="m-0 text-[13.5px] leading-snug" style={{ color: '#3c4043' }}>
-              {masterPolicy
-                ? <>Amendment to policy <span className="font-medium">{masterPolicy.policyNumber ?? masterPolicy.classOfInsurance ?? 'on file'}</span>{masterPolicy.endDate ? <> · renews {new Date(masterPolicy.endDate).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</> : null}. This debit note attaches to that policy and keeps its renewal date.</>
-                : <>No main policy found for this company yet. Approving creates the policy from the fields below.</>}
-            </p>
-          )}
-          {eventType === 'endorsement' && (
-            <Field label="Effective date (required)" className="flex-1">
+            <Field label="Effective date (optional)" className="flex-1">
               <input type="date" value={endorsementEffectiveDate} onChange={e => setEndorsementEffectiveDate(e.target.value)} className={inp} />
             </Field>
           )}
         </div>
         {eventType === 'endorsement' && (
+          <Field label="Tag to an existing policy (optional)">
+            <select
+              value={masterPolicyId}
+              onChange={e => { setMasterPolicyId(e.target.value); setMasterPolicyTouched(true) }}
+              className={inp}
+            >
+              <option value="">Not linked — creates its own policy from the fields below</option>
+              {policyOptions.map(p => (
+                <option key={p.id} value={p.id}>{policyOptionLabel(p)}</option>
+              ))}
+            </select>
+          </Field>
+        )}
+        {eventType === 'endorsement' && (
           <p className="text-[13px] text-[#3c4043]">
-            This bills a mid-term change (e.g. an employee added partway through the year) rather than the full policy term shown below — the PDF will call out the effective date separately so the payment due date doesn&apos;t look mismatched against the period of insurance.
+            {masterPolicyId
+              ? <>Billed as a mid-term change against that policy: it keeps the master&apos;s term and renewal date, so the cover isn&apos;t counted twice on Calendar and Companies. The PDF calls out the effective date separately from the period of insurance.</>
+              : <>Left open-ended — approving creates a policy from the fields below, same as new business.{policyOptions.length > 0 ? <> Pick one above to attach it to an existing cover instead.</> : null}</>}
           </p>
         )}
       </div>
