@@ -59,7 +59,8 @@ const SCHEMA_HINT = `Return ONLY a JSON object (no markdown fences, no prose) wi
   "client_name": string|null,        // the insured / billed party's name
   "client_address": string|null,     // full mailing address, newline-joined if multi-line
   "debit_note_no": string|null,      // ONLY the TRS debit note's own number (format "DN######",
-    // e.g. "DN260607" or "DN 260607") — this appears exclusively on a trs_debit_note document.
+    // e.g. "DN260607" or "DN 260607"; both canonicalise to "DN260607") — this appears
+    // exclusively on a trs_debit_note document.
     // Never fill this from an insurer's own invoice/reference number (e.g. "HO/MR1362216") —
     // leave it null on client_invoice and commission_statement documents.
   "cover_note_no": string|null,
@@ -83,10 +84,15 @@ All dates must be normalised to YYYY-MM-DD regardless of the source format (e.g.
 // own numbering convention). Anything else — an insurer's own invoice/reference number, a cover
 // note number, etc. — is discarded rather than trusted, regardless of what the model returns.
 const DN_PATTERN = /^DN\s?\d+/i
+/** Canonical form is "DN" + digits, no space, upper case (e.g. "DN260607", "DN260607-2").
+ *  TRS PDFs write it both ways, so the number is canonicalised on the way in rather than stored
+ *  however the document happened to print it. That is also what makes import de-duplication work:
+ *  every record reduces to one comparable string. */
 export function normalizeDebitNoteNo(raw: string | null | undefined): string | null {
   if (!raw) return null
   const trimmed = raw.trim()
-  return DN_PATTERN.test(trimmed) ? trimmed : null
+  if (!DN_PATTERN.test(trimmed)) return null
+  return trimmed.replace(/\s+/g, '').replace(/^dn/i, 'DN')
 }
 
 // Returns null (rather than silently falling back to EMPTY) when Gemini's response isn't valid

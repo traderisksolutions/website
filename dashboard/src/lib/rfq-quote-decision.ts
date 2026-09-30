@@ -14,7 +14,7 @@ import { productLineLabel } from '@/lib/product-lines'
 import { logAnthropicUsage, logGeminiUsage } from '@/lib/gemini-usage'
 import { logError } from '@/lib/error-log'
 
-const SB_URL        = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL        = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
 const GEMINI_PRO    = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent'
 

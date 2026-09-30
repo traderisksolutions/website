@@ -12,7 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { logRfqEvent }               from '@/lib/rfq-log'
 
-const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
 function sbH(prefer = 'return=representation') {
   const k = process.env.SUPABASE_SERVICE_KEY

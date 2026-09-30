@@ -6,7 +6,7 @@ import { createClient }               from '@/lib/supabase/server'
 import { buildRawEmail, htmlToText, type ThreadingHeaders } from '@/lib/email-mime'
 import { buildQuotedHistory }         from '@/lib/build-reply-thread'
 
-const SB_URL       = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL       = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GMAIL_API    = 'https://gmail.googleapis.com/gmail/v1/users/me'
 const DEFAULT_FROM = 'operations@trade-risksol.com'
 

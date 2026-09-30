@@ -4,7 +4,7 @@
  * request routes (pass the user's email as actor) AND in background/system paths
  * like auto quote-capture (actor defaults to 'system'). Never throws.
  */
-const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
 export type RfqEventType =
   | 'requested' | 'dispatched' | 'replied' | 'quoted'

@@ -3,7 +3,7 @@
  * Reuses the proven private `group-benefits` bucket so uploaded files persist exactly like the
  * existing rate-table PDFs do.
  */
-export const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+export const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 export const BUCKET = 'group-benefits'
 
 export function serviceKey(): string {

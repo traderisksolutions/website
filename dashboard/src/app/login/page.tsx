@@ -2,7 +2,6 @@
 
 import { useSearchParams } from 'next/navigation'
 import { Suspense }        from 'react'
-import { createClient }   from '@/lib/supabase/client'
 
 const INK = '#202124'
 const MUTED = '#5f6368'
@@ -19,16 +18,9 @@ function LoginCard() {
   const next    = params.get('next') ?? '/engagement'
   const error   = errorKey ? (ERROR_MESSAGES[errorKey] ?? 'Sign-in failed. Please try again.') : null
 
-  async function signInWithGoogle() {
-    const supabase    = createClient()
-    const callbackUrl = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options:  {
-        redirectTo:  callbackUrl,
-        queryParams: { hd: 'trade-risksol.com' }, // hint Google to pre-select TRS accounts
-      },
-    })
+  function signInWithGoogle() {
+    // The authorization URL is built server-side so the OAuth client secret stays there.
+    window.location.href = `/auth/signin?next=${encodeURIComponent(next)}`
   }
 
   return (

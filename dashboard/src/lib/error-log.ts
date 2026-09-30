@@ -1,4 +1,4 @@
-const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
 export interface ErrorLogEntry {
   source:        string                       // 'gemini' | 'anthropic' | 'roadplus' | 'supabase' | ...

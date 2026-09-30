@@ -6,7 +6,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 
-const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
 export type ActivityPayload = {
   action:         string

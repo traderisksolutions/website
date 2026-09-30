@@ -10,7 +10,7 @@ import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
 import { computeQuote, type Member, type RateTableInfo, type CategoryMap, type QuoteBasis } from '@/lib/gb-quote'
 
-const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 function sbH(prefer = 'return=minimal') {
   const k = process.env.SUPABASE_SERVICE_KEY
   if (!k) throw new Error('SUPABASE_SERVICE_KEY not set')

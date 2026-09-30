@@ -17,7 +17,7 @@ import { createClient }              from '@/lib/supabase/server'
 
 export const maxDuration = 300
 
-const SB_URL          = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL          = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GMAIL_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const GMAIL_API       = 'https://gmail.googleapis.com/gmail/v1/users/me'
 

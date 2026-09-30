@@ -24,7 +24,7 @@ import { geminiUrl, GEMINI_FLASH as GEMINI_FLASH_MODEL } from '@/lib/gemini-mode
 
 export const maxDuration = 300
 
-const SB_URL          = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL          = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const STORAGE_BUCKET  = 'email-attachments'
 const GMAIL_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const GMAIL_API       = 'https://gmail.googleapis.com/gmail/v1/users/me'

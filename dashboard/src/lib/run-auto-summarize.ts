@@ -4,7 +4,7 @@ import { runRagDraft }           from '@/lib/run-rag-draft'
 import { fetchKnowledgeDocs }    from '@/lib/gdrive-knowledge'
 import { geminiUrl, GEMINI_FLASH } from '@/lib/gemini-models'
 
-const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 // Same model as the Refresh button. These two write the SAME thread_summaries row, so running
 // them on different tiers meant the quality of a thread's analysis depended on whether a human
 // pressed Refresh or a reply happened to trigger it. One model, one standard.

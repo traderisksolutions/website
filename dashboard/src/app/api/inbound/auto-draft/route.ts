@@ -7,7 +7,7 @@ import { sendGmailNotification } from '@/lib/gmail-send'
 import { mapInboundTopicToProductLine } from '@/lib/inbound-topic-mapping'
 import { logError } from '@/lib/error-log'
 
-const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
 const EMBED_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent'
 

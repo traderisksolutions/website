@@ -16,7 +16,7 @@ import { logRfqEvent }         from '@/lib/rfq-log'
 import { logError }            from '@/lib/error-log'
 import { geminiUrl, GEMINI_PRO as GEMINI_PRO_MODEL } from '@/lib/gemini-models'
 
-const SB_URL        = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL        = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
 const GEMINI_PRO    = geminiUrl(GEMINI_PRO_MODEL)
 

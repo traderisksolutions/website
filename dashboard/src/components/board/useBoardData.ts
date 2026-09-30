@@ -33,19 +33,17 @@ export function useBoardData() {
 
   useEffect(() => { void load() }, [load])
 
+  // Was a realtime subscription plus a 45s safety poll. Cloud SQL cannot push, so the poll is
+  // now the only mechanism and runs more often to compensate.
   useEffect(() => {
-    const supabase = createClient()
-    const bump = () => {
+    const tick = () => { if (document.visibilityState === 'visible') void load() }
+    const poll = window.setInterval(tick, 20_000)
+    document.addEventListener('visibilitychange', tick)
+    return () => {
+      window.clearInterval(poll)
+      document.removeEventListener('visibilitychange', tick)
       if (reloadTimer.current) window.clearTimeout(reloadTimer.current)
-      reloadTimer.current = window.setTimeout(() => { void load() }, 400)
     }
-    const ch = supabase.channel('company-board')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'board_tasks' }, bump)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'board_comments' }, bump)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'companies' }, bump)
-      .subscribe()
-    const poll = window.setInterval(() => { void load() }, 45_000)
-    return () => { supabase.removeChannel(ch); window.clearInterval(poll); if (reloadTimer.current) window.clearTimeout(reloadTimer.current) }
   }, [load])
 
   const today = data?.today ?? new Date().toISOString().slice(0, 10)
