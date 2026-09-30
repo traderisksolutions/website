@@ -9,7 +9,7 @@
  */
 import { sb, sbTry, inChunks, enc, emailDomain, isInternal, isAutomated, PUBLIC_EMAIL_DOMAINS, normalizeCompany } from './db'
 import { buildIdentityIndex, matchName, loadAliases, recordAlias, aliasKey } from './identity'
-import { classifyDomains, createCompany, attachDomain, type DomainEvidence } from './autofile'
+import { classifyDomains, createCompany, attachDomain, blankEvidence, type DomainEvidence, type DomainGuess } from './autofile'
 import type { Company, CompanyKind } from './types'
 
 export interface DomainCandidate {
@@ -17,40 +17,80 @@ export interface DomainCandidate {
   threads: number
   people: string[]
   subjects: string[]
-  suggestion: { name: string; kind: CompanyKind; confidence: number; reason: string } | null
+  /** Insurers and partners on the same threads — who TRS is dealing with about this domain. */
+  counterparties: string[]
+  /** Other outside domains copied on the same threads. */
+  alsoOn: { domain: string; threads: number }[]
+  /** Subject and opening line per thread. */
+  previews: { subject: string | null; snippet: string | null; date: string | null }[]
+  inbound: number
+  outbound: number
+  handledBy: string[]
+  suggestion: DomainGuess | null
   nearest: { companyId: string; name: string; kind: CompanyKind; score: number; matchedOn: string }[]
 }
 
-type ThreadRow = { id: string; subject: string | null; contacts: { id: string; email: string | null; company: string | null } | null }
-type PartRow = { thread_id: string; email: string; name: string | null }
+type ThreadRow = { id: string; subject: string | null; snippet: string | null; last_message_at: string | null; contacts: { id: string; email: string | null; company: string | null } | null }
+type PartRow = { thread_id: string; email: string; name: string | null; role: string | null }
+type MsgRow = { thread_id: string; direction: string; from_address: string | null; sent_at: string | null }
 
-/** Every external domain on an unfiled thread that no company owns yet. */
+/**
+ * Every external domain on an unfiled thread that no company owns yet, with the context a person
+ * or the agent needs to place it: who writes from it, which insurers are on the same threads,
+ * who else is copied, what the mail actually says, and which way it flows.
+ */
 export async function collectUnclaimedDomains(): Promise<DomainEvidence[]> {
   const companies = (await sbTry<Record<string, unknown>[]>(`companies?select=*&limit=1000`, [])).map(normalizeCompany)
   const claimed = new Set<string>()
-  for (const c of companies) for (const d of c.domains) claimed.add(d)
+  const ownerOf = new Map<string, Company>()
+  for (const c of companies) for (const d of c.domains) { claimed.add(d); ownerOf.set(d, c) }
 
   const [threads, ruledOut] = await Promise.all([
-    sbTry<ThreadRow[]>(`email_threads?company_id=is.null&deleted_at=is.null&select=id,subject,contacts(id,email,company)&limit=2000`, []),
+    sbTry<ThreadRow[]>(`email_threads?company_id=is.null&deleted_at=is.null&select=id,subject,snippet,last_message_at,contacts(id,email,company)&limit=2000`, []),
     sbTry<{ thread_id: string }[]>(`company_link_suggestions?status=eq.accepted&verdict=eq.not_client&select=thread_id`, []),
   ])
   const skip = new Set(ruledOut.map(r => r.thread_id))
   const open = threads.filter(t => !skip.has(t.id))
   if (open.length === 0) return []
 
-  const parts = await inChunks(open.map(t => t.id), 100, c =>
-    sbTry<PartRow[]>(`email_participants?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,email,name`, []))
+  const ids = open.map(t => t.id)
+  const [parts, messages] = await Promise.all([
+    inChunks(ids, 100, c => sbTry<PartRow[]>(`email_participants?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,email,name,role`, [])),
+    inChunks(ids, 100, c => sbTry<MsgRow[]>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,direction,from_address,sent_at&limit=4000`, [])),
+  ])
   const byThread = new Map<string, PartRow[]>()
   for (const p of parts) byThread.set(p.thread_id, [...(byThread.get(p.thread_id) ?? []), p])
+  const msgsByThread = new Map<string, MsgRow[]>()
+  for (const m of messages) msgsByThread.set(m.thread_id, [...(msgsByThread.get(m.thread_id) ?? []), m])
 
   const evidence = new Map<string, DomainEvidence>()
+  const alsoOnCount = new Map<string, Map<string, Set<string>>>()   // domain -> other domain -> threads
+
   for (const t of open) {
     const rows = byThread.get(t.id) ?? []
+    const msgs = msgsByThread.get(t.id) ?? []
+    // Every outside domain on this thread, and the ones a company already owns.
+    const external = new Set<string>()
     for (const e of [t.contacts?.email, ...rows.map(r => r.email)]) {
       const d = emailDomain(e)
-      if (!d || PUBLIC_EMAIL_DOMAINS.has(d) || isInternal(e) || isAutomated(e) || claimed.has(d)) continue
-      const ev = evidence.get(d) ?? { domain: d, threadIds: [], subjects: [], people: [], contactCompanies: [] }
-      if (!ev.threadIds.includes(t.id)) ev.threadIds.push(t.id)
+      if (d && !PUBLIC_EMAIL_DOMAINS.has(d) && !isInternal(e) && !isAutomated(e)) external.add(d)
+    }
+    const counterparties = Array.from(external)
+      .map(d => ownerOf.get(d)).filter((c): c is Company => !!c && (c.kind === 'insurer' || c.kind === 'partner'))
+      .map(c => `${c.name} (${c.kind})`)
+    const trsPeople = Array.from(new Set(
+      msgs.filter(m => m.direction === 'outbound').map(m => m.from_address ?? '').filter(e => e && isInternal(e))
+    ))
+
+    for (const d of Array.from(external)) {
+      if (claimed.has(d)) continue
+      const ev = evidence.get(d) ?? blankEvidence(d)
+      if (!ev.threadIds.includes(t.id)) {
+        ev.threadIds.push(t.id)
+        ev.inbound += msgs.filter(m => m.direction === 'inbound').length
+        ev.outbound += msgs.filter(m => m.direction === 'outbound').length
+        if (ev.previews.length < 8) ev.previews.push({ subject: t.subject ?? null, snippet: t.snippet ?? null, date: t.last_message_at ?? null })
+      }
       if (t.subject && ev.subjects.length < 8 && !ev.subjects.includes(t.subject)) ev.subjects.push(t.subject)
       for (const r of rows) {
         if (emailDomain(r.email) !== d) continue
@@ -58,8 +98,25 @@ export async function collectUnclaimedDomains(): Promise<DomainEvidence[]> {
         if (ev.people.length < 8 && !ev.people.includes(label)) ev.people.push(label)
       }
       if (t.contacts?.company && emailDomain(t.contacts.email) === d) ev.contactCompanies.push(t.contacts.company)
+      for (const c of counterparties) if (!ev.counterparties.includes(c)) ev.counterparties.push(c)
+      for (const p of trsPeople) if (!ev.handledBy.includes(p)) ev.handledBy.push(p)
+
+      const others = alsoOnCount.get(d) ?? new Map<string, Set<string>>()
+      for (const o of Array.from(external)) {
+        if (o === d) continue
+        others.set(o, (others.get(o) ?? new Set<string>()).add(t.id))
+      }
+      alsoOnCount.set(d, others)
       evidence.set(d, ev)
     }
+  }
+
+  for (const [d, others] of Array.from(alsoOnCount.entries())) {
+    const ev = evidence.get(d)
+    if (!ev) continue
+    ev.alsoOn = Array.from(others.entries())
+      .map(([domain, threads]) => ({ domain, threads: threads.size }))
+      .sort((a, b) => b.threads - a.threads).slice(0, 8)
   }
   return Array.from(evidence.values()).sort((a, b) => b.threadIds.length - a.threadIds.length)
 }
@@ -85,7 +142,12 @@ export async function describeDomains(limit = 40): Promise<DomainCandidate[]> {
       if (!c || nearest.some(n => n.companyId === c.id)) continue
       nearest.push({ companyId: c.id, name: c.name, kind: c.kind, score: m.score, matchedOn: m.matchedOn })
     }
-    return { domain: ev.domain, threads: ev.threadIds.length, people: ev.people, subjects: ev.subjects, suggestion: guess, nearest: nearest.sort((a, b) => b.score - a.score).slice(0, 3) }
+    return {
+      domain: ev.domain, threads: ev.threadIds.length, people: ev.people, subjects: ev.subjects,
+      counterparties: ev.counterparties, alsoOn: ev.alsoOn, previews: ev.previews,
+      inbound: ev.inbound, outbound: ev.outbound, handledBy: ev.handledBy,
+      suggestion: guess, nearest: nearest.sort((a, b) => b.score - a.score).slice(0, 3),
+    }
   })
 }
 

@@ -38,6 +38,24 @@ export interface DomainEvidence {
   subjects: string[]
   people: string[]
   contactCompanies: string[]
+  /** Insurers and partners already on file who appear on the same threads. The strongest signal
+   *  there is: an insurer writes to TRS *about* a client, so their presence argues this domain
+   *  is the client, and their absence argues it is a counterparty itself. */
+  counterparties: string[]
+  /** Other outside domains copied on the same threads, with how often. */
+  alsoOn: { domain: string; threads: number }[]
+  /** Subject and opening line per thread, so a person can read the queue without leaving it. */
+  previews: { subject: string | null; snippet: string | null; date: string | null }[]
+  /** Who opened the conversation: mail from them, against mail TRS sent them. */
+  inbound: number
+  outbound: number
+  /** The TRS people who handle it. A claims handler and a new-business broker mean different things. */
+  handledBy: string[]
+}
+
+/** An empty evidence record. Every field present, so a partial builder cannot drop one. */
+export function blankEvidence(domain: string): DomainEvidence {
+  return { domain, threadIds: [], subjects: [], people: [], contactCompanies: [], counterparties: [], alsoOn: [], previews: [], inbound: 0, outbound: 0, handledBy: [] }
 }
 
 export interface DomainDecision {
@@ -153,36 +171,93 @@ export async function attachDomain(company: Company, domain: string, dry: boolea
 
 // ── 3. Naming and classifying a domain ────────────────────────────────────────────────────────
 
-const SYSTEM = `You identify organisations from their email domain for Trade Risk Solutions (TRS), an insurance broker in Singapore. TRS's clients are businesses that buy insurance through TRS. Insurers underwrite it. Partners are the other professionals around a policy: brokers, managing agents, third-party administrators, clinic and panel networks, loss adjusters, law firms and accountants. Answer only from the evidence given. Plain, professional English.`
+const SYSTEM = `You identify an organisation from its email domain for Trade Risk Solutions (TRS), a commercial insurance broker in Singapore.
 
-const SCHEMA = `Return a JSON array with one item per domain given:
+TRS sits between two sides, and every domain you see is one of four things:
+
+- client   — a business that buys insurance THROUGH TRS. Usually an operating company: a
+             contractor, a logistics firm, a restaurant group, a clinic, a manufacturer. They ask
+             TRS for cover, quotes, renewals, certificates and claims help.
+- insurer  — a company that UNDERWRITES the risk and issues the policy. In Singapore these are
+             names like AIA, Chubb, QBE, MSIG, Income, Great Eastern, Liberty, Sompo, Tokio
+             Marine, Zurich, Allianz, ECICS, EQ Insurance, HL Assurance, Etiqa, Raffles Health.
+             They quote, issue policy numbers, and pay claims.
+- partner  — everyone else professional around a policy: other brokers and managing agents,
+             third-party administrators, clinic and panel networks, loss adjusters, surveyors,
+             law firms, accountants, banks issuing bonds, reinsurers.
+- other    — not part of the business at all: newsletters, vendors selling to TRS, recruiters,
+             software, personal mail, spam.
+
+HOW TO READ THE EVIDENCE
+
+1. TRS subject lines follow a house convention, and it is the strongest evidence you have:
+       "(TRS) <Insurer> - <Client> | <cover>"      e.g. "(TRS) Liberty - BLL Transport | Motor"
+       "TRS (<Insurer>) : <Client> - <matter>"     e.g. "TRS (QBE) : Talent Trader - Renewal"
+   So if the domain you are judging appears in the FIRST slot it is probably the insurer, and in
+   the SECOND slot probably the client. Staff are not perfectly consistent, so weigh it, do not
+   obey it.
+
+2. "Insurers and partners also on these threads" is a counterparty list. An insurer writes to TRS
+   ABOUT a client, so when known insurers sit on the same threads, this domain is very likely the
+   client being discussed. When no counterparty appears and the domain itself quotes, issues
+   policy numbers or asks for underwriting information, it is more likely an insurer or partner.
+
+3. Direction matters. A domain that mostly writes IN with enquiries is usually a client or a
+   counterparty answering. A domain TRS mostly writes OUT to, cold, may be a prospect or nobody.
+
+4. Cover words in a subject (WIC, D&O, PI, GPA, cargo, performance bond, employee benefits) name
+   a product, never an organisation. Never return one as a name.
+
+NAMING
+
+Return the organisation's proper trading name as a person would write it on a debit note, not the
+domain string. "getsolar.ai" is "GetSolar", not "Getsolar.ai". Keep a legal suffix only when the
+evidence shows it ("Pte Ltd", "LLP", "Sdn Bhd"). Never invent one.
+
+Answer only from the evidence given. If the evidence does not support a confident answer, say so
+in the confidence rather than inventing a story. Plain, professional English, no marketing words.`
+
+const SCHEMA = `Return a JSON array, one object per domain given, in the same order:
+
 {
-  "domain": "the domain exactly as supplied",
-  "name": "the organisation's proper name, as it would be written on a policy — e.g. 'Mister Mobile Trading Pte Ltd', not 'Mistermobile' and not the domain",
-  "kind": "client | insurer | partner | other",
+  "domain": "the domain exactly as given",
+  "name": "the organisation's trading name",
+  "kind": "client" | "insurer" | "partner" | "other",
   "confidence": 0.0 to 1.0,
-  "reason": "one short sentence"
+  "reason": "one short sentence saying what this organisation is and what it does with TRS",
+  "evidence": "the single line of evidence that decided it, quoted or named",
+  "alternative": { "kind": "...", "why": "..." } | null
 }
+
 Rules:
-- Use the subjects and people to work out the real name; the domain alone is rarely the name.
-- "client" only for a business TRS arranges insurance FOR. If the domain belongs to an insurer, an administrator, a clinic network, a broker or a law firm, it is not a client.
-- Use "other" for newsletters, software vendors and anything you cannot place.
-- Give a confidence below 0.7 whenever the evidence is thin or the name is a guess.`
+- One object per domain. Never merge two domains, never invent one.
+- confidence below 0.7 whenever the evidence is thin, the name is a guess, or the kind is a
+  close call between two readings.
+- Fill "alternative" whenever a second reading is genuinely possible, and leave it null when the
+  evidence is clear. A wrong insurer is expensive: if a client domain is recorded as an insurer,
+  that client's mail files under the wrong side for good.
+- "evidence" must point at something actually given to you: a subject line, a person, a
+  counterparty name, the direction of the mail. Never a general impression.`
 
-type RawDecision = { domain?: unknown; name?: unknown; kind?: unknown; confidence?: unknown; reason?: unknown }
+type RawDecision = { domain?: unknown; name?: unknown; kind?: unknown; confidence?: unknown; reason?: unknown; evidence?: unknown; alternative?: { kind?: unknown; why?: unknown } | null }
 
-export async function classifyDomains(evidence: DomainEvidence[]): Promise<Map<string, { name: string; kind: CompanyKind; confidence: number; reason: string }>> {
-  const out = new Map<string, { name: string; kind: CompanyKind; confidence: number; reason: string }>()
+export type DomainGuess = { name: string; kind: CompanyKind; confidence: number; reason: string; evidence: string | null; alternative: { kind: CompanyKind; why: string } | null }
+
+export async function classifyDomains(evidence: DomainEvidence[]): Promise<Map<string, DomainGuess>> {
+  const out = new Map<string, DomainGuess>()
   const kinds = new Set(['client', 'insurer', 'partner', 'other'])
 
   for (let i = 0; i < evidence.length; i += 8) {
     const batch = evidence.slice(i, i + 8)
     const text = batch.map(e => [
       `domain: ${e.domain}`,
-      `threads: ${e.threadIds.length}`,
-      `people: ${e.people.slice(0, 6).join('; ') || '-'}`,
-      `company field on their contacts: ${Array.from(new Set(e.contactCompanies)).slice(0, 4).join('; ') || '-'}`,
-      `subjects:\n${e.subjects.slice(0, 6).map(s => `  - ${s}`).join('\n') || '  -'}`,
+      `threads: ${e.threadIds.length}  (${e.inbound} from them, ${e.outbound} from TRS)`,
+      `people writing from this domain: ${e.people.slice(0, 6).join('; ') || '-'}`,
+      `company written on their contact records: ${Array.from(new Set(e.contactCompanies)).slice(0, 4).join('; ') || '-'}`,
+      `insurers and partners also on these threads: ${e.counterparties.slice(0, 8).join('; ') || 'none'}`,
+      `other outside domains copied in: ${e.alsoOn.slice(0, 6).map(a => a.domain).join('; ') || 'none'}`,
+      `TRS people handling it: ${e.handledBy.slice(0, 4).join('; ') || '-'}`,
+      `threads:\n${e.previews.slice(0, 6).map(p => `  - ${p.subject ?? '(no subject)'}${p.snippet ? `\n      ${p.snippet.slice(0, 160)}` : ''}`).join('\n') || '  -'}`,
     ].join('\n')).join('\n\n---\n\n')
 
     const res = await geminiJson<RawDecision[]>({ system: SYSTEM, prompt: `${SCHEMA}\n\nDOMAINS:\n\n${text}`, feature: 'crm_triage', temperature: 0 })
@@ -193,7 +268,13 @@ export async function classifyDomains(evidence: DomainEvidence[]): Promise<Map<s
       if (!domain || !name || !batch.some(b => b.domain === domain)) continue
       const kind = kinds.has(String(r.kind)) ? String(r.kind) as CompanyKind : 'other'
       const confidence = typeof r.confidence === 'number' ? Math.max(0, Math.min(1, r.confidence)) : 0
-      out.set(domain, { name, kind, confidence, reason: String(r.reason ?? '').slice(0, 300) })
+      const altKind = r.alternative && kinds.has(String(r.alternative.kind)) ? String(r.alternative.kind) as CompanyKind : null
+      out.set(domain, {
+        name, kind, confidence,
+        reason: String(r.reason ?? '').slice(0, 300),
+        evidence: r.evidence ? String(r.evidence).slice(0, 300) : null,
+        alternative: altKind && altKind !== kind ? { kind: altKind, why: String(r.alternative?.why ?? '').slice(0, 200) } : null,
+      })
     }
   }
   return out
@@ -236,7 +317,7 @@ export async function autofile(opts: { dryRun?: boolean; maxDomains?: number } =
     for (const e of emails) {
       const d = emailDomain(e)
       if (!d || PUBLIC_EMAIL_DOMAINS.has(d) || isInternal(e) || isAutomated(e) || claimed.has(d)) continue
-      const ev = evidence.get(d) ?? { domain: d, threadIds: [], subjects: [], people: [], contactCompanies: [] }
+      const ev = evidence.get(d) ?? blankEvidence(d)
       if (!ev.threadIds.includes(t.id)) ev.threadIds.push(t.id)
       if (t.subject && ev.subjects.length < 8 && !ev.subjects.includes(t.subject)) ev.subjects.push(t.subject)
       for (const r of rows) {
@@ -466,9 +547,11 @@ export async function autofileThread(threadId: string): Promise<{ companyId: str
 
   const domain = unknown[0]
   const ev: DomainEvidence = {
-    domain, threadIds: [t.id], subjects: t.subject ? [t.subject] : [],
+    ...blankEvidence(domain),
+    threadIds: [t.id], subjects: t.subject ? [t.subject] : [],
     people: parts.filter(p => emailDomain(p.email) === domain).map(p => p.name ? `${p.name} <${p.email}>` : p.email).slice(0, 6),
     contactCompanies: signed ? [signed] : [],
+    previews: [{ subject: t.subject ?? null, snippet: null, date: null }],
   }
   const guess = (await classifyDomains([ev]).catch(() => new Map())).get(domain) ?? null
 
