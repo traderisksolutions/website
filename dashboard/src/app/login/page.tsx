@@ -7,7 +7,9 @@ const INK = '#202124'
 const MUTED = '#5f6368'
 
 const ERROR_MESSAGES: Record<string, string> = {
-  domain:   'Only @trade-risksol.com accounts are allowed.',
+  domain:    'Only @trade-risksol.com accounts can sign in. Check which Google account the browser used.',
+  not_staff: 'That account is not on the staff list. Ask an administrator to add it.',
+  config:    'Sign-in is not configured on this deployment.',
   oauth:    'Google sign-in was cancelled or failed. Please try again.',
   callback: 'Sign-in did not complete. Please try again.',
 }

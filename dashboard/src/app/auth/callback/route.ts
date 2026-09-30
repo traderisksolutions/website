@@ -37,12 +37,20 @@ export async function GET(request: NextRequest) {
   if (!profile) return NextResponse.redirect(`${origin}/login?error=callback`)
 
   // Google's `hd` hint is only a hint; the domain is enforced here.
-  if (!isAllowedEmail(profile.email)) return NextResponse.redirect(`${origin}/login?error=domain`)
+  if (!isAllowedEmail(profile.email)) {
+    console.error('[auth/callback] rejected domain for', profile.email)
+    return NextResponse.redirect(`${origin}/login?error=domain`)
+  }
 
   // The session carries the user's original id, not Google's `sub`, so existing records stay
   // attached to the right person. An address not on the staff list cannot sign in.
   const staff = await lookupStaff(profile.email)
-  if (!staff) return NextResponse.redirect(`${origin}/login?error=domain`)
+  if (!staff) {
+    // Distinct from a wrong domain: this address is TRS but has no staff record. Collapsing the
+    // two made a failed sign-in impossible to diagnose from the redirect alone.
+    console.error('[auth/callback] no staff record for', profile.email)
+    return NextResponse.redirect(`${origin}/login?error=not_staff`)
+  }
 
   const token = await createSession({ id: staff.id, email: staff.email, name: staff.name ?? profile.name }, authSecret)
   const res = NextResponse.redirect(`${origin}${next}`)
