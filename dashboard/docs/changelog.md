@@ -22,6 +22,111 @@ Fix, in order (the deploying account):
 
 ---
 
+## 2026-10-01 (later) — The domain agent gets the evidence it was missing
+
+The agent was judging a domain on five lines: the domain, a thread count, some names, the
+company field on their contacts, and up to six subjects. It never saw who else was on the
+thread, which way the mail flowed, or what any message actually said.
+
+**Evidence added** (`collectUnclaimedDomains`):
+- **Insurers and partners on the same threads.** The strongest signal available. An insurer
+  writes to TRS *about* a client, so their presence argues this domain is the client, and their
+  absence argues it is a counterparty itself.
+- **Other outside domains copied in**, with how many threads each appears on.
+- **Subject and opening line per thread**, not the subject alone.
+- **Direction**: messages from them against messages TRS sent.
+- **Which TRS person handles it.** A claims handler and a new-business broker mean different
+  things.
+
+**Prompt rewritten** (`SYSTEM` and `SCHEMA` in autofile.ts). It now:
+- Defines the four kinds in TRS's own terms, naming the Singapore insurers it will actually meet.
+- **Teaches it the house subject convention**, `(TRS) Insurer - Client` and
+  `TRS (Insurer) : Client`, which was the single largest piece of knowledge the model was
+  missing, and tells it to weigh the convention rather than obey it, because staff are not
+  perfectly consistent.
+- Explains the counterparty signal and the direction signal explicitly.
+- Forbids returning a cover word (WIC, D&O, GPA, cargo) as an organisation name.
+- Asks for the trading name as it would be written on a debit note, not the domain string.
+- Adds two fields: `evidence`, the one line that decided it, and `alternative`, a second reading
+  when the call is close. The card shows both, so a person sees the reasoning, not just a verdict.
+- States the asymmetric cost: a client recorded as an insurer files that client's mail on the
+  wrong side permanently.
+
+**Bug found while wiring it.** The new message query selected `email_messages.to_addresses`,
+which does not exist. `sbTry` swallowed the error and returned an empty array, so direction and
+handler were silently blank on every card. Fixed. This is the third time that trap has bitten;
+a failing read that returns `[]` looks exactly like no data.
+
+**Company search.** `CompanySearchSelect` replaces the native dropdown of ninety-odd names on
+all three triage cards. Filters as you type on name and domain, shows the domain under each
+name because companies read alike, and works from the keyboard.
+
+---
+
+## 2026-10-01 — "Under an insurer": the threads nobody was looking at
+
+Dogfooding the sweep found a queue with no page. After the re-filing, 104 threads still sat
+under an insurer or partner. Seventy two of them name a client in the subject, in the TRS house
+shape, and that client has no company record. They were invisible: not unlinked, so not on the
+leftover queue, and filed under an insurer nobody browses.
+
+**New, on Match threads: a fourth tab, "Under an insurer".** Grouped by the name read from the
+subject, so one decision clears every thread for that client. Each group offers: move them to a
+company already on file, create the company and move them, or say the mail really is
+insurer-only, which is remembered so it does not come back.
+
+`src/lib/crm/misfiled.ts` reads the two house shapes, `(TRS) Insurer - Client` and
+`TRS (Insurer) : Client`, and takes whichever side is not the insurer the thread already sits
+under, because staff sometimes write the client first. It trims trailing cover names and admin
+text so the create field prefills cleanly: "Gourmetz Motor Fleet" becomes Gourmetz, "Whampoa
+Soya Bean Pte Ltd Renewal for 2026" becomes Whampoa Soya Bean Pte Ltd. Nine unit tests against
+real subject lines. No model call; this is parsing, not judgement.
+
+What it surfaced: Forsea with 7 threads across 6 insurers, Whampoa Soya Bean with 7 across 5,
+Everard Access 4, Mobile Accessories Studio 3, PC Repair Studio 3, Regent Logistics 3, then
+CJYE, Joycake, BruBru, TKI Law, Talent Trader, Genscript, Infinity Cybersec.
+
+**Also fixed:** every triage queue now loads on arrival rather than when its tab is opened. The
+Leftover tab read zero while holding 82 threads, which is worse than four small requests.
+
+---
+
+## 2026-09-30 (night, last) — Insurer mail re-filed to the client it is about
+
+Run against live data from this machine, deterministic rules only, no model calls. Gemini is
+not involved and its depleted key did not matter.
+
+**Root cause fixed first.** Thirteen contact records for insurer and partner staff were filed
+under a client company, so the contact rule mis-filed their mail. An address at zurich.com.sg
+was recorded as a Keller Foundations person, one at bhspecialty.com as Deluge. Each was
+repointed to the company that owns its domain. The dry run before the fix would have filed an
+AIG thread about Unito Resources under Segomo; after the fix that link disappeared.
+
+**Then the sweep**, via `POST /api/companies/resolve-all`. Dry run first, checked by hand, then
+applied.
+
+| | Before | After |
+| --- | --- | --- |
+| Threads filed under a client | 269 | 304 |
+| Filed under an insurer | 114 | 88 |
+| Filed under a partner | 18 | 15 |
+| Unlinked | 90 | 84 |
+
+Twenty nine threads moved off an insurer onto the client named in the subject, the case the
+rules were written for: "(TRS) Liberty - BLL's Transportation" belongs to BLL, not Liberty. Six
+unlinked threads gained a company. Twenty five contacts were linked, thirty two aliases learned,
+and no domains were learned, so none of the domain-poisoning risk was touched.
+
+**Left for a person.** Eighty four threads remain on Match Threads. The sample is newsletters,
+forwards with no company named, and a handful naming companies that have no record yet (Mogu,
+Regent Logistics, IMS Malaysia). Those last ones are what the AI autofile pass creates, and it
+needs the Gemini key topped up.
+
+**Two duplicate company records surfaced**, for the merge tool, not auto-merged: MAPFRE against
+Mapfre RE, and Great American Insurance Company against Great American Insurance Group.
+
+---
+
 ## 2026-09-30 (night, later) — A company can have one or many owners
 
 - **SQL to run:** `supabase/migrations/20260930_company_owners.sql` adds `companies.owner_emails
@@ -1039,3 +1144,49 @@ Escape hatch when auto-detection misses an RFQ. `api/nexus/rfq/start` (suggest m
 
 ### Outstanding
 End-to-end behavioral test in staging: RFQ send with real attachments, insurer reply → thread linking → quote extraction, and the manual Chase send.
+
+---
+
+## 30 Sep 2026 — Anchored reply editor (inbox)
+
+The reply composer used to render as a sibling row under the reading pane, capped at `max-h-[62vh]`
+and marked `flex-shrink-0`. Opening it squeezed the message list to whatever was left, so a long
+thread collapsed to a single header row and there was no way to read it while drafting.
+
+It is now the last block inside the **same scroll region** as the messages — one layer, one scroll.
+
+- **At rest** the composer's foot sits exactly on the pane's foot. On short threads a `min-h-full`
+  flex wrapper pushes it down so it still lands at the bottom rather than floating mid-pane.
+- **Scrolling up** carries it off the bottom and returns the full pane to the thread.
+- **A "Draft" pill** appears bottom-right once most of the composer has passed the fold, and returns
+  to it exactly. The old "Latest message" pill is now suppressed while the composer is open, because
+  it sat on top of the send row.
+- **Height** is drag-resizable as before, now 120–900px (was 120–600) with the 62vh cap gone.
+  Default editor height 180px (was 220).
+- **Phones (<640px)** open the composer full-pane instead; the panel's own chrome is taller than a
+  phone reading pane, so the anchored layout had nothing left to show. Minimise and Escape unchanged.
+
+Anchoring survives the composer's asynchronous settle (Quill mount, draft fetch, toolbar wrapping)
+via a `ResizeObserver` that re-pins while a `stickBottomRef` is armed. Only genuine reader input —
+wheel, touchmove, paging keys — releases it; a scroll event alone does not, because layout growth
+fires those without anyone touching the page.
+
+### Files
+`src/components/engagement/ThreadView.tsx` (restructure, scroll logic, pills),
+`src/components/engagement/EaLayout.tsx` (`EaMessageArea` forwards extra props),
+`src/components/engagement-agent/engagement-compose-panel.tsx` (`onHeightChange`, phone full-pane),
+`src/hooks/useResizableComposerHeight.ts` (limits).
+
+`data-thread-scroll` and `data-composer` are probe hooks for layout checks; they carry no behaviour.
+
+### Verified
+`tsc` clean, `next build` compiled, 383 tests pass. Measured in Chrome at 1440×1000, 834×1000 and
+390×800: anchored at rest, scrolls fully away, Draft pill appears and returns, no horizontal
+overflow at any width.
+
+### Still pending from 29 Sep
+`supabase/migrations/20260930_company_owners.sql` is **not yet applied** (adds
+`companies.owner_emails text[]`, backfills from `owner_email`, GIN index). `owner_email` stays and
+mirrors the first owner, so nothing reading it breaks.
+`dashboard/src/components/engagement/EngagementFolderNav.tsx` needs `git rm` — tracked, deleted.
+Production `GEMINI_API_KEY` still returns 402 (prepayment credits depleted); nothing AI runs.
