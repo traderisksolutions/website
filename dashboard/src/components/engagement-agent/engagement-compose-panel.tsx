@@ -47,6 +47,8 @@ interface EngagementComposePanelProps {
   pendingRestore?:   { body: string; generatedBy: string; stamp: number } | null
   /** Folds the composer back to one line (rendered by the thread view). */
   onMinimise?:       () => void
+  /** Fires when the editor is resized, so the thread view can re-measure its scroll affordances. */
+  onHeightChange?:   () => void
 }
 
 export function EngagementComposePanel({
@@ -55,7 +57,7 @@ export function EngagementComposePanel({
   setToAddress, setCcList, setBccList, setCustomSubject,
   replyAll, onToggleReplyAll,
   storedDraft, storedRagDraft, storedRagSources,
-  onRagRefresh, onThreadRefresh, onAnalyze, pendingRestore, onMinimise,
+  onRagRefresh, onThreadRefresh, onAnalyze, pendingRestore, onMinimise, onHeightChange,
 }: EngagementComposePanelProps) {
 
   // ── All state preserved verbatim ──────────────────────────────────────────
@@ -84,9 +86,14 @@ export function EngagementComposePanel({
   // Full screen: the panel takes the whole reader column (ThreadView's EaWorkspaceColumn is the
   // positioned ancestor), the editor body flexes to fill it. Esc leaves.
   const [fullscreen,      setFullscreen]      = useState(false)
+  // A phone pane is shorter than the panel's own chrome, so the anchored layout has nothing left
+  // to show. Open full-pane there instead; Minimise and Escape still fold it away.
+  useEffect(() => { if (typeof window !== 'undefined' && window.innerWidth < 640) setFullscreen(true) }, [])
 
   // Editor height — drag-resizable via the handle below it, persisted across the session.
   const { height: editorHeight, min: editorMin, max: editorMax, step: editorStep, startDrag: startEditorDrag, nudge: nudgeEditor, setAbsolute: setEditorHeight } = useResizableComposerHeight()
+  // The thread view sizes its "Draft" affordance off this panel's height.
+  useEffect(() => { onHeightChange?.() }, [editorHeight, fullscreen]) // eslint-disable-line react-hooks/exhaustive-deps
   // Content-driven growth (e.g. repeatedly pressing Enter) — only ever grows, up to editorMax;
   // never auto-shrinks, so a manual drag-resize larger than the content is never fought.
   const editorHeightRef = useRef(editorHeight)
@@ -549,7 +556,7 @@ export function EngagementComposePanel({
           onToggleFullscreen={() => setFullscreen(v => !v)}
           className={cn('min-h-0', fullscreen && 'flex-1')}
           bodyClassName={cn('overflow-y-auto', fullscreen && 'flex-1 min-h-0')}
-          bodyStyle={fullscreen ? undefined : { height: 'var(--engagement-composer-h, 220px)' }}
+          bodyStyle={fullscreen ? undefined : { height: 'var(--engagement-composer-h, 180px)' }}
           toolbarExtras={
             <>
               <TbGroup label="Attach">

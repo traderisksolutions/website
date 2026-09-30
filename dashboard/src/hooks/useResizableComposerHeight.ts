@@ -9,8 +9,8 @@ import { useResizableDimension, clampDimension } from './useResizableDimension'
  * trailing-edge anchoring, same as the rail's right-edge handle).
  */
 export const COMPOSER_MIN     = 120
-export const COMPOSER_MAX     = 600
-export const COMPOSER_DEFAULT = 220
+export const COMPOSER_MAX     = 900
+export const COMPOSER_DEFAULT = 180
 export const COMPOSER_STEP    = 20
 
 export function clampComposerHeight(n: number): number {

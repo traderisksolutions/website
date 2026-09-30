@@ -146,18 +146,21 @@ interface EaMessageAreaProps {
   children:   ReactNode
   className?: string
   onScroll?:  (e: UIEvent<HTMLDivElement>) => void
+  /** Marks the scroll region so layout probes can measure it directly. */
+  'data-thread-scroll'?: boolean
 }
 
 // forwardRef so callers (ThreadView) can hold the actual scroll-container node — needed for
 // scroll-position tracking (the "scroll to latest" affordance) and imperative scrollTo calls
 // (auto-scroll on send / thread open) without a second, redundant scroll region.
 export const EaMessageArea = forwardRef<HTMLDivElement, EaMessageAreaProps>(function EaMessageArea(
-  { children, className, onScroll }, ref,
+  { children, className, onScroll, ...rest }, ref,
 ) {
   return (
     <div
       ref={ref}
       onScroll={onScroll}
+      {...rest}
       className={cn(
         'flex-1 min-h-0 overflow-y-auto',
         'bg-white',

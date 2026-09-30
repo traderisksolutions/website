@@ -95,21 +95,42 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
   const pendingSendScrollRef = useRef(false)
 
   const latestRef = useRef<HTMLDivElement>(null)
+  // The composer is the last block inside the same scroll region as the messages, so reading
+  // back up carries it off the bottom of the pane and returns the full width to the thread.
+  const composerRef = useRef<HTMLDivElement>(null)
+  const [composerOffscreen, setComposerOffscreen] = useState(false)
+  // True while the view should keep the foot of the composer in sight: set when the composer is
+  // opened or jumped back to, cleared the moment the reader scrolls up to read the thread.
+  const stickBottomRef = useRef(false)
+
   // "Latest" means the top of the newest message, so its sender and time are in view even when
-  // the message is long; the composer sits below the scroll region and is always reachable.
+  // the message is long.
   const scrollToBottom = useCallback((smooth: boolean) => {
     const el = messageAreaRef.current
     if (!el) return
     const top = latestRef.current ? Math.max(0, latestRef.current.offsetTop - 12) : el.scrollHeight
     el.scrollTo({ top, behavior: smooth ? 'smooth' : 'auto' })
   }, [])
-  function handleMessageAreaScroll() {
+  // The end of the scroll region is the foot of the composer.
+  const scrollToComposer = useCallback((smooth: boolean) => {
+    const el = messageAreaRef.current
+    if (!el) return
+    stickBottomRef.current = true
+    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' })
+  }, [])
+  const syncScrollAffordances = useCallback(() => {
     const el = messageAreaRef.current
     if (!el) return
     const latestTop = latestRef.current ? latestRef.current.offsetTop - 12 : el.scrollHeight - el.clientHeight
     setShowScrollToLatest(Math.abs(el.scrollTop - latestTop) > 160 && el.scrollHeight > el.clientHeight + 160)
+    // Distance from the true bottom. Once most of the composer has gone past the fold the reader
+    // needs a way back to it; while it is still largely in view the pill would be noise.
+    const fromBottom = el.scrollHeight - el.clientHeight - el.scrollTop
+    const composerH = composerRef.current?.offsetHeight ?? 0
+    setComposerOffscreen(composerH > 0 && fromBottom > Math.max(120, composerH * 0.6))
     setHeaderElevated(el.scrollTop > 4)
-  }
+  }, [])
+  function handleMessageAreaScroll() { syncScrollAffordances() }
 
   // ── Party switcher ───────────────────────────────────────────────────────────────────────
   const propThreadId = threadState.thread?.id ?? null
@@ -181,7 +202,7 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
 
   function setReplyMode(all: boolean) { setReplyAll(all); setCcList(all ? computeReplyAllCcs(messages, toAddress) : []) }
   function toggleReplyAll() { setReplyMode(!replyAll) }
-  function openComposer(all?: boolean) { if (all !== undefined) setReplyMode(all); setComposerOpen(true); window.setTimeout(() => scrollToBottom(true), 50) }
+  function openComposer(all?: boolean) { if (all !== undefined) setReplyMode(all); stickBottomRef.current = true; setComposerOpen(true); window.setTimeout(() => scrollToComposer(true), 50) }
 
   // "r" opens the reply field (the kbd hint on it); ignored while typing or while a dialog is open.
   useEffect(() => {
@@ -196,6 +217,32 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [composerOpen, loading]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Only the reader's own scrolling releases the anchor. A scroll event alone is not enough:
+  // the composer keeps growing as it settles, which moves the bottom without anyone touching it.
+  useEffect(() => {
+    const el = messageAreaRef.current
+    if (!el) return
+    const release = () => { stickBottomRef.current = false }
+    const onKey = (e: KeyboardEvent) => { if (['PageUp', 'PageDown', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) release() }
+    el.addEventListener('wheel', release, { passive: true })
+    el.addEventListener('touchmove', release, { passive: true })
+    el.addEventListener('keydown', onKey)
+    return () => { el.removeEventListener('wheel', release); el.removeEventListener('touchmove', release); el.removeEventListener('keydown', onKey) }
+  }, [])
+
+  // The composer mounts and settles asynchronously (Quill, the draft fetch, toolbar wrapping), so
+  // a single scroll-to-bottom on open lands short. Follow its height until the reader scrolls up.
+  useEffect(() => {
+    const node = composerRef.current, el = messageAreaRef.current
+    if (!node || !el || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(() => {
+      if (stickBottomRef.current) el.scrollTo({ top: el.scrollHeight })
+      syncScrollAffordances()
+    })
+    ro.observe(node)
+    return () => ro.disconnect()
+  }, [composerOpen, loading, syncScrollAffordances])
 
   function handleThreadRefresh() { pendingSendScrollRef.current = true; onThreadRefresh(); if (isOverriding) setRefreshNonce(n => n + 1) }
 
@@ -309,61 +356,74 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
           </div>
         )}
 
+        {/* One scroll region. Messages, then the composer as the last block in the same flow —
+            so it rests at the foot of the pane and scrolls away when you read back up. */}
         <div className="relative flex-1 min-h-0 flex flex-col">
-          <EaMessageArea ref={messageAreaRef} onScroll={handleMessageAreaScroll}>
-            <div className="px-5 sm:px-10 pt-2 pb-10">
-              <div className={measure}>
-                {loading && <p className="py-16 text-center text-[15px] m-0" style={{ color: MUTED }}>Loading the thread…</p>}
-                {!loading && error && <p className="py-16 text-center text-[15px] m-0" style={{ color: BODY }}>{error}</p>}
-                {!loading && !error && messages.length === 0 && (
-                  <div className="py-10">
-                    <p className="m-0 text-center text-[15px]" style={{ color: MUTED }}>No email thread on file for {lead.email ?? 'this contact'}.</p>
-                    {initialMsg && (
-                      <div className="mt-6 rounded-[14px] px-5 py-4" style={{ background: '#f1f3f4' }}>
-                        <p className="m-0 mb-1.5 text-[12px]" style={{ color: MUTED }}>Enquiry form message</p>
-                        <p className="m-0 text-[15px] whitespace-pre-wrap leading-[1.6]" style={{ color: INK }}>{cleanEmailBody(initialMsg)}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-                {!loading && latestMsg && (
-                  <div ref={latestRef}>
-                    <MessageBlock key={latestMsg.id} msg={latestMsg} defaultOpen isLatest newSender={isNewSender(latestMsg)} senderName={nameFor(latestMsg)} />
-                  </div>
-                )}
-                {!loading && earlier.length > 0 && (
-                  <section className="mt-7" style={{ borderTop: `1px solid ${HAIR}` }} aria-label="Earlier messages">
-                    {earlier.map(msg => <MessageBlock key={msg.id} msg={msg} defaultOpen={false} newSender={isNewSender(msg)} senderName={nameFor(msg)} />)}
-                  </section>
-                )}
+          <EaMessageArea ref={messageAreaRef} onScroll={handleMessageAreaScroll} data-thread-scroll>
+            <div className="min-h-full flex flex-col">
+              {/* flex-1 pushes the composer to the foot of the pane on short threads */}
+              <div className="flex-1 px-5 sm:px-10 pt-2 pb-8">
+                <div className={measure}>
+                  {loading && <p className="py-16 text-center text-[15px] m-0" style={{ color: MUTED }}>Loading the thread…</p>}
+                  {!loading && error && <p className="py-16 text-center text-[15px] m-0" style={{ color: BODY }}>{error}</p>}
+                  {!loading && !error && messages.length === 0 && (
+                    <div className="py-10">
+                      <p className="m-0 text-center text-[15px]" style={{ color: MUTED }}>No email thread on file for {lead.email ?? 'this contact'}.</p>
+                      {initialMsg && (
+                        <div className="mt-6 rounded-[14px] px-5 py-4" style={{ background: '#f1f3f4' }}>
+                          <p className="m-0 mb-1.5 text-[12px]" style={{ color: MUTED }}>Enquiry form message</p>
+                          <p className="m-0 text-[15px] whitespace-pre-wrap leading-[1.6]" style={{ color: INK }}>{cleanEmailBody(initialMsg)}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {!loading && latestMsg && (
+                    <div ref={latestRef}>
+                      <MessageBlock key={latestMsg.id} msg={latestMsg} defaultOpen isLatest newSender={isNewSender(latestMsg)} senderName={nameFor(latestMsg)} />
+                    </div>
+                  )}
+                  {!loading && earlier.length > 0 && (
+                    <section className="mt-7" style={{ borderTop: `1px solid ${HAIR}` }} aria-label="Earlier messages">
+                      {earlier.map(msg => <MessageBlock key={msg.id} msg={msg} defaultOpen={false} newSender={isNewSender(msg)} senderName={nameFor(msg)} />)}
+                    </section>
+                  )}
+                </div>
               </div>
+
+              {/* Composer: one line until asked, the full panel once open. Same layer as the thread. */}
+              {!loading && (
+                <div ref={composerRef} data-composer className="flex-shrink-0 bg-white" style={{ borderTop: `1px solid ${HAIR}` }}>
+                  {composerOpen ? (
+                    <EngagementComposePanel lead={lead} thread={thread} messages={messages} toAddress={toAddress} ccList={ccList} bccList={bccList} customSubject={customSubject}
+                      setToAddress={setToAddress} setCcList={setCcList} setBccList={setBccList} setCustomSubject={setCustomSubject} replyAll={replyAll} onToggleReplyAll={toggleReplyAll}
+                      storedDraft={summaries[0]?.draft_reply ?? null} storedRagDraft={ragDraft?.content ?? null} storedRagSources={ragDraft?.sources ?? []}
+                      onThreadRefresh={handleThreadRefresh} onAnalyze={runAnalysis} pendingRestore={pendingRestore} onMinimise={() => setComposerOpen(false)}
+                      onHeightChange={syncScrollAffordances} />
+                  ) : (
+                    <div className="px-5 sm:px-10 py-3.5">
+                      <button type="button" onClick={() => openComposer()} aria-label={replyLabel} className={cn(measure, 'w-full h-12 px-4 rounded-[12px] flex items-center text-left text-[15px] bg-white cursor-text hover:border-[#9aa0a6] focus-visible:outline-none focus-visible:border-[#202124]')} style={{ border: '1px solid #dadce0', color: FAINT }}>
+                        <span className="truncate">{replyLabel}</span>
+                        <kbd className="ml-auto flex-shrink-0 text-[11px] font-[inherit] rounded-[6px] px-1.5 py-px" style={{ border: '1px solid #dadce0', color: '#9aa0a6' }} aria-hidden>r</kbd>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </EaMessageArea>
-          {showScrollToLatest && (
+
+          {/* One affordance back down: the draft while it is open, the newest message otherwise. */}
+          {!loading && composerOpen && composerOffscreen ? (
+            <button type="button" onClick={() => scrollToComposer(true)} className="absolute bottom-4 right-6 z-10 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-white text-[12.5px] font-medium cursor-pointer" style={{ border: '1px solid #dadce0', color: INK }}>
+              <ArrowDown size={13} /> Draft
+            </button>
+          ) : !composerOpen && showScrollToLatest ? (
             <button type="button" onClick={() => scrollToBottom(true)} className="absolute bottom-4 right-6 z-10 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-white text-[12.5px] font-medium cursor-pointer" style={{ border: '1px solid #dadce0', color: INK }}>
               <ArrowDown size={13} /> Latest message
             </button>
-          )}
+          ) : null}
         </div>
 
-        {/* Composer: one line until asked; the contained panel once open */}
-        {!loading && (
-          composerOpen ? (
-            <div className="flex-shrink-0 max-h-[62vh] overflow-y-auto bg-white" style={{ borderTop: `1px solid ${HAIR}` }}>
-              <EngagementComposePanel lead={lead} thread={thread} messages={messages} toAddress={toAddress} ccList={ccList} bccList={bccList} customSubject={customSubject}
-                setToAddress={setToAddress} setCcList={setCcList} setBccList={setBccList} setCustomSubject={setCustomSubject} replyAll={replyAll} onToggleReplyAll={toggleReplyAll}
-                storedDraft={summaries[0]?.draft_reply ?? null} storedRagDraft={ragDraft?.content ?? null} storedRagSources={ragDraft?.sources ?? []}
-                onThreadRefresh={handleThreadRefresh} onAnalyze={runAnalysis} pendingRestore={pendingRestore} onMinimise={() => setComposerOpen(false)} />
-            </div>
-          ) : (
-            <div className="flex-shrink-0 px-5 sm:px-10 py-3.5 bg-white" style={{ borderTop: `1px solid ${HAIR}` }}>
-              <button type="button" onClick={() => openComposer()} aria-label={replyLabel} className={cn(measure, 'w-full h-12 px-4 rounded-[12px] flex items-center text-left text-[15px] bg-white cursor-text hover:border-[#9aa0a6] focus-visible:outline-none focus-visible:border-[#202124]')} style={{ border: '1px solid #dadce0', color: FAINT }}>
-                <span className="truncate">{replyLabel}</span>
-                <kbd className="ml-auto flex-shrink-0 text-[11px] font-[inherit] rounded-[6px] px-1.5 py-px" style={{ border: '1px solid #dadce0', color: '#9aa0a6' }} aria-hidden>r</kbd>
-              </button>
-            </div>
-          )
-        )}
       </EaWorkspaceColumn>
 
       {/* Context rail: a column from 1024px up, a sheet below */}
