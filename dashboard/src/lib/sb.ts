@@ -1,7 +1,7 @@
 // Shared Supabase server-side helpers
 // Used by all /api/outbound/* routes
 
-export const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+export const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
 export function sbHeaders(prefer = 'return=minimal'): Record<string, string> {
   const k = process.env.SUPABASE_SERVICE_KEY

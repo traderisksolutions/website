@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffOrCron } from '@/lib/api-auth'
 import { resolveCompany } from '@/lib/debit-note-commit'
 
-const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
 function sbHeaders(prefer = 'return=representation') {
   const k = process.env.SUPABASE_SERVICE_KEY

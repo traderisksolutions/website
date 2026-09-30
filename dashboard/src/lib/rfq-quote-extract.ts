@@ -13,7 +13,7 @@ import { logGeminiUsage } from '@/lib/gemini-usage'
 import { logRfqEvent }    from '@/lib/rfq-log'
 import { logError }       from '@/lib/error-log'
 
-const SB_URL     = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const geminiUrl  = (model: string) => `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
 
 function sbH(prefer = 'return=representation') {

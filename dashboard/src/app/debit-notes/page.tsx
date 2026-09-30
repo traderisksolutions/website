@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { UploadCloud, Plus, Download, Send, Loader2, FolderOpen, Pencil, Trash2, PlusCircle, X, ArrowUp, ArrowDown, ArrowUpDown, ListFilter } from 'lucide-react'
+import { Plus, Download, Send, Loader2, FolderOpen, Pencil, Trash2, PlusCircle, X, ArrowUp, ArrowDown, ArrowUpDown, ListFilter } from 'lucide-react'
 import { AppSplitLayout, AppMainPanel, AppPageHeader, AppPageBody } from '@/components/app-shell'
 import { DataTableToolbar, DataTableReset } from '@/components/data-table/toolbar'
 import { DetailSection, DetailField } from '@/components/detail-section'
@@ -240,7 +240,6 @@ function DebitNotesContent() {
             </div>
             <div className="flex items-center gap-3 flex-wrap">
               <a href="https://drive.google.com/drive/folders/1fNWSYQdZwhkz2A4APmif41PLNwNWNv9r" target="_blank" rel="noreferrer" className="h-12 px-5 rounded-[12px] bg-white text-[15px] border no-underline inline-flex items-center gap-2 hover:bg-[#f8f9fa] text-[#202124]" style={{ borderColor: '#dadce0' }}><FolderOpen size={15} /> Drive folder</a>
-              <Link href="/debit-notes/historical" className="h-12 px-5 rounded-[12px] bg-white text-[15px] border no-underline inline-flex items-center gap-2 hover:bg-[#f8f9fa] text-[#202124]" style={{ borderColor: '#dadce0' }}><UploadCloud size={15} /> Import historical</Link>
               <Link href="/debit-notes/new" className="h-12 px-6 rounded-[12px] text-white text-[15px] font-medium no-underline inline-flex items-center gap-2 hover:opacity-90" style={{ background: '#202124' }}><Plus size={15} /> New debit note</Link>
             </div>
           </div>

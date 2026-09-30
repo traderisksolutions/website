@@ -1,7 +1,7 @@
 import { NextResponse }  from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
 // GET /api/auth/profile
 // Returns the current user's profile including admin status.

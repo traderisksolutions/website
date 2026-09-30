@@ -12,7 +12,7 @@ import type { MatchProduct }         from '@/lib/gb-plan-match'
 
 export const maxDuration = 60
 
-const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
 function sbH(prefer = 'return=minimal') {
   const k = process.env.SUPABASE_SERVICE_KEY

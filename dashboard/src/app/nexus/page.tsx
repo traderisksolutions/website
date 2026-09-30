@@ -13,6 +13,7 @@ import { ActivityFeed, LastHandledBy } from '@/components/ActivityFeed'
 import { logClient } from '@/lib/log-client'
 import { relTime } from '@/lib/activity-labels'
 import { createClient } from '@/lib/supabase/client'
+import { usePolledRefresh } from '@/hooks/usePolledRefresh'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -720,19 +721,14 @@ function CaseDetailPanel({
   // Live "new evidence" detection: an inbound reply landing on any linked thread
   // after the last analysis makes the case stale (→ Update-now bell in the header).
   const threadKey = (detail?.threads ?? []).map(t => t.thread_id).join(',')
-  useEffect(() => {
-    const ids = new Set((detail?.threads ?? []).map(t => t.thread_id))
-    if (ids.size === 0) return
-    const supabase = createClient()
-    const channel = supabase
-      .channel(`nexus-live-${caseData.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'email_messages' }, payload => {
-        const r = payload.new as { thread_id?: string; direction?: string }
-        if (r.direction === 'inbound' && r.thread_id && ids.has(r.thread_id)) loadRef.current()
-      })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [caseData.id, threadKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Was a realtime subscription on Supabase. Cloud SQL cannot push, so this polls instead.
+  // Reloading the case detail is what the subscription did anyway; the only change is that a
+  // new reply shows within the interval rather than instantly.
+  usePolledRefresh(() => { loadRef.current() }, {
+    enabled:    threadKey.length > 0,
+    intervalMs: 30000,
+    deps:       [caseData.id, threadKey],
+  })
 
   const LS_KEY = `nexus_analyzing_${caseData.id}`
 

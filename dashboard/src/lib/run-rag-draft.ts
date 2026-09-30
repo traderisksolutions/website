@@ -10,7 +10,7 @@
  * - Type-specific instructions matching GDrive quality
  */
 
-const SB_URL      = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL      = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL  = geminiUrl(GEMINI_FLASH)
 const EMBED_URL   = geminiUrl(GEMINI_EMBED, 'embedContent')
 

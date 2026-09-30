@@ -13,3 +13,7 @@ tsconfig.tsbuildinfo
 # Local insurer sample workbooks (never commit real pricing data)
 *.xlsx
 *.pdf
+# Any environment file, however it is suffixed. A migration left .env.local.supabase
+# lying around holding live service keys; .env*.local did not match it.
+.env*
+!.env.example

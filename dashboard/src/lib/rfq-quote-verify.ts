@@ -12,7 +12,7 @@
  */
 import { loadSources, extract } from '@/lib/rfq-quote-extract'
 
-const SB_URL = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
 function sbH() {
   const k = process.env.SUPABASE_SERVICE_KEY
