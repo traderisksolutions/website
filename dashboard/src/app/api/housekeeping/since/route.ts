@@ -37,7 +37,7 @@ async function currentUser() {
 }
 
 /** One line per kind of action, with the figure first, as the house voice wants it. */
-function summarise(rows: Row[]): { action: string; text: string; count: number; names: string[] }[] {
+function summarise(rows: Row[]): { action: string; text: string; count: number; detail: string[] }[] {
   const by = new Map<string, Row[]>()
   for (const r of rows) {
     const list = by.get(r.action) ?? []
@@ -47,13 +47,31 @@ function summarise(rows: Row[]): { action: string; text: string; count: number; 
   const names = (rs: Row[]) =>
     Array.from(new Set(rs.map(r => r.new_value?.subject).filter((v): v is string => !!v)))
 
-  const out: { action: string; text: string; count: number; names: string[] }[] = []
+  /**
+   * What unfurls under a summary line: one line per thing acted on, with how many times and on
+   * what basis. This is the part that makes a wrong decision findable — a count alone says
+   * something happened, not what it happened to.
+   */
+  const detailOf = (rs: Row[]): string[] => {
+    const by = new Map<string, { n: number; basis: string | null }>()
+    for (const r of rs) {
+      const key = r.new_value?.subject ?? 'unnamed'
+      const prev = by.get(key)
+      by.set(key, { n: (prev?.n ?? 0) + 1, basis: prev?.basis ?? r.new_value?.basis ?? null })
+    }
+    return Array.from(by.entries())
+      .sort((a, b) => b[1].n - a[1].n)
+      .slice(0, 12)
+      .map(([subject, v]) => `${subject}${v.n > 1 ? ` \u00b7 ${v.n}` : ''}${v.basis ? ` \u2014 ${v.basis}` : ''}`)
+  }
+
+  const out: { action: string; text: string; count: number; detail: string[] }[] = []
 
   const filed = by.get('thread.filed') ?? []
   if (filed.length) {
     const clients = names(filed)
     out.push({
-      action: 'thread.filed', count: filed.length, names: clients,
+      action: 'thread.filed', count: filed.length, detail: detailOf(filed),
       text: `Filed ${filed.length} conversation${filed.length === 1 ? '' : 's'} to ${clients.length} client${clients.length === 1 ? '' : 's'}`,
     })
   }
@@ -62,7 +80,7 @@ function summarise(rows: Row[]): { action: string; text: string; count: number; 
   if (created.length) {
     const n = names(created)
     out.push({
-      action: 'company.created', count: created.length, names: n,
+      action: 'company.created', count: created.length, detail: detailOf(created),
       text: `Created ${created.length} compan${created.length === 1 ? 'y' : 'ies'} from names it had not met — ${n.slice(0, 4).join(', ')}${n.length > 4 ? ` and ${n.length - 4} more` : ''}`,
     })
   }
@@ -70,7 +88,7 @@ function summarise(rows: Row[]): { action: string; text: string; count: number; 
   const domains = by.get('domain.attached') ?? []
   if (domains.length) {
     out.push({
-      action: 'domain.attached', count: domains.length, names: names(domains),
+      action: 'domain.attached', count: domains.length, detail: detailOf(domains),
       text: `Gave ${domains.length} compan${domains.length === 1 ? 'y' : 'ies'} a new email domain, so their mail files itself from now on`,
     })
   }
@@ -78,7 +96,7 @@ function summarise(rows: Row[]): { action: string; text: string; count: number; 
   const merged = by.get('company.merged') ?? []
   if (merged.length) {
     out.push({
-      action: 'company.merged', count: merged.length, names: names(merged),
+      action: 'company.merged', count: merged.length, detail: detailOf(merged),
       text: `Merged ${merged.length} duplicate compan${merged.length === 1 ? 'y' : 'ies'} — ${names(merged).slice(0, 3).join(', ')}`,
     })
   }
@@ -86,7 +104,7 @@ function summarise(rows: Row[]): { action: string; text: string; count: number; 
   const sigs = by.get('signature.read') ?? []
   if (sigs.length) {
     out.push({
-      action: 'signature.read', count: sigs.length, names: names(sigs),
+      action: 'signature.read', count: sigs.length, detail: detailOf(sigs),
       text: `Read ${sigs.length} signature${sigs.length === 1 ? '' : 's'} into contact records`,
     })
   }
