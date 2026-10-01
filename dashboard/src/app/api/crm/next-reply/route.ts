@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
       proposedAttachments: r.attachments,
       provenance: r.provenance,
       model: r.model,
+      draftId: r.draftId,
       read: r.read,
       archive: r.archive.map((c, i) => ({
         n: i + 1, source: c.source, fileName: c.file_name, threadId: c.thread_id,

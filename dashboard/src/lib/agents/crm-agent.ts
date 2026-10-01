@@ -30,6 +30,45 @@ import { buildCitations, renderProvenance, CITE_INSTRUCTION, type Citation, type
 import { buildCompanyContext, renderContext as renderCompany } from '@/lib/crm/context'
 import { getCompany, sbTry, enc } from '@/lib/crm/db'
 
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+function sbHeaders(prefer = 'return=representation') {
+  const k = process.env.SUPABASE_SERVICE_KEY
+  if (!k) throw new Error('SUPABASE_SERVICE_KEY not set')
+  return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: prefer }
+}
+
+/**
+ * Save the reply as a pending draft, superseding any earlier pending one on the thread.
+ * Mirrors what /api/engagement/draft did, because this replaces it and the rest of the
+ * dashboard — approve, reject, the learning loop — keys off this row.
+ */
+async function saveDraft(threadId: string, contactId: string | null, body: string, contextUsed: string[]): Promise<string | null> {
+  try {
+    await fetch(`${SB_URL}/rest/v1/ai_drafts?thread_id=eq.${enc(threadId)}&status=eq.pending`, {
+      method: 'PATCH', headers: sbHeaders('return=minimal'),
+      body: JSON.stringify({ status: 'superseded' }),
+    })
+    const res = await fetch(`${SB_URL}/rest/v1/ai_drafts`, {
+      method: 'POST', headers: sbHeaders(),
+      body: JSON.stringify({
+        contact_id: contactId, thread_id: threadId, channel: 'email', body,
+        status: 'pending', generated_by: 'crm_agent',
+        context_used: contextUsed.length ? contextUsed : null,
+      }),
+    })
+    if (!res.ok) {
+      console.error('[crm-agent] could not save the draft:', res.status, (await res.text()).slice(0, 200))
+      return null
+    }
+    const rows = await res.json()
+    return (Array.isArray(rows) ? rows[0]?.id : rows?.id) ?? null
+  } catch (e) {
+    // A draft on screen the reviewer can still copy is better than failing the whole call.
+    console.error('[crm-agent] draft save threw:', e)
+    return null
+  }
+}
+
 export interface NextReply {
   /** What the thread is waiting on, in one or two sentences of fact. */
   situation:   string
@@ -44,6 +83,9 @@ export interface NextReply {
   provenance:  string
   archive:     CompanyChunk[]
   model:       string
+  /** The row in ai_drafts this reply was saved as, so the approve/reject and evaluation flow
+   *  keeps working exactly as it did for the drafter this replaces. */
+  draftId:     string | null
   /** How much had to be read, so the reader can judge the answer's basis. */
   read:        { threads: number; archivePassages: number; archiveThreads: number }
 }
@@ -97,8 +139,8 @@ export async function nextReply(opts: { threadId: string }): Promise<NextReply> 
   if (!key) throw new Error('No Gemini key available for the CRM agent. Set GEMINI_API_KEY_CRM.')
 
   // 1 ── the thread and its company
-  const threads = await sbTry<{ id: string; subject: string | null; company_id: string | null }[]>(
-    `email_threads?id=eq.${enc(opts.threadId)}&select=id,subject,company_id&limit=1`, [])
+  const threads = await sbTry<{ id: string; subject: string | null; company_id: string | null; contact_id: string | null }[]>(
+    `email_threads?id=eq.${enc(opts.threadId)}&select=id,subject,company_id,contact_id&limit=1`, [])
   const thread = threads[0]
   if (!thread) throw new Error('That thread does not exist.')
   if (!thread.company_id) throw new Error('This thread has no company yet. File it first — /companies/triage.')
@@ -191,14 +233,25 @@ export async function nextReply(opts: { threadId: string }): Promise<NextReply> 
     throw new Error(`The CRM agent's answer was not readable (${finish}). Try again.`)
   }
 
+  const draft = str(parsed.draft, 8000)
+  // What the draft was actually built from, shown to the reviewer so they can judge it.
+  const contextUsed = [
+    `company record for ${company.name}`,
+    archive.length
+      ? `${archive.length} passage${archive.length === 1 ? '' : 's'} from ${archiveThreads} other thread${archiveThreads === 1 ? '' : 's'}`
+      : null,
+  ].filter((v): v is string => v !== null)
+
+  const draftId = draft ? await saveDraft(opts.threadId, thread.contact_id ?? null, draft, contextUsed) : null
+
   return {
     situation:  str(parsed.situation, 600),
     nextAction: str(parsed.nextAction, 600),
     openItems:  Array.isArray(parsed.openItems) ? parsed.openItems.map(v => str(v, 300)).filter(Boolean).slice(0, 8) : [],
-    draft:      str(parsed.draft, 8000),
+    draft,
     citations, attachments,
     provenance: renderProvenance(citations),
-    archive, model,
+    archive, model, draftId,
     read: { threads: 1 + archiveThreads, archivePassages: archive.length, archiveThreads },
   }
 }

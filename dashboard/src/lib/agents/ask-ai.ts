@@ -20,6 +20,7 @@ import { agentKey } from '@/lib/ai-agents'
 import { logAiUsage } from '@/lib/gemini-usage'
 import { logError } from '@/lib/error-log'
 import { searchCompany, renderContext, type CompanyChunk } from '@/lib/agents/company-retrieval'
+import { sbTry, enc } from '@/lib/crm/db'
 
 /** A web page the answer leaned on. */
 export interface WebSource {
@@ -98,6 +99,13 @@ export async function ask(opts: {
   companyId?: string | null
   /** Narrow the archive search to these threads. */
   threadIds?: string[] | null
+  /**
+   * Scope the answer to ONE thread: its messages and the text of its own attachments, plus the
+   * web. This is the thread-side Ask AI. It deliberately does not reach the company's other
+   * threads — that is what Generate response is for, and the difference between the two buttons
+   * is exactly this.
+   */
+  threadId?: string | null
   feature?: 'ask_ai_grounded' | 'ask_ai_clause'
 }): Promise<AskResult> {
   const question = (opts.question ?? '').trim()
@@ -109,6 +117,33 @@ export async function ask(opts: {
   // The company's own correspondence, when one was named. This is what makes the answer about
   // THIS client rather than about insurance in general — and it is scoped, so one client's
   // papers can never appear in an answer about another.
+  // One thread, in full: what was said and what was attached. Read directly rather than through
+  // the embedding index, because on a single thread there is no need to rank — it all fits, and
+  // the clause being asked about is usually in the attachment rather than the message.
+  let threadBlock = ''
+  if (opts.threadId) {
+    try {
+      const [msgs, atts] = await Promise.all([
+        sbTry<{ direction: string; from_address: string | null; body_text: string | null; sent_at: string | null }[]>(
+          `email_messages?thread_id=eq.${enc(opts.threadId)}&deleted_at=is.null&select=direction,from_address,body_text,sent_at&order=sent_at.asc`, []),
+        sbTry<{ filename: string | null; parsed_text: string | null }[]>(
+          `email_attachments?thread_id=eq.${enc(opts.threadId)}&parsed_text=not.is.null&select=filename,parsed_text`, []),
+      ])
+      const convo = msgs.slice(-20).map(m => {
+        const who = m.direction === 'inbound' ? `THEM (${m.from_address ?? ''})` : 'TRS (us)'
+        const when = m.sent_at ? m.sent_at.slice(0, 10) : ''
+        return `[${when}] ${who}: ${(m.body_text ?? '').slice(0, 3000)}`
+      }).join('\n\n')
+      const files = atts.slice(0, 6).map((a, i) =>
+        `--- attachment ${i + 1}: ${a.filename ?? 'file'} ---\n${(a.parsed_text ?? '').slice(0, 12000)}`).join('\n\n')
+      threadBlock =
+        `\n\nTHIS THREAD (the conversation you are being asked about)\n${convo || '(no messages)'}` +
+        (files ? `\n\nDOCUMENTS ATTACHED TO THIS THREAD (quote the wording where it answers the question)\n${files}` : '')
+    } catch (e) {
+      console.error('[ask-ai] could not read the thread:', e)
+    }
+  }
+
   let archive: CompanyChunk[] = []
   if (opts.companyId) {
     try {
@@ -126,7 +161,8 @@ export async function ask(opts: {
   const prompt =
     `${question}\n\n` +
     `Search the web for anything current or authoritative before answering, and cite what you ` +
-    `find.${archiveBlock}`
+    `find. Where the answer is in the thread or its attachments below, answer from those and say ` +
+    `which document it came from.${threadBlock}${archiveBlock}`
 
   const model = GEMINI_DEEP
   const res = await fetch(`${geminiUrl(model)}?key=${key}`, {
@@ -171,8 +207,8 @@ export async function ask(opts: {
   if (!answer) {
     warning = `The model returned nothing (${cand?.finishReason ?? 'no reason given'}). Ask again, or more narrowly.`
   } else if (!grounded) {
-    warning = archive.length
-      ? 'Not checked against the web — this answer comes from the model and from TRS files only. Verify anything that can change.'
+    warning = (archive.length || threadBlock)
+      ? 'Not checked against the web — this answer comes from the thread and TRS files only. Verify anything that can change.'
       : 'Not checked against the web. The model chose not to search, so this is its own recollection and nothing here is sourced. Treat it as a starting point, not an answer.'
   }
 

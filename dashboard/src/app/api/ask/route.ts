@@ -18,7 +18,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json().catch(() => ({})) as {
-      question?: string; companyId?: string | null; threadIds?: string[] | null; kind?: string
+      question?: string; companyId?: string | null; threadIds?: string[] | null
+      threadId?: string | null; kind?: string
     }
     const question = (body.question ?? '').trim()
     if (!question) return NextResponse.json({ error: 'Ask a question.' }, { status: 400 })
@@ -26,6 +27,10 @@ export async function POST(req: NextRequest) {
 
     const r = await ask({
       question,
+      // A threadId scopes the answer to that one conversation and its attachments. A companyId
+      // widens it to the whole client archive. The thread-side button sends the former; the
+      // standalone page sends the latter.
+      threadId:  body.threadId ?? null,
       companyId: body.companyId ?? null,
       threadIds: Array.isArray(body.threadIds) && body.threadIds.length ? body.threadIds : null,
       feature: body.kind === 'clause' ? 'ask_ai_clause' : 'ask_ai_grounded',

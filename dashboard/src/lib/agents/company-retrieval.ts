@@ -13,6 +13,7 @@
 import { geminiUrl, GEMINI_EMBED } from '@/lib/gemini-models'
 import { logError } from '@/lib/error-log'
 import { logAiUsage, type AiFeature } from '@/lib/gemini-usage'
+import { agentKey } from '@/lib/ai-agents'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 const sbH = () => {
@@ -61,12 +62,13 @@ export function chunkText(text: string, size = CHUNK_CHARS, overlap = CHUNK_OVER
 }
 
 export async function embedText(text: string, feature: AiFeature = 'company_retrieval_embed'): Promise<number[]> {
-  // Three names, because they are not set consistently across environments and retrieval that
-  // silently returns nothing is worse than retrieval that fails loudly: a draft would simply
-  // lose the archive with no sign anything was missing.
-  const key = process.env.GEMINI_API_KEY_EMAIL_ANALYSIS
-            || process.env.GEMINI_API_KEY_DRAFT_EMAIL
-            || process.env.GEMINI_API_KEY_INBOUND
+  // Resolved through agentKey so a PLACEHOLDER is skipped rather than sent. This chain used to
+  // take the first name that was merely non-empty, which picked up GEMINI_API_KEY_DRAFT_EMAIL —
+  // shipped in .env.local as the literal string "your_gemini_api_key". Gemini answers that with
+  // HTTP 400, embedText returns [], and the draft silently loses the whole company archive: the
+  // same call that had read 8 passages from 3 threads returned none, with nothing on screen to
+  // say the archive had dropped out.
+  const { key } = agentKey('crm')
   if (!key) throw new Error('no Gemini key configured for embeddings')
   const res = await fetch(`${geminiUrl(GEMINI_EMBED, 'embedContent')}?key=${key}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
