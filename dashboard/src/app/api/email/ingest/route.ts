@@ -916,11 +916,20 @@ export async function POST(req: NextRequest) {
     const messageIds = await getNewMessageIds(token)
     console.log('[ingest] processing', messageIds.length, 'message(s)')
 
-    // Process each new message
-    await Promise.allSettled(messageIds.map(id => ingestMessage(token, id, origin)))
+    const results = await Promise.allSettled(messageIds.map(id => ingestMessage(token, id, origin)))
+    const failed  = results.filter(r => r.status === 'rejected')
 
-    // Persist new historyId so next webhook only fetches newer messages
-    await saveHistoryId(historyId)
+    // Only move the history pointer when every message landed. It used to advance regardless,
+    // so a message that failed to store was skipped permanently: the next push would start from
+    // a history id past it, and nothing would ever look at it again. Holding the pointer back
+    // means the next notification retries the whole batch, and ingestMessage is idempotent on
+    // the Gmail message id, so the ones that did land are not duplicated.
+    if (failed.length === 0) {
+      await saveHistoryId(historyId)
+    } else {
+      console.error(`[ingest] ${failed.length}/${messageIds.length} message(s) failed; history pointer held at the previous id so they are retried`,
+        failed.slice(0, 3).map(f => String((f as PromiseRejectedResult).reason).slice(0, 200)))
+    }
 
     return NextResponse.json({ ok: true })
   } catch (e) {
