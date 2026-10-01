@@ -13,6 +13,7 @@ import { ContextRail, loadBoard } from './ContextRail'
 import { cleanEmailBody } from '@/lib/clean-email-body'
 import { EngagementComposePanel } from '@/components/engagement-agent/engagement-compose-panel'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { NextReplyPanel } from '@/components/engagement/NextReplyPanel'
 import type { BoardPayload } from '@/lib/crm/board'
 
 /**
@@ -389,6 +390,10 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
                   )}
                 </div>
               </div>
+
+              {/* The agent's read of the thread, above the composer and separate from it: the
+                  composer owns the editor and the send path, and must not gain a second writer. */}
+              {!loading && thread?.id && <NextReplyPanel threadId={thread.id} />}
 
               {/* Composer: one line until asked, the full panel once open. Same layer as the thread. */}
               {!loading && (
