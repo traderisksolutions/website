@@ -83,10 +83,10 @@ export interface AutofileResult {
   errors: string[]
 }
 
-type ThreadRow = { id: string; subject: string | null; company_id: string | null; contact_id: string | null; contacts: { id: string; email: string | null; company: string | null; company_id: string | null } | null }
+type ThreadRow = { id: string; subject: string | null; snippet: string | null; last_message_at: string | null; company_id: string | null; contact_id: string | null; contacts: { id: string; email: string | null; company: string | null; company_id: string | null } | null }
 type PartRow = { thread_id: string; email: string; name: string | null }
 
-const THREAD_SELECT = 'id,subject,company_id,contact_id,contacts(id,email,company,company_id)'
+const THREAD_SELECT = 'id,subject,snippet,last_message_at,company_id,contact_id,contacts(id,email,company,company_id)'
 
 // ── 1. Counterparty seeding ───────────────────────────────────────────────────────────────────
 
@@ -258,14 +258,19 @@ export async function classifyDomains(evidence: DomainEvidence[]): Promise<Map<s
       `insurers and partners also on these threads: ${e.counterparties.slice(0, 8).join('; ') || 'none'}`,
       `other outside domains copied in: ${e.alsoOn.slice(0, 6).map(a => a.domain).join('; ') || 'none'}`,
       `TRS people handling it: ${e.handledBy.slice(0, 4).join('; ') || '-'}`,
-      `threads:\n${e.previews.slice(0, 6).map(p => `  - ${p.subject ?? '(no subject)'}${p.snippet ? `\n      ${p.snippet.slice(0, 160)}` : ''}`).join('\n') || '  -'}`,
+      `subject lines on these threads: ${Array.from(new Set(e.subjects)).slice(0, 8).join(' | ') || '-'}`,
+      `threads:\n${e.previews.slice(0, 6).map(p => `  - ${p.subject ?? '(no subject)'}${p.snippet ? `\n      ${p.snippet.slice(0, 300)}` : ''}`).join('\n') || '  -'}`,
     ].join('\n')).join('\n\n---\n\n')
 
     // Housekeeping tier: naming and classifying a domain from subjects and counterparties is a
     // short structured judgement, batched a handful at a time. Lite answers it at $0.0002 per
     // domain, and the decision is reviewable in the domain queue either way.
     const res = await geminiJson<RawDecision[]>({ system: SYSTEM, prompt: `${SCHEMA}\n\nDOMAINS:\n\n${text}`, feature: 'crm_triage', model: GEMINI_LITE, temperature: 0 })
-    if (!res.data || !Array.isArray(res.data)) continue
+    if (!res.data || !Array.isArray(res.data)) {
+      // Say so. Without this the sweep quietly names every domain after its own stem.
+      console.error(`[autofile] domain classification returned nothing for ${batch.length} domains: ${res.error ?? 'no data'}`)
+      continue
+    }
     for (const r of res.data) {
       const domain = String(r.domain ?? '').toLowerCase().trim()
       const name = String(r.name ?? '').trim()
@@ -324,6 +329,13 @@ export async function autofile(opts: { dryRun?: boolean; maxDomains?: number } =
       const ev = evidence.get(d) ?? blankEvidence(d)
       if (!ev.threadIds.includes(t.id)) ev.threadIds.push(t.id)
       if (t.subject && ev.subjects.length < 8 && !ev.subjects.includes(t.subject)) ev.subjects.push(t.subject)
+      // The classifier prompt reads `previews`, not `subjects`. This loop filled only the
+      // latter, so in the sweep the model was shown "threads: -" and had nothing but the domain
+      // string to name the organisation from — which is why it returned stems like "Getsolar"
+      // and "Fengchen" instead of the name people actually write in their mail.
+      if (ev.previews.length < 6 && !ev.previews.some(p => p.subject === t.subject)) {
+        ev.previews.push({ subject: t.subject, snippet: t.snippet, date: t.last_message_at })
+      }
       for (const r of rows) {
         if (emailDomain(r.email) !== d) continue
         const label = r.name ? `${r.name} <${r.email}>` : r.email

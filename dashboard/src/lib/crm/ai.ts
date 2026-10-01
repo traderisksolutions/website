@@ -50,14 +50,27 @@ export async function geminiJson<T>(opts: {
     const res = await fetch(`${geminiUrl(model)}?key=${key}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     if (!res.ok) {
       const msg = await res.text()
+      // Console as well as the error table: logError is fire-and-forget, so on a serverless
+      // invocation that returns before the insert lands there is no record of the failure at all.
+      console.error(`[gemini] ${opts.feature} ${model} HTTP ${res.status}: ${msg.slice(0, 600)}`)
       void logError({ source: 'gemini', feature: opts.feature, statusCode: res.status, message: msg.slice(0, 500), resourceType: 'company', resourceId: opts.resourceId ?? null })
-      return { data: null, model, error: `Gemini error ${res.status}` }
+      return { data: null, model, error: `Gemini error ${res.status}: ${msg.slice(0, 200)}` }
     }
     const json = await res.json()
     void logGeminiUsage(opts.feature, json?.usageMetadata ?? {}, opts.resourceId ?? null, model)
     const raw: string = json?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? ''
     const data = parseJsonLoose<T>(raw)
-    return data ? { data, model } : { data: null, model, error: 'The model returned something that was not valid JSON.' }
+    if (!data) {
+      // Logged, because this was the one failure path that returned an error and recorded
+      // nothing. Callers that ignore `error` then see an empty result and fall back to whatever
+      // default they have, with no trace anywhere that the model was ever asked.
+      const finish = json?.candidates?.[0]?.finishReason ?? 'unknown'
+      void logError({ source: 'gemini', feature: opts.feature,
+        message: `Model reply was not valid JSON (finishReason=${finish}, ${raw.length} chars): ${raw.slice(0, 400)}`,
+        resourceType: 'company', resourceId: opts.resourceId ?? null })
+      return { data: null, model, error: `The model returned something that was not valid JSON (finishReason=${finish}).` }
+    }
+    return { data, model }
   } catch (e) {
     void logError({ source: 'gemini', feature: opts.feature, message: String(e), resourceType: 'company', resourceId: opts.resourceId ?? null })
     return { data: null, model, error: String(e) }
