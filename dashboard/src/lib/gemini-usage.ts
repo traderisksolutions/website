@@ -134,8 +134,8 @@ export async function logAiUsage(p: {
   inputTokens:  number
   outputTokens: number
   threadId?:    string | null
-  /** Accepted for call-site compatibility and NOT persisted — gemini_usage_log has no such
-   *  column, and sending it rejected the entire insert. See the note in the body. */
+  /** Context from the call site, stored as jsonb. Empty objects are omitted rather than written
+   *  as `{}`, because several call sites pass one as a placeholder. */
   metadata?:    Record<string, unknown>
 }): Promise<void> {
   try {
@@ -144,10 +144,11 @@ export async function logAiUsage(p: {
     const pricing = PRICING[p.model] ?? PRICING[DEFAULT_MODEL]
     const rates   = resolveRates(pricing, p.inputTokens || 0, new Date())
     const costUsd = (p.inputTokens || 0) * (rates.inputPerMillion / 1e6) + (p.outputTokens || 0) * (rates.outputPerMillion / 1e6)
-    // `metadata` is deliberately NOT sent. gemini_usage_log has no such column, so PostgREST
-    // rejected the whole insert with PGRST204 whenever a caller passed one — and six do, among
-    // them every Opus pricing-matrix extraction and the outbound reply drafter. Those rows were
-    // never written. Dropping the field costs nothing that was ever stored and lets the row land.
+    // `metadata` is sent again as of 1 Oct 2026. The column did not exist until then, so every
+    // insert carrying one was rejected with PGRST204 and the row lost — six call sites pass one,
+    // among them every Opus pricing-matrix extraction and the outbound reply drafter. The column
+    // now exists and PostgREST has been told to reload, so the context those call sites meant to
+    // record is finally stored.
     const res = await fetch(`${SB_URL}/rest/v1/gemini_usage_log`, {
       method:  'POST',
       headers: { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
@@ -160,6 +161,7 @@ export async function logAiUsage(p: {
         cost_usd:      costUsd,
         thread_id:     p.threadId ?? null,
         ok:            true,
+        ...(p.metadata && Object.keys(p.metadata).length ? { metadata: p.metadata } : {}),
       }),
     })
     // A rejected insert is an HTTP status, not an exception, so the catch below never saw one.
