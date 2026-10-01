@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import { TopNavbar } from '@/components/nav/top-navbar'
+import { HousekeepingBanner } from '@/components/HousekeepingBanner'
 import { EngagementRail, useShowEngagementRail } from '@/components/nav/engagement-rail'
 import { ChatDockProvider } from '@/providers/chat-dock-provider'
 import { FloatingChatDock } from '@/components/chat/floating-chat-dock'
@@ -24,6 +25,9 @@ function MainContent({ children }: { children: React.ReactNode }) {
       className="main-content min-h-[calc(100vh/var(--ui-zoom))] flex flex-col"
       style={{ background: 'hsl(var(--background))', marginLeft }}
     >
+      {/* Under the nav, above whatever page this is: seen once and cleared, rather than filed
+          into a notifications panel nobody opens. Renders nothing when the agent did nothing. */}
+      <HousekeepingBanner />
       {children}
     </div>
   )

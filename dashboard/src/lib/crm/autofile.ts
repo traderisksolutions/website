@@ -27,6 +27,7 @@ import { sb, sbTry, inChunks, enc, emailDomain, isInternal, isAutomated, PUBLIC_
 import { buildCompanyIndex, matchByName, companyCore, domainSuitsName, domainMatchesName, type CompanyIndex } from './resolve'
 import { buildIdentityIndex, matchName, loadAliases, recordAlias, aliasKey, type IdentityIndex } from './identity'
 import { geminiJson } from './ai'
+import { recordHousekeeping } from '@/lib/agent-activity'
 import { GEMINI_LITE } from '@/lib/gemini-models'
 import type { Company, CompanyKind } from './types'
 
@@ -153,6 +154,13 @@ export async function createCompany(input: { name: string; kind: CompanyKind; do
   }
   try {
     const rows = await sb<{ id: string }[]>('companies', { method: 'POST', body: JSON.stringify(full) })
+    if (rows[0]?.id) {
+      recordHousekeeping({
+        action: 'company.created', subject: input.name.trim(),
+        resourceType: 'company', resourceId: rows[0].id,
+        basis: input.note, metadata: { kind: input.kind, domains, confidence: input.confidence },
+      })
+    }
     return rows[0]?.id ?? null
   } catch {
     // Before 20260911_company_identity.sql the note columns do not exist yet.
@@ -167,7 +175,16 @@ export async function attachDomain(company: Company, domain: string, dry: boolea
   if (company.domains.includes(domain) || PUBLIC_EMAIL_DOMAINS.has(domain)) return
   const next = [...company.domains, domain]
   company.domains = next
-  if (!dry) await sbTry(`companies?id=eq.${company.id}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ domains: next, domain: next[0] }) })
+  if (!dry) {
+    await sbTry(`companies?id=eq.${company.id}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ domains: next, domain: next[0] }) })
+    // Worth recording on its own: once a company owns a domain, every later thread from it
+    // files there without another decision, so a wrong one keeps being wrong quietly.
+    recordHousekeeping({
+      action: 'domain.attached', subject: company.name,
+      resourceType: 'company', resourceId: company.id,
+      basis: `${domain} reads as this company`, metadata: { domain },
+    })
+  }
 }
 
 // ── 3. Naming and classifying a domain ────────────────────────────────────────────────────────
@@ -499,6 +516,15 @@ export async function autofileThread(threadId: string): Promise<{ companyId: str
   const index = await buildCompanyIndex()
   const file = async (companyId: string, via: string) => {
     await sbTry(`email_threads?id=eq.${threadId}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ company_id: companyId }) })
+    // Recorded so the banner can say what happened while nobody was looking. This runs on the
+    // ingest path with no session, which is why it cannot go through logActivity.
+    recordHousekeeping({
+      action: 'thread.filed',
+      subject: index.byId.get(companyId)?.name ?? companyId,
+      resourceType: 'thread', resourceId: threadId,
+      basis: via,
+      metadata: { thread_subject: t.subject ?? null, company_id: companyId },
+    })
     if (t.contacts?.id && !t.contacts.company_id) {
       await sbTry(`contacts?id=eq.${t.contacts.id}&company_id=is.null`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ company_id: companyId }) })
     }

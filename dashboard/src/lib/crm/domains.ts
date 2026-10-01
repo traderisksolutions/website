@@ -11,6 +11,7 @@ import { sb, sbTry, inChunks, enc, emailDomain, isInternal, isAutomated, PUBLIC_
 import { buildIdentityIndex, matchName, loadAliases, recordAlias, aliasKey } from './identity'
 import { classifyDomains, createCompany, attachDomain, blankEvidence, type DomainEvidence, type DomainGuess } from './autofile'
 import type { Company, CompanyKind } from './types'
+import { recordHousekeeping } from '@/lib/agent-activity'
 
 export interface DomainCandidate {
   domain: string
@@ -240,6 +241,14 @@ export async function mergeCompanies(loserId: string, winnerId: string, userEmai
   }
 
   await sb(`companies?id=eq.${enc(loserId)}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } })
+  // A merge is the agent's most consequential edit: one client's history moves onto another.
+  recordHousekeeping({
+    action: 'company.merged', subject: winner.name,
+    resourceType: 'company', resourceId: winnerId,
+    basis: `${loser.name} was the same company`,
+    metadata: { loser_id: loserId, moved },
+  })
+
   return { moved }
 }
 
