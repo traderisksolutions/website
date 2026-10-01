@@ -17,3 +17,7 @@ tsconfig.tsbuildinfo
 # lying around holding live service keys; .env*.local did not match it.
 .env*
 !.env.example
+
+# The agent-key template is committed on purpose: it carries no values, only the
+# variable names and what each agent costs. .env* above still hides every real file.
+!.env.agents.example

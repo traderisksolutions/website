@@ -2,8 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   AlertTriangle, Users, BarChart2, Bot, UsersRound, Cpu, FolderOpen, BookMarked, History,
   Settings, FlaskConical, TrendingUp, ScrollText, Network, HeartPulse, Car,
-  Receipt, CalendarDays, Waypoints, Building2, Link2, Wrench, Home, Landmark,
-} from 'lucide-react'
+  Receipt, CalendarDays, Waypoints, Building2, Link2, Wrench, Home, Landmark, Sparkles } from 'lucide-react'
 
 export type NavLink = {
   title: string
@@ -37,6 +36,7 @@ export type NavSection = {
 export const NAV_SECTIONS: NavSection[] = [
   { label: 'Home',      href: '/',          icon: Home },
   { label: 'Companies', href: '/companies', icon: Building2 },
+  { label: 'Ask AI',    href: '/ask',       icon: Sparkles },
   {
     label: 'All Inbox',
     icon: Bot,
@@ -76,7 +76,7 @@ export const NAV_SECTIONS: NavSection[] = [
           { title: 'Funnel',           href: '/analytics',           icon: BarChart2,     description: 'Lead-to-close funnel', disabled: true },
           { title: 'Activity Log',     href: '/analytics/activity',  icon: History,       description: 'Audit trail of system activity' },
           { title: 'Error Log',        href: '/analytics/error-log', icon: AlertTriangle, description: 'AI/API failures, auto-logged as they happen' },
-          { title: 'AI Usage',         href: '/analytics/ai-usage',  icon: Cpu,           description: 'Model spend and usage' },
+          { title: 'AI Spend',         href: '/analytics/ai-usage',  icon: Cpu,           description: 'What each agent costs' },
           { title: 'Email Evaluation', href: '/analytics/eval',      icon: FlaskConical,  description: 'Outbound email quality checks' },
         ],
       },
