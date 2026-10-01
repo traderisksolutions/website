@@ -8,7 +8,7 @@
 // 1040 measure — top bar, To/Cc/Bcc/Subject rows, the grouped toolbar, the editor, the footer.
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Paperclip, Sparkles, ChevronDown, X } from 'lucide-react'
+import { Paperclip, ChevronDown, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
 import { createClient } from '@/lib/supabase/client'
@@ -70,7 +70,6 @@ export function EngagementComposePanel({
   const [draftLoaded,     setDraftLoaded]     = useState(false)
   const [draftEditorKey,  setDraftEditorKey]  = useState(0)
   const [loading,         setLoading]         = useState<'gen' | 'send' | null>(null)
-  const [genStep,         setGenStep]         = useState<'analyze' | 'draft' | null>(null)
   const [sent,            setSent]            = useState(false)
   const [error,           setError]           = useState<string | null>(null)
   const [errorOpen,       setErrorOpen]       = useState(false)
@@ -154,7 +153,6 @@ export function EngagementComposePanel({
 
   const selectedSig = signatures.find(s => s.id === selectedSigId) ?? null
   const sigHtml     = selectedSig ? buildSigHtml(selectedSig) : ''
-  const genPct      = useFauxProgress(loading === 'gen')   // determinate % for the progress bar
 
   // ── All effects preserved verbatim ────────────────────────────────────────
 
@@ -280,11 +278,11 @@ export function EngagementComposePanel({
     }
   }, [aiDraftChecked, draftLoaded, sent, storedDraft]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    if (!thread?.id || !aiDraftChecked || draftLoaded || messages.length === 0 || sent) return
-    if (messages.at(-1)?.direction !== 'inbound') return
-    generate({ analyze: false })   // auto-draft on open: draft only, no paid analysis pass
-  }, [thread?.id, aiDraftChecked, draftLoaded, messages.length]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Drafting no longer happens on open. It used to fire whenever the composer was opened on a
+  // thread whose last message was inbound, which spent a model call every time somebody opened
+  // a reply box to read it. "Generate response" in the bar above is a deliberate click, and it
+  // reads far more (the company record and every other thread), so doing it unasked is both
+  // dearer and less likely to be wanted.
 
   useEffect(() => {
     if (storedRagSources && !ragSources.length) {
@@ -294,47 +292,9 @@ export function EngagementComposePanel({
 
   // ── All handlers preserved verbatim ───────────────────────────────────────
 
-  async function generate(opts?: { analyze?: boolean }) {
-    const runAnalysis = opts?.analyze ?? true   // manual click analyses; auto-draft skips it
-    setLoading('gen'); setError(null)
-    try {
-      // #3 — one AI-analysis pass first (updates AI Analysis tab + history), then draft.
-      if (runAnalysis && onAnalyze && thread?.id) {
-        setGenStep('analyze')
-        try { await onAnalyze() } catch { /* draft anyway */ }
-      }
-      setGenStep('draft')
-      const res = await fetch('/api/engagement/draft', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          // Resolve the contact from the actual recipient in the To field — the lead
-          // may have no email (e.g. an internal forwarded thread) even when To is set.
-          leadId: lead.id, contactName: fullName(lead), contactEmail: toAddress.trim() || lead.email,
-          company: lead.company, topic: lead.topic, threadId: thread?.id ?? null,
-          messages: messages.map(m => ({
-            direction: m.direction, from_address: m.from_address,
-            body_text: m.body_text, sent_at: m.sent_at,
-          })),
-        }),
-      })
-      const data = await res.json()
-      if (res.status === 422 && data.error === 'not_an_enquiry') {
-        setError('Not an insurance enquiry — no draft generated.')
-        return
-      }
-      if (data.error) { setError(data.error); return }
-      setDraftId(data.draftId)
-      setDraftHtml(plainToHtml(data.content))
-      setContextUsed(Array.isArray(data.contextUsed) ? data.contextUsed : [])
-      aiOriginalRef.current = data.content
-      setDraftEditorKey(k => k + 1)
-      log({
-        action: 'draft.generated', resource_type: 'thread',
-        resource_id: thread?.id ?? lead.id, metadata: { contact: lead.email },
-      })
-    } catch { setError('Failed to generate draft') }
-    finally { setLoading(null); setGenStep(null) }
-  }
+  // generate() lived here and called /api/engagement/draft. Drafting moved to the
+  // "Generate response" control above this composer, which runs the client-relationship
+  // agent over the whole company file and writes its result in through pendingRestore.
 
   async function handleSend() {
     const plainText = htmlToPlain(draftHtml)
@@ -543,13 +503,7 @@ export function EngagementComposePanel({
           sigHtml={sigHtml}
           borderless
           variant="reading"
-          placeholder={
-            loading === 'gen'
-              ? 'Drafting…'
-              : hasDraft
-                ? ''
-                : `Write your reply to ${contactName || lead.email || 'the client'}…`
-          }
+          placeholder={hasDraft ? '' : `Write your reply to ${contactName || lead.email || 'the client'}…`}
           minHeight={140}
           onContentHeightChange={onEditorContentHeight}
           fullscreen={fullscreen}
@@ -579,15 +533,11 @@ export function EngagementComposePanel({
                 </TbMenu>
               </TbGroup>
               {/* No house-template picker exists in this panel yet, so there is no Template menu. */}
-              <TbGroup label="Assist">
-                <TbMenu label="Assist" disabled={!!loading} trigger={<><Sparkles size={15} /> {loading === 'gen' ? (genStep === 'analyze' ? 'Analysing…' : 'Drafting…') : 'Assist'}</>} width={200}>
-                  {close => (
-                    <TbMenuItem onSelect={() => { close(); void generate() }} disabled={!!loading}>
-                      {hasDraft ? 'Regenerate' : 'Generate AI reply'}
-                    </TbMenuItem>
-                  )}
-                </TbMenu>
-              </TbGroup>
+              {/* The Assist menu's "Generate AI reply" lived here. Drafting is now one control,
+                  "Generate response", in the bar above this composer — it reads the company
+                  record and the client's other threads, not just this one, and writes the result
+                  straight into this editor. Two buttons that both produced a draft, from
+                  different amounts of context, was the thing worth removing. */}
             </>
           }
         />
@@ -652,13 +602,6 @@ export function EngagementComposePanel({
           </div>
         )}
         <input ref={fileInputRef} type="file" multiple className="hidden" onChange={e => uploadLocalFiles(e.target.files)} aria-hidden tabIndex={-1} />
-
-        {/* Progress while a reply is being generated (#3) */}
-        {loading === 'gen' && (
-          <div className="px-[var(--re-gutter)] pb-2 flex-shrink-0">
-            <InlineProgress value={genPct} label={genStep === 'analyze' ? 'Analysing thread…' : 'Drafting reply…'} />
-          </div>
-        )}
 
         {/* ── Footer: note or error · spacer · Approve & Send ── */}
         <div className="flex items-center gap-2 px-[var(--re-gutter)] pt-2 pb-4 flex-shrink-0">

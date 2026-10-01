@@ -2,7 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   AlertTriangle, Users, BarChart2, Bot, UsersRound, Cpu, FolderOpen, BookMarked, History,
   Settings, FlaskConical, TrendingUp, ScrollText, Network, HeartPulse, Car,
-  Receipt, CalendarDays, Waypoints, Building2, Link2, Wrench, Home, Landmark, Sparkles } from 'lucide-react'
+  Receipt, CalendarDays, Waypoints, Building2, Link2, Wrench, Home, Landmark } from 'lucide-react'
 
 export type NavLink = {
   title: string
@@ -36,7 +36,9 @@ export type NavSection = {
 export const NAV_SECTIONS: NavSection[] = [
   { label: 'Home',      href: '/',          icon: Home },
   { label: 'Companies', href: '/companies', icon: Building2 },
-  { label: 'Ask AI',    href: '/ask',       icon: Sparkles },
+  // Ask AI is reached from a thread, where it belongs — the question is almost always about a
+  // conversation in front of you. /ask still works for a question with no thread open; it is
+  // simply not in the navbar.
   {
     label: 'All Inbox',
     icon: Bot,

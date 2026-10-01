@@ -126,12 +126,10 @@ export function AiAnalysisPanel({
           <>
             <p className="text-[13px] leading-[1.6] m-0 mb-2.5" style={{ color: BODY }}>{latest.summary}</p>
 
-            {latest.next_action && (
-              <div className="mb-2 px-3 py-2.5 rounded-[10px]" style={{ background: FIELD }}>
-                <p className="text-[12px] m-0 mb-1" style={{ color: MUTED }}>Next action</p>
-                <p className="text-[13px] leading-relaxed m-0" style={{ color: INK }}>{latest.next_action}</p>
-              </div>
-            )}
+            {/* "Next action" was shown here as well. It is now one answer, from "Generate
+                response" above the composer, which reads the whole company file rather than this
+                thread's summary — two different next actions on one screen, from two different
+                amounts of context, is worse than one. The summary above still stands. */}
 
             {/* Draft provenance — how this draft was made */}
             {meta && (

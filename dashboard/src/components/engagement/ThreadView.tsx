@@ -13,7 +13,8 @@ import { ContextRail, loadBoard } from './ContextRail'
 import { cleanEmailBody } from '@/lib/clean-email-body'
 import { EngagementComposePanel } from '@/components/engagement-agent/engagement-compose-panel'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
-import { NextReplyPanel } from '@/components/engagement/NextReplyPanel'
+import { ThreadAgentBar } from '@/components/engagement/ThreadAgentBar'
+import { plainToHtml } from '@/components/RichEditor'
 import type { BoardPayload } from '@/lib/crm/board'
 
 /**
@@ -393,7 +394,17 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
 
               {/* The agent's read of the thread, above the composer and separate from it: the
                   composer owns the editor and the send path, and must not gain a second writer. */}
-              {!loading && thread?.id && <NextReplyPanel threadId={thread.id} />}
+              {!loading && thread?.id && (
+                <ThreadAgentBar
+                  threadId={thread.id}
+                  onDraft={body => {
+                    // Same path a restored draft takes, so the editor, the saved draft row and
+                    // the send flow are untouched by this.
+                    setPendingRestore({ body: plainToHtml(body), generatedBy: 'crm_agent', stamp: Date.now() })
+                    setComposerOpen(true)
+                  }}
+                />
+              )}
 
               {/* Composer: one line until asked, the full panel once open. Same layer as the thread. */}
               {!loading && (
