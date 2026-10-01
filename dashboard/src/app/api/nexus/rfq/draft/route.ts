@@ -10,7 +10,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logGeminiUsage }            from '@/lib/gemini-usage'
 import { productLineLabel }          from '@/lib/product-lines'
-import { createSupabaseDB, createGeminiComposer, SkillSynthesizer } from '@/lib/ai-learning-loop'
 import { logError }                  from '@/lib/error-log'
 import { requireStaffOrCron }        from '@/lib/api-auth'
 import { geminiUrl, GEMINI_FLASH } from '@/lib/gemini-models'
@@ -101,9 +100,6 @@ Placeholder map: {insured}=client name, {product_line}=line of insurance, {insur
     // past RFQ drafts (Settings → Evals feed prompt_overrides for RFQ_INSURER).
     let overrideBlock = ''
     try {
-      const synth = new SkillSynthesizer(createSupabaseDB(), createGeminiComposer(undefined))
-      const oTxt = (await synth.getEffective('RFQ_INSURER'))?.instructionText
-      if (oTxt) overrideBlock = `\nLEARNED IMPROVEMENTS (from how our brokers edited past RFQ drafts — apply these):\n${oTxt}\n`
     } catch { /* optional */ }
 
     const lineLabel = productLineLabel(rfq.product_line)

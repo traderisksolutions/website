@@ -66,27 +66,17 @@ export const NAV_SECTIONS: NavSection[] = [
     icon: BarChart2,
     groups: [
       {
-        heading: 'Knowledge',
-        items: [
-          { title: 'Knowledge Base', href: '/outbound/knowledge',  icon: BookMarked, description: 'Guides, SOPs and playbooks' },
-          { title: 'RAG Index',      href: '/analytics/rag-index', icon: FolderOpen, description: 'Indexed documents for retrieval' },
-        ],
-      },
-      {
         heading: 'Reporting',
         items: [
-          { title: 'Funnel',           href: '/analytics',           icon: BarChart2,     description: 'Lead-to-close funnel', disabled: true },
           { title: 'Activity Log',     href: '/analytics/activity',  icon: History,       description: 'Audit trail of system activity' },
           { title: 'Error Log',        href: '/analytics/error-log', icon: AlertTriangle, description: 'AI/API failures, auto-logged as they happen' },
           { title: 'AI Spend',         href: '/analytics/ai-usage',  icon: Cpu,           description: 'What each agent costs' },
-          { title: 'Email Evaluation', href: '/analytics/eval',      icon: FlaskConical,  description: 'Outbound email quality checks' },
         ],
       },
       {
         heading: 'Vendor',
         items: [
           { title: 'Kyn ROI',  href: '/kyn-roi',     icon: TrendingUp, description: 'Return on the Kyn vendor spend' },
-          { title: 'Dev Logs', href: '/kyn-roi-log', icon: ScrollText, description: 'Kyn ROI build/change history' },
         ],
       },
     ],

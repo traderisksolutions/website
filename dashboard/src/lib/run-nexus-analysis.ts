@@ -21,7 +21,6 @@
 import { logGeminiUsage, logAnthropicUsage } from '@/lib/gemini-usage'
 import { fetchKnowledgeDocs } from '@/lib/gdrive-knowledge'
 import { buildQuoteDecision, type QuoteDecisionV1 } from '@/lib/rfq-quote-decision'
-import { caseChatContext } from '@/lib/nexus-chat-learnings'
 import { logError } from '@/lib/error-log'
 
 import { GEMINI_FLASH as GEMINI_FLASH_MODEL } from './gemini-models'
@@ -1193,10 +1192,9 @@ ${threadMsgs || '(no messages yet)'}`
 
   // ── PASS 1: Gemini Flash — the eyes. Extract what is on the page, judge nothing. ──
 
-  // Facts already established via the broker's Ask-Opus chat about THIS case (nightly
-  // extraction — see src/lib/nexus-chat-learnings.ts) so the synthesis doesn't treat them
-  // as unknown and the broker isn't prompted to re-ask the same thing.
-  const chatContext = await caseChatContext(caseId).catch(() => '')
+  // Facts established in the broker's chat about this case used to be folded in here, from a
+  // nightly extraction that belonged to the learning loop. Removed 2 Oct 2026.
+  const chatContext = ''
 
   const synthesisPrompt = `You are a senior insurance analyst at Trade Risk Solutions (TRS), a Singapore insurance brokerage.
 

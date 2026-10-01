@@ -22,7 +22,6 @@ const EMBED_URL   = geminiUrl(GEMINI_EMBED, 'embedContent')
 import { logGeminiUsage } from '@/lib/gemini-usage'
 import { logError } from '@/lib/error-log'
 import { fetchAttachmentContext } from '@/lib/thread-attachment-context'
-import { createSupabaseDB, createGeminiComposer, EvalStore, ExampleStore, SkillSynthesizer, type EvalRecord, type SkillExample } from '@/lib/ai-learning-loop'
 import { EMAIL_TYPE_BASE_INSTRUCTIONS } from '@/lib/email-surface-instructions'
 import { geminiUrl, GEMINI_FLASH, GEMINI_LITE, GEMINI_EMBED } from '@/lib/gemini-models'
 
@@ -166,19 +165,18 @@ Reply with one word only.`
     campaignCtxStr = `\nCAMPAIGN CONTEXT: This contact replied to a TRS cold outreach campaign "${ctx.campaign_name}" (${ctx.product_type} focus${ctx.step_replied_to ? `, step ${ctx.step_replied_to}` : ''}). This is their first real engagement — acknowledge their interest warmly and continue naturally. Do NOT explicitly reference the campaign or that this was a cold email.`
   }
 
-  // 5. Few-shots + anti-patterns + lead profile + synthesised override — parallel
-  const learningLoopDb = createSupabaseDB()
-  const [fewShots, learnings, leadRows, effectiveSkill] = await Promise.all([
-    new ExampleStore(learningLoopDb).topForSurface(emailType, 2).catch((): SkillExample[] => []),
-    new EvalStore(learningLoopDb).listLearnings(emailType, { maxScore: 3, limit: 6 }).catch((): EvalRecord[] => []),
+  // 5. Lead profile only. The few-shot, anti-pattern and synthesised-override fetches that
+  // sat here were the AI learning loop, removed on 2 Oct 2026.
+  const fewShots: { contextSummary?: string; idealOutput: string }[] = []
+  const learnings: { keyLearning?: string | null }[] = []
+  const effectiveSkill: string | null = null
+  const [leadRows] = await Promise.all([
     ctx?.outbound_lead_id
       ? fetch(
           `${SB_URL}/rest/v1/outbound_leads?id=eq.${ctx.outbound_lead_id}&select=title,headline,current_company,industry,employee_count&limit=1`,
           { headers: sbHeaders(), cache: 'no-store' }
         ).then(r => r.ok ? r.json() : []).catch(() => [])
       : Promise.resolve([]),
-    new SkillSynthesizer(learningLoopDb, createGeminiComposer(undefined), EMAIL_TYPE_BASE_INSTRUCTIONS)
-      .getEffective(emailType).catch(() => null),
   ])
 
   // Few-shot section
@@ -211,7 +209,7 @@ Reply with one word only.`
   // 6. Type-specific instructions — use synthesised override if available (replaces hardcoded block entirely),
   //    otherwise use hardcoded baseline + inject raw learnings as anti-patterns.
   //    Override = clean, no accumulation. Baseline + raw = fallback until first synthesis run.
-  const synthesisedOverride = effectiveSkill?.instructionText?.trim() ? effectiveSkill.instructionText : null
+  const synthesisedOverride: string | null = effectiveSkill
 
   const chunkSources = Array.from(new Set(sources.map(s => s.file_name))).join(', ')
 
@@ -277,7 +275,7 @@ Retrieved knowledge: ${chunkSources} — reference if the conversation touches o
 
     // Inject raw learnings as anti-patterns (only when no synthesised override exists)
     const antiPatterns = learnings
-      .map(r => r.keyLearning)
+      .map(r => r.keyLearning ?? '')
       .filter(l => l.length > 15)
       .filter((l, i, arr) => arr.indexOf(l) === i)
       .slice(0, 4)

@@ -3,7 +3,6 @@ import { requireHumanSender } from '@/lib/agents/guardrails'
 import { logError } from '@/lib/error-log'
 import { waitUntil }                  from '@vercel/functions'
 import { createSign, randomUUID }     from 'node:crypto'
-import { runDraftEvaluation }         from '@/lib/run-draft-evaluation'
 import { logActivity }                from '@/lib/log-activity'
 import { createClient }               from '@/lib/supabase/server'
 import { buildQuotedHistory, buildReferences, type ThreadMessage } from '@/lib/build-reply-thread'
@@ -572,10 +571,8 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    // Run evaluation after response — waitUntil keeps the function alive on Vercel.
-    // Pass sentBodyPlain directly so evaluation never fails due to missing thread_id or
-    // a race condition between the email_messages insert and the evaluation read.
-    waitUntil(runDraftEvaluation(draftId, draft.thread_id ?? null, sentBodyPlain, originalAiBody))
+    // The post-send draft evaluation ran here. It scored the human's edits to teach the
+    // learning loop, which was removed on 2 Oct 2026; nothing consumes the score now.
 
     return NextResponse.json({ ok: true, gmailMessageId: sent.id, gmailThreadId: sent.threadId ?? null })
   } catch (e) {

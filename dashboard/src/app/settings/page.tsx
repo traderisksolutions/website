@@ -22,14 +22,14 @@ const MUTED = '#5f6368'
 const RULE = '#e8eaed'
 
 type Section = 'profile' | 'team' | 'signatures' | 'insurers' | 'rfq' | 'templates' | 'diagram'
-const SECTIONS: { key: Section; label: string; blurb: string; group: 'you' | 'team' | 'operations' }[] = [
-  { key: 'profile',    label: 'Your profile',   blurb: 'Your account and the Gmail you send from.',                            group: 'you' },
-  { key: 'signatures', label: 'Signatures',     blurb: 'The signature shown when you send from your own address.',             group: 'you' },
-  { key: 'team',       label: 'Team',           blurb: 'Everyone with access: role, status, invitations.',                     group: 'team' },
-  { key: 'insurers',   label: 'Insurers',       blurb: 'The insurer directory the RFQ agent routes quotation requests to.',     group: 'operations' },
-  { key: 'rfq',        label: 'RFQ',            blurb: 'Quote-chase service level, insurer responsiveness and win metrics.',    group: 'operations' },
-  { key: 'templates',  label: 'Email templates', blurb: 'The house templates the RFQ agent and debit notes follow.',           group: 'operations' },
-  { key: 'diagram',    label: 'How it works',   blurb: 'Where a company comes from and how every page is a view of it.',       group: 'operations' },
+const SECTIONS: { key: Section; label: string; group: 'you' | 'team' | 'operations' }[] = [
+  { key: 'profile',    label: 'Your profile',                            group: 'you' },
+  { key: 'signatures', label: 'Signatures',             group: 'you' },
+  { key: 'team',       label: 'Team',                     group: 'team' },
+  { key: 'insurers',   label: 'Insurers',     group: 'operations' },
+  { key: 'rfq',        label: 'RFQ',    group: 'operations' },
+  { key: 'templates',  label: 'Email templates',           group: 'operations' },
+  { key: 'diagram',    label: 'How it works',       group: 'operations' },
 ]
 const GROUP_LABEL = { you: 'You', team: 'Team', operations: 'Operations' } as const
 
@@ -88,7 +88,6 @@ function SettingsInner() {
           {/* Section */}
           <section className="min-w-0" aria-label={active.label}>
             <h2 className="m-0 text-[24px] font-medium tracking-[-0.02em]">{active.label}</h2>
-            <p className="m-0 mt-1 mb-6 text-[14.5px]" style={{ color: MUTED }}>{active.blurb}</p>
             {section === 'profile' && <ProfileSection profile={profile} onChange={loadProfile} />}
             {section === 'team' && <TeamTable />}
             {section === 'signatures' && <SignaturePanel profile={profile} />}

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSign, randomUUID }     from 'node:crypto'
 import { waitUntil }                  from '@vercel/functions'
-import { runDraftEvaluation }         from '@/lib/run-draft-evaluation'
 import { createClient }               from '@/lib/supabase/server'
 import { buildRawEmail, htmlToText, type ThreadingHeaders } from '@/lib/email-mime'
 import { buildQuotedHistory }         from '@/lib/build-reply-thread'
@@ -332,10 +331,8 @@ export async function POST(req: NextRequest) {
       }).catch(() => {})
     }
 
-    // 8. Run draft evaluation (plain text passed so eval never races on DB insert)
-    if (draftId) {
-      waitUntil(runDraftEvaluation(draftId, threadId, plainText))
-    }
+    // The post-send draft evaluation ran here. It scored the human's edits to teach the
+    // learning loop, which was removed on 2 Oct 2026; nothing consumes the score now.
 
     return NextResponse.json({ ok: true, contactId, threadId })
   } catch (e) {

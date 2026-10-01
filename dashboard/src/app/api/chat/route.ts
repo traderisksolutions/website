@@ -12,7 +12,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { logAnthropicUsage }         from '@/lib/gemini-usage'
 import { logError }                  from '@/lib/error-log'
-import { createSupabaseDB, createGeminiComposer, SkillSynthesizer } from '@/lib/ai-learning-loop'
 import { getCompany, getCompanyThreadIds, sbTry } from '@/lib/crm/db'
 import { buildCompanyContext } from '@/lib/crm/context'
 import { listCompanyThreads } from '@/lib/crm/threads'
@@ -363,9 +362,6 @@ export async function POST(req: NextRequest) {
     // Learned improvements distilled nightly from past chats.
     let learned = ''
     try {
-      const synth = new SkillSynthesizer(createSupabaseDB(), createGeminiComposer(undefined))
-      const oTxt = (await synth.getEffective('CHAT_CONSULTANT'))?.instructionText
-      if (oTxt) learned = `LEARNED IMPROVEMENTS (from reviewing past chats — apply these):\n${oTxt}`
     } catch { /* optional */ }
 
     const system = [effCompanyId ? SYSTEM_COMPANY : SYSTEM, ctx, learned].filter(Boolean).join('\n\n')

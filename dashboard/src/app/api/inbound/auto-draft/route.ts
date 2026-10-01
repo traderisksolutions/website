@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logGeminiUsage }           from '@/lib/gemini-usage'
-import { createSupabaseDB, EvalStore, ExampleStore, type EvalRecord, type SkillExample } from '@/lib/ai-learning-loop'
 import { requireStaffOrCron } from '@/lib/api-auth'
 import { getAppSetting } from '@/lib/app-settings'
 import { sendGmailNotification } from '@/lib/gmail-send'
@@ -133,13 +132,9 @@ export async function POST(req: NextRequest) {
     const topic     = (lead.topic || '') as string
     const queryText = [topic, message].filter(Boolean).join('\n')
 
-    // Vector RAG + few-shots + anti-patterns — all in parallel
-    const learningLoopDb = createSupabaseDB()
-    const [chunks, examples, antiPatternRows] = await Promise.all([
-      searchInboundChunks(queryText, geminiKey),
-      new ExampleStore(learningLoopDb).topForSurface('CONVERSATION', 2).catch((): SkillExample[] => []),
-      new EvalStore(learningLoopDb).listLearnings('CONVERSATION', { maxScore: 3, limit: 6 }).catch((): EvalRecord[] => []),
-    ])
+    // Vector RAG only. The few-shot and anti-pattern fetches that sat beside it belonged to
+    // the AI learning loop, removed on 2 Oct 2026.
+    const chunks = await searchInboundChunks(queryText, geminiKey)
 
     // Build knowledge section from vector chunks
     const chunkSources = Array.from(new Set((chunks as Chunk[]).map(c => c.file_name))).join(', ')
@@ -150,26 +145,9 @@ export async function POST(req: NextRequest) {
         ).join('\n\n---\n\n')
       : 'No knowledge base documents available — reply based on general TRS knowledge only.'
 
-    // Few-shot examples
-    let fewShotSection = ''
-    if (examples.length > 0) {
-      fewShotSection = `\n━━ EXAMPLES OF EXCELLENT FIRST-CONTACT REPLIES — learn the tone and pattern ━━\n` +
-        examples.map((ex, i) =>
-          `[Example ${i + 1}]${ex.contextSummary ? `\nContext: ${ex.contextSummary}` : ''}\nReply:\n${ex.idealOutput.slice(0, 800)}`
-        ).join('\n\n') + '\n'
-    }
+    const fewShotSection = ''
 
-    // Anti-patterns from low-scoring drafts
-    let antiPatternSection = ''
-    const learnings = antiPatternRows
-      .map(r => r.keyLearning)
-      .filter(l => l.length > 15)
-      .filter((l, i, arr) => arr.indexOf(l) === i)
-      .slice(0, 3)
-    if (learnings.length > 0) {
-      antiPatternSection = `\n━━ AVOID THESE PATTERNS (learned from edited or rejected drafts) ━━\n` +
-        learnings.map((l, i) => `${i + 1}. ${l}`).join('\n') + '\n'
-    }
+    const antiPatternSection = ''
 
     const prompt = `You are an AI email assistant for Trade Risk Solutions (TRS), a Singapore-based commercial insurance brokerage.
 

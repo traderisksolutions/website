@@ -3,7 +3,6 @@ import { logGeminiUsage }           from '@/lib/gemini-usage'
 import { logError }                 from '@/lib/error-log'
 import { fetchKnowledgeDocs }       from '@/lib/gdrive-knowledge'
 import { fetchAttachmentContext }   from '@/lib/thread-attachment-context'
-import { createSupabaseDB, createGeminiComposer, EvalStore, ExampleStore, SkillSynthesizer } from '@/lib/ai-learning-loop'
 import { EMAIL_TYPE_BASE_INSTRUCTIONS } from '@/lib/email-surface-instructions'
 import { requireStaffOrCron }       from '@/lib/api-auth'
 import { getCustomerProfile }       from '@/lib/customer-profile'
@@ -233,49 +232,12 @@ Reply with one word only.`
     }
     console.log('[engagement/draft] email type:', emailType)
 
-    const learningLoopDb = createSupabaseDB()
-
-    // Fetch up to 2 high-scoring human-approved examples for this email type
-    // and inject them as few-shot examples so the AI learns from past edits
-    let fewShotSection = ''
-    try {
-      const examples = await new ExampleStore(learningLoopDb).topForSurface(emailType, 2)
-      if (examples.length > 0) {
-        fewShotSection = `\n━━ EXAMPLES OF EXCELLENT ${emailType} REPLIES — learn the pattern, match this quality ━━\n` +
-          examples.map((ex, i) =>
-            `[Example ${i + 1}]${ex.contextSummary ? `\nContext: ${ex.contextSummary}` : ''}\nReply:\n${ex.idealOutput.slice(0, 1200)}`
-          ).join('\n\n') + '\n'
-      }
-    } catch { /* non-fatal */ }
-
-    // Fetch key_learnings from low-scoring drafts (1–3) for this email type and inject as
-    // AVOID patterns — closes the feedback loop end-to-end so past human edits improve future drafts
-    let antiPatternSection = ''
-    try {
-      const apRows = await new EvalStore(learningLoopDb).listLearnings(emailType, { maxScore: 3, limit: 6 })
-      const learnings = apRows
-        .map(r => r.keyLearning)
-        .filter(l => l.length > 15)
-        .filter((l, i, arr) => arr.indexOf(l) === i) // deduplicate
-        .slice(0, 4)
-      if (learnings.length > 0) {
-        antiPatternSection = `\n━━ AVOID THESE PATTERNS (learned from heavily-edited or rejected ${emailType} drafts — do NOT repeat these mistakes) ━━\n` +
-          learnings.map((l, i) => `${i + 1}. ${l}`).join('\n') + '\n'
-      }
-    } catch { /* non-fatal */ }
-
-    // Self-improvement: the currently-effective synthesised instruction override for this
-    // email type (pinned version if one is pinned, else the newest active one — deprecated
-    // and superseded versions are never injected). Appended as authoritative refinements on
-    // top of the doc-aware base instructions.
-    let learnedRefinements = ''
-    try {
-      const synth = new SkillSynthesizer(learningLoopDb, createGeminiComposer(undefined), EMAIL_TYPE_BASE_INSTRUCTIONS)
-      const ov = (await synth.getEffective(emailType))?.instructionText
-      if (ov && ov.trim().length > 20) {
-        learnedRefinements = `\n━━ LEARNED REFINEMENTS (apply these on top — synthesised from past human edits) ━━\n${ov.trim()}\n`
-      }
-    } catch { /* non-fatal */ }
+    // The AI learning loop was removed on 2 Oct 2026. These three sections used to carry
+    // few-shot examples, anti-patterns learned from edited drafts, and a synthesised
+    // per-surface instruction override. Drafting uses its base instructions only now.
+    const fewShotSection = ''
+    const antiPatternSection = ''
+    const learnedRefinements = ''
 
     // Fetch campaign context + outbound lead profile if this thread came from a campaign reply
     let campaignCtxStr = ''
