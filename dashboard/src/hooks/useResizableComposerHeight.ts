@@ -8,9 +8,11 @@ import { useResizableDimension, clampDimension } from './useResizableDimension'
  * handle sits on the editor's own bottom edge, so dragging DOWN grows it (no inversion needed —
  * trailing-edge anchoring, same as the rail's right-edge handle).
  */
-export const COMPOSER_MIN     = 120
+// Low enough that a two-line reply does not sit in a half-empty box. The drag handle still
+// goes smaller only to here, and the editor grows from it as soon as there is content.
+export const COMPOSER_MIN     = 88
 export const COMPOSER_MAX     = 900
-export const COMPOSER_DEFAULT = 180
+export const COMPOSER_DEFAULT = 140
 export const COMPOSER_STEP    = 20
 
 export function clampComposerHeight(n: number): number {

@@ -93,14 +93,25 @@ export function EngagementComposePanel({
   const { height: editorHeight, min: editorMin, max: editorMax, step: editorStep, startDrag: startEditorDrag, nudge: nudgeEditor, setAbsolute: setEditorHeight } = useResizableComposerHeight()
   // The thread view sizes its "Draft" affordance off this panel's height.
   useEffect(() => { onHeightChange?.() }, [editorHeight, fullscreen]) // eslint-disable-line react-hooks/exhaustive-deps
-  // Content-driven growth (e.g. repeatedly pressing Enter) — only ever grows, up to editorMax;
-  // never auto-shrinks, so a manual drag-resize larger than the content is never fought.
+  // The editor fits its content, within the drag limits — unless somebody has dragged it, in
+  // which case their height is left alone.
+  //
+  // It used to only ever grow, and the height is persisted to localStorage, so one long draft
+  // stretched the editor and every thread opened afterwards kept that height. A two-paragraph
+  // reply then sat at the top of a tall empty box with a hundred-odd pixels of nothing under it,
+  // for the rest of that browser profile's life.
   const editorHeightRef = useRef(editorHeight)
   editorHeightRef.current = editorHeight
+  const userResizedRef = useRef(false)
   const onEditorContentHeight = useCallback((contentH: number) => {
-    const needed = Math.min(editorMax, contentH + 24)   // + the editor body's own vertical padding
-    if (needed > editorHeightRef.current) setEditorHeight(needed)
-  }, [editorMax, setEditorHeight])
+    const needed = Math.max(editorMin, Math.min(editorMax, contentH + 8))   // a little slack under the caret
+    if (userResizedRef.current) {
+      // A deliberate height is never fought; the editor may still grow past it as they type.
+      if (needed > editorHeightRef.current) setEditorHeight(needed)
+      return
+    }
+    if (needed !== editorHeightRef.current) setEditorHeight(needed)
+  }, [editorMin, editorMax, setEditorHeight])
 
   const [signatures,      setSignatures]      = useState<SigOption[]>([])
   const [selectedSigId,   setSelectedSigId]   = useState<string>('')
@@ -552,12 +563,12 @@ export function EngagementComposePanel({
             aria-valuemin={editorMin}
             aria-valuemax={editorMax}
             tabIndex={0}
-            onPointerDown={e => { e.preventDefault(); startEditorDrag(e.clientY, editorHeight) }}
+            onPointerDown={e => { e.preventDefault(); userResizedRef.current = true; startEditorDrag(e.clientY, editorHeight) }}
             onKeyDown={e => {
-              if (e.key === 'ArrowUp')        { e.preventDefault(); nudgeEditor(-editorStep) }
-              else if (e.key === 'ArrowDown') { e.preventDefault(); nudgeEditor(editorStep) }
-              else if (e.key === 'Home')      { e.preventDefault(); setEditorHeight(editorMin) }
-              else if (e.key === 'End')       { e.preventDefault(); setEditorHeight(editorMax) }
+              if (e.key === 'ArrowUp')        { e.preventDefault(); userResizedRef.current = true; nudgeEditor(-editorStep) }
+              else if (e.key === 'ArrowDown') { e.preventDefault(); userResizedRef.current = true; nudgeEditor(editorStep) }
+              else if (e.key === 'Home')      { e.preventDefault(); userResizedRef.current = true; setEditorHeight(editorMin) }
+              else if (e.key === 'End')       { e.preventDefault(); userResizedRef.current = true; setEditorHeight(editorMax) }
             }}
             className="h-2 cursor-row-resize flex items-center justify-center group focus-visible:outline-none flex-shrink-0"
           >

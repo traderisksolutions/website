@@ -228,6 +228,17 @@ export function RichEditor({
         })
 
         quillRef.current = q
+
+        // Report the height of the content we were mounted WITH, not only of what gets typed
+        // afterwards. The handler above hangs off Quill's 'text-change', which initialHtml does
+        // not raise, so a consumer sizing itself to its content never heard about the content it
+        // started with — the reply editor kept whatever height the last long draft had left it,
+        // and a two-paragraph reply sat in a box three times its size. One frame later, so the
+        // first layout has happened and scrollHeight is real.
+        requestAnimationFrame(() => {
+          const contentEl = mountRef.current?.querySelector<HTMLElement>('.ql-editor')
+          if (contentEl) onContentHeightChangeRef.current?.(contentEl.scrollHeight)
+        })
       } catch (e) {
         console.error('[RichEditor] failed to initialise:', e)
       }
