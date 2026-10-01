@@ -57,16 +57,23 @@ export function rootFolderId(): string {
   return id
 }
 
-/** Finds a folder by exact name under parentId, or creates it. Returns the folder id. */
+/**
+ * Finds a folder under parentId by name, or creates it.
+ *
+ * Matching is case-insensitive on purpose. Drive's `name = 'X'` filter is case-sensitive, and
+ * company names were uppercased in the database on 1 Oct 2026. A case-sensitive match would have
+ * quietly created a second folder for every client whose archive already existed under its
+ * old casing, splitting each company's paperwork across two folders.
+ */
 export async function findOrCreateFolder(name: string, parentId: string, token: string): Promise<string> {
-  const escaped = name.replace(/'/g, "\\'")
-  const q = encodeURIComponent(`name='${escaped}' and mimeType='${FOLDER_MIME}' and '${parentId}' in parents and trashed=false`)
-  const listRes = await fetch(`${DRIVE_API}/files?q=${q}&fields=files(id,name)&pageSize=1&supportsAllDrives=true&includeItemsFromAllDrives=true`, {
+  const q = encodeURIComponent(`mimeType='${FOLDER_MIME}' and '${parentId}' in parents and trashed=false`)
+  const listRes = await fetch(`${DRIVE_API}/files?q=${q}&fields=files(id,name)&pageSize=1000&supportsAllDrives=true&includeItemsFromAllDrives=true`, {
     headers: { Authorization: `Bearer ${token}` },
   })
-  const listData = await listRes.json()
-  const existing = listData.files?.[0]?.id as string | undefined
-  if (existing) return existing
+  const listData = await listRes.json() as { files?: { id: string; name: string }[] }
+  const want = name.trim().toLowerCase()
+  const existing = (listData.files ?? []).find(f => (f.name ?? '').trim().toLowerCase() === want)
+  if (existing) return existing.id
 
   const createRes = await fetch(`${DRIVE_API}/files?fields=id,webViewLink&supportsAllDrives=true`, {
     method: 'POST',

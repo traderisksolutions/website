@@ -135,9 +135,7 @@ export function CompanyTable({ rows, today, staff, workloads, selectedId, onSele
                     className={cn('group cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#202124]', on ? 'bg-[#eef3fc]' : 'hover:bg-[#f8f9fa]')} style={{ borderBottom: `1px solid ${RULE}` }}>
                     <td className={cn('sticky left-0 z-10 pl-6 pr-4 py-4 align-middle min-w-[280px] max-w-[340px] shadow-[inset_-1px_0_0_#e8eaed]', on ? 'bg-[#eef3fc]' : 'bg-white group-hover:bg-[#f8f9fa]')}>
                       {on && <span className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: INK }} aria-hidden />}
-                      {/* Uppercased for display only. The stored name keeps its real casing, because
-                          it is what goes on debit note PDFs and client emails. */}
-                      <span className="block text-[15px] font-medium leading-tight truncate uppercase" style={{ color: INK }} title={c.name}>{mark(c.name)}</span>
+                      <span className="block text-[15px] font-medium leading-tight truncate" style={{ color: INK }} title={c.name}>{mark(c.name)}</span>
                       <span className="block text-[12.5px] mt-0.5 truncate" style={{ color: MUTED }}>{c.domains[0] ? mark(c.domains[0]) : c.industry ?? 'No domain on file'}</span>
                     </td>
                     <td className="px-4 py-4 align-middle"><StageTag stage={c.stage} /></td>
