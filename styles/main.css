@@ -1530,8 +1530,8 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   align-items: center;
   justify-content: center;
   background: image-set(
-    url('/lilac_trs_1.webp') type('image/webp'),
-    url('/lilac_trs_1.png') type('image/png')
+    url('/images/backgrounds/lilac_trs_1.webp') type('image/webp'),
+    url('/images/backgrounds/lilac_trs_1.png') type('image/png')
   ) center center / cover no-repeat;
   padding: 120px 24px 80px;
 }
@@ -3529,7 +3529,7 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
 .footer-cta-section {
   padding: 100px 24px;
   text-align: center;
-  background: url('/texture.png') center center / cover no-repeat;
+  background: url('/images/backgrounds/texture.jpg') center center / cover no-repeat;
   background-color: #1a1a1a;
 }
 .footer-cta-wrap {
@@ -3811,8 +3811,8 @@ body.drawer-open .nav-drawer { transform: translateX(0); }
   background:
     linear-gradient(rgba(20,16,40,0.62), rgba(12,10,30,0.72)),
     image-set(
-      url('/lilac_trs_2.webp') type('image/webp'),
-      url('/lilac_trs_2.png') type('image/png')
+      url('/images/backgrounds/lilac_trs_2.webp') type('image/webp'),
+      url('/images/backgrounds/lilac_trs_2.png') type('image/png')
     ) center center / cover no-repeat;
   display: flex;
   flex-direction: column;

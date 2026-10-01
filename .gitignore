@@ -9,3 +9,7 @@ __pycache__/
 
 # Deploy credentials — never commit, see .trs-deploy/tokens.env
 .trs-deploy/
+
+# Build output and dependencies (root static site)
+/.next/
+/node_modules/
