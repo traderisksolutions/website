@@ -14,6 +14,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffOrCron } from '@/lib/api-auth'
+import { isAutomated, isInternal, bareEmail } from '@/lib/crm/db'
 
 export const maxDuration = 60
 
@@ -87,6 +88,42 @@ export async function GET(req: NextRequest) {
       countMessages('newer_than:7d', token, false),
     ])
 
+    // ?detail=1 — for each recent INBOX message, say whether it was stored and, if not, which
+    // rule dropped it. Counts alone cannot distinguish "nothing arrived" from "everything that
+    // arrived was discarded", and those have opposite fixes.
+    let detail: unknown[] | undefined
+    if (req.nextUrl.searchParams.get('detail') === '1') {
+      const list = await gmail<{ messages?: { id: string }[] }>(
+        `/messages?maxResults=40&labelIds=INBOX&q=${encodeURIComponent('newer_than:2d')}`, token)
+      const ids = (list.messages ?? []).map(m => m.id)
+
+      const storedRes = ids.length
+        ? await fetch(`${SB_URL}/rest/v1/email_messages?select=gmail_message_id&gmail_message_id=in.(${ids.map(i => `"${i}"`).join(',')})`,
+            { headers: sbHeaders(), cache: 'no-store' })
+        : null
+      const storedIds = new Set<string>(
+        storedRes?.ok ? ((await storedRes.json()) as { gmail_message_id: string }[]).map(r => r.gmail_message_id) : [])
+
+      detail = await Promise.all(ids.slice(0, 40).map(async id => {
+        const m = await gmail<{ payload?: { headers?: { name: string; value: string }[] }; internalDate?: string }>(
+          `/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject`, token)
+        const h = Object.fromEntries((m.payload?.headers ?? []).map(x => [x.name, x.value]))
+        const from = bareEmail(h.From ?? '')
+        const stored = storedIds.has(id)
+        return {
+          from,
+          subject: (h.Subject ?? '').slice(0, 70),
+          at: m.internalDate ? new Date(Number(m.internalDate)).toISOString() : null,
+          stored,
+          // Why it is absent, in the order ingestMessage applies the rules.
+          droppedBy: stored ? null
+            : isAutomated(from) ? 'isAutomated — sender looks like a no-reply or notification address'
+            : isInternal(from)  ? 'internal sender with no external party resolved on the thread'
+            : 'not stored, and neither skip rule explains it',
+        }
+      }))
+    }
+
     const expiryMs = storedExpiry ? parseInt(storedExpiry, 10) : 0
     const watchHoursLeft = expiryMs ? (expiryMs - Date.now()) / 3_600_000 : null
 
@@ -108,6 +145,7 @@ export async function GET(req: NextRequest) {
         last7d:  { inInbox: inbox7, anywhere: all7 },
       },
       newestStored,
+      detail,
       // Said plainly, because the whole point is that the database cannot show this.
       verdict: mailSkippingInbox
         ? `${all7 - inbox7} of the last ${all7} messages are not in INBOX. The dashboard only reads INBOX, so it cannot see them — check this mailbox's filters for one that archives or relabels on arrival.`
