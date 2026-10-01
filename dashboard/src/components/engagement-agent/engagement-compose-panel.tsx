@@ -572,7 +572,7 @@ export function EngagementComposePanel({
             }}
             className="h-2 cursor-row-resize flex items-center justify-center group focus-visible:outline-none flex-shrink-0"
           >
-            <div className="w-10 h-px bg-[#e8eaed] group-hover:bg-[#9aa0a6] group-hover:h-0.5 group-focus-visible:bg-[#202124] group-focus-visible:h-0.5 transition-all" />
+            <div className="w-10 h-px bg-transparent group-hover:bg-[#9aa0a6] group-hover:h-0.5 group-focus-visible:bg-[#202124] group-focus-visible:h-0.5 transition-all" />
           </div>
         )}
 
