@@ -7,6 +7,7 @@
  */
 import { sbTry, enc } from './db'
 import { geminiJson } from './ai'
+import { GEMINI_LITE } from '@/lib/gemini-models'
 
 export interface SignatureRead {
   name: string | null
@@ -33,7 +34,9 @@ export function signatureTail(body: string | null | undefined): string {
 export async function readSignature(body: string | null | undefined, senderEmail: string, resourceId?: string | null): Promise<SignatureRead | null> {
   const tail = signatureTail(body)
   if (tail.length < 20) return null
+  // Housekeeping tier: pulling a name, title and phone out of a signature block.
   const res = await geminiJson<Partial<SignatureRead>>({
+    model: GEMINI_LITE,
     system: SYSTEM,
     prompt: `${SCHEMA}\n\nSENDER ADDRESS: ${senderEmail}\n\nEND OF EMAIL:\n${tail}`,
     feature: 'crm_triage',

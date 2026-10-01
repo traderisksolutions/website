@@ -58,7 +58,18 @@ export function domainMatchesName(domain: string, companyName: string): boolean 
   const squashed = core.replace(/[^a-z0-9]/g, '')
   if (!squashed) return false
   if (label.includes(squashed) || squashed.includes(label)) return true
-  return core.split(' ').some(t => t.length >= 4 && label.includes(t))
+
+  // Beyond whole-name containment, only the company's FIRST word may carry the match, and only
+  // when it is long enough to identify anybody. This exists for the real case of a domain that
+  // extends the head word — gembridgecapital.com naming GEMBRIDGE CAPITAL MANAGEMENT.
+  //
+  // It used to accept any token of four characters sitting anywhere in the label, which matched
+  // on whatever word happened to be shared: corporatecover.sg was read as PRIMEPARTNERS
+  // CORPORATE FINANCE on the word "corporate", and fengchen.com.sg as NATHAN CHEN on "chen".
+  // Both were then committed at 0.9 confidence without review, because autofile treats a single
+  // stem hit as settled. A generic word in common is not evidence of the same organisation.
+  const head = core.split(' ')[0] ?? ''
+  return head.length >= 5 && label.includes(head)
 }
 
 /** The parts of a domain that could carry an organisation's name, ignoring the public suffix. */

@@ -27,6 +27,7 @@ import { sb, sbTry, inChunks, enc, emailDomain, isInternal, isAutomated, PUBLIC_
 import { buildCompanyIndex, matchByName, companyCore, domainSuitsName, domainMatchesName, type CompanyIndex } from './resolve'
 import { buildIdentityIndex, matchName, loadAliases, recordAlias, aliasKey, type IdentityIndex } from './identity'
 import { geminiJson } from './ai'
+import { GEMINI_LITE } from '@/lib/gemini-models'
 import type { Company, CompanyKind } from './types'
 
 // Above this, a name match is trusted without review.
@@ -260,7 +261,10 @@ export async function classifyDomains(evidence: DomainEvidence[]): Promise<Map<s
       `threads:\n${e.previews.slice(0, 6).map(p => `  - ${p.subject ?? '(no subject)'}${p.snippet ? `\n      ${p.snippet.slice(0, 160)}` : ''}`).join('\n') || '  -'}`,
     ].join('\n')).join('\n\n---\n\n')
 
-    const res = await geminiJson<RawDecision[]>({ system: SYSTEM, prompt: `${SCHEMA}\n\nDOMAINS:\n\n${text}`, feature: 'crm_triage', temperature: 0 })
+    // Housekeeping tier: naming and classifying a domain from subjects and counterparties is a
+    // short structured judgement, batched a handful at a time. Lite answers it at $0.0002 per
+    // domain, and the decision is reviewable in the domain queue either way.
+    const res = await geminiJson<RawDecision[]>({ system: SYSTEM, prompt: `${SCHEMA}\n\nDOMAINS:\n\n${text}`, feature: 'crm_triage', model: GEMINI_LITE, temperature: 0 })
     if (!res.data || !Array.isArray(res.data)) continue
     for (const r of res.data) {
       const domain = String(r.domain ?? '').toLowerCase().trim()

@@ -196,3 +196,29 @@ describe('resolveThread — an insurer writes to us about a client', () => {
     expect(hit).toMatchObject({ companyId: 'ciwe', via: 'domain' })
   })
 })
+
+// Both false matches below were produced by a real autofile dry run on 1 Oct 2026, each at
+// 0.9 confidence — above the auto-commit bar, so neither would have been reviewed.
+describe('domainMatchesName — regressions from the autofile dry run', () => {
+  it('accepts a domain that extends the company head word', () => {
+    expect(domainMatchesName('gembridgecapital.com', 'GEMBRIDGE CAPITAL MANAGEMENT PTE LTD')).toBe(true)
+  })
+
+  it('accepts whole-name containment either way round', () => {
+    expect(domainMatchesName('healthwaymedical.com', 'HEALTHWAY MEDICAL GROUP PTE LTD')).toBe(true)
+    expect(domainMatchesName('rstransport.com', 'RS TRANSPORT SERVICES')).toBe(true)
+  })
+
+  // Both of these were matched at 0.9 confidence and committed without review.
+  it('does not match on a generic word the two names happen to share', () => {
+    expect(domainMatchesName('corporatecover.sg', 'PRIMEPARTNERS CORPORATE FINANCE PTE LTD')).toBe(false)
+  })
+
+  it('does not match a company on a trailing fragment of the domain label', () => {
+    expect(domainMatchesName('fengchen.com.sg', 'NATHAN CHEN')).toBe(false)
+  })
+
+  it('still refuses short domain labels outright', () => {
+    expect(domainMatchesName('qbe.com', 'QBE INSURANCE')).toBe(false)
+  })
+})
