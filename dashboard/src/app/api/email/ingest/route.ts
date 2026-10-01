@@ -505,9 +505,18 @@ async function linkRfqDispatch(gmailThreadId: string, threadDbId: string, direct
 }
 
 // Core: ingest a single Gmail message into the database
-async function ingestMessage(token: string, gmailMsgId: string, origin: string) {
+/**
+ * Ingest one Gmail message.
+ *
+ * Returns WHY it ended, rather than just ending. Every exit here used to be a bare `return`
+ * after a console.error, so a message that was fetched and then discarded looked identical to
+ * one that was stored: the caller counted the promise as fulfilled either way. That is how a
+ * missing unique constraint silently dropped two days of client mail while the endpoint
+ * reported "processed 50, succeeded 50, failed 0".
+ */
+async function ingestMessage(token: string, gmailMsgId: string, origin: string): Promise<string> {
   const msg = await fetchGmailMessage(token, gmailMsgId)
-  if (!msg) return
+  if (!msg) return 'gmail returned nothing'
 
   const hdrs     = msg.payload?.headers ?? []
   const subject  = headerVal(hdrs, 'Subject')
@@ -528,7 +537,7 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
 
   if (isAutomated(fromEmail)) {
     console.log('[ingest] skip automated:', fromEmail)
-    return
+    return 'skipped: automated sender'
   }
 
   const parts    = msg.payload?.parts ?? [msg.payload]
@@ -581,7 +590,7 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
       console.log('[ingest] no external party — attributing internal forward to employee:', personEmail)
     } else {
       console.log('[ingest] skip — no external party and sender is not internal:', gmailMsgId)
-      return
+      return 'skipped: no external party resolved'
     }
   }
 
@@ -692,10 +701,14 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
       company_id:      contactCompanyId,
     }),
   })
-  if (!threadUpsert.ok) { console.error('[ingest] thread upsert failed:', await threadUpsert.text()); return }
+  if (!threadUpsert.ok) {
+    const why = (await threadUpsert.text()).slice(0, 200)
+    console.error('[ingest] thread upsert failed:', why)
+    return `thread upsert failed: ${why}`
+  }
   const threadRows = await threadUpsert.json()
   const thread     = Array.isArray(threadRows) ? threadRows[0] : threadRows
-  if (!thread?.id) { console.error('[ingest] thread has no id'); return }
+  if (!thread?.id) { console.error('[ingest] thread has no id'); return 'thread upsert returned no id' }
 
   // Ensure contact_id/company_id are set (merge-duplicates may have returned the old row without them)
   const threadPatch: Record<string, unknown> = {}
@@ -728,10 +741,14 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
       has_attachments:  (msg.payload?.parts ?? []).some((p: { filename?: string }) => p.filename && p.filename.length > 0),
     }),
   })
-  if (!msgInsert.ok) { console.error('[ingest] message insert failed:', await msgInsert.text()); return }
+  if (!msgInsert.ok) {
+    const why = (await msgInsert.text()).slice(0, 200)
+    console.error('[ingest] message insert failed:', why)
+    return `message insert failed: ${why}`
+  }
   const msgRows = await msgInsert.json()
   const dbMsg   = Array.isArray(msgRows) ? msgRows[0] : msgRows
-  if (!dbMsg?.id) return // already existed — no need to re-insert participants
+  if (!dbMsg?.id) return 'already stored'
 
   // 4. Insert participants (ON CONFLICT DO NOTHING via unique constraint)
   type P = { thread_id: string; message_id: string; email: string; name: string | null; role: string; contact_id: string | null }
@@ -857,6 +874,8 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string) 
       }).catch(e => console.warn('[ingest] attachment extract trigger (non-fatal):', e instanceof Error ? e.message : e))
     )
   }
+
+  return 'stored'
 }
 
 // GET /api/email/ingest — manual trigger / Vercel cron polling fallback
@@ -878,9 +897,16 @@ export async function GET(req: NextRequest) {
       : await getNewMessageIds(token)
     console.log('[ingest:manual] processing', messageIds.length, 'message(s)')
     const results = await Promise.allSettled(messageIds.map(id => ingestMessage(token, id, origin)))
-    const ok  = results.filter(r => r.status === 'fulfilled').length
-    const err = results.filter(r => r.status === 'rejected').length
-    return NextResponse.json({ ok: true, processed: messageIds.length, succeeded: ok, failed: err })
+
+    // Group by outcome. "succeeded" used to mean the promise resolved, which it did even when
+    // the message was discarded — so the endpoint reported success while storing nothing.
+    const outcomes: Record<string, number> = {}
+    for (const r of results) {
+      const key = r.status === 'fulfilled' ? String(r.value) : `threw: ${String(r.reason).slice(0, 120)}`
+      outcomes[key] = (outcomes[key] ?? 0) + 1
+    }
+    const stored = outcomes['stored'] ?? 0
+    return NextResponse.json({ ok: true, processed: messageIds.length, stored, outcomes })
   } catch (e) {
     console.error('[ingest:manual] FATAL:', e)
     return NextResponse.json({ error: String(e) }, { status: 500 })
