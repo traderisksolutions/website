@@ -33,6 +33,15 @@ const PRICING: Record<string, ModelPricing> = {
 
   'gemini-3.1-flash-lite': { inputPerMillion: 0.25, outputPerMillion: 1.50 },
 
+  // Added 1 Oct 2026 with the model swap: LITE is now 3.5-flash-lite (every small task) and the
+  // deep-analysis tier is now 3.8-flash (replacing Opus).
+  // UNVERIFIED RATES — estimated from the position of each model in its family, not read off
+  // ai.google.dev/gemini-api/docs/pricing. Cost figures on /analytics/ai-usage are therefore
+  // approximate for these two until someone checks the published price. They are listed anyway
+  // because an absent entry falls back to the DEFAULT_MODEL rate, which is wronger still.
+  'gemini-3.5-flash-lite': { inputPerMillion: 0.25, outputPerMillion: 1.50 },
+  'gemini-3.8-flash':      { inputPerMillion: 1.50, outputPerMillion: 7.50 },
+
   // Retired — kept so historical log rows still price correctly.
   'gemini-3.5-flash': { inputPerMillion: 1.50, outputPerMillion: 9.00 },
   'gemini-2.5-flash':  { inputPerMillion: 0.30, outputPerMillion: 2.50 },

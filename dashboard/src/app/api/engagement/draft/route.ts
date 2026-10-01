@@ -7,10 +7,16 @@ import { createSupabaseDB, createGeminiComposer, EvalStore, ExampleStore, SkillS
 import { EMAIL_TYPE_BASE_INSTRUCTIONS } from '@/lib/email-surface-instructions'
 import { requireStaffOrCron }       from '@/lib/api-auth'
 import { getCustomerProfile }       from '@/lib/customer-profile'
-import { geminiUrl, GEMINI_FLASH } from '@/lib/gemini-models'
+import { geminiUrl, GEMINI_FLASH, GEMINI_LITE } from '@/lib/gemini-models'
+import { searchCompany, renderContext }   from '@/lib/agents/company-retrieval'
+import { buildCitations, renderProvenance, CITE_INSTRUCTION } from '@/lib/agents/guardrails'
+import { routeModel }                     from '@/lib/agents/router'
 
 const SB_URL    = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = geminiUrl(GEMINI_FLASH)
+// Small calls below (first-name extraction, email-type classification) emit one word each.
+// They run on Lite; only the drafter needs Flash.
+const LITE_URL   = geminiUrl(GEMINI_LITE)
 
 function sbHeaders(prefer = 'return=representation') {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -144,12 +150,12 @@ export async function POST(req: NextRequest) {
       const bodySnippet   = (latestInbound?.body_text ?? '').slice(0, 2000)
       if (bodySnippet.length > 30) {
         try {
-          const nameRes = await fetch(`${GEMINI_URL}?key=${geminiKey}`, {
+          const nameRes = await fetch(`${LITE_URL}?key=${geminiKey}`, {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               contents: [{ parts: [{ text: `Extract the sender's preferred first name from this email. Names in parentheses like "(Leona)" are preferred common names — always choose those. Reply with ONLY one word (the first name). Reply "UNKNOWN" if no name is found.\n\nEMAIL:\n${bodySnippet}` }] }],
-              generationConfig: { temperature: 0, maxOutputTokens: 10 },
+              generationConfig: { temperature: 0, maxOutputTokens: 256 },
             }),
           })
           if (nameRes.ok) {
@@ -195,12 +201,12 @@ ${lastMsgText}
 
 Reply with one word only.`
 
-    const classifyRes = await fetch(`${GEMINI_URL}?key=${geminiKey}`, {
+    const classifyRes = await fetch(`${LITE_URL}?key=${geminiKey}`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: classifyPrompt }] }],
-        generationConfig: { temperature: 0, maxOutputTokens: 12 },
+        generationConfig: { temperature: 0, maxOutputTokens: 256 },
       }),
     })
 
@@ -382,6 +388,47 @@ Reply with one word only.`
 
     const lastInboundText = lastInbound ? (lastInbound.body_text || '').slice(0, 12000) : '(no inbound message found)'
 
+    // ── Company archive ──────────────────────────────────────────────────────
+    // Everything above is scoped to this one thread. That is the limitation this block removes:
+    // when an insurer asks for a document that was supplied months ago on a different thread, no
+    // amount of prompt work on a single thread can find it. Retrieval is scoped to the company
+    // that owns the thread and never wider — reading across a client boundary would put one
+    // client's correspondence into another's reply.
+    let archiveBlock = ''
+    let citations: ReturnType<typeof buildCitations>['citations'] = []
+    let proposedAttachments: ReturnType<typeof buildCitations>['attachments'] = []
+    let provenance = renderProvenance([])
+    let archiveThreadCount = 0
+
+    if (threadId) {
+      try {
+        const tRes = await fetch(
+          `${SB_URL}/rest/v1/email_threads?id=eq.${encodeURIComponent(threadId)}&select=company_id&limit=1`,
+          { headers: sbHeaders(), cache: 'no-store' })
+        const tRows = tRes.ok ? await tRes.json() : []
+        const companyId = Array.isArray(tRows) ? (tRows[0]?.company_id ?? null) : null
+
+        if (companyId) {
+          const question = `${threadSubject}\n\n${lastInboundText}`.slice(0, 4000)
+          // Exclude this thread: its own messages are already in THREAD HISTORY above, and
+          // spending retrieval slots on them would crowd out the other threads that are the
+          // entire point of searching the archive.
+          const hits = (await searchCompany({ companyId, question, limit: 8 }))
+            .filter(h => h.thread_id !== threadId)
+
+          if (hits.length > 0) {
+            const built = buildCitations(hits)
+            citations = built.citations
+            proposedAttachments = built.attachments
+            provenance = renderProvenance(citations)
+            archiveThreadCount = new Set(hits.map(h => h.thread_id).filter(Boolean)).size
+            archiveBlock = `\n━━ COMPANY ARCHIVE (other threads and documents for this client — cite by number) ━━\n${renderContext(hits)}\n`
+            contextUsed.push(`${hits.length} passage${hits.length === 1 ? '' : 's'} from ${archiveThreadCount} other thread${archiveThreadCount === 1 ? '' : 's'}`)
+          }
+        }
+      } catch { /* non-fatal — a thread-scoped draft is still a usable draft */ }
+    }
+
     // Fetch GDrive docs for all email types — the folder contains pricing docs, product FAQs,
     // claims procedures, and company knowledge relevant to any enquiry type.
     // Keyword scoring selects the most relevant files; returns [] silently on error.
@@ -515,14 +562,23 @@ ${lastInboundText}
 
 ━━ THREAD HISTORY (read for full context) ━━
 ${threadCtx || '(no prior messages)'}
-${attachmentText ? `\n━━ ATTACHMENT CONTENTS (read fully — respond using these figures/details) ━━${attachmentText}\n` : ''}
+${attachmentText ? `\n━━ ATTACHMENT CONTENTS (read fully — respond using these figures/details) ━━${attachmentText}\n` : ''}${archiveBlock}${archiveBlock ? `\n━━ CITING ━━\n${CITE_INSTRUCTION}\n` : ''}
 
 Write only the email body starting with "${salutation}". End after the last paragraph — no closing line or signature.`
 
     const drafterParts: unknown[] = knowledgeDocs.map(d => ({ file_data: { mime_type: 'application/pdf', file_uri: d.uri } }))
     drafterParts.push({ text: drafterPrompt })
 
-    const drafterRes = await fetch(`${GEMINI_URL}?key=${geminiKey}`, {
+    // One company, one thread -> Flash. A reply that had to read across the company archive is
+    // a bigger job on a bigger context, so it routes up. See src/lib/agents/router.ts.
+    const route = routeModel({
+      companyCount:  1,
+      threadCount:   1 + archiveThreadCount,
+      contextChars:  drafterPrompt.length,
+    })
+    console.log('[engagement/draft] model:', route.model, '|', route.tier, '|', route.reason)
+
+    const drafterRes = await fetch(`${geminiUrl(route.model)}?key=${geminiKey}`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -538,7 +594,7 @@ Write only the email body starting with "${salutation}". End after the last para
       return NextResponse.json({ error: `Gemini ${drafterRes.status}: ${errText.slice(0, 2000)}` }, { status: 502 })
     }
     const drafterData = await drafterRes.json()
-    void logGeminiUsage('draft_reply_drafter', drafterData.usageMetadata ?? {}, threadId)
+    void logGeminiUsage('draft_reply_drafter', drafterData.usageMetadata ?? {}, threadId, route.model)
     const content = drafterData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? ''
     if (!content) {
       const reason = drafterData?.candidates?.[0]?.finishReason ?? JSON.stringify(drafterData).slice(0, 200)
@@ -701,7 +757,13 @@ Write only the email body starting with "${salutation}". End after the last para
     const saved = draftRes.ok ? await draftRes.json() : null
     const draft = Array.isArray(saved) ? saved[0] : saved
 
-    return NextResponse.json({ draftId: draft?.id ?? null, content, contactId, contextUsed })
+    return NextResponse.json({
+      draftId: draft?.id ?? null, content, contactId, contextUsed,
+      // Attach and cite: the reviewer gets the sources and the files, and attaches them himself.
+      // Nothing here is sent anywhere — /api/email/send refuses any non-human caller.
+      citations, proposedAttachments, provenance,
+      model: route.model, tier: route.tier,
+    })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Server error'
     return NextResponse.json({ error: msg }, { status: 500 })

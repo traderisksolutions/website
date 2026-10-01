@@ -1,17 +1,30 @@
 /**
  * Model routing for the AI agents.
  *
- * Flash handles the ordinary case: one thread, one company, draft a reply. Opus is reserved for
- * work that is actually hard — several companies in play, or a deep read across many threads —
- * because it costs roughly thirty times as much per token and most inbox work does not need it.
+ * Lite handles small tasks (classification, filing, summaries) and never appears here — those
+ * call sites pick GEMINI_LITE directly. This router covers the reading-and-drafting path:
+ *
+ *   flash — one thread, one company, draft a reply
+ *   pro   — several threads of context in one company
+ *   deep  — several companies in play, or a deliberate read across a whole company archive
+ *
+ * The deep tier ran on Opus until 1 Oct 2026 and now runs on gemini-3.8-flash. The reason is
+ * cost: the deep path is entered by cross-company questions, which carry the largest contexts,
+ * and a frontier model there cost roughly thirty times as much per token. gemini-3.8-flash takes
+ * a 1M-token context, which is what a whole-archive read actually needs.
+ *
+ * Trade-off worth knowing: 3.8-flash is a Flash-tier model, so it reasons less deeply than Opus
+ * did on genuinely hard judgement. If a deep answer comes back thin, set GEMINI_MODEL_DEEP to
+ * gemini-3.1-pro-preview (no redeploy) and the same path runs on the reasoning tier.
  *
  * Pure: no I/O, so every routing rule here is unit-testable and the decision is auditable.
  */
-import { GEMINI_FLASH, GEMINI_PRO } from '@/lib/gemini-models'
+import { GEMINI_FLASH, GEMINI_PRO, GEMINI_DEEP } from '@/lib/gemini-models'
 
-export type Tier = 'flash' | 'pro' | 'opus'
+export type Tier = 'flash' | 'pro' | 'deep'
 
-export const OPUS_MODEL = 'claude-opus-5'
+/** The model the deep tier runs on. Named for the job, not the vendor, so a swap is one line. */
+export const DEEP_MODEL = GEMINI_DEEP
 
 export interface RouteInput {
   /** How many distinct companies the question spans. */
@@ -34,32 +47,36 @@ export interface RouteDecision {
   honoured: boolean
 }
 
-/** Monthly ceiling for Opus. Past this, deep analysis degrades to Pro rather than failing. */
-export const OPUS_MONTHLY_BUDGET_USD = 50
+/**
+ * Monthly ceiling for the deep tier. Past this, deep analysis degrades to Pro rather than
+ * failing. The ceiling stays even though the deep tier is now Gemini: it is a runaway-loop
+ * guard as much as a cost guard, and a cheap model called in a loop still bills.
+ */
+export const DEEP_MONTHLY_BUDGET_USD = 50
 
 export function routeModel(i: RouteInput): RouteDecision {
-  const overBudget = (i.monthSpendUsd ?? 0) >= OPUS_MONTHLY_BUDGET_USD
+  const overBudget = (i.monthSpendUsd ?? 0) >= DEEP_MONTHLY_BUDGET_USD
 
-  // Opus earns its cost on cross-company judgement, or a deliberate deep read.
-  const wantsOpus =
+  // The deep tier earns its context on cross-company judgement, or a deliberate deep read.
+  const wantsDeep =
     i.companyCount >= 2 ||
     i.deepAnalysis === true ||
     i.threadCount >= 8 ||
     i.contextChars >= 120_000
 
-  if (wantsOpus && overBudget) {
+  if (wantsDeep && overBudget) {
     return {
       tier: 'pro', model: GEMINI_PRO, honoured: false,
-      reason: `Opus budget of $${OPUS_MONTHLY_BUDGET_USD} reached this month; using Pro instead`,
+      reason: `Deep-analysis budget of $${DEEP_MONTHLY_BUDGET_USD} reached this month; using Pro instead`,
     }
   }
-  if (wantsOpus) {
+  if (wantsDeep) {
     const why =
       i.companyCount >= 2 ? `${i.companyCount} companies in play`
       : i.deepAnalysis    ? 'deep analysis requested'
       : i.threadCount >= 8 ? `${i.threadCount} threads to read`
       : 'large context'
-    return { tier: 'opus', model: OPUS_MODEL, honoured: true, reason: why }
+    return { tier: 'deep', model: DEEP_MODEL, honoured: true, reason: why }
   }
   if (i.threadCount >= 3 || i.contextChars >= 40_000) {
     return { tier: 'pro', model: GEMINI_PRO, honoured: true, reason: 'more than one thread of context' }

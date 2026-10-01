@@ -9,7 +9,7 @@
  */
 import { sb, sbTry, inChunks, enc, listClientCompanies, isInternal, isAutomated, emailDomain, PUBLIC_EMAIL_DOMAINS } from './db'
 import { geminiJson } from './ai'
-import { GEMINI_FLASH } from '@/lib/gemini-models'
+import { GEMINI_LITE } from '@/lib/gemini-models'
 import { personName } from './format'
 import type { Company, LinkSuggestion, LinkVerdict, Stage } from './types'
 import { logActivity } from '@/lib/log-activity'
@@ -125,7 +125,7 @@ export async function suggestLinks(opts: { limit?: number } = {}): Promise<{ sug
 
     const prompt = `EXISTING CLIENT COMPANIES (id | name | domains):\n${candidates || '(none yet)'}\n\nTHREADS TO FILE:\n\n${threadsText}\n\nFor every thread return one item in a JSON array:\n{ "thread_id": "...", "verdict": "existing|new|not_client|unsure", "company_id": "id from the list when verdict is existing, else null", "company_name": "proper company name when verdict is new, else null", "domain": "the client's email domain when known and not a public mailbox provider, else null", "confidence": 0.0 to 1.0, "rationale": "one short sentence" }`
 
-    const res = await geminiJson<ProposalRaw[]>({ system: SYSTEM, prompt, feature: 'crm_triage', model: GEMINI_FLASH, temperature: 0 })
+    const res = await geminiJson<ProposalRaw[]>({ system: SYSTEM, prompt, feature: 'crm_triage', model: GEMINI_LITE, temperature: 0 })
     if (!res.data || !Array.isArray(res.data)) { lastError = res.error; continue }
 
     const validIds = new Set(companies.map(c => c.id))

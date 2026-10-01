@@ -12,6 +12,11 @@
 
 const SB_URL      = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL  = geminiUrl(GEMINI_FLASH)
+// The one-word classifier below runs on Lite. Flash-tier 3.6 spends its first ~9 output
+// tokens thinking, so a 12-token budget returned empty text with finishReason MAX_TOKENS
+// and HTTP 200 — the classifier failed silently and every email fell through to
+// CONVERSATION. Lite answers one-word prompts without a thinking preamble.
+const LITE_URL    = geminiUrl(GEMINI_LITE)
 const EMBED_URL   = geminiUrl(GEMINI_EMBED, 'embedContent')
 
 import { logGeminiUsage } from '@/lib/gemini-usage'
@@ -19,7 +24,7 @@ import { logError } from '@/lib/error-log'
 import { fetchAttachmentContext } from '@/lib/thread-attachment-context'
 import { createSupabaseDB, createGeminiComposer, EvalStore, ExampleStore, SkillSynthesizer, type EvalRecord, type SkillExample } from '@/lib/ai-learning-loop'
 import { EMAIL_TYPE_BASE_INSTRUCTIONS } from '@/lib/email-surface-instructions'
-import { geminiUrl, GEMINI_FLASH, GEMINI_EMBED } from '@/lib/gemini-models'
+import { geminiUrl, GEMINI_FLASH, GEMINI_LITE, GEMINI_EMBED } from '@/lib/gemini-models'
 
 function sbHeaders(prefer = 'return=minimal') {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -121,12 +126,12 @@ Reply with one word only.`
 
   const [embedding, classifyData, ctxRows] = await Promise.all([
     embedText(threadText.slice(0, 8000), key),
-    fetch(`${GEMINI_URL}?key=${key}`, {
+    fetch(`${LITE_URL}?key=${key}`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents:         [{ parts: [{ text: classifyPrompt }] }],
-        generationConfig: { temperature: 0, maxOutputTokens: 12 },
+        generationConfig: { temperature: 0, maxOutputTokens: 256 },
       }),
     }).then(r => r.json()).catch(() => ({})),
     fetch(`${SB_URL}/rest/v1/email_threads?id=eq.${thread_id}&select=campaign_context&limit=1`, {

@@ -61,7 +61,12 @@ export function chunkText(text: string, size = CHUNK_CHARS, overlap = CHUNK_OVER
 }
 
 export async function embedText(text: string, feature = 'company_retrieval_embed'): Promise<number[]> {
-  const key = process.env.GEMINI_API_KEY_EMAIL_ANALYSIS || process.env.GEMINI_API_KEY_DRAFT_EMAIL
+  // Three names, because they are not set consistently across environments and retrieval that
+  // silently returns nothing is worse than retrieval that fails loudly: a draft would simply
+  // lose the archive with no sign anything was missing.
+  const key = process.env.GEMINI_API_KEY_EMAIL_ANALYSIS
+            || process.env.GEMINI_API_KEY_DRAFT_EMAIL
+            || process.env.GEMINI_API_KEY_INBOUND
   if (!key) throw new Error('no Gemini key configured for embeddings')
   const res = await fetch(`${geminiUrl(GEMINI_EMBED, 'embedContent')}?key=${key}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
