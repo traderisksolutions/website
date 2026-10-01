@@ -1,5 +1,5 @@
 /**
- * Pricing Matrix v2 — coverage/benefit wordings extraction (Opus + Gemini, cross-checked).
+ * Pricing Matrix v2 — coverage/benefit wordings extraction (two Gemini tiers, cross-checked).
  *
  * Extracted ONCE per calculator upload (mainly from the brochure PDF, plus any xlsx notes) and
  * cached in `pm_benefit_terms` — this is what powers the Level 2 coverage comparison (why choose
@@ -9,11 +9,9 @@
  * for coverage lines.
  */
 import { logAiUsage } from '@/lib/gemini-usage'
-import { GEMINI_PRO, geminiUrl } from '@/lib/gemini-models'
+import { GEMINI_PRO, GEMINI_DEEP, geminiUrl } from '@/lib/gemini-models'
+import { callGemini, type Part } from '@/lib/ai-call'
 import { logError } from '@/lib/error-log'
-
-const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
-const OPUS = 'claude-opus-4-8'
 
 export type BenefitTerm = {
   plan_code?: string; category: string; label: string; value: string; notes?: string; source: 'xlsx' | 'pdf'
@@ -94,30 +92,19 @@ function extractJson(text: string): { terms: BenefitTerm[] } | null {
   } catch { return null }
 }
 
-async function opusExtract(system: string, dump: unknown, brochureBase64?: string): Promise<{ terms: BenefitTerm[] | null; error?: string }> {
-  const key = process.env.ANTHROPIC_API_KEY
-  if (!key) return { terms: null, error: 'ANTHROPIC_API_KEY not set' }
-  const content: unknown[] = []
-  if (brochureBase64) content.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: brochureBase64 } })
-  content.push({ type: 'text', text: dump ? `Workbook notes:\n${JSON.stringify(dump)}` : 'No workbook dump — brochure PDF is the only source.' })
-  try {
-    const res = await fetch(ANTHROPIC_URL, {
-      method: 'POST', headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      // No extended thinking — see pm-rates-extract.ts's opusExtract for why: this is a
-      // transcription task, and "adaptive" thinking's unbounded reasoning budget was risking
-      // Vercel's free-plan execution ceiling on large/complex brochures.
-      body: JSON.stringify({ model: OPUS, max_tokens: 20000, system, messages: [{ role: 'user', content }] }),
-    })
-    const j = await res.json()
-    if (!res.ok) {
-      void logError({ source: 'anthropic', feature: 'pm_benefit_extract', statusCode: res.status, message: JSON.stringify(j) })
-      return { terms: null, error: `Anthropic ${res.status}` }
-    }
-    void logAiUsage({ provider: 'anthropic', model: OPUS, feature: 'pm_benefit_extract', inputTokens: j.usage?.input_tokens ?? 0, outputTokens: j.usage?.output_tokens ?? 0, metadata: { pm: 'benefits_opus' } })
-    const text = (j.content ?? []).filter((b: { type: string }) => b.type === 'text').map((b: { text: string }) => b.text).join('\n')
-    const parsed = extractJson(text)
-    return parsed ? { terms: parsed.terms.map(t => ({ ...t, source: 'pdf' as const })) } : { terms: null, error: 'unparseable' }
-  } catch (e) { return { terms: null, error: String(e) } }
+/** First reading. Was Opus 4.8 until 2 Oct 2026; the second reading below stays on the pro
+ *  tier so the two remain genuinely different models. */
+async function deepExtract(system: string, dump: unknown, brochureBase64?: string): Promise<{ terms: BenefitTerm[] | null; error?: string }> {
+  const parts: Part[] = []
+  if (brochureBase64) parts.push({ inline_data: { mime_type: 'application/pdf', data: brochureBase64 } })
+  parts.push({ text: dump ? `Workbook notes:\n${JSON.stringify(dump)}` : 'No workbook dump — brochure PDF is the only source.' })
+  const { text, error } = await callGemini({
+    agent: 'pricingmatrix', feature: 'pm_benefit_extract', model: GEMINI_DEEP,
+    system, parts, maxOutputTokens: 40000, json: !brochureBase64, metadata: { pm: 'benefits_deep' },
+  })
+  if (!text) return { terms: null, error: error ?? 'no response' }
+  const parsed = extractJson(text)
+  return parsed ? { terms: parsed.terms.map(t => ({ ...t, source: 'pdf' as const })) } : { terms: null, error: 'unparseable' }
 }
 
 async function geminiExtract(system: string, dump: unknown, brochureBase64?: string): Promise<{ terms: BenefitTerm[] | null; error?: string }> {
@@ -179,7 +166,7 @@ export async function extractBenefitTerms(
 ): Promise<{ terms: BenefitTerm[] | null; conflicts: TermConflict[]; error?: string }> {
   const system = buildSystem(categoryPromptList)
   await onStep?.('Reading coverage terms — Opus & Gemini', 1, 2)
-  const [o, g] = await Promise.all([opusExtract(system, dump, brochureBase64), geminiExtract(system, dump, brochureBase64)])
+  const [o, g] = await Promise.all([deepExtract(system, dump, brochureBase64), geminiExtract(system, dump, brochureBase64)])
   if (!o.terms && !g.terms) {
     const msg = [o.error && `opus: ${o.error}`, g.error && `gemini: ${g.error}`].filter(Boolean).join('; ')
     return { terms: null, conflicts: [], error: msg || 'no terms extracted' }

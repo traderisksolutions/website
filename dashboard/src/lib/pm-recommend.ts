@@ -1,7 +1,7 @@
 /**
  * Pricing Matrix — comparison narrative.
  *
- * Opus compares the insurers on PRICE (fixed — from their own calculators, never changed) AND on
+ * Compares the insurers on PRICE (fixed — from their own calculators, never changed) AND on
  * what each plan selection implies (hospital type, bed, plan tier, co-insurance), weighted by the
  * client's stated priorities (e.g. "private hospital access"). Deliberately NOT a single-winner
  * pick with per-insurer pros/cons lists — this is what differentiates the tool from a bare price
@@ -9,12 +9,9 @@
  * broker would actually talk a client through the options, with short standout tags per insurer
  * for the at-a-glance view. Numbers are quoted verbatim, never invented.
  */
-import { logAiUsage } from '@/lib/gemini-usage'
 import type { QuoteResult, Selection } from '@/lib/pm-quote'
-import { logError } from '@/lib/error-log'
-
-const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
-const OPUS = 'claude-opus-4-8'
+import { GEMINI_DEEP } from '@/lib/gemini-models'
+import { callGemini } from '@/lib/ai-call'
 
 export type Recommendation = {
   headline: string
@@ -84,8 +81,6 @@ function extractJson(text: string): Recommendation | null {
 export async function recommend(
   results: QuoteResult, selections: Record<string, Selection>, priorities?: string | null,
 ): Promise<{ recommendation: Recommendation | null; error?: string }> {
-  const key = process.env.ANTHROPIC_API_KEY
-  if (!key) return { recommendation: null, error: 'ANTHROPIC_API_KEY not set' }
   const priced = results.insurers.filter(i => !i.error)
   if (priced.length === 0) return { recommendation: null, error: 'no priced insurers to compare' }
   try {
@@ -93,18 +88,12 @@ export async function recommend(
       priorities?.trim() ? `Client priorities: ${priorities.trim()}` : 'Client priorities: (none stated — optimise for overall value)',
       `Comparison:\n${JSON.stringify(summarise(results, selections))}`,
     ].join('\n\n')
-    const res = await fetch(ANTHROPIC_URL, {
-      method: 'POST',
-      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: OPUS, max_tokens: 4000, thinking: { type: 'adaptive' }, system: SYSTEM, messages: [{ role: 'user', content: [{ type: 'text', text: userText }] }] }),
+    const { text, error } = await callGemini({
+      agent: 'pricingmatrix', feature: 'pm_recommend', model: GEMINI_DEEP,
+      system: SYSTEM, parts: [{ text: userText }],
+      maxOutputTokens: 12000, json: true, metadata: { pm: 'recommend' },
     })
-    const j = await res.json()
-    if (!res.ok) {
-      void logError({ source: 'anthropic', feature: 'pm_recommend', statusCode: res.status, message: JSON.stringify(j) })
-      return { recommendation: null, error: `Anthropic ${res.status}: ${JSON.stringify(j).slice(0, 200)}` }
-    }
-    void logAiUsage({ provider: 'anthropic', model: OPUS, feature: 'pm_recommend', inputTokens: j.usage?.input_tokens ?? 0, outputTokens: j.usage?.output_tokens ?? 0, metadata: { pm: 'recommend' } })
-    const text = (j.content ?? []).filter((b: { type: string }) => b.type === 'text').map((b: { text: string }) => b.text).join('\n')
+    if (!text) return { recommendation: null, error: error ?? 'no response' }
     const rec = extractJson(text)
     if (!rec) return { recommendation: null, error: 'could not parse a recommendation' }
     return { recommendation: rec }

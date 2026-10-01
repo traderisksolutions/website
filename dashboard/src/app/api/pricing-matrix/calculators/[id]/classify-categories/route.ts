@@ -18,11 +18,10 @@ import { logError }                  from '@/lib/error-log'
 import { PM_CANONICAL_CATEGORIES_PROMPT_LIST } from '@/lib/pm-canonical-categories'
 import type { Coverage }             from '@/lib/pm-rates'
 import type { BenefitTerm }          from '@/lib/pm-benefits-extract'
+import { GEMINI_DEEP }              from '@/lib/gemini-models'
+import { callGemini }               from '@/lib/ai-call'
 
 export const maxDuration = 60
-
-const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
-const OPUS = 'claude-opus-4-8'
 
 function extractJson<T>(text: string): T | null {
   const t = text.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim()
@@ -36,8 +35,7 @@ async function classify(
   terms: { i: number; category: string; label: string }[],
 ): Promise<{ coverages: Map<number, string>; terms: Map<number, string> }> {
   const empty = { coverages: new Map<number, string>(), terms: new Map<number, string>() }
-  const key = process.env.ANTHROPIC_API_KEY
-  if (!key || (!coverages.length && !terms.length)) return empty
+  if (!coverages.length && !terms.length) return empty
 
   const system = `Classify each item into ONE of these fixed canonical categories: ${PM_CANONICAL_CATEGORIES_PROMPT_LIST}.
 Pick the closest match by what the benefit actually IS, not its printed name — insurers word the
@@ -51,20 +49,14 @@ Return ONLY this JSON (no prose, no markdown fence):
 { "coverages": [ { "i": <index>, "canonical_category": "<one of the list>" } ],
   "terms": [ { "i": <index>, "canonical_category": "<one of the list>" } ] }`
 
-  const res = await fetch(ANTHROPIC_URL, {
-    method: 'POST', headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({
-      model: OPUS, max_tokens: 8000, thinking: { type: 'adaptive' }, system,
-      messages: [{ role: 'user', content: [{ type: 'text', text: JSON.stringify({ coverages, terms }) }] }],
-    }),
+  // Moved off Opus 4.8 on 2 Oct 2026. Picking one label from a fixed list is not frontier work,
+  // and the output is validated against PM_CANONICAL_CATEGORIES afterwards either way.
+  const { text } = await callGemini({
+    agent: 'pricingmatrix', feature: 'pm_classify_categories', model: GEMINI_DEEP,
+    system, parts: [{ text: JSON.stringify({ coverages, terms }) }],
+    maxOutputTokens: 24000, json: true,
   })
-  const j = await res.json()
-  if (!res.ok) {
-    void logError({ source: 'anthropic', feature: 'pm_classify_categories', statusCode: res.status, message: JSON.stringify(j) })
-    return empty
-  }
-  void logAiUsage({ provider: 'anthropic', model: OPUS, feature: 'pm_classify_categories', inputTokens: j.usage?.input_tokens ?? 0, outputTokens: j.usage?.output_tokens ?? 0, metadata: {} })
-  const text = (j.content ?? []).filter((b: { type: string }) => b.type === 'text').map((b: { text: string }) => b.text).join('\n')
+  if (!text) return empty
   const parsed = extractJson<{ coverages?: { i: number; canonical_category: string }[]; terms?: { i: number; canonical_category: string }[] }>(text)
   const out = { coverages: new Map<number, string>(), terms: new Map<number, string>() }
   for (const c of parsed?.coverages ?? []) out.coverages.set(c.i, c.canonical_category)

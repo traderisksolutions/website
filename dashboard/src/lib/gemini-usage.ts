@@ -97,6 +97,7 @@ export type AiFeature =
   | 'rfq_quote_decision'
   | 'pm_recommend'
   | 'pm_rate_extract'
+  | 'pm_rate_extract_adjudicate'
   | 'pm_benefit_extract'
   | 'pm_rules_extract'
   | 'pm_shape_detect'

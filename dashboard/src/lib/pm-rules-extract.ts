@@ -14,11 +14,9 @@
  * grid (most of them, still handled by pm-rates-extract.ts + pm-calc.ts's existing priceLine()).
  */
 import { logAiUsage } from '@/lib/gemini-usage'
-import { GEMINI_PRO, geminiUrl } from '@/lib/gemini-models'
+import { GEMINI_PRO, GEMINI_DEEP, GEMINI_LITE, geminiUrl } from '@/lib/gemini-models'
+import { callGemini, type Part } from '@/lib/ai-call'
 import { logError } from '@/lib/error-log'
-
-const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
-const OPUS = 'claude-opus-4-8'
 
 export type RuleStep =
   | { type: 'age_band_lookup'; id: string; coverage_code: string; plan_field: string; output: string; source_ref?: string }
@@ -61,32 +59,24 @@ export async function detectExcelShape(dump: unknown): Promise<ExcelShape> {
   if (formulaRatio < 0.15 && valueCount > 20) return 'embedded_table'
   if (formulaRatio > 0.5) return 'formula_shell'
 
-  const key = process.env.ANTHROPIC_API_KEY
-  if (!key) return formulaRatio > 0.3 ? 'formula_shell' : 'hybrid'
-  try {
-    const res = await fetch(ANTHROPIC_URL, {
-      method: 'POST', headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model: OPUS, max_tokens: 300,
-        system: 'Look at this insurer Excel calculator dump (sheet names, a sample of populated values, and a sample of formulas). Classify it as exactly one word: "embedded_table" (it has its own real, populated rate/premium grid you could read numbers straight off), "formula_shell" (it is mostly blank input cells + calculation formulas, no real populated rate grid), or "hybrid" (both). Return ONLY that one word.',
-        messages: [{ role: 'user', content: [{ type: 'text', text: JSON.stringify({ sheets: d.sheets?.map(s => s.name), values_sample: Object.fromEntries(Object.entries(d.values ?? {}).slice(0, 3)), formulas_sample: Object.fromEntries(Object.entries(d.formulas ?? {}).slice(0, 3)) }) }] }],
-      }),
-    })
-    const j = await res.json()
-    if (!res.ok) {
-      void logError({ source: 'anthropic', feature: 'pm_shape_detect', statusCode: res.status, message: JSON.stringify(j) })
-      return formulaRatio > 0.3 ? 'formula_shell' : 'hybrid'
-    }
-    void logAiUsage({ provider: 'anthropic', model: OPUS, feature: 'pm_shape_detect', inputTokens: j.usage?.input_tokens ?? 0, outputTokens: j.usage?.output_tokens ?? 0, metadata: {} })
-    const text = ((j.content ?? []).find((b: { type: string }) => b.type === 'text')?.text ?? '').trim().toLowerCase()
-    if (text.includes('embedded_table')) return 'embedded_table'
-    if (text.includes('formula_shell')) return 'formula_shell'
-    if (text.includes('hybrid')) return 'hybrid'
-    return 'hybrid'
-  } catch { return formulaRatio > 0.3 ? 'formula_shell' : 'hybrid' }
+  // One word out. This ran on Opus 4.8 until 2 Oct 2026, which was never the right size for a
+  // three-way classification — it goes on the lite tier, the same tier the mail classifiers use.
+  const { text } = await callGemini({
+    agent: 'pricingmatrix', feature: 'pm_shape_detect', model: GEMINI_LITE,
+    system: 'Look at this insurer Excel calculator dump (sheet names, a sample of populated values, and a sample of formulas). Classify it as exactly one word: "embedded_table" (it has its own real, populated rate/premium grid you could read numbers straight off), "formula_shell" (it is mostly blank input cells + calculation formulas, no real populated rate grid), or "hybrid" (both). Return ONLY that one word.',
+    parts: [{ text: JSON.stringify({ sheets: d.sheets?.map(x => x.name), values_sample: Object.fromEntries(Object.entries(d.values ?? {}).slice(0, 3)), formulas_sample: Object.fromEntries(Object.entries(d.formulas ?? {}).slice(0, 3)) }) }],
+    // Reasoning tokens come out of this allowance too, so a budget of 300 for a one-word answer
+    // returns an empty candidate rather than the word.
+    maxOutputTokens: 512,
+  })
+  const word = (text ?? '').trim().toLowerCase()
+  if (word.includes('embedded_table')) return 'embedded_table'
+  if (word.includes('formula_shell')) return 'formula_shell'
+  if (word.includes('hybrid')) return 'hybrid'
+  return formulaRatio > 0.3 ? 'formula_shell' : 'hybrid'
 }
 
-// ── Rule-step extraction (Opus + Gemini, same ensemble shape as pm-rates-extract.ts) ──────────────
+// ── Rule-step extraction (two Gemini tiers, same ensemble shape as pm-rates-extract.ts) ──────────
 const SYSTEM = `You read an insurer group-benefits Excel calculator's FORMULAS (and, where given, its
 brochure PDF) and translate its CALCULATION LOGIC into a small set of structured step primitives — not
 a literal formula transcription. The goal: someone re-running these steps against a census and the
@@ -156,29 +146,17 @@ function buildUserContent(dump: unknown, brochureBase64?: string, forGemini = fa
   return parts
 }
 
-async function opusExtract(dump: unknown, brochureBase64?: string): Promise<{ rules: RuleStep[] | null; error?: string }> {
-  const key = process.env.ANTHROPIC_API_KEY
-  if (!key) return { rules: null, error: 'ANTHROPIC_API_KEY not set' }
-  try {
-    const res = await fetch(ANTHROPIC_URL, {
-      method: 'POST', headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      // No extended thinking — see pm-rates-extract.ts's opusExtract for why. Translating formula
-      // logic genuinely benefits more from reasoning than plain transcription does, but this
-      // stage is already best-effort (never fails the pipeline) and reliability on the free plan
-      // matters more right now than the accuracy this might cost on a genuinely complex formula.
-      body: JSON.stringify({ model: OPUS, max_tokens: 16000, system: SYSTEM,
-        messages: [{ role: 'user', content: buildUserContent(dump, brochureBase64, false) }] }),
-    })
-    const j = await res.json()
-    if (!res.ok) {
-      void logError({ source: 'anthropic', feature: 'pm_rules_extract', statusCode: res.status, message: JSON.stringify(j) })
-      return { rules: null, error: `Anthropic ${res.status}` }
-    }
-    void logAiUsage({ provider: 'anthropic', model: OPUS, feature: 'pm_rules_extract', inputTokens: j.usage?.input_tokens ?? 0, outputTokens: j.usage?.output_tokens ?? 0, metadata: { pm: 'rules_opus' } })
-    const text = (j.content ?? []).filter((b: { type: string }) => b.type === 'text').map((b: { text: string }) => b.text).join('\n')
-    const parsed = extractJson<{ rules: RuleStep[] }>(text)
-    return parsed && Array.isArray(parsed.rules) ? { rules: parsed.rules } : { rules: null, error: 'unparseable' }
-  } catch (e) { return { rules: null, error: String(e) } }
+
+/** First reading. Was Opus 4.8 until 2 Oct 2026; the second reading stays on the pro tier. */
+async function deepExtract(dump: unknown, brochureBase64?: string): Promise<{ rules: RuleStep[] | null; error?: string }> {
+  const { text, error } = await callGemini({
+    agent: 'pricingmatrix', feature: 'pm_rules_extract', model: GEMINI_DEEP,
+    system: SYSTEM, parts: buildUserContent(dump, brochureBase64, true) as Part[],
+    maxOutputTokens: 32000, json: !brochureBase64, metadata: { pm: 'rules_deep' },
+  })
+  if (!text) return { rules: null, error: error ?? 'no response' }
+  const parsed = extractJson<{ rules: RuleStep[] }>(text)
+  return parsed && Array.isArray(parsed.rules) ? { rules: parsed.rules } : { rules: null, error: 'unparseable' }
 }
 
 async function geminiExtract(dump: unknown, brochureBase64?: string): Promise<{ rules: RuleStep[] | null; error?: string }> {
@@ -223,7 +201,7 @@ export async function extractComputationRules(
   const source = await detectExcelShape(dump)
 
   await onStep?.('Reading calculation logic — Opus & Gemini', 2, 3)
-  const [o, g] = await Promise.all([opusExtract(dump, brochureBase64), geminiExtract(dump, brochureBase64)])
+  const [o, g] = await Promise.all([deepExtract(dump, brochureBase64), geminiExtract(dump, brochureBase64)])
   const base = o.rules ?? g.rules
   if (!base) {
     const msg = [o.error && `opus: ${o.error}`, g.error && `gemini: ${g.error}`].filter(Boolean).join('; ')

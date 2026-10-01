@@ -56,7 +56,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       body: JSON.stringify({ calculator_id: id, age_basis: table.age_basis, coverages: table.coverages, rules: table.rules, source: table.source, accuracy }),
     })
     void writeIssues((ruleConflicts ?? []).map(rc => ({ calculator_id: id, kind: 'rule', field: rc.field, opus_value: rc.opus, gemini_value: rc.gemini })))
-    void logRun(id, { kind: 'rate_extract', model: 'claude-opus-4-8+gemini', ok: true, duration_ms: Date.now() - t0, output: { phase: 'finalize', coverages: table.coverages.length, accuracy, rule_conflicts: ruleConflicts?.length ?? 0, source: table.source } })
+    void logRun(id, { kind: 'rate_extract', model: 'gemini-3.8-flash+gemini-3.1-pro-preview', ok: true, duration_ms: Date.now() - t0, output: { phase: 'finalize', coverages: table.coverages.length, accuracy, rule_conflicts: ruleConflicts?.length ?? 0, source: table.source } })
 
     return NextResponse.json({ ok: true, coverages: table.coverages.length })
   } catch (e) {

@@ -42,7 +42,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
         if (structurallyDisputed) {
           void writeIssues([{ calculator_id: id, kind: 'computation_rule', note: 'Opus and Gemini produced different calculation-logic structures — review both readings before approving.' }])
         }
-        void logRun(id, { kind: 'rules_extract', model: 'claude-opus-4-8+gemini', ok: true, duration_ms: Date.now() - t0, output: { steps, source: excelShape, disputed: structurallyDisputed } })
+        void logRun(id, { kind: 'rules_extract', model: 'gemini-3.8-flash+gemini-3.1-pro-preview', ok: true, duration_ms: Date.now() - t0, output: { steps, source: excelShape, disputed: structurallyDisputed } })
       } else {
         void logRun(id, { kind: 'rules_extract', ok: false, error: rulesError, duration_ms: Date.now() - t0 })
       }

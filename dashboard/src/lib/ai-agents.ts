@@ -7,7 +7,7 @@
  * below or it lands in `unattributed` — which the spend page shows rather than hides.
  */
 
-export type AgentId = 'housekeeping' | 'crm' | 'askai' | 'groupbenefits' | 'unattributed'
+export type AgentId = 'housekeeping' | 'crm' | 'askai' | 'groupbenefits' | 'pricingmatrix' | 'unattributed'
 
 export interface AgentSpec {
   id:    AgentId
@@ -40,6 +40,15 @@ export const AGENTS: Record<Exclude<AgentId, 'unattributed'>, AgentSpec> = {
     label: 'Ask AI',
     work: 'Answers a question from the web and the company archive, and cites where each claim came from.',
     envKey: 'GEMINI_API_KEY_ASKAI',
+    model: 'gemini-3.8-flash',
+  },
+  pricingmatrix: {
+    id: 'pricingmatrix',
+    label: 'Pricing matrix',
+    work: 'Reads an insurer rate workbook and brochure twice over, reconciles the two readings, and flags every number they disagree on.',
+    envKey: 'GEMINI_API_KEY_PRICINGMATRIX',
+    // Reading A. Reading B stays on the pro tier, so the two readings remain genuinely different
+    // models — a cross-check between one model and itself confirms nothing.
     model: 'gemini-3.8-flash',
   },
   groupbenefits: {
@@ -100,6 +109,16 @@ export const FEATURE_AGENT: Record<string, AgentId> = {
   gb_alias_suggest:    'groupbenefits',
   gb_plan_match:       'groupbenefits',
   gb_rules_extract:    'groupbenefits',
+
+  // ── Pricing matrix ────────────────────────────────────────────────────────
+  pm_rate_extract:            'pricingmatrix',
+  pm_rate_extract_adjudicate: 'pricingmatrix',
+  pm_benefit_extract:         'pricingmatrix',
+  pm_rules_extract:           'pricingmatrix',
+  pm_shape_detect:            'pricingmatrix',
+  pm_plan_match:              'pricingmatrix',
+  pm_classify_categories:     'pricingmatrix',
+  pm_recommend:               'pricingmatrix',
 }
 
 export function agentOfFeature(feature: string | null | undefined): AgentId {

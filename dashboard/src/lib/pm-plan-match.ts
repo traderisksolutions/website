@@ -2,19 +2,16 @@
  * Pricing Matrix — auto-match plan tiers to a client's stated requirement.
  *
  * A broker states what the client wants per coverage line in plain English (e.g. "$200k annual
- * limit, private hospital, 1-bed ward"). Opus reads every insurer's ACTUAL offered plan tiers
- * (codes/labels/attrs from the approved rate table, plus that plan's benefit terms) and picks the
+ * limit, private hospital, 1-bed ward").
+ * A model reads every insurer's ACTUAL offered plan tiers
  * closest match per insurer — never inventing a plan_code that isn't actually offered. This only
  * pre-fills the quote wizard's existing plan dropdowns; the broker can still override any pick.
  */
-import { logAiUsage } from '@/lib/gemini-usage'
-import { logError } from '@/lib/error-log'
+import { GEMINI_DEEP } from '@/lib/gemini-models'
+import { callGemini } from '@/lib/ai-call'
 import type { RateTable } from '@/lib/pm-rates'
 import { plansFor } from '@/lib/pm-rates'
 import type { BenefitTerm } from '@/lib/pm-benefits-extract'
-
-const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
-const OPUS = 'claude-opus-4-8'
 
 export type MatchInsurer = { calculator_id: string; insurer_name: string; rate_table: RateTable; benefit_terms: BenefitTerm[] }
 export type PlanMatchSuggestion = { calculator_id: string; code: string; plan_code: string; reason: string }
@@ -72,26 +69,19 @@ function summarise(targets: Record<string, string>, insurers: MatchInsurer[]) {
 export async function suggestPlanMatch(
   targets: Record<string, string>, insurers: MatchInsurer[],
 ): Promise<{ suggestions: PlanMatchSuggestion[]; error?: string }> {
-  const key = process.env.ANTHROPIC_API_KEY
-  if (!key) return { suggestions: [], error: 'ANTHROPIC_API_KEY not set' }
+  // Moved off Opus 4.8 on 2 Oct 2026. This picks among tiers that are listed in the prompt and
+  // validated against that list afterwards, and the result only pre-fills a dropdown the broker
+  // can override — nothing a frontier model's judgement was buying.
   const data = summarise(targets, insurers)
   if (data.length === 0) return { suggestions: [], error: 'no coverage has both a target and offered plans' }
   try {
-    const res = await fetch(ANTHROPIC_URL, {
-      method: 'POST',
-      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model: OPUS, max_tokens: 4000, thinking: { type: 'adaptive' }, system: SYSTEM,
-        messages: [{ role: 'user', content: [{ type: 'text', text: JSON.stringify(data) }] }],
-      }),
+    const { text, error } = await callGemini({
+      agent: 'pricingmatrix', feature: 'pm_plan_match', model: GEMINI_DEEP,
+      system: SYSTEM, parts: [{ text: JSON.stringify(data) }],
+      // 4000 was the Opus budget; Gemini draws reasoning from the same allowance.
+      maxOutputTokens: 12000, json: true, metadata: { pm: 'plan_match' },
     })
-    const j = await res.json()
-    if (!res.ok) {
-      void logError({ source: 'anthropic', feature: 'pm_plan_match', statusCode: res.status, message: JSON.stringify(j) })
-      return { suggestions: [], error: `Anthropic ${res.status}: ${JSON.stringify(j).slice(0, 200)}` }
-    }
-    void logAiUsage({ provider: 'anthropic', model: OPUS, feature: 'pm_plan_match', inputTokens: j.usage?.input_tokens ?? 0, outputTokens: j.usage?.output_tokens ?? 0, metadata: { pm: 'plan_match' } })
-    const text = (j.content ?? []).filter((b: { type: string }) => b.type === 'text').map((b: { text: string }) => b.text).join('\n')
+    if (!text) return { suggestions: [], error: error ?? 'no response' }
     const parsed = extractJson(text)
     if (!parsed) return { suggestions: [], error: 'could not parse suggestions' }
     // Defense in depth: drop any suggestion that isn't actually an offered plan_code (never trust the model's word for it).

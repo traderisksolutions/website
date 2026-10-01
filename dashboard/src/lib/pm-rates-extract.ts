@@ -9,12 +9,11 @@
  * raw material and decides; anything still uncertain is surfaced to the human reviewer.
  */
 import { logAiUsage } from '@/lib/gemini-usage'
-import { GEMINI_PRO, geminiUrl } from '@/lib/gemini-models'
+import { GEMINI_PRO, GEMINI_DEEP, geminiUrl } from '@/lib/gemini-models'
+import { callGemini, type Part } from '@/lib/ai-call'
 import { logError } from '@/lib/error-log'
 import type { Coverage, Rules, Accuracy, RateTable } from '@/lib/pm-rates'
 
-const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
-const OPUS = 'claude-opus-4-8'
 
 export type ExtractedRateTable = { age_basis: RateTable['age_basis']; coverages: Coverage[]; rules: Rules; source?: RateTable['source'] }
 export type StepFn = (label: string, step: number, total: number) => void | Promise<void>
@@ -75,44 +74,34 @@ function extractJson<T>(text: string): T | null {
   try { return JSON.parse(t.slice(s, e + 1)) as T } catch { return null }
 }
 
-function buildUserContent(dump: unknown, brochureBase64?: string, forGemini = false) {
-  const parts: unknown[] = []
-  if (brochureBase64) {
-    parts.push(forGemini
-      ? { inline_data: { mime_type: 'application/pdf', data: brochureBase64 } }
-      : { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: brochureBase64 } })
-  }
-  const text = dump ? `Workbook dump:\n${JSON.stringify(dump)}` : 'No workbook dump — brochure PDF is the only source.'
-  parts.push(forGemini ? { text } : { type: 'text', text })
+/** Both readings take the same content, so there is one shape. It carried an Anthropic variant
+ *  until 2 Oct 2026, when Opus came out of this pipeline. */
+function buildUserContent(dump: unknown, brochureBase64?: string): Part[] {
+  const parts: Part[] = []
+  if (brochureBase64) parts.push({ inline_data: { mime_type: 'application/pdf', data: brochureBase64 } })
+  parts.push({ text: dump ? `Workbook dump:\n${JSON.stringify(dump)}` : 'No workbook dump — brochure PDF is the only source.' })
   return parts
 }
 
-// ── A. Opus extractor ───────────────────────────────────────────────────────────
-async function opusExtract(system: string, dump: unknown, brochureBase64?: string): Promise<{ table: ExtractedRateTable | null; error?: string }> {
-  const key = process.env.ANTHROPIC_API_KEY
-  if (!key) return { table: null, error: 'ANTHROPIC_API_KEY not set' }
-  try {
-    const res = await fetch(ANTHROPIC_URL, {
-      method: 'POST', headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      // No extended thinking — this is a transcription task ("copy numbers verbatim"), and
-      // "adaptive" thinking lets the model choose its own reasoning budget with no upper bound,
-      // which on a large/complex workbook was pushing wall-clock time past Vercel's free-plan
-      // execution ceiling on its own, even after every other stage in the pipeline was split
-      // apart. Deterministic latency matters more here than the marginal accuracy extended
-      // reasoning might add on a genuinely ambiguous cell.
-      body: JSON.stringify({ model: OPUS, max_tokens: 20000, system,
-        messages: [{ role: 'user', content: buildUserContent(dump, brochureBase64, false) }] }),
-    })
-    const j = await res.json()
-    if (!res.ok) {
-      void logError({ source: 'anthropic', feature: 'pm_rate_extract', statusCode: res.status, message: JSON.stringify(j) })
-      return { table: null, error: `Anthropic ${res.status}` }
-    }
-    void logAiUsage({ provider: 'anthropic', model: OPUS, feature: 'pm_rate_extract', inputTokens: j.usage?.input_tokens ?? 0, outputTokens: j.usage?.output_tokens ?? 0, metadata: { pm: 'rates_opus' } })
-    const text = (j.content ?? []).filter((b: { type: string }) => b.type === 'text').map((b: { text: string }) => b.text).join('\n')
-    const table = extractJson<ExtractedRateTable>(text)
-    return table && Array.isArray(table.coverages) ? { table } : { table: null, error: 'unparseable' }
-  } catch (e) { return { table: null, error: String(e) } }
+// ── A. First reading (Gemini deep) ──────────────────────────────────────────────
+// Was Opus 4.8 until 2 Oct 2026. The second reading below stays on the pro tier, so the two
+// readings remain genuinely different models — a cross-check between one model and itself
+// confirms nothing, and the whole value of this stage is that two independent reads must agree
+// before a rate is trusted.
+async function deepExtract(system: string, dump: unknown, brochureBase64?: string): Promise<{ table: ExtractedRateTable | null; error?: string }> {
+  // No extended reasoning budget beyond what the output allowance covers: this is a
+  // transcription task ("copy numbers verbatim"), and an unbounded reasoning budget was
+  // pushing wall-clock time past the platform execution ceiling on large workbooks even after
+  // every other stage was split apart. Deterministic latency matters more here than the
+  // marginal accuracy extra reasoning might add on a genuinely ambiguous cell.
+  const { text, error } = await callGemini({
+    agent: 'pricingmatrix', feature: 'pm_rate_extract', model: GEMINI_DEEP,
+    system, parts: buildUserContent(dump, brochureBase64),
+    maxOutputTokens: 40000, json: !brochureBase64, metadata: { pm: 'rates_deep' },
+  })
+  if (!text) return { table: null, error: error ?? 'no response' }
+  const table = extractJson<ExtractedRateTable>(text)
+  return table && Array.isArray(table.coverages) ? { table } : { table: null, error: 'unparseable' }
 }
 
 // ── B. Gemini extractor ─────────────────────────────────────────────────────────
@@ -123,7 +112,7 @@ async function geminiExtract(system: string, dump: unknown, brochureBase64?: str
     const res = await fetch(`${geminiUrl(GEMINI_PRO)}?key=${key}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: system }, ...buildUserContent(dump, brochureBase64, true)] }],
+        contents: [{ parts: [{ text: system }, ...buildUserContent(dump, brochureBase64)] }],
         generationConfig: { temperature: 0, maxOutputTokens: 32000, responseMimeType: brochureBase64 ? undefined : 'application/json' },
       }),
     })
@@ -203,34 +192,29 @@ export function reconcileRules(opus: Rules, gemini: Rules): RuleConflict[] {
   return out
 }
 
-// ── D. Opus judge on the disputed cells ──────────────────────────────────────────
+// ── D. Judge: a focused re-read of the disputed cells only ──────────────────────
 async function adjudicate(dump: unknown, brochureBase64: string | undefined, conflicts: Conflict[]): Promise<Map<string, number | string>> {
   const out = new Map<string, number | string>()
-  const key = process.env.ANTHROPIC_API_KEY
-  if (!key || !conflicts.length) return out
+  if (!conflicts.length) return out
   const batch = conflicts.slice(0, 80)
   try {
-    const content: unknown[] = []
-    if (brochureBase64) content.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: brochureBase64 } })
-    content.push({ type: 'text', text: JSON.stringify({ disputes: batch.map((c, i) => ({ i, coverage: c.coverage, member_type: c.member_type, plan: c.plan, band: c.band, opus: c.opus, gemini: c.gemini })), workbook_values: (dump as { values?: unknown } | undefined)?.values }) })
-    const res = await fetch(ANTHROPIC_URL, {
-      method: 'POST', headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      // No extended thinking — see opusExtract's comment above; this is the sequential call that
-      // was, on its own, tipping the rate stage over the free-plan execution ceiling.
-      body: JSON.stringify({ model: OPUS, max_tokens: 6000,
-        system: 'Two readings of the same insurer material disagree on some rate cells. Using the raw workbook values and/or brochure PDF provided, return the CORRECT value for each disputed cell exactly as printed/computed. Return ONLY a JSON array: [{"i": <index>, "value": <number or "N/A">}]. Never invent — if you cannot confirm, return the "opus" value.',
-        messages: [{ role: 'user', content }] }),
+    const parts: Part[] = []
+    if (brochureBase64) parts.push({ inline_data: { mime_type: 'application/pdf', data: brochureBase64 } })
+    // The two readings are labelled first/second rather than by model, so the judge has no
+    // reason to favour either: it is being asked what the source says, not which reader to trust.
+    parts.push({ text: JSON.stringify({
+      disputes: batch.map((c, i) => ({ i, coverage: c.coverage, member_type: c.member_type, plan: c.plan, band: c.band, first_read: c.opus, second_read: c.gemini })),
+      workbook_values: (dump as { values?: unknown } | undefined)?.values,
+    }) })
+    const { text } = await callGemini({
+      agent: 'pricingmatrix', feature: 'pm_rate_extract_adjudicate', model: GEMINI_DEEP,
+      system: 'Two readings of the same insurer material disagree on some rate cells. Using the raw workbook values and/or brochure PDF provided, return the CORRECT value for each disputed cell exactly as printed/computed. Return ONLY a JSON array: [{"i": <index>, "value": <number or "N/A">}]. Never invent — if you cannot confirm, return the "first_read" value.',
+      parts, maxOutputTokens: 16000, json: !brochureBase64, metadata: { pm: 'rates_judge' },
     })
-    const j = await res.json()
-    if (!res.ok) {
-      void logError({ source: 'anthropic', feature: 'pm_rate_extract_adjudicate', statusCode: res.status, message: JSON.stringify(j) })
-      return out
-    }
-    void logAiUsage({ provider: 'anthropic', model: OPUS, feature: 'pm_rate_extract', inputTokens: j.usage?.input_tokens ?? 0, outputTokens: j.usage?.output_tokens ?? 0, metadata: { pm: 'rates_judge' } })
-    const text = (j.content ?? []).filter((b: { type: string }) => b.type === 'text').map((b: { text: string }) => b.text).join('\n')
+    if (!text) return out
     const arr = extractJson<{ i: number; value: number | string }[]>(text.replace(/^[^[]*/, '').replace(/[^\]]*$/, '')) as unknown as { i: number; value: number | string }[] | null
     for (const r of arr ?? []) { const c = batch[r.i]; if (c) out.set(c.key, r.value) }
-  } catch { /* fall back to opus values */ }
+  } catch { /* fall back to the first reading's values */ }
   return out
 }
 
@@ -275,7 +259,7 @@ export async function readRateTables(
 ): Promise<RateReadings> {
   const system = buildSystem(categoryPromptList)
   await onStep?.('Reading rates — Opus & Gemini', 1, 2)
-  const [o, g] = await Promise.all([opusExtract(system, dump, brochureBase64), geminiExtract(system, dump, brochureBase64)])
+  const [o, g] = await Promise.all([deepExtract(system, dump, brochureBase64), geminiExtract(system, dump, brochureBase64)])
   return { opus: o.table, gemini: g.table, opusError: o.error, geminiError: g.error }
 }
 
