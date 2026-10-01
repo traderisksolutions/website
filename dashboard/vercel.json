@@ -29,10 +29,6 @@
       "schedule": "30 2 * * *"
     },
     {
-      "path": "/api/email/ingest?window=30",
-      "schedule": "*/15 * * * *"
-    },
-    {
       "path": "/api/email/ingest?window=1440",
       "schedule": "0 1 * * *"
     },
