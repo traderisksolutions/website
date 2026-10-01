@@ -103,8 +103,12 @@ export type AiFeature =
   | 'pm_plan_match'
   | 'pm_classify_categories'
   | 'debit_note_extract'
+  // gb_recommend was the Opus narrative, removed 2 Oct 2026 when the comparison became
+  // deterministic. Kept in the union so the ledger rows it already wrote still read back.
   | 'gb_recommend'
   | 'gb_plan_match'
+  | 'gb_extract_schedule'
+  | 'gb_alias_suggest'
   // Companies-first CRM (10 Sep 2026)
   | 'crm_brief'
   | 'crm_triage'

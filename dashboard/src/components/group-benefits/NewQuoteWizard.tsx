@@ -5,7 +5,8 @@ import { UploadCloud, Loader2, ArrowRight, ArrowLeft, Download, Reply, Sparkles,
 import { cn } from '@/lib/utils'
 import { plainToHtml } from '@/components/RichEditor'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
-import type { Recommendation, LegacyRecommendation } from '@/lib/gb-recommend'
+import { BenefitComparison } from '@/components/group-benefits/BenefitComparison'
+import type { Comparison } from '@/lib/gb/compare'
 
 // ── Types mirrored from the API ────────────────────────────────────────────────
 type Member = { name: string; category: string; relationship: string; dob?: string | null; age?: number | null; occupation_class?: string | null }
@@ -13,11 +14,9 @@ type Plan   = { rate_table_id: string; product_code: string; plan_code: string; 
 type Avail  = { rate_table_id: string; insurer_id: string | null; insurer_name: string; product_title: string; age_basis: string; plan_year: number | null; member_types: string[]; plans: Plan[] }
 type InsurerResult = { rate_table_id: string; insurer_id: string | null; insurer_name: string; by_product: Record<string, number>; subtotal: number; gst: number; total: number; missing: number }
 type Line = { member_index: number; member_name: string; category: string; relationship: string; age: number | null; insurer_name: string; product_code: string; plan_code: string | null; premium: number | null; note: string | null }
-type Analysis = Recommendation | LegacyRecommendation
-
-/** Old quotes stored the pre-redesign shape — detect by the absence of `narrative` rather than
- *  crashing. Mirrors PmQuoteActions.tsx's isLegacy. */
-const isLegacy = (r: Analysis): r is LegacyRecommendation => !('narrative' in r)
+/** Quotes compared before 2 Oct 2026 hold generated prose rather than a comparison. */
+const isComparison = (a: unknown): a is Comparison =>
+  !!a && typeof a === 'object' && Array.isArray((a as Comparison).groups) && Array.isArray((a as Comparison).premium)
 
 const TEMPLATE ='name,category,relationship,dob,age,occupation_class\nJane Tan,Manager,self,1985-04-12,,1\nJohn Tan,Manager,spouse,1987-09-01,,\nBaby Tan,Manager,child,,3,\n'
 const money = (n: number) => n.toLocaleString('en-SG', { style: 'currency', currency: 'SGD' })
@@ -84,8 +83,7 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<{ per_insurer: InsurerResult[]; lines: Line[]; quotation_id?: string | null } | null>(null)
   const [quotationId, setQuotationId] = useState<string | null>(null)
-  const [analysis, setAnalysis] = useState<Analysis | null>(null)
-  const [priorities, setPriorities] = useState('')
+  const [analysis, setAnalysis] = useState<Comparison | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
 
   const categories = useMemo(() => Array.from(new Set(members.filter(m => m.name.trim()).map(m => m.category))), [members])
@@ -179,10 +177,10 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
     setAnalyzing(true); setError(null)
     try {
       const res = await fetch(`/api/group-benefits/quote/${quotationId}/compare-benefits`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ priorities }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}),
       })
       const d = await res.json()
-      if (res.ok && d.recommendation) setAnalysis(d.recommendation); else setError(d.error ?? 'Comparison failed')
+      if (res.ok && d.comparison) setAnalysis(d.comparison as Comparison); else setError(d.error ?? 'Comparison failed')
     } finally { setAnalyzing(false) }
   }
 
@@ -198,8 +196,22 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
     out.push('')
     const prods = Array.from(new Set(list.flatMap(r => Object.keys(r.by_product))))
     out.push(`Covering ${members.length} member(s) across ${prods.join(', ')}. Premiums exclude prevailing GST unless otherwise stated.`)
-    if (analysis && !isLegacy(analysis)) { out.push(''); out.push(`Our recommendation: ${analysis.headline} ${analysis.narrative}`) }
-    else if (analysis && isLegacy(analysis) && analysis.recommendation) { out.push(''); out.push(`Our recommendation: ${analysis.recommendation}`) }
+    if (isComparison(analysis)) {
+      const differing = analysis.groups.flatMap(g => g.rows.filter(r => r.differs))
+      if (differing.length) {
+        out.push('')
+        out.push('Where the options differ:')
+        for (const r of differing.slice(0, 12)) {
+          const cells = r.cells.map(c => {
+            const o = analysis.options.find(x => x.key === c.optionKey)
+            const v = c.absent ? 'not stated' : (c.text?.trim() || '—')
+            return `${o?.insurerName ?? c.optionKey} ${v}`
+          }).join('; ')
+          out.push(`- ${r.benefit.name}: ${cells}`)
+        }
+        if (differing.length > 12) out.push(`- and ${differing.length - 12} further line(s), in the attached comparison`)
+      }
+    }
     return out.join('\n')
   }
 
@@ -451,50 +463,26 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
               </tbody>
             </Register>
           </div>
-          {/* Coverage comparison & recommendation (Opus) */}
-          <div className="border border-border rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-[13px] font-bold text-foreground">Coverage comparison & recommendation</h3>
-              <button onClick={compareBenefits} disabled={analyzing || !quotationId} className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-[#dadce0] text-[#202124] hover:bg-[#f8f9fa] disabled:opacity-50">
-                {analyzing ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}{analyzing ? 'Analysing coverage…' : analysis ? 'Regenerate' : 'Compare benefits with Opus'}
-              </button>
-            </div>
-            <label className="text-[12px] flex flex-col gap-1 mb-2">
-              <span className="text-muted-foreground/70">What matters to this client? <span className="text-muted-foreground/40">(optional)</span></span>
-              <textarea value={priorities} onChange={e => setPriorities(e.target.value)} rows={2} className={cn(inp, 'resize-y')} placeholder="Leave blank to optimise for overall value" />
-            </label>
-            {!analysis && !analyzing && <p className="text-[11.5px] text-muted-foreground/70">Opus compares price against what each plan actually covers, and writes one narrative weighing the trade-offs.</p>}
-
-            {analysis && isLegacy(analysis) && (
-              <div className="rounded-lg border border-[#e8eaed] bg-[#f8f9fa] px-3 py-2.5 flex items-center justify-between gap-3">
-                <p className="text-[12px] text-[#3c4043]">This quote has an older-style recommendation. Recompute it for the current format.</p>
-                <button onClick={compareBenefits} disabled={analyzing} className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg bg-white text-[#202124] border border-[#dadce0] hover:bg-[#f8f9fa] disabled:opacity-50 shrink-0">
-                  {analyzing ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Recompute
+          {/* Benefit comparison */}
+          {isComparison(analysis) ? (
+            <BenefitComparison comparison={analysis} busy={analyzing} onRecompute={() => compareBenefits()} />
+          ) : (
+            <div className="border border-border rounded-lg p-4">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="m-0 text-[13px] font-bold text-foreground">Benefit comparison</h3>
+                <button onClick={compareBenefits} disabled={analyzing || !quotationId}
+                        className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-[#dadce0] text-[#202124] hover:bg-[#f8f9fa] disabled:opacity-50">
+                  {analyzing ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+                  {analyzing ? 'Comparing…' : 'Compare benefits'}
                 </button>
               </div>
-            )}
-
-            {analysis && !isLegacy(analysis) && (
-              <div className="flex flex-col gap-3">
-                <div className="rounded-lg bg-[#f1f3f4] border border-[#e8eaed] px-3 py-2.5">
-                  <div className="flex items-center gap-2 text-[13px] font-semibold text-foreground"><Sparkles size={14} className="text-[#202124]" /> {analysis.headline}</div>
-                  <div className="flex flex-col gap-2 mt-2">
-                    {analysis.narrative.split(/\n\n+/).map((para, i) => <p key={i} className="text-[12.5px] text-foreground/80 leading-relaxed">{para}</p>)}
-                  </div>
-                </div>
-                {analysis.highlights?.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {analysis.highlights.map(h => (
-                      <div key={h.insurer} className="flex items-center gap-1.5 border border-border rounded-lg px-2.5 py-1.5">
-                        <span className="text-[12px] font-semibold">{h.insurer}</span>
-                        <span className="text-[11px] text-muted-foreground/70">— {h.note}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+              {analysis && !isComparison(analysis) && (
+                <p className="text-[12px] mt-2" style={{ color: '#3c4043' }}>
+                  This quote holds a written comparison from before 2 Oct 2026. Recompare it for the side-by-side table.
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="flex items-center gap-2">
             {onDraftReply && (

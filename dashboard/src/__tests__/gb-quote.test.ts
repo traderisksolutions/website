@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { ageAt, memberAge, findRate, computeQuote, type RateTableInfo, type Member } from '@/lib/gb-quote'
+import { ageAt, memberAge, findRate, computeQuote, type RateTableInfo, type Member, type RateRow } from '@/lib/gb-quote'
 
 describe('ageAt', () => {
   it('age last birthday before the birthday in the policy year', () => {
@@ -127,5 +127,32 @@ describe('Phase C — calculator rules', () => {
   it('no rules → unchanged behaviour', () => {
     const r = computeQuote([mem()], [{ rate_table_id: 't1', insurer_name: 'X', age_basis: 'last_birthday', rates }], map, ['GHS'], 0.09, '2026-01-01')
     expect(r.per_insurer[0].subtotal).toBe(109)
+  })
+})
+
+describe('findRate — dependants on a table that has no dependant rates', () => {
+  // Income and QBE hold employee rates only; AIA splits employee from dependant. Before this,
+  // a spouse on an Income table was priced off the employee rows with no flag.
+  const employeeOnly: RateRow[] = [
+    { product_code: 'GHS', member_type: 'employee', plan_code: 'Plan 1', band_label: 'Up to 29', age_min: 0, age_max: 29, premium: 500 },
+    { product_code: 'GHS', member_type: 'employee', plan_code: 'Plan 1', band_label: '30-34',    age_min: 30, age_max: 34, premium: 620 },
+  ]
+  const untypedOnly: RateRow[] = [
+    { product_code: 'GHS', member_type: null, plan_code: 'Plan 1', band_label: 'Up to 69', age_min: 0, age_max: 69, premium: 494.54 },
+  ]
+
+  it('reports the gap rather than quoting the employee rate', () => {
+    const r = findRate(employeeOnly, 'GHS', 'Plan 1', 32, 'dependant')
+    expect(r.premium).toBeNull()
+    expect(r.note).toBe('no dependant rates in this table')
+  })
+
+  it('still prices the employee off the same table', () => {
+    expect(findRate(employeeOnly, 'GHS', 'Plan 1', 32, 'employee').premium).toBe(620)
+  })
+
+  it('prices everybody off untyped rows, because that table does not split', () => {
+    expect(findRate(untypedOnly, 'GHS', 'Plan 1', 40, 'dependant').premium).toBe(494.54)
+    expect(findRate(untypedOnly, 'GHS', 'Plan 1', 40, 'employee').premium).toBe(494.54)
   })
 })

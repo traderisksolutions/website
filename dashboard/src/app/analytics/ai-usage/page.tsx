@@ -21,9 +21,9 @@ const FAINT = '#80868b'
 const RULE = '#e8eaed'
 
 // One ink ramp, in the order agents are listed. Categories are read from the row label, not a hue.
-const AGENT_ORDER: AgentId[] = ['crm', 'askai', 'housekeeping', 'unattributed']
+const AGENT_ORDER: AgentId[] = ['crm', 'askai', 'groupbenefits', 'housekeeping', 'unattributed']
 const AGENT_INK: Record<AgentId, string> = {
-  crm: '#202124', askai: '#5f6368', housekeeping: '#9aa0a6', unattributed: '#dadce0',
+  crm: '#202124', askai: '#5f6368', groupbenefits: '#80868b', housekeeping: '#9aa0a6', unattributed: '#dadce0',
 }
 
 type Bucket = { key: string; calls: number; input: number; output: number; cost: number; failures: number }

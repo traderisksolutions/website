@@ -105,11 +105,20 @@ export function findRate(rates: RateRow[], product: string, plan: string | null,
   if (age == null) return { premium: null, note: 'no age' }
   const cand = rates.filter(r => r.product_code === product && r.plan_code === plan)
   if (!cand.length) return { premium: null, note: 'plan not in rate table' }
-  // Prefer rows for the member type (employee/dependant); fall back to untyped rows, then
-  // any — so tables that don't split by member type still resolve.
+
   const typed   = memberType ? cand.filter(r => (r.member_type ?? null) === memberType) : []
   const untyped = cand.filter(r => (r.member_type ?? null) === null)
-  const pool    = typed.length ? typed : untyped.length ? untyped : cand
+  // A table that splits employee from dependant and has no rows for THIS member type is a
+  // genuine gap, and must read as one. The previous fallback dropped through to whatever rows
+  // existed, so a spouse on a table with employee rates only was quoted at employee rates with
+  // no flag — a wrong number that looked like a right one. Income and QBE both hold employee
+  // rates only, so every dependant on their tables was affected.
+  const splitsByMemberType = cand.some(r => (r.member_type ?? null) !== null)
+  if (memberType && splitsByMemberType && !typed.length && !untyped.length) {
+    return { premium: null, note: `no ${memberType} rates in this table` }
+  }
+  // Tables that do not split by member type price everybody off the same rows.
+  const pool = typed.length ? typed : untyped.length ? untyped : cand
   const match = pool.find(r => age >= (r.age_min ?? 0) && (r.age_max == null || age <= r.age_max))
   if (!match) return { premium: null, note: `no band for age ${age}` }
   return { premium: match.premium, note: match.renewal_only ? 'renewal-only band' : null }

@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Loader2, CheckCircle2, AlertTriangle, Save, FileText, RefreshCw, Trash2, Pencil, X, Plus } from 'lucide-react'
+import { Loader2, CheckCircle2, AlertTriangle, Save, FileText, RefreshCw, Trash2, Pencil, X, Plus, ListChecks } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type Rate    = { id?: string; product_code: string; member_type: string | null; plan_code: string; band_label: string; age_min: number | null; age_max: number | null; premium: number; renewal_only?: boolean }
@@ -189,6 +189,10 @@ export default function GbReviewPage() {
           {msg && !dirty && <span className={cn('text-[12px] mr-2', /fail/i.test(msg) ? 'text-[#c5221f]' : 'text-[#3c4043]')}>{msg}</span>}
           {status === 'approved' && !editing && <span className="inline-flex items-center text-[11.5px] font-medium px-2 py-0.5 rounded-[6px] bg-[#f1f3f4] text-[#3c4043] mr-1.5">Approved</span>}
           <a href={`/api/group-benefits/rate-tables/${id}/pdf`} target="_blank" rel="noopener noreferrer" className={btn}><FileText size={13} /> PDF</a>
+          {/* The annual read of this insurer's benefit schedule onto the canonical lines. Separate
+              from Re-run, which extracts premiums: the two are different documents' worth of work
+              and the schedule has its own approval gate. */}
+          {!editing && <a href={`/group-benefits/${id}/schedule`} className={btn}><ListChecks size={13} /> Benefit schedule</a>}
           {status !== 'extracting' && !editing && <button onClick={reExtract} disabled={!!saving} className={btn} title="Re-run extraction"><RefreshCw size={13} /> Re-run</button>}
           {!editing && <button onClick={del} className={cn(btn, 'text-[#c5221f] hover:opacity-80 hover:bg-[#f8f9fa]')} title="Delete"><Trash2 size={13} /></button>}
 
@@ -273,6 +277,8 @@ export default function GbReviewPage() {
           {/* Per-extractor status — surfaces a failed model/key so partial data isn't silent */}
           {d.extractors && (
             <div className="flex flex-wrap items-center gap-2 mb-3 text-[11px]">
+              {/* "opus" is the stored key for the first read, kept so extraction runs recorded
+                   before 2 Oct 2026 still read back. Both reads are Gemini now. */}
               {(['opus', 'gemini', 'parser'] as const).map(k => {
                 const e = d.extractors![k]
                 if (!e) return null
@@ -280,7 +286,7 @@ export default function GbReviewPage() {
                   <span key={k} className={cn('px-2 py-0.5 rounded-[6px] font-medium',
                     e.error ? 'bg-[#f1f3f4] text-[#3c4043]' : 'bg-muted text-muted-foreground')}
                     title={e.error ?? ''}>
-                    {k}: {e.error ? 'failed' : `${e.rates} cells`}
+                    {({ opus: 'first read', gemini: 'second read', parser: 'text parser' } as const)[k]}: {e.error ? 'failed' : `${e.rates} cells`}
                   </span>
                 )
               })}
@@ -362,13 +368,13 @@ export default function GbReviewPage() {
                                 const r = cell.get(`${band}|${plan}`)
                                 const conflict = r ? conflictMap.get(cKey(r)) : undefined
                                 if (!editable) return r
-                                  ? <td key={plan} className="text-right pr-4 py-1"><span title={conflict ? `Opus ${fmt(conflict.opus)} · Gemini ${fmt(conflict.gemini)}` : ''} className={cn('tabular-nums text-[12.5px]', conflict ? 'rounded px-1.5 py-0.5 bg-[#f1f3f4] text-[#3c4043] font-medium' : 'text-foreground/80')}>{r.premium}</span></td>
+                                  ? <td key={plan} className="text-right pr-4 py-1"><span title={conflict ? `First read ${fmt(conflict.opus)} · second read ${fmt(conflict.gemini)}` : ''} className={cn('tabular-nums text-[12.5px]', conflict ? 'rounded px-1.5 py-0.5 bg-[#f1f3f4] text-[#3c4043] font-medium' : 'text-foreground/80')}>{r.premium}</span></td>
                                   : <td key={plan} className="text-right pr-4 text-muted-foreground/25">—</td>
                                 return (
                                   <td key={plan} className="text-right pr-2 py-1">
                                     <input type="number" step="0.01" value={r ? r.premium : ''} placeholder="—"
                                       onChange={e => setCell(product, mt, band, plan, e.target.value)}
-                                      title={conflict ? `Opus ${fmt(conflict.opus)} · Gemini ${fmt(conflict.gemini)}` : ''}
+                                      title={conflict ? `First read ${fmt(conflict.opus)} · second read ${fmt(conflict.gemini)}` : ''}
                                       className={cn('w-24 text-right tabular-nums text-[12.5px] px-2 py-1 rounded border bg-white focus:outline-none focus:ring-1 focus:ring-primary/30',
                                         conflict ? 'border-[#dadce0] bg-[#f8f9fa]' : 'border-transparent hover:border-border')} />
                                   </td>

@@ -1,5 +1,5 @@
 /**
- * The three agents, and the single place that says which code path belongs to which.
+ * The agents, and the single place that says which code path belongs to which.
  *
  * Spend is attributed at read time by mapping `feature` onto an agent, rather than by a column
  * on the ledger. That is deliberate: it attributes the rows already written as well as the new
@@ -7,7 +7,7 @@
  * below or it lands in `unattributed` — which the spend page shows rather than hides.
  */
 
-export type AgentId = 'housekeeping' | 'crm' | 'askai' | 'unattributed'
+export type AgentId = 'housekeeping' | 'crm' | 'askai' | 'groupbenefits' | 'unattributed'
 
 export interface AgentSpec {
   id:    AgentId
@@ -40,6 +40,16 @@ export const AGENTS: Record<Exclude<AgentId, 'unattributed'>, AgentSpec> = {
     label: 'Ask AI',
     work: 'Answers a question from the web and the company archive, and cites where each claim came from.',
     envKey: 'GEMINI_API_KEY_ASKAI',
+    model: 'gemini-3.8-flash',
+  },
+  groupbenefits: {
+    id: 'groupbenefits',
+    label: 'Group benefits',
+    work: 'Reads each insurer\u2019s brochure and premium calculator once a year onto a canonical schedule, then prices a census and compares the options.',
+    envKey: 'GEMINI_API_KEY_GROUPBENEFITS',
+    // Reading a 60-page brochure onto a canonical schedule is a long-context job, which is what
+    // this tier is for. The comparison itself needs no model at all: it is arithmetic over the
+    // canon, so most of this agent's work costs nothing per quote.
     model: 'gemini-3.8-flash',
   },
 }
@@ -80,6 +90,16 @@ export const FEATURE_AGENT: Record<string, AgentId> = {
   ask_ai:          'askai',
   ask_ai_grounded: 'askai',
   ask_ai_clause:   'askai',
+
+  // ── Group benefits ────────────────────────────────────────────────────────
+  // The annual ingest, and the two places a model still helps. Comparing the quoted options
+  // is absent from this list because it is deterministic — no model, nothing to attribute.
+  gb_extract_schedule: 'groupbenefits',
+  gb_extract_gemini:   'groupbenefits',
+  gb_extract_judge:    'groupbenefits',
+  gb_alias_suggest:    'groupbenefits',
+  gb_plan_match:       'groupbenefits',
+  gb_rules_extract:    'groupbenefits',
 }
 
 export function agentOfFeature(feature: string | null | undefined): AgentId {

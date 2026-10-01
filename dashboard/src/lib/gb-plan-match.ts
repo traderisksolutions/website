@@ -13,11 +13,10 @@
  * wizard's existing plan dropdowns (applied to every category mapped to that product); the
  * broker can still override any pick. Zero effect on computed premiums.
  */
-import { logAnthropicUsage } from '@/lib/gemini-usage'
+import { logAiUsage } from '@/lib/gemini-usage'
 import { logError } from '@/lib/error-log'
-
-const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
-const OPUS = 'claude-opus-4-8'
+import { GEMINI_DEEP, geminiUrl } from '@/lib/gemini-models'
+import { agentKey } from '@/lib/ai-agents'
 
 export type MatchPlan = { plan_code: string; plan_name: string | null; hospital_type: string | null; beds: string | null }
 export type MatchBenefit = { plan_code: string | null; category: string | null; benefit_name: string; value_text: string | null }
@@ -70,28 +69,38 @@ function summariseProduct(target: string, products: MatchProduct[]) {
 export async function suggestPlanMatch(
   productTitle: string, target: string, products: MatchProduct[],
 ): Promise<{ suggestions: PlanMatchSuggestion[]; error?: string }> {
-  const key = process.env.ANTHROPIC_API_KEY
-  if (!key) return { suggestions: [], error: 'ANTHROPIC_API_KEY not set' }
+  // Moved off Opus 4.8 on 2 Oct 2026. This picks among plan tiers that are listed in the
+  // prompt and validated against that list afterwards, so a frontier model bought nothing the
+  // deep Gemini tier does not; and the result only pre-fills a dropdown the broker can override,
+  // which never justified a frontier price per call.
+  const { key } = agentKey('groupbenefits')
+  if (!key) return { suggestions: [], error: 'No Gemini API key configured' }
   if (!target.trim()) return { suggestions: [], error: 'no target stated' }
   const relevant = products.filter(p => p.product_title === productTitle && p.plans.length > 0)
   if (relevant.length === 0) return { suggestions: [], error: 'no offered plans for this product' }
   try {
     const data = summariseProduct(target, relevant)
-    const res = await fetch(ANTHROPIC_URL, {
-      method: 'POST',
-      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    const res = await fetch(`${geminiUrl(GEMINI_DEEP)}?key=${key}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: OPUS, max_tokens: 3000, thinking: { type: 'adaptive' }, system: SYSTEM,
-        messages: [{ role: 'user', content: [{ type: 'text', text: JSON.stringify(data) }] }],
+        systemInstruction: { parts: [{ text: SYSTEM }] },
+        contents: [{ parts: [{ text: JSON.stringify(data) }] }],
+        // 3000 was the Opus budget. Gemini's thinking tokens are drawn from the same allowance,
+        // so a budget set for a model that counted them separately returns an empty candidate —
+        // the failure that silently emptied the email classifiers in September.
+        generationConfig: { temperature: 0, maxOutputTokens: 8000, responseMimeType: 'application/json' },
       }),
     })
     const j = await res.json()
     if (!res.ok) {
-      void logError({ source: 'anthropic', feature: 'gb_plan_match', statusCode: res.status, message: JSON.stringify(j), resourceType: 'product', resourceId: productTitle })
-      return { suggestions: [], error: `Anthropic ${res.status}: ${JSON.stringify(j).slice(0, 200)}` }
+      void logError({ source: 'gemini', feature: 'gb_plan_match', statusCode: res.status, message: JSON.stringify(j), resourceType: 'product', resourceId: productTitle })
+      return { suggestions: [], error: `Gemini ${res.status}: ${JSON.stringify(j).slice(0, 200)}` }
     }
-    void logAnthropicUsage('gb_plan_match', j.usage, null)
-    const text = (j.content ?? []).filter((b: { type: string }) => b.type === 'text').map((b: { text: string }) => b.text).join('\n')
+    void logAiUsage({ provider: 'gemini', model: GEMINI_DEEP, feature: 'gb_plan_match',
+                      inputTokens: j.usageMetadata?.promptTokenCount ?? 0,
+                      outputTokens: j.usageMetadata?.candidatesTokenCount ?? 0 })
+    const text: string = (j?.candidates?.[0]?.content?.parts ?? [])
+      .map((p: { text?: string }) => p.text ?? '').join('')
     const parsed = extractJson(text)
     if (!parsed) return { suggestions: [], error: 'could not parse suggestions' }
     // Defense in depth: drop any suggestion that isn't actually an offered plan_code.

@@ -1,20 +1,31 @@
 /**
  * POST /api/group-benefits/quote/[id]/compare-benefits
- * Opus compares the coverage of the plans actually quoted (their benefit schedules across
- * insurers), weighs price vs coverage, and writes a comparison narrative (Sales Loop v2, Phase
- * 6a — see gb-recommend.ts, ported from Pricing Matrix's pm-recommend.ts: one continuous
- * narrative weighted by client priorities, not a rigid single-winner + pros/cons split). Stored
- * on the quotation for history.
+ *
+ * Lines the quoted plans up against each other on the canonical benefit schedule, states the
+ * premium difference, and marks where they differ. Deterministic: no model call, no cost, the
+ * same quotation always compares the same way.
+ *
+ * It used to send every benefit line to Opus 4.8 and store the prose that came back — a
+ * narrative that weighed price against coverage and steered towards an option. Two problems with
+ * that. It asserted a judgement from weights nobody agreed to, hiding the trade-off the broker
+ * is paid to make; and it paid a frontier model per quotation to restate figures already in the
+ * database. What replaces it compares on facts and stops: the dollar difference, the lines that
+ * differ, and the lines where an insurer has nothing on record.
+ *
+ * The canon is what makes this possible at all. Before gb_label_alias existed, AIA's "GHS+EMM",
+ * Income's "Group Hospital and Surgical (GHS)" and QBE's "Group Hospital & Surgical (GHS)" were
+ * three unrelated strings, so there was nothing to put in one column — which is why the earlier
+ * attempt had to hand the whole problem to a model and hope.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
-import { logActivity }               from '@/lib/log-activity'
-import { recommend }                 from '@/lib/gb-recommend'
-import type { QuotedPlan }           from '@/lib/gb-recommend'
+import { createClient } from '@/lib/supabase/server'
+import { logActivity } from '@/lib/log-activity'
+import { compare, type Option } from '@/lib/gb/compare'
+import { resolveProduct } from '@/lib/gb/resolve'
 
-export const maxDuration = 120
+export const maxDuration = 60
 
-const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 
 function sbH(prefer = 'return=minimal') {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -23,6 +34,25 @@ function sbH(prefer = 'return=minimal') {
 }
 
 type CategoryMap = Record<string, Record<string, Record<string, string>>>
+type Meta  = { id: string; insurer_name: string; product_code: string }
+type Plan  = { rate_table_id: string; product_code: string; plan_code: string; plan_name: string | null
+               hospital_type: string | null; beds: string | null; co_payment: string | null; canon_codes: string[] | null }
+type Ben   = { rate_table_id: string; product_code: string | null; plan_code: string | null
+               benefit_name: string; value_text: string | null; value_numeric: number | null
+               canon_benefit: string | null }
+type Result = { insurer_name: string; total: number; missing?: number }
+
+/**
+ * The plan tier's own attributes ARE canonical benefit lines, so they are read as such rather
+ * than shown in a separate box. gb_plans carries a room tier for all 16 plan rows while
+ * gb_benefits carries one for three, so for most options this is the only source for the line
+ * clients ask about first.
+ */
+const PLAN_ATTR_LINES: { field: keyof Plan; ghs: string; fw: string }[] = [
+  { field: 'hospital_type', ghs: 'GHS_HOSPITAL_TYPE', fw: 'GHS_HOSPITAL_TYPE' },
+  { field: 'beds',          ghs: 'GHS_ROOM_BOARD',    fw: 'GHSFW_ROOM_BOARD' },
+  { field: 'co_payment',    ghs: 'GHS_CO_PAYMENT',    fw: 'GHSFW_CO_PAYMENT' },
+]
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -31,25 +61,24 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
-    const key = process.env.ANTHROPIC_API_KEY
-    if (!key) return NextResponse.json({ error: 'ANTHROPIC_API_KEY not set' }, { status: 500 })
+    const { hideIdentical, hideEmpty } = await req.json().catch(() => ({})) as
+      { hideIdentical?: boolean; hideEmpty?: boolean }
 
-    const { priorities } = await req.json().catch(() => ({})) as { priorities?: string }
-
-    // Load the quotation.
-    const qRes = await fetch(`${SB_URL}/rest/v1/gb_quotations?id=eq.${id}&select=company_name,rate_table_ids,category_map,results&limit=1`, { headers: sbH(), cache: 'no-store' })
-    const q = qRes.ok ? (await qRes.json())[0] : null
+    const qRes = await fetch(`${SB_URL}/rest/v1/gb_quotations?id=eq.${id}` +
+      `&select=company_name,rate_table_ids,category_map,results&limit=1`, { headers: sbH(), cache: 'no-store' })
+    const q = qRes.ok ? (await qRes.json())[0] as
+      { company_name: string | null; rate_table_ids: string[] | null; category_map: CategoryMap | null; results: Result[] | null } : null
     if (!q) return NextResponse.json({ error: 'Quotation not found' }, { status: 404 })
 
-    const tableIds: string[] = q.rate_table_ids ?? []
-    const catMap: CategoryMap = q.category_map ?? {}
-    const totals: { insurer_name: string; total: number }[] = q.results ?? []
+    const tableIds = q.rate_table_ids ?? []
     if (!tableIds.length) return NextResponse.json({ error: 'Nothing to compare' }, { status: 400 })
+    const catMap = q.category_map ?? {}
+    const totals = q.results ?? []
 
-    // Plans actually used per table (distinct plan codes referenced in the category map).
+    // Which plan tiers the quote actually used, per table.
     const usedByTable: Record<string, Set<string>> = {}
     for (const [tid, prods] of Object.entries(catMap)) {
-      const set = usedByTable[tid] ?? new Set<string>()
+      const set = new Set<string>()
       for (const cats of Object.values(prods)) for (const plan of Object.values(cats)) if (plan) set.add(plan)
       usedByTable[tid] = set
     }
@@ -57,43 +86,81 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const ids = tableIds.map(i => `"${i}"`).join(',')
     const [metaRes, plansRes, benRes] = await Promise.all([
       fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=in.(${ids})&select=id,insurer_name,product_code&limit=100`, { headers: sbH(), cache: 'no-store' }),
-      fetch(`${SB_URL}/rest/v1/gb_plans?rate_table_id=in.(${ids})&select=rate_table_id,product_code,plan_code,plan_name,hospital_type,beds,co_payment&limit=2000`, { headers: sbH(), cache: 'no-store' }),
-      fetch(`${SB_URL}/rest/v1/gb_benefits?rate_table_id=in.(${ids})&select=rate_table_id,product_code,plan_code,category,benefit_name,value_text&limit=8000`, { headers: sbH(), cache: 'no-store' }),
+      fetch(`${SB_URL}/rest/v1/gb_plans?rate_table_id=in.(${ids})` +
+            `&select=rate_table_id,product_code,plan_code,plan_name,hospital_type,beds,co_payment,canon_codes&limit=2000`, { headers: sbH(), cache: 'no-store' }),
+      fetch(`${SB_URL}/rest/v1/gb_benefits?rate_table_id=in.(${ids})` +
+            `&select=rate_table_id,product_code,plan_code,benefit_name,value_text,value_numeric,canon_benefit&limit=8000`, { headers: sbH(), cache: 'no-store' }),
     ])
-    const metas: { id: string; insurer_name: string; product_code: string }[] = metaRes.ok ? await metaRes.json() : []
-    const plans: { rate_table_id: string; product_code: string; plan_code: string; hospital_type: string | null; beds: string | null; co_payment: string | null }[] = plansRes.ok ? await plansRes.json() : []
-    const bens:  { rate_table_id: string; product_code: string; plan_code: string | null; category: string | null; benefit_name: string; value_text: string | null }[] = benRes.ok ? await benRes.json() : []
+    const metas = metaRes.ok  ? await metaRes.json()  as Meta[] : []
+    const plans = plansRes.ok ? await plansRes.json() as Plan[] : []
+    const bens  = benRes.ok   ? await benRes.json()   as Ben[]  : []
 
-    // Build the quoted plans as structured data (gb-recommend.ts owns turning this into a
-    // model-friendly summary + prompt, mirroring pm-recommend.ts's summarise()+SYSTEM split).
-    const totalFor = (name: string) => totals.find(t => t.insurer_name === name)?.total
-    const quotedPlans: QuotedPlan[] = []
+    const resultFor = (name: string) => totals.find(t => t.insurer_name === name)
+    const options: Option[] = []
+
     for (const m of metas) {
       const used = usedByTable[m.id]
-      const insurerTotal = totalFor(m.insurer_name) ?? null
-      const planLines = plans.filter(p => p.rate_table_id === m.id && (!used || used.has(p.plan_code)))
-      for (const pl of planLines) {
-        const benefits = bens
-          .filter(b => b.rate_table_id === m.id && (b.plan_code === pl.plan_code || b.plan_code == null))
-          .slice(0, 60)
-          .map(b => ({ category: b.category, name: b.benefit_name, value: b.value_text }))
-        quotedPlans.push({
-          insurer_name: m.insurer_name, product_code: m.product_code, plan_code: pl.plan_code,
-          annual_total: insurerTotal,
-          room_tier: { beds: pl.beds, hospital_type: pl.hospital_type, co_payment: pl.co_payment },
-          benefits,
+      const r = resultFor(m.insurer_name)
+      const planRows = plans.filter(p => p.rate_table_id === m.id && (!used || used.size === 0 || used.has(p.plan_code)))
+      // A table with no plan-tier rows still has premiums and benefit lines, so it is quoted as
+      // one option per used plan code rather than dropped.
+      const codes = planRows.length ? planRows.map(p => p.plan_code)
+                                    : Array.from(used ?? new Set<string>())
+      for (const planCode of Array.from(new Set(codes))) {
+        const planRow = planRows.find(p => p.plan_code === planCode) ?? null
+        const productCodes = planRow?.canon_codes?.length
+          ? planRow.canon_codes
+          : resolveProduct(planRow?.product_code ?? m.product_code ?? '').codes
+        if (!productCodes.length) continue    // unmapped label: quotable, not comparable
+
+        const values: Option['values'] = {}
+        // Plan-tier attributes first, so a genuine benefit row can override them.
+        if (planRow) {
+          const fw = productCodes.includes('GHS_FW')
+          for (const attr of PLAN_ATTR_LINES) {
+            const v = planRow[attr.field]
+            if (typeof v === 'string' && v.trim()) values[fw ? attr.fw : attr.ghs] = { text: v.trim(), numeric: null }
+          }
+        }
+        // A row with no plan code applies to every tier on that table. Schedule-wide rows go in
+        // FIRST so a tier's own value overrides them: AIA still carries a pre-scan row with no
+        // plan code for room & board, and whichever of the two landed last would otherwise win,
+        // making the comparison depend on the order PostgREST happened to return.
+        for (const pass of [null, planCode] as (string | null)[]) {
+          for (const b of bens) {
+            if (b.rate_table_id !== m.id || !b.canon_benefit) continue
+            if ((b.plan_code ?? null) !== pass) continue
+            values[b.canon_benefit] = { text: b.value_text, numeric: b.value_numeric }
+          }
+        }
+
+        options.push({
+          key: `${m.id}:${planCode}`,
+          insurerName: m.insurer_name,
+          planCode,
+          planLabel: planRow?.plan_name ?? null,
+          productCodes,
+          annualTotal: r?.total ?? null,
+          pricingGaps: r?.missing ?? 0,
+          values,
         })
       }
     }
-    if (quotedPlans.length === 0) return NextResponse.json({ error: 'No benefit data on the quoted plans — approve rate tables with benefit schedules first.' }, { status: 400 })
 
-    const { recommendation, error } = await recommend(quotedPlans, q.company_name ?? null, priorities)
-    if (!recommendation) return NextResponse.json({ error: error ?? 'Could not compute a recommendation' }, { status: 502 })
+    if (!options.length) {
+      return NextResponse.json({ error: 'No quoted plan on these tables carries a canonical product. Map the insurer labels first.' }, { status: 400 })
+    }
 
-    await fetch(`${SB_URL}/rest/v1/gb_quotations?id=eq.${id}`, { method: 'PATCH', headers: sbH(), body: JSON.stringify({ benefits_analysis: recommendation, priorities: priorities ?? null }) }).catch(() => {})
-    void logActivity({ action: 'gb.benefits_compared', resource_type: 'gb_quotation', resource_id: id })
-    return NextResponse.json({ recommendation })
+    const comparison = compare(options, { hideIdentical: !!hideIdentical, hideEmpty: hideEmpty !== false })
+
+    await fetch(`${SB_URL}/rest/v1/gb_quotations?id=eq.${id}`, {
+      method: 'PATCH', headers: sbH(),
+      body: JSON.stringify({ benefits_analysis: comparison }),
+    }).catch(() => {})
+    void logActivity({ action: 'gb.benefits_compared', resource_type: 'gb_quotation', resource_id: id,
+                       new_value: { options: options.length, lines: comparison.coverage.linesCompared } })
+    return NextResponse.json({ comparison })
   } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 })
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
 }

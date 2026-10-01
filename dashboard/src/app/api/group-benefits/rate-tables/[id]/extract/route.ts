@@ -1,6 +1,6 @@
 /**
  * POST /api/group-benefits/rate-tables/[id]/extract
- * Runs the 3 extractors (Opus + Gemini + code parser) + Opus judge on the uploaded PDF,
+ * Runs the 3 extractors (Gemini deep + Gemini flash + code parser) + a judge on the PDF,
  * stores each run for audit, writes the merged candidate into gb_plans/gb_rates/gb_benefits,
  * and moves the table to `in_review`. Idempotent — re-running replaces the candidate.
  */
@@ -8,10 +8,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
 import {
-  extractWithOpus, extractWithGemini, parseRatesFromText, judgeExtractions,
-  adjudicateWithOpus, conflictKey, type GbExtraction, type GbBenefit,
+  extractWithDeep, extractWithGemini, parseRatesFromText, judgeExtractions,
+  adjudicate, conflictKey, type GbExtraction, type GbBenefit,
 } from '@/lib/gb-extract'
-import { GEMINI_FLASH } from '@/lib/gemini-models'
+import { GEMINI_FLASH, GEMINI_DEEP } from '@/lib/gemini-models'
 import { diffBenefits } from '@/lib/gb-diff'
 
 export const maxDuration = 300
@@ -64,7 +64,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
     await setStage('extracting')
     const [opus, gemini] = await Promise.all([
-      extractWithOpus(b64, profileHint),
+      extractWithDeep(b64, profileHint),
       extractWithGemini(b64, profileHint),
     ])
 
@@ -74,7 +74,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     await setStage('judging')
     const judged = await judgeExtractions(opus.data, gemini.data, parserRows)
     const disputed = judged.conflicts.filter(c => c.note === 'Opus and Gemini disagree').slice(0, 60)
-    const adjud = disputed.length ? await adjudicateWithOpus(b64, disputed) : {}
+    const adjud = disputed.length ? await adjudicate(b64, disputed) : {}
 
     // Apply Opus's re-read where it's confident, and annotate each conflict with the verdict.
     const merged: GbExtraction = judged.merged
@@ -95,10 +95,10 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     await setStage('saving')
     // 4. Record every run for audit.
     const runs = [
-      { extractor: 'opus',   model: 'claude-opus-4-8',      raw_json: opus.data,   error: opus.error ?? null },
+      { extractor: 'opus',   model: GEMINI_DEEP,            raw_json: opus.data,   error: opus.error ?? null },
       { extractor: 'gemini', model: GEMINI_FLASH, raw_json: gemini.data, error: gemini.error ?? null },
       { extractor: 'parser', model: 'pdf-parse',            raw_json: { rows: parserRows }, error: null },
-      { extractor: 'judge',  model: 'claude-opus-4-8',      raw_json: { ...merged, wording_diff: wordingDiff }, conflicts: conflictsOut, confidence: judged.confidence, error: null },
+      { extractor: 'judge',  model: GEMINI_DEEP,            raw_json: { ...merged, wording_diff: wordingDiff }, conflicts: conflictsOut, confidence: judged.confidence, error: null },
     ]
     await fetch(`${SB_URL}/rest/v1/gb_extraction_runs`, { method: 'POST', headers: sbH(), body: JSON.stringify(runs.map(r => ({ rate_table_id: id, ...r }))) }).catch(() => {})
 

@@ -2,20 +2,25 @@
  * Pricing Matrix extraction. Three independent extractors read an insurer rate PDF, then an
  * Opus judge reconciles them and flags every numeric disagreement for human review.
  *
- *   A. Opus 4.8   — reads the PDF natively; best on messy tables + footnotes
- *   B. Gemini     — independent vision read (different model family)
- *   C. Code parser — deterministic text parse of the rate rows (no LLM) as a numeric check
- *   Judge (Opus)  — merges A/B, cross-checks the numbers against C, adjudicates conflicts
+ *   A. Gemini deep  — long-context read of the whole document, footnotes included
+ *   B. Gemini flash — an independent second read, different tier, same document
+ *   C. Code parser  — deterministic text parse of the rate rows (no model) as a numeric check
+ *   Judge (deep)    — merges A/B, cross-checks against C, and re-reads only the disputed cells
+ *
+ * A and the judge ran on Opus 4.8 until 2 Oct 2026. What makes this pipeline trustworthy is not
+ * the model: it is that two independent reads must agree, a deterministic parser has to have
+ * seen the number, and every disagreement is surfaced for a person before the table is approved.
+ * Those checks are unchanged, and a frontier model was being paid per page to do work the deep
+ * tier's long-context read does. A premium is the one number in this system that must never be
+ * wrong, so the human gate stays regardless of which model read it.
  *
  * Output is a FLAT list of price points — one row per (product × member type × plan × age
  * band) — so any matrix shape fits and the models can't "sample" a nested structure.
  */
 import { logAiUsage } from './gemini-usage'
-import { GEMINI_FLASH, geminiUrl } from './gemini-models'
+import { GEMINI_FLASH, GEMINI_DEEP, geminiUrl } from './gemini-models'
+import { agentKey } from './ai-agents'
 import { logError } from './error-log'
-
-const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
-const OPUS = 'claude-opus-4-8'
 
 // ── Shared shape ────────────────────────────────────────────────────────────────
 export type MemberType = 'employee' | 'dependant' | null
@@ -83,33 +88,38 @@ function safeParse(s: string): GbExtraction {
   return EMPTY
 }
 
-// ── A. Opus (native PDF) ────────────────────────────────────────────────────────
-export async function extractWithOpus(pdfBase64: string, profileHint: string): Promise<{ data: GbExtraction; raw: string; error?: string }> {
-  const key = process.env.ANTHROPIC_API_KEY
-  if (!key) return { data: EMPTY, raw: '', error: 'ANTHROPIC_API_KEY not set' }
+// ── A. Gemini deep (native PDF, long context) ───────────────────────────────────
+/** Named extractWithOpus until 2 Oct 2026; the export name is kept so the route and its stored
+ *  extraction runs keep lining up. */
+export async function extractWithDeep(pdfBase64: string, profileHint: string): Promise<{ data: GbExtraction; raw: string; error?: string }> {
+  const { key } = agentKey('groupbenefits')
+  if (!key) return { data: EMPTY, raw: '', error: 'No Gemini API key configured' }
   try {
-    const res = await fetch(ANTHROPIC_URL, {
-      method: 'POST',
-      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    const res = await fetch(`${geminiUrl(GEMINI_DEEP)}?key=${key}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: OPUS, max_tokens: 32000, thinking: { type: 'adaptive' },
-        messages: [{ role: 'user', content: [
-          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 } },
-          { type: 'text', text: `You are a meticulous insurance data extractor. Extract EVERY premium and coverage table from this PDF, completely.\n${profileHint}\n\n${SCHEMA_HINT}` },
+        contents: [{ parts: [
+          { inline_data: { mime_type: 'application/pdf', data: pdfBase64 } },
+          { text: `You are a meticulous insurance data extractor. Extract EVERY premium and coverage table from this PDF, completely.\n${profileHint}\n\n${SCHEMA_HINT}` },
         ] }],
+        // Thinking tokens come out of this same allowance, so a budget sized for the answer alone
+        // returns an empty candidate with HTTP 200 rather than an error.
+        generationConfig: { temperature: 0, maxOutputTokens: 60000, responseMimeType: 'application/json' },
       }),
     })
     if (!res.ok) {
       const errText = await res.text()
-      void logError({ source: 'anthropic', feature: 'gb_extract_opus', statusCode: res.status, message: errText })
-      return { data: EMPTY, raw: '', error: `Opus ${res.status}: ${errText.slice(0, 300)}` }
+      void logError({ source: 'gemini', feature: 'gb_extract_judge', statusCode: res.status, message: errText.slice(0, 1000) })
+      return { data: EMPTY, raw: '', error: `Gemini ${res.status}: ${errText.slice(0, 300)}` }
     }
     const j = await res.json()
-    const text = (j.content ?? []).filter((c: { type: string }) => c.type === 'text').map((c: { text: string }) => c.text).join('')
-    void logAiUsage({ provider: 'anthropic', model: OPUS, feature: 'nexus_strategy', inputTokens: j.usage?.input_tokens ?? 0, outputTokens: j.usage?.output_tokens ?? 0, metadata: { gb: 'extract_opus' } })
+    const text: string = (j?.candidates?.[0]?.content?.parts ?? []).map((p: { text?: string }) => p.text ?? '').join('')
+    void logAiUsage({ provider: 'gemini', model: GEMINI_DEEP, feature: 'gb_extract_schedule',
+                      inputTokens: j.usageMetadata?.promptTokenCount ?? 0,
+                      outputTokens: j.usageMetadata?.candidatesTokenCount ?? 0, metadata: { gb: 'extract_deep' } })
     return { data: safeParse(text), raw: text }
   } catch (e) {
-    return { data: EMPTY, raw: '', error: e instanceof Error ? e.message : 'opus failed' }
+    return { data: EMPTY, raw: '', error: e instanceof Error ? e.message : 'deep read failed' }
   }
 }
 
@@ -249,33 +259,36 @@ function dedupeCoverage(rows: CoverageRow[]): CoverageRow[] {
   return out
 }
 
-// ── Opus judge — focused adjudication of the disputed cells only ─────────────────
+// ── Judge — a focused re-read of the disputed cells only ────────────────────────
 export type Adjudication = Record<string, { price: number | null; confidence: number; reason: string }>
 export const conflictKey = priceKey
 
-export async function adjudicateWithOpus(pdfBase64: string, conflicts: Conflict[]): Promise<Adjudication> {
-  const key = process.env.ANTHROPIC_API_KEY
+export async function adjudicate(pdfBase64: string, conflicts: Conflict[]): Promise<Adjudication> {
+  const { key } = agentKey('groupbenefits')
   if (!key || conflicts.length === 0) return {}
   try {
-    const list = conflicts.slice(0, 200).map(c => ({ key: priceKey(c), product: c.product_title, member_type: c.member_type, plan: c.plan_code, age_band: c.band_label, opus_value: c.opus, gemini_value: c.gemini }))
-    const res = await fetch(ANTHROPIC_URL, {
-      method: 'POST',
-      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    // The two reads are labelled first/second rather than by model, so the judge has no reason to
+    // favour either: it is being asked what the page says, not which extractor it trusts.
+    const list = conflicts.slice(0, 200).map(c => ({ key: priceKey(c), product: c.product_title, member_type: c.member_type, plan: c.plan_code, age_band: c.band_label, first_read: c.opus, second_read: c.gemini }))
+    const res = await fetch(`${geminiUrl(GEMINI_DEEP)}?key=${key}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: OPUS, max_tokens: 12000, thinking: { type: 'adaptive' },
-        messages: [{ role: 'user', content: [
-          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 } },
-          { type: 'text', text: `Two extractors disagreed on these premium cells (or a text parser couldn't confirm them). For EACH, find the exact price printed in the PDF for that product + member type + plan + age band and report the value you actually read.\n\nCELLS:\n${JSON.stringify(list, null, 2)}\n\nReturn ONLY JSON: { "<key>": { "price": number|null, "confidence": 0-100, "reason": string } } using the exact "key" values above. price=null if you genuinely cannot find it.` },
+        contents: [{ parts: [
+          { inline_data: { mime_type: 'application/pdf', data: pdfBase64 } },
+          { text: `Two extractors disagreed on these premium cells (or a text parser couldn't confirm them). For EACH, find the exact price printed in the PDF for that product + member type + plan + age band and report the value you actually read.\n\nCELLS:\n${JSON.stringify(list, null, 2)}\n\nReturn ONLY JSON: { "<key>": { "price": number|null, "confidence": 0-100, "reason": string } } using the exact "key" values above. price=null if you genuinely cannot find it.` },
         ] }],
+        generationConfig: { temperature: 0, maxOutputTokens: 30000, responseMimeType: 'application/json' },
       }),
     })
     if (!res.ok) {
-      void logError({ source: 'anthropic', feature: 'gb_extract_adjudicate', statusCode: res.status, message: await res.text() })
+      void logError({ source: 'gemini', feature: 'gb_extract_judge', statusCode: res.status, message: (await res.text()).slice(0, 1000) })
       return {}
     }
     const j = await res.json()
-    const text = (j.content ?? []).filter((c: { type: string }) => c.type === 'text').map((c: { text: string }) => c.text).join('')
-    void logAiUsage({ provider: 'anthropic', model: OPUS, feature: 'nexus_strategy', inputTokens: j.usage?.input_tokens ?? 0, outputTokens: j.usage?.output_tokens ?? 0, metadata: { gb: 'judge' } })
+    const text: string = (j?.candidates?.[0]?.content?.parts ?? []).map((p: { text?: string }) => p.text ?? '').join('')
+    void logAiUsage({ provider: 'gemini', model: GEMINI_DEEP, feature: 'gb_extract_schedule',
+                      inputTokens: j.usageMetadata?.promptTokenCount ?? 0,
+                      outputTokens: j.usageMetadata?.candidatesTokenCount ?? 0, metadata: { gb: 'judge' } })
     try { return JSON.parse(stripJson(text)) as Adjudication } catch { return {} }
   } catch { return {} }
 }
