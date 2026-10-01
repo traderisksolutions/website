@@ -407,15 +407,26 @@ Reply with one word only.`
           { headers: sbHeaders(), cache: 'no-store' })
         const tRows = tRes.ok ? await tRes.json() : []
         const companyId = Array.isArray(tRows) ? (tRows[0]?.company_id ?? null) : null
+        if (!companyId) console.log('[engagement/draft] thread has no company — archive skipped')
 
         if (companyId) {
-          const question = `${threadSubject}\n\n${lastInboundText}`.slice(0, 4000)
-          // Exclude this thread: its own messages are already in THREAD HISTORY above, and
-          // spending retrieval slots on them would crowd out the other threads that are the
-          // entire point of searching the archive.
-          const hits = (await searchCompany({ companyId, question, limit: 8 }))
-            .filter(h => h.thread_id !== threadId)
+          // Exclude this thread at the database, not after the fact. Its own messages are
+          // already in THREAD HISTORY above, and they are the passages most similar to its own
+          // last inbound message — so they take every slot. Filtering them out of the result
+          // returned nothing at all; restricting the search to the company's OTHER threads
+          // returns what the archive was built to find.
+          const sibRes = await fetch(
+            `${SB_URL}/rest/v1/email_threads?company_id=eq.${companyId}&id=neq.${encodeURIComponent(threadId)}&select=id`,
+            { headers: sbHeaders(), cache: 'no-store' })
+          const sibRows = sibRes.ok ? await sibRes.json() : []
+          const siblingIds: string[] = Array.isArray(sibRows) ? sibRows.map((r: { id: string }) => r.id) : []
 
+          const question = `${threadSubject}\n\n${lastInboundText}`.slice(0, 4000)
+          const hits = siblingIds.length === 0
+            ? []    // only thread we hold for this client — there is no archive to search
+            : await searchCompany({ companyId, question, limit: 8, threadIds: siblingIds })
+
+          console.log('[engagement/draft] archive:', hits.length, 'passages from', siblingIds.length, 'other threads')
           if (hits.length > 0) {
             const built = buildCitations(hits)
             citations = built.citations
@@ -426,7 +437,14 @@ Reply with one word only.`
             contextUsed.push(`${hits.length} passage${hits.length === 1 ? '' : 's'} from ${archiveThreadCount} other thread${archiveThreadCount === 1 ? '' : 's'}`)
           }
         }
-      } catch { /* non-fatal — a thread-scoped draft is still a usable draft */ }
+      } catch (e) {
+        // Non-fatal: a thread-scoped draft is still a usable draft. But it is never silent —
+        // a swallowed failure here degrades every draft to single-thread context with nothing
+        // on the surface to show the archive stopped working.
+        console.error('[engagement/draft] company archive unavailable:', e)
+        void logError({ source: 'internal', feature: 'company_archive',
+                        message: e instanceof Error ? e.message : String(e), threadId })
+      }
     }
 
     // Fetch GDrive docs for all email types — the folder contains pricing docs, product FAQs,
