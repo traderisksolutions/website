@@ -12,7 +12,7 @@
  */
 import { geminiUrl, GEMINI_EMBED } from '@/lib/gemini-models'
 import { logError } from '@/lib/error-log'
-import { logAiUsage } from '@/lib/gemini-usage'
+import { logAiUsage, type AiFeature } from '@/lib/gemini-usage'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 const sbH = () => {
@@ -60,7 +60,7 @@ export function chunkText(text: string, size = CHUNK_CHARS, overlap = CHUNK_OVER
   return out
 }
 
-export async function embedText(text: string, feature = 'company_retrieval_embed'): Promise<number[]> {
+export async function embedText(text: string, feature: AiFeature = 'company_retrieval_embed'): Promise<number[]> {
   // Three names, because they are not set consistently across environments and retrieval that
   // silently returns nothing is worse than retrieval that fails loudly: a draft would simply
   // lose the archive with no sign anything was missing.
@@ -81,7 +81,7 @@ export async function embedText(text: string, feature = 'company_retrieval_embed
     return []
   }
   const j = await res.json() as { embedding?: { values?: number[] } }
-  void logAiUsage({ provider: 'gemini', model: GEMINI_EMBED, feature: feature as never,
+  void logAiUsage({ provider: 'gemini', model: GEMINI_EMBED, feature,
                     inputTokens: Math.ceil(text.length / 4), outputTokens: 0 })
   return j.embedding?.values ?? []
 }

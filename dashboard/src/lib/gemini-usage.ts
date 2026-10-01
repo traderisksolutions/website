@@ -109,6 +109,15 @@ export type AiFeature =
   | 'crm_brief'
   | 'crm_triage'
   | 'crm_chat'
+  // The three named agents (1 Oct 2026)
+  | 'crm_signature'
+  | 'email_classify'
+  | 'company_retrieval_query'
+  | 'company_retrieval_embed'
+  | 'ask_ai'
+  | 'ask_ai_grounded'
+  | 'ask_ai_clause'
+  | 'crm_next_reply'
 
 export interface GeminiUsageMeta {
   promptTokenCount?:     number
@@ -125,6 +134,8 @@ export async function logAiUsage(p: {
   inputTokens:  number
   outputTokens: number
   threadId?:    string | null
+  /** Accepted for call-site compatibility and NOT persisted — gemini_usage_log has no such
+   *  column, and sending it rejected the entire insert. See the note in the body. */
   metadata?:    Record<string, unknown>
 }): Promise<void> {
   try {
@@ -133,7 +144,11 @@ export async function logAiUsage(p: {
     const pricing = PRICING[p.model] ?? PRICING[DEFAULT_MODEL]
     const rates   = resolveRates(pricing, p.inputTokens || 0, new Date())
     const costUsd = (p.inputTokens || 0) * (rates.inputPerMillion / 1e6) + (p.outputTokens || 0) * (rates.outputPerMillion / 1e6)
-    await fetch(`${SB_URL}/rest/v1/gemini_usage_log`, {
+    // `metadata` is deliberately NOT sent. gemini_usage_log has no such column, so PostgREST
+    // rejected the whole insert with PGRST204 whenever a caller passed one — and six do, among
+    // them every Opus pricing-matrix extraction and the outbound reply drafter. Those rows were
+    // never written. Dropping the field costs nothing that was ever stored and lets the row land.
+    const res = await fetch(`${SB_URL}/rest/v1/gemini_usage_log`, {
       method:  'POST',
       headers: { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
       body: JSON.stringify({
@@ -144,11 +159,17 @@ export async function logAiUsage(p: {
         output_tokens: p.outputTokens || 0,
         cost_usd:      costUsd,
         thread_id:     p.threadId ?? null,
-        ...(p.metadata ? { metadata: JSON.stringify(p.metadata) } : {}),
+        ok:            true,
       }),
     })
-  } catch {
-    // Non-fatal
+    // A rejected insert is an HTTP status, not an exception, so the catch below never saw one.
+    // That is why the ledger went silent on 9 July 2026 and nothing anywhere said so, while the
+    // dashboard went on to produce 155 drafts in August and 156 in September.
+    if (!res.ok) {
+      console.error(`[ai-usage] ledger write failed HTTP ${res.status} for ${p.feature}/${p.model}: ${(await res.text()).slice(0, 300)}`)
+    }
+  } catch (e) {
+    console.error(`[ai-usage] ledger write threw for ${p.feature}/${p.model}:`, e)
   }
 }
 
