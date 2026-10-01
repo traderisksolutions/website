@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireHumanSender } from '@/lib/agents/guardrails'
+import { logError } from '@/lib/error-log'
 import { waitUntil }                  from '@vercel/functions'
 import { createSign, randomUUID }     from 'node:crypto'
 import { runDraftEvaluation }         from '@/lib/run-draft-evaluation'
@@ -201,13 +203,17 @@ export async function POST(req: NextRequest) {
       await req.json() as { draftId: string; htmlBody?: string; signatureId?: string; toEmail?: string; cc?: string[]; bcc?: string[]; customSubject?: string; fromEmail?: string; originalAiBody?: string; attachments?: { filename: string; mime_type?: string; storage_url: string }[] }
     if (!draftId) return NextResponse.json({ error: 'draftId required' }, { status: 400 })
 
-    // Identify the logged-in employee so we can use their Gmail token if they've connected one.
-    // This used to be optional (userId just fell through to null and the send went out as ops@
-    // regardless) — meaning an unauthenticated caller could trigger a real Gmail send. Now hard-gated.
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-    const userId = user.id
+    // Agents draft; people send. This refuses a cron bearer, a service key and any caller
+    // identifying itself as an agent, however valid those credentials are elsewhere. The rule
+    // previously held only because /api/nexus/rfq/chase forwards the caller's cookie, so a
+    // machine arrived without one and was refused by accident. Now it is refused by design.
+    const human = await requireHumanSender(req)
+    if (!human.ok) {
+      void logError({ source: 'internal', feature: 'email_send_blocked', statusCode: 403,
+                      message: `send refused: ${human.reason}` })
+      return NextResponse.json({ error: 'Only a signed-in person may send mail', reason: human.reason }, { status: 403 })
+    }
+    const userId = human.userId!
 
     const FROM_EMAIL = (requestedFrom && requestedFrom.includes('@')) ? requestedFrom : DEFAULT_OPS_EMAIL
 
