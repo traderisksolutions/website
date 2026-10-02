@@ -23,7 +23,7 @@ function MainContent({ children }: { children: React.ReactNode }) {
   const marginLeft = !showEngagementRail ? 0 : navCollapsed ? `${RAIL_COLLAPSED}px` : 'var(--engagement-rail-w, 380px)'
   return (
     <div
-      className="main-content min-h-[calc(100vh/var(--ui-zoom))] flex flex-col"
+      className="main-content min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] flex flex-col"
       style={{ background: 'hsl(var(--background))', marginLeft }}
     >
       {/* Under the nav, above whatever page this is: seen once and cleared, rather than filed

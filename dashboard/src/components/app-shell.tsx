@@ -89,7 +89,7 @@ export function AppSplitLayout({
   className?: string
 }) {
   return (
-    <div className={cn('flex h-[calc(100vh/var(--ui-zoom))] overflow-hidden bg-background', className)}>
+    <div className={cn('flex h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] overflow-hidden bg-background', className)}>
       {children}
     </div>
   )

@@ -69,6 +69,12 @@
        sticky/in-flow, not overlaid. Same variable name/shape at every breakpoint now that the
        top nav (not just its mobile fallback) always occupies this space. */
     --mobile-nav-h:          56px;
+    /* The top bar (h-14), in the same CSS pixels as everything inside the zoomed root. A page that
+       fills the window under it is calc(100vh / var(--ui-zoom) - var(--top-nav-h)). Subtracting
+       BEFORE dividing by --ui-zoom — (100vh - 56px) / zoom — removes only 56/1.15 = 49px and
+       leaves the page 8px taller than the window; subtracting nothing leaves it 56px (64px on
+       screen) taller. Either way the page scrolls past its own end into blank space. */
+    --top-nav-h:             56px;
     --content-bg:            hsl(0 0% 100%);
     --card-bg:               #ffffff;
     --card-border:           #e8eaed;

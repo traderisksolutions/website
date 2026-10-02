@@ -120,7 +120,7 @@ function InboundLeadsPage() {
   const selectedLead = leads.find(l => l.id === selectedId) ?? null
 
   return (
-    <div className="flex flex-col h-[calc(100vh/var(--ui-zoom))] overflow-hidden bg-white" style={{ color: INK }}>
+    <div className="flex flex-col h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] overflow-hidden bg-white" style={{ color: INK }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex-shrink-0 px-6 sm:px-12 pt-10">

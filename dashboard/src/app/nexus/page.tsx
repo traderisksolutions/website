@@ -389,7 +389,7 @@ export default function NexusPage() {
   const selectedCase = cases.find(c => c.id === selectedId) ?? null
 
   return (
-    <div className="flex flex-col overflow-hidden bg-white h-[calc((100vh-var(--mobile-nav-h,0px))/var(--ui-zoom))]" style={{ color: INK }}>
+    <div className="flex flex-col overflow-hidden bg-white h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))]" style={{ color: INK }}>
       {/* ── Header ── */}
       <div className="flex items-center justify-between gap-4 px-6 h-[68px] flex-shrink-0 bg-white" style={{ borderBottom: `1px solid ${HAIR}` }}>
         <h1 className="m-0 text-[28px] font-medium tracking-[-0.03em] leading-none" style={{ color: INK }}>Nexus</h1>
