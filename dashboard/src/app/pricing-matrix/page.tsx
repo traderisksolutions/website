@@ -6,6 +6,8 @@ import { UploadCloud, Loader2, Clock, Calculator } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { NewQuoteWizard } from '@/components/group-benefits/NewQuoteWizard'
 import { XlsxTab } from '@/components/group-benefits/XlsxTab'
+import { SourceFilesTab } from '@/components/group-benefits/SourceFilesTab'
+import { VERIFICATION, verificationOf } from '@/lib/gb/verification'
 import { createClient } from '@/lib/supabase/client'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 
@@ -22,6 +24,7 @@ type RateTable = {
   plan_year: number | null; effective_date: string | null; status: string; version: number
   source_pdf_name: string | null; created_at: string; approved_at: string | null
   calculator_filename?: string | null; rules_status?: string | null; rules_updated_at?: string | null
+  verification?: { status?: string; basis?: string } | null
 }
 type Activity = { id: string; created_at: string; user_name: string | null; action: string; new_value: Record<string, unknown> | null }
 
@@ -29,7 +32,7 @@ type Activity = { id: string; created_at: string; user_name: string | null; acti
 const STATUS_LABEL: Record<string, string> = { draft: 'Draft', extracting: 'Extracting', in_review: 'In review', approved: 'Approved', archived: 'Archived' }
 const CHIP = 'inline-flex items-center rounded-[6px] bg-[#f1f3f4] text-[#3c4043] text-[11.5px] font-medium px-2 py-0.5 whitespace-nowrap'
 
-type Tab = 'tables' | 'xlsx' | 'quote' | 'quotes' | 'activity'
+type Tab = 'tables' | 'sources' | 'xlsx' | 'quote' | 'quotes' | 'activity'
 
 /**
  * Pricing Matrix — one module since 2 Oct 2026.
@@ -48,7 +51,7 @@ export default function PricingMatrixPage() {
 function PricingMatrix() {
   const router = useRouter()
   const params = useSearchParams()
-  const initialTab = (['tables', 'xlsx', 'quote', 'quotes', 'activity'] as const).find(t => t === params.get('tab')) ?? 'tables'
+  const initialTab = (['tables', 'sources', 'xlsx', 'quote', 'quotes', 'activity'] as const).find(t => t === params.get('tab')) ?? 'tables'
   const company = params.get('company') ?? undefined
   const [tab, setTab]   = useState<Tab>(initialTab)
   const [tables, setTables] = useState<RateTable[]>([])
@@ -80,11 +83,12 @@ function PricingMatrix() {
         </div>
       </div>
 
-      <div className="mt-8 mb-6 flex items-center gap-7" style={{ borderBottom: '1px solid #e8eaed' }}>
-        {(['tables', 'xlsx', 'quote', 'quotes', 'activity'] as const).map(t => (
+      {/* Six tabs do not fit a phone: the bar scrolls sideways on its own instead of widening the page. */}
+      <div className="mt-8 mb-6 flex items-center gap-7 overflow-x-auto" style={{ borderBottom: '1px solid #e8eaed' }}>
+        {(['tables', 'sources', 'xlsx', 'quote', 'quotes', 'activity'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
-            className={cn('relative pb-3 text-[15px] bg-transparent border-0 p-0 cursor-pointer', tab === t ? 'font-medium text-[#202124]' : 'text-[#5f6368] hover:text-[#202124]')}>
-            {t === 'tables' ? 'Rate tables' : t === 'xlsx' ? 'Calculators' : t === 'quote' ? 'New quote' : t === 'quotes' ? 'Quotes' : 'Activity'}
+            className={cn('relative pb-3 text-[15px] bg-transparent border-0 p-0 cursor-pointer whitespace-nowrap flex-shrink-0', tab === t ? 'font-medium text-[#202124]' : 'text-[#5f6368] hover:text-[#202124]')}>
+            {t === 'tables' ? 'Rate tables' : t === 'sources' ? 'Source files' : t === 'xlsx' ? 'Calculators' : t === 'quote' ? 'New quote' : t === 'quotes' ? 'Quotes' : 'Activity'}
             {tab === t && <span className="absolute left-0 right-0 -bottom-px h-[2px] rounded-full bg-[#202124]" aria-hidden />}
           </button>
         ))}
@@ -95,21 +99,23 @@ function PricingMatrix() {
         : tables.length === 0 ? (
           <p className="m-0 py-16 text-center text-[15px]" style={{ color: '#5f6368' }}>No rate tables yet. Upload an insurer rate PDF to begin.</p>
         ) : (
-          <Register label="Rate tables" minWidth={760}>
+          <Register label="Rate tables" minWidth={920}>
             <RegisterHead>
               <RegisterTh first width={280}>Insurer</RegisterTh>
               <RegisterTh>Products</RegisterTh>
               <RegisterTh align="right">Year</RegisterTh>
               <RegisterTh>Status</RegisterTh>
+              <RegisterTh>Rates</RegisterTh>
               <RegisterTh last align="right">Uploaded</RegisterTh>
             </RegisterHead>
             <tbody>
               {tables.map(t => (
                 <RegisterRow key={t.id} onClick={() => router.push(`/pricing-matrix/${t.id}`)}>
                   <RegisterCell first primary={t.insurer_name || 'Unknown insurer'} secondary={t.version > 1 ? `Version ${t.version}` : t.source_pdf_name ?? 'Version 1'} />
-                  <RegisterCell className="max-w-[380px]"><span className="block text-[14px] truncate" style={{ color: '#3c4043' }} title={t.product_code}>{t.product_code}</span></RegisterCell>
+                  <RegisterCell className="max-w-[260px]"><span className="block text-[14px] truncate" style={{ color: '#3c4043' }} title={t.product_code}>{t.product_code}</span></RegisterCell>
                   <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: t.plan_year ? '#202124' : '#9aa0a6' }}>{t.plan_year ?? '—'}</span></RegisterCell>
                   <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>{STATUS_LABEL[t.status] ?? t.status}</span></RegisterCell>
+                  <RegisterCell>{(() => { const v = verificationOf({ verification: t.verification }); return <span className={CHIP} style={{ color: VERIFICATION[v.status].color }} title={v.basis ?? undefined}>{VERIFICATION[v.status].label}</span> })()}</RegisterCell>
                   <RegisterCell last align="right" primary={new Date(t.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} secondary={t.approved_at ? `approved ${new Date(t.approved_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}` : 'not yet approved'} />
                 </RegisterRow>
               ))}
@@ -120,6 +126,7 @@ function PricingMatrix() {
       {tab === 'xlsx'     && <XlsxTab tables={tables} loading={loading} onChanged={load} />}
       {tab === 'quote'    && <NewQuoteWizard initialCompany={company} onSaved={() => { /* results shown inline; Quotes tab reloads on open */ }} />}
       {tab === 'quotes'   && <QuotesTab />}
+      {tab === 'sources' && <SourceFilesTab />}
       {tab === 'activity' && <ActivityTab />}
 
       {showUpload && <UploadModal onClose={() => setShowUpload(false)} onDone={() => { setShowUpload(false); load() }} />}

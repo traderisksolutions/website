@@ -103,8 +103,11 @@ def main():
             'co_payment': p['co_payment'], 'canon_codes': CANON[p['product_code']], 'sort_order': i,
         } for i, p in enumerate(d['plans'])], prefer='return=minimal')
 
+        # Keep the record of which Drive files this table was read from (rules.sources, written by
+        # /api/group-benefits/sources): replacing rules wholesale would erase it on every reload.
+        kept_sources = (table.get('rules') or {}).get('sources') or []
         call('PATCH', f'gb_rate_tables?id=eq.{tid}', {
-            'rules': {**d['rules'], 'calculator': d['source']},
+            'rules': {**d['rules'], 'calculator': d['source'], 'sources': kept_sources},
             'rules_status': 'approved',
             'rules_updated_at': datetime.datetime.now(datetime.timezone.utc).isoformat(),
             'age_basis': 'last_birthday',

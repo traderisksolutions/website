@@ -20,6 +20,7 @@
 import React, { useMemo, useState } from 'react'
 import { cn } from '@/lib/utils'
 import type { Comparison, Cell } from '@/lib/gb/compare'
+import { VERIFICATION } from '@/lib/gb/verification'
 
 const money = (n: number) => n.toLocaleString('en-SG', { style: 'currency', currency: 'SGD', maximumFractionDigits: 0 })
 
@@ -82,6 +83,9 @@ export function BenefitComparison({ comparison, onRecompute, busy }: {
                     style={{ color: '#202124', minWidth: 150 }}>
                   <div>{o.insurerName}</div>
                   <div className="text-[11px] font-normal" style={{ color: '#5f6368' }}>{o.planLabel || o.planCode}</div>
+                  {o.verification && o.verification !== 'calculator' && (
+                    <div className="text-[11px] font-medium mt-0.5" style={{ color: VERIFICATION[o.verification].color }}>{VERIFICATION[o.verification].label}</div>
+                  )}
                 </th>
               ))}
             </tr>

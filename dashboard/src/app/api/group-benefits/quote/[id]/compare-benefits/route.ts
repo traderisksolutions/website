@@ -22,6 +22,7 @@ import { createClient } from '@/lib/supabase/server'
 import { logActivity } from '@/lib/log-activity'
 import { compare, type Option } from '@/lib/gb/compare'
 import { resolveProduct } from '@/lib/gb/resolve'
+import { verificationOf } from '@/lib/gb/verification'
 
 export const maxDuration = 60
 
@@ -34,7 +35,7 @@ function sbH(prefer = 'return=minimal') {
 }
 
 type CategoryMap = Record<string, Record<string, Record<string, string>>>
-type Meta  = { id: string; insurer_name: string; product_code: string }
+type Meta  = { id: string; insurer_name: string; product_code: string; rules: unknown }
 type Plan  = { rate_table_id: string; product_code: string; plan_code: string; plan_name: string | null
                hospital_type: string | null; beds: string | null; co_payment: string | null; canon_codes: string[] | null }
 type Ben   = { rate_table_id: string; product_code: string | null; plan_code: string | null
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const ids = tableIds.map(i => `"${i}"`).join(',')
     const [metaRes, plansRes, benRes] = await Promise.all([
-      fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=in.(${ids})&select=id,insurer_name,product_code&limit=100`, { headers: sbH(), cache: 'no-store' }),
+      fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=in.(${ids})&select=id,insurer_name,product_code,rules&limit=100`, { headers: sbH(), cache: 'no-store' }),
       fetch(`${SB_URL}/rest/v1/gb_plans?rate_table_id=in.(${ids})` +
             `&select=rate_table_id,product_code,plan_code,plan_name,hospital_type,beds,co_payment,canon_codes&limit=2000`, { headers: sbH(), cache: 'no-store' }),
       fetch(`${SB_URL}/rest/v1/gb_benefits?rate_table_id=in.(${ids})` +
@@ -149,6 +150,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           productCodes,
           annualTotal: r?.total ?? null,
           pricingGaps: r?.missing ?? 0,
+          verification: verificationOf(m.rules).status,
           values,
         })
       }

@@ -35,6 +35,8 @@ export type Option = {
   /** Census lines the premium engine could not price. A total with gaps is not comparable to
    *  one without, and saying so is the honest answer. */
   pricingGaps?: number
+  /** How far this insurer's premiums have been checked — see src/lib/gb/verification.ts. */
+  verification?: 'calculator' | 'brochure' | 'unverified'
   /** Benefit values on record for this option, keyed by canonical benefit code. */
   values: Record<string, { text: string | null; numeric: number | null }>
 }

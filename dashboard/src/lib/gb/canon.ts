@@ -195,6 +195,7 @@ export const BENEFITS: CanonBenefit[] = [
   { code: 'GOSC_NONPANEL',      productCode: 'GOSC', name: 'Non-panel specialist consultation',  compareAs: 'sgd_per_visit', sortOrder: 15, unit: 'SGD' },
   { code: 'GOSC_PHYSIO',        productCode: 'GOSC', name: 'Physiotherapy & chiropractic',        compareAs: 'sgd_limit', sortOrder: 25, unit: 'SGD' },
   { code: 'GOSC_PSYCH',         productCode: 'GOSC', name: 'Outpatient psychiatric treatment',    compareAs: 'sgd_limit', sortOrder: 27, unit: 'SGD' },
+  { code: 'GOSC_CO_PAYMENT',    productCode: 'GOSC', name: 'Co-payment',                          compareAs: 'percent',   headline: true, sortOrder: 35, unit: '%' },
   { code: 'GOSC_ANNUAL_LIMIT',  productCode: 'GOSC', name: 'Annual limit',                        compareAs: 'sgd_limit', headline: true, sortOrder: 40, unit: 'SGD' },
 
   // ── Group Dental ────────────────────────────────────────────────────────────
@@ -247,6 +248,6 @@ export function roomTierRank(value: string | null | undefined): number | null {
  * in the opposite direction.
  */
 export const LOWER_IS_MORE_COVER = new Set<string>([
-  'GHS_CO_PAYMENT', 'GHSFW_CO_PAYMENT', 'GOPC_CO_PAYMENT', 'GD_CO_PAYMENT',
+  'GHS_CO_PAYMENT', 'GHSFW_CO_PAYMENT', 'GOPC_CO_PAYMENT', 'GOSC_CO_PAYMENT', 'GD_CO_PAYMENT',
   'EMM_CO_INSURANCE', 'EMM_DEDUCTIBLE', 'GCI_SURVIVAL',
 ])
