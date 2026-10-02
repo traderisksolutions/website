@@ -61,14 +61,15 @@ export const NAV_SECTIONS: NavSection[] = [
   },
   { label: 'Sales',     href: '/pipeline', icon: Waypoints },
   { label: 'Calendar',  href: '/calendar', icon: CalendarDays },
+  // Earnings is the business's own figure, so it sits on the bar; the system logs moved under Admin.
+  { label: 'Earnings',  href: '/analytics/earnings', icon: TrendingUp },
   {
-    label: 'Analytics',
+    label: 'Admin',
     icon: BarChart2,
     groups: [
       {
-        heading: 'Reporting',
+        heading: 'System',
         items: [
-          { title: 'Earnings',         href: '/analytics/earnings',  icon: TrendingUp,    description: 'Commission and premium by client, insurer and month' },
           { title: 'Activity Log',     href: '/analytics/activity',  icon: History,       description: 'Audit trail of system activity' },
           { title: 'Error Log',        href: '/analytics/error-log', icon: AlertTriangle, description: 'AI/API failures, auto-logged as they happen' },
           { title: 'AI Spend',         href: '/analytics/ai-usage',  icon: Cpu,           description: 'What each agent costs' },

@@ -29,6 +29,9 @@ export type Note = {
   premium: number              // gross, incl. GST
   commission: number | null
   currency: string
+  /** The policy this note bills: its number and when its term ends. */
+  policyNumber?: string | null
+  policyEnd?: string | null
 }
 
 export type Basis = 'commission' | 'premium'
@@ -171,4 +174,31 @@ function monthsBetween(a: string, b: string): number {
   const [ay, am] = a.split('-').map(Number), [by, bm] = b.split('-').map(Number)
   return (by - ay) * 12 + (bm - am) + 1
 }
+export type Renewal = { policyId: string; policyNumber: string | null; companyId: string | null; client: string
+  insurer: string; className: string | null; end: string; daysLeft: number; premium: number; commission: number }
+
+/**
+ * Policies whose term ends within `days` of `today` (and up to 30 days past, still unrenewed on
+ * file): the income that has to be won again. Premium and commission are the last term's, from
+ * the notes billed under that policy.
+ */
+export function renewalsDue(notes: Note[], today: string, days = 90): Renewal[] {
+  const t0 = Date.parse(`${today}T00:00:00Z`)
+  const by = new Map<string, Note[]>()
+  for (const n of notes) if (n.policyId && n.policyEnd && n.currency === 'SGD') by.set(n.policyId, [...(by.get(n.policyId) ?? []), n])
+  const out: Renewal[] = []
+  by.forEach((xs, policyId) => {
+    const end = xs[0].policyEnd!
+    const daysLeft = Math.round((Date.parse(`${end}T00:00:00Z`) - t0) / 86_400_000)
+    if (daysLeft < -30 || daysLeft > days) return
+    out.push({
+      policyId, policyNumber: xs[0].policyNumber ?? null, companyId: xs[0].companyId, client: xs[0].companyName,
+      insurer: xs[0].insurer, className: xs[0].className, end, daysLeft,
+      premium: round2(xs.reduce((a, n) => a + valueOf(n, 'premium'), 0)),
+      commission: round2(xs.reduce((a, n) => a + valueOf(n, 'commission'), 0)),
+    })
+  })
+  return out.sort((a, b) => a.daysLeft - b.daysLeft || b.commission - a.commission)
+}
+
 const round2 = (n: number) => Math.round(n * 100) / 100

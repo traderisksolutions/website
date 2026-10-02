@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Menu, LogOut, ChevronDown, Search } from 'lucide-react'
+import { Menu, LogOut, ChevronDown } from 'lucide-react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -138,11 +138,8 @@ export function TopNavbar() {
           })}
         </nav>
 
-        {/* Right: search + account */}
+        {/* Right: account */}
         <div className="ml-auto flex items-center gap-2 flex-shrink-0">
-          <Link href="/companies" className="hidden md:inline-flex items-center gap-2 h-9 px-3 rounded-full text-[13px] no-underline transition-colors" style={{ color: MUTED, background: '#f4f4f5' }} title="Search companies">
-            <Search size={14} /> <span className="hidden lg:inline">Search</span>
-          </Link>
           <AccountMenu email={userEmail} pathname={pathname} onSignOut={signOut} />
         </div>
       </div>

@@ -1,6 +1,6 @@
 /** Earnings aggregation: credit notes subtract, lifetime ignores the date filter, VIP by the 80% rule. */
 import { describe, it, expect } from 'vitest'
-import { isCredit, totals, monthly, clients, groupBy, applyFilter, type Note } from '@/lib/analytics/earnings'
+import { isCredit, totals, monthly, clients, groupBy, applyFilter, renewalsDue, type Note } from '@/lib/analytics/earnings'
 
 const n = (no: string, date: string, co: string, premium: number, commission: number | null, extra: Partial<Note> = {}): Note =>
   ({ id: no, no, issueDate: date, companyId: co, companyName: co.toUpperCase(), insurer: 'QBE', className: 'WICA', policyId: `p-${no}`,
@@ -53,5 +53,19 @@ describe('earnings', () => {
     const g = groupBy(applyFilter(notes, { from: null, to: null, insurer: null, className: null }), x => x.insurer)
     expect(g[0]).toMatchObject({ name: 'QBE', commission: 1600, premium: 17000, notes: 5 })
     expect(g[0].rate).toBeCloseTo(1600 / 16000)
+  })
+})
+
+describe('renewalsDue', () => {
+  it('lists policies ending within 90 days, soonest first, with last term income', () => {
+    const xs = [
+      n('DN10', '2025-11-01', 'a', 10_000, 1_500, { policyId: 'p1', policyNumber: 'P-1', policyEnd: '2026-11-15' }),
+      n('DN11', '2026-01-01', 'a', 2_000, 300, { policyId: 'p1', policyNumber: 'P-1', policyEnd: '2026-11-15' }),
+      n('DN12', '2025-10-01', 'b', 5_000, 700, { policyId: 'p2', policyEnd: '2027-06-30' }),
+      n('DN13', '2025-09-01', 'c', 1_000, 100, { policyId: 'p3', policyEnd: '2026-09-20' }),
+      n('DN14', '2025-08-01', 'd', 1_000, 100, { policyId: 'p4', policyEnd: '2026-07-01' }),
+    ]
+    const r = renewalsDue(xs, '2026-10-02')
+    expect(r.map(x => [x.policyId, x.daysLeft, x.commission])).toEqual([['p3', -12, 100], ['p1', 44, 1800]])
   })
 })

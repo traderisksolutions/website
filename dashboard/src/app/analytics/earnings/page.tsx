@@ -10,14 +10,13 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line, ReferenceLine, Cell,
-} from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts'
 import { Segmented, SectionCard, Spinner } from '@/components/crm/primitives'
 import { Tip } from '@/components/Tip'
 import {
-  applyFilter, totals, monthly, clients, groupBy, VIP_SHARE, type Note, type Basis, type ClientRow,
+  applyFilter, totals, monthly, clients, groupBy, renewalsDue, VIP_SHARE, type Note, type Basis, type ClientRow,
 } from '@/lib/analytics/earnings'
+import { displayName } from '@/lib/insurers'
 
 const INK = '#202124', MUTED = '#5f6368', FAINT = '#80868b', RULE = '#e8eaed', LIGHT = '#bdc1c6'
 
@@ -39,6 +38,7 @@ function rangeDates(r: Range, custom: { from: string; to: string }): { from: str
   return { from: custom.from || null, to: custom.to || null }
 }
 
+const SELECT = 'h-10 rounded-[12px] border-0 px-3.5 pr-8 text-[13.5px] max-w-[240px] cursor-pointer bg-[#f1f3f4] text-[#202124] focus:outline-none focus:ring-2 focus:ring-[#202124]/15'
 const tooltipStyle = { fontSize: 12, borderRadius: 10, border: '1px solid #dadce0', boxShadow: 'none', color: INK }
 const th = 'text-left text-[11px] uppercase tracking-[0.04em] font-medium pb-2 pr-3 whitespace-nowrap'
 const td = 'py-2.5 pr-3 text-[13px] align-top'
@@ -75,6 +75,7 @@ export default function EarningsPage() {
     return {
       f, t, rows, vip,
       months: monthly(inPeriod, basis, from, to),
+      renewals: renewalsDue(applyFilter(data.notes, { ...f, from: null, to: null }), todayIso()),
       byInsurer: groupBy(inPeriod, n => n.insurer),
       byClass: groupBy(inPeriod, n => n.className ?? 'Class not on file'),
       span: dates.length ? `${dateLabel(dates[0])} – ${dateLabel(dates[dates.length - 1])}` : 'no notes in range',
@@ -130,30 +131,28 @@ export default function EarningsPage() {
               )}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Segmented value={range} onChange={r => setRange(r)} options={[
-              { value: '12m', label: '12 months' }, { value: 'ytd', label: 'This year' }, { value: 'all', label: 'All time' }, { value: 'custom', label: 'Custom' }]} />
-            <Segmented value={basis} onChange={b => setBasis(b)} options={[{ value: 'commission', label: 'Commission' }, { value: 'premium', label: 'Premium' }]} />
-          </div>
         </header>
 
-        <div className="flex flex-wrap items-center gap-3 pt-3">
-          {range === 'custom' && (
-            <>
-              <label htmlFor="e-from" className="text-[12.5px]" style={{ color: MUTED }}>From</label>
-              <input id="e-from" type="date" value={custom.from} onChange={e => setCustom(c => ({ ...c, from: e.target.value }))} className="text-[13px] border border-[#dadce0] rounded-md px-2 py-1" />
-              <label htmlFor="e-to" className="text-[12.5px]" style={{ color: MUTED }}>To</label>
-              <input id="e-to" type="date" value={custom.to} onChange={e => setCustom(c => ({ ...c, to: e.target.value }))} className="text-[13px] border border-[#dadce0] rounded-md px-2 py-1" />
-            </>
-          )}
-          <select aria-label="Insurer" value={insurer} onChange={e => setInsurer(e.target.value)} className="text-[13px] border border-[#dadce0] rounded-md px-2 py-1 bg-white max-w-[240px]">
+        {/* One row of controls, one height: the range, what is measured, and two filters. */}
+        <div className="flex flex-wrap items-center gap-2 pt-5">
+          <Segmented value={range} onChange={r => setRange(r)} options={[
+            { value: '12m', label: '12 months' }, { value: 'ytd', label: 'This year' }, { value: 'all', label: 'All time' }, { value: 'custom', label: 'Custom' }]} />
+          <Segmented value={basis} onChange={b => setBasis(b)} options={[{ value: 'commission', label: 'Commission' }, { value: 'premium', label: 'Premium' }]} />
+          <select aria-label="Insurer" value={insurer} onChange={e => setInsurer(e.target.value)} className={SELECT}>
             <option value="">All insurers</option>
             {v?.insurers.map(i => <option key={i} value={i}>{i}</option>)}
           </select>
-          <select aria-label="Class of insurance" value={cls} onChange={e => setCls(e.target.value)} className="text-[13px] border border-[#dadce0] rounded-md px-2 py-1 bg-white max-w-[240px]">
+          <select aria-label="Class of insurance" value={cls} onChange={e => setCls(e.target.value)} className={SELECT}>
             <option value="">All classes</option>
             {v?.classes.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
+          {range === 'custom' && (
+            <div className="flex items-center gap-2">
+              <input aria-label="From" type="date" value={custom.from} onChange={e => setCustom(c => ({ ...c, from: e.target.value }))} className={SELECT} />
+              <span className="text-[13px]" style={{ color: MUTED }}>to</span>
+              <input aria-label="To" type="date" value={custom.to} onChange={e => setCustom(c => ({ ...c, to: e.target.value }))} className={SELECT} />
+            </div>
+          )}
         </div>
 
         {err && <p className="mt-5 text-[13px]" style={{ color: '#c5221f' }}>{err}</p>}
@@ -163,7 +162,7 @@ export default function EarningsPage() {
           <div className="mt-6 space-y-6">
             <SectionCard title={`${basis === 'commission' ? 'Commission' : 'Premium'} by month`}
                          actions={<span className="text-[12px] tabular-nums" style={{ color: MUTED }}>Credit notes below the line</span>}>
-              <div style={{ height: 240 }}>
+              <div style={{ height: 280 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={v.months} margin={{ top: 4, right: 4, left: 4, bottom: 0 }} stackOffset="sign">
                     <CartesianGrid vertical={false} stroke={RULE} />
@@ -179,49 +178,70 @@ export default function EarningsPage() {
               </div>
             </SectionCard>
 
-            <div className="grid gap-6 lg:grid-cols-2">
-              <SectionCard title={`Lifetime ${basisWord}, top 10 clients`}
-                           actions={<span className="text-[12px]" style={{ color: MUTED }}>Dark = VIP</span>}>
-                <div style={{ height: 320 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={v.rows.slice(0, 10)} layout="vertical" margin={{ top: 0, right: 12, left: 0, bottom: 0 }}>
-                      <CartesianGrid horizontal={false} stroke={RULE} />
-                      <XAxis type="number" tickFormatter={short} tick={{ fontSize: 11, fill: FAINT }} axisLine={false} tickLine={false} />
-                      <YAxis type="category" dataKey="name" width={170} interval={0} tick={{ fontSize: 11, fill: MUTED, width: 170 } as never} axisLine={false} tickLine={false}
-                             tickFormatter={(s: string) => (s.length > 24 ? `${s.slice(0, 23)}…` : s)} />
-                      <Tooltip contentStyle={tooltipStyle} formatter={(val) => [money(Number(val) || 0), `Lifetime ${basisWord}`]} />
-                      <Bar dataKey="lifetimeValue" radius={[0, 2, 2, 0]}>
-                        {v.rows.slice(0, 10).map(r => <Cell key={r.key} fill={r.vip ? INK : LIGHT} />)}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </SectionCard>
+            <div className="grid gap-x-10 lg:grid-cols-2">
+              {/* A ranked list, not a chart: client names are long and a bar axis cut them to
+                  three wrapped lines each. */}
+              <div><SectionCard title={`Top 10 clients by lifetime ${basisWord}`}
+                           actions={<Link href="#clients" className="text-[13px] hover:underline" style={{ color: MUTED }}>All clients</Link>}>
+                <ol className="m-0 p-0 list-none flex flex-col">
+                  {v.rows.slice(0, 10).map(r => {
+                    const max = Math.max(1, v.rows[0]?.lifetimeValue ?? 1)
+                    return (
+                      <li key={r.key} className="grid grid-cols-[22px_minmax(0,1fr)_auto] items-center gap-x-3 py-2" style={{ borderBottom: '1px solid #f1f3f4' }}>
+                        <span className="text-[12px] tabular-nums text-right" style={{ color: FAINT }}>{r.rank}</span>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 min-w-0">
+                            {r.companyId
+                              ? <Link href={`/companies/${r.companyId}`} className="truncate text-[13.5px] hover:underline" style={{ color: INK }} title={r.name}>{displayName(r.name)}</Link>
+                              : <span className="truncate text-[13.5px]" title={r.name}>{displayName(r.name)}</span>}
+                            {r.vip && <span className="flex-shrink-0 text-[10px] font-semibold tracking-wide px-1.5 rounded" style={{ border: `1px solid ${INK}`, color: INK }}>VIP</span>}
+                          </div>
+                          <div className="mt-1.5 h-1.5 rounded-full" style={{ background: '#f1f3f4' }}>
+                            <div className="h-1.5 rounded-full" style={{ width: `${Math.max(2, (r.lifetimeValue / max) * 100)}%`, background: INK }} />
+                          </div>
+                        </div>
+                        <span className="text-[13.5px] tabular-nums font-medium">{money(r.lifetimeValue)}</span>
+                      </li>
+                    )
+                  })}
+                </ol>
+              </SectionCard></div>
 
-              <SectionCard title="Concentration"
-                           actions={<span className="text-[12px] tabular-nums" style={{ color: MUTED }}>{v.vip.length} of {v.rows.length} clients make {pct(v.vip.reduce((a, r) => a + r.share, 0))}</span>}>
-                <div style={{ height: 320 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={v.rows.map(r => ({ rank: r.rank, cumulative: r.cumulative, name: r.name }))} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-                      <CartesianGrid vertical={false} stroke={RULE} />
-                      <XAxis dataKey="rank" tick={{ fontSize: 11, fill: FAINT }} axisLine={{ stroke: RULE }} tickLine={false}
-                             label={{ value: 'Clients, largest first', position: 'insideBottomRight', offset: -2, fontSize: 11, fill: FAINT }} />
-                      <YAxis domain={[0, 1]} tickFormatter={pct} tick={{ fontSize: 11, fill: FAINT }} axisLine={false} tickLine={false} width={44} />
-                      <Tooltip contentStyle={tooltipStyle} labelFormatter={l => `Top ${l}`}
-                               formatter={(val, _n, p) => [pct(Number(val) || 0), `of lifetime ${basisWord} · ${(p?.payload as { name?: string })?.name ?? ''}`]} />
-                      <ReferenceLine y={VIP_SHARE} stroke={FAINT} strokeDasharray="4 4" />
-                      {v.vip.length > 0 && <ReferenceLine x={v.vip.length} stroke={FAINT} strokeDasharray="4 4" />}
-                      <Line type="stepAfter" dataKey="cumulative" stroke={INK} strokeWidth={2} dot={false} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </SectionCard>
+              {/* What to act on: income that has to be renewed. Replaces a concentration curve
+                  that restated the client table. */}
+              <div><SectionCard title="Renewals due, next 90 days"
+                           actions={<span className="text-[13px] tabular-nums" style={{ color: MUTED }}>{v.renewals.length} policies · {money(v.renewals.reduce((a, x) => a + x.commission, 0))} last-term commission</span>}>
+                {v.renewals.length === 0 ? (
+                  <p className="m-0 py-6 text-[13.5px]" style={{ color: MUTED }}>No policy on file ends in the next 90 days.</p>
+                ) : (
+                  <ol className="m-0 p-0 list-none flex flex-col max-h-[460px] overflow-y-auto">
+                    {v.renewals.map(x => (
+                      <li key={x.policyId} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 py-2.5" style={{ borderBottom: '1px solid #f1f3f4' }}>
+                        <div className="min-w-0">
+                          {x.companyId
+                            ? <Link href={`/companies/${x.companyId}`} className="block truncate text-[13.5px] hover:underline" style={{ color: INK }} title={x.client}>{displayName(x.client)}</Link>
+                            : <span className="block truncate text-[13.5px]">{displayName(x.client)}</span>}
+                          <div className="truncate text-[12px]" style={{ color: MUTED }} title={`${x.className ?? ''} · ${x.insurer}`}>{x.className ?? 'Class not on file'} · {x.insurer}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-[13.5px] tabular-nums font-medium">{money(x.commission)}</div>
+                          <div className="text-[12px] tabular-nums whitespace-nowrap" style={{ color: x.daysLeft < 0 ? INK : MUTED }}>
+                            {dateLabel(x.end)} · {x.daysLeft < 0 ? `${-x.daysLeft}d ago` : x.daysLeft === 0 ? 'today' : `in ${x.daysLeft}d`}
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </SectionCard></div>
             </div>
 
+            <div id="clients" />
             <SectionCard title="Clients" actions={
               <div className="flex flex-wrap items-center gap-2">
                 <input aria-label="Search clients" value={q} onChange={e => setQ(e.target.value)} placeholder="Search"
-                       className="text-[13px] border border-[#dadce0] rounded-md px-2.5 py-1 w-[160px]" />
+                       className={`${SELECT} w-[180px] cursor-text`} />
+                <span className="text-[12.5px] tabular-nums" style={{ color: MUTED }}>{v.vip.length} VIP make {pct(v.vip.reduce((a, r) => a + r.share, 0))}</span>
                 <Segmented value={who} onChange={w => setWho(w)} options={[{ value: 'all', label: 'All', count: v.rows.length }, { value: 'vip', label: 'VIP', count: v.vip.length }]} />
               </div>
             }>
@@ -246,7 +266,7 @@ export default function EarningsPage() {
                         <td className={`${num} text-left`} style={{ color: FAINT }}>{r.rank}</td>
                         <td className={td}>
                           <div className="flex items-center gap-2">
-                            {r.companyId ? <Link href={`/companies/${r.companyId}`} className="hover:underline" style={{ color: INK }}>{r.name}</Link> : <span>{r.name}</span>}
+                            {r.companyId ? <Link href={`/companies/${r.companyId}`} className="hover:underline" style={{ color: INK }}>{displayName(r.name)}</Link> : <span>{displayName(r.name)}</span>}
                             {r.vip && <span className="text-[10.5px] font-semibold tracking-wide px-1.5 py-[1px] rounded" style={{ border: `1px solid ${INK}`, color: INK }}>VIP</span>}
                           </div>
                           <div className="text-[11.5px]" style={{ color: FAINT }}>
@@ -269,7 +289,7 @@ export default function EarningsPage() {
 
             <div className="grid gap-6 lg:grid-cols-2">
               {[{ title: 'By insurer', rows: v.byInsurer }, { title: 'By class of insurance', rows: v.byClass }].map(g => (
-                <SectionCard key={g.title} title={g.title}>
+                <div key={g.title}><SectionCard title={g.title}>
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[460px]">
                       <thead>
@@ -294,7 +314,7 @@ export default function EarningsPage() {
                       </tbody>
                     </table>
                   </div>
-                </SectionCard>
+                </SectionCard></div>
               ))}
             </div>
 
