@@ -40,7 +40,7 @@ type Plan  = { rate_table_id: string; product_code: string; plan_code: string; p
 type Ben   = { rate_table_id: string; product_code: string | null; plan_code: string | null
                benefit_name: string; value_text: string | null; value_numeric: number | null
                canon_benefit: string | null }
-type Result = { insurer_name: string; total: number; missing?: number }
+type Result = { rate_table_id?: string; insurer_name: string; total: number; missing?: number }
 
 /**
  * The plan tier's own attributes ARE canonical benefit lines, so they are read as such rather
@@ -95,12 +95,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const plans = plansRes.ok ? await plansRes.json() as Plan[] : []
     const bens  = benRes.ok   ? await benRes.json()   as Ben[]  : []
 
-    const resultFor = (name: string) => totals.find(t => t.insurer_name === name)
+    // By rate table first. Matching on the insurer's name alone broke the moment a name was
+    // tidied — "QBE Insurance (Singapore) Pte Ltd" to "QBE" — and a quotation lost its total.
+    const resultFor = (m: Meta) => totals.find(t => t.rate_table_id === m.id) ?? totals.find(t => t.insurer_name === m.insurer_name)
     const options: Option[] = []
 
     for (const m of metas) {
       const used = usedByTable[m.id]
-      const r = resultFor(m.insurer_name)
+      const r = resultFor(m)
       const planRows = plans.filter(p => p.rate_table_id === m.id && (!used || used.size === 0 || used.has(p.plan_code)))
       // A table with no plan-tier rows still has premiums and benefit lines, so it is quoted as
       // one option per used plan code rather than dropped.

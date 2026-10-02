@@ -4,12 +4,16 @@
  *   body: { meta?, plans?, rates?, benefits? }  (arrays replace the candidate for this table)
  * DELETE /api/group-benefits/rate-tables/[id]
  */
+import { resolveInsurerKey } from '@/lib/insurers'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
 import { bandBounds }                from '@/lib/gb-extract'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+
+/** The rate-table fields a reviewer may edit. Everything else on the row is set by the system. */
+const META_FIELDS = ['insurer_name', 'product_code', 'product_name', 'age_basis', 'plan_year', 'effective_date', 'notes'] as const
 
 function sbH(prefer = 'return=minimal') {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -68,7 +72,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     if (body.meta && Object.keys(body.meta).length) {
-      await fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=eq.${id}`, { method: 'PATCH', headers: sbH(), body: JSON.stringify({ ...body.meta, updated_at: new Date().toISOString() }) })
+      // Only the fields a reviewer edits. This used to spread body.meta straight into the
+      // update, so a request could set status, approved_by or anything else on the row.
+      const m = body.meta
+      const patch: Record<string, unknown> = {}
+      for (const k of META_FIELDS) if (k in m) patch[k] = m[k]
+      // Companies → Insurers is the list. The picker sends a company id; the foreign-key column
+      // still points at the legacy key table, so resolve the company to its key and canonical name.
+      if (typeof m.insurer_company_id === 'string' && m.insurer_company_id) {
+        const r = await resolveInsurerKey({ companyId: m.insurer_company_id })
+        if (!r) return NextResponse.json({ error: 'That insurer is not in Companies → Insurers.' }, { status: 400 })
+        patch.insurer_id = r.key
+        patch.insurer_name = r.company.name
+      }
+      if (Object.keys(patch).length) {
+        await fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=eq.${id}`, { method: 'PATCH', headers: sbH(), body: JSON.stringify({ ...patch, updated_at: new Date().toISOString() }) })
+      }
     }
     // Arrays fully replace the candidate rows for this table (the review grid sends the
     // whole edited set).

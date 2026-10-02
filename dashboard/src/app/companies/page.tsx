@@ -38,7 +38,9 @@ function CompaniesInner() {
   const { data, rows, error, sync, actions, patchCompany, workloads, staff, staffList, me, today, reload } = useBoardData()
   const [q, setQ] = useState('')
   const [view, setView] = useState<View>('all')
-  const [kind, setKind] = useState<'client' | 'insurer'>('client')
+  // ?kind=insurer opens Companies → Insurers directly; the rate-table and calculator pickers
+  // link here when an insurer is missing.
+  const [kind, setKind] = useState<'client' | 'insurer'>(search.get('kind') === 'insurer' ? 'insurer' : 'client')
   const [f, setF] = useState<Filters>(EMPTY)
   const [sort, setSort] = useState<Sort>(DEFAULT_SORT)
   const [selected, setSelected] = useState<string | null>(null)

@@ -152,7 +152,10 @@ function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
   const router = useRouter()
   const [xlsx, setXlsx] = useState<File | null>(null)
   const [pdf, setPdf] = useState<File | null>(null)
+  // Picked from Companies → Insurers, never typed, so the insurer list cannot fork again.
   const [insurer, setInsurer] = useState('')
+  const [insurers, setInsurers] = useState<{ id: string; name: string }[]>([])
+  useEffect(() => { fetch('/api/insurers', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).then(rows => setInsurers(Array.isArray(rows) ? rows : [])).catch(() => {}) }, [])
   const [effDate, setEffDate] = useState('')
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
@@ -179,7 +182,7 @@ function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
       let brochure_path: string | undefined
       if (pdf) { setStatus('Uploading brochure…'); brochure_path = await uploadOne(pdf, 'pdf') }
       setStatus('Creating…')
-      const cr = await fetch('/api/pricing-matrix/calculators', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ xlsx_path, xlsx_filename: xlsx.name, brochure_path, brochure_filename: pdf?.name, insurer_name: insurer || null, effective_date: effDate || null }) })
+      const cr = await fetch('/api/pricing-matrix/calculators', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ xlsx_path, xlsx_filename: xlsx.name, brochure_path, brochure_filename: pdf?.name, insurer_company_id: insurer || null, effective_date: effDate || null }) })
       const cd = await safeJson<{ id?: string }>(cr)
       if (!cr.ok || !cd.id) { setError(cd.error ?? 'Create failed'); return }
       onDone()
@@ -200,7 +203,10 @@ function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
           <label className={drop} style={{ background: '#F1F3F4' }}><FileText size={20} style={{ color: '#3c4043' }} /><span className="text-[13px] font-medium max-w-full truncate" title={pdf?.name}>{pdf ? pdf.name : 'Brochure .pdf'}</span><span className="text-[12px]" style={{ color: MUTED }}>Optional</span><input type="file" accept="application/pdf" className="hidden" onChange={e => setPdf(e.target.files?.[0] ?? null)} /></label>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-3">
-          <input value={insurer} onChange={e => setInsurer(e.target.value)} placeholder="Insurer name" aria-label="Insurer name" className={inp} style={{ borderColor: '#dadce0' }} />
+          <select id="calc-insurer" value={insurer} onChange={e => setInsurer(e.target.value)} aria-label="Insurer" className={inp} style={{ borderColor: '#dadce0', color: insurer ? INK : MUTED }}>
+            <option value="">Choose an insurer…</option>
+            {insurers.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+          </select>
           <input value={effDate} onChange={e => setEffDate(e.target.value)} type="date" aria-label="Rate effective date" className={inp} style={{ borderColor: '#dadce0' }} />
         </div>
         {error && <p className="m-0 mt-3 text-[13px]" style={{ color: '#3c4043' }}>{error}</p>}

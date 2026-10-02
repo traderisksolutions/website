@@ -5,6 +5,7 @@
  *   body: { xlsx_path, xlsx_filename, brochure_path?, brochure_filename?, insurer_id?,
  *           insurer_name?, label?, effective_date? }
  */
+import { resolveInsurerKey } from '@/lib/insurers'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
@@ -34,13 +35,23 @@ export async function POST(req: NextRequest) {
 
     const b = await req.json() as {
       xlsx_path?: string; xlsx_filename?: string; brochure_path?: string; brochure_filename?: string
-      insurer_id?: string; insurer_name?: string; label?: string; effective_date?: string
+      insurer_company_id?: string; insurer_name?: string; label?: string; effective_date?: string
     }
     if (!b.xlsx_path) return NextResponse.json({ error: 'xlsx_path required (upload the calculator .xlsx first)' }, { status: 400 })
 
+    // The insurer comes from Companies → Insurers, picked by company id. A typed name is still
+    // accepted from older clients and matched; an insurer that is not in Companies is refused,
+    // so the list cannot fork again.
+    const insurer = (b.insurer_company_id || b.insurer_name)
+      ? await resolveInsurerKey({ companyId: b.insurer_company_id, name: b.insurer_name })
+      : null
+    if ((b.insurer_company_id || b.insurer_name) && !insurer) {
+      return NextResponse.json({ error: 'That insurer is not in Companies → Insurers. Add it there first.' }, { status: 400 })
+    }
+
     const row = {
-      insurer_id:        b.insurer_id ?? null,
-      insurer_name:      b.insurer_name ?? null,
+      insurer_id:        insurer?.key ?? null,
+      insurer_name:      insurer?.company.name ?? null,
       label:             b.label ?? null,
       xlsx_path:         b.xlsx_path,
       xlsx_filename:     b.xlsx_filename ?? 'calculator.xlsx',

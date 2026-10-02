@@ -4,6 +4,7 @@
  * stores each run for audit, writes the merged candidate into gb_plans/gb_rates/gb_benefits,
  * and moves the table to `in_review`. Idempotent — re-running replaces the candidate.
  */
+import { resolveInsurerKey } from '@/lib/insurers'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
@@ -103,11 +104,14 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     await fetch(`${SB_URL}/rest/v1/gb_extraction_runs`, { method: 'POST', headers: sbH(), body: JSON.stringify(runs.map(r => ({ rate_table_id: id, ...r }))) }).catch(() => {})
 
     // Resolve insurer + effective date first (denormalised onto each price row).
-    const insurerName: string | null = merged.insurer_name ?? table.insurer_name ?? null
+    let insurerName: string | null = merged.insurer_name ?? table.insurer_name ?? null
     let insurerId: string | null = table.insurer_id ?? null
+    // Matched against Companies → Insurers. The lookup this replaced searched for the brochure's
+    // full name inside the directory's short one — "%QBE Insurance (Singapore) Pte Ltd%" against
+    // "QBE" — which can never match, so no rate table was ever linked to its insurer.
     if (!insurerId && insurerName) {
-      insurerId = await fetch(`${SB_URL}/rest/v1/insurers?name=ilike.${encodeURIComponent('%' + insurerName + '%')}&select=id&limit=1`, { headers: sbH(), cache: 'no-store' })
-        .then(r => (r.ok ? r.json() : [])).then(rows => (Array.isArray(rows) ? rows[0]?.id : null) ?? null).catch(() => null)
+      const r = await resolveInsurerKey({ name: insurerName }).catch(() => null)
+      if (r) { insurerId = r.key; insurerName = r.company.name }
     }
     const effDate = (merged.effective_date && /^\d{4}-\d{2}-\d{2}$/.test(merged.effective_date)) ? merged.effective_date : (table.effective_date ?? null)
 

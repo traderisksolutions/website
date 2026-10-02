@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Loader2, CheckCircle2, AlertTriangle, Save, FileText, RefreshCw, Trash2, Pencil, X, Plus, ListChecks } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { matchInsurer, type InsurerCompany } from '@/lib/insurers'
 
 type Rate    = { id?: string; product_code: string; member_type: string | null; plan_code: string; band_label: string; age_min: number | null; age_max: number | null; premium: number; renewal_only?: boolean }
 type Plan    = { product_code: string; plan_code: string; plan_name: string | null; hospital_type: string | null; beds: string | null; co_payment: string | null }
@@ -39,7 +40,8 @@ export default function GbReviewPage() {
   const [saving, setSaving] = useState<'save' | 'approve' | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [meta, setMeta] = useState<Record<string, string>>({})
-  const [insurers, setInsurers] = useState<{ id: string; name: string }[]>([])
+  // Companies → Insurers: the one list of insurers. The rate table stores which company it is.
+  const [insurers, setInsurers] = useState<InsurerCompany[]>([])
   const [editing, setEditing] = useState(false)   // edit an already-approved table without re-extracting
   const [snapshot, setSnapshot] = useState('')     // serialized state at load, to detect unsaved edits
 
@@ -62,7 +64,10 @@ export default function GbReviewPage() {
     setSnapshot(JSON.stringify({ r: data.rates, b: data.benefits, c: data.coverage ?? [], m }))
   }, [id])
 
-  useEffect(() => { fetch('/api/settings/insurers', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).then(rows => setInsurers(Array.isArray(rows) ? rows : [])).catch(() => {}) }, [])
+  useEffect(() => { fetch('/api/insurers', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).then(rows => setInsurers(Array.isArray(rows) ? rows : [])).catch(() => {}) }, [])
+  // Which company this table belongs to, read from its stored name — the stored insurer_id is a
+  // key into the legacy table, not a company id.
+  const insurerCompanyId = meta.insurer_company_id || matchInsurer(meta.insurer_name, insurers)?.id || ''
 
   useEffect(() => { load() }, [load])
   // Poll while extraction is running.
@@ -139,7 +144,9 @@ export default function GbReviewPage() {
     setSaving(approveAfter ? 'approve' : 'save'); setMsg(null)
     try {
       const metaPayload = {
-        insurer_id:     meta.insurer_id || null,
+        // The server resolves the company to its key and canonical name; the browser never
+        // writes a key into the legacy table directly.
+        insurer_company_id: insurerCompanyId || null,
         insurer_name:   meta.insurer_name || null,
         product_code:   meta.product_code || '',
         age_basis:      meta.age_basis || 'next_birthday',
@@ -227,11 +234,15 @@ export default function GbReviewPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-start">
             <div className="col-span-2 md:col-span-1">
               <label className="text-[12.5px] text-muted-foreground/60">Insurer</label>
-              <input value={meta.insurer_name ?? ''} onChange={e => setMeta(m => ({ ...m, insurer_name: e.target.value }))} placeholder="Insurer name" className={`${mi} mt-1`} />
-              <select value={meta.insurer_id ?? ''} onChange={e => { const iid = e.target.value; setMeta(m => ({ ...m, insurer_id: iid, insurer_name: insurers.find(i => i.id === iid)?.name ?? m.insurer_name })) }} className={`${mi} mt-1.5 text-muted-foreground`}>
-                <option value="">Link to directory (optional)…</option>
+              <select value={insurerCompanyId} aria-label="Insurer"
+                onChange={e => { const cid = e.target.value; setMeta(m => ({ ...m, insurer_company_id: cid, insurer_name: insurers.find(i => i.id === cid)?.name ?? m.insurer_name })) }}
+                className={`${mi} mt-1`}>
+                <option value="">{meta.insurer_name && !insurerCompanyId ? `${meta.insurer_name} — not in Companies` : 'Choose an insurer…'}</option>
                 {insurers.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
               </select>
+              {!insurerCompanyId && meta.insurer_name && (
+                <a href="/companies?kind=insurer" className="block mt-1 text-[12px] no-underline hover:underline" style={{ color: '#5f6368' }}>Add this insurer in Companies</a>
+              )}
             </div>
             <div>
               <label className="text-[12.5px] text-muted-foreground/60">Age basis</label>
