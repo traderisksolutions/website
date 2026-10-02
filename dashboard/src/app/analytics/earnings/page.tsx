@@ -181,7 +181,7 @@ export default function EarningsPage() {
             <div className="grid gap-x-10 lg:grid-cols-2">
               {/* A ranked list, not a chart: client names are long and a bar axis cut them to
                   three wrapped lines each. */}
-              <div><SectionCard title={`Top 10 clients by lifetime ${basisWord}`}
+              <div className="min-w-0"><SectionCard title={`Top 10 clients by lifetime ${basisWord}`}
                            actions={<Link href="#clients" className="text-[13px] hover:underline" style={{ color: MUTED }}>All clients</Link>}>
                 <ol className="m-0 p-0 list-none flex flex-col">
                   {v.rows.slice(0, 10).map(r => {
@@ -209,29 +209,37 @@ export default function EarningsPage() {
 
               {/* What to act on: income that has to be renewed. Replaces a concentration curve
                   that restated the client table. */}
-              <div><SectionCard title="Renewals due, next 90 days"
-                           actions={<span className="text-[13px] tabular-nums" style={{ color: MUTED }}>{v.renewals.length} policies · {money(v.renewals.reduce((a, x) => a + x.commission, 0))} last-term commission</span>}>
+              <div className="min-w-0"><SectionCard title="Renewals due, next 90 days"
+                           actions={<span className="text-[13px] tabular-nums" style={{ color: MUTED }}>{v.renewals.length} policies · {money(v.renewals.reduce((a, x) => a + x.premium, 0))} premium</span>}>
                 {v.renewals.length === 0 ? (
                   <p className="m-0 py-6 text-[13.5px]" style={{ color: MUTED }}>No policy on file ends in the next 90 days.</p>
                 ) : (
-                  <ol className="m-0 p-0 list-none flex flex-col max-h-[460px] overflow-y-auto">
-                    {v.renewals.map(x => (
-                      <li key={x.policyId} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 py-2.5" style={{ borderBottom: '1px solid #f1f3f4' }}>
-                        <div className="min-w-0">
-                          {x.companyId
-                            ? <Link href={`/companies/${x.companyId}`} className="block truncate text-[13.5px] hover:underline" style={{ color: INK }} title={x.client}>{displayName(x.client)}</Link>
-                            : <span className="block truncate text-[13.5px]">{displayName(x.client)}</span>}
-                          <div className="truncate text-[12px]" style={{ color: MUTED }} title={`${x.className ?? ''} · ${x.insurer}`}>{x.className ?? 'Class not on file'} · {x.insurer}</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-[13.5px] tabular-nums font-medium">{money(x.commission)}</div>
-                          <div className="text-[12px] tabular-nums whitespace-nowrap" style={{ color: x.daysLeft < 0 ? INK : MUTED }}>
-                            {dateLabel(x.end)} · {x.daysLeft < 0 ? `${-x.daysLeft}d ago` : x.daysLeft === 0 ? 'today' : `in ${x.daysLeft}d`}
-                          </div>
-                        </div>
-                      </li>
-                    ))}
-                  </ol>
+                  <div className="overflow-auto max-h-[480px]">
+                    <table className="w-full min-w-[440px]">
+                      <thead className="sticky top-0 bg-white">
+                        <tr style={{ color: FAINT, borderBottom: `1px solid ${RULE}` }}>
+                          <th className={th}>Company</th>
+                          <th className={`${th} text-right`}>Premium</th>
+                          <th className={`${th} text-right`}>Ends</th>
+                          <th className={`${th} text-right`}>Days left</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {v.renewals.map(x => (
+                          <tr key={x.policyId} style={{ borderBottom: '1px solid #f1f3f4' }}>
+                            <td className={`${td} max-w-[260px]`}>
+                              {x.companyId
+                                ? <Link href={`/companies/${x.companyId}`} className="block truncate hover:underline" style={{ color: INK }} title={`${x.client} · ${x.className ?? ''} · ${x.insurer}`}>{displayName(x.client)}</Link>
+                                : <span className="block truncate" title={x.client}>{displayName(x.client)}</span>}
+                            </td>
+                            <td className={num}>{money(x.premium)}</td>
+                            <td className={num}>{dateLabel(x.end)}</td>
+                            <td className={`${num} font-medium`} style={{ color: x.daysLeft < 0 ? INK : MUTED }}>{x.daysLeft}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </SectionCard></div>
             </div>
@@ -289,7 +297,7 @@ export default function EarningsPage() {
 
             <div className="grid gap-6 lg:grid-cols-2">
               {[{ title: 'By insurer', rows: v.byInsurer }, { title: 'By class of insurance', rows: v.byClass }].map(g => (
-                <div key={g.title}><SectionCard title={g.title}>
+                <div key={g.title} className="min-w-0"><SectionCard title={g.title}>
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[460px]">
                       <thead>
