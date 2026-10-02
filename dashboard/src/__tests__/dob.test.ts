@@ -50,3 +50,34 @@ describe('parseCalendarDate', () => {
     expect(ageLastBirthday({ y: 1990, m: 10, d: 2 }, ON)).toBe(35)
   })
 })
+
+import { parseDocumentDate, toIsoDocumentDate } from '@/lib/dates/dob'
+
+describe('parseDocumentDate — dates printed on insurer documents', () => {
+  it('reads the formats Singapore insurers print', () => {
+    expect(toIsoDocumentDate('2-Jun-26')).toBe('2026-06-02')
+    expect(toIsoDocumentDate('02 June 2026')).toBe('2026-06-02')
+    expect(toIsoDocumentDate('2 Sept 2026')).toBe('2026-09-02')
+    expect(toIsoDocumentDate('June 2, 2026')).toBe('2026-06-02')
+    expect(toIsoDocumentDate('02/06/2026')).toBe('2026-06-02')
+    expect(toIsoDocumentDate('02/06/26')).toBe('2026-06-02')
+    expect(toIsoDocumentDate('2026-06-02')).toBe('2026-06-02')
+  })
+  it('never reads a numeric date month-first', () => {
+    expect(toIsoDocumentDate('12/09/2026')).toBe('2026-09-12')
+    expect(toIsoDocumentDate('06/13/2026')).toBeNull()   // month 13: a US-format date is refused, not swapped
+  })
+  it('refuses what it cannot read', () => {
+    expect(parseDocumentDate('31-Feb-26')).toBeNull()
+    expect(parseDocumentDate('Q3 2026')).toBeNull()
+    expect(parseDocumentDate('')).toBeNull()
+  })
+})
+
+describe('month names', () => {
+  it('accepts real names and abbreviations only', () => {
+    expect(toIsoDocumentDate('2-Junk-26')).toBeNull()
+    expect(toIsoDocumentDate('2-Sept-26')).toBe('2026-09-02')
+    expect(toIsoDocumentDate('2 September 2026')).toBe('2026-09-02')
+  })
+})

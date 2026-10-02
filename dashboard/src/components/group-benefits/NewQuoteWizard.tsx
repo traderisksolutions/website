@@ -7,6 +7,7 @@ import { plainToHtml } from '@/components/RichEditor'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { BenefitComparison } from '@/components/group-benefits/BenefitComparison'
 import type { Comparison } from '@/lib/gb/compare'
+import { toIsoDate } from '@/lib/dates/dob'
 
 // ── Types mirrored from the API ────────────────────────────────────────────────
 type Member = { name: string; category: string; relationship: string; dob?: string | null; age?: number | null; occupation_class?: string | null }
@@ -43,8 +44,11 @@ function parseCensus(text: string): Member[] {
       name: (ci.name >= 0 ? c[ci.name] : '') || 'Member',
       category: category || 'Default',
       relationship: rel,
-      dob: ci.dob >= 0 && c[ci.dob] ? c[ci.dob] : null,
-      age: ageRaw ? Number(ageRaw) : null,
+      // Stored as YYYY-MM-DD, read day-first (Singapore order) at the moment of import, so the
+      // saved census can never be read in the wrong order later. A date that cannot be read is
+      // dropped and the age column kept; with neither, the line shows as unpriced.
+      dob: ci.dob >= 0 && c[ci.dob] ? toIsoDate(c[ci.dob]) : null,
+      age: ageRaw && isFinite(Number(ageRaw)) ? Number(ageRaw) : null,
       occupation_class: ci.cls >= 0 && c[ci.cls] ? c[ci.cls] : null,
     }
   }).filter(m => m.name)
@@ -274,7 +278,7 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
                     <select value={m.relationship} onChange={e => editMember(i, { relationship: e.target.value })} className="text-[11px] px-1 py-0.5 rounded border border-transparent hover:border-border focus:border-[#202124] focus:outline-none bg-transparent">
                       <option value="self">self</option><option value="spouse">spouse</option><option value="child">child</option>
                     </select>
-                    <input value={m.dob ?? (m.age != null ? String(m.age) : '')} placeholder="YYYY-MM-DD or age"
+                    <input value={m.dob ?? (m.age != null ? String(m.age) : '')} placeholder="DD/MM/YYYY or age"
                       onChange={e => { const v = e.target.value.trim(); editMember(i, /^\d{1,3}$/.test(v) && Number(v) <= 120 ? { dob: null, age: Number(v) } : { dob: v || null, age: null }) }}
                       className="text-[11.5px] px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-[#202124] focus:outline-none bg-transparent" />
                     <input value={m.occupation_class ?? ''} placeholder="—" title="Occupation class (1–4)"
@@ -320,7 +324,7 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
               </tbody>
             </Register>
             <ul className="mt-2 flex flex-col gap-0.5 text-[11px] text-muted-foreground/70 list-disc pl-4">
-              <li><span className="font-medium text-foreground/70">dob</span> (YYYY-MM-DD) is preferred; <span className="font-medium text-foreground/70">age</span> is used only when there&apos;s no dob.</li>
+              <li><span className="font-medium text-foreground/70">dob</span> as DD/MM/YYYY or YYYY-MM-DD — never month first; <span className="font-medium text-foreground/70">age</span> is used only when there&apos;s no dob.</li>
               <li><span className="font-medium text-foreground/70">relationship</span> must be one of <code>self</code>, <code>spouse</code>, or <code>child</code>.</li>
               <li><span className="font-medium text-foreground/70">category</span> is your own plan tier / class label (e.g. Executive, Staff).</li>
               <li><span className="font-medium text-foreground/70">occupation_class</span> (optional, 1–4) drives insurer eligibility rules; leave blank if not applicable.</li>

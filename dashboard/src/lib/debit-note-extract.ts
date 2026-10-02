@@ -11,6 +11,7 @@
  */
 import { geminiUrl, GEMINI_FLASH } from '@/lib/gemini-models'
 import { logAiUsage } from '@/lib/gemini-usage'
+import { toIsoDocumentDate } from '@/lib/dates/dob'
 
 export type DocType = 'client_invoice' | 'commission_statement' | 'trs_debit_note' | 'other'
 
@@ -68,17 +69,17 @@ const SCHEMA_HINT = `Return ONLY a JSON object (no markdown fences, no prose) wi
   "class_of_insurance": string|null, // e.g. "Contractors' All Risk", "Work Injury Compensation"
   "insurer": string|null,            // the insurance company's name
   "description": string|null,        // site address / project description, if present
-  "period_start": "YYYY-MM-DD"|null, // period of insurance / cover start date
-  "period_end": "YYYY-MM-DD"|null,   // period of insurance / cover end date — this is the renewal date
+  "period_start": string|null,       // period of insurance / cover start date, exactly as printed
+  "period_end": string|null,         // period of insurance / cover end date, exactly as printed — this is the renewal date
   "currency": string|null,           // ISO code e.g. "SGD"
   "gross_premium": number|null,      // the premium amount BEFORE GST
   "gst_amount": number|null,         // GST amount if shown, else null
   "commission_rate": number|null,    // e.g. 10 for "Commission 10.000%" — only on commission_statement docs
   "commission_amount": number|null,  // the commission dollar amount on that same line
-  "issue_date": "YYYY-MM-DD"|null,   // the document's own date
-  "payment_due_date": "YYYY-MM-DD"|null
+  "issue_date": string|null,         // the document's own date, exactly as printed
+  "payment_due_date": string|null    // exactly as printed
 }
-All dates must be normalised to YYYY-MM-DD regardless of the source format (e.g. "2-Jun-26" → "2026-06-02").`
+Copy every date EXACTLY as it is printed, character for character ("2-Jun-26", "02/06/2026"). Do NOT reformat dates, convert them, or reorder day and month — the system reads them itself.`
 
 // Hard requirement, not just a prompt hint: a debit note number is always "DN" + digits (TRS's
 // own numbering convention). Anything else — an insurer's own invoice/reference number, a cover
@@ -103,7 +104,17 @@ function safeParse(text: string): ExtractedDebitNote | null {
   try {
     const cleaned = text.replace(/^```(json)?/i, '').replace(/```$/, '').trim()
     const parsed = JSON.parse(cleaned)
-    return { ...EMPTY, ...parsed, debit_note_no: normalizeDebitNoteNo(parsed.debit_note_no) }
+    // Dates are copied as printed and read here, day first. The model used to be told to
+    // normalise them to YYYY-MM-DD, which handed it the choice of whether 02/06/2026 is the 2nd
+    // of June or the 6th of February. A date that cannot be read becomes null and is visible as
+    // missing on the review screen, rather than stored wrong.
+    const d = (v: unknown) => (typeof v === 'string' ? toIsoDocumentDate(v) : null)
+    return {
+      ...EMPTY, ...parsed,
+      debit_note_no: normalizeDebitNoteNo(parsed.debit_note_no),
+      period_start: d(parsed.period_start), period_end: d(parsed.period_end),
+      issue_date: d(parsed.issue_date), payment_due_date: d(parsed.payment_due_date),
+    }
   } catch { return null }
 }
 

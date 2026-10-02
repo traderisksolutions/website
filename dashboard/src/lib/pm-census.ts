@@ -3,6 +3,7 @@
  */
 import type { CensusMember } from '@/lib/pm-quote'
 import { parseCalendarDate, ageLastBirthday, todaySGT } from '@/lib/dates/dob'
+import { toIsoDate } from '@/lib/dates/dob'
 
 /** Plain calendar age as of today, from a DOB — display-only convenience (pricing itself uses each
  *  insurer's own age basis / effective date via ageForBasis in pm-calc.ts, not this). */
@@ -59,9 +60,11 @@ export function parseCensusCsvWithMapping(text: string, mapping: Partial<Record<
   }
   return lines.slice(1).map(line => {
     const row = splitCsvLine(line)
-    const dob = at(row, 'date_of_birth')
+    // YYYY-MM-DD, read day-first at import. A raw 24/12/1971 used to be stored as typed, which the
+    // date field could not display and the engine read month-first.
+    const dob = toIsoDate(at(row, 'date_of_birth'))
     const ageStr = at(row, 'age')
-    const age = ageStr ? Number(ageStr) : (dob ? ageAsOfToday(dob) : null)
+    const age = ageStr && isFinite(Number(ageStr)) ? Number(ageStr) : (dob ? ageAsOfToday(dob) : null)
     return {
       name: at(row, 'name') ?? row[0] ?? '',
       date_of_birth: dob,

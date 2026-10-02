@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { GEMINI_FLASH, geminiUrl }   from '@/lib/gemini-models'
+import { parseCalendarDate } from '@/lib/dates/dob'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 function sbH() {
@@ -42,12 +43,13 @@ export async function POST(req: NextRequest) {
 
     const corpus = unique.map(s => `# FILE: ${s.filename}\n${(s.parsed_text ?? '').slice(0, 20000)}`).join('\n\n')
     const prompt = `You are extracting a group-insurance employee census from spreadsheet data (already converted to CSV). Column names/order vary per client — map them yourself.
-Return ONLY JSON: { "members": [{ "name": string, "category": string, "relationship": "self"|"spouse"|"child", "dob": "YYYY-MM-DD"|null, "age": number|null }] }
+Return ONLY JSON: { "members": [{ "name": string, "category": string, "relationship": "self"|"spouse"|"child", "dob": string|null, "age": number|null }] }
 RULES:
 - One row per person, including dependents (spouse/children) if present.
 - relationship: the employee = "self"; map "employee/staff/principal" to "self". Spouse/wife/husband -> "spouse"; child/son/daughter -> "child". Default "self" if unclear.
 - category = the plan grade/tier/category column if present (e.g. Manager, Exec, Staff), else "Default".
-- dob: normalise any date to YYYY-MM-DD. If only an age is given, set age and dob=null. Never invent a DOB.
+- dob: copy the date of birth EXACTLY as it appears in the data, character for character. Do NOT reformat it, reorder day and month, or convert it. If only an age is given, set age and dob=null. Never invent a DOB.
+- age: copy an age column if there is one, else null.
 - Ignore header/total/blank rows.
 
 DATA:
@@ -67,7 +69,21 @@ ${corpus}`
       members = Array.isArray(o.members) ? o.members : []
     } catch { /* leave empty */ }
 
-    return NextResponse.json({ members, files: unique.map(u => u.filename) })
+    // The model copies dates verbatim; code decides what they mean. It used to be told to
+    // "normalise any date to YYYY-MM-DD", which hands it the one judgement that must never be a
+    // guess — whether 12/09/1972 is the 12th of September or the 9th of December. Singapore writes
+    // day first, and so does this parser; a date it cannot read is cleared and the stated age kept,
+    // and the member is listed in `unreadDates` so the broker sees it before pricing.
+    const unreadDates: string[] = []
+    members = members.map(m => {
+      if (!m.dob) return m
+      const d = parseCalendarDate(m.dob)
+      if (d) return { ...m, dob: `${d.y}-${String(d.m).padStart(2, '0')}-${String(d.d).padStart(2, '0')}` }
+      unreadDates.push(`${m.name}: "${m.dob}"`)
+      return { ...m, dob: null }
+    })
+
+    return NextResponse.json({ members, unreadDates, files: unique.map(u => u.filename) })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }

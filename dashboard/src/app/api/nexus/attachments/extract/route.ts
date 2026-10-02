@@ -21,6 +21,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { parseEmlSmart }             from '@/lib/parse-eml'
 import { logError }                  from '@/lib/error-log'
 import { geminiUrl, GEMINI_FLASH as GEMINI_FLASH_MODEL } from '@/lib/gemini-models'
+import { xlsxSheetsAsText } from '@/lib/xlsx-text'
 
 export const maxDuration = 300
 
@@ -287,10 +288,8 @@ async function extractInnerBuffer(name: string, buf: Buffer, apiKey: string, thr
   }
   if (['xlsx', 'xls'].includes(ext)) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const xl = require('xlsx') as { read: (d: Buffer, o: { type: string }) => { SheetNames: string[]; Sheets: Record<string, unknown> }; utils: { sheet_to_csv: (s: unknown) => string } }
-      const wb = xl.read(buf, { type: 'buffer' })
-      return `${name}:\n${wb.SheetNames.map(n => xl.utils.sheet_to_csv(wb.Sheets[n]).slice(0, 4000)).join('\n')}`
+      // Dates as YYYY-MM-DD: the library's default renders them month-first. See src/lib/xlsx-text.ts.
+      return `${name}:\n${xlsxSheetsAsText(buf, 4000).map(s => s.text).join('\n')}`
     } catch { return `[${name}: XLSX extraction failed]` }
   }
   if (ext === 'zip') {
@@ -381,18 +380,8 @@ async function processAttachment(
   // ── XLSX: extract as CSV table ───────────────────────────────────────────
   else if (mime.includes('spreadsheetml') || mime.includes('excel') || filename.endsWith('.xlsx') || filename.endsWith('.xls')) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const xlsx = require('xlsx') as {
-        read: (d: Buffer, o: { type: string }) => { SheetNames: string[]; Sheets: Record<string, unknown> }
-        utils: { sheet_to_csv: (s: unknown) => string }
-      } | null
-      if (xlsx) {
-        const wb     = xlsx.read(data, { type: 'buffer' })
-        const sheets = wb.SheetNames.map((name: string) =>
-          `Sheet: ${name}\n${xlsx.utils.sheet_to_csv(wb.Sheets[name]).slice(0, 10000)}`
-        )
-        parsedText = sheets.join('\n\n').slice(0, 30000)
-      }
+      // Dates as YYYY-MM-DD: the library's default renders them month-first. See src/lib/xlsx-text.ts.
+      parsedText = xlsxSheetsAsText(data, 10000).map(s => `Sheet: ${s.name}\n${s.text}`).join('\n\n').slice(0, 30000)
     } catch {
       parsedText = '[XLSX — install xlsx package to extract table data]'
     }

@@ -7,6 +7,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
+import { xlsxSheetsAsText } from '@/lib/xlsx-text'
 
 export const maxDuration = 60
 const MAX_BYTES = 15_000_000
@@ -28,10 +29,8 @@ async function extract(buf: Buffer, name: string, mime: string): Promise<string>
       return (await mammoth.extractRawText({ buffer: buf })).value ?? ''
     }
     if (lower.endsWith('.xlsx') || lower.endsWith('.xls') || mime.includes('spreadsheetml')) {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const xlsx = require('xlsx') as { read: (d: Buffer, o: { type: string }) => { SheetNames: string[]; Sheets: Record<string, unknown> }; utils: { sheet_to_csv: (s: unknown) => string } }
-      const wb = xlsx.read(buf, { type: 'buffer' })
-      return wb.SheetNames.map(n => `Sheet: ${n}\n${xlsx.utils.sheet_to_csv(wb.Sheets[n])}`).join('\n\n')
+      // Dates as YYYY-MM-DD: the library's default renders them month-first. See src/lib/xlsx-text.ts.
+      return xlsxSheetsAsText(buf, 1_000_000).map(s => `Sheet: ${s.name}\n${s.text}`).join('\n\n')
     }
     // csv / txt / json / markdown / anything text-ish
     return buf.toString('utf-8')

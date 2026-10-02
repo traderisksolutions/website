@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { rpConfigured, rpGet } from '@/lib/roadplus-db'
+import { parseCalendarDate, parseDocumentDate, ageLastBirthday, todaySGT } from '@/lib/dates/dob'
 
 async function requireUser() {
   const supabase = await createClient()
@@ -72,13 +73,11 @@ function insuredOf(q: QuoteFacts | null): Insured | null {
  * falling back to today when the quote has no start date.
  */
 function ageOn(dob: string | null, on: string | null): number | null {
-  if (!dob) return null
-  const b = new Date(dob)
-  const at = on ? new Date(on) : new Date()
-  if (Number.isNaN(b.getTime()) || Number.isNaN(at.getTime())) return null
-  let age = at.getUTCFullYear() - b.getUTCFullYear()
-  const m = at.getUTCMonth() - b.getUTCMonth()
-  if (m < 0 || (m === 0 && at.getUTCDate() < b.getUTCDate())) age--
+  // Day-first or ISO, never month-first — the same reader the quoting engines use.
+  const b = parseCalendarDate(dob)
+  const at = on ? parseDocumentDate(on) : todaySGT()
+  if (!b || !at) return null
+  const age = ageLastBirthday(b, at)
   return age >= 0 && age < 130 ? age : null
 }
 
@@ -87,11 +86,10 @@ function ageOn(dob: string | null, on: string | null): number | null {
  * ECICS uses for the 42-day single-trip limit.
  */
 function coverDays(start: string | null, end: string | null): number | null {
-  if (!start || !end) return null
-  const a = Date.parse(start)
-  const b = Date.parse(end)
-  if (Number.isNaN(a) || Number.isNaN(b) || b < a) return null
-  return Math.round((b - a) / 86_400_000) + 1
+  const a = parseDocumentDate(start), b = parseDocumentDate(end)
+  if (!a || !b) return null
+  const days = (Date.UTC(b.y, b.m - 1, b.d) - Date.UTC(a.y, a.m - 1, a.d)) / 86_400_000
+  return days < 0 ? null : days + 1
 }
 
 /** "Annual · APAC" — the cover, as a person would describe it. */

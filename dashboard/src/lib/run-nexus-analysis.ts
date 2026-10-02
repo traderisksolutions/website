@@ -23,6 +23,7 @@ import { fetchKnowledgeDocs } from '@/lib/gdrive-knowledge'
 import { logError } from '@/lib/error-log'
 
 import { GEMINI_FLASH as GEMINI_FLASH_MODEL } from './gemini-models'
+import { xlsxSheetsAsText } from '@/lib/xlsx-text'
 
 const SB_URL          = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const STORAGE_BUCKET  = 'email-attachments'
@@ -494,22 +495,10 @@ async function fetchAndUploadAttachments(
         // XLSX → extract as text table (best-effort)
         else if (mime.includes('spreadsheetml') || mime.includes('excel') || part.filename.endsWith('.xlsx')) {
           try {
-            // eslint-disable-next-line @typescript-eslint/no-require-imports
-            const xlsx = require('xlsx') as {
-              read: (data: Buffer, opts: { type: string }) => { SheetNames: string[]; Sheets: Record<string, unknown> }
-              utils: { sheet_to_csv: (sheet: unknown) => string }
-            } | null
-            if (xlsx) {
-              const wb    = xlsx.read(attData, { type: 'buffer' })
-              const sheets = wb.SheetNames.map((name: string) => {
-                const csv = xlsx.utils.sheet_to_csv(wb.Sheets[name])
-                return `Sheet: ${name}\n${csv.slice(0, 3000)}`
-              })
-              textChunks.push(`\n[Attachment: ${part.filename}]\n${sheets.join('\n\n')}`)
-              attachmentSummary.push(`${part.filename} (XLSX, extracted as table)`)
-            } else {
-              attachmentSummary.push(`${part.filename} (XLSX — install xlsx to extract)`)
-            }
+            // Dates as YYYY-MM-DD: the library's default renders them month-first. See src/lib/xlsx-text.ts.
+            const sheets = xlsxSheetsAsText(attData, 3000).map(s => `Sheet: ${s.name}\n${s.text}`)
+            textChunks.push(`\n[Attachment: ${part.filename}]\n${sheets.join('\n\n')}`)
+            attachmentSummary.push(`${part.filename} (XLSX, extracted as table)`)
           } catch { attachmentSummary.push(`${part.filename} (XLSX, extraction failed)`) }
         }
 

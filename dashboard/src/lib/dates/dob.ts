@@ -50,3 +50,53 @@ export function todaySGT(): CalendarDate {
 export function fromDate(dt: Date): CalendarDate {
   return { y: dt.getFullYear(), m: dt.getMonth() + 1, d: dt.getDate() }
 }
+
+/** YYYY-MM-DD for a date read day-first or ISO; null when it cannot be read without guessing. */
+export function toIsoDate(raw: string | null | undefined): string | null {
+  const d = parseCalendarDate(raw)
+  return d ? `${d.y}-${String(d.m).padStart(2, '0')}-${String(d.d).padStart(2, '0')}` : null
+}
+
+
+/** "Sept" and "September" as well as "Sep"; anything else that is not a month is null. */
+const MONTH_NAMES = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august',
+  'september', 'october', 'november', 'december']
+function monthOf(word: string): number | null {
+  // A real month name or an abbreviation of one, at least three letters: "Jun", "June", "Sept".
+  // "Junk" is not June.
+  const w = word.toLowerCase()
+  if (w.length < 3) return null
+  const i = MONTH_NAMES.findIndex(n => n.startsWith(w))
+  return i >= 0 ? i + 1 : null
+}
+
+/**
+ * A date printed on an insurance document — a debit note, a schedule, a policy — read the way
+ * Singapore insurers print them: "2-Jun-26", "02 June 2026", "02/06/2026", "2026-06-02".
+ *
+ * Broader than parseCalendarDate, which is for dates of birth: a document date may carry a month
+ * name, and a two-digit year on a document is this century ("26" is 2026), which is not true of a
+ * year of birth. Still never month-first: 02/06/2026 is the 2nd of June.
+ */
+export function parseDocumentDate(raw: string | null | undefined): CalendarDate | null {
+  const s = String(raw ?? '').trim().replace(/,/g, ' ').replace(/\s+/g, ' ')
+  if (!s) return null
+  const strict = parseCalendarDate(s)
+  if (strict) return strict
+  const year = (y: string) => (y.length === 2 ? 2000 + Number(y) : Number(y))
+  // 02/06/26, 2-6-26: day first, two-digit year
+  let m = s.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2})$/)
+  if (m) return valid(year(m[3]), +m[2], +m[1])
+  // 2-Jun-26, 02 June 2026, 2 Jun 2026
+  m = s.match(/^(\d{1,2})[\s/.-]([A-Za-z]{3,9})\.?[\s/.-](\d{2}|\d{4})$/)
+  if (m) { const mo = monthOf(m[2]); if (mo) return valid(year(m[3]), mo, +m[1]) }
+  // June 2 2026, Jun 2 26 — the month is spelled out, so the order is not in doubt
+  m = s.match(/^([A-Za-z]{3,9})\.? (\d{1,2}) (\d{2}|\d{4})$/)
+  if (m) { const mo = monthOf(m[1]); if (mo) return valid(year(m[3]), mo, +m[2]) }
+  return null
+}
+
+export function toIsoDocumentDate(raw: string | null | undefined): string | null {
+  const d = parseDocumentDate(raw)
+  return d ? `${d.y}-${String(d.m).padStart(2, '0')}-${String(d.d).padStart(2, '0')}` : null
+}
