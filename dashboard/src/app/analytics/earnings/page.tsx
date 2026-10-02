@@ -51,10 +51,10 @@ export default function EarningsPage() {
   const [custom, setCustom] = useState({ from: '', to: '' })
   const [basis, setBasis] = useState<Basis>('commission')
   const [insurer, setInsurer] = useState('')
-  const [cls, setCls] = useState('')
   const [who, setWho] = useState<'all' | 'vip'>('all')
   const [q, setQ] = useState('')
   const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: 'lifetimeValue', desc: true })
+  const [rSort, setRSort] = useState<{ key: 'client' | 'premium' | 'end' | 'daysLeft'; desc: boolean }>({ key: 'daysLeft', desc: false })
 
   useEffect(() => {
     fetch('/api/analytics/earnings', { cache: 'no-store' })
@@ -65,7 +65,7 @@ export default function EarningsPage() {
   const v = useMemo(() => {
     if (!data) return null
     const { from, to } = rangeDates(range, custom)
-    const f = { from, to, insurer: insurer || null, className: cls || null }
+    const f = { from, to, insurer: insurer || null, className: null }
     const inPeriod = applyFilter(data.notes, f)
     const lifetime = applyFilter(data.notes, f, { ignoreDates: true })
     const t = totals(inPeriod)
@@ -85,7 +85,7 @@ export default function EarningsPage() {
       noCommissionAll: data.notes.filter(n => n.commission == null && n.currency === 'SGD').length,
       clientsWithNotes: new Set(data.notes.map(n => n.companyId).filter(Boolean)).size,
     }
-  }, [data, range, custom, basis, insurer, cls])
+  }, [data, range, custom, basis, insurer])
 
   const table = useMemo(() => {
     if (!v) return []
@@ -97,6 +97,23 @@ export default function EarningsPage() {
       return (typeof x === 'string' ? x.localeCompare(String(y)) : (x as number) - (y as number)) * dir
     })
   }, [v, who, q, sort])
+
+  const renewals = useMemo(() => {
+    if (!v) return []
+    const dir = rSort.desc ? -1 : 1
+    return [...v.renewals].sort((a, b) => {
+      const x = rSort.key === 'client' ? displayName(a.client).localeCompare(displayName(b.client)) : rSort.key === 'end' ? a.end.localeCompare(b.end) : (a[rSort.key] as number) - (b[rSort.key] as number)
+      return x * dir
+    })
+  }, [v, rSort])
+  const rTh = (key: 'client' | 'premium' | 'end' | 'daysLeft', label: string, right = true) => (
+    <th className={`${th} ${right ? 'text-right' : ''}`} aria-sort={rSort.key === key ? (rSort.desc ? 'descending' : 'ascending') : 'none'}>
+      <button onClick={() => setRSort(s => ({ key, desc: s.key === key ? !s.desc : key === 'premium' }))}
+              className="bg-transparent border-0 p-0 cursor-pointer uppercase tracking-[0.04em] font-medium" style={{ color: rSort.key === key ? INK : FAINT }}>
+        {label}{rSort.key === key ? (rSort.desc ? ' ↓' : ' ↑') : ''}
+      </button>
+    </th>
+  )
 
   const basisWord = basis === 'commission' ? 'commission' : 'premium'
   const sortTh = (key: SortKey, label: string, right = true) => (
@@ -141,10 +158,6 @@ export default function EarningsPage() {
           <select aria-label="Insurer" value={insurer} onChange={e => setInsurer(e.target.value)} className={SELECT}>
             <option value="">All insurers</option>
             {v?.insurers.map(i => <option key={i} value={i}>{i}</option>)}
-          </select>
-          <select aria-label="Class of insurance" value={cls} onChange={e => setCls(e.target.value)} className={SELECT}>
-            <option value="">All classes</option>
-            {v?.classes.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
           {range === 'custom' && (
             <div className="flex items-center gap-2">
@@ -218,14 +231,14 @@ export default function EarningsPage() {
                     <table className="w-full min-w-[440px]">
                       <thead className="sticky top-0 bg-white">
                         <tr style={{ color: FAINT, borderBottom: `1px solid ${RULE}` }}>
-                          <th className={th}>Company</th>
-                          <th className={`${th} text-right`}>Premium</th>
-                          <th className={`${th} text-right`}>Ends</th>
-                          <th className={`${th} text-right`}>Days left</th>
+                          {rTh('client', 'Company', false)}
+                          {rTh('premium', 'Premium')}
+                          {rTh('end', 'Ends')}
+                          {rTh('daysLeft', 'Days left')}
                         </tr>
                       </thead>
                       <tbody>
-                        {v.renewals.map(x => (
+                        {renewals.map(x => (
                           <tr key={x.policyId} style={{ borderBottom: '1px solid #f1f3f4' }}>
                             <td className={`${td} max-w-[260px]`}>
                               {x.companyId
