@@ -2,7 +2,11 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Loader2, CheckCircle2, AlertTriangle, Save, FileText, RefreshCw, Trash2, Pencil, X, Plus, ListChecks } from 'lucide-react'
+import { Loader2, CheckCircle2, AlertTriangle, Save, FileText, RefreshCw, Trash2, Pencil, X, Plus, ListChecks, MoreHorizontal, Download } from 'lucide-react'
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
+import { resolveProduct } from '@/lib/gb/resolve'
+import { PRODUCT_BY_CODE } from '@/lib/gb/canon'
+import { VERIFICATION, verificationOf } from '@/lib/gb/verification'
 import { cn } from '@/lib/utils'
 import { matchInsurer, type InsurerCompany } from '@/lib/insurers'
 
@@ -19,6 +23,7 @@ type Detail  = { table: Record<string, unknown>; plans: Plan[]; rates: Rate[]; b
 // Keyed by product title + member type + plan + band (matches the judge's conflict keys).
 const cKey = (c: { product_title?: string; product_code?: string; member_type: string | null; plan_code: string; band_label: string }) =>
   `${c.product_title ?? c.product_code ?? ''}|${c.member_type ?? ''}|${c.plan_code}|${c.band_label}`
+const STATUS_WORD: Record<string, string> = { approved: 'Approved', in_review: 'In review', extracting: 'Extracting', draft: 'Draft', archived: 'Archived' }
 const mtLabel = (m: string | null) => m === 'employee' ? 'Employee' : m === 'dependant' ? 'Dependant' : ''
 
 // Live extraction stages for the progress checklist (server reports the current one).
@@ -43,6 +48,10 @@ export default function GbReviewPage() {
   // Companies → Insurers: the one list of insurers. The rate table stores which company it is.
   const [insurers, setInsurers] = useState<InsurerCompany[]>([])
   const [editing, setEditing] = useState(false)   // edit an already-approved table without re-extracting
+  // Which tab is open when reading: a product label, 'benefits' or 'documents'. Review and edit
+  // show every section on one page, as before, so nothing being edited is hidden.
+  const [view, setView] = useState<string | null>(null)
+  const [previewId, setPreviewId] = useState<string | null>(null)
   const [snapshot, setSnapshot] = useState('')     // serialized state at load, to detect unsaved edits
 
   const load = useCallback(async () => {
@@ -173,11 +182,21 @@ export default function GbReviewPage() {
 
   const t = d.table as { insurer_name?: string; product_code?: string; source_pdf_name?: string; age_basis?: string; plan_year?: number }
   const byProduct = groupBy(rates, r => r.product_code)
+  // Products in the canon's order (hospital, major medical, life, …), whatever order the insurer printed.
+  const rank = (label: string) => { const c = resolveProduct(label).codes[0]; return c ? PRODUCT_BY_CODE[c].sortOrder : 999 }
+  const productTabs = Array.from(byProduct.keys()).sort((a, b) => rank(a) - rank(b) || a.localeCompare(b))
+  const sources = (((d.table.rules as { sources?: { driveFileId: string; filename: string; kind: string; insurer?: string; planYear?: string | null }[] } | null)?.sources) ?? [])
+  const brochure = sources.find(x => x.kind === 'brochure') ?? sources.find(x => /\.pdf$/i.test(x.filename))
+  const ver = verificationOf(d.table.rules)
   const mi = 'w-full text-[12.5px] border border-border rounded-md px-2.5 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary/25'
   const ci = 'w-full text-[12px] px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-[#202124] focus:outline-none bg-white'
   const btn = 'flex items-center gap-1.5 text-[12.5px] font-medium px-2.5 py-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50'
   const insurerLabel = meta.insurer_name || t.insurer_name || 'Insurer'
   const editable = status === 'in_review' || editing   // cells + metadata are editable in review, or when explicitly editing an approved table
+  const reading = !editable && status !== 'extracting'
+  const current = view ?? productTabs[0] ?? 'benefits'
+  const shows = (tab: string) => !reading || current === tab
+  const tabLabel = (label: string) => { const c = resolveProduct(label).codes; return c.length ? c.map(x => PRODUCT_BY_CODE[x].abbrev).join('+') : '' }
 
   return (
     <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: '#202124' }}>
@@ -188,27 +207,29 @@ export default function GbReviewPage() {
         <div className="min-w-0">
           <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08] truncate">{insurerLabel}</h1>
           <p className="m-0 text-[13.5px] mt-2 truncate tabular-nums" style={{ color: '#5f6368' }}>
-            {t.source_pdf_name} · age {t.age_basis === 'last_birthday' ? 'last' : 'next'} birthday{t.plan_year ? ` · ${t.plan_year}` : ''} · {byProduct.size} product{byProduct.size === 1 ? '' : 's'} · {rates.length} rates
+            {STATUS_WORD[status] ?? status} · {VERIFICATION[ver.status].label} · {t.plan_year ? `${t.plan_year} · ` : ''}age {t.age_basis === 'last_birthday' ? 'last' : 'next'} birthday · {byProduct.size} product{byProduct.size === 1 ? '' : 's'} · {rates.length} rates
           </p>
         </div>
         <div className="flex items-center gap-0.5 flex-shrink-0">
           {dirty && <span className="text-[11px] font-medium text-[#3c4043] mr-2">Unsaved changes</span>}
           {msg && !dirty && <span className={cn('text-[12px] mr-2', /fail/i.test(msg) ? 'text-[#c5221f]' : 'text-[#3c4043]')}>{msg}</span>}
-          {status === 'approved' && !editing && <span className="inline-flex items-center text-[11.5px] font-medium px-2 py-0.5 rounded-[6px] bg-[#f1f3f4] text-[#3c4043] mr-1.5">Approved</span>}
-          <a href={`/api/group-benefits/rate-tables/${id}/pdf`} target="_blank" rel="noopener noreferrer" className={btn}><FileText size={13} /> PDF</a>
-          {/* The annual read of this insurer's benefit schedule onto the canonical lines. Separate
-              from Re-run, which extracts premiums: the two are different documents' worth of work
-              and the schedule has its own approval gate. */}
-          {!editing && <a href={`/pricing-matrix/${id}/schedule`} className={btn}><ListChecks size={13} /> Benefit schedule</a>}
-          {status !== 'extracting' && !editing && <button onClick={reExtract} disabled={!!saving} className={btn} title="Re-run extraction"><RefreshCw size={13} /> Re-run</button>}
-          {!editing && <button onClick={del} className={cn(btn, 'text-[#c5221f] hover:opacity-80 hover:bg-[#f8f9fa]')} title="Delete"><Trash2 size={13} /></button>}
-
-          {/* Edit an approved table in place (no re-extract) */}
-          {status === 'approved' && !editing && (
-            <>
-              <span className="w-px h-5 bg-border mx-1.5" />
-              <button onClick={() => setEditing(true)} className={btn}><Pencil size={13} /> Edit</button>
-            </>
+          {/* One document button and one menu. Status sits in the line under the name. */}
+          {brochure
+            ? <a href={`/api/group-benefits/sources/file/${brochure.driveFileId}`} target="_blank" rel="noopener noreferrer" className={btn}><FileText size={13} /> Brochure</a>
+            : d.table.source_pdf_url ? <a href={`/api/group-benefits/rate-tables/${id}/pdf`} target="_blank" rel="noopener noreferrer" className={btn}><FileText size={13} /> PDF</a> : null}
+          {!editing && status !== 'extracting' && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className={btn} aria-label="More actions"><MoreHorizontal size={15} /></button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[200px]">
+                <DropdownMenuItem onSelect={() => router.push(`/pricing-matrix/${id}/schedule`)}><ListChecks size={13} className="mr-2" /> Review benefit schedule</DropdownMenuItem>
+                {status === 'approved' && <DropdownMenuItem onSelect={() => setEditing(true)}><Pencil size={13} className="mr-2" /> Edit rates</DropdownMenuItem>}
+                <DropdownMenuItem onSelect={() => reExtract()} disabled={!!saving}><RefreshCw size={13} className="mr-2" /> Re-run extraction</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => del()} className="text-[#c5221f]"><Trash2 size={13} className="mr-2" /> Delete</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           {(status === 'in_review' || editing) && (
             <>
@@ -226,6 +247,54 @@ export default function GbReviewPage() {
           )}
         </div>
       </div>
+
+      {/* One tab per cover the insurer prices, in the canon's order, then its benefits and its
+          documents. Reading only: review and edit keep every section on one page. */}
+      {reading && (
+        <div className="mb-6 flex items-center gap-6 overflow-x-auto" style={{ borderBottom: '1px solid #e8eaed' }} role="tablist">
+          {[...productTabs, 'benefits', 'documents'].map(tab => (
+            <button key={tab} role="tab" aria-selected={current === tab} onClick={() => setView(tab)}
+              className={cn('relative pb-2.5 text-[14px] bg-transparent border-0 p-0 cursor-pointer whitespace-nowrap flex-shrink-0', current === tab ? 'font-medium text-[#202124]' : 'text-[#5f6368] hover:text-[#202124]')}>
+              {tab === 'benefits' ? 'Benefits' : tab === 'documents' ? `Documents${sources.length ? ` · ${sources.length}` : ''}` : tab}
+              {tab !== 'benefits' && tab !== 'documents' && tabLabel(tab) && <span className="ml-1.5 text-[11px] font-normal" style={{ color: '#9aa0a6' }}>{tabLabel(tab)}</span>}
+              {current === tab && <span className="absolute left-0 right-0 -bottom-px h-[2px] rounded-full bg-[#202124]" aria-hidden />}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {reading && current === 'documents' && (
+        <section className="mb-8">
+          {sources.length === 0 ? (
+            <p className="text-[13px]" style={{ color: '#5f6368' }}>No documents linked. Add the brochure or calculator to the insurer&apos;s folder in Drive, then link it under Rate tables.</p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <div className="rounded-lg border border-[#e8eaed] divide-y divide-[#f1f3f4]">
+                {sources.map(f => (
+                  <div key={f.driveFileId} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                    <div className="min-w-0">
+                      <div className="text-[13.5px] font-medium break-words">{f.filename}</div>
+                      <div className="text-[12px]" style={{ color: '#5f6368' }}>{f.kind === 'brochure' ? 'Brochure' : f.kind === 'calculator' ? 'Insurer calculator' : f.kind === 'workbook' ? 'TRS workbook' : 'File'}{f.planYear ? ` · ${f.planYear}` : ''}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {/\.pdf$/i.test(f.filename) && (
+                        <button onClick={() => setPreviewId(previewId === f.driveFileId ? null : f.driveFileId)} className="text-[12.5px] px-3 py-1.5 rounded-lg border border-[#dadce0] hover:bg-[#f8f9fa]">
+                          {previewId === f.driveFileId ? 'Hide preview' : 'Preview'}
+                        </button>
+                      )}
+                      <a href={`/api/group-benefits/sources/file/${f.driveFileId}?download=1`} className="inline-flex items-center gap-1.5 text-[12.5px] px-3 py-1.5 rounded-lg border border-[#dadce0] hover:bg-[#f8f9fa]"><Download size={13} /> Download</a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {(previewId ?? (brochure && /\.pdf$/i.test(brochure.filename) ? brochure.driveFileId : null)) && (
+                <iframe title="Document preview" src={`/api/group-benefits/sources/file/${previewId ?? brochure!.driveFileId}`}
+                        className="w-full h-[78vh] min-h-[480px] rounded-lg" style={{ border: '1px solid #e8eaed' }} />
+              )}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Extracted metadata — read from the PDF, editable in review or edit mode */}
       {editable && (
@@ -286,7 +355,7 @@ export default function GbReviewPage() {
       {status !== 'extracting' && (
         <>
           {/* Per-extractor status — surfaces a failed model/key so partial data isn't silent */}
-          {d.extractors && (
+          {d.extractors && !reading && (
             <div className="flex flex-wrap items-center gap-2 mb-3 text-[11px]">
               {/* "opus" is the stored key for the first read, kept so extraction runs recorded
                    before 2 Oct 2026 still read back. Both reads are Gemini now. */}
@@ -304,13 +373,13 @@ export default function GbReviewPage() {
             </div>
           )}
 
-          {/* Conflict summary */}
-          <div className={cn('flex items-center gap-2 rounded-lg px-4 py-2.5 mb-5 text-[12.5px]',
+          {/* Conflict summary — only when there is something to verify, or while reviewing */}
+          {(d.conflicts.length > 0 || !reading) && <div className={cn('flex items-center gap-2 rounded-lg px-4 py-2.5 mb-5 text-[12.5px]',
             d.conflicts.length ? 'bg-[#f8f9fa] border border-[#e8eaed] text-[#3c4043]' : 'bg-[#f8f9fa] border border-[#e8eaed] text-[#3c4043]')}>
             {d.conflicts.length ? <AlertTriangle size={15} /> : <CheckCircle2 size={15} />}
             {d.confidence != null && <span className="font-semibold">{d.confidence}% agreement</span>}
             <span>· {d.conflicts.length} cell{d.conflicts.length === 1 ? '' : 's'} to verify (highlighted below){rates.length ? ` · ${rates.length} rates` : ''}</span>
-          </div>
+          </div>}
 
           {/* Wording changes vs the last approved version (Sales Loop v2, Phase 6c) — only ever
               non-empty on a re-extraction, since there's nothing to diff against the first time. */}
@@ -334,9 +403,9 @@ export default function GbReviewPage() {
           )}
 
           {/* Rates: a matrix (age band × plan) per product → member type */}
-          {Array.from(byProduct.entries()).map(([product, prRates]) => (
+          {productTabs.filter(shows).map(product => [product, byProduct.get(product)!] as const).map(([product, prRates]) => (
             <section key={product} className="mb-8">
-              <h2 className="text-[14px] font-semibold text-foreground mb-3 pb-1.5 border-b border-border">{product}</h2>
+              {!reading && <h2 className="text-[14px] font-semibold text-foreground mb-3 pb-1.5 border-b border-border">{product}</h2>}
               {Array.from(groupBy(prRates, r => r.member_type ?? '').entries()).map(([mt, mtRates]) => {
                 const plans = Array.from(new Set(mtRates.map(r => r.plan_code)))
                 const order = new Map<string, number>()
@@ -413,7 +482,7 @@ export default function GbReviewPage() {
           )}
 
           {/* Coverage / sum assured */}
-          {(coverage.length > 0 || editable) && (
+          {shows('benefits') && (coverage.length > 0 || editable) && (
             <section className="mb-8">
               <h2 className="text-[14px] font-semibold text-foreground mb-3 pb-1.5 border-b border-border">Coverage &amp; sum assured</h2>
               <div className="rounded-lg border border-border overflow-x-auto max-h-[400px] overflow-y-auto">
@@ -448,7 +517,7 @@ export default function GbReviewPage() {
           )}
 
           {/* Benefits */}
-          {(benefits.length > 0 || editable) && (
+          {shows('benefits') && (benefits.length > 0 || editable) && (
             <section className="mb-8">
               <h2 className="text-[14px] font-semibold text-foreground mb-3 pb-1.5 border-b border-border">Benefit schedule</h2>
               <div className="rounded-lg border border-border overflow-x-auto max-h-[420px] overflow-y-auto">

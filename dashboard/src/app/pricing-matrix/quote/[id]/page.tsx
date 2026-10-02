@@ -94,10 +94,16 @@ export default function QuoteDetailPage() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">{q.company_name || 'Untitled quote'}</h1>
           {byInsurer.length > 0 && (
-            <a href={`/pricing-matrix/quote/${id}/report`}
-               className="inline-flex items-center text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-[#202124] text-white hover:opacity-90">
-              Client report
-            </a>
+            <div className="flex items-center gap-2">
+              <a href={`/api/group-benefits/quote/${id}/report-pdf?download=1`}
+                 className="inline-flex items-center text-[13px] font-medium px-3.5 py-1.5 rounded-lg border border-[#dadce0] text-[#202124] hover:bg-[#f8f9fa]">
+                Download PDF
+              </a>
+              <a href={`/pricing-matrix/quote/${id}/report`}
+                 className="inline-flex items-center text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-[#202124] text-white hover:opacity-90">
+                Client report
+              </a>
+            </div>
           )}
         </div>
         <p className="m-0 text-[13.5px] mt-2 tabular-nums" style={{ color: '#5f6368' }}>{q.member_count} members · {Array.from(new Set((q.product_codes ?? []).flatMap(t => resolveProduct(t).codes))).map(c => PRODUCT_BY_CODE[c]?.abbrev ?? c).join(', ') || (q.product_codes ?? []).join('/')}{q.effective_date ? ` · eff ${q.effective_date}` : ''} · {new Date(q.created_at).toLocaleString('en-SG')}</p>

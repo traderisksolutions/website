@@ -2,12 +2,11 @@
 
 import React, { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { UploadCloud, Loader2, Clock, Calculator } from 'lucide-react'
+import { UploadCloud, Loader2, Clock, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { NewQuoteWizard } from '@/components/group-benefits/NewQuoteWizard'
 import { QuickQuote } from '@/components/group-benefits/QuickQuote'
 import { CoverageTab } from '@/components/group-benefits/CoverageTab'
-import { XlsxTab } from '@/components/group-benefits/XlsxTab'
 import { SourceFilesTab } from '@/components/group-benefits/SourceFilesTab'
 import { VERIFICATION, verificationOf } from '@/lib/gb/verification'
 import { createClient } from '@/lib/supabase/client'
@@ -34,7 +33,7 @@ type Activity = { id: string; created_at: string; user_name: string | null; acti
 const STATUS_LABEL: Record<string, string> = { draft: 'Draft', extracting: 'Extracting', in_review: 'In review', approved: 'Approved', archived: 'Archived' }
 const CHIP = 'inline-flex items-center rounded-[6px] bg-[#f1f3f4] text-[#3c4043] text-[11.5px] font-medium px-2 py-0.5 whitespace-nowrap'
 
-type Tab = 'tables' | 'coverage' | 'sources' | 'xlsx' | 'quote' | 'quotes' | 'activity'
+type Tab = 'tables' | 'coverage' | 'quotes' | 'activity'
 
 /**
  * Pricing Matrix — one module since 2 Oct 2026.
@@ -53,10 +52,14 @@ export default function PricingMatrixPage() {
 function PricingMatrix() {
   const router = useRouter()
   const params = useSearchParams()
-  const initialTab = (['tables', 'coverage', 'sources', 'xlsx', 'quote', 'quotes', 'activity'] as const).find(t => t === params.get('tab')) ?? 'tables'
+  // Four tabs since 2 Oct 2026. Old links still land: ?tab=quote opens a new quote, and the retired
+  // Source files and Calculators tabs open Rate tables, which now lists the Drive files too.
+  const asked = params.get('tab')
+  const initialTab: Tab = asked === 'quote' ? 'quotes' : (['tables', 'coverage', 'quotes', 'activity'] as const).find(t => t === asked) ?? 'tables'
   const company = params.get('company') ?? undefined
   const [tab, setTab]   = useState<Tab>(initialTab)
   const [byHand, setByHand] = useState(false)
+  const [newQuote, setNewQuote] = useState(asked === 'quote')
   const [tables, setTables] = useState<RateTable[]>([])
   const [loading, setLoading] = useState(true)
   const [showUpload, setShowUpload] = useState(false)
@@ -77,26 +80,30 @@ function PricingMatrix() {
           <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Pricing Matrix</h1>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          <button onClick={() => setTab('quote')} className="h-12 px-5 rounded-[12px] bg-white text-[15px] border border-[#dadce0] text-[#202124] inline-flex items-center gap-2 cursor-pointer hover:bg-[#f8f9fa]">
-            <Calculator size={15} /> New quote
-          </button>
-          <button onClick={() => setShowUpload(true)} className="h-12 px-6 rounded-[12px] bg-[#202124] text-white text-[15px] font-medium border-0 inline-flex items-center gap-2 cursor-pointer hover:opacity-90">
-            <UploadCloud size={15} /> Upload rate PDF
+          <button onClick={() => { setTab('quotes'); setNewQuote(true); setByHand(false) }} className="h-11 px-5 rounded-[12px] bg-[#202124] text-white text-[15px] font-medium border-0 inline-flex items-center gap-2 cursor-pointer hover:opacity-90">
+            <Plus size={16} /> Quote
           </button>
         </div>
       </div>
 
-      {/* Six tabs do not fit a phone: the bar scrolls sideways on its own instead of widening the page. */}
+      {/* On a phone the bar scrolls sideways on its own instead of widening the page. */}
       <div className="mt-8 mb-6 flex items-center gap-7 overflow-x-auto" style={{ borderBottom: '1px solid #e8eaed' }}>
-        {(['tables', 'coverage', 'sources', 'xlsx', 'quote', 'quotes', 'activity'] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)}
+        {(['tables', 'coverage', 'quotes', 'activity'] as const).map(t => (
+          <button key={t} onClick={() => { setTab(t); if (t === 'quotes') setNewQuote(false) }}
             className={cn('relative pb-3 text-[15px] bg-transparent border-0 p-0 cursor-pointer whitespace-nowrap flex-shrink-0', tab === t ? 'font-medium text-[#202124]' : 'text-[#5f6368] hover:text-[#202124]')}>
-            {t === 'tables' ? 'Rate tables' : t === 'coverage' ? 'Coverage' : t === 'sources' ? 'Source files' : t === 'xlsx' ? 'Calculators' : t === 'quote' ? 'New quote' : t === 'quotes' ? 'Quotes' : 'Activity'}
+            {t === 'tables' ? 'Rate tables' : t === 'coverage' ? 'Coverage' : t === 'quotes' ? 'Quotes' : 'Activity'}
             {tab === t && <span className="absolute left-0 right-0 -bottom-px h-[2px] rounded-full bg-[#202124]" aria-hidden />}
           </button>
         ))}
       </div>
 
+      {tab === 'tables' && (
+        <div className="flex justify-end mb-3">
+          <button onClick={() => setShowUpload(true)} className="inline-flex items-center gap-1.5 text-[13px] font-medium px-3.5 py-1.5 rounded-lg border border-[#dadce0] text-[#202124] bg-white hover:bg-[#f8f9fa]">
+            <UploadCloud size={14} /> Upload rate PDF
+          </button>
+        </div>
+      )}
       {tab === 'tables' && (
         loading ? <p className="m-0 py-10 text-center text-[15px]" style={{ color: '#5f6368' }}>Loading…</p>
         : tables.length === 0 ? (
@@ -126,17 +133,26 @@ function PricingMatrix() {
           </Register>
         )
       )}
-      {tab === 'xlsx'     && <XlsxTab tables={tables} loading={loading} onChanged={load} />}
-      {tab === 'quote' && !byHand && <QuickQuote initialCompany={company} onUseWizard={() => setByHand(true)} />}
-      {tab === 'quote' && byHand && (
+      {/* The files rate tables are read from, in the same tab: one list of what is priced and
+          where it came from. */}
+      {tab === 'tables' && (
+        <section className="mt-10">
+          <h2 className="m-0 mb-3 text-[16px] font-medium tracking-[-0.01em]">Files in Drive</h2>
+          <SourceFilesTab />
+        </section>
+      )}
+      {tab === 'quotes' && newQuote && (
+        <button onClick={() => setNewQuote(false)} className="mb-4 text-[13px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#5f6368' }}>← All quotes</button>
+      )}
+      {tab === 'quotes' && newQuote && !byHand && <QuickQuote initialCompany={company} onUseWizard={() => setByHand(true)} />}
+      {tab === 'quotes' && newQuote && byHand && (
         <div className="flex flex-col gap-3">
           <button onClick={() => setByHand(false)} className="self-start text-[12.5px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#5f6368' }}>← Quick quote</button>
           <NewQuoteWizard initialCompany={company} onSaved={() => { /* results shown inline; Quotes tab reloads on open */ }} />
         </div>
       )}
-      {tab === 'quotes'   && <QuotesTab />}
+      {tab === 'quotes' && !newQuote && <QuotesTab onNew={() => setNewQuote(true)} />}
       {tab === 'coverage' && <CoverageTab />}
-      {tab === 'sources' && <SourceFilesTab />}
       {tab === 'activity' && <ActivityTab />}
 
       {showUpload && <UploadModal onClose={() => setShowUpload(false)} onDone={() => { setShowUpload(false); load() }} />}
@@ -148,7 +164,7 @@ function PricingMatrix() {
 
 type Quote = { id: string; company_name: string | null; effective_date: string | null; product_codes: string[]; member_count: number; results: { insurer_name: string; total: number }[]; created_at: string }
 
-function QuotesTab() {
+function QuotesTab({ onNew }: { onNew: () => void }) {
   const router = useRouter()
   const [rows, setRows] = useState<Quote[]>([])
   const [loading, setLoading] = useState(true)
@@ -156,7 +172,11 @@ function QuotesTab() {
     fetch('/api/group-benefits/quote', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).then((d) => { setRows(d); setLoading(false) }).catch(() => setLoading(false))
   }, [])
   if (loading) return <p className="m-0 py-10 text-center text-[15px]" style={{ color: '#5f6368' }}>Loading…</p>
-  if (rows.length === 0) return <p className="m-0 py-16 text-center text-[15px]" style={{ color: '#5f6368' }}>No quotes yet. Run a census under New quote.</p>
+  if (rows.length === 0) return (
+    <p className="m-0 py-16 text-center text-[15px]" style={{ color: '#5f6368' }}>
+      No quotes yet. <button onClick={onNew} className="bg-transparent border-0 p-0 cursor-pointer underline" style={{ color: '#202124' }}>Start one</button>.
+    </p>
+  )
   return (
     <Register label="Quotes" minWidth={760}>
       <RegisterHead>
