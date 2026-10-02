@@ -260,24 +260,7 @@ export function scoreComparison(cmp: Comparison, settings: ScoreSettings, employ
     }
   })
 
-  // ── 3. Coverage from the broker's weights, over the dimensions every insurer can be scored on. ──
-  const scored = DIMENSIONS.map(d => d.key).filter(k => insurers.some(i => i.dimensions[k].score != null))
-  const droppedDimensions = scored
-    .map(k => ({ key: k, insurers: insurers.filter(i => i.dimensions[k].score == null).map(i => i.insurerName) }))
-    .filter(d => d.insurers.length > 0)
-  const activeDimensions = scored.filter(k => !droppedDimensions.some(d => d.key === k))
-  const weightTotal = activeDimensions.reduce((s, k) => s + Math.max(weights[k] ?? 0, 0), 0)
-  for (const i of insurers) {
-    let num = 0, den = 0
-    for (const k of activeDimensions) {
-      const w = Math.max(weights[k] ?? 0, 0), s = i.dimensions[k].score
-      if (!w || s == null) continue
-      num += w * s; den += w
-    }
-    i.coverage = den ? round1(num / den) : null
-  }
-
-  // ── 4. Filters. A premium with unpriced member lines is understated, so its value would be
+  // ── 3. Filters. A premium with unpriced member lines is understated, so its value would be
   //    overstated: it is shown, never ranked. ──
   for (const i of insurers) {
     if (i.pricingGaps > 0) i.excluded.push(`${i.pricingGaps} member line${i.pricingGaps === 1 ? '' : 's'} unpriced`)
@@ -290,6 +273,27 @@ export function scoreComparison(cmp: Comparison, settings: ScoreSettings, employ
     for (const p of filters.requiredProducts) {
       if (!i.productCodes.includes(p)) i.excluded.push(`No ${PRODUCT_BY_CODE[p]?.abbrev ?? p}`)
     }
+  }
+
+  // ── 4. Coverage from the broker's weights, over the dimensions every insurer can be scored on. ──
+  // Judged among the insurers still in: one a filter has removed does not take a dimension away
+  // from the rest.
+  const inPlay = insurers.filter(i => !i.excluded.length)
+  const basisSet = inPlay.length ? inPlay : insurers
+  const scored = DIMENSIONS.map(d => d.key).filter(k => basisSet.some(i => i.dimensions[k].score != null))
+  const droppedDimensions = scored
+    .map(k => ({ key: k, insurers: basisSet.filter(i => i.dimensions[k].score == null).map(i => i.insurerName) }))
+    .filter(d => d.insurers.length > 0)
+  const activeDimensions = scored.filter(k => !droppedDimensions.some(d => d.key === k))
+  const weightTotal = activeDimensions.reduce((s, k) => s + Math.max(weights[k] ?? 0, 0), 0)
+  for (const i of insurers) {
+    let num = 0, den = 0
+    for (const k of activeDimensions) {
+      const w = Math.max(weights[k] ?? 0, 0), s = i.dimensions[k].score
+      if (!w || s == null) continue
+      num += w * s; den += w
+    }
+    i.coverage = den ? round1(num / den) : null
   }
 
   // ── 5. Value index and rank, among those still in. ──
@@ -312,6 +316,9 @@ export function scoreComparison(cmp: Comparison, settings: ScoreSettings, employ
 }
 
 function wardRank(o: Option): number | null {
+  // Only a hospital option's own ward. A term-life "Plan 4" carries GHS Plan 4's values through
+  // the shared plan code, and must not lend the insurer its ward.
+  if (!o.productCodes.some(c => c === 'GHS' || c === 'GHS_FW')) return null
   for (const code of ['GHS_ROOM_BOARD', 'GHSFW_ROOM_BOARD']) {
     const v = o.values[code]?.text
     if (!v) continue

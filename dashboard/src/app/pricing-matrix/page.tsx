@@ -6,6 +6,7 @@ import { UploadCloud, Loader2, Clock, Calculator } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { NewQuoteWizard } from '@/components/group-benefits/NewQuoteWizard'
 import { QuickQuote } from '@/components/group-benefits/QuickQuote'
+import { CoverageTab } from '@/components/group-benefits/CoverageTab'
 import { XlsxTab } from '@/components/group-benefits/XlsxTab'
 import { SourceFilesTab } from '@/components/group-benefits/SourceFilesTab'
 import { VERIFICATION, verificationOf } from '@/lib/gb/verification'
@@ -33,7 +34,7 @@ type Activity = { id: string; created_at: string; user_name: string | null; acti
 const STATUS_LABEL: Record<string, string> = { draft: 'Draft', extracting: 'Extracting', in_review: 'In review', approved: 'Approved', archived: 'Archived' }
 const CHIP = 'inline-flex items-center rounded-[6px] bg-[#f1f3f4] text-[#3c4043] text-[11.5px] font-medium px-2 py-0.5 whitespace-nowrap'
 
-type Tab = 'tables' | 'sources' | 'xlsx' | 'quote' | 'quotes' | 'activity'
+type Tab = 'tables' | 'coverage' | 'sources' | 'xlsx' | 'quote' | 'quotes' | 'activity'
 
 /**
  * Pricing Matrix — one module since 2 Oct 2026.
@@ -52,7 +53,7 @@ export default function PricingMatrixPage() {
 function PricingMatrix() {
   const router = useRouter()
   const params = useSearchParams()
-  const initialTab = (['tables', 'sources', 'xlsx', 'quote', 'quotes', 'activity'] as const).find(t => t === params.get('tab')) ?? 'tables'
+  const initialTab = (['tables', 'coverage', 'sources', 'xlsx', 'quote', 'quotes', 'activity'] as const).find(t => t === params.get('tab')) ?? 'tables'
   const company = params.get('company') ?? undefined
   const [tab, setTab]   = useState<Tab>(initialTab)
   const [byHand, setByHand] = useState(false)
@@ -87,10 +88,10 @@ function PricingMatrix() {
 
       {/* Six tabs do not fit a phone: the bar scrolls sideways on its own instead of widening the page. */}
       <div className="mt-8 mb-6 flex items-center gap-7 overflow-x-auto" style={{ borderBottom: '1px solid #e8eaed' }}>
-        {(['tables', 'sources', 'xlsx', 'quote', 'quotes', 'activity'] as const).map(t => (
+        {(['tables', 'coverage', 'sources', 'xlsx', 'quote', 'quotes', 'activity'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={cn('relative pb-3 text-[15px] bg-transparent border-0 p-0 cursor-pointer whitespace-nowrap flex-shrink-0', tab === t ? 'font-medium text-[#202124]' : 'text-[#5f6368] hover:text-[#202124]')}>
-            {t === 'tables' ? 'Rate tables' : t === 'sources' ? 'Source files' : t === 'xlsx' ? 'Calculators' : t === 'quote' ? 'New quote' : t === 'quotes' ? 'Quotes' : 'Activity'}
+            {t === 'tables' ? 'Rate tables' : t === 'coverage' ? 'Coverage' : t === 'sources' ? 'Source files' : t === 'xlsx' ? 'Calculators' : t === 'quote' ? 'New quote' : t === 'quotes' ? 'Quotes' : 'Activity'}
             {tab === t && <span className="absolute left-0 right-0 -bottom-px h-[2px] rounded-full bg-[#202124]" aria-hidden />}
           </button>
         ))}
@@ -134,6 +135,7 @@ function PricingMatrix() {
         </div>
       )}
       {tab === 'quotes'   && <QuotesTab />}
+      {tab === 'coverage' && <CoverageTab />}
       {tab === 'sources' && <SourceFilesTab />}
       {tab === 'activity' && <ActivityTab />}
 

@@ -17,6 +17,7 @@ import { BENEFIT_BY_CODE, PRODUCT_BY_CODE } from '@/lib/gb/canon'
 import { resolveProduct } from '@/lib/gb/resolve'
 import { censusProfile } from '@/lib/gb/score'
 import { gstApplies } from '@/lib/gb-quote'
+import { useCoverNames } from '@/components/group-benefits/useCoverNames'
 
 type InsurerResult = { rate_table_id: string; insurer_name: string; by_product: Record<string, number>; subtotal: number; gst: number; total: number; missing: number }
 type Quotation = {
@@ -43,6 +44,8 @@ export default function QuoteReportPage() {
   const { id } = useParams<{ id: string }>()
   const [q, setQ] = useState<Quotation | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const names = useCoverNames()
+  const coverName = (c: string) => names[c] || PRODUCT_BY_CODE[c]?.name || c
 
   useEffect(() => {
     fetch(`/api/group-benefits/quote/${id}`, { cache: 'no-store' })
@@ -91,7 +94,7 @@ export default function QuoteReportPage() {
 
   const th = 'px-2.5 py-2 text-left text-[10.5px] font-semibold uppercase tracking-wide border-b border-[#dadce0]'
   const td = 'px-2.5 py-2 text-[12.5px] align-top border-b border-[#f1f3f4] tabular-nums'
-  const exempt = view.covers.filter(c => !gstApplies(c)).map(c => PRODUCT_BY_CODE[c].name.toLowerCase())
+  const exempt = view.covers.filter(c => !gstApplies(c)).map(c => coverName(c).toLowerCase())
 
   return (
     <div className="bg-white min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))]" style={{ color: '#202124' }}>
@@ -207,7 +210,7 @@ export default function QuoteReportPage() {
                   <table className="w-full border-collapse" style={{ minWidth: 220 + opts.length * 130 }}>
                     <thead>
                       <tr style={{ color: '#5f6368' }}>
-                        <th className={th}>{g.productName}</th>
+                        <th className={th}>{coverName(g.productCode)}</th>
                         {opts.map(o => <th key={o.key} className={th}>{o.insurerName}<div className="font-normal normal-case tracking-normal">{o.planCode}</div></th>)}
                       </tr>
                     </thead>
@@ -216,7 +219,7 @@ export default function QuoteReportPage() {
                         const by = Object.fromEntries(row.cells.map(c => [c.optionKey, c]))
                         return (
                           <tr key={row.benefit.code}>
-                            <td className={td}>{row.benefit.name}</td>
+                            <td className={td}>{names[row.benefit.code] || row.benefit.name}</td>
                             {opts.map(o => <td key={o.key} className={td} style={{ color: by[o.key]?.absent !== false ? '#9aa0a6' : '#3c4043' }}>{cellText(by[o.key])}</td>)}
                           </tr>
                         )

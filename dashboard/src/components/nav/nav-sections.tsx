@@ -68,6 +68,7 @@ export const NAV_SECTIONS: NavSection[] = [
       {
         heading: 'Reporting',
         items: [
+          { title: 'Earnings',         href: '/analytics/earnings',  icon: TrendingUp,    description: 'Commission and premium by client, insurer and month' },
           { title: 'Activity Log',     href: '/analytics/activity',  icon: History,       description: 'Audit trail of system activity' },
           { title: 'Error Log',        href: '/analytics/error-log', icon: AlertTriangle, description: 'AI/API failures, auto-logged as they happen' },
           { title: 'AI Spend',         href: '/analytics/ai-usage',  icon: Cpu,           description: 'What each agent costs' },

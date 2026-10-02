@@ -175,6 +175,27 @@ describe('equal basis', () => {
   })
 })
 
+describe('fixes from the QuantuPeak and White Horse drafts', () => {
+  it('reads an insurer ward from its hospital option only', () => {
+    const ghs = opt('t1:GHS:Plan 3', 'Income', 'Plan 3', 10_000, { GHS_ROOM_BOARD: '1 Bed' }, ['GHS'])
+    const gtl = opt('t1:GTL:Plan 4', 'Income', 'Plan 4', 10_000, { GHS_ROOM_BOARD: '4 Bed', GTL_SUM_ASSURED: '$100,000' }, ['GTL'])
+    const other = opt('t2:GHS:P', 'AIA', 'P', 10_000, { GHS_ROOM_BOARD: '1 Bed' }, ['GHS'])
+    const r = scoreComparison(compare([ghs, gtl, other]), DEFAULT_SETTINGS, 5)
+    expect(r.insurers.find(i => i.insurerName === 'Income')!.worstWardRank).toBe(2)
+  })
+  it('does not let a filtered-out insurer drop a dimension for the rest', () => {
+    const a = opt('t1:G', 'Income', 'G', 10_000, { GHS_ANNUAL_LIMIT: '$200,000' })
+    const a2 = opt('t1:S', 'Income', 'S', 10_000, { GOSC_ANNUAL_LIMIT: '$1,000' }, ['GOSC'])
+    const b = opt('t2:G', 'AIA', 'G', 10_000, { GHS_ANNUAL_LIMIT: '$100,000' })
+    const b2 = opt('t2:S', 'AIA', 'S', 10_000, { GOSC_ANNUAL_LIMIT: '$500' }, ['GOSC'])
+    const c = opt('t3:G', 'QBE', 'G', 10_000, { GHS_ANNUAL_LIMIT: '$300,000' })
+    const c2 = opt('t3:S', 'QBE', 'S', 10_000, {}, ['GOSC'])
+    const r = scoreComparison(compare([a, a2, b, b2, c, c2]), { ...DEFAULT_SETTINGS, filters: { ...DEFAULT_SETTINGS.filters, excludeTables: ['t3'] } }, 10)
+    expect(r.activeDimensions).toEqual(['inpatient', 'outpatient'])
+    expect(r.droppedDimensions).toEqual([])
+  })
+})
+
 describe('parseSettings', () => {
   it('reads what the route stores and falls back field by field', () => {
     const s = parseSettings(JSON.stringify({ score: { weights: { inpatient: 70 }, sort: 'pepm', filters: { maxPepm: 120 } } }))

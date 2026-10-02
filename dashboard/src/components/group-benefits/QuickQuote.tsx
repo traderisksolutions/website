@@ -17,6 +17,7 @@ import { Tip } from '@/components/Tip'
 import { PRODUCT_BY_CODE } from '@/lib/gb/canon'
 import { describeSpec, withDefaults, type CoverSpec, type Hospital, type Tier } from '@/lib/gb/plan-rules'
 import { parseBirthDate } from '@/lib/dates/dob'
+import { useCoverNames } from './useCoverNames'
 
 type Member = { name: string; category: string; relationship: string; dob?: string | null; age?: number | null; occupation_class?: string | null }
 type Read = { members: Member[]; unread: string[]; found: Record<string, string>; sheet: string | null; filename: string }
@@ -40,6 +41,7 @@ const fmtDob = (iso?: string | null) => (iso ? iso.split('-').reverse().join('/'
 
 export function QuickQuote({ initialCompany, onUseWizard }: { initialCompany?: string; onUseWizard: () => void }) {
   const router = useRouter()
+  const coverNames = useCoverNames()
   const [read, setRead] = useState<Read | null>(null)
   const [reading, setReading] = useState(false)
   const [company, setCompany] = useState(initialCompany ?? '')
@@ -172,7 +174,7 @@ export function QuickQuote({ initialCompany, onUseWizard }: { initialCompany?: s
               <div key={c.code} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2.5">
                 <label htmlFor={`cv-${c.code}`} className="flex items-center gap-2 min-w-[220px] text-[13px] cursor-pointer">
                   <input id={`cv-${c.code}`} type="checkbox" checked={on} onChange={() => toggle(c.code)} className="accent-[#202124]" />
-                  <span className={on ? 'font-medium' : ''}>{PRODUCT_BY_CODE[c.code].name}</span>
+                  <span className={on ? 'font-medium' : ''}>{coverNames[c.code] || PRODUCT_BY_CODE[c.code].name}</span>
                 </label>
                 {on && c.kind === 'hospital' && c.code !== 'GHS_FW' && (
                   <div className="flex flex-wrap items-center gap-2">
