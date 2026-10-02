@@ -12,7 +12,7 @@
  * calculator, re-run the build script and this test says whether anything moved.
  */
 import { describe, it, expect } from 'vitest'
-import { computeQuote, type RateRow, type RateTableInfo, type AppliedRules, type QuoteBasis } from '@/lib/gb-quote'
+import { computeQuote, gstApplies, type RateRow, type RateTableInfo, type AppliedRules, type QuoteBasis } from '@/lib/gb-quote'
 import qbe from '@/lib/gb/calculators/qbe-steadfast-2026.json'
 import income from '@/lib/gb/calculators/income-flexcare-2026.json'
 
@@ -48,8 +48,9 @@ for (const calc of [qbe as unknown as Calc, income as unknown as Calc]) {
       const wrong: string[] = []
       for (const c of calc.cases) {
         const { premium, note } = linePremium(calc, c, 'renewal')
-        // The engine stores premiums net of GST; an inclusive calculator's figure is stripped once.
-        const want = c.expected == null ? null : round2(inclusive ? c.expected / factor : c.expected)
+        // The engine stores premiums net of GST; an inclusive calculator's figure is stripped once —
+        // except life cover, which is GST-exempt and never had any to strip.
+        const want = c.expected == null ? null : round2(inclusive && gstApplies(c.product_code) ? c.expected / factor : c.expected)
         const ok = want == null ? premium == null : premium != null && Math.abs(premium - want) <= 0.01
         if (!ok && wrong.length < 15) {
           wrong.push(`${c.product_code} | ${c.plan_code} | age ${c.age} ${c.relationship}${c.occupation_class ? ` class ${c.occupation_class}` : ''}: calculator ${c.expected} -> want ${want}, engine ${premium} (${note ?? ''})`)
@@ -145,5 +146,44 @@ describe('figures pinned outside the fixtures', () => {
   it('records which cell each GST treatment was read from', () => {
     expect((income as unknown as Calc).rules.gst_treatment.treatment).toBe('inclusive')
     expect((qbe as unknown as Calc).rules.gst_treatment.treatment).toBe('exclusive')
+  })
+})
+
+describe('GST follows the product, not the insurer', () => {
+  // Life insurance is an exempt supply in Singapore. The engine used to apply one GST setting per
+  // insurer, so Income's term life showed S$344.04 plus S$30.96 of GST that does not exist.
+  it('treats term life and critical illness as exempt, everything else as taxable', () => {
+    expect(gstApplies('Group Term Life (GTL)')).toBe(false)
+    expect(gstApplies('Group Critical Illness (Accelerated) (GCI)')).toBe(false)
+    expect(gstApplies('GTL + GACI')).toBe(false)                     // AIA's bundle: both life
+    expect(gstApplies('Group Hospital and Surgical (GHS)')).toBe(true)
+    expect(gstApplies('Group Personal Accident (GPA)')).toBe(true)
+    expect(gstApplies('Group Dental (GD)')).toBe(true)
+  })
+
+  it('Income term life: the client pays S$375, with no GST in it', () => {
+    const calc = income as unknown as Calc
+    const t: RateTableInfo = { rate_table_id: calc.rate_table_id, insurer_name: calc.insurer, age_basis: 'last_birthday', rates: calc.rates, rules: calc.rules }
+    const q = computeQuote([{ name: 'm', category: 'All', relationship: 'self', age: 25 }], [t],
+      { [calc.rate_table_id]: { 'Group Term Life (GTL)': { All: 'Plan 1' } } }, ['Group Term Life (GTL)'], 0.09, '2026-10-01')
+    expect(q.per_insurer[0].gst).toBe(0)
+    expect(q.per_insurer[0].total).toBe(375)
+  })
+
+  it('charges GST on the hospital line and not on the life line of the same quote', () => {
+    const calc = income as unknown as Calc
+    const t: RateTableInfo = { rate_table_id: calc.rate_table_id, insurer_name: calc.insurer, age_basis: 'last_birthday', rates: calc.rates, rules: calc.rules }
+    const q = computeQuote([{ name: 'm', category: 'All', relationship: 'self', age: 25 }], [t],
+      { [calc.rate_table_id]: { 'Group Term Life (GTL)': { All: 'Plan 1' }, 'Group Hospital and Surgical (GHS)': { All: 'Plan 1' } } },
+      ['Group Term Life (GTL)', 'Group Hospital and Surgical (GHS)'], 0.09, '2026-10-01')
+    expect(q.per_insurer[0].total).toBeCloseTo(375 + 857.83, 1)     // both exactly what the calculator says
+    expect(q.per_insurer[0].gst).toBeCloseTo(857.83 - 857.83 / 1.09, 1)
+  })
+
+  it('adds no GST to life cover at an insurer with no GST rule at all', () => {
+    const rates: RateRow[] = [{ product_code: 'GTL + GACI', member_type: null, plan_code: 'P1', band_label: 'All', age_min: 0, age_max: null, premium: 200 }]
+    const t: RateTableInfo = { rate_table_id: 'aia', insurer_name: 'AIA', age_basis: 'last_birthday', rates }
+    const q = computeQuote([{ name: 'm', category: 'All', relationship: 'self', age: 30 }], [t], { aia: { 'GTL + GACI': { All: 'P1' } } }, ['GTL + GACI'], 0.09, '2026-10-01')
+    expect(q.per_insurer[0].total).toBe(200)
   })
 })

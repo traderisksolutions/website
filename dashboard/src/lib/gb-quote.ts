@@ -5,6 +5,7 @@
 import { runGbComputationRules } from '@/lib/gb-compute-rules'
 import type { RuleStep } from '@/lib/pm-rules-extract'
 import { parseCalendarDate, ageLastBirthday } from '@/lib/dates/dob'
+import { resolveProduct } from '@/lib/gb/resolve'
 
 export type Relationship = 'self' | 'spouse' | 'child' | string
 export type Member = { name: string; category: string; relationship: Relationship; dob?: string | null; age?: number | null; occupation_class?: string | null }
@@ -163,6 +164,27 @@ export function findRate(
   return { premium: match.premium, note: match.renewal_only ? 'renewal-only band' : null }
 }
 
+/**
+ * Whether GST applies to this product's premium.
+ *
+ * Life insurance is an exempt supply in Singapore; health and accident cover are standard-rated.
+ * So term life and critical illness carry no GST, while hospital, outpatient, dental and personal
+ * accident do. This used to be one setting per insurer, which got both directions wrong: Income's
+ * calculator states its rates "inclusive of 9% GST", and the engine stripped 9% from its term life
+ * and critical illness rates as well — S$375 shown as S$344.04 plus GST that does not exist — and
+ * for an insurer with no GST rule it added 9% to term life premiums that carry none. TRS's own
+ * comparison workbook (V1.2) prices them GST-free; it agreed with the insurers' calculators on
+ * every other one of 578 rows checked.
+ *
+ * Read from the canonical product, so a bundle label like AIA's "GTL + GACI" is recognised as life
+ * cover without anybody maintaining a list per insurer.
+ */
+const GST_EXEMPT = new Set(['GTL', 'GCI'])
+export function gstApplies(productCode: string): boolean {
+  const codes = resolveProduct(productCode).codes
+  return !(codes.length > 0 && codes.every(c => GST_EXEMPT.has(c)))
+}
+
 export function computeQuote(
   members: Member[], tables: RateTableInfo[], categoryMap: CategoryMap, products: string[], gstRate: number, effDate: string,
   opts?: { basis?: QuoteBasis },
@@ -176,7 +198,7 @@ export function computeQuote(
     const rules = table.rules ?? null            // Phase C rules apply only when present (approved)
     const gFactor = groupFactor(rules, members.length)
     const byProduct: Record<string, number> = {}
-    let subtotal = 0, missing = 0
+    let subtotal = 0, missing = 0, taxable = 0
 
     members.forEach((m, i) => {
       const age = memberAge(m, effDate, table.age_basis)
@@ -196,6 +218,7 @@ export function computeQuote(
           if (premium == null) { missing++; continue }
           byProduct[product] = round2((byProduct[product] ?? 0) + premium)
           subtotal = round2(subtotal + premium)
+          if (gstApplies(product)) taxable = round2(taxable + premium)
         }
         return
       }
@@ -215,17 +238,20 @@ export function computeQuote(
           } else if (basis === 'new_business' && (note === 'renewal-only band' || inRenewalBand(rules, age))) {
             premium = null; note = 'renewal-only (new business)'
           } else {
-            premium = round2(netOfGst(premium, rules) * gFactor)   // net of GST, then group-size factor
+            // Net of GST — only where GST applies; a life premium never had any to strip.
+            premium = round2((gstApplies(product) ? netOfGst(premium, rules) : premium) * gFactor)
           }
         }
         lines.push({ member_index: i, member_name: m.name, relationship: m.relationship, category: m.category, age, rate_table_id: table.rate_table_id, insurer_id: table.insurer_id ?? null, insurer_name: table.insurer_name, product_code: product, plan_code: plan, premium, note })
         if (premium == null) { missing++; continue }
         byProduct[product] = round2((byProduct[product] ?? 0) + premium)
         subtotal = round2(subtotal + premium)
+        if (gstApplies(product)) taxable = round2(taxable + premium)
       }
     })
 
-    const gst = round2(subtotal * gstRate)
+    // GST on the standard-rated cover only; term life and critical illness are exempt.
+    const gst = round2(taxable * gstRate)
     // richRules bypasses AppliedRules entirely (see the branch above) — report that plainly
     // rather than showing gFactor/rules.gst_treatment values that were never actually applied.
     const applied = table.richRules?.length
