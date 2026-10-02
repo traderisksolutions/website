@@ -104,6 +104,8 @@ export type AiFeature =
   | 'pm_plan_match'
   | 'pm_classify_categories'
   | 'debit_note_extract'
+  // Commission read off insurer documents when the debit-note archive was imported (2 Oct 2026).
+  | 'dn_commission_extract'
   // gb_recommend was the Opus narrative, removed 2 Oct 2026 when the comparison became
   // deterministic. Kept in the union so the ledger rows it already wrote still read back.
   | 'gb_recommend'

@@ -38,7 +38,8 @@ export async function resolveCompany(input: CompanyInput): Promise<string> {
   if (existing[0]) return existing[0].id as string
   const created = await pg('companies', {
     method: 'POST',
-    body: JSON.stringify({ company_name: name, address: input.address ?? null, type: input.type ?? null }),
+    // domains is NOT NULL with no default; an empty list is "no domain known yet".
+    body: JSON.stringify({ company_name: name, address: input.address ?? null, type: input.type ?? null, domains: [], owner_emails: [] }),
   })
   return created[0].id as string
 }
@@ -309,6 +310,9 @@ export async function commitDebitNote(input: {
       endorsement_effective_date: input.debitNote.endorsementEffectiveDate ?? null,
       origin: input.debitNote.origin ?? 'new',
       source: input.debitNote.source,
+      // NOT NULL with no default in production. Left out, every insert failed — the Generate
+      // Debit Note form included (found 2 Oct 2026 importing the Drive archive).
+      attachment_files: [],
     }),
   })
   const debitNoteId = created[0].id as string
