@@ -2,17 +2,13 @@
  * Pure census helpers shared between the "New quote" wizard and editing an already-saved quote.
  */
 import type { CensusMember } from '@/lib/pm-quote'
+import { parseCalendarDate, ageLastBirthday, todaySGT } from '@/lib/dates/dob'
 
 /** Plain calendar age as of today, from a DOB — display-only convenience (pricing itself uses each
  *  insurer's own age basis / effective date via ageForBasis in pm-calc.ts, not this). */
 export function ageAsOfToday(dob: string): number | null {
-  const d = new Date(dob)
-  if (isNaN(d.getTime())) return null
-  const today = new Date()
-  let age = today.getFullYear() - d.getFullYear()
-  const hadBirthday = today.getMonth() > d.getMonth() || (today.getMonth() === d.getMonth() && today.getDate() >= d.getDate())
-  if (!hadBirthday) age--
-  return age
+  const d = parseCalendarDate(dob)
+  return d ? ageLastBirthday(d, todaySGT()) : null
 }
 
 export const CENSUS_CSV_FIELDS = ['name', 'date_of_birth', 'age', 'relationship', 'employee_category'] as const

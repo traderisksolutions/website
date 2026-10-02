@@ -156,3 +156,28 @@ describe('findRate — dependants on a table that has no dependant rates', () =>
     expect(findRate(untypedOnly, 'GHS', 'Plan 1', 40, 'employee').premium).toBe(494.54)
   })
 })
+
+describe('a day-first census prices every member', () => {
+  // The Gembridge census, shape preserved: day-first dates, the way Singapore writes them. Read
+  // month-first, 10 of these 15 members dropped out of the total and two more priced a year off.
+  const DOBS = ['24/12/1971', '12/09/1972', '19/08/1976', '25/03/1978', '20/08/2015', '03/03/1977',
+    '26/09/1975', '02/07/1982', '01/03/2020', '16/04/2025', '22/07/1988', '18/04/1990', '04/10/2018',
+    '25/11/2019', '15/08/1974']
+  const AGES = [54, 54, 50, 48, 11, 49, 51, 44, 6, 1, 38, 36, 7, 6, 52]
+  const flat: RateRow[] = [{ product_code: 'GHS', member_type: null, plan_code: 'P1', band_label: 'All', age_min: 0, age_max: null, premium: 100 }]
+  const table: RateTableInfo = { rate_table_id: 't', insurer_name: 'X', age_basis: 'last_birthday', rates: flat }
+
+  it('prices all 15, at the ages the census states', () => {
+    const members: Member[] = DOBS.map((dob, i) => ({ name: `m${i}`, category: 'All', relationship: 'self', dob }))
+    const q = computeQuote(members, [table], { t: { GHS: { All: 'P1' } } }, ['GHS'], 0.09, '2026-10-01')
+    expect(q.per_insurer[0].missing).toBe(0)
+    expect(q.lines.map(l => l.age)).toEqual(AGES)
+  })
+
+  it('falls back to the stated age when a date will not parse, rather than dropping the member', () => {
+    const q = computeQuote([{ name: 'x', category: 'All', relationship: 'self', dob: '31/02/1980', age: 46 }],
+      [table], { t: { GHS: { All: 'P1' } } }, ['GHS'], 0.09, '2026-10-01')
+    expect(q.lines[0].age).toBe(46)
+    expect(q.lines[0].premium).toBe(100)
+  })
+})

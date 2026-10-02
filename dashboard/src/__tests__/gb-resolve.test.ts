@@ -206,3 +206,22 @@ describe('a label that lists several products', () => {
     expect(resolveProduct('Group Hospital & Surgical — Foreign Worker').codes).toEqual(['GHS_FW'])
   })
 })
+
+describe('labels written by the calculator loader (scripts/gb-calculators/load.py)', () => {
+  // load.py carries its own label -> canon map so it can run without the app. This pins it to
+  // resolveProduct, so the two cannot drift.
+  const LOADER: Record<string, string[]> = {
+    'Group Hospital & Surgical (GHS)': ['GHS'], 'Group Hospital and Surgical (GHS)': ['GHS'],
+    'Group Outpatient GP (GP)': ['GOPC'], 'Group Outpatient Primary Care (GOPC)': ['GOPC'],
+    'Group Outpatient Specialist (SP)': ['GOSC'], 'Group Outpatient Specialist Care (GOSC)': ['GOSC'],
+    'Group Dental (GD)': ['GD'], 'Group Personal Accident (GPA)': ['GPA'],
+    'Group Term Life (GTL)': ['GTL'], 'Group Critical Illness (Accelerated) (GCI)': ['GCI'],
+  }
+  for (const [label, codes] of Object.entries(LOADER)) {
+    it(`${label} -> ${codes.join('+')}`, () => expect(resolveProduct(label).codes).toEqual(codes))
+  }
+  it('reads the multi-product label the loader writes onto a rate table', () => {
+    const qbe = 'Group Hospital & Surgical (GHS) · Group Outpatient GP (GP) · Group Outpatient Specialist (SP) · Group Dental (GD) · Group Personal Accident (GPA)'
+    expect(resolveProduct(qbe).codes).toEqual(['GHS', 'GPA', 'GOPC', 'GOSC', 'GD'])
+  })
+})

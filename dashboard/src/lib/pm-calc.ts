@@ -14,6 +14,7 @@ import type { CensusMember, Selection, CategoryOverrides, InsurerResult, RunMemb
 import type { RuleStep } from '@/lib/pm-rules-extract'
 import { runComputationRules } from '@/lib/pm-compute-rules'
 import { nowSGT, todaySGT } from '@/lib/sgt-time'
+import { parseCalendarDate, ageLastBirthday as ageLastBirthdayCal, fromDate, type CalendarDate } from '@/lib/dates/dob'
 
 export { coverageFor } from '@/lib/pm-rates'
 
@@ -21,19 +22,14 @@ export type CalcGlobals = { effective_date?: string | null; quote_basis?: 'new_b
 
 const round2 = (v: number) => Math.round(v * 100) / 100
 
-/** Standard "age today" calc (Age Last Birthday) as of a given date. */
-function ageLastBirthday(dob: Date, asOf: Date): number {
-  let age = asOf.getFullYear() - dob.getFullYear()
-  const hadBirthday = asOf.getMonth() > dob.getMonth() || (asOf.getMonth() === dob.getMonth() && asOf.getDate() >= dob.getDate())
-  if (!hadBirthday) age--
-  return age
-}
-
-export function ageForBasis(member: Pick<EngineMember, 'date_of_birth' | 'age'>, basis: RateTable['age_basis'], asOf: Date): number | null {
+export function ageForBasis(member: Pick<EngineMember, 'date_of_birth' | 'age'>, basis: RateTable['age_basis'], asOf: Date | CalendarDate): number | null {
   if (member.date_of_birth) {
-    const dob = new Date(member.date_of_birth)
-    if (!isNaN(dob.getTime())) {
-      const alb = ageLastBirthday(dob, asOf)
+    // Day-first or ISO only — never month-first. `new Date(dob)` read 12/09/1972 as 9 December
+    // and priced the member a year off, silently.
+    const dob = parseCalendarDate(member.date_of_birth)
+    if (dob) {
+      const on = asOf instanceof Date ? fromDate(asOf) : asOf
+      const alb = ageLastBirthdayCal(dob, on)
       return basis === 'ANB' ? alb + 1 : alb
     }
   }
@@ -80,7 +76,9 @@ export function computeInsurerQuote(
   // `new Date()` on Vercel is the server's UTC clock — up to 8h behind SGT, which during SGT
   // 00:00-07:59 would silently price "as of" the wrong (previous) calendar day whenever no
   // explicit effective_date is given. nowSGT() anchors the fallback to Singapore time instead.
-  const asOf = globals.effective_date ? new Date(globals.effective_date) : nowSGT()
+  // A calendar date, not a Date: new Date('2026-10-01') is UTC midnight, and reading it back with
+  // local getters lands on the 30th anywhere west of Greenwich.
+  const asOf: CalendarDate = (globals.effective_date && parseCalendarDate(globals.effective_date)) || fromDate(nowSGT())
   const basis = globals.quote_basis ?? 'new_business'
   const usingRules = !!computationRules?.length
   const loadingPct = usingRules ? 0 : loadingPctFor(rt, members.length)

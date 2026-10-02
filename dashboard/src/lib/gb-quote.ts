@@ -4,11 +4,19 @@
  */
 import { runGbComputationRules } from '@/lib/gb-compute-rules'
 import type { RuleStep } from '@/lib/pm-rules-extract'
+import { parseCalendarDate, ageLastBirthday } from '@/lib/dates/dob'
 
 export type Relationship = 'self' | 'spouse' | 'child' | string
 export type Member = { name: string; category: string; relationship: Relationship; dob?: string | null; age?: number | null; occupation_class?: string | null }
 
-export type RateRow = { product_code: string; member_type?: string | null; plan_code: string; band_label: string; age_min: number | null; age_max: number | null; premium: number; renewal_only?: boolean }
+export type RateRow = {
+  product_code: string; member_type?: string | null; plan_code: string; band_label: string
+  age_min: number | null; age_max: number | null; premium: number; renewal_only?: boolean
+  /** Member attributes the rate depends on that the broker does not choose — today only
+   *  occupation_class, which personal accident is priced by at both QBE and Income. A row with
+   *  no dimensions applies to every member. */
+  dimensions?: { occupation_class?: string | number | null } | Record<string, unknown> | null
+}
 
 export type QuoteBasis = 'new_business' | 'renewal'
 
@@ -21,6 +29,10 @@ export type AppliedRules = {
   group_size_discount?: { tiers?: GroupTier[] } | string | null
   renewal_only_bands?: Array<{ band?: [number, number] | null }> | string | null
   occupation_class_rules?: { excluded_classes?: Array<number | string> } | string | null
+  /** Ages the insurer will cover, by relationship. Income's calculator refuses children over 24
+   *  and employees or spouses over 75 or under 16 (Working!C4); without this the engine would
+   *  price people the insurer would not accept. */
+  eligibility?: { child_max_age?: number; adult_min_age?: number; adult_max_age?: number } | null
 }
 
 // A member's relationship maps to which premium table applies (employee vs dependant).
@@ -62,6 +74,17 @@ export function inRenewalBand(rules: AppliedRules | null | undefined, age: numbe
   if (age == null || !Array.isArray(rb)) return false
   return rb.some(b => Array.isArray(b?.band) && b.band.length === 2 && age >= b.band[0] && age <= b.band[1])
 }
+/** Why this member is outside the ages the insurer covers, or null when they are inside them. */
+export function eligibilityNote(rules: AppliedRules | null | undefined, relationship: string, age: number | null): string | null {
+  const e = rules?.eligibility
+  if (!e || age == null) return null
+  const child = /child|son|daughter/i.test(relationship)
+  if (child) return e.child_max_age != null && age > e.child_max_age ? `child over ${e.child_max_age} not eligible` : null
+  if (e.adult_max_age != null && age > e.adult_max_age) return `over ${e.adult_max_age} not eligible`
+  if (e.adult_min_age != null && age < e.adult_min_age) return `under ${e.adult_min_age} not eligible`
+  return null
+}
+
 export function classExcluded(rules: AppliedRules | null | undefined, cls: string | number | null | undefined): boolean {
   const oc = rules?.occupation_class_rules
   if (cls == null || cls === '' || !oc || typeof oc === 'string' || !Array.isArray(oc.excluded_classes)) return false
@@ -84,27 +107,43 @@ export type QuoteResult = { per_insurer: InsurerResult[]; lines: QuoteLine[] }
 
 // Age at the effective date on the given basis. "next birthday" = age they turn next = last + 1.
 export function ageAt(dob: string, effDate: string, basis: 'next_birthday' | 'last_birthday'): number | null {
-  const d = new Date(dob), e = new Date(effDate)
-  if (isNaN(d.getTime()) || isNaN(e.getTime())) return null
-  let last = e.getFullYear() - d.getFullYear()
-  const beforeBday = e.getMonth() < d.getMonth() || (e.getMonth() === d.getMonth() && e.getDate() < d.getDate())
-  if (beforeBday) last -= 1
+  // Day-first or ISO only. `new Date(dob)` read Singapore's 24/12/1971 month-first — invalid —
+  // and 12/09/1972 as 9 December; see src/lib/dates/dob.ts for what that did to a quotation.
+  const d = parseCalendarDate(dob), e = parseCalendarDate(effDate)
+  if (!d || !e) return null
+  const last = ageLastBirthday(d, e)
   return basis === 'last_birthday' ? last : last + 1
 }
 
 // The age to look up for a member against a table: from DOB per the table's basis, else the
 // explicitly-provided age (basis unknown — used as-is).
 export function memberAge(m: Member, effDate: string, basis: 'next_birthday' | 'last_birthday'): number | null {
-  if (m.dob) return ageAt(m.dob, effDate, basis)
+  // A date that will not parse falls back to the stated age rather than dropping the member:
+  // a dropped member vanishes from the total with no more than a count in the footer.
+  const fromDob = m.dob ? ageAt(m.dob, effDate, basis) : null
+  if (fromDob != null) return fromDob
   if (m.age != null && isFinite(m.age)) return Math.floor(m.age)
   return null
 }
 
-export function findRate(rates: RateRow[], product: string, plan: string | null, age: number | null, memberType?: 'employee' | 'dependant'): { premium: number | null; note: string | null } {
+export function findRate(
+  rates: RateRow[], product: string, plan: string | null, age: number | null,
+  memberType?: 'employee' | 'dependant', ctx?: { occupationClass?: string | number | null },
+): { premium: number | null; note: string | null } {
   if (!plan) return { premium: null, note: 'no plan mapped' }
   if (age == null) return { premium: null, note: 'no age' }
-  const cand = rates.filter(r => r.product_code === product && r.plan_code === plan)
+  let cand = rates.filter(r => r.product_code === product && r.plan_code === plan)
   if (!cand.length) return { premium: null, note: 'plan not in rate table' }
+
+  // Rows priced by occupation class. Without the member's class there is no right answer, so say
+  // so rather than taking the first row — class 3 costs half as much again as class 1.
+  const classOf = (r: RateRow) => (r.dimensions as { occupation_class?: unknown } | null | undefined)?.occupation_class
+  if (cand.some(r => classOf(r) != null)) {
+    const want = ctx?.occupationClass
+    if (want == null || want === '') return { premium: null, note: 'occupation class needed' }
+    cand = cand.filter(r => classOf(r) == null || String(classOf(r)) === String(want))
+    if (!cand.length) return { premium: null, note: `class ${want} not priced` }
+  }
 
   const typed   = memberType ? cand.filter(r => (r.member_type ?? null) === memberType) : []
   const untyped = cand.filter(r => (r.member_type ?? null) === null)
@@ -161,11 +200,14 @@ export function computeQuote(
         return
       }
 
+      const ineligible = eligibilityNote(rules, m.relationship, age)
       for (const product of products) {
         const plan = tMap[product]?.[m.category] ?? null
         // Skip products the category isn't mapped to (e.g. staff without a GOS rider).
         if (!plan) continue
-        let { premium, note } = findRate(table.rates, product, plan, age, memberTypeFor(m.relationship))
+        let { premium, note } = ineligible
+          ? { premium: null as number | null, note: ineligible as string | null }
+          : findRate(table.rates, product, plan, age, memberTypeFor(m.relationship), { occupationClass: m.occupation_class })
         // Apply the insurer's calculator rules (guarded — no-op when the table has no rules).
         if (rules && premium != null) {
           if (classExcluded(rules, m.occupation_class)) {

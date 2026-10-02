@@ -116,23 +116,28 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         if (!productCodes.length) continue    // unmapped label: quotable, not comparable
 
         const values: Option['values'] = {}
-        // Plan-tier attributes first, so a genuine benefit row can override them.
+        // Benefit schedules are read per base plan ("Plan 1"); calculator plan codes carry the
+        // variant the broker chose ("Plan 1 · Government 4-bedded"). A schedule row matches either.
+        const basePlan = planCode.split(' · ')[0]
+        // A row with no plan code applies to every tier on that table. Schedule-wide rows go in
+        // FIRST so a tier's own value overrides them: AIA still carries a pre-scan row with no
+        // plan code for room & board, and whichever of the two landed last would otherwise win,
+        // making the comparison depend on the order PostgREST happened to return.
+        for (const pass of [null, basePlan, planCode] as (string | null)[]) {
+          for (const b of bens) {
+            if (b.rate_table_id !== m.id || !b.canon_benefit) continue
+            if ((b.plan_code ?? null) !== pass) continue
+            values[b.canon_benefit] = { text: b.value_text, numeric: b.value_numeric }
+          }
+        }
+        // The plan tier's own attributes last. Where they exist they come from the insurer's
+        // calculator, which names the exact ward ("Government, 4-Bedded") the premium was priced
+        // on — more precise than a brochure's "1 or 4 Bedded" for the same plan.
         if (planRow) {
           const fw = productCodes.includes('GHS_FW')
           for (const attr of PLAN_ATTR_LINES) {
             const v = planRow[attr.field]
             if (typeof v === 'string' && v.trim()) values[fw ? attr.fw : attr.ghs] = { text: v.trim(), numeric: null }
-          }
-        }
-        // A row with no plan code applies to every tier on that table. Schedule-wide rows go in
-        // FIRST so a tier's own value overrides them: AIA still carries a pre-scan row with no
-        // plan code for room & board, and whichever of the two landed last would otherwise win,
-        // making the comparison depend on the order PostgREST happened to return.
-        for (const pass of [null, planCode] as (string | null)[]) {
-          for (const b of bens) {
-            if (b.rate_table_id !== m.id || !b.canon_benefit) continue
-            if ((b.plan_code ?? null) !== pass) continue
-            values[b.canon_benefit] = { text: b.value_text, numeric: b.value_numeric }
           }
         }
 
