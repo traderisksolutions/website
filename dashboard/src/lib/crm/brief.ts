@@ -9,6 +9,7 @@ import { buildCompanyContext } from './context'
 import { isStage } from './stage'
 import { STAGE_LABEL } from './types'
 import type { AiBrief, Company } from './types'
+import { withVoice, voiceInstruction } from '@/lib/voice'
 
 const SYSTEM = `You are the account analyst at Trade Risk Solutions (TRS), an insurance broker in Singapore. You write short, factual briefs for colleagues about one client company, using only the facts provided. Plain, professional English. No speculation presented as fact. Dates as YYYY-MM-DD. Amounts with currency.`
 
@@ -54,8 +55,8 @@ export async function generateBrief(company: Company, opts: { deep?: boolean } =
   const prompt = `${SCHEMA}\n\nCurrent stage set by staff: ${STAGE_LABEL[company.stage]}.\n\nFACTS:\n${ctx.text}`
 
   const result = opts.deep
-    ? await opusJson<Partial<AiBrief>>({ system: SYSTEM, prompt, feature: 'crm_brief', resourceId: company.id, maxTokens: 5000 })
-    : await geminiJson<Partial<AiBrief>>({ system: SYSTEM, prompt, feature: 'crm_brief', resourceId: company.id, temperature: 0.2 })
+    ? await opusJson<Partial<AiBrief>>({ system: await withVoice(SYSTEM, 'internal'), prompt, feature: 'crm_brief', resourceId: company.id, maxTokens: 5000 })
+    : await geminiJson<Partial<AiBrief>>({ system: await withVoice(SYSTEM, 'internal'), prompt, feature: 'crm_brief', resourceId: company.id, temperature: 0.2 })
 
   if (!result.data) return { brief: null, error: result.error ?? 'No brief was produced.' }
   const brief = coerce(result.data as Partial<AiBrief> & Record<string, unknown>, result.model, !!opts.deep)

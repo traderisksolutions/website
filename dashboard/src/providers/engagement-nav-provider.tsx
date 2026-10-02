@@ -20,10 +20,10 @@ import type { NewEmailDraft } from '@/components/engagement/NewEmailComposeModal
 
 export type EngagementTab =
   | 'all' | 'needs_reply' | 'awaiting_client' | 'unlinked' | 'unassigned' | 'drafts'
-  | 'renewals' | 'claims' | 'rfqs' | 'clients' | 'prospects'
+  | 'renewals' | 'claims' | 'clients' | 'prospects'
 export type EngagementNavCounts = Record<EngagementTab, number>
 
-const EMPTY_COUNTS: EngagementNavCounts = { all: 0, needs_reply: 0, awaiting_client: 0, unlinked: 0, unassigned: 0, drafts: 0, renewals: 0, claims: 0, rfqs: 0, clients: 0, prospects: 0 }
+const EMPTY_COUNTS: EngagementNavCounts = { all: 0, needs_reply: 0, awaiting_client: 0, unlinked: 0, unassigned: 0, drafts: 0, renewals: 0, claims: 0, clients: 0, prospects: 0 }
 
 /** localStorage key for the navigator's collapsed state (64px icon rail vs the full column). */
 export const KEY_NAV_COLLAPSED = 'engagement_nav_collapsed'

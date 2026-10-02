@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logError } from '@/lib/error-log'
 import { requireStaffOrCron } from '@/lib/api-auth'
+import { withVoice, voiceInstruction } from '@/lib/voice'
 
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
 
@@ -66,6 +67,7 @@ NEXT ACTION
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        systemInstruction: await voiceInstruction('internal'),
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: { temperature: 0.3, maxOutputTokens: 400 },
       }),

@@ -4,6 +4,7 @@ import { fetchAttachmentContext }   from '@/lib/thread-attachment-context'
 import { logError }                 from '@/lib/error-log'
 import { requireStaffOrCron }       from '@/lib/api-auth'
 import { geminiUrl, GEMINI_LITE } from '@/lib/gemini-models'
+import { withVoice, voiceInstruction } from '@/lib/voice'
 
 const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = geminiUrl(GEMINI_LITE)
@@ -90,6 +91,7 @@ Return ONLY a valid JSON object. If the email is purely internal (TRS-to-TRS) wi
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({
+      systemInstruction: await voiceInstruction('internal'),
       contents:         [{ parts: [{ text: prompt }] }],
       generationConfig: { temperature: 0.3, maxOutputTokens: 2048, responseMimeType: 'application/json' },
     }),

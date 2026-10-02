@@ -39,7 +39,7 @@ export async function buildCompanyContext(company: Company, opts: { withExcerpts
     listCompanyThreads(company.id, threadIds),
     rankPeople(company, threadIds),
     loadCompanyPayments(company.id),
-    listCompanyQuotes(company, threadIds),
+    listCompanyQuotes(company),
     listCompanyCases(company.id, threadIds),
   ])
 
@@ -97,7 +97,7 @@ export function renderContext(ctx: CompanyContext): string {
 
   lines.push('', '── QUOTES ──')
   if (ctx.quotes.length === 0) lines.push('No quotes or RFQs.')
-  for (const q of ctx.quotes.slice(0, 15)) lines.push(`- [${q.kind}] ${q.title} · ${q.status}${q.isOpen ? ' (open)' : ''} · created ${q.created_at.slice(0, 10)}${q.quotesReceived != null ? ` · insurer quotes received: ${q.quotesReceived}` : ''}${q.memberCount != null ? ` · ${q.memberCount} members` : ''}`)
+  for (const q of ctx.quotes.slice(0, 15)) lines.push(`- [${q.kind}] ${q.title} · ${q.status}${q.isOpen ? ' (open)' : ''} · created ${q.created_at.slice(0, 10)}${q.memberCount != null ? ` · ${q.memberCount} members` : ''}`)
 
   lines.push('', '── NEXUS CASES ──')
   if (ctx.cases.length === 0) lines.push('No cases.')

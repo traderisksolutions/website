@@ -24,6 +24,7 @@ import { logError } from '@/lib/error-log'
 import { fetchAttachmentContext } from '@/lib/thread-attachment-context'
 import { EMAIL_TYPE_BASE_INSTRUCTIONS } from '@/lib/email-surface-instructions'
 import { geminiUrl, GEMINI_FLASH, GEMINI_LITE, GEMINI_EMBED } from '@/lib/gemini-models'
+import { withVoice, voiceInstruction } from '@/lib/voice'
 
 function sbHeaders(prefer = 'return=minimal') {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -321,6 +322,7 @@ Write only the email body starting with "${salutation}". End after the last para
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      systemInstruction: await voiceInstruction('client'),
       contents:         [{ parts: [{ text: prompt }] }],
       generationConfig: { temperature: 0.2, maxOutputTokens: 4096 },
     }),

@@ -12,7 +12,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const company = await getCompany(id)
     if (!company) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     const threadIds = await getCompanyThreadIds(id)
-    const quotes = await listCompanyQuotes(company, threadIds)
+    const quotes = await listCompanyQuotes(company)
     return NextResponse.json({ quotes })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })

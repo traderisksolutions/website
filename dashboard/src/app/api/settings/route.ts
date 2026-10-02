@@ -4,7 +4,7 @@ import { createClient }              from '@/lib/supabase/server'
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 
 // Keys that only admins (is_admin = true in employee_profiles) may change.
-const ADMIN_ONLY_KEYS = ['shared_email_senders', 'reply_from_email']
+const ADMIN_ONLY_KEYS = ['shared_email_senders', 'reply_from_email', 'voice_soul']
 
 function sbHeaders(prefer = 'return=representation') {
   const k = process.env.SUPABASE_SERVICE_KEY

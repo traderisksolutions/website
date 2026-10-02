@@ -203,7 +203,7 @@ export function EngagementComposePanel({
     const tid = thread?.id
     if (!tid) return
     let ok = true
-    fetch(`/api/nexus/rfq/attachments?thread_id=${encodeURIComponent(tid)}`, { cache: 'no-store' })
+    fetch(`/api/email/attachments/for-thread?thread_id=${encodeURIComponent(tid)}`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : [])
       .then((rows: Att[]) => { if (ok) setThreadFiles(Array.isArray(rows) ? rows : []) })
       .catch(() => {})

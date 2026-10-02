@@ -150,7 +150,7 @@ export function CaseThreadPicker({ open, onClose, threads, companyName, busy, er
           <>
             <Segmented value={filter} onChange={setFilter} options={[
               { value: 'all', label: 'All', count: counts.all },
-              { value: 'rfq', label: 'RFQ', count: counts.rfq },
+              { value: 'rfq', label: 'Quote requests', count: counts.rfq },
               { value: 'claim', label: 'Claims', count: counts.claim },
               { value: 'renewal', label: 'Renewals', count: counts.renewal },
               { value: 'general', label: 'General', count: counts.general },

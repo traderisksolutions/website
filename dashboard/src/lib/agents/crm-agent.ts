@@ -29,6 +29,7 @@ import { searchCompany, renderContext as renderArchive, type CompanyChunk } from
 import { buildCitations, renderProvenance, CITE_INSTRUCTION, type Citation, type ProposedAttachment } from '@/lib/agents/guardrails'
 import { buildCompanyContext, renderContext as renderCompany } from '@/lib/crm/context'
 import { getCompany, sbTry, enc } from '@/lib/crm/db'
+import { withVoice, voiceInstruction } from '@/lib/voice'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 function sbHeaders(prefer = 'return=representation') {
@@ -200,7 +201,7 @@ export async function nextReply(opts: { threadId: string }): Promise<NextReply> 
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      systemInstruction: { parts: [{ text: SYSTEM }] },
+      systemInstruction: { parts: [{ text: await withVoice(SYSTEM, 'client') }] },
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: { temperature: 0.25, responseMimeType: 'application/json', maxOutputTokens: 4000 },
     }),

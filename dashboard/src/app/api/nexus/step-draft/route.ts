@@ -12,6 +12,7 @@ import { logGeminiUsage }            from '@/lib/gemini-usage'
 import { logError }                  from '@/lib/error-log'
 import { requireStaffOrCron }        from '@/lib/api-auth'
 import { geminiUrl, GEMINI_FLASH } from '@/lib/gemini-models'
+import { withVoice, voiceInstruction } from '@/lib/voice'
 
 const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = geminiUrl(GEMINI_FLASH)
@@ -93,7 +94,7 @@ Write a concise, professional email that achieves the action. Singapore business
     const gRes = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.4, responseMimeType: 'application/json' } }),
+      body: JSON.stringify({ systemInstruction: await voiceInstruction('client'), contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.4, responseMimeType: 'application/json' } }),
     })
     if (!gRes.ok) {
       const errText = await gRes.text()

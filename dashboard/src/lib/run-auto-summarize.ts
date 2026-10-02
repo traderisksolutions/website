@@ -3,6 +3,7 @@ import { logError }             from '@/lib/error-log'
 import { runRagDraft }           from '@/lib/run-rag-draft'
 import { fetchKnowledgeDocs }    from '@/lib/gdrive-knowledge'
 import { geminiUrl, GEMINI_LITE } from '@/lib/gemini-models'
+import { withVoice, voiceInstruction } from '@/lib/voice'
 
 const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 // Same model as the Refresh button. These two write the SAME thread_summaries row, so running
@@ -122,6 +123,7 @@ Rules for draft_reply:
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      systemInstruction: await voiceInstruction('internal'),
       contents:         [{ parts }],
       generationConfig: { temperature: 0.3, maxOutputTokens: 4096, responseMimeType: 'application/json' },
     }),

@@ -73,7 +73,7 @@ const COMPANY_TOOLS = [
   { name: 'list_company_threads', description: 'List every email thread with this company: thread_id, subject, category, whether it awaits our reply, and the latest AI summary.', input_schema: { type: 'object', properties: {} } },
   { name: 'get_thread_messages',  description: 'Get recent messages (direction, from, date, body) for one of this company\'s threads.', input_schema: { type: 'object', properties: { thread_id: { type: 'string' } }, required: ['thread_id'] } },
   { name: 'get_company_payments', description: 'Every debit note for this company with amount, due date, outstanding balance and whether it is overdue.', input_schema: { type: 'object', properties: {} } },
-  { name: 'get_company_quotes',   description: 'RFQ lines and group benefits quotations for this company with status.', input_schema: { type: 'object', properties: {} } },
+  { name: 'get_company_quotes',   description: 'Pricing matrix and group benefits quotations prepared for this company, with status.', input_schema: { type: 'object', properties: {} } },
   { name: 'get_company_people',   description: 'Who corresponds with us at this company, ranked by activity, with insurer contacts seen on the same threads.', input_schema: { type: 'object', properties: {} } },
   { name: 'get_company_cover',    description: 'What this client has bought: every policy with insurer, cover, period, premium billed and commission earned, plus lifetime customer value and renewal dates. Use for "what are they worth", "what do they have", "when does X renew".', input_schema: { type: 'object', properties: {} } },
   { name: 'get_company_cases',    description: 'Nexus cases for this company and the latest deep analysis of each: case brief, blocking issues, recommended next steps and scenarios. Use for "what is happening with the claim" or "where are we on X".', input_schema: { type: 'object', properties: {} } },
@@ -101,7 +101,7 @@ async function execCompanyTool(name: string, input: Record<string, unknown>, com
       return cap(JSON.stringify({ summary, notes: notes.map(n => ({ debit_note_no: n.debit_note_no, issued: n.issue_date, due: n.payment_due_date, currency: n.currency, amount: n.net_amount ?? n.gross_amount, outstanding: n.outstanding, status: n.derived, days_overdue: n.daysOverdue, cover: n.classOfInsurance, policy: n.policyNumber, insurer: n.insurer })) }))
     }
     if (name === 'get_company_quotes') {
-      const quotes = await listCompanyQuotes(company, await getCompanyThreadIds(companyId))
+      const quotes = await listCompanyQuotes(company)
       return cap(JSON.stringify(quotes))
     }
     if (name === 'get_company_people') {
@@ -204,7 +204,6 @@ You brief the email; a drafting model writes the body on confirm. Do not write t
 // ── Live read-tools (case-scoped) ─────────────────────────────────────────────
 const TOOLS = [
   { name: 'get_case_analysis',  description: 'Get the full latest structured analysis JSON for this case (fuller than the summary in context).', input_schema: { type: 'object', properties: {} } },
-  { name: 'get_case_quotes',    description: 'Get captured insurer quotes for this case (premium, excess, limit, validity, terms).',              input_schema: { type: 'object', properties: {} } },
   { name: 'list_case_threads',  description: 'List this case\'s linked email threads with party labels and thread_id.',                          input_schema: { type: 'object', properties: {} } },
   { name: 'list_attachments',   description: 'List EVERY attachment on this case: filename, which party sent it, size, and whether it has been read/analysed (parsed:true) or is still pending (parsed:false). Use this to find documents that were never analysed.', input_schema: { type: 'object', properties: {} } },
   { name: 'get_thread_messages', description: 'Get recent messages (direction, from, date, body) for one thread on this case.',                  input_schema: { type: 'object', properties: { thread_id: { type: 'string' } }, required: ['thread_id'] } },
@@ -214,7 +213,6 @@ const TOOLS = [
 // Friendly "what Opus is doing" label for the UI while tools run.
 const TOOL_STATUS: Record<string, string> = {
   get_case_analysis:  'Reading the analysis…',
-  get_case_quotes:    'Reading the quotes…',
   list_case_threads:  'Checking the linked threads…',
   list_attachments:   'Checking the documents…',
   get_thread_messages:'Reading the emails…',
@@ -236,10 +234,6 @@ async function execTool(name: string, input: Record<string, unknown>, caseId: st
       const r = await fetch(`${SB_URL}/rest/v1/case_analyses?case_id=eq.${caseId}&order=created_at.desc&limit=1&select=structured_analysis`, { headers: sbH(), cache: 'no-store' })
       const sa = r.ok ? (await r.json())[0]?.structured_analysis : null
       return cap(sa ? JSON.stringify(sa) : 'No analysis yet.')
-    }
-    if (name === 'get_case_quotes') {
-      const r = await fetch(`${SB_URL}/rest/v1/rfq_quotes?case_id=eq.${caseId}&select=insurer_name,product_line,premium,excess,limit_indemnity,validity,key_terms,exclusions,summary,status`, { headers: sbH(), cache: 'no-store' })
-      return cap(JSON.stringify(r.ok ? await r.json() : []))
     }
     if (name === 'list_case_threads') {
       const r = await fetch(`${SB_URL}/rest/v1/case_threads?case_id=eq.${caseId}&select=thread_id,party_type,party_label`, { headers: sbH(), cache: 'no-store' })
@@ -289,7 +283,7 @@ async function execTool(name: string, input: Record<string, unknown>, caseId: st
 
 const SYSTEM = `You are a sharp, candid insurance strategy consultant embedded in TRS (Trade Risk Solutions, a Singapore brokerage). A broker is chatting with you about a case's AI analysis. They may be unhappy with it, want clarifications, corrections, or changes.
 
-Be concise and practical. Ground factual claims in the context or in what your read-tools return — when case-aware you can call get_case_analysis, get_case_quotes, list_case_threads, get_thread_messages and list_attachments to check the live data before answering. To find documents that were never analysed, call list_attachments and look for parsed:false. Prefer looking things up over guessing.
+Be concise and practical. Ground factual claims in the context or in what your read-tools return — when case-aware you can call get_case_analysis, list_case_threads, get_thread_messages and list_attachments to check the live data before answering. To find documents that were never analysed, call list_attachments and look for parsed:false. Prefer looking things up over guessing.
 
 CONFIRM-TO-ACT: if — and only if — the broker's request implies a concrete change, END your reply with a single fenced block:
 \`\`\`action

@@ -23,7 +23,7 @@ export const STAGE_HELP: Record<Stage, string> = {
   // already correspond with is a client.
   lead:        'Reserved for sales outreach.',
   prospect:    'Reserved for sales outreach.',
-  quoting:     'A quote or RFQ is in progress.',
+  quoting:     'A quotation is in progress.',
   client:      'Has at least one policy placed through TRS.',
   renewal_due: 'A policy ends within 60 days.',
   lapsed:      'No active policy and no recent activity.',
@@ -153,9 +153,9 @@ export interface PaymentSummary {
   nextDue: string | null
 }
 
-// ── Quotes (RFQ + pricing matrix + group benefits, unified) ───────────────────────────────────
+// ── Quotes (pricing matrix + group benefits, unified) ─────────────────────────────────────────
 
-export type QuoteKind = 'rfq' | 'pricing_matrix' | 'group_benefits'
+export type QuoteKind = 'pricing_matrix' | 'group_benefits'
 
 export interface QuoteRow {
   id: string
@@ -167,30 +167,7 @@ export interface QuoteRow {
   effective_date: string | null
   productLine: string | null
   memberCount: number | null
-  quotesReceived: number | null
   href: string
-  caseId: string | null
-  /** Per-insurer detail for an RFQ: who was written to, who answered, what they quoted. */
-  dispatches?: QuoteDispatch[]
-}
-
-export interface QuoteDispatch {
-  id: string
-  insurerName: string
-  toEmail: string | null
-  sentAt: string
-  repliedAt: string | null
-  status: 'sent' | 'replied' | string
-  daysWaiting: number
-  threadId: string | null
-  quote: {
-    premium: string | null
-    excess: string | null
-    limitIndemnity: string | null
-    validity: string | null
-    status: string | null
-    sourceLabel: string | null
-  } | null
 }
 
 // ── AI brief ──────────────────────────────────────────────────────────────────────────────────

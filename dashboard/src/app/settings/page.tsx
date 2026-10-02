@@ -4,13 +4,8 @@ import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import SignaturePanel from '@/components/SignaturePanel'
-import InsurerDirectoryPanel from '@/components/InsurerDirectoryPanel'
-import MasterEmailTemplatePanel from '@/components/MasterEmailTemplatePanel'
-import ClientRecoTemplatePanel from '@/components/ClientRecoTemplatePanel'
-import DebitNoteEmailTemplatePanel from '@/components/DebitNoteEmailTemplatePanel'
-import RfqOpsPanel from '@/components/RfqOpsPanel'
 import { TeamTable } from '@/components/settings/TeamTable'
-import { WorkflowDiagram } from '@/components/settings/WorkflowDiagram'
+import { VoicePanel } from '@/components/settings/VoicePanel'
 
 /**
  * Settings, structured as Alps Wills structures it: one page, a nav of sections on the left,
@@ -21,17 +16,17 @@ const INK = '#202124'
 const MUTED = '#5f6368'
 const RULE = '#e8eaed'
 
-type Section = 'profile' | 'team' | 'signatures' | 'insurers' | 'rfq' | 'templates' | 'diagram'
-const SECTIONS: { key: Section; label: string; group: 'you' | 'team' | 'operations' }[] = [
-  { key: 'profile',    label: 'Your profile',                            group: 'you' },
-  { key: 'signatures', label: 'Signatures',             group: 'you' },
-  { key: 'team',       label: 'Team',                     group: 'team' },
-  { key: 'insurers',   label: 'Insurers',     group: 'operations' },
-  { key: 'rfq',        label: 'RFQ',    group: 'operations' },
-  { key: 'templates',  label: 'Email templates',           group: 'operations' },
-  { key: 'diagram',    label: 'How it works',       group: 'operations' },
+// Insurers, RFQ, Email templates and How it works were removed on 2 Oct 2026. Insurers now live
+// under Companies → Insurers, where every distinct insurer already had a company record; the RFQ
+// flow and its templates were retired everywhere, not only here.
+type Section = 'profile' | 'team' | 'signatures' | 'voice'
+const SECTIONS: { key: Section; label: string; group: 'you' | 'team' | 'agents' }[] = [
+  { key: 'profile',    label: 'Your profile',   group: 'you' },
+  { key: 'signatures', label: 'Signatures',     group: 'you' },
+  { key: 'team',       label: 'Team',           group: 'team' },
+  { key: 'voice',      label: 'Tone of voice',  group: 'agents' },
 ]
-const GROUP_LABEL = { you: 'You', team: 'Team', operations: 'Operations' } as const
+const GROUP_LABEL = { you: 'You', team: 'Team', agents: 'Agents' } as const
 
 interface Profile { id: string; email?: string | null; is_admin: boolean; gmail_email: string | null }
 const ERROR_MSGS: Record<string, string> = {
@@ -59,12 +54,11 @@ function SettingsInner() {
     <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
       <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
         <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Settings</h1>
-        <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>Your account, the team, and how the agents operate.</p>
 
         <div className="mt-10 grid gap-10 md:grid-cols-[220px_minmax(0,1fr)]">
           {/* Internal nav */}
           <nav aria-label="Settings sections" className="md:sticky md:top-20 self-start">
-            {(['you', 'team', 'operations'] as const).map(g => (
+            {(['you', 'team', 'agents'] as const).map(g => (
               <div key={g} className="mb-5">
                 <p className="m-0 mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: '#9aa0a6' }}>{GROUP_LABEL[g]}</p>
                 <ul className="m-0 p-0 list-none flex md:flex-col gap-0.5 overflow-x-auto">
@@ -91,10 +85,7 @@ function SettingsInner() {
             {section === 'profile' && <ProfileSection profile={profile} onChange={loadProfile} />}
             {section === 'team' && <TeamTable />}
             {section === 'signatures' && <SignaturePanel profile={profile} />}
-            {section === 'insurers' && <InsurerDirectoryPanel />}
-            {section === 'rfq' && <RfqOpsPanel />}
-            {section === 'templates' && <div className="flex flex-col gap-6"><MasterEmailTemplatePanel /><ClientRecoTemplatePanel /><DebitNoteEmailTemplatePanel /></div>}
-            {section === 'diagram' && <WorkflowDiagram />}
+            {section === 'voice' && <VoicePanel isAdmin={!!profile?.is_admin} />}
           </section>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logGeminiUsage }           from '@/lib/gemini-usage'
 import { logError }                 from '@/lib/error-log'
+import { withVoice, voiceInstruction } from '@/lib/voice'
 
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
 
@@ -42,6 +43,7 @@ Write only the email body. End after the last paragraph — no closing line or s
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        systemInstruction: await voiceInstruction('client'),
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: { temperature: 0.4, maxOutputTokens: 400 },
       }),

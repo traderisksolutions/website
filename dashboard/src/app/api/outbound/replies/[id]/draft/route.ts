@@ -3,6 +3,7 @@ import { SB_URL, sbHeaders }         from '@/lib/sb'
 import { requireStaffOrCron }        from '@/lib/api-auth'
 import { logAiUsage }                from '@/lib/gemini-usage'
 import { logError }                  from '@/lib/error-log'
+import { withVoice, voiceInstruction } from '@/lib/voice'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -72,6 +73,7 @@ Write a short, warm, professional reply as Alex. Rules:
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
+          systemInstruction: await voiceInstruction('client'),
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
           generationConfig: { maxOutputTokens: 400 },
         }),

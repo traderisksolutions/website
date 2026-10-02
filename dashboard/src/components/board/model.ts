@@ -177,7 +177,7 @@ export function derive(c: BoardCompany, today: string): Derived {
   return { health, pressing, nextDeadline, nextDeadlineKind, openCount: open.length, overdueTasks, dueToday, dueThisWeek, owners, rank, renewalSoon }
 }
 
-export type UrgencyKey = 'overdue' | 'today' | 'week' | 'renewals' | 'claims' | 'rfqs' | 'awaiting'
+export type UrgencyKey = 'overdue' | 'today' | 'week' | 'renewals' | 'claims' | 'awaiting'
 
 export function matchesUrgency(c: BoardCompany, d: Derived, key: UrgencyKey, today: string): boolean {
   switch (key) {
@@ -186,7 +186,6 @@ export function matchesUrgency(c: BoardCompany, d: Derived, key: UrgencyKey, tod
     case 'week':     return d.dueThisWeek > 0
     case 'renewals': return d.renewalSoon
     case 'claims':   return (c.threadsByCategory.claim ?? 0) > 0
-    case 'rfqs':     return (c.threadsByCategory.rfq ?? 0) > 0 || c.openQuotes > 0
     case 'awaiting': return c.needsReply > 0 || c.tasks.some(t => isOpen(t) && t.status === 'awaiting_reply')
   }
   void today

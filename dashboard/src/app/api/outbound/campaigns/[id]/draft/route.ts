@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders, logEvent } from '@/lib/sb'
 import { logError } from '@/lib/error-log'
 import { requireStaffOrCron } from '@/lib/api-auth'
+import { withVoice, voiceInstruction } from '@/lib/voice'
 
 interface Lead {
   full_name: string | null
@@ -144,6 +145,7 @@ Return ONLY valid JSON — no markdown, no extra text:
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
+          systemInstruction: await voiceInstruction('client'),
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
           generationConfig: {
             responseMimeType: 'application/json',

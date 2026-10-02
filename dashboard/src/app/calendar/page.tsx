@@ -35,7 +35,7 @@ function fromISODate(key: string): Date {
 function isSameDay(a: Date, b: Date) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate() }
 
 // ── Two dots only. Ink for a renewal milestone; faint grey for everything else (a policy that
-// has ended, a payment, an RFQ waiting, a case step). The kind is named in words on the row. ──
+// has ended, a payment, a case step). The kind is named in words on the row. ──
 function eventDot(e: CalendarEvent): string {
   return e.type === 'renewal' ? INK : FAINT
 }
@@ -45,14 +45,13 @@ function eventKind(e: CalendarEvent): string {
   if (e.type === 'renewal') return e.label
   if (e.type === 'payment_overdue') return 'Payment past due'
   if (e.type === 'renewal_overdue') return 'Policy ended'
-  if (e.type === 'rfq_waiting') return 'RFQ awaiting insurer'
   if (e.type === 'case_step') return 'Case step'
   return e.date.slice(0, 10) < todaySGT() ? 'Payment past due' : 'Payment due'
 }
 
 const LEGEND: { dot: string; label: string }[] = [
   { dot: INK,   label: 'Renewal (today, 14, 30 or 60 days out)' },
-  { dot: FAINT, label: 'Policy ended · Payment due · Payment past due · RFQ awaiting insurer · Case step' },
+  { dot: FAINT, label: 'Policy ended · Payment due · Payment past due · Case step' },
 ]
 
 export default function CalendarPage() {
@@ -254,7 +253,6 @@ function DayDetailModal({ date, events, onClose }: { date: Date; events: Calenda
               e.type === 'renewal'         ? <RenewalCard key={e.id} e={e} />
               : e.type === 'payment_overdue' ? <PaymentOverdueCard key={e.id} e={e} />
               : e.type === 'renewal_overdue' ? <RenewalOverdueCard key={e.id} e={e} />
-              : e.type === 'rfq_waiting'     ? <RfqWaitingCard key={e.id} e={e} />
               : e.type === 'case_step'       ? <CaseStepCard key={e.id} e={e} />
               : <DebitDueCard key={e.id} e={e} />)}
           </div>
@@ -360,24 +358,6 @@ function PaymentOverdueCard({ e }: { e: Extract<CalendarEvent, { type: 'payment_
           <LinkBtn size="xs" level="tertiary" href={`/companies/${e.companyId}?tab=payments`}>Open the client</LinkBtn>
         )}
       </div>
-    </EventCard>
-  )
-}
-
-function RfqWaitingCard({ e }: { e: Extract<CalendarEvent, { type: 'rfq_waiting' }> }) {
-  const line = (e.productLine ?? '').replace(/[_-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-  return (
-    <EventCard dot={FAINT} title={e.insurerName} kind="Chase due" facts={[
-      `Insured: ${e.insuredName || '—'}`,
-      `Cover: ${line || '—'}`,
-      `Sent: ${e.sentAt.slice(0, 10)}`,
-      `No reply for ${e.daysWaiting} days`,
-    ]}>
-      {e.caseId && (
-        <div className="flex items-center gap-2 mt-1 flex-wrap">
-          <LinkBtn size="xs" level="secondary" href={`/nexus?case=${e.caseId}`}>Open the RFQ</LinkBtn>
-        </div>
-      )}
     </EventCard>
   )
 }

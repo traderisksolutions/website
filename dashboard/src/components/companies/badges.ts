@@ -27,7 +27,7 @@ export function badgesFor(r: Row, today: string): CompanyBadge[] {
   if (c.needsReply > 0) out.push({ key: 'awaiting_reply', label: 'Awaiting reply', tone: 'amber', title: `${c.needsReply} email${c.needsReply === 1 ? '' : 's'} waiting for our answer` })
   if (c.tasks.some(t => isOpen(t) && t.priority === 'critical')) out.push({ key: 'high_priority', label: 'High priority', tone: 'amber', title: 'A critical item is open' })
   if ((c.threadsByCategory.claim ?? 0) > 0) out.push({ key: 'claim_open', label: 'Claim open', tone: 'blue', title: `${c.threadsByCategory.claim} active claim thread${c.threadsByCategory.claim === 1 ? '' : 's'}` })
-  if ((c.threadsByCategory.rfq ?? 0) > 0 || c.openQuotes > 0) out.push({ key: 'rfq_active', label: 'RFQ active', tone: 'blue', title: 'A quotation is in progress' })
+  if ((c.threadsByCategory.rfq ?? 0) > 0 || c.openQuotes > 0) out.push({ key: 'rfq_active', label: 'Quote request', tone: 'blue', title: 'A client email asking for a quotation is open' })
   if (c.owner_emails.length === 0 && d.owners.length === 0) out.push({ key: 'no_owner', label: 'No owner', tone: 'neutral', title: 'Nobody is assigned to this account' })
   if (c.confirmed_at === null) out.push({ key: 'unconfirmed', label: 'Unconfirmed', tone: 'amber', title: 'Created by mail filing; a person has not checked the name yet' })
 
@@ -40,5 +40,5 @@ export function hasBadge(r: Row, today: string, key: BadgeKey): boolean {
 
 export const BADGE_LABEL: Record<BadgeKey, string> = {
   awaiting_reply: 'Awaiting reply', renewal_due: 'Renewal due', payment_overdue: 'Payment overdue', claim_open: 'Claim open',
-  rfq_active: 'RFQ active', high_priority: 'High priority', no_owner: 'No owner', unconfirmed: 'Unconfirmed', overdue_item: 'Overdue item', blocked: 'Blocked',
+  rfq_active: 'Quote request', high_priority: 'High priority', no_owner: 'No owner', unconfirmed: 'Unconfirmed', overdue_item: 'Overdue item', blocked: 'Blocked',
 }

@@ -7,7 +7,6 @@ import {
 import { cn } from '@/lib/utils'
 import { Btn, Chip, Field, inputCls, textareaCls, Segmented, Spinner } from '@/components/crm/primitives'
 import { RichEditor, plainToHtml } from '@/components/RichEditor'
-import RfqPanel from '@/components/nexus/RfqPanel'
 import { NexusPhasedAnalysisModal } from '@/components/nexus/NexusPhasedAnalysisModal'
 import { ActivityFeed, LastHandledBy } from '@/components/ActivityFeed'
 import { logClient } from '@/lib/log-client'
@@ -102,9 +101,6 @@ type V1Scenario    = { name: string; probability: string; outcome: string; trs_a
 type V1NextStep    = { step: number; action: string; owner: string; deadline?: string; priority: string; rationale: string; citation_ids?: string[]; depends_on?: number[]; party_type?: string; to_emails?: string[]; stakeholder_id?: string; contact_id?: string; thread_id?: string }
 type V1Draft       = { artifact_type: string; to_party: string; party_type: string; to_emails: string[]; cc_emails: string[]; subject: string; body: string; intent: string; priority: string; citation_ids?: string[]; stakeholder_id?: string; thread_id?: string }
 type V1Reserve     = { recommended_reserve?: string; basis: string; confidence: string; risk_factors: string[]; citation_ids?: string[] }
-type V1QuoteOption = { dispatch_id: string; insurer_name: string; premium?: string | null; excess?: string | null; limit_indemnity?: string | null; validity?: string | null; pros: string[]; cons: string[] }
-type V1LineDecision = { rfq_request_id: string; product_line: string; product_line_label: string; options: V1QuoteOption[]; recommended_dispatch_id: string | null; recommended_insurer: string | null; rationale: string; caveats: string[] }
-type V1QuoteDecision = { generated_ts: string; lines: V1LineDecision[]; note: string }
 type AnalysisMetadata = {
   analysis_ts:          string
   synthesis_model:      string
@@ -131,7 +127,6 @@ type NexusAnalysisV1 = {
   reserve_guidance:       V1Reserve | null
   citations:              V1Citation[]
   analysis_metadata?:     AnalysisMetadata
-  quote_decision?:        V1QuoteDecision | null
 }
 
 type CaseAnalysis = {
@@ -337,7 +332,7 @@ export default function NexusPage() {
 
   useEffect(() => { loadCases() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Deep-link: /nexus?case=<id> (e.g. after the manual "Start RFQ" flow) selects
+  // Deep-link: /nexus?case=<id> selects
   // that case. Runs before the default first-case selection can claim it.
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get('case')
@@ -639,8 +634,7 @@ function CaseDetailPanel({
   const [loading,       setLoading]       = useState(false)
   const [analyzing,     setAnalyzing]     = useState(false)
   const [analyzeError,  setAnalyzeError]  = useState<string | null>(null)
-  const [view,          setView]          = useState<'mission' | 'messages' | 'logs' | 'history' | 'rfq'>('mission')
-  const [rfqCount,      setRfqCount]      = useState(0)
+  const [view,          setView]          = useState<'mission' | 'messages' | 'logs' | 'history'>('mission')
   const [linkOpen,      setLinkOpen]      = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [editingTitle,  setEditingTitle]  = useState(false)
@@ -679,16 +673,6 @@ function CaseDetailPanel({
 
   // Record who opened this case (feeds "last handled by" + the activity feed).
   useEffect(() => { logClient('nexus.case_viewed', { resource_type: 'case', resource_id: caseData.id }) }, [caseData.id])
-
-  // RFQ request count — drives whether the RFQ tab shows.
-  useEffect(() => {
-    let cancelled = false
-    fetch(`/api/nexus/rfq/requests?case_id=${caseData.id}`, { cache: 'no-store' })
-      .then(r => r.ok ? r.json() : [])
-      .then(rows => { if (!cancelled) setRfqCount(Array.isArray(rows) ? rows.length : 0) })
-      .catch(() => {})
-    return () => { cancelled = true }
-  }, [caseData.id])
 
   // Keep a stable ref to load() so polling effects can call it without stale closure
   const loadRef = useRef(load)
@@ -874,7 +858,6 @@ function CaseDetailPanel({
         view={view}
         totalMsgCount={totalMsgCount}
         runsCount={runs.length}
-        rfqCount={rfqCount}
         onSetView={setView}
         onRunAnalysis={runAnalysis}
         onLinkThreads={() => setLinkOpen(true)}
@@ -921,7 +904,7 @@ function CaseDetailPanel({
             loading={loading}
             onGoToMission={() => setView('mission')}
           />
-        ) : view === 'logs' ? (
+        ) : (
           <LogsView
             analysis={analysis}
             threads={threads}
@@ -933,8 +916,6 @@ function CaseDetailPanel({
             onRunAnalysis={runAnalysis}
             analyzing={analyzing}
           />
-        ) : (
-          <RfqPanel caseId={caseData.id} />
         )}
       </div>
       {composeState && (
@@ -968,7 +949,7 @@ function CaseDetailPanel({
 // ── Mission Header ────────────────────────────────────────────────────────────
 
 function MissionHeader({
-  caseData, onBack, threads, analysis, newReplyCount, analyzing, analyzeProgress, analyzeError, confirmDelete, view, totalMsgCount, runsCount, rfqCount,
+  caseData, onBack, threads, analysis, newReplyCount, analyzing, analyzeProgress, analyzeError, confirmDelete, view, totalMsgCount, runsCount,
   onSetView, onRunAnalysis, onLinkThreads, onDelete, onConfirmDelete, onCancelDelete,
   editingTitle, titleValue, onTitleChange, onStartEditTitle, onSaveTitle, onCancelTitle,
 }: {
@@ -981,11 +962,10 @@ function MissionHeader({
   analyzeProgress: AnalysisProgress | null
   analyzeError:    string | null
   confirmDelete:   boolean
-  view:            'mission' | 'messages' | 'logs' | 'history' | 'rfq'
+  view:            'mission' | 'messages' | 'logs' | 'history'
   totalMsgCount:   number
   runsCount:       number
-  rfqCount:        number
-  onSetView:       (v: 'mission' | 'messages' | 'logs' | 'history' | 'rfq') => void
+  onSetView:       (v: 'mission' | 'messages' | 'logs' | 'history') => void
   onRunAnalysis:   () => void
   onLinkThreads:   () => void
   editingTitle:    boolean
@@ -1011,10 +991,9 @@ function MissionHeader({
   const tabs = [
     { key: 'mission',  label: 'Mission control', count: 0 },
     { key: 'messages', label: 'Messages', count: totalMsgCount },
-    ...(rfqCount > 0 ? [{ key: 'rfq', label: 'RFQ', count: rfqCount }] : []),
     { key: 'logs',     label: 'Logs', count: 0 },
     { key: 'history',  label: 'History', count: runsCount },
-  ] as { key: 'mission' | 'messages' | 'logs' | 'history' | 'rfq'; label: string; count: number }[]
+  ] as { key: 'mission' | 'messages' | 'logs' | 'history'; label: string; count: number }[]
 
   return (
     <div className="relative flex-shrink-0 bg-white" style={{ borderBottom: `1px solid ${HAIR}` }}>
@@ -1172,10 +1151,6 @@ function MissionControlBody({
       {/* 1 — Executive brief */}
       <ExecBriefCard analysis={analysis} sa={sa} />
 
-      {/* 1b — Quote decision (RFQ cases — Run Analysis adapts to case type) */}
-      {sa?.quote_decision && sa.quote_decision.lines.length > 0 && (
-        <QuoteDecisionSection decision={sa.quote_decision} />
-      )}
 
       {/* Delta banner — supplementary, right under the brief */}
       {!analyzing && currentRun && previousRun && (
@@ -1437,81 +1412,6 @@ function CitationChip({ id, citations }: { id: string; citations: V1Citation[] }
     <span title={c.excerpt ?? c.label} className={cn(cls, 'cursor-help')} style={{ background: FIELD, color: BODY }}>
       {label}
     </span>
-  )
-}
-
-// ── Quote Decision (RFQ — per-line insurer comparison + recommendation) ────────
-
-function QuoteDecisionSection({ decision }: { decision: V1QuoteDecision }) {
-  return (
-    <div>
-      <SectionLabel title="Quote decision">
-        <span className="text-[13px]" style={{ color: MUTED }}>Record the outcome in the RFQ tab once the client decides.</span>
-      </SectionLabel>
-      <div className="flex flex-col gap-3">
-        {decision.lines.map((line, li) => {
-          const rec = line.options.find(o => o.dispatch_id === line.recommended_dispatch_id) ?? null
-          return (
-            <div key={line.rfq_request_id ?? li} className="rounded-[16px] bg-white p-5 flex flex-col gap-4" style={{ border: `1px solid ${HAIR}` }}>
-              <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                <span className="text-[15px] font-medium" style={{ color: INK }}>{line.product_line_label}</span>
-                <span className="text-[13px] tabular-nums" style={{ color: MUTED }}>{line.options.length} insurer{line.options.length !== 1 ? 's' : ''}</span>
-              </div>
-
-              {/* Each option objectively — figures + benefits + downsides */}
-              <div className="grid gap-3 md:grid-cols-2">
-                {line.options.map(o => {
-                  const isRec = o.dispatch_id === line.recommended_dispatch_id
-                  return (
-                    <div key={o.dispatch_id} className="rounded-[12px] p-4 flex flex-col gap-2.5" style={{ background: FIELD }}>
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-[14px] font-medium" style={{ color: INK }}>{o.insurer_name}</span>
-                        {isRec && <Chip>Broker pick</Chip>}
-                      </div>
-                      <dl className="m-0 flex flex-wrap gap-x-5 gap-y-1">
-                        {o.premium && <KFact label="Premium" value={o.premium} />}
-                        {o.excess && <KFact label="Excess" value={o.excess} />}
-                        {o.limit_indemnity && <KFact label="Limit" value={o.limit_indemnity} />}
-                        {o.validity && <KFact label="Valid" value={o.validity} />}
-                      </dl>
-                      {o.pros.length > 0 && (
-                        <div>
-                          <GroupLabel className="mb-1">For</GroupLabel>
-                          <ul className="m-0 p-0 flex flex-col gap-1">{o.pros.map((p, i) => <DotRow key={i} className="text-[13px]">{p}</DotRow>)}</ul>
-                        </div>
-                      )}
-                      {o.cons.length > 0 && (
-                        <div>
-                          <GroupLabel className="mb-1">Against</GroupLabel>
-                          <ul className="m-0 p-0 flex flex-col gap-1">{o.cons.map((c, i) => <DotRow key={i} className="text-[13px]">{c}</DotRow>)}</ul>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-
-              {/* Recommendation */}
-              {line.rationale && (
-                <div>
-                  <GroupLabel className="mb-1">Recommendation</GroupLabel>
-                  <p className="m-0 text-[14px] leading-[1.6]" style={{ color: BODY }}>
-                    {rec && <span className="font-medium" style={{ color: INK }}>Go with {rec.insurer_name}. </span>}{line.rationale}
-                  </p>
-                </div>
-              )}
-              {line.caveats.length > 0 && (
-                <div>
-                  <GroupLabel className="mb-1">Caveats</GroupLabel>
-                  <ul className="m-0 p-0 flex flex-col gap-1">{line.caveats.map((c, i) => <DotRow key={i} className="text-[13px]">{c}</DotRow>)}</ul>
-                </div>
-              )}
-            </div>
-          )
-        })}
-        {decision.note && <p className="m-0 text-[13px]" style={{ color: MUTED }}>{decision.note}</p>}
-      </div>
-    </div>
   )
 }
 

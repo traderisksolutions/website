@@ -115,7 +115,7 @@ export function CompanyMail({ threads, companyId, companyName, onCombine, onRefr
       <div className={cn('mb-3 flex items-center gap-2 flex-wrap', fullHeight && 'flex-shrink-0')}>
         <Segmented value={filter} onChange={setFilter} options={[
           { value: 'all', label: 'All', count: counts.all }, { value: 'reply', label: 'Awaiting reply', count: counts.reply },
-          { value: 'rfq', label: 'RFQ', count: counts.rfq }, { value: 'claim', label: 'Claims', count: counts.claim },
+          { value: 'rfq', label: 'Quote requests', count: counts.rfq }, { value: 'claim', label: 'Claims', count: counts.claim },
           { value: 'renewal', label: 'Renewals', count: counts.renewal }, { value: 'general', label: 'General', count: counts.general },
         ]} />
         <span className="ml-auto flex items-center gap-1.5">

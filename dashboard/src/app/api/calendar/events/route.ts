@@ -8,8 +8,6 @@
  *   - debit_due:  a debit note's payment_due_date
  *   - payment_overdue: money still owed whose due date has already passed, pinned to today so
  *                 the backlog does not disappear the moment you leave its month
- *   - rfq_waiting: an insurer that has not answered an RFQ, pinned to the day it crossed the
- *                 service level set in Settings
  *   - case_step:  a deadline the Nexus analysis recommended, which until now lived only inside
  *                 the case
  * `companyId` is optional — when present, scopes both categories to one company (used by the
@@ -44,10 +42,6 @@ type DebitNoteRow = {
   companies: { id: string; name: string } | null
   policies: { policy_number: string | null; class_of_insurance: string | null } | null
 }
-type DispatchRow = {
-  id: string; insurer_name: string | null; to_email: string | null; status: string; created_at: string
-  rfq_requests: { id: string; product_line: string | null; insured_name: string | null; case_id: string | null } | null
-}
 type CaseAnalysisRow = {
   case_id: string; created_at: string
   structured_analysis: { recommended_next_steps?: { action?: string; owner?: string; deadline?: string; priority?: string }[] } | null
@@ -80,12 +74,6 @@ export type CalendarEvent =
       companyId: string | null; companyName: string | null
       debitNoteId: string; debitNoteNo: string; dueDate: string; daysOverdue: number
       currency: string; outstanding: number; insurer: string | null; classOfInsurance: string | null
-    }
-  | {
-      type: 'rfq_waiting'; id: string; date: string
-      companyId: string | null; companyName: string | null
-      dispatchId: string; insurerName: string; productLine: string | null; insuredName: string | null
-      caseId: string | null; sentAt: string; daysWaiting: number
     }
   | {
       type: 'case_step'; id: string; date: string
@@ -134,21 +122,14 @@ export async function GET(req: NextRequest) {
     // the record was never closed. Either way somebody needs to see it, so it sits on today.
     const lapsedUrl = `${SB_URL}/rest/v1/policies?end_date=lt.${today}&status=eq.active&select=id,policy_number,description,insurer,class_of_insurance,currency,premium,end_date,customers${companyId ? '!inner' : ''}(company_id,companies(id,name:company_name))${companyId ? `&customers.company_id=eq.${companyId}` : ''}&order=end_date.asc&limit=200`
 
-    // Insurers that have not answered an RFQ.
-    const dispatchUrl = `${SB_URL}/rest/v1/rfq_dispatches?status=eq.sent&select=id,insurer_name,to_email,status,created_at,rfq_requests!rfq_dispatches_rfq_request_id_fkey(id,product_line,insured_name,case_id)&order=created_at.asc&limit=200`
-
     // Deadlines the Nexus analysis recommended.
     const analysisUrl = `${SB_URL}/rest/v1/case_analyses?select=case_id,created_at,structured_analysis,cases(id,name,status,company_id,companies(id,name:company_name))&order=created_at.desc&limit=120`
 
-    const slaUrl = `${SB_URL}/rest/v1/app_settings?key=eq.rfq_sla&select=value&limit=1`
-
-    const [policiesRes, debitNotesRes, overdueRes, dispatchRes, analysisRes, slaRes, lapsedRes] = await Promise.all([
+    const [policiesRes, debitNotesRes, overdueRes, analysisRes, lapsedRes] = await Promise.all([
       fetch(policiesUrl, { headers: sbH(), cache: 'no-store' }),
       fetch(debitNotesUrl, { headers: sbH(), cache: 'no-store' }),
       fetch(overdueUrl, { headers: sbH(), cache: 'no-store' }),
-      fetch(dispatchUrl, { headers: sbH(), cache: 'no-store' }),
       fetch(analysisUrl, { headers: sbH(), cache: 'no-store' }),
-      fetch(slaUrl, { headers: sbH(), cache: 'no-store' }),
       fetch(lapsedUrl, { headers: sbH(), cache: 'no-store' }),
     ])
     const lapsed = lapsedRes.ok ? await lapsedRes.json() as PolicyRow[] : []
@@ -162,14 +143,7 @@ export async function GET(req: NextRequest) {
     const policies = onceOnly(policiesRes.ok ? await policiesRes.json() as PolicyRow[] : [])
     const debitNotes = debitNotesRes.ok ? await debitNotesRes.json() as DebitNoteRow[] : []
     const overdueNotes = overdueRes.ok ? await overdueRes.json() as DebitNoteRow[] : []
-    const dispatches = dispatchRes.ok ? await dispatchRes.json() as DispatchRow[] : []
     const analyses = analysisRes.ok ? await analysisRes.json() as CaseAnalysisRow[] : []
-    let slaDays = 3
-    if (slaRes.ok) {
-      const raw = (await slaRes.json())[0]?.value
-      const n = Number(typeof raw === 'object' && raw !== null ? (raw as { days?: unknown }).days : raw)
-      if (Number.isFinite(n) && n > 0) slaDays = n
-    }
 
     const outstandingOf = (d: DebitNoteRow) => {
       const total = Number(d.net_amount ?? d.gross_amount ?? 0)
@@ -203,25 +177,6 @@ export async function GET(req: NextRequest) {
     const overdueEvents: CalendarEvent[] = []
     void overdueNotes
 
-    // An insurer crosses the service level `slaDays` after we wrote to them; that is the day
-    // the chaser is due, and it is the date the event lands on.
-    const waitingEvents: CalendarEvent[] = dispatches.flatMap((d): CalendarEvent[] => {
-      if (companyId) return []   // scoped view: RFQ chasers are a firm-wide view for now
-      const sent = d.created_at.slice(0, 10)
-      const crossed = addDays(sent, slaDays)
-      // Already overdue for a chase: show it today, not buried in the month it lapsed.
-      const dueDate = crossed < today ? today : crossed
-      if (dueDate < from || dueDate > to) return []
-      return [{
-        type: 'rfq_waiting', id: `rfq_waiting-${d.id}`, date: dueDate,
-        companyId: null, companyName: d.rfq_requests?.insured_name ?? null,
-        dispatchId: d.id, insurerName: d.insurer_name ?? 'Insurer',
-        productLine: d.rfq_requests?.product_line ?? null,
-        insuredName: d.rfq_requests?.insured_name ?? null,
-        caseId: d.rfq_requests?.case_id ?? null,
-        sentAt: d.created_at, daysWaiting: daysBetweenIso(sent, today),
-      }]
-    })
 
     // One analysis per case — the newest — so an old run's deadlines do not linger.
     const seenCase = new Set<string>()
@@ -264,7 +219,6 @@ export async function GET(req: NextRequest) {
         currency: d.currency, grossAmount: d.gross_amount, outstanding: outstandingOf(d), status: d.status,
       })),
       ...overdueEvents,
-      ...waitingEvents,
       ...stepEvents,
     ]
 

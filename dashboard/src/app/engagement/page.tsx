@@ -127,7 +127,6 @@ function EngagementPageInner() {
       case 'unassigned':      return !!l.companyId && !l.companyOwner
       case 'renewals':        return l.category === 'renewal'
       case 'claims':          return l.category === 'claim'
-      case 'rfqs':            return l.category === 'rfq'
       case 'clients':         return isClient(l)
       case 'prospects':       return isProspect(l)
       case 'drafts':          return false
@@ -137,7 +136,7 @@ function EngagementPageInner() {
   // Push every section's count up to the rail — `drafts` is merged in separately by
   // ConversationList (which owns loading the drafts list).
   useEffect(() => {
-    const tabs: EngagementTab[] = ['all', 'needs_reply', 'awaiting_client', 'unlinked', 'unassigned', 'renewals', 'claims', 'rfqs', 'clients', 'prospects']
+    const tabs: EngagementTab[] = ['all', 'needs_reply', 'awaiting_client', 'unlinked', 'unassigned', 'renewals', 'claims', 'clients', 'prospects']
     setCounts(c => ({ ...c, ...Object.fromEntries(tabs.map(t => [t, leads.filter(l => inSection(l, t)).length])) as Partial<EngagementNavCounts> }))
   }, [leads, inSection, setCounts])
 

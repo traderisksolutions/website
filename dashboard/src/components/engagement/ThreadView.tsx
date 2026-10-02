@@ -20,7 +20,7 @@ import type { BoardPayload } from '@/lib/crm/board'
 /**
  * The message workspace. Header (subject, who, state), the thread in order with the newest
  * message open, a composer that stays folded to one line until asked, and a context rail
- * beside it. The data machinery — party switching, compose addressing, summaries, RFQ
+ * beside it. The data machinery — party switching, compose addressing, summaries
  * detection, Nexus hand-offs — is unchanged from before; only the shape around it is new.
  */
 
@@ -69,7 +69,6 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
   const [summariesLoading, setSummariesLoading] = useState(false)
   const [analyzing,        setAnalyzing]        = useState(false)
   const [ragDraft]                              = useState<{ content: string; sources: RagSource[] } | null>(null)
-  const [rfqContext, setRfqContext] = useState<{ is_insurer_rfq: boolean; case_id?: string | null; insurer_name?: string | null; insured?: string | null } | null>(null)
 
   // Context rail: a 340px column from 1024px up, a sheet below that. Closed by default and
   // remembered per browser, so the message keeps its measure until someone asks for context.
@@ -265,12 +264,6 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
     log({ action: 'thread.viewed', resource_type: 'thread', resource_id: threadId, metadata: { contact: lead.email, subject: lead.subject } })
   }, [threadId, lead.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    setRfqContext(null)
-    if (!threadId) return
-    fetch(`/api/nexus/rfq/thread-context?thread_id=${threadId}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => setRfqContext(d)).catch(() => {})
-  }, [threadId])
-
   // Pending reply handed over from a Nexus roadmap step
   useEffect(() => {
     if (!threadId || typeof window === 'undefined') return
@@ -342,18 +335,10 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
           </div>
         )}
 
-        {(lead.campaign_context || rfqContext?.is_insurer_rfq) && (
+        {lead.campaign_context && (
           <div className="flex-shrink-0 px-5 sm:px-10 py-2 text-[12.5px]" style={{ borderBottom: `1px solid ${HAIR}`, color: MUTED }}>
             <div className={cn(measure, 'flex flex-col gap-1')}>
-              {lead.campaign_context && (
-                <p className="m-0">Outreach campaign · {lead.campaign_context.campaign_name} · {lead.campaign_context.product_type}{lead.campaign_context.step_replied_to ? ` · replied at step ${lead.campaign_context.step_replied_to}` : ''}</p>
-              )}
-              {rfqContext?.is_insurer_rfq && (
-                <p className="m-0 flex items-center justify-between gap-3">
-                  <span>Insurer quotation · {rfqContext.insurer_name ?? 'Insurer'}{rfqContext.insured ? ` · ${rfqContext.insured}` : ''}</span>
-                  {rfqContext.case_id && <a href={`/nexus?case=${rfqContext.case_id}`} className="flex-shrink-0 no-underline hover:underline underline-offset-[3px] decoration-[#9aa0a6]" style={{ color: INK }}>Open the case</a>}
-                </p>
-              )}
+              <p className="m-0">Outreach campaign · {lead.campaign_context.campaign_name} · {lead.campaign_context.product_type}{lead.campaign_context.step_replied_to ? ` · replied at step ${lead.campaign_context.step_replied_to}` : ''}</p>
             </div>
           </div>
         )}

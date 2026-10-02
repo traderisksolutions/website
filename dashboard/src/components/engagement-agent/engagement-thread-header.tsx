@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ArrowLeft, Trash2, FileText, Info } from 'lucide-react'
+import { ArrowLeft, Trash2, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Lead } from '@/components/engagement/types'
 import { STATUS_MAP } from '@/components/engagement/types'
@@ -11,7 +11,7 @@ import type { CustomerProfile } from '@/lib/customer-profile'
 /**
  * Legacy reader header (CompanyMail). Same look as engagement/ThreadHeader: subject, then who
  * wrote, then one context line in words (company · status · state · message count · profile
- * snapshot). Start RFQ is the one filled button when offered; Details and Delete are labelled
+ * snapshot). Details and Delete are labelled
  * icon buttons. No state colour, no shadow: a hairline under it is enough. Props unchanged.
  */
 
@@ -62,8 +62,6 @@ interface EngagementThreadHeaderProps {
   /** Handles both first press (enter confirm mode) and confirm press */
   onDelete:       () => void
   onCancelDelete: () => void
-  /** Manually launch the RFQ workflow when auto-detection missed it. */
-  onStartRfq?:    () => void
   /** Opens the contact/status/notes info panel (a Sheet, see ThreadView) — replaces what used
    *  to be a perpetually-visible right-hand column. */
   onOpenInfo?:    () => void
@@ -74,7 +72,7 @@ interface EngagementThreadHeaderProps {
 export function EngagementThreadHeader({
   subject, lead, messageCount, needsReply,
   statusKey, confirmDelete, deleting,
-  onBack, onDelete, onCancelDelete, onStartRfq, onOpenInfo,
+  onBack, onDelete, onCancelDelete, onOpenInfo,
 }: EngagementThreadHeaderProps) {
   const contactName    = fullName(lead)
   const displaySubject = subject ?? contactName
@@ -109,18 +107,6 @@ export function EngagementThreadHeader({
           </div>
 
           <div className="flex items-center gap-1.5 flex-shrink-0">
-            {onStartRfq && !confirmDelete && (
-              <button
-                type="button"
-                onClick={onStartRfq}
-                title="Turn this email into a quotation request"
-                className="h-10 px-4 rounded-[10px] text-white text-[14px] font-medium border-0 cursor-pointer inline-flex items-center gap-2 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#202124]"
-                style={{ background: INK }}
-              >
-                <FileText size={15} aria-hidden /> Start RFQ
-              </button>
-            )}
-
             {onOpenInfo && !confirmDelete && (
               <button type="button" onClick={onOpenInfo} aria-label="Contact and thread details" title="Details" className={ICON_BTN} style={{ color: BODY }}>
                 <Info size={17} />

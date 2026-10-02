@@ -17,7 +17,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const threadIds = await getCompanyThreadIds(id)
     const [payments, quotes, cases] = await Promise.all([
       loadCompanyPayments(id),
-      listCompanyQuotes(company, threadIds),
+      listCompanyQuotes(company),
       listCompanyCases(id, threadIds),
     ])
     const events = await buildActivity(id, { threadIds, payments: payments.notes, quotes, cases })

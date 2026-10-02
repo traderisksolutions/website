@@ -21,6 +21,7 @@ import { logAiUsage } from '@/lib/gemini-usage'
 import { logError } from '@/lib/error-log'
 import { searchCompany, renderContext, type CompanyChunk } from '@/lib/agents/company-retrieval'
 import { sbTry, enc } from '@/lib/crm/db'
+import { withVoice, voiceInstruction } from '@/lib/voice'
 
 /** A web page the answer leaned on. */
 export interface WebSource {
@@ -169,7 +170,7 @@ export async function ask(opts: {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      systemInstruction: { parts: [{ text: SYSTEM }] },
+      systemInstruction: { parts: [{ text: await withVoice(SYSTEM, 'internal') }] },
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       tools: [{ google_search: {} }],
       // Room for the thinking pass as well as the answer. A tight budget here returns empty text

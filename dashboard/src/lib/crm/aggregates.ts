@@ -8,7 +8,6 @@ import { withoutEndorsementDuplicates } from '@/lib/policies/endorsement'
 import { sbTry, inChunks, listCompaniesByKind, isInternal, isAutomated } from './db'
 import { derivePayment, summarizePayments } from './payments'
 import { suggestStage } from './stage'
-import { countOpenRfqByCase } from './quotes'
 import type { Company, CompanySummaryRow, DebitNoteRow } from './types'
 
 type ThreadRow = { id: string; company_id: string | null; contact_id: string | null; last_message_at: string | null; status: string }
@@ -67,7 +66,6 @@ export async function listCompanySummaries(opts: ListOptions = {}): Promise<Comp
   const lastMsg = new Map<string, MsgRow>()
   for (const m of messages) if (!lastMsg.has(m.thread_id)) lastMsg.set(m.thread_id, m)
 
-  const openRfq = await countOpenRfqByCase(cases.map(c => c.id))
   const freshCutoff = Date.now() - QUOTE_FRESH_DAYS * 86_400_000
 
   return companies.map((co): CompanySummaryRow => {
@@ -99,7 +97,8 @@ export async function listCompanySummaries(opts: ListOptions = {}): Promise<Comp
 
     const contactCount = new Set([...contacts.filter(c => c.company_id === co.id).map(c => c.id), ...junction.filter(j => j.company_id === co.id).map(j => j.contact_id)]).size
 
-    const openQuotes = cases.filter(c => c.company_id === co.id).reduce((n, c) => n + (openRfq.get(c.id) ?? 0), 0)
+    // Counted open RFQ lines per case until the RFQ workflow was retired (2 Oct 2026).
+    const openQuotes = 0
       + pmQuotes.filter(p => p.company_id === co.id && new Date(p.created_at).getTime() > freshCutoff).length
 
     const suggestedStage = suggestStage({

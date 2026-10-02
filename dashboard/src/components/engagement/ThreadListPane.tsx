@@ -25,7 +25,6 @@ export const SECTIONS: Section[] = [
   { key: 'drafts',          label: 'Drafts',          caption: 'New emails saved before sending.',                                   group: 'work' },
   { key: 'renewals',        label: 'Renewals',        caption: 'Threads the triage read as a renewal.',                              group: 'category' },
   { key: 'claims',          label: 'Claims',          caption: 'Threads the triage read as a claim.',                                group: 'category' },
-  { key: 'rfqs',            label: 'RFQs',            caption: 'Quotation requests and insurer replies.',                            group: 'category' },
   { key: 'clients',         label: 'Clients',         caption: 'Conversations with existing clients.',                               group: 'category' },
   { key: 'prospects',       label: 'Prospects',       caption: 'Enquiries and outreach not yet a client.',                           group: 'category' },
 ]

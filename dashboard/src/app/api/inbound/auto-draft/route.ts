@@ -5,6 +5,7 @@ import { getAppSetting } from '@/lib/app-settings'
 import { sendGmailNotification } from '@/lib/gmail-send'
 import { mapInboundTopicToProductLine } from '@/lib/inbound-topic-mapping'
 import { logError } from '@/lib/error-log'
+import { withVoice, voiceInstruction } from '@/lib/voice'
 
 const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
@@ -180,6 +181,7 @@ OUTPUT FORMAT — exactly two parts, in this order:
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        systemInstruction: await voiceInstruction('client'),
         contents:         [{ parts: [{ text: prompt }] }],
         generationConfig: { temperature: 0.4, maxOutputTokens: 500 },
       }),

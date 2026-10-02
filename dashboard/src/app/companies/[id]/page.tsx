@@ -263,7 +263,7 @@ function CompanyWorkspace() {
         {tab === 'purchases' && (detail ? <PoliciesPanel policies={detail.policies} value={detail.value} /> : <Spinner />)}
 
         {tab === 'quotation' && (quotes && threads ? (
-          <CompanyQuotation companyId={id} companyName={company.name} quotes={quotes} threads={threads} />
+          <CompanyQuotation companyId={id} companyName={company.name} quotes={quotes} />
         ) : <Spinner />)}
 
         {tab === 'payments' && (detail ? (

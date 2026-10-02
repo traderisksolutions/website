@@ -10,6 +10,7 @@ import { geminiUrl, GEMINI_FLASH, GEMINI_LITE } from '@/lib/gemini-models'
 import { searchCompany, renderContext }   from '@/lib/agents/company-retrieval'
 import { buildCitations, renderProvenance, CITE_INSTRUCTION } from '@/lib/agents/guardrails'
 import { routeModel }                     from '@/lib/agents/router'
+import { withVoice, voiceInstruction } from '@/lib/voice'
 
 const SB_URL    = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = geminiUrl(GEMINI_FLASH)
@@ -562,6 +563,7 @@ Write only the email body starting with "${salutation}". End after the last para
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        systemInstruction: await voiceInstruction('client'),
         contents: [{ parts: drafterParts }],
         generationConfig: { temperature: 0.3, maxOutputTokens: 4096 },
       }),
