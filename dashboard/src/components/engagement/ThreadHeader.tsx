@@ -21,7 +21,7 @@ const FAINT = '#80868b'
 const DOT = '#9aa0a6'
 const HAIR = '#e8eaed'
 
-const TYPE_LABEL: Record<string, string> = { renewal: 'Renewal', claim: 'Claim', rfq: 'Quotation request', finance: 'Finance', new_business: 'New business', general: 'General' }
+const TYPE_LABEL: Record<string, string> = { renewal: 'Renewal', claim: 'Claim', rfq: 'Quotation request', group_benefits: 'Group benefits', finance: 'Finance', new_business: 'New business', general: 'General' }
 
 const ICON_BTN = 'h-9 w-9 rounded-[10px] bg-transparent border-0 cursor-pointer inline-flex items-center justify-center hover:bg-[#f1f3f4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#202124]'
 const MENU_ITEM = 'w-full text-left px-3 py-2 rounded-[8px] text-[13.5px] bg-transparent border-0 cursor-pointer inline-flex items-center gap-2 hover:bg-[#f8f9fa] no-underline'

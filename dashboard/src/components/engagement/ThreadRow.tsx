@@ -14,7 +14,7 @@ import { fullName, timeAgo, leadNeedsReply } from './helpers'
 export type Density = 'comfortable' | 'standard' | 'compact'
 const PAD: Record<Density, string> = { comfortable: 'py-4', standard: 'py-3', compact: 'py-2' }
 
-const TYPE_LABEL: Record<string, string> = { renewal: 'Renewal', claim: 'Claim', rfq: 'Quote request', finance: 'Finance', new_business: 'New business' }
+const TYPE_LABEL: Record<string, string> = { renewal: 'Renewal', claim: 'Claim', rfq: 'Quote request', group_benefits: 'Group benefits', finance: 'Finance', new_business: 'New business' }
 
 const INK = '#202124'
 const BODY = '#3c4043'

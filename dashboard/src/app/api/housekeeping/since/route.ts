@@ -101,6 +101,14 @@ function summarise(rows: Row[]): { action: string; text: string; count: number; 
     })
   }
 
+  const gb = by.get('gb.request_routed') ?? []
+  if (gb.length) {
+    out.push({
+      action: 'gb.request_routed', count: gb.length, detail: detailOf(gb),
+      text: `Sent ${gb.length} group benefits request${gb.length === 1 ? '' : 's'} to the group benefits agent, which opened ${gb.length === 1 ? 'a draft quotation' : 'draft quotations'} — ${names(gb).slice(0, 3).join(', ')}`,
+    })
+  }
+
   const sigs = by.get('signature.read') ?? []
   if (sigs.length) {
     out.push({

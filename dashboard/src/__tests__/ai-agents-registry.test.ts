@@ -10,11 +10,11 @@ describe('agent registry', () => {
   it('gives every agent its own key, so spend can be read per agent', () => {
     const keys = Object.values(AGENTS).map(a => a.envKey)
     expect(new Set(keys).size).toBe(keys.length)
-    for (const k of keys) expect(k).toMatch(/^GEMINI_API_KEY_[A-Z]+$/)
+    for (const k of keys) expect(k).toMatch(/^GEMINI_API_KEY_[A-Z_]+$/)
   })
 
   it('has a label for every id, including unattributed', () => {
-    const ids: AgentId[] = ['housekeeping', 'crm', 'askai', 'pricingmatrix', 'unattributed']
+    const ids: AgentId[] = ['housekeeping', 'crm', 'askai', 'pricingmatrix', 'group_benefit', 'unattributed']
     for (const id of ids) expect(agentLabel(id)).toBeTruthy()
   })
 
@@ -33,10 +33,17 @@ describe('agent registry', () => {
     }
   })
 
-  it('attributes every group benefits feature to Pricing Matrix, which it became', () => {
-    for (const f of ['gb_extract_schedule', 'gb_plan_match', 'gb_alias_suggest']) {
+  it('attributes the annual rate ingest to Pricing Matrix', () => {
+    for (const f of ['gb_extract_schedule', 'gb_alias_suggest', 'gb_rules_extract']) {
       expect(agentOfFeature(f)).toBe('pricingmatrix')
     }
+  })
+
+  it('attributes per-request work to the group benefits agent, on its own key', () => {
+    for (const f of ['gb_intake_extract', 'gb_plan_match', 'gb_value_explain']) {
+      expect(agentOfFeature(f)).toBe('group_benefit')
+    }
+    expect(AGENTS.group_benefit.envKey).toBe('GEMINI_API_KEY_GROUP_BENEFIT')
   })
 
   it('reports an unknown feature as unattributed rather than guessing', () => {

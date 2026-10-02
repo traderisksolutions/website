@@ -55,7 +55,7 @@ export function CompanyMail({ threads, companyId, companyName, onCombine, onRefr
   const counts = useMemo(() => ({
     all: threads.length,
     reply: threads.filter(t => t.needsReply).length,
-    rfq: threads.filter(t => t.category === 'rfq').length,
+    rfq: threads.filter(t => t.category === 'rfq' || t.category === 'group_benefits').length,
     claim: threads.filter(t => t.category === 'claim').length,
     renewal: threads.filter(t => t.category === 'renewal').length,
     general: threads.filter(t => !t.category || t.category === 'general' || t.category === 'other').length,
@@ -65,6 +65,8 @@ export function CompanyMail({ threads, companyId, companyName, onCombine, onRefr
     filter === 'all' ? threads
       : filter === 'reply' ? threads.filter(t => t.needsReply)
       : filter === 'general' ? threads.filter(t => !t.category || t.category === 'general' || t.category === 'other')
+      // Group benefits requests are quote requests too.
+      : filter === 'rfq' ? threads.filter(t => t.category === 'rfq' || t.category === 'group_benefits')
       : threads.filter(t => t.category === filter)
   ), [threads, filter])
 
@@ -147,7 +149,7 @@ export function CompanyMail({ threads, companyId, companyName, onCombine, onRefr
                       <p className={cn('text-[14px] m-0 line-clamp-2', selectedId === t.id ? 'font-medium' : '')} style={{ color: INK }}>{t.subject ?? '(no subject)'}</p>
                       <p className="text-[12.5px] m-0 mt-1 flex items-center gap-1.5 flex-wrap" style={{ color: MUTED }}>
                         {t.needsReply && <Chip>Awaiting reply</Chip>}
-                        {t.category && <Chip className="capitalize">{t.category}</Chip>}
+                        {t.category && <Chip className="capitalize">{t.category === 'group_benefits' ? 'Group benefits' : t.category}</Chip>}
                         <span className="truncate">{t.contact?.name ?? t.contact?.email ?? 'Unknown'}</span>
                       </p>
                       <p className="text-[12.5px] m-0 mt-0.5" style={{ color: '#80868b' }}>{t.message_count} message{t.message_count === 1 ? '' : 's'} · {fmtRelative(t.last_message_at)}</p>

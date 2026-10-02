@@ -2,17 +2,26 @@
  * POST /api/email/classify   Body: { thread_id, message_id }
  *
  * Internal, fire-and-forget inbox triage. Classifies a thread into
- * rfq | claim | renewal | general | other and stores it on email_threads for a
- * badge. Badge only — no drafting, no case, no send. Always 200.
+ * group_benefits | rfq | claim | renewal | general | other and stores it on email_threads for a
+ * badge. Always 200.
+ *
+ * One category acts as well as labels: a group benefits request is handed straight to the group
+ * benefits agent (/api/group-benefits/intake), which prices the census and opens a draft
+ * quotation on the Pricing Matrix. Nothing is sent.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { logError } from '@/lib/error-log'
 import { geminiUrl, GEMINI_LITE } from '@/lib/gemini-models'
+import { waitUntil } from '@vercel/functions'
+import { internalHeaders } from '@/lib/api-gate/internal'
 
 const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
 const GEMINI_URL = geminiUrl(GEMINI_LITE)
 
-const CATEGORIES = ['rfq', 'claim', 'renewal', 'general', 'other'] as const
+const CATEGORIES = ['group_benefits', 'rfq', 'claim', 'renewal', 'general', 'other'] as const
+
+/** Below this the classifier is guessing, and a guess should not start a quotation. */
+const GB_HANDOFF_CONFIDENCE = 0.6
 
 function sbH(prefer = 'return=minimal') {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -41,7 +50,8 @@ export async function POST(req: NextRequest) {
     if (!text) return NextResponse.json({ ok: true, skipped: 'no content' })
 
     const prompt = `Classify this inbound email to a Singapore insurance broker into exactly ONE category:
-- "rfq": a request to obtain / quote insurance cover (new or additional).
+- "group_benefits": a request to quote, renew or review GROUP EMPLOYEE BENEFITS — group hospital & surgical (GHS), term life (GTL), critical illness, personal accident, outpatient GP/specialist, dental, foreign worker medical — usually with an employee list or census. Takes priority over "rfq" and "renewal" when the cover is employee benefits.
+- "rfq": a request to obtain / quote any other insurance cover (new or additional).
 - "claim": something about an incident, loss, damage, or an existing claim.
 - "renewal": renewing / reviewing an existing policy near expiry.
 - "general": admin, endorsements, questions, scheduling — brokerage business but none of the above.
@@ -72,6 +82,18 @@ ${text}`
       headers: sbH(),
       body:    JSON.stringify({ category, category_confidence: parsed.confidence ?? null, categorized_at: new Date().toISOString() }),
     }).catch(() => {})
+
+    // A group benefits request goes straight to that agent. Its route answers at once and
+    // works in its own invocation, so this one is not held open.
+    if (category === 'group_benefits' && (parsed.confidence ?? 0) >= GB_HANDOFF_CONFIDENCE) {
+      waitUntil(
+        fetch(`${req.nextUrl.origin}/api/group-benefits/intake`, {
+          method: 'POST',
+          headers: internalHeaders({ 'Content-Type': 'application/json', 'x-internal-secret': process.env.CRON_SECRET ?? '' }),
+          body: JSON.stringify({ thread_id, message_id: message_id ?? null }),
+        }).catch(e => void logError({ source: 'internal', feature: 'gb_intake_handoff', message: String(e), threadId: thread_id })),
+      )
+    }
 
     return NextResponse.json({ ok: true, category })
   } catch (e) {

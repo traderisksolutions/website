@@ -112,6 +112,8 @@ export type AiFeature =
   | 'gb_alias_suggest'
   // The written explanation beside the value score (2 Oct 2026). The score itself is arithmetic.
   | 'gb_value_explain'
+  // The group benefits agent reading an inbound request: census, products, requirements.
+  | 'gb_intake_extract'
   // Companies-first CRM (10 Sep 2026)
   | 'crm_brief'
   | 'crm_triage'

@@ -100,3 +100,22 @@ export function toIsoDocumentDate(raw: string | null | undefined): string | null
   const d = parseDocumentDate(raw)
   return d ? `${d.y}-${String(d.m).padStart(2, '0')}-${String(d.d).padStart(2, '0')}` : null
 }
+
+/**
+ * A date of birth as a census spreadsheet prints it: "05/07/1987", "1987-07-05", "5-Jul-87",
+ * "5 July 1987". Day first, always.
+ *
+ * Wider than parseCalendarDate because census sheets exported from Excel carry month names and
+ * two-digit years. A two-digit year is the most recent year that is not in the future, because
+ * nobody on a census is born after the date it is read — "87" is 1987 and "05" is 2005. That is
+ * the opposite of parseDocumentDate's rule, which puts every two-digit year in this century.
+ */
+export function parseBirthDate(raw: string | null | undefined, today: CalendarDate = todaySGT()): CalendarDate | null {
+  const strict = parseCalendarDate(raw)
+  if (strict) return strict
+  const d = parseDocumentDate(raw)
+  if (!d) return null
+  const twoDigitYear = !/\d{4}/.test(String(raw))
+  const future = d.y > today.y || (d.y === today.y && (d.m > today.m || (d.m === today.m && d.d > today.d)))
+  return twoDigitYear && future ? valid(d.y - 100, d.m, d.d) : d
+}

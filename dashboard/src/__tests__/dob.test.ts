@@ -51,7 +51,7 @@ describe('parseCalendarDate', () => {
   })
 })
 
-import { parseDocumentDate, toIsoDocumentDate } from '@/lib/dates/dob'
+import { parseDocumentDate, toIsoDocumentDate, parseBirthDate } from '@/lib/dates/dob'
 
 describe('parseDocumentDate — dates printed on insurer documents', () => {
   it('reads the formats Singapore insurers print', () => {
@@ -79,5 +79,24 @@ describe('month names', () => {
     expect(toIsoDocumentDate('2-Junk-26')).toBeNull()
     expect(toIsoDocumentDate('2-Sept-26')).toBe('2026-09-02')
     expect(toIsoDocumentDate('2 September 2026')).toBe('2026-09-02')
+  })
+})
+
+describe('parseBirthDate', () => {
+  const today = { y: 2026, m: 10, d: 2 }
+  it('reads census forms, day first', () => {
+    expect(parseBirthDate('5-Jul-87', today)).toEqual({ y: 1987, m: 7, d: 5 })
+    expect(parseBirthDate('20-Dec-86', today)).toEqual({ y: 1986, m: 12, d: 20 })
+    expect(parseBirthDate('05/07/1987', today)).toEqual({ y: 1987, m: 7, d: 5 })
+    expect(parseBirthDate('5 July 1987', today)).toEqual({ y: 1987, m: 7, d: 5 })
+  })
+  it('puts a two-digit year in the past, never the future', () => {
+    expect(parseBirthDate('14-Feb-05', today)).toEqual({ y: 2005, m: 2, d: 14 })
+    expect(parseBirthDate('14-Feb-30', today)).toEqual({ y: 1930, m: 2, d: 14 })
+    expect(parseBirthDate('03/11/26', today)).toEqual({ y: 1926, m: 11, d: 3 })
+  })
+  it('refuses what it cannot read', () => {
+    expect(parseBirthDate('09-31-1980', today)).toBeNull()
+    expect(parseBirthDate('', today)).toBeNull()
   })
 })

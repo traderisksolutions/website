@@ -47,7 +47,7 @@ function ThreadRow({ id, checked, onToggle, subject, summary, category, meta, wh
           </span>
         </span>
       </RegisterCell>
-      <RegisterCell>{category ? <Chip className="capitalize">{category}</Chip> : <span style={{ color: '#9aa0a6' }}>—</span>}</RegisterCell>
+      <RegisterCell>{category ? <Chip className="capitalize">{category === 'group_benefits' ? 'Group benefits' : category}</Chip> : <span style={{ color: '#9aa0a6' }}>—</span>}</RegisterCell>
       <RegisterCell last align="right" primary={fmtRelative(when)} secondary={summary ? meta : undefined} />
     </RegisterRow>
   )
@@ -96,7 +96,7 @@ export function CaseThreadPicker({ open, onClose, threads, companyName, busy, er
 
   const counts = useMemo(() => ({
     all: threads.length,
-    rfq: threads.filter(t => t.category === 'rfq').length,
+    rfq: threads.filter(t => t.category === 'rfq' || t.category === 'group_benefits').length,
     claim: threads.filter(t => t.category === 'claim').length,
     renewal: threads.filter(t => t.category === 'renewal').length,
     general: threads.filter(t => !t.category || t.category === 'general' || t.category === 'other').length,
@@ -105,6 +105,8 @@ export function CaseThreadPicker({ open, onClose, threads, companyName, busy, er
   const visible = useMemo(() => (
     filter === 'all' ? threads
       : filter === 'general' ? threads.filter(t => !t.category || t.category === 'general' || t.category === 'other')
+      // Group benefits requests are quote requests too.
+      : filter === 'rfq' ? threads.filter(t => t.category === 'rfq' || t.category === 'group_benefits')
       : threads.filter(t => t.category === filter)
   ), [threads, filter])
 

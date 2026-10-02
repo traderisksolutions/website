@@ -169,7 +169,7 @@ Rules:
 Return JSON: {"points": ["...", "..."]}`, 'internal')
 
     const { text, error } = await callGemini({
-      agent: 'pricingmatrix', feature: 'gb_value_explain', model: GEMINI_FLASH,
+      agent: 'group_benefit', feature: 'gb_value_explain', model: GEMINI_FLASH,
       system, parts: [{ text: JSON.stringify(facts) }],
       maxOutputTokens: 6000, json: true, temperature: 0.2,
       metadata: { quotation_id: id },

@@ -73,7 +73,7 @@ export async function suggestPlanMatch(
   // prompt and validated against that list afterwards, so a frontier model bought nothing the
   // deep Gemini tier does not; and the result only pre-fills a dropdown the broker can override,
   // which never justified a frontier price per call.
-  const { key } = agentKey('pricingmatrix')
+  const { key } = agentKey('group_benefit')
   if (!key) return { suggestions: [], error: 'No Gemini API key configured' }
   if (!target.trim()) return { suggestions: [], error: 'no target stated' }
   const relevant = products.filter(p => p.product_title === productTitle && p.plans.length > 0)

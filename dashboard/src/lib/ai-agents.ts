@@ -7,7 +7,7 @@
  * below or it lands in `unattributed` — which the spend page shows rather than hides.
  */
 
-export type AgentId = 'housekeeping' | 'crm' | 'askai' | 'pricingmatrix' | 'unattributed'
+export type AgentId = 'housekeeping' | 'crm' | 'askai' | 'pricingmatrix' | 'group_benefit' | 'unattributed'
 
 export interface AgentSpec {
   id:    AgentId
@@ -52,6 +52,16 @@ export const AGENTS: Record<Exclude<AgentId, 'unattributed'>, AgentSpec> = {
     // Reading A. Reading B stays on the pro tier, so the two readings remain genuinely different
     // models — a cross-check between one model and itself confirms nothing.
     model: 'gemini-3.8-flash',
+  },
+  group_benefit: {
+    id: 'group_benefit',
+    label: 'Group benefits',
+    // Split from Pricing Matrix on 2 Oct 2026 so the two costs read apart: Pricing Matrix is the
+    // annual read of insurer rates, paid once per insurer per year; this is the work done per
+    // client request, which grows with the number of requests.
+    work: 'Picks up a group benefits request from the inbox, reads the census, prices it at every insurer and opens a draft quotation.',
+    envKey: 'GEMINI_API_KEY_GROUP_BENEFIT',
+    model: 'gemini-3.6-flash',
   },
 }
 
@@ -99,9 +109,13 @@ export const FEATURE_AGENT: Record<string, AgentId> = {
   gb_extract_gemini:   'pricingmatrix',
   gb_extract_judge:    'pricingmatrix',
   gb_alias_suggest:    'pricingmatrix',
-  gb_plan_match:       'pricingmatrix',
   gb_rules_extract:    'pricingmatrix',
-  gb_value_explain:    'pricingmatrix',
+
+  // ── Group benefits — per client request ──────────────────────────────────
+  gb_intake_extract:   'group_benefit',
+  gb_plan_match:       'group_benefit',
+  gb_value_explain:    'group_benefit',
+  gb_recommend:        'group_benefit',
 
   // ── Pricing matrix ────────────────────────────────────────────────────────
   pm_rate_extract:            'pricingmatrix',
