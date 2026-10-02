@@ -99,7 +99,7 @@ export default function SchedulePage() {
   return (
     <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: '#202124' }}>
       <div className="mx-auto max-w-[1280px] px-6 sm:px-12 pt-12 pb-20">
-        <button onClick={() => router.push(`/group-benefits/${id}`)}
+        <button onClick={() => router.push(`/pricing-matrix/${id}`)}
                 className="inline-flex items-center gap-1.5 text-[14px] bg-transparent border-0 p-0 cursor-pointer hover:underline mb-3"
                 style={{ color: '#5f6368' }}>← Rate table</button>
 

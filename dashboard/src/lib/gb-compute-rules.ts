@@ -18,7 +18,7 @@
  * double-count, or apply a loading the calculator's own rules deliberately excluded a product
  * from) — mirrors pm-compute-rules.ts's identical warning for pm-calc.ts.
  */
-import type { RuleStep } from '@/lib/pm-rules-extract'
+import type { RuleStep } from '@/lib/gb/rules-extract'
 import type { RateRow, Relationship } from '@/lib/gb-quote'
 import { findRate, memberTypeFor } from '@/lib/gb-quote'
 

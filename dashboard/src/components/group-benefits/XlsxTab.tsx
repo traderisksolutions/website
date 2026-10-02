@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { UploadCloud, Loader2, CheckCircle2, FileSpreadsheet, ChevronDown, ChevronRight, Trash2, Plus, Sparkles, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
-import type { RuleStep } from '@/lib/pm-rules-extract'
+import type { RuleStep } from '@/lib/gb/rules-extract'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'

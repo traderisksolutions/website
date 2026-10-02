@@ -1,224 +1,211 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'next/navigation'
-import Link from 'next/link'
-import { PmComparison } from '@/components/pricing-matrix/PmComparison'
-import { PmLiveBenefitPreview } from '@/components/pricing-matrix/PmLiveBenefitPreview'
-import { PmQuoteActions } from '@/components/pricing-matrix/PmQuoteActions'
-import { CensusEditor } from '@/components/pricing-matrix/CensusEditor'
-import { PlanSelectionEditor } from '@/components/pricing-matrix/PlanSelectionEditor'
-import { CategoryOverrideEditor } from '@/components/pricing-matrix/CategoryOverrideEditor'
-import { CompanyContactPicker } from '@/components/company-contact-picker/CompanyContactPicker'
-import type { PickerValue } from '@/components/company-contact-picker/CompanyContactPicker'
-import { computeInsurerQuote } from '@/lib/pm-calc'
-import { alignLines, quoteSpreadStats } from '@/lib/pm-quote'
-import type { CensusMember, Selection, CategoryOverrides, QuoteResult, InsurerResult, AvailableCalculator } from '@/lib/pm-quote'
-import { coverageCodes } from '@/lib/pm-rates'
-import { alignSelectedTerms } from '@/lib/pm-compare'
-import type { CompareRow } from '@/lib/pm-compare'
-import type { Recommendation, LegacyRecommendation } from '@/lib/pm-recommend'
-import { MetricCard, MetricGrid } from '@/components/shared/metric-card'
-import { Empty, Spinner } from '@/components/crm/primitives'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { Loader2, Sparkles, Download, Reply, RefreshCw } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { ThreadSelectorModal } from '@/components/group-benefits/ThreadSelectorModal'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
+import { BenefitComparison } from '@/components/group-benefits/BenefitComparison'
+import type { Comparison } from '@/lib/gb/compare'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
-const RULE = '#e8eaed'
-const dateCls = 'h-12 w-full rounded-[12px] border border-[#dadce0] bg-white px-4 text-[15px] text-[#202124] outline-none focus:border-[#202124]'
+type InsurerResult = { rate_table_id: string; insurer_id: string | null; insurer_name: string; by_product: Record<string, number>; subtotal: number; gst: number; total: number; missing: number }
+type Line = { member_name: string; relationship: string; category: string; age: number | null; insurer_name: string; product_code: string; plan_code: string | null; premium: number | null; note: string | null }
+type Quotation = { id: string; company_name: string | null; effective_date: string | null; product_codes: string[]; member_count: number; results: InsurerResult[]; benefits_analysis: Comparison | null; created_at: string; source: string }
 
-type Quote = {
-  id: string; company_name: string | null; company_id: string | null; effective_date: string | null; member_count: number
-  census: CensusMember[]; calculator_ids: string[]; selections: Record<string, Selection>
-  category_overrides: Record<string, CategoryOverrides> | null
-  results: QuoteResult | null; recommendation: Recommendation | LegacyRecommendation | null; priorities: string | null; created_at: string
-}
+/** Quotes compared before 2 Oct 2026 hold generated prose, not a comparison. Detect that by the
+ *  absence of the comparison's own shape and offer a recompare, rather than rendering a narrative
+ *  this page no longer produces. */
+const isComparison = (a: unknown): a is Comparison =>
+  !!a && typeof a === 'object' && Array.isArray((a as Comparison).groups) && Array.isArray((a as Comparison).premium)
 
-async function safeJson<T>(r: Response): Promise<T & { error?: string }> {
-  try { return await r.json() } catch { return { error: `HTTP ${r.status}` } as T & { error?: string } }
-}
+const money = (n: number) => n.toLocaleString('en-SG', { style: 'currency', currency: 'SGD' })
 
 export default function QuoteDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const [quote, setQuote] = useState<Quote | null>(null)
-  const [avail, setAvail] = useState<AvailableCalculator[]>([])
-  const [loading, setLoading] = useState(true)
-  const [editing, setEditing] = useState(false)
-  const [saving, setSaving] = useState(false)
+  const router = useRouter()
+  const [q, setQ] = useState<Quotation | null>(null)
+  const [lines, setLines] = useState<Line[]>([])
+  const [analysis, setAnalysis] = useState<Comparison | null>(null)
+  const [analyzing, setAnalyzing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [attachFormat, setAttachFormat] = useState<'xlsx' | 'csv'>('xlsx')
+  const [showThreadPick, setShowThreadPick] = useState(false)
+  const [preparing, setPreparing] = useState<string | null>(null)
 
-  const [editCompanyPick, setEditCompanyPick] = useState<PickerValue | null>(null)
-  const editCompany = editCompanyPick?.companyName ?? ''
-  const [editEffDate, setEditEffDate] = useState('')
-  const [editCensus, setEditCensus] = useState<CensusMember[]>([])
-  const [editSelected, setEditSelected] = useState<Record<string, boolean>>({})
-  const [editSelections, setEditSelections] = useState<Record<string, Selection>>({})
-  const [editCategoryOverrides, setEditCategoryOverrides] = useState<Record<string, CategoryOverrides>>({})
+  async function prepareReply(leadId: string) {
+    setPreparing('Generating files & drafting reply…')
+    try {
+      const res = await fetch(`/api/group-benefits/quote/${id}/prepare-reply`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lead_id: leadId, insurers: byInsurer.map(r => r.insurer_name), format: attachFormat }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok) { setError(d.error ?? 'Could not prepare reply'); setPreparing(null); setShowThreadPick(false); return }
+      router.push(`/engagement?lead=${leadId}`)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed'); setPreparing(null); setShowThreadPick(false)
+    }
+  }
 
-  useEffect(() => {
-    fetch(`/api/pricing-matrix/quote/${id}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => { setQuote(d); setLoading(false) })
-    fetch('/api/pricing-matrix/quote/available', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).then(setAvail)
+  const load = useCallback(async () => {
+    const res = await fetch(`/api/group-benefits/quote/${id}`, { cache: 'no-store' })
+    if (!res.ok) return
+    const d = await res.json()
+    setQ(d.quotation); setLines(d.lines ?? []); setAnalysis(d.quotation?.benefits_analysis ?? null)
   }, [id])
+  useEffect(() => { load() }, [load])
 
-  function startEdit() {
-    if (!quote) return
-    setEditCompanyPick(quote.company_id ? { companyId: quote.company_id, companyName: quote.company_name ?? '', contactId: null, contactEmail: null, contactName: null } : null)
-    setEditEffDate(quote.effective_date ?? '')
-    setEditCensus(quote.census.length ? quote.census : [{ name: '', relationship: 'Self', date_of_birth: null, age: null }])
-    setEditSelected(Object.fromEntries(quote.calculator_ids.map(cid => [cid, true])))
-    setEditSelections(quote.selections)
-    setEditCategoryOverrides(quote.category_overrides ?? {})
-    setError(null)
-    setEditing(true)
+  const byInsurer = useMemo(() => {
+    if (!q) return []
+    const m = new Map<string, { insurer_name: string; subtotal: number; gst: number; total: number; missing: number; by_product: Record<string, number> }>()
+    for (const r of q.results ?? []) {
+      const key = r.insurer_id ?? `name:${r.insurer_name}`
+      const e = m.get(key) ?? { insurer_name: r.insurer_name, subtotal: 0, gst: 0, total: 0, missing: 0, by_product: {} }
+      e.subtotal += r.subtotal; e.gst += r.gst; e.total += r.total; e.missing += r.missing
+      for (const [p, v] of Object.entries(r.by_product)) e.by_product[p] = (e.by_product[p] ?? 0) + v
+      m.set(key, e)
+    }
+    return Array.from(m.values()).sort((a, b) => a.total - b.total)
+  }, [q])
+
+  async function compareBenefits() {
+    setAnalyzing(true); setError(null)
+    try {
+      const res = await fetch(`/api/group-benefits/quote/${id}/compare-benefits`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}),
+      })
+      const d = await res.json()
+      if (res.ok && d.comparison) setAnalysis(d.comparison as Comparison); else setError(d.error ?? 'Comparison failed')
+    } finally { setAnalyzing(false) }
   }
 
-  const editNamedCount = editCensus.filter(m => (m.name ?? '').trim() || m.date_of_birth || m.age != null).length
-  const editSelectedIds = useMemo(() => avail.filter(a => editSelected[a.id]).map(a => a.id), [avail, editSelected])
-
-  // Same live-compute pattern as the "New quote" wizard — pm-calc.ts/pm-compare.ts are pure, so
-  // this recomputes instantly on every dropdown toggle with no round-trip to the server.
-  const liveResult: QuoteResult = useMemo(() => {
-    const globals = { effective_date: editEffDate || null }
-    const insurers: InsurerResult[] = avail.filter(a => editSelected[a.id]).map((a): InsurerResult => {
-      if (!a.rate_table) return { calculator_id: a.id, insurer_name: a.insurer_name, effective_date: a.effective_date, coverage_lines: [], by_line: {}, grand: null, member_count: 0, avg_per_life: null, members: [], error: 'No approved rate table for this insurer' }
-      try {
-        return computeInsurerQuote(a.id, a.insurer_name, a.effective_date, a.rate_table, editCensus, editSelections[a.id] ?? {}, globals, editCategoryOverrides[a.id], a.computation_rules ?? undefined)
-      } catch (e) {
-        return { calculator_id: a.id, insurer_name: a.insurer_name, effective_date: a.effective_date, coverage_lines: coverageCodes(a.rate_table), by_line: {}, grand: null, member_count: 0, avg_per_life: null, members: [], error: String(e) }
-      }
-    })
-    return { insurers, lines_union: alignLines(insurers), census_size: editNamedCount }
-  }, [avail, editSelected, editCensus, editSelections, editCategoryOverrides, editEffDate, editNamedCount])
-
-  const liveBenefitRows: CompareRow[] = useMemo(() => {
-    const insurersForTerms = avail.filter(a => editSelected[a.id] && a.rate_table).map(a => ({ calculator_id: a.id, insurer_name: a.insurer_name, rate_table: a.rate_table!, terms: a.benefit_terms }))
-    return alignSelectedTerms(insurersForTerms, editSelections)
-  }, [avail, editSelected, editSelections])
-
-  const editSelectedMeta = useMemo(() => avail.filter(a => editSelected[a.id]).map(a => ({ calculator_id: a.id, insurer_name: a.insurer_name })), [avail, editSelected])
-
-  function toggleInsurer(a: AvailableCalculator) {
-    setEditSelected(s => ({ ...s, [a.id]: !s[a.id] }))
-    setEditSelections(prev => {
-      if (prev[a.id]) return prev
-      const sel: Selection = {}
-      for (const l of a.coverage_lines) {
-        sel[l.code] = {}
-        for (const f of l.fields) sel[l.code][f] = a.dropdowns[`${l.code}.${f}`]?.[0] ?? (f === 'plan' ? 'Plan 1' : '')
-      }
-      return { ...prev, [a.id]: sel }
-    })
-  }
-  const setSel = (calcId: string, code: string, field: string, value: string) =>
-    setEditSelections(prev => ({ ...prev, [calcId]: { ...prev[calcId], [code]: { ...prev[calcId]?.[code], [field]: value } } }))
-  const setOverride = (calcId: string, category: string, code: string, field: string, value: string) =>
-    setEditCategoryOverrides(prev => ({
-      ...prev,
-      [calcId]: { ...prev[calcId], [category]: { ...prev[calcId]?.[category], [code]: { ...prev[calcId]?.[category]?.[code], [field]: value } } },
-    }))
-  function renameOverrideCategory(oldName: string, newName: string) {
-    setEditCategoryOverrides(prev => {
-      const next: typeof prev = {}
-      for (const [calcId, byCat] of Object.entries(prev)) {
-        const { [oldName]: moved, ...rest } = byCat
-        next[calcId] = moved ? { ...rest, [newName]: moved } : byCat
-      }
-      return next
-    })
-  }
-
-  async function saveChanges() {
-    setSaving(true); setError(null)
-    const res = await fetch(`/api/pricing-matrix/quote/${id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ company_name: editCompany, company_id: editCompanyPick?.companyId ?? null, effective_date: editEffDate || null, census: editCensus, calculator_ids: editSelectedIds, selections: editSelections, category_overrides: editCategoryOverrides }),
-    })
-    const d = await safeJson<{ results?: QuoteResult }>(res)
-    if (!res.ok || !d.results) { setError(d.error ?? 'Save failed'); setSaving(false); return }
-    setQuote(q => q ? {
-      ...q, company_name: editCompany || null, company_id: editCompanyPick?.companyId ?? null, effective_date: editEffDate || null, census: editCensus,
-      calculator_ids: editSelectedIds, selections: editSelections, category_overrides: editCategoryOverrides, results: d.results!, member_count: editNamedCount,
-    } : q)
-    setSaving(false); setEditing(false)
-  }
-
-  if (loading) return <div className="min-h-[calc(100vh-56px)] bg-white"><Spinner /></div>
-  if (!quote) return <div className="min-h-[calc(100vh-56px)] bg-white"><Empty>Quote not found.</Empty></div>
-
-  const meta = [`${quote.member_count} lives`, quote.effective_date ? `effective ${quote.effective_date}` : null, `created ${new Date(quote.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}`].filter(Boolean).join(' · ')
+  if (!q) return <div className="p-8"><Loader2 className="animate-spin text-muted-foreground" /></div>
 
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
-      <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
-        <Link href="/pricing-matrix/quote" className="inline-flex items-center gap-1.5 text-[14px] no-underline hover:underline" style={{ color: MUTED }}>← Quotes</Link>
+    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: '#202124' }}>
+    <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
+      <button onClick={() => router.push('/pricing-matrix')} className="inline-flex items-center gap-1.5 text-[14px] bg-transparent border-0 p-0 cursor-pointer hover:underline mb-3" style={{ color: '#5f6368' }}>← Pricing Matrix</button>
 
-        <div className="mt-3 flex items-end justify-between gap-6 flex-wrap">
-          <div className="min-w-0">
-            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08] truncate">{quote.company_name || 'Untitled quote'}</h1>
-            <p className="m-0 mt-2 text-[13.5px] tabular-nums" style={{ color: MUTED }}>{meta}</p>
-          </div>
-          {!editing && (
-            <button type="button" onClick={startEdit} className="h-12 px-5 rounded-[12px] bg-white text-[15px] border cursor-pointer hover:bg-[#f8f9fa] shrink-0" style={{ borderColor: '#dadce0', color: INK }}>Edit</button>
-          )}
-        </div>
-
-        {error && <p role="alert" className="m-0 mt-5 text-[14px]" style={{ color: '#3c4043' }}>{error}</p>}
-
-        {editing ? (
-          <div className="mt-8 flex flex-col gap-6">
-            <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_200px] gap-3 max-w-[640px] items-start">
-              <CompanyContactPicker value={editCompanyPick} onChange={setEditCompanyPick} hideContact initialQuery={quote.company_name ?? ''} />
-              <input type="date" value={editEffDate} onChange={e => setEditEffDate(e.target.value)} title="Policy effective date" aria-label="Policy effective date" className={dateCls} />
-            </div>
-
-            <CensusEditor census={editCensus} setCensus={setEditCensus} companyId={editCompanyPick?.companyId ?? null} onRenameTier={renameOverrideCategory} />
-
-            <PlanSelectionEditor avail={avail} selected={editSelected} selections={editSelections} toggleInsurer={toggleInsurer} setSel={setSel} namedCount={editNamedCount} />
-
-            <CategoryOverrideEditor avail={avail} selected={editSelected} census={editCensus} overrides={editCategoryOverrides} setOverride={setOverride} />
-
-            {editSelectedIds.length > 0 && editNamedCount > 0 && (
-              <div className="flex flex-col gap-4 pt-6" style={{ borderTop: `1px solid ${RULE}` }}>
-                <h2 className="m-0 text-[16px] font-medium tracking-[-0.01em] leading-tight">Live comparison</h2>
-                {(() => {
-                  const { cheapest, priciest, spread } = quoteSpreadStats(liveResult.insurers)
-                  return cheapest && (
-                    <MetricGrid className="md:grid-cols-3">
-                      <MetricCard label="Lowest premium" value={`$${cheapest.grand!.toLocaleString()}`} sub={cheapest.insurer_name} />
-                      <MetricCard label="Highest premium" value={priciest ? `$${priciest.grand!.toLocaleString()}` : '—'} sub={priciest?.insurer_name} />
-                      <MetricCard label="Spread" value={spread != null ? `$${spread.toLocaleString()}` : '—'} sub={spread != null ? 'across selected insurers' : undefined} />
-                    </MetricGrid>
-                  )
-                })()}
-                <PmComparison result={liveResult} />
-                <h2 className="m-0 mt-2 text-[16px] font-medium tracking-[-0.01em] leading-tight">Benefit schedule</h2>
-                <PmLiveBenefitPreview rows={liveBenefitRows} insurers={editSelectedMeta} />
-              </div>
-            )}
-
-            <div className="flex justify-end gap-3 flex-wrap">
-              <button type="button" onClick={() => setEditing(false)} disabled={saving} className="h-12 px-5 rounded-[12px] bg-white text-[15px] border cursor-pointer hover:bg-[#f8f9fa] disabled:opacity-50" style={{ borderColor: '#dadce0', color: INK }}>Cancel</button>
-              <button type="button" onClick={saveChanges} disabled={saving || editSelectedIds.length === 0 || editNamedCount === 0} className="h-12 px-6 rounded-[12px] text-white text-[15px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed" style={{ background: INK }}>
-                {saving ? 'Saving…' : 'Save changes'}
-              </button>
-            </div>
-          </div>
-        ) : quote.results ? (
-          <div className="mt-8 flex flex-col gap-6">
-            {(() => {
-              const { cheapest, priciest, spread } = quoteSpreadStats(quote.results.insurers)
-              return cheapest && (
-                <MetricGrid className="md:grid-cols-3">
-                  <MetricCard label="Lowest premium" value={`$${cheapest.grand!.toLocaleString()}`} sub={cheapest.insurer_name} />
-                  <MetricCard label="Highest premium" value={priciest ? `$${priciest.grand!.toLocaleString()}` : '—'} sub={priciest?.insurer_name} />
-                  <MetricCard label="Spread" value={spread != null ? `$${spread.toLocaleString()}` : '—'} sub={spread != null ? 'across selected insurers' : undefined} />
-                </MetricGrid>
-              )
-            })()}
-            <PmComparison result={quote.results} />
-            <PmQuoteActions quoteId={quote.id} results={quote.results} initialRecommendation={quote.recommendation} initialPriorities={quote.priorities} />
-          </div>
-        ) : <Empty>No results stored for this quote.</Empty>}
+      <div className="mb-8">
+        <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">{q.company_name || 'Untitled quote'}</h1>
+        <p className="m-0 text-[13.5px] mt-2 tabular-nums" style={{ color: '#5f6368' }}>{q.member_count} members · {(q.product_codes ?? []).join('/')}{q.effective_date ? ` · eff ${q.effective_date}` : ''} · {new Date(q.created_at).toLocaleString('en-SG')}</p>
       </div>
+
+      {/* Download / export — one file per insurer */}
+      {byInsurer.length > 0 && (
+        <div className="mb-6 rounded-lg border border-border p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-[13px] font-bold text-foreground">Download quotes <span className="text-muted-foreground/60 font-normal">· one file per insurer</span></h3>
+            <span className="text-[11px] text-muted-foreground/60">Download &amp; attach in your reply</span>
+          </div>
+          <div className="flex flex-col divide-y divide-border/60">
+            {byInsurer.map(r => (
+              <div key={r.insurer_name} className="flex items-center justify-between py-2">
+                <span className="text-[12.5px] font-medium text-foreground">{r.insurer_name} <span className="text-muted-foreground/50 font-normal">· {money(r.total)}</span></span>
+                <div className="flex items-center gap-2">
+                  <a href={`/api/group-benefits/quote/${id}/export?format=xlsx&insurer=${encodeURIComponent(r.insurer_name)}`}
+                     className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-[#dadce0] text-[#202124] hover:bg-[#f8f9fa]"><Download size={13} /> XLSX</a>
+                  <a href={`/api/group-benefits/quote/${id}/export?format=csv&insurer=${encodeURIComponent(r.insurer_name)}`}
+                     className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:bg-muted/40"><Download size={13} /> CSV</a>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/60">
+            <div className="inline-flex items-center gap-1.5 text-[11.5px]">
+              <span className="text-muted-foreground/70">Attach as</span>
+              <div className="inline-flex rounded-lg border border-border overflow-hidden">
+                {(['xlsx', 'csv'] as const).map(f => (
+                  <button key={f} onClick={() => setAttachFormat(f)}
+                    className={cn('px-2.5 py-1 font-medium', attachFormat === f ? 'bg-[#202124] text-white' : 'text-muted-foreground hover:bg-muted/40')}>{f}</button>
+                ))}
+              </div>
+            </div>
+            <button onClick={() => setShowThreadPick(true)}
+              className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold px-3.5 py-1.5 rounded-lg bg-[#202124] text-white hover:opacity-90">
+              <Reply size={14} /> Reply to thread with attachments
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showThreadPick && <ThreadSelectorModal onPick={prepareReply} onClose={() => { if (!preparing) setShowThreadPick(false) }} busyLabel={preparing} />}
+
+      {/* Comparison cards */}
+      <div className="grid gap-3 mb-6" style={{ gridTemplateColumns: `repeat(${Math.min(byInsurer.length, 4)}, minmax(0,1fr))` }}>
+        {byInsurer.map((r, i) => (
+          <div key={r.insurer_name} className={cn('rounded-xl border p-4', i === 0 ? 'border-[#202124] bg-white' : 'border-border bg-card')}>
+            <div className="flex items-center justify-between">
+              <span className="text-[13px] font-bold text-foreground">{r.insurer_name}</span>
+              {i === 0 && <span className="text-[11.5px] font-medium bg-[#f1f3f4] text-[#3c4043] px-2 py-0.5 rounded-[6px]">Lowest premium</span>}
+            </div>
+            <p className="text-[22px] font-bold text-foreground mt-1">{money(r.total)}</p>
+            <p className="text-[10.5px] text-muted-foreground/70">incl. {money(r.gst)} GST · ex-GST {money(r.subtotal)}</p>
+            <div className="mt-2 flex flex-col gap-0.5 text-[11px] text-muted-foreground">
+              {Object.entries(r.by_product).map(([p, v]) => <div key={p} className="flex justify-between"><span>{p}</span><span>{money(v)}</span></div>)}
+            </div>
+            {r.missing > 0 && <p className="text-[10.5px] text-[#3c4043] mt-1.5">{r.missing} line(s) unpriced</p>}
+          </div>
+        ))}
+      </div>
+
+      {/* Benefit comparison */}
+      {isComparison(analysis) ? (
+        <div className="mb-6">
+          <BenefitComparison comparison={analysis} busy={analyzing} onRecompute={() => compareBenefits()} />
+          {error && <p className="text-[11.5px] mt-2" style={{ color: '#c5221f' }}>{error}</p>}
+        </div>
+      ) : (
+        <div className="border border-border rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="m-0 text-[13px] font-bold text-foreground">Benefit comparison</h3>
+            <button onClick={compareBenefits} disabled={analyzing}
+                    className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-[#dadce0] text-[#202124] hover:bg-[#f8f9fa] disabled:opacity-50">
+              {analyzing ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+              {analyzing ? 'Comparing…' : analysis ? 'Recompare' : 'Compare benefits'}
+            </button>
+          </div>
+          {analysis && !isComparison(analysis) && (
+            <p className="text-[12px] mt-2" style={{ color: '#3c4043' }}>
+              This quote holds a written comparison from before 2 Oct 2026. Recompare it for the side-by-side table.
+            </p>
+          )}
+          {error && <p className="text-[11.5px] mt-2" style={{ color: '#c5221f' }}>{error}</p>}
+        </div>
+      )}
+
+      {/* Per-member breakdown */}
+      {lines.length > 0 && (
+        <section className="mb-8">
+          <h2 className="m-0 mb-3 text-[16px] font-medium tracking-[-0.01em] leading-tight" style={{ color: '#202124' }}>Per-member breakdown</h2>
+          <Register label="Per-member breakdown" minWidth={760} maxHeight="520px">
+            <RegisterHead>
+              <RegisterTh first width={260}>Member</RegisterTh>
+              <RegisterTh>Insurer</RegisterTh>
+              <RegisterTh>Product</RegisterTh>
+              <RegisterTh>Plan</RegisterTh>
+              <RegisterTh align="right">Age</RegisterTh>
+              <RegisterTh last align="right">Premium</RegisterTh>
+            </RegisterHead>
+            <tbody>
+              {lines.map((l, i) => (
+                <RegisterRow key={i}>
+                  <RegisterCell first primary={l.member_name} secondary={l.relationship} />
+                  <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>{l.insurer_name}</span></RegisterCell>
+                  <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>{l.product_code}</span></RegisterCell>
+                  <RegisterCell><span className="text-[14px]" style={{ color: l.plan_code ? '#3c4043' : '#9aa0a6' }}>{l.plan_code ?? '—'}</span></RegisterCell>
+                  <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: l.age != null ? '#3c4043' : '#9aa0a6' }}>{l.age ?? '—'}</span></RegisterCell>
+                  <RegisterCell last align="right" nowrap={false}>
+                    {l.premium != null ? <span className="text-[14px] font-medium tabular-nums" style={{ color: '#202124' }}>{money(l.premium)}</span> : <span className="block text-[13px] leading-snug" style={{ color: '#5f6368' }}>{l.note}</span>}
+                  </RegisterCell>
+                </RegisterRow>
+              ))}
+            </tbody>
+          </Register>
+        </section>
+      )}
+    </div>
     </div>
   )
 }

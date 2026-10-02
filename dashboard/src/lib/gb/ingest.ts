@@ -162,7 +162,7 @@ export async function extractSchedule(
   if (!productCodes.length) {
     return { ...EMPTY, model: GEMINI_DEEP, error: 'No canonical product for this table — map its label first.' }
   }
-  const { key, via } = agentKey('groupbenefits')
+  const { key, via } = agentKey('pricingmatrix')
   if (!key) return { ...EMPTY, model: GEMINI_DEEP, error: 'No Gemini API key configured' }
 
   try {

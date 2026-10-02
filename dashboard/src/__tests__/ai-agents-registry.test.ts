@@ -14,7 +14,7 @@ describe('agent registry', () => {
   })
 
   it('has a label for every id, including unattributed', () => {
-    const ids: AgentId[] = ['housekeeping', 'crm', 'askai', 'groupbenefits', 'pricingmatrix', 'unattributed']
+    const ids: AgentId[] = ['housekeeping', 'crm', 'askai', 'pricingmatrix', 'unattributed']
     for (const id of ids) expect(agentLabel(id)).toBeTruthy()
   })
 
@@ -33,9 +33,9 @@ describe('agent registry', () => {
     }
   })
 
-  it('attributes every group benefits feature', () => {
+  it('attributes every group benefits feature to Pricing Matrix, which it became', () => {
     for (const f of ['gb_extract_schedule', 'gb_plan_match', 'gb_alias_suggest']) {
-      expect(agentOfFeature(f)).toBe('groupbenefits')
+      expect(agentOfFeature(f)).toBe('pricingmatrix')
     }
   })
 

@@ -16,7 +16,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
-import { extractComputationRules }   from '@/lib/pm-rules-extract'
+import { extractComputationRules }   from '@/lib/gb/rules-extract'
 import { internalHeaders }        from '@/lib/api-gate/internal'
 
 export const maxDuration = 120

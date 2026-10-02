@@ -9,14 +9,14 @@ import type { QuoteRow, QuoteKind } from '@/lib/crm/types'
 
 const INK = '#202124'
 const MUTED = '#5f6368'
-const KIND_LABEL: Record<QuoteKind, string> = { pricing_matrix: 'Pricing matrix', group_benefits: 'Group benefits' }
+const KIND_LABEL: Record<QuoteKind, string> = { pricing_matrix: 'Pricing matrix' }
 
 /**
  * Quotations prepared for this client.
  *
  * Requests to insurers ("Start RFQ", the per-insurer dispatch list, quotes read from insurer
  * replies) were retired on 2 Oct 2026 along with the rest of the RFQ workflow. What remains is
- * what the firm prepares: pricing matrix and group benefits quotations.
+ * what the firm prepares: Pricing Matrix quotations.
  */
 export function CompanyQuotation({ companyId, companyName, quotes }: {
   companyId: string
@@ -27,7 +27,7 @@ export function CompanyQuotation({ companyId, companyName, quotes }: {
     <SectionCard
       title="Quotes"
       actions={
-        <LinkBtn size="xs" level="secondary" href={`/pricing-matrix/quote/new?company_id=${companyId}&company=${encodeURIComponent(companyName)}`}>
+        <LinkBtn size="xs" level="secondary" href={`/pricing-matrix?tab=quote&company=${encodeURIComponent(companyName)}`}>
           <FilePlus size={12} /> New quotation
         </LinkBtn>
       }

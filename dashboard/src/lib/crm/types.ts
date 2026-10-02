@@ -155,7 +155,7 @@ export interface PaymentSummary {
 
 // ── Quotes (pricing matrix + group benefits, unified) ─────────────────────────────────────────
 
-export type QuoteKind = 'pricing_matrix' | 'group_benefits'
+export type QuoteKind = 'pricing_matrix'
 
 export interface QuoteRow {
   id: string

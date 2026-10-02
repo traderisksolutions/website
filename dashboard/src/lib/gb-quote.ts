@@ -3,7 +3,7 @@
  * Runs a census across selected approved rate tables and returns per-insurer totals.
  */
 import { runGbComputationRules } from '@/lib/gb-compute-rules'
-import type { RuleStep } from '@/lib/pm-rules-extract'
+import type { RuleStep } from '@/lib/gb/rules-extract'
 import { parseCalendarDate, ageLastBirthday } from '@/lib/dates/dob'
 import { resolveProduct } from '@/lib/gb/resolve'
 

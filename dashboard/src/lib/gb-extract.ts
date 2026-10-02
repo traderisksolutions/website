@@ -92,7 +92,7 @@ function safeParse(s: string): GbExtraction {
 /** Named extractWithOpus until 2 Oct 2026; the export name is kept so the route and its stored
  *  extraction runs keep lining up. */
 export async function extractWithDeep(pdfBase64: string, profileHint: string): Promise<{ data: GbExtraction; raw: string; error?: string }> {
-  const { key } = agentKey('groupbenefits')
+  const { key } = agentKey('pricingmatrix')
   if (!key) return { data: EMPTY, raw: '', error: 'No Gemini API key configured' }
   try {
     const res = await fetch(`${geminiUrl(GEMINI_DEEP)}?key=${key}`, {
@@ -264,7 +264,7 @@ export type Adjudication = Record<string, { price: number | null; confidence: nu
 export const conflictKey = priceKey
 
 export async function adjudicate(pdfBase64: string, conflicts: Conflict[]): Promise<Adjudication> {
-  const { key } = agentKey('groupbenefits')
+  const { key } = agentKey('pricingmatrix')
   if (!key || conflicts.length === 0) return {}
   try {
     // The two reads are labelled first/second rather than by model, so the judge has no reason to
