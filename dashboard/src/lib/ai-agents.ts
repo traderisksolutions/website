@@ -93,14 +93,15 @@ export const FEATURE_AGENT: Record<string, AgentId> = {
   ask_ai_clause:   'askai',
 
   // ── Pricing matrix (formerly group benefits) ─────────────────────────────
-  // The annual ingest, and the two places a model still helps. Comparing the quoted options
-  // is absent from this list because it is deterministic — no model, nothing to attribute.
+  // The annual ingest, and the places a model still helps. Comparing and scoring the quoted
+  // options are absent because they are deterministic; only the written explanation calls a model.
   gb_extract_schedule: 'pricingmatrix',
   gb_extract_gemini:   'pricingmatrix',
   gb_extract_judge:    'pricingmatrix',
   gb_alias_suggest:    'pricingmatrix',
   gb_plan_match:       'pricingmatrix',
   gb_rules_extract:    'pricingmatrix',
+  gb_value_explain:    'pricingmatrix',
 
   // ── Pricing matrix ────────────────────────────────────────────────────────
   pm_rate_extract:            'pricingmatrix',

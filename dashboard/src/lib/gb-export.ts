@@ -3,6 +3,7 @@
  * saved quote, never re-derived. Two builders share one data shape so the download route
  * and the reply-attach route (D2) produce identical files.
  */
+import { fetchAllRows } from './postgrest-all'
 import ExcelJS from 'exceljs'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
@@ -37,13 +38,12 @@ type Result = { rate_table_id: string; insurer_id: string | null; insurer_name: 
 /** Load a saved quotation + its lines and shape them for ONE insurer's export.
  *  Numbers are copied from the saved quote — never recomputed. Returns null if absent. */
 export async function buildExportData(id: string, insurer: string): Promise<ExportData | null> {
-  const [qRes, lRes] = await Promise.all([
+  const [qRes, lines] = await Promise.all([
     fetch(`${SB_URL}/rest/v1/gb_quotations?id=eq.${id}&select=*&limit=1`, { headers: sbH(), cache: 'no-store' }),
-    fetch(`${SB_URL}/rest/v1/gb_quote_lines?quotation_id=eq.${id}&select=*&order=member_index,product_code`, { headers: sbH(), cache: 'no-store' }),
+    fetchAllRows<LineRow>(`${SB_URL}/rest/v1/gb_quote_lines?quotation_id=eq.${id}&insurer_name=eq.${encodeURIComponent(insurer)}&select=*&order=member_index,product_code`, sbH()),
   ])
   const quotation = qRes.ok ? (await qRes.json())[0] : null
   if (!quotation) return null
-  const lines: LineRow[] = lRes.ok ? await lRes.json() : []
   const insurerLines = lines.filter(l => l.insurer_name === insurer)
   if (!insurerLines.length) return null
 

@@ -15,6 +15,7 @@
  *                guessed: an unmapped row is still quotable, it simply cannot be compared until
  *                somebody maps it.
  */
+import { fetchAllRows } from '../postgrest-all'
 import { PRODUCTS, BENEFITS } from './canon'
 import { resolveProduct, resolveBenefit, norm } from './resolve'
 
@@ -31,10 +32,9 @@ async function post(path: string, body: unknown, prefer?: string) {
   if (!res.ok) throw new Error(`${path}: ${res.status} ${(await res.text()).slice(0, 300)}`)
   return res
 }
+/** Every matching row — paged, because the API stops at 1,000 whatever limit= says. */
 async function get<T>(path: string): Promise<T[]> {
-  const res = await fetch(`${SB_URL}/rest/v1/${path}`, { headers: h(), cache: 'no-store' })
-  if (!res.ok) throw new Error(`${path}: ${res.status} ${(await res.text()).slice(0, 300)}`)
-  return await res.json() as T[]
+  return fetchAllRows<T>(`${SB_URL}/rest/v1/${path}`, h())
 }
 async function patch(path: string, body: unknown) {
   const res = await fetch(`${SB_URL}/rest/v1/${path}`, { method: 'PATCH', headers: h(), body: JSON.stringify(body) })

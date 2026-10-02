@@ -7,11 +7,12 @@ import { cn } from '@/lib/utils'
 import { ThreadSelectorModal } from '@/components/group-benefits/ThreadSelectorModal'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { BenefitComparison } from '@/components/group-benefits/BenefitComparison'
+import { ValueScore } from '@/components/group-benefits/ValueScore'
 import type { Comparison } from '@/lib/gb/compare'
 
 type InsurerResult = { rate_table_id: string; insurer_id: string | null; insurer_name: string; by_product: Record<string, number>; subtotal: number; gst: number; total: number; missing: number }
 type Line = { member_name: string; relationship: string; category: string; age: number | null; insurer_name: string; product_code: string; plan_code: string | null; premium: number | null; note: string | null }
-type Quotation = { id: string; company_name: string | null; effective_date: string | null; product_codes: string[]; member_count: number; results: InsurerResult[]; benefits_analysis: Comparison | null; created_at: string; source: string }
+type Quotation = { id: string; company_name: string | null; effective_date: string | null; product_codes: string[]; member_count: number; results: InsurerResult[]; benefits_analysis: Comparison | null; priorities: string | null; created_at: string; source: string }
 
 /** Quotes compared before 2 Oct 2026 hold generated prose, not a comparison. Detect that by the
  *  absence of the comparison's own shape and offer a recompare, rather than rendering a narrative
@@ -133,7 +134,8 @@ export default function QuoteDetailPage() {
       {showThreadPick && <ThreadSelectorModal onPick={prepareReply} onClose={() => { if (!preparing) setShowThreadPick(false) }} busyLabel={preparing} />}
 
       {/* Comparison cards */}
-      <div className="grid gap-3 mb-6" style={{ gridTemplateColumns: `repeat(${Math.min(byInsurer.length, 4)}, minmax(0,1fr))` }}>
+      <div className="grid gap-3 mb-6 grid-cols-1 sm:grid-cols-2 lg:[grid-template-columns:repeat(var(--n),minmax(0,1fr))]"
+           style={{ '--n': Math.min(byInsurer.length, 4) } as React.CSSProperties}>
         {byInsurer.map((r, i) => (
           <div key={r.insurer_name} className={cn('rounded-xl border p-4', i === 0 ? 'border-[#202124] bg-white' : 'border-border bg-card')}>
             <div className="flex items-center justify-between">
@@ -152,7 +154,8 @@ export default function QuoteDetailPage() {
 
       {/* Benefit comparison */}
       {isComparison(analysis) ? (
-        <div className="mb-6">
+        <div className="mb-6 flex flex-col gap-6">
+          <ValueScore quoteId={id} comparison={analysis} priorities={q.priorities} employeesFallback={q.member_count} />
           <BenefitComparison comparison={analysis} busy={analyzing} onRecompute={() => compareBenefits()} />
           {error && <p className="text-[11.5px] mt-2" style={{ color: '#c5221f' }}>{error}</p>}
         </div>

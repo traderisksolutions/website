@@ -4,6 +4,7 @@
  * title) — since a brochure holds several products (GHS+EMM, GTL+GACI…). Newest effective
  * date wins per insurer. Each entry carries its plans + which member types it prices.
  */
+import { fetchAllRows } from '@/lib/postgrest-all'
 import { NextResponse }  from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
@@ -34,12 +35,10 @@ export async function GET() {
     const kept = Array.from(latest.values())
     const ids  = kept.map(t => `"${t.id}"`).join(',')
 
-    const [rRes, pRes] = await Promise.all([
-      fetch(`${SB_URL}/rest/v1/gb_rates?rate_table_id=in.(${ids})&select=rate_table_id,product_code,member_type&limit=50000`, { headers: sbH(), cache: 'no-store' }),
-      fetch(`${SB_URL}/rest/v1/gb_plans?rate_table_id=in.(${ids})&select=rate_table_id,product_code,plan_code,plan_name,hospital_type,beds,co_payment&order=plan_code`, { headers: sbH(), cache: 'no-store' }),
+    const [rateRows, plans] = await Promise.all([
+      fetchAllRows<{ rate_table_id: string; product_code: string; member_type: string | null }>(`${SB_URL}/rest/v1/gb_rates?rate_table_id=in.(${ids})&select=rate_table_id,product_code,member_type`, sbH()),
+      fetchAllRows<{ rate_table_id: string; product_code: string; plan_code: string; plan_name: string | null; hospital_type: string | null; beds: string | null; co_payment: string | null }>(`${SB_URL}/rest/v1/gb_plans?rate_table_id=in.(${ids})&select=rate_table_id,product_code,plan_code,plan_name,hospital_type,beds,co_payment&order=plan_code`, sbH()),
     ])
-    const rateRows: { rate_table_id: string; product_code: string; member_type: string | null }[] = rRes.ok ? await rRes.json() : []
-    const plans:    { rate_table_id: string; product_code: string; plan_code: string; plan_name: string | null; hospital_type: string | null; beds: string | null; co_payment: string | null }[] = pRes.ok ? await pRes.json() : []
 
     const out: unknown[] = []
     for (const t of kept) {

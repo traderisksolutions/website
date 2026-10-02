@@ -7,6 +7,7 @@
  * because the first pass over a live rate table is the moment to read the result rather than
  * trust it.
  */
+import { fetchAllRows } from '@/lib/postgrest-all'
 import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffOrCron } from '@/lib/api-auth'
 import { logActivity } from '@/lib/log-activity'
@@ -24,12 +25,10 @@ export async function GET(req: NextRequest) {
   const unauthorized = await requireStaffOrCron(req)
   if (unauthorized) return unauthorized
   try {
-    const [rates, benefits] = await Promise.all([
-      fetch(`${SB_URL}/rest/v1/gb_rates?select=canon_codes&limit=5000`, { headers: sbH(), cache: 'no-store' }),
-      fetch(`${SB_URL}/rest/v1/gb_benefits?select=canon_benefit&limit=5000`, { headers: sbH(), cache: 'no-store' }),
+    const [r, b] = await Promise.all([
+      fetchAllRows<{ canon_codes: string[] | null }>(`${SB_URL}/rest/v1/gb_rates?select=canon_codes`, sbH()),
+      fetchAllRows<{ canon_benefit: string | null }>(`${SB_URL}/rest/v1/gb_benefits?select=canon_benefit`, sbH()),
     ])
-    const r = rates.ok ? await rates.json() as { canon_codes: string[] | null }[] : []
-    const b = benefits.ok ? await benefits.json() as { canon_benefit: string | null }[] : []
     return NextResponse.json({
       products: PRODUCTS,
       benefits: BENEFITS,

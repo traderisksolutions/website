@@ -5,6 +5,7 @@
  * so it sends those directly; this route only needs to fetch the benefit terms (gb_benefits)
  * the client doesn't have, then call gb-plan-match.ts's suggestPlanMatch.
  */
+import { fetchAllRows } from '@/lib/postgrest-all'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { suggestPlanMatch }          from '@/lib/gb-plan-match'
@@ -36,11 +37,8 @@ export async function POST(req: NextRequest) {
 
     const tableIds = Array.from(new Set(relevant.map(e => e.rate_table_id)))
     const ids = tableIds.map(i => `"${i}"`).join(',')
-    const benRes = await fetch(
-      `${SB_URL}/rest/v1/gb_benefits?rate_table_id=in.(${ids})&select=rate_table_id,plan_code,category,benefit_name,value_text&limit=4000`,
-      { headers: sbH(), cache: 'no-store' },
-    )
-    const bens: { rate_table_id: string; plan_code: string | null; category: string | null; benefit_name: string; value_text: string | null }[] = benRes.ok ? await benRes.json() : []
+    const bens = await fetchAllRows<{ rate_table_id: string; plan_code: string | null; category: string | null; benefit_name: string; value_text: string | null }>(
+      `${SB_URL}/rest/v1/gb_benefits?rate_table_id=in.(${ids})&select=rate_table_id,plan_code,category,benefit_name,value_text`, sbH())
 
     const products: MatchProduct[] = relevant.map(e => ({
       rate_table_id: e.rate_table_id, insurer_name: e.insurer_name, product_title: e.product_title,

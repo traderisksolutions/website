@@ -250,4 +250,6 @@ export function roomTierRank(value: string | null | undefined): number | null {
 export const LOWER_IS_MORE_COVER = new Set<string>([
   'GHS_CO_PAYMENT', 'GHSFW_CO_PAYMENT', 'GOPC_CO_PAYMENT', 'GOSC_CO_PAYMENT', 'GD_CO_PAYMENT',
   'EMM_CO_INSURANCE', 'EMM_DEDUCTIBLE', 'GCI_SURVIVAL',
+  // A Yes here is a restriction: the member must see a GP first.
+  'GOSC_REFERRAL',
 ])

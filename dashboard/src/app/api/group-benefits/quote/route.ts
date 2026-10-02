@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
+import { fetchAllRows } from '@/lib/postgrest-all'
 import { computeQuote, type Member, type RateTableInfo, type CategoryMap, type QuoteBasis } from '@/lib/gb-quote'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
@@ -53,13 +54,12 @@ export async function POST(req: NextRequest) {
     // Load the selected approved tables + their rates + any approved calculator rules
     // (mechanical AppliedRules) + any approved richer computation rules (Phase 6d, optional).
     const ids = tableIds.map(i => `"${i}"`).join(',')
-    const [metaRes, ratesRes, richRes] = await Promise.all([
+    const [metaRes, rateRows, richRes] = await Promise.all([
       fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=in.(${ids})&select=id,insurer_id,insurer_name,age_basis,rules,rules_status&limit=100`, { headers: sbH(), cache: 'no-store' }),
-      fetch(`${SB_URL}/rest/v1/gb_rates?rate_table_id=in.(${ids})&select=rate_table_id,product_code,member_type,plan_code,band_label,age_min,age_max,premium,renewal_only&limit=20000`, { headers: sbH(), cache: 'no-store' }),
+      fetchAllRows<RateTableInfo['rates'][number] & { rate_table_id: string }>(`${SB_URL}/rest/v1/gb_rates?rate_table_id=in.(${ids})&select=rate_table_id,product_code,member_type,plan_code,band_label,age_min,age_max,premium,renewal_only`, sbH()),
       fetch(`${SB_URL}/rest/v1/gb_computation_rules?rate_table_id=in.(${ids})&status=eq.approved&select=rate_table_id,rules`, { headers: sbH(), cache: 'no-store' }),
     ])
     const metas: { id: string; insurer_id: string | null; insurer_name: string | null; age_basis: string; rules: Record<string, unknown> | null; rules_status: string | null }[] = metaRes.ok ? await metaRes.json() : []
-    const rateRows: (RateTableInfo['rates'][number] & { rate_table_id: string })[] = ratesRes.ok ? await ratesRes.json() : []
     const richByTable = new Map<string, RateTableInfo['richRules']>(
       (richRes.ok ? await richRes.json() : []).map((r: { rate_table_id: string; rules: RateTableInfo['richRules'] }) => [r.rate_table_id, r.rules]),
     )
@@ -94,7 +94,12 @@ export async function POST(req: NextRequest) {
     const quotation = qRes.ok ? (await qRes.json())[0] : null
     if (quotation?.id && result.lines.length) {
       const lines = result.lines.map(l => ({ quotation_id: quotation.id, rate_table_id: l.rate_table_id, insurer_name: l.insurer_name, member_index: l.member_index, member_name: l.member_name, relationship: l.relationship, category: l.category, age: l.age, product_code: l.product_code, plan_code: l.plan_code, premium: l.premium, note: l.note }))
-      await fetch(`${SB_URL}/rest/v1/gb_quote_lines`, { method: 'POST', headers: sbH(), body: JSON.stringify(lines) }).catch(() => {})
+      // In chunks, and checked: a failed insert used to be swallowed, leaving a quotation whose
+      // per-member breakdown and export were silently empty.
+      for (let i = 0; i < lines.length; i += 500) {
+        const ins = await fetch(`${SB_URL}/rest/v1/gb_quote_lines`, { method: 'POST', headers: sbH(), body: JSON.stringify(lines.slice(i, i + 500)) })
+        if (!ins.ok) return NextResponse.json({ error: `Quote saved but member lines failed: ${ins.status} ${(await ins.text()).slice(0, 200)}`, quotation_id: quotation.id }, { status: 500 })
+      }
     }
 
     void logActivity({ action: 'gb.quote_generated', resource_type: 'gb_quotation', resource_id: quotation?.id, new_value: { company: body.company_name, members: census.length, insurers: tableIds.length } })

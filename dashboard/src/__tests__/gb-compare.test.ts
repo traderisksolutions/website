@@ -214,3 +214,27 @@ describe('a tier value overrides a schedule-wide one', () => {
     expect(row.cells[0].comparable.kind).toBe('room')
   })
 })
+
+describe('toComparable — the forms the five insurers print (2 Oct 2026)', () => {
+  const sgd = (t: string) => toComparable({ text: t, numeric: null }, 'sgd_limit')
+  it('reads an amount with a period or note after it', () => {
+    expect(sgd('$1,500/yr')).toEqual({ kind: 'sgd', n: 1500 })
+    expect(sgd('$800 per policy year')).toEqual({ kind: 'sgd', n: 800 })
+    expect(sgd('$5,000 (31d)')).toEqual({ kind: 'sgd', n: 5000 })
+  })
+  it('reads "as charged up to $X" as a cap of X, and "up to the annual limit" as uncapped', () => {
+    expect(sgd('as charged up to $5,000')).toEqual({ kind: 'sgd', n: 5000 })
+    expect(sgd('As charged to $200k')).toEqual({ kind: 'sgd', n: 200000 })
+    expect(sgd('As charged up to Annual Limit')).toEqual({ kind: 'as_charged' })
+  })
+  it('reads nothing paid as zero', () => {
+    expect(sgd('Not covered')).toEqual({ kind: 'sgd', n: 0 })
+    expect(toComparable({ text: 'Nil', numeric: null }, 'percent')).toEqual({ kind: 'percent', n: 0 })
+    expect(toComparable({ text: 'Nil (Major Medical add-on 20%)', numeric: null }, 'percent')).toEqual({ kind: 'percent', n: 0 })
+  })
+  it('leaves amounts whose meaning changes after the number as text', () => {
+    expect(sgd('$150 per day up to 45 days').kind).toBe('text')
+    expect(sgd('$10k illness / $20k accident').kind).toBe('text')
+  })
+})
+

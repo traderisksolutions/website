@@ -110,6 +110,8 @@ export type AiFeature =
   | 'gb_plan_match'
   | 'gb_extract_schedule'
   | 'gb_alias_suggest'
+  // The written explanation beside the value score (2 Oct 2026). The score itself is arithmetic.
+  | 'gb_value_explain'
   // Companies-first CRM (10 Sep 2026)
   | 'crm_brief'
   | 'crm_triage'

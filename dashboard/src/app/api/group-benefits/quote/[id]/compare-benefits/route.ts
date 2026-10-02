@@ -9,14 +9,16 @@
  * narrative that weighed price against coverage and steered towards an option. Two problems with
  * that. It asserted a judgement from weights nobody agreed to, hiding the trade-off the broker
  * is paid to make; and it paid a frontier model per quotation to restate figures already in the
- * database. What replaces it compares on facts and stops: the dollar difference, the lines that
- * differ, and the lines where an insurer has nothing on record.
+ * database. What replaces it compares on facts: the dollar difference, the lines that differ,
+ * and the lines where an insurer has nothing on record. The value score and its explanation
+ * (../score) are built on this output with the broker's own weights.
  *
  * The canon is what makes this possible at all. Before gb_label_alias existed, AIA's "GHS+EMM",
  * Income's "Group Hospital and Surgical (GHS)" and QBE's "Group Hospital & Surgical (GHS)" were
  * three unrelated strings, so there was nothing to put in one column — which is why the earlier
  * attempt had to hand the whole problem to a model and hope.
  */
+import { fetchAllRows } from '@/lib/postgrest-all'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { logActivity } from '@/lib/log-activity'
@@ -42,6 +44,7 @@ type Ben   = { rate_table_id: string; product_code: string | null; plan_code: st
                benefit_name: string; value_text: string | null; value_numeric: number | null
                canon_benefit: string | null }
 type Result = { rate_table_id?: string; insurer_name: string; total: number; missing?: number }
+type QLine = { rate_table_id: string | null; member_index: number; relationship: string | null; plan_code: string | null; product_code: string | null }
 
 /**
  * The plan tier's own attributes ARE canonical benefit lines, so they are read as such rather
@@ -76,25 +79,43 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const catMap = q.category_map ?? {}
     const totals = q.results ?? []
 
-    // Which plan tiers the quote actually used, per table.
-    const usedByTable: Record<string, Set<string>> = {}
+    // Which plan tiers the quote used, per table, as (product label, plan) pairs. A plan code
+    // alone is not a tier: "Plan 1" exists under GHS, GP, SP and dental on the same table, and
+    // matching on the code alone made Income's specialist plan read as its hospital plan.
+    const usedByTable: Record<string, { label: string; plan: string }[]> = {}
     for (const [tid, prods] of Object.entries(catMap)) {
-      const set = new Set<string>()
-      for (const cats of Object.values(prods)) for (const plan of Object.values(cats)) if (plan) set.add(plan)
-      usedByTable[tid] = set
+      const seen = new Set<string>(), list: { label: string; plan: string }[] = []
+      for (const [label, cats] of Object.entries(prods)) for (const plan of Object.values(cats)) {
+        if (plan && !seen.has(`${label}\u0000${plan}`)) { seen.add(`${label}\u0000${plan}`); list.push({ label, plan }) }
+      }
+      usedByTable[tid] = list
     }
 
     const ids = tableIds.map(i => `"${i}"`).join(',')
-    const [metaRes, plansRes, benRes] = await Promise.all([
+    const [metaRes, plans, bens, qLines] = await Promise.all([
       fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=in.(${ids})&select=id,insurer_name,product_code,rules&limit=100`, { headers: sbH(), cache: 'no-store' }),
-      fetch(`${SB_URL}/rest/v1/gb_plans?rate_table_id=in.(${ids})` +
-            `&select=rate_table_id,product_code,plan_code,plan_name,hospital_type,beds,co_payment,canon_codes&limit=2000`, { headers: sbH(), cache: 'no-store' }),
-      fetch(`${SB_URL}/rest/v1/gb_benefits?rate_table_id=in.(${ids})` +
-            `&select=rate_table_id,product_code,plan_code,benefit_name,value_text,value_numeric,canon_benefit&limit=8000`, { headers: sbH(), cache: 'no-store' }),
+      fetchAllRows<Plan>(`${SB_URL}/rest/v1/gb_plans?rate_table_id=in.(${ids})` +
+            `&select=rate_table_id,product_code,plan_code,plan_name,hospital_type,beds,co_payment,canon_codes`, sbH()),
+      fetchAllRows<Ben>(`${SB_URL}/rest/v1/gb_benefits?rate_table_id=in.(${ids})` +
+            `&select=rate_table_id,product_code,plan_code,benefit_name,value_text,value_numeric,canon_benefit`, sbH()),
+      fetchAllRows<QLine>(`${SB_URL}/rest/v1/gb_quote_lines?quotation_id=eq.${id}` +
+            `&select=rate_table_id,member_index,relationship,plan_code,product_code`, sbH()),
     ])
     const metas = metaRes.ok  ? await metaRes.json()  as Meta[] : []
-    const plans = plansRes.ok ? await plansRes.json() as Plan[] : []
-    const bens  = benRes.ok   ? await benRes.json()   as Ben[]  : []
+
+    // PEPM is per employee: dependants are priced but are not the denominator. A census with no
+    // relationship column counts every member as an employee, which is what it is.
+    const everyone = new Set(qLines.map(l => l.member_index))
+    const selves = new Set(qLines.filter(l => /^(self|employee|staff|member)$/i.test(l.relationship ?? '')).map(l => l.member_index))
+    const employees = selves.size || everyone.size || 0
+
+    /** Members priced on one plan tier of one table. Lines store the plan as quoted ("Plan 1");
+     *  the tier may carry the chosen variant ("Plan 1 · Private 1-bedded"). */
+    const membersOn = (tableId: string, label: string | null, planCode: string) => {
+      const base = planCode.split(' · ')[0]
+      return new Set(qLines.filter(l => l.rate_table_id === tableId && (!label || l.product_code === label) &&
+        (l.plan_code === planCode || l.plan_code === base)).map(l => l.member_index)).size
+    }
 
     // By rate table first. Matching on the insurer's name alone broke the moment a name was
     // tidied — "QBE Insurance (Singapore) Pte Ltd" to "QBE" — and a quotation lost its total.
@@ -102,18 +123,32 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const options: Option[] = []
 
     for (const m of metas) {
-      const used = usedByTable[m.id]
       const r = resultFor(m)
-      const planRows = plans.filter(p => p.rate_table_id === m.id && (!used || used.size === 0 || used.has(p.plan_code)))
-      // A table with no plan-tier rows still has premiums and benefit lines, so it is quoted as
-      // one option per used plan code rather than dropped.
-      const codes = planRows.length ? planRows.map(p => p.plan_code)
-                                    : Array.from(used ?? new Set<string>())
-      for (const planCode of Array.from(new Set(codes))) {
-        const planRow = planRows.find(p => p.plan_code === planCode) ?? null
-        const productCodes = planRow?.canon_codes?.length
-          ? planRow.canon_codes
-          : resolveProduct(planRow?.product_code ?? m.product_code ?? '').codes
+      const tablePlans = plans.filter(p => p.rate_table_id === m.id)
+      const resolved = (label: string) => resolveProduct(label).codes
+
+      // The tiers to compare: those the quote used, or — for a quote with no category map —
+      // every tier on the table.
+      const tiers: { label: string | null; plan: string; row: Plan | null }[] = (usedByTable[m.id]?.length
+        ? usedByTable[m.id].map(({ label, plan }) => {
+            const base = plan.split(' · ')[0]
+            const byPlan = tablePlans.filter(p => p.plan_code === plan || p.plan_code === base)
+            // The plan row for this product: same label first; else one whose canonical product
+            // the label also resolves to (AIA prices "GHS+EMM" against plan rows filed as "GHS").
+            const want = resolved(label)
+            const row = byPlan.find(p => p.product_code === label)
+              ?? byPlan.find(p => (p.canon_codes ?? []).some(c => want.includes(c)))
+              ?? null
+            return { label, plan, row }
+          })
+        : tablePlans.map(p => ({ label: p.product_code, plan: p.plan_code, row: p })))
+
+      for (const { label, plan: planCode, row: planRow } of tiers) {
+        // A bundled label ("GHS+EMM", "GP + SP") covers every product it names, so both count.
+        const productCodes = Array.from(new Set([
+          ...(label ? resolved(label) : []),
+          ...(planRow?.canon_codes ?? []),
+        ]))
         if (!productCodes.length) continue    // unmapped label: quotable, not comparable
 
         const values: Option['values'] = {}
@@ -123,7 +158,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         // A row with no plan code applies to every tier on that table. Schedule-wide rows go in
         // FIRST so a tier's own value overrides them: AIA still carries a pre-scan row with no
         // plan code for room & board, and whichever of the two landed last would otherwise win,
-        // making the comparison depend on the order PostgREST happened to return.
+        // making the comparison depend on the order PostgREST happened to return. Canonical codes
+        // are per product, so another product's "Plan 1" rows land on lines this option never shows.
         for (const pass of [null, basePlan, planCode] as (string | null)[]) {
           for (const b of bens) {
             if (b.rate_table_id !== m.id || !b.canon_benefit) continue
@@ -133,17 +169,24 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         }
         // The plan tier's own attributes last. Where they exist they come from the insurer's
         // calculator, which names the exact ward ("Government, 4-Bedded") the premium was priced
-        // on — more precise than a brochure's "1 or 4 Bedded" for the same plan.
+        // on — more precise than a brochure's "1 or 4 Bedded" for the same plan. Ward and hospital
+        // type belong to hospital cover only; a co-payment goes to whichever product the tier is.
         if (planRow) {
           const fw = productCodes.includes('GHS_FW')
+          const hospital = fw || productCodes.includes('GHS')
           for (const attr of PLAN_ATTR_LINES) {
             const v = planRow[attr.field]
-            if (typeof v === 'string' && v.trim()) values[fw ? attr.fw : attr.ghs] = { text: v.trim(), numeric: null }
+            if (typeof v !== 'string' || !v.trim()) continue
+            if (hospital) values[fw ? attr.fw : attr.ghs] = { text: v.trim(), numeric: null }
+            else if (attr.field === 'co_payment') {
+              const p = productCodes.find(c => ['GOPC', 'GOSC', 'GD'].includes(c))
+              if (p) values[`${p}_CO_PAYMENT`] = { text: v.trim(), numeric: null }
+            }
           }
         }
 
         options.push({
-          key: `${m.id}:${planCode}`,
+          key: `${m.id}:${label ?? ''}:${planCode}`,
           insurerName: m.insurer_name,
           planCode,
           planLabel: planRow?.plan_name ?? null,
@@ -151,6 +194,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           annualTotal: r?.total ?? null,
           pricingGaps: r?.missing ?? 0,
           verification: verificationOf(m.rules).status,
+          memberCount: membersOn(m.id, label, planCode),
           values,
         })
       }
@@ -160,7 +204,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'No quoted plan on these tables carries a canonical product. Map the insurer labels first.' }, { status: 400 })
     }
 
-    const comparison = compare(options, { hideIdentical: !!hideIdentical, hideEmpty: hideEmpty !== false })
+    const comparison = { ...compare(options, { hideIdentical: !!hideIdentical, hideEmpty: hideEmpty !== false }), employees }
 
     await fetch(`${SB_URL}/rest/v1/gb_quotations?id=eq.${id}`, {
       method: 'PATCH', headers: sbH(),

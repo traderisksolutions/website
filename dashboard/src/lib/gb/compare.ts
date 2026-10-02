@@ -1,13 +1,10 @@
 /**
  * Group Benefits — the side-by-side comparison.
  *
- * What this does NOT do, deliberately: score the options, weight them, or name a winner. The
- * broker decides. This lines the canonical benefit lines up against each other, states the
- * premium difference in dollars, marks where the options genuinely differ, and says plainly
- * where an insurer's schedule has no value on record. A scoring model would convert a schedule
- * of facts into one number whose weights nobody agreed to, and would hide exactly the trade-off
- * the broker is being paid to judge — a plan 12% dearer with a private single-bed ward and no
- * pre-existing exclusion is the right answer for some clients and the wrong one for others.
+ * What this does not do: score, weight or name a winner. It lines the canonical benefit lines up,
+ * states the premium difference in dollars, marks where the options differ, and says where an
+ * insurer's schedule has no value on record. The value score is a separate layer (score.ts) built
+ * on this output, with weights the broker sets and sees — so the facts here stay weight-free.
  *
  * It is also strict about which lines may be ordered at all. A dollar limit is arithmetic. A ward
  * class is an ordered scale. A geographical-scope or pre-existing-conditions clause is neither,
@@ -37,6 +34,8 @@ export type Option = {
   pricingGaps?: number
   /** How far this insurer's premiums have been checked — see src/lib/gb/verification.ts. */
   verification?: 'calculator' | 'brochure' | 'unverified'
+  /** Census members priced on this plan tier. Weights the tier when tiers roll up to an insurer. */
+  memberCount?: number
   /** Benefit values on record for this option, keyed by canonical benefit code. */
   values: Record<string, { text: string | null; numeric: number | null }>
 }
@@ -86,6 +85,9 @@ export type PremiumRow = {
 
 export type Comparison = {
   options: Option[]
+  /** Employees in the census (dependants excluded) — the denominator of PEPM. Absent on
+   *  comparisons stored before 2 Oct 2026. */
+  employees?: number
   premium: PremiumRow[]
   /** Rows grouped by canonical product, in canon order. */
   groups: { productCode: string; productName: string; rows: Row[] }[]
@@ -100,6 +102,13 @@ export type Comparison = {
 }
 
 const MONEY = /^\s*(?:s?\$|sgd)?\s*([\d,]+(?:\.\d+)?)\s*(k|m)?\s*$/i
+/** A dollar amount followed only by words that restate the period or the basis — "$1,500/yr",
+ *  "$800 per policy year", "$5,000 (31d)". Anything else after the amount ("per day up to 45
+ *  days", "illness / $20k accident") changes what the number means and stays text. */
+const MONEY_QUALIFIED = /^\s*(?:s?\$|sgd)\s*([\d,]+(?:\.\d+)?)\s*(k|m)?\s*(?:\/\s*(?:yr|year|annum)|per\s+(?:policy\s+)?(?:year|annum)|p\.?\s?a\.?|per\s+disab\w*|\([^)]*\))\s*$/i
+/** "As charged up to $5,000" is a $5,000 cap, not unlimited cover. */
+const AS_CHARGED_CAPPED = /as\s*(?:charged|incurred)\D{0,20}?(?:s?\$|sgd)\s*([\d,]+(?:\.\d+)?)\s*(k|m)?/i
+const NOTHING = /^\s*(nil|none|not\s+covered|no\s+cover(age)?|excluded)\s*\.?\s*$/i
 
 /** Parse a printed benefit value into something that can be set against another insurer's. */
 export function toComparable(
@@ -111,7 +120,9 @@ export function toComparable(
   if (!text && numeric == null) return { kind: 'absent' }
 
   // "As charged" / "as incurred" beats any finite cap on the same line, so it is its own kind
-  // rather than an unparseable string.
+  // rather than an unparseable string — unless a dollar cap follows it.
+  const capped = text?.match(AS_CHARGED_CAPPED)
+  if (capped && compareAs !== 'percent' && compareAs !== 'room_tier') return { kind: 'sgd', n: money(capped) }
   if (text && /as\s*(charged|incurred)|unlimited|no\s*limit|full\s*cover/i.test(text)) {
     return { kind: 'as_charged' }
   }
@@ -123,6 +134,9 @@ export function toComparable(
                           : { kind: 'room', rank, label: text! }
     }
     case 'percent': {
+      // A leading "Nil" is this line's value; a percentage after it belongs to something else
+      // ("Nil (Major Medical add-on 20%)").
+      if (text && /^\s*(nil|none)\b/i.test(text)) return { kind: 'percent', n: 0 }
       const m = text?.match(/(\d+(?:\.\d+)?)\s*%/)
       if (m) return { kind: 'percent', n: Number(m[1]) }
       if (numeric != null) return { kind: 'percent', n: numeric }
@@ -146,9 +160,11 @@ export function toComparable(
       return text ? { kind: 'text', v: text } : { kind: 'absent' }
     default: {
       // Every dollar-denominated line.
-      const m = text?.match(MONEY)
+      const m = text?.match(MONEY) ?? text?.match(MONEY_QUALIFIED)
       if (m) return { kind: 'sgd', n: money(m) }
       if (numeric != null) return { kind: 'sgd', n: numeric }
+      // Nothing paid is a value of zero, not a missing value.
+      if (text && NOTHING.test(text)) return { kind: 'sgd', n: 0 }
       return text ? { kind: 'text', v: text } : { kind: 'absent' }
     }
   }
@@ -176,7 +192,7 @@ export function coverScore(c: Comparable, benefitCode: string): number | null {
     case 'number':
     case 'percent': return invert ? -c.n : c.n
     case 'room':    return -c.rank              // rank 1 is the best ward
-    case 'boolean': return c.v ? 1 : 0
+    case 'boolean': return (invert ? !c.v : c.v) ? 1 : 0
     default:        return null
   }
 }

@@ -7,10 +7,8 @@
  * ordered — a dollar limit, a ward class, a co-payment — the option holding the most cover is
  * marked. Where it cannot be ordered, both values are simply shown.
  *
- * There is no score, no weighting and no recommended option, because the trade-off is the
- * broker's to make: a plan 14% dearer with a private single-bed ward is right for one client and
- * wrong for the next, and a single number would bury exactly that. This replaces a generated
- * narrative that did assert one.
+ * This table carries no score. The value score sits above it (ValueScore.tsx), with the broker's
+ * weights in view; this stays the line-by-line record that score is built from.
  *
  * A blank cell means no value on record for that line — not that the insurer excludes it. The
  * two are different and the footer says which lines are affected, because a comparison that
