@@ -17,7 +17,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { logActivity } from '@/lib/log-activity'
 import { callGemini } from '@/lib/ai-call'
-import { GEMINI_FLASH } from '@/lib/gemini-models'
+import { GEMINI_DEEP } from '@/lib/gemini-models'
 import { withVoice } from '@/lib/voice'
 import type { Comparison } from '@/lib/gb/compare'
 import { BENEFIT_BY_CODE } from '@/lib/gb/canon'
@@ -169,9 +169,9 @@ Rules:
 Return JSON: {"points": ["...", "..."]}`, 'internal')
 
     const { text, error } = await callGemini({
-      agent: 'group_benefit', feature: 'gb_value_explain', model: GEMINI_FLASH,
+      agent: 'group_benefit', feature: 'gb_value_explain', model: GEMINI_DEEP,
       system, parts: [{ text: JSON.stringify(facts) }],
-      maxOutputTokens: 6000, json: true, temperature: 0.2,
+      maxOutputTokens: 6000, thinkingShare: 0.3, json: true, temperature: 0.2,
       metadata: { quotation_id: id },
     })
     if (!text) return NextResponse.json({ error: error ?? 'The model returned nothing.' }, { status: 502 })
@@ -183,7 +183,7 @@ Return JSON: {"points": ["...", "..."]}`, 'internal')
     } catch { /* handled below */ }
     if (!points.length) return NextResponse.json({ error: 'The explanation could not be read. Try again.' }, { status: 502 })
 
-    const explanation: Explanation = { points: points.slice(0, 6), model: GEMINI_FLASH, at: new Date().toISOString(), settings }
+    const explanation: Explanation = { points: points.slice(0, 6), model: GEMINI_DEEP, at: new Date().toISOString(), settings }
     await save(id, { ...stored(q.priorities), score: settings, explanation })
     void logActivity({ action: 'gb.value_explained', resource_type: 'gb_quotation', resource_id: id,
                        new_value: { insurers: result.insurers.length, sort: settings.sort } })

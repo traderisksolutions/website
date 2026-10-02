@@ -3,7 +3,8 @@
  * which insurer label it prices a cover under. The model call itself is not tested here.
  */
 import { describe, it, expect } from 'vitest'
-import { normaliseRead, titleFor, defaultEffectiveDate, DEFAULT_TARGET, isForeignWorkerCategory } from '@/lib/gb/intake'
+import { normaliseRead, defaultEffectiveDate } from '@/lib/gb/intake'
+import { titleFor, isForeignWorkerCategory } from '@/lib/gb/draft'
 
 describe('normaliseRead', () => {
   it('reads dates of birth day first, and lists the ones it cannot read rather than guessing', () => {
@@ -25,10 +26,18 @@ describe('normaliseRead', () => {
     expect(r.members[0].category).toBe('Default')
   })
 
-  it('keeps only canonical covers, once each, and defaults to GHS when none is named', () => {
-    expect(normaliseRead({ products: [{ code: 'GTL', requirement: ' S$100k ' }, { code: 'GTL' }, { code: 'XYZ' }] }).products)
-      .toEqual([{ code: 'GTL', requirement: 'S$100k' }])
-    expect(normaliseRead({}).products).toEqual([{ code: 'GHS', requirement: null }])
+  it('keeps only canonical covers, once each, with their stated facts, and defaults to GHS', () => {
+    const r = normaliseRead({ current_insurer: 'AIA', products: [
+      { code: 'GTL', requirement: ' S$100k ', sum_assured: 100000 }, { code: 'GTL' }, { code: 'XYZ' },
+      { code: 'GHS', hospital: 'government', ward: 1, co_payment: false, current_plan: 'Plan 1' },
+      { code: 'GOPC', ward: 3 as never, tier: 'best' },
+    ] })
+    expect(r.covers).toEqual([
+      { code: 'GTL', hospital: null, ward: null, coPay: null, sumAssured: 100000, tier: null, sameAs: null, note: 'S$100k' },
+      { code: 'GHS', hospital: 'government', ward: 1, coPay: false, sumAssured: null, tier: null, sameAs: { insurer: 'AIA', plan: 'Plan 1' }, note: null },
+      { code: 'GOPC', hospital: null, ward: null, coPay: null, sumAssured: null, tier: null, sameAs: null, note: null },
+    ])
+    expect(normaliseRead({}).covers).toEqual([{ code: 'GHS' }])
   })
 
   it('reads a written start date and a renewal', () => {
@@ -63,9 +72,6 @@ describe('titleFor', () => {
 describe('defaults', () => {
   it('starts a draft on the first of a month', () => {
     expect(defaultEffectiveDate()).toMatch(/^\d{4}-\d{2}-01$/)
-  })
-  it('has a stated default for every cover', () => {
-    for (const c of ['GHS', 'EMM', 'GHS_FW', 'GTL', 'GCI', 'GPA', 'GADD', 'GOPC', 'GOSC', 'GD']) expect(DEFAULT_TARGET[c]).toBeTruthy()
   })
 })
 

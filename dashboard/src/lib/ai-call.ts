@@ -31,6 +31,10 @@ export type CallOptions = {
   /** Ask for a JSON body. Leave off when a PDF is attached: constraining the response format on a
    *  document read has in practice cost completeness on long brochures. */
   json?: boolean
+  /** Share of maxOutputTokens the model may spend reasoning; the rest is kept for the answer.
+   *  0.3 = 30% thinking, 70% output. Unset leaves the model's own default, which can spend
+   *  the whole allowance thinking and return nothing. */
+  thinkingShare?: number
   temperature?: number
   metadata?: Record<string, unknown>
 }
@@ -51,6 +55,9 @@ export async function callGemini(opts: CallOptions): Promise<CallResult> {
           temperature: opts.temperature ?? 0,
           maxOutputTokens: opts.maxOutputTokens ?? 32000,
           ...(opts.json ? { responseMimeType: 'application/json' } : {}),
+          ...(opts.thinkingShare != null
+            ? { thinkingConfig: { thinkingBudget: Math.max(0, Math.round((opts.maxOutputTokens ?? 32000) * opts.thinkingShare)) } }
+            : {}),
         },
       }),
     })
@@ -63,8 +70,11 @@ export async function callGemini(opts: CallOptions): Promise<CallResult> {
     const j = await res.json()
     void logAiUsage({ provider: 'gemini', model: opts.model, feature: opts.feature,
                       inputTokens: j.usageMetadata?.promptTokenCount ?? 0,
-                      outputTokens: j.usageMetadata?.candidatesTokenCount ?? 0,
-                      metadata: { ...opts.metadata, agent: opts.agent } })
+                      // Thinking is billed as output. Counting only the answer understated every
+                      // reasoning model's cost on the spend page.
+                      outputTokens: (j.usageMetadata?.candidatesTokenCount ?? 0) + (j.usageMetadata?.thoughtsTokenCount ?? 0),
+                      metadata: { ...opts.metadata, agent: opts.agent,
+                                  thinking_tokens: j.usageMetadata?.thoughtsTokenCount ?? 0 } })
     const text: string = (j?.candidates?.[0]?.content?.parts ?? [])
       .map((p: { text?: string }) => p.text ?? '').join('')
     if (!text.trim()) {

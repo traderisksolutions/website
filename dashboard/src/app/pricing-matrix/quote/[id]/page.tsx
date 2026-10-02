@@ -9,10 +9,12 @@ import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@
 import { BenefitComparison } from '@/components/group-benefits/BenefitComparison'
 import { ValueScore } from '@/components/group-benefits/ValueScore'
 import type { Comparison } from '@/lib/gb/compare'
+import { resolveProduct } from '@/lib/gb/resolve'
+import { PRODUCT_BY_CODE } from '@/lib/gb/canon'
 
 type InsurerResult = { rate_table_id: string; insurer_id: string | null; insurer_name: string; by_product: Record<string, number>; subtotal: number; gst: number; total: number; missing: number }
 type Line = { member_name: string; relationship: string; category: string; age: number | null; insurer_name: string; product_code: string; plan_code: string | null; premium: number | null; note: string | null }
-type Quotation = { id: string; company_name: string | null; effective_date: string | null; product_codes: string[]; member_count: number; results: InsurerResult[]; benefits_analysis: Comparison | null; priorities: string | null; created_at: string; source: string }
+type Quotation = { id: string; company_name: string | null; effective_date: string | null; product_codes: string[]; member_count: number; results: InsurerResult[]; benefits_analysis: Comparison | null; priorities: string | null; notes: string | null; created_at: string; source: string }
 
 /** Quotes compared before 2 Oct 2026 hold generated prose, not a comparison. Detect that by the
  *  absence of the comparison's own shape and offer a recompare, rather than rendering a narrative
@@ -89,9 +91,28 @@ export default function QuoteDetailPage() {
       <button onClick={() => router.push('/pricing-matrix')} className="inline-flex items-center gap-1.5 text-[14px] bg-transparent border-0 p-0 cursor-pointer hover:underline mb-3" style={{ color: '#5f6368' }}>← Pricing Matrix</button>
 
       <div className="mb-8">
-        <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">{q.company_name || 'Untitled quote'}</h1>
-        <p className="m-0 text-[13.5px] mt-2 tabular-nums" style={{ color: '#5f6368' }}>{q.member_count} members · {(q.product_codes ?? []).join('/')}{q.effective_date ? ` · eff ${q.effective_date}` : ''} · {new Date(q.created_at).toLocaleString('en-SG')}</p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">{q.company_name || 'Untitled quote'}</h1>
+          {byInsurer.length > 0 && (
+            <a href={`/pricing-matrix/quote/${id}/report`}
+               className="inline-flex items-center text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-[#202124] text-white hover:opacity-90">
+              Client report
+            </a>
+          )}
+        </div>
+        <p className="m-0 text-[13.5px] mt-2 tabular-nums" style={{ color: '#5f6368' }}>{q.member_count} members · {Array.from(new Set((q.product_codes ?? []).flatMap(t => resolveProduct(t).codes))).map(c => PRODUCT_BY_CODE[c]?.abbrev ?? c).join(', ') || (q.product_codes ?? []).join('/')}{q.effective_date ? ` · eff ${q.effective_date}` : ''} · {new Date(q.created_at).toLocaleString('en-SG')}</p>
       </div>
+
+      {/* What each insurer's plan was matched against — written by the draft engine. */}
+      {(q.notes ?? '').trim() && (
+        <section className="mb-6">
+          <h2 className="m-0 mb-2 text-[16px] font-medium tracking-[-0.01em]">Basis</h2>
+          <ul className="m-0 pl-4 list-disc flex flex-col gap-1 text-[13px] max-w-[95ch]" style={{ color: '#3c4043' }}>
+            {(q.notes ?? '').split('\n').filter(l => l.trim() && !/^\s*Drafted by/.test(l))
+              .map((l, i) => <li key={i}>{l.replace(/\s*\[(message|thread):[^\]]*\]/g, '')}</li>)}
+          </ul>
+        </section>
+      )}
 
       {/* Download / export — one file per insurer */}
       {byInsurer.length > 0 && (

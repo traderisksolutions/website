@@ -98,7 +98,7 @@ export async function suggestPlanMatch(
     }
     void logAiUsage({ provider: 'gemini', model: GEMINI_DEEP, feature: 'gb_plan_match',
                       inputTokens: j.usageMetadata?.promptTokenCount ?? 0,
-                      outputTokens: j.usageMetadata?.candidatesTokenCount ?? 0 })
+                      outputTokens: (j.usageMetadata?.candidatesTokenCount ?? 0) + (j.usageMetadata?.thoughtsTokenCount ?? 0) })
     const text: string = (j?.candidates?.[0]?.content?.parts ?? [])
       .map((p: { text?: string }) => p.text ?? '').join('')
     const parsed = extractJson(text)

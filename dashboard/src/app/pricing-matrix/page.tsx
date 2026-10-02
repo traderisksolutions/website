@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { UploadCloud, Loader2, Clock, Calculator } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { NewQuoteWizard } from '@/components/group-benefits/NewQuoteWizard'
+import { QuickQuote } from '@/components/group-benefits/QuickQuote'
 import { XlsxTab } from '@/components/group-benefits/XlsxTab'
 import { SourceFilesTab } from '@/components/group-benefits/SourceFilesTab'
 import { VERIFICATION, verificationOf } from '@/lib/gb/verification'
@@ -54,6 +55,7 @@ function PricingMatrix() {
   const initialTab = (['tables', 'sources', 'xlsx', 'quote', 'quotes', 'activity'] as const).find(t => t === params.get('tab')) ?? 'tables'
   const company = params.get('company') ?? undefined
   const [tab, setTab]   = useState<Tab>(initialTab)
+  const [byHand, setByHand] = useState(false)
   const [tables, setTables] = useState<RateTable[]>([])
   const [loading, setLoading] = useState(true)
   const [showUpload, setShowUpload] = useState(false)
@@ -124,7 +126,13 @@ function PricingMatrix() {
         )
       )}
       {tab === 'xlsx'     && <XlsxTab tables={tables} loading={loading} onChanged={load} />}
-      {tab === 'quote'    && <NewQuoteWizard initialCompany={company} onSaved={() => { /* results shown inline; Quotes tab reloads on open */ }} />}
+      {tab === 'quote' && !byHand && <QuickQuote initialCompany={company} onUseWizard={() => setByHand(true)} />}
+      {tab === 'quote' && byHand && (
+        <div className="flex flex-col gap-3">
+          <button onClick={() => setByHand(false)} className="self-start text-[12.5px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#5f6368' }}>← Quick quote</button>
+          <NewQuoteWizard initialCompany={company} onSaved={() => { /* results shown inline; Quotes tab reloads on open */ }} />
+        </div>
+      )}
       {tab === 'quotes'   && <QuotesTab />}
       {tab === 'sources' && <SourceFilesTab />}
       {tab === 'activity' && <ActivityTab />}

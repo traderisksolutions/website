@@ -43,6 +43,20 @@ export function BenefitComparison({ comparison, onRecompute, busy }: {
   const { options, premium, groups, coverage } = comparison
 
   const premiumBy = useMemo(() => Object.fromEntries(premium.map(p => [p.optionKey, p])), [premium])
+  // One column per insurer. Options are per product and plan ("Income · GHS Plan 2", "Income ·
+  // SP Plan 2"), and a column each left every column blank outside its own product.
+  const cols = useMemo(() => {
+    const by = new Map<string, typeof options>()
+    for (const o of options) {
+      const tid = o.key.split(':')[0]
+      by.set(tid, [...(by.get(tid) ?? []), o])
+    }
+    return Array.from(by.entries()).map(([tid, opts]) => ({
+      key: tid, insurerName: opts[0].insurerName, verification: opts[0].verification, first: opts[0].key,
+      keys: new Set(opts.map(o => o.key)),
+      plans: Array.from(new Set(opts.map(o => o.planCode))).join(' · '),
+    }))
+  }, [options])
   const visible = useMemo(
     () => groups.map(g => ({ ...g, rows: onlyDifferences ? g.rows.filter(r => r.differs) : g.rows }))
                .filter(g => g.rows.length > 0),
@@ -71,16 +85,16 @@ export function BenefitComparison({ comparison, onRecompute, busy }: {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse" style={{ minWidth: 220 + options.length * 150 }}>
+        <table className="w-full border-collapse" style={{ minWidth: 220 + cols.length * 150 }}>
           <thead>
             <tr className="bg-[#f8f9fa]">
               <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide sticky left-0 bg-[#f8f9fa] z-10"
                   style={{ color: '#5f6368', minWidth: 220 }}>Benefit</th>
-              {options.map(o => (
+              {cols.map(o => (
                 <th key={o.key} className="px-3 py-2 text-right text-[12px] font-semibold border-l border-[#e8eaed]"
                     style={{ color: '#202124', minWidth: 150 }}>
                   <div>{o.insurerName}</div>
-                  <div className="text-[11px] font-normal" style={{ color: '#5f6368' }}>{o.planLabel || o.planCode}</div>
+                  <div className="text-[11px] font-normal" style={{ color: '#5f6368' }}>{o.plans}</div>
                   {o.verification && o.verification !== 'calculator' && (
                     <div className="text-[11px] font-medium mt-0.5" style={{ color: VERIFICATION[o.verification].color }}>{VERIFICATION[o.verification].label}</div>
                   )}
@@ -94,8 +108,8 @@ export function BenefitComparison({ comparison, onRecompute, busy }: {
               <td className="px-3 py-2 text-[13px] font-semibold sticky left-0 bg-white z-10" style={{ color: '#202124' }}>
                 Annual premium
               </td>
-              {options.map(o => {
-                const p = premiumBy[o.key]
+              {cols.map(o => {
+                const p = premiumBy[o.first]
                 return (
                   <td key={o.key} className={cn(col, 'font-semibold')} style={{ color: '#202124' }}>
                     {p?.annualTotal != null ? money(p.annualTotal) : <span style={{ color: '#9aa0a6' }}>Not priced</span>}
@@ -104,13 +118,13 @@ export function BenefitComparison({ comparison, onRecompute, busy }: {
               })}
             </tr>
             {/* Only when there is something to compare against. One option is not cheapest. */}
-            {options.length > 1 && (
+            {cols.length > 1 && (
             <tr className="border-t border-[#f1f3f4]">
               <td className="px-3 py-2 text-[13px] sticky left-0 bg-white z-10" style={{ color: '#5f6368' }}>
                 Against the cheapest
               </td>
-              {options.map(o => {
-                const p = premiumBy[o.key]
+              {cols.map(o => {
+                const p = premiumBy[o.first]
                 if (p?.deltaAbsolute == null) return <td key={o.key} className={col} style={{ color: '#9aa0a6' }}>—</td>
                 return (
                   <td key={o.key} className={col} style={{ color: p.deltaAbsolute === 0 ? '#202124' : '#5f6368' }}>
@@ -127,7 +141,7 @@ export function BenefitComparison({ comparison, onRecompute, busy }: {
               })}
             </tr>
             )}
-            {options.length === 1 && premium[0]?.pricingGaps > 0 && (
+            {cols.length === 1 && premium[0]?.pricingGaps > 0 && (
               <tr className="border-t border-[#f1f3f4]">
                 <td className="px-3 py-2 text-[13px] sticky left-0 bg-white z-10" style={{ color: '#5f6368' }}>
                   Unpriced member lines
@@ -139,14 +153,14 @@ export function BenefitComparison({ comparison, onRecompute, busy }: {
             {visible.map(g => (
               <React.Fragment key={g.productCode}>
                 <tr>
-                  <td colSpan={1 + options.length}
+                  <td colSpan={1 + cols.length}
                       className="px-3 pt-4 pb-1.5 text-[11px] font-semibold uppercase tracking-wide border-t border-[#e8eaed]"
                       style={{ color: '#5f6368' }}>
                     {g.productName}
                   </td>
                 </tr>
                 {g.rows.map(r => {
-                  const byOption = Object.fromEntries(r.cells.map(c => [c.optionKey, c]))
+                  const cellFor = (k: Set<string>) => r.cells.find(c => k.has(c.optionKey))
                   return (
                     <tr key={r.benefit.code} className="border-t border-[#f1f3f4]">
                       <td className="px-3 py-2 text-[13px] sticky left-0 bg-white z-10" style={{ color: '#202124' }}>
@@ -155,8 +169,8 @@ export function BenefitComparison({ comparison, onRecompute, busy }: {
                           <span className="text-[11px]" style={{ color: '#9aa0a6' }}> ({r.benefit.unit})</span>
                         )}
                       </td>
-                      {options.map(o => {
-                        const c = byOption[o.key]
+                      {cols.map(o => {
+                        const c = cellFor(o.keys)
                         // An option that does not cover this product was never asked to carry
                         // the line, which is not the same as having nothing on record for it.
                         if (!c) return <td key={o.key} className={col} style={{ color: '#dadce0' }}>Not quoted</td>

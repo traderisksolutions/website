@@ -61,7 +61,9 @@ export const AGENTS: Record<Exclude<AgentId, 'unattributed'>, AgentSpec> = {
     // client request, which grows with the number of requests.
     work: 'Picks up a group benefits request from the inbox, reads the census, prices it at every insurer and opens a draft quotation.',
     envKey: 'GEMINI_API_KEY_GROUP_BENEFIT',
-    model: 'gemini-3.6-flash',
+    // 3.8 Flash: the deeper reasoner, at the same price as 3.6 Flash through 2026. Every call
+    // keeps 30% of its allowance for thinking and 70% for the answer (thinkingShare 0.3).
+    model: 'gemini-3.8-flash',
   },
 }
 
