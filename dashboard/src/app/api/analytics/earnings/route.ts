@@ -20,7 +20,7 @@ function sbH() {
 
 type Raw = { id: string; debit_note_no: string; issue_date: string | null; company_id: string | null; insurer: string | null
              policy_id: string | null; event_type: string | null; gross_amount: number | string | null
-             commission: number | string | null; currency: string | null; status: string | null; paid_amount: number | string | null }
+             commission: number | string | null; fee_rebate: number | string | null; currency: string | null; status: string | null; paid_amount: number | string | null }
 
 const num = (v: unknown): number | null => (v == null || v === '' || !isFinite(Number(v)) ? null : Number(v))
 
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
   if (deny) return deny
   try {
     const [raw, companies, policies] = await Promise.all([
-      fetchAllRows<Raw>(`${SB_URL}/rest/v1/debit_notes?select=id,debit_note_no,issue_date,company_id,insurer,policy_id,event_type,gross_amount,commission,currency,status,paid_amount`, sbH()),
+      fetchAllRows<Raw>(`${SB_URL}/rest/v1/debit_notes?select=id,debit_note_no,issue_date,company_id,insurer,policy_id,event_type,gross_amount,commission,fee_rebate,currency,status,paid_amount`, sbH()),
       fetchAllRows<{ id: string; company_name: string }>(`${SB_URL}/rest/v1/companies?select=id,company_name`, sbH()),
       fetchAllRows<{ id: string; class_of_insurance: string | null; policy_number: string | null; end_date: string | null }>(`${SB_URL}/rest/v1/policies?select=id,class_of_insurance,policy_number,end_date`, sbH()),
     ])
@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
       insurer: insurerName((r.insurer ?? 'Unknown insurer').trim()),
       className: (() => { const c = r.policy_id && classOf.get(r.policy_id)?.trim(); return c ? className(c) : null })(),
       policyId: r.policy_id, eventType: r.event_type,
-      premium: num(r.gross_amount) ?? 0, commission: num(r.commission), currency: (r.currency ?? 'SGD').toUpperCase(),
+      premium: num(r.gross_amount) ?? 0, commission: num(r.commission), feeRebate: num(r.fee_rebate) ?? 0, currency: (r.currency ?? 'SGD').toUpperCase(),
       policyNumber: (r.policy_id && policyOf.get(r.policy_id)?.policy_number) || null,
       policyEnd: (r.policy_id && policyOf.get(r.policy_id)?.end_date?.slice(0, 10)) || null,
     }))

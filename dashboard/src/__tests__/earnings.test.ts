@@ -69,3 +69,14 @@ describe('renewalsDue', () => {
     expect(r.map(x => [x.policyId, x.daysLeft, x.commission])).toEqual([['p3', -12, 100], ['p1', 44, 1800]])
   })
 })
+
+describe('fee rebates', () => {
+  it('nets a fee rebate off the commission TRS keeps, never off a missing commission', () => {
+    const xs = [
+      n('DN20', '2026-04-21', 'a', 300.39, 101.25, { feeRebate: 67.5 }),
+      n('DN21', '2026-04-22', 'b', 500, null, { feeRebate: 50 }),
+    ]
+    const t = totals(applyFilter(xs, { from: null, to: null, insurer: null, className: null }))
+    expect(t.commission).toBe(33.75)
+  })
+})

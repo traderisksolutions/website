@@ -28,6 +28,8 @@ export type Note = {
   eventType: string | null
   premium: number              // gross, incl. GST
   commission: number | null
+  /** Commission handed back to the client on this note. TRS keeps commission less this. */
+  feeRebate?: number
   currency: string
   /** The policy this note bills: its number and when its term ends. */
   policyNumber?: string | null
@@ -41,8 +43,15 @@ export const isCredit = (n: Pick<Note, 'no' | 'premium' | 'eventType'>) =>
   /^CN/i.test(n.no) || n.premium < 0 || /cancel|refund|credit/i.test(n.eventType ?? '')
 
 /** The note's value on a basis, signed: a credit note subtracts. */
+/** What TRS keeps on a note: the insurer's commission less any fee rebate given back to the
+ *  client. Zero where no commission is recorded — the rebate is counted only against a known
+ *  commission, so a missing figure is never turned into a loss. */
+export function incomeOf(n: Pick<Note, 'commission' | 'feeRebate'>): number {
+  return n.commission == null ? 0 : Math.abs(n.commission) - Math.abs(n.feeRebate ?? 0)
+}
+
 export function valueOf(n: Note, basis: Basis): number {
-  const v = basis === 'commission' ? (n.commission ?? 0) : n.premium
+  const v = basis === 'commission' ? incomeOf(n) : n.premium
   return isCredit(n) ? -Math.abs(v) : Math.abs(v)
 }
 
@@ -64,7 +73,7 @@ export type Totals = {
 export function totals(notes: Note[]): Totals {
   const debit = notes.filter(n => !isCredit(n)), credit = notes.filter(isCredit)
   const sum = (xs: Note[], f: (n: Note) => number) => round2(xs.reduce((a, n) => a + f(n), 0))
-  const commission = sum(debit, n => n.commission ?? 0), creditCommission = sum(credit, n => Math.abs(n.commission ?? 0))
+  const commission = sum(debit, n => incomeOf(n)), creditCommission = sum(credit, n => Math.abs(incomeOf(n)))
   const premium = sum(debit, n => n.premium), creditPremium = sum(credit, n => Math.abs(n.premium))
   return {
     commission, creditCommission, netCommission: round2(commission - creditCommission),

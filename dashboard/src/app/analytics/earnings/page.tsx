@@ -133,7 +133,7 @@ export default function EarningsPage() {
           <div className="min-w-0">
             <h1 className="text-[22px] font-medium tracking-[-0.01em] inline-flex items-center" style={{ color: INK }}>
               Earnings
-              <Tip text={`Income is the commission on each debit note. A credit note (numbered CN, a negative premium, or a cancellation or refund) is subtracted. Premium is what clients paid insurers through TRS. Lifetime value is a client's total across every note on record, whatever the dates chosen. VIP clients are the fewest clients who together make up ${pct(VIP_SHARE)} of lifetime ${basisWord}.`} />
+              <Tip text={`Income is the commission on each debit note, less any fee rebate given back to the client. A credit note (numbered CN, a negative premium, or a cancellation or refund) is subtracted. Premium is what clients paid insurers through TRS. Lifetime value is a client's total across every note on record, whatever the dates chosen. VIP clients are the fewest clients who together make up ${pct(VIP_SHARE)} of lifetime ${basisWord}.`} />
             </h1>
             <p className="mt-1.5 text-[14px] tabular-nums" style={{ color: MUTED }}>
               {!v ? 'Reading the register…' : (
