@@ -10,7 +10,7 @@
  * - Type-specific instructions matching GDrive quality
  */
 
-const SB_URL      = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL      = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const GEMINI_URL  = geminiUrl(GEMINI_FLASH)
 // The one-word classifier below runs on Lite. Flash-tier 3.6 spends its first ~9 output
 // tokens thinking, so a 12-token budget returned empty text with finishReason MAX_TOKENS

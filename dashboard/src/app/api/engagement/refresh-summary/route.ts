@@ -6,7 +6,7 @@ import { requireStaffOrCron }       from '@/lib/api-auth'
 import { geminiUrl, GEMINI_LITE } from '@/lib/gemini-models'
 import { withVoice, voiceInstruction } from '@/lib/voice'
 
-const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const GEMINI_URL = geminiUrl(GEMINI_LITE)
 
 function sbHeaders() {

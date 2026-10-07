@@ -368,6 +368,8 @@
           Submit claim
         </button>
 
+        <p class="claims-note" id="cl-error" role="alert" hidden style="color:#dc2626;">Your claim was not sent. Please try again, or email enquiry@trade-risksol.com.</p>
+
         <p class="claims-note">By submitting, our claims team will contact you at the details provided. Your information is handled in accordance with our privacy policy.</p>
       </div>
 
@@ -423,8 +425,22 @@
 
         if (!ok) return;
 
-        if (typeof window.trsCaptureLead === 'function') {
-          window.trsCaptureLead({
+        var submit = document.getElementById('cl-submit');
+        var failed = document.getElementById('cl-error');
+        failed.hidden = true;
+        submit.disabled = true;
+        submit.textContent = 'Submitting…';
+
+        function done(saved) {
+          submit.disabled = false;
+          submit.textContent = 'Submit claim';
+          if (!saved) { failed.hidden = false; return; }
+          document.getElementById('claims-form').style.display = 'none';
+          document.getElementById('claims-success').classList.add('visible');
+        }
+
+        if (typeof window.trsCaptureLead !== 'function') { done(false); return; }
+        window.trsCaptureLead({
             first_name:   fname.value.trim(),
             last_name:    lname.value.trim(),
             email:        email.value.trim(),
@@ -438,11 +454,7 @@
               desc.value.trim()
             ].filter(Boolean).join(' | '),
             message: null
-          }, 'claims_form');
-        }
-
-        document.getElementById('claims-form').style.display = 'none';
-        document.getElementById('claims-success').classList.add('visible');
+          }, 'claims_form', done);
       });
     })();
   </script>

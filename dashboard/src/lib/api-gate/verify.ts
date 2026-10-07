@@ -46,7 +46,7 @@ interface ApiClientRow {
   key_hash: string; scopes: string[] | null; status: string
 }
 
-const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 
 async function lookupClient(prefix: string): Promise<ApiClientRow | null | 'unavailable'> {
   const serviceKey = process.env.SUPABASE_SERVICE_KEY

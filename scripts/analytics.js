@@ -1,56 +1,20 @@
-/* TRS Analytics — Vercel Web Analytics + Supabase session/event tracking
+/* TRS Analytics — Vercel Web Analytics custom events + session id + lead capture hook.
  *
- * Setup: after creating your Supabase project, replace the two placeholders below.
- * Run supabase/schema.sql in your Supabase SQL editor first.
+ * Writes nothing to a database from the browser. Leads go through POST /api/lead, which
+ * validates server-side and writes to the TRS database on GCP (Cloud SQL via trs-api).
  */
 (function () {
-  var SUPABASE_URL      = 'https://ctjapwjpwkvxubdmzbqg.supabase.co';
-  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0amFwd2pwd2t2eHViZG16YnFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNTg2MDgsImV4cCI6MjA5MTgzNDYwOH0.4584ADBn954hiF3qFm5wmhw2RVYfMHKi4aX_ECdqAqA';
-
-  var CONFIGURED = true;
-
   /* ── Session ID (persists for the browser tab lifetime) ── */
-  var SESSION_KEY      = 'trs_sid';
-  var SESSION_INIT_KEY = 'trs_sid_init';
+  var SESSION_KEY = 'trs_sid';
 
   function getOrCreateSessionId() {
-    var id = sessionStorage.getItem(SESSION_KEY);
+    var id = null;
+    try { id = sessionStorage.getItem(SESSION_KEY); } catch (e) {}
     if (!id) {
       id = 'trs_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
-      sessionStorage.setItem(SESSION_KEY, id);
+      try { sessionStorage.setItem(SESSION_KEY, id); } catch (e) {}
     }
     return id;
-  }
-
-  /* ── Supabase REST helpers ── */
-  function sbInsert(table, payload) {
-    if (!CONFIGURED) return;
-    fetch(SUPABASE_URL + '/rest/v1/' + table, {
-      method:    'POST',
-      headers:   {
-        'Content-Type':  'application/json',
-        'apikey':        SUPABASE_ANON_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-        'Prefer':        'return=minimal'
-      },
-      body:      JSON.stringify(payload),
-      keepalive: true
-    }).catch(function () {});
-  }
-
-  function sbPatch(table, filter, payload) {
-    if (!CONFIGURED) return;
-    fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + filter, {
-      method:    'PATCH',
-      headers:   {
-        'Content-Type':  'application/json',
-        'apikey':        SUPABASE_ANON_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-        'Prefer':        'return=minimal'
-      },
-      body:      JSON.stringify(payload),
-      keepalive: true
-    }).catch(function () {});
   }
 
   /* ── Vercel custom event helper ── */
@@ -60,111 +24,37 @@
     }
   }
 
-  /* ── Init ── */
-  var sessionId   = getOrCreateSessionId();
-  var page        = window.location.pathname === '/' ? 'Landing page' : window.location.pathname;
-  var isNewSession = !sessionStorage.getItem(SESSION_INIT_KEY);
+  var sessionId = getOrCreateSessionId();
+  var page      = window.location.pathname === '/' ? 'Landing page' : window.location.pathname;
 
-  if (isNewSession) {
-    sessionStorage.setItem(SESSION_INIT_KEY, '1');
-    sbInsert('sessions', {
-      session_id:   sessionId,
-      first_page:   page,
-      referrer:     document.referrer || null,
-      user_agent:   navigator.userAgent,
-      language:     navigator.language,
-      screen_width:  screen.width,
-      screen_height: screen.height
-    });
-  } else {
-    sbPatch(
-      'sessions',
-      'session_id=eq.' + encodeURIComponent(sessionId),
-      { last_seen_at: new Date().toISOString() }
-    );
-  }
-
-  /* ── Page view ── */
-  sbInsert('page_views', {
-    session_id: sessionId,
-    page:       page,
-    referrer:   document.referrer || null
-  });
-
-  /* ── Global lead capture hook — called by nav.js popover ──
-   * Accepts either:
-   *   trsCaptureLead(stringMsg, source)          — WhatsApp (raw message)
-   *   trsCaptureLead(fieldsObject, source)        — Email form (structured)
-   */
-  window.trsCaptureLead = function (data, source) {
-    var record = {
-      source:     source || 'website_form',
-      page_url:   page,
-      session_id: sessionId,
-      status:     'new'
-    };
-    if (typeof data === 'string') {
-      record.message = data;
-    } else {
-      record.first_name   = data.first_name   || null;
-      record.last_name    = data.last_name    || null;
-      record.email        = data.email        || null;
-      record.phone        = data.phone        || null;
-      record.company      = data.company      || null;
-      record.department   = data.department   || null;
-      record.contact_type = data.contact_type || null;
-      record.topic        = data.topic        || null;
-      record.details      = data.details      || null;
-      record.message      = data.message      || null;
-    }
-    sbInsert('inbound_leads', record);
-  };
-
-  // Exposed so other scripts (e.g. nav.js's contact popover, which posts to /api/lead
-  // instead of inserting directly) can tag their own submissions with the same session id.
+  // Exposed so nav.js's contact popover can tag its /api/lead submissions with the same id.
   window.trsSessionId = function () { return sessionId; };
 
-  /* ── Button / link click tracking ──
-   * Listens for clicks on any element with data-track="label"
-   * Logs to Supabase events table + fires Vercel custom event
+  /* ── Lead capture hook — used by the claims form ──
+   * trsCaptureLead(fieldsObject, source, cb) posts to /api/lead.
+   * cb(ok) is called with true only when the lead was saved.
    */
+  window.trsCaptureLead = function (data, source, cb) {
+    var body = {};
+    for (var k in data) if (Object.prototype.hasOwnProperty.call(data, k)) body[k] = data[k];
+    body.source     = source || 'website_form';
+    body.page_url   = page;
+    body.session_id = sessionId;
+    fetch('/api/lead', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(body),
+    }).then(function (res) {
+      if (cb) cb(res.ok);
+    }).catch(function () {
+      if (cb) cb(false);
+    });
+  };
+
+  /* ── Button / link click tracking → Vercel custom events ── */
   document.addEventListener('click', function (e) {
     var el = e.target.closest('[data-track]');
     if (!el) return;
-
-    var label = el.dataset.track;
-    var text  = (el.innerText || el.getAttribute('aria-label') || '').trim().slice(0, 80);
-
-    sbInsert('events', {
-      session_id:    sessionId,
-      event_type:    'button_click',
-      page:          page,
-      element_label: label,
-      element_id:    el.id || null,
-      metadata:      { text: text, href: el.href || null }
-    });
-
-    vaEvent('button_click', { label: label, page: page });
-
-    /* ── Inbound lead capture — WhatsApp send buttons ── */
-    if (label === 'whatsapp_send' || label === 'contact_card_send') {
-      var msg = '';
-      if (label === 'whatsapp_send') {
-        var mainInput = document.getElementById('cta-input');
-        if (mainInput) msg = mainInput.value.trim();
-      } else {
-        var cardInput = document.getElementById('ctac-input');
-        if (cardInput) msg = cardInput.value.trim();
-      }
-      if (msg) {
-        sbInsert('inbound_leads', {
-          source:     'whatsapp_click',
-          message:    msg,
-          page_url:   page,
-          session_id: sessionId,
-          status:     'new'
-        });
-      }
-    }
+    vaEvent('button_click', { label: el.dataset.track, page: page });
   });
 })();

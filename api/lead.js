@@ -2,16 +2,14 @@
 //
 // Server-side validated write for the contact popover (scripts/nav.js), replacing the
 // previous client-side insert straight to Supabase with the anon key. Requires a
-// SUPABASE_SERVICE_KEY env var to be set on THIS Vercel project (trs-website) — it does not
-// carry over from the dashboard's separate Vercel project. SUPABASE_URL falls back to the
-// same project the anon-key client used, so only the one new env var is strictly required.
-//
-// Same Supabase project as the dashboard (ctjapwjpwkvxubdmzbqg) — writes land in
-// inbound_leads, which the dashboard's auto-draft/notification/pipeline already consume.
+// SUPABASE_SERVICE_KEY env var on THIS Vercel project (trs-website) — the trs-api service key,
+// same value as the dashboard's. Writes go to the TRS database on GCP: Cloud SQL behind the
+// PostgREST service trs-api on Cloud Run (project trs-ai-project). Never to Supabase, which is
+// being retired. Rows land in inbound_leads, which the dashboard's pipeline already reads.
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ctjapwjpwkvxubdmzbqg.supabase.co';
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://trs-api-335840130686.asia-southeast1.run.app';
 
-const VALID_SOURCES = ['manual', 'website_form', 'whatsapp_click', 'email'];
+const VALID_SOURCES = ['manual', 'website_form', 'whatsapp_click', 'email', 'claims_form'];
 
 function isValidEmail(v) {
   return typeof v === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);

@@ -25,7 +25,7 @@ import { logError } from '@/lib/error-log'
 import { GEMINI_FLASH as GEMINI_FLASH_MODEL } from './gemini-models'
 import { xlsxSheetsAsText } from '@/lib/xlsx-text'
 
-const SB_URL          = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL          = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const STORAGE_BUCKET  = 'email-attachments'
 // Model ids come from one place so an env override actually takes effect here too.
 const GEMINI_EXTRACT_MODEL = GEMINI_FLASH_MODEL

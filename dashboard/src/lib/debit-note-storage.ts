@@ -3,7 +3,7 @@
  * shape for a dedicated private bucket that holds both generated (Generate Debit Note) and
  * uploaded (bulk PDF import) debit-note PDFs.
  */
-export const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+export const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 export const BUCKET  = 'debit-notes'
 
 /** debit_note_no is "DN260805" — no space, since 30 Sep 2026. Kept as a guard anyway: a raw

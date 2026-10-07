@@ -39,7 +39,7 @@ export async function GET(req: NextRequest, { params }: Params) {
   const unauthorized = await requireStaffOrCron(req)
   if (unauthorized) return unauthorized
 
-  const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+  const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
   const k = process.env.SUPABASE_SERVICE_KEY
   if (!k) return NextResponse.json({ error: 'SUPABASE_SERVICE_KEY not set' }, { status: 500 })
   const h = { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json' }

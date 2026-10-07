@@ -5,7 +5,7 @@ import { fetchKnowledgeDocs }    from '@/lib/gdrive-knowledge'
 import { geminiUrl, GEMINI_LITE } from '@/lib/gemini-models'
 import { withVoice, voiceInstruction } from '@/lib/voice'
 
-const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 // Same model as the Refresh button. These two write the SAME thread_summaries row, so running
 // them on different tiers meant the quality of a thread's analysis depended on whether a human
 // pressed Refresh or a reply happened to trigger it. One model, one standard.

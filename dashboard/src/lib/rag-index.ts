@@ -7,7 +7,7 @@ import { createSign }       from 'crypto'
 import { logEmbeddingUsage } from '@/lib/gemini-usage'
 import { logError } from '@/lib/error-log'
 
-const SB_URL    = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL    = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const DRIVE_API = 'https://www.googleapis.com/drive/v3'
 const EMBED_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent'
 

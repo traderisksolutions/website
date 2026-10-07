@@ -20,7 +20,7 @@ import { computeQuote }              from '@/lib/gb-quote'
 import type { RateTableInfo, CategoryMap, Member } from '@/lib/gb-quote'
 import type { RuleStep }             from '@/lib/gb/rules-extract'
 
-const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const TEST_AGES = [30, 45, 60]
 const TEST_CATEGORY = 'Sample'
 

@@ -29,7 +29,7 @@ const SECRET_BYTES = 24
 const KEY_PREFIX_LENGTH = 12
 const VALID_SCOPES = ['web', 'machine']
 
-const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY
 
 if (!SERVICE_KEY) {

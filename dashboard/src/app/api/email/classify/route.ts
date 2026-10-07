@@ -15,7 +15,7 @@ import { geminiUrl, GEMINI_LITE } from '@/lib/gemini-models'
 import { waitUntil } from '@vercel/functions'
 import { internalHeaders } from '@/lib/api-gate/internal'
 
-const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const GEMINI_URL = geminiUrl(GEMINI_LITE)
 
 const CATEGORIES = ['group_benefits', 'rfq', 'claim', 'renewal', 'general', 'other'] as const

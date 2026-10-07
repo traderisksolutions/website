@@ -33,7 +33,7 @@
  * partially-failed run just picks up where it left off.
  */
 
-const SB_URL    = 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL    = 'https://trs-api-335840130686.asia-southeast1.run.app'
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me'
 
 const args    = process.argv.slice(2)

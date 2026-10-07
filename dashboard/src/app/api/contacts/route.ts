@@ -3,7 +3,7 @@ import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
 import { resolveCompany }            from '@/lib/debit-note-commit'
 
-const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 
 function sbHeaders(prefer = 'return=representation') {
   const k = process.env.SUPABASE_SERVICE_KEY

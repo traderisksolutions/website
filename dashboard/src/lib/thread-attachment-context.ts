@@ -3,7 +3,7 @@
 // what's in the PDFs / Excel / attached emails, not just the email body. Nexus analysis reads
 // attachments separately (run-nexus-analysis.ts); this covers the engagement side.
 
-const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 
 function sbH() {
   const k = process.env.SUPABASE_SERVICE_KEY

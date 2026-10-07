@@ -9,7 +9,7 @@ import { createClient }              from '@/lib/supabase/server'
 import { GEMINI_FLASH, geminiUrl }   from '@/lib/gemini-models'
 import { parseCalendarDate } from '@/lib/dates/dob'
 
-const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://ctjapwjpwkvxubdmzbqg.supabase.co'
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 function sbH() {
   const k = process.env.SUPABASE_SERVICE_KEY
   if (!k) throw new Error('SUPABASE_SERVICE_KEY not set')
