@@ -17,10 +17,10 @@ import { useNarrowViewport } from '@/hooks/useNarrowViewport'
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 
-async function fetchLeads(): Promise<Lead[]> {
+async function fetchLeads(include?: string | null): Promise<Lead[]> {
   const [leadsRes, convRes] = await Promise.all([
     fetch('/api/leads',                         { cache: 'no-store' }),
-    fetch('/api/engagement/conversations',       { cache: 'no-store' }),
+    fetch(`/api/engagement/conversations${include ? `?include=${encodeURIComponent(include)}` : ''}`, { cache: 'no-store' }),
   ])
 
   const raw: Lead[]  = leadsRes.ok ? await leadsRes.json() : []
@@ -89,6 +89,7 @@ function EngagementPageInner() {
   const [threadMap,       setThreadMap]       = useState<Record<string, ThreadState>>({})
   const [mobilePanelView, setMobilePanelView] = useState<'list' | 'thread'>('list')
   const [newCompose,      setNewCompose]      = useState<NewEmailDraft | null>(null)
+  const deepLinkDone = useRef(false)
 
   const setRefreshing = useCallback((v: boolean) => { setRefreshingState(v); setNavRefreshing(v) }, [setNavRefreshing])
 
@@ -155,15 +156,19 @@ function EngagementPageInner() {
   const load = useCallback(async (spinner = false) => {
     if (spinner) setRefreshing(true)
     try {
-      const data = await fetchLeads()
+      const data = await fetchLeads(initLeadId)
       setLeads(data)
       // Default selection = the most recently active conversation (matches the top of
       // the sorted list), NOT data[0] which is in raw API order. `created_at` carries
       // last_message_at for conversation rows, so this is the genuine latest.
       const latestId = [...data]
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.id ?? null
+      // ?lead= carries either a lead id or an email thread id (company drawer, Nexus, chat, CRM
+      // activity all pass thread ids). A thread attached to a lead is listed under the lead's id.
+      const linked = initLeadId ? data.find(l => l.id === initLeadId || l.thread_id === initLeadId) : undefined
+      if (linked && !deepLinkDone.current) { deepLinkDone.current = true; setMobilePanelView('thread') }
       setSelectedId(prev => {
-        if (!prev && initLeadId && data.some(l => l.id === initLeadId)) return initLeadId
+        if (!prev && linked) return linked.id
         return prev ?? latestId
       })
     } finally { setLoading(false); setRefreshing(false) }

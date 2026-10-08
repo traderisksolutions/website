@@ -3,6 +3,7 @@ import { requireStaffOrCron } from '@/lib/api-auth'
 
 const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const TRS_DOMAIN = 'trade-risksol.com'
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const isInternal  = (e: string) => e.toLowerCase().endsWith(`@${TRS_DOMAIN}`)
 const isAutomated = (e: string) => {
@@ -39,7 +40,20 @@ export async function GET(req: NextRequest) {
       { headers: sbHeaders(), cache: 'no-store' }
     )
     const threads: ThreadRow[] = threadRes.ok ? await threadRes.json() : []
-    if (!Array.isArray(threads) || threads.length === 0) return NextResponse.json([])
+    if (!Array.isArray(threads)) return NextResponse.json([])
+
+    // A deep link (/engagement?lead=<thread id>) can point at a thread older than the newest 200.
+    // ?include=<thread id> adds that one thread so the page can open it.
+    const include = req.nextUrl.searchParams.get('include')
+    if (include && UUID.test(include) && !threads.some(t => t.id === include)) {
+      const one = await fetch(
+        `${SB_URL}/rest/v1/email_threads?id=eq.${include}&select=id,subject,snippet,last_message_at,contact_id,campaign_context,category,company_id,companies(id,name:company_name,owner_email)&deleted_at=is.null&limit=1`,
+        { headers: sbHeaders(), cache: 'no-store' }
+      )
+      const rows: ThreadRow[] = one.ok ? await one.json() : []
+      if (Array.isArray(rows) && rows[0]) threads.push(rows[0])
+    }
+    if (threads.length === 0) return NextResponse.json([])
 
     // 2. Batch-fetch contacts for linked threads
     const contactIds = Array.from(new Set(threads.filter(t => t.contact_id).map(t => t.contact_id!)))
