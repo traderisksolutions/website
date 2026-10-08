@@ -13,7 +13,7 @@ const BG: Record<Article["tile"], string> = { sand: "#f6d9bd", sage: "#cfe3d5", 
 
 export const line = { stroke: K, strokeWidth: 3.5, strokeLinejoin: "round" as const, strokeLinecap: "round" as const };
 
-function Drawing({ art }: { art: Article["art"] }) {
+export function Drawing({ art }: { art: Article["art"] }) {
   switch (art) {
     case "hardhat":
       return (
