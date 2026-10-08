@@ -26,15 +26,12 @@ export function StartModal() {
   }, []);
   const close = () => setFlow(null);
 
+  const titles = { choose: "Start here", review: "Upload policy for review", finder: "Find my cover", callback: "Talk to us" } as const;
+
   return (
-    <Modal open={flow !== null} onClose={close} label="Start here">
+    <Modal open={flow !== null} onClose={close} title={flow ? titles[flow] : "Start here"} wide={flow === "choose"}
+      onBack={flow && flow !== "choose" ? () => setFlow("choose") : undefined}>
       {flow === "choose" && <Chooser onPick={setFlow} />}
-      {flow && flow !== "choose" && (
-        <button type="button" onClick={() => setFlow("choose")} className="glass mb-4 inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-ink-2">
-          <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-          All options
-        </button>
-      )}
       {flow === "review" && <ReviewFlow />}
       {flow === "finder" && <FinderFlow />}
       {flow === "callback" && <CallbackFlow />}
@@ -47,43 +44,44 @@ export function StartButton({ className, children = "Start here" }: { className?
   return <button type="button" onClick={openStart} className={className}>{children}</button>;
 }
 
-const choices: { flow: "review" | "finder" | "callback"; art: ActionArtKind; tone: string; title: string; text: string }[] = [
-  { flow: "review", art: "review", tone: "bg-tile-sand", title: "Policy review", text: "Upload your current policy. See the gaps, the overlaps and what is overpriced." },
-  { flow: "finder", art: "finder", tone: "bg-tile-sky", title: "Cover finder", text: "Five questions. See which policies a company like yours usually holds, and why." },
-  { flow: "callback", art: "adviser", tone: "bg-tile-sage", title: "Talk to an adviser", text: "WhatsApp or a callback. Open every day." },
-];
-
+/** Three columns, one per way to start. Each card is tinted like the guide covers. */
 function Chooser({ onPick }: { onPick: (f: Flow) => void }) {
+  const tel = `tel:+65${site.phone.replace(/\s/g, "")}`;
   return (
-    <div className="space-y-5">
-      <Eyebrow>Start here</Eyebrow>
-      <h2 className="text-center text-2xl font-bold tracking-tight">How would you like to start?</h2>
-      <ul className="space-y-3">
-        {choices.map(c => (
-          <li key={c.flow}>
-            <button type="button" onClick={() => onPick(c.flow)} className="choice group w-full !items-center !gap-4 !rounded-2xl !p-3 !pr-4">
-              <span className={`${c.tone} grid size-20 shrink-0 place-items-center rounded-xl p-1.5 sm:size-24`}><ActionArt kind={c.art} /></span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[1.08rem] font-bold">{c.title}</span>
-                <span className="mt-0.5 block text-sm leading-snug text-ink-2">{c.text}</span>
-              </span>
-              <svg viewBox="0 0 24 24" className="size-5 shrink-0 text-ink-3 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
-            </button>
-          </li>
-        ))}
-      </ul>
-      <p className="text-center text-sm text-ink-3">
-        Or <a href={whatsapp} target="_blank" rel="noopener" className="font-medium text-ink underline-offset-2 hover:underline">message us on WhatsApp</a> · <a href={`tel:+65${site.phone.replace(/\s/g, "")}`} className="font-medium text-ink underline-offset-2 hover:underline">{site.phone}</a>
-      </p>
+    <div>
+      <h2 className="text-center text-[1.75rem] font-bold leading-tight tracking-tight sm:text-[2rem]">How would you like to start?</h2>
+      <p className="mt-2 text-center text-ink-2">No fee. No obligation to buy.</p>
+      <div className="mt-7 grid gap-4 md:grid-cols-3">
+        <ChoiceCard tone="bg-tile-sand" art="review" title="Upload policy for review" text="Send your current policy. See the gaps, the overlaps and what is overpriced.">
+          <button type="button" onClick={() => onPick("review")} className="glass-primary w-full py-2.5 text-sm font-semibold">Upload policy</button>
+        </ChoiceCard>
+        <ChoiceCard tone="bg-tile-sky" art="finder" title="Find my cover" text="Five questions. See which policies a company like yours usually holds, and why.">
+          <button type="button" onClick={() => onPick("finder")} className="glass-primary w-full py-2.5 text-sm font-semibold">Start</button>
+        </ChoiceCard>
+        <ChoiceCard tone="bg-tile-sage" art="adviser" title="Talk to us" text={`WhatsApp, a callback, or call ${site.phone}. Open every day.`}>
+          <div className="grid grid-cols-2 gap-2">
+            <a href={whatsapp} target="_blank" rel="noopener" className="glass-primary py-2.5 text-center text-sm font-semibold">WhatsApp</a>
+            <button type="button" onClick={() => onPick("callback")} className="glass py-2.5 text-sm font-medium">Callback</button>
+          </div>
+          <a href={tel} className="mt-2 block text-center text-sm font-medium text-ink-2 hover:text-ink">Call {site.phone}</a>
+        </ChoiceCard>
+      </div>
+    </div>
+  );
+}
+
+function ChoiceCard({ tone, art, title, text, children }: { tone: string; art: ActionArtKind; title: string; text: string; children: ReactNode }) {
+  return (
+    <div className={`${tone} flex flex-col rounded-2xl p-5`}>
+      <div className="mx-auto h-28 w-full max-w-[200px] sm:h-32"><ActionArt kind={art} /></div>
+      <h3 className="mt-4 text-[1.15rem] font-bold leading-snug tracking-tight">{title}</h3>
+      <p className="mt-1.5 flex-1 text-[0.93rem] leading-relaxed text-ink-2">{text}</p>
+      <div className="mt-5">{children}</div>
     </div>
   );
 }
 
 /* ── Shared pieces ─────────────────────────────────────────────── */
-
-function Eyebrow({ children }: { children: ReactNode }) {
-  return <p className="pr-10 text-center text-[0.78rem] font-semibold uppercase tracking-[0.12em] text-ink-2">{children}</p>;
-}
 
 function ContactFields({ withCompany = true, withEmail = true }: { withCompany?: boolean; withEmail?: boolean }) {
   return (
@@ -150,7 +148,6 @@ function ReviewFlow() {
   const pick = (f: File | undefined) => f && setFile(f);
   return (
     <form onSubmit={onSubmit} className="space-y-5">
-      <Eyebrow>Policy review</Eyebrow>
       <h2 className="text-center text-2xl font-bold tracking-tight">Upload your current policy</h2>
       <button
         type="button"
@@ -192,7 +189,6 @@ function FinderFlow() {
 
   return (
     <div className="space-y-5">
-      <Eyebrow>Find my cover</Eyebrow>
       <div className="flex items-center gap-3">
         <span className="shrink-0 text-xs tabular-nums text-ink-2">{Math.min(step + 1, total)} of {total}</span>
         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-ink/10">
@@ -202,6 +198,7 @@ function FinderFlow() {
 
       {!done ? (
         <Step key={step} q={questions[step]} value={answers[questions[step].key]} onPick={v => setAnswers(a => ({ ...a, [questions[step].key]: v }))}
+          other={answers.sectorOther ?? ""} onOther={t => setAnswers(a => ({ ...a, sectorOther: t }))}
           onBack={step > 0 ? () => setStep(s => s - 1) : undefined} onNext={() => setStep(s => s + 1)} />
       ) : (
         <form onSubmit={onSubmit} className="space-y-5">
@@ -230,7 +227,13 @@ function FinderFlow() {
   );
 }
 
-function Step({ q, value, onPick, onBack, onNext }: { q: (typeof questions)[number]; value?: string; onPick: (v: string) => void; onBack?: () => void; onNext: () => void }) {
+function Step({ q, value, onPick, other, onOther, onBack, onNext }: {
+  q: (typeof questions)[number]; value?: string; onPick: (v: string) => void;
+  other: string; onOther: (t: string) => void; onBack?: () => void; onNext: () => void;
+}) {
+  // "Others" on the business question needs a description before Continue.
+  const needsOther = q.key === "sector" && value === "other";
+  const ready = !!value && (!needsOther || other.trim().length > 1);
   return (
     <div className="space-y-5">
       <h2 className="text-[1.4rem] font-bold leading-snug tracking-tight">{q.text}</h2>
@@ -244,11 +247,16 @@ function Step({ q, value, onPick, onBack, onNext }: { q: (typeof questions)[numb
           </button>
         ))}
       </div>
+      {needsOther && (
+        <label className="field">
+          Describe your business
+          <input autoFocus value={other} onChange={e => onOther(e.target.value)} maxLength={120} placeholder="e.g. Event management, marine surveying" onKeyDown={e => { if (e.key === "Enter" && ready) onNext(); }} />
+        </label>
+      )}
       <div className="flex gap-3">
         {onBack && <button type="button" onClick={onBack} className="glass px-5 py-3 font-medium">Back</button>}
-        <button type="button" disabled={!value} onClick={onNext} className="glass-primary flex-1 py-3 font-semibold disabled:opacity-50">Continue</button>
+        <button type="button" disabled={!ready} onClick={onNext} className="glass-primary flex-1 py-3 font-semibold disabled:opacity-50">Continue</button>
       </div>
-      <p className="text-center text-xs text-ink-3">No fee. No obligation to buy.</p>
     </div>
   );
 }
@@ -264,7 +272,6 @@ function CallbackFlow() {
   if (result) return <Outcome result={result} sentText="An adviser will call you back." />;
   return (
     <form onSubmit={onSubmit} className="space-y-5">
-      <Eyebrow>Talk to an adviser</Eyebrow>
       <h2 className="text-center text-2xl font-bold tracking-tight">Request a callback</h2>
       <ContactFields withEmail={false} />
       <div>

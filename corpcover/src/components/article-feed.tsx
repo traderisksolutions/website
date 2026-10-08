@@ -31,7 +31,7 @@ export function ArticleFeed({ action, onPhoto = false }: { action?: ReactNode; o
         </div>
         {action && <div className="hidden sm:block">{action}</div>}
       </div>
-      <div className={`${onPhoto ? "mt-4" : "mt-6"} grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4`}>
+      <div className={`${onPhoto ? "mt-4" : "mt-3.5"} grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4`}>
         {shown.map(a => <ArticleCard key={a.slug} article={a} />)}
       </div>
     </div>

@@ -7,6 +7,8 @@ export type Answers = {
   passHolders?: "yes" | "no";
   premises?: "rent" | "own" | "none";
   contracts?: "yes" | "no" | "unsure";
+  /** What the business does, in the visitor's words, when sector is "other". */
+  sectorOther?: string;
 };
 
 export type Question = { key: keyof Answers; text: string; options: { value: string; label: string }[] };
@@ -18,7 +20,7 @@ export const questions: Question[] = [
     { value: "fnb-retail", label: "F&B or retail" },
     { value: "logistics", label: "Logistics or trading" },
     { value: "manufacturing", label: "Manufacturing" },
-    { value: "other", label: "Something else" },
+    { value: "other", label: "Others" },
   ] },
   { key: "staff", text: "How many employees, not counting directors?", options: [
     { value: "none", label: "None" }, { value: "1-10", label: "1 to 10" },
@@ -61,6 +63,9 @@ export function recommend(a: Answers): Result[] {
 }
 
 export function summarise(a: Answers, results: Result[]): string {
-  const ans = questions.map(q => `${q.text} ${q.options.find(o => o.value === a[q.key])?.label ?? "-"}`);
+  const ans = questions.map(q => {
+    const label = q.options.find(o => o.value === a[q.key])?.label ?? "-";
+    return `${q.text} ${q.key === "sector" && a.sector === "other" && a.sectorOther ? `Others: ${a.sectorOther}` : label}`;
+  });
   return ["Cover finder answers:", ...ans, "", "Suggested cover:", ...results.map(r => `- ${r.policy} (${r.basis})`)].join("\n");
 }
