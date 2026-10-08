@@ -6,7 +6,8 @@ import { ArticleCard } from "@/components/article-card";
 import { CoverArt } from "@/components/cover-art";
 import { ShareButton } from "@/components/share-button";
 import { TocRail } from "@/components/toc-rail";
-import { site, reviewHref } from "@/site";
+import { site } from "@/site";
+import { StartButton } from "@/components/start-actions";
 
 export const dynamicParams = false;
 
@@ -57,10 +58,10 @@ export default async function ArticlePage(props: PageProps<"/articles/[slug]">) 
 
         <div className="mt-6 font-[family-name:var(--font-body)] text-[19px] italic leading-[1.6] text-[#363737]">
           <p>
-            {site.name} publishes plain guides to business insurance in Singapore. For quotes from 18 insurers through MAS-licensed advisers, at no fee:
+            {site.name} publishes plain guides to business insurance in Singapore. To review your own cover, or to compare quotes from 18 insurers at no fee:
           </p>
           <div className="my-5 flex flex-wrap justify-center gap-3 not-italic">
-            <a href={reviewHref} className="glass-primary px-6 py-2.5 font-sans text-sm font-semibold">Get quotes</a>
+            <StartButton className="glass-primary px-6 py-2.5 font-sans text-sm font-semibold" />
             <a href={`tel:+65${site.phone.replace(/\s/g, "")}`} className="glass px-6 py-2.5 font-sans text-sm font-medium">Call {site.phone}</a>
           </div>
         </div>
@@ -85,7 +86,7 @@ export default async function ArticlePage(props: PageProps<"/articles/[slug]">) 
         <div className="mt-8 flex flex-col items-center gap-4 rounded-2xl bg-accent-soft px-5 py-7 text-center">
           <p className="text-lg font-semibold">Quotes for this cover from 18 insurers</p>
           <div className="flex flex-wrap justify-center gap-3">
-            <a href={reviewHref} className="glass-primary px-6 py-2.5 text-sm font-semibold">Get quotes</a>
+            <StartButton className="glass-primary px-6 py-2.5 text-sm font-semibold" />
             <a href={`tel:+65${site.phone.replace(/\s/g, "")}`} className="glass px-6 py-2.5 text-sm font-medium">Call {site.phone}</a>
           </div>
         </div>

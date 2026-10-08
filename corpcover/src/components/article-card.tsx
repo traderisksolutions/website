@@ -18,8 +18,8 @@ export function ArticleCard({ article }: { article: Article }) {
           <CoverArt article={article} />
         </div>
       </div>
-      <h3 className="mt-4 text-[1.2rem] font-semibold leading-snug tracking-tight group-hover:underline">{article.title}</h3>
-      <p className="mt-1.5 line-clamp-2 text-[0.95rem] text-ink-2">{article.dek}</p>
+      <h3 className="mt-3.5 text-[1.08rem] font-semibold leading-snug tracking-tight group-hover:underline">{article.title}</h3>
+      <p className="mt-1 line-clamp-2 text-[0.92rem] text-ink-2">{article.dek}</p>
       <ArticleMeta article={article} />
     </Link>
   );

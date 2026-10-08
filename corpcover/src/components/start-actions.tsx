@@ -1,51 +1,80 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { ActionArt, type ActionArtKind } from "./action-art";
 import { Modal } from "./modal";
 import { questions, recommend, summarise, type Answers } from "@/lib/cover-finder";
 import { sendEnquiry, type SendResult } from "@/lib/enquiry";
 import { site } from "@/site";
 
-type Flow = "review" | "finder" | "callback" | null;
+type Flow = "choose" | "review" | "finder" | "callback" | null;
 
 const whatsapp = `https://wa.me/65${site.phone.replace(/\s/g, "")}?text=${encodeURIComponent("Hi, I would like quotes for business insurance.")}`;
 
-/** The three ways to start: policy review, cover finder, talk to an adviser. */
-export function StartActions() {
+const OPEN_EVENT = "corpcover:start";
+/** Opens the Start here modal from anywhere on the site. */
+export const openStart = () => window.dispatchEvent(new Event(OPEN_EVENT));
+
+/** One modal, mounted once in the layout: pick a way to start, then that flow. */
+export function StartModal() {
   const [flow, setFlow] = useState<Flow>(null);
+  useEffect(() => {
+    const open = () => setFlow("choose");
+    window.addEventListener(OPEN_EVENT, open);
+    return () => window.removeEventListener(OPEN_EVENT, open);
+  }, []);
   const close = () => setFlow(null);
 
   return (
-    <>
-      <div className="grid gap-5 md:grid-cols-3">
-        <Card tone="bg-tile-sand" art="review" title="Policy review" text="Upload your current policy. An adviser marks the gaps, the overlaps and what is overpriced.">
-          <button type="button" onClick={() => setFlow("review")} className="glass-primary px-5 py-2.5 text-sm font-semibold">Upload policy</button>
-        </Card>
-        <Card tone="bg-tile-sky" art="finder" title="Cover finder" text="Five questions. See which policies a company like yours usually holds, and why.">
-          <button type="button" onClick={() => setFlow("finder")} className="glass-primary px-5 py-2.5 text-sm font-semibold">Start</button>
-        </Card>
-        <Card tone="bg-tile-sage" art="adviser" title="Talk to an adviser" text="WhatsApp or a callback from a MAS-licensed adviser. Open every day.">
-          <a href={whatsapp} target="_blank" rel="noopener" className="glass-primary px-5 py-2.5 text-sm font-semibold">WhatsApp</a>
-          <button type="button" onClick={() => setFlow("callback")} className="glass px-5 py-2.5 text-sm font-medium">Request a callback</button>
-        </Card>
-      </div>
-
-      <Modal open={flow === "review"} onClose={close} label="Policy review">{flow === "review" && <ReviewFlow />}</Modal>
-      <Modal open={flow === "finder"} onClose={close} label="Cover finder">{flow === "finder" && <FinderFlow />}</Modal>
-      <Modal open={flow === "callback"} onClose={close} label="Request a callback">{flow === "callback" && <CallbackFlow />}</Modal>
-    </>
+    <Modal open={flow !== null} onClose={close} label="Start here">
+      {flow === "choose" && <Chooser onPick={setFlow} />}
+      {flow && flow !== "choose" && (
+        <button type="button" onClick={() => setFlow("choose")} className="glass mb-4 inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-ink-2">
+          <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+          All options
+        </button>
+      )}
+      {flow === "review" && <ReviewFlow />}
+      {flow === "finder" && <FinderFlow />}
+      {flow === "callback" && <CallbackFlow />}
+    </Modal>
   );
 }
 
-function Card({ tone, art, title, text, children }: { tone: string; art: ActionArtKind; title: string; text: string; children: ReactNode }) {
+/** Button that opens the Start here modal. */
+export function StartButton({ className, children = "Start here" }: { className?: string; children?: ReactNode }) {
+  return <button type="button" onClick={openStart} className={className}>{children}</button>;
+}
+
+const choices: { flow: "review" | "finder" | "callback"; art: ActionArtKind; tone: string; title: string; text: string }[] = [
+  { flow: "review", art: "review", tone: "bg-tile-sand", title: "Policy review", text: "Upload your current policy. See the gaps, the overlaps and what is overpriced." },
+  { flow: "finder", art: "finder", tone: "bg-tile-sky", title: "Cover finder", text: "Five questions. See which policies a company like yours usually holds, and why." },
+  { flow: "callback", art: "adviser", tone: "bg-tile-sage", title: "Talk to an adviser", text: "WhatsApp or a callback. Open every day." },
+];
+
+function Chooser({ onPick }: { onPick: (f: Flow) => void }) {
   return (
-    <div className={`${tone} flex flex-col rounded-3xl p-6 sm:p-7`}>
-      <div className="mx-auto h-36 w-full max-w-[240px]"><ActionArt kind={art} /></div>
-      <h3 className="mt-5 text-[1.35rem] font-bold tracking-tight">{title}</h3>
-      <p className="mt-2 flex-1 text-[0.98rem] leading-relaxed text-ink-2">{text}</p>
-      <div className="mt-6 flex flex-wrap gap-2.5">{children}</div>
+    <div className="space-y-5">
+      <Eyebrow>Start here</Eyebrow>
+      <h2 className="text-center text-2xl font-bold tracking-tight">How would you like to start?</h2>
+      <ul className="space-y-3">
+        {choices.map(c => (
+          <li key={c.flow}>
+            <button type="button" onClick={() => onPick(c.flow)} className="choice group w-full !items-center !gap-4 !rounded-2xl !p-3 !pr-4">
+              <span className={`${c.tone} grid size-20 shrink-0 place-items-center rounded-xl p-1.5 sm:size-24`}><ActionArt kind={c.art} /></span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[1.08rem] font-bold">{c.title}</span>
+                <span className="mt-0.5 block text-sm leading-snug text-ink-2">{c.text}</span>
+              </span>
+              <svg viewBox="0 0 24 24" className="size-5 shrink-0 text-ink-3 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <p className="text-center text-sm text-ink-3">
+        Or <a href={whatsapp} target="_blank" rel="noopener" className="font-medium text-ink underline-offset-2 hover:underline">message us on WhatsApp</a> · <a href={`tel:+65${site.phone.replace(/\s/g, "")}`} className="font-medium text-ink underline-offset-2 hover:underline">{site.phone}</a>
+      </p>
     </div>
   );
 }
@@ -248,7 +277,7 @@ function CallbackFlow() {
       </div>
       {error && <p role="alert" className="text-sm font-medium text-[#b42318]">{error}</p>}
       <button type="submit" disabled={busy} className="glass-primary w-full py-3 font-semibold disabled:opacity-50">{busy ? "Sending…" : "Request callback"}</button>
-      <p className="text-center text-sm text-ink-3">Or call <a href={`tel:+65${site.phone.replace(/\s/g, "")}`} className="font-medium text-ink underline-offset-2 hover:underline">{site.phone}</a></p>
+      <p className="text-center text-sm text-ink-3">Or call <a href={`tel:+65${site.phone.replace(/\s/g, "")}`} className="font-medium text-ink underline-offset-2 hover:underline">{site.phone}</a> · <a href={whatsapp} target="_blank" rel="noopener" className="font-medium text-ink underline-offset-2 hover:underline">WhatsApp</a></p>
     </form>
   );
 }

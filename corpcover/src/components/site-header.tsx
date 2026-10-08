@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { site, reviewHref } from "@/site";
+import { site } from "@/site";
+import { openStart } from "./start-actions";
 
 const links = [
+  { href: "/", label: "Home" },
   { href: "/articles", label: "Guides" },
   { href: "/#faq", label: "FAQ" },
 ];
@@ -39,12 +41,12 @@ export function SiteHeader() {
           <span /><span /><span />
         </button>
         <Link href="/" className="shrink-0 font-serif text-[1.45rem] italic leading-none tracking-tight hover:opacity-75">{site.name}</Link>
-        <nav className="nav-links" aria-label="Primary">
+        <nav className="nav-links nav-links--centre" aria-label="Primary">
           {links.map(l => <Link key={l.href} href={l.href}>{l.label}</Link>)}
         </nav>
         <div className="nav-actions">
           <a href={`tel:+65${site.phone.replace(/\s/g, "")}`} className="glass px-4 py-2 text-sm font-medium">Call {site.phone}</a>
-          <a href={reviewHref} className="glass-primary px-4 py-2 text-sm font-semibold">Get quotes</a>
+          <button type="button" onClick={openStart} className="glass-primary px-4 py-2 text-sm font-semibold">Start here</button>
         </div>
       </header>
       <div aria-hidden className="h-14 shrink-0" />
@@ -58,12 +60,12 @@ export function SiteHeader() {
           </button>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5 p-3" aria-label="Mobile primary">
-          {[{ href: "/", label: "Home" }, ...links].map(l => (
+          {links.map(l => (
             <Link key={l.href} href={l.href} onClick={close} tabIndex={open ? 0 : -1} className="rounded-full px-3 py-2.5 text-[15px] font-medium text-ink-2 hover:bg-ink/5 hover:text-ink">{l.label}</Link>
           ))}
         </nav>
         <div className="flex flex-col gap-2 border-t border-rule p-3 pb-6">
-          <a href={reviewHref} tabIndex={open ? 0 : -1} className="glass-primary py-2.5 text-center text-sm font-semibold">Get quotes</a>
+          <button type="button" onClick={() => { close(); openStart(); }} tabIndex={open ? 0 : -1} className="glass-primary py-2.5 text-center text-sm font-semibold">Start here</button>
           <a href={`tel:+65${site.phone.replace(/\s/g, "")}`} tabIndex={open ? 0 : -1} className="glass py-2.5 text-center text-sm font-medium">Call {site.phone}</a>
         </div>
       </aside>

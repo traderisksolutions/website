@@ -3,6 +3,7 @@ import { Hanken_Grotesk, Newsreader, Spectral } from "next/font/google";
 import { site } from "@/site";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { StartModal } from "@/components/start-actions";
 import "./globals.css";
 
 const newsreader = Newsreader({ subsets: ["latin"], style: ["normal", "italic"], variable: "--font-newsreader" });
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <SiteHeader />
         {children}
         <SiteFooter />
+        <StartModal />
       </body>
     </html>
   );

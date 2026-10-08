@@ -11,7 +11,7 @@ export const faqs: Faq[] = [
   {
     q: "Who are your business insurance partners?",
     a: [
-      "Corporate Cover is the business insurance arm of Dollar Bureau. Our partners are MAS-licensed, independent financial advisers who specialise in business insurance.",
+      "Corporate Cover is the business insurance arm of Dollar Bureau. Our partners are independent financial advisers who specialise in business insurance.",
       "They broker for a wide range of insurers in Singapore, so you see options from several insurers rather than one. Their Google rating is 5.0.",
     ],
   },
