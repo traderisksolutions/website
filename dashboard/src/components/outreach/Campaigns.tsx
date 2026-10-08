@@ -6,6 +6,7 @@ import { ArrowRight, ArrowUpRight, X, Pause, Play } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { WorkspaceCampaign, WorkspaceLead, WorkspaceReply } from '@/app/api/outbound/workspace/route'
 import { fmtRelative, fmtDate } from '@/lib/crm/format'
+import { CampaignQueue } from './CampaignQueue'
 
 /**
  * Campaigns as first-class objects: an editorial list with the funnel as aligned numbers,
@@ -99,7 +100,7 @@ export function CampaignRow({ c, selected, onOpen, compact }: { c: WorkspaceCamp
   )
 }
 
-type Tab = 'overview' | 'leads' | 'sequence' | 'activity'
+type Tab = 'overview' | 'review' | 'leads' | 'sequence' | 'activity'
 export function CampaignPanel({ c, leads, replies, onClose, onStatus, onMoveToSales }: {
   c: WorkspaceCampaign; leads: WorkspaceLead[]; replies: WorkspaceReply[]; onClose: () => void
   onStatus: (id: string, status: string) => Promise<void>; onMoveToSales: (l: WorkspaceLead) => void
@@ -140,7 +141,7 @@ export function CampaignPanel({ c, leads, replies, onClose, onStatus, onMoveToSa
         <p className="m-0 mt-1 text-[12.5px]" style={{ color: MUTED }}>Contact rate {pct(c.contacted, c.leads)} · Reply rate {pct(c.replies, c.contacted)} · Positive rate {pct(c.positive, c.contacted)} · Conversion {pct(c.converted, c.leads)}</p>
 
         <div className="mt-5 flex items-center gap-6" role="tablist" style={{ borderBottom: `1px solid ${RULE}` }}>
-          {(['overview', 'leads', 'sequence', 'activity'] as Tab[]).map(t => {
+          {(['overview', 'review', 'leads', 'sequence', 'activity'] as Tab[]).map(t => {
             const on = tab === t
             return <button key={t} type="button" role="tab" aria-selected={on} onClick={() => setTab(t)} className={cn('relative pb-3 bg-transparent border-0 cursor-pointer text-[14px] capitalize', on ? 'font-medium' : 'hover:text-[#202124]')} style={{ color: on ? INK : MUTED }}>{t}<span className={cn('absolute left-0 right-0 -bottom-px h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: INK }} aria-hidden /></button>
           })}
@@ -196,6 +197,7 @@ export function CampaignPanel({ c, leads, replies, onClose, onStatus, onMoveToSa
           </div>
         )}
         {tab === 'sequence' && (c.steps.length === 0 ? <p className="m-0 text-[14px]" style={{ color: MUTED }}>No sequence yet. <Link href={`/outbound/campaigns/${c.id}`} className="no-underline hover:underline underline-offset-4" style={{ color: INK }}>Write it in the workspace →</Link></p> : <Steps c={c} full />)}
+        {tab === 'review' && <CampaignQueue campaignId={c.id} />}
         {tab === 'activity' && <Replies rows={myReplies} />}
       </div>
     </aside>

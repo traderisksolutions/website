@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import type { WorkspaceCampaign, WorkspaceLead, WorkspaceReply } from '@/app/api/outbound/workspace/route'
 import type { CompanySummaryRow, Stage } from '@/lib/crm/types'
 import { CampaignRow, CampaignPanel, CAMPAIGN_QUICK, CAMPAIGN_SORTS, inCampaignQuick, sortCampaigns, campaignAttention, INK, MUTED, type CampaignQuick, type CampaignSort } from '@/components/outreach/Campaigns'
+import { ProspectsView } from '@/components/outreach/Prospects'
 import { LeadsGrid, LeadPanel, MoveToSalesDialog, NewCampaignDialog, SourcesView, PipelineView, LEAD_QUICK, LEAD_SORT_LABEL, inLeadQuick, sortLeads, sourceLabel, type LeadQuick, type LeadSort } from '@/components/outreach/Leads'
 
 /**
@@ -19,8 +20,8 @@ export default function SalesOutreachPage() {
   return <Suspense fallback={null}><SalesOutreach /></Suspense>
 }
 
-type View = 'campaigns' | 'leads' | 'pipeline' | 'sources'
-const VIEWS: { key: View; label: string }[] = [{ key: 'campaigns', label: 'Campaigns' }, { key: 'leads', label: 'Leads' }, { key: 'pipeline', label: 'Pipeline' }, { key: 'sources', label: 'Sources' }]
+type View = 'campaigns' | 'prospects' | 'leads' | 'pipeline' | 'sources'
+const VIEWS: { key: View; label: string }[] = [{ key: 'campaigns', label: 'Campaigns' }, { key: 'prospects', label: 'Prospects' }, { key: 'leads', label: 'Leads' }, { key: 'pipeline', label: 'Pipeline' }, { key: 'sources', label: 'Sources' }]
 type Workspace = { today: string; campaigns: WorkspaceCampaign[]; leads: WorkspaceLead[]; replies: WorkspaceReply[] }
 type Board = { leads: unknown[]; sales: CompanySummaryRow[]; convert: CompanySummaryRow[]; operations: CompanySummaryRow[]; counts: { start: number; sales: number; convert: number; operations: number } }
 
@@ -106,7 +107,7 @@ function SalesOutreach() {
           <div className="flex items-center gap-3 flex-wrap">
             <label className="relative">
               <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: '#80868b' }} />
-              <input value={q} onChange={e => setQ(e.target.value)} placeholder={view === 'campaigns' ? 'Search campaigns' : 'Search leads, companies, campaigns'} aria-label="Search" className="h-12 w-[240px] sm:w-[320px] rounded-[12px] border bg-white pl-11 pr-4 text-[15px] outline-none focus:border-[#202124] transition-colors" style={{ borderColor: '#dadce0' }} />
+              <input value={q} onChange={e => setQ(e.target.value)} placeholder={view === 'campaigns' ? 'Search campaigns' : view === 'prospects' ? 'Search people, companies, emails' : 'Search leads, companies, campaigns'} aria-label="Search" className="h-12 w-[240px] sm:w-[320px] rounded-[12px] border bg-white pl-11 pr-4 text-[15px] outline-none focus:border-[#202124] transition-colors" style={{ borderColor: '#dadce0' }} />
             </label>
             <Link href="/outbound/leads" className="h-12 px-5 rounded-[12px] bg-white text-[15px] border no-underline inline-flex items-center hover:bg-[#f8f9fa]" style={{ borderColor: '#dadce0', color: INK }}>Import leads</Link>
             <button type="button" onClick={() => setCreating(true)} className="h-12 px-6 rounded-[12px] text-white text-[15px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90" style={{ background: INK }}>New campaign</button>
@@ -115,7 +116,7 @@ function SalesOutreach() {
 
         {summary && (
           <p className="m-0 mt-6 text-[15px]" style={{ color: '#3c4043' }}>
-            <Fig n={summary.active} label={`active campaign${summary.active === 1 ? '' : 's'}`} onClick={() => { setView('campaigns'); setCQuick('active') }} /> · <Fig n={summary.prospects} label="prospects" onClick={() => { setView('leads'); setLQuick('all') }} /> · <Fig n={summary.follow} label="awaiting follow-up" onClick={() => { setView('leads'); setLQuick('follow_up') }} /> · <Fig n={summary.replies} label="replies this week" onClick={() => { setView('leads'); setLQuick('replied') }} />
+            <Fig n={summary.active} label={`active campaign${summary.active === 1 ? '' : 's'}`} onClick={() => { setView('campaigns'); setCQuick('active') }} /> · <Fig n={summary.prospects} label="open leads" onClick={() => { setView('leads'); setLQuick('all') }} /> · <Fig n={summary.follow} label="awaiting follow-up" onClick={() => { setView('leads'); setLQuick('follow_up') }} /> · <Fig n={summary.replies} label="replies this week" onClick={() => { setView('leads'); setLQuick('replied') }} />
           </p>
         )}
         {notice && <p className="m-0 mt-3 text-[13.5px] inline-flex items-center gap-3" style={{ color: MUTED }} role="status">{notice} <button type="button" onClick={() => setNotice(null)} className="underline underline-offset-4 bg-transparent border-0 p-0 cursor-pointer" style={{ color: INK }}>Dismiss</button></p>}
@@ -175,6 +176,8 @@ function SalesOutreach() {
               : <LeadsGrid leads={leads} sort={lSort.key} dir={lSort.dir} onSort={onSortLeads} selectedId={leadId} onSelect={l => { setCampaignId(null); setLeadId(l.id) }} highlight={needle} />}
           </div>
         )}
+
+        {view === 'prospects' && <ProspectsView needle={needle} onNotice={setNotice} />}
 
         {ws && view === 'pipeline' && (
           <div className="mt-6">
