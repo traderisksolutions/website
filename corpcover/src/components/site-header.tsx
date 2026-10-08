@@ -4,9 +4,7 @@ import { site, reviewHref } from "@/site";
 const nav = [
   { href: "/", label: "Home" },
   { href: "/articles", label: "Guides" },
-  { href: "/#policies", label: "Policies" },
-  { href: "/#review", label: "Review process" },
-  { href: "/#about", label: "About" },
+  { href: "/#faq", label: "FAQ" },
 ];
 
 export function SiteHeader() {
@@ -18,7 +16,7 @@ export function SiteHeader() {
           {site.name}
         </Link>
         <a href={reviewHref} className="col-start-3 justify-self-end rounded-md bg-accent px-3.5 py-2 text-sm font-medium text-accent-ink hover:opacity-90 sm:px-4">
-          Request a review
+          Get quotes
         </a>
       </div>
       <nav aria-label="Main" className="border-t border-rule">

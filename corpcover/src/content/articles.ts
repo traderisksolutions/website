@@ -17,6 +17,9 @@ export type Article = {
   minutes: number;
   /** Cover tile colour, one of the --tile-* tokens. */
   tile: "sand" | "sage" | "sky" | "blush";
+  /** Cover illustration and the title as set on the cover, one string per line. */
+  art: "hardhat" | "pass" | "umbrella" | "document" | "gavel" | "building";
+  cover: string[];
   body: Block[];
 };
 
@@ -31,6 +34,8 @@ export const articles: Article[] = [
     published: "2026-10-08",
     minutes: 4,
     tile: "sand",
+    art: "hardhat",
+    cover: ["Work injury", "compensation"],
     body: [
       { type: "p", text: "The Work Injury Compensation Act (WICA) requires employers to insure their liability for work injuries. It is the one business policy most Singapore employers must hold by law." },
       { type: "h2", text: "Who must be covered?" },
@@ -62,6 +67,8 @@ export const articles: Article[] = [
     published: "2026-10-08",
     minutes: 3,
     tile: "sky",
+    art: "pass",
+    cover: ["Work Permit", "& S Pass", "insurance"],
     body: [
       { type: "p", text: "Employers of Work Permit and S Pass holders carry insurance obligations on top of work injury compensation. These are conditions of the pass." },
       { type: "h2", text: "Medical insurance" },
@@ -84,6 +91,8 @@ export const articles: Article[] = [
     published: "2026-10-08",
     minutes: 4,
     tile: "sage",
+    art: "umbrella",
+    cover: ["Public", "liability"],
     body: [
       { type: "p", text: "Public liability insurance pays claims from third parties for bodily injury or property damage caused by your premises or your work. It is not required by law. It is usually required by contract." },
       { type: "h2", text: "Where the requirement comes from" },
@@ -110,6 +119,8 @@ export const articles: Article[] = [
     published: "2026-10-08",
     minutes: 5,
     tile: "blush",
+    art: "document",
+    cover: ["Professional", "indemnity"],
     body: [
       { type: "p", text: "Professional indemnity (PI) insurance pays claims that your advice, design or service caused a client a financial loss. It covers defence costs as well as damages." },
       { type: "h2", text: "Claims-made, not occurrence" },
@@ -134,6 +145,8 @@ export const articles: Article[] = [
     published: "2026-10-08",
     minutes: 4,
     tile: "sand",
+    art: "gavel",
+    cover: ["Directors", "& officers"],
     body: [
       { type: "p", text: "Directors can be sued personally for decisions made on the company's behalf: by shareholders, creditors, regulators or employees. Directors and officers (D&O) insurance pays their defence costs and settlements." },
       { type: "h2", text: "The three sections" },
@@ -160,6 +173,8 @@ export const articles: Article[] = [
     published: "2026-10-08",
     minutes: 5,
     tile: "sage",
+    art: "building",
+    cover: ["Property &", "business", "interruption"],
     body: [
       { type: "p", text: "A property policy pays to repair or replace the buildings, fit-out, machinery and stock you own or are responsible for. Business interruption pays the profit lost while the business cannot trade normally after that damage." },
       { type: "h2", text: "Fire policy or all risks" },

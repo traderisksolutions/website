@@ -8,7 +8,7 @@ export default function Guides() {
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 lg:py-14">
       <div className="flex items-baseline justify-between gap-4">
-        <h1 className="font-serif text-4xl tracking-tight">Guides</h1>
+        <h1 className="text-4xl font-bold tracking-tight">Guides</h1>
         <p className="eyebrow">{articles.length} guides</p>
       </div>
       <div className="mt-8">
