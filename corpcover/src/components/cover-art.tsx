@@ -3,15 +3,15 @@ import type { Article } from "@/content/articles";
 // Cover illustrations. One drawing per guide, all on the same 400 × 266 card:
 // title set on the left, a yellow topic tag under it, the drawing on the right.
 
-const K = "#1a1a1a";   // line
-const A = "#f2a93b";   // amber
-const T = "#0e5a52";   // teal
-const R = "#e8553d";   // coral
-const Y = "#f7c948";   // yellow
-const W = "#ffffff";
+export const K = "#1a1a1a";   // line
+export const A = "#f2a93b";   // amber
+export const T = "#0e5a52";   // teal
+export const R = "#e8553d";   // coral
+export const Y = "#f7c948";   // yellow
+export const W = "#ffffff";
 const BG: Record<Article["tile"], string> = { sand: "#f6d9bd", sage: "#cfe3d5", sky: "#d3e1f0", blush: "#f5d2c7" };
 
-const line = { stroke: K, strokeWidth: 3.5, strokeLinejoin: "round" as const, strokeLinecap: "round" as const };
+export const line = { stroke: K, strokeWidth: 3.5, strokeLinejoin: "round" as const, strokeLinecap: "round" as const };
 
 function Drawing({ art }: { art: Article["art"] }) {
   switch (art) {
