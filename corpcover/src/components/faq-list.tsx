@@ -8,7 +8,7 @@ export function FaqList() {
         <details key={f.q} className="group">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-6 py-5 text-left text-[1.08rem] font-semibold leading-snug marker:hidden [&::-webkit-details-marker]:hidden">
             {f.q}
-            <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-full border border-rule text-ink-2 transition-transform group-open:rotate-45">
+            <span aria-hidden className="glass grid size-8 shrink-0 place-items-center text-ink-2 group-open:rotate-45">
               <svg viewBox="0 0 12 12" className="size-3"><path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
             </span>
           </summary>

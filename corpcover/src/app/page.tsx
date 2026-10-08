@@ -26,17 +26,17 @@ export default function Home() {
           </p>
           <p className="eyebrow mt-4">{site.legalName}</p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
-            <a href={reviewHref} className="rounded-md bg-accent px-5 py-3 font-medium text-accent-ink hover:opacity-90">Get quotes</a>
-            <a href={`tel:+65${site.phone.replace(/\s/g, "")}`} className="font-medium underline decoration-rule decoration-2 underline-offset-4 hover:decoration-ink">Call {site.phone}</a>
+            <a href={reviewHref} className="glass-primary px-6 py-3 font-semibold">Get quotes</a>
+            <a href={`tel:+65${site.phone.replace(/\s/g, "")}`} className="glass px-6 py-3 font-medium">Call {site.phone}</a>
           </div>
         </div>
       </section>
 
       {/* Blog */}
       <section id="guides" className="scroll-mt-4 border-t border-rule py-8">
-        <div className="flex items-baseline justify-between gap-4">
+        <div className="flex items-center justify-between gap-4">
           <h2 className="text-lg font-semibold">Start here</h2>
-          <Link href="/articles" className="eyebrow !text-ink hover:underline">View all</Link>
+          <Link href="/articles" className="glass px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.08em]">View all</Link>
         </div>
         <ul className="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-0 lg:divide-x lg:divide-rule">
           {startHere.map(a => (
@@ -53,7 +53,7 @@ export default function Home() {
         <aside className="lg:pl-2">
           <p className="text-lg font-semibold">{site.name}</p>
           <p className="mt-2 text-[0.92rem] leading-relaxed text-ink-3">{site.description}</p>
-          <a href={reviewHref} className="mt-5 block rounded-md bg-accent px-4 py-2.5 text-center text-sm font-medium text-accent-ink hover:opacity-90">Get quotes</a>
+          <a href={reviewHref} className="glass-primary mt-5 block px-4 py-2.5 text-center text-sm font-semibold">Get quotes</a>
           <h3 className="mt-10 border-b border-rule pb-2 text-lg font-semibold">Topics</h3>
           <ul className="mt-3 space-y-2.5">
             {topics.map(t => (

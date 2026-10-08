@@ -13,7 +13,7 @@ export function ArticleFeed({ limit }: { limit?: number }) {
 
   return (
     <div>
-      <div role="radiogroup" aria-label="Topic" className="inline-flex max-w-full gap-1 overflow-x-auto rounded-lg border border-rule p-1">
+      <div role="radiogroup" aria-label="Topic" className="glass-group inline-flex max-w-full gap-1 overflow-x-auto p-1">
         {options.map(o => (
           <button
             key={o}
@@ -21,7 +21,7 @@ export function ArticleFeed({ limit }: { limit?: number }) {
             role="radio"
             aria-checked={topic === o}
             onClick={() => setTopic(o)}
-            className={`shrink-0 rounded-md px-3 py-1.5 text-sm ${topic === o ? "bg-accent-soft font-medium text-ink" : "text-ink-2 hover:text-ink"}`}
+            className={`shrink-0 rounded-full border border-transparent px-3.5 py-1.5 text-sm ${topic === o ? "glass-bubble font-semibold text-ink" : "text-ink-2 hover:text-ink"}`}
           >
             {o}
           </button>

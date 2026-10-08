@@ -48,3 +48,80 @@ h1, h2, h3 { text-wrap: balance; }
   text-transform: uppercase;
   color: var(--ink-3);
 }
+
+/* ── Frosted glass controls ───────────────────────────────────────
+   Every button and tab. Layered as components so utilities still win. */
+@layer components {
+  .glass, .glass-primary, .glass-group, .glass-bubble {
+    -webkit-backdrop-filter: blur(14px) saturate(180%);
+    backdrop-filter: blur(14px) saturate(180%);
+    border-radius: 9999px;
+    transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  }
+  /* Secondary: clear glass, dark text. */
+  .glass {
+    background: rgba(255, 255, 255, 0.62);
+    border: 1px solid rgba(16, 36, 26, 0.10);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 2px 10px rgba(6, 30, 20, 0.07);
+    color: var(--ink);
+  }
+  .glass:hover { background: rgba(255, 255, 255, 0.85); transform: translateY(-1px); }
+  /* Primary: teal-tinted glass, white text. */
+  .glass-primary {
+    background: linear-gradient(180deg, rgba(24, 120, 108, 0.84), rgba(14, 90, 82, 0.92));
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 6px 18px rgba(14, 90, 82, 0.26);
+    color: #fff;
+  }
+  .glass-primary:hover { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 8px 22px rgba(14, 90, 82, 0.34); transform: translateY(-1px); }
+  /* Segmented control track, and the frosted bubble on the selected option. */
+  .glass-group {
+    background: rgba(16, 36, 26, 0.045);
+    border: 1px solid rgba(16, 36, 26, 0.08);
+    box-shadow: inset 0 1px 2px rgba(6, 30, 20, 0.05);
+  }
+  .glass-bubble {
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    box-shadow: inset 0 1px 0 #fff, 0 4px 14px rgba(6, 30, 20, 0.12);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .glass:hover, .glass-primary:hover { transform: none; }
+  }
+}
+
+/* ── Navbar — same behaviour as traderisksolutions.com.sg and kyn.com.sg:
+   full-width bar at the top, frosted pill once the page scrolls. */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: 56px; display: flex; align-items: center; gap: 24px; padding: 0 28px;
+  background: rgba(255, 255, 255, 0.55);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+  border-radius: 0; box-shadow: none;
+  transition: top .4s cubic-bezier(.4,0,.2,1), left .4s cubic-bezier(.4,0,.2,1), right .4s cubic-bezier(.4,0,.2,1),
+    border-radius .4s cubic-bezier(.4,0,.2,1), background .35s cubic-bezier(.4,0,.2,1), box-shadow .4s cubic-bezier(.4,0,.2,1), padding .4s cubic-bezier(.4,0,.2,1);
+}
+.nav--scrolled {
+  top: 12px; left: 20%; right: 20%; border-radius: 99px; padding: 0 8px 0 20px;
+  background: rgba(255, 255, 255, 0.68);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  backdrop-filter: blur(28px) saturate(200%);
+  box-shadow: 0 4px 28px rgba(0,0,0,.09), 0 1px 3px rgba(0,0,0,.05), inset 0 1px 0 rgba(255,255,255,.85);
+}
+.nav-links { display: flex; align-items: center; gap: 4px; }
+.nav-links a { padding: 6px 10px; font-size: 14px; font-weight: 500; color: var(--ink-2); border-radius: 9999px; transition: background .12s, color .12s; }
+.nav-links a:hover { background: rgba(16,36,26,.05); color: var(--ink); }
+.nav-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.nav-hamburger { display: none; flex-direction: column; justify-content: center; align-items: center; gap: 5px; width: 36px; height: 36px; border-radius: 9999px; }
+.nav-hamburger span { display: block; width: 18px; height: 1.5px; background: var(--ink); border-radius: 2px; }
+.nav-drawer-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,.25); opacity: 0; pointer-events: none; transition: opacity .22s; }
+.nav-drawer { position: fixed; top: 0; bottom: 0; left: 0; z-index: 201; width: 260px; display: flex; flex-direction: column; background: var(--paper); border-right: 1px solid var(--rule); transform: translateX(-100%); transition: transform .25s cubic-bezier(.4,0,.2,1); }
+.drawer-open .nav-drawer { transform: none; }
+.drawer-open .nav-drawer-overlay { opacity: 1; pointer-events: auto; }
+@media (max-width: 1024px) {
+  .nav--scrolled { left: 12px; right: 12px; }
+  .nav-hamburger { display: flex; }
+  .nav-links, .nav-actions { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .nav, .nav-drawer { transition: none; } }

@@ -45,7 +45,7 @@ export default async function ArticlePage(props: PageProps<"/articles/[slug]">) 
         </div>
         <div className="mt-12 flex flex-col gap-4 rounded-lg bg-accent-soft p-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="font-medium">Compare quotes for this cover.</p>
-          <a href={reviewHref} className="shrink-0 rounded-md bg-accent px-4 py-2 text-center text-sm font-medium text-accent-ink hover:opacity-90">Get quotes</a>
+          <a href={reviewHref} className="glass-primary shrink-0 px-5 py-2.5 text-center text-sm font-semibold">Get quotes</a>
         </div>
         <p className="mt-6 text-sm text-ink-3">General information, not advice on a specific policy. Terms differ by insurer.</p>
       </article>

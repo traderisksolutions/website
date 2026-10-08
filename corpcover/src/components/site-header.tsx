@@ -1,33 +1,72 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { site, reviewHref } from "@/site";
 
-const nav = [
-  { href: "/", label: "Home" },
+const links = [
   { href: "/articles", label: "Guides" },
   { href: "/#faq", label: "FAQ" },
 ];
 
+/** Same navbar as traderisksolutions.com.sg and kyn.com.sg: full-width bar at the top,
+ *  frosted pill after 60px of scroll, hamburger and left drawer at 1024px and below. */
 export function SiteHeader() {
+  const [scrolled, setScrolled] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 60);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    document.body.classList.toggle("drawer-open", open);
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  const close = () => setOpen(false);
+
   return (
-    <header className="border-b border-rule bg-paper">
-      <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-4 sm:px-6 sm:py-5">
-        <span aria-hidden className="hidden sm:block" />
-        <Link href="/" className="col-start-1 justify-self-start font-serif text-[1.65rem] italic leading-none tracking-tight sm:col-start-2 sm:justify-self-center sm:text-[2.1rem]">
-          {site.name}
-        </Link>
-        <a href={reviewHref} className="col-start-3 justify-self-end rounded-md bg-accent px-3.5 py-2 text-sm font-medium text-accent-ink hover:opacity-90 sm:px-4">
-          Get quotes
-        </a>
-      </div>
-      <nav aria-label="Main" className="border-t border-rule">
-        <ul className="mx-auto flex max-w-6xl gap-6 overflow-x-auto px-4 text-[0.93rem] text-ink-2 sm:justify-center sm:gap-8 sm:px-6">
-          {nav.map(n => (
-            <li key={n.href} className="shrink-0">
-              <Link href={n.href} className="block border-b-2 border-transparent py-3 hover:text-ink">{n.label}</Link>
-            </li>
+    <>
+      <header className={`nav${scrolled ? " nav--scrolled" : ""}`}>
+        <button type="button" className="nav-hamburger glass" aria-label="Open menu" aria-expanded={open} onClick={() => setOpen(true)}>
+          <span /><span /><span />
+        </button>
+        <Link href="/" className="shrink-0 font-serif text-[1.45rem] italic leading-none tracking-tight hover:opacity-75">{site.name}</Link>
+        <nav className="nav-links" aria-label="Primary">
+          {links.map(l => <Link key={l.href} href={l.href}>{l.label}</Link>)}
+        </nav>
+        <div className="nav-actions">
+          <a href={`tel:+65${site.phone.replace(/\s/g, "")}`} className="glass px-4 py-2 text-sm font-medium">Call {site.phone}</a>
+          <a href={reviewHref} className="glass-primary px-4 py-2 text-sm font-semibold">Get quotes</a>
+        </div>
+      </header>
+      <div aria-hidden className="h-14 shrink-0" />
+
+      <div className="nav-drawer-overlay" aria-hidden onClick={close} />
+      <aside className="nav-drawer" aria-label="Mobile navigation" aria-hidden={!open}>
+        <div className="flex h-14 items-center justify-between border-b border-rule px-4">
+          <span className="font-serif text-xl italic">{site.name}</span>
+          <button type="button" className="glass grid size-8 place-items-center" aria-label="Close menu" onClick={close} tabIndex={open ? 0 : -1}>
+            <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <nav className="flex flex-1 flex-col gap-0.5 p-3" aria-label="Mobile primary">
+          {[{ href: "/", label: "Home" }, ...links].map(l => (
+            <Link key={l.href} href={l.href} onClick={close} tabIndex={open ? 0 : -1} className="rounded-full px-3 py-2.5 text-[15px] font-medium text-ink-2 hover:bg-ink/5 hover:text-ink">{l.label}</Link>
           ))}
-        </ul>
-      </nav>
-    </header>
+        </nav>
+        <div className="flex flex-col gap-2 border-t border-rule p-3 pb-6">
+          <a href={reviewHref} tabIndex={open ? 0 : -1} className="glass-primary py-2.5 text-center text-sm font-semibold">Get quotes</a>
+          <a href={`tel:+65${site.phone.replace(/\s/g, "")}`} tabIndex={open ? 0 : -1} className="glass py-2.5 text-center text-sm font-medium">Call {site.phone}</a>
+        </div>
+      </aside>
+    </>
   );
 }
