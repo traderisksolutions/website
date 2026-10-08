@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbHeaders } from '@/lib/sb'
 import { buildUnsubscribeUrl } from '@/lib/unsubscribe-token'
+import { substituteTokens } from '@/lib/outreach/prospects'
+import { bounceGuard, topUp } from '@/lib/outreach/queue'
 
 export const maxDuration = 60
 
@@ -31,11 +33,13 @@ interface LeadRow {
   first_name:      string | null
   full_name:       string | null
   current_company: string | null
+  opt_out:         boolean | null
 }
 
 // GET /api/cron/outbound-send
-// Called hourly. Sends up to 30 queued outbound emails via Gmail.
-// Handles multi-step sequences with per-lead scheduling.
+// Called daily (vercel.json, 23:15 UTC). In order: marks Gmail bounces, pauses campaigns whose
+// first emails bounce above 5%, tops up each campaign's review queue from the prospect database,
+// then sends 20% of due emails. Handles multi-step sequences with per-lead scheduling.
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('authorization')
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -44,15 +48,17 @@ export async function GET(req: NextRequest) {
 
   const now = new Date().toISOString()
 
-  let gmailToken: string
-  try {
-    gmailToken = await getGmailToken()
-  } catch (e) {
-    return NextResponse.json(
-      { error: `Gmail auth failed: ${e instanceof Error ? e.message : String(e)}` },
-      { status: 502 }
-    )
-  }
+  // Housekeeping before sending. Each step reports its own failure and never blocks the send;
+  // the bounce guard and top-up run even when Gmail auth fails.
+  const housekeeping: Record<string, unknown> = {}
+  const off = (e: unknown) => `off: ${e instanceof Error ? e.message : String(e)}`
+  let gmailToken: string | null = null
+  let gmailError: string | null = null
+  try { gmailToken = await getGmailToken() } catch (e) { gmailError = e instanceof Error ? e.message : String(e) }
+  if (gmailToken) { try { housekeeping.bouncesMarked = await markGmailBounces(gmailToken) } catch (e) { housekeeping.bouncesMarked = off(e) } }
+  try { housekeeping.bouncePaused = await bounceGuard() } catch (e) { housekeeping.bouncePaused = off(e) }
+  try { housekeeping.topUp = await topUp() } catch (e) { housekeeping.topUp = off(e) }
+  if (!gmailToken) return NextResponse.json({ error: `Gmail auth failed: ${gmailError}`, housekeeping }, { status: 502 })
 
   // Count total due sends, then take 20% (min 1) to stagger delivery naturally
   const countRes = await fetch(
@@ -73,13 +79,14 @@ export async function GET(req: NextRequest) {
   )
   const dueSends: DueSend[] = dueRes.ok ? await dueRes.json() : []
   if (!Array.isArray(dueSends) || dueSends.length === 0) {
-    return NextResponse.json({ sent: 0, total_due: totalDue, at: now })
+    return NextResponse.json({ sent: 0, total_due: totalDue, housekeeping, at: now })
   }
 
-  // Load campaigns — status + metadata (for signature)
+  // Load campaigns — status + metadata (for signature). select=* because metadata only exists
+  // once 20261008_prospects.sql is applied; naming it failed the whole read and sent nothing.
   const campaignIds = Array.from(new Set(dueSends.map(d => d.campaign_id)))
   const campRes = await fetch(
-    `${SB_URL}/rest/v1/ob_campaigns?id=in.(${campaignIds.join(',')})&select=id,status,metadata`,
+    `${SB_URL}/rest/v1/ob_campaigns?id=in.(${campaignIds.join(',')})&select=*`,
     { headers: sbHeaders(), cache: 'no-store' }
   )
   const campRows: { id: string; status: string; metadata: Record<string, unknown> | null }[] = campRes.ok ? await campRes.json() : []
@@ -99,12 +106,12 @@ export async function GET(req: NextRequest) {
     sigRows.forEach(s => sigMap.set(s.id, s))
   }
   const activeSends = dueSends.filter(d => activeCampaigns.has(d.campaign_id))
-  if (activeSends.length === 0) return NextResponse.json({ sent: 0, skipped_paused: dueSends.length, at: now })
+  if (activeSends.length === 0) return NextResponse.json({ sent: 0, skipped_paused: dueSends.length, housekeeping, at: now })
 
   // Load lead details in one request
   const leadIds = Array.from(new Set(activeSends.map(d => d.lead_id)))
   const leadsRes = await fetch(
-    `${SB_URL}/rest/v1/outbound_leads?id=in.(${leadIds.join(',')})&select=id,email,first_name,full_name,current_company`,
+    `${SB_URL}/rest/v1/outbound_leads?id=in.(${leadIds.join(',')})&select=id,email,first_name,full_name,current_company,opt_out`,
     { headers: sbHeaders() }
   )
   const leadRows: LeadRow[] = leadsRes.ok ? await leadsRes.json() : []
@@ -131,6 +138,11 @@ export async function GET(req: NextRequest) {
       const lead = leadsMap.get(d.lead_id)
       if (!lead?.email) {
         await patchLead(d.id, { send_status: 'bounced' })
+        continue
+      }
+      // Checked at send time: an unsubscribe after approval still stops the email.
+      if (lead.opt_out) {
+        await patchLead(d.id, { send_status: 'opted_out', send_scheduled_at: null })
         continue
       }
 
@@ -184,7 +196,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ sent, total_due: totalDue, batch_size: sendsThisRun, errors, at: now })
+  return NextResponse.json({ sent, total_due: totalDue, batch_size: sendsThisRun, errors, housekeeping, at: now })
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -197,10 +209,33 @@ async function patchLead(id: string, updates: Record<string, unknown>) {
   })
 }
 
-function substituteTokens(text: string, firstName: string, company: string): string {
-  return text
-    .replace(/\{\{first_name\}\}/gi, firstName || 'there')
-    .replace(/\{\{company\}\}/gi,    company   || 'your company')
+/**
+ * Bounce notices in the sending mailbox (last 3 days) → that lead's campaign rows marked bounced,
+ * so follow-ups stop and the bounce guard can count them. Needs a Gmail read scope on the
+ * refresh token; without one the list call fails and housekeeping reports "off".
+ */
+async function markGmailBounces(token: string): Promise<number> {
+  const q = encodeURIComponent('from:(mailer-daemon OR postmaster) newer_than:3d')
+  const list = await fetch(`${GMAIL_API}/messages?q=${q}&maxResults=50`, { headers: { Authorization: `Bearer ${token}` } })
+  if (!list.ok) throw new Error(`Gmail list ${list.status}`)
+  const ids: string[] = ((await list.json()).messages ?? []).map((m: { id: string }) => m.id)
+  const failed = new Set<string>()
+  for (const id of ids) {
+    const r = await fetch(`${GMAIL_API}/messages/${id}?format=metadata&metadataHeaders=X-Failed-Recipients`, { headers: { Authorization: `Bearer ${token}` } })
+    if (!r.ok) continue
+    const m = await r.json() as { snippet?: string; payload?: { headers?: { name: string; value: string }[] } }
+    const header = m.payload?.headers?.find(h => h.name.toLowerCase() === 'x-failed-recipients')?.value ?? ''
+    const found = `${header} ${m.snippet ?? ''}`.match(/[\w.+-]+@[\w-]+(\.[\w-]+)+/g) ?? []
+    found.map(e => e.toLowerCase()).filter(e => !/mailer-daemon|postmaster|googlemail\.com$|@trade-risksol\.com$/.test(e)).forEach(e => failed.add(e))
+  }
+  if (!failed.size) return 0
+  const leadsRes = await fetch(`${SB_URL}/rest/v1/outbound_leads?email=in.(${Array.from(failed).map(encodeURIComponent).join(',')})&select=id`, { headers: sbHeaders(), cache: 'no-store' })
+  const leadIds: string[] = leadsRes.ok ? (await leadsRes.json() as { id: string }[]).map(l => l.id) : []
+  if (!leadIds.length) return 0
+  const res = await fetch(`${SB_URL}/rest/v1/ob_campaign_leads?lead_id=in.(${leadIds.join(',')})&send_status=in.(queued,sent)`, {
+    method: 'PATCH', headers: sbHeaders('return=representation'), body: JSON.stringify({ send_status: 'bounced', send_scheduled_at: null }),
+  })
+  return res.ok ? (await res.json() as unknown[]).length : 0
 }
 
 function formatEmailBody(text: string): string {
