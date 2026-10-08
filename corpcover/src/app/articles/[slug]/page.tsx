@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { articles, bySlug, formatDate, type Block } from "@/content/articles";
 import { ArticleCard } from "@/components/article-card";
 import { CoverArt } from "@/components/cover-art";
+import { ShareButton } from "@/components/share-button";
+import { TocRail } from "@/components/toc-rail";
 import { site, reviewHref } from "@/site";
 
 export const dynamicParams = false;
@@ -14,40 +16,79 @@ export function generateStaticParams() {
 
 export async function generateMetadata(props: PageProps<"/articles/[slug]">): Promise<Metadata> {
   const a = bySlug((await props.params).slug);
-  return a ? { title: a.title, description: a.dek, openGraph: { title: a.title, description: a.dek, type: "article" } } : {};
+  return a ? { title: a.title, description: a.dek, openGraph: { title: a.title, description: a.dek, type: "article", publishedTime: a.published } } : {};
 }
+
+const anchor = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 function Body({ block }: { block: Block }) {
-  if (block.type === "h2") return <h2 className="mt-10 text-[1.4rem] font-bold leading-snug tracking-tight">{block.text}</h2>;
-  if (block.type === "ul") return (
-    <ul className="mt-4 list-disc space-y-2 pl-5 marker:text-ink-3">
-      {block.items.map(i => <li key={i}>{i}</li>)}
-    </ul>
-  );
-  return <p className="mt-4">{block.text}</p>;
+  if (block.type === "h2") return <h2 id={anchor(block.text)}>{block.text}</h2>;
+  if (block.type === "ul") return <ul>{block.items.map(i => <li key={i}>{i}</li>)}</ul>;
+  return <p>{block.text}</p>;
 }
 
+/** Lenny's article layout: title, subtitle, byline, actions, publisher's note, intro, cover, body. */
 export default async function ArticlePage(props: PageProps<"/articles/[slug]">) {
   const a = bySlug((await props.params).slug);
   if (!a) notFound();
+  const [intro, ...rest] = a.body;
+  const toc = a.body.filter(b => b.type === "h2").map(b => ({ id: anchor(b.text), text: b.text }));
   const more = articles.filter(x => x.slug !== a.slug).slice(0, 3);
 
   return (
     <main className="flex-1">
-      <article className="mx-auto max-w-[44rem] px-4 pb-16 pt-10 sm:px-6 lg:pt-14">
-        <p className="eyebrow"><Link href="/articles" className="hover:text-ink">Guides</Link> · {a.topic}</p>
-        <h1 className="mt-3 text-[2rem] font-bold leading-[1.15] tracking-tight sm:text-[2.5rem]">{a.title}</h1>
-        <p className="mt-4 text-[1.15rem] leading-relaxed text-ink-2">{a.dek}</p>
-        <p className="eyebrow mt-5 border-b border-rule pb-6">{site.name} · {formatDate(a.published)} · {a.minutes} min read</p>
-        <div className="mt-8 aspect-[3/2] overflow-hidden rounded-md"><CoverArt article={a} /></div>
-        <div className="text-[1.06rem] leading-[1.75]">
-          {a.body.map((b, i) => <Body key={i} block={b} />)}
+      <TocRail items={toc} />
+      <article className="mx-auto max-w-[760px] px-4 pb-14 pt-8 sm:px-4 lg:pt-10">
+        <h1 className="text-[1.75rem] font-bold leading-[1.13] tracking-tight text-[#363737] sm:text-[2rem]">{a.title}</h1>
+        <p className="mt-2 text-lg leading-snug text-[#868787]">{a.dek}</p>
+
+        <div className="mt-5 flex items-center gap-3">
+          <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-accent font-serif text-sm italic text-accent-ink">CC</span>
+          <div className="text-[0.72rem] uppercase leading-relaxed tracking-[0.04em]">
+            <p className="font-medium text-ink">{site.name}</p>
+            <p className="text-ink-3">{formatDate(a.published)} · {a.minutes} min read</p>
+          </div>
         </div>
-        <div className="mt-12 flex flex-col gap-4 rounded-lg bg-accent-soft p-5 sm:flex-row sm:items-center sm:justify-between">
-          <p className="font-medium">Compare quotes for this cover.</p>
-          <a href={reviewHref} className="glass-primary shrink-0 px-5 py-2.5 text-center text-sm font-semibold">Get quotes</a>
+
+        <div className="mt-5 flex items-center justify-between gap-3">
+          <Link href="/articles" className="glass px-4 py-1.5 text-sm font-medium text-ink-2">{a.topic}</Link>
+          <ShareButton title={a.title} />
         </div>
-        <p className="mt-6 text-sm text-ink-3">General information, not advice on a specific policy. Terms differ by insurer.</p>
+
+        <div className="mt-6 font-[family-name:var(--font-body)] text-[19px] italic leading-[1.6] text-[#363737]">
+          <p>
+            {site.name} publishes plain guides to business insurance in Singapore. For quotes from 18 insurers through MAS-licensed advisers, at no fee:
+          </p>
+          <div className="my-5 flex flex-wrap justify-center gap-3 not-italic">
+            <a href={reviewHref} className="glass-primary px-6 py-2.5 font-sans text-sm font-semibold">Get quotes</a>
+            <a href={`tel:+65${site.phone.replace(/\s/g, "")}`} className="glass px-6 py-2.5 font-sans text-sm font-medium">Call {site.phone}</a>
+          </div>
+        </div>
+
+        <hr className="my-8 border-rule" />
+        {intro && <div className="prose-post"><Body block={intro} /></div>}
+        <hr className="my-8 border-rule" />
+
+        <figure className="aspect-[3/2] overflow-hidden rounded-2xl">
+          <CoverArt article={a} />
+        </figure>
+
+        <div className="prose-post mt-8">
+          {rest.map((b, i) => <Body key={i} block={b} />)}
+        </div>
+
+        <hr className="my-10 border-rule" />
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-ink-3">General information, not advice on a specific policy. Terms differ by insurer.</p>
+          <ShareButton title={a.title} />
+        </div>
+        <div className="mt-8 flex flex-col items-center gap-4 rounded-2xl bg-accent-soft px-5 py-7 text-center">
+          <p className="text-lg font-semibold">Quotes for this cover from 18 insurers</p>
+          <div className="flex flex-wrap justify-center gap-3">
+            <a href={reviewHref} className="glass-primary px-6 py-2.5 text-sm font-semibold">Get quotes</a>
+            <a href={`tel:+65${site.phone.replace(/\s/g, "")}`} className="glass px-6 py-2.5 text-sm font-medium">Call {site.phone}</a>
+          </div>
+        </div>
       </article>
 
       <section className="border-t border-rule">

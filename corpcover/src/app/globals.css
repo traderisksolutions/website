@@ -30,6 +30,7 @@
   --color-tile-blush: var(--tile-blush);
   --font-sans: "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-newsreader), Georgia, "Times New Roman", serif;
+  --font-body: var(--font-spectral), Georgia, serif;
 }
 
 body {
@@ -125,3 +126,11 @@ h1, h2, h3 { text-wrap: balance; }
   .nav-links, .nav-actions { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .nav, .nav-drawer { transition: none; } }
+
+/* ── Article body: Lenny's measures — 728px column, Spectral 19/30, bold sans headings ── */
+.prose-post { font-family: var(--font-body); font-size: 19px; line-height: 1.6; color: #363737; }
+.prose-post > * + * { margin-top: 1.25em; }
+.prose-post h2 { font-family: var(--font-sans); font-weight: 700; font-size: clamp(1.6rem, 3.2vw, 1.93rem); line-height: 1.16; letter-spacing: -0.01em; color: var(--ink); margin-top: 1.6em; scroll-margin-top: 88px; }
+.prose-post ul { list-style: disc; padding-left: 1.4em; }
+.prose-post li + li { margin-top: 0.45em; }
+.prose-post li::marker { color: var(--ink-3); }
