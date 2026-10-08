@@ -49,7 +49,7 @@
   "redirects": [
     { "source": "/api/(white-label|gig-worker|rentals)",  "destination": "/api", "permanent": true },
     { "source": "/api/(white-label|gig-worker|rentals)/", "destination": "/api", "permanent": true },
-    { "source": "/(dashboard|roadplus|supabase|tools|ai-inbound)/(.*)", "destination": "/", "permanent": false },
+    { "source": "/(dashboard|roadplus|supabase|tools|ai-inbound|benefixe|newsouthsea|corpcover)/(.*)", "destination": "/", "permanent": false },
     { "source": "/(.*)\\.(py|sql|ts|tsx|md)", "destination": "/", "permanent": false }
   ]
 }
