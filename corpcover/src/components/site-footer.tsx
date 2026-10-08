@@ -5,7 +5,7 @@ export function SiteFooter() {
   return (
     <footer className="mt-auto border-t border-rule">
       <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 text-sm text-ink-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-        <div className="space-y-1"><p>© {new Date().getFullYear()} {site.legalName}</p><p>{site.address}</p></div>
+        <div className="space-y-1"><p>© {new Date().getFullYear()} {site.name}</p><p>{site.address}</p></div>
         <ul className="flex gap-5">
           <li><Link href="/articles" className="hover:text-ink">Guides</Link></li>
           <li><a href={reviewHref} className="hover:text-ink">{site.email}</a></li>

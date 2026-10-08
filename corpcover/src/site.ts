@@ -2,7 +2,6 @@
 // Contact details as published on corporatecover.sg.
 export const site = {
   name: "Corp Cover",
-  legalName: "Corporate Cover by Dollar Bureau",
   domain: "corpcover.com",
   url: process.env.NEXT_PUBLIC_SITE_URL || "https://corpcover.com",
   description: "Plain guides to business insurance for Singapore companies, and free quotes across 18 insurers.",

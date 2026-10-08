@@ -1,7 +1,7 @@
 import { site } from "@/site";
 
 // Receives the three enquiry forms (policy review, cover finder, callback) and emails them to
-// the Corporate Cover inbox through Resend. Dormant until RESEND_API_KEY and ENQUIRY_FROM are
+// the Corp Cover inbox through Resend. Dormant until RESEND_API_KEY and ENQUIRY_FROM are
 // set: it answers 503 and the page falls back to the visitor's own email app.
 
 export const runtime = "nodejs";
