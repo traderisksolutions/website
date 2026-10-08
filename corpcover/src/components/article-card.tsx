@@ -4,7 +4,7 @@ import { formatDate, type Article } from "@/content/articles";
 
 export function ArticleMeta({ article }: { article: Article }) {
   return (
-    <p className="eyebrow mt-2">
+    <p className="eyebrow mt-1.5">
       {formatDate(article.published)} · {article.minutes} min read
     </p>
   );
@@ -13,13 +13,13 @@ export function ArticleMeta({ article }: { article: Article }) {
 export function ArticleCard({ article }: { article: Article }) {
   return (
     <Link href={`/articles/${article.slug}`} className="group flex flex-col">
-      <div className="aspect-[3/2] overflow-hidden rounded-md">
+      <div className="aspect-[3/2] overflow-hidden rounded-md sm:aspect-[16/9]">
         <div className="h-full transition-transform duration-300 group-hover:scale-[1.02] motion-reduce:transition-none">
           <CoverArt article={article} />
         </div>
       </div>
-      <h3 className="mt-3.5 text-[1.08rem] font-semibold leading-snug tracking-tight group-hover:underline">{article.title}</h3>
-      <p className="mt-1 line-clamp-2 text-[0.92rem] text-ink-2">{article.dek}</p>
+      <h3 className="mt-2.5 text-[1.05rem] font-semibold leading-snug tracking-tight group-hover:underline">{article.title}</h3>
+      <p className="mt-1 line-clamp-1 text-[0.92rem] text-ink-2 [@media(max-height:820px)]:hidden">{article.dek}</p>
       <ArticleMeta article={article} />
     </Link>
   );
