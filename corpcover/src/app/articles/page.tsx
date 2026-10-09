@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { ArticleFeed } from "@/components/article-feed";
 import { articles } from "@/content/articles";
 
-export const metadata: Metadata = { title: "Guides", description: "Guides to business insurance in Singapore, by topic." };
+export const metadata: Metadata = { title: "Guides", description: "Guides to business insurance in Singapore, by topic.", alternates: { canonical: "/articles" }, twitter: { card: "summary_large_image" } };
 
 export default function Guides() {
   return (

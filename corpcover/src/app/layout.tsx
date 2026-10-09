@@ -4,6 +4,7 @@ import { site } from "@/site";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { StartModal } from "@/components/start-actions";
+import { JsonLd, siteGraph } from "@/lib/json-ld";
 import "./globals.css";
 
 const newsreader = Newsreader({ subsets: ["latin"], style: ["normal", "italic"], variable: "--font-newsreader" });
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en-SG" className={`${newsreader.variable} ${spectral.variable} ${hanken.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
+        <JsonLd data={siteGraph} />
         <SiteHeader />
         {children}
         <SiteFooter />

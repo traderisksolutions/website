@@ -8,6 +8,7 @@ import { ShareButton } from "@/components/share-button";
 import { TocRail } from "@/components/toc-rail";
 import { site } from "@/site";
 import { StartButton } from "@/components/start-actions";
+import { JsonLd, articleLd } from "@/lib/json-ld";
 
 export const dynamicParams = false;
 
@@ -17,7 +18,14 @@ export function generateStaticParams() {
 
 export async function generateMetadata(props: PageProps<"/articles/[slug]">): Promise<Metadata> {
   const a = bySlug((await props.params).slug);
-  return a ? { title: a.title, description: a.dek, openGraph: { title: a.title, description: a.dek, type: "article", publishedTime: a.published } } : {};
+  if (!a) return {};
+  return {
+    title: a.title,
+    description: a.dek,
+    alternates: { canonical: `/articles/${a.slug}` },
+    twitter: { card: "summary_large_image", title: a.title, description: a.dek },
+    openGraph: { title: a.title, description: a.dek, type: "article", siteName: site.name, url: `/articles/${a.slug}`, publishedTime: a.published, modifiedTime: a.updated ?? a.published },
+  };
 }
 
 const anchor = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -38,6 +46,7 @@ export default async function ArticlePage(props: PageProps<"/articles/[slug]">) 
 
   return (
     <main className="flex-1">
+      <JsonLd data={articleLd(a)} />
       <TocRail items={toc} />
       <article className="mx-auto max-w-[760px] px-4 pb-14 pt-8 sm:px-4 lg:pt-10">
         <h1 className="text-[1.75rem] font-bold leading-[1.13] tracking-tight text-[#363737] sm:text-[2rem]">{a.title}</h1>
@@ -47,7 +56,7 @@ export default async function ArticlePage(props: PageProps<"/articles/[slug]">) 
           <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-accent font-serif text-sm italic text-accent-ink">CC</span>
           <div className="text-[0.72rem] uppercase leading-relaxed tracking-[0.04em]">
             <p className="font-medium text-ink">{site.name}</p>
-            <p className="text-ink-3">{formatDate(a.published)} · {a.minutes} min read</p>
+            <p className="text-ink-3">{formatDate(a.published)}{a.updated && <> · Updated {formatDate(a.updated)}</>} · {a.minutes} min read</p>
           </div>
         </div>
 

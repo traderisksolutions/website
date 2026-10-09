@@ -14,6 +14,8 @@ export type Article = {
   dek: string;
   topic: Topic;
   published: string; // YYYY-MM-DD
+  /** Last substantive revision, YYYY-MM-DD. Omit until the guide is revised. */
+  updated?: string;
   minutes: number;
   /** Cover tile colour, one of the --tile-* tokens. */
   tile: "sand" | "sage" | "sky" | "blush";

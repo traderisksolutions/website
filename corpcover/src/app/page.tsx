@@ -1,11 +1,17 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArticleFeed } from "@/components/article-feed";
 import { FaqStory } from "@/components/faq-story";
 import { Hero } from "@/components/hero";
+import { faqs } from "@/content/faq";
+import { JsonLd, faqPage } from "@/lib/json-ld";
+
+export const metadata: Metadata = { alternates: { canonical: "/" }, twitter: { card: "summary_large_image" } };
 
 export default function Home() {
   return (
     <main className="flex-1">
+      <JsonLd data={faqPage(faqs)} />
       <Hero />
 
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
