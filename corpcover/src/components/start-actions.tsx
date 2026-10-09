@@ -52,13 +52,13 @@ function Chooser({ onPick }: { onPick: (f: Flow) => void }) {
       <h2 className="text-center text-[1.75rem] font-bold leading-tight tracking-tight sm:text-[2rem]">How would you like to start?</h2>
       <p className="mt-2 text-center text-ink-2">No fee. No obligation to buy.</p>
       <div className="mt-7 grid gap-4 md:grid-cols-3">
-        <ChoiceCard tone="bg-tile-sand" art="review" title="Upload policy for review" text="Send your current policy. See the gaps, the overlaps and what is overpriced.">
+        <ChoiceCard tone="bg-tile" art="review" title="Upload policy for review" text="Send your current policy. See the gaps, the overlaps and what is overpriced.">
           <button type="button" onClick={() => onPick("review")} className="glass-primary w-full py-2.5 text-sm font-semibold">Upload policy</button>
         </ChoiceCard>
-        <ChoiceCard tone="bg-tile-sky" art="finder" title="Find my cover" text="Five questions. See which policies a company like yours usually holds, and why.">
+        <ChoiceCard tone="bg-tile" art="finder" title="Find my cover" text="Five questions. See which policies a company like yours usually holds, and why.">
           <button type="button" onClick={() => onPick("finder")} className="glass-primary w-full py-2.5 text-sm font-semibold">Start</button>
         </ChoiceCard>
-        <ChoiceCard tone="bg-tile-sage" art="adviser" title="Talk to us" text={`WhatsApp, a callback, or call ${site.phone}. Open every day.`}>
+        <ChoiceCard tone="bg-tile" art="adviser" title="Talk to us" text={`WhatsApp, a callback, or call ${site.phone}. Open every day.`}>
           <div className="grid grid-cols-2 gap-2">
             <a href={whatsapp} target="_blank" rel="noopener" className="glass-primary py-2.5 text-center text-sm font-semibold">WhatsApp</a>
             <button type="button" onClick={() => onPick("callback")} className="glass py-2.5 text-sm font-medium">Callback</button>

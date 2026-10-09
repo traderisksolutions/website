@@ -23,7 +23,7 @@ export function ActionArt({ kind }: { kind: ActionArtKind }) {
       {kind === "finder" && (
         <g>
           <rect x="30" y="16" width="160" height="118" rx="12" fill={W} {...line} />
-          <rect x="46" y="32" width="128" height="8" rx="4" fill="#ece6dc" />
+          <rect x="46" y="32" width="128" height="8" rx="4" fill="#e6e4e2" />
           <rect x="46" y="32" width="58" height="8" rx="4" fill={T} />
           <rect x="46" y="54" width="58" height="26" rx="13" fill={Y} {...line} strokeWidth={2.5} />
           <path d="M60 67 l5 5 l10 -10" fill="none" stroke={K} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />

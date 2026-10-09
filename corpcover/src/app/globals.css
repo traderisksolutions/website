@@ -2,17 +2,15 @@
 
 :root {
   --paper: #ffffff;
-  --ink: #16181d;
-  --ink-2: #4a4f57;
-  --ink-3: #7b8089;
-  --rule: #e7e4df;
-  --accent: #0e5a52;
+  --ink: #1a1a1c;
+  --ink-2: #4b4b50;
+  --ink-3: #808086;
+  --rule: #e6e4e2;
+  /* Burgundy on warm grey. One tile colour everywhere, so nothing changes hue as the page scrolls. */
+  --accent: #7a1f2e;
   --accent-ink: #ffffff;
-  --accent-soft: #e3efec;
-  --tile-sand: #f4e4cf;
-  --tile-sage: #dce9e0;
-  --tile-sky: #dbe6f2;
-  --tile-blush: #f5ddd5;
+  --accent-soft: #f3e9ea;
+  --tile: #efedeb;
 }
 
 @theme inline {
@@ -24,14 +22,10 @@
   --color-accent: var(--accent);
   --color-accent-ink: var(--accent-ink);
   --color-accent-soft: var(--accent-soft);
-  --color-tile-sand: var(--tile-sand);
-  --color-tile-sage: var(--tile-sage);
-  --color-tile-sky: var(--tile-sky);
-  --color-tile-blush: var(--tile-blush);
+  --color-tile: var(--tile);
   --font-sans: "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-newsreader), Georgia, "Times New Roman", serif;
-  --font-body: var(--font-spectral), Georgia, serif;
-  --font-display: var(--font-hanken), "Helvetica Neue", Helvetica, Arial, sans-serif;
+  /* Hairline display weight. Helvetica Neue Thin on Apple devices; Inter Tight where Helvetica is absent. */
+  --font-display: "Helvetica Neue", Helvetica, var(--font-inter-tight), Arial, sans-serif;
 }
 
 body {
@@ -63,30 +57,30 @@ h1, h2, h3 { text-wrap: balance; }
   /* Secondary: frosted glass on white. Glass on a plain ground reads through edge light,
      a top sheen and depth, so all three are drawn. */
   .glass {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(240, 244, 242, 0.72) 100%);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(242, 242, 243, 0.72) 100%);
     border: 1px solid rgba(255, 255, 255, 0.95);
-    box-shadow: 0 0 0 1px rgba(16, 36, 26, 0.08), inset 0 1px 0 #fff, inset 0 -1px 2px rgba(16, 36, 26, 0.06), 0 8px 22px -8px rgba(6, 30, 20, 0.22);
+    box-shadow: 0 0 0 1px rgba(20, 20, 24, 0.08), inset 0 1px 0 #fff, inset 0 -1px 2px rgba(20, 20, 24, 0.06), 0 8px 22px -8px rgba(20, 20, 24, 0.22);
     color: var(--ink);
   }
-  .glass:hover { background: linear-gradient(180deg, #fff 0%, rgba(246, 249, 248, 0.9) 100%); transform: translateY(-1px); }
-  /* Primary: teal-tinted glass, white text. */
+  .glass:hover { background: linear-gradient(180deg, #fff 0%, rgba(248, 248, 248, 0.9) 100%); transform: translateY(-1px); }
+  /* Primary: burgundy-tinted glass, white text. */
   .glass-primary {
-    background: linear-gradient(180deg, rgba(24, 120, 108, 0.84), rgba(14, 90, 82, 0.92));
+    background: linear-gradient(180deg, rgba(142, 42, 58, 0.84), rgba(122, 31, 46, 0.92));
     border: 1px solid rgba(255, 255, 255, 0.28);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 6px 18px rgba(14, 90, 82, 0.26);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 6px 18px rgba(122, 31, 46, 0.26);
     color: #fff;
   }
-  .glass-primary:hover { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 8px 22px rgba(14, 90, 82, 0.34); transform: translateY(-1px); }
+  .glass-primary:hover { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 8px 22px rgba(122, 31, 46, 0.34); transform: translateY(-1px); }
   /* Segmented control track, and the frosted bubble on the selected option. */
   .glass-group {
-    background: linear-gradient(180deg, rgba(244, 247, 246, 0.9) 0%, rgba(232, 237, 235, 0.72) 100%);
+    background: linear-gradient(180deg, rgba(245, 245, 245, 0.9) 0%, rgba(236, 236, 237, 0.72) 100%);
     border: 1px solid rgba(255, 255, 255, 0.95);
-    box-shadow: 0 0 0 1px rgba(16, 36, 26, 0.07), inset 0 1px 0 #fff, inset 0 -1px 3px rgba(16, 36, 26, 0.06), 0 12px 30px -12px rgba(6, 30, 20, 0.22);
+    box-shadow: 0 0 0 1px rgba(20, 20, 24, 0.07), inset 0 1px 0 #fff, inset 0 -1px 3px rgba(20, 20, 24, 0.06), 0 12px 30px -12px rgba(20, 20, 24, 0.22);
   }
   .glass-bubble {
     background: linear-gradient(180deg, #fff 0%, rgba(255, 255, 255, 0.86) 100%);
     border: 1px solid #fff;
-    box-shadow: 0 0 0 1px rgba(16, 36, 26, 0.06), inset 0 1px 0 #fff, 0 4px 12px -2px rgba(6, 30, 20, 0.18);
+    box-shadow: 0 0 0 1px rgba(20, 20, 24, 0.06), inset 0 1px 0 #fff, 0 4px 12px -2px rgba(20, 20, 24, 0.18);
   }
   @media (prefers-reduced-motion: reduce) {
     .glass:hover, .glass-primary:hover { transform: none; }
@@ -114,7 +108,7 @@ h1, h2, h3 { text-wrap: balance; }
 }
 .nav-links { display: flex; align-items: center; gap: 4px; }
 .nav-links a { padding: 6px 10px; font-size: 14px; font-weight: 500; color: var(--ink-2); border-radius: 9999px; transition: background .12s, color .12s; }
-.nav-links a:hover { background: rgba(16,36,26,.05); color: var(--ink); }
+.nav-links a:hover { background: rgba(20,20,24,.05); color: var(--ink); }
 .nav-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 /* Links sit in the exact centre of the bar, whatever the widths of logo and actions. */
 .nav-links--centre { position: absolute; left: 50%; transform: translateX(-50%); }
@@ -131,8 +125,8 @@ h1, h2, h3 { text-wrap: balance; }
 }
 @media (prefers-reduced-motion: reduce) { .nav, .nav-drawer { transition: none; } }
 
-/* ── Article body: Lenny's measures — 728px column, Spectral 19/30, bold sans headings ── */
-.prose-post { font-family: var(--font-body); font-size: 19px; line-height: 1.6; color: #363737; }
+/* ── Article body: Lenny's measures — 728px column, 19/30, bold headings ── */
+.prose-post { font-size: 19px; line-height: 1.6; color: var(--ink-2); }
 .prose-post > * + * { margin-top: 1.25em; }
 .prose-post h2 { font-family: var(--font-sans); font-weight: 700; font-size: clamp(1.6rem, 3.2vw, 1.93rem); line-height: 1.16; letter-spacing: -0.01em; color: var(--ink); margin-top: 1.6em; scroll-margin-top: 88px; }
 .prose-post ul { list-style: disc; padding-left: 1.4em; }
@@ -144,10 +138,10 @@ h1, h2, h3 { text-wrap: balance; }
   border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.8);
   background: #fff;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 30px 90px rgba(6, 30, 20, 0.32), 0 4px 14px rgba(6, 30, 20, 0.08);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 30px 90px rgba(20, 20, 24, 0.32), 0 4px 14px rgba(20, 20, 24, 0.08);
   color: var(--ink);
 }
-.modal::backdrop { background: rgba(10, 25, 22, 0.45); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.modal::backdrop { background: rgba(20, 20, 24, 0.45); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
 .modal[open] { animation: modal-in 0.22s cubic-bezier(0.22, 1, 0.36, 1); }
 @keyframes modal-in { from { opacity: 0; transform: translateY(10px) scale(0.98); } }
 @media (prefers-reduced-motion: reduce) { .modal[open] { animation: none; } }
@@ -156,21 +150,21 @@ h1, h2, h3 { text-wrap: balance; }
 .field { display: flex; flex-direction: column; gap: 6px; font-size: 0.8rem; font-weight: 600; color: var(--ink-2); }
 .field input, .field textarea {
   font: inherit; font-size: 0.97rem; font-weight: 400; color: var(--ink);
-  background: rgba(16, 36, 26, 0.045); border: 1px solid rgba(16, 36, 26, 0.10);
+  background: rgba(20, 20, 24, 0.045); border: 1px solid rgba(20, 20, 24, 0.10);
   border-radius: 12px; padding: 11px 14px; outline: none; transition: border-color .15s, background .15s;
 }
 .field input:focus, .field textarea:focus { border-color: var(--accent); background: #fff; }
 
-/* Choice pills: frosted, selected = teal-tinted bubble */
+/* Choice pills: frosted, selected = burgundy-tinted bubble */
 .choice {
   display: flex; align-items: center; gap: 10px; text-align: left;
   padding: 13px 16px; border-radius: 16px; font-size: 0.97rem;
-  background: #fff; border: 1px solid rgba(16, 36, 26, 0.12);
-  box-shadow: 0 1px 2px rgba(6, 30, 20, 0.04); transition: border-color .15s, background .15s, box-shadow .15s;
+  background: #fff; border: 1px solid rgba(20, 20, 24, 0.12);
+  box-shadow: 0 1px 2px rgba(20, 20, 24, 0.04); transition: border-color .15s, background .15s, box-shadow .15s;
 }
-.choice:hover { border-color: rgba(16, 36, 26, 0.3); }
+.choice:hover { border-color: rgba(20, 20, 24, 0.3); }
 .choice[aria-checked="true"] {
-  background: rgba(14, 90, 82, 0.08); border-color: var(--accent);
+  background: rgba(122, 31, 46, 0.08); border-color: var(--accent);
   box-shadow: inset 0 1px 0 #fff, 0 0 0 1px var(--accent);
 }
 

@@ -17,8 +17,6 @@ export type Article = {
   /** Last substantive revision, YYYY-MM-DD. Omit until the guide is revised. */
   updated?: string;
   minutes: number;
-  /** Cover tile colour, one of the --tile-* tokens. */
-  tile: "sand" | "sage" | "sky" | "blush";
   /** Cover illustration and the title as set on the cover, one string per line. */
   art: "hardhat" | "pass" | "umbrella" | "document" | "gavel" | "building";
   cover: string[];
@@ -35,7 +33,6 @@ export const articles: Article[] = [
     topic: "Required by law",
     published: "2026-10-08",
     minutes: 4,
-    tile: "sand",
     art: "hardhat",
     cover: ["Work injury", "compensation"],
     body: [
@@ -68,7 +65,6 @@ export const articles: Article[] = [
     topic: "Required by law",
     published: "2026-10-08",
     minutes: 3,
-    tile: "sky",
     art: "pass",
     cover: ["Work Permit", "& S Pass", "insurance"],
     body: [
@@ -92,7 +88,6 @@ export const articles: Article[] = [
     topic: "Liability",
     published: "2026-10-08",
     minutes: 4,
-    tile: "sage",
     art: "umbrella",
     cover: ["Public", "liability"],
     body: [
@@ -120,7 +115,6 @@ export const articles: Article[] = [
     topic: "Liability",
     published: "2026-10-08",
     minutes: 5,
-    tile: "blush",
     art: "document",
     cover: ["Professional", "indemnity"],
     body: [
@@ -146,7 +140,6 @@ export const articles: Article[] = [
     topic: "Directors",
     published: "2026-10-08",
     minutes: 4,
-    tile: "sand",
     art: "gavel",
     cover: ["Directors", "& officers"],
     body: [
@@ -174,7 +167,6 @@ export const articles: Article[] = [
     topic: "Property",
     published: "2026-10-08",
     minutes: 5,
-    tile: "sage",
     art: "building",
     cover: ["Property &", "business", "interruption"],
     body: [

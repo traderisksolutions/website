@@ -49,11 +49,11 @@ export default async function ArticlePage(props: PageProps<"/articles/[slug]">) 
       <JsonLd data={articleLd(a)} />
       <TocRail items={toc} />
       <article className="mx-auto max-w-[760px] px-4 pb-14 pt-8 sm:px-4 lg:pt-10">
-        <h1 className="text-[1.75rem] font-bold leading-[1.13] tracking-tight text-[#363737] sm:text-[2rem]">{a.title}</h1>
-        <p className="mt-2 text-lg leading-snug text-[#868787]">{a.dek}</p>
+        <h1 className="text-[1.75rem] font-bold leading-[1.13] tracking-tight text-ink sm:text-[2rem]">{a.title}</h1>
+        <p className="mt-2 text-lg leading-snug text-ink-3">{a.dek}</p>
 
         <div className="mt-5 flex items-center gap-3">
-          <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-accent font-serif text-sm italic text-accent-ink">CC</span>
+          <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-accent text-xs font-semibold tracking-tight text-accent-ink">CC</span>
           <div className="text-[0.72rem] uppercase leading-relaxed tracking-[0.04em]">
             <p className="font-medium text-ink">{site.name}</p>
             <p className="text-ink-3">{formatDate(a.published)}{a.updated && <> · Updated {formatDate(a.updated)}</>} · {a.minutes} min read</p>
@@ -65,12 +65,12 @@ export default async function ArticlePage(props: PageProps<"/articles/[slug]">) 
           <ShareButton title={a.title} />
         </div>
 
-        <div className="mt-6 font-[family-name:var(--font-body)] text-[19px] italic leading-[1.6] text-[#363737]">
+        <div className="mt-6 text-[19px] leading-[1.6] text-ink-2">
           <p>
             {site.name} publishes plain guides to business insurance in Singapore. To review your own cover, or to compare quotes from 18 insurers at no fee:
           </p>
-          <div className="my-5 flex flex-wrap justify-center gap-3 not-italic">
-            <StartButton className="glass-primary px-6 py-2.5 font-sans text-sm font-semibold" />
+          <div className="my-5 flex flex-wrap justify-center gap-3">
+            <StartButton className="glass-primary px-6 py-2.5 text-sm font-semibold" />
             <a href={`tel:+65${site.phone.replace(/\s/g, "")}`} className="glass px-6 py-2.5 font-sans text-sm font-medium">Call {site.phone}</a>
           </div>
         </div>

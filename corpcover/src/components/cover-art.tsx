@@ -1,15 +1,16 @@
 import type { Article } from "@/content/articles";
 
 // Cover illustrations. One drawing per guide, all on the same 400 × 266 card:
-// title set on the left, a yellow topic tag under it, the drawing on the right.
+// title set on the left, a pale topic tag under it, the drawing on the right.
+// Burgundy family on one warm-grey ground, matching the --accent and --tile tokens.
 
-export const K = "#1a1a1a";   // line
-export const A = "#f2a93b";   // amber
-export const T = "#0e5a52";   // teal
-export const R = "#e8553d";   // coral
-export const Y = "#f7c948";   // yellow
+export const K = "#1a1a1c";   // line
+export const A = "#c9a3a9";   // dusty rose
+export const T = "#7a1f2e";   // burgundy
+export const R = "#a3414f";   // light burgundy
+export const Y = "#ecdfe1";   // pale rose
 export const W = "#ffffff";
-const BG: Record<Article["tile"], string> = { sand: "#f6d9bd", sage: "#cfe3d5", sky: "#d3e1f0", blush: "#f5d2c7" };
+const BG = "#efedeb";
 
 export const line = { stroke: K, strokeWidth: 3.5, strokeLinejoin: "round" as const, strokeLinecap: "round" as const };
 
@@ -102,7 +103,7 @@ export function CoverArt({ article, compact = false }: { article: Article; compa
   const top = 133 - (lines.length * (size + 2)) / 2 - 10;
   return (
     <svg viewBox="0 0 400 266" role="img" aria-label={article.title} className="block h-full w-full" preserveAspectRatio="xMidYMid slice">
-      <rect width="400" height="266" fill={BG[article.tile]} />
+      <rect width="400" height="266" fill={BG} />
       <g transform={compact ? "translate(125 20) scale(1.25)" : "translate(246 44) scale(0.92)"}>
         <Drawing art={article.art} />
       </g>
@@ -117,57 +118,6 @@ export function CoverArt({ article, compact = false }: { article: Article; compa
           </g>
         </g>
       )}
-    </svg>
-  );
-}
-
-/** Wide hero illustration: an office tower under an umbrella in the rain, at dusk. */
-export function HeroArt() {
-  const towers = [
-    [20, 210, 60], [86, 170, 46], [140, 230, 54], [430, 190, 50], [486, 150, 64], [556, 205, 70],
-  ];
-  return (
-    <svg viewBox="0 0 640 400" role="img" aria-label="An office tower sheltered by an umbrella in the rain" className="block h-full w-full" preserveAspectRatio="xMidYMid slice">
-      <defs>
-        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#0b2b33" />
-          <stop offset="0.65" stopColor="#12474a" />
-          <stop offset="1" stopColor="#c86a3a" />
-        </linearGradient>
-        <radialGradient id="glow" cx="0.5" cy="0.55" r="0.5">
-          <stop offset="0" stopColor="#f7c948" stopOpacity="0.35" />
-          <stop offset="1" stopColor="#f7c948" stopOpacity="0" />
-        </radialGradient>
-      </defs>
-      <rect width="640" height="400" fill="url(#sky)" />
-      <rect width="640" height="400" fill="url(#glow)" />
-      {Array.from({ length: 46 }, (_, i) => {
-        const x = (i * 137) % 640, y = (i * 59) % 300;
-        return <path key={i} d={`M${x} ${y} l-10 22`} stroke="#9fd3cb" strokeOpacity={0.35} strokeWidth={2} strokeLinecap="round" />;
-      })}
-      {towers.map(([x, h, w]) => (
-        <g key={x}>
-          <rect x={x} y={360 - h} width={w} height={h} fill="#0a2326" />
-          {Array.from({ length: Math.floor(h / 26) }, (_, r) => (
-            <rect key={r} x={x + 10} y={372 - h + r * 26} width={w - 20} height="6" fill="#f7c948" fillOpacity={(r * 7 + x) % 3 === 0 ? 0.55 : 0.12} />
-          ))}
-        </g>
-      ))}
-      <g>
-        <rect x="262" y="150" width="116" height="210" fill="#f4ede2" stroke={K} strokeWidth={4} />
-        {[0, 1, 2, 3, 4, 5].map(r => [0, 1, 2].map(c => (
-          <rect key={`${r}${c}`} x={276 + c * 32} y={166 + r * 30} width="22" height="16" fill={(r + c) % 4 === 0 ? R : Y} stroke={K} strokeWidth={2.5} />
-        )))}
-        <rect x="304" y="326" width="32" height="34" fill={T} stroke={K} strokeWidth={3} />
-      </g>
-      <path d="M180 140 Q320 -20 460 140 Q425 116 390 140 Q355 116 320 140 Q285 116 250 140 Q215 116 180 140 Z" fill={R} stroke={K} strokeWidth={4} strokeLinejoin="round" />
-      <path d="M320 34 Q290 90 250 140 M320 34 Q350 90 390 140 M320 34 V140" fill="none" stroke={K} strokeWidth={3} />
-      <circle cx="320" cy="30" r="6" fill={K} />
-      <rect x="0" y="358" width="640" height="42" fill="#0a2326" />
-      <g transform="translate(410 318) rotate(-4)">
-        <rect width="196" height="46" rx="6" fill="#e9e4da" stroke="#9a9184" strokeWidth={3} />
-        <text x="98" y="30" textAnchor="middle" fontFamily="'Helvetica Neue', Helvetica, Arial, sans-serif" fontSize="19" fontWeight={800} letterSpacing="2.5" fill="#3a3630">CORP COVER</text>
-      </g>
     </svg>
   );
 }

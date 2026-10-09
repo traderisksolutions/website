@@ -3,9 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { faqs, insurers, type Faq } from "@/content/faq";
 
-const tones = ["bg-tile-sage", "bg-tile-sand", "bg-tile-sky", "bg-tile-blush"];
-const toneOf = (i: number) => tones[i % tones.length];
-
 /**
  * FAQ as a storyboard. Desktop: the question sits in a large tile pinned on the left and changes
  * as each answer reaches the middle of the screen; the answer in view is full strength, the rest
@@ -28,7 +25,7 @@ export function FaqStory() {
       {/* Pinned question tile, desktop only */}
       <div aria-hidden className="hidden lg:block">
         <div className="sticky top-[calc(50svh-min(30svh,250px))]">
-          <div className={`relative h-[min(60svh,500px)] overflow-hidden rounded-[28px] transition-colors duration-500 motion-reduce:transition-none ${toneOf(active)}`}>
+          <div className="relative h-[min(60svh,500px)] overflow-hidden rounded-[28px] bg-tile">
             {faqs.map((f, i) => (
               <div key={f.q}
                 className={`absolute inset-0 flex items-end p-10 xl:p-12 transition-[opacity,transform] duration-500 motion-reduce:transition-none ${i === active ? "opacity-100" : "pointer-events-none translate-y-4 opacity-0"}`}>
@@ -47,7 +44,7 @@ export function FaqStory() {
         {faqs.map((f, i) => (
           <li key={f.q} ref={el => { refs.current[i] = el; }} data-i={i}
             className={`flex flex-col justify-center py-6 transition-opacity duration-500 motion-reduce:transition-none lg:min-h-[60svh] lg:py-0 ${i === active ? "lg:opacity-100" : "lg:opacity-25"}`}>
-            <h3 className={`rounded-3xl p-7 text-[clamp(1.6rem,6vw,2.2rem)] font-bold leading-[1.12] tracking-tight [text-wrap:balance] sm:p-9 lg:sr-only ${toneOf(i)}`}>{f.q}</h3>
+            <h3 className="rounded-3xl p-7 text-[clamp(1.6rem,6vw,2.2rem)] font-bold leading-[1.12] tracking-tight [text-wrap:balance] sm:p-9 lg:sr-only bg-tile">{f.q}</h3>
             <Answer parts={f.a} />
           </li>
         ))}

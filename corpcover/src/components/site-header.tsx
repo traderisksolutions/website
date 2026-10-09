@@ -40,7 +40,7 @@ export function SiteHeader() {
         <button type="button" className="nav-hamburger glass" aria-label="Open menu" aria-expanded={open} onClick={() => setOpen(true)}>
           <span /><span /><span />
         </button>
-        <Link href="/" className="shrink-0 font-serif text-[1.45rem] italic leading-none tracking-tight hover:opacity-75">{site.name}</Link>
+        <Link href="/" className="shrink-0 text-[1.3rem] font-medium leading-none tracking-[-0.03em] hover:opacity-75">{site.name}</Link>
         <nav className="nav-links nav-links--centre" aria-label="Primary">
           {links.map(l => <Link key={l.href} href={l.href}>{l.label}</Link>)}
         </nav>
@@ -54,7 +54,7 @@ export function SiteHeader() {
       <div className="nav-drawer-overlay" aria-hidden onClick={close} />
       <aside className="nav-drawer" aria-label="Mobile navigation" aria-hidden={!open}>
         <div className="flex h-14 items-center justify-between border-b border-rule px-4">
-          <span className="font-serif text-xl italic">{site.name}</span>
+          <span className="text-xl font-medium tracking-[-0.03em]">{site.name}</span>
           <button type="button" className="glass grid size-8 place-items-center" aria-label="Close menu" onClick={close} tabIndex={open ? 0 : -1}>
             <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
           </button>

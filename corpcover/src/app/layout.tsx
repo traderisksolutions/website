@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Hanken_Grotesk, Newsreader, Spectral } from "next/font/google";
+import { Inter_Tight } from "next/font/google";
 import { site } from "@/site";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -7,9 +7,8 @@ import { StartModal } from "@/components/start-actions";
 import { JsonLd, siteGraph } from "@/lib/json-ld";
 import "./globals.css";
 
-const newsreader = Newsreader({ subsets: ["latin"], style: ["normal", "italic"], variable: "--font-newsreader" });
-const hanken = Hanken_Grotesk({ subsets: ["latin"], weight: ["300", "400"], variable: "--font-hanken" });
-const spectral = Spectral({ subsets: ["latin"], weight: ["400", "600"], style: ["normal", "italic"], variable: "--font-spectral" });
+// Helvetica everywhere. Inter Tight only stands in for the hero's hairline where Helvetica is not installed.
+const interTight = Inter_Tight({ subsets: ["latin"], weight: ["200"], variable: "--font-inter-tight", preload: false });
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
@@ -20,7 +19,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en-SG" className={`${newsreader.variable} ${spectral.variable} ${hanken.variable} h-full antialiased`}>
+    <html lang="en-SG" className={`${interTight.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         <JsonLd data={siteGraph} />
         <SiteHeader />
