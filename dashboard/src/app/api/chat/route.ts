@@ -9,6 +9,7 @@
  * a CHAT_CONSULTANT prompt override that is appended here.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { OPUS_MODEL, fetchOpus } from '@/lib/anthropic-models'
 import { createClient }              from '@/lib/supabase/server'
 import { logAnthropicUsage }         from '@/lib/gemini-usage'
 import { logError }                  from '@/lib/error-log'
@@ -24,7 +25,6 @@ import { enc } from '@/lib/crm/db'
 export const maxDuration = 300
 
 const SB_URL        = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
-const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
 
 function sbH(prefer = 'return=representation') {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -371,17 +371,15 @@ export async function POST(req: NextRequest) {
 
         // One streaming turn → text (streamed to client) + any tool_use blocks.
         let totalIn = 0, totalOut = 0   // accumulated Opus token usage across turns
+        let modelUsed = OPUS_MODEL
         async function runTurn(): Promise<{ full: string; blocks: Block[]; stopReason: string }> {
           let uIn = 0, uOut = 0
-          const body: Record<string, unknown> = { model: 'claude-opus-4-8', max_tokens: 2000, system, messages: msgs, stream: true }
+          const body: Record<string, unknown> = { max_tokens: 2000, system, messages: msgs, stream: true }
           if (effCaseId) body.tools = TOOLS                  // read-tools when case-aware
           else if (effCompanyId) body.tools = COMPANY_TOOLS  // read-tools when company-aware
           else body.thinking = { type: 'adaptive' }          // deeper reasoning for general chat
-          const aRes = await fetch(ANTHROPIC_URL, {
-            method: 'POST',
-            headers: { 'x-api-key': key!, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-            body: JSON.stringify(body), signal: ac.signal,
-          })
+          const { res: aRes, model } = await fetchOpus(body, key!, { signal: ac.signal })
+          modelUsed = model
           if (!aRes.ok || !aRes.body) throw new Error(`Assistant error: ${await aRes.text().catch(() => aRes.status)}`)
           const reader = aRes.body.getReader(); const dec = new TextDecoder()
           let buf = '', full = '', stopReason = 'end_turn'
@@ -459,11 +457,11 @@ export async function POST(req: NextRequest) {
 
           const iRes = await fetch(`${SB_URL}/rest/v1/chat_messages`, {
             method: 'POST', headers: sbH('return=representation'),
-            body: JSON.stringify({ thread_id, role: 'assistant', content: text, message_status: 'complete', citations_json: citations, metadata_json: { model: 'claude-opus-4-8', ...(action ? { action } : {}) } }),
+            body: JSON.stringify({ thread_id, role: 'assistant', content: text, message_status: 'complete', citations_json: citations, metadata_json: { model: modelUsed, ...(action ? { action } : {}) } }),
           })
           const saved = iRes.ok ? (await iRes.json())[0] : null
           fetch(`${SB_URL}/rest/v1/chat_threads?id=eq.${thread_id}`, { method: 'PATCH', headers: sbH('return=minimal'), body: JSON.stringify({ last_message_at: new Date().toISOString() }) }).catch(() => {})
-          void logAnthropicUsage(effCompanyId ? 'crm_chat' : 'chat_consultant', { input_tokens: totalIn, output_tokens: totalOut }, effCaseId ?? effCompanyId ?? null)
+          void logAnthropicUsage(effCompanyId ? 'crm_chat' : 'chat_consultant', { input_tokens: totalIn, output_tokens: totalOut }, effCaseId ?? effCompanyId ?? null, modelUsed)
           emit({ type: 'done', message: saved })
         } catch (e) {
           if (!ac.signal.aborted) {

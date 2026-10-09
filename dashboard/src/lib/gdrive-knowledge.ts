@@ -69,7 +69,7 @@ async function downloadDriveFile(token: string, fileId: string): Promise<Buffer>
 
 async function uploadToGemini(pdf: Buffer, filename: string, apiKey: string): Promise<string | null> {
   const boundary = `trs_${Date.now()}`
-  const meta     = JSON.stringify({ display_name: filename })
+  const meta     = JSON.stringify({ file: { display_name: filename } }) // Files API: metadata nests under "file"
   const body     = Buffer.concat([
     Buffer.from(`--${boundary}\r\nContent-Type: application/json; charset=utf-8\r\n\r\n`),
     Buffer.from(meta),

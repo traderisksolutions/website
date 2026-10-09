@@ -1048,6 +1048,9 @@ function MissionHeader({
                   Re-analyse · {newReplyCount} new {newReplyCount === 1 ? 'reply' : 'replies'}
                 </Btn>
               )}
+              {/* Opens the case-scoped Opus chat dock: ask about the case, or have it edit next
+                  steps, scenarios, stakeholders and drafts (each edit applies on confirm). */}
+              <Btn level="secondary" onClick={() => window.dispatchEvent(new Event('chat:open'))}>Ask about this case</Btn>
               <Btn level="secondary" onClick={onLinkThreads}>Link threads</Btn>
               {/* First analysis only — re-analysis is otherwise steered via the AI consultant chat. */}
               {(!analysis || analyzing) && (

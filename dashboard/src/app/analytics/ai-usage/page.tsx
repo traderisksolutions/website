@@ -57,6 +57,7 @@ const MODEL_RATE: Record<string, string> = {
   'gemini-3.1-flash-lite':  '$0.25 / $1.50 per 1M',
   'gemini-embedding-001':   '$0.15 per 1M input',
   'claude-opus-4-8':        '$5.00 / $25.00 per 1M',
+  'claude-opus-5-5':        '$5.00 / $25.00 per 1M (unconfirmed)',
   'unrecorded':             'model not written to the row',
 }
 

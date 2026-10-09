@@ -17,6 +17,8 @@ type ModelPricing = FlatRate | DatedRate | TieredRate
 
 const PRICING: Record<string, ModelPricing> = {
   'claude-opus-4-8': { inputPerMillion: 5.00, outputPerMillion: 25.00 },
+  // UNCONFIRMED: Opus 5.5 is priced at the Opus 4.8 rate until the real rate is checked.
+  'claude-opus-5-5': { inputPerMillion: 5.00, outputPerMillion: 25.00 },
 
   'gemini-3.6-flash': {
     // Promo rate through 31 Dec 2026 — the DEFAULT model, so this is the rate most usage rows use.

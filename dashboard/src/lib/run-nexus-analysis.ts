@@ -22,19 +22,19 @@ import { logGeminiUsage, logAnthropicUsage } from '@/lib/gemini-usage'
 import { fetchKnowledgeDocs } from '@/lib/gdrive-knowledge'
 import { logError } from '@/lib/error-log'
 
-import { GEMINI_FLASH as GEMINI_FLASH_MODEL } from './gemini-models'
+import { GEMINI_FLASH as GEMINI_FLASH_MODEL, GEMINI_PRO as GEMINI_PRO_MODEL } from './gemini-models'
+import { OPUS_MODEL, fetchOpus } from './anthropic-models'
 import { xlsxSheetsAsText } from '@/lib/xlsx-text'
 
 const SB_URL          = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const STORAGE_BUCKET  = 'email-attachments'
 // Model ids come from one place so an env override actually takes effect here too.
-const GEMINI_EXTRACT_MODEL = GEMINI_FLASH_MODEL
+// Reading the whole case is the quality-critical step, so it runs on the Pro tier; Flash drafts.
+const GEMINI_EXTRACT_MODEL = GEMINI_PRO_MODEL
 const GEMINI_DRAFT_MODEL   = GEMINI_FLASH_MODEL
-const OPUS_MODEL           = 'claude-opus-4-8'
 const GEMINI_URL      = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_EXTRACT_MODEL}:generateContent`
 const GEMINI_FLASH    = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_DRAFT_MODEL}:generateContent`
 const GEMINI_UPLOAD   = 'https://generativelanguage.googleapis.com/upload/v1beta/files'
-const ANTHROPIC_URL   = 'https://api.anthropic.com/v1/messages'
 
 const GMAIL_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const GMAIL_API       = 'https://gmail.googleapis.com/gmail/v1/users/me'
@@ -294,7 +294,9 @@ async function fetchGmailAttachment(
 
 async function uploadToGemini(data: Buffer, filename: string, mimeType: string, apiKey: string): Promise<string | null> {
   const boundary = `nexus_${Date.now()}`
-  const meta     = JSON.stringify({ display_name: filename })
+  // The Files API wants the metadata under "file"; a top-level display_name is now rejected
+  // with 400 "Unknown name display_name", which silently dropped every attachment.
+  const meta     = JSON.stringify({ file: { display_name: filename } })
   const body     = Buffer.concat([
     Buffer.from(`--${boundary}\r\nContent-Type: application/json; charset=utf-8\r\n\r\n`),
     Buffer.from(meta),
@@ -321,25 +323,6 @@ async function uploadToGemini(data: Buffer, filename: string, mimeType: string, 
 }
 
 // Download a binary from Supabase Storage and re-upload to Gemini Files API (fresh URI)
-async function downloadFromStorageAndUploadToGemini(
-  storagePath: string,
-  filename:    string,
-  mimeType:    string,
-  apiKey:      string,
-): Promise<string | null> {
-  try {
-    const k = process.env.SUPABASE_SERVICE_KEY
-    if (!k) return null
-    const res = await fetch(
-      `${SB_URL}/storage/v1/object/${STORAGE_BUCKET}/${storagePath}`,
-      { headers: { apikey: k, Authorization: `Bearer ${k}` } }
-    )
-    if (!res.ok) return null
-    const buf = Buffer.from(await res.arrayBuffer())
-    return await uploadToGemini(buf, filename, mimeType, apiKey)
-  } catch { return null }
-}
-
 type StoredAttachmentRow = {
   filename:    string
   mime_type:   string | null
@@ -368,18 +351,76 @@ async function ensureAttachmentsRead(threadIds: string[], origin: string): Promi
   if (pending.length === 0) return
 
   console.log(`[nexus] ensureAttachmentsRead: force-extracting ${pending.length} message(s) with unread attachments`)
-  await Promise.allSettled(pending.map(m =>
+  // Each extract is its own function invocation and keeps running if we stop waiting, so Phase 1
+  // waits at most ENSURE_READ_BUDGET_MS: whatever finishes in time is read this run, the rest next.
+  const extracts = Promise.allSettled(pending.map(m =>
     fetch(`${origin}/api/nexus/attachments/extract`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.CRON_SECRET ?? '' },
       body: JSON.stringify({ message_id: m.id, thread_id: m.thread_id, gmail_message_id: m.gmail_message_id, force: true }),
     }).catch(() => null),
   ))
+  await Promise.race([extracts, new Promise(r => setTimeout(r, ENSURE_READ_BUDGET_MS))])
+}
+const ENSURE_READ_BUDGET_MS = 40_000
+
+// Load pre-extracted attachments from email_attachments.
+//
+// Text already extracted (the large majority) goes in as text — no re-download, no re-upload.
+// Only PDFs/images with NO extracted text are sent to Gemini as files, fetched from Gmail (the
+// source of truth since the storage bucket did not survive the move to GCP). Bounded so a large
+// case cannot run Phase 1 past its time limit: at most FILE_UPLOAD_CAP files, FILE_UPLOAD_CONCURRENCY
+// at a time, inside FILE_UPLOAD_BUDGET_MS. Anything skipped is named in the summary.
+const FILE_UPLOAD_CAP         = 20
+const FILE_UPLOAD_CONCURRENCY = 4
+const FILE_UPLOAD_BUDGET_MS   = 60_000
+
+type StoredAttachmentRowFull = StoredAttachmentRow & { message_id: string | null }
+
+// A real PDF or image, not the placeholder text a dead storage path answers with.
+function looksLikeFile(buf: Buffer, mimeType: string): boolean {
+  if (buf.length < 256) return false
+  const head = buf.subarray(0, 8).toString('latin1')
+  if (mimeType === 'application/pdf') return head.startsWith('%PDF')
+  return !/^\s*(<|\{|trs api)/i.test(head)
 }
 
-// Load pre-extracted attachments from email_attachments table.
-// PDFs/images: re-upload from Supabase Storage to Gemini Files API (fresh URI each analysis).
-// DOCX/XLSX/image descriptions: inject as text directly.
+type GmailPart = { filename?: string; mimeType?: string; body?: { attachmentId?: string; size?: number }; parts?: GmailPart[] }
+function findGmailPart(parts: GmailPart[] | undefined, filename: string): GmailPart | null {
+  for (const p of parts ?? []) {
+    if (p.filename === filename && p.body?.attachmentId) return p
+    const nested = findGmailPart(p.parts, filename)
+    if (nested) return nested
+  }
+  return null
+}
+
+async function fetchAttachmentBytes(
+  row: StoredAttachmentRowFull, gmailMsgId: string | null, gmailToken: string | null,
+): Promise<Buffer | null> {
+  // 1. Storage, if it still serves real bytes.
+  const k = process.env.SUPABASE_SERVICE_KEY
+  if (row.storage_url && k) {
+    try {
+      const res = await fetch(`${SB_URL}/storage/v1/object/${STORAGE_BUCKET}/${row.storage_url}`, { headers: { apikey: k, Authorization: `Bearer ${k}` } })
+      if (res.ok) {
+        const buf = Buffer.from(await res.arrayBuffer())
+        if (looksLikeFile(buf, row.mime_type ?? '')) return buf
+      }
+    } catch { /* fall through to Gmail */ }
+  }
+  // 2. Gmail, by the source message.
+  if (!gmailMsgId || !gmailToken) return null
+  try {
+    const msgRes = await fetch(`${GMAIL_API}/messages/${gmailMsgId}?format=full`, { headers: { Authorization: `Bearer ${gmailToken}` } })
+    if (!msgRes.ok) return null
+    const msg = await msgRes.json() as { payload?: GmailPart }
+    const part = findGmailPart(msg.payload?.parts, row.filename)
+    if (!part?.body?.attachmentId || (part.body.size ?? 0) > 20_000_000) return null
+    return await fetchGmailAttachment(gmailToken, gmailMsgId, part.body.attachmentId)
+  } catch { return null }
+}
+
 async function loadStoredAttachments(
   threadIds: string[],
   apiKey:    string,
@@ -396,30 +437,52 @@ async function loadStoredAttachments(
 
   try {
     const res = await fetch(
-      `${SB_URL}/rest/v1/email_attachments?thread_id=in.(${threadIds.join(',')})&select=filename,mime_type,parsed_text,storage_url&order=created_at.asc`,
+      `${SB_URL}/rest/v1/email_attachments?thread_id=in.(${threadIds.join(',')})&select=filename,mime_type,parsed_text,storage_url,message_id&order=created_at.asc`,
       { headers: sbHeaders() }
     )
-    const rows: StoredAttachmentRow[] = res.ok ? await res.json() : []
+    const rows: StoredAttachmentRowFull[] = res.ok ? await res.json() : []
     if (!Array.isArray(rows) || rows.length === 0) return { textChunks, fileParts, summary, metaItems }
 
+    const needFile: StoredAttachmentRowFull[] = []
     for (const row of rows) {
-      const { filename, mime_type, parsed_text, storage_url } = row
-
-      if (parsed_text) {
-        textChunks.push(`\n[Attachment: ${filename} — pre-extracted text]\n${parsed_text}`)
-        summary.push(`${filename} (pre-extracted text, ${parsed_text.length} chars)`)
-        metaItems.push({ filename, method: 'pre-extracted-text' })
+      if (row.parsed_text) {
+        textChunks.push(`\n[Attachment: ${row.filename} — pre-extracted text]\n${row.parsed_text}`)
+        summary.push(`${row.filename} (pre-extracted text, ${row.parsed_text.length} chars)`)
+        metaItems.push({ filename: row.filename, method: 'pre-extracted-text' })
+      } else if (row.mime_type && (row.mime_type === 'application/pdf' || row.mime_type.startsWith('image/'))) {
+        needFile.push(row)
       }
+    }
 
-      if (storage_url && mime_type) {
-        const uri = await downloadFromStorageAndUploadToGemini(storage_url, filename, mime_type, apiKey)
-        if (uri) {
-          fileParts.push({ file_data: { mime_type, file_uri: uri } })
-          const isImage = mime_type.startsWith('image/')
-          summary.push(`${filename} (${isImage ? 'image' : 'PDF'} uploaded to Gemini for multimodal reading)`)
-          metaItems.push({ filename, method: isImage ? 'gemini-vision' : 'gemini-pdf' })
-        }
+    if (needFile.length > 0) {
+      // Newest first: the latest documents matter most when the cap bites.
+      const queue = needFile.slice().reverse().slice(0, FILE_UPLOAD_CAP)
+      for (const row of needFile.slice().reverse().slice(FILE_UPLOAD_CAP)) summary.push(`${row.filename} (not read — over the ${FILE_UPLOAD_CAP}-file limit for unextracted documents)`)
+
+      const msgIds = Array.from(new Set(queue.map(r => r.message_id).filter((id): id is string => !!id)))
+      const gmailIds = new Map<string, string>()
+      if (msgIds.length > 0) {
+        const mRes = await fetch(`${SB_URL}/rest/v1/email_messages?id=in.(${msgIds.join(',')})&select=id,gmail_message_id`, { headers: sbHeaders() })
+        for (const m of (mRes.ok ? await mRes.json() : []) as { id: string; gmail_message_id: string | null }[]) if (m.gmail_message_id) gmailIds.set(m.id, m.gmail_message_id)
       }
+      const gmailToken = await getGmailToken()
+      const deadline = Date.now() + FILE_UPLOAD_BUDGET_MS
+
+      const work = async (row: StoredAttachmentRowFull) => {
+        if (Date.now() > deadline) { summary.push(`${row.filename} (not read — time budget reached)`); return }
+        const buf = await fetchAttachmentBytes(row, row.message_id ? gmailIds.get(row.message_id) ?? null : null, gmailToken)
+        if (!buf) { summary.push(`${row.filename} (not read — file could not be fetched)`); return }
+        const uri = await uploadToGemini(buf, row.filename, row.mime_type!, apiKey)
+        if (!uri) { summary.push(`${row.filename} (not read — upload to Gemini failed)`); return }
+        fileParts.push({ file_data: { mime_type: row.mime_type!, file_uri: uri } })
+        const isImage = row.mime_type!.startsWith('image/')
+        summary.push(`${row.filename} (${isImage ? 'image' : 'PDF'} uploaded to Gemini for multimodal reading)`)
+        metaItems.push({ filename: row.filename, method: isImage ? 'gemini-vision' : 'gemini-pdf' })
+      }
+      let next = 0
+      await Promise.all(Array.from({ length: FILE_UPLOAD_CONCURRENCY }, async () => {
+        while (next < queue.length) await work(queue[next++])
+      }))
     }
   } catch (e) {
     console.warn('[nexus] loadStoredAttachments non-fatal:', e instanceof Error ? e.message : e)
@@ -595,17 +658,13 @@ SOURCE:
 ${corpus.slice(0, 120_000)}`
 
   try {
-    const res = await fetch(ANTHROPIC_URL, {
-      method:  'POST',
-      headers: { 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: OPUS_MODEL, max_tokens: 8000, thinking: { type: 'adaptive' }, messages: [{ role: 'user', content: prompt }] }),
-    })
+    const { res, model } = await fetchOpus({ max_tokens: 8000, thinking: { type: 'adaptive' }, messages: [{ role: 'user', content: prompt }] }, anthropicKey)
     if (!res.ok) {
       void logError({ source: 'anthropic', feature: 'nexus_timeline', statusCode: res.status, message: await res.text() })
       return []
     }
     const data = await res.json()
-    void logAnthropicUsage('nexus_strategy', data?.usage)
+    void logAnthropicUsage('nexus_strategy', data?.usage, null, model)
     const text = ((data?.content ?? []) as { type?: string; text?: string }[]).find(b => b.type === 'text')?.text ?? ''
     const parsed = parseJsonSafe(text) as unknown
     const arr = Array.isArray(parsed) ? parsed : (parsed as { timeline?: unknown[] })?.timeline
@@ -1561,27 +1620,21 @@ COMMUNICATION BRIEFS (you plan the emails; a separate drafting model writes them
 - reserve_guidance must be null only if there is genuinely insufficient financial data in the threads`
 
   // ── PASS 2: Grand Analysis — Claude Opus ONLY (no Gemini fallback by design) ──
+  let strategyModelUsed = OPUS_MODEL
   if (anthropicKey) {
     try {
-      const claudeRes = await fetch(ANTHROPIC_URL, {
-        method:  'POST',
-        headers: {
-          'x-api-key':         anthropicKey,
-          'anthropic-version': '2023-06-01',
-          'content-type':      'application/json',
-        },
-        body: JSON.stringify({
-          model:      OPUS_MODEL,
-          max_tokens: 16000,
-          // Opus 4.8: adaptive thinking is the only on-mode; budget_tokens/temperature would 400.
-          thinking:   { type: 'adaptive' },
-          messages:   [{ role: 'user', content: strategyInput }],
-        }),
-      })
+      const opus = await fetchOpus({
+        max_tokens: 16000,
+        // Adaptive thinking is the only on-mode; budget_tokens/temperature would 400.
+        thinking:   { type: 'adaptive' },
+        messages:   [{ role: 'user', content: strategyInput }],
+      }, anthropicKey)
+      const claudeRes = opus.res
+      strategyModelUsed = opus.model
       if (claudeRes.ok) {
         const claudeData = await claudeRes.json()
         strategyTokens = (claudeData.usage?.input_tokens ?? 0) + (claudeData.usage?.output_tokens ?? 0)
-        void logAnthropicUsage('nexus_strategy', claudeData.usage, caseId)
+        void logAnthropicUsage('nexus_strategy', claudeData.usage, caseId, opus.model)
         // With adaptive thinking, content[] leads with thinking block(s) — read the text block.
         const claudeText = ((claudeData?.content ?? []) as { type?: string; text?: string }[])
           .find(b => b.type === 'text')?.text ?? ''
@@ -1622,7 +1675,7 @@ COMMUNICATION BRIEFS (you plan the emails; a separate drafting model writes them
     console.log('[nexus]', strategySkippedReason, '— skipping strategy + drafting')
   }
 
-  const strategyModelName = anthropicKey ? OPUS_MODEL : 'not_configured'
+  const strategyModelName = anthropicKey ? strategyModelUsed : 'not_configured'
 
   const state: NexusPhase2State = {
     scenarioAnalysis, recommendedNextSteps, communicationBriefs, reserveGuidance,

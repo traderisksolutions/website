@@ -3,7 +3,7 @@ import { runNexusAnalysisPhase2, recordFailedNexusAnalysis } from '@/lib/run-nex
 import { getNexusRun, updateNexusRun } from '@/lib/nexus-run-store'
 import { requireStaffOrCron } from '@/lib/api-auth'
 
-export const maxDuration = 180 // Opus adaptive-thinking call — the slowest single step
+export const maxDuration = 300 // Opus adaptive-thinking call — the slowest single step
 
 type Params = { params: { id: string } }
 

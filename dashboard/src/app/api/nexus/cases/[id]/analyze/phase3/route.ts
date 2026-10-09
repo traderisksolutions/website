@@ -3,7 +3,7 @@ import { runNexusAnalysisPhase3, recordFailedNexusAnalysis } from '@/lib/run-nex
 import { getNexusRun, updateNexusRun } from '@/lib/nexus-run-store'
 import { requireStaffOrCron } from '@/lib/api-auth'
 
-export const maxDuration = 150
+export const maxDuration = 300 // Vercel maximum; large cases (hundreds of attachments) need it
 
 type Params = { params: { id: string } }
 

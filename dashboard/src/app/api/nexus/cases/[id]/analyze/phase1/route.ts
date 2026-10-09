@@ -4,7 +4,7 @@ import { createNexusRun, updateNexusRun } from '@/lib/nexus-run-store'
 import { logActivity } from '@/lib/log-activity'
 import { requireStaffOrCron } from '@/lib/api-auth'
 
-export const maxDuration = 150
+export const maxDuration = 300 // Vercel maximum; large cases (hundreds of attachments) need it
 
 type Params = { params: { id: string } }
 
