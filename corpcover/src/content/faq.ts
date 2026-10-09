@@ -1,75 +1,75 @@
-// FAQ, from corporatecover.sg. Answers kept to their facts; marketing lines trimmed.
+// FAQ: five questions a company asks before sending its policy. Facts from corporatecover.sg,
+// regrouped. Each question has a short answer, three points, and a panel that shows the facts.
 
-export type Faq = { q: string; a: (string | string[])[] };
+export type Panel = "cost" | "advisers" | "policies" | "decide" | "start";
+export type Icon = "tag" | "people" | "stack" | "check" | "arrow";
+export type Faq = { q: string; icon: Icon; a: string; points: string[]; panel: Panel };
 
 export const insurers = [
   "Aetna", "AIG", "Allianz", "Allied World", "AXA", "Berkley Insurance", "China Taiping", "Chubb", "Cigna Global",
   "EQ Insurance", "Etiqa", "Liberty", "MSIG", "NTUC Income", "QBE", "Singlife", "Sompo", "Tokio Marine",
 ];
 
+export const policyGroups: { name: string; items: string[] }[] = [
+  { name: "People", items: ["Work injury compensation", "Employee benefits", "Keyman insurance"] },
+  { name: "Liability", items: ["Public liability", "General liability", "Professional indemnity"] },
+  { name: "Property and projects", items: ["Commercial property", "Commercial fire", "Business all risks", "Contractor's all risks", "Erection all risks"] },
+];
+
 export const faqs: Faq[] = [
   {
-    q: "Who are your business insurance partners?",
-    a: [
-      "Corp Cover works with independent financial advisers who specialise in business insurance.",
-      "They broker for a wide range of insurers in Singapore, so you see options from several insurers rather than one.",
+    q: "What does it cost?",
+    icon: "tag",
+    a: "Nothing. Corp Cover and its advisers charge you no fee.",
+    points: [
+      "Advisers are paid a commission by the insurer that issues the policy.",
+      "Commission does not raise the premium an insurer quotes you.",
+      "Advisers negotiate and use volume pricing to bring the premium down.",
     ],
+    panel: "cost",
   },
   {
-    q: "How did you select your business insurance partners?",
-    a: [
-      "We spoke with companies, financial advisers and insurance agents across the industry, and selected partners on six criteria:",
-      [
-        "Brokering capability: access to a wide range of business insurers in Singapore.",
-        "Industry experience and an established client base across sectors.",
-        "Volume pricing from insurers, passed on as lower premiums.",
-        "Reputation for professionalism and integrity among peers and clients.",
-        "Specialised expertise and responsive service.",
-        "Research and consultation with the wider industry before selection.",
-      ],
+    q: "Who will I deal with?",
+    icon: "people",
+    a: "An independent financial adviser who specialises in business insurance.",
+    points: [
+      "Advisers broker for several insurers, not one.",
+      "One enquiry covers every policy your company holds.",
+      "Advisers from different firms work together on the same enquiry.",
     ],
+    panel: "advisers",
   },
   {
-    q: "What companies are your partners from?",
-    a: [
-      "Our partners come from several business insurance firms, which together give access to a broad set of corporate insurers.",
-      "They work together across firms, so one enquiry can cover every part of your business insurance.",
+    q: "Which policies can I compare?",
+    icon: "stack",
+    a: "General insurance, employee benefits and specialised cover for companies.",
+    points: [
+      "Policies required by law, such as work injury compensation.",
+      "Policies required by contract, such as public liability in a lease.",
+      "Other covers on request.",
     ],
+    panel: "policies",
   },
   {
-    q: "What insurers can your partners broker for me?",
-    a: [
-      "Our partners broker for these 18 insurers, and add more over time:",
-      insurers,
-      "This covers general insurance, employee benefits and specialised cover.",
+    q: "Do I have to buy?",
+    icon: "check",
+    a: "No. There is no obligation to buy.",
+    points: [
+      "Get quotes and compare policies through the advisers.",
+      "Buy through them, buy elsewhere, or keep your current cover.",
+      "The decision is yours.",
     ],
+    panel: "decide",
   },
   {
-    q: "What types of insurance policies can your partners help me compare?",
-    a: [
-      [
-        "Business all risks", "Contractor's all risks", "Erection all risks", "Work injury compensation",
-        "Commercial property", "Commercial fire", "Public liability", "Professional indemnity",
-        "General liability", "Keyman insurance", "Employee benefits",
-      ],
-      "Other covers are available on request.",
+    q: "How do I start?",
+    icon: "arrow",
+    a: "Three ways, all free.",
+    points: [
+      "Upload your current policy for a review.",
+      "Answer five questions to see the covers a company like yours holds.",
+      "Talk to an adviser by WhatsApp, callback or phone.",
     ],
-  },
-  {
-    q: "Am I obligated to buy from your partners?",
-    a: [
-      "No. You can get quotes and compare policies through our partners and still buy elsewhere. The decision is yours.",
-    ],
-  },
-  {
-    q: "What are your fees?",
-    a: ["None. Corp Cover is free to use."],
-  },
-  {
-    q: "What are your partners' fees?",
-    a: [
-      "Our partners charge you no fees. They are paid a commission by the insurer that issues the policy.",
-      "They cannot raise the price an insurer quotes you. They use volume pricing and negotiation to bring it down.",
-    ],
+    panel: "start",
   },
 ];

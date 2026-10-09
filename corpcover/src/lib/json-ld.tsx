@@ -27,13 +27,13 @@ export const siteGraph = {
   ],
 };
 
-/** One answer as plain text: paragraphs kept, list items joined. */
-const answerText = (a: Faq["a"]) => a.map(part => (Array.isArray(part) ? part.join(" ") : part)).join(" ");
+/** One answer as plain text: the short answer, then its points. */
+const answerText = (f: Faq) => [f.a, ...f.points].join(" ");
 
 export const faqPage = (faqs: Faq[]) => ({
   "@context": "https://schema.org",
   "@type": "FAQPage",
-  mainEntity: faqs.map(f => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: answerText(f.a) } })),
+  mainEntity: faqs.map(f => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: answerText(f) } })),
 });
 
 export const articleLd = (a: Article) => {

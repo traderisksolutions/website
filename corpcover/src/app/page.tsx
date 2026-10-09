@@ -20,7 +20,7 @@ export default function Home() {
         </section>
 
         <section id="faq" className="scroll-mt-20 border-t border-rule pt-14 lg:pt-20">
-          <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold leading-tight tracking-tight">Frequently asked questions</h2>
+          <h2 className="text-[clamp(2rem,4vw,3rem)] font-normal leading-tight tracking-[-0.035em]">Frequently asked questions</h2>
           <div className="mt-6 lg:mt-0"><FaqStory /></div>
         </section>
       </div>
