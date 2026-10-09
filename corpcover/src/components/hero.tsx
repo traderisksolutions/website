@@ -36,7 +36,7 @@ export async function Hero() {
           <h1 className="font-[family-name:var(--font-display)] text-[clamp(3.4rem,min(9vw,16svh),8.75rem)] font-thin leading-[0.92] tracking-[-0.05em] max-sm:font-extralight">Corp Cover</h1>
           <p className="mt-3 max-w-[40ch] text-[clamp(1.05rem,1.9vw,1.4rem)] font-light leading-snug tracking-[-0.01em]">What it truly means to cover for your business</p>
         </div>
-        <StartButton className="self-start rounded-full bg-white px-8 py-3.5 text-[1.02rem] font-medium tracking-[-0.01em] text-ink shadow-[0_10px_30px_rgba(0,0,0,0.18)] transition-transform hover:-translate-y-px motion-reduce:transition-none lg:mb-3 lg:self-auto" />
+        <StartButton className="hero-glass self-start px-8 py-3.5 text-[1.02rem] font-medium tracking-[-0.01em] lg:mb-3 lg:self-auto" />
       </div>
     </section>
   );

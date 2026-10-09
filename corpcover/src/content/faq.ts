@@ -1,9 +1,8 @@
 // FAQ: five questions a company asks before sending its policy. Facts from corporatecover.sg,
-// regrouped. Each question has a short answer, three points, and a panel that shows the facts.
+// regrouped. Each question has a short answer and three points; the chat plays them.
 
-export type Panel = "cost" | "advisers" | "policies" | "decide" | "start";
 export type Icon = "tag" | "people" | "stack" | "check" | "arrow";
-export type Faq = { q: string; icon: Icon; a: string; points: string[]; panel: Panel };
+export type Faq = { q: string; icon: Icon; a: string; points: string[] };
 
 export const insurers = [
   "Aetna", "AIG", "Allianz", "Allied World", "AXA", "Berkley Insurance", "China Taiping", "Chubb", "Cigna Global",
@@ -26,7 +25,6 @@ export const faqs: Faq[] = [
       "Commission does not raise the premium an insurer quotes you.",
       "Advisers negotiate and use volume pricing to bring the premium down.",
     ],
-    panel: "cost",
   },
   {
     q: "Who will I deal with?",
@@ -37,7 +35,6 @@ export const faqs: Faq[] = [
       "One enquiry covers every policy your company holds.",
       "Advisers from different firms work together on the same enquiry.",
     ],
-    panel: "advisers",
   },
   {
     q: "Which policies can I compare?",
@@ -48,7 +45,6 @@ export const faqs: Faq[] = [
       "Policies required by contract, such as public liability in a lease.",
       "Other covers on request.",
     ],
-    panel: "policies",
   },
   {
     q: "Do I have to buy?",
@@ -59,7 +55,6 @@ export const faqs: Faq[] = [
       "Buy through them, buy elsewhere, or keep your current cover.",
       "The decision is yours.",
     ],
-    panel: "decide",
   },
   {
     q: "How do I start?",
@@ -68,8 +63,7 @@ export const faqs: Faq[] = [
     points: [
       "Upload your current policy for a review.",
       "Answer five questions to see the covers a company like yours holds.",
-      "Talk to an adviser by WhatsApp, callback or phone.",
+      "Ask a question here, or talk to an adviser by WhatsApp, callback or phone.",
     ],
-    panel: "start",
   },
 ];

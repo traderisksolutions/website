@@ -54,23 +54,22 @@ h1, h2, h3 { text-wrap: balance; }
     border-radius: 9999px;
     transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
   }
-  /* Secondary: frosted glass on white. Glass on a plain ground reads through edge light,
-     a top sheen and depth, so all three are drawn. */
+  /* Secondary: pale burgundy frost, burgundy text. */
   .glass {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(242, 242, 243, 0.72) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.95);
-    box-shadow: 0 0 0 1px rgba(20, 20, 24, 0.08), inset 0 1px 0 #fff, inset 0 -1px 2px rgba(20, 20, 24, 0.06), 0 8px 22px -8px rgba(20, 20, 24, 0.22);
-    color: var(--ink);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(243, 233, 234, 0.78) 100%);
+    border: 1px solid rgba(122, 31, 46, 0.14);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 1px 2px rgba(60, 12, 22, 0.06), 0 6px 16px -10px rgba(122, 31, 46, 0.3);
+    color: var(--accent);
   }
-  .glass:hover { background: linear-gradient(180deg, #fff 0%, rgba(248, 248, 248, 0.9) 100%); transform: translateY(-1px); }
-  /* Primary: burgundy-tinted glass, white text. */
+  .glass:hover { background: linear-gradient(180deg, #fff 0%, rgba(243, 233, 234, 0.95) 100%); border-color: rgba(122, 31, 46, 0.24); }
+  /* Primary: translucent burgundy glass, white text, light edge on top. */
   .glass-primary {
-    background: linear-gradient(180deg, rgba(142, 42, 58, 0.84), rgba(122, 31, 46, 0.92));
-    border: 1px solid rgba(255, 255, 255, 0.28);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 6px 18px rgba(122, 31, 46, 0.26);
+    background: linear-gradient(180deg, rgba(146, 46, 63, 0.86) 0%, rgba(122, 31, 46, 0.92) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 -1px 0 rgba(40, 6, 12, 0.18), 0 1px 2px rgba(60, 12, 22, 0.14), 0 8px 18px -10px rgba(122, 31, 46, 0.55);
     color: #fff;
   }
-  .glass-primary:hover { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 8px 22px rgba(122, 31, 46, 0.34); transform: translateY(-1px); }
+  .glass-primary:hover { background: linear-gradient(180deg, rgba(158, 54, 72, 0.9) 0%, rgba(130, 35, 51, 0.95) 100%); }
   /* Segmented control track, and the frosted bubble on the selected option. */
   .glass-group {
     background: linear-gradient(180deg, rgba(245, 245, 245, 0.9) 0%, rgba(236, 236, 237, 0.72) 100%);
@@ -81,9 +80,6 @@ h1, h2, h3 { text-wrap: balance; }
     background: linear-gradient(180deg, #fff 0%, rgba(255, 255, 255, 0.86) 100%);
     border: 1px solid #fff;
     box-shadow: 0 0 0 1px rgba(20, 20, 24, 0.06), inset 0 1px 0 #fff, 0 4px 12px -2px rgba(20, 20, 24, 0.18);
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .glass:hover, .glass-primary:hover { transform: none; }
   }
 }
 
@@ -177,18 +173,17 @@ h1, h2, h3 { text-wrap: balance; }
   .marquee [aria-hidden="true"] { display: none; }
 }
 
-/* Glass button on the hero photo: clear frost, white text. */
+/* Burgundy glass on the hero photo: more see-through, so the photo shows through the frost. */
 .hero-glass {
   border-radius: 9999px; color: #fff;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0.12) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: linear-gradient(180deg, rgba(146, 46, 63, 0.62) 0%, rgba(122, 31, 46, 0.72) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.32);
   -webkit-backdrop-filter: blur(22px) saturate(180%);
   backdrop-filter: blur(22px) saturate(180%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65), inset 0 -1px 1px rgba(255, 255, 255, 0.15), 0 10px 30px rgba(0, 0, 0, 0.22);
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.25);
-  transition: background .15s, transform .15s;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 10px 30px rgba(20, 4, 8, 0.25);
+  transition: background .15s;
 }
-.hero-glass:hover { background: linear-gradient(180deg, rgba(255, 255, 255, 0.36) 0%, rgba(255, 255, 255, 0.2) 100%); transform: translateY(-1px); }
+.hero-glass:hover { background: linear-gradient(180deg, rgba(158, 54, 72, 0.74) 0%, rgba(130, 35, 51, 0.82) 100%); }
 
 /* Topic tabs sitting on the hero photo: clear frost, white text; selected stays a white bubble. */
 .photo-glass-group {
@@ -199,3 +194,14 @@ h1, h2, h3 { text-wrap: balance; }
   backdrop-filter: blur(16px) saturate(180%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 8px 24px rgba(0, 0, 0, 0.12);
 }
+
+/* ── Chat: messages rise in; "Thinking" shimmers ── */
+.chat-in { animation: chat-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes chat-in { from { opacity: 0; transform: translateY(6px); } }
+.chat-shimmer {
+  background: linear-gradient(90deg, var(--ink-3) 0%, var(--ink-3) 35%, var(--ink) 50%, var(--ink-3) 65%, var(--ink-3) 100%);
+  background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: chat-shimmer 1.6s linear infinite;
+}
+@keyframes chat-shimmer { from { background-position: 100% 0; } to { background-position: -150% 0; } }
+@media (prefers-reduced-motion: reduce) { .chat-in, .chat-shimmer { animation: none; } .chat-shimmer { color: var(--ink-3); } }

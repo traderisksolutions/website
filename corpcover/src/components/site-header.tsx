@@ -46,7 +46,7 @@ export function SiteHeader() {
         </nav>
         <div className="nav-actions">
           <a href={`tel:+65${site.phone.replace(/\s/g, "")}`} className="glass px-4 py-2 text-sm font-medium">Call {site.phone}</a>
-          <button type="button" onClick={openStart} className="glass-primary px-4 py-2 text-sm font-semibold">Start here</button>
+          <button type="button" onClick={() => openStart()} className="glass-primary px-4 py-2 text-sm font-semibold">Start here</button>
         </div>
       </header>
       <div aria-hidden className="h-14 shrink-0" />

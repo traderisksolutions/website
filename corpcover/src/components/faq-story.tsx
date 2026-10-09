@@ -1,17 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { faqs, insurers, policyGroups, type Icon, type Panel } from "@/content/faq";
-import { openStart } from "./start-actions";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { faqs, type Icon } from "@/content/faq";
+import { faqAnswer } from "@/lib/chat-local";
+import { Chat } from "./chat";
 
 /**
  * FAQ in the x.ai/grok pattern. Desktop: questions stack on the left, the one at the middle of
- * the screen is in full ink and the rest fade to grey; a sticky panel on the right shows that
- * question's facts and cross-fades as you scroll. Phone and tablet: each panel sits under its answer.
+ * the screen in full ink and the rest grey; a sticky chat on the right asks and answers that
+ * question, and takes the visitor's own questions. Phone and tablet: the questions as text, then
+ * one chat with the questions as suggestions.
  */
 export function FaqStory() {
   const [active, setActive] = useState(0);
   const refs = useRef<(HTMLElement | null)[]>([]);
+  const scripts = useMemo(() => faqs.map(f => ({ id: f.q, q: f.q, a: faqAnswer(f) })), []);
 
   useEffect(() => {
     const io = new IntersectionObserver(entries => {
@@ -22,108 +25,38 @@ export function FaqStory() {
   }, []);
 
   return (
-    <div className="grid gap-16 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-20">
-      <ol className="space-y-16 lg:space-y-0 lg:py-[12svh]">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-20">
+      <ol className="space-y-12 lg:space-y-0 lg:py-[12svh]">
         {faqs.map((f, i) => {
           const on = i === active;
           return (
             <li key={f.q} ref={el => { refs.current[i] = el; }} data-i={i} className="flex flex-col justify-center lg:min-h-[50svh]">
-              <h3 className={`flex items-start gap-3.5 text-[clamp(1.9rem,3.4vw,2.75rem)] font-normal leading-[1.08] tracking-[-0.035em] transition-colors duration-500 motion-reduce:transition-none ${on ? "text-ink" : "lg:text-ink/20"}`}>
+              <h3 className={`flex items-start gap-3.5 text-[clamp(1.7rem,3.4vw,2.75rem)] font-normal leading-[1.08] tracking-[-0.035em] transition-colors duration-500 motion-reduce:transition-none ${on ? "text-ink" : "lg:text-ink/20"}`}>
                 <Glyph name={f.icon} />{f.q}
               </h3>
-              <p className={`mt-5 max-w-[42ch] text-[1.15rem] leading-relaxed transition-colors duration-500 motion-reduce:transition-none lg:text-[1.25rem] ${on ? "text-ink" : "text-ink lg:text-ink/20"}`}>{f.a}</p>
-              <ul className={`mt-6 space-y-3.5 transition-opacity duration-500 motion-reduce:transition-none ${on ? "" : "lg:opacity-0"}`}>
+              <p className={`mt-4 max-w-[42ch] text-[1.1rem] leading-relaxed transition-colors duration-500 motion-reduce:transition-none lg:mt-5 lg:text-[1.25rem] ${on ? "text-ink" : "text-ink lg:text-ink/20"}`}>{f.a}</p>
+              <ul className={`mt-4 space-y-3 transition-opacity duration-500 motion-reduce:transition-none lg:mt-6 lg:space-y-3.5 ${on ? "" : "lg:opacity-0"}`}>
                 {f.points.map(p => (
-                  <li key={p} className="flex gap-3.5 text-[1.02rem] leading-snug text-ink-2"><Tick />{p}</li>
+                  <li key={p} className="flex gap-3.5 text-[1rem] leading-snug text-ink-2"><Tick />{p}</li>
                 ))}
               </ul>
-              <div className="mt-8 lg:hidden"><Frame><PanelBody panel={f.panel} /></Frame></div>
             </li>
           );
         })}
       </ol>
 
-      {/* Sticky panel, desktop only. Every panel is stacked in one cell; the active one shows. */}
-      <div aria-hidden className="hidden lg:block">
+      {/* Desktop: one sticky chat that plays the question in view. */}
+      <div className="hidden lg:block">
         <div className="sticky top-[calc(50svh-min(34svh,290px))]">
-          <Frame className="grid h-[min(68svh,580px)] [&>*]:col-start-1 [&>*]:row-start-1">
-            {faqs.map((f, i) => (
-              <div key={f.q} className={`flex flex-col transition-[opacity,transform] duration-500 ease-out motion-reduce:transition-none ${i === active ? "opacity-100" : "pointer-events-none translate-y-3 opacity-0"}`}>
-                <PanelBody panel={f.panel} />
-              </div>
-            ))}
-          </Frame>
+          <Chat script={scripts[active]} className="h-[min(68svh,580px)]" />
         </div>
       </div>
-    </div>
-  );
-}
 
-function Frame({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`overflow-hidden rounded-[28px] border border-rule bg-[#f8f7f6] p-6 sm:p-9 ${className}`}>{children}</div>;
-}
-
-function PanelBody({ panel }: { panel: Panel }) {
-  if (panel === "cost") return (
-    <div className="flex h-full flex-col justify-between gap-10">
-      <div>
-        <p className="eyebrow">Your fee</p>
-        <p className="mt-2 font-[family-name:var(--font-display)] text-[clamp(4.5rem,9vw,8rem)] font-thin leading-none tracking-[-0.05em]">S$0</p>
+      {/* Phone and tablet: one chat after the questions. */}
+      <div className="lg:hidden">
+        <h3 className="text-[1.5rem] font-normal tracking-[-0.03em]">Ask a question</h3>
+        <Chat suggestions={scripts} className="mt-4 h-[min(72svh,520px)]" />
       </div>
-      <dl className="divide-y divide-rule rounded-2xl border border-rule bg-white">
-        {[["Corp Cover fee", "S$0"], ["Adviser fee", "S$0"], ["Adviser paid by", "Insurer, as commission"]].map(([k, v]) => (
-          <div key={k} className="flex items-baseline justify-between gap-4 px-5 py-4">
-            <dt className="text-ink-2">{k}</dt><dd className="text-right font-medium">{v}</dd>
-          </div>
-        ))}
-      </dl>
-    </div>
-  );
-
-  if (panel === "advisers") return (
-    <div className="flex h-full flex-col gap-6">
-      <div className="flex items-baseline justify-between gap-4">
-        <p className="eyebrow">Insurers brokered</p>
-        <p className="text-3xl font-light tracking-tight">{insurers.length}</p>
-      </div>
-      <ul className="flex flex-wrap content-start gap-2">
-        {insurers.map(n => <li key={n} className="rounded-full border border-rule bg-white px-3.5 py-1.5 text-[0.92rem] font-medium">{n}</li>)}
-      </ul>
-    </div>
-  );
-
-  if (panel === "policies") return (
-    <div className="grid h-full content-start gap-7 sm:grid-cols-2">
-      {policyGroups.map(g => (
-        <div key={g.name} className={g.items.length > 3 ? "sm:col-span-2" : ""}>
-          <p className="eyebrow">{g.name}</p>
-          <ul className={`mt-3 grid gap-2 ${g.items.length > 3 ? "sm:grid-cols-2" : ""}`}>
-            {g.items.map(x => <li key={x} className="rounded-xl border border-rule bg-white px-4 py-2.5 text-[0.95rem]">{x}</li>)}
-          </ul>
-        </div>
-      ))}
-    </div>
-  );
-
-  if (panel === "decide") return (
-    <div className="flex h-full flex-col justify-center gap-3">
-      <p className="eyebrow mb-2">After the quotes</p>
-      {["Buy through the adviser", "Buy from another adviser or insurer", "Keep your current cover"].map(o => (
-        <div key={o} className="flex items-center gap-3.5 rounded-2xl border border-rule bg-white px-5 py-4">
-          <span className="size-5 shrink-0 rounded-full border border-ink/25" />{o}
-        </div>
-      ))}
-    </div>
-  );
-
-  return (
-    <div className="flex h-full flex-col justify-center gap-3">
-      {[["Upload policy for review", "PDF, JPG or PNG"], ["Find my cover", "5 questions"], ["Talk to an adviser", "WhatsApp, callback or phone"]].map(([t, d]) => (
-        <button key={t} type="button" onClick={openStart} className="group flex items-center justify-between gap-4 rounded-2xl border border-rule bg-white px-5 py-4 text-left transition-colors hover:border-accent">
-          <span><span className="block font-medium">{t}</span><span className="text-sm text-ink-3">{d}</span></span>
-          <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-accent text-white transition-transform group-hover:translate-x-0.5">→</span>
-        </button>
-      ))}
     </div>
   );
 }
@@ -143,4 +76,3 @@ const paths: Record<Icon, ReactNode> = {
 const Glyph = ({ name }: { name: Icon }) => (
   <svg viewBox="0 0 24 24" aria-hidden className="mt-[0.14em] size-[0.85em] shrink-0" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>
 );
-

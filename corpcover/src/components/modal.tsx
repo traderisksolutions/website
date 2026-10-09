@@ -4,8 +4,8 @@ import { useEffect, useRef, type ReactNode } from "react";
 
 /** Native <dialog>: focus trap, Esc to close and a top-layer backdrop come from the browser.
  *  Header row: optional back button, centred title, close button. */
-export function Modal({ open, onClose, onBack, title, wide = false, children }: {
-  open: boolean; onClose: () => void; onBack?: () => void; title: string; wide?: boolean; children: ReactNode;
+export function Modal({ open, onClose, onBack, title, eyebrow = true, wide = false, children }: {
+  open: boolean; onClose: () => void; onBack?: () => void; title: string; eyebrow?: boolean; wide?: boolean; children: ReactNode;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
 
@@ -31,7 +31,7 @@ export function Modal({ open, onClose, onBack, title, wide = false, children }: 
               <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
             </button>
           ) : <span />}
-          <p className="text-center text-[0.75rem] font-semibold uppercase tracking-[0.14em] text-ink-3">{title}</p>
+          {eyebrow ? <p className="text-center text-[0.75rem] font-semibold uppercase tracking-[0.14em] text-ink-3">{title}</p> : <span />}
           <button type="button" onClick={onClose} aria-label="Close" className="glass grid size-9 place-items-center justify-self-end">
             <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
           </button>

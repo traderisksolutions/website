@@ -2,36 +2,41 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { ActionArt, type ActionArtKind } from "./action-art";
+import { Chat } from "./chat";
 import { Modal } from "./modal";
+import { faqs } from "@/content/faq";
+import { faqAnswer } from "@/lib/chat-local";
 import { questions, recommend, summarise, type Answers } from "@/lib/cover-finder";
 import { sendEnquiry, type SendResult } from "@/lib/enquiry";
 import { site } from "@/site";
 
-type Flow = "choose" | "review" | "finder" | "callback" | null;
+export type Flow = "choose" | "chat" | "review" | "finder" | "callback";
 
 const whatsapp = `https://wa.me/65${site.phone.replace(/\s/g, "")}?text=${encodeURIComponent("Hi, I would like quotes for business insurance.")}`;
 
 const OPEN_EVENT = "corpcover:start";
-/** Opens the Start here modal from anywhere on the site. */
-export const openStart = () => window.dispatchEvent(new Event(OPEN_EVENT));
+/** Opens the start modal from anywhere on the site, on the chooser or straight into one flow. */
+export const openStart = (flow: Flow = "choose") => window.dispatchEvent(new CustomEvent<Flow>(OPEN_EVENT, { detail: flow }));
+
+const suggestions = faqs.map(f => ({ id: f.q, q: f.q, a: faqAnswer(f) }));
 
 /** One modal, mounted once in the layout: pick a way to start, then that flow. */
 export function StartModal() {
-  const [flow, setFlow] = useState<Flow>(null);
+  const [flow, setFlow] = useState<Flow | null>(null);
   useEffect(() => {
-    const open = () => setFlow("choose");
+    const open = (e: Event) => setFlow((e as CustomEvent<Flow>).detail ?? "choose");
     window.addEventListener(OPEN_EVENT, open);
     return () => window.removeEventListener(OPEN_EVENT, open);
   }, []);
   const close = () => setFlow(null);
 
-  const titles = { choose: "Start here", review: "Upload policy for review", finder: "Find my cover", callback: "Talk to us" } as const;
+  const titles = { choose: "How would you like to start?", chat: "Ask a question", review: "Upload policy for review", finder: "Find my cover", callback: "Request a callback" } as const;
 
   return (
-    <Modal open={flow !== null} onClose={close} title={flow ? titles[flow] : "Start here"} wide={flow === "choose"}
+    <Modal open={flow !== null} onClose={close} title={flow ? titles[flow] : titles.choose} eyebrow={flow !== "choose" && flow !== "chat"}
       onBack={flow && flow !== "choose" ? () => setFlow("choose") : undefined}>
       {flow === "choose" && <Chooser onPick={setFlow} />}
+      {flow === "chat" && <ChatFlow />}
       {flow === "review" && <ReviewFlow />}
       {flow === "finder" && <FinderFlow />}
       {flow === "callback" && <CallbackFlow />}
@@ -41,42 +46,57 @@ export function StartModal() {
 
 /** Button that opens the Start here modal. */
 export function StartButton({ className, children = "Start here" }: { className?: string; children?: ReactNode }) {
-  return <button type="button" onClick={openStart} className={className}>{children}</button>;
+  return <button type="button" onClick={() => openStart()} className={className}>{children}</button>;
 }
 
-/** Three columns, one per way to start. Each card is tinted like the guide covers. */
+/** Three rows: ask the chat, send a policy, or answer five questions. Phone and callback below. */
 function Chooser({ onPick }: { onPick: (f: Flow) => void }) {
   const tel = `tel:+65${site.phone.replace(/\s/g, "")}`;
   return (
     <div>
-      <h2 className="text-center text-[1.75rem] font-bold leading-tight tracking-tight sm:text-[2rem]">How would you like to start?</h2>
-      <p className="mt-2 text-center text-ink-2">No fee. No obligation to buy.</p>
-      <div className="mt-7 grid gap-4 md:grid-cols-3">
-        <ChoiceCard tone="bg-tile" art="review" title="Upload policy for review" text="Send your current policy. See the gaps, the overlaps and what is overpriced.">
-          <button type="button" onClick={() => onPick("review")} className="glass-primary w-full py-2.5 text-sm font-semibold">Upload policy</button>
-        </ChoiceCard>
-        <ChoiceCard tone="bg-tile" art="finder" title="Find my cover" text="Five questions. See which policies a company like yours usually holds, and why.">
-          <button type="button" onClick={() => onPick("finder")} className="glass-primary w-full py-2.5 text-sm font-semibold">Start</button>
-        </ChoiceCard>
-        <ChoiceCard tone="bg-tile" art="adviser" title="Talk to us" text={`WhatsApp, a callback, or call ${site.phone}. Open every day.`}>
-          <div className="grid grid-cols-2 gap-2">
-            <a href={whatsapp} target="_blank" rel="noopener" className="glass-primary py-2.5 text-center text-sm font-semibold">WhatsApp</a>
-            <button type="button" onClick={() => onPick("callback")} className="glass py-2.5 text-sm font-medium">Callback</button>
-          </div>
-          <a href={tel} className="mt-2 block text-center text-sm font-medium text-ink-2 hover:text-ink">Call {site.phone}</a>
-        </ChoiceCard>
+      <h2 className="text-[1.75rem] font-normal leading-tight tracking-[-0.035em] sm:text-[2.1rem]">How would you like to start?</h2>
+      <p className="mt-1.5 text-ink-2">No fee. No obligation to buy.</p>
+      <div className="mt-6 space-y-2.5">
+        <Option icon="chat" title="Ask a question" text="Answers in seconds. An adviser takes over when you need one." onClick={() => onPick("chat")} />
+        <Option icon="upload" title="Upload policy for review" text="See the gaps, the overlaps and what is overpriced." onClick={() => onPick("review")} />
+        <Option icon="list" title="Find my cover" text="Five questions. The policies a company like yours usually holds." onClick={() => onPick("finder")} />
       </div>
+      <p className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-3">
+        <a href={whatsapp} target="_blank" rel="noopener" className="font-medium text-accent hover:underline">WhatsApp</a>
+        <button type="button" onClick={() => onPick("callback")} className="font-medium text-accent hover:underline">Request a callback</button>
+        <a href={tel} className="font-medium text-accent hover:underline">Call {site.phone}</a>
+      </p>
     </div>
   );
 }
 
-function ChoiceCard({ tone, art, title, text, children }: { tone: string; art: ActionArtKind; title: string; text: string; children: ReactNode }) {
+const optionIcons = {
+  chat: <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4h0A1.5 1.5 0 0 1 4 14.5Z" />,
+  upload: <path d="M12 15V4m-4.5 4.5L12 4l4.5 4.5M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" />,
+  list: <path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01" />,
+};
+
+function Option({ icon, title, text, onClick }: { icon: keyof typeof optionIcons; title: string; text: string; onClick: () => void }) {
   return (
-    <div className={`${tone} flex flex-col rounded-2xl p-5`}>
-      <div className="mx-auto h-28 w-full max-w-[200px] sm:h-32"><ActionArt kind={art} /></div>
-      <h3 className="mt-4 text-[1.15rem] font-bold leading-snug tracking-tight">{title}</h3>
-      <p className="mt-1.5 flex-1 text-[0.93rem] leading-relaxed text-ink-2">{text}</p>
-      <div className="mt-5">{children}</div>
+    <button type="button" onClick={onClick} className="group flex w-full items-center gap-4 rounded-2xl border border-rule bg-white px-4 py-3.5 text-left transition-colors hover:border-accent/40 hover:bg-accent-soft/40 sm:px-5 sm:py-4">
+      <span className="glass-primary grid size-10 shrink-0 place-items-center">
+        <svg viewBox="0 0 24 24" aria-hidden className="size-[18px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{optionIcons[icon]}</svg>
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-medium leading-snug">{title}</span>
+        <span className="block text-sm leading-snug text-ink-3">{text}</span>
+      </span>
+      <svg viewBox="0 0 24 24" aria-hidden className="size-4 shrink-0 text-ink-3 transition-transform group-hover:translate-x-0.5 group-hover:text-accent" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 6 6 6-6 6" /></svg>
+    </button>
+  );
+}
+
+function ChatFlow() {
+  return (
+    <div>
+      <h2 className="text-[1.75rem] font-normal leading-tight tracking-[-0.035em] sm:text-[2.1rem]">Ask a question</h2>
+      <p className="mt-1.5 text-ink-2">Business insurance in Singapore. An adviser takes over when you need one.</p>
+      <Chat suggestions={suggestions} className="mt-5 h-[min(58dvh,500px)]" />
     </div>
   );
 }
