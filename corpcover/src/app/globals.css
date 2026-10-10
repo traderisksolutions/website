@@ -103,8 +103,25 @@ h1, h2, h3 { text-wrap: balance; }
   box-shadow: 0 4px 28px rgba(0,0,0,.09), 0 1px 3px rgba(0,0,0,.05), inset 0 1px 0 rgba(255,255,255,.85);
 }
 .nav-links { display: flex; align-items: center; gap: 4px; }
-.nav-links a { padding: 6px 10px; font-size: 14px; font-weight: 500; color: var(--ink-2); border-radius: 9999px; transition: background .12s, color .12s; }
-.nav-links a:hover { background: rgba(20,20,24,.05); color: var(--ink); }
+.nav-links > a { padding: 6px 10px; font-size: 14px; font-weight: 500; color: var(--ink-2); border-radius: 9999px; transition: background .12s, color .12s; }
+.nav-links > a:hover { background: rgba(20,20,24,.05); color: var(--ink); }
+.nav-menu-btn { display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; font-size: 14px; font-weight: 500; color: var(--ink-2); border-radius: 9999px; transition: background .12s, color .12s; }
+.nav-menu-btn:hover, .nav-menu-btn[aria-expanded="true"] { background: rgba(20,20,24,.05); color: var(--ink); }
+
+/* Resources panel, x.ai "Products" style: white card under the bar, items left, preview right. */
+.mega {
+  position: absolute; top: calc(100% + 16px); left: 50%; z-index: 110;
+  display: flex; gap: 12px; width: min(720px, calc(100vw - 48px)); padding: 10px;
+  background: #fff; border: 1px solid var(--rule); border-radius: 22px;
+  box-shadow: 0 24px 60px -18px rgba(20, 20, 24, 0.22), 0 2px 6px rgba(20, 20, 24, 0.05);
+  opacity: 0; visibility: hidden; transform: translate(-50%, -6px);
+  transition: opacity .18s ease, transform .22s cubic-bezier(.22,1,.36,1), visibility 0s linear .22s;
+}
+.mega::before { content: ""; position: absolute; left: 0; right: 0; top: -18px; height: 18px; } /* hover bridge to the button */
+.mega--open { opacity: 1; visibility: visible; transform: translate(-50%, 0); transition: opacity .18s ease, transform .22s cubic-bezier(.22,1,.36,1); }
+.mega-in { animation: chat-in .28s cubic-bezier(.22,1,.36,1) both; }
+.mega-in:nth-child(2) { animation-delay: 40ms; } .mega-in:nth-child(3) { animation-delay: 80ms; }
+@media (prefers-reduced-motion: reduce) { .mega, .mega--open { transition: none; } .mega-in { animation: none; } }
 .nav-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 /* Links sit in the exact centre of the bar, whatever the widths of logo and actions. */
 .nav-links--centre { position: absolute; left: 50%; transform: translateX(-50%); }

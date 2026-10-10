@@ -45,8 +45,8 @@ export function StartModal() {
 }
 
 /** Button that opens the Start here modal. */
-export function StartButton({ className, children = "Start here" }: { className?: string; children?: ReactNode }) {
-  return <button type="button" onClick={() => openStart()} className={className}>{children}</button>;
+export function StartButton({ className, flow = "choose", children = "Start here" }: { className?: string; flow?: Flow; children?: ReactNode }) {
+  return <button type="button" onClick={() => openStart(flow)} className={className}>{children}</button>;
 }
 
 /** Three rows: ask the chat, send a policy, or answer five questions. Phone and callback below. */

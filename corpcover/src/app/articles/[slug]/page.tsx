@@ -103,7 +103,7 @@ export default async function ArticlePage(props: PageProps<"/articles/[slug]">) 
 
       <section className="border-t border-rule">
         <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-          <h2 className="text-xl font-semibold">More guides</h2>
+          <h2 className="text-xl font-semibold">More blogs</h2>
           <div className="mt-8 grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
             {more.map(m => <ArticleCard key={m.slug} article={m} />)}
           </div>

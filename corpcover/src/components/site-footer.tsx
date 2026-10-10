@@ -7,7 +7,8 @@ export function SiteFooter() {
       <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 text-sm text-ink-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="space-y-1"><p>© {new Date().getFullYear()} {site.name}</p><p>{site.address}</p></div>
         <ul className="flex gap-5">
-          <li><Link href="/articles" className="hover:text-ink">Guides</Link></li>
+          <li><Link href="/about" className="hover:text-ink">About</Link></li>
+          <li><Link href="/articles" className="hover:text-ink">Blogs</Link></li>
           <li><a href={reviewHref} className="hover:text-ink">{site.email}</a></li>
         </ul>
       </div>

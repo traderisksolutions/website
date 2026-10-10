@@ -7,20 +7,29 @@ import { openStart } from "./start-actions";
 
 /**
  * Chat window in the x.ai/grok style. Two sources of replies:
- * - script: a question and answer the window plays by itself (typed into the composer, sent,
- *   "Thinking", then the answer streams in). Replays whenever the script changes.
+ * - a sequence: questions and answers the window plays by itself, one after another, as a single
+ *   conversation (each typed into the composer, sent, "Thinking", then streamed). Starts once,
+ *   the first time the window is on screen. `jump` skips to an exchange.
  * - the visitor: anything typed goes to /api/chat; when that is not configured or fails, the
- *   matching FAQ or guide answer streams in instead. Once the visitor sends, scripts stop.
+ *   matching FAQ or guide answer streams in instead. Once the visitor sends, the sequence stops.
  */
 
-type Msg = { role: "user" | "assistant"; text: string; thinking?: boolean; ms?: number; done?: boolean };
+type Msg = { role: "user" | "assistant"; text: string; thinking?: boolean; ms?: number; done?: boolean; qi?: number };
 export type Script = { id: string; q: string; a: string };
+export type Jump = { i: number; n: number };
 
 const whatsapp = `https://wa.me/65${site.phone.replace(/\s/g, "")}?text=${encodeURIComponent("Hi, I have a question about business insurance.")}`;
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 const reduced = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-export function Chat({ script, suggestions, className = "" }: { script?: Script; suggestions?: Script[]; className?: string }) {
+/** Exchanges 0..last as finished messages, for jumping ahead. */
+const settled = (seq: Script[], last: number): Msg[] => seq.slice(0, last + 1).flatMap((s, qi) => [
+  { role: "user", text: s.q, qi }, { role: "assistant", text: s.a, ms: 1000, done: true },
+]);
+
+export function Chat({ sequence, onActive, jump, suggestions, className = "" }: {
+  sequence?: Script[]; onActive?: (i: number) => void; jump?: Jump; suggestions?: Script[]; className?: string;
+}) {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -29,9 +38,21 @@ export function Chat({ script, suggestions, className = "" }: { script?: Script;
   const abort = useRef<AbortController | null>(null);
   const log = useRef<HTMLDivElement>(null);
   const root = useRef<HTMLDivElement>(null);
-  const [seen, setSeen] = useState(false); // scripts wait until the window is on screen
+  const stick = useRef(true);          // follow new messages only while the reader is at the bottom
+  const started = useRef(false);
+  const msgsRef = useRef<Msg[]>([]);
 
-  useEffect(() => { const el = log.current; if (el) el.scrollTop = el.scrollHeight; }, [msgs]);
+  useEffect(() => {
+    msgsRef.current = msgs;
+    const el = log.current;
+    if (el && stick.current) el.scrollTop = el.scrollHeight;
+  }, [msgs]);
+
+  const onScroll = () => { const el = log.current; if (el) stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60; };
+  const scrollToQ = (i: number) => {
+    const el = log.current?.querySelector<HTMLElement>(`[data-qi="${i}"]`);
+    if (el && log.current) { stick.current = false; log.current.scrollTo({ top: el.offsetTop - 20, behavior: reduced() ? "auto" : "smooth" }); }
+  };
 
   const patchLast = (f: (m: Msg) => Msg) => setMsgs(ms => ms.map((m, i) => (i === ms.length - 1 ? f(m) : m)));
 
@@ -47,42 +68,83 @@ export function Chat({ script, suggestions, className = "" }: { script?: Script;
     }
   }, []);
 
-  /** A scripted exchange: type, send, think, answer. */
-  const play = useCallback(async (s: Script, fresh: boolean) => {
-    const id = ++run.current;
-    abort.current?.abort();
-    setBusy(true);
-    if (fresh) setMsgs([]);
+  /** One scripted exchange: type, send, think, answer. False when cancelled. */
+  const exchange = useCallback(async (s: Script, id: number, qi?: number) => {
     if (!reduced()) {
-      for (let i = 1; i <= s.q.length; i++) { if (run.current !== id) return; setDraft(s.q.slice(0, i)); await sleep(24); }
+      for (let i = 1; i <= s.q.length; i++) { if (run.current !== id) return false; setDraft(s.q.slice(0, i)); await sleep(24); }
       await sleep(280);
     }
-    if (run.current !== id) return;
+    if (run.current !== id) return false;
     setDraft("");
     const t0 = Date.now();
-    setMsgs(ms => [...ms, { role: "user", text: s.q }, { role: "assistant", text: "", thinking: true }]);
+    setMsgs(ms => [...ms, { role: "user", text: s.q, qi }, { role: "assistant", text: "", thinking: true }]);
     await sleep(reduced() ? 0 : 900);
-    if (run.current !== id) return;
+    if (run.current !== id) return false;
     patchLast(m => ({ ...m, thinking: false, ms: Date.now() - t0 }));
     await typeOut(s.a, id);
-    if (run.current !== id) return;
+    if (run.current !== id) return false;
     patchLast(m => ({ ...m, done: true }));
-    setBusy(false);
+    return true;
   }, [typeOut]);
 
+  /** A suggestion tapped by the visitor. */
+  const play = useCallback(async (s: Script) => {
+    const id = ++run.current;
+    abort.current?.abort();
+    stick.current = true;
+    setBusy(true);
+    if (await exchange(s, id)) setBusy(false);
+  }, [exchange]);
+
+  /** The sequence from `from` on, optionally after laying down finished exchanges first. */
+  const playFrom = useCallback(async (from: number, seed?: Msg[]) => {
+    if (!sequence) return;
+    const id = ++run.current;
+    setBusy(true);
+    if (seed) {
+      setMsgs(seed);
+      onActive?.(from - 1);
+      requestAnimationFrame(() => scrollToQ(from - 1));
+      await sleep(reduced() ? 0 : 1800);
+      if (run.current !== id) return;
+      stick.current = true;
+    }
+    for (let i = from; i < sequence.length; i++) {
+      onActive?.(i);
+      if (!(await exchange(sequence[i], id, i))) return;
+      if (i < sequence.length - 1) { await sleep(reduced() ? 0 : 1400); if (run.current !== id) return; }
+    }
+    setBusy(false);
+  }, [sequence, onActive, exchange]);
+
+  // Start the sequence the first time the window is on screen.
   useEffect(() => {
     const el = root.current;
-    if (!el || !script) return;
-    const io = new IntersectionObserver(([e]) => setSeen(e.isIntersecting), { threshold: 0.35 });
+    if (!el || !sequence) return;
+    const io = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting || started.current) return;
+      started.current = true;
+      io.disconnect();
+      void playFrom(0);
+    }, { threshold: 0.35 });
     io.observe(el);
     return () => io.disconnect();
-  }, [script]);
+  }, [sequence, playFrom]);
 
+  // Jump: scroll to an exchange already shown, or lay down everything up to it and carry on.
   useEffect(() => {
-    if (!script || live || !seen) return;
-    const t = setTimeout(() => void play(script, true), 0); // after paint, so a fast scroll replays only the last question
+    if (!jump || !sequence) return;
+    const t = setTimeout(() => {
+      const ms = msgsRef.current;
+      const at = ms.findIndex(m => m.qi === jump.i);
+      if (at >= 0 && (ms[at + 1]?.done || live)) { onActive?.(jump.i); scrollToQ(jump.i); return; }
+      if (live) return;
+      started.current = true;
+      void playFrom(jump.i + 1, settled(sequence, jump.i));
+    }, 0);
     return () => clearTimeout(t);
-  }, [script, live, seen, play]);
+  }, [jump, sequence, live, onActive, playFrom]);
+
   useEffect(() => () => { run.current++; abort.current?.abort(); }, []);
 
   /** The visitor's own question: the model when available, else the local answer. */
@@ -90,7 +152,7 @@ export function Chat({ script, suggestions, className = "" }: { script?: Script;
     const q = question.trim().slice(0, 1000);
     if (!q) return;
     const id = ++run.current;
-    setLive(true); setBusy(true); setDraft("");
+    setLive(true); setBusy(true); setDraft(""); stick.current = true;
     const history = [...msgs.filter(m => m.done || m.role === "user"), { role: "user" as const, text: q }];
     const t0 = Date.now();
     setMsgs(ms => [...ms.filter(m => m.done || m.role === "user"), { role: "user", text: q }, { role: "assistant", text: "", thinking: true }]);
@@ -134,11 +196,11 @@ export function Chat({ script, suggestions, className = "" }: { script?: Script;
 
   return (
     <div ref={root} className={`chat flex flex-col overflow-hidden rounded-[28px] border border-rule bg-[#f8f7f6] ${className}`}>
-      <div ref={log} className="flex-1 space-y-5 overflow-y-auto px-5 pb-4 pt-6 sm:px-7" aria-live="polite">
+      <div ref={log} onScroll={onScroll} className="relative flex-1 space-y-5 overflow-y-auto px-5 pb-4 pt-6 sm:px-7" aria-live="polite">
         {empty && suggestions && (
           <div className="flex h-full flex-col justify-end gap-1">
             {suggestions.map(s => (
-              <button key={s.id} type="button" onClick={() => play(s, true)} className="chat-in flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[0.98rem] text-ink-2 transition-colors hover:bg-white hover:text-ink">
+              <button key={s.id} type="button" onClick={() => play(s)} className="chat-in flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[0.98rem] text-ink-2 transition-colors hover:bg-white hover:text-ink">
                 <svg viewBox="0 0 24 24" aria-hidden className="size-4 shrink-0 text-ink-3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14m-5-5 5 5-5 5" /></svg>
                 {s.q}
               </button>
@@ -146,7 +208,7 @@ export function Chat({ script, suggestions, className = "" }: { script?: Script;
           </div>
         )}
         {msgs.map((m, i) => m.role === "user" ? (
-          <div key={i} className="chat-in flex justify-end">
+          <div key={i} data-qi={m.qi} className="chat-in flex justify-end">
             <p className="max-w-[85%] rounded-[22px] border border-rule bg-[#efedeb] px-4 py-2.5 text-[0.98rem] leading-snug">{m.text}</p>
           </div>
         ) : (
@@ -169,7 +231,7 @@ export function Chat({ script, suggestions, className = "" }: { script?: Script;
       {showChips && (
         <div className="flex gap-2 overflow-x-auto px-5 pb-3 sm:px-7 [scrollbar-width:none]">
           {suggestions.map(s => (
-            <button key={s.id} type="button" onClick={() => play(s, false)} className="glass shrink-0 px-3.5 py-1.5 text-sm">{s.q}</button>
+            <button key={s.id} type="button" onClick={() => play(s)} className="glass shrink-0 px-3.5 py-1.5 text-sm">{s.q}</button>
           ))}
         </div>
       )}
