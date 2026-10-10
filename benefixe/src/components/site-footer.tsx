@@ -2,24 +2,27 @@ import Link from "next/link";
 import { contact } from "@/content";
 import { Wordmark } from "./wordmark";
 
+const cols = [
+  { title: "Insider Pass", links: [["/", "Overview"], ["/#membership", "Membership"], ["/perks", "All perks"], ["/#faq", "FAQ"]] },
+  { title: "Employers", links: [["/group-benefits", "Group benefits"], ["/group-benefits#plans", "Plans"], ["/group-benefits#quote", "Get a quote"], ["/group-benefits#faq", "FAQ"]] },
+  { title: "Contact", links: [[`mailto:${contact.email}`, contact.email]] },
+];
+
 export function SiteFooter() {
   return (
     <footer className="mt-auto border-t border-rule">
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 sm:px-6 md:flex-row md:items-start md:justify-between">
+      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-[1.4fr_repeat(3,1fr)]">
         <div className="flex flex-col gap-3">
           <Wordmark />
-          <a href={`mailto:${contact.email}`} className="text-sm text-ink-2 hover:text-ink">{contact.email}</a>
+          <span className="text-[12px] text-ink-3">© {new Date().getFullYear()} Benefixe · Singapore</span>
         </div>
-        <nav className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm text-ink-2 sm:grid-cols-3" aria-label="Footer">
-          <Link href="/" className="hover:text-ink">Insider Pass</Link>
-          <Link href="/group-benefits" className="hover:text-ink">Group benefits</Link>
-          <Link href="/perks" className="hover:text-ink">All perks</Link>
-          <Link href="/#faq" className="hover:text-ink">Pass FAQ</Link>
-          <Link href="/group-benefits#faq" className="hover:text-ink">Employer FAQ</Link>
-          <Link href="/group-benefits#quote" className="hover:text-ink">Get a quote</Link>
-        </nav>
+        {cols.map(c => (
+          <nav key={c.title} aria-label={c.title} className="flex flex-col gap-2.5 text-[13px]">
+            <span className="font-medium">{c.title}</span>
+            {c.links.map(([href, label]) => <Link key={href} href={href} className="text-ink-2 hover:text-ink">{label}</Link>)}
+          </nav>
+        ))}
       </div>
-      <div className="mx-auto max-w-6xl px-4 pb-10 text-xs text-ink-3 sm:px-6">© {new Date().getFullYear()} Benefixe. Singapore.</div>
     </footer>
   );
 }

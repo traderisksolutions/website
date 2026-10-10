@@ -1,139 +1,109 @@
 import Link from "next/link";
-import { categories, categoryTone, contact, pass, passFaqs, passIncludes, passSteps, perks, plans, sgd } from "@/content";
-import { PassCard } from "@/components/pass-card";
-import { PerkCard } from "@/components/perk-card";
+import { contact, pass, passFaqs, passIncludes, passSteps, perks, plans, sgd } from "@/content";
+import { Bento, PassStats } from "@/components/bento";
+import { PassFrame } from "@/components/pass-card";
 import { PerkIcon } from "@/components/perk-icon";
 import { Faq } from "@/components/faq";
-import { Section, Steps } from "@/components/section";
+import { Check, Section, Steps } from "@/components/section";
 
 const joinHref = `mailto:${contact.email}?subject=${encodeURIComponent("Insider Pass membership")}`;
 
 export default function InsiderPass() {
   const featured = perks.filter(p => p.featured);
-  const byCategory = categories.map(c => {
-    const list = perks.filter(p => p.category === c);
-    return { name: c, count: list.length, value: list.reduce((s, p) => s + p.value, 0), icon: list[0].icon };
-  });
-  const ratio = Math.round(pass.totalValue / pass.priceYear);
 
   return (
     <main className="flex-1 overflow-x-clip">
-      {/* Hero */}
-      <section className="relative">
-        <div aria-hidden className="pointer-events-none absolute -right-40 -top-40 size-[520px] rounded-full bg-tile-blush/70 blur-3xl" />
-        <div aria-hidden className="pointer-events-none absolute -left-32 top-64 size-[380px] rounded-full bg-tile-sky/70 blur-3xl" />
-        <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-4 pb-16 pt-12 sm:px-6 md:grid-cols-[1.1fr_1fr] md:pb-24 md:pt-20">
-          <div>
-            <span className="inline-flex items-center gap-2 rounded-full bg-track px-3 py-1.5 text-[13px] font-medium">
-              <span className="size-2 rounded-full bg-accent" /> Insider Pass · Singapore
-            </span>
-            <h1 className="mt-6 font-display text-[2.7rem] font-extrabold leading-[1.02] tracking-[-0.04em] sm:text-6xl lg:text-[4.4rem]">
-              One pass. <span className="text-accent">{perks.length} perks</span> for work and life.
-            </h1>
-            <p className="mt-6 max-w-lg text-lg leading-relaxed text-ink-2 sm:text-xl">
-              eSIM data, bike rides, gym classes, coffee and {perks.length - 4} more. {sgd(pass.totalValue)} of perks a year for {sgd(pass.priceYear)}.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="#join" className="btn-primary btn-accent px-6 py-3.5 text-base">Get the pass</Link>
-              <Link href="/perks" className="btn-secondary px-6 py-3.5 text-base">See all {perks.length} perks</Link>
-            </div>
-            <Link href="/group-benefits" className="mt-6 inline-flex items-center gap-2 text-[15px] text-ink-2 hover:text-ink">
-              <span className="rounded-full bg-ink px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-white">Employers</span>
-              Free for every employee on a group plan →
-            </Link>
-          </div>
-          <PassCard />
+      <section className="mx-auto max-w-6xl px-4 pt-14 text-center sm:px-6 md:pt-24">
+        <Link href="/perks" className="inline-flex items-center gap-2 rounded-full bg-ink/4 py-1 pl-1 pr-3 text-[13px] hover:bg-ink/7">
+          <span className="rounded-full bg-paper px-2 py-0.5 text-[11px] font-medium text-accent shadow-[0_0_0_1px_rgba(10,10,10,.06)]">New</span>
+          {perks.filter(p => p.isNew).length} perks added this quarter <span className="text-ink-3">›</span>
+        </Link>
+        <h1 className="h-display mx-auto mt-7 max-w-3xl text-[2.6rem] sm:text-6xl">One membership.<br />Every perk your team uses.</h1>
+        <p className="mx-auto mt-5 max-w-xl text-[17px] leading-relaxed text-ink-2 sm:text-lg">
+          eSIM data, bike rental, gym classes, counselling and {perks.length - 4} more. One pass, one member page.
+        </p>
+        <div className="mt-8 flex flex-wrap justify-center gap-2.5">
+          <Link href="#membership" className="btn-primary btn-lg">Get the pass <span aria-hidden>›</span></Link>
+          <Link href="/group-benefits" className="btn-secondary btn-lg">For employers</Link>
         </div>
       </section>
 
-      {/* Categories */}
-      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-3 px-4 sm:px-6 lg:grid-cols-4">
-        {byCategory.map(c => (
-          <Link key={c.name} href="/perks" className={`perk-card flex items-center gap-4 rounded-3xl p-5 ${categoryTone[c.name]}`}>
-            <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-white/70"><PerkIcon name={c.icon} className="size-[22px]" /></span>
-            <div>
-              <div className="font-display text-lg font-bold tracking-[-0.02em]">{c.name}</div>
-              <div className="text-sm text-ink-2">{c.count} perks · {sgd(c.value)}</div>
-            </div>
-          </Link>
-        ))}
-      </div>
+      <section className="mx-auto mt-14 max-w-6xl px-4 sm:px-6 md:mt-20">
+        <Bento />
+      </section>
 
-      <Section title="Featured perks" action={{ href: "/perks", label: `All ${perks.length} perks` }}>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {featured.map(p => <PerkCard key={p.name} perk={p} />)}
+      {/* Membership split, x.ai product-section layout */}
+      <section id="membership" className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-20 sm:px-6 md:grid-cols-2 md:py-32">
+        <div>
+          <span className="label">Insider Pass</span>
+          <h2 className="h-display mt-3 text-[2.4rem] sm:text-5xl">One pass.<br />{perks.length} perks.</h2>
+          <p className="mt-5 max-w-md text-[16px] leading-relaxed text-ink-2">Every code and link on one member page. Partners are added through the year at no extra cost.</p>
+          <div className="mt-7 flex flex-wrap gap-2.5">
+            <a href={joinHref} className="btn-primary">Get the pass <span aria-hidden>›</span></a>
+            <Link href="/perks" className="btn-secondary">All perks</Link>
+          </div>
+          <div className="mt-10"><PassStats /></div>
+        </div>
+        <PassFrame className="aspect-[1.15] w-full" />
+      </section>
+
+      <Section title="Featured perks" action={{ href: "/perks", label: `All ${perks.length} perks` }} className="!pt-0">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {featured.map(p => (
+            <div key={p.name} className="tile flex flex-col gap-8 p-5">
+              <span className="grid size-9 place-items-center rounded-lg bg-paper shadow-[0_0_0_1px_rgba(10,10,10,.06)]"><PerkIcon name={p.icon} className="size-[18px]" /></span>
+              <div>
+                <h3 className="text-[15px] font-medium">{p.partner ?? p.name}</h3>
+                <p className="mt-1 text-[13px] leading-snug text-ink-2">{p.offer}</p>
+                <div className="mt-4 flex justify-between border-t border-rule pt-3 text-[12px]">
+                  <span className="text-ink-3">{p.category}</span>
+                  <span className="font-mono tabular-nums">{sgd(p.value)}/yr</span>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </Section>
 
-      <Section id="join" title="Membership" className="!pt-4">
-        <div className="grid overflow-hidden rounded-[32px] border border-rule md:grid-cols-[1.15fr_1fr]">
-          <div className="p-7 sm:p-10">
-            <div className="flex items-center gap-3">
-              <span className="font-display text-2xl font-bold tracking-[-0.02em]">{pass.name}</span>
-              <span className="rounded-full bg-tile-blush px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em]">Yearly</span>
+      <Section title="Membership options" className="!pt-0">
+        <div className="grid gap-3 md:grid-cols-2">
+          <article className="tile flex flex-col p-7 sm:p-8">
+            <h3 className="text-xl font-medium tracking-[-0.01em]">Individual</h3>
+            <p className="mt-1 text-[14px] text-ink-2">For anyone living or working in Singapore.</p>
+            <div className="mt-6 flex items-baseline gap-1.5 border-b border-rule pb-6">
+              <span className="text-4xl font-medium tabular-nums tracking-[-0.03em]">{sgd(pass.priceYear)}</span>
+              <span className="text-[14px] text-ink-3">/ year · {sgd(pass.priceMonth)} a month</span>
             </div>
-            <div className="mt-6 flex items-baseline gap-2">
-              <span className="font-display text-6xl font-extrabold tabular-nums tracking-[-0.04em]">{sgd(pass.priceYear)}</span>
-              <span className="text-lg text-ink-2">/ year</span>
+            <ul className="mt-6 flex flex-1 flex-col gap-2.5 text-[14px]">
+              {passIncludes.map(i => <li key={i} className="flex gap-2.5"><Check className="text-ink-2" />{i}</li>)}
+            </ul>
+            <a href={joinHref} className="btn-primary mt-8 w-full">Get the pass</a>
+          </article>
+          <article className="flex flex-col rounded-[18px] bg-night p-7 text-white sm:p-8">
+            <h3 className="text-xl font-medium tracking-[-0.01em]">Employer</h3>
+            <p className="mt-1 text-[14px] text-white/55">Included with every Benefixe group benefits plan.</p>
+            <div className="mt-6 flex items-baseline gap-1.5 border-b border-white/12 pb-6">
+              <span className="text-4xl font-medium tabular-nums tracking-[-0.03em]">S$0</span>
+              <span className="text-[14px] text-white/45">/ employee for the pass</span>
             </div>
-            <div className="mt-1 text-[15px] text-ink-3">{sgd(pass.priceMonth)} a month, billed yearly</div>
-            <ul className="mt-8 flex flex-col gap-3">
-              {passIncludes.map(i => (
-                <li key={i} className="flex items-start gap-3 text-[16px]">
-                  <svg viewBox="0 0 20 20" className="mt-0.5 size-5 shrink-0 text-accent" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 10.5l4 4 8-9" /></svg>
-                  {i}
-                </li>
+            <ul className="mt-6 flex flex-1 flex-col gap-2.5 text-[14px]">
+              {["Hospital, outpatient, life and accident cover", "Insider Pass for every covered employee", "One admin page for joiners and leavers", `Plans: ${plans.map(p => p.name).join(", ")}`].map(i => (
+                <li key={i} className="flex gap-2.5"><Check className="text-white/60" />{i}</li>
               ))}
             </ul>
-            <a href={joinHref} className="btn-primary btn-accent mt-9 w-full px-6 py-3.5 text-base sm:w-auto">Get the pass</a>
-          </div>
-          <div className="flex flex-col justify-center gap-6 bg-cream p-7 sm:p-10">
-            <div>
-              <div className="flex justify-between text-sm"><span className="text-ink-2">Perks value</span><span className="font-semibold tabular-nums">{sgd(pass.totalValue)}</span></div>
-              <div className="mt-2 h-4 rounded-full bg-accent" />
+            <div className="mt-8 grid grid-cols-2 gap-2">
+              <Link href="/group-benefits" className="btn-ghost-dark">Group benefits</Link>
+              <Link href="/group-benefits#quote" className="btn-primary !bg-white !text-ink hover:!bg-white/90">Get a quote</Link>
             </div>
-            <div>
-              <div className="flex justify-between text-sm"><span className="text-ink-2">Membership</span><span className="font-semibold tabular-nums">{sgd(pass.priceYear)}</span></div>
-              <div className="mt-2 h-4 rounded-full bg-ink" style={{ width: `${Math.max(4, (pass.priceYear / pass.totalValue) * 100)}%` }} />
-            </div>
-            <div className="border-t border-rule pt-6">
-              <div className="font-display text-5xl font-extrabold tabular-nums tracking-[-0.04em]">{ratio}×</div>
-              <div className="mt-1 text-[15px] text-ink-2">Perks value to price</div>
-            </div>
-          </div>
+          </article>
         </div>
       </Section>
 
-      <Section title="How it works" className="!pt-4">
+      <Section title="How it works" className="!pt-0">
         <Steps steps={passSteps} />
       </Section>
 
-      {/* Bridge to group benefits */}
-      <section className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-        <div className="relative overflow-hidden rounded-[32px] bg-ink p-7 text-white sm:p-12">
-          <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 size-80 rounded-full bg-accent/40 blur-3xl" />
-          <div className="relative grid gap-10 md:grid-cols-[1.3fr_1fr] md:items-end">
-            <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60">For employers</div>
-              <h2 className="mt-3 font-display text-3xl font-bold tracking-[-0.03em] sm:text-5xl">The pass for your whole team, on every group plan.</h2>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/group-benefits" className="btn-primary btn-accent px-6 py-3.5 text-base">Group benefits</Link>
-                <Link href="/group-benefits#quote" className="inline-flex items-center rounded-full px-6 py-3.5 text-base font-semibold text-white ring-1 ring-white/30 hover:bg-white/10">Get a quote</Link>
-              </div>
-            </div>
-            <ul className="flex flex-col gap-2">
-              {plans.map(p => (
-                <li key={p.name} className="flex items-center justify-between rounded-2xl bg-white/8 px-5 py-4 ring-1 ring-white/12">
-                  <span className="font-semibold">{p.name}</span>
-                  <span className="text-sm text-white/60">{p.for}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      <Section id="faq" title="FAQ">
+      <Section id="faq" title="FAQ" className="!pt-0">
         <Faq items={passFaqs} />
       </Section>
     </main>

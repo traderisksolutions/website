@@ -22,13 +22,6 @@ export type Perk = {
 
 export const categories: Category[] = ["Travel", "Move", "Wellness", "Everyday"];
 
-export const categoryTone: Record<Category, string> = {
-  Travel: "bg-tile-sky",
-  Move: "bg-tile-sage",
-  Wellness: "bg-tile-blush",
-  Everyday: "bg-tile-sand",
-};
-
 export const perks: Perk[] = [
   { name: "Asia eSIM", offer: "10GB data a month in 14 countries", about: "Install once. Data switches on when you land.", category: "Travel", icon: "sim", value: 360, featured: true },
   { name: "Airport lounges", offer: "4 lounge visits a year", about: "Changi and 1,300 airports worldwide.", category: "Travel", icon: "lounge", value: 200, featured: true },

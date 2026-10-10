@@ -49,8 +49,8 @@ export function SiteHeader() {
           ))}
         </nav>
         <div className="nav-actions">
-          <Link href="/group-benefits#quote" className="btn-secondary px-4 py-2 text-sm">For employers</Link>
-          <Link href="/#join" className="btn-primary px-4 py-2 text-sm">Get the pass</Link>
+          <Link href="/group-benefits#quote" className="btn-secondary">For employers</Link>
+          <Link href="/#membership" className="btn-primary">Get the pass</Link>
         </div>
       </header>
       <div aria-hidden className="h-14 shrink-0" />
@@ -72,8 +72,8 @@ export function SiteHeader() {
           ))}
         </nav>
         <div className="flex flex-col gap-2 border-t border-rule p-3 pb-6">
-          <Link href="/#join" onClick={close} tabIndex={open ? 0 : -1} className="btn-primary py-2.5 text-center text-sm">Get the pass</Link>
-          <Link href="/group-benefits#quote" onClick={close} tabIndex={open ? 0 : -1} className="btn-secondary py-2.5 text-center text-sm">For employers</Link>
+          <Link href="/#membership" onClick={close} tabIndex={open ? 0 : -1} className="btn-primary">Get the pass</Link>
+          <Link href="/group-benefits#quote" onClick={close} tabIndex={open ? 0 : -1} className="btn-secondary">For employers</Link>
         </div>
       </aside>
     </>
