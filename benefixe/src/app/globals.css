@@ -98,9 +98,25 @@ h1, h2, h3 { text-wrap: balance; }
   box-shadow: 0 0 0 1px var(--rule), 0 8px 30px rgba(0,0,0,.06);
 }
 .nav-links { display: flex; align-items: center; gap: 2px; }
-.nav-links a { padding: 6px 12px; font-size: 13px; font-weight: 500; color: var(--ink-2); border-radius: 9999px; transition: color .12s, background .12s; }
-.nav-links a:hover { color: var(--ink); }
-.nav-links a[aria-current="page"] { color: var(--ink); background: rgba(10,10,10,.05); }
+.nav-links > a, .nav-menu-btn { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; font-size: 13px; font-weight: 500; color: var(--ink-2); border-radius: 9999px; transition: color .12s, background .12s; }
+.nav-links > a:hover, .nav-menu-btn:hover, .nav-menu-btn[aria-expanded="true"] { color: var(--ink); }
+.nav-links > a[aria-current="page"], .nav-menu-btn.is-current, .nav-menu-btn[aria-expanded="true"] { color: var(--ink); background: rgba(10,10,10,.05); }
+
+/* Resources panel, x.ai "Products" style (same as corpcover): white card under the bar, items left, preview right. */
+.mega {
+  position: absolute; top: calc(100% + 16px); left: 50%; z-index: 110;
+  display: flex; gap: 12px; width: min(720px, calc(100vw - 48px)); padding: 10px;
+  background: #fff; border: 1px solid var(--rule); border-radius: 22px;
+  box-shadow: 0 24px 60px -18px rgba(10, 10, 10, 0.22), 0 2px 6px rgba(10, 10, 10, 0.05);
+  opacity: 0; visibility: hidden; transform: translate(-50%, -6px);
+  transition: opacity .18s ease, transform .22s cubic-bezier(.22,1,.36,1), visibility 0s linear .22s;
+}
+.mega::before { content: ""; position: absolute; left: 0; right: 0; top: -18px; height: 18px; } /* hover bridge to the button */
+.mega--open { opacity: 1; visibility: visible; transform: translate(-50%, 0); transition: opacity .18s ease, transform .22s cubic-bezier(.22,1,.36,1); }
+.mega-in { animation: mega-in .28s cubic-bezier(.22,1,.36,1) both; }
+.mega-in:nth-child(2) { animation-delay: 40ms; } .mega-in:nth-child(3) { animation-delay: 80ms; }
+@keyframes mega-in { from { opacity: 0; transform: translateY(6px); } }
+@media (prefers-reduced-motion: reduce) { .mega, .mega--open { transition: none; } .mega-in { animation: none; } }
 .nav-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .nav-actions .btn-primary, .nav-actions .btn-secondary { height: 34px; padding: 0 14px; font-size: 13px; }
 .nav-links--centre { position: absolute; left: 50%; transform: translateX(-50%); }
@@ -118,3 +134,11 @@ h1, h2, h3 { text-wrap: balance; }
   .nav-actions .btn-secondary { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .nav, .nav-drawer { transition: none; } html { scroll-behavior: auto; } }
+
+/* ── Blog body: Lenny's measures (as on corpcover), set in Geist. */
+.prose-post { font-size: 18px; line-height: 1.65; color: rgba(10, 10, 10, 0.78); }
+.prose-post > * + * { margin-top: 1.2em; }
+.prose-post h2 { font-weight: 500; font-size: clamp(1.4rem, 3vw, 1.75rem); line-height: 1.2; letter-spacing: -0.02em; color: var(--ink); margin-top: 1.8em; scroll-margin-top: 88px; }
+.prose-post ul { list-style: disc; padding-left: 1.3em; }
+.prose-post li + li { margin-top: 0.45em; }
+.prose-post li::marker { color: var(--ink-3); }
