@@ -2,19 +2,20 @@ import Image, { type StaticImageData } from "next/image";
 import { connection } from "next/server";
 import type { CSSProperties } from "react";
 import { StartButton } from "./start-actions";
-// Daylight portraits and architecture against open sky. Unsplash License: free for commercial
-// use, no attribution required. Sources: photo-1762344350011 (Zulfugar Karimov),
-// -1617761141732 (Parrish Freeman), -1636308721961 (Nuno Antunes). Stored at 2560px wide.
-import blazerSkyline from "../../public/images/hero/blazer-skyline.jpg";
-import steppedGlass from "../../public/images/hero/stepped-glass.jpg";
-import curvedRoof from "../../public/images/hero/curved-roof.jpg";
+// Sky and nature, no people. Unsplash License: free for commercial use, no attribution required.
+// Sources: photo-1778630486048 (Dieny Portinanni), -1538051873369 (Jan Zikán),
+// -1601205166564 (N Suma), -1526326313238 (Joshua Hoehne). Stored at 2560px wide.
+import greenRidge from "../../public/images/hero/green-ridge.jpg";
+import mistyHills from "../../public/images/hero/misty-hills.jpg";
+import treeCanopy from "../../public/images/hero/tree-canopy.jpg";
+import meadowSky from "../../public/images/hero/meadow-sky.jpg";
 
-/** Subjects sit right of centre. The wordmark is capped at 9vw so it ends before them on wide
- *  screens; `phone` is the crop on narrow screens, where the photo is cut at the sides. */
+/** Open sky where the wordmark sits, at bottom left; `phone` is the crop on narrow screens. */
 const photos: { src: StaticImageData; alt: string; focus: string; phone: string }[] = [
-  { src: blazerSkyline, alt: "Woman in a blazer under a clear sky", focus: "50% 25%", phone: "28% 30%" },
-  { src: steppedGlass, alt: "Stepped glass tower against a blue sky", focus: "50% 60%", phone: "75% 50%" },
-  { src: curvedRoof, alt: "Curved building facade against a blue sky", focus: "50% 50%", phone: "80% 50%" },
+  { src: greenRidge, alt: "Green mountain under a clear blue sky", focus: "50% 15%", phone: "50% 50%" },
+  { src: mistyHills, alt: "Misty hills under a pale morning sky", focus: "50% 50%", phone: "45% 50%" },
+  { src: treeCanopy, alt: "Tree canopy against a blue sky", focus: "50% 50%", phone: "72% 50%" },
+  { src: meadowSky, alt: "Grass hillside under a sky with soft clouds", focus: "50% 50%", phone: "60% 50%" },
 ];
 
 /** One photo per request. Called only after connection(), so it never runs at build time. */
@@ -22,7 +23,7 @@ function pickPhoto() {
   return photos[Math.floor(Math.random() * photos.length)];
 }
 
-/** Full-bleed daylight photo over the top two-thirds of the screen; the navbar floats over it. */
+/** Full-bleed sky and nature photo over the top two-thirds of the screen; the navbar floats over it. */
 export async function Hero() {
   await connection(); // pick per request, not once at build time
   const p = pickPhoto();

@@ -1,47 +1,70 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { faqs, type Icon } from "@/content/faq";
 import { faqAnswer } from "@/lib/chat-local";
-import { Chat, type Jump } from "./chat";
+import { Chat } from "./chat";
 
 /**
- * FAQ as one conversation in the x.ai/grok style. The chat plays all five questions in order,
- * once, when it first comes on screen. Desktop: the questions are listed on the left, the one
- * being answered in full ink; clicking one jumps the chat to it. Phone: the chat alone.
+ * FAQ in the x.ai/grok pattern. Desktop: questions stack on the left, the one at the middle of
+ * the screen in full ink and the rest grey. A sticky chat on the right holds one conversation
+ * with all five questions; it plays once when it comes on screen and stays put while the left
+ * side scrolls. Phone and tablet: the questions as text, then one chat with the questions as
+ * suggestions.
  */
 export function FaqStory() {
   const [active, setActive] = useState(0);
-  const [jump, setJump] = useState<Jump>();
+  const refs = useRef<(HTMLElement | null)[]>([]);
   const scripts = useMemo(() => faqs.map(f => ({ id: f.q, q: f.q, a: faqAnswer(f) })), []);
 
+  useEffect(() => {
+    const io = new IntersectionObserver(entries => {
+      for (const e of entries) if (e.isIntersecting) setActive(Number((e.target as HTMLElement).dataset.i));
+    }, { rootMargin: "-45% 0px -45% 0px" });
+    refs.current.forEach(el => el && io.observe(el));
+    return () => io.disconnect();
+  }, []);
+
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)] gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-center lg:gap-16">
-      <ol className="hidden lg:block">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-20">
+      <ol className="space-y-12 lg:space-y-0 lg:py-[12svh]">
         {faqs.map((f, i) => {
           const on = i === active;
           return (
-            <li key={f.q}>
-              <button type="button" onClick={() => setJump({ i, n: Date.now() })} aria-current={on || undefined}
-                className={`group flex w-full flex-col items-start py-3.5 text-left transition-colors duration-500 motion-reduce:transition-none ${on ? "text-ink" : "text-ink/25 hover:text-ink/60"}`}>
-                <span className="flex items-start gap-3 text-[clamp(1.45rem,2.3vw,2rem)] font-normal leading-[1.12] tracking-[-0.03em]">
-                  <Glyph name={f.icon} />{f.q}
-                </span>
-                <span className={`grid w-full pl-[calc(0.85em+0.75rem)] transition-[grid-template-rows,opacity] duration-500 motion-reduce:transition-none ${on ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
-                  <span className="overflow-hidden">
-                    <span className="block max-w-[40ch] pt-2.5 text-[1.05rem] leading-relaxed text-ink-2">{f.a}</span>
-                  </span>
-                </span>
-              </button>
+            <li key={f.q} ref={el => { refs.current[i] = el; }} data-i={i} className="flex flex-col justify-center lg:min-h-[50svh]">
+              <h3 className={`flex items-start gap-3.5 text-[clamp(1.7rem,3.4vw,2.75rem)] font-normal leading-[1.08] tracking-[-0.035em] transition-colors duration-500 motion-reduce:transition-none ${on ? "text-ink" : "lg:text-ink/20"}`}>
+                <Glyph name={f.icon} />{f.q}
+              </h3>
+              <p className={`mt-4 max-w-[42ch] text-[1.1rem] leading-relaxed transition-colors duration-500 motion-reduce:transition-none lg:mt-5 lg:text-[1.25rem] ${on ? "text-ink" : "text-ink lg:text-ink/20"}`}>{f.a}</p>
+              <ul className={`mt-4 space-y-3 transition-opacity duration-500 motion-reduce:transition-none lg:mt-6 lg:space-y-3.5 ${on ? "" : "lg:opacity-0"}`}>
+                {f.points.map(p => (
+                  <li key={p} className="flex gap-3.5 text-[1rem] leading-snug text-ink-2"><Tick />{p}</li>
+                ))}
+              </ul>
             </li>
           );
         })}
       </ol>
 
-      <Chat sequence={scripts} onActive={setActive} jump={jump} className="h-[min(78svh,640px)]" />
+      {/* Desktop: one sticky chat holding the whole conversation. It plays once and does not follow the scroll. */}
+      <div className="hidden lg:block">
+        <div className="sticky top-[calc(50svh-min(34svh,290px))]">
+          <Chat sequence={scripts} className="h-[min(68svh,580px)]" />
+        </div>
+      </div>
+
+      {/* Phone and tablet: one chat after the questions. */}
+      <div className="lg:hidden">
+        <h3 className="text-[1.5rem] font-normal tracking-[-0.03em]">Ask a question</h3>
+        <Chat suggestions={scripts} className="mt-4 h-[min(72svh,520px)]" />
+      </div>
     </div>
   );
 }
+
+const Tick = () => (
+  <svg viewBox="0 0 16 16" aria-hidden className="mt-[0.2em] size-4 shrink-0 text-ink-3"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+);
 
 const paths: Record<Icon, ReactNode> = {
   tag: <><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9-9-9Z" /><circle cx="8" cy="8" r="1.5" /></>,
