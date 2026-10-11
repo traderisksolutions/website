@@ -10,10 +10,6 @@ import { openStart } from "./start-actions";
 /** Resources menu, x.ai "Products" style: items on the left, a preview of their blogs on the right. */
 const resources: { key: "all" | Topic; title: string; text: string; href: string }[] = [
   { key: "all", title: "Blogs", text: "Plain guides to business insurance in Singapore.", href: "/articles" },
-  { key: "Required by law", title: "Required by law", text: "Policies Singapore law requires employers to hold.", href: "/articles?topic=Required%20by%20law" },
-  { key: "Liability", title: "Liability", text: "Claims from third parties, clients and contracts.", href: "/articles?topic=Liability" },
-  { key: "Property", title: "Property", text: "Premises, stock and lost income.", href: "/articles?topic=Property" },
-  { key: "Directors", title: "Directors", text: "Personal cover for directors and officers.", href: "/articles?topic=Directors" },
 ];
 
 const blogsFor = (key: "all" | Topic) => (key === "all" ? articles : articles.filter(a => a.topic === key)).slice(0, 3);
@@ -86,7 +82,7 @@ export function SiteHeader() {
                 ))}
               </ul>
               <div className="flex min-w-0 flex-1 flex-col rounded-2xl bg-[#f4f3f1] p-4">
-                <p className="eyebrow px-1">{hover === "all" ? "Latest blogs" : hover}</p>
+                <p className="eyebrow px-1">Latest blogs</p>
                 <ul key={hover} className="mt-2.5 space-y-1">
                   {blogsFor(hover).map(a => (
                     <li key={a.slug} className="mega-in">

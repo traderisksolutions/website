@@ -2,20 +2,20 @@ import Image, { type StaticImageData } from "next/image";
 import { connection } from "next/server";
 import type { CSSProperties } from "react";
 import { StartButton } from "./start-actions";
-// Sky and nature, no people. Unsplash License: free for commercial use, no attribution required.
-// Sources: photo-1778630486048 (Dieny Portinanni), -1538051873369 (Jan Zikán),
-// -1601205166564 (N Suma), -1526326313238 (Joshua Hoehne). Stored at 2560px wide.
-import greenRidge from "../../public/images/hero/green-ridge.jpg";
-import mistyHills from "../../public/images/hero/misty-hills.jpg";
+// Blue sky and one object, no people. Unsplash License: free for commercial use, no attribution
+// required. Sources: photo-1617761141732 (Parrish Freeman), -1636308721961 (Nuno Antunes),
+// -1637640213473 (Gary Zhang), -1601205166564 (N Suma). Stored at 2560px wide.
+import steppedGlass from "../../public/images/hero/stepped-glass.jpg";
+import curvedRoof from "../../public/images/hero/curved-roof.jpg";
+import glassTower from "../../public/images/hero/glass-tower.jpg";
 import treeCanopy from "../../public/images/hero/tree-canopy.jpg";
-import meadowSky from "../../public/images/hero/meadow-sky.jpg";
 
 /** Open sky where the wordmark sits, at bottom left; `phone` is the crop on narrow screens. */
 const photos: { src: StaticImageData; alt: string; focus: string; phone: string }[] = [
-  { src: greenRidge, alt: "Green mountain under a clear blue sky", focus: "50% 15%", phone: "50% 50%" },
-  { src: mistyHills, alt: "Misty hills under a pale morning sky", focus: "50% 50%", phone: "45% 50%" },
+  { src: steppedGlass, alt: "Stepped glass tower against a blue sky", focus: "50% 60%", phone: "75% 50%" },
+  { src: curvedRoof, alt: "Curved building facade against a blue sky", focus: "50% 50%", phone: "80% 50%" },
+  { src: glassTower, alt: "Glass tower against a blue sky", focus: "50% 30%", phone: "60% 40%" },
   { src: treeCanopy, alt: "Tree canopy against a blue sky", focus: "50% 50%", phone: "72% 50%" },
-  { src: meadowSky, alt: "Grass hillside under a sky with soft clouds", focus: "50% 50%", phone: "60% 50%" },
 ];
 
 /** One photo per request. Called only after connection(), so it never runs at build time. */
@@ -23,7 +23,7 @@ function pickPhoto() {
   return photos[Math.floor(Math.random() * photos.length)];
 }
 
-/** Full-bleed sky and nature photo over the top two-thirds of the screen; the navbar floats over it. */
+/** Full-bleed blue-sky photo over the top two-thirds of the screen; the navbar floats over it. */
 export async function Hero() {
   await connection(); // pick per request, not once at build time
   const p = pickPhoto();
