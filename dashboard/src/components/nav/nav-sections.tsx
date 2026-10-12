@@ -2,7 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   AlertTriangle, Users, BarChart2, Bot, UsersRound, Cpu, FolderOpen, BookMarked, History,
   Settings, FlaskConical, TrendingUp, ScrollText, Network, HeartPulse, Car,
-  Receipt, CalendarDays, Waypoints, Building2, Link2, Wrench, Home, Landmark } from 'lucide-react'
+  Receipt, CalendarDays, Waypoints, Building2, Link2, Wrench, Home, Landmark, Megaphone, Contact } from 'lucide-react'
 
 export type NavLink = {
   title: string
@@ -59,7 +59,15 @@ export const NAV_SECTIONS: NavSection[] = [
       { title: 'RoadPlus',       href: '/roadplus',         icon: Car,          description: 'Motor programme' },
     ],
   },
-  { label: 'Sales',     href: '/pipeline', icon: Waypoints },
+  {
+    label: 'Sales',
+    icon: Waypoints,
+    items: [
+      { title: 'Leads',     href: '/sales/leads',     icon: Waypoints, description: 'Companies from the lead tool, strongest first, with the draft to approve' },
+      { title: 'Contacts',  href: '/sales/contacts',  icon: Contact,   description: 'Every address TRS may write to: prospects, clients, enquiries' },
+      { title: 'Campaigns', href: '/sales/campaigns', icon: Megaphone, description: 'Email sequences sent as sales@, each recipient approved first' },
+    ],
+  },
   { label: 'Calendar',  href: '/calendar', icon: CalendarDays },
   // Earnings is the business's own figure, so it sits on the bar; the system logs moved under Admin.
   { label: 'Earnings',  href: '/analytics/earnings', icon: TrendingUp },

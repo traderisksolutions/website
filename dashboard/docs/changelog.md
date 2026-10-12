@@ -4,6 +4,39 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-10-12 — Sales rebuilt: Leads → Contacts → Campaigns
+
+The Apollo/Instantly pipeline (`/pipeline`, `/outbound/*`, `/api/outbound/*`, three daily crons)
+is retired; its tables stay in the database untouched. Sales now follows the flow proven on
+dashboard.kyn.com.sg, in the TRS design system:
+
+- **Leads** (`/sales/leads`): one row per company from TRS's own lead-generation tool, which
+  posts to `/api/sales/intake` with `SALES_INTAKE_KEY`, or a CSV import on the page. Fit, intent,
+  score, best contact, email status, next step, draft. The drawer shows evidence, people and
+  the draft; a person approves, edits, rejects or reopens it. Optional Netrows lookup
+  (`NETROWS_API_KEY`, already on Vercel) finds or verifies emails, 50 credits a day.
+- **Contacts** (`/sales/contacts`): `sales_audience`, every address TRS may write to, rebuilt by
+  `sync_sales_audience()` from the lead tool's contacts and the inbox's contacts (clients where
+  the company is kind=client, enquiries otherwise). CSV import.
+- **Campaigns** (`/sales/campaigns`): up to three emails, merge fields, audience filter, one
+  person per business, every recipient approved before anything is scheduled (15 minutes apart
+  in the recipient's office hours), daily cap 30 (max 45: under the Spam Control Act's bulk
+  threshold), replies and bounces stop the sequence, bounce rate over 5% pauses the campaign,
+  one-click unsubscribe (`/api/public/sales/unsubscribe`, HMAC-signed with `CRON_SECRET`).
+- **Sending** goes through the dashboard's existing Gmail OAuth connection as
+  `CAMPAIGN_SENDER_EMAIL` (sales@traderisksolutions.com.sg). Gmail honours that From only when
+  the address is a verified "Send mail as" alias of the connected mailbox; the Campaigns page
+  checks and says so. Nothing sends until `CAMPAIGN_SENDING_ENABLED=true`.
+- **Runner**: `/api/cron/campaign-sender` every 20 minutes in office hours and
+  `/api/cron/sales-enrich` hourly, from Cloud Scheduler (`scripts/sales-scheduler.sh`; Vercel
+  Hobby crons are daily only). A daily Vercel cron calls sales-enrich as a fallback.
+
+Schema: `supabase/migrations/20261012_sales.sql` (apply before deploying). New env:
+`SALES_INTAKE_KEY`, `CAMPAIGN_SENDER_EMAIL`, `CAMPAIGN_SENDING_ENABLED`, optional
+`CAMPAIGN_DAILY_CAP`, `SALES_LOOKUP_DAILY_CAP`, `CAMPAIGN_INBOX_COPY`.
+
+---
+
 ## 2026-09-30 — PRODUCTION IS BLANK: the API gate is enforcing with no keys
 
 trs-dashboard-pi.vercel.app answers every `/api/**` call with

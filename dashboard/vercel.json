@@ -5,10 +5,6 @@
   "installCommand": "npm install",
   "crons": [
     {
-      "path": "/api/cron/outbound",
-      "schedule": "0 23 * * *"
-    },
-    {
       "path": "/api/cron/inbound-draft-catchup",
       "schedule": "0 5 * * *"
     },
@@ -17,20 +13,16 @@
       "schedule": "0 4 * * *"
     },
     {
-      "path": "/api/cron/daily-lead-discovery",
-      "schedule": "0 2 * * *"
-    },
-    {
-      "path": "/api/cron/daily-signal-scan",
-      "schedule": "30 2 * * *"
-    },
-    {
       "path": "/api/email/ingest?window=1440",
       "schedule": "0 1 * * *"
     },
     {
       "path": "/api/cron/catchup-summaries",
       "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/sales-enrich",
+      "schedule": "30 0 * * *"
     }
   ]
 }

@@ -55,18 +55,20 @@ export const API_RULES: ApiRule[] = [
     reason: 'Recipient-facing unsubscribe link, signed with an HMAC; the recipient has no account.',
   },
   {
-    // Instantly.ai posts reply events here. It cannot hold one of our
-    // keys, so it authenticates with INSTANTLY_WEBHOOK_SECRET in
-    // x-webhook-secret instead.
-    //
-    // Worth knowing: that check is written as "verify IF configured", so
-    // leaving the variable unset silently makes this endpoint accept
-    // anything. That is a fair thing to tighten, but it belongs in the
-    // route rather than here — the gate cannot require a key from a
-    // third-party webhook regardless.
-    prefix: '/api/outbound/webhooks',
+    // TRS's own lead-generation tool posts leads here. It holds SALES_INTAKE_KEY in
+    // x-api-key (32+ characters, compared in constant time in the route), not one of
+    // the dashboard's application keys.
+    prefix: '/api/sales/intake',
     requirement: 'open',
-    reason: 'Third-party webhook from Instantly.ai, authenticated by its own shared secret header.',
+    reason: 'Lead-tool intake, authenticated by its own SALES_INTAKE_KEY header.',
+  },
+  {
+    // Clicked from a campaign email by a recipient with no login. The link carries an HMAC
+    // over the recipient row id (src/lib/sales/unsubscribe.ts); mail clients also POST it
+    // for one-click unsubscribe (RFC 8058).
+    prefix: '/api/public/sales/unsubscribe',
+    requirement: 'open',
+    reason: 'Recipient-facing unsubscribe link, signed with an HMAC; the recipient has no account.',
   },
 ]
 
