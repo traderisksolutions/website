@@ -4,6 +4,41 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-10-12 — Marketing: one article engine for four websites
+
+New top-level **Marketing** section (Articles, Generate, Knowledge, Search Console, Sites).
+Every page carries a site switch between corpcover.com, benefixe.com, newsouthsea.com and
+traderisksolutions.com.sg; everything is keyed by `marketing_sites.id`.
+
+- **Engine** (`content-engine/`, Python, Cloud Run `trs-content-engine` in trs-ai-project): the
+  twelve-stage article generator proven on kyn.com.sg, made multi-site. Each run carries a
+  `site_id`; the site row supplies base URL, blog path, contact URL, brand and topic terms,
+  pillar pages, banned terms, the approval switch and the nightly count. The Kyn contract rules
+  are gone; a site's banned terms (Corp Cover: MAS, Monetary Authority of Singapore, Dollar
+  Bureau) hold an article even when approval is off. 19 offline tests.
+- **Articles** (`/marketing/articles`): the library per site, awaiting approval first. Editor
+  with preview; approve, publish, unpublish, archive; markdown is the source of truth and the
+  HTML and JSON-LD are re-rendered on every save. Imported articles from each site's code via
+  `scripts/import-site-articles.ts`.
+- **Generate** (`/marketing/generate`): focus (product, case study, market, topic, or a Google
+  search), market, language, length, site topic. The run page lists the twelve stages with
+  prompt, inputs, output, sources and cost per stage, the activity log and the draft. Cancel at
+  the next stage; resume a failed run from its last completed stage.
+- **Knowledge** (`/marketing/knowledge`): six sections per site, drawer editor, paste import,
+  readiness per market.
+- **Search Console** (`/marketing/search-console`): Google OAuth per site (the Gmail OAuth
+  client with `/api/marketing/gsc/callback` registered, or `GOOGLE_GSC_CLIENT_ID/_SECRET`),
+  28-day totals, next actions (rewrite the snippet / strengthen the page / write an article,
+  the last prefilled into Generate), top searches and pages. Daily sync cron.
+- **Public feed** `/api/public/blog?site=<domain>[&slug=]`: published articles with HTML, FAQ
+  and JSON-LD, for the sites to render. Open and edge-cached.
+
+Schema: `supabase/migrations/20261012_marketing.sql` (apply before deploying). New env:
+`CONTENT_ENGINE_URL`, `CONTENT_ENGINE_SECRET`; optional `GOOGLE_GSC_CLIENT_ID`,
+`GOOGLE_GSC_CLIENT_SECRET`, `GSC_TOKEN_KEY`. Nightly batch: `scripts/marketing-scheduler.sh`.
+
+---
+
 ## 2026-10-12 — Sales rebuilt: Leads → Contacts → Campaigns
 
 The Apollo/Instantly pipeline (`/pipeline`, `/outbound/*`, `/api/outbound/*`, three daily crons)

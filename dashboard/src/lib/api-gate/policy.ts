@@ -70,6 +70,20 @@ export const API_RULES: ApiRule[] = [
     requirement: 'open',
     reason: 'Recipient-facing unsubscribe link, signed with an HMAC; the recipient has no account.',
   },
+  {
+    // Google redirects the browser back here after Search Console consent. The signed OAuth
+    // state (site id + timestamp, HMAC under AUTH_SECRET) is the credential.
+    prefix: '/api/marketing/gsc/callback',
+    requirement: 'open',
+    reason: 'Google OAuth redirect; a third party cannot send our header and the OAuth state is the check.',
+  },
+  {
+    // The blog feed corpcover.com, benefixe.com and the other sites render from. Published
+    // articles only: there is nothing to protect, and the sites fetch it without credentials.
+    prefix: '/api/public/blog',
+    requirement: 'open',
+    reason: 'Public blog feed of published articles, read by the business\'s own websites.',
+  },
 ]
 
 export function isApiPath(pathname: string): boolean {

@@ -2,7 +2,8 @@ import type { LucideIcon } from 'lucide-react'
 import {
   AlertTriangle, Users, BarChart2, Bot, UsersRound, Cpu, FolderOpen, BookMarked, History,
   Settings, FlaskConical, TrendingUp, ScrollText, Network, HeartPulse, Car,
-  Receipt, CalendarDays, Waypoints, Building2, Link2, Wrench, Home, Landmark, Megaphone, Contact } from 'lucide-react'
+  Receipt, CalendarDays, Waypoints, Building2, Link2, Wrench, Home, Landmark, Megaphone, Contact,
+  Newspaper, Sparkles, Library, Search, Globe } from 'lucide-react'
 
 export type NavLink = {
   title: string
@@ -66,6 +67,20 @@ export const NAV_SECTIONS: NavSection[] = [
       { title: 'Leads',     href: '/sales/leads',     icon: Waypoints, description: 'Companies from the lead tool, strongest first, with the draft to approve' },
       { title: 'Contacts',  href: '/sales/contacts',  icon: Contact,   description: 'Every address TRS may write to: prospects, clients, enquiries' },
       { title: 'Campaigns', href: '/sales/campaigns', icon: Megaphone, description: 'Email sequences sent as sales@, each recipient approved first' },
+    ],
+  },
+  // One article library, knowledge bank and search view per website the business owns;
+  // every page switches between corpcover.com, benefixe.com, newsouthsea.com and
+  // traderisksolutions.com.sg.
+  {
+    label: 'Marketing',
+    icon: Newspaper,
+    items: [
+      { title: 'Articles',       href: '/marketing/articles',       icon: Newspaper, description: 'Every article per site: awaiting approval, published, drafts' },
+      { title: 'Generate',       href: '/marketing/generate',       icon: Sparkles,  description: 'Start an engine run and follow its twelve stages' },
+      { title: 'Knowledge',      href: '/marketing/knowledge',      icon: Library,   description: 'The facts the engine may write from, per site' },
+      { title: 'Search Console', href: '/marketing/search-console', icon: Search,    description: 'Google impressions, positions and what to write next' },
+      { title: 'Sites',          href: '/marketing/sites',          icon: Globe,     description: 'Base URL, contact link, topics, banned terms, approval, nightly count' },
     ],
   },
   { label: 'Calendar',  href: '/calendar', icon: CalendarDays },

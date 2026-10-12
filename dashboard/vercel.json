@@ -23,6 +23,10 @@
     {
       "path": "/api/cron/sales-enrich",
       "schedule": "30 0 * * *"
+    },
+    {
+      "path": "/api/cron/gsc-sync",
+      "schedule": "0 2 * * *"
     }
   ]
 }
