@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
 import { site } from "@/site";
-import { articles } from "@/content/articles";
+import { getGuides } from "@/lib/blog-api";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const articles = await getGuides();
   return [
     { url: site.url, changeFrequency: "weekly", priority: 1 },
     { url: `${site.url}/about`, changeFrequency: "monthly", priority: 0.6 },

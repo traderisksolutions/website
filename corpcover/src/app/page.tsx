@@ -5,10 +5,14 @@ import { FaqStory } from "@/components/faq-story";
 import { Hero } from "@/components/hero";
 import { faqs } from "@/content/faq";
 import { JsonLd, faqPage } from "@/lib/json-ld";
+import { getGuides } from "@/lib/blog-api";
 
 export const metadata: Metadata = { alternates: { canonical: "/" }, twitter: { card: "summary_large_image" } };
 
-export default function Home() {
+export const revalidate = 300;
+
+export default async function Home() {
+  const articles = await getGuides();
   return (
     <main className="flex-1">
       <JsonLd data={faqPage(faqs)} />
@@ -16,7 +20,7 @@ export default function Home() {
 
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
         <section id="guides" aria-label="Guides" className="scroll-mt-20 pb-12 pt-3.5">
-          <ArticleFeed action={<Link href="/articles" className="glass shrink-0 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.08em]">View all</Link>} />
+          <ArticleFeed articles={articles} action={<Link href="/articles" className="glass shrink-0 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.08em]">View all</Link>} />
         </section>
 
         <section id="faq" className="scroll-mt-20 border-t border-rule pb-16 pt-14 lg:pb-24 lg:pt-20">

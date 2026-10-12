@@ -3,12 +3,12 @@
 import { useSearchParams } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { ArticleCard } from "./article-card";
-import { articles, topics, type Topic } from "@/content/articles";
+import { topics, type Article, type Topic } from "@/content/articles";
 
 const options: ("All" | Topic)[] = ["All", ...topics];
 
 /** Guides in four columns, filtered by topic. */
-export function ArticleFeed({ action, onPhoto = false, initial = "All" }: { action?: ReactNode; onPhoto?: boolean; initial?: "All" | Topic }) {
+export function ArticleFeed({ articles, action, onPhoto = false, initial = "All" }: { articles: Article[]; action?: ReactNode; onPhoto?: boolean; initial?: "All" | Topic }) {
   const [topic, setTopic] = useState<"All" | Topic>(initial);
   const shown = articles.filter(a => topic === "All" || a.topic === topic);
 
@@ -40,8 +40,8 @@ export function ArticleFeed({ action, onPhoto = false, initial = "All" }: { acti
 }
 
 /** The feed opened on the topic named in ?topic=, as linked from the Resources menu. */
-export function ArticleFeedFromUrl() {
+export function ArticleFeedFromUrl({ articles }: { articles: Article[] }) {
   const t = useSearchParams().get("topic");
   const initial = topics.find(x => x === t) ?? "All";
-  return <ArticleFeed key={initial} initial={initial} />;
+  return <ArticleFeed key={initial} articles={articles} initial={initial} />;
 }

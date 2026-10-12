@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { blogs, bySlug, formatDate, type Block } from "@/content/blogs";
+import { blogs, formatDate, type Block } from "@/content/blogs";
+import { getPost, getPosts, splitIntro } from "@/lib/blog-api";
 import { BlogCard } from "@/components/blog-card";
 import { BlogCover } from "@/components/blog-cover";
 import { ShareButton } from "@/components/share-button";
@@ -9,14 +10,17 @@ import { TocRail } from "@/components/toc-rail";
 import { JsonLd, blogLd } from "@/lib/json-ld";
 import { site } from "@/site";
 
-export const dynamicParams = false;
+// Feed articles are rendered on demand and revalidated every five minutes; the hand-written
+// ones are prebuilt.
+export const dynamicParams = true;
+export const revalidate = 300;
 
 export function generateStaticParams() {
   return blogs.map(b => ({ slug: b.slug }));
 }
 
 export async function generateMetadata(props: PageProps<"/blogs/[slug]">): Promise<Metadata> {
-  const b = bySlug((await props.params).slug);
+  const b = await getPost((await props.params).slug);
   if (!b) return {};
   return {
     title: b.title,
@@ -36,11 +40,12 @@ function Body({ block }: { block: Block }) {
 
 /** Lenny's article layout (as on corpcover), set in the benefixe system. */
 export default async function BlogPage(props: PageProps<"/blogs/[slug]">) {
-  const b = bySlug((await props.params).slug);
+  const b = await getPost((await props.params).slug);
   if (!b) notFound();
   const [intro, ...rest] = b.body;
-  const toc = b.body.filter(x => x.type === "h2").map(x => ({ id: anchor(x.text), text: x.text }));
-  const more = blogs.filter(x => x.slug !== b.slug).slice(0, 3);
+  const html = b.html ? splitIntro(b.html) : null;
+  const toc = b.headings ?? b.body.filter(x => x.type === "h2").map(x => ({ id: anchor(x.text), text: x.text }));
+  const more = (await getPosts()).filter(x => x.slug !== b.slug).slice(0, 3);
 
   return (
     <main className="flex-1">
@@ -64,13 +69,15 @@ export default async function BlogPage(props: PageProps<"/blogs/[slug]">) {
           <ShareButton title={b.title} />
         </div>
 
-        {intro && <div className="prose-post mt-8"><Body block={intro} /></div>}
+        {html ? <div className="prose-post mt-8" dangerouslySetInnerHTML={{ __html: html.intro }} /> : intro && <div className="prose-post mt-8"><Body block={intro} /></div>}
 
         <figure className="mt-8 aspect-[16/9] overflow-hidden rounded-[14px]"><BlogCover blog={b} /></figure>
 
-        <div className="prose-post mt-4">
-          {rest.map((x, i) => <Body key={i} block={x} />)}
-        </div>
+        {html ? <div className="prose-post mt-4" dangerouslySetInnerHTML={{ __html: html.rest }} /> : (
+          <div className="prose-post mt-4">
+            {rest.map((x, i) => <Body key={i} block={x} />)}
+          </div>
+        )}
 
         <p className="mt-12 border-t border-rule pt-5 text-[13px] text-ink-3">General information, not advice on a specific policy. Terms differ by insurer.</p>
 

@@ -2,13 +2,13 @@
 
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { blogs, topics, type Topic } from "@/content/blogs";
+import { topics, type Blog, type Topic } from "@/content/blogs";
 import { BlogCard } from "./blog-card";
 
 const options: ("All" | Topic)[] = ["All", ...topics];
 
 /** Blogs in three columns, filtered by topic. */
-export function BlogFeed({ initial = "All" }: { initial?: "All" | Topic }) {
+export function BlogFeed({ blogs, initial = "All" }: { blogs: Blog[]; initial?: "All" | Topic }) {
   const [topic, setTopic] = useState<"All" | Topic>(initial);
   const shown = blogs.filter(b => topic === "All" || b.topic === topic);
   return (
@@ -29,8 +29,8 @@ export function BlogFeed({ initial = "All" }: { initial?: "All" | Topic }) {
 }
 
 /** The feed opened on the topic named in ?topic=, as linked from the Resources menu. */
-export function BlogFeedFromUrl() {
+export function BlogFeedFromUrl({ blogs }: { blogs: Blog[] }) {
   const t = useSearchParams().get("topic");
   const initial = topics.find(x => x === t) ?? "All";
-  return <BlogFeed key={initial} initial={initial} />;
+  return <BlogFeed key={initial} blogs={blogs} initial={initial} />;
 }

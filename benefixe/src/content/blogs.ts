@@ -13,7 +13,8 @@ export type Blog = {
   slug: string;
   title: string;
   dek: string;
-  topic: Topic;
+  /** One of the site topics, or "Blogs" for a feed article not yet filed under one. */
+  topic: Topic | "Blogs";
   published: string; // YYYY-MM-DD
   updated?: string;
   minutes: number;

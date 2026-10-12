@@ -12,7 +12,8 @@ export type Article = {
   slug: string;
   title: string;
   dek: string;
-  topic: Topic;
+  /** One of the site topics, or "Guides" for a feed article not yet filed under one. */
+  topic: Topic | "Guides";
   published: string; // YYYY-MM-DD
   /** Last substantive revision, YYYY-MM-DD. Omit until the guide is revised. */
   updated?: string;

@@ -1,19 +1,20 @@
 import { ImageResponse } from "next/og";
-import { articles, bySlug } from "@/content/articles";
+import { articles } from "@/content/articles";
+import { getGuide } from "@/lib/blog-api";
 import { site } from "@/site";
 import { og, ogContentType, ogFonts, ogSize } from "@/lib/og";
 
 export const alt = `${site.name} guide`;
 export const size = ogSize;
 export const contentType = ogContentType;
-export const dynamicParams = false;
+export const dynamicParams = true;
 
 export function generateStaticParams() {
   return articles.map(a => ({ slug: a.slug }));
 }
 
 export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
-  const a = bySlug((await params).slug);
+  const a = await getGuide((await params).slug);
   if (!a) return new Response("Not found", { status: 404 });
   const titleSize = a.title.length > 40 ? 68 : 80;
 

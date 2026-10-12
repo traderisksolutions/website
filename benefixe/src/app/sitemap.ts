@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
 import { site } from "@/site";
-import { blogs } from "@/content/blogs";
+import { getPosts } from "@/lib/blog-api";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const blogs = await getPosts();
   return [
     { url: site.url, changeFrequency: "monthly", priority: 1 },
     { url: `${site.url}/group-benefits`, changeFrequency: "monthly", priority: 0.9 },

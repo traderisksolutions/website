@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { articles, bySlug, formatDate, type Block } from "@/content/articles";
+import { articles, formatDate, type Block } from "@/content/articles";
+import { getGuide, getGuides, splitIntro } from "@/lib/blog-api";
 import { ArticleCard } from "@/components/article-card";
 import { CoverArt } from "@/components/cover-art";
 import { ShareButton } from "@/components/share-button";
@@ -10,14 +11,17 @@ import { site } from "@/site";
 import { StartButton } from "@/components/start-actions";
 import { JsonLd, articleLd } from "@/lib/json-ld";
 
-export const dynamicParams = false;
+// Feed articles are rendered on demand and revalidated every five minutes; the hand-written
+// ones are prebuilt.
+export const dynamicParams = true;
+export const revalidate = 300;
 
 export function generateStaticParams() {
   return articles.map(a => ({ slug: a.slug }));
 }
 
 export async function generateMetadata(props: PageProps<"/articles/[slug]">): Promise<Metadata> {
-  const a = bySlug((await props.params).slug);
+  const a = await getGuide((await props.params).slug);
   if (!a) return {};
   return {
     title: a.title,
@@ -38,11 +42,12 @@ function Body({ block }: { block: Block }) {
 
 /** Lenny's article layout: title, subtitle, byline, actions, publisher's note, intro, cover, body. */
 export default async function ArticlePage(props: PageProps<"/articles/[slug]">) {
-  const a = bySlug((await props.params).slug);
+  const a = await getGuide((await props.params).slug);
   if (!a) notFound();
   const [intro, ...rest] = a.body;
-  const toc = a.body.filter(b => b.type === "h2").map(b => ({ id: anchor(b.text), text: b.text }));
-  const more = articles.filter(x => x.slug !== a.slug).slice(0, 3);
+  const html = a.html ? splitIntro(a.html) : null;
+  const toc = a.headings ?? a.body.filter(b => b.type === "h2").map(b => ({ id: anchor(b.text), text: b.text }));
+  const more = (await getGuides()).filter(x => x.slug !== a.slug).slice(0, 3);
 
   return (
     <main className="flex-1">
@@ -76,16 +81,18 @@ export default async function ArticlePage(props: PageProps<"/articles/[slug]">) 
         </div>
 
         <hr className="my-8 border-rule" />
-        {intro && <div className="prose-post"><Body block={intro} /></div>}
+        {html ? <div className="prose-post" dangerouslySetInnerHTML={{ __html: html.intro }} /> : intro && <div className="prose-post"><Body block={intro} /></div>}
         <hr className="my-8 border-rule" />
 
         <figure className="aspect-[3/2] overflow-hidden rounded-2xl">
           <CoverArt article={a} />
         </figure>
 
-        <div className="prose-post mt-8">
-          {rest.map((b, i) => <Body key={i} block={b} />)}
-        </div>
+        {html ? <div className="prose-post mt-8" dangerouslySetInnerHTML={{ __html: html.rest }} /> : (
+          <div className="prose-post mt-8">
+            {rest.map((b, i) => <Body key={i} block={b} />)}
+          </div>
+        )}
 
         <hr className="my-10 border-rule" />
         <div className="flex items-center justify-between gap-3">
