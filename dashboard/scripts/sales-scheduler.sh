@@ -11,7 +11,7 @@
 set -euo pipefail
 APP="${1:-https://trs-dashboard-pi.vercel.app}"
 PROJ=trs-ai-project; REGION=asia-southeast1; ACCT=developer@trade-risksol.com
-: "${CRON_SECRET:?CRON_SECRET is required (the dashboard's Vercel CRON_SECRET)}"
+: "${CRON_SECRET:?CRON_SECRET is required (the dashboard Vercel CRON_SECRET)}"
 
 upsert() {
   local name=$1 schedule=$2 path=$3
