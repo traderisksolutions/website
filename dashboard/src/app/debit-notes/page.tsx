@@ -680,7 +680,7 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
 
             <div className="flex items-center justify-between px-4 pt-3 pb-1">
               <div className="flex items-center gap-2">
-                <a href={`/api/debit-notes/${id}/pdf`} target="_blank" rel="noreferrer"><Button variant="outline" size="sm"><Download size={13} className="mr-1.5" /> PDF</Button></a>
+                <a href={`/api/debit-notes/${id}/pdf`} target="_blank" rel="noreferrer" title="Opens the PDF in Google Drive"><Button variant="outline" size="sm"><Download size={13} className="mr-1.5" /> PDF</Button></a>
                 <Button variant="outline" size="sm" onClick={() => setSendPickerOpen(true)} disabled={!detail.contacts?.email || !detail.attachment_files?.length}>
                   <Send size={13} className="mr-1.5" /> Send documents
                 </Button>

@@ -129,3 +129,49 @@ export async function archiveDebitNoteToDrive(
   }
   return getFolderWebLink(companyFolderId, token)
 }
+
+// ── Reading a debit note's PDF back out of its Drive folder ──────────────────────────────────
+// Since the move to GCP the Supabase storage path on debit_notes.pdf_storage_url is dead
+// (trs-api answers "trs api" for any /storage/* request). The Drive folder on
+// debit_notes.drive_folder_url is the record: 409 of 410 notes have one.
+
+/** The folder id in a Drive folder link, or null. */
+export function folderIdFromUrl(url: string | null | undefined): string | null {
+  const m = (url ?? '').match(/\/folders\/([A-Za-z0-9_-]{10,})/)
+  return m ? m[1] : null
+}
+
+export type DriveFileRef = { id: string; name: string; mimeType?: string; webViewLink?: string; modifiedTime?: string }
+
+/** Which file in a company folder is this debit note's PDF. Exact "DN.pdf" (the generated one)
+ *  first, then the newest PDF whose name carries the number (imported source files are
+ *  prefixed with it), then the folder's only PDF. Null means open the folder instead. Pure. */
+export function pickDebitNotePdf(files: DriveFileRef[], debitNoteNo: string): DriveFileRef | null {
+  const dn = debitNoteNo.replace(/\s+/g, '').toLowerCase()
+  const pdfs = files.filter(f => (f.mimeType ?? '').includes('pdf') || /\.pdf$/i.test(f.name))
+  const norm = (s: string) => s.replace(/\s+/g, '').toLowerCase()
+  const exact = pdfs.find(f => norm(f.name) === `${dn}.pdf`)
+  if (exact) return exact
+  const named = pdfs.filter(f => norm(f.name).includes(dn)).sort((a, b) => (b.modifiedTime ?? '').localeCompare(a.modifiedTime ?? ''))
+  if (named[0]) return named[0]
+  return pdfs.length === 1 ? pdfs[0] : null
+}
+
+/** Lists a folder's files (name, type, link, modified). */
+export async function listFolderFiles(folderId: string, token: string): Promise<DriveFileRef[]> {
+  const q = encodeURIComponent(`'${folderId}' in parents and trashed=false`)
+  const res = await fetch(`${DRIVE_API}/files?q=${q}&fields=files(id,name,mimeType,webViewLink,modifiedTime)&pageSize=1000&supportsAllDrives=true&includeItemsFromAllDrives=true`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) throw new Error(`Drive list failed: ${(await res.text()).slice(0, 200)}`)
+  return ((await res.json()) as { files?: DriveFileRef[] }).files ?? []
+}
+
+/** The link to open for a debit note: its PDF in Drive when one can be told apart, else the folder. */
+export async function debitNoteDriveLink(folderUrl: string, debitNoteNo: string): Promise<{ url: string; kind: 'file' | 'folder' }> {
+  const folderId = folderIdFromUrl(folderUrl)
+  if (!folderId) return { url: folderUrl, kind: 'folder' }
+  const token = await getDriveWriteToken()
+  const file = pickDebitNotePdf(await listFolderFiles(folderId, token), debitNoteNo)
+  return file?.webViewLink ? { url: file.webViewLink, kind: 'file' } : { url: folderUrl, kind: 'folder' }
+}
