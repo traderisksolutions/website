@@ -17,12 +17,26 @@ export function FaqStory() {
   const refs = useRef<(HTMLElement | null)[]>([]);
   const scripts = useMemo(() => faqs.map(f => ({ id: f.q, q: f.q, a: faqAnswer(f) })), []);
 
+  // Active question: the one whose centre is nearest the middle of the screen, so one is always lit.
   useEffect(() => {
-    const io = new IntersectionObserver(entries => {
-      for (const e of entries) if (e.isIntersecting) setActive(Number((e.target as HTMLElement).dataset.i));
-    }, { rootMargin: "-45% 0px -45% 0px" });
-    refs.current.forEach(el => el && io.observe(el));
-    return () => io.disconnect();
+    let frame = 0;
+    const pick = () => {
+      frame = 0;
+      const mid = innerHeight / 2;
+      let best = 0, bestD = Infinity;
+      refs.current.forEach((el, i) => {
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        const d = Math.abs(r.top + r.height / 2 - mid);
+        if (d < bestD) { bestD = d; best = i; }
+      });
+      setActive(best);
+    };
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(pick); };
+    pick();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => { window.removeEventListener("scroll", onScroll); window.removeEventListener("resize", onScroll); cancelAnimationFrame(frame); };
   }, []);
 
   return (
@@ -31,8 +45,8 @@ export function FaqStory() {
         {faqs.map((f, i) => {
           const on = i === active;
           return (
-            <li key={f.q} ref={el => { refs.current[i] = el; }} data-i={i} className="flex flex-col justify-center lg:min-h-[50svh]">
-              <h3 className={`flex items-start gap-3.5 text-[clamp(1.7rem,3.4vw,2.75rem)] font-normal leading-[1.08] tracking-[-0.035em] transition-colors duration-500 motion-reduce:transition-none ${on ? "text-ink" : "lg:text-ink/20"}`}>
+            <li key={f.q} ref={el => { refs.current[i] = el; }} className="flex flex-col justify-center lg:min-h-[50svh]">
+              <h3 className={`flex items-start gap-3.5 text-[clamp(1.7rem,3.4vw,2.75rem)] font-semibold leading-[1.1] tracking-[-0.025em] transition-colors duration-500 motion-reduce:transition-none ${on ? "text-ink" : "lg:text-ink/20"}`}>
                 <Glyph name={f.icon} />{f.q}
               </h3>
               <p className={`mt-4 max-w-[42ch] text-[1.1rem] leading-relaxed transition-colors duration-500 motion-reduce:transition-none lg:mt-5 lg:text-[1.25rem] ${on ? "text-ink" : "text-ink lg:text-ink/20"}`}>{f.a}</p>
@@ -48,14 +62,14 @@ export function FaqStory() {
 
       {/* Desktop: one sticky chat holding the whole conversation. It plays once and does not follow the scroll. */}
       <div className="hidden lg:block">
-        <div className="sticky top-[calc(50svh-min(34svh,290px))]">
-          <Chat sequence={scripts} className="h-[min(68svh,580px)]" />
+        <div className="sticky top-[calc(36px+50svh-min(31svh,270px))]">
+          <Chat sequence={scripts} className="h-[min(62svh,540px)]" />
         </div>
       </div>
 
       {/* Phone and tablet: one chat after the questions. */}
       <div className="lg:hidden">
-        <h3 className="text-[1.5rem] font-normal tracking-[-0.03em]">Ask a question</h3>
+        <h3 className="text-[1.5rem] font-semibold tracking-[-0.02em]">Ask a question</h3>
         <Chat suggestions={scripts} className="mt-4 h-[min(72svh,520px)]" />
       </div>
     </div>

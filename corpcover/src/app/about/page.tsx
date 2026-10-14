@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { StartButton } from "@/components/start-actions";
 import { site } from "@/site";
 
@@ -9,12 +10,6 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image" },
 };
 
-const services = [
-  { title: "Blogs", text: "Plain guides to the policies Singapore companies hold, by topic." },
-  { title: "Policy review", text: "Upload a current policy. An adviser checks the gaps, the overlaps and the price." },
-  { title: "Adviser matching", text: "Independent financial advisers who broker business insurance across several insurers." },
-];
-
 const fees = [
   ["Corp Cover fee", "S$0"],
   ["Adviser fee", "S$0"],
@@ -22,49 +17,50 @@ const fees = [
   ["Obligation to buy", "None"],
 ];
 
-export default function About() {
-  const tel = `tel:+65${site.phone.replace(/\s/g, "")}`;
-  return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-12 sm:px-6 lg:py-20">
-      <h1 className="max-w-[18ch] text-[clamp(2.4rem,5.5vw,4.5rem)] font-normal leading-[1.02] tracking-[-0.045em]">About Corp Cover</h1>
-      <p className="mt-6 max-w-[52ch] text-[clamp(1.1rem,1.6vw,1.35rem)] leading-relaxed text-ink-2">
-        Corp Cover publishes plain guides to business insurance for Singapore companies, and connects companies with independent advisers who compare cover across insurers. Free to use.
-      </p>
-      <div className="mt-8 flex flex-wrap gap-3">
-        <StartButton flow="chat" className="glass-primary px-6 py-3 text-sm font-semibold">Ask a question</StartButton>
-        <StartButton className="glass px-6 py-3 text-sm font-medium">Start here</StartButton>
-      </div>
+const tileClass = "grid content-start gap-2.5 rounded-[24px] bg-paper p-7 text-left transition-transform duration-300 hover:-translate-y-0.5 motion-reduce:transition-none";
 
-      <section className="mt-20 border-t border-rule pt-10">
-        <h2 className="text-[1.75rem] font-normal tracking-[-0.03em]">Services</h2>
-        <div className="mt-8 grid gap-x-10 gap-y-8 md:grid-cols-3">
-          {services.map(s => (
-            <div key={s.title}>
-              <h3 className="text-lg font-medium">{s.title}</h3>
-              <p className="mt-2 leading-relaxed text-ink-2">{s.text}</p>
-            </div>
-          ))}
+export default function About() {
+  return (
+    <main className="flex-1">
+      <section className="wrap pb-14 pt-[clamp(48px,8vw,104px)]">
+        <h1 className="text-[clamp(3rem,7vw,5.6rem)] font-semibold leading-[1.02] tracking-[-0.035em]">About Corp Cover</h1>
+        <p className="mt-5 max-w-[44ch] text-[clamp(1.2rem,1.9vw,1.6rem)] leading-[1.35] tracking-[-0.015em] text-ink-2">
+          Corp Cover publishes plain guides to business insurance for Singapore companies, and connects companies with independent advisers who compare cover across insurers. Free to use.
+        </p>
+        <div className="mt-7 flex flex-wrap gap-2.5">
+          <StartButton flow="chat" className="btn btn-primary">Ask a question</StartButton>
+          <Link href="/policy-review" className="btn btn-ghost">Policy review</Link>
         </div>
       </section>
 
-      <section className="mt-16 border-t border-rule pt-10">
-        <h2 className="text-[1.75rem] font-normal tracking-[-0.03em]">Fees</h2>
-        <dl className="mt-6 max-w-xl divide-y divide-rule border-y border-rule">
-          {fees.map(([k, v]) => (
-            <div key={k} className="flex items-baseline justify-between gap-4 py-4">
-              <dt className="text-ink-2">{k}</dt><dd className="text-right font-medium">{v}</dd>
-            </div>
-          ))}
-        </dl>
+      <section className="bg-base py-[clamp(56px,8vw,96px)]">
+        <div className="wrap">
+          <h2 className="text-[clamp(1.8rem,3.2vw,2.6rem)] font-semibold leading-[1.1] tracking-[-0.025em]">Services</h2>
+          <div className="mt-8 grid gap-4 lg:grid-cols-3">
+            <Link href="/articles" className={tileClass}><b className="text-[21px] font-semibold tracking-[-0.02em]">Blogs</b><span className="text-ink-2">Plain guides to the policies Singapore companies hold, by topic.</span></Link>
+            <Link href="/policy-review" className={tileClass}><b className="text-[21px] font-semibold tracking-[-0.02em]">Policy review</b><span className="text-ink-2">Upload a current policy. An adviser checks the gaps, the overlaps and the price.</span></Link>
+            <StartButton flow="chat" className={tileClass}><b className="text-[21px] font-semibold tracking-[-0.02em]">Adviser matching</b><span className="text-ink-2">Independent financial advisers who broker business insurance across several insurers.</span></StartButton>
+          </div>
+        </div>
       </section>
 
-      <section className="mt-16 border-t border-rule pt-10">
-        <h2 className="text-[1.75rem] font-normal tracking-[-0.03em]">Contact</h2>
-        <dl className="mt-6 grid max-w-xl gap-4 sm:grid-cols-[8rem_1fr]">
-          <dt className="text-ink-3">Phone</dt><dd><a href={tel} className="font-medium text-accent hover:underline">{site.phone}</a></dd>
-          <dt className="text-ink-3">Email</dt><dd><a href={`mailto:${site.email}`} className="font-medium text-accent hover:underline">{site.email}</a></dd>
-          <dt className="text-ink-3">Address</dt><dd className="text-ink-2">{site.address}</dd>
-        </dl>
+      <section className="wrap grid gap-14 pb-[clamp(80px,10vw,140px)] pt-[clamp(56px,8vw,104px)] lg:grid-cols-2">
+        <div>
+          <h2 className="text-[clamp(1.8rem,3.2vw,2.6rem)] font-semibold leading-[1.1] tracking-[-0.025em]">Fees</h2>
+          <dl className="mt-6 border-t border-rule">
+            {fees.map(([k, v]) => (
+              <div key={k} className="flex justify-between gap-6 border-b border-rule py-4"><dt className="text-ink-2">{k}</dt><dd className="text-right font-medium">{v}</dd></div>
+            ))}
+          </dl>
+        </div>
+        <div>
+          <h2 className="text-[clamp(1.8rem,3.2vw,2.6rem)] font-semibold leading-[1.1] tracking-[-0.025em]">Contact</h2>
+          <dl className="mt-6 border-t border-rule">
+            <div className="flex justify-between gap-6 border-b border-rule py-4"><dt className="text-ink-2">Phone</dt><dd><a href={`tel:+65${site.phone.replace(/\s/g, "")}`} className="font-medium hover:text-accent">+65 {site.phone}</a></dd></div>
+            <div className="flex justify-between gap-6 border-b border-rule py-4"><dt className="text-ink-2">Email</dt><dd><a href={`mailto:${site.email}`} className="font-medium hover:text-accent">{site.email}</a></dd></div>
+            <div className="flex justify-between gap-6 border-b border-rule py-4"><dt className="text-ink-2">Address</dt><dd className="max-w-[60%] text-right font-medium">{site.address}</dd></div>
+          </dl>
+        </div>
       </section>
     </main>
   );

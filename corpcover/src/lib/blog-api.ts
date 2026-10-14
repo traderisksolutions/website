@@ -38,7 +38,8 @@ function fromRemote(r: Remote): Guide {
     topic,
     published: r.published_at.slice(0, 10),
     updated: r.updated_at.slice(0, 10) !== r.published_at.slice(0, 10) ? r.updated_at.slice(0, 10) : undefined,
-    minutes: r.reading_minutes,
+    // The feed's reading time can undercount; never show less than the local copy of the same guide says.
+    minutes: Math.max(r.reading_minutes, localArticles.find(l => l.slug === r.slug)?.minutes ?? 0),
     art: ART_BY_TOPIC[topic] ?? "document",
     cover: coverLines(r.title),
     body: [],

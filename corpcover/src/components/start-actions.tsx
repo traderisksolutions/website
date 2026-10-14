@@ -54,7 +54,7 @@ function Chooser({ onPick }: { onPick: (f: Flow) => void }) {
   const tel = `tel:+65${site.phone.replace(/\s/g, "")}`;
   return (
     <div>
-      <h2 className="text-[1.75rem] font-normal leading-tight tracking-[-0.035em] sm:text-[2.1rem]">How would you like to start?</h2>
+      <h2 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.025em] sm:text-[2.1rem]">How would you like to start?</h2>
       <p className="mt-1.5 text-ink-2">No fee. No obligation to buy.</p>
       <div className="mt-6 space-y-2.5">
         <Option icon="chat" title="Ask a question" text="Answers in seconds. An adviser takes over when you need one." onClick={() => onPick("chat")} />
@@ -94,7 +94,7 @@ function Option({ icon, title, text, onClick }: { icon: keyof typeof optionIcons
 function ChatFlow() {
   return (
     <div>
-      <h2 className="text-[1.75rem] font-normal leading-tight tracking-[-0.035em] sm:text-[2.1rem]">Ask a question</h2>
+      <h2 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.025em] sm:text-[2.1rem]">Ask a question</h2>
       <p className="mt-1.5 text-ink-2">Business insurance in Singapore. An adviser takes over when you need one.</p>
       <Chat suggestions={suggestions} className="mt-5 h-[min(58dvh,500px)]" />
     </div>
@@ -154,7 +154,8 @@ function useSubmit(subject: string, build: (fd: FormData) => void) {
 
 /* ── Policy review ─────────────────────────────────────────────── */
 
-function ReviewFlow() {
+/** Also used inline on /policy-review, where the heading sits left. */
+export function ReviewFlow({ inline = false }: { inline?: boolean }) {
   const [file, setFile] = useState<File | null>(null);
   const [drag, setDrag] = useState(false);
   const input = useRef<HTMLInputElement>(null);
@@ -168,7 +169,7 @@ function ReviewFlow() {
   const pick = (f: File | undefined) => f && setFile(f);
   return (
     <form onSubmit={onSubmit} className="space-y-5">
-      <h2 className="text-center text-2xl font-bold tracking-tight">Upload your current policy</h2>
+      <h2 className={`${inline ? "" : "text-center "}text-2xl font-semibold tracking-[-0.02em]`}>Upload your current policy</h2>
       <button
         type="button"
         onClick={() => input.current?.click()}

@@ -195,7 +195,7 @@ export function Chat({ sequence, onActive, jump, suggestions, className = "" }: 
   const showChips = suggestions && !empty && !busy && !live;
 
   return (
-    <div ref={root} className={`chat flex flex-col overflow-hidden rounded-[28px] border border-rule bg-[#f8f7f6] ${className}`}>
+    <div ref={root} className={`chat flex flex-col overflow-hidden rounded-[28px] border border-rule bg-base ${className}`}>
       <div ref={log} onScroll={onScroll} className="relative flex-1 space-y-5 overflow-y-auto px-5 pb-4 pt-6 sm:px-7" aria-live="polite">
         {empty && suggestions && (
           <div className="flex h-full flex-col justify-end gap-1">
@@ -209,7 +209,7 @@ export function Chat({ sequence, onActive, jump, suggestions, className = "" }: 
         )}
         {msgs.map((m, i) => m.role === "user" ? (
           <div key={i} data-qi={m.qi} className="chat-in flex justify-end">
-            <p className="max-w-[85%] rounded-[22px] border border-rule bg-[#efedeb] px-4 py-2.5 text-[0.98rem] leading-snug">{m.text}</p>
+            <p className="max-w-[85%] rounded-[22px] border border-rule bg-[#e8e8ed] px-4 py-2.5 text-[0.98rem] leading-snug">{m.text}</p>
           </div>
         ) : (
           <div key={i} className="chat-in">

@@ -1,41 +1,25 @@
+import Image from "next/image";
 import Link from "next/link";
 import { CoverArt } from "./cover-art";
-import { formatDate, type Article } from "@/content/articles";
+import { blogPhotos } from "@/lib/blog-photos";
+import type { Article } from "@/content/articles";
 
-export function ArticleMeta({ article }: { article: Article }) {
+/** Alps Wills card: rounded 4:3 photo with the topic on it, then the number and the title. */
+export function ArticleCard({ article, n }: { article: Article; n?: number }) {
+  const photo = blogPhotos[article.slug];
   return (
-    <p className="eyebrow mt-1.5">
-      {formatDate(article.published)} · {article.minutes} min read
-    </p>
-  );
-}
-
-export function ArticleCard({ article }: { article: Article }) {
-  return (
-    <Link href={`/articles/${article.slug}`} className="group flex flex-col">
-      <div className="aspect-[3/2] overflow-hidden rounded-md sm:aspect-[16/9] lg:[@media(max-height:880px)]:aspect-[2/1] lg:[@media(max-height:760px)]:aspect-[5/2]">
-        <div className="h-full transition-transform duration-300 group-hover:scale-[1.02] motion-reduce:transition-none">
-          <CoverArt article={article} />
-        </div>
-      </div>
-      <h3 className="mt-2.5 text-[1.05rem] font-semibold leading-snug tracking-tight group-hover:underline lg:[@media(max-height:760px)]:line-clamp-1">{article.title}</h3>
-      <p className="mt-1 line-clamp-1 text-[0.92rem] text-ink-2 [@media(max-height:1000px)]:hidden">{article.dek}</p>
-      <ArticleMeta article={article} />
-    </Link>
-  );
-}
-
-/** Compact row item: title and meta on the left, a square thumbnail on the right. */
-export function ArticleRow({ article }: { article: Article }) {
-  return (
-    <Link href={`/articles/${article.slug}`} className="group flex items-start justify-between gap-4">
-      <div className="min-w-0">
-        <p className="font-semibold leading-snug group-hover:underline">{article.title}</p>
-        <ArticleMeta article={article} />
-      </div>
-      <div className="size-16 shrink-0 overflow-hidden rounded-md">
-        <CoverArt article={article} compact />
-      </div>
+    <Link href={`/articles/${article.slug}`} className="bcard group block">
+      <span className="bcard-img relative block aspect-[4/3] overflow-hidden rounded-[24px] bg-ink/5">
+        {photo
+          ? <Image src={photo} alt="" fill sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" placeholder="blur" className="object-cover" />
+          : <CoverArt article={article} />}
+        <span className="absolute left-3.5 top-3.5 rounded-full bg-white/90 px-3 py-1.5 text-[13px] font-medium text-ink backdrop-blur">{article.topic}</span>
+      </span>
+      <span className="mt-4 flex items-baseline gap-3 text-[clamp(1.2rem,1.5vw,1.45rem)] font-semibold leading-[1.28] tracking-[-0.02em]">
+        {n !== undefined && <span className="flex-none text-base font-normal tabular-nums text-black/35">{String(n).padStart(2, "0")}</span>}
+        <span className="group-hover:underline group-hover:decoration-1 group-hover:underline-offset-4">{article.title}</span>
+      </span>
+      <span className={`mt-1.5 block text-sm text-ink-3 ${n !== undefined ? "pl-[calc(2ch+0.75rem)]" : ""}`}>{article.minutes} min read</span>
     </Link>
   );
 }

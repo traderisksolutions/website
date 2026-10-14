@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { ArticleFeed, ArticleFeedFromUrl } from "@/components/article-feed";
+import { BlogGrid, BlogGridFromUrl } from "@/components/blog-grid";
 import { getGuides } from "@/lib/blog-api";
 
 export const metadata: Metadata = { title: "Blogs", description: "Plain guides to business insurance in Singapore, by topic.", alternates: { canonical: "/articles" }, twitter: { card: "summary_large_image" } };
@@ -10,14 +10,14 @@ export const revalidate = 300;
 export default async function Blogs() {
   const articles = await getGuides();
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 lg:py-14">
-      <div className="flex items-baseline justify-between gap-4">
-        <h1 className="text-4xl font-normal tracking-[-0.035em]">Blogs</h1>
-        <p className="eyebrow">{articles.length} blogs</p>
-      </div>
-      <div className="mt-8">
-        <Suspense fallback={<ArticleFeed articles={articles} />}><ArticleFeedFromUrl articles={articles} /></Suspense>
-      </div>
+    <main className="flex-1">
+      <section className="wrap pb-10 pt-[clamp(48px,8vw,104px)] sm:pb-14">
+        <h1 className="text-[clamp(3rem,7vw,5.6rem)] font-semibold leading-[1.02] tracking-[-0.035em]">Blogs</h1>
+        <p className="mt-5 max-w-[44ch] text-[clamp(1.2rem,1.9vw,1.6rem)] leading-[1.35] tracking-[-0.015em] text-ink-2">Plain guides to business insurance in Singapore, by topic.</p>
+      </section>
+      <section className="wrap pb-28" aria-label="All blogs">
+        <Suspense fallback={<BlogGrid articles={articles} label="All blogs" />}><BlogGridFromUrl articles={articles} /></Suspense>
+      </section>
     </main>
   );
 }

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArticleFeed } from "@/components/article-feed";
+import { BlogGrid } from "@/components/blog-grid";
 import { FaqStory } from "@/components/faq-story";
-import { Hero } from "@/components/hero";
+import { StartCards } from "@/components/start-cards";
+import { Statement } from "@/components/statement";
 import { faqs } from "@/content/faq";
 import { JsonLd, faqPage } from "@/lib/json-ld";
 import { getGuides } from "@/lib/blog-api";
@@ -16,18 +17,20 @@ export default async function Home() {
   return (
     <main className="flex-1">
       <JsonLd data={faqPage(faqs)} />
-      <Hero />
+      <StartCards />
+      <Statement />
 
-      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-        <section id="guides" aria-label="Guides" className="scroll-mt-20 pb-12 pt-3.5">
-          <ArticleFeed articles={articles} action={<Link href="/articles" className="glass shrink-0 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.08em]">View all</Link>} />
-        </section>
+      <section id="guides" aria-label="Latest blogs" className="wrap scroll-mt-24 pb-24 pt-2 sm:pb-32">
+        <BlogGrid articles={articles} maxRows={3}
+          footer={<div className="mt-12 flex justify-center"><Link href="/articles" className="btn btn-ghost">View all blogs</Link></div>} />
+      </section>
 
-        <section id="faq" className="scroll-mt-20 border-t border-rule pb-16 pt-14 lg:pb-24 lg:pt-20">
-          <h2 className="text-[clamp(2rem,4vw,3rem)] font-normal leading-tight tracking-[-0.035em]">Frequently asked questions</h2>
-          <div className="mt-6 lg:mt-0"><FaqStory /></div>
-        </section>
-      </div>
+      <section id="faq" className="scroll-mt-4 border-t border-rule pb-16 pt-14 lg:pb-24 lg:pt-20">
+        <div className="wrap">
+          <h2 className="text-[clamp(2.2rem,4.4vw,3.5rem)] font-semibold leading-[1.08] tracking-[-0.025em]">Frequently asked questions</h2>
+          <div className="mt-6 lg:mt-10"><FaqStory /></div>
+        </div>
+      </section>
     </main>
   );
 }
