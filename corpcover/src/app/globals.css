@@ -100,11 +100,6 @@ h1, h2, h3 { text-wrap: balance; }
 }
 @media (prefers-reduced-motion: reduce) { .nav::before, .nav-drawer { transition: none; } }
 
-/* ── Brand photo grade: monochrome tinted steel (Slate & Steel), on start cards and blog cards. ── */
-.photo-grade img { filter: grayscale(1) contrast(1.06) brightness(1.04); }
-.photo-grade { isolation: isolate; }
-.photo-grade::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: #4f7396; mix-blend-mode: color; opacity: .6; }
-
 /* ── Start here: three cards, one word each (Revolut). ── */
 /* From 640px the three cards always fit, scaling with the window; their insides scale with the card (cqi). */
 .scard { position: relative; flex: none; container-type: inline-size; width: min(272px, 28vw); aspect-ratio: 272 / 380; border-radius: min(22px, 7cqi); overflow: hidden; color: #fff; text-align: center; background: #2c2c2e; transition: transform .5s var(--ease); }

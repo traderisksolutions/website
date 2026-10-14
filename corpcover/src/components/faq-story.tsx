@@ -70,7 +70,7 @@ export function FaqStory() {
       {/* Phone and tablet: one chat after the questions. */}
       <div className="lg:hidden">
         <h3 className="text-[1.5rem] font-semibold tracking-[-0.02em]">Ask a question</h3>
-        <Chat suggestions={scripts} className="mt-4 h-[min(72svh,520px)]" />
+        <Chat sequence={scripts} className="mt-4 h-[min(72svh,520px)]" />
       </div>
     </div>
   );
