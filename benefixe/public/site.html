@@ -652,6 +652,30 @@ body.locked { overflow: hidden; }
 @media (max-width: 800px) { .am-art.ph { min-height: 0; aspect-ratio: 4 / 3; } }
 @media (prefers-reduced-motion: reduce) { .kenburns img { animation: none; } }
 
+
+/* ═════════ Home cover tiles: Apple "and the environment" tiles, alpswills StepsCarousel formatting ═════════ */
+.cv-band { margin-top: 140px; padding-block: 120px 96px; background: #f5f5f7; }
+.cv-head h2 { margin-top: 12px; font-size: clamp(40px, 5.6vw, 64px); font-weight: 600; line-height: 1.04; letter-spacing: -0.04em; }
+.cv-head h2 span { color: #86868b; }
+.cv-track { list-style: none; margin: 56px 0 0; display: flex; gap: 20px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; padding-bottom: 16px; scrollbar-width: none;
+  padding-inline: max(var(--gutter), calc((100vw - var(--maxw)) / 2 + var(--gutter))); scroll-padding-inline: max(var(--gutter), calc((100vw - var(--maxw)) / 2 + var(--gutter))); }
+.cv-track::-webkit-scrollbar { display: none; }
+.cv-tile { position: relative; flex: none; width: 84vw; max-width: 400px; scroll-snap-align: start; display: flex; flex-direction: column; border-radius: 24px; background: #fff; padding: 40px 40px 88px; }
+.cv-ic { width: 40px; height: 40px; color: var(--ember); }
+.cv-code { margin-top: 32px; font-size: 14px; color: rgba(0,0,0,.45); }
+.cv-tile h3 { margin-top: 4px; font-size: 28px; font-weight: 600; line-height: 1.15; letter-spacing: -0.02em; }
+.cv-tile h3 span { color: var(--ember); }
+.cv-body { margin-top: 16px; font-size: 15px; line-height: 1.6; color: rgba(0,0,0,.6); }
+.cv-tile ul { list-style: none; margin: 24px 0 0; padding: 24px 0 0; border-top: 1px solid rgba(0,0,0,.08); display: flex; flex-direction: column; gap: 12px; }
+.cv-tile ul li { display: flex; gap: 12px; font-size: 15px; color: rgba(0,0,0,.75); }
+.cv-tile ul li::before { content: ""; flex: none; width: 16px; height: 16px; margin-top: 2px; background: no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a6a6a6' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 4.5 4.5L19 7'/%3E%3C/svg%3E"); }
+.cv-plus { position: absolute; right: 24px; bottom: 24px; width: 36px; height: 36px; border-radius: 50%; border: 0; background: #1d1d1f; color: #fff; display: grid; place-items: center; cursor: pointer; transition: transform .2s ease, background .2s; }
+.cv-plus:hover { transform: scale(1.08); background: #000; }
+.cv-ctl { margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px; }
+.cv-ctl button { width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgba(0,0,0,.07); color: rgba(0,0,0,.7); display: grid; place-items: center; cursor: pointer; transition: background .15s, opacity .15s; }
+.cv-ctl button:hover { background: rgba(0,0,0,.12); }
+.cv-ctl button:disabled { opacity: .35; cursor: default; }
+@media (max-width: 640px) { .cv-band { margin-top: 96px; padding-block: 80px 64px; } .cv-tile { padding: 32px 28px 80px; } }
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -818,20 +842,16 @@ body.locked { overflow: hidden; }
   <div class="see-all reveal"><a class="btn btn-primary hero-btn" href="#insider-pass">See all 18 perks</a></div>
 
   <!-- Group benefits -->
-  <section class="sec" id="h-benefits">
-    <div class="wrap sec-head reveal">
-      <div><p class="eyebrow">Group benefits</p><h2 style="margin-top:12px">Review with us.<br><span style="color:var(--ink-3)">Save up to millions.</span></h2></div>
-      <div class="car-ctl"><button type="button" data-car="-1" aria-label="Previous"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button type="button" data-car="1" aria-label="Next"><svg width="16" height="16" viewBox="0 0 16 16"><path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+  <section class="cv-band" id="h-benefits">
+    <div class="wrap cv-head">
+      <p class="eyebrow">Group benefits</p>
+      <h2>Review with us.<br><span>Save up to millions.</span></h2>
     </div>
-    <div class="carousel" id="carousel" tabindex="0" aria-label="Covers">
-      <article class="hl ph"><img src="img/hospital.jpg" alt="A hospital reception"><div><span class="code">GHS</span><h3 style="margin-top:12px">Group hospital and surgical</h3><p>Ward, surgery, ICU, and treatment before and after a stay.</p></div></article>
-      <article class="hl ph"><img src="img/doctor.jpg" alt="A doctor with a stethoscope"><div><span class="code">GP/SP</span><h3 style="margin-top:12px">Outpatient GP and specialist</h3><p>Clinic visits, specialist referrals and prescribed medicine.</p></div></article>
-      <article class="hl ph"><img src="img/fatherdaughter.jpg" alt="A father carrying his daughter"><div><span class="code">GTL</span><h3 style="margin-top:12px">Group term life</h3><p>A lump sum to the family on death or total disability.</p></div></article>
-      <article class="hl ph"><img src="img/workers.jpg" alt="Workers on a construction site"><div><span class="code">GPA</span><h3 style="margin-top:12px">Group personal accident</h3><p>Accidental death, injury and medical bills, 24 hours a day.</p></div></article>
-      <article class="hl ph"><img src="img/tooth.jpg" alt="A dental clinic"><div><span class="code">DEN</span><h3 style="margin-top:12px">Dental</h3><p>Check-ups, fillings and extractions at panel clinics.</p></div></article>
-      <article class="hl ph"><img src="img/coffee.jpg" alt="A latte being poured"><div><span class="code">PASS</span><h3 style="margin-top:12px">Insider Pass</h3><p>18 perks for every covered employee, at no extra cost.</p></div></article>
+    <ul class="cv-track" id="carousel" aria-label="Covers"></ul>
+    <div class="wrap cv-ctl">
+      <button type="button" data-car="-1" aria-label="Previous" disabled><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg></button>
+      <button type="button" data-car="1" aria-label="Next"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
     </div>
-
   </section>
 
   <!-- Book a call or message us -->
@@ -1217,7 +1237,10 @@ body.locked { overflow: hidden; }
 
   /* Highlights carousel */
   const car = document.getElementById('carousel');
-  document.querySelectorAll('[data-car]').forEach(b => b.addEventListener('click', () => car.scrollBy({ left: Number(b.dataset.car) * (car.querySelector('.hl').offsetWidth + 18), behavior: reduce ? 'auto' : 'smooth' })));
+  const carBtns = [...document.querySelectorAll('[data-car]')];
+  const carEdge = () => { carBtns[0].disabled = car.scrollLeft < 8; carBtns[1].disabled = car.scrollLeft + car.clientWidth > car.scrollWidth - 8; };
+  carBtns.forEach(b => b.addEventListener('click', () => { const t = car.querySelector('li'); car.scrollBy({ left: Number(b.dataset.car) * ((t ? t.offsetWidth : 380) + 20), behavior: reduce ? 'auto' : 'smooth' }); }));
+  car.addEventListener('scroll', carEdge, { passive: true }); addEventListener('resize', carEdge); setTimeout(carEdge, 0);
 
   /* Reveal on scroll, from a visible resting state if observers never fire. */
   if (!reduce && 'IntersectionObserver' in window) {
@@ -1565,6 +1588,50 @@ body.locked { overflow: hidden; }
     openModal(`<h2>${w[1].replace(/\.$/, '')}</h2><p class="lead"><b>Our approach.</b>${w[3]}</p><p class="lead"><b>What you receive.</b>${w[4]}</p><button type="button" class="alink" data-contact>Get in touch ›</button>`);
   });
 
+  /* ── Home: cover tiles (Apple "and the environment" tiles, alpswills StepsCarousel formatting) with Apple modals ── */
+  const CV_IC = {
+    hospital: '<path d="M4 20V8l8-4 8 4v12"/><path d="M4 20h16"/><path d="M12 9v6M9 12h6"/>',
+    clinic: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/><path d="M17 4.5h3M18.5 3v3"/>',
+    family: '<circle cx="8" cy="7" r="2.6"/><circle cx="16.5" cy="8.5" r="2"/><path d="M3.5 19c0-2.8 2-5 4.5-5s4.5 2.2 4.5 5"/><path d="M13 19c0-2.2 1.6-4 3.5-4s3.5 1.8 3.5 4"/>',
+    shield: '<path d="M12 3.5 19 6v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"/><path d="m9 12 2.2 2.2L15.5 10"/>',
+    tooth: '<path d="M7.5 4C5.5 4 4.5 5.8 4.5 8c0 3 1.5 4 2 7l1 5h2l1.5-5h2l1.5 5h2l1-5c.5-3 2-4 2-7 0-2.2-1-4-3-4-2 0-3 1-4.5 1S9.5 4 7.5 4z"/>',
+    spark: '<rect x="10" y="2.5" width="4" height="7.5" rx="2"/><rect x="10" y="14" width="4" height="7.5" rx="2"/><rect x="2.5" y="10" width="7.5" height="4" rx="2"/><rect x="14" y="10" width="7.5" height="4" rx="2"/>',
+  };
+  const COVERS = [
+    { code: 'GHS', icon: 'hospital', pre: 'Hospital stays, ', hl: 'from ward to ICU', post: '.', body: 'Room and board, surgery, intensive care, and treatment before and after a stay.',
+      pts: ['Ward class chosen per plan', 'Day surgery included', 'Pre- and post-hospital care'],
+      name: 'Group hospital and surgical', covers: 'Room and board up to the ward class in the plan, surgery, ICU, hospital services such as tests and medicine, day surgery, and treatment within a set number of days before and after a stay.', check: 'Ward class and per-day limits set most of the premium. Match them to how the team actually claims, and check how the plan works alongside MediShield Life and any personal Integrated Shield Plan.' },
+    { code: 'GP/SP', icon: 'clinic', pre: '', hl: 'Clinic visits', post: ', GP and specialist.', body: 'Everyday care: consultations, tests and the medicine a doctor prescribes.',
+      pts: ['GP consultations', 'Specialists by referral', 'Prescribed medicine'],
+      name: 'Outpatient GP and specialist', covers: 'GP consultations, specialist visits on referral, diagnostic tests such as X-rays and lab work, and prescribed medicine.', check: 'Panel or non-panel clinics, co-payments per visit, and annual limits. These decide what employees pay at the counter.' },
+    { code: 'GTL', icon: 'family', pre: 'A lump sum ', hl: 'for the family', post: '.', body: 'Paid on an employee’s death or total and permanent disability.',
+      pts: ['Sum insured per employee', 'Death and total disability', 'Beneficiaries named by the employee'],
+      name: 'Group term life', covers: 'A lump sum paid to the employee’s family on death, or to the employee on total and permanent disability, while they are on the plan.', check: 'Whether the sum is a flat amount or a multiple of salary, and the limit above which an employee must declare their health.' },
+    { code: 'GPA', icon: 'shield', pre: 'Accidents, ', hl: '24 hours a day', post: '.', body: 'Cover for accidental injury at work and outside it, anywhere in the world.',
+      pts: ['At work and outside it', 'Medical expenses after an accident', 'Death and permanent disability'],
+      name: 'Group personal accident', covers: 'Accidental death, permanent disability and medical expenses after an accident, at work or outside it, 24 hours a day.', check: 'Excluded activities, such as some sports, and how this policy sits next to work injury compensation, which is a separate legal requirement.' },
+    { code: 'DEN', icon: 'tooth', pre: '', hl: 'Dental care', post: ' at panel clinics.', body: 'Check-ups, scaling, fillings and extractions for every covered employee.',
+      pts: ['Check-ups and scaling', 'Fillings and extractions', 'Annual limit per employee'],
+      name: 'Dental', covers: 'Routine check-ups, scaling and polishing, fillings and extractions at panel clinics, up to an annual limit per employee.', check: 'The annual limit, which treatments are covered, and whether non-panel clinics are reimbursed.' },
+    { code: 'PASS', icon: 'spark', pre: '', hl: '18 perks', post: ' for every employee.', body: 'The Insider Pass comes with every Benefixe group plan at no extra cost.',
+      pts: ['eSIM, bikes and gym classes', 'Counselling and health screening', 'One member page for every code'],
+      name: 'Insider Pass', covers: 'An Asia eSIM, bike rental, gym and studio classes, counselling, health screening, coffee, co-working and 11 more perks, all on one member page.', check: 'Nothing to buy. Every covered employee receives an invite on the first day of the policy.', link: '#insider-pass' },
+  ];
+  const cv = $('#carousel');
+  cv.innerHTML = COVERS.map((c, i) => `<li class="cv-tile">
+      <svg class="cv-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${CV_IC[c.icon]}</svg>
+      <p class="cv-code">${c.code}</p>
+      <h3>${esc(c.pre)}<span>${esc(c.hl)}</span>${esc(c.post)}</h3>
+      <p class="cv-body">${esc(c.body)}</p>
+      <ul>${c.pts.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+      <button type="button" class="cv-plus" data-cv="${i}" aria-label="More about ${esc(c.name)}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+    </li>`).join('');
+  cv.addEventListener('click', e => {
+    const b = e.target.closest('[data-cv]'); if (!b) return; const c = COVERS[Number(b.dataset.cv)];
+    layer.dataset.kind = 'cover';
+    openModal(`<h2>${esc(c.name)}</h2><p class="lead"><b>What it covers.</b>${esc(c.covers)}</p><p class="lead"><b>What to check.</b>${esc(c.check)}</p>${c.link ? `<a class="alink" href="${c.link}">See all 18 perks ›</a><br>` : ''}<button type="button" class="alink" data-contact>Review your cover with us ›</button>`);
+  });
+
   /* ── Router: each navbar item is its own page ── */
   const VIEWS = $$('.view'), NAMES = VIEWS.map(v => v.dataset.view);
   const TITLES = { home: 'Benefixe', about: 'About · Benefixe', 'insider-pass': 'Insider Pass · Benefixe', 'group-benefits': 'Group benefits · Benefixe', faq: 'FAQ · Benefixe', resources: 'Resources · Benefixe' };
@@ -1580,6 +1647,7 @@ body.locked { overflow: hidden; }
     closeModal();
     scrollTo({ top: 0, behavior: 'auto' });
     dispatchEvent(new Event('scroll'));
+    $('#carousel').dispatchEvent(new Event('scroll'));
   }
   addEventListener('hashchange', route);
   route();
