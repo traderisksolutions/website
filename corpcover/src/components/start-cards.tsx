@@ -28,7 +28,7 @@ export function StartCards() {
       <p className="mt-3.5 text-[clamp(1.1rem,1.6vw,1.35rem)] text-ink-2">No fee. No obligation to buy.</p>
       <div className="-mx-4 mt-12 flex snap-x snap-mandatory items-center gap-4 overflow-x-auto px-4 pb-4 pt-2 [scrollbar-width:none] sm:mx-0 sm:justify-center sm:gap-[min(16px,1.6vw)] sm:overflow-visible sm:px-0">
         {cards.map(c => (
-          <button key={c.flow} type="button" onClick={() => openStart(c.flow)} aria-label={`${c.word}: ${c.title}`} className={`scard${c.big ? " scard--big" : ""}`}>
+          <button key={c.flow} type="button" onClick={() => openStart(c.flow)} aria-label={`${c.word}: ${c.title}`} className={`scard photo-grade${c.big ? " scard--big" : ""}`}>
             <Image src={c.photo} alt="" fill sizes="300px" placeholder="blur" className="object-cover" />
             <span className="absolute inset-x-0 bottom-[30cqi] top-0 z-[1] flex flex-col items-center justify-center gap-[1.5cqi] px-[6cqi]">
               <span className="text-[clamp(10px,5.1cqi,14px)] leading-snug text-white/85">{c.cap}</span>
