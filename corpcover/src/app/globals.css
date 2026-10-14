@@ -12,6 +12,8 @@
   --accent: #1c2733;       /* slate: primary buttons, dark grounds */
   --accent-2: #2c3a48;     /* slate hover */
   --steel: #4f7396;        /* steel: the mark, links, focus, highlights */
+  --primary: #44607d;      /* blue-grey: primary buttons (Ask a question, send) */
+  --primary-2: #3a536c;    /* blue-grey hover */
   --accent-ink: #ffffff;
   --accent-soft: #e5ecf2;
   --tile: #f5f5f7;
@@ -51,8 +53,8 @@ h1, h2, h3 { text-wrap: balance; }
     border-radius: 9999px; border: 1px solid transparent; white-space: nowrap;
     transition: background .15s, color .15s, border-color .15s, transform .15s var(--ease);
   }
-  .glass-primary, .btn-primary { background: var(--accent); color: #fff; }
-  .glass-primary:hover, .btn-primary:hover { background: var(--accent-2); }
+  .glass-primary, .btn-primary { background: var(--primary); color: #fff; }
+  .glass-primary:hover, .btn-primary:hover { background: var(--primary-2); }
   .glass, .btn-ghost { background: #e8e8ed; color: var(--ink); }
   .glass:hover, .btn-ghost:hover { background: #dedee3; }
   .btn-white { background: #fff; color: var(--ink); }
