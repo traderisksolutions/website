@@ -12,6 +12,20 @@ const nextConfig: NextConfig = {
   // Cloud Run runs the self-contained server from .next/standalone.
   output: "standalone",
   poweredByHeader: false,
+  // The site is one static page (public/site.html) that switches pages by #hash.
+  async rewrites() {
+    return { beforeFiles: [{ source: "/", destination: "/site.html" }], afterFiles: [], fallback: [] };
+  },
+  // Old paths go to their page on the new site.
+  async redirects() {
+    return [
+      { source: "/group-benefits", destination: "/#group-benefits", permanent: false },
+      { source: "/perks", destination: "/#insider-pass", permanent: false },
+      { source: "/blogs", destination: "/#resources", permanent: false },
+      { source: "/blogs/:slug", destination: "/#blog-:slug", permanent: false },
+      { source: "/site.html", destination: "/", permanent: true },
+    ];
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
