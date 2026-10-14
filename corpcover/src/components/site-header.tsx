@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { site } from "@/site";
+import { Logo } from "./logo";
 import { openStart } from "./start-actions";
 
 const links = [
@@ -45,7 +46,7 @@ export function SiteHeader() {
         <button type="button" className="nav-hamburger" aria-label="Open menu" aria-expanded={open} onClick={() => setOpen(true)}>
           <span /><span /><span />
         </button>
-        <Link href="/" className="logo" aria-label={`${site.name} home`}><span className="logo-mark" aria-hidden />{site.name}</Link>
+        <Link href="/" className="logo" aria-label={`${site.name} home`}><Logo id="logo-nav" name={site.name} /></Link>
         <nav className="nav-links" aria-label="Primary">
           {links.map(l => <Link key={l.href} href={l.href} aria-current={current(l.href)}>{l.label}</Link>)}
         </nav>
@@ -59,7 +60,7 @@ export function SiteHeader() {
       <div className="nav-drawer-overlay" aria-hidden onClick={close} />
       <aside className="nav-drawer" aria-label="Mobile navigation" aria-hidden={!open}>
         <div className="flex h-16 items-center justify-between border-b border-rule px-4">
-          <span className="logo"><span className="logo-mark" aria-hidden />{site.name}</span>
+          <span className="logo"><Logo id="logo-drawer" name={site.name} /></span>
           <button type="button" className="grid size-9 place-items-center rounded-full hover:bg-ink/5" aria-label="Close menu" onClick={close} tabIndex={open ? 0 : -1}>
             <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
           </button>

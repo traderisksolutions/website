@@ -2,15 +2,15 @@ import type { Article } from "@/content/articles";
 
 // Cover illustrations. One drawing per guide, all on the same 400 × 266 card:
 // title set on the left, a pale topic tag under it, the drawing on the right.
-// Burgundy family on one warm-grey ground, matching the --accent and --tile tokens.
+// Slate and steel on one light-grey ground, matching the --accent, --steel and --tile tokens.
 
 export const K = "#1a1a1c";   // line
-export const A = "#c9a3a9";   // dusty rose
-export const T = "#7a1f2e";   // burgundy
-export const R = "#a3414f";   // light burgundy
-export const Y = "#ecdfe1";   // pale rose
+export const A = "#9fb3c8";   // pale steel
+export const T = "#1c2733";   // slate
+export const R = "#4f7396";   // steel
+export const Y = "#e5ecf2";   // mist
 export const W = "#ffffff";
-const BG = "#efedeb";
+const BG = "#eef1f4";
 
 export const line = { stroke: K, strokeWidth: 3.5, strokeLinejoin: "round" as const, strokeLinecap: "round" as const };
 

@@ -56,8 +56,8 @@ export default function About() {
         <div>
           <h2 className="text-[clamp(1.8rem,3.2vw,2.6rem)] font-semibold leading-[1.1] tracking-[-0.025em]">Contact</h2>
           <dl className="mt-6 border-t border-rule">
-            <div className="flex justify-between gap-6 border-b border-rule py-4"><dt className="text-ink-2">Phone</dt><dd><a href={`tel:+65${site.phone.replace(/\s/g, "")}`} className="font-medium hover:text-accent">+65 {site.phone}</a></dd></div>
-            <div className="flex justify-between gap-6 border-b border-rule py-4"><dt className="text-ink-2">Email</dt><dd><a href={`mailto:${site.email}`} className="font-medium hover:text-accent">{site.email}</a></dd></div>
+            <div className="flex justify-between gap-6 border-b border-rule py-4"><dt className="text-ink-2">Phone</dt><dd><a href={`tel:+65${site.phone.replace(/\s/g, "")}`} className="font-medium hover:text-steel">+65 {site.phone}</a></dd></div>
+            <div className="flex justify-between gap-6 border-b border-rule py-4"><dt className="text-ink-2">Email</dt><dd><a href={`mailto:${site.email}`} className="font-medium hover:text-steel">{site.email}</a></dd></div>
             <div className="flex justify-between gap-6 border-b border-rule py-4"><dt className="text-ink-2">Address</dt><dd className="max-w-[60%] text-right font-medium">{site.address}</dd></div>
           </dl>
         </div>

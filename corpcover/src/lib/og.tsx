@@ -6,7 +6,7 @@ import { join } from "node:path";
 export const ogSize = { width: 1200, height: 630 };
 export const ogContentType = "image/png";
 
-export const og = { bg: "#F4F3F2", accent: "#7A1F2E", ink: "#1A1A1C", ink2: "#6B6B70" };
+export const og = { bg: "#F4F3F2", accent: "#4F7396", ink: "#1C2733", ink2: "#6E6E73" };
 
 const font = (file: string) => readFile(join(process.cwd(), "assets/fonts", file));
 

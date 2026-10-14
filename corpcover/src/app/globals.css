@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Apple product-page type and greys, burgundy accent. */
+/* Apple product-page type and greys; Slate & Steel brand: slate primary, steel accent. */
 :root {
   --paper: #ffffff;
   --base: #f5f5f7;
@@ -9,10 +9,11 @@
   --ink-3: #86868b;
   --rule: #d2d2d7;
   --dim: #d2d2d7;
-  --accent: #7a1f2e;
-  --accent-2: #94303f;
+  --accent: #1c2733;       /* slate: primary buttons, dark grounds */
+  --accent-2: #2c3a48;     /* slate hover */
+  --steel: #4f7396;        /* steel: the mark, links, focus, highlights */
   --accent-ink: #ffffff;
-  --accent-soft: #f3e9ea;
+  --accent-soft: #e5ecf2;
   --tile: #f5f5f7;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -25,6 +26,7 @@
   --color-ink-3: var(--ink-3);
   --color-rule: var(--rule);
   --color-accent: var(--accent);
+  --color-steel: var(--steel);
   --color-accent-ink: var(--accent-ink);
   --color-accent-soft: var(--accent-soft);
   --color-tile: var(--tile);
@@ -36,7 +38,7 @@
 html { scroll-padding-top: 88px; }
 body { background: var(--paper); color: var(--ink); font-family: var(--font-sans); font-size: 17px; line-height: 1.47; letter-spacing: -0.012em; }
 h1, h2, h3 { text-wrap: balance; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+:focus-visible { outline: 2px solid var(--steel); outline-offset: 3px; border-radius: 6px; }
 
 .eyebrow { font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
 .wrap { max-width: 1320px; margin-inline: auto; padding-inline: 16px; }
@@ -76,8 +78,6 @@ h1, h2, h3 { text-wrap: balance; }
 .nav--scrolled::before { opacity: 1; }
 .logo { display: inline-flex; align-items: center; gap: 10px; font-size: 19px; font-weight: 600; letter-spacing: -0.02em; }
 .logo:hover { opacity: .7; }
-.logo-mark { width: 26px; height: 26px; border-radius: 8px; background: var(--accent); display: grid; place-items: center; flex: none; }
-.logo-mark::after { content: ""; width: 10px; height: 10px; border-radius: 50%; border: 2px solid #fff; }
 .nav-links { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 2px; }
 .nav-links > a { padding: 7px 13px; font-size: 15px; color: var(--ink-2); border-radius: 9999px; transition: color .15s, background .15s; }
 .nav-links > a:hover, .nav-links > a[aria-current="page"] { color: var(--ink); background: #ededf0; }
@@ -98,13 +98,14 @@ h1, h2, h3 { text-wrap: balance; }
 @media (prefers-reduced-motion: reduce) { .nav::before, .nav-drawer { transition: none; } }
 
 /* ── Start here: three cards, one word each (Revolut). ── */
-.scard { position: relative; flex: none; width: 272px; aspect-ratio: 272 / 380; border-radius: 22px; overflow: hidden; color: #fff; text-align: center; background: #2c2c2e; transition: transform .5s var(--ease); }
-.scard--big { width: 300px; aspect-ratio: 300 / 430; }
+/* From 640px the three cards always fit, scaling with the window; their insides scale with the card (cqi). */
+.scard { position: relative; flex: none; container-type: inline-size; width: min(272px, 28vw); aspect-ratio: 272 / 380; border-radius: min(22px, 7cqi); overflow: hidden; color: #fff; text-align: center; background: #2c2c2e; transition: transform .5s var(--ease); }
+.scard--big { width: min(300px, 31vw); aspect-ratio: 300 / 430; }
 .scard:hover { transform: translateY(-6px); }
 .scard img { transition: transform .9s var(--ease); }
 .scard:hover img { transform: scale(1.04); }
 .scard::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.08) 0%, rgba(0,0,0,.42) 45%, rgba(0,0,0,.55) 100%); }
-@media (max-width: 960px) { .scard, .scard--big { width: min(78vw, 300px); aspect-ratio: 300 / 420; scroll-snap-align: center; } }
+@media (max-width: 639px) { .scard, .scard--big { width: min(78vw, 300px); aspect-ratio: 300 / 420; scroll-snap-align: center; } }
 @media (prefers-reduced-motion: reduce) { .scard, .scard img { transition: none; } .scard:hover, .scard:hover img { transform: none; } }
 
 /* ── Statement: words light up as the page scrolls past. ── */
@@ -119,12 +120,12 @@ h1, h2, h3 { text-wrap: balance; }
 .bcard:hover .bcard-img img, .bcard:hover .bcard-img svg { transform: scale(1.045); }
 @media (prefers-reduced-motion: reduce) { .bcard-img img, .bcard-img svg { transition: none; } .bcard:hover .bcard-img img, .bcard:hover .bcard-img svg { transform: none; } }
 
-/* ── Footer (Alps Wills): the page fades into a dark burgundy base. ── */
+/* ── Footer (Alps Wills): the page fades into a dark slate base. ── */
 .footer-fade {
   background:
-    radial-gradient(60% 40% at 25% 45%, rgba(214, 190, 194, .45), transparent 70%),
-    radial-gradient(50% 35% at 80% 52%, rgba(122, 31, 46, .4), transparent 70%),
-    linear-gradient(to bottom, #ffffff 0%, #f1ecec 14%, #c7b2b6 30%, #7d3a47 50%, #3d141c 70%, #170a0d 88%, #0d0608 100%);
+    radial-gradient(60% 40% at 25% 45%, rgba(184, 198, 212, .45), transparent 70%),
+    radial-gradient(50% 35% at 80% 52%, rgba(79, 115, 150, .4), transparent 70%),
+    linear-gradient(to bottom, #ffffff 0%, #edf1f5 14%, #b8c6d4 30%, #4f7396 50%, #23324a 70%, #111a24 88%, #0b1118 100%);
 }
 
 /* ── Article body: 728px column, 19/30, bold headings ── */
@@ -148,7 +149,7 @@ h1, h2, h3 { text-wrap: balance; }
   font: inherit; font-size: 1rem; font-weight: 400; color: var(--ink); letter-spacing: normal;
   background: var(--base); border: 1px solid transparent; border-radius: 12px; padding: 12px 14px; outline: none; transition: border-color .15s, background .15s;
 }
-.field input:focus, .field textarea:focus { border-color: var(--accent); background: #fff; }
+.field input:focus, .field textarea:focus { border-color: var(--steel); background: #fff; }
 .on-base .field input, .on-base .field textarea { background: #fff; }
 
 /* Choice rows */
