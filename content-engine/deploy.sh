@@ -22,11 +22,11 @@ SUPABASE_URL="${SUPABASE_URL:-https://trs-api-335840130686.asia-southeast1.run.a
 # Anthropic and OpenAI are optional: include their secrets only when they exist, and put
 # Gemini first in the provider order until an Anthropic key is in Secret Manager.
 SECRETS="SUPABASE_SERVICE_KEY=TRS_SUPABASE_SERVICE_KEY:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,CONTENT_ENGINE_SECRET=CONTENT_ENGINE_SECRET:latest"
-ORDER="${ENGINE_PROVIDER_ORDER:-gemini,anthropic,openai}"
+ORDER="${ENGINE_PROVIDER_ORDER:-gemini}"
 for s in ANTHROPIC_API_KEY OPENAI_API_KEY; do
   if gcloud secrets describe "$s" --project "$PROJECT" --account "$ACCOUNT" >/dev/null 2>&1; then
     SECRETS="$SECRETS,$s=$s:latest"
-    [ "$s" = ANTHROPIC_API_KEY ] && ORDER="${ENGINE_PROVIDER_ORDER:-anthropic,gemini,openai}"
+    : # Gemini stays first until Jarod switches providers (ENGINE_PROVIDER_ORDER)
   fi
 done
 
