@@ -23,9 +23,9 @@ export default function About() {
   return (
     <main className="flex-1">
       <section className="wrap pb-14 pt-[clamp(48px,8vw,104px)]">
-        <h1 className="text-[clamp(3rem,7vw,5.6rem)] font-semibold leading-[1.02] tracking-[-0.035em]">About Corp Cover</h1>
+        <h1 className="text-[clamp(3rem,7vw,5.6rem)] font-semibold leading-[1.02] tracking-[-0.035em]">Business insurance, made clear.</h1>
         <p className="mt-5 max-w-[44ch] text-[clamp(1.2rem,1.9vw,1.6rem)] leading-[1.35] tracking-[-0.015em] text-ink-2">
-          Corp Cover publishes plain guides to business insurance for Singapore companies, and connects companies with independent advisers who compare cover across insurers. Free to use.
+          Corp Cover helps Singapore companies understand their risks and get the right cover in place. We explain the policies in plain words, review the cover you already hold, and connect you with independent advisers who compare insurers for you. It costs you nothing.
         </p>
         <div className="mt-7 flex flex-wrap gap-2.5">
           <StartButton flow="chat" className="btn btn-primary">Ask a question</StartButton>
@@ -35,11 +35,11 @@ export default function About() {
 
       <section className="bg-base py-[clamp(56px,8vw,96px)]">
         <div className="wrap">
-          <h2 className="text-[clamp(1.8rem,3.2vw,2.6rem)] font-semibold leading-[1.1] tracking-[-0.025em]">Services</h2>
+          <h2 className="text-[clamp(1.8rem,3.2vw,2.6rem)] font-semibold leading-[1.1] tracking-[-0.025em]">How we work</h2>
           <div className="mt-8 grid gap-4 lg:grid-cols-3">
-            <Link href="/articles" className={tileClass}><b className="text-[21px] font-semibold tracking-[-0.02em]">Blogs</b><span className="text-ink-2">Plain guides to the policies Singapore companies hold, by topic.</span></Link>
-            <Link href="/policy-review" className={tileClass}><b className="text-[21px] font-semibold tracking-[-0.02em]">Policy review</b><span className="text-ink-2">Upload a current policy. An adviser checks the gaps, the overlaps and the price.</span></Link>
-            <StartButton flow="chat" className={tileClass}><b className="text-[21px] font-semibold tracking-[-0.02em]">Adviser matching</b><span className="text-ink-2">Independent financial advisers who broker business insurance across several insurers.</span></StartButton>
+            <Link href="/articles" className={tileClass}><b className="text-[21px] font-semibold tracking-[-0.02em]">Going deep on every policy</b><span className="text-ink-2">Our guides break down the policies Singapore companies hold, so you understand the risk before you buy the cover.</span></Link>
+            <Link href="/policy-review" className={tileClass}><b className="text-[21px] font-semibold tracking-[-0.02em]">Going through what you hold</b><span className="text-ink-2">Send us your current policy. An adviser checks it for gaps, overlaps and price, and tells you where you stand.</span></Link>
+            <StartButton flow="chat" className={tileClass}><b className="text-[21px] font-semibold tracking-[-0.02em]">Going wide across the market</b><span className="text-ink-2">Independent advisers compare several insurers, not one, so you see the real range of options before you decide.</span></StartButton>
           </div>
         </div>
       </section>

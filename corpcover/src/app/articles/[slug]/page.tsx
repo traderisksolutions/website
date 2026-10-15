@@ -72,7 +72,7 @@ export default async function ArticlePage(props: PageProps<"/articles/[slug]">) 
 
         <div className="mt-6 text-[19px] leading-[1.6] text-ink-2">
           <p>
-            {site.name} publishes plain guides to business insurance in Singapore. To review your own cover, or to compare quotes from 18 insurers at no fee:
+            Want a second opinion on your own cover? An adviser can review it or compare insurers for you, at no cost:
           </p>
           <div className="my-5 flex flex-wrap justify-center gap-3">
             <StartButton className="glass-primary px-6 py-2.5 text-sm font-semibold" />
@@ -100,7 +100,7 @@ export default async function ArticlePage(props: PageProps<"/articles/[slug]">) 
           <ShareButton title={a.title} />
         </div>
         <div className="mt-8 flex flex-col items-center gap-4 rounded-2xl bg-accent-soft px-5 py-7 text-center">
-          <p className="text-lg font-semibold">Quotes for this cover from 18 insurers</p>
+          <p className="text-lg font-semibold">Let&apos;s find the right cover for you.</p>
           <div className="flex flex-wrap justify-center gap-3">
             <StartButton className="glass-primary px-6 py-2.5 text-sm font-semibold" />
             <a href={`tel:+65${site.phone.replace(/\s/g, "")}`} className="glass px-6 py-2.5 text-sm font-medium">Call {site.phone}</a>
