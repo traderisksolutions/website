@@ -50,8 +50,10 @@ export function recommend(a: Answers): Result[] {
 
   if (hasStaff) out.push({ policy: "Work injury compensation", basis: "Required by law", why: "You have employees.", guide: "work-injury-compensation" });
   if (a.passHolders === "yes") out.push({ policy: "Foreign worker medical insurance and security bond", basis: "Required by law", why: "You employ Work Permit or S Pass holders.", guide: "foreign-worker-insurance" });
+  // Only a lease or a contract makes it "usually required"; owning the premises does not.
   if (premises || asked || a.sector === "fnb-retail" || a.sector === "construction")
-    out.push({ policy: "Public liability", basis: premises || asked ? "Usually required" : "Recommended", why: premises ? "Landlords usually require it in the lease." : asked ? "Contracts usually set a minimum limit." : "Your work brings the public onto your premises or sites.", guide: "public-liability" });
+    out.push({ policy: "Public liability", basis: a.premises === "rent" || asked ? "Usually required" : "Recommended",
+      why: a.premises === "rent" ? "Landlords usually require it in the lease." : asked ? "Contracts usually set a minimum limit." : a.premises === "own" ? "Visitors to your premises can claim for injury or damage." : "Your work brings the public onto your premises or sites.", guide: "public-liability" });
   if (premises) out.push({ policy: "Property and business interruption", basis: a.premises === "rent" ? "Usually required" : "Recommended", why: a.premises === "rent" ? "Leases usually make the tenant insure fit-out." : "You own the premises.", guide: "property-and-business-interruption" });
   if (a.sector === "construction") out.push({ policy: "Contractor's all risks", basis: asked ? "Usually required" : "Recommended", why: "Covers the works and materials on site during a project." });
   if (a.sector === "professional" || (asked && a.sector !== "construction" && a.sector !== "fnb-retail"))
