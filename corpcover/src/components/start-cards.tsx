@@ -25,7 +25,6 @@ export function StartCards() {
   return (
     <section aria-label="Start here" className="wrap pb-16 pt-[clamp(48px,8vw,104px)] text-center sm:pb-20">
       <h1 className="text-[clamp(3rem,7vw,5.6rem)] font-semibold leading-[1.02] tracking-[-0.035em]">Start here</h1>
-      <p className="mt-3.5 text-[clamp(1.1rem,1.6vw,1.35rem)] text-ink-2">No fee. No obligation to buy.</p>
       <div className="-mx-4 mt-12 flex snap-x snap-mandatory items-center gap-4 overflow-x-auto px-4 pb-4 pt-2 [scrollbar-width:none] sm:mx-0 sm:justify-center sm:gap-[min(16px,1.6vw)] sm:overflow-visible sm:px-0">
         {cards.map(c => (
           <button key={c.flow} type="button" onClick={() => openStart(c.flow)} aria-label={`${c.word}: ${c.title}`} className={`scard${c.big ? " scard--big" : ""}`}>
