@@ -1,0 +1,1023 @@
+{
+ "questions": [
+  {
+   "id": "industry",
+   "sec": "Your business",
+   "type": "choice",
+   "title": "Which industry is your business in?",
+   "opts": [
+    [
+     "fnb",
+     "Food and beverage"
+    ],
+    [
+     "retail",
+     "Retail shop"
+    ],
+    [
+     "office",
+     "Office or business services"
+    ],
+    [
+     "accounting",
+     "Accounting firm"
+    ],
+    [
+     "realestate",
+     "Real estate agency"
+    ],
+    [
+     "legal",
+     "Law firm"
+    ],
+    [
+     "design",
+     "Architecture, engineering or design"
+    ],
+    [
+     "tech",
+     "Software, IT or SaaS"
+    ],
+    [
+     "construction",
+     "Construction contractor"
+    ],
+    [
+     "manufacturing",
+     "Manufacturing"
+    ],
+    [
+     "trading",
+     "Trading, import or export"
+    ],
+    [
+     "logistics",
+     "Logistics or freight"
+    ],
+    [
+     "clinic",
+     "Clinic, medical or dental"
+    ],
+    [
+     "beauty",
+     "Beauty, spa or fitness"
+    ],
+    [
+     "education",
+     "Education or tuition"
+    ],
+    [
+     "hotel",
+     "Hotel or hospitality"
+    ],
+    [
+     "events",
+     "Events and exhibitions"
+    ],
+    [
+     "media",
+     "Media, advertising or PR"
+    ],
+    [
+     "finance",
+     "Fund or financial services"
+    ],
+    [
+     "lifesci",
+     "Pharma, biotech or devices"
+    ],
+    [
+     "other",
+     "Something else"
+    ]
+   ]
+  },
+  {
+   "id": "activity",
+   "sec": null,
+   "type": "text",
+   "title": "In one line, what does the business do?",
+   "opts": []
+  },
+  {
+   "id": "founded",
+   "sec": null,
+   "type": "number",
+   "title": "Which year was the company set up?",
+   "opts": []
+  },
+  {
+   "id": "revenue",
+   "sec": null,
+   "type": "choice",
+   "title": "Revenue in the last financial year",
+   "opts": [
+    [
+     "r1",
+     "Up to S$1m"
+    ],
+    [
+     "r10",
+     "S$1m to S$10m"
+    ],
+    [
+     "r25",
+     "S$10m to S$25m"
+    ],
+    [
+     "r50",
+     "S$25m to S$50m"
+    ],
+    [
+     "rmore",
+     "Above S$50m"
+    ]
+   ]
+  },
+  {
+   "id": "usca",
+   "sec": null,
+   "type": "choice",
+   "title": "Does 10% or more of revenue come from the USA or Canada?",
+   "opts": [
+    [
+     "no",
+     "No"
+    ],
+    [
+     "yes",
+     "Yes"
+    ]
+   ]
+  },
+  {
+   "id": "staff",
+   "sec": null,
+   "type": "choice",
+   "title": "How many employees, not counting directors?",
+   "opts": [
+    [
+     "0",
+     "None"
+    ],
+    [
+     "10",
+     "1 to 10"
+    ],
+    [
+     "50",
+     "11 to 50"
+    ],
+    [
+     "more",
+     "51 or more"
+    ]
+   ]
+  },
+  {
+   "id": "manual",
+   "sec": null,
+   "type": "scale",
+   "title": "What share of them do manual work?",
+   "opts": [
+    [
+     "0",
+     "0%"
+    ],
+    [
+     "10",
+     "10%"
+    ],
+    [
+     "20",
+     "20%"
+    ],
+    [
+     "30",
+     "30%"
+    ],
+    [
+     "40",
+     "40%"
+    ],
+    [
+     "50",
+     "50%"
+    ],
+    [
+     "60",
+     "60%"
+    ],
+    [
+     "70",
+     "70%"
+    ],
+    [
+     "80",
+     "80%"
+    ],
+    [
+     "90",
+     "90%"
+    ],
+    [
+     "100",
+     "100%"
+    ]
+   ]
+  },
+  {
+   "id": "premises",
+   "sec": null,
+   "type": "multi",
+   "title": "Where does the business operate from?",
+   "opts": [
+    [
+     "rent",
+     "Rented office, shop or warehouse"
+    ],
+    [
+     "own",
+     "Premises we own"
+    ],
+    [
+     "none",
+     "Home or client sites"
+    ]
+   ]
+  },
+  {
+   "id": "locations",
+   "sec": null,
+   "type": "choice",
+   "title": "How many locations?",
+   "opts": [
+    [
+     "1",
+     "One"
+    ],
+    [
+     "2-5",
+     "2 to 5"
+    ],
+    [
+     "6+",
+     "6 or more"
+    ]
+   ]
+  },
+  {
+   "id": "insured",
+   "sec": null,
+   "type": "choice",
+   "title": "Do you have business insurance today?",
+   "opts": [
+    [
+     "yes",
+     "Yes"
+    ],
+    [
+     "no",
+     "No"
+    ],
+    [
+     "unsure",
+     "Not sure"
+    ]
+   ]
+  },
+  {
+   "id": "renewal",
+   "sec": null,
+   "type": "choice",
+   "title": "When does it renew?",
+   "opts": [
+    [
+     "Jan",
+     "Jan"
+    ],
+    [
+     "Feb",
+     "Feb"
+    ],
+    [
+     "Mar",
+     "Mar"
+    ],
+    [
+     "Apr",
+     "Apr"
+    ],
+    [
+     "May",
+     "May"
+    ],
+    [
+     "Jun",
+     "Jun"
+    ],
+    [
+     "Jul",
+     "Jul"
+    ],
+    [
+     "Aug",
+     "Aug"
+    ],
+    [
+     "Sep",
+     "Sep"
+    ],
+    [
+     "Oct",
+     "Oct"
+    ],
+    [
+     "Nov",
+     "Nov"
+    ],
+    [
+     "Dec",
+     "Dec"
+    ],
+    [
+     "unsure",
+     "Not sure"
+    ]
+   ]
+  },
+  {
+   "id": "needs",
+   "sec": "Cover",
+   "type": "multi",
+   "title": "Which cover would you like to discuss?",
+   "opts": [
+    [
+     "select",
+     "Premises package"
+    ],
+    [
+     "wic",
+     "Work injury compensation"
+    ],
+    [
+     "gl",
+     "Public liability"
+    ],
+    [
+     "pl",
+     "Product liability and recall"
+    ],
+    [
+     "pi",
+     "Professional indemnity"
+    ],
+    [
+     "do",
+     "Directors and officers"
+    ],
+    [
+     "cyber",
+     "Cyber"
+    ],
+    [
+     "sef",
+     "Invoice and payment fraud"
+    ],
+    [
+     "gpa",
+     "Staff personal accident"
+    ],
+    [
+     "travel",
+     "Business travel"
+    ],
+    [
+     "cargo",
+     "Goods in transit"
+    ],
+    [
+     "event",
+     "Event liability"
+    ],
+    [
+     "tech",
+     "Tech errors and omissions"
+    ],
+    [
+     "special",
+     "Specialist cover (medical, freight, funds, art, life sciences)"
+    ],
+    [
+     "unsure",
+     "Not sure, recommend for me"
+    ]
+   ]
+  },
+  {
+   "id": "sp_value",
+   "sec": null,
+   "type": "choice",
+   "title": "Value of contents, stock and renovation, all locations together",
+   "opts": [
+    [
+     "100k",
+     "Under S$100,000"
+    ],
+    [
+     "500k",
+     "S$100,000 to S$500,000"
+    ],
+    [
+     "2m",
+     "S$500,000 to S$2m"
+    ],
+    [
+     "5m",
+     "S$2m to S$5m"
+    ],
+    [
+     "more",
+     "Above S$5m"
+    ]
+   ]
+  },
+  {
+   "id": "wic_wages",
+   "sec": null,
+   "type": "choice",
+   "title": "Total yearly wages, all employees",
+   "opts": [
+    [
+     "250k",
+     "Under S$250,000"
+    ],
+    [
+     "1m",
+     "S$250,000 to S$1m"
+    ],
+    [
+     "3m",
+     "S$1m to S$3m"
+    ],
+    [
+     "more",
+     "Above S$3m"
+    ]
+   ]
+  },
+  {
+   "id": "gl_site",
+   "sec": null,
+   "type": "choice",
+   "title": "Does your team work at client sites or in public spaces?",
+   "opts": [
+    [
+     "no",
+     "No"
+    ],
+    [
+     "yes",
+     "Yes"
+    ]
+   ]
+  },
+  {
+   "id": "gl_haz",
+   "sec": null,
+   "type": "choice",
+   "title": "Any work at height, hot work or demolition?",
+   "opts": [
+    [
+     "no",
+     "No"
+    ],
+    [
+     "yes",
+     "Yes"
+    ]
+   ]
+  },
+  {
+   "id": "pl_what",
+   "sec": null,
+   "type": "text",
+   "title": "What do you make or sell?",
+   "opts": []
+  },
+  {
+   "id": "pl_us",
+   "sec": null,
+   "type": "choice",
+   "title": "Do your products reach the USA or Canada, directly or through customers?",
+   "opts": [
+    [
+     "no",
+     "No"
+    ],
+    [
+     "yes",
+     "Yes"
+    ],
+    [
+     "unsure",
+     "Not sure"
+    ]
+   ]
+  },
+  {
+   "id": "pi_service",
+   "sec": null,
+   "type": "choice",
+   "title": "Which best describes your professional service?",
+   "opts": [
+    [
+     "accounting",
+     "Accounting or tax"
+    ],
+    [
+     "legal",
+     "Legal"
+    ],
+    [
+     "design",
+     "Architecture or engineering"
+    ],
+    [
+     "realestate",
+     "Real estate agency"
+    ],
+    [
+     "it",
+     "IT consulting"
+    ],
+    [
+     "media",
+     "Media or marketing"
+    ],
+    [
+     "other",
+     "Other advice or consulting"
+    ]
+   ]
+  },
+  {
+   "id": "pi_fees",
+   "sec": null,
+   "type": "choice",
+   "title": "Yearly fee income",
+   "opts": [
+    [
+     "200k",
+     "Under S$200,000"
+    ],
+    [
+     "1m",
+     "S$200,000 to S$1m"
+    ],
+    [
+     "3m",
+     "S$1m to S$3m"
+    ],
+    [
+     "more",
+     "Above S$3m"
+    ]
+   ]
+  },
+  {
+   "id": "pi_limit",
+   "sec": null,
+   "type": "choice",
+   "title": "Limit you would like for professional indemnity",
+   "opts": [
+    [
+     "500k",
+     "S$500,000"
+    ],
+    [
+     "1m",
+     "S$1m"
+    ],
+    [
+     "2m",
+     "S$2m"
+    ],
+    [
+     "3m",
+     "S$3m"
+    ],
+    [
+     "5m",
+     "S$5m"
+    ],
+    [
+     "unsure",
+     "Not sure"
+    ]
+   ]
+  },
+  {
+   "id": "do_listed",
+   "sec": null,
+   "type": "choice",
+   "title": "Is the company listed, or planning to list?",
+   "opts": [
+    [
+     "no",
+     "No"
+    ],
+    [
+     "listed",
+     "Listed"
+    ],
+    [
+     "planning",
+     "Planning to list"
+    ]
+   ]
+  },
+  {
+   "id": "do_limit",
+   "sec": null,
+   "type": "choice",
+   "title": "Limit you would like for directors and officers",
+   "opts": [
+    [
+     "500k",
+     "S$500,000"
+    ],
+    [
+     "1m",
+     "S$1m"
+    ],
+    [
+     "2m",
+     "S$2m"
+    ],
+    [
+     "3m",
+     "S$3m"
+    ],
+    [
+     "5m",
+     "S$5m"
+    ],
+    [
+     "unsure",
+     "Not sure"
+    ]
+   ]
+  },
+  {
+   "id": "cy_records",
+   "sec": null,
+   "type": "choice",
+   "title": "How many customer or employee records do you hold?",
+   "opts": [
+    [
+     "10k",
+     "Under 10,000"
+    ],
+    [
+     "100k",
+     "10,000 to 100,000"
+    ],
+    [
+     "1m",
+     "100,000 to 1 million"
+    ],
+    [
+     "more",
+     "Over 1 million"
+    ]
+   ]
+  },
+  {
+   "id": "cy_mfa",
+   "sec": null,
+   "type": "choice",
+   "title": "Is multi-factor login on for email and remote access?",
+   "opts": [
+    [
+     "yes",
+     "Yes, everywhere"
+    ],
+    [
+     "partly",
+     "Partly"
+    ],
+    [
+     "no",
+     "No"
+    ],
+    [
+     "unsure",
+     "Not sure"
+    ]
+   ]
+  },
+  {
+   "id": "cy_backup",
+   "sec": null,
+   "type": "choice",
+   "title": "Do you keep backups separate from your main systems?",
+   "opts": [
+    [
+     "yes",
+     "Yes"
+    ],
+    [
+     "no",
+     "No"
+    ],
+    [
+     "unsure",
+     "Not sure"
+    ]
+   ]
+  },
+  {
+   "id": "cy_limit",
+   "sec": null,
+   "type": "choice",
+   "title": "Limit you would like for cyber",
+   "opts": [
+    [
+     "250k",
+     "S$250,000"
+    ],
+    [
+     "500k",
+     "S$500,000"
+    ],
+    [
+     "1m",
+     "S$1m"
+    ],
+    [
+     "2m",
+     "S$2m"
+    ],
+    [
+     "3m",
+     "S$3m"
+    ],
+    [
+     "unsure",
+     "Not sure"
+    ]
+   ]
+  },
+  {
+   "id": "sef_hit",
+   "sec": null,
+   "type": "choice",
+   "title": "Has the business ever paid, or nearly paid, a fake invoice or a changed bank account?",
+   "opts": [
+    [
+     "no",
+     "No"
+    ],
+    [
+     "yes",
+     "Yes"
+    ]
+   ]
+  },
+  {
+   "id": "gpa_heads",
+   "sec": null,
+   "type": "number",
+   "title": "How many people should personal accident cover?",
+   "opts": []
+  },
+  {
+   "id": "tr_trips",
+   "sec": null,
+   "type": "choice",
+   "title": "Business trips a year, whole team",
+   "opts": [
+    [
+     "10",
+     "Under 10"
+    ],
+    [
+     "50",
+     "10 to 50"
+    ],
+    [
+     "more",
+     "More than 50"
+    ]
+   ]
+  },
+  {
+   "id": "tr_where",
+   "sec": null,
+   "type": "choice",
+   "title": "Where do they travel?",
+   "opts": [
+    [
+     "asia",
+     "Asia only"
+    ],
+    [
+     "world",
+     "Worldwide, including the USA"
+    ]
+   ]
+  },
+  {
+   "id": "cg_value",
+   "sec": null,
+   "type": "choice",
+   "title": "Yearly value of goods shipped",
+   "opts": [
+    [
+     "1m",
+     "Under S$1m"
+    ],
+    [
+     "10m",
+     "S$1m to S$10m"
+    ],
+    [
+     "more",
+     "Above S$10m"
+    ]
+   ]
+  },
+  {
+   "id": "cg_terms",
+   "sec": null,
+   "type": "choice",
+   "title": "Usual trade terms on your shipments",
+   "opts": [
+    [
+     "fob",
+     "FOB or EXW"
+    ],
+    [
+     "cif",
+     "CIF or CIP"
+    ],
+    [
+     "ddp",
+     "DDP or DAP"
+    ],
+    [
+     "mix",
+     "A mix"
+    ],
+    [
+     "unsure",
+     "Not sure"
+    ]
+   ]
+  },
+  {
+   "id": "ev_size",
+   "sec": null,
+   "type": "choice",
+   "title": "Largest event in the next 12 months",
+   "opts": [
+    [
+     "500",
+     "Under 500 people"
+    ],
+    [
+     "5000",
+     "500 to 5,000"
+    ],
+    [
+     "more",
+     "Over 5,000"
+    ]
+   ]
+  },
+  {
+   "id": "tech_what",
+   "sec": null,
+   "type": "choice",
+   "title": "What do you provide?",
+   "opts": [
+    [
+     "saas",
+     "Software or SaaS"
+    ],
+    [
+     "services",
+     "IT services or consulting"
+    ],
+    [
+     "hardware",
+     "Hardware or devices"
+    ],
+    [
+     "other",
+     "Something else"
+    ]
+   ]
+  },
+  {
+   "id": "special",
+   "sec": null,
+   "type": "long",
+   "title": "Tell us about the specialist cover you need",
+   "opts": []
+  },
+  {
+   "id": "claims",
+   "sec": "History",
+   "type": "choice",
+   "title": "Any claims, or anything that could lead to one, in the last 5 years?",
+   "opts": [
+    [
+     "no",
+     "No"
+    ],
+    [
+     "yes",
+     "Yes"
+    ]
+   ]
+  },
+  {
+   "id": "claims_what",
+   "sec": null,
+   "type": "long",
+   "title": "Briefly, what happened?",
+   "opts": []
+  },
+  {
+   "id": "declined",
+   "sec": null,
+   "type": "choice",
+   "title": "Has an insurer ever declined, cancelled or refused to renew your cover?",
+   "opts": [
+    [
+     "no",
+     "No"
+    ],
+    [
+     "yes",
+     "Yes"
+    ]
+   ]
+  },
+  {
+   "id": "upload",
+   "sec": null,
+   "type": "upload",
+   "title": "Upload your current policy schedule",
+   "opts": []
+  },
+  {
+   "id": "contact",
+   "sec": "Contact",
+   "type": "contact",
+   "title": "Who should the adviser speak to?",
+   "opts": []
+  },
+  {
+   "id": "format",
+   "sec": null,
+   "type": "choice",
+   "title": "How would you like to meet?",
+   "opts": [
+    [
+     "meet",
+     "Google Meet"
+    ],
+    [
+     "whatsapp",
+     "WhatsApp call"
+    ]
+   ]
+  },
+  {
+   "id": "slot",
+   "sec": null,
+   "type": "booking",
+   "title": "Pick a time with an adviser",
+   "opts": []
+  }
+ ],
+ "products": {
+  "select": "Premises package",
+  "wic": "Work injury compensation",
+  "gl": "Public liability",
+  "pl": "Product liability and recall",
+  "pi": "Professional indemnity",
+  "do": "Directors and officers",
+  "cyber": "Cyber",
+  "sef": "Invoice and payment fraud",
+  "gpa": "Staff personal accident",
+  "travel": "Business travel",
+  "cargo": "Goods in transit",
+  "event": "Event liability",
+  "tech": "Tech errors and omissions",
+  "special": "Specialist cover (medical, freight, funds, art, life sciences)"
+ }
+}

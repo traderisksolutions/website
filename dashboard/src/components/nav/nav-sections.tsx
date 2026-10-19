@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import {
-  AlertTriangle, Users, BarChart2, Bot, UsersRound, Cpu, FolderOpen, BookMarked, History,
+  Inbox, AlertTriangle, Users, BarChart2, Bot, UsersRound, Cpu, FolderOpen, BookMarked, History,
   Settings, FlaskConical, TrendingUp, ScrollText, Network, HeartPulse, Car,
   Receipt, CalendarDays, Waypoints, Building2, Link2, Wrench, Home, Landmark, Megaphone, Contact,
   Newspaper, Sparkles, Library, Search, Globe, Crosshair, CalendarClock } from 'lucide-react'
@@ -64,6 +64,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: 'Sales',
     icon: Waypoints,
     items: [
+      { title: 'Enquiries', href: '/sales/enquiries', icon: Inbox,     description: 'Forms buyers submit on each website: Corp Cover, Benefixe, New South Sea, TRS' },
       { title: 'Leads',     href: '/sales/leads',     icon: Waypoints, description: 'Companies from the lead tool, strongest first, with the draft to approve' },
       { title: 'Contacts',  href: '/sales/contacts',  icon: Contact,   description: 'Every address TRS may write to: prospects, clients, enquiries' },
       { title: 'Campaigns', href: '/sales/campaigns', icon: Megaphone, description: 'Email sequences sent as sales@, each recipient approved first' },

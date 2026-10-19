@@ -78,6 +78,13 @@ export const API_RULES: ApiRule[] = [
     reason: 'Google OAuth redirect; a third party cannot send our header and the OAuth state is the check.',
   },
   {
+    // corpcover.com (and the other sites) post buyer form submissions here, server to server.
+    // The site holds SITE_INTAKE_KEY in x-api-key (32+ characters, constant-time compare in the route).
+    prefix: '/api/public/intake',
+    requirement: 'open',
+    reason: 'Website form intake, authenticated by its own SITE_INTAKE_KEY header.',
+  },
+  {
     // The blog feed corpcover.com, benefixe.com and the other sites render from. Published
     // articles only: there is nothing to protect, and the sites fetch it without credentials.
     prefix: '/api/public/blog',
