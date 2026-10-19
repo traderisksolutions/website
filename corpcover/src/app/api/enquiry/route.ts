@@ -1,12 +1,12 @@
 import { site } from "@/site";
 
-// Receives the three enquiry forms (policy review, cover finder, callback) and emails them to
+// Receives the enquiry forms (policy review, callback) and emails them to
 // the Corp Cover inbox through Resend. Dormant until RESEND_API_KEY and ENQUIRY_FROM are
 // set: it answers 503 and the page falls back to the visitor's own email app.
 
 export const runtime = "nodejs";
 
-const KINDS = ["policy-review", "cover-finder", "callback"] as const;
+const KINDS = ["policy-review", "callback"] as const;
 const MAX_FILE = 4 * 1024 * 1024; // Vercel functions accept ~4.5 MB request bodies
 const FILE_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/heic"];
 

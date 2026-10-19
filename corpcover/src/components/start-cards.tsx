@@ -17,7 +17,7 @@ const icons: Record<string, ReactNode> = {
 const cards: { flow: Flow; word: string; cap: string; photo: StaticImageData; title: string; sub: string; big?: boolean }[] = [
   { flow: "review", word: "Review", cap: "Know exactly what you are covered for", photo: reviewPhoto, title: "Policy review", sub: "PDF, JPG or PNG, up to 4 MB" },
   { flow: "chat", word: "Ask", cap: "Straight answers on business insurance", photo: askPhoto, title: "Ask a question", sub: "An adviser picks it up on WhatsApp", big: true },
-  { flow: "finder", word: "Find", cap: "See the cover a company like yours needs", photo: findPhoto, title: "Find my cover", sub: "The policies a company like yours holds" },
+  { flow: "finder", word: "Find", cap: "See the cover a company like yours needs", photo: findPhoto, title: "Find my cover", sub: "Questions, then a time with an adviser" },
 ];
 
 /** Start here (Revolut): three photo cards, one word each; a card opens its flow in the start modal. */

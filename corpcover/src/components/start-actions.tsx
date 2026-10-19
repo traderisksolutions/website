@@ -1,12 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Chat } from "./chat";
+import { FindModal } from "./find-flow";
 import { Modal } from "./modal";
 import { faqs } from "@/content/faq";
 import { faqAnswer } from "@/lib/chat-local";
-import { questions, recommend, summarise, type Answers } from "@/lib/cover-finder";
 import { sendEnquiry, type SendResult } from "@/lib/enquiry";
 import { site } from "@/site";
 
@@ -29,18 +28,23 @@ export function StartModal() {
     return () => window.removeEventListener(OPEN_EVENT, open);
   }, []);
   const close = () => setFlow(null);
+  // Picking Find closes the small modal; its close event must not also close the Find modal.
+  const closeSmall = () => setFlow(f => (f === "finder" ? f : null));
 
-  const titles = { choose: "How would you like to start?", chat: "Ask a question", review: "Upload policy for review", finder: "Find my cover", callback: "Request a callback" } as const;
+  const titles = { choose: "How would you like to start?", chat: "Ask a question", review: "Upload policy for review", callback: "Request a callback" } as const;
+  const small = flow === "finder" ? null : flow;
 
   return (
-    <Modal open={flow !== null} onClose={close} title={flow ? titles[flow] : titles.choose} eyebrow={flow !== "choose" && flow !== "chat"}
-      onBack={flow && flow !== "choose" ? () => setFlow("choose") : undefined}>
-      {flow === "choose" && <Chooser onPick={setFlow} />}
-      {flow === "chat" && <ChatFlow />}
-      {flow === "review" && <ReviewFlow />}
-      {flow === "finder" && <FinderFlow />}
-      {flow === "callback" && <CallbackFlow />}
-    </Modal>
+    <>
+      <Modal open={small !== null} onClose={closeSmall} title={small ? titles[small] : titles.choose} eyebrow={small !== "choose" && small !== "chat"}
+        onBack={small && small !== "choose" ? () => setFlow("choose") : undefined}>
+        {small === "choose" && <Chooser onPick={setFlow} />}
+        {small === "chat" && <ChatFlow />}
+        {small === "review" && <ReviewFlow />}
+        {small === "callback" && <CallbackFlow />}
+      </Modal>
+      {flow === "finder" && <FindModal onClose={close} />}
+    </>
   );
 }
 
@@ -49,17 +53,16 @@ export function StartButton({ className, flow = "choose", children = "Start here
   return <button type="button" onClick={() => openStart(flow)} className={className}>{children}</button>;
 }
 
-/** Three rows: ask the chat, send a policy, or answer five questions. Phone and callback below. */
+/** Three rows: ask the chat, send a policy, or find cover. Phone and callback below. */
 function Chooser({ onPick }: { onPick: (f: Flow) => void }) {
   const tel = `tel:+65${site.phone.replace(/\s/g, "")}`;
   return (
     <div>
       <h2 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.025em] sm:text-[2.1rem]">How would you like to start?</h2>
-      <p className="mt-1.5 text-ink-2">No fee. No obligation to buy.</p>
       <div className="mt-6 space-y-2.5">
         <Option icon="chat" title="Ask a question" text="Answers in seconds. An adviser takes over when you need one." onClick={() => onPick("chat")} />
         <Option icon="upload" title="Upload policy for review" text="See the gaps, the overlaps and what is overpriced." onClick={() => onPick("review")} />
-        <Option icon="list" title="Find my cover" text="Five questions. The policies a company like yours usually holds." onClick={() => onPick("finder")} />
+        <Option icon="list" title="Find my cover" text="Questions on your business, then a time to speak to an adviser." onClick={() => onPick("finder")} />
       </div>
       <p className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-3">
         <a href={whatsapp} target="_blank" rel="noopener" className="font-medium text-steel hover:underline">WhatsApp</a>
@@ -190,95 +193,6 @@ export function ReviewFlow({ inline = false }: { inline?: boolean }) {
       {error && <p role="alert" className="text-sm font-medium text-[#b42318]">{error}</p>}
       <button type="submit" disabled={busy || !file} className="glass-primary w-full py-3 font-semibold disabled:opacity-50">{busy ? "Sending…" : "Send for review"}</button>
     </form>
-  );
-}
-
-/* ── Cover finder (Kinro-style stepper) ────────────────────────── */
-
-function FinderFlow() {
-  const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState<Answers>({});
-  const total = questions.length;
-  const done = step >= total;
-  const results = done ? recommend(answers) : [];
-  const { busy, error, result, onSubmit } = useSubmit("Cover finder: quotes request", fd => {
-    fd.set("kind", "cover-finder");
-    fd.set("details", summarise(answers, results));
-  });
-
-  if (result) return <Outcome result={result} sentText="An adviser will prepare quotes for this cover and contact you." />;
-
-  return (
-    <div className="space-y-5">
-      <div className="flex items-center gap-3">
-        <span className="shrink-0 text-xs tabular-nums text-ink-2">{Math.min(step + 1, total)} of {total}</span>
-        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-ink/10">
-          <div className="h-full rounded-full bg-accent transition-[width] duration-300" style={{ width: `${(Math.min(step + 1, total) / total) * 100}%` }} />
-        </div>
-      </div>
-
-      {!done ? (
-        <Step key={step} q={questions[step]} value={answers[questions[step].key]} onPick={v => setAnswers(a => ({ ...a, [questions[step].key]: v }))}
-          other={answers.sectorOther ?? ""} onOther={t => setAnswers(a => ({ ...a, sectorOther: t }))}
-          onBack={step > 0 ? () => setStep(s => s - 1) : undefined} onNext={() => setStep(s => s + 1)} />
-      ) : (
-        <form onSubmit={onSubmit} className="space-y-5">
-          <h2 className="text-2xl font-bold tracking-tight">Suggested cover</h2>
-          <ul className="divide-y divide-rule rounded-2xl border border-rule bg-white/70">
-            {results.map(r => (
-              <li key={r.policy} className="flex items-start justify-between gap-4 px-4 py-3.5">
-                <div className="min-w-0">
-                  <p className="font-semibold leading-snug">{r.policy}</p>
-                  <p className="mt-0.5 text-sm text-ink-2">{r.why}{r.guide && <> <Link href={`/articles/${r.guide}`} className="font-medium text-steel underline-offset-2 hover:underline">Guide</Link></>}</p>
-                </div>
-                <span className={`mt-0.5 shrink-0 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${r.basis === "Required by law" ? "bg-accent text-accent-ink" : r.basis === "Usually required" ? "border border-ink/25 text-ink-2" : "border border-rule text-ink-3"}`}>{r.basis}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="text-sm font-semibold">Get quotes for this cover from 18 insurers</p>
-          <ContactFields />
-          {error && <p role="alert" className="text-sm font-medium text-[#b42318]">{error}</p>}
-          <div className="flex gap-3">
-            <button type="button" onClick={() => setStep(total - 1)} className="glass px-5 py-3 font-medium">Back</button>
-            <button type="submit" disabled={busy} className="glass-primary flex-1 py-3 font-semibold disabled:opacity-50">{busy ? "Sending…" : "Get quotes"}</button>
-          </div>
-        </form>
-      )}
-    </div>
-  );
-}
-
-function Step({ q, value, onPick, other, onOther, onBack, onNext }: {
-  q: (typeof questions)[number]; value?: string; onPick: (v: string) => void;
-  other: string; onOther: (t: string) => void; onBack?: () => void; onNext: () => void;
-}) {
-  // "Others" on the business question needs a description before Continue.
-  const needsOther = q.key === "sector" && value === "other";
-  const ready = !!value && (!needsOther || other.trim().length > 1);
-  return (
-    <div className="space-y-5">
-      <h2 className="text-[1.4rem] font-bold leading-snug tracking-tight">{q.text}</h2>
-      <div role="radiogroup" aria-label={q.text} className={`grid gap-2.5 ${q.options.length > 3 ? "sm:grid-cols-2" : ""}`}>
-        {q.options.map(o => (
-          <button key={o.value} type="button" role="radio" aria-checked={value === o.value} onClick={() => onPick(o.value)} className="choice">
-            <span aria-hidden className={`grid size-5 shrink-0 place-items-center rounded-full border-2 ${value === o.value ? "border-accent bg-accent" : "border-ink/25"}`}>
-              {value === o.value && <span className="size-1.5 rounded-full bg-white" />}
-            </span>
-            {o.label}
-          </button>
-        ))}
-      </div>
-      {needsOther && (
-        <label className="field">
-          Describe your business
-          <input autoFocus value={other} onChange={e => onOther(e.target.value)} maxLength={120} placeholder="e.g. Event management, marine surveying" onKeyDown={e => { if (e.key === "Enter" && ready) onNext(); }} />
-        </label>
-      )}
-      <div className="flex gap-3">
-        {onBack && <button type="button" onClick={onBack} className="glass px-5 py-3 font-medium">Back</button>}
-        <button type="button" disabled={!ready} onClick={onNext} className="glass-primary flex-1 py-3 font-semibold disabled:opacity-50">Continue</button>
-      </div>
-    </div>
   );
 }
 
