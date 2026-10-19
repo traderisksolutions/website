@@ -27,7 +27,10 @@ export type QuoteBasis = 'new_business' | 'renewal'
 export type GroupTier = { min_lives: number; factor: number }   // factor is a MULTIPLIER (1.5 = +50%, 0.95 = -5%)
 export type AppliedRules = {
   gst_treatment?: { treatment?: string; conversion_factor?: number | null } | string | null
-  group_size_discount?: { tiers?: GroupTier[] } | string | null
+  /** Tiers by number of EMPLOYEES (dependants do not count towards an insurer's group size).
+   *  `exclude_products` names the table's product codes the factor must not touch: RCC applies
+   *  its loading and discounts to medical lines only, never to life, critical illness or accident. */
+  group_size_discount?: { tiers?: GroupTier[]; exclude_products?: string[] } | string | null
   renewal_only_bands?: Array<{ band?: [number, number] | null }> | string | null
   occupation_class_rules?: { excluded_classes?: Array<number | string> } | string | null
   /** Ages the insurer will cover, by relationship. Income's calculator refuses children over 24
@@ -59,6 +62,15 @@ export function groupFactor(rules: AppliedRules | null | undefined, lives: numbe
                       .sort((a, b) => b.min_lives - a.min_lives)[0]
   return tier && typeof tier.factor === 'number' ? tier.factor : 1
 }
+/** Whether the group factor applies to this product of the table. */
+export function groupFactorApplies(rules: AppliedRules | null | undefined, product: string): boolean {
+  const g = rules?.group_size_discount
+  if (!g || typeof g === 'string') return true
+  return !(Array.isArray(g.exclude_products) && g.exclude_products.includes(product))
+}
+/** The insurer's group size: employees only. The TRS calculator counts "EE" rows (Calc!AH2) and
+ *  RCC's brochure tiers are by number of employees; a family of five is still one employee. */
+export const employeeCount = (members: Member[]): number => members.filter(m => memberTypeFor(m.relationship) === 'employee').length
 export function netOfGst(premium: number, rules: AppliedRules | null | undefined): number {
   const g = rules?.gst_treatment
   if (!g || typeof g === 'string') return premium
@@ -196,7 +208,7 @@ export function computeQuote(
   for (const table of tables) {
     const tMap = categoryMap[table.rate_table_id] ?? {}
     const rules = table.rules ?? null            // Phase C rules apply only when present (approved)
-    const gFactor = groupFactor(rules, members.length)
+    const gFactor = groupFactor(rules, employeeCount(members))
     const byProduct: Record<string, number> = {}
     let subtotal = 0, missing = 0, taxable = 0
 
@@ -216,9 +228,9 @@ export function computeQuote(
           const note = premium == null ? 'not covered by approved rules' : null
           lines.push({ member_index: i, member_name: m.name, relationship: m.relationship, category: m.category, age, rate_table_id: table.rate_table_id, insurer_id: table.insurer_id ?? null, insurer_name: table.insurer_name, product_code: product, plan_code: plan, premium, note })
           if (premium == null) { missing++; continue }
-          byProduct[product] = round2((byProduct[product] ?? 0) + premium)
-          subtotal = round2(subtotal + premium)
-          if (gstApplies(product)) taxable = round2(taxable + premium)
+          byProduct[product] = (byProduct[product] ?? 0) + premium
+          subtotal += premium
+          if (gstApplies(product)) taxable += premium
         }
         return
       }
@@ -239,18 +251,25 @@ export function computeQuote(
             premium = null; note = 'renewal-only (new business)'
           } else {
             // Net of GST — only where GST applies; a life premium never had any to strip.
-            premium = round2((gstApplies(product) ? netOfGst(premium, rules) : premium) * gFactor)
+            // Four decimals on the line, one rounding at the subtotal: the TRS calculator sums
+            // unrounded lines, and per-line cents drift its totals by a few cents on 15 lives.
+            // The rate card figure is a cents amount (an inclusive rate netted of GST is rounded to
+            // cents, as the TRS calculator stores it); the group factor then applies unrounded and
+            // the subtotal rounds once. This is what reproduces the calculator's totals exactly.
+            premium = round4(round2(gstApplies(product) ? netOfGst(premium, rules) : premium) * (groupFactorApplies(rules, product) ? gFactor : 1))
           }
         }
         lines.push({ member_index: i, member_name: m.name, relationship: m.relationship, category: m.category, age, rate_table_id: table.rate_table_id, insurer_id: table.insurer_id ?? null, insurer_name: table.insurer_name, product_code: product, plan_code: plan, premium, note })
         if (premium == null) { missing++; continue }
-        byProduct[product] = round2((byProduct[product] ?? 0) + premium)
-        subtotal = round2(subtotal + premium)
-        if (gstApplies(product)) taxable = round2(taxable + premium)
+        byProduct[product] = (byProduct[product] ?? 0) + premium
+        subtotal += premium
+        if (gstApplies(product)) taxable += premium
       }
     })
 
     // GST on the standard-rated cover only; term life and critical illness are exempt.
+    for (const k of Object.keys(byProduct)) byProduct[k] = round2(byProduct[k])
+    subtotal = round2(subtotal)
     const gst = round2(taxable * gstRate)
     // richRules bypasses AppliedRules entirely (see the branch above) — report that plainly
     // rather than showing gFactor/rules.gst_treatment values that were never actually applied.
@@ -265,3 +284,4 @@ export function computeQuote(
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100
+const round4 = (n: number) => Math.round(n * 10000) / 10000

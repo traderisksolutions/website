@@ -1,0 +1,1879 @@
+{
+ "source": "TRS EB Package Calculator - Gembridge.xlsx (Drive, 15 Oct 2026) + TRS EB Calculator V1.2 Rates sheet",
+ "effective_date": "2026-10-24",
+ "basis": "new_business",
+ "members": [
+  {
+   "name": "How Beng Wee",
+   "category": "Staff",
+   "relationship": "self",
+   "dob": "1971-12-24",
+   "occupation_class": "1"
+  },
+  {
+   "name": "Soh Lay Yen",
+   "category": "Dependants",
+   "relationship": "spouse",
+   "dob": "1972-09-12",
+   "occupation_class": null
+  },
+  {
+   "name": "Chia Wen Yi\\u2002\\u2002",
+   "category": "Staff",
+   "relationship": "self",
+   "dob": "1976-08-19",
+   "occupation_class": "1"
+  },
+  {
+   "name": "Gooi Ean Ling",
+   "category": "Dependants",
+   "relationship": "spouse",
+   "dob": "1978-03-25",
+   "occupation_class": null
+  },
+  {
+   "name": "Chloe Chia",
+   "category": "Dependants",
+   "relationship": "child",
+   "dob": "2015-08-20",
+   "occupation_class": null
+  },
+  {
+   "name": "Johnson Cheung",
+   "category": "Staff",
+   "relationship": "self",
+   "dob": "1977-03-03",
+   "occupation_class": "1"
+  },
+  {
+   "name": "Hitoshi Hara",
+   "category": "Staff",
+   "relationship": "self",
+   "dob": "1975-09-26",
+   "occupation_class": "1"
+  },
+  {
+   "name": "Yuni Hara",
+   "category": "Dependants",
+   "relationship": "spouse",
+   "dob": "1982-07-02",
+   "occupation_class": null
+  },
+  {
+   "name": "Mayui Hara",
+   "category": "Dependants",
+   "relationship": "child",
+   "dob": "2020-03-01",
+   "occupation_class": null
+  },
+  {
+   "name": "Maori Hara",
+   "category": "Dependants",
+   "relationship": "child",
+   "dob": "2025-04-16",
+   "occupation_class": null
+  },
+  {
+   "name": "Darren Tan",
+   "category": "Staff",
+   "relationship": "self",
+   "dob": "1988-07-22",
+   "occupation_class": "1"
+  },
+  {
+   "name": "See Pei Wen",
+   "category": "Dependants",
+   "relationship": "spouse",
+   "dob": "1990-04-18",
+   "occupation_class": null
+  },
+  {
+   "name": "Tan Le Xuan Hayley",
+   "category": "Dependants",
+   "relationship": "child",
+   "dob": "2018-10-04",
+   "occupation_class": null
+  },
+  {
+   "name": "Tan Le Yu Delvin",
+   "category": "Dependants",
+   "relationship": "child",
+   "dob": "2019-11-25",
+   "occupation_class": null
+  },
+  {
+   "name": "Kasemsak Charoensiddhi",
+   "category": "Staff",
+   "relationship": "self",
+   "dob": "1974-08-15",
+   "occupation_class": "1"
+  }
+ ],
+ "tables": [
+  {
+   "rate_table_id": "RCC Enhanced III",
+   "insurer_name": "RCC Enhanced III",
+   "age_basis": "next_birthday",
+   "rules": {
+    "group_size_discount": {
+     "tiers": [
+      {
+       "min_lives": 1,
+       "factor": 1.5
+      },
+      {
+       "min_lives": 2,
+       "factor": 1.0
+      },
+      {
+       "min_lives": 5,
+       "factor": 0.95
+      },
+      {
+       "min_lives": 10,
+       "factor": 0.9
+      }
+     ],
+     "exclude_products": [
+      "Term Life",
+      "Critical Illness",
+      "Personal Accident"
+     ]
+    }
+   }
+  },
+  {
+   "rate_table_id": "Income FlexCare",
+   "insurer_name": "Income FlexCare",
+   "age_basis": "last_birthday",
+   "rules": null
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "insurer_name": "Steadfast MCare+",
+   "age_basis": "last_birthday",
+   "rules": null
+  },
+  {
+   "rate_table_id": "Singlife MyBenefits Plus",
+   "insurer_name": "Singlife MyBenefits Plus",
+   "age_basis": "last_birthday",
+   "rules": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "insurer_name": "AIA Flexi Vital Care Plus",
+   "age_basis": "last_birthday",
+   "rules": null
+  }
+ ],
+ "rates": [
+  {
+   "rate_table_id": "RCC Enhanced III",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 (PTE 1-bed)",
+   "member_type": null,
+   "band_label": "0 to 25",
+   "age_min": 0,
+   "age_max": 25,
+   "premium": 740.06,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "RCC Enhanced III",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 (PTE 1-bed)",
+   "member_type": null,
+   "band_label": "26 to 30",
+   "age_min": 26,
+   "age_max": 30,
+   "premium": 1014.65,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "RCC Enhanced III",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 (PTE 1-bed)",
+   "member_type": null,
+   "band_label": "31 to 35",
+   "age_min": 31,
+   "age_max": 35,
+   "premium": 1114.75,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "RCC Enhanced III",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 (PTE 1-bed)",
+   "member_type": null,
+   "band_label": "36 to 40",
+   "age_min": 36,
+   "age_max": 40,
+   "premium": 1246.7,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "RCC Enhanced III",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 (PTE 1-bed)",
+   "member_type": null,
+   "band_label": "41 to 45",
+   "age_min": 41,
+   "age_max": 45,
+   "premium": 1336.19,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "RCC Enhanced III",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 (PTE 1-bed)",
+   "member_type": null,
+   "band_label": "46 to 50",
+   "age_min": 46,
+   "age_max": 50,
+   "premium": 1791.19,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "RCC Enhanced III",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 (PTE 1-bed)",
+   "member_type": null,
+   "band_label": "51 to 55",
+   "age_min": 51,
+   "age_max": 55,
+   "premium": 2302.14,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "RCC Enhanced III",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 (PTE 1-bed)",
+   "member_type": null,
+   "band_label": "56 to 60",
+   "age_min": 56,
+   "age_max": 60,
+   "premium": 3025.87,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "RCC Enhanced III",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 (PTE 1-bed)",
+   "member_type": null,
+   "band_label": "61 to 65",
+   "age_min": 61,
+   "age_max": 65,
+   "premium": 3804.99,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "RCC Enhanced III",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 (PTE 1-bed)",
+   "member_type": null,
+   "band_label": "66 to 70",
+   "age_min": 66,
+   "age_max": 70,
+   "premium": 5050.94,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "RCC Enhanced III",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 (PTE 1-bed)",
+   "member_type": null,
+   "band_label": "71 to 75",
+   "age_min": 71,
+   "age_max": 75,
+   "premium": 7045.79,
+   "renewal_only": true,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "RCC Enhanced III",
+   "product_code": "Outpatient GP",
+   "plan_code": "Plan 1 (no co-pay)",
+   "member_type": null,
+   "band_label": "0 to 50",
+   "age_min": 0,
+   "age_max": 50,
+   "premium": 346.72,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "RCC Enhanced III",
+   "product_code": "Outpatient GP",
+   "plan_code": "Plan 1 (no co-pay)",
+   "member_type": null,
+   "band_label": "51 to 70",
+   "age_min": 51,
+   "age_max": 70,
+   "premium": 430.65,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "RCC Enhanced III",
+   "product_code": "Outpatient GP",
+   "plan_code": "Plan 1 (no co-pay)",
+   "member_type": null,
+   "band_label": "71 to 75",
+   "age_min": 71,
+   "age_max": 75,
+   "premium": 430.65,
+   "renewal_only": true,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "RCC Enhanced III",
+   "product_code": "Outpatient Specialist",
+   "plan_code": "Plan 1",
+   "member_type": null,
+   "band_label": "0 to 50",
+   "age_min": 0,
+   "age_max": 50,
+   "premium": 362.88,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "RCC Enhanced III",
+   "product_code": "Outpatient Specialist",
+   "plan_code": "Plan 1",
+   "member_type": null,
+   "band_label": "51 to 70",
+   "age_min": 51,
+   "age_max": 70,
+   "premium": 445.11,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "RCC Enhanced III",
+   "product_code": "Outpatient Specialist",
+   "plan_code": "Plan 1",
+   "member_type": null,
+   "band_label": "71 to 75",
+   "age_min": 71,
+   "age_max": 75,
+   "premium": 445.11,
+   "renewal_only": true,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "RCC Enhanced III",
+   "product_code": "Dental",
+   "plan_code": "Plan 1",
+   "member_type": null,
+   "band_label": "0 to 50",
+   "age_min": 0,
+   "age_max": 50,
+   "premium": 324.34,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "RCC Enhanced III",
+   "product_code": "Dental",
+   "plan_code": "Plan 1",
+   "member_type": null,
+   "band_label": "51 to 70",
+   "age_min": 51,
+   "age_max": 70,
+   "premium": 373.09,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "RCC Enhanced III",
+   "product_code": "Dental",
+   "plan_code": "Plan 1",
+   "member_type": null,
+   "band_label": "71 to 75",
+   "age_min": 71,
+   "age_max": 75,
+   "premium": 373.09,
+   "renewal_only": true,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "RCC Enhanced III",
+   "product_code": "Personal Accident",
+   "plan_code": "Plan 2 ($250k)",
+   "member_type": null,
+   "band_label": "0 to 999",
+   "age_min": 0,
+   "age_max": 999,
+   "premium": 92.22,
+   "renewal_only": false,
+   "dimensions": {
+    "occupation_class": "1"
+   }
+  },
+  {
+   "rate_table_id": "RCC Enhanced III",
+   "product_code": "Personal Accident",
+   "plan_code": "Plan 2 ($250k)",
+   "member_type": null,
+   "band_label": "0 to 999",
+   "age_min": 0,
+   "age_max": 999,
+   "premium": 104.45,
+   "renewal_only": false,
+   "dimensions": {
+    "occupation_class": "2"
+   }
+  },
+  {
+   "rate_table_id": "RCC Enhanced III",
+   "product_code": "Personal Accident",
+   "plan_code": "Plan 2 ($250k)",
+   "member_type": null,
+   "band_label": "0 to 999",
+   "age_min": 0,
+   "age_max": 999,
+   "premium": 180.0,
+   "renewal_only": false,
+   "dimensions": {
+    "occupation_class": "3"
+   }
+  },
+  {
+   "rate_table_id": "Income FlexCare",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 (Private 1-bed)",
+   "member_type": null,
+   "band_label": "0 to 30",
+   "age_min": 0,
+   "age_max": 30,
+   "premium": 787.0,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Income FlexCare",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 (Private 1-bed)",
+   "member_type": null,
+   "band_label": "31 to 35",
+   "age_min": 31,
+   "age_max": 35,
+   "premium": 894.4,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Income FlexCare",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 (Private 1-bed)",
+   "member_type": null,
+   "band_label": "36 to 40",
+   "age_min": 36,
+   "age_max": 40,
+   "premium": 903.7,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Income FlexCare",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 (Private 1-bed)",
+   "member_type": null,
+   "band_label": "41 to 45",
+   "age_min": 41,
+   "age_max": 45,
+   "premium": 1036.0,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Income FlexCare",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 (Private 1-bed)",
+   "member_type": null,
+   "band_label": "46 to 50",
+   "age_min": 46,
+   "age_max": 50,
+   "premium": 1318.5,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Income FlexCare",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 (Private 1-bed)",
+   "member_type": null,
+   "band_label": "51 to 55",
+   "age_min": 51,
+   "age_max": 55,
+   "premium": 1691.0,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Income FlexCare",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 (Private 1-bed)",
+   "member_type": null,
+   "band_label": "56 to 60",
+   "age_min": 56,
+   "age_max": 60,
+   "premium": 2096.3,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Income FlexCare",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 (Private 1-bed)",
+   "member_type": null,
+   "band_label": "61 to 65",
+   "age_min": 61,
+   "age_max": 65,
+   "premium": 3001.85,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Income FlexCare",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 (Private 1-bed)",
+   "member_type": null,
+   "band_label": "66 to 69",
+   "age_min": 66,
+   "age_max": 69,
+   "premium": 4184.26,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Income FlexCare",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 (Private 1-bed)",
+   "member_type": null,
+   "band_label": "70 to 72",
+   "age_min": 70,
+   "age_max": 72,
+   "premium": 5938.8,
+   "renewal_only": true,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Income FlexCare",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 (Private 1-bed)",
+   "member_type": null,
+   "band_label": "73 to 75",
+   "age_min": 73,
+   "age_max": 75,
+   "premium": 5938.8,
+   "renewal_only": true,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Income FlexCare",
+   "product_code": "Outpatient GP",
+   "plan_code": "Plan 1",
+   "member_type": null,
+   "band_label": "0 to 69",
+   "age_min": 0,
+   "age_max": 69,
+   "premium": 288.0,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Income FlexCare",
+   "product_code": "Outpatient GP",
+   "plan_code": "Plan 1",
+   "member_type": null,
+   "band_label": "70 to 75",
+   "age_min": 70,
+   "age_max": 75,
+   "premium": 288.0,
+   "renewal_only": true,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Income FlexCare",
+   "product_code": "Outpatient Specialist",
+   "plan_code": "Plan 1",
+   "member_type": null,
+   "band_label": "0 to 69",
+   "age_min": 0,
+   "age_max": 69,
+   "premium": 204.0,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Income FlexCare",
+   "product_code": "Outpatient Specialist",
+   "plan_code": "Plan 1",
+   "member_type": null,
+   "band_label": "70 to 75",
+   "age_min": 70,
+   "age_max": 75,
+   "premium": 204.0,
+   "renewal_only": true,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Income FlexCare",
+   "product_code": "Dental",
+   "plan_code": "Plan 1",
+   "member_type": null,
+   "band_label": "0 to 69",
+   "age_min": 0,
+   "age_max": 69,
+   "premium": 194.0,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Income FlexCare",
+   "product_code": "Dental",
+   "plan_code": "Plan 1",
+   "member_type": null,
+   "band_label": "70 to 75",
+   "age_min": 70,
+   "age_max": 75,
+   "premium": 194.0,
+   "renewal_only": true,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Income FlexCare",
+   "product_code": "Personal Accident",
+   "plan_code": "Plan 2 ($300k)",
+   "member_type": null,
+   "band_label": "0 to 999",
+   "age_min": 0,
+   "age_max": 999,
+   "premium": 127.0,
+   "renewal_only": false,
+   "dimensions": {
+    "occupation_class": "1"
+   }
+  },
+  {
+   "rate_table_id": "Income FlexCare",
+   "product_code": "Personal Accident",
+   "plan_code": "Plan 2 ($300k)",
+   "member_type": null,
+   "band_label": "0 to 999",
+   "age_min": 0,
+   "age_max": 999,
+   "premium": 165.0,
+   "renewal_only": false,
+   "dimensions": {
+    "occupation_class": "2"
+   }
+  },
+  {
+   "rate_table_id": "Income FlexCare",
+   "product_code": "Personal Accident",
+   "plan_code": "Plan 2 ($300k)",
+   "member_type": null,
+   "band_label": "0 to 999",
+   "age_min": 0,
+   "age_max": 999,
+   "premium": 246.0,
+   "renewal_only": false,
+   "dimensions": {
+    "occupation_class": "3"
+   }
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 \u00b7 Private 1-bed \u00b7 0%",
+   "member_type": null,
+   "band_label": "0 to 25",
+   "age_min": 0,
+   "age_max": 25,
+   "premium": 908.88,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 \u00b7 Private 1-bed \u00b7 0%",
+   "member_type": null,
+   "band_label": "26 to 30",
+   "age_min": 26,
+   "age_max": 30,
+   "premium": 908.88,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 \u00b7 Private 1-bed \u00b7 0%",
+   "member_type": null,
+   "band_label": "31 to 35",
+   "age_min": 31,
+   "age_max": 35,
+   "premium": 1214.64,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 \u00b7 Private 1-bed \u00b7 0%",
+   "member_type": null,
+   "band_label": "36 to 40",
+   "age_min": 36,
+   "age_max": 40,
+   "premium": 1537.2,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 \u00b7 Private 1-bed \u00b7 0%",
+   "member_type": null,
+   "band_label": "41 to 45",
+   "age_min": 41,
+   "age_max": 45,
+   "premium": 1706.88,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 \u00b7 Private 1-bed \u00b7 0%",
+   "member_type": null,
+   "band_label": "46 to 50",
+   "age_min": 46,
+   "age_max": 50,
+   "premium": 2183.13,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 \u00b7 Private 1-bed \u00b7 0%",
+   "member_type": null,
+   "band_label": "51 to 55",
+   "age_min": 51,
+   "age_max": 55,
+   "premium": 2718.32,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 \u00b7 Private 1-bed \u00b7 0%",
+   "member_type": null,
+   "band_label": "56 to 60",
+   "age_min": 56,
+   "age_max": 60,
+   "premium": 3381.84,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 \u00b7 Private 1-bed \u00b7 0%",
+   "member_type": null,
+   "band_label": "61 to 65",
+   "age_min": 61,
+   "age_max": 65,
+   "premium": 4576.91,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 \u00b7 Private 1-bed \u00b7 0%",
+   "member_type": null,
+   "band_label": "66 to 70",
+   "age_min": 66,
+   "age_max": 70,
+   "premium": 5862.53,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 \u00b7 Private 1-bed \u00b7 0%",
+   "member_type": null,
+   "band_label": "71 to 75",
+   "age_min": 71,
+   "age_max": 75,
+   "premium": 7142.1,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 \u00b7 Private 1-bed \u00b7 0%",
+   "member_type": null,
+   "band_label": "76 to 80",
+   "age_min": 76,
+   "age_max": 80,
+   "premium": 8642.09,
+   "renewal_only": true,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 1 \u00b7 Private 1-bed \u00b7 0%",
+   "member_type": null,
+   "band_label": "81 to 85",
+   "age_min": 81,
+   "age_max": 85,
+   "premium": 10437.34,
+   "renewal_only": true,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Outpatient GP",
+   "plan_code": "Plan 1 (no co-pay)",
+   "member_type": null,
+   "band_label": "0 to 50",
+   "age_min": 0,
+   "age_max": 50,
+   "premium": 413.0,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Outpatient GP",
+   "plan_code": "Plan 1 (no co-pay)",
+   "member_type": null,
+   "band_label": "51 to 65",
+   "age_min": 51,
+   "age_max": 65,
+   "premium": 620.0,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Outpatient GP",
+   "plan_code": "Plan 1 (no co-pay)",
+   "member_type": null,
+   "band_label": "66 to 75",
+   "age_min": 66,
+   "age_max": 75,
+   "premium": 713.0,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Outpatient GP",
+   "plan_code": "Plan 1 (no co-pay)",
+   "member_type": null,
+   "band_label": "76 to 85",
+   "age_min": 76,
+   "age_max": 85,
+   "premium": 926.9,
+   "renewal_only": true,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Outpatient Specialist",
+   "plan_code": "Plan 2 \u00b7 0%",
+   "member_type": null,
+   "band_label": "0 to 50",
+   "age_min": 0,
+   "age_max": 50,
+   "premium": 394.0,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Outpatient Specialist",
+   "plan_code": "Plan 2 \u00b7 0%",
+   "member_type": null,
+   "band_label": "51 to 65",
+   "age_min": 51,
+   "age_max": 65,
+   "premium": 588.0,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Outpatient Specialist",
+   "plan_code": "Plan 2 \u00b7 0%",
+   "member_type": null,
+   "band_label": "66 to 75",
+   "age_min": 66,
+   "age_max": 75,
+   "premium": 676.2,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Outpatient Specialist",
+   "plan_code": "Plan 2 \u00b7 0%",
+   "member_type": null,
+   "band_label": "76 to 85",
+   "age_min": 76,
+   "age_max": 85,
+   "premium": 879.06,
+   "renewal_only": true,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Dental",
+   "plan_code": "Plan 1 \u00b7 Panel",
+   "member_type": null,
+   "band_label": "0 to 50",
+   "age_min": 0,
+   "age_max": 50,
+   "premium": 292.5,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Dental",
+   "plan_code": "Plan 1 \u00b7 Panel",
+   "member_type": null,
+   "band_label": "51 to 65",
+   "age_min": 51,
+   "age_max": 65,
+   "premium": 591.0,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Dental",
+   "plan_code": "Plan 1 \u00b7 Panel",
+   "member_type": null,
+   "band_label": "66 to 75",
+   "age_min": 66,
+   "age_max": 75,
+   "premium": 849.0,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Dental",
+   "plan_code": "Plan 1 \u00b7 Panel",
+   "member_type": null,
+   "band_label": "76 to 85",
+   "age_min": 76,
+   "age_max": 85,
+   "premium": 849.0,
+   "renewal_only": true,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Personal Accident",
+   "plan_code": "Plan 2 ($200k)",
+   "member_type": null,
+   "band_label": "0 to 999",
+   "age_min": 0,
+   "age_max": 999,
+   "premium": 31.0,
+   "renewal_only": false,
+   "dimensions": {
+    "occupation_class": "1"
+   }
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Personal Accident",
+   "plan_code": "Plan 2 ($200k)",
+   "member_type": null,
+   "band_label": "0 to 999",
+   "age_min": 0,
+   "age_max": 999,
+   "premium": 39.0,
+   "renewal_only": false,
+   "dimensions": {
+    "occupation_class": "2"
+   }
+  },
+  {
+   "rate_table_id": "Steadfast MCare+",
+   "product_code": "Personal Accident",
+   "plan_code": "Plan 2 ($200k)",
+   "member_type": null,
+   "band_label": "0 to 999",
+   "age_min": 0,
+   "age_max": 999,
+   "premium": 47.0,
+   "renewal_only": false,
+   "dimensions": {
+    "occupation_class": "3"
+   }
+  },
+  {
+   "rate_table_id": "Singlife MyBenefits Plus",
+   "product_code": "Personal Accident",
+   "plan_code": "Plan 4 ($200k)",
+   "member_type": null,
+   "band_label": "0 to 70",
+   "age_min": 0,
+   "age_max": 70,
+   "premium": 90.0,
+   "renewal_only": false,
+   "dimensions": {
+    "occupation_class": "1"
+   }
+  },
+  {
+   "rate_table_id": "Singlife MyBenefits Plus",
+   "product_code": "Personal Accident",
+   "plan_code": "Plan 4 ($200k)",
+   "member_type": null,
+   "band_label": "71 to 75",
+   "age_min": 71,
+   "age_max": 75,
+   "premium": 230.0,
+   "renewal_only": true,
+   "dimensions": {
+    "occupation_class": "1"
+   }
+  },
+  {
+   "rate_table_id": "Singlife MyBenefits Plus",
+   "product_code": "Personal Accident",
+   "plan_code": "Plan 4 ($200k)",
+   "member_type": null,
+   "band_label": "0 to 70",
+   "age_min": 0,
+   "age_max": 70,
+   "premium": 120.0,
+   "renewal_only": false,
+   "dimensions": {
+    "occupation_class": "2"
+   }
+  },
+  {
+   "rate_table_id": "Singlife MyBenefits Plus",
+   "product_code": "Personal Accident",
+   "plan_code": "Plan 4 ($200k)",
+   "member_type": null,
+   "band_label": "71 to 75",
+   "age_min": 71,
+   "age_max": 75,
+   "premium": 280.0,
+   "renewal_only": true,
+   "dimensions": {
+    "occupation_class": "2"
+   }
+  },
+  {
+   "rate_table_id": "Singlife MyBenefits Plus",
+   "product_code": "Personal Accident",
+   "plan_code": "Plan 4 ($200k)",
+   "member_type": null,
+   "band_label": "0 to 70",
+   "age_min": 0,
+   "age_max": 70,
+   "premium": 160.0,
+   "renewal_only": false,
+   "dimensions": {
+    "occupation_class": "3"
+   }
+  },
+  {
+   "rate_table_id": "Singlife MyBenefits Plus",
+   "product_code": "Personal Accident",
+   "plan_code": "Plan 4 ($200k)",
+   "member_type": null,
+   "band_label": "71 to 75",
+   "age_min": 71,
+   "age_max": 75,
+   "premium": 360.0,
+   "renewal_only": true,
+   "dimensions": {
+    "occupation_class": "3"
+   }
+  },
+  {
+   "rate_table_id": "Singlife MyBenefits Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 6 (Pte 1-bed)",
+   "member_type": null,
+   "band_label": "0 to 30",
+   "age_min": 0,
+   "age_max": 30,
+   "premium": 686.0,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Singlife MyBenefits Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 6 (Pte 1-bed)",
+   "member_type": null,
+   "band_label": "31 to 35",
+   "age_min": 31,
+   "age_max": 35,
+   "premium": 741.0,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Singlife MyBenefits Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 6 (Pte 1-bed)",
+   "member_type": null,
+   "band_label": "36 to 40",
+   "age_min": 36,
+   "age_max": 40,
+   "premium": 741.0,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Singlife MyBenefits Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 6 (Pte 1-bed)",
+   "member_type": null,
+   "band_label": "41 to 45",
+   "age_min": 41,
+   "age_max": 45,
+   "premium": 797.0,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Singlife MyBenefits Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 6 (Pte 1-bed)",
+   "member_type": null,
+   "band_label": "46 to 50",
+   "age_min": 46,
+   "age_max": 50,
+   "premium": 1148.0,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Singlife MyBenefits Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 6 (Pte 1-bed)",
+   "member_type": null,
+   "band_label": "51 to 55",
+   "age_min": 51,
+   "age_max": 55,
+   "premium": 1389.0,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Singlife MyBenefits Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 6 (Pte 1-bed)",
+   "member_type": null,
+   "band_label": "56 to 60",
+   "age_min": 56,
+   "age_max": 60,
+   "premium": 1703.0,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Singlife MyBenefits Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 6 (Pte 1-bed)",
+   "member_type": null,
+   "band_label": "61 to 65",
+   "age_min": 61,
+   "age_max": 65,
+   "premium": 2406.0,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Singlife MyBenefits Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 6 (Pte 1-bed)",
+   "member_type": null,
+   "band_label": "66 to 70",
+   "age_min": 66,
+   "age_max": 70,
+   "premium": 3188.0,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Singlife MyBenefits Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 6 (Pte 1-bed)",
+   "member_type": null,
+   "band_label": "71 to 75",
+   "age_min": 71,
+   "age_max": 75,
+   "premium": 4415.0,
+   "renewal_only": true,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Singlife MyBenefits Plus",
+   "product_code": "Outpatient Specialist",
+   "plan_code": "Plan 6",
+   "member_type": null,
+   "band_label": "0 to 50",
+   "age_min": 0,
+   "age_max": 50,
+   "premium": 430.0,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Singlife MyBenefits Plus",
+   "product_code": "Outpatient Specialist",
+   "plan_code": "Plan 6",
+   "member_type": null,
+   "band_label": "51 to 65",
+   "age_min": 51,
+   "age_max": 65,
+   "premium": 757.0,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Singlife MyBenefits Plus",
+   "product_code": "Outpatient Specialist",
+   "plan_code": "Plan 6",
+   "member_type": null,
+   "band_label": "66 to 70",
+   "age_min": 66,
+   "age_max": 70,
+   "premium": 1000.0,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Singlife MyBenefits Plus",
+   "product_code": "Outpatient Specialist",
+   "plan_code": "Plan 6",
+   "member_type": null,
+   "band_label": "71 to 75",
+   "age_min": 71,
+   "age_max": 75,
+   "premium": 1385.0,
+   "renewal_only": true,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Singlife MyBenefits Plus",
+   "product_code": "Dental",
+   "plan_code": "Plan 3",
+   "member_type": null,
+   "band_label": "0 to 70",
+   "age_min": 0,
+   "age_max": 70,
+   "premium": 313.0,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "Singlife MyBenefits Plus",
+   "product_code": "Dental",
+   "plan_code": "Plan 3",
+   "member_type": null,
+   "band_label": "71 to 75",
+   "age_min": 71,
+   "age_max": 75,
+   "premium": 313.0,
+   "renewal_only": true,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 4 (Pte 1-bed)",
+   "member_type": "employee",
+   "band_label": "0 to 29",
+   "age_min": 0,
+   "age_max": 29,
+   "premium": 968.52,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 4 (Pte 1-bed)",
+   "member_type": "employee",
+   "band_label": "30 to 34",
+   "age_min": 30,
+   "age_max": 34,
+   "premium": 1094.45,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 4 (Pte 1-bed)",
+   "member_type": "employee",
+   "band_label": "35 to 39",
+   "age_min": 35,
+   "age_max": 39,
+   "premium": 1094.45,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 4 (Pte 1-bed)",
+   "member_type": "employee",
+   "band_label": "40 to 44",
+   "age_min": 40,
+   "age_max": 44,
+   "premium": 1205.56,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 4 (Pte 1-bed)",
+   "member_type": "employee",
+   "band_label": "45 to 49",
+   "age_min": 45,
+   "age_max": 49,
+   "premium": 1540.74,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 4 (Pte 1-bed)",
+   "member_type": "employee",
+   "band_label": "50 to 54",
+   "age_min": 50,
+   "age_max": 54,
+   "premium": 1930.56,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 4 (Pte 1-bed)",
+   "member_type": "employee",
+   "band_label": "55 to 59",
+   "age_min": 55,
+   "age_max": 59,
+   "premium": 2541.67,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 4 (Pte 1-bed)",
+   "member_type": "employee",
+   "band_label": "60 to 64",
+   "age_min": 60,
+   "age_max": 64,
+   "premium": 3420.38,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 4 (Pte 1-bed)",
+   "member_type": "employee",
+   "band_label": "65 to 69",
+   "age_min": 65,
+   "age_max": 69,
+   "premium": 4741.67,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 4 (Pte 1-bed)",
+   "member_type": "employee",
+   "band_label": "70 to 74",
+   "age_min": 70,
+   "age_max": 74,
+   "premium": 6496.3,
+   "renewal_only": true,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 4 (Pte 1-bed)",
+   "member_type": "dependant",
+   "band_label": "0 to 29",
+   "age_min": 0,
+   "age_max": 29,
+   "premium": 1060.18,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 4 (Pte 1-bed)",
+   "member_type": "dependant",
+   "band_label": "30 to 34",
+   "age_min": 30,
+   "age_max": 34,
+   "premium": 1198.16,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 4 (Pte 1-bed)",
+   "member_type": "dependant",
+   "band_label": "35 to 39",
+   "age_min": 35,
+   "age_max": 39,
+   "premium": 1198.16,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 4 (Pte 1-bed)",
+   "member_type": "dependant",
+   "band_label": "40 to 44",
+   "age_min": 40,
+   "age_max": 44,
+   "premium": 1320.38,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 4 (Pte 1-bed)",
+   "member_type": "dependant",
+   "band_label": "45 to 49",
+   "age_min": 45,
+   "age_max": 49,
+   "premium": 1687.96,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 4 (Pte 1-bed)",
+   "member_type": "dependant",
+   "band_label": "50 to 54",
+   "age_min": 50,
+   "age_max": 54,
+   "premium": 2114.82,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 4 (Pte 1-bed)",
+   "member_type": "dependant",
+   "band_label": "55 to 59",
+   "age_min": 55,
+   "age_max": 59,
+   "premium": 2784.27,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 4 (Pte 1-bed)",
+   "member_type": "dependant",
+   "band_label": "60 to 64",
+   "age_min": 60,
+   "age_max": 64,
+   "premium": 3746.3,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 4 (Pte 1-bed)",
+   "member_type": "dependant",
+   "band_label": "65 to 69",
+   "age_min": 65,
+   "age_max": 69,
+   "premium": 5193.52,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Hospital & Surgical",
+   "plan_code": "Plan 4 (Pte 1-bed)",
+   "member_type": "dependant",
+   "band_label": "70 to 74",
+   "age_min": 70,
+   "age_max": 74,
+   "premium": 7114.82,
+   "renewal_only": true,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Outpatient Specialist",
+   "plan_code": "Plan 4 ($0 co-pay)",
+   "member_type": "employee",
+   "band_label": "0 to 69",
+   "age_min": 0,
+   "age_max": 69,
+   "premium": 620.37,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Outpatient Specialist",
+   "plan_code": "Plan 4 ($0 co-pay)",
+   "member_type": "employee",
+   "band_label": "70 to 74",
+   "age_min": 70,
+   "age_max": 74,
+   "premium": 683.34,
+   "renewal_only": true,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Outpatient Specialist",
+   "plan_code": "Plan 4 ($0 co-pay)",
+   "member_type": "dependant",
+   "band_label": "0 to 69",
+   "age_min": 0,
+   "age_max": 69,
+   "premium": 683.34,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Outpatient Specialist",
+   "plan_code": "Plan 4 ($0 co-pay)",
+   "member_type": "dependant",
+   "band_label": "70 to 74",
+   "age_min": 70,
+   "age_max": 74,
+   "premium": 751.85,
+   "renewal_only": true,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Personal Accident",
+   "plan_code": "Plan 5 ($250k)",
+   "member_type": "employee",
+   "band_label": "0 to 999",
+   "age_min": 0,
+   "age_max": 999,
+   "premium": 125.93,
+   "renewal_only": false,
+   "dimensions": {
+    "occupation_class": "1"
+   }
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Personal Accident",
+   "plan_code": "Plan 5 ($250k)",
+   "member_type": "employee",
+   "band_label": "0 to 999",
+   "age_min": 0,
+   "age_max": 999,
+   "premium": 177.78,
+   "renewal_only": false,
+   "dimensions": {
+    "occupation_class": "2"
+   }
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Personal Accident",
+   "plan_code": "Plan 5 ($250k)",
+   "member_type": "employee",
+   "band_label": "0 to 999",
+   "age_min": 0,
+   "age_max": 999,
+   "premium": 239.82,
+   "renewal_only": false,
+   "dimensions": {
+    "occupation_class": "3"
+   }
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Personal Accident",
+   "plan_code": "Plan 5 ($250k)",
+   "member_type": "dependant",
+   "band_label": "0 to 999",
+   "age_min": 0,
+   "age_max": 999,
+   "premium": 73.16,
+   "renewal_only": false,
+   "dimensions": {
+    "occupation_class": "1"
+   }
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Personal Accident",
+   "plan_code": "Plan 5 ($250k)",
+   "member_type": "dependant",
+   "band_label": "0 to 999",
+   "age_min": 0,
+   "age_max": 999,
+   "premium": 130.56,
+   "renewal_only": false,
+   "dimensions": {
+    "occupation_class": "2"
+   }
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Personal Accident",
+   "plan_code": "Plan 5 ($250k)",
+   "member_type": "dependant",
+   "band_label": "0 to 999",
+   "age_min": 0,
+   "age_max": 999,
+   "premium": 139.82,
+   "renewal_only": false,
+   "dimensions": {
+    "occupation_class": "3"
+   }
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Dental",
+   "plan_code": "Plan 1",
+   "member_type": "employee",
+   "band_label": "0 to 69",
+   "age_min": 0,
+   "age_max": 69,
+   "premium": 362.96,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Dental",
+   "plan_code": "Plan 1",
+   "member_type": "employee",
+   "band_label": "70 to 74",
+   "age_min": 70,
+   "age_max": 74,
+   "premium": 362.96,
+   "renewal_only": true,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Dental",
+   "plan_code": "Plan 1",
+   "member_type": "dependant",
+   "band_label": "0 to 69",
+   "age_min": 0,
+   "age_max": 69,
+   "premium": 453.71,
+   "renewal_only": false,
+   "dimensions": null
+  },
+  {
+   "rate_table_id": "AIA Flexi Vital Care Plus",
+   "product_code": "Dental",
+   "plan_code": "Plan 1",
+   "member_type": "dependant",
+   "band_label": "70 to 74",
+   "age_min": 70,
+   "age_max": 74,
+   "premium": 453.71,
+   "renewal_only": true,
+   "dimensions": null
+  }
+ ],
+ "category_map": {
+  "RCC Enhanced III": {
+   "Hospital & Surgical": {
+    "Staff": "Plan 1 (PTE 1-bed)",
+    "Dependants": "Plan 1 (PTE 1-bed)"
+   },
+   "Outpatient GP": {
+    "Staff": "Plan 1 (no co-pay)",
+    "Dependants": "Plan 1 (no co-pay)"
+   },
+   "Outpatient Specialist": {
+    "Staff": "Plan 1",
+    "Dependants": "Plan 1"
+   },
+   "Dental": {
+    "Staff": "Plan 1",
+    "Dependants": "Plan 1"
+   },
+   "Personal Accident": {
+    "Staff": "Plan 2 ($250k)"
+   }
+  },
+  "Income FlexCare": {
+   "Hospital & Surgical": {
+    "Staff": "Plan 1 (Private 1-bed)",
+    "Dependants": "Plan 1 (Private 1-bed)"
+   },
+   "Outpatient GP": {
+    "Staff": "Plan 1",
+    "Dependants": "Plan 1"
+   },
+   "Outpatient Specialist": {
+    "Staff": "Plan 1",
+    "Dependants": "Plan 1"
+   },
+   "Dental": {
+    "Staff": "Plan 1",
+    "Dependants": "Plan 1"
+   },
+   "Personal Accident": {
+    "Staff": "Plan 2 ($300k)"
+   }
+  },
+  "Steadfast MCare+": {
+   "Hospital & Surgical": {
+    "Staff": "Plan 1 \u00b7 Private 1-bed \u00b7 0%",
+    "Dependants": "Plan 1 \u00b7 Private 1-bed \u00b7 0%"
+   },
+   "Outpatient GP": {
+    "Staff": "Plan 1 (no co-pay)",
+    "Dependants": "Plan 1 (no co-pay)"
+   },
+   "Outpatient Specialist": {
+    "Staff": "Plan 2 \u00b7 0%",
+    "Dependants": "Plan 2 \u00b7 0%"
+   },
+   "Dental": {
+    "Staff": "Plan 1 \u00b7 Panel",
+    "Dependants": "Plan 1 \u00b7 Panel"
+   },
+   "Personal Accident": {
+    "Staff": "Plan 2 ($200k)"
+   }
+  },
+  "Singlife MyBenefits Plus": {
+   "Hospital & Surgical": {
+    "Staff": "Plan 6 (Pte 1-bed)",
+    "Dependants": "Plan 6 (Pte 1-bed)"
+   },
+   "Outpatient Specialist": {
+    "Staff": "Plan 6",
+    "Dependants": "Plan 6"
+   },
+   "Dental": {
+    "Staff": "Plan 3",
+    "Dependants": "Plan 3"
+   },
+   "Personal Accident": {
+    "Staff": "Plan 4 ($200k)"
+   }
+  },
+  "AIA Flexi Vital Care Plus": {
+   "Hospital & Surgical": {
+    "Staff": "Plan 4 (Pte 1-bed)",
+    "Dependants": "Plan 4 (Pte 1-bed)"
+   },
+   "Outpatient Specialist": {
+    "Staff": "Plan 4 ($0 co-pay)",
+    "Dependants": "Plan 4 ($0 co-pay)"
+   },
+   "Dental": {
+    "Staff": "Plan 1",
+    "Dependants": "Plan 1"
+   },
+   "Personal Accident": {
+    "Staff": "Plan 5 ($250k)"
+   }
+  }
+ },
+ "products": [
+  "Dental",
+  "Hospital & Surgical",
+  "Outpatient GP",
+  "Outpatient Specialist",
+  "Personal Accident"
+ ],
+ "expected_net_by_product": {
+  "RCC Enhanced III": {
+   "Hospital & Surgical": 21491.82,
+   "Outpatient GP": 5339.43,
+   "Outpatient Specialist": 5561.63,
+   "Dental": 4853.41,
+   "Personal Accident": 553.32
+  },
+  "Income FlexCare": {
+   "Hospital & Surgical": 17497.9,
+   "Outpatient GP": 4320.0,
+   "Outpatient Specialist": 3060.0,
+   "Dental": 2910.0,
+   "Personal Accident": 762.0
+  },
+  "Steadfast MCare+": {
+   "Hospital & Surgical": 26748.35,
+   "Outpatient GP": 7023.0,
+   "Outpatient Specialist": 6686.0,
+   "Dental": 5581.5,
+   "Personal Accident": 186.0
+  },
+  "Singlife MyBenefits Plus": {
+   "Hospital & Surgical": 14709.0,
+   "Outpatient Specialist": 7758.0,
+   "Dental": 4695.0,
+   "Personal Accident": 540.0
+  },
+  "AIA Flexi Vital Care Plus": {
+   "Hospital & Surgical": 21979.65,
+   "Outpatient Specialist": 9872.28,
+   "Dental": 6261.15,
+   "Personal Accident": 755.58
+  }
+ }
+}

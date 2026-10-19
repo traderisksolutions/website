@@ -38,7 +38,7 @@ export async function createQuotation(input: QuotationInput, createdBy: string |
   const ids = tableIds.map(i => `"${i}"`).join(',')
   const [metaRes, rateRows, richRes] = await Promise.all([
     fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=in.(${ids})&select=id,insurer_id,insurer_name,age_basis,rules,rules_status&limit=100`, { headers: sbH(), cache: 'no-store' }),
-    fetchAllRows<RateTableInfo['rates'][number] & { rate_table_id: string }>(`${SB_URL}/rest/v1/gb_rates?rate_table_id=in.(${ids})&select=rate_table_id,product_code,member_type,plan_code,band_label,age_min,age_max,premium,renewal_only`, sbH()),
+    fetchAllRows<RateTableInfo['rates'][number] & { rate_table_id: string }>(`${SB_URL}/rest/v1/gb_rates?rate_table_id=in.(${ids})&select=rate_table_id,product_code,member_type,plan_code,band_label,age_min,age_max,premium,renewal_only,dimensions`, sbH()),
     fetch(`${SB_URL}/rest/v1/gb_computation_rules?rate_table_id=in.(${ids})&status=eq.approved&select=rate_table_id,rules`, { headers: sbH(), cache: 'no-store' }),
   ])
   const metas: { id: string; insurer_id: string | null; insurer_name: string | null; age_basis: string; rules: Record<string, unknown> | null; rules_status: string | null }[] = metaRes.ok ? await metaRes.json() : []

@@ -109,7 +109,7 @@ describe('what the calculators taught the engine', () => {
     const c = qbe as unknown as Calc
     const full = linePremium(c, { product_code: 'Group Hospital & Surgical (GHS)', plan_code: 'Plan 1 · Private 1-bedded', age: 30, relationship: 'self', expected: 0, renewal_only: false }, 'renewal').premium!
     const coins = linePremium(c, { product_code: 'Group Hospital & Surgical (GHS)', plan_code: 'Plan 1 · Private 1-bedded · 20% co-insurance', age: 30, relationship: 'self', expected: 0, renewal_only: false }, 'renewal').premium!
-    expect(coins).toBe(round2(full * 0.8))
+    expect(coins).toBeCloseTo(full * 0.8, 2)   // lines carry four decimals since the Gembridge reproduction; totals round once
   })
 
   it('refuses an Income child over 24, and accepts one at 24', () => {
