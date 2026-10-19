@@ -1,8 +1,13 @@
 """Nightly batch: for every site with nightly_count > 0, create that many
-runs. Search Console targets first (searches the site already appears for,
-on pages 2 to 5); the product and case-study rotation fills any slot the
-data cannot. Called by Cloud Scheduler via POST /nightly, or
-`python -m engine.cli nightly`.
+runs. Order of preference for each slot:
+
+  (a) prompts ticked on the Competitors page that no run in the last 90 days
+      wrote an article for (most Search Console impressions first),
+  (b) Search Console targets (searches the site already appears for, on
+      pages 2 to 5),
+  (c) the product and case-study rotation.
+
+Called by Cloud Scheduler via POST /nightly, or `python -m engine.cli nightly`.
 """
 from __future__ import annotations
 
@@ -24,14 +29,48 @@ def _rules(site: SiteInfo) -> TargetRules:
     )
 
 
+def _prompt_setups(store: Store, site: SiteInfo, count: int) -> list[RunSetup]:
+    """Ticked prompts without an article yet, most impressions first (None last), then by text."""
+    try:
+        taken = store.prompts_with_articles(site.id)
+        prompts = [p for p in store.selected_prompts(site.id) if str(p.get("id")) not in taken]
+    except Exception:  # noqa: BLE001 - tables arrive with migration 20261019
+        return []
+    prompts.sort(key=lambda p: (p.get("impressions") is None, -int(p.get("impressions") or 0), str(p.get("prompt") or "")))
+    markets = site.markets or ["SG"]
+    seen: set[str] = set()
+    setups: list[RunSetup] = []
+    for p in prompts:
+        prompt = str(p.get("prompt") or "").strip()
+        if not prompt or p["id"] in seen or len(setups) >= count:
+            continue
+        seen.add(p["id"])
+        setups.append(RunSetup(
+            engine="python",
+            site_id=site.id,
+            focus=Focus(type="question", id="", label=prompt),
+            market=markets[0],
+            topic=prompt,
+            reader_question=prompt,
+            target_query=str(p.get("search_query") or "").strip() or prompt,
+            prompt_id=str(p["id"]),
+            length=site.article_length,
+            objective="answer this question so AI assistants and Google cite the article",
+        ))
+    return setups
+
+
 def plan_nightly(store: Store, site: SiteInfo, count: int, day: date | None = None) -> list[RunSetup]:
     day = day or date.today()
+    setups: list[RunSetup] = _prompt_setups(store, site, count)
+    if len(setups) >= count:
+        return setups[:count]
     try:
-        targets, _refresh = pick_targets(store.search_queries(site.id), store.recent_target_queries(site.id), count, _rules(site))
+        targets, _refresh = pick_targets(store.search_queries(site.id), store.recent_target_queries(site.id), count - len(setups), _rules(site))
     except Exception:  # noqa: BLE001 - never let the data source stop the night's run
         targets = []
     markets = site.markets or ["SG"]
-    setups: list[RunSetup] = [
+    setups += [
         RunSetup(
             engine="python",
             site_id=site.id,
@@ -41,6 +80,7 @@ def plan_nightly(store: Store, site: SiteInfo, count: int, day: date | None = No
             reader_question=t.query,
             target_query=t.query,
             target_position=t.position,
+            length=site.article_length,
             objective="rank on page one for this search and bring in enquiries",
         )
         for t in targets
@@ -73,7 +113,7 @@ def _rotation(store: Store, site: SiteInfo, count: int, day: date) -> list[RunSe
             focus = Focus(type="product", id=e.id, label=e.title)
         else:
             focus = Focus(type="market", id="", label=market)
-        setups.append(RunSetup(engine="python", site_id=site.id, focus=focus, market=market, objective="bring in enquiries for the business"))
+        setups.append(RunSetup(engine="python", site_id=site.id, focus=focus, market=market, length=site.article_length, objective="bring in enquiries for the business"))
     return setups
 
 

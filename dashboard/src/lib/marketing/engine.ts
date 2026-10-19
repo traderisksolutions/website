@@ -1,7 +1,7 @@
 // Generation runs: the row the dashboard creates, the HTTP nudge to the Python engine, and
 // the reads the run page polls. The engine also polls for queued runs, so every call to it is
 // best-effort: a failure means "picked up within ENGINE_POLL_SECONDS", not a lost run.
-import { sb } from '@/lib/sales/db'
+import { sb, isUuid } from '@/lib/sales/db'
 import type { RunDetail, RunListRow, RunNode, RunSetup, Site } from './types'
 import { isMarket } from './knowledge-schema'
 
@@ -39,6 +39,10 @@ async function call<T>(path: string, init?: RequestInit, timeoutMs = 8000): Prom
 
 export const engineHealth = () => call<{ ok: boolean; active_runs: string[]; models: { strong: string; fast: string } }>('/health', { method: 'GET' }, 5000)
 export const engineStartRun = (runId: string) => call<{ runId: string; status: string }>(`/runs/${runId}/start`, { method: 'POST' })
+/** Nudge the engine to start a competitor analysis; its worker also claims queued analyses. */
+export const engineStartAnalysis = (analysisId: string) => call<{ analysisId: string; status: string }>(`/analyses/${analysisId}/start`, { method: 'POST' })
+/** Create tonight's batch for one site now. The engine plans the runs before answering, so allow longer. */
+export const engineNightly = (siteId: string) => call<{ created: string[]; count: number }>(`/nightly?site_id=${encodeURIComponent(siteId)}`, { method: 'POST' }, 20000)
 
 const FOCUS_TYPES = new Set(['product', 'case_study', 'market', 'topic', 'question'])
 
@@ -66,6 +70,7 @@ export function cleanSetup(site: Site, body: Record<string, unknown>): { setup: 
       extra_instructions: String(body.extra_instructions ?? '').trim().slice(0, 2000),
       contact_url: '', auto_publish: false,
       target_query: String(body.target_query ?? '').trim().slice(0, 300), target_position: Number(body.target_position) || 0,
+      prompt_id: isUuid(String(body.prompt_id ?? '')) ? String(body.prompt_id).toLowerCase() : '',
     },
   }
 }
@@ -78,6 +83,7 @@ export async function createRun(site: Site, setup: RunSetup, actor: string, trig
       site_id: site.id, status: 'queued', setup, targets: [],
       primary_target_id: setup.focus.id || null, primary_target_type: setup.focus.id ? setup.focus.type : null, primary_target_name: setup.focus.label || setup.topic || null,
       triggered_by: triggeredBy, created_by: actor,
+      ...(setup.prompt_id ? { prompt_id: setup.prompt_id } : {}),
     }),
   })
   const runId = rows[0].id

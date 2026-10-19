@@ -30,7 +30,13 @@ def _site_from_row(row: dict[str, Any]) -> SiteInfo:
         pillar_pages=[p for p in pages if isinstance(p, dict) and p.get("url")],
         banned_terms=list(row.get("banned_terms") or []),
         require_approval=bool(row.get("require_approval", True)), nightly_count=int(row.get("nightly_count") or 0),
+        article_length=str(row.get("article_length") or "standard"),
     )
+
+
+def _chunks(rows: list[dict[str, Any]], size: int = 500):
+    for i in range(0, len(rows), size):
+        yield rows[i:i + size]
 
 
 class SupabaseStore:
@@ -64,7 +70,15 @@ class SupabaseStore:
             "primary_target_name": setup.focus.label or None,
             "triggered_by": triggered_by,
         }
-        data = self.sb.table("blog_generation_runs").insert(row).execute().data
+        if setup.prompt_id:
+            row["prompt_id"] = setup.prompt_id
+        try:
+            data = self.sb.table("blog_generation_runs").insert(row).execute().data
+        except Exception as e:  # noqa: BLE001 - migration 20261019 not applied yet
+            if "prompt_id" not in row or "prompt_id" not in str(e):
+                raise
+            row.pop("prompt_id")
+            data = self.sb.table("blog_generation_runs").insert(row).execute().data
         run = RunRecord(id=data[0]["id"], site_id=site_id, status="queued", setup=setup, triggered_by=triggered_by)
         self.ensure_nodes(run, node_defs)
         return run
@@ -217,6 +231,122 @@ class SupabaseStore:
             if f"{slug}-{i}" not in taken:
                 return f"{slug}-{i}"
         return f"{slug}-{uuid.uuid4().hex[:6]}"
+
+    def published_count(self, site_id: str) -> int:
+        res = self.sb.table("cms_articles").select("id", count="exact").eq("site_id", site_id).eq("status", "published").limit(1).execute()
+        count = getattr(res, "count", None)
+        return int(count) if count is not None else len(res.data or [])
+
+    # --- prompts (geo_prompts) --------------------------------------------
+
+    def selected_prompts(self, site_id: str) -> list[dict[str, Any]]:
+        return self.sb.table("geo_prompts").select("id, prompt, search_query, impressions").eq("site_id", site_id) \
+            .eq("selected", True).eq("archived", False).limit(500).execute().data
+
+    def prompts_with_articles(self, site_id: str, days: int = 90) -> set[str]:
+        """Prompts a run in the window already wrote for (has an article) or is
+        writing for right now (queued/running)."""
+        since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+        try:
+            rows = self.sb.table("blog_generation_runs").select("prompt_id, article_id, status").eq("site_id", site_id) \
+                .not_.is_("prompt_id", "null").gte("created_at", since).limit(1000).execute().data
+        except Exception:  # noqa: BLE001 - column arrives with migration 20261019
+            return set()
+        return {str(r["prompt_id"]) for r in rows if r.get("prompt_id") and (r.get("article_id") or r.get("status") in ("queued", "running"))}
+
+    def list_prompts(self, site_id: str) -> list[dict[str, Any]]:
+        return self.sb.table("geo_prompts").select("id, prompt, search_query, impressions, source, selected").eq("site_id", site_id) \
+            .eq("archived", False).order("created_at").limit(1000).execute().data
+
+    def insert_prompts(self, site_id: str, rows: list[dict[str, Any]]) -> int:
+        payload = [{
+            "site_id": site_id, "prompt": r["prompt"][:500], "search_query": (r.get("search_query") or "")[:300],
+            "impressions": r.get("impressions"), "source": r.get("source") or "analysis", "created_by": r.get("created_by") or "engine",
+        } for r in rows if (r.get("prompt") or "").strip()]
+        if not payload:
+            return 0
+        data = self.sb.table("geo_prompts").upsert(payload, on_conflict="site_id,prompt", ignore_duplicates=True).execute().data
+        return len(data or [])
+
+    def gsc_impressions(self, site_id: str) -> dict[str, int]:
+        out: dict[str, int] = {}
+        try:
+            rows = self.sb.table("gsc_queries").select("query, impressions").eq("site_id", site_id).limit(5000).execute().data
+        except Exception:  # noqa: BLE001 - Search Console may not be connected
+            return out
+        for r in rows:
+            q = (r.get("query") or "").strip().lower()
+            if q:
+                out[q] = out.get(q, 0) + int(r.get("impressions") or 0)
+        return out
+
+    # --- competitors and their pages --------------------------------------
+
+    def list_competitors(self, site_id: str) -> list[dict[str, Any]]:
+        return self.sb.table("marketing_competitors").select("*").eq("site_id", site_id).eq("status", "active").order("created_at").execute().data
+
+    def update_competitor(self, competitor_id: str, **fields: Any) -> None:
+        allowed = {"name", "blog_url", "sitemap_url", "pages_count", "best_page_url", "best_page_note", "cited_count", "search_hits", "last_analysed_at"}
+        patch = {k: v for k, v in fields.items() if k in allowed}
+        if patch:
+            patch["updated_at"] = _now()
+            self.sb.table("marketing_competitors").update(patch).eq("id", competitor_id).execute()
+
+    def upsert_pages(self, competitor_id: str, site_id: str, pages: list[dict[str, Any]]) -> None:
+        now = _now()
+        rows = [{
+            "competitor_id": competitor_id, "site_id": site_id, "url": p["url"], "title": (p.get("title") or None),
+            "published_at": p.get("published_at") or None, "last_seen_at": now,
+        } for p in pages if p.get("url")]
+        for chunk in _chunks(rows):
+            self.sb.table("competitor_pages").upsert(chunk, on_conflict="competitor_id,url").execute()
+
+    def reset_page_counts(self, site_id: str) -> None:
+        self.sb.table("competitor_pages").update({"cited_count": 0, "search_hits": 0}).eq("site_id", site_id).execute()
+
+    def bump_page_counts(self, site_id: str, counts: dict[str, dict[str, int]]) -> None:
+        for url, c in counts.items():
+            cited, search = int(c.get("cited") or 0), int(c.get("search") or 0)
+            if cited or search:
+                self.sb.table("competitor_pages").update({"cited_count": cited, "search_hits": search}).eq("site_id", site_id).eq("url", url).execute()
+
+    # --- analyses -----------------------------------------------------------
+
+    def get_analysis(self, analysis_id: str) -> dict[str, Any] | None:
+        data = self.sb.table("geo_analyses").select("*").eq("id", analysis_id).limit(1).execute().data
+        return data[0] if data else None
+
+    def update_analysis(self, analysis_id: str, **fields: Any) -> None:
+        allowed = {"status", "pages_read", "prompts_checked", "cited_count", "cost_usd", "model", "summary", "error", "started_at", "completed_at"}
+        patch = {k: v for k, v in fields.items() if k in allowed}
+        if patch:
+            self.sb.table("geo_analyses").update(patch).eq("id", analysis_id).execute()
+
+    def claim_queued_analyses(self, limit: int = 1, older_than_seconds: int = 0) -> list[dict[str, Any]]:
+        q = self.sb.table("geo_analyses").select("*").eq("status", "queued").order("created_at").limit(limit)
+        if older_than_seconds > 0:
+            q = q.lt("created_at", (datetime.now(timezone.utc) - timedelta(seconds=older_than_seconds)).isoformat())
+        claimed: list[dict[str, Any]] = []
+        for row in q.execute().data:
+            updated = self.sb.table("geo_analyses").update({"status": "running", "started_at": _now()}).eq("id", row["id"]).eq("status", "queued").execute().data
+            if updated:
+                row["status"] = "running"
+                claimed.append(row)
+        return claimed
+
+    def list_stale_running_analyses(self, older_than_minutes: int) -> list[dict[str, Any]]:
+        cutoff = (datetime.now(timezone.utc) - timedelta(minutes=older_than_minutes)).isoformat()
+        return self.sb.table("geo_analyses").select("id, site_id, started_at").eq("status", "running").lt("started_at", cutoff).limit(5).execute().data
+
+    def replace_results(self, analysis_id: str, rows: list[dict[str, Any]]) -> None:
+        self.sb.table("geo_prompt_results").delete().eq("analysis_id", analysis_id).execute()
+        payload = [{
+            "analysis_id": analysis_id, "site_id": r["site_id"], "prompt_id": r["prompt_id"],
+            "cited_domains": list(r.get("cited_domains") or []), "cited_urls": list(r.get("cited_urls") or []), "search_urls": list(r.get("search_urls") or []),
+            "us_cited": bool(r.get("us_cited")), "tone": r.get("tone") or "not_mentioned", "answer_excerpt": (r.get("answer_excerpt") or "")[:2000] or None,
+        } for r in rows]
+        for chunk in _chunks(payload):
+            self.sb.table("geo_prompt_results").insert(chunk).execute()
 
     # --- output -----------------------------------------------------------
 

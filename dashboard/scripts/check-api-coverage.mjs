@@ -34,7 +34,10 @@ const policyFile = join(repoRoot, 'src', 'lib', 'api-gate', 'policy.ts')
 const EXPECTED_OPEN = [
   '/api/auth/gmail/callback',    // Google OAuth redirect
   '/api/auth/onedrive/callback', // Microsoft OAuth redirect
-  '/api/outbound/webhooks',      // Instantly.ai, own shared secret
+  '/api/marketing/gsc/callback', // Google OAuth redirect (Search Console)
+  '/api/public/blog',            // published-article feed read by the business's own websites
+  '/api/public/sales/unsubscribe', // HMAC-signed recipient link (campaigns)
+  '/api/sales/intake',           // lead-tool intake, own SALES_INTAKE_KEY header
   '/api/unsubscribe',            // HMAC-signed recipient link
 ]
 
@@ -48,7 +51,8 @@ const SPOT_CHECKS = [
   ['/api/analyze_xlsx',         'key+actor'],
   ['/api/auth/gmail/callback',  'open'],
   ['/api/unsubscribe',          'open'],
-  ['/api/outbound/webhooks/instantly', 'open'],
+  ['/api/public/blog',          'open'],
+  ['/api/marketing/knowledge/file', 'key+actor'],
   ['/api/outbound/leads',       'key+actor'], // sibling of the webhook family, NOT open
 ]
 

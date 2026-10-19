@@ -82,6 +82,8 @@ export type RunSetup = {
   auto_publish: boolean
   target_query: string
   target_position: number
+  /** The geo_prompts row this run writes for (nightly batch); empty when started by hand. */
+  prompt_id?: string
 }
 
 export type RunListRow = {
@@ -162,3 +164,100 @@ export type GscOverview = {
 }
 
 export type MarketingStatus = { engine: boolean; engineReachable: boolean | null; gsc: boolean }
+
+// ── Marketing v2: competitors, GEO analysis, schedule ─────────────────────
+
+export type Competitor = {
+  id: string
+  site_id: string
+  name: string
+  url: string
+  domain: string
+  blog_url: string | null
+  sitemap_url: string | null
+  status: 'active' | 'removed'
+  pages_count: number
+  best_page_url: string | null
+  best_page_note: string | null
+  cited_count: number
+  search_hits: number
+  last_analysed_at: string | null
+  added_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type GeoPrompt = {
+  id: string
+  site_id: string
+  prompt: string
+  search_query: string
+  impressions: number | null
+  source: 'analysis' | 'manual' | 'search_console'
+  selected: boolean
+  archived: boolean
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type GeoTone = 'positive' | 'neutral' | 'negative' | 'not_mentioned'
+
+export type GeoPromptResult = {
+  id: string
+  analysis_id: string
+  site_id: string
+  prompt_id: string
+  cited_domains: string[]
+  cited_urls: string[]
+  search_urls: string[]
+  us_cited: boolean
+  tone: GeoTone
+  answer_excerpt: string | null
+  created_at: string
+}
+
+export type AnalysisSummary = {
+  site?: { pages?: number; cited?: number; top10?: number }
+  errors?: unknown[]
+  [k: string]: unknown
+}
+
+export type GeoAnalysis = {
+  id: string
+  site_id: string
+  version: number
+  status: 'queued' | 'running' | 'completed' | 'failed'
+  pages_read: number
+  prompts_checked: number
+  cited_count: number
+  cost_usd: number
+  model: string | null
+  summary: AnalysisSummary
+  error: string | null
+  started_at: string | null
+  completed_at: string | null
+  created_by: string | null
+  created_at: string
+}
+
+export type Cadence = { count: number; length: 'standard' | 'long'; post: boolean; time: string }
+
+export type KnowledgeVersionSummary = { version: number; word_count: number; heading_count: number; created_by: string | null; created_at: string }
+
+export type TonightPrompt = GeoPrompt & { cited_domains: string[] }
+export type TonightPlan = { analysis: GeoAnalysis | null; knowledge: KnowledgeVersionSummary | null; prompts: TonightPrompt[] }
+
+export type NightStatus = 'Posted' | 'Held' | 'Failed' | 'Running' | 'Queued' | 'Cancelled'
+export type NightRow = {
+  run_id: string
+  created_at: string
+  completed_at: string | null
+  title: string
+  status: NightStatus
+  detail: string
+  word_count: number | null
+  cost_usd: number | null
+  article_id: string | null
+}
+export type NightGroup = { date: string; label: string; rows: NightRow[] }

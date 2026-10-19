@@ -1,0 +1,42 @@
+# Business
+New South Sea (新南洋) is a Hong Kong insurance broker for complex business risks: property, liability, directors and officers, cyber and marine.
+The same broker places the programme and handles the claim.
+Office hours Monday to Friday, 9:00 to 18:00 HKT.
+[Legal entity name] [IA broker licence no.] [Office address, Hong Kong]
+
+# Property and business interruption
+Material damage and loss of gross profit for offices, warehouses, shops and stock.
+Common gap: supplier extensions with no named suppliers.
+
+# Contractors all risks
+Contract works, plant and third-party liability for developers, main contractors and fit-out firms.
+Common gaps: two policies covering the same works; maintenance period shorter than the contract.
+
+# Public liability
+Third-party injury and property damage from premises, operations and products.
+Common gap: contracts signed beyond the policy.
+
+# Employees' compensation
+Cover required under the Employees' Compensation Ordinance.
+Common gap: subcontractor staff assumed to be someone else's.
+
+# Directors and officers
+Personal liability of directors and officers, company reimbursement and securities claims for listed and private companies.
+Common gaps: insured-versus-insured excluded in full; run-off not arranged at a change of control.
+
+# Professional indemnity
+Liability for negligent advice, design or service for consultants, asset managers, technology firms and engineers.
+Common gaps: circumstances not notified at renewal; unlimited liability in client contracts; retroactive date lost on a switch.
+
+# Cyber
+First-party loss from network events and third-party liability for data and privacy failures, including duties under the PDPO.
+Common gaps: questionnaire answered by finance; social engineering assumed covered; waiting period longer than the outage.
+
+# Approved claims
+[none supplied yet]
+
+# Do not write
+No premiums. No named clients. No claim figures until the client supplies them.
+
+# Market, Hong Kong
+Regulator: Insurance Authority. Employees' Compensation Ordinance. Personal Data (Privacy) Ordinance (PDPO). Currency HKD. No GST.

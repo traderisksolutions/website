@@ -1,120 +1,195 @@
 'use client'
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { Chip, Segmented } from '@/components/crm/primitives'
-import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
+import { Btn, LinkBtn } from '@/components/crm/primitives'
 import { MarketingPage, MUTED, Note } from '@/components/marketing/page-shell'
-import { useSiteKey, useSites } from '@/components/marketing/site-switch'
-import { KnowledgeStatusChip } from '@/components/marketing/chips'
-import { EntryDrawer } from '@/components/marketing/EntryDrawer'
-import { PasteDialog } from '@/components/marketing/PasteDialog'
-import { SECTIONS, computeReadiness, marketLabel, type KnowledgeEntry, type KnowledgeSection } from '@/lib/marketing/knowledge-schema'
-import { fmtDay, n } from '@/lib/marketing/labels'
+import { useSiteKey, useSites, withSite } from '@/components/marketing/site-switch'
+import { fmtDate, fmtDay, n } from '@/lib/marketing/labels'
+import type { KnowledgeVersion, KnowledgeVersionMeta } from '@/lib/marketing/knowledge-file'
 import type { SiteSummary } from '@/lib/marketing/types'
 
-type Payload = { site: SiteSummary; entries: KnowledgeEntry[] }
+type Payload = {
+  site: SiteSummary
+  current: KnowledgeVersion | null
+  versions: KnowledgeVersionMeta[]
+  viewing: KnowledgeVersion | null
+  migrationPending?: boolean
+}
+
+const MIGRATION_LINE = 'Migration 20261019_marketing_v2 is not applied yet.'
+const PLACEHOLDER = '# Business\nOne fact per line. The writer states only what is written here.\n# Approved claims\n# Do not write'
+const MONO = '14px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
+const BOX = 'block w-full m-0 rounded-[14px] border px-5 py-[18px] min-h-[520px] text-[#3c4043]'
+const SECONDARY_LINK = 'inline-flex items-center gap-1.5 font-medium whitespace-nowrap h-9 px-3.5 text-[13.5px] rounded-[10px] bg-white text-[#202124] border border-[#dadce0] hover:bg-[#f8f9fa] no-underline'
+
+const author = (email: string | null | undefined) => (email ? email.split('@')[0] : 'unknown')
 
 export default function KnowledgePage() {
   return <Suspense fallback={null}><Knowledge /></Suspense>
 }
 
-/** What the engine may write from, per site. Six sections; verified entries become facts, drafts are flagged. */
+/** One plain-text file per site. Read only until Edit; every save is a new version. */
 function Knowledge() {
-  const router = useRouter()
-  const search = useSearchParams()
   const { sites } = useSites()
   const [siteKey, setSiteKey] = useSiteKey(sites)
-  const section = (search.get('section') as KnowledgeSection) || 'business'
-  const openId = search.get('entry')
   const [data, setData] = useState<Payload | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [note, setNote] = useState<string | null>(null)
-  const [market, setMarket] = useState('SG')
-  const [pasting, setPasting] = useState(false)
+  const [status, setStatus] = useState<string | null>(null)
+  const [mode, setMode] = useState<'read' | 'edit'>('read')
+  const [viewingVersion, setViewingVersion] = useState<number | null>(null)
+  const [draft, setDraft] = useState('')
+  const [busy, setBusy] = useState(false)
   const reqId = useRef(0)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const load = useCallback(async () => {
     if (!siteKey) return
     const id = ++reqId.current
     setLoading(true)
     try {
-      const res = await fetch(`/api/marketing/knowledge?site=${siteKey}`, { cache: 'no-store' })
+      const q = viewingVersion ? `&version=${viewingVersion}` : ''
+      const res = await fetch(`/api/marketing/knowledge/file?site=${siteKey}${q}`, { cache: 'no-store' })
       const j = await res.json()
       if (id !== reqId.current) return
-      if (!res.ok) throw new Error(j.error ?? 'Could not load the knowledge bank')
+      if (!res.ok) throw new Error(j.error ?? 'Could not load the knowledge file')
       setData(j); setError(null)
-      setMarket(m => ((j.site as SiteSummary).markets.includes(m) ? m : (j.site as SiteSummary).markets[0] ?? 'SG'))
     } catch (e) { if (id === reqId.current) setError(e instanceof Error ? e.message : String(e)) }
     finally { if (id === reqId.current) setLoading(false) }
-  }, [siteKey])
+  }, [siteKey, viewingVersion])
   useEffect(() => { void load() }, [load])
 
-  const go = useCallback((next: { section?: KnowledgeSection; entry?: string | null }) => {
-    const p = new URLSearchParams(Array.from(search.entries()))
-    if (siteKey) p.set('site', siteKey)
-    p.set('section', next.section ?? section)
-    const e = next.entry === undefined ? openId : next.entry
-    if (e) p.set('entry', e); else p.delete('entry')
-    router.replace(`/marketing/knowledge?${p}`, { scroll: false })
-  }, [openId, router, search, section, siteKey])
+  // A new site: back to the current version, read only.
+  useEffect(() => { setMode('read'); setViewingVersion(null); setStatus(null); setError(null) }, [siteKey])
+  useEffect(() => { if (mode === 'edit') textareaRef.current?.focus() }, [mode])
 
-  const entries = data?.entries ?? []
-  const readiness = useMemo(() => computeReadiness(entries, market), [entries, market])
-  const visible = entries.filter(e => e.section === section)
-  const ids = visible.map(e => e.id)
-  const idx = openId ? ids.indexOf(openId) : -1
-  const open = openId === 'new' ? 'new' : entries.find(e => e.id === openId) ?? null
-  const missing = [!readiness.business && 'business facts', !readiness.product && 'a product', !readiness.case_study && 'a case study', !readiness.claim && 'approved claims', !readiness.market && `${marketLabel(market)} market notes`].filter(Boolean) as string[]
+  const site = data?.site
+  const current = data?.current ?? null
+  const viewing = data?.viewing ?? null
+  const text = viewing?.text ?? ''
+  const nextVersion = (current?.version ?? 0) + 1
+  const isCurrent = viewingVersion === null || viewingVersion === current?.version
+  const changed = draft !== (current?.text ?? '')
+
+  const post = useCallback(async (payload: Record<string, unknown>) => {
+    if (!siteKey) return null
+    setBusy(true); setError(null)
+    try {
+      const res = await fetch(`/api/marketing/knowledge/file?site=${siteKey}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j.error ?? 'Could not save')
+      return j.version as number
+    } catch (e) { setError(e instanceof Error ? e.message : String(e)); return null }
+    finally { setBusy(false) }
+  }, [siteKey])
+
+  const startEdit = () => { setDraft(current?.text ?? ''); setStatus(null); setMode('edit') }
+  const cancelEdit = () => { setMode('read'); setDraft('') }
+  const save = async () => {
+    if (!changed || busy) return
+    const v = await post({ text: draft })
+    if (v === null) return
+    setMode('read'); setDraft(''); setViewingVersion(null); setStatus(`Saved as version ${v}`)
+    void load()
+  }
+  const restore = async (version: number) => {
+    if (busy) return
+    const v = await post({ restore: version })
+    if (v === null) return
+    setViewingVersion(null); setStatus(`Saved as version ${v}`)
+    void load()
+  }
+  const view = (version: number) => { setStatus(null); setViewingVersion(version === current?.version ? null : version) }
+
+  const line = !site ? 'Loading…'
+    : data?.migrationPending ? site.name
+    : !current ? `${site.name} · no file yet`
+    : `${site.name} · version ${current.version} · ${n(current.word_count)} words · ${n(current.heading_count)} ${current.heading_count === 1 ? 'heading' : 'headings'} · saved ${fmtDate(current.created_at, true)} by ${author(current.created_by)}`
+
+  const state = status ? status
+    : mode === 'edit' ? `knowledge.txt · editing version ${current?.version ?? 0}`
+    : !isCurrent && viewing ? `Viewing version ${viewing.version} · read only`
+    : current ? `knowledge.txt · version ${current.version} · read only`
+    : 'knowledge.txt · empty'
+
+  const sectionsLink = <LinkBtn href={withSite('/marketing/knowledge/entries', siteKey)} level="tertiary">Sections</LinkBtn>
+  const actions = !data || data.migrationPending ? sectionsLink
+    : mode === 'edit' ? <>
+        <Btn onClick={cancelEdit} disabled={busy}>Cancel</Btn>
+        <Btn level="primary" onClick={save} disabled={!changed} loading={busy}>Save as version {nextVersion}</Btn>
+      </>
+    : !isCurrent && viewing ? <>
+        <Btn onClick={() => view(current?.version ?? 0)} disabled={busy}>Back to current</Btn>
+        <Btn level="primary" onClick={() => restore(viewing.version)} loading={busy}>Restore as version {nextVersion}</Btn>
+      </>
+    : <>
+        {sectionsLink}
+        {current && <a className={SECONDARY_LINK} href={`data:text/plain;charset=utf-8,${encodeURIComponent(current.text)}`} download={`knowledge-${siteKey}-v${current.version}.txt`}>Download .txt</a>}
+        <Btn level="primary" onClick={startEdit} disabled={loading && !data}>Edit</Btn>
+      </>
 
   return (
-    <MarketingPage
-      title="Knowledge"
-      line={!data ? 'Loading…' : <>{n(readiness.total)} entries · {n(readiness.verified)} verified · {missing.length === 0 ? `ready to write for ${marketLabel(market)}` : `missing for ${marketLabel(market)}: ${missing.join(', ')}`}</>}
-      line2={data && data.site.markets.length > 1 && <span className="inline-flex items-center gap-2">Check readiness for <Segmented value={market} onChange={setMarket} options={data.site.markets.map(m => ({ value: m, label: marketLabel(m) }))} /></span>}
-      sites={sites} siteKey={siteKey} onSite={setSiteKey}
-      actions={<>
-        <Button size="lg" variant="outline" onClick={() => setPasting(true)}>Paste text</Button>
-        <Button size="lg" onClick={() => go({ entry: 'new' })}>Add entry</Button>
-      </>}
-      filters={<Segmented value={section} onChange={v => go({ section: v, entry: null })} options={SECTIONS.map(s => ({ value: s.key, label: s.label, count: readiness.counts[s.key] ?? 0 }))} />}
-    >
+    <MarketingPage title="Knowledge" line={line} sites={sites} siteKey={siteKey} onSite={setSiteKey} actions={actions}>
       {error && <Note role="alert">{error}</Note>}
-      {note && <Note role="status">{note}</Note>}
-      <Register label={SECTIONS.find(s => s.key === section)?.label ?? 'Entries'} minWidth={760} className={cn(loading && 'opacity-60')}>
-        <RegisterHead>
-          <RegisterTh first hint="Title and the first line of the entry">Entry</RegisterTh>
-          <RegisterTh hint="Verified entries become facts; drafts are flagged as unverified">Status</RegisterTh>
-          <RegisterTh hint="Markets the entry applies to">Markets</RegisterTh>
-          <RegisterTh align="right" hint="0 to 10; higher loads first">Priority</RegisterTh>
-          <RegisterTh last hint="Last change">Updated</RegisterTh>
-        </RegisterHead>
-        <tbody>
-          {!data && loading ? null : visible.length === 0 ? (
-            <RegisterEmpty colSpan={5}>Nothing in this section yet. Add an entry or paste text.</RegisterEmpty>
-          ) : visible.map(e => {
-            const on = e.id === openId
-            return (
-              <RegisterRow key={e.id} selected={on} onClick={() => go({ entry: on ? null : e.id })}>
-                <RegisterCell first selected={on} identityWidth={360} primary={e.title} secondary={e.body.replace(/\s+/g, ' ').slice(0, 140)} />
-                <RegisterCell><KnowledgeStatusChip status={e.status} /></RegisterCell>
-                <RegisterCell>{e.markets.length ? e.markets.map(m => <Chip key={m} className="mr-1">{m}</Chip>) : <span style={{ color: MUTED }}>All</span>}</RegisterCell>
-                <RegisterCell align="right"><span className="tabular-nums" style={{ color: MUTED }}>{e.priority}</span></RegisterCell>
-                <RegisterCell last><span style={{ color: MUTED }}>{fmtDay(e.updated_at)}</span></RegisterCell>
-              </RegisterRow>
-            )
-          })}
-        </tbody>
-      </Register>
+      {data?.migrationPending ? <Note role="status">{MIGRATION_LINE}</Note> : (
+        <div className={cn('grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px]', loading && 'opacity-60')}>
+          <div className="min-w-0">
+            <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5 text-[12.5px]" style={{ color: MUTED }}>
+              <span role="status">{state}</span>
+              <span>Lines starting with # are headings; each heading is one fact the writer may cite</span>
+            </div>
+            {mode === 'edit' ? (
+              <textarea
+                ref={textareaRef}
+                aria-label="Knowledge file"
+                className={cn(BOX, 'border-[#dadce0] bg-white resize-y outline-none focus:border-[#202124] placeholder:text-[#80868b]')}
+                style={{ font: MONO }}
+                value={draft}
+                placeholder={PLACEHOLDER}
+                onChange={e => setDraft(e.target.value)}
+                onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); void save() } }}
+                maxLength={200_000}
+                spellCheck={false}
+              />
+            ) : (
+              <pre className={cn(BOX, 'whitespace-pre-wrap break-words')} style={{ font: MONO, background: '#f8f9fa', borderColor: '#e8eaed', color: text ? '#3c4043' : MUTED }}>
+                {text || (data && !current ? PLACEHOLDER : '')}
+              </pre>
+            )}
+          </div>
 
-      <EntryDrawer entry={open} siteKey={siteKey} defaultSection={section} markets={data?.site.markets ?? ['SG']}
-        onClose={() => go({ entry: null })} onChanged={msg => { setNote(msg); void load() }}
-        onPrev={idx > 0 ? () => go({ entry: ids[idx - 1] }) : undefined} onNext={idx >= 0 && idx < ids.length - 1 ? () => go({ entry: ids[idx + 1] }) : undefined} />
-      <PasteDialog open={pasting} onOpenChange={setPasting} siteKey={siteKey} defaultSection={section} markets={data?.site.markets ?? ['SG']}
-        onDone={count => { setPasting(false); setNote(`Added ${count} ${count === 1 ? 'entry' : 'entries'} as drafts`); void load() }} />
+          <aside className="min-w-0">
+            <h3 className="m-0 mb-2.5 text-[13px] font-medium uppercase tracking-[0.06em]" style={{ color: MUTED }}>Versions</h3>
+            {data && data.versions.length === 0 ? (
+              <p className="m-0 text-[13.5px]" style={{ color: MUTED }}>No versions yet.</p>
+            ) : (
+              <ul className="list-none m-0 p-0">
+                {(data?.versions ?? []).map(v => {
+                  const cur = v.version === current?.version
+                  const on = isCurrent ? cur : v.version === viewingVersion
+                  const locked = busy || mode === 'edit'
+                  return (
+                    <li key={v.version} className="flex items-center justify-between gap-2.5 px-2.5 py-[9px] rounded-[9px] text-[13.5px]" style={{ background: on ? '#eef3fc' : undefined }}>
+                      <span className="min-w-0">
+                        v{v.version}
+                        {cur ? ' · current' : (
+                          <span className="ml-2 text-[12.5px]" style={{ color: MUTED }}>
+                            <button type="button" className="bg-transparent border-0 p-0 cursor-pointer hover:underline disabled:cursor-not-allowed disabled:opacity-50" style={{ color: MUTED }} disabled={locked} onClick={() => view(v.version)}>view</button>
+                            {' · '}
+                            <button type="button" className="bg-transparent border-0 p-0 cursor-pointer hover:underline disabled:cursor-not-allowed disabled:opacity-50" style={{ color: MUTED }} disabled={locked} onClick={() => restore(v.version)}>restore</button>
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-[12.5px] whitespace-nowrap" style={{ color: MUTED }}>{fmtDay(v.created_at)}, {author(v.created_by)}</span>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </aside>
+        </div>
+      )}
     </MarketingPage>
   )
 }

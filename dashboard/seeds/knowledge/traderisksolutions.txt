@@ -1,0 +1,31 @@
+# Business
+Trade Risk Solutions Pte Ltd is a corporate insurance broker in Singapore.
+Places risk across a network of 18 Singapore-licensed insurers.
+Four lines: personal, business, employee benefits, embedded insurance for digital platforms.
+Tells the client what they need and what they do not before placing the risk.
+
+# Business insurance
+Property, specialised liability, cyber, marine and commercial fleet programmes.
+Logistics firms: main exposures are cargo liability and WICA.
+Licensed fund managers: PI and D&O are mandatory; institutional crime cover where client assets are held.
+SaaS at Series B: term sheets usually require D&O and cyber; PI where data exposure is material.
+
+# Employee benefits
+Group health, executive benefits and corporate wellness, structured to stay MOM-compliant.
+
+# Personal insurance
+Home contents, fire, travel, maid and personal accident.
+
+# Embedded insurance
+White-label cover inside a partner's digital platform, on TRS infrastructure.
+
+# Approved claims
+"Network of 18 Singapore-licensed insurers." Source: insurer directory, October 2026.
+
+# Do not write
+MAS, Monetary Authority of Singapore. No named clients. No premiums.
+
+# Market, Singapore
+WICA administered by the Ministry of Manpower. Currency SGD. GST 9 percent on general insurance premiums.
+# Market, Hong Kong / Malaysia / Indonesia
+[market notes not supplied yet]

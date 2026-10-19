@@ -65,7 +65,47 @@ uvicorn engine.server:app --port 8080
   tokens, `metadata.cost_usd`, `metadata.knowledge_entry_ids`,
   `metadata.fact_ids`) and `blog_generation_sources`.
 - `POST /nightly` creates each site's batch (`marketing_sites.nightly_count`);
-  Cloud Scheduler calls it once a night.
+  Cloud Scheduler calls it once a night. Slot order: prompts ticked on
+  Marketing → Competitors that have no article in the last 90 days (most
+  Search Console impressions first), then Search Console targets, then the
+  product and case-study rotation. A prompt run carries `prompt_id`.
+- `POST /analyses/{id}/start` runs a queued `geo_analyses` row (202; the
+  dashboard inserts the row, then calls this). `GET /analyses/{id}` returns
+  its status, counts, cost and summary. The poll loop claims queued analyses
+  older than 60 s when the start call never arrived.
+
+## Competitor analysis
+
+One run per `geo_analyses` row, in `engine/competitors.py`:
+
+1. For every active competitor (`marketing_competitors`): sitemaps from
+   `robots.txt` or the usual file names, indexes followed one level (20
+   sitemaps max). Pages on the competitor's domain under a blog-like
+   section (`/blog/`, `/articles/`, `/insights/`, ...) or dated pages with a
+   3+ word slug are kept (2,000 max); tags, categories, authors, pagination
+   and feeds are dropped. A competitor URL with a path (`/sg-en`) limits
+   pages to that prefix. The 40 newest pages get their real `<title>`; the
+   rest are titled from the slug. Writes `competitor_pages`, `pages_count`,
+   `blog_url`, `sitemap_url`, and the homepage title as the name while the
+   stored name is still the automatic one.
+2. When the site has fewer than 50 prompts, one Gemini JSON call suggests
+   the rest (`geo_prompts`, source `analysis`), with Search Console
+   impressions when the search query matches a query exactly.
+3. Every non-archived prompt (60 max, `ENGINE_ANALYSIS_MAX_PROMPTS`) is
+   answered by `ENGINE_ANALYSIS_MODEL` (default `gemini-3.8-flash`) with
+   Google Search grounding; the grounding chunks are the cited URLs
+   (redirects resolved once, cached). Tone toward the site is
+   `not_mentioned` unless the name or domain appears, then one small JSON
+   call decides positive, neutral or negative. A second grounded call
+   `Search: <query>` gives the top 10 results. Rows go to
+   `geo_prompt_results`.
+4. Scores: per competitor `cited_count` and `search_hits`, per page the same,
+   best page = most cited, then most top-10 searches, then newest.
+   `summary.site = {pages, cited, top10}` is the site's own line.
+
+Cost is the token usage of every call at the rates in `engine/llm.py`.
+A failed prompt is recorded in `summary.errors` and the run completes; any
+other failure marks the analysis `failed` with the error text.
 
 ## Deploy to Cloud Run
 

@@ -7,6 +7,8 @@
   POST /runs/{run_id}/start                   start or resume an existing queued/failed run
   GET  /runs/{run_id}                         status
   POST /nightly?site_id=&count=               tonight's batch (all sites, or one)
+  POST /analyses/{id}/start                   run a queued competitor analysis (geo_analyses row)
+  GET  /analyses/{id}                         analysis status
   POST /knowledge/embed?site_id=              embed document entries that have no vector yet
   GET  /prompts                               default system prompts per node
 
@@ -20,6 +22,7 @@ from typing import Any
 
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException
 
+from .competitors import run_analysis
 from .config import Settings, get_settings
 from .knowledge import readiness
 from .llm import LLM
@@ -69,11 +72,26 @@ def _run_in_thread(run_id: str) -> None:
             _active.discard(run_id)
 
 
+def _analysis_in_thread(analysis_id: str) -> None:
+    key = f"analysis:{analysis_id}"
+    with _lock:
+        if key in _active:
+            return
+        _active.add(key)
+    try:
+        run_analysis(_settings, store(), analysis_id)
+    except Exception:  # noqa: BLE001
+        log.exception("analysis %s crashed", analysis_id)
+    finally:
+        with _lock:
+            _active.discard(key)
+
+
 @app.on_event("startup")
 def _startup() -> None:
     global _worker
     if _settings.poll_seconds > 0 and _settings.supabase_url:
-        _worker = Worker(_settings, store(), is_active=lambda rid: rid in _active, launch=_run_in_thread)
+        _worker = Worker(_settings, store(), is_active=lambda rid: rid in _active, launch=_run_in_thread, launch_analysis=_analysis_in_thread)
         _worker.start()
 
 
@@ -136,6 +154,34 @@ def nightly(background: BackgroundTasks, site_id: str = "", count: int | None = 
 
     background.add_task(run_all)
     return {"created": [r.id for r in runs], "count": len(runs)}
+
+
+@app.post("/analyses/{analysis_id}/start", status_code=202, dependencies=[Depends(auth)])
+def start_analysis(analysis_id: str, background: BackgroundTasks) -> dict[str, Any]:
+    """The dashboard inserts a queued geo_analyses row, then calls this. The
+    worker claims queued rows older than 60 s when this call never arrives."""
+    analysis = store().get_analysis(analysis_id)
+    if analysis is None:
+        raise HTTPException(404, "analysis not found")
+    if analysis.get("status") == "completed":
+        raise HTTPException(409, "analysis is completed")
+    if f"analysis:{analysis_id}" in _active:
+        return {"analysisId": analysis_id, "status": "already running"}
+    background.add_task(_analysis_in_thread, analysis_id)
+    return {"analysisId": analysis_id, "status": "starting"}
+
+
+@app.get("/analyses/{analysis_id}", dependencies=[Depends(auth)])
+def analysis_status(analysis_id: str) -> dict[str, Any]:
+    a = store().get_analysis(analysis_id)
+    if a is None:
+        raise HTTPException(404, "analysis not found")
+    return {
+        "analysisId": a["id"], "siteId": a["site_id"], "version": a.get("version"), "status": a["status"], "active": f"analysis:{analysis_id}" in _active,
+        "pagesRead": a.get("pages_read", 0), "promptsChecked": a.get("prompts_checked", 0), "citedCount": a.get("cited_count", 0),
+        "costUsd": a.get("cost_usd", 0), "model": a.get("model"), "error": a.get("error"), "summary": a.get("summary") or {},
+        "startedAt": a.get("started_at"), "completedAt": a.get("completed_at"),
+    }
 
 
 @app.get("/prompts", dependencies=[Depends(auth)])

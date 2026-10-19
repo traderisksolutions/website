@@ -64,6 +64,8 @@ class RunSetup(BaseModel):
     # site's current best position for it (0 when not from Search Console).
     target_query: str = ""
     target_position: float = 0
+    # The geo_prompts row a nightly run was written for ('' when not from a prompt).
+    prompt_id: str = ""
 
     def word_target(self) -> int:
         return 2000 if self.length == "long" else 1200

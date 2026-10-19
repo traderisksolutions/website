@@ -3,7 +3,7 @@ import {
   AlertTriangle, Users, BarChart2, Bot, UsersRound, Cpu, FolderOpen, BookMarked, History,
   Settings, FlaskConical, TrendingUp, ScrollText, Network, HeartPulse, Car,
   Receipt, CalendarDays, Waypoints, Building2, Link2, Wrench, Home, Landmark, Megaphone, Contact,
-  Newspaper, Sparkles, Library, Search, Globe } from 'lucide-react'
+  Newspaper, Sparkles, Library, Search, Globe, Crosshair, CalendarClock } from 'lucide-react'
 
 export type NavLink = {
   title: string
@@ -76,11 +76,13 @@ export const NAV_SECTIONS: NavSection[] = [
     label: 'Marketing',
     icon: Newspaper,
     items: [
-      { title: 'Articles',       href: '/marketing/articles',       icon: Newspaper, description: 'Every article per site: awaiting approval, published, drafts' },
-      { title: 'Generate',       href: '/marketing/generate',       icon: Sparkles,  description: 'Start an engine run and follow its twelve stages' },
-      { title: 'Knowledge',      href: '/marketing/knowledge',      icon: Library,   description: 'The facts the engine may write from, per site' },
-      { title: 'Search Console', href: '/marketing/search-console', icon: Search,    description: 'Google impressions, positions and what to write next' },
-      { title: 'Sites',          href: '/marketing/sites',          icon: Globe,     description: 'Base URL, contact link, topics, banned terms, approval, nightly count' },
+      { title: 'Articles',       href: '/marketing/articles',       icon: Newspaper,  description: 'Every article per site: awaiting approval, published, drafts' },
+      { title: 'Knowledge',      href: '/marketing/knowledge',      icon: Library,    description: 'The facts the engine may write from, per site' },
+      { title: 'Competitors',    href: '/marketing/competitors',    icon: Crosshair,  description: 'Competitor blogs, their best pages, and the prompts worth writing for' },
+      { title: 'Schedule',       href: '/marketing/schedule',       icon: CalendarClock, description: 'The nightly batch: cadence, tonight\'s prompts, what was posted' },
+      { title: 'Generate',       href: '/marketing/generate',       icon: Sparkles,   description: 'Start an engine run and follow its twelve stages' },
+      { title: 'Search Console', href: '/marketing/search-console', icon: Search,     description: 'Google impressions, positions and what to write next' },
+      { title: 'Sites',          href: '/marketing/sites',          icon: Globe,      description: 'Base URL, contact link, topics, banned terms, approval, nightly count' },
     ],
   },
   { label: 'Calendar',  href: '/calendar', icon: CalendarDays },

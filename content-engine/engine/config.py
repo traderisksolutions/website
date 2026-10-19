@@ -55,6 +55,10 @@ class Settings:
     # Upper bound on articles per site per night; each site's own count is
     # on its marketing_sites row.
     nightly_max: int = field(default_factory=lambda: max(1, min(12, int(_env("ENGINE_NIGHTLY_MAX", "4") or "4"))))
+    # Competitor analysis: Gemini with Google Search grounding answers every
+    # prompt and lists the top results; the same model suggests prompts.
+    analysis_model: str = field(default_factory=lambda: _env("ENGINE_ANALYSIS_MODEL", "gemini-3.8-flash"))
+    analysis_max_prompts: int = field(default_factory=lambda: max(1, min(200, int(_env("ENGINE_ANALYSIS_MAX_PROMPTS", "60") or "60"))))
     engine_secret: str = field(default_factory=lambda: _env("CONTENT_ENGINE_SECRET"))
     poll_seconds: int = field(default_factory=lambda: int(_env("ENGINE_POLL_SECONDS", "15") or "15"))
     max_stage_attempts: int = field(default_factory=lambda: int(_env("ENGINE_MAX_STAGE_ATTEMPTS", "3") or "3"))
