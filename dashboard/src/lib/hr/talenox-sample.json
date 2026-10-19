@@ -1,0 +1,73 @@
+{
+  "_sample": "SAMPLE DATA for tests. Shaped like Talenox GET /api/v2/employees across two pages. Every person, number and token here is invented. Not a real Talenox response.",
+  "pages": [
+    {
+      "page": 1,
+      "total_pages": 2,
+      "per_page": 2,
+      "total": 3,
+      "employees": [
+        {
+          "id": 10231,
+          "employee_id": "E001",
+          "first_name": "Wei Ming",
+          "last_name": "Lim",
+          "email": "weiming.lim@example.com",
+          "nric": "S8812345A",
+          "birthdate": "1988-03-14",
+          "gender": "Male",
+          "nationality": "Singaporean",
+          "immigration_status": "Singapore Citizen",
+          "hired_date": "2019-07-01",
+          "resign_date": null,
+          "job_title": "Operations Manager",
+          "department": "Operations",
+          "bank_account": { "bank": "DBS", "account_number": "0123456789" },
+          "salary": { "basic": 7200, "currency": "SGD" },
+          "phone": "+65 9123 4567",
+          "address": "1 Sample Road #01-01 Singapore 000000"
+        },
+        {
+          "id": 10232,
+          "employee_id": "E002",
+          "name": "Nurul Aisyah binte Rahman",
+          "email": "nurul@example.com",
+          "nric": "S9212345B",
+          "date_of_birth": "1992-11-02",
+          "gender": "F",
+          "immigration_status": "Permanent Resident",
+          "hired_date": "2021-02-15",
+          "resign_date": null,
+          "jobs": [
+            { "title": "Accounts Executive", "start_date": "2021-02-15", "end_date": "2023-06-30" },
+            { "title": "Senior Accounts Executive", "start_date": "2023-07-01", "end_date": null }
+          ],
+          "salary": { "basic": 4800, "currency": "SGD" }
+        }
+      ]
+    },
+    {
+      "page": 2,
+      "total_pages": 2,
+      "per_page": 2,
+      "total": 3,
+      "employees": [
+        {
+          "id": 10233,
+          "employee_id": "E003",
+          "first_name": "Arjun",
+          "last_name": "Pillai",
+          "email": "arjun@example.com",
+          "fin": "G1234567X",
+          "birthdate": "1985-06-30",
+          "gender": "M",
+          "immigration_status": "Employment Pass",
+          "hired_date": "2018-01-08",
+          "resign_date": "2024-12-31",
+          "job_title": "Project Engineer",
+          "salary": { "basic": 6500, "currency": "SGD" }
+        }
+      ]
+    }
+  ]
+}

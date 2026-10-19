@@ -98,6 +98,15 @@ export const API_RULES: ApiRule[] = [
     requirement: 'open',
     reason: 'Public blog feed of published articles, read by the business\'s own websites.',
   },
+  {
+    // A client's HR contact, who has no login, opens a link emailed from operations@. The path
+    // carries a 32-byte random token whose sha256 is the only copy we hold (hr_links.token_hash,
+    // src/lib/hr/links.ts); unknown tokens are 404, expired or closed ones 410, and each token is
+    // rate-limited (src/lib/hr/rate-limit.ts).
+    prefix: '/api/public/hr',
+    requirement: 'open',
+    reason: 'HR-facing employee-list link; the random token in the path is the credential, stored hashed and expiring.',
+  },
 ]
 
 export function isApiPath(pathname: string): boolean {

@@ -19,8 +19,11 @@ import { describeSpec, withDefaults, type CoverSpec, type Hospital, type Tier } 
 import { parseBirthDate } from '@/lib/dates/dob'
 import { useCoverNames } from './useCoverNames'
 
-type Member = { name: string; category: string; relationship: string; dob?: string | null; age?: number | null; occupation_class?: string | null }
+export type Member = { name: string; category: string; relationship: string; dob?: string | null; age?: number | null; occupation_class?: string | null }
 type Read = { members: Member[]; unread: string[]; found: Record<string, string>; sheet: string | null; filename: string }
+
+/** A census that arrived without a file: the list HR submitted through an HR link. */
+export type InitialRead = { members: Member[]; company: string; effectiveDate: string | null; source: string }
 
 const COVERS: { code: string; kind: 'hospital' | 'sum' | 'tier' }[] = [
   { code: 'GHS', kind: 'hospital' }, { code: 'GTL', kind: 'sum' }, { code: 'GCI', kind: 'sum' },
@@ -39,13 +42,17 @@ function nextMonthFirst(): string {
 
 const fmtDob = (iso?: string | null) => (iso ? iso.split('-').reverse().join('/') : '')
 
-export function QuickQuote({ initialCompany, onUseWizard }: { initialCompany?: string; onUseWizard: () => void }) {
+export function QuickQuote({ initialCompany, initialRead, onUseWizard }: { initialCompany?: string; initialRead?: InitialRead; onUseWizard: () => void }) {
   const router = useRouter()
   const coverNames = useCoverNames()
-  const [read, setRead] = useState<Read | null>(null)
+  const [read, setRead] = useState<Read | null>(initialRead
+    ? { members: initialRead.members, unread: [], found: {}, sheet: null, filename: initialRead.source }
+    : null)
   const [reading, setReading] = useState(false)
-  const [company, setCompany] = useState(initialCompany ?? '')
-  const [effDate, setEffDate] = useState(nextMonthFirst())
+  // With a list from an HR link the upload step is skipped; the dropzone is one click away.
+  const [showUpload, setShowUpload] = useState(!initialRead)
+  const [company, setCompany] = useState(initialCompany ?? initialRead?.company ?? '')
+  const [effDate, setEffDate] = useState(initialRead?.effectiveDate || nextMonthFirst())
   const [basis, setBasis] = useState<'new_business' | 'renewal'>('new_business')
   const [specs, setSpecs] = useState<Record<string, CoverSpec>>({ GHS: withDefaults({ code: 'GHS' }) })
   const [pricing, setPricing] = useState(false)
@@ -107,23 +114,34 @@ export function QuickQuote({ initialCompany, onUseWizard }: { initialCompany?: s
           <h3 className="m-0 text-[15px] font-medium inline-flex items-center">
             Census <Tip text="CSV or Excel. A name and a date of birth per person is enough; dates are read day first (05/07/1987 is 5 July). Relationship, category, work pass and occupation class are used when their columns are found. Dependants take the category of the employee above them." />
           </h3>
-          <button onClick={onUseWizard} className="text-[12.5px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#5f6368' }}>
-            Map plans by hand
-          </button>
+          <div className="flex items-center gap-3">
+            {!showUpload && (
+              <button onClick={() => setShowUpload(true)} className="text-[12.5px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#5f6368' }}>
+                Upload a file instead
+              </button>
+            )}
+            <button onClick={onUseWizard} className="text-[12.5px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#5f6368' }}>
+              Map plans by hand
+            </button>
+          </div>
         </div>
-        <label htmlFor="qq-file" className={cn('flex items-center justify-center gap-2 border border-dashed rounded-lg py-6 cursor-pointer text-[13px]',
-          reading ? 'border-[#9aa0a6]' : 'border-[#dadce0] hover:border-[#9aa0a6]')} style={{ color: '#5f6368' }}>
-          {reading ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
-          {reading ? 'Reading…' : read ? `${read.filename} · upload another` : 'Upload census (.csv, .xlsx)'}
-          <input id="qq-file" type="file" accept=".csv,.txt,.xlsx,.xls,.xlsm,text/csv" className="hidden"
-                 onChange={e => { const f = e.target.files?.[0]; if (f) void upload(f); e.target.value = '' }} />
-        </label>
+        {showUpload && (
+          <label htmlFor="qq-file" className={cn('flex items-center justify-center gap-2 border border-dashed rounded-lg py-6 cursor-pointer text-[13px]',
+            reading ? 'border-[#9aa0a6]' : 'border-[#dadce0] hover:border-[#9aa0a6]')} style={{ color: '#5f6368' }}>
+            {reading ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
+            {reading ? 'Reading…' : read ? `${read.filename} · upload another` : 'Upload census (.csv, .xlsx)'}
+            <input id="qq-file" type="file" accept=".csv,.txt,.xlsx,.xls,.xlsm,text/csv" className="hidden"
+                   onChange={e => { const f = e.target.files?.[0]; if (f) void upload(f); e.target.value = '' }} />
+          </label>
+        )}
         {read && (
           <div className="border border-[#e8eaed] rounded-lg overflow-hidden">
             <div className="flex flex-wrap gap-x-4 gap-y-1 px-3 py-2 border-b border-[#e8eaed] bg-[#f8f9fa] text-[12px] tabular-nums" style={{ color: '#5f6368' }}>
               <span>{members.length} members · {employees} employees · {members.length - employees} dependants</span>
               <span>{categories.length} categor{categories.length === 1 ? 'y' : 'ies'}: {categories.join(', ')}</span>
-              <span>Read from: {Object.entries(read.found).map(([k, v]) => `${k} = "${v}"`).join(', ')}{read.sheet ? ` · sheet ${read.sheet}` : ''}</span>
+              {Object.keys(read.found).length > 0
+                ? <span>Read from: {Object.entries(read.found).map(([k, v]) => `${k} = "${v}"`).join(', ')}{read.sheet ? ` · sheet ${read.sheet}` : ''}</span>
+                : <span>From {read.filename}</span>}
             </div>
             {unreadNow > 0 && (
               <div className="px-3 py-2 border-b border-[#e8eaed] text-[12px]" style={{ color: '#b06000' }}>

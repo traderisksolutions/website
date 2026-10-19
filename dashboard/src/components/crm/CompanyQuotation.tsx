@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { FilePlus } from 'lucide-react'
+import { FilePlus, Link2 } from 'lucide-react'
 import { SectionCard, Chip, Empty, LinkBtn } from './primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { fmtDate } from '@/lib/crm/format'
@@ -27,9 +27,15 @@ export function CompanyQuotation({ companyId, companyName, quotes }: {
     <SectionCard
       title="Quotes"
       actions={
-        <LinkBtn size="xs" level="secondary" href={`/pricing-matrix?tab=quote&company=${encodeURIComponent(companyName)}`}>
-          <FilePlus size={12} /> New quotation
-        </LinkBtn>
+        <>
+          {/* Opens the Pricing Matrix HR links tab with the Send HR a link dialog filled in for this company. */}
+          <LinkBtn size="xs" level="secondary" href={`/pricing-matrix?tab=hrlinks&company=${encodeURIComponent(companyName)}&companyId=${encodeURIComponent(companyId)}`}>
+            <Link2 size={12} /> Send HR a link
+          </LinkBtn>
+          <LinkBtn size="xs" level="secondary" href={`/pricing-matrix?tab=quote&company=${encodeURIComponent(companyName)}`}>
+            <FilePlus size={12} /> New quotation
+          </LinkBtn>
+        </>
       }
     >
       {quotes.length === 0 && <Empty compact>No quotations yet.</Empty>}

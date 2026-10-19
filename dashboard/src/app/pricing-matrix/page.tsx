@@ -5,9 +5,12 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { UploadCloud, Loader2, Clock, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { NewQuoteWizard } from '@/components/group-benefits/NewQuoteWizard'
-import { QuickQuote } from '@/components/group-benefits/QuickQuote'
+import { QuickQuote, type InitialRead } from '@/components/group-benefits/QuickQuote'
 import { CoverageTab } from '@/components/group-benefits/CoverageTab'
 import { SourceFilesTab } from '@/components/group-benefits/SourceFilesTab'
+import { HrLinksTab } from '@/components/group-benefits/hr/HrLinksTab'
+import type { CompanyPick } from '@/components/group-benefits/hr/SendLinkDialog'
+import type { HrLinkCensusResponse, HrLinkDetailResponse } from '@/components/group-benefits/hr/labels'
 import { VERIFICATION, verificationOf } from '@/lib/gb/verification'
 import { createClient } from '@/lib/supabase/client'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
@@ -33,7 +36,9 @@ type Activity = { id: string; created_at: string; user_name: string | null; acti
 const STATUS_LABEL: Record<string, string> = { draft: 'Draft', extracting: 'Extracting', in_review: 'In review', approved: 'Approved', archived: 'Archived' }
 const CHIP = 'inline-flex items-center rounded-[6px] bg-[#f1f3f4] text-[#3c4043] text-[11.5px] font-medium px-2 py-0.5 whitespace-nowrap'
 
-type Tab = 'tables' | 'coverage' | 'quotes' | 'activity'
+type Tab = 'tables' | 'coverage' | 'quotes' | 'hrlinks' | 'activity'
+const TABS: readonly Tab[] = ['tables', 'coverage', 'quotes', 'hrlinks', 'activity']
+const TAB_LABEL: Record<Tab, string> = { tables: 'Rate tables', coverage: 'Coverage', quotes: 'Quotes', hrlinks: 'HR links', activity: 'Activity' }
 
 /**
  * Pricing Matrix — one module since 2 Oct 2026.
@@ -43,7 +48,9 @@ type Tab = 'tables' | 'coverage' | 'quotes' | 'activity'
  * one was deleted and this one took its name and address; /group-benefits redirects here.
  *
  * ?tab=quote&company=<name> opens the quote wizard for a client, which is how the company page's
- * "New quotation" button arrives.
+ * "New quotation" button arrives. ?tab=quote&hrLink=<id> opens Quick quote with the census HR
+ * submitted through that link. ?tab=hrlinks&company=<name>&companyId=<id> opens the HR links tab
+ * with the Send HR a link dialog filled in, which is how the company page's "Send HR a link" arrives.
  */
 export default function PricingMatrixPage() {
   return <Suspense fallback={null}><PricingMatrix /></Suspense>
@@ -55,14 +62,23 @@ function PricingMatrix() {
   // Four tabs since 2 Oct 2026. Old links still land: ?tab=quote opens a new quote, and the retired
   // Source files and Calculators tabs open Rate tables, which now lists the Drive files too.
   const asked = params.get('tab')
-  const initialTab: Tab = asked === 'quote' ? 'quotes' : (['tables', 'coverage', 'quotes', 'activity'] as const).find(t => t === asked) ?? 'tables'
+  const initialTab: Tab = asked === 'quote' ? 'quotes' : TABS.find(t => t === asked) ?? 'tables'
   const company = params.get('company') ?? undefined
+  const companyId = params.get('companyId') ?? null
+  const hrLinkId = params.get('hrLink') ?? null
   const [tab, setTab]   = useState<Tab>(initialTab)
   const [byHand, setByHand] = useState(false)
   const [newQuote, setNewQuote] = useState(asked === 'quote')
   const [tables, setTables] = useState<RateTable[]>([])
   const [loading, setLoading] = useState(true)
   const [showUpload, setShowUpload] = useState(false)
+  // Arriving from the company page with ?tab=hrlinks&company=…: the dialog opens once, filled in.
+  const [sendFromUrl, setSendFromUrl] = useState(asked === 'hrlinks' && !!(company || companyId))
+  const hrCompany: CompanyPick | null = company || companyId ? { id: companyId, name: company ?? '' } : null
+  // Arriving with ?hrLink=<id>: the census comes from the link's submission, not a file.
+  const [hrRead, setHrRead] = useState<InitialRead | null>(null)
+  const [hrReadState, setHrReadState] = useState<'idle' | 'loading' | 'ready' | 'failed'>(hrLinkId ? 'loading' : 'idle')
+  const [hrReadError, setHrReadError] = useState<string | null>(null)
 
   async function load() {
     setLoading(true)
@@ -71,6 +87,37 @@ function PricingMatrix() {
     setLoading(false)
   }
   useEffect(() => { load() }, [])
+
+  useEffect(() => {
+    if (!hrLinkId) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const [cr, lr] = await Promise.all([
+          fetch(`/api/group-benefits/hr-links/${hrLinkId}/census`, { cache: 'no-store' }),
+          fetch(`/api/group-benefits/hr-links/${hrLinkId}`, { cache: 'no-store' }),
+        ])
+        const cd = await cr.json().catch(() => ({})) as HrLinkCensusResponse
+        const ld = await lr.json().catch(() => ({})) as HrLinkDetailResponse
+        if (cancelled) return
+        if (cd.migrationPending || ld.migrationPending) { setHrReadError('Migration 20261019_hr_connect is not applied yet.'); setHrReadState('failed'); return }
+        if (!cr.ok || !Array.isArray(cd.census)) { setHrReadError(cd.error ?? `Could not load the employee list (${cr.status}).`); setHrReadState('failed'); return }
+        if (cd.census.length === 0) { setHrReadError('The link has no submitted list yet.'); setHrReadState('failed'); return }
+        const link = lr.ok ? ld.link : undefined
+        setHrRead({
+          members: cd.census,
+          company: link?.company_name ?? company ?? '',
+          effectiveDate: link?.effective_date ?? null,
+          source: link ? `HR link ${link.reference}` : 'HR link',
+        })
+        setHrReadState('ready')
+      } catch (e) {
+        if (cancelled) return
+        setHrReadError(e instanceof Error ? e.message : 'Could not load the employee list.'); setHrReadState('failed')
+      }
+    })()
+    return () => { cancelled = true }
+  }, [hrLinkId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: '#202124' }}>
@@ -88,10 +135,10 @@ function PricingMatrix() {
 
       {/* On a phone the bar scrolls sideways on its own instead of widening the page. */}
       <div className="mt-8 mb-6 flex items-center gap-7 overflow-x-auto" style={{ borderBottom: '1px solid #e8eaed' }}>
-        {(['tables', 'coverage', 'quotes', 'activity'] as const).map(t => (
+        {TABS.map(t => (
           <button key={t} onClick={() => { setTab(t); if (t === 'quotes') setNewQuote(false) }}
             className={cn('relative pb-3 text-[15px] bg-transparent border-0 p-0 cursor-pointer whitespace-nowrap flex-shrink-0', tab === t ? 'font-medium text-[#202124]' : 'text-[#5f6368] hover:text-[#202124]')}>
-            {t === 'tables' ? 'Rate tables' : t === 'coverage' ? 'Coverage' : t === 'quotes' ? 'Quotes' : 'Activity'}
+            {TAB_LABEL[t]}
             {tab === t && <span className="absolute left-0 right-0 -bottom-px h-[2px] rounded-full bg-[#202124]" aria-hidden />}
           </button>
         ))}
@@ -144,7 +191,15 @@ function PricingMatrix() {
       {tab === 'quotes' && newQuote && (
         <button onClick={() => setNewQuote(false)} className="mb-4 text-[13px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#5f6368' }}>← All quotes</button>
       )}
-      {tab === 'quotes' && newQuote && !byHand && <QuickQuote initialCompany={company} onUseWizard={() => setByHand(true)} />}
+      {tab === 'quotes' && newQuote && !byHand && hrReadState === 'loading' && (
+        <p className="m-0 py-10 text-center text-[15px]" style={{ color: '#5f6368' }}>Loading the employee list…</p>
+      )}
+      {tab === 'quotes' && newQuote && !byHand && hrReadState === 'failed' && (
+        <p className="m-0 mb-4 text-[13.5px]" style={{ color: '#c5221f' }}>{hrReadError}</p>
+      )}
+      {tab === 'quotes' && newQuote && !byHand && hrReadState !== 'loading' && (
+        <QuickQuote key={hrRead ? hrLinkId ?? 'hr' : 'file'} initialCompany={company} initialRead={hrRead ?? undefined} onUseWizard={() => setByHand(true)} />
+      )}
       {tab === 'quotes' && newQuote && byHand && (
         <div className="flex flex-col gap-3">
           <button onClick={() => setByHand(false)} className="self-start text-[12.5px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#5f6368' }}>← Quick quote</button>
@@ -153,6 +208,7 @@ function PricingMatrix() {
       )}
       {tab === 'quotes' && !newQuote && <QuotesTab onNew={() => setNewQuote(true)} />}
       {tab === 'coverage' && <CoverageTab />}
+      {tab === 'hrlinks' && <HrLinksTab openSend={sendFromUrl} initialCompany={hrCompany} onDialogClosed={() => setSendFromUrl(false)} />}
       {tab === 'activity' && <ActivityTab />}
 
       {showUpload && <UploadModal onClose={() => setShowUpload(false)} onDone={() => { setShowUpload(false); load() }} />}

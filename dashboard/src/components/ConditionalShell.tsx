@@ -38,7 +38,8 @@ function MainContent({ children }: { children: React.ReactNode }) {
 
 export default function ConditionalShell({ children }: { children: React.ReactNode }) {
   const pathname   = usePathname()
-  const isAuthPage = pathname === '/login' || pathname.startsWith('/auth/') || pathname === '/unsubscribed'
+  // /connect/* is the public HR Connect page: no dashboard nav, its own frame (src/app/connect).
+  const isAuthPage = pathname === '/login' || pathname.startsWith('/auth/') || pathname === '/unsubscribed' || pathname.startsWith('/connect/')
 
   if (isAuthPage) return <>{children}</>
 

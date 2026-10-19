@@ -11,7 +11,9 @@ import { verifyApiRequest } from '@/lib/api-gate/verify'
 // for what that cost in practice.
 // Reachable without a session. /auth/signin and /auth/signout must be here: a signed-out user
 // has to be able to start sign-in, and gating it behind a session is a redirect loop.
-export const PUBLIC_PATHS = ['/login', '/auth/signin', '/auth/callback', '/auth/signout', '/unsubscribed']
+// /connect/<token> is the HR Connect page a client's HR contact opens from an email; the token in
+// the path is its credential (src/lib/hr/links.ts), checked by /api/public/hr.
+export const PUBLIC_PATHS = ['/login', '/auth/signin', '/auth/callback', '/auth/signout', '/unsubscribed', '/connect']
 const TRS_DOMAIN   = 'trade-risksol.com'
 
 export async function middleware(request: NextRequest) {

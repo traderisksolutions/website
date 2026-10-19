@@ -1,0 +1,59 @@
+/* HR Connect public pages. Matches the approved design (trs-hr-connect.html, sections 3 to 6):
+   white page, navy wordmark, grey fact tiles, neutral chips, no colour-coded state. */
+.hrc { background: #fff; color: #202124; min-height: calc(100vh / var(--ui-zoom)); display: flex; flex-direction: column; font-size: 14px; line-height: 1.45; }
+.hrc * { box-sizing: border-box; }
+.hrc-bar { min-height: 60px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 40px; border-bottom: 1px solid #e8eaed; flex-wrap: wrap; }
+.hrc-wm { font-size: 15px; font-weight: 600; letter-spacing: .02em; color: #0C338A; text-decoration: none; white-space: nowrap; }
+.hrc-bar span { font-size: 13px; color: #5f6368; }
+.hrc-in { width: 100%; max-width: 760px; margin: 0 auto; padding: 48px 24px 64px; flex: 1; }
+.hrc h1 { font-size: 30px; font-weight: 500; letter-spacing: -.02em; line-height: 1.15; margin: 0 0 10px; }
+.hrc .hrc-sub { color: #5f6368; font-size: 15px; margin: 0 0 28px; line-height: 1.55; }
+.hrc h2 { font-size: 16px; font-weight: 500; margin: 30px 0 10px; }
+.hrc p { margin: 0 0 12px; }
+.hrc a { color: #0C338A; }
+.hrc-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin: 0 0 6px; }
+.hrc-fact { background: #f8f9fa; border-radius: 12px; padding: 14px 16px; }
+.hrc-fact b { display: block; font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+.hrc-fact span { color: #5f6368; font-size: 13px; line-height: 1.5; }
+.hrc-opts { display: grid; gap: 12px; }
+.hrc-opt { border: 1px solid #dadce0; border-radius: 14px; padding: 18px 20px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center; }
+.hrc-opt b { display: block; font-size: 15.5px; font-weight: 500; margin-bottom: 3px; }
+.hrc-opt span { display: block; color: #5f6368; font-size: 13.5px; line-height: 1.5; }
+.hrc-btn { height: 42px; padding: 0 20px; border-radius: 10px; border: 1px solid #dadce0; background: #fff; color: #202124; font: inherit; font-size: 14.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; cursor: pointer; text-decoration: none; }
+.hrc-btn.p { background: #0C338A; color: #fff; border-color: #0C338A; }
+.hrc-btn:disabled { opacity: .55; cursor: default; }
+.hrc-btn.sm { height: 32px; padding: 0 12px; font-size: 13px; border-radius: 8px; }
+.hrc-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+.hrc-drop { border: 1.5px dashed #bdc1c6; border-radius: 14px; padding: 34px 20px; text-align: center; color: #5f6368; font-size: 14.5px; cursor: pointer; }
+.hrc-drop.over { border-color: #0C338A; }
+.hrc-drop b { display: block; color: #202124; font-weight: 500; margin-bottom: 4px; }
+.hrc-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.hrc table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.hrc th { text-align: left; color: #5f6368; font-weight: 400; padding: 8px 10px; border-bottom: 1px solid #e8eaed; white-space: nowrap; }
+.hrc td { padding: 10px; border-bottom: 1px solid #e8eaed; white-space: nowrap; vertical-align: middle; }
+.hrc td.dep { padding-left: 28px; }
+.hrc td.m { color: #5f6368; }
+.hrc .chip { display: inline-flex; align-items: center; background: #f1f3f4; border-radius: 6px; padding: 2px 8px; font-size: 11.5px; font-weight: 500; color: #3c4043; white-space: nowrap; }
+.hrc-field { display: grid; gap: 6px; margin: 0 0 14px; }
+.hrc-field label { font-size: 13px; color: #5f6368; }
+.hrc input[type=text], .hrc input[type=email], .hrc input[type=password], .hrc select { height: 42px; border: 1px solid #dadce0; border-radius: 10px; padding: 0 12px; font: inherit; font-size: 14.5px; color: #202124; background: #fff; width: 100%; }
+.hrc input.cell, .hrc select.cell { height: 32px; border-radius: 8px; padding: 0 8px; font-size: 13px; width: auto; min-width: 120px; }
+.hrc input:focus, .hrc select:focus { outline: 2px solid #0C338A; outline-offset: 1px; }
+.hrc-consent { background: #f8f9fa; border-radius: 12px; padding: 16px 18px; font-size: 13.5px; line-height: 1.55; color: #3c4043; margin: 18px 0; }
+.hrc-consent label { display: flex; gap: 10px; align-items: flex-start; margin-top: 10px; color: #202124; cursor: pointer; }
+.hrc-consent input { width: 18px; height: 18px; flex: none; margin: 2px 0 0; accent-color: #0C338A; }
+.hrc-note { background: #f8f9fa; border-radius: 12px; padding: 14px 16px; font-size: 13.5px; color: #3c4043; margin: 14px 0; line-height: 1.55; }
+.hrc-note ol { margin: 6px 0 0; padding-left: 20px; }
+.hrc-note li { margin: 3px 0; }
+.hrc-err { color: #b3261e; font-size: 13.5px; margin: 10px 0 0; }
+.hrc-done { text-align: center; padding: 30px 0 10px; }
+.hrc-tick { width: 56px; height: 56px; border-radius: 50%; background: #f1f3f4; color: #202124; display: inline-flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 14px; }
+.hrc-foot { margin-top: auto; padding: 16px 24px 28px; border-top: 1px solid #e8eaed; font-size: 12px; color: #80868b; line-height: 1.5; text-align: center; }
+.hrc-foot a { color: #80868b; }
+@media (max-width: 640px) {
+  .hrc-bar { padding: 12px 16px; }
+  .hrc-in { padding: 28px 16px 48px; }
+  .hrc h1 { font-size: 24px; }
+  .hrc-opt { grid-template-columns: 1fr; }
+  .hrc-opt .hrc-btn { width: 100%; }
+}

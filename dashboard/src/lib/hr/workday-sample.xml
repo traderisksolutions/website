@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SAMPLE DATA for tests. Two pages of a Workday Human_Resources Get_Workers response, each a full
+  SOAP envelope, wrapped in <hr-connect-sample> so one file can hold both. Every person, id and
+  date here is invented. Not a real Workday response.
+-->
+<hr-connect-sample>
+  <page n="1">
+<env:Envelope xmlns:env="http://schemas.xmlsoap.org/soap/envelope/">
+  <env:Body>
+    <wd:Get_Workers_Response xmlns:wd="urn:com.workday/bsvc" wd:version="v42.0">
+      <wd:Response_Filter>
+        <wd:Page>1</wd:Page>
+        <wd:Count>200</wd:Count>
+      </wd:Response_Filter>
+      <wd:Response_Group>
+        <wd:Include_Reference>true</wd:Include_Reference>
+        <wd:Include_Personal_Information>true</wd:Include_Personal_Information>
+        <wd:Include_Employment_Information>true</wd:Include_Employment_Information>
+      </wd:Response_Group>
+      <wd:Response_Results>
+        <wd:Total_Results>3</wd:Total_Results>
+        <wd:Total_Pages>2</wd:Total_Pages>
+        <wd:Page_Results>2</wd:Page_Results>
+        <wd:Page>1</wd:Page>
+      </wd:Response_Results>
+      <wd:Response_Data>
+        <wd:Worker>
+          <wd:Worker_Reference wd:Descriptor="Lim Wei Ming">
+            <wd:ID wd:type="WID">0f1e2d3c4b5a69788776655443322110</wd:ID>
+            <wd:ID wd:type="Employee_ID">100234</wd:ID>
+          </wd:Worker_Reference>
+          <wd:Worker_Descriptor>Lim Wei Ming</wd:Worker_Descriptor>
+          <wd:Worker_Data>
+            <wd:Worker_ID>100234</wd:Worker_ID>
+            <wd:User_ID>wlim</wd:User_ID>
+            <wd:Personal_Data>
+              <wd:Name_Data>
+                <wd:Legal_Name_Data>
+                  <wd:Name_Detail_Data wd:Formatted_Name="Lim Wei Ming" wd:Reporting_Name="Lim, Wei Ming">
+                    <wd:Country_Reference wd:Descriptor="Singapore">
+                      <wd:ID wd:type="ISO_3166-1_Alpha-2_Code">SG</wd:ID>
+                    </wd:Country_Reference>
+                    <wd:First_Name>Wei Ming</wd:First_Name>
+                    <wd:Last_Name>Lim</wd:Last_Name>
+                  </wd:Name_Detail_Data>
+                </wd:Legal_Name_Data>
+              </wd:Name_Data>
+              <wd:Gender_Reference wd:Descriptor="Male">
+                <wd:ID wd:type="WID">d3afbf8074e549ffb070962128e1105a</wd:ID>
+                <wd:ID wd:type="Gender_Code">Male</wd:ID>
+              </wd:Gender_Reference>
+              <wd:Birth_Date>1988-03-14-07:00</wd:Birth_Date>
+              <wd:Citizenship_Status_Reference wd:Descriptor="Citizen (Singapore)">
+                <wd:ID wd:type="Citizenship_Status_Code">SG_Citizen</wd:ID>
+              </wd:Citizenship_Status_Reference>
+              <wd:Nationality_Reference wd:Descriptor="Singapore">
+                <wd:ID wd:type="ISO_3166-1_Alpha-2_Code">SG</wd:ID>
+              </wd:Nationality_Reference>
+              <wd:Identification_Data>
+                <wd:National_ID>
+                  <wd:National_ID_Data>
+                    <wd:ID>S8812345A</wd:ID>
+                  </wd:National_ID_Data>
+                </wd:National_ID>
+              </wd:Identification_Data>
+            </wd:Personal_Data>
+            <wd:Employment_Data>
+              <wd:Worker_Job_Data wd:Primary_Job="1">
+                <wd:Position_Data wd:Effective_Date="2019-07-01-07:00">
+                  <wd:Position_ID>P-00231</wd:Position_ID>
+                  <wd:Position_Title>Operations Manager</wd:Position_Title>
+                  <wd:Business_Title>Operations Manager, Singapore</wd:Business_Title>
+                  <wd:Job_Profile_Summary_Data>
+                    <wd:Job_Profile_Reference wd:Descriptor="Operations Manager">
+                      <wd:ID wd:type="Job_Profile_ID">OPS_MGR</wd:ID>
+                    </wd:Job_Profile_Reference>
+                    <wd:Job_Profile_Name>Operations Manager</wd:Job_Profile_Name>
+                  </wd:Job_Profile_Summary_Data>
+                </wd:Position_Data>
+              </wd:Worker_Job_Data>
+              <wd:Worker_Status_Data>
+                <wd:Active>1</wd:Active>
+                <wd:Active_Status_Date>2019-07-01-07:00</wd:Active_Status_Date>
+                <wd:Hire_Date>2019-07-01-07:00</wd:Hire_Date>
+                <wd:Original_Hire_Date>2019-07-01-07:00</wd:Original_Hire_Date>
+                <wd:Terminated>0</wd:Terminated>
+              </wd:Worker_Status_Data>
+            </wd:Employment_Data>
+          </wd:Worker_Data>
+        </wd:Worker>
+        <wd:Worker>
+          <wd:Worker_Reference wd:Descriptor="Tan Siew Mei">
+            <wd:ID wd:type="WID">1a2b3c4d5e6f70818293a4b5c6d7e8f9</wd:ID>
+            <wd:ID wd:type="Employee_ID">100301</wd:ID>
+          </wd:Worker_Reference>
+          <wd:Worker_Descriptor>Tan Siew Mei</wd:Worker_Descriptor>
+          <wd:Worker_Data>
+            <wd:Worker_ID>100301</wd:Worker_ID>
+            <wd:Personal_Data>
+              <wd:Name_Data>
+                <wd:Legal_Name_Data>
+                  <wd:Name_Detail_Data wd:Formatted_Name="Tan Siew Mei">
+                    <wd:First_Name>Siew Mei</wd:First_Name>
+                    <wd:Last_Name>Tan</wd:Last_Name>
+                  </wd:Name_Detail_Data>
+                </wd:Legal_Name_Data>
+              </wd:Name_Data>
+              <wd:Gender_Reference wd:Descriptor="Female">
+                <wd:ID wd:type="Gender_Code">Female</wd:ID>
+              </wd:Gender_Reference>
+              <wd:Birth_Date>1979-12-24-08:00</wd:Birth_Date>
+              <wd:Citizenship_Status_Reference wd:Descriptor="Permanent Resident (Singapore)">
+                <wd:ID wd:type="Citizenship_Status_Code">SG_PR</wd:ID>
+              </wd:Citizenship_Status_Reference>
+            </wd:Personal_Data>
+            <wd:Employment_Data>
+              <wd:Worker_Job_Data wd:Primary_Job="1">
+                <wd:Position_Data wd:Effective_Date="2016-03-01-08:00">
+                  <wd:Position_ID>P-00117</wd:Position_ID>
+                  <wd:Position_Title>Finance Director</wd:Position_Title>
+                </wd:Position_Data>
+              </wd:Worker_Job_Data>
+              <wd:Worker_Status_Data>
+                <wd:Active>0</wd:Active>
+                <wd:Hire_Date>2016-03-01-08:00</wd:Hire_Date>
+                <wd:Terminated>1</wd:Terminated>
+                <wd:Termination_Date>2025-08-31-07:00</wd:Termination_Date>
+                <wd:Primary_Termination_Reason_Reference wd:Descriptor="Resignation">
+                  <wd:ID wd:type="Termination_Subcategory_ID">Resignation</wd:ID>
+                </wd:Primary_Termination_Reason_Reference>
+              </wd:Worker_Status_Data>
+            </wd:Employment_Data>
+          </wd:Worker_Data>
+        </wd:Worker>
+      </wd:Response_Data>
+    </wd:Get_Workers_Response>
+  </env:Body>
+</env:Envelope>
+  </page>
+  <page n="2">
+<env:Envelope xmlns:env="http://schemas.xmlsoap.org/soap/envelope/">
+  <env:Body>
+    <wd:Get_Workers_Response xmlns:wd="urn:com.workday/bsvc" wd:version="v42.0">
+      <wd:Response_Filter>
+        <wd:Page>2</wd:Page>
+        <wd:Count>200</wd:Count>
+      </wd:Response_Filter>
+      <wd:Response_Results>
+        <wd:Total_Results>3</wd:Total_Results>
+        <wd:Total_Pages>2</wd:Total_Pages>
+        <wd:Page_Results>1</wd:Page_Results>
+        <wd:Page>2</wd:Page>
+      </wd:Response_Results>
+      <wd:Response_Data>
+        <wd:Worker>
+          <wd:Worker_Reference wd:Descriptor="Rajesh Kumar">
+            <wd:ID wd:type="WID">99aa88bb77cc66dd55ee44ff33221100</wd:ID>
+            <wd:ID wd:type="Employee_ID">100418</wd:ID>
+          </wd:Worker_Reference>
+          <wd:Worker_Descriptor>Rajesh Kumar</wd:Worker_Descriptor>
+          <wd:Worker_Data>
+            <wd:Worker_ID>100418</wd:Worker_ID>
+            <wd:Personal_Data>
+              <wd:Name_Data>
+                <wd:Legal_Name_Data>
+                  <wd:Name_Detail_Data wd:Formatted_Name="Rajesh Kumar">
+                    <wd:First_Name>Rajesh</wd:First_Name>
+                    <wd:Last_Name>Kumar</wd:Last_Name>
+                  </wd:Name_Detail_Data>
+                </wd:Legal_Name_Data>
+              </wd:Name_Data>
+              <wd:Gender_Reference wd:Descriptor="Male">
+                <wd:ID wd:type="Gender_Code">Male</wd:ID>
+              </wd:Gender_Reference>
+              <wd:Visa_ID_Data>
+                <wd:Visa_Type_Reference wd:Descriptor="Employment Pass">
+                  <wd:ID wd:type="Visa_ID_Type_ID">SG_EP</wd:ID>
+                </wd:Visa_Type_Reference>
+              </wd:Visa_ID_Data>
+            </wd:Personal_Data>
+            <wd:Employment_Data>
+              <wd:Worker_Job_Data wd:Primary_Job="1">
+                <wd:Position_Data wd:Effective_Date="2023-10-16-07:00">
+                  <wd:Position_ID>P-00402</wd:Position_ID>
+                  <wd:Position_Title>Software Engineer</wd:Position_Title>
+                </wd:Position_Data>
+              </wd:Worker_Job_Data>
+              <wd:Worker_Status_Data>
+                <wd:Active>1</wd:Active>
+                <wd:Hire_Date>2023-10-16-07:00</wd:Hire_Date>
+                <wd:Terminated>0</wd:Terminated>
+              </wd:Worker_Status_Data>
+            </wd:Employment_Data>
+          </wd:Worker_Data>
+        </wd:Worker>
+      </wd:Response_Data>
+    </wd:Get_Workers_Response>
+  </env:Body>
+</env:Envelope>
+  </page>
+</hr-connect-sample>
