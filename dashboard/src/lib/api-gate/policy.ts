@@ -78,6 +78,13 @@ export const API_RULES: ApiRule[] = [
     reason: 'Google OAuth redirect; a third party cannot send our header and the OAuth state is the check.',
   },
   {
+    // Newsletter: the sites post sign-ups (subscribe, SITE_INTAKE_KEY in x-api-key, checked in the
+    // route); readers click confirm and unsubscribe links signed with an HMAC over their row id.
+    prefix: '/api/public/newsletter',
+    requirement: 'open',
+    reason: 'Newsletter sign-up from the sites (own key) and HMAC-signed confirm/unsubscribe links for readers.',
+  },
+  {
     // corpcover.com (and the other sites) post buyer form submissions here, server to server.
     // The site holds SITE_INTAKE_KEY in x-api-key (32+ characters, constant-time compare in the route).
     prefix: '/api/public/intake',

@@ -9,6 +9,7 @@ import { ShareButton } from "@/components/share-button";
 import { TocRail } from "@/components/toc-rail";
 import { site } from "@/site";
 import { StartButton } from "@/components/start-actions";
+import { Subscribe } from "@/components/subscribe";
 import { JsonLd, articleLd } from "@/lib/json-ld";
 
 // Feed articles are rendered on demand and revalidated every five minutes; the hand-written
@@ -105,6 +106,11 @@ export default async function ArticlePage(props: PageProps<"/articles/[slug]">) 
             <StartButton className="glass-primary px-6 py-2.5 text-sm font-semibold" />
             <a href={`tel:+65${site.phone.replace(/\s/g, "")}`} className="glass px-6 py-2.5 text-sm font-medium">Call {site.phone}</a>
           </div>
+        </div>
+        <div className="mt-12 flex flex-col items-center text-center">
+          <h2 className="text-xl font-semibold">The Corp Cover letter</h2>
+          <p className="mt-1.5 text-ink-2">One email a week: the latest articles on business insurance.</p>
+          <Subscribe variant="inline" className="mt-5 flex w-full justify-center" />
         </div>
       </article>
 

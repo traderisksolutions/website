@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import {
-  Inbox, AlertTriangle, Users, BarChart2, Bot, UsersRound, Cpu, FolderOpen, BookMarked, History,
+  Inbox, Mail, AlertTriangle, Users, BarChart2, Bot, UsersRound, Cpu, FolderOpen, BookMarked, History,
   Settings, FlaskConical, TrendingUp, ScrollText, Network, HeartPulse, Car,
   Receipt, CalendarDays, Waypoints, Building2, Link2, Wrench, Home, Landmark, Megaphone, Contact,
   Newspaper, Sparkles, Library, Search, Globe, Crosshair, CalendarClock } from 'lucide-react'
@@ -82,6 +82,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { title: 'Competitors',    href: '/marketing/competitors',    icon: Crosshair,  description: 'Competitor blogs, their best pages, and the prompts worth writing for' },
       { title: 'Schedule',       href: '/marketing/schedule',       icon: CalendarClock, description: 'The nightly batch: cadence, tonight\'s prompts, what was posted' },
       { title: 'Generate',       href: '/marketing/generate',       icon: Sparkles,   description: 'Start an engine run and follow its twelve stages' },
+      { title: 'Newsletter',     href: '/marketing/newsletter',     icon: Mail,       description: 'Subscribers per site and the weekly issue, approved before it sends' },
       { title: 'Search Console', href: '/marketing/search-console', icon: Search,     description: 'Google impressions, positions and what to write next' },
       { title: 'Sites',          href: '/marketing/sites',          icon: Globe,      description: 'Base URL, contact link, topics, banned terms, approval, nightly count' },
     ],

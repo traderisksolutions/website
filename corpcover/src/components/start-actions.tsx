@@ -14,6 +14,7 @@ export type Flow = "choose" | "chat" | "review" | "finder" | "callback";
 const whatsapp = `https://wa.me/65${site.phone.replace(/\s/g, "")}?text=${encodeURIComponent("Hi, I would like quotes for business insurance.")}`;
 
 const OPEN_EVENT = "corpcover:start";
+const START_FLOWS: Flow[] = ["finder", "review", "chat"];
 /** Opens the start modal from anywhere on the site, on the chooser or straight into one flow. */
 export const openStart = (flow: Flow = "choose") => window.dispatchEvent(new CustomEvent<Flow>(OPEN_EVENT, { detail: flow }));
 
@@ -25,6 +26,15 @@ export function StartModal() {
   useEffect(() => {
     const open = (e: Event) => setFlow((e as CustomEvent<Flow>).detail ?? "choose");
     window.addEventListener(OPEN_EVENT, open);
+    // Newsletter links land on ?start=finder|review|chat: open that flow once, then drop the param
+    // (keeping utm_* and everything else) so a refresh does not reopen it.
+    const url = new URL(window.location.href);
+    const start = url.searchParams.get("start");
+    if (start !== null) {
+      if (START_FLOWS.includes(start as Flow)) openStart(start as Flow);
+      url.searchParams.delete("start");
+      window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+    }
     return () => window.removeEventListener(OPEN_EVENT, open);
   }, []);
   const close = () => setFlow(null);
