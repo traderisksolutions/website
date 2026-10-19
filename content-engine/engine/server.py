@@ -58,13 +58,22 @@ def auth(authorization: str = Header(default="")) -> None:
         raise HTTPException(401, "unauthorized")
 
 
+def fresh_store() -> SupabaseStore:
+    """A PostgREST client of its own for a worker thread. The shared client speaks HTTP/2 over
+    one connection and is not safe to use from two threads at once: the poll loop and an
+    analysis thread collided on 19 Oct 2026 (httpcore LocalProtocolError, SEND_HEADERS in
+    state 5) and the analysis died on its first read."""
+    _settings.require_supabase()
+    return SupabaseStore(_settings.supabase_url, _settings.supabase_service_key, _settings.supabase_api_prefix)
+
+
 def _run_in_thread(run_id: str) -> None:
     with _lock:
         if run_id in _active:
             return
         _active.add(run_id)
     try:
-        Pipeline(_settings, store()).run(run_id)
+        Pipeline(_settings, fresh_store()).run(run_id)
     except Exception:  # noqa: BLE001
         log.exception("run %s crashed", run_id)
     finally:
@@ -79,9 +88,13 @@ def _analysis_in_thread(analysis_id: str) -> None:
             return
         _active.add(key)
     try:
-        run_analysis(_settings, store(), analysis_id)
-    except Exception:  # noqa: BLE001
+        run_analysis(_settings, fresh_store(), analysis_id)
+    except Exception as e:  # noqa: BLE001
         log.exception("analysis %s crashed", analysis_id)
+        try:
+            fresh_store().update_analysis(analysis_id, status="failed", error=f"Engine error: {str(e)[:400]}")
+        except Exception:  # noqa: BLE001
+            log.exception("could not mark analysis %s failed", analysis_id)
     finally:
         with _lock:
             _active.discard(key)
