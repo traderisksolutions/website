@@ -48,7 +48,7 @@ export function Subscribe({ variant = "inline", className = "" }: { variant?: "b
           className={`min-w-0 flex-1 rounded-full border border-transparent px-5 py-3 text-base text-ink outline-none transition-colors placeholder:text-ink-3 focus:border-steel ${band ? "bg-paper" : "bg-base focus:bg-paper"}`}
         />
         <button type="submit" disabled={status === "sending"} className="btn btn-primary shrink-0 disabled:opacity-70">
-          {status === "sending" ? "Subscribing" : "Subscribe"}
+          {status === "sending" ? "Subscribing" : "Get the weekly letter"}
         </button>
       </div>
       {/* Honeypot: hidden from people and assistive tech. */}
@@ -69,7 +69,7 @@ export function Subscribe({ variant = "inline", className = "" }: { variant?: "b
     <section aria-labelledby={`${id}-h`} className={`relative bg-base py-[clamp(56px,8vw,96px)] ${className}`}>
       <div className="wrap flex flex-col items-center text-center">
         <h2 id={`${id}-h`} className="text-[clamp(1.8rem,3.2vw,2.6rem)] font-semibold leading-[1.1] tracking-[-0.025em]">The Corp Cover letter</h2>
-        <p className="mt-3 max-w-[44ch] text-[clamp(1.05rem,1.6vw,1.25rem)] leading-[1.4] text-ink-2">One email a week: the latest articles on business insurance.</p>
+        <p className="mt-3 max-w-[44ch] text-[clamp(1.05rem,1.6vw,1.25rem)] leading-[1.4] text-ink-2">One email a week. New articles on business insurance in Singapore.</p>
         {form}
       </div>
     </section>

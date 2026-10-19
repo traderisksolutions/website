@@ -1,5 +1,5 @@
-// FAQ: five questions a company asks before sending its policy. Facts from corporatecover.sg,
-// regrouped. Each question has a short answer and three points; the chat plays them.
+// FAQ: five questions an owner asks before starting, in the owner's own words. Facts from
+// corporatecover.sg. Each has a short answer and three points; the chat plays them.
 
 export type Icon = "tag" | "people" | "stack" | "check" | "arrow";
 export type Faq = { q: string; icon: Icon; a: string; points: string[] };
@@ -17,53 +17,53 @@ export const policyGroups: { name: string; items: string[] }[] = [
 
 export const faqs: Faq[] = [
   {
-    q: "What does it cost?",
+    q: "What does this cost my business?",
     icon: "tag",
-    a: "Nothing. Corp Cover and its advisers charge you no fee.",
+    a: "Nothing. Corp Cover and its advisers charge no fee.",
     points: [
-      "Advisers are paid a commission by the insurer that issues the policy.",
-      "Commission does not raise the premium an insurer quotes you.",
-      "Advisers negotiate and use volume pricing to bring the premium down.",
+      "The insurer pays the adviser a commission on the policy you buy.",
+      "You pay the premium the insurer quotes. There is no fee on top.",
+      "A review, a quote or a call costs nothing, whether you buy or not.",
     ],
   },
   {
     q: "Who will I deal with?",
     icon: "people",
-    a: "An independent financial adviser who specialises in business insurance.",
+    a: "An independent adviser who arranges business insurance.",
     points: [
-      "Advisers broker for several insurers, not one.",
-      "One enquiry covers every policy your company holds.",
-      "Advisers from different firms work together on the same enquiry.",
+      "The adviser works with several insurers, not one.",
+      "One adviser handles every policy your company holds.",
+      "The adviser gives you their name and licence details before any recommendation.",
     ],
   },
   {
-    q: "Which policies can I compare?",
+    q: "Which policies can you review?",
     icon: "stack",
-    a: "General insurance, employee benefits and specialised cover for companies.",
+    a: "Most general insurance and employee benefits a company holds.",
     points: [
-      "Policies required by law, such as work injury compensation.",
-      "Policies required by contract, such as public liability in a lease.",
-      "Other covers on request.",
+      "Required by law: work injury compensation, and foreign worker medical insurance and security bonds.",
+      "Required by contract: public liability in a lease, professional indemnity in client contracts.",
+      "Property, directors and officers, cyber and other cover on request.",
     ],
   },
   {
-    q: "Do I have to buy?",
+    q: "Do I have to buy anything?",
     icon: "check",
-    a: "No. There is no obligation to buy.",
+    a: "No. A review is not a quote, and a quote is not a commitment.",
     points: [
-      "Get quotes and compare policies through the advisers.",
-      "Buy through them, buy elsewhere, or keep your current cover.",
-      "The decision is yours.",
+      "Buy through the adviser, buy elsewhere, or keep your current cover.",
+      "Nothing changes on your policy unless you instruct it.",
+      "The decision stays with you.",
     ],
   },
   {
     q: "How do I start?",
     icon: "arrow",
-    a: "Three ways, all free.",
+    a: "Three ways. None of them costs anything.",
     points: [
-      "Upload your current policy for a review.",
-      "Answer five questions to see the covers a company like yours holds.",
-      "Ask a question here, or talk to an adviser by WhatsApp, callback or phone.",
+      "Send my policy for review: upload the schedule and an adviser explains the gaps.",
+      "Find my cover: answer questions on your business, then speak to an adviser.",
+      "Ask a question here, or message an adviser on WhatsApp.",
     ],
   },
 ];

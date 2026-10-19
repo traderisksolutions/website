@@ -15,16 +15,16 @@ const icons: Record<string, ReactNode> = {
 };
 
 const cards: { flow: Flow; word: string; cap: string; photo: StaticImageData; title: string; sub: string; big?: boolean }[] = [
-  { flow: "review", word: "Review", cap: "Know exactly what you are covered for", photo: reviewPhoto, title: "Policy review", sub: "PDF, JPG or PNG, up to 4 MB" },
-  { flow: "chat", word: "Ask", cap: "Straight answers on business insurance", photo: askPhoto, title: "Ask a question", sub: "An adviser picks it up on WhatsApp", big: true },
-  { flow: "finder", word: "Find", cap: "See the cover a company like yours needs", photo: findPhoto, title: "Find my cover", sub: "Questions, then a time with an adviser" },
+  { flow: "review", word: "Review", cap: "Your policy, read line by line", photo: reviewPhoto, title: "Policy review", sub: "An adviser explains the gaps" },
+  { flow: "chat", word: "Ask", cap: "One question, one plain answer", photo: askPhoto, title: "Ask a question", sub: "An adviser follows up on WhatsApp", big: true },
+  { flow: "finder", word: "Find", cap: "The cover a business like yours usually holds", photo: findPhoto, title: "Find my cover", sub: "Questions on your business, then a call" },
 ];
 
-/** Start here (Revolut): three photo cards, one word each; a card opens its flow in the start modal. */
+/** Ways to start (Revolut): three photo cards, one word each; a card opens its flow in the start modal. */
 export function StartCards() {
   return (
-    <section aria-label="Start here" className="wrap pb-16 pt-[clamp(48px,8vw,104px)] text-center sm:pb-20">
-      <h1 className="text-[clamp(3rem,7vw,5.6rem)] font-semibold leading-[1.02] tracking-[-0.035em]">Start here</h1>
+    <section aria-label="Ways to start" className="wrap pb-16 pt-[clamp(48px,8vw,104px)] text-center sm:pb-20">
+      <h1 className="text-[clamp(3rem,7vw,5.6rem)] font-semibold leading-[1.02] tracking-[-0.035em]">Ways to start</h1>
       <div className="-mx-4 mt-12 flex snap-x snap-mandatory items-center gap-4 overflow-x-auto px-4 pb-4 pt-2 [scrollbar-width:none] sm:mx-0 sm:justify-center sm:gap-[min(16px,1.6vw)] sm:overflow-visible sm:px-0">
         {cards.map(c => (
           <button key={c.flow} type="button" onClick={() => openStart(c.flow)} aria-label={`${c.word}: ${c.title}`} className={`scard${c.big ? " scard--big" : ""}`}>
@@ -42,7 +42,7 @@ export function StartCards() {
                 <span className="block text-[clamp(11px,5.1cqi,14px)] font-semibold leading-tight">{c.title}</span>
                 <span className="block text-[clamp(10px,4.6cqi,12.5px)] leading-snug text-ink-2 @max-[190px]:hidden">{c.sub}</span>
               </span>
-              <span className="text-[clamp(11px,5.1cqi,14px)] font-semibold">Free</span>
+              <span className="text-[clamp(11px,5.1cqi,14px)] font-semibold">S$0</span>
             </span>
           </button>
         ))}

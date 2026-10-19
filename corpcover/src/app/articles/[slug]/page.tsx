@@ -73,10 +73,10 @@ export default async function ArticlePage(props: PageProps<"/articles/[slug]">) 
 
         <div className="mt-6 text-[19px] leading-[1.6] text-ink-2">
           <p>
-            Want a second opinion on your own cover? An adviser can review it or compare insurers for you, at no cost:
+            An adviser can read your own policy and explain the gaps. Insurers pay the adviser; your business pays no fee.
           </p>
           <div className="my-5 flex flex-wrap justify-center gap-3">
-            <StartButton className="glass-primary px-6 py-2.5 text-sm font-semibold" />
+            <StartButton flow="review" className="glass-primary px-6 py-2.5 text-sm font-semibold">Send my policy for review</StartButton>
             <a href={`tel:+65${site.phone.replace(/\s/g, "")}`} className="glass px-6 py-2.5 font-sans text-sm font-medium">Call {site.phone}</a>
           </div>
         </div>
@@ -101,15 +101,16 @@ export default async function ArticlePage(props: PageProps<"/articles/[slug]">) 
           <ShareButton title={a.title} />
         </div>
         <div className="mt-8 flex flex-col items-center gap-4 rounded-2xl bg-accent-soft px-5 py-7 text-center">
-          <p className="text-lg font-semibold">Let&apos;s find the right cover for you.</p>
+          <p className="text-lg font-semibold">Talk to an adviser</p>
+          <p className="-mt-2 max-w-[44ch] text-ink-2">Insurers pay our advisers commission. Your business pays no fee, and a review is not a quote.</p>
           <div className="flex flex-wrap justify-center gap-3">
-            <StartButton className="glass-primary px-6 py-2.5 text-sm font-semibold" />
+            <StartButton flow="review" className="glass-primary px-6 py-2.5 text-sm font-semibold">Send my policy for review</StartButton>
             <a href={`tel:+65${site.phone.replace(/\s/g, "")}`} className="glass px-6 py-2.5 text-sm font-medium">Call {site.phone}</a>
           </div>
         </div>
         <div className="mt-12 flex flex-col items-center text-center">
           <h2 className="text-xl font-semibold">The Corp Cover letter</h2>
-          <p className="mt-1.5 text-ink-2">One email a week: the latest articles on business insurance.</p>
+          <p className="mt-1.5 text-ink-2">One email a week. New articles on business insurance in Singapore.</p>
           <Subscribe variant="inline" className="mt-5 flex w-full justify-center" />
         </div>
       </article>

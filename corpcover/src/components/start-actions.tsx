@@ -41,7 +41,7 @@ export function StartModal() {
   // Picking Find closes the small modal; its close event must not also close the Find modal.
   const closeSmall = () => setFlow(f => (f === "finder" ? f : null));
 
-  const titles = { choose: "How would you like to start?", chat: "Ask a question", review: "Upload policy for review", callback: "Request a callback" } as const;
+  const titles = { choose: "Ways to start", chat: "Ask a question", review: "Send my policy for review", callback: "Request a callback" } as const;
   const small = flow === "finder" ? null : flow;
 
   return (
@@ -58,8 +58,8 @@ export function StartModal() {
   );
 }
 
-/** Button that opens the Start here modal. */
-export function StartButton({ className, flow = "choose", children = "Start here" }: { className?: string; flow?: Flow; children?: ReactNode }) {
+/** Button that opens the start modal. */
+export function StartButton({ className, flow = "choose", children = "Ways to start" }: { className?: string; flow?: Flow; children?: ReactNode }) {
   return <button type="button" onClick={() => openStart(flow)} className={className}>{children}</button>;
 }
 
@@ -68,10 +68,10 @@ function Chooser({ onPick }: { onPick: (f: Flow) => void }) {
   const tel = `tel:+65${site.phone.replace(/\s/g, "")}`;
   return (
     <div>
-      <h2 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.025em] sm:text-[2.1rem]">How would you like to start?</h2>
+      <h2 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.025em] sm:text-[2.1rem]">Ways to start</h2>
       <div className="mt-6 space-y-2.5">
-        <Option icon="chat" title="Ask a question" text="Answers in seconds. An adviser takes over when you need one." onClick={() => onPick("chat")} />
-        <Option icon="upload" title="Upload policy for review" text="See the gaps, the overlaps and what is overpriced." onClick={() => onPick("review")} />
+        <Option icon="chat" title="Ask a question" text="General answers from our guides. An adviser follows up when you need one." onClick={() => onPick("chat")} />
+        <Option icon="upload" title="Send my policy for review" text="An adviser reads the wording and explains the gaps, the overlaps and the price." onClick={() => onPick("review")} />
         <Option icon="list" title="Find my cover" text="Questions on your business, then a time to speak to an adviser." onClick={() => onPick("finder")} />
       </div>
       <p className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-3">
@@ -108,7 +108,7 @@ function ChatFlow() {
   return (
     <div>
       <h2 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.025em] sm:text-[2.1rem]">Ask a question</h2>
-      <p className="mt-1.5 text-ink-2">Business insurance in Singapore. An adviser takes over when you need one.</p>
+      <p className="mt-1.5 text-ink-2">General information on business insurance in Singapore. An adviser follows up on WhatsApp.</p>
       <Chat suggestions={suggestions} className="mt-5 h-[min(58dvh,500px)]" />
     </div>
   );
@@ -182,7 +182,7 @@ export function ReviewFlow({ inline = false }: { inline?: boolean }) {
   const pick = (f: File | undefined) => f && setFile(f);
   return (
     <form onSubmit={onSubmit} className="space-y-5">
-      <h2 className={`${inline ? "" : "text-center "}text-2xl font-semibold tracking-[-0.02em]`}>Upload your current policy</h2>
+      <h2 className={`${inline ? "" : "text-center "}text-2xl font-semibold tracking-[-0.02em]`}>Send my policy for review</h2>
       <button
         type="button"
         onClick={() => input.current?.click()}

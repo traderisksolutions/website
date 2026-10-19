@@ -220,7 +220,7 @@ export function Chat({ sequence, onActive, jump, suggestions, className = "" }: 
             {!m.thinking && <Reply text={m.text} />}
             {m.done && i === msgs.length - 1 && live && (
               <div className="chat-in mt-4 flex flex-wrap gap-2">
-                <a href={whatsapp} target="_blank" rel="noopener" className="glass-primary px-4 py-2 text-sm font-medium">WhatsApp an adviser</a>
+                <a href={whatsapp} target="_blank" rel="noopener" className="glass-primary px-4 py-2 text-sm font-medium">Message an adviser</a>
                 <button type="button" onClick={() => openStart("callback")} className="glass px-4 py-2 text-sm font-medium">Request a callback</button>
               </div>
             )}

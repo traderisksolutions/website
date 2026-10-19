@@ -30,7 +30,7 @@ export default async function Home() {
 
       <section id="faq" className="scroll-mt-4 border-t border-rule pb-16 pt-14 lg:pb-24 lg:pt-20">
         <div className="wrap">
-          <h2 className="text-[clamp(2.2rem,4.4vw,3.5rem)] font-semibold leading-[1.08] tracking-[-0.025em]">Frequently asked questions</h2>
+          <h2 className="text-[clamp(2.2rem,4.4vw,3.5rem)] font-semibold leading-[1.08] tracking-[-0.025em]">Questions before you start</h2>
           <div className="mt-6 lg:mt-10"><FaqStory /></div>
         </div>
       </section>

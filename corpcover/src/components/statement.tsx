@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-const TEXT = "We write articles, so you are aware of practices and make the best judgement for yourself.";
+const TEXT = "We publish plain guides to business insurance, so you can compare cover and decide for yourself.";
 
 /** One sentence, pinned mid-screen; its words go from grey to ink as the page scrolls past. */
 export function Statement() {
