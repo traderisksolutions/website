@@ -32,14 +32,16 @@ log = logging.getLogger("engine.competitors")
 Fetch = Callable[[str], tuple[int, str]]
 
 FETCH_TIMEOUT = 6.0
-MAX_SITEMAPS = 20
+MAX_SITEMAPS = 60
+# A competitor with more pages than this gets narrowed to the site's topic terms before the cap.
+FOCUS_THRESHOLD = 300
 MAX_PAGES = 2000
 TITLE_FETCHES = 40
 WANT_PROMPTS = 50
 TONES = ("positive", "neutral", "negative", "not_mentioned")
 GROUNDING_REDIRECT = "vertexaisearch.cloud.google.com/grounding-api-redirect/"
 
-BLOG_SEGMENTS = {"blog", "blogs", "articles", "article", "insights", "resources", "guides", "news", "learn", "knowledge"}
+BLOG_SEGMENTS = {"blog", "blogs", "articles", "article", "insights", "insight", "resources", "guides", "news", "news-insights", "learn", "knowledge", "post", "posts", "stories", "updates", "press"}
 DROP_SEGMENTS = {"tag", "tags", "category", "categories", "author", "authors", "feed", "feeds", "rss", "page", "topic", "topics", "search", "wp-content", "wp-json"}
 DROP_PATH_RE = re.compile(r"/(page|p)/\d+/?$|[?&](page|paged|p)=\d+|/feed/?$|\.(xml|rss|atom|json|pdf|jpg|jpeg|png|gif|webp|svg|css|js)$", re.I)
 
@@ -147,9 +149,24 @@ def parse_sitemap(xml: str) -> list[dict[str, str]]:
 
 def discover_sitemaps(base_url: str, fetch: Fetch) -> list[str]:
     """robots.txt `Sitemap:` lines, else the usual file names; indexes are
-    followed one level. Capped at MAX_SITEMAPS. Returns urlset URLs to parse."""
+    followed one level. Capped at MAX_SITEMAPS. Returns urlset URLs to parse.
+
+    A base URL with a path prefix (a global site's /sg-en) also tries
+    <prefix>/sitemap.xml, and children of an index that name the prefix come
+    first, so the cap never drops the one locale that matters (Chubb lists
+    67 locales; Howden keeps its sg-en pages in /sg-en/sitemap.xml only)."""
     root = f"https://{domain_of(base_url)}/" if domain_of(base_url) else base_url
+    prefix = path_prefix_of(base_url)
+    marker = prefix.strip("/").split("/")[0] if prefix else ""
     found: list[str] = []
+    if prefix:
+        url = urljoin(root, f"{prefix}/sitemap.xml")
+        try:
+            status, body = fetch(url)
+        except Exception:  # noqa: BLE001
+            status, body = 0, ""
+        if status == 200 and sitemap_kind(body):
+            found.append(url)
     try:
         status, robots = fetch(urljoin(root, "/robots.txt"))
     except Exception:  # noqa: BLE001
@@ -179,9 +196,12 @@ def discover_sitemaps(base_url: str, fetch: Fetch) -> list[str]:
         if status != 200 or not body:
             continue
         if sitemap_kind(body) == "sitemapindex":
-            for child in parse_sitemap(body):
-                if child["url"] not in out and len(out) < MAX_SITEMAPS:
-                    out.append(child["url"])
+            children = [c["url"] for c in parse_sitemap(body)]
+            if marker:
+                children = [c for c in children if marker in c.lower()] + [c for c in children if marker not in c.lower()]
+            for child in children:
+                if child not in out and len(out) < MAX_SITEMAPS:
+                    out.append(child)
         elif url not in out and len(out) < MAX_SITEMAPS:
             out.append(url)
     return out[:MAX_SITEMAPS]
@@ -230,6 +250,45 @@ def blog_pages(entries: list[dict[str, str]], domain: str, path_prefix: str = ""
         if len(out) >= MAX_PAGES:
             break
     return out
+
+
+def focus_pages(pages: list[dict[str, Any]], topic_terms: list[str], threshold: int = FOCUS_THRESHOLD, keep_min: int = 20) -> list[dict[str, Any]]:
+    """A broad publisher (SingSaver: 2,000 posts on loans, cards and travel) is
+    narrowed to the pages whose slug or title names one of the site's topic
+    terms. Only applied above `threshold` pages, and only when it leaves at
+    least `keep_min`, so a small or off-pattern blog is never emptied."""
+    terms = [t.lower().strip() for t in topic_terms if t and t.strip()]
+    if len(pages) <= threshold or not terms:
+        return pages
+    def hit(p: dict[str, Any]) -> bool:
+        text = f" {' '.join(re.findall(r'[a-z0-9]+', (urlparse(p.get('url') or '').path + ' ' + (p.get('title') or '')).lower()))} "
+        return any(f" {' '.join(re.findall(r'[a-z0-9]+', t))} " in text for t in terms)
+    kept = [p for p in pages if hit(p)]
+    return kept if len(kept) >= keep_min else pages
+
+
+def resolve_home(url: str, timeout: float = FETCH_TIMEOUT) -> str:
+    """The URL a competitor's homepage finally lands on (libertyinsurance.com.sg
+    redirects to libertyinternational.com/sg). Returns the input on any failure."""
+    import httpx
+
+    try:
+        r = httpx.get(url, follow_redirects=True, timeout=timeout, headers={"User-Agent": "Mozilla/5.0 (compatible; TRS content engine)"})
+        return str(r.url) if r.status_code < 400 else url
+    except Exception:  # noqa: BLE001
+        return url
+
+
+def effective_home(url: str, domain: str, final_url: str) -> tuple[str, str, str]:
+    """(url, domain, prefix) to sweep with, given where the homepage landed. The
+    host changes only when it really moved; a redirect that adds a locale path
+    (/sg) keeps the domain and gains the prefix."""
+    final_domain = domain_of(final_url)
+    if not final_domain or final_domain == domain:
+        prefix = path_prefix_of(url) or path_prefix_of(final_url)
+        return url, domain, prefix
+    prefix = path_prefix_of(final_url)
+    return f"https://{final_domain}{prefix}", final_domain, prefix
 
 
 def blog_url_for(pages: list[dict[str, Any]], domain: str, path_prefix: str = "") -> str:
@@ -562,10 +621,18 @@ def gemini_client(settings: Settings) -> Any:
     return genai.Client(api_key=settings.gemini_api_key)
 
 
-def _sweep_competitor(store: Store, site: SiteInfo, c: dict[str, Any], fetch: Fetch) -> list[dict[str, Any]]:
-    domain = c["domain"]
-    prefix = path_prefix_of(c.get("url") or "")
-    sitemaps = discover_sitemaps(c.get("url") or f"https://{domain}", fetch)
+def _sweep_competitor(store: Store, site: SiteInfo, c: dict[str, Any], fetch: Fetch, resolve: Callable[[str], str] = resolve_home) -> list[dict[str, Any]]:
+    home = c.get("url") or f"https://{c['domain']}"
+    url, domain, prefix = effective_home(home, c["domain"], resolve(home))
+    fields: dict[str, Any] = {"last_analysed_at": _now()}
+    if domain != c["domain"]:
+        # The site moved host. Record it so citations match; the unique (site, domain) key may
+        # refuse when the new host is already listed, in which case the sweep still uses it.
+        try:
+            store.update_competitor(c["id"], url=url, domain=domain)
+        except Exception as e:  # noqa: BLE001
+            log.warning("competitor %s kept domain %s: %s", c["id"], c["domain"], str(e)[:120])
+    sitemaps = discover_sitemaps(url, fetch)
     entries: list[dict[str, str]] = []
     for sm in sitemaps:
         status, body = fetch(sm)
@@ -573,15 +640,16 @@ def _sweep_competitor(store: Store, site: SiteInfo, c: dict[str, Any], fetch: Fe
             entries += parse_sitemap(body)
     pages = blog_pages(entries, domain, prefix)
     fetch_titles(pages, fetch)
+    pages = focus_pages(pages, list(site.topic_terms or []))
     store.upsert_pages(c["id"], site.id, pages)
-    fields: dict[str, Any] = {"pages_count": len(pages), "last_analysed_at": _now()}
+    fields["pages_count"] = len(pages)
     blog_url = blog_url_for(pages, domain, prefix)
     if blog_url:
         fields["blog_url"] = blog_url
     if sitemaps:
         fields["sitemap_url"] = sitemaps[0]
-    if is_auto_name(c.get("name") or "", domain):
-        status, html = fetch(c.get("url") or f"https://{domain}")
+    if is_auto_name(c.get("name") or "", c["domain"]):
+        status, html = fetch(url)
         title = clean_site_title(parse_title(html)) if status == 200 else ""
         if title:
             fields["name"] = title
@@ -589,7 +657,7 @@ def _sweep_competitor(store: Store, site: SiteInfo, c: dict[str, Any], fetch: Fe
     return [{"competitor_id": c["id"], **p} for p in pages]
 
 
-def run_analysis(settings: Settings, store: Store, analysis_id: str, *, fetch: Fetch | None = None, client: Any = None, llm: Any = None, resolve: Callable[[str], str] | None = None) -> dict[str, Any] | None:
+def run_analysis(settings: Settings, store: Store, analysis_id: str, *, fetch: Fetch | None = None, client: Any = None, llm: Any = None, resolve: Callable[[str], str] | None = None, home: Callable[[str], str] | None = None) -> dict[str, Any] | None:
     """The whole analysis for one geo_analyses row. Never raises: any failure
     marks the row failed with the error text; per-prompt failures go to
     summary.errors and the run completes."""
@@ -613,7 +681,7 @@ def run_analysis(settings: Settings, store: Store, analysis_id: str, *, fetch: F
         all_pages: list[dict[str, Any]] = []
         for c in competitors:
             try:
-                pages = _sweep_competitor(store, site, c, fetch)
+                pages = _sweep_competitor(store, site, c, fetch, home or resolve_home)
                 all_pages += pages
                 summary["competitors"][c["domain"]] = {"pages": len(pages)}
             except Exception as e:  # noqa: BLE001

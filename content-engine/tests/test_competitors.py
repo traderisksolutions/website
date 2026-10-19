@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from engine.competitors import (PromptSuggestions, ToneVerdict, blog_pages, blog_url_for, classify_tone, clean_site_title, dedupe_prompts, discover_sitemaps,
+from engine.competitors import (PromptSuggestions, ToneVerdict, blog_pages, blog_url_for, classify_tone, clean_site_title, dedupe_prompts, discover_sitemaps, effective_home, focus_pages,
                                 grounding_uris, is_auto_name, mentioned, parse_sitemap, parse_title, run_analysis, score, sitemap_kind, title_from_slug)
 from engine.config import Settings
 from engine.models import Usage
@@ -63,14 +63,15 @@ def test_discover_sitemaps_from_robots_follows_index_one_level():
 
     found = discover_sitemaps("https://www.provide.sg/some/path", fetch)
     assert found == ["https://provide.sg/post-sitemap.xml", "https://provide.sg/page-sitemap.xml", "https://provide.sg/news-sitemap.xml"]
-    assert calls[0] == "https://provide.sg/robots.txt"
+    assert calls[0] == "https://provide.sg/some/path/sitemap.xml"  # the prefix sitemap is tried first
+    assert calls[1] == "https://provide.sg/robots.txt"
 
 
 def test_discover_sitemaps_falls_back_to_default_names_and_caps():
-    many = "<sitemapindex>" + "".join(f"<sitemap><loc>https://provide.sg/s{i}.xml</loc></sitemap>" for i in range(40)) + "</sitemapindex>"
+    many = "<sitemapindex>" + "".join(f"<sitemap><loc>https://provide.sg/s{i}.xml</loc></sitemap>" for i in range(80)) + "</sitemapindex>"
     pages = {"https://provide.sg/robots.txt": (200, "User-agent: *\n"), "https://provide.sg/sitemap.xml": (404, ""), "https://provide.sg/sitemap_index.xml": (200, many)}
     found = discover_sitemaps("provide.sg", lambda u: pages.get(u, (404, "")))
-    assert len(found) == 20 and found[0] == "https://provide.sg/s0.xml"
+    assert len(found) == 60 and found[0] == "https://provide.sg/s0.xml"
     # nothing anywhere: empty, no exception
     assert discover_sitemaps("https://provide.sg", lambda u: (0, "")) == []
 
@@ -258,7 +259,7 @@ def test_run_analysis_offline_completes_with_counts_scores_and_cost():
     llm, client = _FakeLLM(), _FakeGemini()
     resolve = lambda u: "https://www.corpcover.com/articles/cafe-cover" if "grounding-api-redirect" in u else u  # noqa: E731
 
-    out = run_analysis(_settings(), store, analysis["id"], fetch=_fetch, client=client, llm=llm, resolve=resolve)
+    out = run_analysis(_settings(), store, analysis["id"], fetch=_fetch, client=client, llm=llm, resolve=resolve, home=lambda u: u)
 
     assert out["status"] == "completed", out.get("error")
     assert out["model"] == "gemini-3.8-flash"
@@ -312,3 +313,41 @@ def test_grounding_uris_tolerates_missing_metadata():
     assert grounding_uris(SimpleNamespace(candidates=[])) == []
     assert grounding_uris(SimpleNamespace(candidates=[SimpleNamespace(grounding_metadata=None)])) == []
     assert grounding_uris(_response("x", ["https://a.com", "https://a.com", "https://b.com"])) == ["https://a.com", "https://b.com"]
+
+
+INDEX_MANY = """<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+""" + "".join(f"<sitemap><loc>https://www.chubb.com/{loc}/sitemap.xml</loc></sitemap>" for loc in ["ar-es", "au-en", "br-pt", "sg-en", "us-en"]) + "</sitemapindex>"
+
+
+def test_discover_sitemaps_prefers_prefix_sitemap_and_prefix_children():
+    pages = {
+        "https://chubb.com/robots.txt": (200, "Sitemap: https://chubb.com/sitemapindex.xml\n"),
+        "https://chubb.com/sitemapindex.xml": (200, INDEX_MANY),
+        "https://chubb.com/sg-en/sitemap.xml": (200, URLSET),
+    }
+    out = discover_sitemaps("https://www.chubb.com/sg-en", lambda u: pages.get(u, (404, "")))
+    assert out[0] == "https://chubb.com/sg-en/sitemap.xml"           # the prefix's own sitemap first
+    rest = [u for u in out[1:]]
+    assert rest[0] == "https://www.chubb.com/sg-en/sitemap.xml" or rest[0].endswith("/sg-en/sitemap.xml") or "sg-en" in rest[0]
+    assert "https://www.chubb.com/ar-es/sitemap.xml" in out and out.index("https://www.chubb.com/ar-es/sitemap.xml") > out.index(next(u for u in out if "sg-en" in u))
+
+
+def test_focus_pages_narrows_a_broad_publisher_only():
+    mk = lambda i, slug: {"url": f"https://singsaver.com.sg/blog/{slug}-{i}", "title": ""}
+    pages = [mk(i, "best-credit-card") for i in range(300)] + [mk(i, "work-injury-insurance-guide") for i in range(25)]
+    kept = focus_pages(pages, ["insurance", "work injury"], threshold=300, keep_min=20)
+    assert len(kept) == 25 and all("insurance" in p["url"] for p in kept)
+    assert focus_pages(pages[:100], ["insurance"], threshold=300) == pages[:100]          # small blog untouched
+    assert len(focus_pages(pages[:305], ["insurance"], threshold=300, keep_min=20)) == 305  # too few hits: keep all
+
+
+def test_effective_home_follows_a_host_move_and_a_locale_redirect():
+    assert effective_home("https://libertyinsurance.com.sg", "libertyinsurance.com.sg", "https://www.libertyinternational.com/sg") == ("https://libertyinternational.com/sg", "libertyinternational.com", "/sg")
+    assert effective_home("https://www.howdengroup.com/sg-en", "howdengroup.com", "https://www.howdengroup.com/sg-en") == ("https://www.howdengroup.com/sg-en", "howdengroup.com", "/sg-en")
+    assert effective_home("https://anapi.co", "anapi.co", "") == ("https://anapi.co", "anapi.co", "")
+
+
+def test_blog_filter_knows_insight_and_post_sections():
+    entries = [{"url": "https://www.howdengroup.com/sg-en/insight/countering-talent-shortage", "lastmod": ""}, {"url": "https://anapi.co/post/social-engineering-fraud", "lastmod": ""}]
+    assert len(blog_pages(entries, "howdengroup.com", "/sg-en")) == 1
+    assert len(blog_pages(entries, "anapi.co")) == 1

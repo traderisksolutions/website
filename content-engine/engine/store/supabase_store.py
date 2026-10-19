@@ -286,7 +286,7 @@ class SupabaseStore:
         return self.sb.table("marketing_competitors").select("*").eq("site_id", site_id).eq("status", "active").order("created_at").execute().data
 
     def update_competitor(self, competitor_id: str, **fields: Any) -> None:
-        allowed = {"name", "blog_url", "sitemap_url", "pages_count", "best_page_url", "best_page_note", "cited_count", "search_hits", "last_analysed_at"}
+        allowed = {"name", "url", "domain", "blog_url", "sitemap_url", "pages_count", "best_page_url", "best_page_note", "cited_count", "search_hits", "last_analysed_at"}
         patch = {k: v for k, v in fields.items() if k in allowed}
         if patch:
             patch["updated_at"] = _now()
