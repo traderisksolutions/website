@@ -124,6 +124,14 @@ function Body({ it, onChanged }: { it: Intake; onChanged: () => void }) {
     if (!g) { g = { sec, items: [] }; groups.push(g) }
     g.items.push({ id: q.id, title: q.title, value: answerLabel(q.id, it.answers[q.id]) })
   }
+  // Quote-form enquiries carry their own keys; show them with plain labels.
+  if (it.kind === 'enquiry') {
+    const A = it.answers as Record<string, unknown>
+    const items = ([['Form', A.form], ['UEN', A.uen], ['Role', A.role], ['Cover needed from', A.needed_by], ['Details', A.details]] as [string, unknown][])
+      .filter(([, v]) => v !== null && v !== undefined && v !== '')
+      .map(([title, v], i) => ({ id: String(i), title, value: String(v) }))
+    if (items.length) groups.push({ sec: 'Quote request', items })
+  }
   const formKeys = Object.keys(it.proposal_fields ?? {})
 
   return (
