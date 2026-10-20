@@ -42,6 +42,7 @@ export function SiteFooter() {
           <Column title="Company">
             <Link href="/about">About</Link>
             <Link href="/policy-review">Policy review</Link>
+            <Link href="/how-we-compare">How we compare</Link>
             <StartButton flow="chat">Ask a question</StartButton>
           </Column>
           <Column title="Topics">
