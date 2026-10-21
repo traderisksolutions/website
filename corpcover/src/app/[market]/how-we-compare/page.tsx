@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { MARKETS, alternates, mpath, type MarketKey } from "@/lib/market";
+import { MARKETS, alternates, mpath, type MarketKey, marketParam } from "@/lib/market";
 
 export async function generateMetadata({ params }: { params: Promise<{ market: string }> }): Promise<Metadata> {
-  const m = (await params).market as MarketKey;
+  const m = await marketParam(params);
   return { ...meta, alternates: alternates(m, "/how-we-compare") };
 }
 
@@ -27,7 +27,7 @@ const criteria: [string, string, string][] = [
 ];
 
 export default async function HowWeCompare({ params }: { params: Promise<{ market: string }> }) {
-  const m = (await params).market as MarketKey, M = MARKETS[m];
+  const m = await marketParam(params), M = MARKETS[m];
   return (
     <main className="flex-1">
       <section className="wrap pb-12 pt-[clamp(48px,8vw,104px)]">

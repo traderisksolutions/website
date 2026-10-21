@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { ReviewFlow } from "@/components/start-actions";
-import { alternates, type MarketKey } from "@/lib/market";
+import { alternates, marketParam } from "@/lib/market";
 
 export async function generateMetadata({ params }: { params: Promise<{ market: string }> }): Promise<Metadata> {
-  const m = (await params).market as MarketKey;
+  const m = await marketParam(params);
   return { ...meta, alternates: alternates(m, "/policy-review") };
 }
 

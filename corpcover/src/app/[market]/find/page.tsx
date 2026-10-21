@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { MARKETS, alternates, mpath, type MarketKey } from "@/lib/market";
+import { MARKETS, alternates, mpath, marketParam } from "@/lib/market";
 import { FindStart } from "@/components/find-start";
 
 export const metadata: Metadata = {
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 const facts = ["About 20 questions", "6 to 9 minutes", "Saves as you go", "No fee"];
 
 export default async function Find({ params }: { params: Promise<{ market: string }> }) {
-  const m = (await params).market as MarketKey, M = MARKETS[m];
+  const m = await marketParam(params), M = MARKETS[m];
   if (!M.find) notFound();
   return (
     <main className="flex-1">

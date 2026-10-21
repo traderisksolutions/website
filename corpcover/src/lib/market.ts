@@ -40,3 +40,10 @@ export function alternates(m: MarketKey, path = "/") {
     languages: { ...Object.fromEntries(MARKET_KEYS.map(k => [MARKETS[k].lang, mpath(k, path)])), "x-default": "/" },
   };
 }
+
+/** The market from a route's params; a 404 for anything that is not sg, my or hk. */
+export async function marketParam(params: Promise<{ market: string }>): Promise<MarketKey> {
+  const { market } = await params;
+  if (!isMarket(market)) { const { notFound } = await import("next/navigation"); notFound(); }
+  return market as MarketKey;
+}

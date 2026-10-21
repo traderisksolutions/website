@@ -11,7 +11,7 @@ import { site } from "@/site";
 import { StartButton } from "@/components/start-actions";
 import { Subscribe } from "@/components/subscribe";
 import { JsonLd, articleLd } from "@/lib/json-ld";
-import { mpath, type MarketKey } from "@/lib/market";
+import { mpath, marketParam } from "@/lib/market";
 
 // Feed articles are rendered on demand and revalidated every five minutes; the hand-written
 // ones are prebuilt.
@@ -26,8 +26,8 @@ export function generateStaticParams({ params }: { params: { market: string } })
 type P = { params: Promise<{ market: string; slug: string }> };
 
 export async function generateMetadata(props: P): Promise<Metadata> {
-  const { market, slug } = await props.params;
-  const m = market as MarketKey;
+  const { slug } = await props.params;
+  const m = await marketParam(props.params);
   const a = await getGuide(slug, m);
   if (!a) return {};
   return {
@@ -49,8 +49,8 @@ function Body({ block }: { block: Block }) {
 
 /** Lenny's article layout: title, subtitle, byline, actions, publisher's note, intro, cover, body. */
 export default async function ArticlePage(props: P) {
-  const { market, slug } = await props.params;
-  const m = market as MarketKey;
+  const { slug } = await props.params;
+  const m = await marketParam(props.params);
   const a = await getGuide(slug, m);
   if (!a) notFound();
   const [intro, ...rest] = a.body;

@@ -3,17 +3,17 @@ import { Suspense } from "react";
 import { BlogGrid, BlogGridFromUrl } from "@/components/blog-grid";
 import { Subscribe } from "@/components/subscribe";
 import { getGuides } from "@/lib/blog-api";
-import { MARKETS, alternates, mpath, type MarketKey } from "@/lib/market";
+import { MARKETS, alternates, marketParam } from "@/lib/market";
 
 export async function generateMetadata({ params }: { params: Promise<{ market: string }> }): Promise<Metadata> {
-  const m = (await params).market as MarketKey, M = MARKETS[m];
+  const m = await marketParam(params), M = MARKETS[m];
   return { title: `Business insurance guides for ${M.name}`, description: `Plain guides to business insurance in ${M.name}, by topic.`, alternates: alternates(m, "/articles"), twitter: { card: "summary_large_image" } };
 }
 
 export const revalidate = 300;
 
 export default async function Blogs({ params }: { params: Promise<{ market: string }> }) {
-  const m = (await params).market as MarketKey, M = MARKETS[m];
+  const m = await marketParam(params), M = MARKETS[m];
   const articles = await getGuides(m);
   return (
     <main className="flex-1">

@@ -9,10 +9,10 @@ import { GetCoveredStart } from "@/components/get-covered";
 import { faqsFor } from "@/content/faq";
 import { JsonLd, faqPage } from "@/lib/json-ld";
 import { getGuides } from "@/lib/blog-api";
-import { MARKETS, alternates, mpath, type MarketKey } from "@/lib/market";
+import { MARKETS, alternates, mpath, marketParam } from "@/lib/market";
 
 export async function generateMetadata({ params }: { params: Promise<{ market: string }> }): Promise<Metadata> {
-  const m = (await params).market as MarketKey, M = MARKETS[m];
+  const m = await marketParam(params), M = MARKETS[m];
   const title = `Business insurance in ${M.name} | Corp Cover`;
   const description = `Liability and asset insurance for ${M.adj} companies: plain guides, policy reviews and independent advisers who compare insurers. Your business pays no fee.`;
   return { title: { absolute: title }, description, alternates: alternates(m), openGraph: { title, description, url: mpath(m) }, twitter: { card: "summary_large_image" } };
@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: { params: Promise<{ market: s
 export const revalidate = 300;
 
 export default async function Home({ params }: { params: Promise<{ market: string }> }) {
-  const m = (await params).market as MarketKey, M = MARKETS[m];
+  const m = await marketParam(params), M = MARKETS[m];
   const articles = await getGuides(m);
   const faqs = faqsFor(m);
   return (
