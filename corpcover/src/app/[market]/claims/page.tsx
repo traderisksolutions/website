@@ -3,6 +3,10 @@ import { ClaimFlow } from "@/components/claim-flow";
 import { JsonLd } from "@/lib/json-ld";
 import { MARKETS, alternates, marketParam, type MarketKey } from "@/lib/market";
 import { PLANS } from "@/lib/claim";
+import { getGuides } from "@/lib/blog-api";
+import { ArticleCard } from "@/components/article-card";
+
+export const revalidate = 300;
 
 export async function generateMetadata({ params }: { params: Promise<{ market: string }> }): Promise<Metadata> {
   const m = await marketParam(params), M = MARKETS[m];
@@ -35,6 +39,7 @@ const faq = (m: MarketKey): { q: string; a: string }[] => {
 export default async function Claims({ params }: { params: Promise<{ market: string }> }) {
   const m = await marketParam(params), M = MARKETS[m];
   const qa = faq(m);
+  const guides = (await getGuides(m)).filter(g => g.topic === "Claims").slice(0, 6);
   return (
     <main className="flex-1">
       <JsonLd data={{ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: qa.map(f => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }} />
@@ -59,6 +64,13 @@ export default async function Claims({ params }: { params: Promise<{ market: str
         </ol>
         <ClaimFlow market={m} />
       </section>
+
+      {guides.length > 0 && (
+        <section className="wrap pb-[clamp(64px,8vw,104px)]">
+          <h2 className="t-h2">Claim guides</h2>
+          <div className="mt-8 grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">{guides.map(g => <ArticleCard key={g.slug} article={g} />)}</div>
+        </section>
+      )}
 
       <section className="bg-base py-[clamp(56px,8vw,96px)]">
         <div className="wrap">

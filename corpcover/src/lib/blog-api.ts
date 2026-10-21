@@ -15,7 +15,7 @@ type RemoteOne = Remote & { content_html: string; headings: { id: string; text: 
 /** A guide as the pages render it: a local Article, or a feed article carrying its HTML. */
 export type Guide = Article & { market: MarketKey; html?: string; headings?: { id: string; text: string }[] };
 
-const ART_BY_TOPIC: Record<string, Article["art"]> = { "Required by law": "hardhat", Liability: "umbrella", Property: "building", Directors: "gavel" };
+const ART_BY_TOPIC: Record<string, Article["art"]> = { "Required by law": "hardhat", Liability: "umbrella", Property: "building", Directors: "gavel", Claims: "document" };
 
 /** Two short lines for the cover card from the title: whole words, about 16 characters each. */
 export function coverLines(title: string): string[] {

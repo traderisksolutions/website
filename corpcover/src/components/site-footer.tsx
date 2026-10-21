@@ -54,7 +54,7 @@ export function SiteFooter() {
             <StartButton flow="chat">Ask a question</StartButton>
           </Column>
           <Column title="Topics">
-            {["Required by law", "Liability", "Property", "Directors"].map(t => <Link key={t} href={`${mpath(m, "/articles")}?topic=${encodeURIComponent(t)}`}>{t}</Link>)}
+            {["Required by law", "Liability", "Property", "Directors", "Claims"].map(t => <Link key={t} href={`${mpath(m, "/articles")}?topic=${encodeURIComponent(t)}`}>{t}</Link>)}
           </Column>
         </div>
       </div>

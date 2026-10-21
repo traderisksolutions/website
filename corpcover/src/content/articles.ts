@@ -1,7 +1,7 @@
 // Guides shown on the home page feed and at /articles/[slug].
 // Order here is publication order, newest first. Add a guide by adding an entry.
 
-export type Topic = "Required by law" | "Liability" | "Property" | "Directors";
+export type Topic = "Required by law" | "Liability" | "Property" | "Directors" | "Claims";
 
 export type Block =
   | { type: "p"; text: string }
@@ -24,7 +24,7 @@ export type Article = {
   body: Block[];
 };
 
-export const topics: Topic[] = ["Required by law", "Liability", "Property", "Directors"];
+export const topics: Topic[] = ["Required by law", "Liability", "Property", "Directors", "Claims"];
 
 export const articles: Article[] = [
   {
