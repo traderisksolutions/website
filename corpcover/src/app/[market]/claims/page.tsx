@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: { params: Promise<{ market: s
   const m = await marketParam(params), M = MARKETS[m];
   return {
     title: `Insurance claim rejected? Claim second opinion in ${M.name}`,
-    description: `An independent read of a rejected, reduced or delayed insurance claim in ${M.name}: an AI read of your policy wording against the insurer's decision, then a call with a second adviser. Personal ${PLANS.personal.price}, business ${PLANS.business.price}.`,
+    description: `A second read of a rejected, reduced or delayed insurance claim in ${M.name}: an AI read of your policy wording against the insurer's decision, then a call with a second adviser. Personal ${PLANS.personal.price}, business ${PLANS.business.price}.`,
     alternates: alternates(m, "/claims"), twitter: { card: "summary_large_image" },
   };
 }
@@ -26,10 +26,11 @@ const STEPS: [string, string][] = [
 const faq = (m: MarketKey): { q: string; a: string }[] => {
   const M = MARKETS[m];
   return [
-    { q: "My insurance claim was rejected. What can I do?", a: `Ask the insurer for the reason in writing and the clause it relies on. Check that clause against your policy wording. If you still disagree after the insurer's internal review, ${M.disputeBody} handles insurance disputes free of charge${M.disputeDeadline ? `; file ${M.disputeDeadline}` : ""}. A second opinion helps you decide whether to push back and on what point.` },
-    { q: "Who reviews my claim?", a: "An adviser who did not sell you the policy and is not paid on this claim. Our advisers are paid commission by insurers when they place policies; a review never involves the adviser who placed yours." },
-    { q: "What is a claim second opinion?", a: "An independent reading of your policy and the insurer's decision by someone who was not involved in the sale or the claim. It shows which reasons hold up against the wording and which do not." },
-    { q: "Is this legal advice?", a: "No. The review reads the policy and the claim. It does not act for you with the insurer and cannot promise a different outcome. For court action, speak to a lawyer." },
+    { q: "My insurance claim was rejected. What can I do?", a: `Ask the insurer for the reason in writing and the clause it relies on. Check that clause against your policy wording. If you still disagree after the insurer's internal review, you can file with ${M.disputeBody} ${M.disputeDeadline}. ${M.disputeNote} A second opinion helps you decide whether to push back and on what point.` },
+    { q: "Who reviews my claim?", a: "An adviser who did not sell you the policy and is not paid on this claim. Advisers are paid commission by insurers when they place policies; a review never involves the adviser who placed yours." },
+    { q: "What is a claim second opinion?", a: "A reading of your policy and the insurer's decision by someone who was not involved in the sale or the claim. It shows which reasons hold up against the wording and which do not." },
+    { q: "Is this legal advice?", a: "No. The review explains how the policy wording applies to each reason in the insurer's letter. We do not act for you, contact the insurer, negotiate, or prepare documents for any proceeding. For court action, speak to a lawyer." },
+    { q: "Is AI used?", a: "Yes. An AI model reads the documents first. A person checks the reading before the call." },
     { q: "What does it cost?", a: `${PLANS.personal.price} for a personal claim and ${PLANS.business.price} for a business claim, per review. You pay after sending the claim details, before the read starts.` },
     { q: "Which claims can you review?", a: "Personal: travel, health, motor, home, personal accident, life and critical illness. Business: fire and property, business interruption, public and product liability, professional indemnity, work injury, cargo, burglary and fidelity." },
     { q: "What documents do I need?", a: "The policy schedule and full wording, the claim form, the insurer's decision letter, and any emails with the insurer or a loss adjuster. Photos, receipts and reports help where the loss is disputed." },
@@ -60,7 +61,7 @@ export default async function Claims({ params }: { params: Promise<{ market: str
               <span className="text-ink-2">{d}</span>
             </li>
           ))}
-          <li className="rounded-[12px] bg-base p-5 text-[15px] text-ink-2">The review is a reading of your documents against the policy wording. It is not legal advice and does not act for you with the insurer. If the insurer&apos;s final answer still stands, {M.disputeBody} handles disputes free of charge{M.disputeDeadline ? <>; file {M.disputeDeadline}</> : null}. Documents are used only for this review.</li>
+          <li className="rounded-[12px] bg-base p-5 text-[15px] text-ink-2">The review is a reading of your documents against the policy wording. It is not legal advice and does not act for you with the insurer. If the insurer&apos;s final answer still stands, you can file with {M.disputeBody} {M.disputeDeadline}. {M.disputeNote} Documents are used only for this review.</li>
         </ol>
         <ClaimFlow market={m} />
       </section>

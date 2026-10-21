@@ -14,7 +14,7 @@ import { MARKETS, alternates, mpath, marketParam } from "@/lib/market";
 export async function generateMetadata({ params }: { params: Promise<{ market: string }> }): Promise<Metadata> {
   const m = await marketParam(params), M = MARKETS[m];
   const title = `Business insurance in ${M.name} | Corp Cover`;
-  const description = `Liability and asset insurance for ${M.adj} companies: plain guides, policy reviews and independent advisers who compare insurers. Your business pays no fee.`;
+  const description = `Liability and asset insurance for ${M.adj} companies: plain guides, policy reviews and advisers who compare insurers. Your business pays no fee.`;
   return { title: { absolute: title }, description, alternates: alternates(m), openGraph: { title, description, url: mpath(m) }, twitter: { card: "summary_large_image" } };
 }
 

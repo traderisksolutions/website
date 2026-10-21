@@ -8,7 +8,7 @@ export async function generateMetadata({ params }: { params: Promise<{ market: s
   const m = await marketParam(params), M = MARKETS[m];
   return {
     title: "About",
-    description: `Corp Cover publishes plain guides to business insurance for ${M.adj} companies and connects them with independent advisers. Insurers pay the advisers; your business pays no fee.`,
+    description: `Corp Cover publishes plain guides to business insurance for ${M.adj} companies and connects them with advisers. Insurers pay the advisers; your business pays no fee.`,
     alternates: alternates(m, "/about"), twitter: { card: "summary_large_image" },
   };
 }
@@ -29,7 +29,7 @@ export default async function About({ params }: { params: Promise<{ market: stri
       <section className="wrap pb-14 pt-[clamp(48px,8vw,104px)]">
         <h1 className="t-h1">Business insurance advice for {M.adj} companies</h1>
         <p className="mt-5 t-lede">
-          We explain business insurance in plain words, read the policies you already hold, and connect you with independent advisers who compare insurers. Insurers pay the advisers commission. Your business pays no fee.
+          We explain business insurance in plain words, read the policies you already hold, and connect you with advisers who compare insurers. Insurers pay the advisers commission. Your business pays no fee.
         </p>
         <div className="mt-7 flex flex-wrap gap-2.5">
           <StartButton flow="chat" className="btn btn-primary">Ask a question</StartButton>

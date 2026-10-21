@@ -29,7 +29,7 @@ const base: Faq[] = [
   {
     q: "Who will I deal with?",
     icon: "people",
-    a: "An independent adviser who arranges business insurance.",
+    a: "An adviser who arranges business insurance.",
     points: [
       "The adviser works with several insurers, not one.",
       "One adviser handles every policy your company holds.",

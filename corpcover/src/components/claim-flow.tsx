@@ -108,7 +108,7 @@ export function ClaimFlow({ market = "sg" }: { market?: MarketKey }) {
               </div>
               <label className="flex items-start gap-2.5 text-sm text-ink-2 sm:col-span-2">
                 <input type="checkbox" checked={s.ack} onChange={e => set("ack", e.target.checked)} className="mt-1 size-4 accent-[var(--primary)]" />
-                <span>I understand the review is an independent reading of my policy and claim. It is not legal advice, does not act for me with the insurer, and cannot promise a different outcome. {M.disputeBody} handles disputes free of charge.</span>
+                <span>I understand the review is a reading of my policy and claim, checked by a person after an AI read. It is not legal advice, does not act for me with the insurer, and cannot promise a different outcome.</span>
               </label>
               <label className="flex items-start gap-2.5 text-sm text-ink-2 sm:col-span-2">
                 <input type="checkbox" checked={s.consent} onChange={e => set("consent", e.target.checked)} className="mt-1 size-4 accent-[var(--primary)]" />

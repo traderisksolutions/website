@@ -57,7 +57,7 @@ export default async function HowWeCompare({ params }: { params: Promise<{ marke
         </div>
         <div className="grid content-start gap-3">
           <h2 className="text-[1.6rem] font-semibold tracking-[-0.02em]">Independence</h2>
-          <p className="text-ink-2">Insurers pay our advisers commission on the policies they place. No insurer pays to appear in a guide or to be listed first. Lists are not ranked by commission.</p>
+          <p className="text-ink-2">Insurers pay the advisers commission on the policies they place. No insurer pays to appear in a guide or to be listed first. Lists are not ranked by commission.</p>
         </div>
         <div className="grid content-start gap-3">
           <h2 className="text-[1.6rem] font-semibold tracking-[-0.02em]">Updates</h2>

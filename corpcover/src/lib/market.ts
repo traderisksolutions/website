@@ -15,14 +15,16 @@ export type Market = {
   disputeBody: string;
   /** When to file with the dispute body, if the body publishes a deadline. */
   disputeDeadline: string | null;
+  /** Who the dispute body takes, its limit and its cost. Legal review 21 Oct 2026. */
+  disputeNote: string;
   /** Whether the long, Chubb-Singapore questionnaire (/find) applies. */
   find: boolean;
 };
 
 export const MARKETS: Record<MarketKey, Market> = {
-  sg: { key: "sg", code: "SG", name: "Singapore", adj: "Singapore", lang: "en-SG", cc: "+65", currency: "S$", workInjury: "Work injury compensation", regNo: "UEN", privacyLaw: "the Personal Data Protection Act", disputeBody: "FIDReC", disputeDeadline: "within 6 months of the insurer's final reply", find: true },
-  my: { key: "my", code: "MY", name: "Malaysia", adj: "Malaysian", lang: "en-MY", cc: "+60", currency: "RM", workInjury: "Workers' compensation (SOCSO and foreign workers)", regNo: "SSM registration number", privacyLaw: "the Personal Data Protection Act 2010", disputeBody: "the Financial Markets Ombudsman Service (FMOS)", disputeDeadline: null, find: false },
-  hk: { key: "hk", code: "HK", name: "Hong Kong", adj: "Hong Kong", lang: "en-HK", cc: "+852", currency: "HK$", workInjury: "Employees' compensation", regNo: "Business Registration number", privacyLaw: "the Personal Data (Privacy) Ordinance", disputeBody: "the Insurance Complaints Bureau (ICB)", disputeDeadline: "within 6 months of the insurer's final decision", find: false },
+  sg: { key: "sg", code: "SG", name: "Singapore", adj: "Singapore", lang: "en-SG", cc: "+65", currency: "S$", workInjury: "Work injury compensation", regNo: "UEN", privacyLaw: "the Personal Data Protection Act", disputeBody: "FIDReC", disputeDeadline: "within 6 months of the insurer's final reply", disputeNote: "FIDReC takes disputes from individuals, sole proprietors, charities and small businesses with group turnover of S$1 million or less in each of the last 2 financial years. Filing and mediation are free. Adjudication costs S$50, or S$250 for a small business, and awards are capped at S$150,000.", find: true },
+  my: { key: "my", code: "MY", name: "Malaysia", adj: "Malaysian", lang: "en-MY", cc: "+60", currency: "RM", workInjury: "Workers' compensation (SOCSO and foreign workers)", regNo: "SSM registration number", privacyLaw: "the Personal Data Protection Act 2010", disputeBody: "the Financial Markets Ombudsman Service (FMOS)", disputeDeadline: "within 6 months of the insurer's final decision", disputeNote: "FMOS takes disputes up to RM250,000 from individuals and micro and small businesses. It is free, and it does not hear third-party bodily injury or death claims.", find: false },
+  hk: { key: "hk", code: "HK", name: "Hong Kong", adj: "Hong Kong", lang: "en-HK", cc: "+852", currency: "HK$", workInjury: "Employees' compensation", regNo: "Business Registration number", privacyLaw: "the Personal Data (Privacy) Ordinance", disputeBody: "the Insurance Complaints Bureau (ICB)", disputeDeadline: "within 6 months of the insurer's final decision", disputeNote: "The ICB takes complaints on personal policies only, up to HK$1,500,000, free of charge. Business, industrial and third-party policies are outside its scope.", find: false },
 };
 export const MARKET_KEYS = Object.keys(MARKETS) as MarketKey[];
 export const isMarket = (v: unknown): v is MarketKey => typeof v === "string" && v in MARKETS;
