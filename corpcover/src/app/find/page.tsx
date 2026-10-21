@@ -24,7 +24,7 @@ export default function Find() {
         </ul>
         <div className="mt-8 flex flex-wrap gap-2.5">
           <FindStart />
-          <Link href="/#quote" className="btn btn-ghost">Use the short form</Link>
+          <Link href="/get-covered" className="btn btn-ghost">Use the short form</Link>
         </div>
       </section>
     </main>

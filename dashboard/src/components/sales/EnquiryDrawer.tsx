@@ -124,12 +124,18 @@ function Body({ it, onChanged }: { it: Intake; onChanged: () => void }) {
     if (!g) { g = { sec, items: [] }; groups.push(g) }
     g.items.push({ id: q.id, title: q.title, value: answerLabel(q.id, it.answers[q.id]) })
   }
-  // Quote-form enquiries carry their own keys; show them with plain labels.
+  // Quote-form enquiries carry their own keys; show every one with a plain label.
   if (it.kind === 'enquiry') {
-    const A = it.answers as Record<string, unknown>
-    const items = ([['Form', A.form], ['UEN', A.uen], ['Role', A.role], ['Cover needed from', A.needed_by], ['Details', A.details]] as [string, unknown][])
-      .filter(([, v]) => v !== null && v !== undefined && v !== '')
-      .map(([title, v], i) => ({ id: String(i), title, value: String(v) }))
+    const LABELS: Record<string, string> = {
+      form: 'Form', business_type: 'Business type', business_group: 'Group', uen: 'UEN', headcount: 'Staff', role: 'Role',
+      needed_by: 'Cover needed from', claims_5y: 'Claims in 5 years', contract_requirement: 'Lease or contract asks for',
+      call_format: 'Call by', call_day: 'Preferred day', call_slot: 'Time of day', notes: 'Notes', details: 'Details',
+      common_for_type: 'Common for this type', cover: 'Cover',
+    }
+    const show = (v: unknown) => Array.isArray(v) ? v.join(', ') : String(v)
+    const items = Object.entries(it.answers as Record<string, unknown>)
+      .filter(([, v]) => v !== null && v !== undefined && v !== '' && !(Array.isArray(v) && v.length === 0))
+      .map(([k, v]) => ({ id: k, title: LABELS[k] ?? k.replace(/_/g, ' '), value: show(v) }))
     if (items.length) groups.push({ sec: 'Quote request', items })
   }
   const formKeys = Object.keys(it.proposal_fields ?? {})

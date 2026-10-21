@@ -52,7 +52,8 @@ export function SiteHeader() {
         </nav>
         <div className="nav-actions">
           <a href={tel} className="btn btn-ghost nav-call">Call {site.phone}</a>
-          <button type="button" onClick={() => openStart("chat")} className="btn btn-primary">Ask a question</button>
+          <button type="button" onClick={() => openStart("chat")} className="btn btn-ghost nav-ask">Ask a question</button>
+          <Link href="/get-covered" className="btn btn-primary">Get covered</Link>
         </div>
       </header>
       <div aria-hidden className="h-[72px] shrink-0" />
@@ -72,7 +73,8 @@ export function SiteHeader() {
           ))}
         </nav>
         <div className="grid gap-2 p-3 pb-6">
-          <button type="button" onClick={() => { close(); openStart("chat"); }} tabIndex={open ? 0 : -1} className="btn btn-primary">Ask a question</button>
+          <Link href="/get-covered" onClick={close} tabIndex={open ? 0 : -1} className="btn btn-primary">Get covered</Link>
+          <button type="button" onClick={() => { close(); openStart("chat"); }} tabIndex={open ? 0 : -1} className="btn btn-ghost">Ask a question</button>
           <a href={tel} tabIndex={open ? 0 : -1} className="btn btn-ghost">Call {site.phone}</a>
         </div>
       </aside>
