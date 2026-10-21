@@ -137,7 +137,7 @@ export async function setStatus(site: Site, id: string, status: ArticleStatus, a
   return 'error' in r ? r : { status: r.status }
 }
 
-export type ImportItem = { slug: string; title: string; markdown: string; excerpt?: string; topic?: string; metaDescription?: string; published?: string; updated?: string; status?: 'draft' | 'published' }
+export type ImportItem = { slug: string; title: string; markdown: string; excerpt?: string; topic?: string; metaDescription?: string; published?: string; updated?: string; status?: 'draft' | 'published'; market?: string }
 
 /** Existing hand-written articles from a site's code, inserted once by slug. */
 export async function importArticles(site: Site, items: ImportItem[], actor: string): Promise<{ inserted: number; skipped: string[]; errors: string[] }> {
@@ -153,12 +153,13 @@ export async function importArticles(site: Site, items: ImportItem[], actor: str
     const published = it.published && !Number.isNaN(Date.parse(it.published)) ? new Date(it.published).toISOString() : new Date().toISOString()
     const updated = it.updated && !Number.isNaN(Date.parse(it.updated)) ? new Date(it.updated).toISOString() : published
     const status = it.status ?? 'published'
+    const market = it.market && /^[A-Z]{2}$/.test(it.market) ? it.market : 'SG'
     rows.push({
       site_id: site.id, title: it.title.trim(), slug, excerpt: (it.excerpt ?? '').trim() || excerptOf(it.markdown), topic: it.topic?.trim() || null,
       meta_description: (it.metaDescription ?? it.excerpt ?? '').trim().slice(0, 300) || null,
       content_html: renderMarkdown(it.markdown), content_json: { format: 'markdown', markdown: it.markdown.trim() },
-      schema_jsonld: buildArticleJsonLd({ title: it.title, description: it.excerpt ?? null, url: articleUrl(site, slug), orgName: site.business_name, orgDomain: site.domain, datePublished: published, dateModified: updated }),
-      status, category: 'import', word_count: wordCount(it.markdown), published_at: status === 'published' ? published : null,
+      schema_jsonld: buildArticleJsonLd({ title: it.title, description: it.excerpt ?? null, url: articleUrl(site, slug, market), orgName: site.business_name, orgDomain: site.domain, datePublished: published, dateModified: updated }),
+      status, market, category: 'import', word_count: wordCount(it.markdown), published_at: status === 'published' ? published : null,
       created_at: published, updated_at: updated, updated_by: actor,
     })
     existing.add(slug)
