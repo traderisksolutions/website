@@ -24,7 +24,7 @@ export function SiteFooter() {
   return (
     <footer className="mt-auto overflow-hidden bg-[#0a241a] text-white">
       <div className="footer-fade px-4 pb-[120px] pt-[260px] text-center">
-        <h2 className="mx-auto max-w-[16ch] text-[clamp(2.6rem,5.6vw,4rem)] font-semibold leading-[1.05] tracking-[-0.025em]">Talk to an adviser</h2>
+        <h2 className="mx-auto max-w-[16ch] t-h2">Talk to an adviser</h2>
         <div className="mt-10 flex flex-wrap justify-center gap-2.5">
           <StartButton flow="chat" className="btn btn-white">Ask a question</StartButton>
           <a href={whatsapp} target="_blank" rel="noopener" className="btn btn-wa">Message an adviser</a>
@@ -33,7 +33,7 @@ export function SiteFooter() {
       <div className="wrap grid gap-14 pb-10 lg:grid-cols-[1.3fr_2fr]">
         <div className="flex flex-col gap-4">
           <span className="logo"><Logo id="logo-foot" tone="white" name={site.name} /></span>
-          <p className="max-w-xs text-sm text-white/55">Business insurance advice for Singapore companies.</p>
+          <p className="max-w-xs text-sm text-white/55">Business insurance advice for companies in Singapore, Malaysia and Hong Kong. Singapore headquartered.</p>
           <address className="text-sm not-italic leading-relaxed text-white/55">
             {site.address}<br />
             <a href={`tel:+65${site.phone.replace(/\s/g, "")}`} className="hover:text-white">+65 {site.phone}</a> · <a href={`mailto:${site.email}`} className="hover:text-white">{site.email}</a>
@@ -50,7 +50,7 @@ export function SiteFooter() {
             <Link href={mpath(m, "/how-we-compare")}>How we compare</Link>
           </Column>
           <Column title="Markets">
-            {MARKET_KEYS.map(k => <Link key={k} href={mpath(k)} aria-current={k === m ? "true" : undefined}>Business insurance in {MARKETS[k].name}</Link>)}
+            <span className="market-switch market-switch--dark">{MARKET_KEYS.map(k => <Link key={k} href={mpath(k)} aria-current={k === m ? "true" : undefined} title={`Business insurance in ${MARKETS[k].name}`}>{MARKETS[k].code}</Link>)}</span>
             <StartButton flow="chat">Ask a question</StartButton>
           </Column>
           <Column title="Topics">

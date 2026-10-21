@@ -9,10 +9,10 @@ export default async function Subscribed(props: PageProps<"/subscribed">) {
   return (
     <main className="flex-1">
       <section className="wrap pb-[clamp(80px,10vw,140px)] pt-[clamp(48px,8vw,104px)]">
-        <h1 className="text-[clamp(2.6rem,6vw,4.6rem)] font-semibold leading-[1.04] tracking-[-0.035em]">
+        <h1 className="t-h1">
           {ok ? "Subscription confirmed" : "Link not valid"}
         </h1>
-        <p className="mt-5 max-w-[44ch] text-[clamp(1.2rem,1.9vw,1.6rem)] leading-[1.35] tracking-[-0.015em] text-ink-2">
+        <p className="mt-5 t-lede">
           {ok ? "One email a week, with the new articles. Unsubscribe from any issue in one click." : "This link has expired or is not valid."}
         </p>
         {ok ? (

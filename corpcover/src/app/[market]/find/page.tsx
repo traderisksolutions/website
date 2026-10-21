@@ -19,8 +19,8 @@ export default async function Find({ params }: { params: Promise<{ market: strin
   return (
     <main className="flex-1">
       <section className="wrap pb-[clamp(80px,10vw,140px)] pt-[clamp(48px,8vw,104px)]">
-        <h1 className="text-[clamp(3rem,7vw,5.6rem)] font-semibold leading-[1.02] tracking-[-0.035em]">Find my cover</h1>
-        <p className="mt-5 max-w-[46ch] text-[clamp(1.2rem,1.9vw,1.6rem)] leading-[1.35] tracking-[-0.015em] text-ink-2">
+        <h1 className="t-h1">Find my cover</h1>
+        <p className="mt-5 t-lede">
           Questions on your business, premises, staff and contracts. An adviser uses the answers to prepare quotes before the call. The questions follow the proposal forms insurers use.
         </p>
         <ul className="mt-6 flex flex-wrap gap-2">

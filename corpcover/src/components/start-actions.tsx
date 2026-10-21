@@ -99,7 +99,7 @@ const optionIcons = {
 
 function Option({ icon, title, text, onClick }: { icon: keyof typeof optionIcons; title: string; text: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="group flex w-full items-center gap-4 rounded-2xl border border-rule bg-white px-4 py-3.5 text-left transition-colors hover:border-steel/40 hover:bg-accent-soft/40 sm:px-5 sm:py-4">
+    <button type="button" onClick={onClick} className="group flex w-full items-center gap-4 rounded-[12px] border border-rule bg-white px-4 py-3.5 text-left transition-colors hover:border-steel/40 hover:bg-accent-soft/40 sm:px-5 sm:py-4">
       <span className="glass-primary grid size-10 shrink-0 place-items-center">
         <svg viewBox="0 0 24 24" aria-hidden className="size-[18px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{optionIcons[icon]}</svg>
       </span>
@@ -197,7 +197,7 @@ export function ReviewFlow({ inline = false }: { inline?: boolean }) {
         onDragOver={e => { e.preventDefault(); setDrag(true); }}
         onDragLeave={() => setDrag(false)}
         onDrop={e => { e.preventDefault(); setDrag(false); pick(e.dataTransfer.files[0]); }}
-        className={`flex w-full flex-col items-center gap-2 rounded-2xl border-2 border-dashed px-4 py-8 text-center transition-colors ${drag ? "border-steel bg-accent-soft" : "border-ink/15 bg-ink/[0.03] hover:border-ink/30"}`}
+        className={`flex w-full flex-col items-center gap-2 rounded-[12px] border-2 border-dashed px-4 py-8 text-center transition-colors ${drag ? "border-steel bg-accent-soft" : "border-ink/15 bg-ink/[0.03] hover:border-ink/30"}`}
       >
         <svg viewBox="0 0 24 24" className="size-8 text-steel" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 16V4M7 9l5-5 5 5M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" /></svg>
         {file

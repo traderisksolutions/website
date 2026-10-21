@@ -31,14 +31,14 @@ export default async function HowWeCompare({ params }: { params: Promise<{ marke
   return (
     <main className="flex-1">
       <section className="wrap pb-12 pt-[clamp(48px,8vw,104px)]">
-        <h1 className="text-[clamp(3rem,7vw,5.6rem)] font-semibold leading-[1.02] tracking-[-0.035em]">How we compare insurers</h1>
-        <p className="mt-5 max-w-[50ch] text-[clamp(1.2rem,1.9vw,1.6rem)] leading-[1.35] tracking-[-0.015em] text-ink-2">
+        <h1 className="t-h1">How we compare insurers</h1>
+        <p className="mt-5 t-lede">
           Every &ldquo;Best&rdquo; guide on Corp Cover ranks cover against the same eight criteria. Best means the closest fit to your business on these criteria. It is not a claim that one insurer is better for everyone.
         </p>
       </section>
 
       <section className="wrap pb-16">
-        <div className="overflow-x-auto rounded-[20px] bg-base">
+        <div className="overflow-x-auto rounded-[12px] bg-base">
           <table className="w-full min-w-[720px] border-collapse text-left text-[15px]">
             <thead><tr className="text-[13px] text-ink-2"><th className="px-5 py-4 font-semibold">Criterion</th><th className="px-5 py-4 font-semibold">What it means</th><th className="px-5 py-4 font-semibold">What we check</th></tr></thead>
             <tbody>

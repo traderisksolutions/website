@@ -11,14 +11,16 @@ export type Market = {
   regNo: string;
   /** The personal data law named in the consent line. */
   privacyLaw: string;
+  /** The free dispute body for insurance claims in the market. */
+  disputeBody: string;
   /** Whether the long, Chubb-Singapore questionnaire (/find) applies. */
   find: boolean;
 };
 
 export const MARKETS: Record<MarketKey, Market> = {
-  sg: { key: "sg", code: "SG", name: "Singapore", adj: "Singapore", lang: "en-SG", cc: "+65", currency: "S$", workInjury: "Work injury compensation", regNo: "UEN", privacyLaw: "the Personal Data Protection Act", find: true },
-  my: { key: "my", code: "MY", name: "Malaysia", adj: "Malaysian", lang: "en-MY", cc: "+60", currency: "RM", workInjury: "Workers' compensation (SOCSO and foreign workers)", regNo: "SSM registration number", privacyLaw: "the Personal Data Protection Act 2010", find: false },
-  hk: { key: "hk", code: "HK", name: "Hong Kong", adj: "Hong Kong", lang: "en-HK", cc: "+852", currency: "HK$", workInjury: "Employees' compensation", regNo: "Business Registration number", privacyLaw: "the Personal Data (Privacy) Ordinance", find: false },
+  sg: { key: "sg", code: "SG", name: "Singapore", adj: "Singapore", lang: "en-SG", cc: "+65", currency: "S$", workInjury: "Work injury compensation", regNo: "UEN", privacyLaw: "the Personal Data Protection Act", disputeBody: "FIDReC", find: true },
+  my: { key: "my", code: "MY", name: "Malaysia", adj: "Malaysian", lang: "en-MY", cc: "+60", currency: "RM", workInjury: "Workers' compensation (SOCSO and foreign workers)", regNo: "SSM registration number", privacyLaw: "the Personal Data Protection Act 2010", disputeBody: "the Ombudsman for Financial Services (OFS)", find: false },
+  hk: { key: "hk", code: "HK", name: "Hong Kong", adj: "Hong Kong", lang: "en-HK", cc: "+852", currency: "HK$", workInjury: "Employees' compensation", regNo: "Business Registration number", privacyLaw: "the Personal Data (Privacy) Ordinance", disputeBody: "the Insurance Complaints Bureau (ICB)", find: false },
 };
 export const MARKET_KEYS = Object.keys(MARKETS) as MarketKey[];
 export const isMarket = (v: unknown): v is MarketKey => typeof v === "string" && v in MARKETS;

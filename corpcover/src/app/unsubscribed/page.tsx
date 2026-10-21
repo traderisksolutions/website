@@ -8,10 +8,10 @@ export default async function Unsubscribed(props: PageProps<"/unsubscribed">) {
   return (
     <main className="flex-1">
       <section className="wrap pb-[clamp(80px,10vw,140px)] pt-[clamp(48px,8vw,104px)]">
-        <h1 className="text-[clamp(2.6rem,6vw,4.6rem)] font-semibold leading-[1.04] tracking-[-0.035em]">
+        <h1 className="t-h1">
           {ok ? "You are unsubscribed" : "Link not valid"}
         </h1>
-        <p className="mt-5 max-w-[44ch] text-[clamp(1.2rem,1.9vw,1.6rem)] leading-[1.35] tracking-[-0.015em] text-ink-2">
+        <p className="mt-5 t-lede">
           {ok ? "You will not receive the Corp Cover letter again." : "This link is not valid."}
         </p>
         <div className="mt-7"><Link href="/articles" className="btn btn-ghost">Read the latest articles</Link></div>

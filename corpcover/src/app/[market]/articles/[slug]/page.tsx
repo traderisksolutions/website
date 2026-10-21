@@ -93,7 +93,7 @@ export default async function ArticlePage(props: P) {
         {html ? <div className="prose-post" dangerouslySetInnerHTML={{ __html: html.intro }} /> : intro && <div className="prose-post"><Body block={intro} /></div>}
         <hr className="my-8 border-rule" />
 
-        <figure className="aspect-[3/2] overflow-hidden rounded-2xl">
+        <figure className="aspect-[3/2] overflow-hidden rounded-[12px]">
           <CoverArt article={a} />
         </figure>
 
@@ -108,7 +108,7 @@ export default async function ArticlePage(props: P) {
           <p className="text-sm text-ink-3">General information, not advice on a specific policy. Terms differ by insurer.</p>
           <ShareButton title={a.title} />
         </div>
-        <div className="mt-8 flex flex-col items-center gap-4 rounded-2xl bg-accent-soft px-5 py-7 text-center">
+        <div className="mt-8 flex flex-col items-center gap-4 rounded-[12px] bg-accent-soft px-5 py-7 text-center">
           <p className="text-lg font-semibold">Talk to an adviser</p>
           <p className="-mt-2 max-w-[44ch] text-ink-2">Insurers pay our advisers commission. Your business pays no fee, and a review is not a quote.</p>
           <div className="flex flex-wrap justify-center gap-3">

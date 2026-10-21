@@ -9,7 +9,7 @@ export function ArticleCard({ article, n }: { article: Article; n?: number }) {
   const photo = blogPhotos[article.slug];
   return (
     <Link href={`/${"market" in article ? (article as { market: string }).market : "sg"}/articles/${article.slug}`} className="bcard group block">
-      <span className="bcard-img relative block aspect-[4/3] overflow-hidden rounded-[24px] bg-ink/5">
+      <span className="bcard-img relative block aspect-[4/3] overflow-hidden rounded-[12px] bg-ink/5">
         {photo
           ? <Image src={photo} alt="" fill sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" placeholder="blur" className="object-cover" />
           : <CoverArt article={article} />}

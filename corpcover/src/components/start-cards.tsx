@@ -1,53 +1,34 @@
 "use client";
 
 import Image, { type StaticImageData } from "next/image";
-import type { ReactNode } from "react";
-import { useRouter } from "next/navigation";
-import { openStart, type Flow } from "./start-actions";
+import Link from "next/link";
 import { MARKETS, mpath, type MarketKey } from "@/lib/market";
 // Unsplash Licence: free for commercial use, no attribution required.
 import askPhoto from "../../public/images/start/ask.jpg";
 import reviewPhoto from "../../public/images/start/review.jpg";
 import findPhoto from "../../public/images/start/find.jpg";
 
-const icons: Record<string, ReactNode> = {
-  review: <path d="M12 15V4m-4.5 4.5L12 4l4.5 4.5M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" />,
-  chat: <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4A1.5 1.5 0 0 1 4 14.5Z" />,
-  finder: <path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01" />,
-};
-
-const cards: { flow: Flow; word: string; cap: string; photo: StaticImageData; title: string; sub: string; big?: boolean }[] = [
-  { flow: "review", word: "Review", cap: "Your policy, read line by line", photo: reviewPhoto, title: "Policy review", sub: "An adviser explains the gaps" },
-  { flow: "chat", word: "Ask", cap: "One question, one plain answer", photo: askPhoto, title: "Ask a question", sub: "An adviser follows up on WhatsApp", big: true },
-  { flow: "finder", word: "Find", cap: "The cover a business like yours usually holds", photo: findPhoto, title: "Find my cover", sub: "Questions on your business, then a call" },
+const cards: { path: string; word: string; photo: StaticImageData; label: string; big?: boolean }[] = [
+  { path: "/policy-review", word: "Review", photo: reviewPhoto, label: "Review your policy" },
+  { path: "/ask", word: "Ask", photo: askPhoto, label: "Ask a question", big: true },
+  { path: "/get-covered", word: "Select", photo: findPhoto, label: "Select your cover" },
 ];
 
-/** Ways to start (Revolut): three photo cards, one word each; a card opens its flow in the start modal. */
+/** Start (Revolut): three photo cards, one word and a "Here" button each; each opens its own page. */
 export function StartCards({ market = "sg" }: { market?: MarketKey }) {
-  const router = useRouter();
   return (
-    <section aria-label="Ways to start" className="wrap pb-16 pt-[clamp(48px,8vw,104px)] text-center sm:pb-20">
-      <h1 className="text-[clamp(3rem,7vw,5.6rem)] font-semibold leading-[1.02] tracking-[-0.035em]">Ways to start</h1>
+    <section aria-labelledby="start-h" className="wrap pb-16 pt-[clamp(48px,8vw,104px)] text-center sm:pb-20">
+      {market !== "sg" && <p className="mb-3 text-[15px] font-medium text-steel">Singapore headquartered · serving {MARKETS[market].adj} companies</p>}
+      <h1 id="start-h" className="t-h1">Start</h1>
       <div className="-mx-4 mt-12 flex snap-x snap-mandatory items-center gap-4 overflow-x-auto px-4 pb-4 pt-2 [scrollbar-width:none] sm:mx-0 sm:justify-center sm:gap-[min(16px,1.6vw)] sm:overflow-visible sm:px-0">
         {cards.map(c => (
-          <button key={c.flow} type="button" onClick={() => (c.flow === "finder" ? router.push(mpath(market, "/get-covered")) : openStart(c.flow))} aria-label={`${c.word}: ${c.title}`} className={`scard${c.big ? " scard--big" : ""}`}>
+          <Link key={c.path} href={mpath(market, c.path)} aria-label={c.label} className={`scard${c.big ? " scard--big" : ""}`}>
             <Image src={c.photo} alt="" fill sizes="300px" placeholder="blur" className="object-cover" />
-            <span className="absolute inset-x-0 bottom-[30cqi] top-0 z-[1] flex flex-col items-center justify-center gap-[1.5cqi] px-[6cqi]">
-              <span className="text-[clamp(10px,5.1cqi,14px)] leading-snug text-white/85">{c.cap}</span>
-              <span className="text-[clamp(24px,19cqi,52px)] font-semibold leading-[1.05] tracking-[-0.035em]">{c.word}</span>
-              <span className="mt-[4.4cqi] rounded-[6px] bg-white px-[6.6cqi] py-[3.3cqi] text-[clamp(11px,5.1cqi,14px)] font-medium text-ink">Continue</span>
+            <span className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-[5cqi] px-[6cqi]">
+              <span className="text-[clamp(28px,20cqi,56px)] font-semibold leading-[1.05] tracking-[-0.035em]">{c.word}</span>
+              <span className="rounded-[6px] bg-white px-[8cqi] py-[3.6cqi] text-[clamp(12px,5.4cqi,15px)] font-semibold text-ink">Here</span>
             </span>
-            <span className="absolute inset-x-[3.7cqi] bottom-[3.7cqi] z-[1] flex items-center gap-[4.4cqi] rounded-[min(14px,5cqi)] bg-white px-[5cqi] py-[4.4cqi] text-left text-ink">
-              <span className="grid size-[11.7cqi] flex-none place-items-center rounded-full bg-accent text-white">
-                <svg viewBox="0 0 24 24" className="size-[5.9cqi]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{icons[c.flow]}</svg>
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[clamp(11px,5.1cqi,14px)] font-semibold leading-tight">{c.title}</span>
-                <span className="block text-[clamp(10px,4.6cqi,12.5px)] leading-snug text-ink-2 @max-[190px]:hidden">{c.sub}</span>
-              </span>
-              <span className="text-[clamp(11px,5.1cqi,14px)] font-semibold">{MARKETS[market].currency}0</span>
-            </span>
-          </button>
+          </Link>
         ))}
       </div>
     </section>

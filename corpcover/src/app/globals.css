@@ -103,7 +103,7 @@ h1, h2, h3 { text-wrap: balance; }
 
 /* ── Start here: three cards, one word each (Revolut). ── */
 /* From 640px the three cards always fit, scaling with the window; their insides scale with the card (cqi). */
-.scard { position: relative; flex: none; container-type: inline-size; width: min(272px, 28vw); aspect-ratio: 272 / 380; border-radius: min(22px, 7cqi); overflow: hidden; color: #fff; text-align: center; background: #2c2c2e; transition: transform .5s var(--ease); }
+.scard { position: relative; flex: none; container-type: inline-size; width: min(272px, 28vw); aspect-ratio: 272 / 380; border-radius: var(--r-md); overflow: hidden; color: #fff; text-align: center; background: #2c2c2e; transition: transform .5s var(--ease); }
 .scard--big { width: min(300px, 31vw); aspect-ratio: 300 / 430; }
 .scard:hover { transform: translateY(-6px); }
 .scard img { transition: transform .9s var(--ease); }
@@ -151,7 +151,7 @@ h1, h2, h3 { text-wrap: balance; }
 .field { display: flex; flex-direction: column; gap: 6px; font-size: 0.8rem; font-weight: 600; color: var(--ink-2); }
 .field input, .field textarea {
   font: inherit; font-size: 1rem; font-weight: 400; color: var(--ink); letter-spacing: normal;
-  background: var(--base); border: 1px solid transparent; border-radius: 12px; padding: 12px 14px; outline: none; transition: border-color .15s, background .15s;
+  background: var(--base); border: 1px solid transparent; border-radius: var(--r-sm); padding: 12px 14px; outline: none; transition: border-color .15s, background .15s;
 }
 .field input:focus, .field textarea:focus { border-color: var(--steel); background: #fff; }
 .on-base .field input, .on-base .field textarea { background: #fff; }
@@ -271,27 +271,27 @@ h1, h2, h3 { text-wrap: balance; }
 }
 
 /* ── Country-code select, shared by the contact steps. ── */
-.qf-select { flex: none; border-radius: 12px; border: 1px solid var(--rule); background: var(--base); padding: 0 10px; font-size: 1rem; color: var(--ink); }
+.qf-select { flex: none; border-radius: var(--r-sm); border: 1px solid var(--rule); background: var(--base); padding: 0 10px; font-size: 1rem; color: var(--ink); }
 .qf-select:focus-visible { outline: 2px solid var(--steel); outline-offset: 2px; }
 
 /* ── Get covered (Corgi pattern): one card per question on a ruled cream page, pressable buttons. ── */
 .gc-page { background: var(--base); background-image: linear-gradient(var(--rule) 1px, transparent 1px), linear-gradient(90deg, var(--rule) 1px, transparent 1px); background-size: 100% 220px, 25% 100%; background-position: 0 120px, center; }
-.gc-card { background: #fff; border-radius: 20px; box-shadow: 0 0 0 1px var(--rule), 0 12px 40px -18px rgba(20, 67, 47, .35); overflow: visible; text-align: left; }
-.gc-head { position: relative; display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; padding: clamp(20px, 3.4vw, 32px); padding-right: 96px; background: var(--base); border-bottom: 1px solid var(--rule); border-radius: 20px 20px 0 0; overflow: hidden; }
+.gc-card { background: #fff; border-radius: var(--r-md); box-shadow: 0 0 0 1px var(--rule), 0 12px 40px -18px rgba(20, 67, 47, .35); overflow: visible; text-align: left; }
+.gc-head { position: relative; display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; padding: clamp(20px, 3.4vw, 32px); padding-right: 96px; background: var(--base); border-bottom: 1px solid var(--rule); border-radius: var(--r-md) var(--r-md) 0 0; overflow: hidden; }
 .gc-head h3 { font-size: clamp(1.45rem, 3.2vw, 2rem); font-weight: 600; letter-spacing: -0.03em; line-height: 1.12; }
 .gc-mark { position: absolute; right: -14px; top: 50%; transform: translateY(-50%); width: 112px; height: auto; opacity: .9; }
 .gc-body { display: grid; gap: 18px; padding: clamp(20px, 3.4vw, 32px); }
 .gc-label { display: block; margin-bottom: 8px; font-size: 0.85rem; font-weight: 600; color: var(--ink); }
-.gc-combo { display: flex; align-items: center; gap: 8px; border: 1px solid var(--rule); border-radius: 10px; padding: 0 14px; background: #fff; transition: border-color .15s; }
+.gc-combo { display: flex; align-items: center; gap: 8px; border: 1px solid var(--rule); border-radius: var(--r-sm); padding: 0 14px; background: #fff; transition: border-color .15s; }
 .gc-combo[data-open="true"], .gc-combo:focus-within { border-color: var(--primary); }
 .gc-combo input { flex: 1; min-width: 0; border: 0; outline: none; padding: 13px 0; font: inherit; font-size: 1rem; background: transparent; color: var(--ink); }
 .gc-combo input::placeholder { color: var(--ink-3); }
-.gc-list { position: absolute; z-index: 20; left: 0; right: 0; margin-top: 6px; max-height: 320px; overflow-y: auto; background: #fff; border: 1px solid var(--rule); border-radius: 12px; box-shadow: 0 16px 40px -16px rgba(0,0,0,.25); padding: 6px; }
+.gc-list { position: absolute; z-index: 20; left: 0; right: 0; margin-top: 6px; max-height: 320px; overflow-y: auto; background: #fff; border: 1px solid var(--rule); border-radius: var(--r-md); box-shadow: 0 16px 40px -16px rgba(0,0,0,.25); padding: 6px; }
 .gc-group { padding: 10px 10px 4px; font-size: 0.72rem; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); }
 .gc-opt { padding: 9px 10px; border-radius: 8px; font-size: 0.97rem; cursor: pointer; }
 .gc-opt[data-active="true"] { background: var(--accent-soft); }
 .gc-opt[aria-selected="true"] { font-weight: 600; color: var(--primary); }
-.gc-chip { font-size: 0.92rem; padding: 8px 14px; border-radius: 8px; background: #fff; border: 1px solid var(--rule); color: var(--ink); transition: border-color .15s, background .15s; }
+.gc-chip { font-size: 0.92rem; padding: 8px 14px; border-radius: var(--r-sm); background: #fff; border: 1px solid var(--rule); color: var(--ink); transition: border-color .15s, background .15s; }
 .gc-chip:hover { border-color: var(--primary); }
 .gc-chip[aria-pressed="true"], .gc-chip[aria-checked="true"] { background: var(--accent-soft); border-color: var(--primary); color: var(--primary); font-weight: 500; }
 .gc-stepper { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 20px; font-size: 0.88rem; color: var(--ink-3); }
@@ -314,6 +314,16 @@ h1, h2, h3 { text-wrap: balance; }
 .market-switch a { font-size: 12.5px; font-weight: 600; letter-spacing: .02em; padding: 5px 8px; border-radius: 4px; color: var(--ink-2); }
 .market-switch a:hover { color: var(--ink); }
 .market-switch a[aria-current="true"] { background: #fff; color: var(--primary); box-shadow: 0 0 0 1px var(--rule); }
-.market-card { display: grid; align-content: start; gap: 8px; padding: 26px; border-radius: 16px; background: #fff; border: 1px solid var(--rule); transition: border-color .15s, transform .2s var(--ease); }
+.market-card { display: grid; align-content: start; gap: 8px; padding: 26px; border-radius: var(--r-md); background: #fff; border: 1px solid var(--rule); transition: border-color .15s, transform .2s var(--ease); }
 .market-card:hover { border-color: var(--primary); transform: translateY(-2px); }
 @media (prefers-reduced-motion: reduce) { .market-card:hover { transform: none; } }
+
+/* ── Type scale and radii: one size per role across every page. ── */
+.t-h1 { font-size: clamp(2.75rem, 6vw, 4.75rem); font-weight: 600; line-height: 1.03; letter-spacing: -0.035em; text-wrap: balance; }
+.t-h2 { font-size: clamp(1.9rem, 3.6vw, 2.75rem); font-weight: 600; line-height: 1.08; letter-spacing: -0.028em; text-wrap: balance; }
+.t-h3 { font-size: 1.3rem; font-weight: 600; line-height: 1.25; letter-spacing: -0.018em; }
+.t-lede { font-size: clamp(1.125rem, 1.7vw, 1.375rem); line-height: 1.45; letter-spacing: -0.012em; color: var(--ink-2); max-width: 46ch; }
+:root { --r-sm: 6px; --r-md: 12px; }
+.market-switch--dark { align-self: flex-start; background: rgba(255,255,255,.08); }
+.market-switch--dark a { color: rgba(255,255,255,.7) !important; }
+.market-switch--dark a[aria-current="true"] { background: #fff; color: var(--primary) !important; box-shadow: none; }

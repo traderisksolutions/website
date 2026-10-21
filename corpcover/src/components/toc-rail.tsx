@@ -20,7 +20,7 @@ export function TocRail({ items }: { items: { id: string; text: string }[] }) {
   if (items.length < 2) return null;
   return (
     <nav aria-label="Contents" className="group fixed left-4 top-1/2 z-40 hidden -translate-y-1/2 xl:block">
-      <ul className="flex flex-col gap-2 rounded-2xl p-2 transition-colors group-focus-within:bg-paper/90 group-hover:bg-paper/90 group-hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] group-focus-within:shadow-[0_4px_24px_rgba(0,0,0,0.08)]">
+      <ul className="flex flex-col gap-2 rounded-[12px] p-2 transition-colors group-focus-within:bg-paper/90 group-hover:bg-paper/90 group-hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] group-focus-within:shadow-[0_4px_24px_rgba(0,0,0,0.08)]">
         {items.map(i => (
           <li key={i.id}>
             <a href={`#${i.id}`} className="flex items-center gap-3 text-sm">

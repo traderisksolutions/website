@@ -68,8 +68,8 @@ export function Subscribe({ variant = "inline", className = "" }: { variant?: "b
   return (
     <section aria-labelledby={`${id}-h`} className={`relative bg-base py-[clamp(56px,8vw,96px)] ${className}`}>
       <div className="wrap flex flex-col items-center text-center">
-        <h2 id={`${id}-h`} className="text-[clamp(1.8rem,3.2vw,2.6rem)] font-semibold leading-[1.1] tracking-[-0.025em]">The Corp Cover letter</h2>
-        <p className="mt-3 max-w-[44ch] text-[clamp(1.05rem,1.6vw,1.25rem)] leading-[1.4] text-ink-2">One email a week. New articles on business insurance in Singapore.</p>
+        <h2 id={`${id}-h`} className="t-h2">The Corp Cover letter</h2>
+        <p className="mt-3 t-lede">One email a week. New articles on business insurance in Singapore.</p>
         {form}
       </div>
     </section>
