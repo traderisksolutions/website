@@ -15,7 +15,7 @@ export const policyGroups: { name: string; items: string[] }[] = [
   { name: "Property and projects", items: ["Commercial property", "Commercial fire", "Business all risks", "Contractor's all risks", "Erection all risks"] },
 ];
 
-export const faqs: Faq[] = [
+const base: Faq[] = [
   {
     q: "What does this cost my business?",
     icon: "tag",
@@ -67,3 +67,14 @@ export const faqs: Faq[] = [
     ],
   },
 ];
+
+/** The FAQ for a market: the same questions, with the legally required cover named for that market. */
+const REQUIRED: Record<"sg" | "my" | "hk", string> = {
+  sg: "Required by law: work injury compensation, and foreign worker medical insurance and security bonds.",
+  my: "Required by law: work injury cover for employees under SOCSO, and compensation cover for foreign workers.",
+  hk: "Required by law: employees' compensation insurance for every employee.",
+};
+export function faqsFor(m: "sg" | "my" | "hk"): Faq[] {
+  return base.map(f => f.q === "Which policies can you review?" ? { ...f, points: [REQUIRED[m], ...f.points.slice(1)] } : f);
+}
+export const faqs = faqsFor("sg");

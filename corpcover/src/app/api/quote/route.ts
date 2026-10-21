@@ -1,5 +1,6 @@
 import { CC } from "@/lib/find/questions";
 import { BIZ_BY_ID, COVERS, EMPTY, FORMATS, NOT_SURE, stepError, type QuoteState } from "@/lib/quote";
+import { MARKETS, isMarket } from "@/lib/market";
 
 // Get covered: validates every step again on the server, then forwards to the TRS dashboard
 // (Sales > Enquiries) as kind "enquiry". Dormant until TRS_INTAKE_URL and TRS_INTAKE_KEY are set: 503.
@@ -33,28 +34,29 @@ export async function POST(req: Request) {
   const covers = Array.isArray(b.covers) ? b.covers.filter((c): c is string => typeof c === "string" && (COVERS.includes(c) || c === NOT_SURE)).slice(0, 14) : [];
   const s: QuoteState = {
     ...EMPTY,
-    biz: str(b.biz, 40), covers, company: str(b.company, 160), uen: str(b.uen, 12).toUpperCase(), headcount: str(b.headcount, 20),
+    biz: str(b.biz, 40), covers, company: str(b.company, 160), uen: str(b.uen, 20).toUpperCase(), headcount: str(b.headcount, 20),
     neededBy: str(b.neededBy, 10), claims: str(b.claims, 3), contract: str(b.contract, 1000),
     firstName: str(b.firstName, 80), lastName: str(b.lastName, 80), role: str(b.role, 40), email: str(b.email, 200).toLowerCase(),
     cc: str(b.cc, 6), phone: str(b.phone, 24).replace(/[^\d ]/g, ""),
     format: str(b.format, 12), day: str(b.day, 10), slot: str(b.slot, 12), notes: str(b.notes, 2000), consent: b.consent === true,
   };
+  const market = isMarket(b.market) ? b.market : "sg";
   const ccs = CC.map(c => c[1]);
-  for (let step = 0; step <= 4; step++) { const e = stepError(step, s, ccs); if (e) return json({ error: e }, 400); }
+  for (let step = 0; step <= 4; step++) { const e = stepError(step, s, ccs, market); if (e) return json({ error: e }, 400); }
 
   const biz = BIZ_BY_ID[s.biz];
   const body = {
     id, site: "corpcover", kind: "enquiry", status: "submitted", source_url: str(b.sourceUrl, 500) || null,
     client: { company_name: s.company, contact_name: `${s.firstName} ${s.lastName}`, email: s.email, phone: `${s.cc} ${s.phone.replace(/\s+/g, "")}`, industry: biz.label },
     answers: {
-      form: "get-covered-v1", business_type: biz.label, business_group: biz.group, uen: s.uen || null, headcount: s.headcount,
+      form: "get-covered-v1", market: MARKETS[market].code, business_type: biz.label, business_group: biz.group, registration_no: s.uen || null, headcount: s.headcount,
       needed_by: s.neededBy, claims_5y: s.claims, contract_requirement: s.contract || null, role: s.role,
       call_format: FORMATS.find(f => f[0] === s.format)?.[1], call_day: s.day, call_slot: s.slot, notes: s.notes || null,
       common_for_type: biz.c,
     },
     product_requests: covers.map(c => ({ product: c })),
     flags: s.claims === "yes" ? ["claims_history"] : [], proposal_fields: {}, documents: [],
-    booking: { day: s.day, time: s.slot, format: s.format, tz: "Asia/Singapore", preferred: true },
+    booking: { day: s.day, time: s.slot, format: s.format, tz: market === "hk" ? "Asia/Hong_Kong" : market === "my" ? "Asia/Kuala_Lumpur" : "Asia/Singapore", preferred: true },
     consent_pdpa: true,
   };
   try {

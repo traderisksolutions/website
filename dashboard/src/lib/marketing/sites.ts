@@ -22,8 +22,10 @@ export const summarise = (s: Site): SiteSummary => ({
   topics: s.topics, markets: s.markets, require_approval: s.require_approval, nightly_count: s.nightly_count,
 })
 
-export const articleUrl = (site: Pick<Site, 'base_url' | 'blog_base_path'>, slug: string) =>
-  `${site.base_url.replace(/\/$/, '')}${site.blog_base_path.replace(/\/$/, '')}/${slug}`
+/** The public URL of an article. A blog_base_path containing ":market" (e.g. "/:market/articles")
+ *  puts each article under its market's folder: SG → /sg/articles/<slug>. */
+export const articleUrl = (site: Pick<Site, 'base_url' | 'blog_base_path'>, slug: string, market = 'SG') =>
+  `${site.base_url.replace(/\/$/, '')}${site.blog_base_path.replace(':market', market.toLowerCase()).replace(/\/$/, '')}/${slug}`
 
 const list = (v: unknown, max = 50, len = 80) => Array.isArray(v) ? Array.from(new Set(v.filter((x): x is string => typeof x === 'string').map(x => x.trim()).filter(Boolean))).slice(0, max).map(x => x.slice(0, len)) : null
 const isHttp = (u: string) => { try { const p = new URL(u); return p.protocol === 'https:' || p.protocol === 'http:' } catch { return false } }

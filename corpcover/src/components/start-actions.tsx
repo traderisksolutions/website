@@ -8,6 +8,7 @@ import { faqs } from "@/content/faq";
 import { faqAnswer } from "@/lib/chat-local";
 import { sendEnquiry, type SendResult } from "@/lib/enquiry";
 import { site } from "@/site";
+import { MARKETS, marketOf, mpath } from "@/lib/market";
 
 export type Flow = "choose" | "chat" | "review" | "finder" | "callback";
 
@@ -37,6 +38,13 @@ export function StartModal() {
     }
     return () => window.removeEventListener(OPEN_EVENT, open);
   }, []);
+  // Outside Singapore the long questionnaire does not apply: Find opens that market's Get covered page.
+  useEffect(() => {
+    if (flow !== "finder") return;
+    const m = marketOf(window.location.pathname);
+    if (MARKETS[m].find) return;
+    window.location.assign(mpath(m, "/get-covered"));
+  }, [flow]);
   const close = () => setFlow(null);
   // Picking Find closes the small modal; its close event must not also close the Find modal.
   const closeSmall = () => setFlow(f => (f === "finder" ? f : null));

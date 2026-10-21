@@ -1,7 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { site } from "@/site";
 import { Logo } from "./logo";
 import { StartButton } from "./start-actions";
+import { usePathname } from "next/navigation";
+import { MARKETS, MARKET_KEYS, marketOf, mpath } from "@/lib/market";
 
 const whatsapp = `https://wa.me/65${site.phone.replace(/\s/g, "")}`;
 
@@ -16,6 +20,7 @@ function Column({ title, children }: { title: string; children: React.ReactNode 
 
 /** Alps Wills footer: the page fades into a dark slate base, a closing line, then columns. */
 export function SiteFooter() {
+  const m = marketOf(usePathname());
   return (
     <footer className="mt-auto overflow-hidden bg-[#0a241a] text-white">
       <div className="footer-fade px-4 pb-[120px] pt-[260px] text-center">
@@ -34,19 +39,22 @@ export function SiteFooter() {
             <a href={`tel:+65${site.phone.replace(/\s/g, "")}`} className="hover:text-white">+65 {site.phone}</a> · <a href={`mailto:${site.email}`} className="hover:text-white">{site.email}</a>
           </address>
         </div>
-        <div className="grid grid-cols-2 gap-10 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-10 sm:grid-cols-4">
           <Column title="Resources">
-            <Link href="/articles">Blogs</Link>
-            <Link href="/#faq">FAQ</Link>
+            <Link href={mpath(m, "/articles")}>Blogs</Link>
+            <Link href={`${mpath(m)}#faq`}>FAQ</Link>
           </Column>
           <Column title="Company">
-            <Link href="/about">About</Link>
-            <Link href="/policy-review">Policy review</Link>
-            <Link href="/how-we-compare">How we compare</Link>
+            <Link href={mpath(m, "/about")}>About</Link>
+            <Link href={mpath(m, "/policy-review")}>Policy review</Link>
+            <Link href={mpath(m, "/how-we-compare")}>How we compare</Link>
+          </Column>
+          <Column title="Markets">
+            {MARKET_KEYS.map(k => <Link key={k} href={mpath(k)} aria-current={k === m ? "true" : undefined}>Business insurance in {MARKETS[k].name}</Link>)}
             <StartButton flow="chat">Ask a question</StartButton>
           </Column>
           <Column title="Topics">
-            {["Required by law", "Liability", "Property", "Directors"].map(t => <Link key={t} href={`/articles?topic=${encodeURIComponent(t)}`}>{t}</Link>)}
+            {["Required by law", "Liability", "Property", "Directors"].map(t => <Link key={t} href={`${mpath(m, "/articles")}?topic=${encodeURIComponent(t)}`}>{t}</Link>)}
           </Column>
         </div>
       </div>

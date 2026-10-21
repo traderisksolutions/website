@@ -168,7 +168,8 @@ def assemble(
     public_md, used_facts, used_entries = resolve_markers(with_links, pack, selection, language)
     # FAQ answers carry markers too; strip them from the plain FAQ copy.
     faq_pairs = [(f.question.strip(), MARKER.sub("", f.answer).strip()) for f in plan.faq]
-    url = f"{site_base_url.rstrip('/')}{blog_base_path}/{slug}"
+    # A base path with ":market" (corpcover.com: "/:market/articles") puts the article under its market folder.
+    url = f"{site_base_url.rstrip('/')}{blog_base_path.replace(':market', market.lower())}/{slug}"
     html = render_html(public_md)
     excerpt = re.sub(r"\s+", " ", MARKER.sub("", public_md.split("\n\n")[0])).strip()[:280]
     return Article(

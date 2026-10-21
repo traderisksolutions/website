@@ -7,8 +7,8 @@ import { site } from "@/site";
 import { CC, dayLabel, workingDays } from "@/lib/find/questions";
 import { BIZ, BIZ_BY_ID, COVER_GROUPS, EMPTY, FORMATS, HEADCOUNT, NOT_SURE, ROLES, SLOTS, stepError, type QuoteState } from "@/lib/quote";
 import { RailsMark } from "./logo";
+import { MARKETS, mpath, type MarketKey } from "@/lib/market";
 
-const KEY = "cc-get-covered";
 const CCS = CC.map(c => c[1]);
 const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Singapore" }).format(new Date());
 
@@ -71,7 +71,7 @@ export function BizPicker({ value, onChange, autoFocus = false }: { value: strin
 }
 
 /* ── Step 1 alone, for the home page: picks a type, then hands over to /get-covered ── */
-export function GetCoveredStart() {
+export function GetCoveredStart({ market = "sg" }: { market?: MarketKey }) {
   const router = useRouter();
   const [biz, setBiz] = useState("");
   return (
@@ -79,7 +79,7 @@ export function GetCoveredStart() {
       <div className="gc-head"><h3>What type of business are you?</h3><RailsMark id="gc-home-mark" className="gc-mark" /></div>
       <div className="gc-body">
         <BizPicker value={biz} onChange={setBiz} />
-        <button type="button" disabled={!biz} onClick={() => router.push(`/get-covered?biz=${biz}`)} className="btn-press w-full">Continue <span aria-hidden>→</span></button>
+        <button type="button" disabled={!biz} onClick={() => router.push(`${mpath(market, "/get-covered")}?biz=${biz}`)} className="btn-press w-full">Continue <span aria-hidden>→</span></button>
       </div>
     </div>
   );
@@ -89,8 +89,10 @@ export function GetCoveredStart() {
 const STAGES = [{ name: "Business", steps: [0, 1, 2] }, { name: "Contact", steps: [3] }, { name: "Call", steps: [4] }];
 const HEADS = ["What type of business are you?", "What insurance do you need?", "A little more about your business", "Who should the adviser speak to?", "When should the adviser call?"];
 
-export function GetCovered({ initialBiz = "" }: { initialBiz?: string }) {
-  const [s, setS] = useState<QuoteState>(EMPTY);
+export function GetCovered({ initialBiz = "", market = "sg" }: { initialBiz?: string; market?: MarketKey }) {
+  const M = MARKETS[market];
+  const KEY = `cc-get-covered-${market}`;
+  const [s, setS] = useState<QuoteState>({ ...EMPTY, cc: M.cc });
   const [step, setStep] = useState(0);
   const [id] = useState(() => crypto.randomUUID());
   const [err, setErr] = useState("");
@@ -106,12 +108,12 @@ export function GetCovered({ initialBiz = "" }: { initialBiz?: string }) {
     try { saved = JSON.parse(localStorage.getItem(KEY) || "null"); } catch { /* storage blocked */ }
     const fromHome = BIZ_BY_ID[initialBiz] ? initialBiz : "";
     queueMicrotask(() => {
-      if (saved?.s) { setS({ ...EMPTY, ...saved.s, ...(fromHome && fromHome !== saved.s.biz ? { biz: fromHome, covers: BIZ_BY_ID[fromHome].c } : {}) }); setStep(fromHome && fromHome !== saved.s.biz ? 1 : Math.min(saved.step ?? 0, 4)); }
-      else if (fromHome) { setS({ ...EMPTY, biz: fromHome, covers: BIZ_BY_ID[fromHome].c }); setStep(1); }
+      if (saved?.s) { setS({ ...EMPTY, ...saved.s, cc: saved.s.cc || M.cc, ...(fromHome && fromHome !== saved.s.biz ? { biz: fromHome, covers: BIZ_BY_ID[fromHome].c } : {}) }); setStep(fromHome && fromHome !== saved.s.biz ? 1 : Math.min(saved.step ?? 0, 4)); }
+      else if (fromHome) { setS({ ...EMPTY, cc: M.cc, biz: fromHome, covers: BIZ_BY_ID[fromHome].c }); setStep(1); }
       loaded.current = true;
     });
-  }, [initialBiz]);
-  useEffect(() => { if (loaded.current && !done) try { localStorage.setItem(KEY, JSON.stringify({ s, step })); } catch { /* ignore */ } }, [s, step, done]);
+  }, [initialBiz, KEY, M.cc]);
+  useEffect(() => { if (loaded.current && !done) try { localStorage.setItem(KEY, JSON.stringify({ s, step })); } catch { /* ignore */ } }, [s, step, done, KEY]);
 
   const set = <K extends keyof QuoteState>(k: K, v: QuoteState[K]) => { setS(p => ({ ...p, [k]: v })); setErr(""); };
   const chooseBiz = (b: string) => setS(p => ({ ...p, biz: b, covers: p.biz === b && p.covers.length ? p.covers : BIZ_BY_ID[b].c })) ;
@@ -123,12 +125,12 @@ export function GetCovered({ initialBiz = "" }: { initialBiz?: string }) {
   const biz = BIZ_BY_ID[s.biz];
 
   const next = async () => {
-    const e = stepError(step, s, CCS);
+    const e = stepError(step, s, CCS, market);
     if (e) { setErr(e); return; }
     if (step < 4) { setStep(step + 1); setErr(""); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
     setBusy(true); setErr("");
     try {
-      const r = await fetch("/api/quote", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...s, id, website: hp, sourceUrl: location.href }) });
+      const r = await fetch("/api/quote", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...s, id, market, website: hp, sourceUrl: location.href }) });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(r.status === 400 && j.error ? j.error : `Could not send. Please try again, or call ${site.phone}.`);
       setDone(true);
@@ -144,8 +146,8 @@ export function GetCovered({ initialBiz = "" }: { initialBiz?: string }) {
       <div className="gc-head"><h3>Request sent</h3><RailsMark id="gc-done-mark" className="gc-mark" /></div>
       <div className="gc-body">
         <p className="text-ink-2">An adviser will confirm a {s.slot.toLowerCase()} call on {dayLabel(s.day)} by email to {s.email}, within 1 working day.</p>
-        <div><p className="gc-label">Cover to discuss</p><div className="flex flex-wrap gap-2">{s.covers.map(c => <span key={c} className="gc-chip" aria-pressed="true">{c}</span>)}</div></div>
-        <Link href="/articles" className="btn btn-ghost justify-self-start">Read the guides while you wait</Link>
+        <div><p className="gc-label">Cover to discuss</p><div className="flex flex-wrap gap-2">{s.covers.map(c => <span key={c} className="gc-chip" aria-pressed="true">{c === "Work injury compensation" ? M.workInjury : c}</span>)}</div></div>
+        <Link href={mpath(market, "/articles")} className="btn btn-ghost justify-self-start">Read the guides while you wait</Link>
       </div>
     </div>
   );
@@ -169,7 +171,7 @@ export function GetCovered({ initialBiz = "" }: { initialBiz?: string }) {
               {COVER_GROUPS.map(g => (
                 <div key={g.name} className="grid gap-2">
                   <p className="gc-group !px-0">{g.name}</p>
-                  <div className="flex flex-wrap gap-2">{g.items.map(c => <button key={c} type="button" aria-pressed={s.covers.includes(c)} onClick={() => { toggle(c); setErr(""); }} className="gc-chip">{c}</button>)}</div>
+                  <div className="flex flex-wrap gap-2">{g.items.map(c => <button key={c} type="button" aria-pressed={s.covers.includes(c)} onClick={() => { toggle(c); setErr(""); }} className="gc-chip">{c === "Work injury compensation" ? M.workInjury : c}</button>)}</div>
                 </div>
               ))}
               <div><button type="button" aria-pressed={s.covers.includes(NOT_SURE)} onClick={() => { toggle(NOT_SURE); setErr(""); }} className="gc-chip">{NOT_SURE}</button></div>
@@ -180,7 +182,7 @@ export function GetCovered({ initialBiz = "" }: { initialBiz?: string }) {
             <div className="grid gap-4">
               <div className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
                 <label className="field">Company name<input value={s.company} onChange={e => set("company", e.target.value)} autoComplete="organization" maxLength={160} /></label>
-                <label className="field">UEN (optional)<input value={s.uen} onChange={e => set("uen", e.target.value.toUpperCase())} maxLength={10} placeholder="201912345K" /></label>
+                <label className="field">{M.regNo} (optional)<input value={s.uen} onChange={e => set("uen", e.target.value.toUpperCase())} maxLength={20} placeholder={market === "sg" ? "201912345K" : ""} /></label>
               </div>
               <fieldset><legend className="gc-label">Staff, including directors</legend>
                 <div className="flex flex-wrap gap-2" role="radiogroup">{HEADCOUNT.map(h => <button key={h} type="button" role="radio" aria-checked={s.headcount === h} onClick={() => set("headcount", h)} className="gc-chip">{h}</button>)}</div>
@@ -220,13 +222,13 @@ export function GetCovered({ initialBiz = "" }: { initialBiz?: string }) {
               <fieldset><legend className="gc-label">Preferred day</legend>
                 <div className="flex flex-wrap gap-2" role="radiogroup">{days.map(d => <button key={d} type="button" role="radio" aria-checked={s.day === d} onClick={() => set("day", d)} className="gc-chip tabular-nums">{dayLabel(d)}</button>)}</div>
               </fieldset>
-              <fieldset><legend className="gc-label">Time of day (Singapore time)</legend>
+              <fieldset><legend className="gc-label">Time of day (local time)</legend>
                 <div className="flex flex-wrap gap-2" role="radiogroup">{SLOTS.map(t => <button key={t} type="button" role="radio" aria-checked={s.slot === t} onClick={() => set("slot", t)} className="gc-chip">{t}</button>)}</div>
               </fieldset>
               <label className="field">Anything to help the adviser prepare (optional)<textarea rows={2} value={s.notes} onChange={e => set("notes", e.target.value)} maxLength={2000} placeholder="Current insurer, limits you hold, what prompted the review" /></label>
               <label className="flex items-start gap-2.5 text-sm text-ink-2">
                 <input type="checkbox" checked={s.consent} onChange={e => set("consent", e.target.checked)} className="mt-1 size-4 accent-[var(--primary)]" />
-                <span>I agree that Corp Cover and its advisers may use these details to contact me about this request, under the Personal Data Protection Act.</span>
+                <span>I agree that Corp Cover and its advisers may use these details to contact me about this request, under {M.privacyLaw}.</span>
               </label>
               <p className="text-[13px] text-ink-3">This is a request, not a booking. An adviser confirms the time by email. A request is not a commitment to buy.</p>
             </div>
@@ -241,8 +243,8 @@ export function GetCovered({ initialBiz = "" }: { initialBiz?: string }) {
         </div>
       </form>
       <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-[14px] text-ink-3">
-        <Link href="/" className="hover:text-ink">Back to website</Link>
-        <Link href="/find" className="hover:text-ink">Prefer the detailed questions?</Link>
+        <Link href={mpath(market)} className="hover:text-ink">Back to website</Link>
+        {M.find && <Link href={mpath(market, "/find")} className="hover:text-ink">Prefer the detailed questions?</Link>}
       </div>
     </div>
   );

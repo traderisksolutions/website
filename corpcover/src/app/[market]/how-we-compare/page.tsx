@@ -1,10 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { MARKETS, alternates, mpath, type MarketKey } from "@/lib/market";
 
-export const metadata: Metadata = {
+export async function generateMetadata({ params }: { params: Promise<{ market: string }> }): Promise<Metadata> {
+  const m = (await params).market as MarketKey;
+  return { ...meta, alternates: alternates(m, "/how-we-compare") };
+}
+
+const REGULATOR: Record<MarketKey, string> = { sg: "the Ministry of Manpower", my: "SOCSO (PERKESO) and Bank Negara Malaysia", hk: "the Labour Department and the Insurance Authority" };
+
+const meta: Metadata = {
   title: "How we compare insurers",
   description: "The criteria behind every Corp Cover \"Best\" guide: limits, excess, extensions, exclusions, territory, claims basis and claims handling. How pages are reviewed and updated.",
-  alternates: { canonical: "/how-we-compare" },
   twitter: { card: "summary_large_image" },
 };
 
@@ -19,7 +26,8 @@ const criteria: [string, string, string][] = [
   ["Premium", "The price, after GST and any loading for claims history.", "Premium only after the criteria above are equal."],
 ];
 
-export default function HowWeCompare() {
+export default async function HowWeCompare({ params }: { params: Promise<{ market: string }> }) {
+  const m = (await params).market as MarketKey, M = MARKETS[m];
   return (
     <main className="flex-1">
       <section className="wrap pb-12 pt-[clamp(48px,8vw,104px)]">
@@ -45,7 +53,7 @@ export default function HowWeCompare() {
       <section className="wrap grid gap-12 pb-[clamp(80px,10vw,140px)] lg:grid-cols-3">
         <div className="grid content-start gap-3">
           <h2 className="text-[1.6rem] font-semibold tracking-[-0.02em]">Sources</h2>
-          <p className="text-ink-2">Statutory figures come from the agency that sets them, such as the Ministry of Manpower. Policy details come from the insurer&apos;s own Singapore product pages and wordings. Each guide links its sources.</p>
+          <p className="text-ink-2">Statutory figures come from the agency that sets them, such as {REGULATOR[m]}. Policy details come from the insurer&apos;s own {M.name} product pages and wordings. Each guide links its sources.</p>
         </div>
         <div className="grid content-start gap-3">
           <h2 className="text-[1.6rem] font-semibold tracking-[-0.02em]">Independence</h2>
@@ -54,7 +62,7 @@ export default function HowWeCompare() {
         <div className="grid content-start gap-3">
           <h2 className="text-[1.6rem] font-semibold tracking-[-0.02em]">Updates</h2>
           <p className="text-ink-2">Guides are reviewed at least once a year and when a rule or product changes. The date on each guide shows the last review. Wording differs by insurer, so a guide is general information, not advice on a specific policy.</p>
-          <Link href="/#quote" className="btn btn-primary mt-3 justify-self-start">Request quotes</Link>
+          <Link href={mpath(m, "/get-covered")} className="btn btn-primary mt-3 justify-self-start">Get covered</Link>
         </div>
       </section>
     </main>

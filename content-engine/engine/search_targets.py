@@ -64,8 +64,9 @@ def _dedicated_article(query: str, page: str, blog_base_path: str) -> bool:
     """True when the ranking page is a blog article whose slug already covers
     most of the query's words: that article should be refreshed, not joined
     by a second one."""
-    marker = blog_base_path.rstrip("/") + "/"
-    if marker not in page:
+    # "/:market/articles" matches any market folder, e.g. /sg/articles/.
+    pattern = re.escape(blog_base_path.rstrip("/") + "/").replace(re.escape(":market"), "[a-z]{2}")
+    if not re.search(pattern, page):
         return False
     q = {w for w in _words(query) if len(w) > 2} - {"the", "and", "for", "how", "what", "with"}
     if not q:

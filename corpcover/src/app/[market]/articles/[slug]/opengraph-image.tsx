@@ -9,12 +9,13 @@ export const size = ogSize;
 export const contentType = ogContentType;
 export const dynamicParams = true;
 
-export function generateStaticParams() {
-  return articles.map(a => ({ slug: a.slug }));
+export function generateStaticParams({ params }: { params: { market: string } }) {
+  return params.market === "sg" ? articles.map(a => ({ slug: a.slug })) : [];
 }
 
-export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
-  const a = await getGuide((await params).slug);
+export default async function Image({ params }: { params: Promise<{ market: string; slug: string }> }) {
+  const p = await params;
+  const a = await getGuide(p.slug, p.market as "sg" | "my" | "hk");
   if (!a) return new Response("Not found", { status: 404 });
   const titleSize = a.title.length > 40 ? 68 : 80;
 

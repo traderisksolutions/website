@@ -3,16 +3,17 @@
 // on a slug both have; the local list keeps the site whole when the feed is empty or down.
 // Fetched with ISR, so a newly approved article shows within five minutes without a deploy.
 import { articles as localArticles, topics, type Article } from "@/content/articles";
+import type { MarketKey } from "./market";
 
 const API = process.env.BLOG_API_URL ?? "https://trs-dashboard-pi.vercel.app/api/public/blog";
 const SITE = "corpcover.com";
 const REVALIDATE = 300;
 
-type Remote = { slug: string; title: string; excerpt: string | null; topic: string | null; published_at: string; updated_at: string; reading_minutes: number; meta_description: string | null };
+type Remote = { slug: string; market?: string; title: string; excerpt: string | null; topic: string | null; published_at: string; updated_at: string; reading_minutes: number; meta_description: string | null };
 type RemoteOne = Remote & { content_html: string; headings: { id: string; text: string }[] };
 
 /** A guide as the pages render it: a local Article, or a feed article carrying its HTML. */
-export type Guide = Article & { html?: string; headings?: { id: string; text: string }[] };
+export type Guide = Article & { market: MarketKey; html?: string; headings?: { id: string; text: string }[] };
 
 const ART_BY_TOPIC: Record<string, Article["art"]> = { "Required by law": "hardhat", Liability: "umbrella", Property: "building", Directors: "gavel" };
 
@@ -29,10 +30,11 @@ export function coverLines(title: string): string[] {
   return lines;
 }
 
-function fromRemote(r: Remote): Guide {
+function fromRemote(r: Remote, m: MarketKey): Guide {
   const topic = (topics as string[]).includes(r.topic ?? "") ? (r.topic as Article["topic"]) : "Guides";
   return {
     slug: r.slug,
+    market: m,
     title: r.title,
     dek: r.excerpt ?? r.meta_description ?? "",
     topic,
@@ -56,17 +58,21 @@ async function get<T>(query: string): Promise<T | null> {
   }
 }
 
-export async function getGuides(): Promise<Guide[]> {
-  const remote = (await get<{ articles: Remote[] }>(""))?.articles ?? [];
-  const seen = new Set(remote.map(r => r.slug));
-  const merged: Guide[] = [...remote.map(fromRemote), ...localArticles.filter(a => !seen.has(a.slug))];
+/** A market's guides: feed articles for that market, plus the hand-written ones (Singapore only). */
+export async function getGuides(m: MarketKey = "sg"): Promise<Guide[]> {
+  const remote = (await get<{ articles: Remote[] }>(`&market=${m.toUpperCase()}`))?.articles ?? [];
+  const mine = remote.filter(r => (r.market ?? "SG").toLowerCase() === m);
+  const seen = new Set(mine.map(r => r.slug));
+  const local: Guide[] = m === "sg" ? localArticles.filter(a => !seen.has(a.slug)).map(a => ({ ...a, market: "sg" as const })) : [];
+  const merged: Guide[] = [...mine.map(r => fromRemote(r, m)), ...local];
   return merged.sort((a, b) => (a.published < b.published ? 1 : a.published > b.published ? -1 : 0));
 }
 
-export async function getGuide(slug: string): Promise<Guide | undefined> {
+export async function getGuide(slug: string, m: MarketKey = "sg"): Promise<Guide | undefined> {
   const one = (await get<{ article: RemoteOne }>(`&slug=${encodeURIComponent(slug)}`))?.article;
-  if (one) return { ...fromRemote(one), html: one.content_html, headings: one.headings };
-  return localArticles.find(a => a.slug === slug);
+  if (one) return (one.market ?? "SG").toLowerCase() === m ? { ...fromRemote(one, m), html: one.content_html, headings: one.headings } : undefined;
+  const local = m === "sg" ? localArticles.find(a => a.slug === slug) : undefined;
+  return local ? { ...local, market: "sg" } : undefined;
 }
 
 /** The feed's HTML split at the first paragraph, which the page sets above the cover. */

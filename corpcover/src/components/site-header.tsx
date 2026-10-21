@@ -6,11 +6,12 @@ import { useEffect, useState } from "react";
 import { site } from "@/site";
 import { Logo } from "./logo";
 import { openStart } from "./start-actions";
+import { MARKETS, MARKET_KEYS, marketOf, mpath } from "@/lib/market";
 
-const links = [
-  { href: "/about", label: "About" },
-  { href: "/policy-review", label: "Policy Review" },
-  { href: "/articles", label: "Blogs" },
+const LINKS = [
+  { path: "/about", label: "About" },
+  { path: "/policy-review", label: "Policy Review" },
+  { path: "/articles", label: "Blogs" },
 ];
 
 const tel = `tel:+65${site.phone.replace(/\s/g, "")}`;
@@ -19,6 +20,8 @@ const tel = `tel:+65${site.phone.replace(/\s/g, "")}`;
  *  hamburger and left drawer at 960px and below. */
 export function SiteHeader() {
   const path = usePathname();
+  const m = marketOf(path);
+  const links = LINKS.map(l => ({ href: mpath(m, l.path), label: l.label }));
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -46,14 +49,15 @@ export function SiteHeader() {
         <button type="button" className="nav-hamburger" aria-label="Open menu" aria-expanded={open} onClick={() => setOpen(true)}>
           <span /><span /><span />
         </button>
-        <Link href="/" className="logo" aria-label={`${site.name} home`}><Logo id="logo-nav" name={site.name} /></Link>
+        <Link href={mpath(m)} className="logo" aria-label={`${site.name} home`}><Logo id="logo-nav" name={site.name} /></Link>
         <nav className="nav-links" aria-label="Primary">
           {links.map(l => <Link key={l.href} href={l.href} aria-current={current(l.href)}>{l.label}</Link>)}
         </nav>
         <div className="nav-actions">
-          <a href={tel} className="btn btn-ghost nav-call">Call {site.phone}</a>
+          {m === "sg" && <a href={tel} className="btn btn-ghost nav-call">Call {site.phone}</a>}
           <button type="button" onClick={() => openStart("chat")} className="btn btn-ghost nav-ask">Ask a question</button>
-          <Link href="/get-covered" className="btn btn-primary">Get covered</Link>
+          <MarketSwitch m={m} path={path} />
+          <Link href={mpath(m, "/get-covered")} className="btn btn-primary">Get covered</Link>
         </div>
       </header>
       <div aria-hidden className="h-[72px] shrink-0" />
@@ -67,17 +71,28 @@ export function SiteHeader() {
           </button>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3" aria-label="Mobile primary">
-          {[{ href: "/", label: "Home" }, ...links, { href: "/#faq", label: "FAQ" }].map(l => (
-            <Link key={l.href} href={l.href} onClick={close} tabIndex={open ? 0 : -1} aria-current={l.href === "/" ? (path === "/" ? "page" : undefined) : current(l.href)}
+          {[{ href: mpath(m), label: "Home" }, ...links, { href: `${mpath(m)}#faq`, label: "FAQ" }].map(l => (
+            <Link key={l.href} href={l.href} onClick={close} tabIndex={open ? 0 : -1} aria-current={l.href === mpath(m) ? (path === mpath(m) ? "page" : undefined) : current(l.href)}
               className="rounded-2xl px-3 py-2.5 text-[16px] text-ink-2 hover:bg-ink/5 hover:text-ink aria-[current=page]:bg-ink/5 aria-[current=page]:text-ink">{l.label}</Link>
           ))}
         </nav>
         <div className="grid gap-2 p-3 pb-6">
-          <Link href="/get-covered" onClick={close} tabIndex={open ? 0 : -1} className="btn btn-primary">Get covered</Link>
+          <Link href={mpath(m, "/get-covered")} onClick={close} tabIndex={open ? 0 : -1} className="btn btn-primary">Get covered</Link>
           <button type="button" onClick={() => { close(); openStart("chat"); }} tabIndex={open ? 0 : -1} className="btn btn-ghost">Ask a question</button>
-          <a href={tel} tabIndex={open ? 0 : -1} className="btn btn-ghost">Call {site.phone}</a>
+          {m === "sg" && <a href={tel} tabIndex={open ? 0 : -1} className="btn btn-ghost">Call {site.phone}</a>}
         </div>
       </aside>
     </>
+  );
+}
+
+/** Market switch: SG · MY · HK, keeping the same page where it exists in every market. */
+function MarketSwitch({ m, path }: { m: string; path: string }) {
+  const rest = path.replace(/^\/(sg|my|hk)(?=\/|$)/, "") || "/";
+  const shared = ["/", "/about", "/policy-review", "/articles", "/get-covered", "/how-we-compare"].includes(rest) ? rest : "/";
+  return (
+    <nav aria-label="Market" className="market-switch">
+      {MARKET_KEYS.map(k => <Link key={k} href={mpath(k, shared)} aria-current={k === m ? "true" : undefined} title={MARKETS[k].name}>{MARKETS[k].code}</Link>)}
+    </nav>
   );
 }

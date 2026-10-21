@@ -4,6 +4,7 @@ import Image, { type StaticImageData } from "next/image";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { openStart, type Flow } from "./start-actions";
+import { MARKETS, mpath, type MarketKey } from "@/lib/market";
 // Unsplash Licence: free for commercial use, no attribution required.
 import askPhoto from "../../public/images/start/ask.jpg";
 import reviewPhoto from "../../public/images/start/review.jpg";
@@ -22,14 +23,14 @@ const cards: { flow: Flow; word: string; cap: string; photo: StaticImageData; ti
 ];
 
 /** Ways to start (Revolut): three photo cards, one word each; a card opens its flow in the start modal. */
-export function StartCards() {
+export function StartCards({ market = "sg" }: { market?: MarketKey }) {
   const router = useRouter();
   return (
     <section aria-label="Ways to start" className="wrap pb-16 pt-[clamp(48px,8vw,104px)] text-center sm:pb-20">
       <h1 className="text-[clamp(3rem,7vw,5.6rem)] font-semibold leading-[1.02] tracking-[-0.035em]">Ways to start</h1>
       <div className="-mx-4 mt-12 flex snap-x snap-mandatory items-center gap-4 overflow-x-auto px-4 pb-4 pt-2 [scrollbar-width:none] sm:mx-0 sm:justify-center sm:gap-[min(16px,1.6vw)] sm:overflow-visible sm:px-0">
         {cards.map(c => (
-          <button key={c.flow} type="button" onClick={() => (c.flow === "finder" ? router.push("/find") : openStart(c.flow))} aria-label={`${c.word}: ${c.title}`} className={`scard${c.big ? " scard--big" : ""}`}>
+          <button key={c.flow} type="button" onClick={() => (c.flow === "finder" ? router.push(mpath(market, "/get-covered")) : openStart(c.flow))} aria-label={`${c.word}: ${c.title}`} className={`scard${c.big ? " scard--big" : ""}`}>
             <Image src={c.photo} alt="" fill sizes="300px" placeholder="blur" className="object-cover" />
             <span className="absolute inset-x-0 bottom-[30cqi] top-0 z-[1] flex flex-col items-center justify-center gap-[1.5cqi] px-[6cqi]">
               <span className="text-[clamp(10px,5.1cqi,14px)] leading-snug text-white/85">{c.cap}</span>
@@ -44,7 +45,7 @@ export function StartCards() {
                 <span className="block text-[clamp(11px,5.1cqi,14px)] font-semibold leading-tight">{c.title}</span>
                 <span className="block text-[clamp(10px,4.6cqi,12.5px)] leading-snug text-ink-2 @max-[190px]:hidden">{c.sub}</span>
               </span>
-              <span className="text-[clamp(11px,5.1cqi,14px)] font-semibold">S$0</span>
+              <span className="text-[clamp(11px,5.1cqi,14px)] font-semibold">{MARKETS[market].currency}0</span>
             </span>
           </button>
         ))}

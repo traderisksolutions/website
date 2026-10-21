@@ -1,17 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { MARKETS, alternates, mpath, type MarketKey } from "@/lib/market";
 import { FindStart } from "@/components/find-start";
 
 export const metadata: Metadata = {
   title: "Find my cover",
   description: "Questions on your business, its premises, staff and contracts. An adviser uses the answers to prepare quotes for the liability and asset cover you need. No fee.",
-  alternates: { canonical: "/find" },
+  alternates: { canonical: "/sg/find" },
   twitter: { card: "summary_large_image" },
 };
 
 const facts = ["About 20 questions", "6 to 9 minutes", "Saves as you go", "No fee"];
 
-export default function Find() {
+export default async function Find({ params }: { params: Promise<{ market: string }> }) {
+  const m = (await params).market as MarketKey, M = MARKETS[m];
+  if (!M.find) notFound();
   return (
     <main className="flex-1">
       <section className="wrap pb-[clamp(80px,10vw,140px)] pt-[clamp(48px,8vw,104px)]">
@@ -24,7 +28,7 @@ export default function Find() {
         </ul>
         <div className="mt-8 flex flex-wrap gap-2.5">
           <FindStart />
-          <Link href="/get-covered" className="btn btn-ghost">Use the short form</Link>
+          <Link href={mpath(m, "/get-covered")} className="btn btn-ghost">Use the short form</Link>
         </div>
       </section>
     </main>

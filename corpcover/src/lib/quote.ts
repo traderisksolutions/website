@@ -73,12 +73,13 @@ export const EMPTY: QuoteState = {
 };
 
 /** Problems for one step, in order; empty when the step is complete. Used by the flow and re-run by the route. */
-export function stepError(step: number, s: QuoteState, ccs: string[]): string {
+export function stepError(step: number, s: QuoteState, ccs: string[], market = "sg"): string {
   if (step === 0) return BIZ_BY_ID[s.biz] ? "" : "Choose your business type.";
   if (step === 1) return s.covers.length ? "" : "Choose at least one cover, or Not sure.";
   if (step === 2) {
     if (s.company.trim().length < 2) return "Enter the company name.";
-    if (s.uen.trim() && !UEN_RE.test(s.uen.trim())) return "UEN is 9 or 10 letters and digits.";
+    if (s.uen.trim() && market === "sg" && !UEN_RE.test(s.uen.trim())) return "UEN is 9 or 10 letters and digits.";
+    if (s.uen.trim() && market !== "sg" && !/^[0-9A-Z-]{4,20}$/i.test(s.uen.trim())) return "Check the registration number.";
     if (!HEADCOUNT.includes(s.headcount)) return "Choose the number of staff.";
     if (!/^\d{4}-\d{2}-\d{2}$/.test(s.neededBy)) return "Choose the date you need cover from.";
     if (!["yes", "no"].includes(s.claims)) return "Answer the claims question.";

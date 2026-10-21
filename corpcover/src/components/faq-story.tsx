@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { faqs, type Icon } from "@/content/faq";
+import { faqs as sgFaqs, type Faq, type Icon } from "@/content/faq";
 import { faqAnswer } from "@/lib/chat-local";
 import { Chat } from "./chat";
 
@@ -12,10 +12,10 @@ import { Chat } from "./chat";
  * side scrolls. Phone and tablet: the questions as text, then one chat with the questions as
  * suggestions.
  */
-export function FaqStory() {
+export function FaqStory({ faqs = sgFaqs }: { faqs?: Faq[] }) {
   const [active, setActive] = useState(0);
   const refs = useRef<(HTMLElement | null)[]>([]);
-  const scripts = useMemo(() => faqs.map(f => ({ id: f.q, q: f.q, a: faqAnswer(f) })), []);
+  const scripts = useMemo(() => faqs.map(f => ({ id: f.q, q: f.q, a: faqAnswer(f) })), [faqs]);
 
   // Active question: the one whose centre is nearest the middle of the screen, so one is always lit.
   useEffect(() => {

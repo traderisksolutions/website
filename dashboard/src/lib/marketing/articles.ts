@@ -36,7 +36,7 @@ export async function getArticle(site: Site, id: string): Promise<ArticleDetail 
   if (!a) return null
   const { content_json, site_id: _s, ...rest } = a
   void _s
-  return { ...rest, markdown: content_json?.markdown ?? '', faq: content_json?.faq ?? [], url: articleUrl(site, a.slug), run: runs[0] ?? null }
+  return { ...rest, markdown: content_json?.markdown ?? '', faq: content_json?.faq ?? [], url: articleUrl(site, a.slug, a.market), run: runs[0] ?? null }
 }
 
 export async function uniqueSlug(siteId: string, base: string, excludeId?: string): Promise<string> {
@@ -169,15 +169,16 @@ export async function importArticles(site: Site, items: ImportItem[], actor: str
 
 /** Published articles for a site's public blog API. */
 export type PublicArticle = {
-  slug: string; title: string; excerpt: string | null; topic: string | null; language: string; published_at: string; updated_at: string
+  slug: string; market: string; title: string; excerpt: string | null; topic: string | null; language: string; published_at: string; updated_at: string
   word_count: number | null; reading_minutes: number; meta_description: string | null; url: string
 }
 
-export async function publicList(site: Site): Promise<PublicArticle[]> {
-  const rows = await sb<ArticleListRow[]>(`cms_articles?site_id=eq.${site.id}&status=eq.published&select=${LIST_COLS},meta_description&order=published_at.desc&limit=500`)
+export async function publicList(site: Site, market?: string | null): Promise<PublicArticle[]> {
+  const mk = market && /^[A-Z]{2}$/.test(market) ? `&market=eq.${market}` : ''
+  const rows = await sb<ArticleListRow[]>(`cms_articles?site_id=eq.${site.id}&status=eq.published${mk}&select=${LIST_COLS},meta_description&order=published_at.desc&limit=500`)
   return rows.map(r => ({
-    slug: r.slug, title: r.title, excerpt: r.excerpt, topic: r.topic, language: r.language, published_at: r.published_at ?? r.created_at, updated_at: r.updated_at,
-    word_count: r.word_count, reading_minutes: Math.max(1, Math.round((r.word_count ?? 0) / 220)), meta_description: (r as ArticleListRow & { meta_description: string | null }).meta_description, url: articleUrl(site, r.slug),
+    slug: r.slug, market: r.market, title: r.title, excerpt: r.excerpt, topic: r.topic, language: r.language, published_at: r.published_at ?? r.created_at, updated_at: r.updated_at,
+    word_count: r.word_count, reading_minutes: Math.max(1, Math.round((r.word_count ?? 0) / 220)), meta_description: (r as ArticleListRow & { meta_description: string | null }).meta_description, url: articleUrl(site, r.slug, r.market),
   }))
 }
 
@@ -186,8 +187,8 @@ export async function publicArticle(site: Site, slug: string): Promise<(PublicAr
   const a = rows[0]
   if (!a) return null
   return {
-    slug: a.slug, title: a.title, excerpt: a.excerpt, topic: a.topic, language: a.language, published_at: a.published_at ?? a.created_at, updated_at: a.updated_at,
-    word_count: a.word_count, reading_minutes: Math.max(1, Math.round((a.word_count ?? 0) / 220)), meta_description: a.meta_description, url: articleUrl(site, a.slug),
+    slug: a.slug, market: a.market, title: a.title, excerpt: a.excerpt, topic: a.topic, language: a.language, published_at: a.published_at ?? a.created_at, updated_at: a.updated_at,
+    word_count: a.word_count, reading_minutes: Math.max(1, Math.round((a.word_count ?? 0) / 220)), meta_description: a.meta_description, url: articleUrl(site, a.slug, a.market),
     content_html: a.content_html, markdown: a.content_json?.markdown ?? '', headings: h2sOf(a.content_json?.markdown ?? ''), faq: a.content_json?.faq ?? [], schema_jsonld: a.schema_jsonld,
   }
 }

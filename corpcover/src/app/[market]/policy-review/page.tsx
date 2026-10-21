@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
 import { ReviewFlow } from "@/components/start-actions";
+import { alternates, type MarketKey } from "@/lib/market";
 
-export const metadata: Metadata = {
+export async function generateMetadata({ params }: { params: Promise<{ market: string }> }): Promise<Metadata> {
+  const m = (await params).market as MarketKey;
+  return { ...meta, alternates: alternates(m, "/policy-review") };
+}
+
+const meta: Metadata = {
   title: "Policy review",
   description: "Send your business insurance policy for review. An adviser reads the wording and explains the gaps, the overlaps and the price. No fee. A review is not a quote.",
-  alternates: { canonical: "/policy-review" },
   twitter: { card: "summary_large_image" },
 };
 

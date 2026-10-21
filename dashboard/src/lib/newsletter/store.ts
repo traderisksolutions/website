@@ -14,7 +14,7 @@ import { signToken, verifyToken } from './tokens'
 export type NlSite = { id: string; key: string; name: string; domain: string; base_url: string; blog_base_path: string; newsletter_sender_email: string | null; newsletter_sender_name: string | null }
 export type Subscriber = { id: string; site_id: string; email: string; status: 'pending' | 'confirmed' | 'unsubscribed'; source_url: string | null; confirm_sent_at: string | null; confirmed_at: string | null; created_at: string }
 export type Issue = { id: string; site_id: string; subject: string; intro: string; article_ids: string[]; status: 'draft' | 'sending' | 'sent'; test_sent_at: string | null; approved_by: string | null; approved_at: string | null; sent_at: string | null; recipients: number; failures: number; created_at: string }
-type Article = { id: string; title: string; slug: string; excerpt: string | null; published_at: string | null }
+type Article = { id: string; title: string; slug: string; excerpt: string | null; published_at: string | null; market?: string }
 
 const SITE_COLS = 'id,key,name,domain,base_url,blog_base_path,newsletter_sender_email,newsletter_sender_name'
 /** WhatsApp link per site, for the "WhatsApp us" step. */
@@ -155,15 +155,15 @@ export async function deleteIssue(issue: Issue): Promise<string | null> {
 
 /** The issue as it will be sent; `subscriberId` fills the unsubscribe link. */
 export async function renderIssue(site: NlSite, issue: Issue, subscriberId: string | null) {
-  const rows = issue.article_ids.length ? await sb<Article[]>(`cms_articles?id=in.(${issue.article_ids.join(',')})&select=id,title,slug,excerpt,published_at`) : []
+  const rows = issue.article_ids.length ? await sb<Article[]>(`cms_articles?id=in.(${issue.article_ids.join(',')})&select=id,title,slug,excerpt,published_at,market`) : []
   const tag = `utm_source=newsletter&utm_medium=email&utm_campaign=${(issue.approved_at ?? issue.created_at).slice(0, 10)}`
   const withTag = (u: string) => `${u}${u.includes('?') ? '&' : '?'}${tag}`
   const articles: IssueArticle[] = issue.article_ids.map(id => rows.find(r => r.id === id)).filter((a): a is Article => !!a)
-    .map(a => ({ title: a.title, excerpt: a.excerpt, url: withTag(articleUrl(site, a.slug)) }))
+    .map(a => ({ title: a.title, excerpt: a.excerpt, url: withTag(articleUrl(site, a.slug, a.market)) }))
   const base = site.base_url.replace(/\/$/, '')
   const dateLabel = new Date(issue.approved_at ?? Date.now()).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Singapore' })
   return issueEmail(brand(site), { subject: issue.subject, intro: issue.intro, dateLabel }, articles, {
-    review: withTag(`${base}/?start=review`), find: withTag(`${base}/?start=finder`),
+    review: withTag(`${base}/sg/?start=review`), find: withTag(`${base}/sg/get-covered`),
     unsubscribe: subscriberId ? unsubscribeLink(subscriberId) : `${appUrl()}/api/public/newsletter/unsubscribe`,
   })
 }
