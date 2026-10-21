@@ -209,7 +209,7 @@ export function Chat({ sequence, onActive, jump, suggestions, className = "" }: 
         )}
         {msgs.map((m, i) => m.role === "user" ? (
           <div key={i} data-qi={m.qi} className="chat-in flex justify-end">
-            <p className="max-w-[85%] rounded-[22px] border border-rule bg-[#e8e8ed] px-4 py-2.5 text-[0.98rem] leading-snug">{m.text}</p>
+            <p className="max-w-[85%] rounded-[22px] border border-rule bg-[#efeee8] px-4 py-2.5 text-[0.98rem] leading-snug">{m.text}</p>
           </div>
         ) : (
           <div key={i} className="chat-in">
@@ -248,7 +248,7 @@ export function Chat({ sequence, onActive, jump, suggestions, className = "" }: 
         />
         {busy && live
           ? <button type="button" onClick={stop} aria-label="Stop" className="glass-primary grid size-10 shrink-0 place-items-center"><span className="size-3 rounded-[3px] bg-white" /></button>
-          : <button type="submit" aria-label="Send" disabled={!draft.trim() || busy} className="glass-primary grid size-10 shrink-0 place-items-center disabled:bg-[#8497ab] disabled:hover:translate-y-0">
+          : <button type="submit" aria-label="Send" disabled={!draft.trim() || busy} className="glass-primary grid size-10 shrink-0 place-items-center disabled:bg-[#8fa597] disabled:hover:translate-y-0">
               <svg viewBox="0 0 24 24" className="size-[18px]" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5" /></svg>
             </button>}
       </form>

@@ -5,14 +5,10 @@ const C = (cx: number, r: number, tail: number) => `M${tail} ${50 - r}H${cx}A${r
 const RADII = [27, 20, 13];
 
 export function RailsMark({ id, tone = "steel", className = "h-[24px] w-auto" }: { id: string; tone?: "steel" | "white"; className?: string }) {
-  const stroke = tone === "white" ? "#ffffff" : `url(#${id}-g)`;
+  const stroke = tone === "white" ? "#ffffff" : "var(--primary)";
   return (
     <svg viewBox="6 20 91 60" className={className} aria-hidden focusable="false">
       <defs>
-        <linearGradient id={`${id}-g`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#7d9cbb" />
-          <stop offset="1" stopColor="#3f5f7f" />
-        </linearGradient>
         <mask id={`${id}-m`} maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
           <rect width="100" height="100" fill="#fff" />
           {RADII.map(r => <path key={r} d={C(58, r, 97)} fill="none" stroke="#000" strokeWidth="9" />)}
@@ -31,7 +27,7 @@ export function Logo({ id, tone = "steel", name }: { id: string; tone?: "steel" 
   return (
     <span className="inline-flex items-center gap-2.5">
       <RailsMark id={id} tone={tone} />
-      <span>{name}</span>
+      <span className={tone === "white" ? undefined : "text-[var(--primary)]"}>{name}</span>
     </span>
   );
 }

@@ -4,13 +4,13 @@ import type { Article } from "@/content/articles";
 // title set on the left, a pale topic tag under it, the drawing on the right.
 // Slate and steel on one light-grey ground, matching the --accent, --steel and --tile tokens.
 
-export const K = "#1a1a1c";   // line
-export const A = "#9fb3c8";   // pale steel
-export const T = "#1c2733";   // slate
-export const R = "#4f7396";   // steel
-export const Y = "#e5ecf2";   // mist
+export const K = "#141816";   // line
+export const A = "#9fbcab";   // pale steel
+export const T = "#14432f";   // slate
+export const R = "#2a6a4c";   // steel
+export const Y = "#e3ece6";   // mist
 export const W = "#ffffff";
-const BG = "#eef1f4";
+const BG = "#eef3ef";
 
 export const line = { stroke: K, strokeWidth: 3.5, strokeLinejoin: "round" as const, strokeLinecap: "round" as const };
 

@@ -17,7 +17,7 @@ function Column({ title, children }: { title: string; children: React.ReactNode 
 /** Alps Wills footer: the page fades into a dark slate base, a closing line, then columns. */
 export function SiteFooter() {
   return (
-    <footer className="mt-auto overflow-hidden bg-[#0b1118] text-white">
+    <footer className="mt-auto overflow-hidden bg-[#0a241a] text-white">
       <div className="footer-fade px-4 pb-[120px] pt-[260px] text-center">
         <h2 className="mx-auto max-w-[16ch] text-[clamp(2.6rem,5.6vw,4rem)] font-semibold leading-[1.05] tracking-[-0.025em]">Talk to an adviser</h2>
         <div className="mt-10 flex flex-wrap justify-center gap-2.5">

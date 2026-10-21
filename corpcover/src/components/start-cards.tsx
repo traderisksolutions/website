@@ -34,7 +34,7 @@ export function StartCards() {
             <span className="absolute inset-x-0 bottom-[30cqi] top-0 z-[1] flex flex-col items-center justify-center gap-[1.5cqi] px-[6cqi]">
               <span className="text-[clamp(10px,5.1cqi,14px)] leading-snug text-white/85">{c.cap}</span>
               <span className="text-[clamp(24px,19cqi,52px)] font-semibold leading-[1.05] tracking-[-0.035em]">{c.word}</span>
-              <span className="mt-[4.4cqi] rounded-full bg-white px-[6.6cqi] py-[3.3cqi] text-[clamp(11px,5.1cqi,14px)] font-medium text-ink">Continue</span>
+              <span className="mt-[4.4cqi] rounded-[6px] bg-white px-[6.6cqi] py-[3.3cqi] text-[clamp(11px,5.1cqi,14px)] font-medium text-ink">Continue</span>
             </span>
             <span className="absolute inset-x-[3.7cqi] bottom-[3.7cqi] z-[1] flex items-center gap-[4.4cqi] rounded-[min(14px,5cqi)] bg-white px-[5cqi] py-[4.4cqi] text-left text-ink">
               <span className="grid size-[11.7cqi] flex-none place-items-center rounded-full bg-accent text-white">

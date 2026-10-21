@@ -45,7 +45,7 @@ export function Subscribe({ variant = "inline", className = "" }: { variant?: "b
           id={`${id}-email`} name="email" type="email" inputMode="email" autoComplete="email" required maxLength={200}
           placeholder="Email address" aria-invalid={status === "invalid"} aria-describedby={msgId}
           onChange={() => (status === "invalid" || status === "error") && setStatus("idle")}
-          className={`min-w-0 flex-1 rounded-full border border-transparent px-5 py-3 text-base text-ink outline-none transition-colors placeholder:text-ink-3 focus:border-steel ${band ? "bg-paper" : "bg-base focus:bg-paper"}`}
+          className={`min-w-0 flex-1 rounded-[6px] border border-rule px-4 py-3 text-base text-ink outline-none transition-colors placeholder:text-ink-3 focus:border-steel ${band ? "bg-paper" : "bg-base focus:bg-paper"}`}
         />
         <button type="submit" disabled={status === "sending"} className="btn btn-primary shrink-0 disabled:opacity-70">
           {status === "sending" ? "Subscribing" : "Get the weekly letter"}
