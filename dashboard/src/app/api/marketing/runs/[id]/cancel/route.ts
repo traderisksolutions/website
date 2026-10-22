@@ -7,7 +7,8 @@ import { isUuid } from '@/lib/sales/db'
 export const dynamic = 'force-dynamic'
 
 /** Takes effect at the next stage boundary: a model call in flight finishes first. */
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const who = await actor(req)
   if (who instanceof Response) return who
   if (!isUuid(params.id)) return json({ error: 'Run not found' }, 404)

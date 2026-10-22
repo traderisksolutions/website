@@ -10,7 +10,13 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-export default function ConnectLayout({ children, params }: { children: React.ReactNode; params: { token: string } }) {
+export default async function ConnectLayout(props: { children: React.ReactNode; params: Promise<{ token: string }> }) {
+  const params = await props.params;
+
+  const {
+    children
+  } = props;
+
   return (
     <LinkProvider token={params.token}>
       <Frame>{children}</Frame>

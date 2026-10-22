@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getNexusRun, getLatestIncompleteNexusRun, previewFromPhase1, previewFromPhase2 } from '@/lib/nexus-run-store'
 import { requireStaffOrCron } from '@/lib/api-auth'
 
-type Params = { params: { id: string } }
+type Params = { params: Promise<{ id: string }> }
 
 // GET /api/nexus/cases/[id]/analyze/run-status?run_id=X
 // Returns the current state of one run (or, if run_id is omitted, the latest run for this
 // case that hasn't finished) — used to resume the phased-analysis modal after a page
 // reload/reopen, and to poll a phase that's still `_running` server-side even if the
 // browser's original request dropped.
-export async function GET(req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, props: Params) {
+  const params = await props.params;
   const unauthorized = await requireStaffOrCron(req)
   if (unauthorized) return unauthorized
 

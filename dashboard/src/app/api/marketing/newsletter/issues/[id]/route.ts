@@ -13,7 +13,8 @@ async function load(id: string) {
 }
 
 /** GET → the issue and its rendered email (for the preview). */
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const who = await actor(req)
   if (who instanceof Response) return who
   const l = await load(params.id)
@@ -23,7 +24,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 /** PATCH { subject?, intro?, article_ids? } on a draft. */
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const who = await actor(req)
   if (who instanceof Response) return who
   const l = await load(params.id)
@@ -34,7 +36,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   return err ? json({ error: err }, 422) : json({ ok: true })
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const who = await actor(req)
   if (who instanceof Response) return who
   const l = await load(params.id)
@@ -44,7 +47,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 }
 
 /** POST { action: 'test' | 'approve' | 'batch' } */
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const who = await actor(req)
   if (who instanceof Response) return who
   const l = await load(params.id)

@@ -11,7 +11,8 @@ export const dynamic = 'force-dynamic'
 const ACTIONS: DraftAction[] = ['approve', 'reject', 'reopen', 'edit', 'mark_replied']
 
 /** What the drawer needs to draw the controls: can this draft be approved, and if not, why. */
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const who = await actor(req)
   if (who instanceof Response) return who
   if (!isUuid(params.id)) return json({ error: 'Not found' }, 404)
@@ -21,7 +22,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   return json({ draft: { status: draft.status, blockers }, workflow: workflowStatus() })
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const who = await actor(req)
   if (who instanceof Response) return who
   if (!isUuid(params.id)) return json({ error: 'Not found' }, 404)

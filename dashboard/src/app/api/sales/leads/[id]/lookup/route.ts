@@ -8,7 +8,8 @@ import { lookupConfigured } from '@/lib/sales/config'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const who = await actor(req)
   if (who instanceof Response) return who
   if (!lookupConfigured()) return json({ error: 'Email lookup is off. Set NETROWS_API_KEY.' }, 409)

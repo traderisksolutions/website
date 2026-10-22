@@ -11,7 +11,8 @@ import { errorMessage, openLink, pjson } from '@/lib/hr/public'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
-export async function POST(req: NextRequest, { params }: { params: { token: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ token: string }> }) {
+  const params = await props.params;
   const r = await openLink(params.token)
   if ('response' in r) return r.response
   const body = await req.json().catch(() => null) as { token?: unknown } | null

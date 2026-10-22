@@ -11,7 +11,7 @@ import { logActivity }               from '@/lib/log-activity'
 import type { EditOp }               from '@/lib/chat/chat-types'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
-type Params = { params: { id: string } }
+type Params = { params: Promise<{ id: string }> }
 
 function sbH(prefer = 'return=representation') {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -95,7 +95,8 @@ function applyOp(sa: Rec, op: EditOp): void {
   if (op.target === 'next_steps') (sa[cfg.field] as Rec[]).forEach((s, idx) => { s.step = idx + 1 })
 }
 
-export async function POST(req: NextRequest, { params }: Params) {
+export async function POST(req: NextRequest, props: Params) {
+  const params = await props.params;
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()

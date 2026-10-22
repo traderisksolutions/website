@@ -5,7 +5,7 @@ import { requireStaffOrCron } from '@/lib/api-auth'
 
 export const maxDuration = 300 // Opus adaptive-thinking call — the slowest single step
 
-type Params = { params: { id: string } }
+type Params = { params: Promise<{ id: string }> }
 
 // POST /api/nexus/cases/[id]/analyze/phase2
 // Body: { run_id, instructions? }
@@ -13,7 +13,8 @@ type Params = { params: { id: string } }
 // `instructions` lets the broker add/revise steering after reviewing Phase 1's output —
 // if provided it overrides (and is persisted as) the run's instructions for this and any
 // later resynthesis.
-export async function POST(req: NextRequest, { params }: Params) {
+export async function POST(req: NextRequest, props: Params) {
+  const params = await props.params;
   const unauthorized = await requireStaffOrCron(req)
   if (unauthorized) return unauthorized
 

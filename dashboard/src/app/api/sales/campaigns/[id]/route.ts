@@ -7,7 +7,8 @@ import { cleanAudience, cleanUrl } from '../_shared'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const who = await actor(req)
   if (who instanceof Response) return who
   if (!isUuid(params.id)) return json({ error: 'Not found' }, 404)
@@ -27,7 +28,8 @@ type Body = {
   steps?: { stepNumber: number; subject: string; body: string; delayDays: number }[]
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const who = await actor(req)
   if (who instanceof Response) return who
   const id = params.id
@@ -68,7 +70,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   if (b.status && ['draft', 'active', 'paused', 'completed'].includes(b.status)) {
     if (b.status === 'active') {
-      const s = steps ?? await sb<StepRow[]>(`sales_campaign_steps?campaign_id=eq.${id}&select=step_number,subject,body,delay_days`)
+      const s = steps ?? (await sb<StepRow[]>(`sales_campaign_steps?campaign_id=eq.${id}&select=step_number,subject,body,delay_days`))
       const merged = {
         first_touch: (patch.first_touch ?? current.first_touch) as 'template' | 'personal_draft',
         demo_url: (patch.demo_url !== undefined ? patch.demo_url : current.demo_url) as string | null,

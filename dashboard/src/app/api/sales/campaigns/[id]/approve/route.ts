@@ -8,7 +8,8 @@ export const maxDuration = 60
 
 /** Approve and schedule contacts awaiting approval. Body { ids } or { all: true }. Approval
  *  schedules; nothing sends while the campaign is not active or sending is off. */
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const who = await actor(req)
   if (who instanceof Response) return who
   if (!isUuid(params.id)) return json({ error: 'Not found' }, 404)

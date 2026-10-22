@@ -68,7 +68,8 @@ function dependant(v: unknown, i: number, employeeKeys: Set<string>): HrDependan
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { token: string } }) {
+export async function PUT(req: NextRequest, props: { params: Promise<{ token: string }> }) {
+  const params = await props.params;
   const r = await openLink(params.token)
   if ('response' in r) return r.response
   const b = await req.json().catch(() => null) as { employees?: unknown; dependants?: unknown } | null

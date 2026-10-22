@@ -14,7 +14,8 @@ export const maxDuration = 120
 const HOST_RE = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i
 const TENANT_RE = /^[a-z0-9_-]{2,64}$/i
 
-export async function POST(req: NextRequest, { params }: { params: { token: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ token: string }> }) {
+  const params = await props.params;
   const r = await openLink(params.token)
   if ('response' in r) return r.response
   const b = await req.json().catch(() => null) as Record<string, unknown> | null

@@ -10,10 +10,11 @@ function sbHeaders(prefer = 'return=representation') {
   return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: prefer }
 }
 
-type Params = { params: { id: string } }
+type Params = { params: Promise<{ id: string }> }
 
 // GET /api/nexus/cases/[id] — full case with linked threads, their messages, and latest analysis
-export async function GET(req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, props: Params) {
+  const params = await props.params;
   const unauthorized = await requireStaffOrCron(req)
   if (unauthorized) return unauthorized
 
@@ -134,7 +135,8 @@ export async function GET(req: NextRequest, { params }: Params) {
 }
 
 // PATCH /api/nexus/cases/[id] — update name / description / status
-export async function PATCH(req: NextRequest, { params }: Params) {
+export async function PATCH(req: NextRequest, props: Params) {
+  const params = await props.params;
   const unauthorized = await requireStaffOrCron(req)
   if (unauthorized) return unauthorized
 
@@ -159,7 +161,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 // DELETE /api/nexus/cases/[id] — delete case (cascades to case_threads + case_analyses)
-export async function DELETE(req: NextRequest, { params }: Params) {
+export async function DELETE(req: NextRequest, props: Params) {
+  const params = await props.params;
   const unauthorized = await requireStaffOrCron(req)
   if (unauthorized) return unauthorized
 

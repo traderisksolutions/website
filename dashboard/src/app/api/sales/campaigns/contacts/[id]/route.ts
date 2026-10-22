@@ -7,7 +7,8 @@ export const dynamic = 'force-dynamic'
 
 /** Edit the opening while awaiting approval, mark a contact replied (stops the sequence), or
  *  remove one who has not been emailed yet. */
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const who = await actor(req)
   if (who instanceof Response) return who
   const id = params.id

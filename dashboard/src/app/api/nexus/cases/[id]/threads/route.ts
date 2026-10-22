@@ -10,10 +10,11 @@ function sbHeaders(prefer = 'return=representation') {
   return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: prefer }
 }
 
-type Params = { params: { id: string } }
+type Params = { params: Promise<{ id: string }> }
 
 // POST /api/nexus/cases/[id]/threads — link a thread to this case
-export async function POST(req: NextRequest, { params }: Params) {
+export async function POST(req: NextRequest, props: Params) {
+  const params = await props.params;
   const unauthorized = await requireStaffOrCron(req)
   if (unauthorized) return unauthorized
 
@@ -65,7 +66,8 @@ export async function POST(req: NextRequest, { params }: Params) {
 }
 
 // PATCH /api/nexus/cases/[id]/threads — update party_type or party_label for a linked thread
-export async function PATCH(req: NextRequest, { params }: Params) {
+export async function PATCH(req: NextRequest, props: Params) {
+  const params = await props.params;
   const unauthorized = await requireStaffOrCron(req)
   if (unauthorized) return unauthorized
 
@@ -91,7 +93,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 // DELETE /api/nexus/cases/[id]/threads?thread_id=X — unlink a thread from this case
-export async function DELETE(req: NextRequest, { params }: Params) {
+export async function DELETE(req: NextRequest, props: Params) {
+  const params = await props.params;
   const unauthorized = await requireStaffOrCron(req)
   if (unauthorized) return unauthorized
 

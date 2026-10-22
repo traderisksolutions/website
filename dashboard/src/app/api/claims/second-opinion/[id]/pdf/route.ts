@@ -7,7 +7,8 @@ import { renderClaimReportPdf } from '@/lib/claim-review/report-pdf'
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const deny = await requireStaffOrCron(req)
   if (deny) return deny
   const row = await getClaimIntake(params.id)

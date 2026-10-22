@@ -6,13 +6,14 @@ import { requireStaffOrCron } from '@/lib/api-auth'
 
 export const maxDuration = 300 // Vercel maximum; large cases (hundreds of attachments) need it
 
-type Params = { params: { id: string } }
+type Params = { params: Promise<{ id: string }> }
 
 // POST /api/nexus/cases/[id]/analyze/phase1
 // Body: { triggered_by?, instructions?, thread_ids? }
 // Phase 1 of 3: gather every linked thread/attachment/knowledge doc, then Gemini evidence
 // synthesis. Creates the run row; phase2/phase3 continue it via run_id.
-export async function POST(req: NextRequest, { params }: Params) {
+export async function POST(req: NextRequest, props: Params) {
+  const params = await props.params;
   const unauthorized = await requireStaffOrCron(req)
   if (unauthorized) return unauthorized
 

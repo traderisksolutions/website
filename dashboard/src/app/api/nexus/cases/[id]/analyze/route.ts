@@ -5,10 +5,11 @@ import { requireStaffOrCron } from '@/lib/api-auth'
 
 export const maxDuration = 300
 
-type Params = { params: { id: string } }
+type Params = { params: Promise<{ id: string }> }
 
 // POST /api/nexus/cases/[id]/analyze — run grand analysis for a case
-export async function POST(req: NextRequest, { params }: Params) {
+export async function POST(req: NextRequest, props: Params) {
+  const params = await props.params;
   const unauthorized = await requireStaffOrCron(req)
   if (unauthorized) return unauthorized
 
@@ -35,7 +36,8 @@ export async function POST(req: NextRequest, { params }: Params) {
 }
 
 // GET /api/nexus/cases/[id]/analyze — fetch the latest stored analysis
-export async function GET(req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, props: Params) {
+  const params = await props.params;
   const unauthorized = await requireStaffOrCron(req)
   if (unauthorized) return unauthorized
 

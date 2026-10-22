@@ -5,7 +5,8 @@ import { cleanSitePatch, getSite, updateSite } from '@/lib/marketing/sites'
 
 export const dynamic = 'force-dynamic'
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const who = await actor(req)
   if (who instanceof Response) return who
   const site = await getSite(params.id)

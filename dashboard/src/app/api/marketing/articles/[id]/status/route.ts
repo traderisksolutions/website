@@ -8,7 +8,8 @@ import { isUuid } from '@/lib/sales/db'
 export const dynamic = 'force-dynamic'
 
 /** Approve (→ published), reject (→ archived), unpublish (→ draft) without touching the text. */
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const who = await actor(req)
   if (who instanceof Response) return who
   if (!isUuid(params.id)) return json({ error: 'Article not found' }, 404)

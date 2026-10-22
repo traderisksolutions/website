@@ -6,9 +6,11 @@ const nextConfig = {
   // "DOMMatrix is not defined" (seen in RAG Index / Knowledge Base PDF ingestion).
   // Marking these external makes Next.js `require()` them directly from node_modules
   // at runtime instead, matching how they resolve outside of webpack.
-  experimental: {
-    serverComponentsExternalPackages: ['pdf-parse', '@napi-rs/canvas'],
-  },
+  // isomorphic-dompurify pulls in jsdom, which reads its stylesheet from disk and breaks when bundled.
+  serverExternalPackages: ['pdf-parse', '@napi-rs/canvas', 'isomorphic-dompurify'],
+  // Next 15 externalises @react-pdf/renderer by default, which fails on its ESM build when a
+  // client component imports it. Bundling it instead keeps 14.x behaviour.
+  transpilePackages: ['@react-pdf/renderer'],
   // Vercel sets VERCEL_GIT_COMMIT_SHA at build time but doesn't expose it to the client bundle
   // on its own — this re-exposes it under NEXT_PUBLIC_ so any page can render "which build is
   // this" directly, instead of having to curl-probe routes to tell whether a deploy actually

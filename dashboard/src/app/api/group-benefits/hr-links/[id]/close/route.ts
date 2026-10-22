@@ -5,7 +5,8 @@ import { closeLink, isMigrationPending, MIGRATION_PENDING_LINE } from '@/lib/hr/
 
 export const dynamic = 'force-dynamic'
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const who = await actor(req)
   if (who instanceof Response) return who
   try {

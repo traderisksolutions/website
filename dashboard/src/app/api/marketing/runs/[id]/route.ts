@@ -7,7 +7,8 @@ import { isUuid } from '@/lib/sales/db'
 export const dynamic = 'force-dynamic'
 
 /** Polled by the run page: 2 s while queued or running, then stops. */
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const who = await actor(req)
   if (who instanceof Response) return who
   if (!isUuid(params.id)) return json({ error: 'Run not found' }, 404)

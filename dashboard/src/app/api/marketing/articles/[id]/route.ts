@@ -7,7 +7,8 @@ import { isUuid } from '@/lib/sales/db'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const who = await actor(req)
   if (who instanceof Response) return who
   if (!isUuid(params.id)) return json({ error: 'Article not found' }, 404)
@@ -20,7 +21,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 /** Title, slug, dek, topic, meta, body and status. Publishing a pending article here is approval. */
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const who = await actor(req)
   if (who instanceof Response) return who
   if (!isUuid(params.id)) return json({ error: 'Article not found' }, 404)

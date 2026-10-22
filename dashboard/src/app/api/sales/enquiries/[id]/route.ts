@@ -5,7 +5,8 @@ import { logSalesEvent } from '@/lib/sales/events'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const who = await actor(req)
   if (who instanceof Response) return who
   try {
@@ -19,7 +20,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 /** PATCH { status?, owner_email?, note? } */
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const who = await actor(req)
   if (who instanceof Response) return who
   let body: Record<string, unknown>

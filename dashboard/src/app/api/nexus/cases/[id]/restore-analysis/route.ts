@@ -9,7 +9,7 @@ import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
-type Params = { params: { id: string } }
+type Params = { params: Promise<{ id: string }> }
 
 function sbH(prefer = 'return=representation') {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -17,7 +17,8 @@ function sbH(prefer = 'return=representation') {
   return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: prefer }
 }
 
-export async function POST(req: NextRequest, { params }: Params) {
+export async function POST(req: NextRequest, props: Params) {
+  const params = await props.params;
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()

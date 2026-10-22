@@ -9,7 +9,8 @@ export const maxDuration = 60
 
 const MAX_BYTES = 10 * 1024 * 1024
 
-export async function POST(req: NextRequest, { params }: { params: { token: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ token: string }> }) {
+  const params = await props.params;
   const r = await openLink(params.token)
   if ('response' in r) return r.response
   const form = await req.formData().catch(() => null)

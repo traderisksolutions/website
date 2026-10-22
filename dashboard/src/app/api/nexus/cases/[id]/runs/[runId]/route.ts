@@ -17,9 +17,10 @@ function sbHeaders() {
   return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json' }
 }
 
-type Params = { params: { id: string; runId: string } }
+type Params = { params: Promise<{ id: string; runId: string }> }
 
-export async function GET(req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, props: Params) {
+  const params = await props.params;
   const unauthorized = await requireStaffOrCron(req)
   if (unauthorized) return unauthorized
 
