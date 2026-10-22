@@ -11,8 +11,8 @@ export const revalidate = 300;
 export async function generateMetadata({ params }: { params: Promise<{ market: string }> }): Promise<Metadata> {
   const m = await marketParam(params), M = MARKETS[m];
   return {
-    title: `Insurance claim rejected? Claim second opinion in ${M.name}`,
-    description: `A second read of a rejected, reduced or delayed insurance claim in ${M.name}: an AI read of your policy wording against the insurer's decision, then a call with a second adviser. Personal ${PLANS.personal.price}, business ${PLANS.business.price}.`,
+    title: { absolute: `Insurance claim rejected in ${M.name}? Get it reviewed` },
+    description: `Claim rejected, denied or underpaid in ${M.name}? Send the policy and the insurer's letter. We check each reason against the clause it cites, then an adviser calls. From ${PLANS.personal.price}.`,
     alternates: alternates(m, "/claims"), twitter: { card: "summary_large_image" },
   };
 }
@@ -26,7 +26,11 @@ const STEPS: [string, string][] = [
 const faq = (m: MarketKey): { q: string; a: string }[] => {
   const M = MARKETS[m];
   return [
-    { q: "My insurance claim was rejected. What can I do?", a: `Ask the insurer for the reason in writing and the clause it relies on. Check that clause against your policy wording. If you still disagree after the insurer's internal review, you can file with ${M.disputeBody} ${M.disputeDeadline}. ${M.disputeNote} A second opinion helps you decide whether to push back and on what point.` },
+    { q: `What to do if your insurance claim is rejected in ${M.name}`, a: `Ask the insurer for the reason in writing and the clause it relies on. Check that clause against your policy wording. If you still disagree after the insurer's internal review, you can file with ${M.disputeBody} ${M.disputeDeadline}. ${M.disputeNote} A second opinion helps you decide whether to push back and on what point.` },
+    { q: "How do I appeal a rejected insurance claim?", a: "Write to the insurer and ask it to review the decision. Name the reason it gave, quote the clause, and say why the wording or the facts do not support it. Attach any document it said was missing. Keep the reply in writing; the dispute body asks for the insurer's final reply." },
+    { q: "Can I dispute the amount the insurer paid?", a: "Yes. Ask the insurer for its calculation in writing. Most cuts come from the excess, depreciation, a sub-limit, or the average clause where the sum insured was too low. Each one is a figure you can check against the schedule and the wording." },
+    { q: "Can an insurer reject a claim for non-disclosure?", a: "It can, if you did not disclose a fact it asked about, or a fact that would have changed its terms. Ask which question on the proposal form it relies on, and compare it with the answer you gave." },
+    { q: "Do I need a lawyer to dispute an insurance claim?", a: m === "hk" ? "Not to start. The ICB is free and takes personal policies. For a business policy, or for court action, speak to a lawyer." : m === "sg" ? "Not to start. Filing with FIDReC is free, and lawyers cannot represent either side at FIDReC adjudication. For court action, speak to a lawyer." : `Not to start. ${M.disputeBody} is free, and lawyers cannot represent either side there. For court action, speak to a lawyer.` },
     { q: "Who reviews my claim?", a: "An adviser who did not sell you the policy and is not paid on this claim. Advisers are paid commission by insurers when they place policies; a review never involves the adviser who placed yours." },
     { q: "What is a claim second opinion?", a: "A reading of your policy and the insurer's decision by someone who was not involved in the sale or the claim. It shows which reasons hold up against the wording and which do not." },
     { q: "Is this legal advice?", a: "No. The review explains how the policy wording applies to each reason in the insurer's letter. We do not act for you, contact the insurer, negotiate, or prepare documents for any proceeding. For court action, speak to a lawyer." },
@@ -45,8 +49,9 @@ export default async function Claims({ params }: { params: Promise<{ market: str
     <main className="flex-1">
       <JsonLd data={{ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: qa.map(f => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }} />
       <section className="wrap pb-12 pt-[clamp(48px,8vw,104px)]">
-        <h1 className="t-h1 max-w-[16ch]">Claim second opinion</h1>
-        <p className="t-lede mt-5">For an insurance claim in {M.name} that was rejected, reduced or delayed. Send the policy and the insurer&apos;s decision. You get an AI read of the wording against each reason, then a call with an adviser who was not involved.</p>
+        <p className="text-[13px] uppercase tracking-[.06em] text-ink-2">Claim second opinion</p>
+        <h1 className="t-h1 mt-4 max-w-[16ch]">Rejected insurance claim review</h1>
+        <p className="t-lede mt-5">For a claim in {M.name} that the insurer rejected, denied or underpaid. Send the policy and the insurer&apos;s letter. We check each reason against the clause it relies on. Then an adviser who did not sell you the policy calls you.</p>
         <ul className="mt-6 flex flex-wrap gap-2">
           {[`Personal claim ${PLANS.personal.price}`, `Business claim ${PLANS.business.price}`, "AI read and a call with a second adviser", "Not legal advice"].map(f => <li key={f} className="rounded-full bg-base px-3.5 py-1.5 text-[14.5px]">{f}</li>)}
         </ul>
