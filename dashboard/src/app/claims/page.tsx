@@ -233,9 +233,12 @@ export default function ClaimsPage() {
             <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Claims</h1>
             <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>{countLine}</p>
           </div>
-          <Btn level="secondary" className="h-12 px-5 rounded-[12px] text-[15px]" onClick={() => load(true)} loading={refreshing}>
-            {!refreshing && <RefreshCw size={14} />} Refresh
-          </Btn>
+          <div className="flex gap-2">
+            <a href="/claims/second-opinion" className="inline-flex h-12 items-center rounded-[12px] border border-[#dadce0] px-5 text-[15px] no-underline hover:bg-[#f8f9fa]" style={{ color: INK }}>Second opinion reports</a>
+            <Btn level="secondary" className="h-12 px-5 rounded-[12px] text-[15px]" onClick={() => load(true)} loading={refreshing}>
+              {!refreshing && <RefreshCw size={14} />} Refresh
+            </Btn>
+          </div>
         </div>
 
         <div className="mt-8">
