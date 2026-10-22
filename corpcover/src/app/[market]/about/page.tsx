@@ -26,7 +26,7 @@ export default async function About({ params }: { params: Promise<{ market: stri
   const m = await marketParam(params), M = MARKETS[m];
   return (
     <main className="flex-1">
-      <section className="wrap pb-14 pt-[clamp(48px,8vw,104px)]">
+      <section className="wrap pb-14 pt-[clamp(72px,10vw,144px)]">
         <h1 className="t-h1">Business insurance advice for {M.adj} companies</h1>
         <p className="mt-5 t-lede">
           We explain business insurance in plain words, read the policies you already hold, and connect you with advisers who compare insurers. Insurers pay the advisers commission. Your business pays no fee.
@@ -37,7 +37,7 @@ export default async function About({ params }: { params: Promise<{ market: stri
         </div>
       </section>
 
-      <section className="bg-base py-[clamp(56px,8vw,96px)]">
+      <section className="py-[clamp(96px,12vw,176px)]">
         <div className="wrap">
           <h2 className="t-h2">How we work</h2>
           <div className="mt-8 grid gap-4 lg:grid-cols-3">
@@ -48,7 +48,7 @@ export default async function About({ params }: { params: Promise<{ market: stri
         </div>
       </section>
 
-      <section className="wrap grid gap-14 pb-[clamp(80px,10vw,140px)] pt-[clamp(56px,8vw,104px)] lg:grid-cols-2">
+      <section className="wrap grid gap-14 pb-[clamp(96px,12vw,176px)] pt-[clamp(56px,8vw,104px)] lg:grid-cols-2">
         <div>
           <h2 className="t-h2">Fees</h2>
           <dl className="mt-6 grid gap-1">

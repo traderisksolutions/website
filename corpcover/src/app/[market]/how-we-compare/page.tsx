@@ -30,7 +30,7 @@ export default async function HowWeCompare({ params }: { params: Promise<{ marke
   const m = await marketParam(params), M = MARKETS[m];
   return (
     <main className="flex-1">
-      <section className="wrap pb-12 pt-[clamp(48px,8vw,104px)]">
+      <section className="wrap pb-[clamp(72px,9vw,128px)] pt-[clamp(72px,10vw,144px)]">
         <h1 className="t-h1">How we compare insurers</h1>
         <p className="mt-5 t-lede">
           Every &ldquo;Best&rdquo; guide on Corp Cover ranks cover against the same eight criteria. Best means the closest fit to your business on these criteria. It is not a claim that one insurer is better for everyone.
@@ -50,7 +50,7 @@ export default async function HowWeCompare({ params }: { params: Promise<{ marke
         </div>
       </section>
 
-      <section className="wrap grid gap-12 pb-[clamp(80px,10vw,140px)] lg:grid-cols-3">
+      <section className="wrap grid gap-12 pb-[clamp(96px,12vw,176px)] lg:grid-cols-3">
         <div className="grid content-start gap-3">
           <h2 className="text-[1.6rem] font-semibold tracking-[-0.02em]">Sources</h2>
           <p className="text-ink-2">Statutory figures come from the agency that sets them, such as {REGULATOR[m]}. Policy details come from the insurer&apos;s own {M.name} product pages and wordings. Each guide links its sources.</p>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MARKETS, mpath, type MarketKey } from "@/lib/market";
 import type { Guide } from "@/lib/blog-api";
+import { SERVICES } from "@/lib/services";
 import { CoverArt } from "@/components/cover-art";
 import { ChatMock, ClaimReportMock, CoverListMock, ReportMock, UploadMock } from "./ui-mocks";
 
@@ -14,9 +15,7 @@ export function HomeHero({ m }: { m: MarketKey }) {
           <h1 id="hero-h" className="hh-h1">Get the <b>right</b> insurance <b>coverage</b></h1>
           <p className="hh-lede">Advisers compare plans across insurers and have saved businesses millions in premiums.</p>
           <div className="flex w-full flex-wrap gap-2.5">
-            <Link href={mpath(m, "/ask")} className="btn btn-primary">Ask</Link>
-            <Link href={mpath(m, "/policy-review")} className="btn btn-primary">Review</Link>
-            <Link href={mpath(m, "/get-covered")} className="btn btn-primary">Choose</Link>
+            {(["review", "quotes", "chat"] as const).map(k => <Link key={k} href={mpath(m, SERVICES[k].path)} className="btn btn-primary">{SERVICES[k].name}</Link>)}
           </div>
           <p className="hh-trust"><span aria-hidden className="hh-dots"><i /><i /><i /></span>Trusted by 200+ businesses</p>
         </div>
@@ -50,9 +49,9 @@ export function ClaimFeature({ m }: { m: MarketKey }) {
 }
 
 const CARDS = [
-  { key: "ask", tone: "grain-evergreen", title: "Ask", text: "Ask about a cover, an exclusion or a contract clause. Each answer names the section it comes from.", cta: "Ask a question", path: "/ask" },
-  { key: "review", tone: "grain-moss", title: "Review", text: "Send the schedule and wording. An adviser checks each cover against your contracts and premises.", cta: "Send my policy for review", path: "/policy-review" },
-  { key: "choose", tone: "grain-pine", title: "Choose", text: "Pick your business type. We show the cover it usually holds, and an adviser gets quotes from insurers.", cta: "Find my cover", path: "/get-covered" },
+  { key: "ask", tone: "grain-evergreen", title: SERVICES.chat.name, text: "Ask about a cover, an exclusion or a contract clause. Each answer names the section it comes from.", cta: "Ask a question", path: "/ask" },
+  { key: "review", tone: "grain-moss", title: SERVICES.review.name, text: "Send the schedule and wording. An adviser checks each cover against your contracts and premises.", cta: "Send my policy for review", path: "/policy-review" },
+  { key: "choose", tone: "grain-pine", title: SERVICES.quotes.name, text: "Pick your business type. We show the cover it usually holds, and an adviser gets quotes from insurers.", cta: "Find my cover", path: "/get-covered" },
 ] as const;
 
 /** Three services (Harvey "One Platform" cards): the hovered card widens, the others fade. */

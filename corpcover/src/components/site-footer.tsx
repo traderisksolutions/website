@@ -6,6 +6,7 @@ import { Logo } from "./logo";
 import { Subscribe } from "./subscribe";
 import { usePathname } from "next/navigation";
 import { MARKETS, MARKET_KEYS, marketOf, mpath } from "@/lib/market";
+import { SERVICES } from "@/lib/services";
 
 const whatsapp = `https://wa.me/65${site.phone.replace(/\s/g, "")}`;
 
@@ -31,10 +32,7 @@ export function SiteFooter() {
           </div>
           <div className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-4">
             <Column title="Services">
-              <Link href={mpath(m, "/policy-review")}>Policy review</Link>
-              <Link href={mpath(m, "/ask")}>Ask an adviser</Link>
-              <Link href={mpath(m, "/get-covered")}>Cover options</Link>
-              <Link href={mpath(m, "/claims")}>Claim second opinion</Link>
+              {(["review", "quotes", "chat", "claim"] as const).map(k => <Link key={k} href={mpath(m, SERVICES[k].path)}>{SERVICES[k].name}</Link>)}
             </Column>
             <Column title="Insights">
               <Link href={mpath(m, "/articles")}>All insights</Link>

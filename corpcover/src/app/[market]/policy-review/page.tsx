@@ -1,3 +1,4 @@
+import { FeatureTrio } from "@/components/feature-trio";
 import type { Metadata } from "next";
 import { ReviewFlow } from "@/components/start-actions";
 import { alternates, marketParam } from "@/lib/market";
@@ -22,15 +23,17 @@ const steps = [
 export default function PolicyReview() {
   return (
     <main className="flex-1">
-      <section className="wrap pb-12 pt-[clamp(48px,8vw,104px)]">
+      <section className="wrap pb-[clamp(72px,9vw,128px)] pt-[clamp(72px,10vw,144px)]">
         <h1 className="t-h1">Policy review</h1>
-        <p className="mt-5 t-lede">What your policy covers, what it excludes and where it falls short. A review is not a quote or a change to your cover.</p>
-        <ul className="mt-6 flex flex-wrap gap-2">
-          {["Fee S$0", "No obligation to buy", "PDF, JPG or PNG, up to 4 MB"].map(f => <li key={f} className="rounded-full bg-base px-3.5 py-1.5 text-[14.5px]">{f}</li>)}
-        </ul>
+        <p className="mt-7 t-lede">What your policy covers, what it excludes and where it falls short. A review is not a quote or a change to your cover.</p>
+        <FeatureTrio className="mt-[clamp(48px,6vw,80px)]" items={[
+          { icon: "fee", title: "No fee", text: "Insurers pay the advisers. A review costs your business nothing." },
+          { icon: "shield", title: "No obligation", text: "A review is not a quote. You decide whether to change anything." },
+          { icon: "upload", title: "Send PDF or photos", text: "PDF, JPG or PNG, up to 4 MB per file." },
+        ]} />
       </section>
 
-      <section className="wrap grid items-start gap-12 pb-[clamp(80px,10vw,140px)] lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-[72px]">
+      <section className="wrap grid items-start gap-12 pb-[clamp(96px,12vw,176px)] lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-[72px]">
         <ol className="grid gap-8">
           {steps.map(([t, d], i) => (
             <li key={t} className="grid grid-cols-[44px_minmax(0,1fr)] gap-x-2 gap-y-1">

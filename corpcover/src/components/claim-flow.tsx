@@ -9,8 +9,6 @@ import { RailsMark } from "./logo";
 
 const CCS = CC.map(c => c[1]);
 const HEADS = ["Whose claim is it?", "About the claim", "What you have", "Where to send the review"];
-const STAGES = ["Claim", "Documents", "Contact"];
-const stageOf = (step: number) => (step <= 1 ? 0 : step === 2 ? 1 : 2);
 
 /** Claim second opinion intake, one card per step (Corgi pattern). */
 export function ClaimFlow({ market = "sg" }: { market?: MarketKey }) {
@@ -52,9 +50,6 @@ export function ClaimFlow({ market = "sg" }: { market?: MarketKey }) {
 
   return (
     <div className="grid gap-5">
-      <ol className="gc-stepper" aria-label="Progress">
-        {STAGES.map((g, i) => <li key={g} aria-current={i === stageOf(step) ? "step" : undefined} data-done={i < stageOf(step)}><span>{i + 1}</span>{g}</li>)}
-      </ol>
       <form className="gc-card" noValidate onSubmit={e => { e.preventDefault(); void next(); }}>
         <div className="gc-head">
           <div><h3>{HEADS[step]}</h3>{step > 0 && s.plan && <p className="mt-1 text-[14px] text-ink-3">{PLANS[s.plan].label} · {PLANS[s.plan].price}</p>}</div>

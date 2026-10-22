@@ -3,7 +3,7 @@
 /* Apple product-page type; Evergreen brand: deep green primary, white page, cream on alternating sections. */
 :root {
   --paper: #ffffff;
-  --base: #f6f5f1;          /* cream: alternating sections, fields */
+  --base: #f4f5f4;          /* neutral off-white: fields, chips, quiet tiles (cream retired 22 Oct 2026) */
   --ink: #141816;
   --ink-2: #5e6460;
   --ink-3: #858b87;
@@ -39,7 +39,7 @@
 }
 
 html { scroll-padding-top: 88px; }
-body { background: var(--paper); color: var(--ink); font-family: var(--font-sans); font-size: 17px; line-height: 1.47; letter-spacing: -0.012em; }
+body { background: var(--paper); color: var(--ink); font-family: var(--font-sans); font-size: 17px; line-height: 1.55; letter-spacing: -0.012em; }
 h1, h2, h3 { text-wrap: balance; }
 :focus-visible { outline: 2px solid var(--steel); outline-offset: 3px; border-radius: 6px; }
 
@@ -275,7 +275,7 @@ h1, h2, h3 { text-wrap: balance; }
 .qf-select:focus-visible { outline: 2px solid var(--steel); outline-offset: 2px; }
 
 /* ── Get covered (Corgi pattern): one card per question on a ruled cream page, pressable buttons. ── */
-.gc-page { background: var(--base); background-image: linear-gradient(var(--rule) 1px, transparent 1px), linear-gradient(90deg, var(--rule) 1px, transparent 1px); background-size: 100% 220px, 25% 100%; background-position: 0 120px, center; }
+.gc-page { background: var(--paper); }
 .gc-card { background: #fff; border-radius: var(--r-md); box-shadow: 0 0 0 1px var(--rule), 0 12px 40px -18px rgba(20, 67, 47, .35); overflow: visible; text-align: left; }
 .gc-head { position: relative; display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; padding: clamp(20px, 3.4vw, 32px); padding-right: 96px; background: var(--base); border-bottom: 1px solid var(--rule); border-radius: var(--r-md) var(--r-md) 0 0; overflow: hidden; }
 .gc-head h3 { font-size: clamp(1.45rem, 3.2vw, 2rem); font-weight: 600; letter-spacing: -0.03em; line-height: 1.12; }
@@ -319,19 +319,19 @@ h1, h2, h3 { text-wrap: balance; }
 @media (prefers-reduced-motion: reduce) { .market-card:hover { transform: none; } }
 
 /* ── Type scale and radii: one size per role across every page. ── */
-.t-h1 { font-size: clamp(2.75rem, 6vw, 4.75rem); font-weight: 600; line-height: 1.03; letter-spacing: -0.035em; text-wrap: balance; }
-.t-h2 { font-size: clamp(1.9rem, 3.6vw, 2.75rem); font-weight: 600; line-height: 1.08; letter-spacing: -0.028em; text-wrap: balance; }
+.t-h1 { font-size: clamp(2.75rem, 6vw, 4.75rem); font-weight: 600; line-height: 1.06; letter-spacing: -0.035em; text-wrap: balance; }
+.t-h2 { font-size: clamp(1.9rem, 3.6vw, 2.75rem); font-weight: 600; line-height: 1.12; letter-spacing: -0.028em; text-wrap: balance; }
 .t-h3 { font-size: 1.3rem; font-weight: 600; line-height: 1.25; letter-spacing: -0.018em; }
-.t-lede { font-size: clamp(1.125rem, 1.7vw, 1.375rem); line-height: 1.45; letter-spacing: -0.012em; color: var(--ink-2); max-width: 46ch; }
+.t-lede { font-size: clamp(1.125rem, 1.7vw, 1.375rem); line-height: 1.55; letter-spacing: -0.012em; color: var(--ink-2); max-width: 46ch; }
 :root { --r-sm: 6px; --r-md: 12px; }
 .market-switch--dark { align-self: flex-start; background: rgba(255,255,255,.08); }
 .market-switch--dark a { color: rgba(255,255,255,.7) !important; }
 .market-switch--dark a[aria-current="true"] { background: #fff; color: var(--primary) !important; box-shadow: none; }
 
 /* ══ Home (22 Oct 2026): Rillet hero, Harvey Tenet panel, Harvey platform cards, Harvey blog grid ══ */
-.hp-sec { padding-block: clamp(72px, 9vw, 128px) 0; }
+.hp-sec { padding-block: clamp(112px, 13vw, 192px) 0; }
 .hp-h2 { font-weight: 500; font-size: clamp(2.2rem, 4.4vw, 3.8rem); line-height: 1.04; letter-spacing: -0.035em; text-align: center; }
-.hp-sub { max-width: 46ch; margin: 18px auto 0; color: var(--ink-2); font-size: 18px; line-height: 1.5; }
+.hp-sub { max-width: 46ch; margin: 28px auto 0; color: var(--ink-2); font-size: 18px; line-height: 1.5; }
 
 /* Grain: brushed dark grounds with film noise, drawn in CSS (no stock images). */
 .grain { position: relative; isolation: isolate; overflow: hidden; color: #fff; }
@@ -349,7 +349,7 @@ h1, h2, h3 { text-wrap: balance; }
 /* Hero: full-screen green behind the navbar. Copy left (Chapter's light/bold headline), product view bleeding right and bottom. */
 .hh { margin-top: -72px; min-height: 100svh; background: var(--accent-soft); overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr); gap: 56px;
   padding-left: max(16px, calc((100vw - 1320px) / 2 + 32px)); }
-.hh-copy { display: grid; gap: 24px; justify-items: start; align-content: center; padding-block: 128px 72px; }
+.hh-copy { display: grid; gap: 30px; justify-items: start; align-content: center; padding-block: 128px 72px; }
 .hh-badge { font-size: 13px; padding: 5px 10px; border-radius: 6px; background: rgba(255, 255, 255, .7); color: var(--accent); }
 .hh-h1 { font-weight: 300; font-size: clamp(2.8rem, 6vw, 5.6rem); line-height: .98; letter-spacing: -0.045em; max-width: 11ch; }
 .hh-h1 b { font-weight: 700; }
@@ -367,11 +367,11 @@ h1, h2, h3 { text-wrap: balance; }
 }
 
 /* Claim feature: Harvey Tenet. Stone panel, centred copy left, textured square right. */
-.cf-panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; padding: 16px; border-radius: 14px; background: #e4e1da; align-items: center; }
+.cf-panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; padding: 16px; border-radius: 14px; background: #f1f4f2; align-items: center; }
 .cf-copy { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; text-align: left; padding: clamp(32px, 5vw, 72px) clamp(20px, 4vw, 56px); }
 .cf-eyebrow { font-size: 14px; font-weight: 500; color: var(--accent); }
-.cf-h2 { margin-top: 18px; font-weight: 500; font-size: clamp(2.1rem, 3.6vw, 3.2rem); line-height: 1.05; letter-spacing: -0.035em; }
-.cf-lede { margin-top: 18px; max-width: 40ch; font-size: 18px; line-height: 1.5; color: var(--ink); }
+.cf-h2 { margin-top: 22px; font-weight: 500; font-size: clamp(2.1rem, 3.6vw, 3.2rem); line-height: 1.05; letter-spacing: -0.035em; }
+.cf-lede { margin-top: 26px; max-width: 40ch; font-size: 18px; line-height: 1.5; color: var(--ink); }
 .cf-get { margin-top: 28px; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
 .cf-ticks { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 14px; max-width: 46ch; }
 .cf-ticks li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 2px 10px; font-size: 16px; line-height: 1.45; }
@@ -514,3 +514,11 @@ h1, h2, h3 { text-wrap: balance; }
 .cr-clause { font-size: 11px; color: var(--ink-3); }
 .cr-list q { font-style: italic; color: var(--ink-2); padding-left: 9px; box-shadow: inset 2px 0 0 var(--accent); quotes: none; }
 .cr-next { font-size: 11.5px; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 9px 11px; }
+
+/* Feature row (Harvey solutions): three centred columns, quiet icon tile, no borders or cards. */
+.ft { list-style: none; padding: 0; display: grid; align-items: start; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(32px, 4vw, 64px); }
+.ft li { display: grid; justify-items: center; align-content: start; text-align: center; gap: 12px; }
+.ft-ico { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 8px; background: var(--base); color: var(--ink); margin-bottom: 8px; }
+.ft b { font-size: 19px; font-weight: 500; letter-spacing: -0.015em; }
+.ft-text { max-width: 34ch; font-size: 15.5px; line-height: 1.6; color: var(--ink-2); }
+@media (max-width: 760px) { .ft { grid-template-columns: 1fr; gap: 40px; } }

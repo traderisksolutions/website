@@ -1,3 +1,4 @@
+import { FeatureTrio } from "@/components/feature-trio";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -11,21 +12,23 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image" },
 };
 
-const facts = ["About 20 questions", "6 to 9 minutes", "Saves as you go", "No fee"];
+
 
 export default async function Find({ params }: { params: Promise<{ market: string }> }) {
   const m = await marketParam(params), M = MARKETS[m];
   if (!M.find) notFound();
   return (
     <main className="flex-1">
-      <section className="wrap pb-[clamp(80px,10vw,140px)] pt-[clamp(48px,8vw,104px)]">
+      <section className="wrap pb-[clamp(96px,12vw,176px)] pt-[clamp(72px,10vw,144px)]">
         <h1 className="t-h1">Find my cover</h1>
-        <p className="mt-5 t-lede">
+        <p className="mt-7 t-lede">
           Questions on your business, premises, staff and contracts. An adviser uses the answers to prepare quotes before the call. The questions follow the proposal forms insurers use.
         </p>
-        <ul className="mt-6 flex flex-wrap gap-2">
-          {facts.map(f => <li key={f} className="rounded-full bg-base px-3.5 py-1.5 text-[14.5px]">{f}</li>)}
-        </ul>
+        <FeatureTrio className="mt-[clamp(48px,6vw,80px)]" items={[
+          { icon: "doc", title: "About 20 questions", text: "The questions follow the proposal forms insurers use." },
+          { icon: "clock", title: "6 to 9 minutes", text: "Answers save as you go, so you can stop and come back." },
+          { icon: "fee", title: "No fee", text: "Insurers pay the advisers. Your business pays nothing." },
+        ]} />
         <div className="mt-8 flex flex-wrap gap-2.5">
           <FindStart />
           <Link href={mpath(m, "/get-covered")} className="btn btn-ghost">Use the short form</Link>

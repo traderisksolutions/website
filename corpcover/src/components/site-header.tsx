@@ -6,11 +6,12 @@ import { useEffect, useState } from "react";
 import { site } from "@/site";
 import { Logo } from "./logo";
 import { marketOf, mpath } from "@/lib/market";
+import { SERVICES } from "@/lib/services";
 
 const LINKS = [
-  { path: "/policy-review", label: "Policy review" },
-  { path: "/ask", label: "Ask an adviser" },
-  { path: "/get-covered", label: "Cover options" },
+  { path: SERVICES.review.path, label: SERVICES.review.name },
+  { path: SERVICES.quotes.path, label: SERVICES.quotes.name },
+  { path: SERVICES.chat.path, label: SERVICES.chat.name },
   { path: "/articles", label: "Insights" },
   { path: "/about", label: "About" },
 ];
@@ -56,7 +57,7 @@ export function SiteHeader() {
         </nav>
         <div className="nav-actions">
           <a href={tel} className="btn btn-ghost nav-call">Call {m === "sg" ? site.phone : `+65 ${site.phone}`}</a>
-          <Link href={mpath(m, "/claims")} className="btn btn-primary">Claim second opinion</Link>
+          <Link href={mpath(m, "/claims")} className="btn btn-primary">{SERVICES.claim.name}</Link>
         </div>
       </header>
       <div aria-hidden className="h-[72px] shrink-0" />
@@ -76,7 +77,7 @@ export function SiteHeader() {
           ))}
         </nav>
         <div className="grid gap-2 p-3 pb-6">
-          <Link href={mpath(m, "/claims")} onClick={close} tabIndex={open ? 0 : -1} className="btn btn-primary">Claim second opinion</Link>
+          <Link href={mpath(m, "/claims")} onClick={close} tabIndex={open ? 0 : -1} className="btn btn-primary">{SERVICES.claim.name}</Link>
                     <a href={tel} tabIndex={open ? 0 : -1} className="btn btn-ghost">Call +65 {site.phone}</a>
         </div>
       </aside>

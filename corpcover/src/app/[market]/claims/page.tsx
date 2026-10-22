@@ -1,3 +1,4 @@
+import { FeatureTrio } from "@/components/feature-trio";
 import type { Metadata } from "next";
 import { ClaimFlow } from "@/components/claim-flow";
 import { JsonLd } from "@/lib/json-ld";
@@ -53,16 +54,18 @@ export default async function Claims({ params }: { params: Promise<{ market: str
         offers: (["personal", "business"] as const).map(p => ({ "@type": "Offer", name: PLANS[p].label, price: PLANS[p].value, priceCurrency: "USD", availability: "https://schema.org/InStock" })),
       }} />
       <JsonLd data={{ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: qa.map(f => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }} />
-      <section className="wrap pb-12 pt-[clamp(48px,8vw,104px)]">
-        <p className="text-[13px] uppercase tracking-[.06em] text-ink-2">Claim second opinion</p>
+      <section className="wrap pb-[clamp(72px,9vw,128px)] pt-[clamp(72px,10vw,144px)]">
+        <p className="text-[14px] font-medium text-accent">Claim review</p>
         <h1 className="t-h1 mt-4 max-w-[16ch]">Rejected insurance claim review</h1>
-        <p className="t-lede mt-5">For a claim in {M.name} that the insurer rejected, denied or underpaid. Pay online and send the policy and the insurer&apos;s letter. Within {SLA_HOURS} hours you get a PDF report that sets each reason against the clause it relies on. A broker who did not sell you the policy then follows up by email.</p>
-        <ul className="mt-6 flex flex-wrap gap-2">
-          {[`Personal claim ${PLANS.personal.price}`, `Business claim ${PLANS.business.price}`, `PDF report in ${SLA_HOURS} hours`, "Not legal advice"].map(f => <li key={f} className="rounded-full bg-base px-3.5 py-1.5 text-[14.5px]">{f}</li>)}
-        </ul>
+        <p className="t-lede mt-7">For a claim in {M.name} that the insurer rejected, denied or underpaid. Pay online and send the policy and the insurer&apos;s letter. Within {SLA_HOURS} hours you get a PDF report that sets each reason against the clause it relies on. A broker who did not sell you the policy then follows up by email.</p>
+        <FeatureTrio className="mt-[clamp(48px,6vw,80px)]" items={[
+          { icon: "clock", title: `PDF report in ${SLA_HOURS} hours`, text: `Within ${SLA_HOURS} hours of receiving your documents. Personal claim ${PLANS.personal.price}, business claim ${PLANS.business.price}.` },
+          { icon: "doc", title: "Each reason checked", text: "Every reason the insurer gave, set against the clause it relies on, with the wording quoted." },
+          { icon: "person", title: "Broker follow-up", text: "A broker who did not sell you the policy replies in the same email thread. Not legal advice." },
+        ]} />
       </section>
 
-      <section className="wrap grid items-start gap-12 pb-[clamp(64px,8vw,104px)] lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-16">
+      <section className="wrap grid items-start gap-12 pb-[clamp(96px,12vw,176px)] lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-16">
         <ol className="grid gap-8">
           {PROCESS.map(([t, d], i) => (
             <li key={t} className="grid grid-cols-[44px_minmax(0,1fr)] gap-x-2 gap-y-1">
@@ -77,18 +80,18 @@ export default async function Claims({ params }: { params: Promise<{ market: str
       </section>
 
       {guides.length > 0 && (
-        <section className="wrap pb-[clamp(64px,8vw,104px)]">
+        <section className="wrap pb-[clamp(96px,12vw,176px)]">
           <h2 className="t-h2">Claim guides</h2>
           <div className="mt-8 grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">{guides.map(g => <ArticleCard key={g.slug} article={g} />)}</div>
         </section>
       )}
 
-      <section className="bg-base py-[clamp(56px,8vw,96px)]">
+      <section className="py-[clamp(96px,12vw,176px)]">
         <div className="wrap">
           <h2 className="t-h2">Questions about claim reviews</h2>
-          <div className="mt-8 grid gap-4 md:grid-cols-2">
+          <div className="mt-[clamp(40px,5vw,64px)] grid gap-x-16 gap-y-12 md:grid-cols-2">
             {qa.map(f => (
-              <div key={f.q} className="rounded-[12px] bg-paper p-6">
+              <div key={f.q} className="">
                 <h3 className="t-h3">{f.q}</h3>
                 <p className="mt-2 text-ink-2">{f.a}</p>
               </div>

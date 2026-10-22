@@ -87,8 +87,7 @@ export function GetCoveredStart({ market = "sg" }: { market?: MarketKey }) {
 
 /* ── The full flow ── */
 // Corgi order: business type → contact (the lead is saved here) → questions for the cover chosen → call.
-const STAGES = [{ name: "Business", steps: [0] }, { name: "Contact", steps: [1] }, { name: "Details", steps: [2, 3] }, { name: "Call", steps: [4] }];
-const HEADS = ["What type of business are you?", "Who should the adviser speak to?", "What insurance do you need?", "A few questions about your business", "When should the adviser call?"];
+const HEADS = ["Share your business with us", "Who should the adviser speak to?", "What insurance do you need?", "A few questions about your business", "When should the adviser call?"];
 
 export function GetCovered({ initialBiz = "", market = "sg" }: { initialBiz?: string; market?: MarketKey }) {
   const M = MARKETS[market];
@@ -144,7 +143,6 @@ export function GetCovered({ initialBiz = "", market = "sg" }: { initialBiz?: st
     setStep(step + 1); setErr(""); window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const back = () => { setStep(Math.max(0, step - 1)); setErr(""); };
-  const stage = STAGES.findIndex(g => g.steps.includes(step));
 
   if (done) return (
     <div className="gc-card" role="status">
@@ -159,9 +157,6 @@ export function GetCovered({ initialBiz = "", market = "sg" }: { initialBiz?: st
 
   return (
     <div className="grid gap-5">
-      <ol className="gc-stepper" aria-label="Progress">
-        {STAGES.map((g, i) => <li key={g.name} aria-current={i === stage ? "step" : undefined} data-done={i < stage}><span>{i + 1}</span>{g.name}</li>)}
-      </ol>
       <form className="gc-card" noValidate onSubmit={e => { e.preventDefault(); void next(); }}>
         <div className="gc-head">
           <div><h3>{HEADS[step]}</h3>{step > 0 && biz && <p className="mt-1 text-[14px] text-ink-3">{biz.label}</p>}</div>

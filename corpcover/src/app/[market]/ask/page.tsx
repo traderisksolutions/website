@@ -1,3 +1,4 @@
+import { FeatureTrio } from "@/components/feature-trio";
 import type { Metadata } from "next";
 import { Chat } from "@/components/chat";
 import { faqsFor } from "@/content/faq";
@@ -23,28 +24,32 @@ export default async function Ask({ params }: { params: Promise<{ market: string
   return (
     <main className="flex-1">
       <JsonLd data={faqPage(faqs)} />
-      <section className="wrap grid items-start gap-12 pb-[clamp(64px,8vw,104px)] pt-[clamp(48px,8vw,104px)] lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-16">
+      <section className="wrap grid items-start gap-12 pb-[clamp(96px,12vw,176px)] pt-[clamp(72px,10vw,144px)] lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-16">
         <div>
-          <h1 className="t-h1">Ask</h1>
-          <p className="t-lede mt-5">One question, one plain answer on business insurance in {M.name}. An adviser follows up on WhatsApp when the answer depends on your policy.</p>
-          <ul className="mt-6 flex flex-wrap gap-2">
-            {["No fee", "General information, not advice on a specific policy", m === "sg" ? "Advisers in Singapore" : "Singapore headquartered"].map(f => <li key={f} className="rounded-full bg-base px-3.5 py-1.5 text-[14.5px]">{f}</li>)}
-          </ul>
+          <h1 className="t-h1">Adviser chat</h1>
+          <p className="t-lede mt-7">One question, one plain answer on business insurance in {M.name}. An adviser follows up on WhatsApp when the answer depends on your policy.</p>
           <div className="mt-8 flex flex-wrap gap-2.5">
             <a href={wa} target="_blank" rel="noopener" className="btn btn-primary">Message an adviser</a>
             <a href={`tel:+65${site.phone.replace(/\s/g, "")}`} className="btn btn-ghost">Call +65 {site.phone}</a>
           </div>
         </div>
-        <div className="rounded-[12px] bg-base p-[clamp(18px,2.6vw,28px)]">
+        <div className="rounded-[16px] bg-paper p-[clamp(18px,2.6vw,28px)] shadow-[0_40px_90px_-40px_rgba(20,40,30,.35)]">
           <Chat suggestions={suggestions} className="h-[min(64dvh,560px)]" />
         </div>
       </section>
-      <section className="bg-base py-[clamp(56px,8vw,96px)]">
+      <section className="wrap pb-[clamp(96px,12vw,176px)]">
+        <FeatureTrio items={[
+            { icon: "fee", title: "No fee", text: "Insurers pay the advisers. Asking a question costs your business nothing." },
+            { icon: "doc", title: "Answers from the wording", text: "General information on business insurance, not advice on a specific policy." },
+            { icon: "person", title: "An adviser follows up", text: m === "sg" ? "When the answer depends on your policy, an adviser in Singapore replies on WhatsApp." : "When the answer depends on your policy, an adviser replies on WhatsApp." },
+          ]} />
+      </section>
+      <section className="py-[clamp(96px,12vw,176px)]">
         <div className="wrap">
           <h2 className="t-h2">Questions owners ask</h2>
-          <div className="mt-8 grid gap-4 md:grid-cols-2">
+          <div className="mt-[clamp(40px,5vw,64px)] grid gap-x-16 gap-y-12 md:grid-cols-2">
             {faqs.map(f => (
-              <div key={f.q} className="rounded-[12px] bg-paper p-6">
+              <div key={f.q} className="">
                 <h3 className="t-h3">{f.q}</h3>
                 <p className="mt-2 text-ink-2">{f.a}</p>
                 <ul className="mt-3 grid gap-1.5 text-[15px] text-ink-2">{f.points.map(p => <li key={p}>{p}</li>)}</ul>
