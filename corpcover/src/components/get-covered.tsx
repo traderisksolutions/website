@@ -79,7 +79,7 @@ export function GetCoveredStart({ market = "sg" }: { market?: MarketKey }) {
       <div className="gc-head"><h3>What type of business are you?</h3><RailsMark id="gc-home-mark" className="gc-mark" /></div>
       <div className="gc-body">
         <BizPicker value={biz} onChange={setBiz} />
-        <button type="button" disabled={!biz} onClick={() => router.push(`${mpath(market, "/get-covered")}?biz=${biz}`)} className="btn-press w-full">Continue <span aria-hidden>→</span></button>
+        <button type="button" disabled={!biz} onClick={() => router.push(`${mpath(market, "/get-covered")}?biz=${biz}`)} className="btn-press w-full">Continue</button>
       </div>
     </div>
   );
@@ -242,8 +242,8 @@ export function GetCovered({ initialBiz = "", market = "sg" }: { initialBiz?: st
           <input value={hp} onChange={e => setHp(e.target.value)} name="website" tabIndex={-1} autoComplete="off" aria-hidden className="hidden" />
           {err && <p role="alert" className="text-sm font-medium text-[#b42318]">{err}</p>}
           <div className="flex gap-3">
-            {step > 0 && <button type="button" onClick={back} className="btn-press btn-press--white">← Back</button>}
-            <button type="submit" disabled={busy} className="btn-press flex-1">{busy ? "Saving…" : step < 4 ? <>Continue <span aria-hidden>→</span></> : "Send request"}</button>
+            {step > 0 && <button type="button" onClick={back} className="btn-press btn-press--white">Back</button>}
+            <button type="submit" disabled={busy} className="btn-press flex-1">{busy ? "Saving…" : step < 4 ? "Continue" : "Send request"}</button>
           </div>
         </div>
       </form>

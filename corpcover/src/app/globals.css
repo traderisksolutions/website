@@ -574,7 +574,8 @@ h1, h2, h3 { text-wrap: balance; }
 .qf-check { display: flex; gap: 12px; align-items: flex-start; font-size: 15px; line-height: 1.55; color: var(--ink-2); cursor: pointer; max-width: 62ch; }
 .qf-check input { margin-top: 4px; width: 17px; height: 17px; flex: none; accent-color: var(--primary); }
 .qf-err { font-size: 14px; color: #8a5a00; background: #f6efdf; padding: 6px 12px; border-radius: 6px; justify-self: start; }
-.qf-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.qf-actions { display: flex; align-items: center; justify-content: flex-end; gap: 16px; flex-wrap: wrap; }
+.qf-actions .qf-back { margin-right: auto; }
 .qf-ok, .btn-press { display: inline-flex; align-items: center; gap: 10px; font: inherit; font-size: 17px !important; font-weight: 500 !important; color: #fff; background: var(--primary); border: 0; border-radius: 6px !important; padding: 11px 20px !important; box-shadow: none !important; margin: 0 !important; cursor: pointer; transition: background .15s; transform: none !important; flex: none !important; }
 .qf-ok:hover, .btn-press:hover { background: var(--primary-2); }
 .qf-ok:disabled, .btn-press:disabled { opacity: .5; cursor: default; }
@@ -589,7 +590,7 @@ h1, h2, h3 { text-wrap: balance; }
 .gc-head p { font-size: 14px !important; color: var(--accent) !important; font-weight: 500; }
 .gc-mark { display: none !important; }
 .gc-body { padding: 0 !important; }
-.gc-body > .flex.gap-3:last-child { flex-direction: row-reverse; justify-content: flex-end; align-items: center; }
+.gc-body > .flex.gap-3:last-child { justify-content: space-between; align-items: center; }
 
 /* FAQ accordion: whitespace between rows, a plus that turns into a minus. */
 .faq { display: grid; max-width: 880px; }

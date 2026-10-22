@@ -141,9 +141,9 @@ export function ClaimFlow({ market = "sg", mode = "start" }: { market?: MarketKe
       <input value={hp} onChange={e => setHp(e.target.value)} name="website" tabIndex={-1} autoComplete="off" aria-hidden className="hidden" />
       {err && <p role="alert" className="qf-err">{err}</p>}
       <div className="qf-actions">
-        <button type="submit" disabled={busy} className="qf-ok">{label}<span aria-hidden>{step === 1 ? "→" : "✓"}</span></button>
         {i > 0 && <button type="button" onClick={() => { setI(i - 1); setErr(""); }} className="qf-back">Back</button>}
-        <span className="qf-hint">press <b>Enter ↵</b></span>
+        <span className="qf-hint">press <b>Enter</b></span>
+        <button type="submit" disabled={busy} className="qf-ok">{label}</button>
       </div>
     </form>
   );
