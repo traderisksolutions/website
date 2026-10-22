@@ -195,7 +195,8 @@ export function Chat({ sequence, onActive, jump, suggestions, className = "" }: 
   const showChips = suggestions && !empty && !busy && !live;
 
   return (
-    <div ref={root} className={`chat flex flex-col overflow-hidden rounded-[20px] bg-paper ${className}`}>
+    <div ref={root} className={`chat flex flex-col overflow-hidden rounded-[16px] bg-paper ${className}`}>
+      <div className="chat-head"><span className="chat-ava" aria-hidden>CC</span><span><b>Corp Cover AI</b><small>Answers from our guides and policy wordings</small></span></div>
       <div ref={log} onScroll={onScroll} className="relative flex-1 space-y-5 overflow-y-auto px-5 pb-4 pt-6 sm:px-7" aria-live="polite">
         {empty && suggestions && (
           <div className="flex h-full flex-col justify-end gap-1">
@@ -209,7 +210,7 @@ export function Chat({ sequence, onActive, jump, suggestions, className = "" }: 
         )}
         {msgs.map((m, i) => m.role === "user" ? (
           <div key={i} data-qi={m.qi} className="chat-in flex justify-end">
-            <p className="max-w-[85%] rounded-[22px] bg-base px-4 py-2.5 text-[0.98rem] leading-snug">{m.text}</p>
+            <p className="max-w-[85%] rounded-[14px] rounded-br-[4px] bg-accent px-4 py-2.5 text-white text-[0.98rem] leading-snug">{m.text}</p>
           </div>
         ) : (
           <div key={i} className="chat-in">
@@ -236,7 +237,7 @@ export function Chat({ sequence, onActive, jump, suggestions, className = "" }: 
         </div>
       )}
 
-      <form onSubmit={e => { e.preventDefault(); if (!busy) void ask(draft); }} className="mx-3 mb-3 flex items-center gap-2 rounded-full bg-base py-1.5 pl-5 pr-1.5 shadow-[0_1px_2px_rgba(20,20,24,0.04)] sm:mx-4 sm:mb-4">
+      <form onSubmit={e => { e.preventDefault(); if (!busy) void ask(draft); }} className="chat-compose mx-3 mb-3 flex items-center gap-2 py-1.5 pl-4 pr-1.5 sm:mx-4 sm:mb-4">
         <input
           value={draft}
           onChange={e => { if (!live) { run.current++; setBusy(false); setLive(true); } setDraft(e.target.value); }}
@@ -247,8 +248,8 @@ export function Chat({ sequence, onActive, jump, suggestions, className = "" }: 
           className="min-w-0 flex-1 bg-transparent py-2 text-[0.98rem] outline-none placeholder:text-ink-3"
         />
         {busy && live
-          ? <button type="button" onClick={stop} aria-label="Stop" className="glass-primary grid size-10 shrink-0 place-items-center"><span className="size-3 rounded-[3px] bg-white" /></button>
-          : <button type="submit" aria-label="Send" disabled={!draft.trim() || busy} className="glass-primary grid size-10 shrink-0 place-items-center disabled:bg-[#8fa597] disabled:hover:translate-y-0">
+          ? <button type="button" onClick={stop} aria-label="Stop" className="chat-send grid size-10 shrink-0 place-items-center"><span className="size-3 rounded-[3px] bg-white" /></button>
+          : <button type="submit" aria-label="Send" disabled={!draft.trim() || busy} className="chat-send grid size-10 shrink-0 place-items-center">
               <svg viewBox="0 0 24 24" className="size-[18px]" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5" /></svg>
             </button>}
       </form>

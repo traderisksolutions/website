@@ -25,11 +25,11 @@ export default function PolicyReview() {
     <main className="flex-1">
       <section className="wrap pb-[clamp(72px,9vw,128px)] pt-[clamp(72px,10vw,144px)]">
         <h1 className="t-h1">Policy review</h1>
-        <p className="mt-7 t-lede">What your policy covers, what it excludes and where it falls short. A review is not a quote or a change to your cover.</p>
+        <p className="mt-7 t-lede">Most business owners renew without reading the wording, then find out what is missing when they claim. Know what you actually bought before that happens.</p>
         <FeatureTrio className="mt-[clamp(48px,6vw,80px)]" items={[
-          { icon: "fee", title: "No fee", text: "Insurers pay the advisers. A review costs your business nothing." },
-          { icon: "shield", title: "No obligation", text: "A review is not a quote. You decide whether to change anything." },
-          { icon: "upload", title: "Send PDF or photos", text: "PDF, JPG or PNG, up to 4 MB per file." },
+          { icon: "doc", title: "Know what you bought", text: "What each policy covers, what it leaves out, and where it falls short of your contracts and lease." },
+          { icon: "shield", title: "No commitment", text: "A review is not a quote. Keep your insurer and your cover if they are right for you." },
+          { icon: "fee", title: "90% of reviews find a saving", text: "Often 50% or more on premium, for the same or better cover. The review costs your business nothing." },
         ]} />
       </section>
 
