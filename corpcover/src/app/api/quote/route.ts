@@ -1,5 +1,5 @@
 import { CC } from "@/lib/find/questions";
-import { BIZ_BY_ID, COVERS, EMPTY, FORMATS, NOT_SURE, stepError, type QuoteState } from "@/lib/quote";
+import { BIZ_BY_ID, COVERS, EMPTY, EXTRA_Q, FORMATS, NOT_SURE, stepError, type QuoteState } from "@/lib/quote";
 import { MARKETS, isMarket } from "@/lib/market";
 
 // Get covered: validates every step again on the server, then forwards to the TRS dashboard
@@ -39,10 +39,13 @@ export async function POST(req: Request) {
     firstName: str(b.firstName, 80), lastName: str(b.lastName, 80), role: str(b.role, 40), email: str(b.email, 200).toLowerCase(),
     cc: str(b.cc, 6), phone: str(b.phone, 24).replace(/[^\d ]/g, ""),
     format: str(b.format, 12), day: str(b.day, 10), slot: str(b.slot, 12), notes: str(b.notes, 2000), consent: b.consent === true,
+    extra: Object.fromEntries(EXTRA_Q.map(q => [q.id, str((b.extra as Record<string, unknown> | undefined)?.[q.id], 120)]).filter(([, v]) => v)),
   };
+  // The lead is saved when contact details are in (stage "contact"), then updated with the rest ("final").
+  const final = b.stage !== "contact";
   const market = isMarket(b.market) ? b.market : "sg";
   const ccs = CC.map(c => c[1]);
-  for (let step = 0; step <= 4; step++) { const e = stepError(step, s, ccs, market); if (e) return json({ error: e }, 400); }
+  for (let step = 0; step <= (final ? 4 : 1); step++) { const e = stepError(step, s, ccs, market); if (e) return json({ error: e }, 400); }
 
   const biz = BIZ_BY_ID[s.biz];
   const body = {
@@ -50,13 +53,14 @@ export async function POST(req: Request) {
     client: { company_name: s.company, contact_name: `${s.firstName} ${s.lastName}`, email: s.email, phone: `${s.cc} ${s.phone.replace(/\s+/g, "")}`, industry: biz.label },
     answers: {
       form: "get-covered-v1", market: MARKETS[market].code, business_type: biz.label, business_group: biz.group, registration_no: s.uen || null, headcount: s.headcount,
-      needed_by: s.neededBy, claims_5y: s.claims, contract_requirement: s.contract || null, role: s.role,
-      call_format: FORMATS.find(f => f[0] === s.format)?.[1], call_day: s.day, call_slot: s.slot, notes: s.notes || null,
-      common_for_type: biz.c,
+      needed_by: s.neededBy || null, claims_5y: s.claims || null, contract_requirement: s.contract || null, role: s.role,
+      call_format: FORMATS.find(f => f[0] === s.format)?.[1] ?? null, call_day: s.day || null, call_slot: s.slot || null, notes: s.notes || null,
+      common_for_type: biz.c, stage: final ? "complete" : "contact only",
+      cover_questions: Object.fromEntries(EXTRA_Q.filter(q => s.extra[q.id]).map(q => [q.label, s.extra[q.id]])),
     },
     product_requests: covers.map(c => ({ product: c })),
-    flags: s.claims === "yes" ? ["claims_history"] : [], proposal_fields: {}, documents: [],
-    booking: { day: s.day, time: s.slot, format: s.format, tz: market === "hk" ? "Asia/Hong_Kong" : market === "my" ? "Asia/Kuala_Lumpur" : "Asia/Singapore", preferred: true },
+    flags: [...(s.claims === "yes" ? ["claims_history"] : []), ...(final ? [] : ["details_pending"])], proposal_fields: {}, documents: [],
+    booking: !final ? null : { day: s.day, time: s.slot, format: s.format, tz: market === "hk" ? "Asia/Hong_Kong" : market === "my" ? "Asia/Kuala_Lumpur" : "Asia/Singapore", preferred: true },
     consent_pdpa: true,
   };
   try {

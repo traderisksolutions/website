@@ -66,18 +66,51 @@ export type QuoteState = {
   biz: string; covers: string[]; company: string; uen: string; headcount: string; neededBy: string; claims: string; contract: string;
   firstName: string; lastName: string; role: string; email: string; cc: string; phone: string;
   format: string; day: string; slot: string; notes: string; consent: boolean;
+  /** Answers to the cover-specific questions (EXTRA_Q), by question id. */
+  extra: Record<string, string>;
 };
 export const EMPTY: QuoteState = {
   biz: "", covers: [], company: "", uen: "", headcount: "", neededBy: "", claims: "", contract: "",
-  firstName: "", lastName: "", role: "", email: "", cc: "+65", phone: "", format: "", day: "", slot: "", notes: "", consent: false,
+  firstName: "", lastName: "", role: "", email: "", cc: "+65", phone: "", format: "", day: "", slot: "", notes: "", consent: false, extra: {},
 };
 
-/** Problems for one step, in order; empty when the step is complete. Used by the flow and re-run by the route. */
+/** Questions asked only for the cover chosen, after contact details are in (Corgi order:
+ *  business → contact → questions). Drawn from the insurers' proposal forms; all optional. */
+export type ExtraQ = { id: string; cover: string | null; label: string; opts?: string[]; ph?: string };
+export const EXTRA_Q: ExtraQ[] = [
+  { id: "turnover", cover: null, label: "Annual turnover", opts: ["Under 500k", "500k to 1m", "1m to 5m", "5m to 20m", "Over 20m"] },
+  { id: "visitors", cover: "Public liability", label: "Do customers or visitors come to your premises?", opts: ["Yes", "No"] },
+  { id: "pl_sales", cover: "Product liability", label: "Where are your products sold?", opts: ["Home market only", "Asia", "Worldwide, including US and Canada"] },
+  { id: "pi_fees", cover: "Professional indemnity", label: "Annual fee income from professional services", ph: "e.g. 800,000" },
+  { id: "do_funding", cover: "Directors and officers", label: "Has the company raised outside funding or plan to?", opts: ["No", "Yes, raised", "Planning to raise"] },
+  { id: "cyber_records", cover: "Cyber liability", label: "Customer records you hold", opts: ["Under 1,000", "1,000 to 10,000", "Over 10,000"] },
+  { id: "wic_manual", cover: "Work injury compensation", label: "Staff doing manual work", opts: ["None", "1 to 10", "11 to 50", "Over 50"] },
+  { id: "contents_value", cover: "Commercial property and fire", label: "Value of contents, stock and renovations", ph: "e.g. 350,000" },
+  { id: "bar_value", cover: "Business all risks", label: "Value of equipment and stock to insure", ph: "e.g. 120,000" },
+  { id: "gross_profit", cover: "Business interruption", label: "Annual gross profit", ph: "e.g. 600,000" },
+  { id: "car_contract", cover: "Contractor's all risks", label: "Value of the largest current contract", ph: "e.g. 1,200,000" },
+  { id: "mb_value", cover: "Machinery breakdown", label: "Value of machinery", ph: "e.g. 250,000" },
+  { id: "git_value", cover: "Goods in transit and marine cargo", label: "Value of the largest single shipment", ph: "e.g. 80,000" },
+];
+export const extraFor = (covers: string[]) => EXTRA_Q.filter(q => q.cover === null || covers.includes(q.cover));
+
+/** Problems for one step, in order; empty when the step is complete. Used by the flow and re-run by the route.
+ *  Steps: 0 business type · 1 contact (the lead is saved here) · 2 cover · 3 about the business · 4 call. */
 export function stepError(step: number, s: QuoteState, ccs: string[], market = "sg"): string {
   if (step === 0) return BIZ_BY_ID[s.biz] ? "" : "Choose your business type.";
-  if (step === 1) return s.covers.length ? "" : "Choose at least one cover, or Not sure.";
-  if (step === 2) {
+  if (step === 1) {
     if (s.company.trim().length < 2) return "Enter the company name.";
+    if (!s.firstName.trim() || !s.lastName.trim()) return "Enter your first and last name.";
+    if (!ROLES.includes(s.role)) return "Choose your role.";
+    if (!EMAIL_RE.test(s.email.trim())) return "Enter a valid work email.";
+    if (!ccs.includes(s.cc)) return "Choose a country code.";
+    const d = s.phone.replace(/\D/g, "").length;
+    if (d < 7 || d > 12) return "Enter the phone number without the country code.";
+    if (!s.consent) return "Tick the consent box to continue.";
+    return "";
+  }
+  if (step === 2) return s.covers.length ? "" : "Choose at least one cover, or Not sure.";
+  if (step === 3) {
     if (s.uen.trim() && market === "sg" && !UEN_RE.test(s.uen.trim())) return "UEN is 9 or 10 letters and digits.";
     if (s.uen.trim() && market !== "sg" && !/^[0-9A-Z-]{4,20}$/i.test(s.uen.trim())) return "Check the registration number.";
     if (!HEADCOUNT.includes(s.headcount)) return "Choose the number of staff.";
@@ -85,19 +118,9 @@ export function stepError(step: number, s: QuoteState, ccs: string[], market = "
     if (!["yes", "no"].includes(s.claims)) return "Answer the claims question.";
     return "";
   }
-  if (step === 3) {
-    if (!s.firstName.trim() || !s.lastName.trim()) return "Enter your first and last name.";
-    if (!ROLES.includes(s.role)) return "Choose your role.";
-    if (!EMAIL_RE.test(s.email.trim())) return "Enter a valid work email.";
-    if (!ccs.includes(s.cc)) return "Choose a country code.";
-    const d = s.phone.replace(/\D/g, "").length;
-    if (d < 7 || d > 12) return "Enter the phone number without the country code.";
-    return "";
-  }
   if (step === 4) {
     if (!FORMATS.some(f => f[0] === s.format)) return "Choose how to meet.";
     if (!/^\d{4}-\d{2}-\d{2}$/.test(s.day) || !SLOTS.includes(s.slot)) return "Choose a day and a time of day.";
-    if (!s.consent) return "Tick the consent box to send.";
     return "";
   }
   return "";

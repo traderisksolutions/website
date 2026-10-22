@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { site } from "@/site";
 import { CC, dayLabel, workingDays } from "@/lib/find/questions";
-import { BIZ, BIZ_BY_ID, COVER_GROUPS, EMPTY, FORMATS, HEADCOUNT, NOT_SURE, ROLES, SLOTS, stepError, type QuoteState } from "@/lib/quote";
+import { BIZ, BIZ_BY_ID, COVER_GROUPS, EMPTY, FORMATS, HEADCOUNT, NOT_SURE, ROLES, SLOTS, extraFor, stepError, type QuoteState } from "@/lib/quote";
 import { RailsMark } from "./logo";
 import { MARKETS, mpath, type MarketKey } from "@/lib/market";
 
@@ -86,8 +86,9 @@ export function GetCoveredStart({ market = "sg" }: { market?: MarketKey }) {
 }
 
 /* ── The full flow ── */
-const STAGES = [{ name: "Business", steps: [0, 1, 2] }, { name: "Contact", steps: [3] }, { name: "Call", steps: [4] }];
-const HEADS = ["What type of business are you?", "What insurance do you need?", "A little more about your business", "Who should the adviser speak to?", "When should the adviser call?"];
+// Corgi order: business type → contact (the lead is saved here) → questions for the cover chosen → call.
+const STAGES = [{ name: "Business", steps: [0] }, { name: "Contact", steps: [1] }, { name: "Details", steps: [2, 3] }, { name: "Call", steps: [4] }];
+const HEADS = ["What type of business are you?", "Who should the adviser speak to?", "What insurance do you need?", "A few questions about your business", "When should the adviser call?"];
 
 export function GetCovered({ initialBiz = "", market = "sg" }: { initialBiz?: string; market?: MarketKey }) {
   const M = MARKETS[market];
@@ -108,7 +109,7 @@ export function GetCovered({ initialBiz = "", market = "sg" }: { initialBiz?: st
     try { saved = JSON.parse(localStorage.getItem(KEY) || "null"); } catch { /* storage blocked */ }
     const fromHome = BIZ_BY_ID[initialBiz] ? initialBiz : "";
     queueMicrotask(() => {
-      if (saved?.s) { setS({ ...EMPTY, ...saved.s, cc: saved.s.cc || M.cc, ...(fromHome && fromHome !== saved.s.biz ? { biz: fromHome, covers: BIZ_BY_ID[fromHome].c } : {}) }); setStep(fromHome && fromHome !== saved.s.biz ? 1 : Math.min(saved.step ?? 0, 4)); }
+      if (saved?.s) { setS({ ...EMPTY, ...saved.s, extra: saved.s.extra ?? {}, cc: saved.s.cc || M.cc, ...(fromHome && fromHome !== saved.s.biz ? { biz: fromHome, covers: BIZ_BY_ID[fromHome].c } : {}) }); setStep(fromHome && fromHome !== saved.s.biz ? 1 : Math.min(saved.step ?? 0, 4)); }
       else if (fromHome) { setS({ ...EMPTY, cc: M.cc, biz: fromHome, covers: BIZ_BY_ID[fromHome].c }); setStep(1); }
       loaded.current = true;
     });
@@ -116,6 +117,7 @@ export function GetCovered({ initialBiz = "", market = "sg" }: { initialBiz?: st
   useEffect(() => { if (loaded.current && !done) try { localStorage.setItem(KEY, JSON.stringify({ s, step })); } catch { /* ignore */ } }, [s, step, done, KEY]);
 
   const set = <K extends keyof QuoteState>(k: K, v: QuoteState[K]) => { setS(p => ({ ...p, [k]: v })); setErr(""); };
+  const setExtra = (k: string, v: string) => setS(p => ({ ...p, extra: { ...p.extra, [k]: v } }));
   const chooseBiz = (b: string) => setS(p => ({ ...p, biz: b, covers: p.biz === b && p.covers.length ? p.covers : BIZ_BY_ID[b].c })) ;
   const toggle = (c: string) => setS(p => {
     if (c === NOT_SURE) return { ...p, covers: p.covers.includes(NOT_SURE) ? [] : [NOT_SURE] };
@@ -124,19 +126,22 @@ export function GetCovered({ initialBiz = "", market = "sg" }: { initialBiz?: st
   });
   const biz = BIZ_BY_ID[s.biz];
 
+  const save = async (stage: "contact" | "final") => {
+    const r = await fetch("/api/quote", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...s, id, market, stage, website: hp, sourceUrl: location.href }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(r.status === 400 && j.error ? j.error : `Could not send. Please try again, or call ${site.phone}.`);
+  };
   const next = async () => {
     const e = stepError(step, s, CCS, market);
     if (e) { setErr(e); return; }
-    if (step < 4) { setStep(step + 1); setErr(""); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
-    setBusy(true); setErr("");
-    try {
-      const r = await fetch("/api/quote", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...s, id, market, website: hp, sourceUrl: location.href }) });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(r.status === 400 && j.error ? j.error : `Could not send. Please try again, or call ${site.phone}.`);
-      setDone(true);
-      try { localStorage.removeItem(KEY); } catch { /* ignore */ }
-    } catch (x) { setErr(x instanceof Error ? x.message : "Could not send."); }
-    finally { setBusy(false); }
+    if (step === 1 || step === 4) {
+      setBusy(true); setErr("");
+      try { await save(step === 1 ? "contact" : "final"); }
+      catch (x) { setErr(x instanceof Error ? x.message : "Could not send."); setBusy(false); return; }
+      setBusy(false);
+      if (step === 4) { setDone(true); try { localStorage.removeItem(KEY); } catch { /* ignore */ } return; }
+    }
+    setStep(step + 1); setErr(""); window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const back = () => { setStep(Math.max(0, step - 1)); setErr(""); };
   const stage = STAGES.findIndex(g => g.steps.includes(step));
@@ -163,41 +168,12 @@ export function GetCovered({ initialBiz = "", market = "sg" }: { initialBiz?: st
           <RailsMark id="gc-mark" className="gc-mark" />
         </div>
         <div className="gc-body">
-          {step === 0 && <BizPicker value={s.biz} onChange={b => { chooseBiz(b); setErr(""); }} autoFocus />}
+          {step === 0 && <BizPicker value={s.biz} onChange={b => { chooseBiz(b); setErr(""); }} />}
 
           {step === 1 && (
-            <div className="grid gap-4">
-              <p className="text-[14px] text-ink-2">Choose all that apply.{biz && biz.c.length > 0 && <> Pre-selected: cover common for {biz.label.toLowerCase()}. Change anything.</>}</p>
-              {COVER_GROUPS.map(g => (
-                <div key={g.name} className="grid gap-2">
-                  <p className="gc-group !px-0">{g.name}</p>
-                  <div className="flex flex-wrap gap-2">{g.items.map(c => <button key={c} type="button" aria-pressed={s.covers.includes(c)} onClick={() => { toggle(c); setErr(""); }} className="gc-chip">{c === "Work injury compensation" ? M.workInjury : c}</button>)}</div>
-                </div>
-              ))}
-              <div><button type="button" aria-pressed={s.covers.includes(NOT_SURE)} onClick={() => { toggle(NOT_SURE); setErr(""); }} className="gc-chip">{NOT_SURE}</button></div>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="grid gap-4">
-              <div className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-                <label className="field">Company name<input value={s.company} onChange={e => set("company", e.target.value)} autoComplete="organization" maxLength={160} /></label>
-                <label className="field">{M.regNo} (optional)<input value={s.uen} onChange={e => set("uen", e.target.value.toUpperCase())} maxLength={20} placeholder={market === "sg" ? "201912345K" : ""} /></label>
-              </div>
-              <fieldset><legend className="gc-label">Staff, including directors</legend>
-                <div className="flex flex-wrap gap-2" role="radiogroup">{HEADCOUNT.map(h => <button key={h} type="button" role="radio" aria-checked={s.headcount === h} onClick={() => set("headcount", h)} className="gc-chip">{h}</button>)}</div>
-              </fieldset>
-              <label className="field sm:max-w-[280px]">Cover needed from, or renewal date<input type="date" min={today()} value={s.neededBy} onChange={e => set("neededBy", e.target.value)} /></label>
-              <fieldset><legend className="gc-label">Any insurance claims in the last 5 years?</legend>
-                <div className="flex flex-wrap gap-2" role="radiogroup">{[["no", "No"], ["yes", "Yes"]].map(([v, l]) => <button key={v} type="button" role="radio" aria-checked={s.claims === v} onClick={() => set("claims", v)} className="gc-chip">{l}</button>)}</div>
-              </fieldset>
-              <label className="field">Does a lease, contract or tender ask for specific cover? (optional)<textarea rows={2} value={s.contract} onChange={e => set("contract", e.target.value)} maxLength={1000} placeholder="e.g. Mall lease asks for S$2m public liability" /></label>
-            </div>
-          )}
-
-          {step === 3 && (
             <div className="grid gap-3 sm:grid-cols-2">
               <p className="text-[14px] text-ink-2 sm:col-span-2">An adviser calls with options from several insurers. Insurers pay the adviser; your business pays no fee.</p>
+              <label className="field sm:col-span-2">Company name<input value={s.company} onChange={e => set("company", e.target.value)} autoComplete="organization" maxLength={160} /></label>
               <label className="field">First name<input value={s.firstName} onChange={e => set("firstName", e.target.value)} autoComplete="given-name" maxLength={80} /></label>
               <label className="field">Last name<input value={s.lastName} onChange={e => set("lastName", e.target.value)} autoComplete="family-name" maxLength={80} /></label>
               <fieldset className="sm:col-span-2"><legend className="gc-label">Your role</legend>
@@ -211,6 +187,44 @@ export function GetCovered({ initialBiz = "", market = "sg" }: { initialBiz?: st
                   <input id="gc-phone" type="tel" inputMode="tel" value={s.phone} onChange={e => set("phone", e.target.value)} autoComplete="tel-national" placeholder={(CC.find(c => c[1] === s.cc) ?? CC[0])[2]} maxLength={20} className="min-w-0 flex-1" />
                 </div>
               </div>
+              <label className="flex items-start gap-2.5 text-sm text-ink-2 sm:col-span-2">
+                <input type="checkbox" checked={s.consent} onChange={e => set("consent", e.target.checked)} className="mt-1 size-4 accent-[var(--primary)]" />
+                <span>I agree that Corp Cover and its advisers may use these details to contact me about this request, under {M.privacyLaw}.</span>
+              </label>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="grid gap-4">
+              <p className="text-[14px] text-ink-2">Choose all that apply.{biz && biz.c.length > 0 && <> Pre-selected: cover common for {biz.label.toLowerCase()}. Change anything.</>}</p>
+              {COVER_GROUPS.map(g => (
+                <div key={g.name} className="grid gap-2">
+                  <p className="gc-group !px-0">{g.name}</p>
+                  <div className="flex flex-wrap gap-2">{g.items.map(c => <button key={c} type="button" aria-pressed={s.covers.includes(c)} onClick={() => { toggle(c); setErr(""); }} className="gc-chip">{c === "Work injury compensation" ? M.workInjury : c}</button>)}</div>
+                </div>
+              ))}
+              <div><button type="button" aria-pressed={s.covers.includes(NOT_SURE)} onClick={() => { toggle(NOT_SURE); setErr(""); }} className="gc-chip">{NOT_SURE}</button></div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="grid gap-4">
+              <label className="field sm:max-w-[320px]">{M.regNo} (optional)<input value={s.uen} onChange={e => set("uen", e.target.value.toUpperCase())} maxLength={20} placeholder={market === "sg" ? "201912345K" : ""} /></label>
+              <fieldset><legend className="gc-label">Staff, including directors</legend>
+                <div className="flex flex-wrap gap-2" role="radiogroup">{HEADCOUNT.map(h => <button key={h} type="button" role="radio" aria-checked={s.headcount === h} onClick={() => set("headcount", h)} className="gc-chip">{h}</button>)}</div>
+              </fieldset>
+              <label className="field sm:max-w-[280px]">Cover needed from, or renewal date<input type="date" min={today()} value={s.neededBy} onChange={e => set("neededBy", e.target.value)} /></label>
+              <fieldset><legend className="gc-label">Any insurance claims in the last 5 years?</legend>
+                <div className="flex flex-wrap gap-2" role="radiogroup">{[["no", "No"], ["yes", "Yes"]].map(([v, l]) => <button key={v} type="button" role="radio" aria-checked={s.claims === v} onClick={() => set("claims", v)} className="gc-chip">{l}</button>)}</div>
+              </fieldset>
+              {extraFor(s.covers).map(q => q.opts ? (
+                <fieldset key={q.id}><legend className="gc-label">{q.id === "turnover" ? `${q.label} (${M.currency})` : q.label} <span className="font-normal text-ink-3">(optional)</span></legend>
+                  <div className="flex flex-wrap gap-2" role="radiogroup">{q.opts.map(o => <button key={o} type="button" role="radio" aria-checked={s.extra[q.id] === o} onClick={() => setExtra(q.id, s.extra[q.id] === o ? "" : o)} className="gc-chip">{o}</button>)}</div>
+                </fieldset>
+              ) : (
+                <label key={q.id} className="field sm:max-w-[320px]">{q.label} ({M.currency}, optional)<input inputMode="decimal" value={s.extra[q.id] ?? ""} onChange={e => setExtra(q.id, e.target.value)} maxLength={40} placeholder={q.ph} /></label>
+              ))}
+              <label className="field">Does a lease, contract or tender ask for specific cover? (optional)<textarea rows={2} value={s.contract} onChange={e => set("contract", e.target.value)} maxLength={1000} placeholder="e.g. Mall lease asks for S$2m public liability" /></label>
             </div>
           )}
 
@@ -226,10 +240,6 @@ export function GetCovered({ initialBiz = "", market = "sg" }: { initialBiz?: st
                 <div className="flex flex-wrap gap-2" role="radiogroup">{SLOTS.map(t => <button key={t} type="button" role="radio" aria-checked={s.slot === t} onClick={() => set("slot", t)} className="gc-chip">{t}</button>)}</div>
               </fieldset>
               <label className="field">Anything to help the adviser prepare (optional)<textarea rows={2} value={s.notes} onChange={e => set("notes", e.target.value)} maxLength={2000} placeholder="Current insurer, limits you hold, what prompted the review" /></label>
-              <label className="flex items-start gap-2.5 text-sm text-ink-2">
-                <input type="checkbox" checked={s.consent} onChange={e => set("consent", e.target.checked)} className="mt-1 size-4 accent-[var(--primary)]" />
-                <span>I agree that Corp Cover and its advisers may use these details to contact me about this request, under {M.privacyLaw}.</span>
-              </label>
               <p className="text-[13px] text-ink-3">This is a request, not a booking. An adviser confirms the time by email. A request is not a commitment to buy.</p>
             </div>
           )}
@@ -238,7 +248,7 @@ export function GetCovered({ initialBiz = "", market = "sg" }: { initialBiz?: st
           {err && <p role="alert" className="text-sm font-medium text-[#b42318]">{err}</p>}
           <div className="flex gap-3">
             {step > 0 && <button type="button" onClick={back} className="btn-press btn-press--white">← Back</button>}
-            <button type="submit" disabled={busy} className="btn-press flex-1">{step < 4 ? <>Continue <span aria-hidden>→</span></> : busy ? "Sending…" : "Send request"}</button>
+            <button type="submit" disabled={busy} className="btn-press flex-1">{busy ? "Saving…" : step < 4 ? <>Continue <span aria-hidden>→</span></> : "Send request"}</button>
           </div>
         </div>
       </form>
