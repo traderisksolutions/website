@@ -18,7 +18,7 @@ export default async function Blogs({ params }: { params: Promise<{ market: stri
   return (
     <main className="flex-1">
       <section className="wrap pb-10 pt-[clamp(48px,8vw,104px)] sm:pb-14">
-        <h1 className="t-h1">Blogs</h1>
+        <h1 className="t-h1">Insights</h1>
         <p className="mt-5 t-lede">Plain guides to business insurance in {M.name}: what each policy covers, what it excludes and what to check.</p>
         <Subscribe variant="inline" className="mt-7" />
       </section>

@@ -20,7 +20,7 @@ function DensityIcon({ cols }: { cols: number }) {
 
 /** Alps Wills estates grid: "Blogs, n articles", topic filters and a 2/3/4 column switch.
  *  With maxRows, cards past that many rows are hidden at each breakpoint (1, 2 or n columns). */
-export function BlogGrid({ articles, label = "Blogs", maxRows, initial = "All", footer }: {
+export function BlogGrid({ articles, label = "Insights", maxRows, initial = "All", footer }: {
   articles: Article[]; label?: string; maxRows?: number; initial?: "All" | Topic; footer?: ReactNode;
 }) {
   const [topic, setTopic] = useState<"All" | Topic>(initial);

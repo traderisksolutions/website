@@ -16,7 +16,7 @@ export function ReportMock({ currency = "S$" }: { currency?: string }) {
     <div className="rp-page">
       <div className="rp-head"><span>Corp Cover</span><span className="ui-tag">Example</span></div>
       <p className="rp-kicker">Policy review report · 22 Oct 2026</p>
-      <p className="rp-title">Lim &amp; Tan Engineering Pte Ltd</p>
+      <p className="rp-title">GreenPoint Pte Ltd</p>
       <div className="rp-sum">
         <span><b>5</b>covers read</span><span><b>3</b>gaps against contracts</span><span><b>12</b>clauses cited</span>
       </div>

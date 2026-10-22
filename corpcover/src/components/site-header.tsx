@@ -8,10 +8,10 @@ import { Logo } from "./logo";
 import { marketOf, mpath } from "@/lib/market";
 
 const LINKS = [
-  { path: "/policy-review", label: "Review" },
-  { path: "/ask", label: "Ask" },
-  { path: "/get-covered", label: "Choose" },
-  { path: "/articles", label: "Blogs" },
+  { path: "/policy-review", label: "Policy review" },
+  { path: "/ask", label: "Ask an adviser" },
+  { path: "/get-covered", label: "Cover options" },
+  { path: "/articles", label: "Insights" },
   { path: "/about", label: "About" },
 ];
 

@@ -31,13 +31,13 @@ export function SiteFooter() {
           </div>
           <div className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-4">
             <Column title="Services">
-              <Link href={mpath(m, "/policy-review")}>Review</Link>
-              <Link href={mpath(m, "/ask")}>Ask</Link>
-              <Link href={mpath(m, "/get-covered")}>Choose</Link>
+              <Link href={mpath(m, "/policy-review")}>Policy review</Link>
+              <Link href={mpath(m, "/ask")}>Ask an adviser</Link>
+              <Link href={mpath(m, "/get-covered")}>Cover options</Link>
               <Link href={mpath(m, "/claims")}>Claim second opinion</Link>
             </Column>
-            <Column title="Blogs">
-              <Link href={mpath(m, "/articles")}>All blogs</Link>
+            <Column title="Insights">
+              <Link href={mpath(m, "/articles")}>All insights</Link>
               {["Required by law", "Liability", "Property", "Directors", "Claims"].map(t => <Link key={t} href={`${mpath(m, "/articles")}?topic=${encodeURIComponent(t)}`}>{t}</Link>)}
             </Column>
             <Column title="Company">

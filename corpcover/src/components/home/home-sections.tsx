@@ -17,8 +17,8 @@ export function HomeHero({ m }: { m: MarketKey }) {
           <p className="hh-lede">Advisers compare plans across insurers and have saved businesses millions in premiums.</p>
           <div className="flex w-full flex-wrap gap-2.5">
             <Link href={mpath(m, "/ask")} className="btn btn-primary">Ask</Link>
-            <Link href={mpath(m, "/policy-review")} className="btn btn-ghost">Review</Link>
-            <Link href={mpath(m, "/get-covered")} className="btn btn-ghost">Choose</Link>
+            <Link href={mpath(m, "/policy-review")} className="btn btn-primary">Review</Link>
+            <Link href={mpath(m, "/get-covered")} className="btn btn-primary">Choose</Link>
           </div>
           <p className="hh-trust"><span aria-hidden className="hh-dots"><i /><i /><i /></span>Trusted by 200+ businesses</p>
         </div>
@@ -33,11 +33,15 @@ export function ClaimFeature({ m }: { m: MarketKey }) {
     <section className="wrap hp-sec" aria-labelledby="claim-h">
       <div className="cf-panel">
         <div className="cf-copy">
-          <p className="cf-eyebrow">Claim second opinion</p>
+          <p className="cf-eyebrow">50+ years of combined experience</p>
           <h2 id="claim-h" className="cf-h2">Unsure about your claim?</h2>
-          <p className="cf-lede">We run your policy and the insurer&apos;s letter through an AI model set up to read policy wording and evidence. Then you get 30 minutes with an experienced B2B insurance broker.</p>
-          <p className="cf-by">Our team has 50+ years of combined experience.</p>
-          <Link href={mpath(m, "/claims")} className="btn btn-primary mt-7">Check my claim</Link>
+          <p className="cf-lede">Send your policy, supporting documents, and any legal documents or email threads with the insurer. We analyse what your policy entitles you to receive and advise you on the next step.</p>
+          <p className="cf-get">What you get</p>
+          <ul className="cf-ticks">
+            <li><b>Detailed PDF report</b><span>An analysis of your claim: each reason the insurer gave, the clause it relies on, and what the wording supports.</span></li>
+            <li><b>30-minute call with an experienced broker</b><span>A broker who did not sell you the policy goes through the report and your options with you.</span></li>
+          </ul>
+          <Link href={mpath(m, "/claims")} className="btn btn-primary mt-8 self-center">Check my claim</Link>
         </div>
         <Link href={mpath(m, "/claims")} className="cf-art" aria-label="Claim second opinion">
           <Image src={secondOpinion} alt="A magnifying glass resting on a page of printed text" fill sizes="(min-width: 860px) 50vw, 100vw" placeholder="blur" className="object-cover" />
@@ -49,8 +53,8 @@ export function ClaimFeature({ m }: { m: MarketKey }) {
 
 const CARDS = [
   { key: "ask", tone: "grain-evergreen", title: "Ask", text: "Ask about a cover, an exclusion or a contract clause. Each answer names the section it comes from.", cta: "Ask a question", path: "/ask" },
-  { key: "review", tone: "grain-olive", title: "Review", text: "Send the schedule and wording. An adviser checks each cover against your contracts and premises.", cta: "Send my policy for review", path: "/policy-review" },
-  { key: "choose", tone: "grain-slate", title: "Choose", text: "Pick your business type. We show the cover it usually holds, and an adviser gets quotes from insurers.", cta: "Find my cover", path: "/get-covered" },
+  { key: "review", tone: "grain-moss", title: "Review", text: "Send the schedule and wording. An adviser checks each cover against your contracts and premises.", cta: "Send my policy for review", path: "/policy-review" },
+  { key: "choose", tone: "grain-pine", title: "Choose", text: "Pick your business type. We show the cover it usually holds, and an adviser gets quotes from insurers.", cta: "Find my cover", path: "/get-covered" },
 ] as const;
 
 /** Three services (Harvey "One Platform" cards): the hovered card widens, the others fade. */
@@ -80,8 +84,8 @@ export function ServiceCards({ m }: { m: MarketKey }) {
   );
 }
 
-// Lenny's Newsletter treatment: warm ground, bold title, ink drawing, highlighter tag.
-const GROUNDS: [string, string][] = [["#f8dcc4", "#f5b94a"], ["#dfe9e0", "#f5d36a"], ["#efe4cf", "#9fd0b4"], ["#f3d9d2", "#f5c46a"], ["#e2e6ef", "#f5b94a"]];
+// Lenny's Newsletter treatment in Corp Cover greens: green ground, bold title, ink drawing, highlighter tag.
+const GROUNDS: [string, string][] = [["#e3ece6", "#b9d8c3"], ["#d6e5db", "#c9e3b0"], ["#e9f0eb", "#a9cdb6"], ["#cfe0d4", "#d8ebc4"], ["#dde9e1", "#b5d6c0"]];
 const fmt = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
 /** Blogs (Harvey blog grid): typographic covers, title, date and topic. Five across, full rows only. */
@@ -92,8 +96,8 @@ export function BlogRail({ m, articles }: { m: MarketKey; articles: Guide[] }) {
     <section className="hp-sec" aria-labelledby="blog-h">
       <div className="wrap">
         <div className="mb-10 flex items-end justify-between gap-6">
-          <h2 id="blog-h" className="hp-h2 !text-left">Blogs</h2>
-          <Link href={mpath(m, "/articles")} className="text-[15px] text-ink-2 underline decoration-rule underline-offset-4 hover:text-ink">View all blogs</Link>
+          <h2 id="blog-h" className="hp-h2 !text-left">Insights</h2>
+          <Link href={mpath(m, "/articles")} className="text-[15px] text-ink-2 underline decoration-rule underline-offset-4 hover:text-ink">View all insights</Link>
         </div>
         <div className="hb-grid">
           {articles.slice(0, n).map((a, i) => {

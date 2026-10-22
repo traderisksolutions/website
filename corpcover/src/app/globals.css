@@ -340,6 +340,8 @@ h1, h2, h3 { text-wrap: balance; }
 .grain-evergreen { background: radial-gradient(60% 55% at 18% 92%, rgba(88, 132, 108, .55), transparent 70%), radial-gradient(45% 60% at 92% 8%, rgba(10, 20, 16, .9), transparent 70%), linear-gradient(160deg, #183a2c 0%, #0d241a 60%, #08170f 100%); }
 .grain-olive { background: radial-gradient(55% 55% at 12% 10%, rgba(140, 128, 98, .5), transparent 70%), radial-gradient(50% 60% at 95% 90%, rgba(12, 11, 9, .9), transparent 70%), linear-gradient(160deg, #4a4334 0%, #2b2720 55%, #15130f 100%); }
 .grain-slate { background: radial-gradient(55% 50% at 85% 15%, rgba(110, 128, 124, .5), transparent 70%), radial-gradient(60% 60% at 5% 95%, rgba(8, 12, 12, .9), transparent 70%), linear-gradient(160deg, #2c3735 0%, #1a2120 55%, #0d1110 100%); }
+.grain-moss { background: radial-gradient(55% 55% at 12% 10%, rgba(120, 160, 120, .5), transparent 70%), radial-gradient(50% 60% at 95% 90%, rgba(8, 20, 12, .9), transparent 70%), linear-gradient(160deg, #3a5a3e 0%, #24402a 55%, #122216 100%); }
+.grain-pine { background: radial-gradient(55% 50% at 85% 15%, rgba(96, 150, 132, .5), transparent 70%), radial-gradient(60% 60% at 5% 95%, rgba(6, 16, 14, .9), transparent 70%), linear-gradient(160deg, #1f4a42 0%, #143430 55%, #0a1c19 100%); }
 .grain-stone { color: var(--ink); background: radial-gradient(60% 60% at 80% 85%, rgba(180, 172, 158, .55), transparent 70%), linear-gradient(160deg, #ece8e1 0%, #ddd8cf 100%); }
 .grain-sand { color: var(--ink); background: radial-gradient(60% 60% at 15% 85%, rgba(196, 210, 198, .6), transparent 70%), linear-gradient(160deg, #eef1ec 0%, #d9e2da 100%); }
 .grain-stone::before, .grain-sand::before { opacity: .35; mix-blend-mode: multiply; }
@@ -366,11 +368,16 @@ h1, h2, h3 { text-wrap: balance; }
 
 /* Claim feature: Harvey Tenet. Stone panel, centred copy left, textured square right. */
 .cf-panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; padding: 16px; border-radius: 14px; background: #e4e1da; }
-.cf-copy { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: clamp(32px, 5vw, 72px) clamp(16px, 3vw, 40px); }
-.cf-eyebrow { font-size: 14px; color: var(--ink); }
+.cf-copy { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; text-align: left; padding: clamp(32px, 5vw, 72px) clamp(20px, 4vw, 56px); }
+.cf-eyebrow { font-size: 14px; font-weight: 500; color: var(--accent); }
 .cf-h2 { margin-top: 18px; font-weight: 500; font-size: clamp(2.1rem, 3.6vw, 3.2rem); line-height: 1.05; letter-spacing: -0.035em; }
 .cf-lede { margin-top: 18px; max-width: 40ch; font-size: 18px; line-height: 1.5; color: var(--ink); }
-.cf-by { margin-top: 14px; font-size: 15px; color: var(--ink-2); }
+.cf-get { margin-top: 28px; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+.cf-ticks { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 14px; max-width: 46ch; }
+.cf-ticks li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 2px 10px; font-size: 16px; line-height: 1.45; }
+.cf-ticks li::before { content: ""; grid-row: span 2; width: 16px; height: 16px; margin-top: 3px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5l3.2 3L13 4.5' fill='none' stroke='%23858b87' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/16px no-repeat; }
+.cf-ticks b { font-weight: 500; color: var(--ink); }
+.cf-ticks span { color: var(--ink-2); font-size: 15px; }
 .cf-art { position: relative; display: block; aspect-ratio: 1; border-radius: 10px; overflow: hidden; }
 .cf-word { font-weight: 300; font-size: clamp(2.6rem, 5.4vw, 5.2rem); line-height: .95; letter-spacing: -0.04em; text-align: center; transition: transform .8s var(--ease); }
 .cf-art img { transition: transform .9s var(--ease); } .cf-art:hover img { transform: scale(1.03); }
