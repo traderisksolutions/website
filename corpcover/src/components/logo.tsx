@@ -25,7 +25,7 @@ export function RailsMark({ id, tone = "steel", className = "h-[24px] w-auto" }:
 /** Mark and name, as used in the navbar, drawer and footer. */
 export function Logo({ id, tone = "steel", name }: { id: string; tone?: "steel" | "white"; name: string }) {
   return (
-    <span className="inline-flex items-center gap-2.5">
+    <span className="inline-flex items-center gap-2.5 whitespace-nowrap">
       <RailsMark id={id} tone={tone} />
       <span className={tone === "white" ? undefined : "text-[var(--primary)]"}>{name}</span>
     </span>

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BlogGrid } from "@/components/blog-grid";
 import { FaqStory } from "@/components/faq-story";
-import { Subscribe } from "@/components/subscribe";
 import { StartCards } from "@/components/start-cards";
 import { Statement } from "@/components/statement";
 import { GetCoveredStart } from "@/components/get-covered";
@@ -49,7 +48,6 @@ export default async function Home({ params }: { params: Promise<{ market: strin
           footer={<div className="mt-12 flex justify-center"><Link href={mpath(m, "/articles")} className="btn btn-ghost">View all blogs</Link></div>} />
       </section>
 
-      <Subscribe variant="band" />
 
       <section id="faq" className="scroll-mt-4 pb-16 pt-14 lg:pb-24 lg:pt-20">
         <div className="wrap">

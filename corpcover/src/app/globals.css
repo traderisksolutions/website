@@ -124,12 +124,11 @@ h1, h2, h3 { text-wrap: balance; }
 .bcard:hover .bcard-img img, .bcard:hover .bcard-img svg { transform: scale(1.045); }
 @media (prefers-reduced-motion: reduce) { .bcard-img img, .bcard-img svg { transition: none; } .bcard:hover .bcard-img img, .bcard:hover .bcard-img svg { transform: none; } }
 
-/* ── Footer (Alps Wills): the page fades into a deep evergreen base. ── */
-.footer-fade {
-  background:
-    radial-gradient(60% 40% at 25% 45%, rgba(185, 203, 191, .45), transparent 70%),
-    radial-gradient(50% 35% at 80% 52%, rgba(42, 106, 76, .4), transparent 70%),
-    linear-gradient(to bottom, #ffffff 0%, #eef3ef 14%, #b9cbbf 30%, #2a6a4c 50%, #14432f 70%, #0d2d1f 88%, #0a241a 100%);
+/* ── Footer (Rillet): white, large evergreen wordmark bleeding off the bottom. ── */
+.footer-wordmark {
+  margin-top: clamp(48px, 6vw, 88px); margin-bottom: -0.2em;
+  font-size: clamp(72px, 17.5vw, 260px); font-weight: 600; line-height: .85; letter-spacing: -.055em;
+  color: var(--primary); white-space: nowrap; user-select: none;
 }
 
 /* ── Article body: 728px column, 19/30, bold headings ── */
